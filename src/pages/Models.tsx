@@ -17,26 +17,31 @@ const modelTypes: ModelType[] = [
     icon: <BarChart3 className="h-5 w-5" />,
     title: "LBO Model",
     description: "Full leveraged buyout with debt schedules and returns analysis",
+    route: "/models/new?type=lbo",
   },
   {
     icon: <DollarSign className="h-5 w-5" />,
     title: "DCF Model",
     description: "Intrinsic value with WACC & terminal value calculation",
+    route: "/models/new?type=dcf",
   },
   {
     icon: <TrendingUp className="h-5 w-5" />,
     title: "Pro Forma",
     description: "Operating projections & scenario planning",
+    route: "/models/new?type=pro_forma",
   },
   {
     icon: <GitMerge className="h-5 w-5" />,
     title: "Merger Model",
     description: "M&A accretion/dilution with synergy analysis",
+    route: "/models/new?type=merger",
   },
   {
     icon: <FileText className="h-5 w-5" />,
     title: "CAM Builder",
     description: "AI-generated credit memo with risk rating",
+    route: "/models/new?type=cam",
   },
   {
     icon: <RefreshCw className="h-5 w-5" />,
@@ -59,7 +64,7 @@ export default function Models() {
             Build financial models with AI-powered intelligence
           </p>
         </div>
-        <Button>
+        <Button onClick={() => navigate("/models/new")}>
           <Plus className="h-4 w-4 mr-2" />
           New Model
         </Button>
@@ -77,7 +82,7 @@ export default function Models() {
               icon={type.icon}
               title={type.title}
               description={type.description}
-              onClick={type.route ? () => navigate(type.route) : undefined}
+              onClick={type.route ? () => navigate(type.route!) : undefined}
             />
           ))}
         </div>

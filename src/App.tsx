@@ -8,6 +8,8 @@ import { Layout } from "@/components/layout/Layout";
 import Index from "./pages/Index";
 import Pipeline from "./pages/Pipeline";
 import Models from "./pages/Models";
+import NewModel from "./pages/NewModel";
+import ModelEditor from "./pages/ModelEditor";
 import Portfolio from "./pages/Portfolio";
 import DataRoom from "./pages/DataRoom";
 import Companies from "./pages/Companies";
@@ -36,6 +38,8 @@ const App = () => (
               <Route path="/auth" element={<Auth />} />
               <Route path="/pipeline" element={<Pipeline />} />
               <Route path="/models" element={<Models />} />
+              <Route path="/models/new" element={<NewModel />} />
+              <Route path="/models/:modelId/edit" element={<ModelEditor />} />
               <Route path="/models/cash-flow-buildup" element={<CashFlowBuildupPage />} />
               <Route path="/models/view/:modelId" element={<ModelViewerPage />} />
               <Route path="/portfolio" element={<Portfolio />} />
