@@ -11,6 +11,7 @@ import Models from "./pages/Models";
 import Portfolio from "./pages/Portfolio";
 import DataRoom from "./pages/DataRoom";
 import Auth from "./pages/Auth";
+import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -30,6 +31,7 @@ const App = () => (
               <Route path="/models" element={<Models />} />
               <Route path="/portfolio" element={<Portfolio />} />
               <Route path="/documents" element={<DataRoom />} />
+              <Route path="/settings" element={<Settings />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
