@@ -6,7 +6,6 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -30,26 +29,33 @@ serve(async (req) => {
       );
     }
 
-    console.log(`Extracting financial data from: ${file_name}`);
+    console.log(`Extracting historical financials from: ${file_name}`);
     console.log(`File content preview: ${file_data.substring(0, 500)}`);
 
-    const systemPrompt = `You are a financial data extraction expert. Extract historical financial data from the provided spreadsheet content and return a structured JSON response.
+    const systemPrompt = `You are a financial data extraction expert. Extract ONLY HISTORICAL (actual/reported) financial data from the provided spreadsheet content.
 
-IMPORTANT: Return ONLY valid JSON, no markdown, no code blocks, no explanations.
+CRITICAL RULES:
+1. ONLY extract data from ACTUAL/HISTORICAL years - typically labeled as "Actual", "Historical", "FY", or past calendar years
+2. DO NOT extract any PROJECTED, FORECASTED, or ESTIMATED values - ignore columns labeled "Projected", "Forecast", "Budget", "Plan", "Est", or future years
+3. If a year has both actual and projected values, only use the actual values
+4. Return ONLY valid JSON, no markdown, no code blocks, no explanations
 
-Extract the following if available:
-- Revenue/Net Sales by year
-- EBITDA by year  
-- Net Income by year
-- Accounts Receivable by year
-- Inventory by year
-- Accounts Payable by year
-- Any other key financial metrics
+Extract these line items for HISTORICAL years only:
+- Revenue/Net Sales
+- EBITDA  
+- Net Income
+- Depreciation & Amortization
+- Capital Expenditures (CapEx)
+- Accounts Receivable
+- Inventory
+- Accounts Payable
+- Total Debt
+- Cash & Equivalents
 
-Calculate:
-- EBITDA margin (EBITDA / Revenue)
-- Year-over-year revenue growth
-- Working capital metrics (DSO, DIO, DPO) if balance sheet data available
+Calculate from historical data:
+- EBITDA margin (EBITDA / Revenue) for each year
+- Average year-over-year revenue growth
+- Working capital metrics if balance sheet data available
 
 Return this exact JSON structure:
 {
@@ -63,41 +69,51 @@ Return this exact JSON structure:
     "ebitda": {"2022": 20, "2023": 23, "2024": 27},
     "cogs": {},
     "gross_profit": {},
-    "depreciation_amortization": {},
+    "depreciation_amortization": {"2022": 5, "2023": 6, "2024": 7},
     "operating_income": {},
+    "interest_expense": {},
     "net_income": {}
   },
   "balance_sheet": {
     "cash": {},
     "accounts_receivable": {},
     "inventory": {},
-    "accounts_payable": {}
+    "accounts_payable": {},
+    "total_debt": {}
+  },
+  "cash_flow": {
+    "capex": {},
+    "operating_cash_flow": {},
+    "free_cash_flow": {}
   },
   "calculated_metrics": {
-    "ebitda_margin_pct": {"2024": 0.22},
-    "yoy_revenue_growth": 0.10,
+    "ebitda_margin_pct": {"2022": 0.20, "2023": 0.21, "2024": 0.22},
+    "avg_revenue_growth": 0.10,
+    "latest_revenue": 121,
+    "latest_ebitda": 27,
     "dso_days": 45,
     "dio_days": 30,
     "dpo_days": 35
   },
   "data_quality": {
     "completeness_score": "high",
+    "years_extracted": 3,
     "missing_items": [],
     "assumptions_made": [],
-    "red_flags": []
+    "excluded_projections": ["2025E", "2026E"]
   }
 }
 
-If you cannot find certain data, leave those fields empty or use reasonable estimates based on available data. Note any assumptions in data_quality.assumptions_made.`;
+If you cannot find certain data, leave those fields empty. Note any projections you excluded in data_quality.excluded_projections.`;
 
-    const userPrompt = `Extract financial data from this file.
+    const userPrompt = `Extract ONLY historical financial data from this file. Exclude any projected/forecasted values.
 Company name hint: ${company_name || 'Unknown'}
 File name: ${file_name}
 
 File content:
 ${file_data.substring(0, 15000)}`;
 
-    console.log('Calling Lovable AI for extraction...');
+    console.log('Calling Lovable AI for historical extraction...');
 
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
@@ -120,13 +136,13 @@ ${file_data.substring(0, 15000)}`;
       
       if (response.status === 429) {
         return new Response(
-          JSON.stringify({ success: false, error: 'Rate limit exceeded. Please try again in a moment.' }),
+          JSON.stringify({ success: false, error: 'Rate limit exceeded. Please try again.' }),
           { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
       if (response.status === 402) {
         return new Response(
-          JSON.stringify({ success: false, error: 'AI credits exhausted. Please add credits to continue.' }),
+          JSON.stringify({ success: false, error: 'AI credits exhausted.' }),
           { status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
@@ -150,34 +166,25 @@ ${file_data.substring(0, 15000)}`;
 
     console.log('AI response:', content.substring(0, 500));
 
-    // Parse the JSON response - handle potential markdown code blocks
     let extractedData;
     try {
-      // Remove markdown code blocks if present
       let cleanContent = content.trim();
-      if (cleanContent.startsWith('```json')) {
-        cleanContent = cleanContent.slice(7);
-      } else if (cleanContent.startsWith('```')) {
-        cleanContent = cleanContent.slice(3);
-      }
-      if (cleanContent.endsWith('```')) {
-        cleanContent = cleanContent.slice(0, -3);
-      }
+      if (cleanContent.startsWith('```json')) cleanContent = cleanContent.slice(7);
+      else if (cleanContent.startsWith('```')) cleanContent = cleanContent.slice(3);
+      if (cleanContent.endsWith('```')) cleanContent = cleanContent.slice(0, -3);
       
       extractedData = JSON.parse(cleanContent.trim());
     } catch (parseError) {
       console.error('Failed to parse AI response as JSON:', parseError);
-      console.error('Raw content:', content);
       return new Response(
         JSON.stringify({ success: false, error: 'Failed to parse extracted data' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Ensure success flag is set
     extractedData.success = true;
     
-    console.log('Successfully extracted financial data');
+    console.log('Successfully extracted historical financials');
     
     return new Response(
       JSON.stringify(extractedData),

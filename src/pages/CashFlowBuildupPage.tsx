@@ -1,14 +1,15 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { ArrowLeft, Upload, Loader2, CheckCircle, FileSpreadsheet, AlertTriangle } from 'lucide-react';
+import { Textarea } from '@/components/ui/textarea';
+import { ArrowLeft, Upload, Loader2, CheckCircle, AlertTriangle, MessageSquare, Sparkles } from 'lucide-react';
 import { CashFlowBuildup } from '@/components/models/CashFlowBuildup';
 import { toast } from 'sonner';
 
-type Step = 'upload' | 'review' | 'model';
+type Step = 'upload' | 'review' | 'interview' | 'model';
 
 interface ExtractedData {
   success: boolean;
@@ -33,7 +34,10 @@ interface ExtractedData {
   };
   calculated_metrics: {
     ebitda_margin_pct?: Record<string, number>;
+    avg_revenue_growth?: number;
     yoy_revenue_growth?: number;
+    latest_revenue?: number;
+    latest_ebitda?: number;
     dso_days?: number;
     dio_days?: number;
     dpo_days?: number;
@@ -42,17 +46,59 @@ interface ExtractedData {
     completeness_score: string;
     missing_items: string[];
     assumptions_made: string[];
-    red_flags: string[];
+    excluded_projections?: string[];
   };
 }
+
+interface GeneratedAssumptions {
+  revenue_growth: number;
+  ebitda_margin: number;
+  capex_pct: number;
+  nwc_pct: number;
+  tax_rate: number;
+  da_pct: number;
+  interest_rate: number;
+}
+
+const interviewQuestions = [
+  {
+    id: 'growth_outlook',
+    question: 'What is management\'s revenue growth outlook for the next 3-5 years?',
+    placeholder: 'e.g., Expecting 10-15% annual growth driven by new product launches and market expansion...'
+  },
+  {
+    id: 'margin_drivers',
+    question: 'What are the key drivers for EBITDA margin improvement or pressure?',
+    placeholder: 'e.g., Operational efficiencies should improve margins by 200bps, but raw material costs are a headwind...'
+  },
+  {
+    id: 'capex_plans',
+    question: 'What are the capital expenditure requirements over the projection period?',
+    placeholder: 'e.g., Maintenance capex of ~3% revenue, plus $20M growth investment in Year 2 for new facility...'
+  },
+  {
+    id: 'working_capital',
+    question: 'Are there any expected changes to working capital (AR, inventory, AP)?',
+    placeholder: 'e.g., Implementing new inventory management system, expect DSO improvement from 45 to 40 days...'
+  },
+  {
+    id: 'debt_structure',
+    question: 'What is the current debt structure and expected interest rate?',
+    placeholder: 'e.g., $50M senior term loan at SOFR + 300bps, planning to refinance in Year 2...'
+  }
+];
 
 export default function CashFlowBuildupPage() {
   const navigate = useNavigate();
   const [step, setStep] = useState<Step>('upload');
   const [companyName, setCompanyName] = useState('');
   const [isExtracting, setIsExtracting] = useState(false);
+  const [isGeneratingAssumptions, setIsGeneratingAssumptions] = useState(false);
   const [extractedData, setExtractedData] = useState<ExtractedData | null>(null);
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+  const [interviewResponses, setInterviewResponses] = useState<Record<string, string>>({});
+  const [generatedAssumptions, setGeneratedAssumptions] = useState<GeneratedAssumptions | null>(null);
+  const [assumptionsRationale, setAssumptionsRationale] = useState<Record<string, string>>({});
 
   // Handle file upload and extraction
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -63,11 +109,9 @@ export default function CashFlowBuildupPage() {
     setIsExtracting(true);
 
     try {
-      // Read file content
       let fileContent = '';
       
       if (file.name.endsWith('.xlsx') || file.name.endsWith('.xls')) {
-        // Handle Excel files - dynamically import xlsx
         const XLSX = await import('xlsx');
         const buffer = await file.arrayBuffer();
         const workbook = XLSX.read(buffer, { type: 'array' });
@@ -78,13 +122,11 @@ export default function CashFlowBuildupPage() {
           fileContent += `=== Sheet: ${sheetName} ===\n${csv}\n\n`;
         });
       } else {
-        // Handle CSV/text files
         fileContent = await file.text();
       }
 
       console.log('File content preview:', fileContent.substring(0, 500));
 
-      // Extract via AI edge function
       let extracted: ExtractedData | null = null;
       try {
         const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
@@ -102,18 +144,17 @@ export default function CashFlowBuildupPage() {
           const result = await response.json();
           if (result.success) {
             extracted = result;
-            console.log('Extracted via AI:', extracted);
+            console.log('Extracted historical data:', extracted);
           }
         } else if (response.status === 429) {
-          toast.error('Rate limit exceeded. Please try again in a moment.');
+          toast.error('Rate limit exceeded. Please try again.');
         } else if (response.status === 402) {
-          toast.error('AI credits exhausted. Please add credits to continue.');
+          toast.error('AI credits exhausted.');
         }
       } catch (err) {
         console.log('AI extraction failed, using local parser:', err);
       }
 
-      // Fallback: Parse locally if n8n fails
       if (!extracted?.success) {
         console.log('Using local extraction fallback');
         extracted = parseFinancialsLocally(fileContent, file.name);
@@ -124,7 +165,7 @@ export default function CashFlowBuildupPage() {
         if (!companyName && extracted.company_name) {
           setCompanyName(extracted.company_name);
         }
-        toast.success('Financial data extracted!');
+        toast.success('Historical data extracted!');
         setStep('review');
       } else {
         toast.error('Could not extract financial data');
@@ -138,6 +179,60 @@ export default function CashFlowBuildupPage() {
     }
   };
 
+  // Generate AI assumptions based on interview
+  const handleGenerateAssumptions = async () => {
+    setIsGeneratingAssumptions(true);
+
+    try {
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const response = await fetch(`${supabaseUrl}/functions/v1/generate-assumptions`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          historical_data: extractedData,
+          interview_responses: interviewResponses,
+          company_name: extractedData?.company_name || companyName
+        })
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        if (result.success && result.assumptions) {
+          setGeneratedAssumptions({
+            revenue_growth: result.assumptions.revenue_growth * 100,
+            ebitda_margin: result.assumptions.ebitda_margin * 100,
+            capex_pct: result.assumptions.capex_pct * 100,
+            nwc_pct: result.assumptions.nwc_pct * 100,
+            tax_rate: result.assumptions.tax_rate * 100,
+            da_pct: result.assumptions.da_pct * 100,
+            interest_rate: result.assumptions.interest_rate * 100
+          });
+          setAssumptionsRationale(result.rationale || {});
+          toast.success('AI generated projection assumptions!');
+          setStep('model');
+        }
+      } else {
+        throw new Error('Failed to generate assumptions');
+      }
+    } catch (error) {
+      console.error('Error generating assumptions:', error);
+      toast.error('Failed to generate assumptions. Using defaults.');
+      // Use defaults
+      setGeneratedAssumptions({
+        revenue_growth: 10,
+        ebitda_margin: 20,
+        capex_pct: 3,
+        nwc_pct: 10,
+        tax_rate: 25,
+        da_pct: 4,
+        interest_rate: 8
+      });
+      setStep('model');
+    } finally {
+      setIsGeneratingAssumptions(false);
+    }
+  };
+
   // Local fallback parser
   const parseFinancialsLocally = (content: string, fileName: string): ExtractedData => {
     const lines = content.split('\n');
@@ -145,13 +240,17 @@ export default function CashFlowBuildupPage() {
     let ebitda: Record<string, number> = {};
     let years: string[] = [];
 
-    // Look for year headers
     const yearPattern = /20\d{2}/g;
     for (const line of lines.slice(0, 10)) {
       const matches = line.match(yearPattern);
       if (matches && matches.length >= 2) {
-        years = [...new Set(matches)].sort();
-        break;
+        // Filter out future years (projections)
+        const currentYear = new Date().getFullYear();
+        const historicalYears = [...new Set(matches)].filter(y => parseInt(y) <= currentYear).sort();
+        if (historicalYears.length > 0) {
+          years = historicalYears;
+          break;
+        }
       }
     }
 
@@ -159,7 +258,6 @@ export default function CashFlowBuildupPage() {
       years = ['2023', '2024'];
     }
 
-    // Look for revenue line
     for (const line of lines) {
       const lowerLine = line.toLowerCase();
       if (lowerLine.includes('revenue') || lowerLine.includes('net sales') || lowerLine.includes('total sales')) {
@@ -174,7 +272,6 @@ export default function CashFlowBuildupPage() {
       }
     }
 
-    // Look for EBITDA line
     for (const line of lines) {
       const lowerLine = line.toLowerCase();
       if (lowerLine.includes('ebitda')) {
@@ -189,7 +286,6 @@ export default function CashFlowBuildupPage() {
       }
     }
 
-    // Default if nothing found
     if (Object.keys(revenue).length === 0) {
       revenue = { '2023': 85, '2024': 100 };
       ebitda = { '2023': 14, '2024': 18 };
@@ -222,7 +318,9 @@ export default function CashFlowBuildupPage() {
       },
       calculated_metrics: {
         ebitda_margin_pct: { [lastYear]: latestEBITDA / latestRevenue },
-        yoy_revenue_growth: years.length > 1 ? (revenue[lastYear] / revenue[years[0]] - 1) : 0.15,
+        avg_revenue_growth: years.length > 1 ? (revenue[lastYear] / revenue[years[0]] - 1) / (years.length - 1) : 0.10,
+        latest_revenue: latestRevenue,
+        latest_ebitda: latestEBITDA,
         dso_days: 45,
         dio_days: 30,
         dpo_days: 35
@@ -231,7 +329,7 @@ export default function CashFlowBuildupPage() {
         completeness_score: 'medium',
         missing_items: ['Full balance sheet', 'Cash flow statement'],
         assumptions_made: ['Used available line items'],
-        red_flags: []
+        excluded_projections: []
       }
     };
   };
@@ -246,7 +344,7 @@ export default function CashFlowBuildupPage() {
         </Button>
 
         <h1 className="text-3xl font-bold text-foreground">Cash Flow Buildup Model</h1>
-        <p className="text-muted-foreground">Upload historical financials to generate a detailed cash flow projection</p>
+        <p className="text-muted-foreground">Upload historical financials to generate AI-powered projections</p>
 
         <Card className="glass-card">
           <CardContent className="pt-6 space-y-6">
@@ -262,7 +360,7 @@ export default function CashFlowBuildupPage() {
             </div>
 
             <div>
-              <Label className="text-foreground">Upload Financial Data</Label>
+              <Label className="text-foreground">Upload Historical Financial Data</Label>
               <div className="mt-2 border-2 border-dashed border-border rounded-lg p-8 text-center hover:border-primary/50 transition-colors cursor-pointer relative">
                 <input
                   type="file"
@@ -274,7 +372,7 @@ export default function CashFlowBuildupPage() {
                 {isExtracting ? (
                   <div className="space-y-3">
                     <Loader2 className="h-12 w-12 mx-auto text-primary animate-spin" />
-                    <p className="text-foreground font-medium">Extracting financial data...</p>
+                    <p className="text-foreground font-medium">Extracting historical data...</p>
                     <p className="text-sm text-muted-foreground">Analyzing {uploadedFile?.name}</p>
                   </div>
                 ) : (
@@ -285,7 +383,7 @@ export default function CashFlowBuildupPage() {
                   </div>
                 )}
               </div>
-              <p className="text-xs text-muted-foreground mt-2">Supported: .xlsx, .xls, .csv</p>
+              <p className="text-xs text-muted-foreground mt-2">Only historical data will be extracted. Projections in the file will be ignored.</p>
             </div>
           </CardContent>
         </Card>
@@ -293,13 +391,13 @@ export default function CashFlowBuildupPage() {
     );
   }
 
-  // Step 2: Review extracted data
+  // Step 2: Review extracted historical data
   if (step === 'review' && extractedData) {
     const is = extractedData.income_statement;
     const years = extractedData.historical_years || [];
     const lastYear = years[years.length - 1];
-    const latestRevenue = is?.revenue?.[lastYear] || 0;
-    const latestEBITDA = is?.ebitda?.[lastYear] || 0;
+    const latestRevenue = extractedData.calculated_metrics?.latest_revenue || is?.revenue?.[lastYear] || 0;
+    const latestEBITDA = extractedData.calculated_metrics?.latest_ebitda || is?.ebitda?.[lastYear] || 0;
     const metrics = extractedData.calculated_metrics || {};
     const ebitdaMargin = metrics.ebitda_margin_pct?.[lastYear] || (latestRevenue > 0 ? latestEBITDA / latestRevenue : 0);
 
@@ -312,7 +410,7 @@ export default function CashFlowBuildupPage() {
 
         <div className="flex items-center gap-3">
           <CheckCircle className="h-8 w-8 text-emerald-500" />
-          <h1 className="text-3xl font-bold text-foreground">Financial Data Extracted</h1>
+          <h1 className="text-3xl font-bold text-foreground">Historical Data Extracted</h1>
         </div>
 
         <Card className="glass-card">
@@ -323,17 +421,17 @@ export default function CashFlowBuildupPage() {
                 <p className="text-muted-foreground">{uploadedFile?.name}</p>
               </div>
               <div className="px-3 py-1 bg-primary/10 rounded-full text-sm text-primary">
-                {years.length} years of data ({years.join(', ')})
+                {years.length} years of historical data
               </div>
             </div>
 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <div className="p-4 bg-secondary/50 rounded-lg">
-                <p className="text-sm text-muted-foreground">Revenue (LTM)</p>
+                <p className="text-sm text-muted-foreground">Revenue ({lastYear})</p>
                 <p className="text-2xl font-bold text-foreground">${latestRevenue.toFixed(1)}M</p>
               </div>
               <div className="p-4 bg-secondary/50 rounded-lg">
-                <p className="text-sm text-muted-foreground">EBITDA (LTM)</p>
+                <p className="text-sm text-muted-foreground">EBITDA ({lastYear})</p>
                 <p className="text-2xl font-bold text-foreground">${latestEBITDA.toFixed(1)}M</p>
               </div>
               <div className="p-4 bg-secondary/50 rounded-lg">
@@ -343,12 +441,20 @@ export default function CashFlowBuildupPage() {
                 </p>
               </div>
               <div className="p-4 bg-secondary/50 rounded-lg">
-                <p className="text-sm text-muted-foreground">YoY Growth</p>
+                <p className="text-sm text-muted-foreground">Avg Growth</p>
                 <p className="text-2xl font-bold text-emerald-500">
-                  {((metrics.yoy_revenue_growth || 0) * 100).toFixed(1)}%
+                  {((metrics.avg_revenue_growth || metrics.yoy_revenue_growth || 0) * 100).toFixed(1)}%
                 </p>
               </div>
             </div>
+
+            {extractedData.data_quality?.excluded_projections && extractedData.data_quality.excluded_projections.length > 0 && (
+              <div className="p-4 bg-blue-500/10 border border-blue-500/20 rounded-lg">
+                <p className="text-sm text-blue-300">
+                  ℹ️ Excluded projected values: {extractedData.data_quality.excluded_projections.join(', ')}
+                </p>
+              </div>
+            )}
 
             {extractedData.data_quality?.missing_items && extractedData.data_quality.missing_items.length > 0 && (
               <div className="p-4 bg-amber-500/10 border border-amber-500/20 rounded-lg">
@@ -367,20 +473,86 @@ export default function CashFlowBuildupPage() {
           <Button variant="outline" onClick={() => setStep('upload')} className="flex-1">
             Upload Different File
           </Button>
-          <Button onClick={() => setStep('model')} className="flex-1 bg-cyan-600 hover:bg-cyan-500">
-            Continue to Model →
+          <Button onClick={() => setStep('interview')} className="flex-1 bg-cyan-600 hover:bg-cyan-500">
+            <MessageSquare className="h-4 w-4 mr-2" />
+            Continue to Interview →
           </Button>
         </div>
       </div>
     );
   }
 
-  // Step 3: Model builder
+  // Step 3: Interview questions
+  if (step === 'interview' && extractedData) {
+    const answeredCount = Object.values(interviewResponses).filter(r => r.trim()).length;
+
+    return (
+      <div className="p-6 lg:p-8 max-w-4xl mx-auto space-y-6 animate-fade-up">
+        <Button variant="ghost" size="sm" onClick={() => setStep('review')} className="mb-6">
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Back
+        </Button>
+
+        <div className="flex items-center gap-3">
+          <MessageSquare className="h-8 w-8 text-cyan-500" />
+          <div>
+            <h1 className="text-3xl font-bold text-foreground">Management Interview</h1>
+            <p className="text-muted-foreground">Answer questions to generate AI-powered projection assumptions</p>
+          </div>
+        </div>
+
+        <Card className="glass-card">
+          <CardContent className="pt-6 space-y-6">
+            {interviewQuestions.map((q, idx) => (
+              <div key={q.id} className="space-y-2">
+                <Label className="text-foreground font-medium">
+                  {idx + 1}. {q.question}
+                </Label>
+                <Textarea
+                  value={interviewResponses[q.id] || ''}
+                  onChange={(e) => setInterviewResponses(prev => ({ ...prev, [q.id]: e.target.value }))}
+                  placeholder={q.placeholder}
+                  className="bg-secondary border-border text-foreground min-h-[80px]"
+                />
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+
+        <div className="flex gap-4">
+          <Button variant="outline" onClick={() => setStep('review')} className="flex-1">
+            Back to Review
+          </Button>
+          <Button 
+            onClick={handleGenerateAssumptions} 
+            disabled={isGeneratingAssumptions}
+            className="flex-1 bg-cyan-600 hover:bg-cyan-500"
+          >
+            {isGeneratingAssumptions ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Generating Assumptions...
+              </>
+            ) : (
+              <>
+                <Sparkles className="h-4 w-4 mr-2" />
+                Generate AI Assumptions ({answeredCount}/{interviewQuestions.length} answered)
+              </>
+            )}
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  // Step 4: Model builder
   return (
     <CashFlowBuildup
       companyName={extractedData?.company_name || companyName || 'Company'}
       historicalData={extractedData}
-      onBack={() => setStep('review')}
+      initialAssumptions={generatedAssumptions}
+      assumptionsRationale={assumptionsRationale}
+      onBack={() => setStep('interview')}
     />
   );
 }

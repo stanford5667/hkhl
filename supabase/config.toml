@@ -2,3 +2,6 @@ project_id = "oalfgwkzjwmfkaxuomqm"
 
 [functions.extract-historical]
 verify_jwt = false
+
+[functions.generate-assumptions]
+verify_jwt = false
