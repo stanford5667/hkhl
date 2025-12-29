@@ -1,9 +1,8 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
+import { Progress } from "@/components/ui/progress";
 import {
   Select,
   SelectContent,
@@ -18,7 +17,6 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Progress } from "@/components/ui/progress";
 import {
   Upload,
   FolderPlus,
@@ -29,25 +27,23 @@ import {
   HardDrive,
   Building2,
   Loader2,
-  BarChart3,
+  FolderOpen,
 } from "lucide-react";
 import { FolderTree, FolderNode } from "@/components/dataroom/FolderTree";
 import { DocumentList, Document } from "@/components/dataroom/DocumentList";
 import { UploadZone } from "@/components/dataroom/UploadZone";
-import { AIInsightsPanel } from "@/components/dataroom/AIInsightsPanel";
+import { DataRoomChecklist } from "@/components/dataroom/DataRoomChecklist";
+import { DocumentDetailsPanel } from "@/components/dataroom/DocumentDetailsPanel";
 import { DocumentPreview } from "@/components/dataroom/DocumentPreview";
 import { Input } from "@/components/ui/input";
-import { useCompanies, Company } from "@/hooks/useCompanies";
+import { useCompanies } from "@/hooks/useCompanies";
 import { useDocuments, DocumentRecord } from "@/hooks/useDocuments";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { formatDistanceToNow } from "date-fns";
 
 const folderStructure: FolderNode[] = [
-  {
-    id: "all",
-    name: "All Files",
-  },
+  { id: "all", name: "All Files" },
   {
     id: "financial",
     name: "Financial",
@@ -87,21 +83,21 @@ const folderStructure: FolderNode[] = [
     ],
   },
   {
-    id: "models",
-    name: "AI Models",
-    children: [
-      { id: "cash_flow_buildup", name: "Cash Flow Models" },
-      { id: "lbo", name: "LBO Models" },
-      { id: "dcf", name: "DCF Models" },
-    ],
-  },
-  {
     id: "deal-docs",
     name: "Deal Documents",
     children: [
       { id: "cim", name: "CIM & Teasers" },
       { id: "loi", name: "LOI & Term Sheets" },
       { id: "ic-memos", name: "IC Memos" },
+    ],
+  },
+  {
+    id: "diligence",
+    name: "Diligence Reports",
+    children: [
+      { id: "qoe", name: "Quality of Earnings" },
+      { id: "legal-dd", name: "Legal Due Diligence" },
+      { id: "commercial-dd", name: "Commercial Due Diligence" },
     ],
   },
 ];
@@ -117,21 +113,15 @@ interface ModelRecord {
   updated_at: string;
 }
 
-const modelTypeLabels: Record<string, string> = {
-  cash_flow_buildup: "Cash Flow",
-  lbo: "LBO",
-  dcf: "DCF",
-  pro_forma: "Pro Forma",
-  merger: "Merger",
-  cam: "CAM",
-};
-
 export default function DataRoom() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const companyFromUrl = searchParams.get('company');
+  
   const { user } = useAuth();
   const { companies, loading: companiesLoading } = useCompanies();
   const { getDocumentsForCompany } = useDocuments();
-  
+
   const [selectedCompanyId, setSelectedCompanyId] = useState<string>("");
   const [selectedFolderId, setSelectedFolderId] = useState<string | null>("all");
   const [selectedPath, setSelectedPath] = useState<string[]>(["All Files"]);
@@ -139,75 +129,60 @@ export default function DataRoom() {
   const [viewMode, setViewMode] = useState<"list" | "grid">("list");
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
   const [previewDocument, setPreviewDocument] = useState<Document | null>(null);
+  const [detailsDocument, setDetailsDocument] = useState<{ id: string; name: string; type: string; size: string; filePath?: string } | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
-  
+
   const [documents, setDocuments] = useState<DocumentRecord[]>([]);
   const [models, setModels] = useState<ModelRecord[]>([]);
   const [loading, setLoading] = useState(false);
-  
-  // Refresh function
-  const refreshData = async () => {
-    if (!selectedCompanyId || !user) return;
-    const docs = await getDocumentsForCompany(selectedCompanyId);
-    setDocuments(docs);
-    const { data: modelsData } = await supabase
-      .from('models')
-      .select('*')
-      .eq('company_id', selectedCompanyId)
-      .order('updated_at', { ascending: false });
-    setModels(modelsData || []);
-  };
 
-  // Handle viewing an item (document or model)
-  const handleViewItem = (doc: Document) => {
-    // Check if it's a model (id starts with 'model-')
-    if (doc.id.startsWith('model-')) {
-      const modelId = doc.id.replace('model-', '');
-      navigate(`/models/view/${modelId}`);
-    } else {
-      // It's a document, show preview
-      setPreviewDocument(doc);
-    }
-  };
-
-  // Set first company as default when loaded
+  // Handle company from URL
   useEffect(() => {
-    if (companies.length > 0 && !selectedCompanyId) {
+    if (companyFromUrl && companies.length > 0) {
+      const exists = companies.some(c => c.id === companyFromUrl);
+      if (exists) {
+        setSelectedCompanyId(companyFromUrl);
+      }
+    }
+  }, [companyFromUrl, companies]);
+
+  // Set first company as default
+  useEffect(() => {
+    if (companies.length > 0 && !selectedCompanyId && !companyFromUrl) {
       setSelectedCompanyId(companies[0].id);
     }
-  }, [companies, selectedCompanyId]);
+  }, [companies, selectedCompanyId, companyFromUrl]);
 
-  // Fetch documents and models when company changes
+  // Fetch documents and models
+  const refreshData = async () => {
+    if (!selectedCompanyId || !user) return;
+
+    setLoading(true);
+    try {
+      const docs = await getDocumentsForCompany(selectedCompanyId);
+      setDocuments(docs);
+
+      const { data: modelsData } = await supabase
+        .from("models")
+        .select("*")
+        .eq("company_id", selectedCompanyId)
+        .order("updated_at", { ascending: false });
+
+      setModels(modelsData || []);
+    } catch (error) {
+      console.error("Error fetching data:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    if (!selectedCompanyId || !user) {
+    if (selectedCompanyId && user) {
+      refreshData();
+    } else {
       setDocuments([]);
       setModels([]);
-      return;
     }
-
-    const fetchData = async () => {
-      setLoading(true);
-      try {
-        // Fetch documents
-        const docs = await getDocumentsForCompany(selectedCompanyId);
-        setDocuments(docs);
-
-        // Fetch models
-        const { data: modelsData } = await supabase
-          .from('models')
-          .select('*')
-          .eq('company_id', selectedCompanyId)
-          .order('updated_at', { ascending: false });
-        
-        setModels(modelsData || []);
-      } catch (error) {
-        console.error('Error fetching data:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchData();
   }, [selectedCompanyId, user]);
 
   const handleSelectFolder = (folderId: string, path: string[]) => {
@@ -226,64 +201,70 @@ export default function DataRoom() {
     setSelectedDocuments(newSelected);
   };
 
+  const handleViewItem = (doc: Document) => {
+    if (doc.id.startsWith("model-")) {
+      const modelId = doc.id.replace("model-", "");
+      navigate(`/models/view/${modelId}`);
+    } else {
+      setPreviewDocument(doc);
+    }
+  };
+
+  const handleOpenDetails = (doc: Document) => {
+    const realId = doc.id.startsWith("doc-") ? doc.id.replace("doc-", "") : doc.id;
+    setDetailsDocument({
+      id: realId,
+      name: doc.name,
+      type: doc.type,
+      size: doc.size,
+      filePath: doc.filePath,
+    });
+  };
+
   // Convert database records to display format
   const getDisplayItems = (): Document[] => {
     const items: Document[] = [];
 
-    // Filter and add documents
-    const filteredDocs = documents.filter(doc => {
-      if (selectedFolderId === 'all') return true;
-      if (selectedFolderId === 'historical') return doc.folder === 'Financial' && doc.subfolder === 'Historical';
-      if (selectedFolderId === 'projections') return doc.folder === 'Financial' && doc.subfolder === 'Projections';
-      return doc.folder?.toLowerCase() === selectedFolderId || doc.subfolder?.toLowerCase() === selectedFolderId;
+    const filteredDocs = documents.filter((doc) => {
+      if (selectedFolderId === "all") return true;
+      const folderLower = doc.folder?.toLowerCase() || "";
+      const subfolderLower = doc.subfolder?.toLowerCase() || "";
+      return folderLower === selectedFolderId || subfolderLower === selectedFolderId;
     });
 
-    filteredDocs.forEach(doc => {
-      const ext = doc.file_type?.toLowerCase() || doc.name.split('.').pop()?.toLowerCase() || 'other';
+    filteredDocs.forEach((doc) => {
+      const ext = doc.file_type?.toLowerCase() || doc.name.split(".").pop()?.toLowerCase() || "other";
       items.push({
         id: `doc-${doc.id}`,
         name: doc.name,
-        type: ['xlsx', 'xls'].includes(ext) ? 'xlsx' : 
-              ext === 'pdf' ? 'pdf' : 
-              ext === 'csv' ? 'csv' : 
-              ext === 'docx' ? 'docx' : 
-              ext === 'txt' ? 'txt' : 'other',
-        size: doc.file_size ? `${(doc.file_size / 1024).toFixed(1)} KB` : '—',
+        type: ["xlsx", "xls"].includes(ext) ? "xlsx" : ext === "pdf" ? "pdf" : ext === "csv" ? "csv" : ext === "docx" ? "docx" : ext === "txt" ? "txt" : "other",
+        size: doc.file_size ? `${(doc.file_size / 1024).toFixed(1)} KB` : "—",
         uploadedAt: formatDistanceToNow(new Date(doc.created_at), { addSuffix: true }),
-        uploadedBy: 'You',
-        status: 'reviewed',
+        uploadedBy: "You",
+        status: "reviewed",
         filePath: doc.file_path,
       });
     });
 
-    // Filter and add models (show in projections folder or all)
-    const showModels = selectedFolderId === 'all' || 
-                       selectedFolderId === 'projections' || 
-                       selectedFolderId === 'models' ||
-                       ['cash_flow_buildup', 'lbo', 'dcf'].includes(selectedFolderId || '');
-
+    // Add models in relevant folders
+    const showModels = selectedFolderId === "all" || selectedFolderId === "projections";
     if (showModels) {
-      const filteredModels = models.filter(model => {
-        if (selectedFolderId === 'all' || selectedFolderId === 'projections' || selectedFolderId === 'models') return true;
-        return model.model_type === selectedFolderId;
-      });
-
-      filteredModels.forEach(model => {
+      models.forEach((model) => {
         items.push({
           id: `model-${model.id}`,
           name: model.name,
-          type: 'xlsx', // Show as spreadsheet icon
-          size: modelTypeLabels[model.model_type] || model.model_type,
+          type: "xlsx",
+          size: model.model_type,
           uploadedAt: formatDistanceToNow(new Date(model.updated_at), { addSuffix: true }),
-          uploadedBy: 'AI Generated',
-          status: model.status === 'final' ? 'reviewed' : 'pending',
+          uploadedBy: "AI Generated",
+          status: model.status === "final" ? "reviewed" : "pending",
         });
       });
     }
 
     // Filter by search
     if (searchQuery) {
-      return items.filter(item => 
+      return items.filter((item) =>
         item.name.toLowerCase().includes(searchQuery.toLowerCase())
       );
     }
@@ -292,7 +273,7 @@ export default function DataRoom() {
   };
 
   const displayItems = getDisplayItems();
-  const selectedCompany = companies.find(c => c.id === selectedCompanyId);
+  const selectedCompany = companies.find((c) => c.id === selectedCompanyId);
 
   const handleSelectAll = () => {
     if (selectedDocuments.size === displayItems.length) {
@@ -312,7 +293,7 @@ export default function DataRoom() {
         <Card className="p-8 text-center">
           <Building2 className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
           <h2 className="text-xl font-semibold mb-2">Sign in to access Data Room</h2>
-          <p className="text-muted-foreground">Your documents and models are stored securely in your account.</p>
+          <p className="text-muted-foreground">Your documents are stored securely.</p>
         </Card>
       </div>
     );
@@ -320,7 +301,7 @@ export default function DataRoom() {
 
   return (
     <div className="flex h-[calc(100vh-4rem)]">
-      {/* Left Sidebar - Folder Tree */}
+      {/* Left Sidebar */}
       <div className="w-64 border-r border-border flex flex-col bg-card/30">
         <div className="p-4 border-b border-border">
           {companiesLoading ? (
@@ -328,9 +309,7 @@ export default function DataRoom() {
               <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
             </div>
           ) : companies.length === 0 ? (
-            <div className="text-sm text-muted-foreground text-center py-2">
-              No companies yet
-            </div>
+            <div className="text-sm text-muted-foreground text-center py-2">No companies yet</div>
           ) : (
             <Select value={selectedCompanyId} onValueChange={setSelectedCompanyId}>
               <SelectTrigger>
@@ -385,13 +364,12 @@ export default function DataRoom() {
               {selectedPath.map((segment, i) => (
                 <span key={i} className="flex items-center gap-2">
                   {i > 0 && <ChevronRight className="h-3 w-3" />}
-                  <span className={i === selectedPath.length - 1 ? "text-foreground" : ""}>
-                    {segment}
-                  </span>
+                  <span className={i === selectedPath.length - 1 ? "text-foreground" : ""}>{segment}</span>
                 </span>
               ))}
             </div>
-            <h1 className="text-xl font-semibold text-foreground">
+            <h1 className="text-xl font-semibold text-foreground flex items-center gap-2">
+              <FolderOpen className="h-5 w-5 text-primary" />
               {selectedPath[selectedPath.length - 1] || "Data Room"}
             </h1>
           </div>
@@ -408,18 +386,10 @@ export default function DataRoom() {
             </div>
 
             <div className="flex items-center border border-border rounded-lg p-1">
-              <Button
-                variant={viewMode === "list" ? "secondary" : "ghost"}
-                size="icon-sm"
-                onClick={() => setViewMode("list")}
-              >
+              <Button variant={viewMode === "list" ? "secondary" : "ghost"} size="icon-sm" onClick={() => setViewMode("list")}>
                 <List className="h-4 w-4" />
               </Button>
-              <Button
-                variant={viewMode === "grid" ? "secondary" : "ghost"}
-                size="icon-sm"
-                onClick={() => setViewMode("grid")}
-              >
+              <Button variant={viewMode === "grid" ? "secondary" : "ghost"} size="icon-sm" onClick={() => setViewMode("grid")}>
                 <LayoutGrid className="h-4 w-4" />
               </Button>
             </div>
@@ -442,11 +412,10 @@ export default function DataRoom() {
                 </DialogHeader>
                 <UploadZone
                   companyId={selectedCompanyId}
-                  folder={selectedFolderId === 'historical' ? 'Financial' : 'General'}
-                  subfolder={selectedFolderId === 'historical' ? 'Historical' : undefined}
+                  folder={selectedFolderId === "historical" ? "Financial" : "General"}
+                  subfolder={selectedFolderId === "historical" ? "Historical" : undefined}
                   onUploadComplete={() => {
                     setUploadDialogOpen(false);
-                    // Refresh documents
                     refreshData();
                   }}
                 />
@@ -465,9 +434,7 @@ export default function DataRoom() {
             <div className="flex flex-col items-center justify-center h-64 text-center">
               <Building2 className="h-12 w-12 text-muted-foreground/50 mb-4" />
               <h3 className="text-lg font-medium text-foreground mb-1">Select a company</h3>
-              <p className="text-sm text-muted-foreground">
-                Choose a company from the dropdown to view its documents
-              </p>
+              <p className="text-sm text-muted-foreground">Choose a company to view its documents</p>
             </div>
           ) : (
             <>
@@ -477,15 +444,14 @@ export default function DataRoom() {
                 onToggleSelect={handleToggleSelect}
                 onSelectAll={handleSelectAll}
                 onViewDocument={handleViewItem}
+                onOpenDetails={handleOpenDetails}
               />
-
               <div className="mt-4 text-sm text-muted-foreground">
                 {displayItems.length === 0 ? (
-                  <span>No documents or models yet</span>
+                  <span>No documents yet</span>
                 ) : (
                   <span>
-                    Showing {displayItems.length} item{displayItems.length !== 1 ? 's' : ''} 
-                    ({documents.length} document{documents.length !== 1 ? 's' : ''}, {models.length} model{models.length !== 1 ? 's' : ''})
+                    Showing {displayItems.length} item{displayItems.length !== 1 ? "s" : ""}
                   </span>
                 )}
               </div>
@@ -494,9 +460,9 @@ export default function DataRoom() {
         </div>
       </div>
 
-      {/* Right Sidebar - AI Insights */}
+      {/* Right Sidebar - Checklist */}
       <div className="w-80 border-l border-border overflow-y-auto p-4 custom-scrollbar bg-card/30">
-        <AIInsightsPanel folderPath={selectedPath} />
+        <DataRoomChecklist documents={documents} />
       </div>
 
       {/* Document Preview Modal */}
@@ -504,6 +470,18 @@ export default function DataRoom() {
         document={previewDocument}
         open={!!previewDocument}
         onClose={() => setPreviewDocument(null)}
+      />
+
+      {/* Document Details Panel */}
+      <DocumentDetailsPanel
+        documentId={detailsDocument?.id || null}
+        documentName={detailsDocument?.name || ""}
+        documentType={detailsDocument?.type || ""}
+        documentSize={detailsDocument?.size || ""}
+        filePath={detailsDocument?.filePath}
+        open={!!detailsDocument}
+        onClose={() => setDetailsDocument(null)}
+        onStatusChange={refreshData}
       />
     </div>
   );
