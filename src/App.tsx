@@ -11,6 +11,7 @@ import Models from "./pages/Models";
 import Portfolio from "./pages/Portfolio";
 import DataRoom from "./pages/DataRoom";
 import Companies from "./pages/Companies";
+import CompanyDetail from "./pages/CompanyDetail";
 import Contacts from "./pages/Contacts";
 import MarketIntel from "./pages/MarketIntel";
 import DealMatching from "./pages/DealMatching";
@@ -40,6 +41,7 @@ const App = () => (
               <Route path="/portfolio" element={<Portfolio />} />
               <Route path="/documents" element={<DataRoom />} />
               <Route path="/companies" element={<Companies />} />
+              <Route path="/companies/:id" element={<CompanyDetail />} />
               <Route path="/contacts" element={<Contacts />} />
               <Route path="/market-intel" element={<MarketIntel />} />
               <Route path="/deal-matching" element={<DealMatching />} />
