@@ -29,16 +29,14 @@ import {
   ComposedChart,
 } from "recharts";
 import { formatDistanceToNow } from "date-fns";
-import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-
-interface MacroIndicator {
-  symbol: string;
-  name: string;
-  price: number | null;
-  change: number | null;
-  changePercent: number | null;
-}
+import {
+  fetchLiveMarketData,
+  fetchIndustryMultiples,
+  fallbackMacroIndicators,
+  type MacroIndicator,
+  type IndustryMultiples,
+} from "@/services/marketData";
 
 // Mock news data
 const mockNews = [
@@ -104,16 +102,6 @@ const mockNews = [
   },
 ];
 
-// Fallback indicators when API fails
-const fallbackIndicators: MacroIndicator[] = [
-  { symbol: "^TNX", name: "10Y Treasury", price: 4.42, change: 0.05, changePercent: 1.14 },
-  { symbol: "^GSPC", name: "S&P 500", price: 6037, change: 73.2, changePercent: 1.23 },
-  { symbol: "CL=F", name: "Crude Oil", price: 69.24, change: -0.87, changePercent: -1.24 },
-  { symbol: "GC=F", name: "Gold", price: 2634, change: 12.4, changePercent: 0.47 },
-  { symbol: "^VIX", name: "VIX", price: 14.2, change: -0.82, changePercent: -5.45 },
-  { symbol: "^DJI", name: "Dow Jones", price: 43325, change: 456, changePercent: 1.06 },
-];
-
 // Industry multiples data (will be updated from API)
 const defaultMultiplesData = [
   { period: "Q1 2023", consumer: 9.2, healthcare: 11.5, tech: 12.8, industrial: 7.5 },
@@ -128,30 +116,25 @@ const defaultMultiplesData = [
 
 export default function MarketIntel() {
   const [newsFilter, setNewsFilter] = useState<"all" | "portfolio" | "pipeline">("all");
-  const [indicators, setIndicators] = useState<MacroIndicator[]>(fallbackIndicators);
+  const [indicators, setIndicators] = useState<MacroIndicator[]>(fallbackMacroIndicators);
   const [multiplesData, setMultiplesData] = useState(defaultMultiplesData);
+  const [industryMultiples, setIndustryMultiples] = useState<IndustryMultiples>({});
   const [loadingMacro, setLoadingMacro] = useState(false);
   const [loadingMultiples, setLoadingMultiples] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
-  const fetchMacroData = async () => {
+  const loadMacroData = async () => {
     setLoadingMacro(true);
     try {
-      const { data, error } = await supabase.functions.invoke("fetch-market-data", {
-        body: { type: "macro" },
-      });
-
-      if (error) throw error;
-
-      if (data?.success && Array.isArray(data.data)) {
-        const validData = data.data.filter((d: MacroIndicator) => d.price !== null);
-        if (validData.length > 0) {
-          setIndicators(data.data);
-          setLastUpdated(new Date(data.timestamp));
-          toast.success("Market data updated");
-        } else {
-          toast.info("Using cached market data");
-        }
+      const result = await fetchLiveMarketData();
+      setIndicators(result.data);
+      if (result.timestamp) {
+        setLastUpdated(result.timestamp);
+      }
+      if (result.isLive) {
+        toast.success("Market data updated");
+      } else {
+        toast.info("Using cached market data");
       }
     } catch (error) {
       console.error("Error fetching macro data:", error);
@@ -161,19 +144,14 @@ export default function MarketIntel() {
     }
   };
 
-  const fetchMultiplesData = async () => {
+  const loadMultiplesData = async () => {
     setLoadingMultiples(true);
     try {
-      const { data, error } = await supabase.functions.invoke("fetch-market-data", {
-        body: { type: "multiples" },
-      });
-
-      if (error) throw error;
-
-      if (data?.success && data.data) {
-        console.log("Fetched industry multiples:", Object.keys(data.data).length);
-        // Store raw multiples data - could be used in a table view
-        toast.success(`Loaded ${Object.keys(data.data).length} industry multiples`);
+      const result = await fetchIndustryMultiples();
+      setIndustryMultiples(result.data);
+      if (result.isLive) {
+        console.log("Fetched industry multiples:", Object.keys(result.data).length);
+        toast.success(`Loaded ${Object.keys(result.data).length} industry multiples`);
       }
     } catch (error) {
       console.error("Error fetching multiples:", error);
@@ -183,13 +161,13 @@ export default function MarketIntel() {
   };
 
   const handleRefresh = () => {
-    fetchMacroData();
-    fetchMultiplesData();
+    loadMacroData();
+    loadMultiplesData();
   };
 
   // Fetch on mount
   useEffect(() => {
-    fetchMacroData();
+    loadMacroData();
   }, []);
 
   const filteredNews =
