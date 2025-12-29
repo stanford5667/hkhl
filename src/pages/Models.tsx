@@ -1,10 +1,18 @@
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Plus, BarChart3, DollarSign, TrendingUp, GitMerge, FileText, RefreshCw } from "lucide-react";
 import { ModelTypeCard } from "@/components/models/ModelTypeCard";
 import { RecentModelsTable } from "@/components/models/RecentModelsTable";
 import { Separator } from "@/components/ui/separator";
 
-const modelTypes = [
+interface ModelType {
+  icon: React.ReactNode;
+  title: string;
+  description: string;
+  route?: string;
+}
+
+const modelTypes: ModelType[] = [
   {
     icon: <BarChart3 className="h-5 w-5" />,
     title: "LBO Model",
@@ -34,10 +42,13 @@ const modelTypes = [
     icon: <RefreshCw className="h-5 w-5" />,
     title: "Cash Flow Buildup",
     description: "Detailed FCF from operations analysis",
+    route: "/models/cash-flow-buildup",
   },
 ];
 
 export default function Models() {
+  const navigate = useNavigate();
+
   return (
     <div className="p-8 space-y-8 animate-fade-up">
       {/* Header */}
@@ -66,6 +77,7 @@ export default function Models() {
               icon={type.icon}
               title={type.title}
               description={type.description}
+              onClick={type.route ? () => navigate(type.route) : undefined}
             />
           ))}
         </div>
