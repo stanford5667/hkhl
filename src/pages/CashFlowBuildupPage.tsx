@@ -5,8 +5,12 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { ArrowLeft, Upload, Loader2, CheckCircle, AlertTriangle, MessageSquare, Sparkles } from 'lucide-react';
+import { ArrowLeft, Upload, Loader2, CheckCircle, AlertTriangle, MessageSquare, Sparkles, Building2 } from 'lucide-react';
 import { CashFlowBuildup } from '@/components/models/CashFlowBuildup';
+import { CompanySelector } from '@/components/models/CompanySelector';
+import { useCompanies, Company } from '@/hooks/useCompanies';
+import { useModels } from '@/hooks/useModels';
+import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 
 type Step = 'upload' | 'review' | 'interview' | 'model';
@@ -90,7 +94,12 @@ const interviewQuestions = [
 
 export default function CashFlowBuildupPage() {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const { companies, loading: companiesLoading, createCompany } = useCompanies();
+  const { saveModel, saving } = useModels();
+  
   const [step, setStep] = useState<Step>('upload');
+  const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
   const [companyName, setCompanyName] = useState('');
   const [isExtracting, setIsExtracting] = useState(false);
   const [isGeneratingAssumptions, setIsGeneratingAssumptions] = useState(false);
@@ -99,6 +108,15 @@ export default function CashFlowBuildupPage() {
   const [interviewResponses, setInterviewResponses] = useState<Record<string, string>>({});
   const [generatedAssumptions, setGeneratedAssumptions] = useState<GeneratedAssumptions | null>(null);
   const [assumptionsRationale, setAssumptionsRationale] = useState<Record<string, string>>({});
+  const [savedModelId, setSavedModelId] = useState<string | null>(null);
+
+  // Sync company name when company is selected
+  const handleSelectCompany = (company: Company | null) => {
+    setSelectedCompany(company);
+    if (company) {
+      setCompanyName(company.name);
+    }
+  };
 
   // Handle file upload and extraction
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -348,6 +366,41 @@ export default function CashFlowBuildupPage() {
 
         <Card className="glass-card">
           <CardContent className="pt-6 space-y-6">
+            {/* Company Selection */}
+            {user && (
+              <div>
+                <Label className="text-foreground flex items-center gap-2 mb-2">
+                  <Building2 className="h-4 w-4" />
+                  Select or Create Company
+                </Label>
+                <CompanySelector
+                  companies={companies}
+                  selectedCompany={selectedCompany}
+                  onSelectCompany={handleSelectCompany}
+                  onCreateCompany={createCompany}
+                  loading={companiesLoading}
+                  placeholder="Select existing company or create new..."
+                />
+                <p className="text-xs text-muted-foreground mt-2">
+                  Attach this model to a company to save it to your portfolio
+                </p>
+              </div>
+            )}
+
+            {!user && (
+              <div className="p-4 bg-amber-500/10 border border-amber-500/20 rounded-lg">
+                <div className="flex items-start gap-2">
+                  <AlertTriangle className="h-5 w-5 text-amber-500 mt-0.5" />
+                  <div>
+                    <p className="text-sm text-amber-200 font-medium">Sign in to save your work</p>
+                    <p className="text-xs text-amber-200/70 mt-1">
+                      You can still build models, but they won't be saved to your account.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
             <div>
               <Label htmlFor="company-name" className="text-foreground">Company Name</Label>
               <Input
@@ -356,7 +409,13 @@ export default function CashFlowBuildupPage() {
                 onChange={(e) => setCompanyName(e.target.value)}
                 placeholder="Enter company name"
                 className="mt-2 bg-secondary border-border text-foreground"
+                disabled={!!selectedCompany}
               />
+              {selectedCompany && (
+                <p className="text-xs text-muted-foreground mt-1">
+                  Using selected company name
+                </p>
+              )}
             </div>
 
             <div>
@@ -545,6 +604,30 @@ export default function CashFlowBuildupPage() {
     );
   }
 
+  // Handle model save
+  const handleSaveModel = async (modelData: any, assumptions: any) => {
+    if (!selectedCompany) {
+      toast.error('Please select a company to save the model');
+      return null;
+    }
+
+    const model = await saveModel({
+      companyId: selectedCompany.id,
+      modelType: 'cash_flow_buildup',
+      name: `Cash Flow Buildup - ${new Date().toLocaleDateString()}`,
+      modelData,
+      assumptions,
+      historicalData: extractedData,
+      interviewResponses,
+      status: 'draft'
+    });
+
+    if (model) {
+      setSavedModelId(model.id);
+    }
+    return model;
+  };
+
   // Step 4: Model builder
   return (
     <CashFlowBuildup
@@ -553,6 +636,9 @@ export default function CashFlowBuildupPage() {
       initialAssumptions={generatedAssumptions}
       assumptionsRationale={assumptionsRationale}
       onBack={() => setStep('interview')}
+      companyId={selectedCompany?.id}
+      onSave={handleSaveModel}
+      isSaving={saving}
     />
   );
 }

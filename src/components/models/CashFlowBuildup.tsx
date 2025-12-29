@@ -7,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { 
   Loader2, ArrowLeft, FileSpreadsheet, 
-  TrendingUp, DollarSign, Percent, BarChart3 
+  TrendingUp, DollarSign, Percent, BarChart3, Save, CheckCircle 
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -52,6 +52,9 @@ interface CashFlowBuildupProps {
   };
   assumptionsRationale?: Record<string, string>;
   onBack: () => void;
+  companyId?: string;
+  onSave?: (modelData: any, assumptions: any) => Promise<any>;
+  isSaving?: boolean;
 }
 
 export function CashFlowBuildup({ 
@@ -59,10 +62,14 @@ export function CashFlowBuildup({
   historicalData, 
   initialAssumptions,
   assumptionsRationale,
-  onBack 
+  onBack,
+  companyId,
+  onSave,
+  isSaving = false
 }: CashFlowBuildupProps) {
   const [isGenerating, setIsGenerating] = useState(false);
   const [results, setResults] = useState<CashFlowBuildupResponse | null>(null);
+  const [isSaved, setIsSaved] = useState(false);
   
   const [assumptions, setAssumptions] = useState({
     revenue_growth: initialAssumptions?.revenue_growth ?? 10,
@@ -472,10 +479,39 @@ export function CashFlowBuildup({
             </p>
           </div>
         </div>
-        <Button variant="outline">
-          <FileSpreadsheet className="h-4 w-4 mr-2" />
-          Export to Sheets
-        </Button>
+        <div className="flex gap-2">
+          {onSave && companyId && (
+            <Button 
+              onClick={async () => {
+                const saved = await onSave(results, assumptions);
+                if (saved) setIsSaved(true);
+              }}
+              disabled={isSaving || isSaved}
+              variant={isSaved ? "outline" : "default"}
+            >
+              {isSaving ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Saving...
+                </>
+              ) : isSaved ? (
+                <>
+                  <CheckCircle className="h-4 w-4 mr-2 text-emerald-500" />
+                  Saved
+                </>
+              ) : (
+                <>
+                  <Save className="h-4 w-4 mr-2" />
+                  Save Model
+                </>
+              )}
+            </Button>
+          )}
+          <Button variant="outline">
+            <FileSpreadsheet className="h-4 w-4 mr-2" />
+            Export to Sheets
+          </Button>
+        </div>
       </div>
 
       {/* Summary KPIs */}
