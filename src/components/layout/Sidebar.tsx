@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/contexts/AuthContext";
 import {
   LayoutDashboard,
   Target,
@@ -16,6 +17,7 @@ import {
   HelpCircle,
   ChevronLeft,
   Landmark,
+  LogOut,
 } from "lucide-react";
 
 interface NavItem {
@@ -64,6 +66,7 @@ const bottomNav: NavItem[] = [
 export function Sidebar() {
   const [collapsed, setCollapsed] = useState(false);
   const location = useLocation();
+  const { signOut } = useAuth();
 
   return (
     <aside
@@ -157,6 +160,19 @@ export function Sidebar() {
               </li>
             );
           })}
+          <li>
+            <button
+              onClick={signOut}
+              className={cn(
+                "w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-all duration-200",
+                "text-sidebar-foreground hover:bg-destructive/10 hover:text-destructive",
+                collapsed && "justify-center px-2"
+              )}
+            >
+              <LogOut className="h-4 w-4" />
+              {!collapsed && <span>Sign Out</span>}
+            </button>
+          </li>
         </ul>
       </div>
     </aside>
