@@ -11,3 +11,6 @@ verify_jwt = false
 
 [functions.suggest-folder]
 verify_jwt = false
+
+[functions.fetch-market-data]
+verify_jwt = false

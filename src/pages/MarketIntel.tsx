@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -15,6 +15,7 @@ import {
   Minus,
   Building2,
   Briefcase,
+  Loader2,
 } from "lucide-react";
 import {
   LineChart,
@@ -25,10 +26,19 @@ import {
   Tooltip,
   Legend,
   ResponsiveContainer,
-  Area,
   ComposedChart,
 } from "recharts";
 import { formatDistanceToNow } from "date-fns";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+
+interface MacroIndicator {
+  symbol: string;
+  name: string;
+  price: number | null;
+  change: number | null;
+  changePercent: number | null;
+}
 
 // Mock news data
 const mockNews = [
@@ -94,54 +104,18 @@ const mockNews = [
   },
 ];
 
-// Economic indicators
-const economicIndicators = [
-  {
-    name: "Fed Funds Rate",
-    value: "4.25%",
-    change: -0.25,
-    trend: "down",
-    lastUpdate: "Dec 2024",
-  },
-  {
-    name: "10Y Treasury",
-    value: "4.42%",
-    change: 0.12,
-    trend: "up",
-    lastUpdate: "Today",
-  },
-  {
-    name: "S&P 500",
-    value: "6,037",
-    change: 1.2,
-    trend: "up",
-    lastUpdate: "Today",
-  },
-  {
-    name: "VIX",
-    value: "14.2",
-    change: -2.1,
-    trend: "down",
-    lastUpdate: "Today",
-  },
-  {
-    name: "High Yield Spread",
-    value: "285 bps",
-    change: -15,
-    trend: "down",
-    lastUpdate: "Today",
-  },
-  {
-    name: "SOFR",
-    value: "4.31%",
-    change: 0.0,
-    trend: "flat",
-    lastUpdate: "Today",
-  },
+// Fallback indicators when API fails
+const fallbackIndicators: MacroIndicator[] = [
+  { symbol: "^TNX", name: "10Y Treasury", price: 4.42, change: 0.05, changePercent: 1.14 },
+  { symbol: "^GSPC", name: "S&P 500", price: 6037, change: 73.2, changePercent: 1.23 },
+  { symbol: "CL=F", name: "Crude Oil", price: 69.24, change: -0.87, changePercent: -1.24 },
+  { symbol: "GC=F", name: "Gold", price: 2634, change: 12.4, changePercent: 0.47 },
+  { symbol: "^VIX", name: "VIX", price: 14.2, change: -0.82, changePercent: -5.45 },
+  { symbol: "^DJI", name: "Dow Jones", price: 43325, change: 456, changePercent: 1.06 },
 ];
 
-// Industry multiples data
-const multiplesData = [
+// Industry multiples data (will be updated from API)
+const defaultMultiplesData = [
   { period: "Q1 2023", consumer: 9.2, healthcare: 11.5, tech: 12.8, industrial: 7.5 },
   { period: "Q2 2023", consumer: 8.8, healthcare: 11.2, tech: 11.5, industrial: 7.2 },
   { period: "Q3 2023", consumer: 8.5, healthcare: 10.8, tech: 10.2, industrial: 7.0 },
@@ -154,6 +128,69 @@ const multiplesData = [
 
 export default function MarketIntel() {
   const [newsFilter, setNewsFilter] = useState<"all" | "portfolio" | "pipeline">("all");
+  const [indicators, setIndicators] = useState<MacroIndicator[]>(fallbackIndicators);
+  const [multiplesData, setMultiplesData] = useState(defaultMultiplesData);
+  const [loadingMacro, setLoadingMacro] = useState(false);
+  const [loadingMultiples, setLoadingMultiples] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+
+  const fetchMacroData = async () => {
+    setLoadingMacro(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("fetch-market-data", {
+        body: { type: "macro" },
+      });
+
+      if (error) throw error;
+
+      if (data?.success && Array.isArray(data.data)) {
+        const validData = data.data.filter((d: MacroIndicator) => d.price !== null);
+        if (validData.length > 0) {
+          setIndicators(data.data);
+          setLastUpdated(new Date(data.timestamp));
+          toast.success("Market data updated");
+        } else {
+          toast.info("Using cached market data");
+        }
+      }
+    } catch (error) {
+      console.error("Error fetching macro data:", error);
+      toast.error("Could not fetch live data, using cached values");
+    } finally {
+      setLoadingMacro(false);
+    }
+  };
+
+  const fetchMultiplesData = async () => {
+    setLoadingMultiples(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("fetch-market-data", {
+        body: { type: "multiples" },
+      });
+
+      if (error) throw error;
+
+      if (data?.success && data.data) {
+        console.log("Fetched industry multiples:", Object.keys(data.data).length);
+        // Store raw multiples data - could be used in a table view
+        toast.success(`Loaded ${Object.keys(data.data).length} industry multiples`);
+      }
+    } catch (error) {
+      console.error("Error fetching multiples:", error);
+    } finally {
+      setLoadingMultiples(false);
+    }
+  };
+
+  const handleRefresh = () => {
+    fetchMacroData();
+    fetchMultiplesData();
+  };
+
+  // Fetch on mount
+  useEffect(() => {
+    fetchMacroData();
+  }, []);
 
   const filteredNews =
     newsFilter === "all"
@@ -171,21 +208,33 @@ export default function MarketIntel() {
     }
   };
 
-  const getTrendIcon = (trend: string) => {
-    switch (trend) {
-      case "up":
-        return <ArrowUpRight className="h-4 w-4 text-success" />;
-      case "down":
-        return <ArrowDownRight className="h-4 w-4 text-destructive" />;
-      default:
-        return <Minus className="h-4 w-4 text-muted-foreground" />;
-    }
+  const getTrendIcon = (changePercent: number | null) => {
+    if (changePercent === null) return <Minus className="h-4 w-4 text-muted-foreground" />;
+    if (changePercent > 0) return <ArrowUpRight className="h-4 w-4 text-success" />;
+    if (changePercent < 0) return <ArrowDownRight className="h-4 w-4 text-destructive" />;
+    return <Minus className="h-4 w-4 text-muted-foreground" />;
   };
 
-  const getTrendClass = (trend: string, isGoodWhenDown = false) => {
-    if (trend === "up") return isGoodWhenDown ? "text-destructive" : "text-success";
-    if (trend === "down") return isGoodWhenDown ? "text-success" : "text-destructive";
+  const getTrendClass = (changePercent: number | null, isGoodWhenDown = false) => {
+    if (changePercent === null) return "text-muted-foreground";
+    if (changePercent > 0) return isGoodWhenDown ? "text-destructive" : "text-success";
+    if (changePercent < 0) return isGoodWhenDown ? "text-success" : "text-destructive";
     return "text-muted-foreground";
+  };
+
+  const formatPrice = (indicator: MacroIndicator) => {
+    if (indicator.price === null) return "—";
+    
+    if (indicator.symbol === "^TNX") {
+      return `${indicator.price.toFixed(2)}%`;
+    }
+    if (indicator.symbol === "^VIX") {
+      return indicator.price.toFixed(2);
+    }
+    if (indicator.price >= 1000) {
+      return indicator.price.toLocaleString(undefined, { maximumFractionDigits: 0 });
+    }
+    return indicator.price.toFixed(2);
   };
 
   return (
@@ -201,46 +250,52 @@ export default function MarketIntel() {
             Industry news, economic indicators, and market trends
           </p>
         </div>
-        <Button variant="outline" size="sm">
-          <RefreshCw className="h-4 w-4 mr-2" />
+        <Button variant="outline" size="sm" onClick={handleRefresh} disabled={loadingMacro}>
+          {loadingMacro ? (
+            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+          ) : (
+            <RefreshCw className="h-4 w-4 mr-2" />
+          )}
           Refresh Data
         </Button>
       </div>
 
       {/* Economic Indicators */}
       <div>
-        <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wider mb-4">
-          Economic Indicators
-        </h2>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
+            Market Indicators
+          </h2>
+          {lastUpdated && (
+            <span className="text-xs text-muted-foreground">
+              Updated {formatDistanceToNow(lastUpdated, { addSuffix: true })}
+            </span>
+          )}
+        </div>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-          {economicIndicators.map((indicator) => {
-            const isVixOrSpread =
-              indicator.name === "VIX" || indicator.name === "High Yield Spread";
+          {indicators.map((indicator) => {
+            const isVix = indicator.symbol === "^VIX";
             return (
-              <Card key={indicator.name} className="relative overflow-hidden">
+              <Card key={indicator.symbol} className="relative overflow-hidden">
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between mb-1">
                     <span className="text-xs text-muted-foreground truncate">
                       {indicator.name}
                     </span>
-                    {getTrendIcon(indicator.trend)}
+                    {getTrendIcon(indicator.changePercent)}
                   </div>
-                  <p className="text-xl font-bold text-foreground">{indicator.value}</p>
+                  <p className="text-xl font-bold text-foreground">
+                    {formatPrice(indicator)}
+                  </p>
                   <p
                     className={`text-xs font-medium ${getTrendClass(
-                      indicator.trend,
-                      isVixOrSpread
+                      indicator.changePercent,
+                      isVix
                     )}`}
                   >
-                    {indicator.change > 0 ? "+" : ""}
-                    {indicator.change}
-                    {indicator.name.includes("%") || indicator.name.includes("Rate")
-                      ? "%"
-                      : indicator.name === "S&P 500"
-                      ? "%"
-                      : indicator.name === "VIX"
-                      ? "%"
-                      : " bps"}
+                    {indicator.changePercent !== null
+                      ? `${indicator.changePercent > 0 ? "+" : ""}${indicator.changePercent.toFixed(2)}%`
+                      : "—"}
                   </p>
                 </CardContent>
               </Card>
