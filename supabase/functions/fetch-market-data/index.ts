@@ -83,101 +83,73 @@ const fallbackNews: NewsArticle[] = [
   },
 ];
 
+async function fetchHtml(url: string): Promise<string> {
+  const headers = {
+    "User-Agent": USER_AGENT,
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+    "Accept-Language": "en-US,en;q=0.5",
+  };
+
+  // Yahoo frequently triggers HTTP/2 / bot protections from server-to-server environments.
+  // We first try direct fetch, and if it fails we fall back to a text-proxy that returns the rendered HTML.
+  try {
+    const res = await fetch(url, { headers });
+    if (res.ok) return await res.text();
+    console.warn(`Direct fetch failed (${res.status}) for ${url}, falling back...`);
+  } catch (e) {
+    console.warn(`Direct fetch errored for ${url}, falling back...`, e);
+  }
+
+  // Fallback via Jina AI fetcher (simple HTML proxy)
+  // Format: https://r.jina.ai/https://example.com/page
+  const proxied = `https://r.jina.ai/${url}`;
+  const res2 = await fetch(proxied, { headers });
+  if (!res2.ok) throw new Error(`Fallback fetch failed (${res2.status}) for ${url}`);
+  return await res2.text();
+}
+
 async function fetchYahooFinance(ticker: string): Promise<MacroData> {
   const url = `https://finance.yahoo.com/quote/${encodeURIComponent(ticker)}`;
-  
+
   console.log(`Fetching Yahoo Finance data for ${ticker}...`);
-  
+
   try {
-    const response = await fetch(url, {
-      headers: {
-        "User-Agent": USER_AGENT,
-        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
-        "Accept-Language": "en-US,en;q=0.5",
-      },
-    });
-
-    if (!response.ok) {
-      console.error(`Yahoo Finance returned ${response.status} for ${ticker}`);
-      throw new Error(`HTTP ${response.status}`);
-    }
-
-    const html = await response.text();
+    const html = await fetchHtml(url);
     const $ = cheerio.load(html);
 
-    let price: number | null = null;
-    let changePercent: number | null = null;
-    let change: number | null = null;
+    // Per spec: scrape these fin-streamer fields
+    const priceText =
+      $('fin-streamer[data-field="regularMarketPrice"]').first().attr("data-value") ||
+      $('fin-streamer[data-field="regularMarketPrice"]').first().text();
 
-    // Selector for price - Yahoo Finance uses fin-streamer elements
-    const priceSelector = `fin-streamer[data-symbol="${ticker}"][data-field="regularMarketPrice"]`;
-    const priceEl = $(priceSelector);
-    if (priceEl.length > 0) {
-      const priceText = priceEl.attr("data-value") || priceEl.text();
-      price = parseFloat(priceText.replace(/,/g, ""));
-    }
+    const changePctText =
+      $('fin-streamer[data-field="regularMarketChangePercent"]').first().attr("data-value") ||
+      $('fin-streamer[data-field="regularMarketChangePercent"]').first().text();
 
-    // Fallback: look for the price in the header section
-    if (!price) {
-      const headerPrice = $('[data-testid="qsp-price"]').first();
-      if (headerPrice.length > 0) {
-        price = parseFloat(headerPrice.text().replace(/,/g, ""));
-      }
-    }
+    const changeText =
+      $('fin-streamer[data-field="regularMarketChange"]').first().attr("data-value") ||
+      $('fin-streamer[data-field="regularMarketChange"]').first().text();
 
-    // Additional fallback using JSON patterns in page
-    if (!price) {
-      const priceMatch = html.match(/"regularMarketPrice":{"raw":([\d.]+)/);
-      if (priceMatch) {
-        price = parseFloat(priceMatch[1]);
-      }
-    }
+    const price = priceText ? parseFloat(String(priceText).replace(/,/g, "")) : null;
+    const changePercent = changePctText
+      ? parseFloat(String(changePctText).replace(/[()%,]/g, ""))
+      : null;
+    const change = changeText ? parseFloat(String(changeText).replace(/[()%,+]/g, "")) : null;
 
-    // Selector for change percent
-    const changePercentSelector = `fin-streamer[data-symbol="${ticker}"][data-field="regularMarketChangePercent"]`;
-    const changePercentEl = $(changePercentSelector);
-    if (changePercentEl.length > 0) {
-      const changeText = changePercentEl.attr("data-value") || changePercentEl.text();
-      changePercent = parseFloat(changeText.replace(/[()%,]/g, ""));
-    }
+    const tickerInfo = MACRO_TICKERS.find((t) => t.symbol === ticker);
 
-    // Fallback for change percent from JSON in page
-    if (!changePercent) {
-      const changeMatch = html.match(/"regularMarketChangePercent":{"raw":([-\d.]+)/);
-      if (changeMatch) {
-        changePercent = parseFloat(changeMatch[1]);
-      }
-    }
-
-    // Get absolute change
-    const changeSelector = `fin-streamer[data-symbol="${ticker}"][data-field="regularMarketChange"]`;
-    const changeEl = $(changeSelector);
-    if (changeEl.length > 0) {
-      const changeText = changeEl.attr("data-value") || changeEl.text();
-      change = parseFloat(changeText.replace(/[()%,+]/g, ""));
-    }
-
-    if (!change) {
-      const absChangeMatch = html.match(/"regularMarketChange":{"raw":([-\d.]+)/);
-      if (absChangeMatch) {
-        change = parseFloat(absChangeMatch[1]);
-      }
-    }
-
-    const tickerInfo = MACRO_TICKERS.find(t => t.symbol === ticker);
-    
     console.log(`${ticker}: price=${price}, change=${change}, changePercent=${changePercent}`);
 
     return {
       symbol: ticker,
       name: tickerInfo?.name || ticker,
-      price,
-      change,
-      changePercent,
+      price: Number.isFinite(price as number) ? price : null,
+      change: Number.isFinite(change as number) ? change : null,
+      changePercent: Number.isFinite(changePercent as number) ? changePercent : null,
     };
   } catch (error) {
     console.error(`Error fetching ${ticker}:`, error);
-    const tickerInfo = MACRO_TICKERS.find(t => t.symbol === ticker);
+    const tickerInfo = MACRO_TICKERS.find((t) => t.symbol === ticker);
     return {
       symbol: ticker,
       name: tickerInfo?.name || ticker,
@@ -190,148 +162,85 @@ async function fetchYahooFinance(ticker: string): Promise<MacroData> {
 
 async function fetchMacroData(): Promise<MacroData[]> {
   console.log("Fetching macro data from Yahoo Finance...");
-  
+
   const results: MacroData[] = [];
-  
+
   // Fetch sequentially to avoid rate limiting
   for (const ticker of MACRO_TICKERS) {
     const data = await fetchYahooFinance(ticker.symbol);
     results.push(data);
     // Small delay between requests
-    await new Promise(resolve => setTimeout(resolve, 300));
+    await new Promise((resolve) => setTimeout(resolve, 250));
   }
-  
+
   return results;
 }
 
 async function fetchNewsData(): Promise<{ articles: NewsArticle[]; isMock: boolean }> {
   const url = "https://finance.yahoo.com/topic/mna/";
-  
+
   console.log("Fetching M&A news from Yahoo Finance...");
-  
+
   try {
-    const response = await fetch(url, {
-      headers: {
-        "User-Agent": USER_AGENT,
-        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
-        "Accept-Language": "en-US,en;q=0.5",
-      },
-    });
-
-    if (!response.ok) {
-      console.error(`Yahoo Finance news returned ${response.status}`);
-      return { articles: fallbackNews, isMock: true };
-    }
-
-    const html = await response.text();
+    const html = await fetchHtml(url);
     const $ = cheerio.load(html);
+
     const articles: NewsArticle[] = [];
 
-    // Try multiple selectors for news items
-    const newsSelectors = [
-      'li.stream-item',
-      'li[class*="stream"]',
-      'div[class*="stream"] li',
-      'article',
-      '[data-testid="story-item"]',
-    ];
+    // Spec: look for li items in main stream; Yahoo markup shifts, so start with broad LI scan.
+    $("main li").each((_, el) => {
+      if (articles.length >= 7) return false;
 
-    for (const selector of newsSelectors) {
-      if (articles.length >= 7) break;
-      
-      $(selector).each((index, element) => {
-        if (articles.length >= 7) return false;
+      const $li = $(el);
 
-        const $el = $(element);
-        
-        // Try different selectors for headline
-        let headline = 
-          $el.find('h3 a').text().trim() ||
-          $el.find('h3').text().trim() ||
-          $el.find('a[class*="title"]').text().trim() ||
-          $el.find('[class*="headline"]').text().trim() ||
-          $el.find('a').first().text().trim();
+      const headline =
+        $li.find("h3 a").first().text().trim() ||
+        $li.find("h3").first().text().trim() ||
+        $li.find("a").first().text().trim();
 
-        // Skip if no valid headline
-        if (!headline || headline.length < 15) return;
+      if (!headline || headline.length < 20) return;
 
-        // Try different selectors for URL
-        let articleUrl = 
-          $el.find('h3 a').attr('href') ||
-          $el.find('a[class*="title"]').attr('href') ||
-          $el.find('a').first().attr('href') || '';
+      let href = $li.find("h3 a").first().attr("href") || $li.find("a").first().attr("href") || "";
+      if (!href) return;
 
-        // Prepend domain if relative URL
-        if (articleUrl && !articleUrl.startsWith('http')) {
-          articleUrl = `https://finance.yahoo.com${articleUrl}`;
-        }
+      if (!href.startsWith("http")) href = `https://finance.yahoo.com${href}`;
 
-        // Try different selectors for source
-        let source = 
-          $el.find('[class*="provider"]').text().trim() ||
-          $el.find('[class*="source"]').text().trim() ||
-          $el.find('span').filter((_, el) => {
-            const text = $(el).text();
-            return text.length < 30 && !text.includes('ago') && !text.includes('•');
-          }).first().text().trim() ||
-          'Yahoo Finance';
+      // Source + time are often in small spans near the headline
+      const metaText =
+        $li.find("span").first().text().trim() ||
+        $li.find("span").eq(1).text().trim() ||
+        "";
 
-        // Try different selectors for time
-        let time = 
-          $el.find('time').text().trim() ||
-          $el.find('[class*="time"]').text().trim() ||
-          $el.find('span').filter((_, el) => {
-            const text = $(el).text();
-            return text.includes('ago') || text.includes('hour') || text.includes('minute') || text.includes('day');
-          }).text().trim() ||
-          'Recently';
+      const source =
+        $li.find('[class*="provider"], [class*="source"]').first().text().trim() ||
+        (metaText && !metaText.includes("ago") ? metaText : "Yahoo Finance");
 
-        // Clean up source (remove time if it got mixed in)
-        if (source.includes('ago') || source.includes('hour')) {
-          source = 'Yahoo Finance';
-        }
+      const time =
+        $li.find("time").first().text().trim() ||
+        $li
+          .find("span")
+          .toArray()
+          .map((s) => $(s).text().trim())
+          .find((t) => /ago|hour|minute|day|yesterday/i.test(t || "")) ||
+        "Recently";
 
-        articles.push({
-          id: `${articles.length + 1}`,
-          headline: headline.substring(0, 200),
-          url: articleUrl || 'https://finance.yahoo.com/topic/mna/',
-          source: source.substring(0, 50) || 'Yahoo Finance',
-          time: time || 'Recently',
-          isMock: false,
-        });
+      // Deduplicate
+      if (articles.some((a) => a.url === href || a.headline === headline)) return;
+
+      articles.push({
+        id: String(articles.length + 1),
+        headline: headline.slice(0, 200),
+        url: href,
+        source: (source || "Yahoo Finance").slice(0, 50),
+        time: (time || "Recently").slice(0, 50),
+        isMock: false,
       });
-    }
-
-    // Alternative approach: look for any news links
-    if (articles.length < 3) {
-      console.log("Trying alternative news extraction...");
-      
-      $('a[href*="/news/"]').each((index, element) => {
-        if (articles.length >= 7) return false;
-        
-        const $el = $(element);
-        const headline = $el.text().trim();
-        const href = $el.attr('href') || '';
-        
-        // Skip if already captured or too short
-        if (headline.length < 20 || headline.length > 300) return;
-        if (articles.some(a => a.headline === headline)) return;
-        
-        articles.push({
-          id: `alt-${articles.length + 1}`,
-          headline,
-          url: href.startsWith('http') ? href : `https://finance.yahoo.com${href}`,
-          source: 'Yahoo Finance',
-          time: 'Recently',
-          isMock: false,
-        });
-      });
-    }
+    });
 
     console.log(`Extracted ${articles.length} news articles`);
 
-    if (articles.length === 0) {
-      console.log("No articles found, returning fallback");
+    if (articles.length < 3) {
+      console.log("Not enough articles found; returning fallback news.");
       return { articles: fallbackNews, isMock: true };
     }
 
