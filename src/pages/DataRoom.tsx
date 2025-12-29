@@ -30,7 +30,7 @@ import {
   FolderOpen,
 } from "lucide-react";
 import { FolderTree, FolderNode } from "@/components/dataroom/FolderTree";
-import { DocumentList, Document } from "@/components/dataroom/DocumentList";
+import { DocumentList, Document as DocumentDisplay } from "@/components/dataroom/DocumentList";
 import { UploadZone } from "@/components/dataroom/UploadZone";
 import { DataRoomChecklist } from "@/components/dataroom/DataRoomChecklist";
 import { DocumentDetailsPanel } from "@/components/dataroom/DocumentDetailsPanel";
@@ -120,7 +120,7 @@ export default function DataRoom() {
   
   const { user } = useAuth();
   const { companies, loading: companiesLoading } = useCompanies();
-  const { getDocumentsForCompany } = useDocuments();
+  const { getDocumentsForCompany, deleteDocument, updateDocumentFolder, getDownloadUrl } = useDocuments();
 
   const [selectedCompanyId, setSelectedCompanyId] = useState<string>("");
   const [selectedFolderId, setSelectedFolderId] = useState<string | null>("all");
@@ -128,7 +128,7 @@ export default function DataRoom() {
   const [selectedDocuments, setSelectedDocuments] = useState<Set<string>>(new Set());
   const [viewMode, setViewMode] = useState<"list" | "grid">("list");
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
-  const [previewDocument, setPreviewDocument] = useState<Document | null>(null);
+  const [previewDocument, setPreviewDocument] = useState<DocumentDisplay | null>(null);
   const [detailsDocument, setDetailsDocument] = useState<{ id: string; name: string; type: string; size: string; filePath?: string } | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -201,7 +201,7 @@ export default function DataRoom() {
     setSelectedDocuments(newSelected);
   };
 
-  const handleViewItem = (doc: Document) => {
+  const handleViewItem = (doc: DocumentDisplay) => {
     if (doc.id.startsWith("model-")) {
       const modelId = doc.id.replace("model-", "");
       navigate(`/models/view/${modelId}`);
@@ -210,7 +210,7 @@ export default function DataRoom() {
     }
   };
 
-  const handleOpenDetails = (doc: Document) => {
+  const handleOpenDetails = (doc: DocumentDisplay) => {
     const realId = doc.id.startsWith("doc-") ? doc.id.replace("doc-", "") : doc.id;
     setDetailsDocument({
       id: realId,
@@ -221,9 +221,33 @@ export default function DataRoom() {
     });
   };
 
+  const handleDownload = async (doc: DocumentDisplay) => {
+    if (!doc.filePath) return;
+    const url = await getDownloadUrl(doc.filePath);
+    if (url) {
+      window.open(url, "_blank");
+    }
+  };
+
+  const handleDelete = async (doc: DocumentDisplay) => {
+    const realId = doc.id.startsWith("doc-") ? doc.id.replace("doc-", "") : doc.id;
+    const success = await deleteDocument(realId, doc.filePath);
+    if (success) {
+      refreshData();
+    }
+  };
+
+  const handleMoveToFolder = async (doc: DocumentDisplay, folder: string, subfolder?: string) => {
+    const realId = doc.id.startsWith("doc-") ? doc.id.replace("doc-", "") : doc.id;
+    const success = await updateDocumentFolder(realId, folder, subfolder);
+    if (success) {
+      refreshData();
+    }
+  };
+
   // Convert database records to display format
-  const getDisplayItems = (): Document[] => {
-    const items: Document[] = [];
+  const getDisplayItems = (): DocumentDisplay[] => {
+    const items: DocumentDisplay[] = [];
 
     const filteredDocs = documents.filter((doc) => {
       if (selectedFolderId === "all") return true;
@@ -445,6 +469,9 @@ export default function DataRoom() {
                 onSelectAll={handleSelectAll}
                 onViewDocument={handleViewItem}
                 onOpenDetails={handleOpenDetails}
+                onDownload={handleDownload}
+                onDelete={handleDelete}
+                onMoveToFolder={handleMoveToFolder}
               />
               <div className="mt-4 text-sm text-muted-foreground">
                 {displayItems.length === 0 ? (
