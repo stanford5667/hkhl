@@ -39,21 +39,37 @@ interface CashFlowBuildupResponse {
 interface CashFlowBuildupProps {
   companyName: string;
   historicalData: any;
+  initialAssumptions?: {
+    revenue_growth: number;
+    ebitda_margin: number;
+    capex_pct: number;
+    nwc_pct: number;
+    tax_rate: number;
+    da_pct: number;
+    interest_rate: number;
+  };
+  assumptionsRationale?: Record<string, string>;
   onBack: () => void;
 }
 
-export function CashFlowBuildup({ companyName, historicalData, onBack }: CashFlowBuildupProps) {
+export function CashFlowBuildup({ 
+  companyName, 
+  historicalData, 
+  initialAssumptions,
+  assumptionsRationale,
+  onBack 
+}: CashFlowBuildupProps) {
   const [isGenerating, setIsGenerating] = useState(false);
   const [results, setResults] = useState<CashFlowBuildupResponse | null>(null);
   
   const [assumptions, setAssumptions] = useState({
-    revenue_growth: 10,
-    ebitda_margin: 20,
-    capex_pct: 3,
-    nwc_pct: 10,
-    tax_rate: 25,
-    da_pct: 4,
-    interest_rate: 8
+    revenue_growth: initialAssumptions?.revenue_growth ?? 10,
+    ebitda_margin: initialAssumptions?.ebitda_margin ?? 20,
+    capex_pct: initialAssumptions?.capex_pct ?? 3,
+    nwc_pct: initialAssumptions?.nwc_pct ?? 10,
+    tax_rate: initialAssumptions?.tax_rate ?? 25,
+    da_pct: initialAssumptions?.da_pct ?? 4,
+    interest_rate: initialAssumptions?.interest_rate ?? 8
   });
 
   const handleGenerate = async () => {
