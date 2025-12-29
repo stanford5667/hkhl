@@ -85,10 +85,21 @@ export function useDocuments() {
     }
   };
 
-  const deleteDocument = async (documentId: string): Promise<boolean> => {
+  const deleteDocument = async (documentId: string, filePath?: string): Promise<boolean> => {
     if (!user) return false;
 
     try {
+      // Delete from storage if file path provided
+      if (filePath) {
+        const { error: storageError } = await supabase.storage
+          .from('documents')
+          .remove([filePath]);
+        
+        if (storageError) {
+          console.error('Error deleting file from storage:', storageError);
+        }
+      }
+
       const { error } = await supabase
         .from('documents')
         .delete()
@@ -104,5 +115,39 @@ export function useDocuments() {
     }
   };
 
-  return { saveDocument, getDocumentsForCompany, deleteDocument, saving };
+  const updateDocumentFolder = async (documentId: string, folder: string, subfolder?: string): Promise<boolean> => {
+    if (!user) return false;
+
+    try {
+      const { error } = await supabase
+        .from('documents')
+        .update({ folder, subfolder: subfolder || null })
+        .eq('id', documentId);
+
+      if (error) throw error;
+      toast.success(`Document moved to ${folder}${subfolder ? ` / ${subfolder}` : ''}`);
+      return true;
+    } catch (error) {
+      console.error('Error updating document folder:', error);
+      toast.error('Failed to move document');
+      return false;
+    }
+  };
+
+  const getDownloadUrl = async (filePath: string): Promise<string | null> => {
+    try {
+      const { data, error } = await supabase.storage
+        .from('documents')
+        .createSignedUrl(filePath, 3600); // 1 hour expiry
+
+      if (error) throw error;
+      return data.signedUrl;
+    } catch (error) {
+      console.error('Error getting download URL:', error);
+      toast.error('Failed to get download link');
+      return null;
+    }
+  };
+
+  return { saveDocument, getDocumentsForCompany, deleteDocument, updateDocumentFolder, getDownloadUrl, saving };
 }
