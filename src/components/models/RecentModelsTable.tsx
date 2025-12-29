@@ -157,6 +157,7 @@ export function RecentModelsTable() {
                 <tr
                   key={model.id}
                   className="border-b border-border/50 hover:bg-secondary/30 transition-colors cursor-pointer group"
+                  onClick={() => navigate(`/models/view/${model.id}`)}
                 >
                   <td className="py-3 px-4">
                     <div className="flex items-center gap-2">

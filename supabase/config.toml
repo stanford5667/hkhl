@@ -5,3 +5,6 @@ verify_jwt = false
 
 [functions.generate-assumptions]
 verify_jwt = false
+
+[functions.summarize-document]
+verify_jwt = false

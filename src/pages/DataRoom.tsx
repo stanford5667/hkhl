@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -126,6 +127,7 @@ const modelTypeLabels: Record<string, string> = {
 };
 
 export default function DataRoom() {
+  const navigate = useNavigate();
   const { user } = useAuth();
   const { companies, loading: companiesLoading } = useCompanies();
   const { getDocumentsForCompany } = useDocuments();
@@ -142,6 +144,31 @@ export default function DataRoom() {
   const [documents, setDocuments] = useState<DocumentRecord[]>([]);
   const [models, setModels] = useState<ModelRecord[]>([]);
   const [loading, setLoading] = useState(false);
+  
+  // Refresh function
+  const refreshData = async () => {
+    if (!selectedCompanyId || !user) return;
+    const docs = await getDocumentsForCompany(selectedCompanyId);
+    setDocuments(docs);
+    const { data: modelsData } = await supabase
+      .from('models')
+      .select('*')
+      .eq('company_id', selectedCompanyId)
+      .order('updated_at', { ascending: false });
+    setModels(modelsData || []);
+  };
+
+  // Handle viewing an item (document or model)
+  const handleViewItem = (doc: Document) => {
+    // Check if it's a model (id starts with 'model-')
+    if (doc.id.startsWith('model-')) {
+      const modelId = doc.id.replace('model-', '');
+      navigate(`/models/view/${modelId}`);
+    } else {
+      // It's a document, show preview
+      setPreviewDocument(doc);
+    }
+  };
 
   // Set first company as default when loaded
   useEffect(() => {
@@ -412,12 +439,13 @@ export default function DataRoom() {
                   <DialogTitle>Upload Documents</DialogTitle>
                 </DialogHeader>
                 <UploadZone
+                  companyId={selectedCompanyId}
+                  folder={selectedFolderId === 'historical' ? 'Financial' : 'General'}
+                  subfolder={selectedFolderId === 'historical' ? 'Historical' : undefined}
                   onUploadComplete={() => {
                     setUploadDialogOpen(false);
                     // Refresh documents
-                    if (selectedCompanyId) {
-                      getDocumentsForCompany(selectedCompanyId).then(setDocuments);
-                    }
+                    refreshData();
                   }}
                 />
               </DialogContent>
@@ -446,7 +474,7 @@ export default function DataRoom() {
                 selectedDocuments={selectedDocuments}
                 onToggleSelect={handleToggleSelect}
                 onSelectAll={handleSelectAll}
-                onViewDocument={setPreviewDocument}
+                onViewDocument={handleViewItem}
               />
 
               <div className="mt-4 text-sm text-muted-foreground">
