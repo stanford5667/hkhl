@@ -134,7 +134,7 @@ export function UploadZone({ companyId, folder = "General", subfolder, onUploadC
     }
   };
 
-  const uploadFile = async (upload: UploadFile) => {
+  const uploadFile = async (upload: UploadFile): Promise<boolean> => {
     const { id, file, selectedFolder, selectedSubfolder } = upload;
     
     if (!user || !companyId) {
@@ -143,7 +143,7 @@ export function UploadZone({ companyId, folder = "General", subfolder, onUploadC
           u.id === id ? { ...u, status: "error" as const, error: "No company selected" } : u
         )
       );
-      return;
+      return false;
     }
 
     const folderToUse = selectedFolder || folder;
@@ -193,6 +193,7 @@ export function UploadZone({ companyId, folder = "General", subfolder, onUploadC
       );
 
       toast.success(`${file.name} uploaded to ${folderToUse}${subfolderToUse ? ` / ${subfolderToUse}` : ''}`);
+      return true;
     } catch (error) {
       console.error('Upload error:', error);
       setUploads((prev) =>
@@ -201,6 +202,7 @@ export function UploadZone({ companyId, folder = "General", subfolder, onUploadC
         )
       );
       toast.error(`Failed to upload ${file.name}`);
+      return false;
     }
   };
 
@@ -233,9 +235,8 @@ export function UploadZone({ companyId, folder = "General", subfolder, onUploadC
         )
       );
     }
-
-    onUploadComplete?.(fileArray);
-  }, [companyId, user, folder, subfolder, onUploadComplete]);
+    // Don't call onUploadComplete here - wait until actual upload
+  }, [companyId, user, folder, subfolder]);
 
   const handleDrop = useCallback(
     (e: React.DragEvent) => {
@@ -274,13 +275,27 @@ export function UploadZone({ companyId, folder = "General", subfolder, onUploadC
     );
   };
 
-  const handleUploadFile = (upload: UploadFile) => {
-    uploadFile(upload);
+  const handleUploadFile = async (upload: UploadFile) => {
+    const success = await uploadFile(upload);
+    if (success) {
+      onUploadComplete?.([upload.file]);
+    }
   };
 
-  const handleUploadAll = () => {
+  const handleUploadAll = async () => {
     const pendingUploads = uploads.filter(u => u.status === "pending");
-    pendingUploads.forEach(upload => uploadFile(upload));
+    const uploadedFiles: File[] = [];
+    
+    for (const upload of pendingUploads) {
+      const success = await uploadFile(upload);
+      if (success) {
+        uploadedFiles.push(upload.file);
+      }
+    }
+    
+    if (uploadedFiles.length > 0) {
+      onUploadComplete?.(uploadedFiles);
+    }
   };
 
   const removeUpload = (id: string) => {
