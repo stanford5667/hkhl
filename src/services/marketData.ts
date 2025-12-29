@@ -8,11 +8,13 @@ export interface MacroIndicator {
   changePercent: number | null;
 }
 
-export interface MarketDataResponse {
-  success: boolean;
-  data: MacroIndicator[] | Record<string, number>;
+export interface NewsArticle {
+  id: string;
+  headline: string;
+  url: string;
   source: string;
-  timestamp: string;
+  time: string;
+  isMock: boolean;
 }
 
 export interface IndustryMultiples {
@@ -25,8 +27,52 @@ export const fallbackMacroIndicators: MacroIndicator[] = [
   { symbol: "^GSPC", name: "S&P 500", price: 6037, change: 73.2, changePercent: 1.23 },
   { symbol: "CL=F", name: "Crude Oil", price: 69.24, change: -0.87, changePercent: -1.24 },
   { symbol: "GC=F", name: "Gold", price: 2634, change: 12.4, changePercent: 0.47 },
-  { symbol: "^VIX", name: "VIX", price: 14.2, change: -0.82, changePercent: -5.45 },
-  { symbol: "^DJI", name: "Dow Jones", price: 43325, change: 456, changePercent: 1.06 },
+  { symbol: "SI=F", name: "Silver", price: 29.85, change: 0.32, changePercent: 1.08 },
+  { symbol: "BTC-USD", name: "Bitcoin", price: 94250, change: 1250, changePercent: 1.34 },
+];
+
+// Fallback news
+export const fallbackNews: NewsArticle[] = [
+  {
+    id: "1",
+    headline: "Private Equity Deal Volume Rebounds in Q4 2024",
+    url: "https://finance.yahoo.com/topic/mna/",
+    source: "Wall Street Journal",
+    time: "2 hours ago",
+    isMock: true,
+  },
+  {
+    id: "2",
+    headline: "Consumer Beauty Sector Sees Record M&A Activity",
+    url: "https://finance.yahoo.com/topic/mna/",
+    source: "Bloomberg",
+    time: "5 hours ago",
+    isMock: true,
+  },
+  {
+    id: "3",
+    headline: "Fed Signals Pause in Rate Cuts for Early 2025",
+    url: "https://finance.yahoo.com/topic/mna/",
+    source: "Reuters",
+    time: "8 hours ago",
+    isMock: true,
+  },
+  {
+    id: "4",
+    headline: "Healthcare Services Sector Faces Margin Pressure",
+    url: "https://finance.yahoo.com/topic/mna/",
+    source: "Financial Times",
+    time: "12 hours ago",
+    isMock: true,
+  },
+  {
+    id: "5",
+    headline: "New Mezzanine Fund Launches with $2B Target",
+    url: "https://finance.yahoo.com/topic/mna/",
+    source: "Private Equity International",
+    time: "1 day ago",
+    isMock: true,
+  },
 ];
 
 // Fallback multiples matching common industries
@@ -40,7 +86,6 @@ export const fallbackIndustryMultiples: IndustryMultiples = {
   "Real Estate": 14.0,
   "Media & Entertainment": 10.5,
   "Other": 8.5,
-  // Extended list from Damodaran data
   "Software (System & Application)": 19.4,
   "Air Transport": 6.8,
   "Retail (General)": 8.2,
@@ -81,7 +126,6 @@ export async function fetchLiveMarketData(): Promise<{
       }
     }
 
-    // Return fallback if no valid data
     return {
       data: fallbackMacroIndicators,
       timestamp: null,
@@ -91,6 +135,44 @@ export async function fetchLiveMarketData(): Promise<{
     console.error("Error fetching macro data:", error);
     return {
       data: fallbackMacroIndicators,
+      timestamp: null,
+      isLive: false,
+    };
+  }
+}
+
+/**
+ * Fetches M&A news from the edge function
+ */
+export async function fetchMarketNews(): Promise<{
+  data: NewsArticle[];
+  timestamp: Date | null;
+  isLive: boolean;
+}> {
+  try {
+    const { data, error } = await supabase.functions.invoke("fetch-market-data", {
+      body: { type: "news" },
+    });
+
+    if (error) throw error;
+
+    if (data?.success && Array.isArray(data.data)) {
+      return {
+        data: data.data,
+        timestamp: new Date(data.timestamp),
+        isLive: !data.isMock,
+      };
+    }
+
+    return {
+      data: fallbackNews,
+      timestamp: null,
+      isLive: false,
+    };
+  } catch (error) {
+    console.error("Error fetching news:", error);
+    return {
+      data: fallbackNews,
       timestamp: null,
       isLive: false,
     };
