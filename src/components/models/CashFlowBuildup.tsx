@@ -16,7 +16,9 @@ interface CashFlowBuildupResponse {
   success: boolean;
   company_name: string;
   model_type: string;
+  historical_years: string[];
   projection_years: string[];
+  all_years: string[];
   income_statement: Record<string, Record<string, number>>;
   cash_flow_buildup: Record<string, Record<string, number>>;
   cash_bridge: Record<string, Record<string, number>>;
@@ -122,13 +124,20 @@ export function CashFlowBuildup({
   };
 
   function calculateLocalCashFlow(companyName: string, historicalData: any, assumptions: any): CashFlowBuildupResponse {
-    const years = ['2025', '2026', '2027', '2028', '2029'];
+    const projectionYears = ['2025', '2026', '2027', '2028', '2029'];
     const is = historicalData?.income_statement || {};
-    const histYears = historicalData?.historical_years || ['2024'];
-    const lastYear = histYears[histYears.length - 1] || '2024';
+    const bs = historicalData?.balance_sheet || {};
+    const cf = historicalData?.cash_flow || {};
+    const histYears: string[] = historicalData?.historical_years || [];
+    const lastHistYear = histYears[histYears.length - 1] || '2024';
     
-    // Get starting values
-    let baseRevenue = is.revenue?.[lastYear] || 100;
+    // Combine historical + projection years
+    const allYears = [...histYears, ...projectionYears];
+    
+    // Get starting values from historical data
+    let baseRevenue = historicalData?.calculated_metrics?.latest_revenue || is.revenue?.[lastHistYear] || 100;
+    let baseEBITDA = historicalData?.calculated_metrics?.latest_ebitda || is.ebitda?.[lastHistYear] || 20;
+    
     const growthRate = assumptions.revenue_growth / 100;
     const ebitdaMargin = assumptions.ebitda_margin / 100;
     const capexPct = assumptions.capex_pct / 100;
@@ -136,7 +145,7 @@ export function CashFlowBuildup({
     const taxRate = assumptions.tax_rate / 100;
     const daPct = assumptions.da_pct / 100;
     const interestRate = assumptions.interest_rate / 100;
-    const debtBalance = 50; // Assume $50M debt
+    const debtBalance = bs.total_debt?.[lastHistYear] || 50;
 
     const income_statement: Record<string, Record<string, number>> = {
       revenue: {}, ebitda: {}, depreciation: {}, ebit: {},
@@ -161,13 +170,60 @@ export function CashFlowBuildup({
       cash_conversion_pct: {}, capex_intensity_pct: {}
     };
 
+    // First, populate historical data
+    histYears.forEach((year) => {
+      const revenue = is.revenue?.[year];
+      const ebitda = is.ebitda?.[year];
+      const da = is.depreciation_amortization?.[year] || (revenue ? revenue * 0.04 : undefined);
+      const netIncome = is.net_income?.[year];
+      const capex = cf.capex?.[year];
+      
+      if (revenue !== undefined) {
+        income_statement.revenue[year] = Math.round(revenue * 10) / 10;
+      }
+      if (ebitda !== undefined) {
+        income_statement.ebitda[year] = Math.round(ebitda * 10) / 10;
+        if (revenue) {
+          key_metrics.ebitda_margin_pct[year] = ebitda / revenue;
+        }
+      }
+      if (da !== undefined) {
+        income_statement.depreciation[year] = Math.round(da * 10) / 10;
+        cash_flow_buildup.add_back_da[year] = Math.round(da * 10) / 10;
+      }
+      if (netIncome !== undefined) {
+        income_statement.net_income[year] = Math.round(netIncome * 10) / 10;
+        cash_flow_buildup.net_income[year] = Math.round(netIncome * 10) / 10;
+      }
+      if (capex !== undefined) {
+        cash_flow_buildup.total_capex[year] = Math.round(capex * 10) / 10;
+        if (revenue) {
+          key_metrics.capex_intensity_pct[year] = Math.abs(capex) / revenue;
+        }
+      }
+      
+      // Calculate historical EBIT if we have EBITDA and D&A
+      if (ebitda !== undefined && da !== undefined) {
+        income_statement.ebit[year] = Math.round((ebitda - da) * 10) / 10;
+      }
+    });
+
+    // Calculate historical revenue growth
+    for (let i = 1; i < histYears.length; i++) {
+      const prevRev = is.revenue?.[histYears[i-1]];
+      const currRev = is.revenue?.[histYears[i]];
+      if (prevRev && currRev) {
+        key_metrics.revenue_growth_pct[histYears[i]] = (currRev - prevRev) / prevRev;
+      }
+    }
+
     let totalUFCF = 0;
     let totalLFCF = 0;
     let cumulativeLFCF = 0;
     let prevNWC = baseRevenue * nwcPct;
-    let openingCash = 20; // Starting cash
+    let openingCash = bs.cash?.[lastHistYear] || 20;
 
-    years.forEach((year, i) => {
+    projectionYears.forEach((year, i) => {
       // Income Statement
       const revenue = baseRevenue * Math.pow(1 + growthRate, i + 1);
       const ebitda = revenue * ebitdaMargin;
@@ -238,7 +294,9 @@ export function CashFlowBuildup({
       success: true,
       company_name: companyName,
       model_type: 'cash_flow_buildup',
-      projection_years: years,
+      historical_years: histYears,
+      projection_years: projectionYears,
+      all_years: allYears,
       income_statement,
       cash_flow_buildup,
       cash_bridge,
@@ -255,7 +313,7 @@ export function CashFlowBuildup({
         avg_ufcf_margin: '8.0%',
         avg_cash_conversion: '55.0%'
       },
-      analysis_notes: `This ${companyName} cash flow model projects ${(growthRate * 100).toFixed(0)}% annual revenue growth with ${(ebitdaMargin * 100).toFixed(0)}% EBITDA margins. Total unlevered free cash flow of $${totalUFCF.toFixed(1)}M over 5 years with healthy cash conversion.`
+      analysis_notes: `This ${companyName} cash flow model shows ${histYears.length} years of historical data and projects ${(growthRate * 100).toFixed(0)}% annual revenue growth with ${(ebitdaMargin * 100).toFixed(0)}% EBITDA margins. Total unlevered free cash flow of $${totalUFCF.toFixed(1)}M over 5 years.`
     };
   }
 
@@ -393,8 +451,10 @@ export function CashFlowBuildup({
     );
   }
 
-  const years = results.projection_years || ['Year 1', 'Year 2', 'Year 3', 'Year 4', 'Year 5'];
-  const lastYear = years[years.length - 1];
+  const allYears = results.all_years || results.projection_years || ['Year 1', 'Year 2', 'Year 3', 'Year 4', 'Year 5'];
+  const historicalYears = results.historical_years || [];
+  const projectionYears = results.projection_years || [];
+  const lastYear = projectionYears[projectionYears.length - 1] || allYears[allYears.length - 1];
 
   return (
     <div className="p-6 lg:p-8 space-y-6 animate-fade-up">
@@ -407,7 +467,9 @@ export function CashFlowBuildup({
           </Button>
           <div>
             <h1 className="h1">Cash Flow Buildup Results</h1>
-            <p className="text-muted-foreground">{companyName} • 5-Year Projection</p>
+            <p className="text-muted-foreground">
+              {companyName} • {historicalYears.length > 0 ? `${historicalYears.length}yr Historical + ` : ''}{projectionYears.length}yr Projection
+            </p>
           </div>
         </div>
         <Button variant="outline">
@@ -479,7 +541,11 @@ export function CashFlowBuildup({
         <TabsContent value="buildup">
           <Card className="glass-card">
             <CardContent className="pt-6 overflow-x-auto">
-              <CashFlowTable data={results.cash_flow_buildup} years={years} />
+              <CashFlowTable 
+                data={results.cash_flow_buildup} 
+                years={allYears} 
+                historicalYears={historicalYears}
+              />
             </CardContent>
           </Card>
         </TabsContent>
@@ -501,7 +567,11 @@ export function CashFlowBuildup({
               <CardTitle>Cash Bridge</CardTitle>
             </CardHeader>
             <CardContent className="overflow-x-auto">
-              <CashBridgeTable data={results.cash_bridge} years={years} />
+              <CashBridgeTable 
+                data={results.cash_bridge} 
+                years={allYears}
+                historicalYears={historicalYears}
+              />
             </CardContent>
           </Card>
         </TabsContent>
@@ -512,7 +582,11 @@ export function CashFlowBuildup({
               <CardTitle>Key Metrics by Year</CardTitle>
             </CardHeader>
             <CardContent className="overflow-x-auto">
-              <MetricsTable data={results.key_metrics} years={years} />
+              <MetricsTable 
+                data={results.key_metrics} 
+                years={allYears}
+                historicalYears={historicalYears}
+              />
             </CardContent>
           </Card>
         </TabsContent>
@@ -534,7 +608,15 @@ export function CashFlowBuildup({
 }
 
 // Cash Flow Table Component
-function CashFlowTable({ data, years }: { data: Record<string, Record<string, number>>; years: string[] }) {
+function CashFlowTable({ 
+  data, 
+  years, 
+  historicalYears = [] 
+}: { 
+  data: Record<string, Record<string, number>>; 
+  years: string[];
+  historicalYears?: string[];
+}) {
   const rows = [
     { label: 'Net Income', key: 'net_income', bold: false },
     { label: '+ Depreciation & Amortization', key: 'add_back_da', indent: true },
@@ -562,13 +644,23 @@ function CashFlowTable({ data, years }: { data: Record<string, Record<string, nu
     return `${isNegative ? '(' : ''}$${Math.abs(val).toFixed(1)}M${isNegative ? ')' : ''}`;
   };
 
+  const isHistorical = (year: string) => historicalYears.includes(year);
+
   return (
     <Table>
       <TableHeader>
         <TableRow className="border-border">
           <TableHead className="text-muted-foreground">Line Item</TableHead>
           {years.map(year => (
-            <TableHead key={year} className="text-right text-muted-foreground">{year}P</TableHead>
+            <TableHead 
+              key={year} 
+              className={cn(
+                "text-right text-muted-foreground",
+                isHistorical(year) && "bg-muted/30"
+              )}
+            >
+              {year}{isHistorical(year) ? 'A' : 'P'}
+            </TableHead>
           ))}
         </TableRow>
       </TableHeader>
@@ -597,7 +689,8 @@ function CashFlowTable({ data, years }: { data: Record<string, Record<string, nu
                     row.bold && "font-semibold",
                     row.highlight === 'cyan' && "text-cyan-400",
                     row.highlight === 'emerald' && "text-emerald-400",
-                    row.highlight === 'primary' && "text-primary"
+                    row.highlight === 'primary' && "text-primary",
+                    isHistorical(year) && "bg-muted/30"
                   )}
                 >
                   {formatValue(data[row.key]?.[year])}
@@ -648,7 +741,15 @@ function CashFlowWaterfall({ data, year }: { data: Record<string, Record<string,
 }
 
 // Cash Bridge Table Component
-function CashBridgeTable({ data, years }: { data: Record<string, Record<string, number>>; years: string[] }) {
+function CashBridgeTable({ 
+  data, 
+  years,
+  historicalYears = []
+}: { 
+  data: Record<string, Record<string, number>>; 
+  years: string[];
+  historicalYears?: string[];
+}) {
   const rows = [
     { label: 'Opening Cash', key: 'opening_cash' },
     { label: '+ Cash from Operations', key: 'cfo' },
@@ -657,13 +758,23 @@ function CashBridgeTable({ data, years }: { data: Record<string, Record<string, 
     { label: '= Closing Cash', key: 'closing_cash', bold: true },
   ];
 
+  const isHistorical = (year: string) => historicalYears.includes(year);
+
   return (
     <Table>
       <TableHeader>
         <TableRow className="border-border">
           <TableHead className="text-muted-foreground">Item</TableHead>
           {years.map(year => (
-            <TableHead key={year} className="text-right text-muted-foreground">{year}P</TableHead>
+            <TableHead 
+              key={year} 
+              className={cn(
+                "text-right text-muted-foreground",
+                isHistorical(year) && "bg-muted/30"
+              )}
+            >
+              {year}{isHistorical(year) ? 'A' : 'P'}
+            </TableHead>
           ))}
         </TableRow>
       </TableHeader>
@@ -676,7 +787,11 @@ function CashBridgeTable({ data, years }: { data: Record<string, Record<string, 
             {years.map(year => (
               <TableCell 
                 key={year} 
-                className={cn("text-right tabular-nums", row.bold && "font-semibold text-primary")}
+                className={cn(
+                  "text-right tabular-nums", 
+                  row.bold && "font-semibold text-primary",
+                  isHistorical(year) && "bg-muted/30"
+                )}
               >
                 ${(data[row.key]?.[year] || 0).toFixed(1)}M
               </TableCell>
@@ -689,13 +804,25 @@ function CashBridgeTable({ data, years }: { data: Record<string, Record<string, 
 }
 
 // Metrics Table Component
-function MetricsTable({ data, years }: { data: Record<string, Record<string, number>>; years: string[] }) {
+function MetricsTable({ 
+  data, 
+  years,
+  historicalYears = []
+}: { 
+  data: Record<string, Record<string, number>>; 
+  years: string[];
+  historicalYears?: string[];
+}) {
   const rows = [
+    { label: 'Revenue Growth', key: 'revenue_growth_pct' },
+    { label: 'EBITDA Margin', key: 'ebitda_margin_pct' },
     { label: 'UFCF Margin', key: 'ufcf_margin_pct' },
     { label: 'LFCF Margin', key: 'lfcf_margin_pct' },
     { label: 'Cash Conversion', key: 'cash_conversion_pct' },
     { label: 'CapEx Intensity', key: 'capex_intensity_pct' },
   ];
+
+  const isHistorical = (year: string) => historicalYears.includes(year);
 
   return (
     <Table>
@@ -703,7 +830,15 @@ function MetricsTable({ data, years }: { data: Record<string, Record<string, num
         <TableRow className="border-border">
           <TableHead className="text-muted-foreground">Metric</TableHead>
           {years.map(year => (
-            <TableHead key={year} className="text-right text-muted-foreground">{year}P</TableHead>
+            <TableHead 
+              key={year} 
+              className={cn(
+                "text-right text-muted-foreground",
+                isHistorical(year) && "bg-muted/30"
+              )}
+            >
+              {year}{isHistorical(year) ? 'A' : 'P'}
+            </TableHead>
           ))}
         </TableRow>
       </TableHeader>
@@ -711,11 +846,20 @@ function MetricsTable({ data, years }: { data: Record<string, Record<string, num
         {rows.map((row, idx) => (
           <TableRow key={idx} className="border-border">
             <TableCell className="text-foreground">{row.label}</TableCell>
-            {years.map(year => (
-              <TableCell key={year} className="text-right tabular-nums text-foreground">
-                {((data[row.key]?.[year] || 0) * 100).toFixed(1)}%
-              </TableCell>
-            ))}
+            {years.map(year => {
+              const val = data[row.key]?.[year];
+              return (
+                <TableCell 
+                  key={year} 
+                  className={cn(
+                    "text-right tabular-nums text-foreground",
+                    isHistorical(year) && "bg-muted/30"
+                  )}
+                >
+                  {val !== undefined ? `${(val * 100).toFixed(1)}%` : '—'}
+                </TableCell>
+              );
+            })}
           </TableRow>
         ))}
       </TableBody>
