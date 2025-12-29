@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -26,6 +26,9 @@ import {
   Search,
   ChevronRight,
   HardDrive,
+  Building2,
+  Loader2,
+  BarChart3,
 } from "lucide-react";
 import { FolderTree, FolderNode } from "@/components/dataroom/FolderTree";
 import { DocumentList, Document } from "@/components/dataroom/DocumentList";
@@ -33,8 +36,17 @@ import { UploadZone } from "@/components/dataroom/UploadZone";
 import { AIInsightsPanel } from "@/components/dataroom/AIInsightsPanel";
 import { DocumentPreview } from "@/components/dataroom/DocumentPreview";
 import { Input } from "@/components/ui/input";
+import { useCompanies, Company } from "@/hooks/useCompanies";
+import { useDocuments, DocumentRecord } from "@/hooks/useDocuments";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
+import { formatDistanceToNow } from "date-fns";
 
 const folderStructure: FolderNode[] = [
+  {
+    id: "all",
+    name: "All Files",
+  },
   {
     id: "financial",
     name: "Financial",
@@ -74,6 +86,15 @@ const folderStructure: FolderNode[] = [
     ],
   },
   {
+    id: "models",
+    name: "AI Models",
+    children: [
+      { id: "cash_flow_buildup", name: "Cash Flow Models" },
+      { id: "lbo", name: "LBO Models" },
+      { id: "dcf", name: "DCF Models" },
+    ],
+  },
+  {
     id: "deal-docs",
     name: "Deal Documents",
     children: [
@@ -82,89 +103,85 @@ const folderStructure: FolderNode[] = [
       { id: "ic-memos", name: "IC Memos" },
     ],
   },
-  {
-    id: "diligence",
-    name: "Diligence Reports",
-    children: [
-      { id: "qoe", name: "QoE Reports" },
-      { id: "legal-dd", name: "Legal DD" },
-      { id: "commercial-dd", name: "Commercial DD" },
-    ],
-  },
 ];
 
-const sampleDocuments: Document[] = [
-  {
-    id: "1",
-    name: "FY24 Financial Statements.xlsx",
-    type: "xlsx",
-    size: "2.4 MB",
-    uploadedAt: "Dec 28, 2024",
-    uploadedBy: "Sarah",
-    status: "reviewed",
-  },
-  {
-    id: "2",
-    name: "FY23 Financial Statements.xlsx",
-    type: "xlsx",
-    size: "2.1 MB",
-    uploadedAt: "Dec 15, 2024",
-    uploadedBy: "Sarah",
-    status: "reviewed",
-  },
-  {
-    id: "3",
-    name: "FY22 Financial Statements.xlsx",
-    type: "xlsx",
-    size: "1.9 MB",
-    uploadedAt: "Nov 20, 2024",
-    uploadedBy: "Mike",
-    status: "reviewed",
-  },
-  {
-    id: "4",
-    name: "Monthly Flash Report - Dec.pdf",
-    type: "pdf",
-    size: "890 KB",
-    uploadedAt: "Dec 28, 2024",
-    uploadedBy: "Sarah",
-    status: "pending",
-  },
-  {
-    id: "5",
-    name: "Monthly Flash Report - Nov.pdf",
-    type: "pdf",
-    size: "856 KB",
-    uploadedAt: "Dec 1, 2024",
-    uploadedBy: "Sarah",
-    status: "reviewed",
-  },
-  {
-    id: "6",
-    name: "Revenue Breakdown by Segment.xlsx",
-    type: "xlsx",
-    size: "1.2 MB",
-    uploadedAt: "Nov 28, 2024",
-    uploadedBy: "Mike",
-    status: "flagged",
-  },
-];
+interface ModelRecord {
+  id: string;
+  company_id: string;
+  model_type: string;
+  name: string;
+  model_data: any;
+  status: string | null;
+  created_at: string;
+  updated_at: string;
+}
 
-const companies = [
-  { id: "acme", name: "Acme Corp" },
-  { id: "techco", name: "TechCo Inc" },
-  { id: "beta", name: "Beta Healthcare" },
-];
+const modelTypeLabels: Record<string, string> = {
+  cash_flow_buildup: "Cash Flow",
+  lbo: "LBO",
+  dcf: "DCF",
+  pro_forma: "Pro Forma",
+  merger: "Merger",
+  cam: "CAM",
+};
 
 export default function DataRoom() {
-  const [selectedCompany, setSelectedCompany] = useState("acme");
-  const [selectedFolderId, setSelectedFolderId] = useState<string | null>("historical");
-  const [selectedPath, setSelectedPath] = useState<string[]>(["Financial", "Historical Financials"]);
+  const { user } = useAuth();
+  const { companies, loading: companiesLoading } = useCompanies();
+  const { getDocumentsForCompany } = useDocuments();
+  
+  const [selectedCompanyId, setSelectedCompanyId] = useState<string>("");
+  const [selectedFolderId, setSelectedFolderId] = useState<string | null>("all");
+  const [selectedPath, setSelectedPath] = useState<string[]>(["All Files"]);
   const [selectedDocuments, setSelectedDocuments] = useState<Set<string>>(new Set());
   const [viewMode, setViewMode] = useState<"list" | "grid">("list");
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
   const [previewDocument, setPreviewDocument] = useState<Document | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  
+  const [documents, setDocuments] = useState<DocumentRecord[]>([]);
+  const [models, setModels] = useState<ModelRecord[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  // Set first company as default when loaded
+  useEffect(() => {
+    if (companies.length > 0 && !selectedCompanyId) {
+      setSelectedCompanyId(companies[0].id);
+    }
+  }, [companies, selectedCompanyId]);
+
+  // Fetch documents and models when company changes
+  useEffect(() => {
+    if (!selectedCompanyId || !user) {
+      setDocuments([]);
+      setModels([]);
+      return;
+    }
+
+    const fetchData = async () => {
+      setLoading(true);
+      try {
+        // Fetch documents
+        const docs = await getDocumentsForCompany(selectedCompanyId);
+        setDocuments(docs);
+
+        // Fetch models
+        const { data: modelsData } = await supabase
+          .from('models')
+          .select('*')
+          .eq('company_id', selectedCompanyId)
+          .order('updated_at', { ascending: false });
+        
+        setModels(modelsData || []);
+      } catch (error) {
+        console.error('Error fetching data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [selectedCompanyId, user]);
 
   const handleSelectFolder = (folderId: string, path: string[]) => {
     setSelectedFolderId(folderId);
@@ -182,35 +199,126 @@ export default function DataRoom() {
     setSelectedDocuments(newSelected);
   };
 
+  // Convert database records to display format
+  const getDisplayItems = (): Document[] => {
+    const items: Document[] = [];
+
+    // Filter and add documents
+    const filteredDocs = documents.filter(doc => {
+      if (selectedFolderId === 'all') return true;
+      if (selectedFolderId === 'historical') return doc.folder === 'Financial' && doc.subfolder === 'Historical';
+      if (selectedFolderId === 'projections') return doc.folder === 'Financial' && doc.subfolder === 'Projections';
+      return doc.folder?.toLowerCase() === selectedFolderId || doc.subfolder?.toLowerCase() === selectedFolderId;
+    });
+
+    filteredDocs.forEach(doc => {
+      const ext = doc.file_type?.toLowerCase() || doc.name.split('.').pop()?.toLowerCase() || 'other';
+      items.push({
+        id: `doc-${doc.id}`,
+        name: doc.name,
+        type: ['xlsx', 'xls'].includes(ext) ? 'xlsx' : 
+              ext === 'pdf' ? 'pdf' : 
+              ext === 'csv' ? 'csv' : 
+              ext === 'docx' ? 'docx' : 'other',
+        size: doc.file_size ? `${(doc.file_size / 1024).toFixed(1)} KB` : '—',
+        uploadedAt: formatDistanceToNow(new Date(doc.created_at), { addSuffix: true }),
+        uploadedBy: 'You',
+        status: 'reviewed',
+      });
+    });
+
+    // Filter and add models (show in projections folder or all)
+    const showModels = selectedFolderId === 'all' || 
+                       selectedFolderId === 'projections' || 
+                       selectedFolderId === 'models' ||
+                       ['cash_flow_buildup', 'lbo', 'dcf'].includes(selectedFolderId || '');
+
+    if (showModels) {
+      const filteredModels = models.filter(model => {
+        if (selectedFolderId === 'all' || selectedFolderId === 'projections' || selectedFolderId === 'models') return true;
+        return model.model_type === selectedFolderId;
+      });
+
+      filteredModels.forEach(model => {
+        items.push({
+          id: `model-${model.id}`,
+          name: model.name,
+          type: 'xlsx', // Show as spreadsheet icon
+          size: modelTypeLabels[model.model_type] || model.model_type,
+          uploadedAt: formatDistanceToNow(new Date(model.updated_at), { addSuffix: true }),
+          uploadedBy: 'AI Generated',
+          status: model.status === 'final' ? 'reviewed' : 'pending',
+        });
+      });
+    }
+
+    // Filter by search
+    if (searchQuery) {
+      return items.filter(item => 
+        item.name.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    }
+
+    return items;
+  };
+
+  const displayItems = getDisplayItems();
+  const selectedCompany = companies.find(c => c.id === selectedCompanyId);
+
   const handleSelectAll = () => {
-    if (selectedDocuments.size === sampleDocuments.length) {
+    if (selectedDocuments.size === displayItems.length) {
       setSelectedDocuments(new Set());
     } else {
-      setSelectedDocuments(new Set(sampleDocuments.map((d) => d.id)));
+      setSelectedDocuments(new Set(displayItems.map((d) => d.id)));
     }
   };
 
-  const storageUsed = 4.2;
+  const storageUsed = documents.reduce((acc, doc) => acc + (doc.file_size || 0), 0) / (1024 * 1024);
   const storageTotal = 10;
-  const storagePercent = (storageUsed / storageTotal) * 100;
+  const storagePercent = Math.min((storageUsed / storageTotal) * 100, 100);
+
+  if (!user) {
+    return (
+      <div className="flex items-center justify-center h-[calc(100vh-4rem)]">
+        <Card className="p-8 text-center">
+          <Building2 className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+          <h2 className="text-xl font-semibold mb-2">Sign in to access Data Room</h2>
+          <p className="text-muted-foreground">Your documents and models are stored securely in your account.</p>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-[calc(100vh-4rem)]">
       {/* Left Sidebar - Folder Tree */}
       <div className="w-64 border-r border-border flex flex-col bg-card/30">
         <div className="p-4 border-b border-border">
-          <Select value={selectedCompany} onValueChange={setSelectedCompany}>
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {companies.map((company) => (
-                <SelectItem key={company.id} value={company.id}>
-                  {company.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          {companiesLoading ? (
+            <div className="flex items-center justify-center py-2">
+              <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+            </div>
+          ) : companies.length === 0 ? (
+            <div className="text-sm text-muted-foreground text-center py-2">
+              No companies yet
+            </div>
+          ) : (
+            <Select value={selectedCompanyId} onValueChange={setSelectedCompanyId}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select company" />
+              </SelectTrigger>
+              <SelectContent>
+                {companies.map((company) => (
+                  <SelectItem key={company.id} value={company.id}>
+                    <div className="flex items-center gap-2">
+                      <Building2 className="h-4 w-4 text-muted-foreground" />
+                      {company.name}
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
         </div>
 
         <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
@@ -228,7 +336,7 @@ export default function DataRoom() {
           </div>
           <Progress value={storagePercent} className="h-1.5 mb-1" />
           <p className="text-xs text-muted-foreground">
-            {storageUsed} GB / {storageTotal} GB used
+            {storageUsed.toFixed(1)} MB / {storageTotal} GB used
           </p>
         </div>
       </div>
@@ -239,6 +347,12 @@ export default function DataRoom() {
         <div className="flex items-center justify-between p-4 border-b border-border">
           <div>
             <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
+              {selectedCompany && (
+                <>
+                  <span>{selectedCompany.name}</span>
+                  <ChevronRight className="h-3 w-3" />
+                </>
+              )}
               {selectedPath.map((segment, i) => (
                 <span key={i} className="flex items-center gap-2">
                   {i > 0 && <ChevronRight className="h-3 w-3" />}
@@ -288,7 +402,7 @@ export default function DataRoom() {
 
             <Dialog open={uploadDialogOpen} onOpenChange={setUploadDialogOpen}>
               <DialogTrigger asChild>
-                <Button size="sm">
+                <Button size="sm" disabled={!selectedCompanyId}>
                   <Upload className="h-4 w-4 mr-2" />
                   Upload
                 </Button>
@@ -299,7 +413,11 @@ export default function DataRoom() {
                 </DialogHeader>
                 <UploadZone
                   onUploadComplete={() => {
-                    // Handle upload complete
+                    setUploadDialogOpen(false);
+                    // Refresh documents
+                    if (selectedCompanyId) {
+                      getDocumentsForCompany(selectedCompanyId).then(setDocuments);
+                    }
                   }}
                 />
               </DialogContent>
@@ -309,17 +427,40 @@ export default function DataRoom() {
 
         {/* Document List */}
         <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
-          <DocumentList
-            documents={sampleDocuments}
-            selectedDocuments={selectedDocuments}
-            onToggleSelect={handleToggleSelect}
-            onSelectAll={handleSelectAll}
-            onViewDocument={setPreviewDocument}
-          />
+          {loading ? (
+            <div className="flex items-center justify-center h-64">
+              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            </div>
+          ) : !selectedCompanyId ? (
+            <div className="flex flex-col items-center justify-center h-64 text-center">
+              <Building2 className="h-12 w-12 text-muted-foreground/50 mb-4" />
+              <h3 className="text-lg font-medium text-foreground mb-1">Select a company</h3>
+              <p className="text-sm text-muted-foreground">
+                Choose a company from the dropdown to view its documents
+              </p>
+            </div>
+          ) : (
+            <>
+              <DocumentList
+                documents={displayItems}
+                selectedDocuments={selectedDocuments}
+                onToggleSelect={handleToggleSelect}
+                onSelectAll={handleSelectAll}
+                onViewDocument={setPreviewDocument}
+              />
 
-          <div className="mt-4 text-sm text-muted-foreground">
-            Showing {sampleDocuments.length} of {sampleDocuments.length} documents
-          </div>
+              <div className="mt-4 text-sm text-muted-foreground">
+                {displayItems.length === 0 ? (
+                  <span>No documents or models yet</span>
+                ) : (
+                  <span>
+                    Showing {displayItems.length} item{displayItems.length !== 1 ? 's' : ''} 
+                    ({documents.length} document{documents.length !== 1 ? 's' : ''}, {models.length} model{models.length !== 1 ? 's' : ''})
+                  </span>
+                )}
+              </div>
+            </>
+          )}
         </div>
       </div>
 

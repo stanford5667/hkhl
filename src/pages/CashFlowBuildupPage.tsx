@@ -10,6 +10,7 @@ import { CashFlowBuildup } from '@/components/models/CashFlowBuildup';
 import { CompanySelector } from '@/components/models/CompanySelector';
 import { useCompanies, Company } from '@/hooks/useCompanies';
 import { useModels } from '@/hooks/useModels';
+import { useDocuments } from '@/hooks/useDocuments';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 
@@ -97,6 +98,7 @@ export default function CashFlowBuildupPage() {
   const { user } = useAuth();
   const { companies, loading: companiesLoading, createCompany } = useCompanies();
   const { saveModel, saving } = useModels();
+  const { saveDocument } = useDocuments();
   
   const [step, setStep] = useState<Step>('upload');
   const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
@@ -109,6 +111,7 @@ export default function CashFlowBuildupPage() {
   const [generatedAssumptions, setGeneratedAssumptions] = useState<GeneratedAssumptions | null>(null);
   const [assumptionsRationale, setAssumptionsRationale] = useState<Record<string, string>>({});
   const [savedModelId, setSavedModelId] = useState<string | null>(null);
+  const [savedDocumentId, setSavedDocumentId] = useState<string | null>(null);
 
   // Sync company name when company is selected
   const handleSelectCompany = (company: Company | null) => {
@@ -611,6 +614,24 @@ export default function CashFlowBuildupPage() {
       return null;
     }
 
+    // Save the uploaded file as a document if not already saved
+    if (uploadedFile && !savedDocumentId) {
+      const fileExt = uploadedFile.name.split('.').pop()?.toLowerCase() || '';
+      const doc = await saveDocument({
+        companyId: selectedCompany.id,
+        name: uploadedFile.name,
+        filePath: `uploads/${selectedCompany.id}/${uploadedFile.name}`,
+        fileType: fileExt,
+        fileSize: uploadedFile.size,
+        folder: 'Financial',
+        subfolder: 'Historical'
+      });
+      if (doc) {
+        setSavedDocumentId(doc.id);
+      }
+    }
+
+    // Save the model
     const model = await saveModel({
       companyId: selectedCompany.id,
       modelType: 'cash_flow_buildup',
