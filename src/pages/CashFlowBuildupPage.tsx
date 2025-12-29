@@ -84,10 +84,11 @@ export default function CashFlowBuildupPage() {
 
       console.log('File content preview:', fileContent.substring(0, 500));
 
-      // Try to extract via n8n
+      // Extract via AI edge function
       let extracted: ExtractedData | null = null;
       try {
-        const response = await fetch('https://stanford5667.app.n8n.cloud/webhook/extract-historical', {
+        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+        const response = await fetch(`${supabaseUrl}/functions/v1/extract-historical`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -101,11 +102,15 @@ export default function CashFlowBuildupPage() {
           const result = await response.json();
           if (result.success) {
             extracted = result;
-            console.log('Extracted via n8n:', extracted);
+            console.log('Extracted via AI:', extracted);
           }
+        } else if (response.status === 429) {
+          toast.error('Rate limit exceeded. Please try again in a moment.');
+        } else if (response.status === 402) {
+          toast.error('AI credits exhausted. Please add credits to continue.');
         }
       } catch (err) {
-        console.log('n8n extraction failed, using local parser:', err);
+        console.log('AI extraction failed, using local parser:', err);
       }
 
       // Fallback: Parse locally if n8n fails
