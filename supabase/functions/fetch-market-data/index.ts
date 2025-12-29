@@ -6,6 +6,8 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+const USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
+
 interface MacroData {
   symbol: string;
   name: string;
@@ -18,13 +20,67 @@ interface MultiplesData {
   [industry: string]: number;
 }
 
+interface NewsArticle {
+  id: string;
+  headline: string;
+  url: string;
+  source: string;
+  time: string;
+  isMock: boolean;
+}
+
+// Updated tickers with Silver and Bitcoin
 const MACRO_TICKERS = [
   { symbol: "^TNX", name: "10Y Treasury" },
   { symbol: "^GSPC", name: "S&P 500" },
   { symbol: "CL=F", name: "Crude Oil" },
   { symbol: "GC=F", name: "Gold" },
-  { symbol: "^VIX", name: "VIX" },
-  { symbol: "^DJI", name: "Dow Jones" },
+  { symbol: "SI=F", name: "Silver" },
+  { symbol: "BTC-USD", name: "Bitcoin" },
+];
+
+// Fallback news data
+const fallbackNews: NewsArticle[] = [
+  {
+    id: "1",
+    headline: "Private Equity Deal Volume Rebounds in Q4 2024",
+    url: "https://finance.yahoo.com/topic/mna/",
+    source: "Wall Street Journal",
+    time: "2 hours ago",
+    isMock: true,
+  },
+  {
+    id: "2",
+    headline: "Consumer Beauty Sector Sees Record M&A Activity",
+    url: "https://finance.yahoo.com/topic/mna/",
+    source: "Bloomberg",
+    time: "5 hours ago",
+    isMock: true,
+  },
+  {
+    id: "3",
+    headline: "Fed Signals Pause in Rate Cuts for Early 2025",
+    url: "https://finance.yahoo.com/topic/mna/",
+    source: "Reuters",
+    time: "8 hours ago",
+    isMock: true,
+  },
+  {
+    id: "4",
+    headline: "Healthcare Services Sector Faces Margin Pressure",
+    url: "https://finance.yahoo.com/topic/mna/",
+    source: "Financial Times",
+    time: "12 hours ago",
+    isMock: true,
+  },
+  {
+    id: "5",
+    headline: "New Mezzanine Fund Launches with $2B Target",
+    url: "https://finance.yahoo.com/topic/mna/",
+    source: "Private Equity International",
+    time: "1 day ago",
+    isMock: true,
+  },
 ];
 
 async function fetchYahooFinance(ticker: string): Promise<MacroData> {
@@ -35,7 +91,7 @@ async function fetchYahooFinance(ticker: string): Promise<MacroData> {
   try {
     const response = await fetch(url, {
       headers: {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "User-Agent": USER_AGENT,
         "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
         "Accept-Language": "en-US,en;q=0.5",
       },
@@ -49,7 +105,6 @@ async function fetchYahooFinance(ticker: string): Promise<MacroData> {
     const html = await response.text();
     const $ = cheerio.load(html);
 
-    // Try multiple selectors for fin-streamer elements
     let price: number | null = null;
     let changePercent: number | null = null;
     let change: number | null = null;
@@ -70,7 +125,7 @@ async function fetchYahooFinance(ticker: string): Promise<MacroData> {
       }
     }
 
-    // Additional fallback using class patterns
+    // Additional fallback using JSON patterns in page
     if (!price) {
       const priceMatch = html.match(/"regularMarketPrice":{"raw":([\d.]+)/);
       if (priceMatch) {
@@ -143,10 +198,148 @@ async function fetchMacroData(): Promise<MacroData[]> {
     const data = await fetchYahooFinance(ticker.symbol);
     results.push(data);
     // Small delay between requests
-    await new Promise(resolve => setTimeout(resolve, 500));
+    await new Promise(resolve => setTimeout(resolve, 300));
   }
   
   return results;
+}
+
+async function fetchNewsData(): Promise<{ articles: NewsArticle[]; isMock: boolean }> {
+  const url = "https://finance.yahoo.com/topic/mna/";
+  
+  console.log("Fetching M&A news from Yahoo Finance...");
+  
+  try {
+    const response = await fetch(url, {
+      headers: {
+        "User-Agent": USER_AGENT,
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+        "Accept-Language": "en-US,en;q=0.5",
+      },
+    });
+
+    if (!response.ok) {
+      console.error(`Yahoo Finance news returned ${response.status}`);
+      return { articles: fallbackNews, isMock: true };
+    }
+
+    const html = await response.text();
+    const $ = cheerio.load(html);
+    const articles: NewsArticle[] = [];
+
+    // Try multiple selectors for news items
+    const newsSelectors = [
+      'li.stream-item',
+      'li[class*="stream"]',
+      'div[class*="stream"] li',
+      'article',
+      '[data-testid="story-item"]',
+    ];
+
+    for (const selector of newsSelectors) {
+      if (articles.length >= 7) break;
+      
+      $(selector).each((index, element) => {
+        if (articles.length >= 7) return false;
+
+        const $el = $(element);
+        
+        // Try different selectors for headline
+        let headline = 
+          $el.find('h3 a').text().trim() ||
+          $el.find('h3').text().trim() ||
+          $el.find('a[class*="title"]').text().trim() ||
+          $el.find('[class*="headline"]').text().trim() ||
+          $el.find('a').first().text().trim();
+
+        // Skip if no valid headline
+        if (!headline || headline.length < 15) return;
+
+        // Try different selectors for URL
+        let articleUrl = 
+          $el.find('h3 a').attr('href') ||
+          $el.find('a[class*="title"]').attr('href') ||
+          $el.find('a').first().attr('href') || '';
+
+        // Prepend domain if relative URL
+        if (articleUrl && !articleUrl.startsWith('http')) {
+          articleUrl = `https://finance.yahoo.com${articleUrl}`;
+        }
+
+        // Try different selectors for source
+        let source = 
+          $el.find('[class*="provider"]').text().trim() ||
+          $el.find('[class*="source"]').text().trim() ||
+          $el.find('span').filter((_, el) => {
+            const text = $(el).text();
+            return text.length < 30 && !text.includes('ago') && !text.includes('•');
+          }).first().text().trim() ||
+          'Yahoo Finance';
+
+        // Try different selectors for time
+        let time = 
+          $el.find('time').text().trim() ||
+          $el.find('[class*="time"]').text().trim() ||
+          $el.find('span').filter((_, el) => {
+            const text = $(el).text();
+            return text.includes('ago') || text.includes('hour') || text.includes('minute') || text.includes('day');
+          }).text().trim() ||
+          'Recently';
+
+        // Clean up source (remove time if it got mixed in)
+        if (source.includes('ago') || source.includes('hour')) {
+          source = 'Yahoo Finance';
+        }
+
+        articles.push({
+          id: `${articles.length + 1}`,
+          headline: headline.substring(0, 200),
+          url: articleUrl || 'https://finance.yahoo.com/topic/mna/',
+          source: source.substring(0, 50) || 'Yahoo Finance',
+          time: time || 'Recently',
+          isMock: false,
+        });
+      });
+    }
+
+    // Alternative approach: look for any news links
+    if (articles.length < 3) {
+      console.log("Trying alternative news extraction...");
+      
+      $('a[href*="/news/"]').each((index, element) => {
+        if (articles.length >= 7) return false;
+        
+        const $el = $(element);
+        const headline = $el.text().trim();
+        const href = $el.attr('href') || '';
+        
+        // Skip if already captured or too short
+        if (headline.length < 20 || headline.length > 300) return;
+        if (articles.some(a => a.headline === headline)) return;
+        
+        articles.push({
+          id: `alt-${articles.length + 1}`,
+          headline,
+          url: href.startsWith('http') ? href : `https://finance.yahoo.com${href}`,
+          source: 'Yahoo Finance',
+          time: 'Recently',
+          isMock: false,
+        });
+      });
+    }
+
+    console.log(`Extracted ${articles.length} news articles`);
+
+    if (articles.length === 0) {
+      console.log("No articles found, returning fallback");
+      return { articles: fallbackNews, isMock: true };
+    }
+
+    return { articles, isMock: false };
+  } catch (error) {
+    console.error("Error fetching news:", error);
+    return { articles: fallbackNews, isMock: true };
+  }
 }
 
 async function fetchDamodaranMultiples(): Promise<MultiplesData> {
@@ -157,7 +350,7 @@ async function fetchDamodaranMultiples(): Promise<MultiplesData> {
   try {
     const response = await fetch(url, {
       headers: {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+        "User-Agent": USER_AGENT,
         "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
       },
     });
@@ -175,7 +368,6 @@ async function fetchDamodaranMultiples(): Promise<MultiplesData> {
     const tables = $("table");
     console.log(`Found ${tables.length} tables`);
 
-    // Damodaran's page typically has the data in the first substantial table
     tables.each((tableIndex, table) => {
       const rows = $(table).find("tr");
       
@@ -183,12 +375,9 @@ async function fetchDamodaranMultiples(): Promise<MultiplesData> {
         const cells = $(row).find("td");
         
         if (cells.length >= 5) {
-          // Column 1: Industry Name (index 0)
-          // Column 5: EV/EBITDA (index 4)
           const industryName = $(cells[0]).text().trim();
           const evEbitdaText = $(cells[4]).text().trim();
           
-          // Skip header rows and empty rows
           if (industryName && industryName !== "Industry Name" && industryName.toLowerCase() !== "industry") {
             const evEbitda = parseFloat(evEbitdaText.replace(/,/g, ""));
             
@@ -202,55 +391,46 @@ async function fetchDamodaranMultiples(): Promise<MultiplesData> {
 
     console.log(`Extracted ${Object.keys(multiples).length} industry multiples`);
     
-    // If we didn't get any data, return some typical values as fallback
     if (Object.keys(multiples).length === 0) {
       console.log("No multiples extracted, returning fallback data");
-      return {
-        "Software (System & Application)": 19.4,
-        "Healthcare Products": 15.2,
-        "Retail (Building Supply)": 12.8,
-        "Financial Services (Non-bank)": 10.5,
-        "Air Transport": 6.8,
-        "Auto & Truck": 5.2,
-        "Banks (Regional)": 8.1,
-        "Biotechnology": 14.5,
-        "Broadcasting": 9.3,
-        "Chemical (Basic)": 7.8,
-        "Computer Services": 12.1,
-        "Electronics (Consumer & Office)": 10.2,
-        "Entertainment": 11.5,
-        "Food Processing": 10.8,
-        "Healthcare Support Services": 13.2,
-        "Homebuilding": 8.5,
-        "Hotel/Gaming": 11.2,
-        "Insurance (General)": 9.8,
-        "Machinery": 10.4,
-        "Oil/Gas (Integrated)": 5.5,
-        "Pharmaceuticals": 12.8,
-        "Restaurant/Dining": 14.2,
-        "Semiconductor": 15.8,
-        "Telecom (Wireless)": 7.2,
-        "Transportation": 8.9,
-      };
+      return getFallbackMultiples();
     }
     
     return multiples;
   } catch (error) {
     console.error("Error fetching Damodaran data:", error);
-    // Return fallback data
-    return {
-      "Software (System & Application)": 19.4,
-      "Healthcare Products": 15.2,
-      "Retail (Building Supply)": 12.8,
-      "Financial Services (Non-bank)": 10.5,
-      "Air Transport": 6.8,
-      "Auto & Truck": 5.2,
-      "Banks (Regional)": 8.1,
-      "Biotechnology": 14.5,
-      "Broadcasting": 9.3,
-      "Chemical (Basic)": 7.8,
-    };
+    return getFallbackMultiples();
   }
+}
+
+function getFallbackMultiples(): MultiplesData {
+  return {
+    "Software (System & Application)": 19.4,
+    "Healthcare Products": 15.2,
+    "Retail (Building Supply)": 12.8,
+    "Financial Services (Non-bank)": 10.5,
+    "Air Transport": 6.8,
+    "Auto & Truck": 5.2,
+    "Banks (Regional)": 8.1,
+    "Biotechnology": 14.5,
+    "Broadcasting": 9.3,
+    "Chemical (Basic)": 7.8,
+    "Computer Services": 12.1,
+    "Electronics (Consumer & Office)": 10.2,
+    "Entertainment": 11.5,
+    "Food Processing": 10.8,
+    "Healthcare Support Services": 13.2,
+    "Homebuilding": 8.5,
+    "Hotel/Gaming": 11.2,
+    "Insurance (General)": 9.8,
+    "Machinery": 10.4,
+    "Oil/Gas (Integrated)": 5.5,
+    "Pharmaceuticals": 12.8,
+    "Restaurant/Dining": 14.2,
+    "Semiconductor": 15.8,
+    "Telecom (Wireless)": 7.2,
+    "Transportation": 8.9,
+  };
 }
 
 serve(async (req) => {
@@ -264,36 +444,53 @@ serve(async (req) => {
     
     console.log(`Received request for type: ${type}`);
 
-    let data: MacroData[] | MultiplesData;
-    let source: string;
-
     if (type === "macro") {
-      data = await fetchMacroData();
-      source = "Yahoo Finance";
-    } else if (type === "multiples") {
-      data = await fetchDamodaranMultiples();
-      source = "NYU Stern (Damodaran)";
-    } else {
+      const data = await fetchMacroData();
       return new Response(
         JSON.stringify({
-          success: false,
-          error: "Invalid type. Use 'macro' or 'multiples'.",
+          success: true,
+          data,
+          source: "Yahoo Finance",
+          timestamp: new Date().toISOString(),
         }),
-        {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    } 
+    
+    if (type === "news") {
+      const { articles, isMock } = await fetchNewsData();
+      return new Response(
+        JSON.stringify({
+          success: true,
+          data: articles,
+          isMock,
+          source: isMock ? "Mock Data" : "Yahoo Finance",
+          timestamp: new Date().toISOString(),
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    } 
+    
+    if (type === "multiples") {
+      const data = await fetchDamodaranMultiples();
+      return new Response(
+        JSON.stringify({
+          success: true,
+          data,
+          source: "NYU Stern (Damodaran)",
+          timestamp: new Date().toISOString(),
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
     return new Response(
       JSON.stringify({
-        success: true,
-        data,
-        source,
-        timestamp: new Date().toISOString(),
+        success: false,
+        error: "Invalid type. Use 'macro', 'news', or 'multiples'.",
       }),
       {
+        status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       }
     );
