@@ -4,6 +4,9 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Upload, FileUp, X, CheckCircle, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "sonner";
 
 interface UploadFile {
   id: string;
@@ -14,10 +17,14 @@ interface UploadFile {
 }
 
 interface UploadZoneProps {
+  companyId?: string;
+  folder?: string;
+  subfolder?: string;
   onUploadComplete?: (files: File[]) => void;
 }
 
-export function UploadZone({ onUploadComplete }: UploadZoneProps) {
+export function UploadZone({ companyId, folder = "General", subfolder, onUploadComplete }: UploadZoneProps) {
+  const { user } = useAuth();
   const [isDragOver, setIsDragOver] = useState(false);
   const [uploads, setUploads] = useState<UploadFile[]>([]);
 
@@ -30,24 +37,67 @@ export function UploadZone({ onUploadComplete }: UploadZoneProps) {
     setIsDragOver(false);
   }, []);
 
-  const simulateUpload = (file: File, id: string) => {
-    let progress = 0;
-    const interval = setInterval(() => {
-      progress += Math.random() * 30;
-      if (progress >= 100) {
-        progress = 100;
-        clearInterval(interval);
-        setUploads((prev) =>
-          prev.map((u) =>
-            u.id === id ? { ...u, progress: 100, status: "complete" as const } : u
-          )
-        );
-      } else {
-        setUploads((prev) =>
-          prev.map((u) => (u.id === id ? { ...u, progress } : u))
-        );
-      }
-    }, 200);
+  const uploadFile = async (file: File, id: string) => {
+    if (!user || !companyId) {
+      setUploads((prev) =>
+        prev.map((u) =>
+          u.id === id ? { ...u, status: "error" as const, error: "No company selected" } : u
+        )
+      );
+      return;
+    }
+
+    try {
+      // Simulate progress
+      let progress = 0;
+      const progressInterval = setInterval(() => {
+        progress += 20;
+        if (progress <= 80) {
+          setUploads((prev) =>
+            prev.map((u) => (u.id === id ? { ...u, progress } : u))
+          );
+        }
+      }, 100);
+
+      // Get file extension
+      const fileExt = file.name.split('.').pop()?.toLowerCase() || '';
+
+      // Save document record to database
+      const { data, error } = await supabase
+        .from('documents')
+        .insert({
+          company_id: companyId,
+          user_id: user.id,
+          name: file.name,
+          file_path: `uploads/${companyId}/${file.name}`,
+          file_type: fileExt,
+          file_size: file.size,
+          folder: folder,
+          subfolder: subfolder
+        })
+        .select()
+        .single();
+
+      clearInterval(progressInterval);
+
+      if (error) throw error;
+
+      setUploads((prev) =>
+        prev.map((u) =>
+          u.id === id ? { ...u, progress: 100, status: "complete" as const } : u
+        )
+      );
+
+      toast.success(`${file.name} uploaded successfully`);
+    } catch (error) {
+      console.error('Upload error:', error);
+      setUploads((prev) =>
+        prev.map((u) =>
+          u.id === id ? { ...u, status: "error" as const, error: "Upload failed" } : u
+        )
+      );
+      toast.error(`Failed to upload ${file.name}`);
+    }
   };
 
   const handleFiles = useCallback((files: FileList | File[]) => {
@@ -61,13 +111,13 @@ export function UploadZone({ onUploadComplete }: UploadZoneProps) {
 
     setUploads((prev) => [...prev, ...newUploads]);
 
-    // Simulate upload for each file
+    // Upload each file
     newUploads.forEach((upload) => {
-      simulateUpload(upload.file, upload.id);
+      uploadFile(upload.file, upload.id);
     });
 
     onUploadComplete?.(fileArray);
-  }, [onUploadComplete]);
+  }, [companyId, user, folder, subfolder, onUploadComplete]);
 
   const handleDrop = useCallback(
     (e: React.DragEvent) => {
@@ -105,19 +155,24 @@ export function UploadZone({ onUploadComplete }: UploadZoneProps) {
           "border-2 border-dashed transition-all cursor-pointer",
           isDragOver
             ? "border-primary bg-primary/5"
-            : "border-border hover:border-muted-foreground/50"
+            : "border-border hover:border-muted-foreground/50",
+          !companyId && "opacity-50 cursor-not-allowed"
         )}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
       >
-        <label className="flex flex-col items-center justify-center py-12 cursor-pointer">
+        <label className={cn(
+          "flex flex-col items-center justify-center py-12",
+          companyId ? "cursor-pointer" : "cursor-not-allowed"
+        )}>
           <input
             type="file"
             multiple
             className="hidden"
             onChange={handleFileInput}
             accept=".pdf,.xlsx,.xls,.csv,.docx,.doc,.pptx,.ppt"
+            disabled={!companyId}
           />
           <div
             className={cn(
@@ -133,10 +188,10 @@ export function UploadZone({ onUploadComplete }: UploadZoneProps) {
             />
           </div>
           <h3 className="text-lg font-medium text-foreground mb-1">
-            Drop files here
+            {companyId ? "Drop files here" : "Select a company first"}
           </h3>
           <p className="text-sm text-muted-foreground mb-4">
-            or click to browse
+            {companyId ? "or click to browse" : "Choose a company to upload documents"}
           </p>
           <p className="text-xs text-muted-foreground">
             Supported: PDF, Excel, Word, PowerPoint, CSV
@@ -163,6 +218,9 @@ export function UploadZone({ onUploadComplete }: UploadZoneProps) {
                   </div>
                   {upload.status === "uploading" && (
                     <Progress value={upload.progress} className="h-1" />
+                  )}
+                  {upload.status === "error" && (
+                    <p className="text-xs text-destructive">{upload.error}</p>
                   )}
                 </div>
                 {upload.status === "complete" && (
