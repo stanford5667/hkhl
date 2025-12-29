@@ -14,6 +14,207 @@ export type Database = {
   }
   public: {
     Tables: {
+      companies: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          industry: string | null
+          name: string
+          status: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          industry?: string | null
+          name: string
+          status?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          industry?: string | null
+          name?: string
+          status?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      deals: {
+        Row: {
+          assigned_to: string | null
+          company_id: string | null
+          created_at: string
+          deal_value: number | null
+          description: string | null
+          ebitda: number | null
+          enterprise_value: number | null
+          id: string
+          name: string
+          next_step: string | null
+          next_step_date: string | null
+          priority: string | null
+          revenue: number | null
+          stage: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          assigned_to?: string | null
+          company_id?: string | null
+          created_at?: string
+          deal_value?: number | null
+          description?: string | null
+          ebitda?: number | null
+          enterprise_value?: number | null
+          id?: string
+          name: string
+          next_step?: string | null
+          next_step_date?: string | null
+          priority?: string | null
+          revenue?: number | null
+          stage?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          assigned_to?: string | null
+          company_id?: string | null
+          created_at?: string
+          deal_value?: number | null
+          description?: string | null
+          ebitda?: number | null
+          enterprise_value?: number | null
+          id?: string
+          name?: string
+          next_step?: string | null
+          next_step_date?: string | null
+          priority?: string | null
+          revenue?: number | null
+          stage?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "deals_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      documents: {
+        Row: {
+          company_id: string
+          created_at: string
+          file_path: string
+          file_size: number | null
+          file_type: string | null
+          folder: string | null
+          id: string
+          name: string
+          subfolder: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          file_path: string
+          file_size?: number | null
+          file_type?: string | null
+          folder?: string | null
+          id?: string
+          name: string
+          subfolder?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          file_path?: string
+          file_size?: number | null
+          file_type?: string | null
+          folder?: string | null
+          id?: string
+          name?: string
+          subfolder?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "documents_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      models: {
+        Row: {
+          assumptions: Json | null
+          company_id: string
+          created_at: string
+          historical_data: Json | null
+          id: string
+          interview_responses: Json | null
+          model_data: Json | null
+          model_type: string
+          name: string
+          status: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          assumptions?: Json | null
+          company_id: string
+          created_at?: string
+          historical_data?: Json | null
+          id?: string
+          interview_responses?: Json | null
+          model_data?: Json | null
+          model_type: string
+          name: string
+          status?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          assumptions?: Json | null
+          company_id?: string
+          created_at?: string
+          historical_data?: Json | null
+          id?: string
+          interview_responses?: Json | null
+          model_data?: Json | null
+          model_type?: string
+          name?: string
+          status?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "models_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
