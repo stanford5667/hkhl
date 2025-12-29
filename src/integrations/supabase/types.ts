@@ -16,36 +16,110 @@ export type Database = {
     Tables: {
       companies: {
         Row: {
+          company_type: Database["public"]["Enums"]["company_type"] | null
           created_at: string
+          deal_lead: string | null
           description: string | null
+          ebitda_ltm: number | null
           id: string
           industry: string | null
           name: string
+          pipeline_stage: string | null
+          revenue_ltm: number | null
           status: string | null
+          updated_at: string
+          user_id: string
+          website: string | null
+        }
+        Insert: {
+          company_type?: Database["public"]["Enums"]["company_type"] | null
+          created_at?: string
+          deal_lead?: string | null
+          description?: string | null
+          ebitda_ltm?: number | null
+          id?: string
+          industry?: string | null
+          name: string
+          pipeline_stage?: string | null
+          revenue_ltm?: number | null
+          status?: string | null
+          updated_at?: string
+          user_id: string
+          website?: string | null
+        }
+        Update: {
+          company_type?: Database["public"]["Enums"]["company_type"] | null
+          created_at?: string
+          deal_lead?: string | null
+          description?: string | null
+          ebitda_ltm?: number | null
+          id?: string
+          industry?: string | null
+          name?: string
+          pipeline_stage?: string | null
+          revenue_ltm?: number | null
+          status?: string | null
+          updated_at?: string
+          user_id?: string
+          website?: string | null
+        }
+        Relationships: []
+      }
+      contacts: {
+        Row: {
+          category: Database["public"]["Enums"]["contact_category"] | null
+          company_id: string | null
+          created_at: string
+          email: string | null
+          first_name: string
+          id: string
+          last_name: string
+          lender_type: string | null
+          notes: string | null
+          phone: string | null
+          title: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
+          category?: Database["public"]["Enums"]["contact_category"] | null
+          company_id?: string | null
           created_at?: string
-          description?: string | null
+          email?: string | null
+          first_name: string
           id?: string
-          industry?: string | null
-          name: string
-          status?: string | null
+          last_name: string
+          lender_type?: string | null
+          notes?: string | null
+          phone?: string | null
+          title?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
+          category?: Database["public"]["Enums"]["contact_category"] | null
+          company_id?: string | null
           created_at?: string
-          description?: string | null
+          email?: string | null
+          first_name?: string
           id?: string
-          industry?: string | null
-          name?: string
-          status?: string | null
+          last_name?: string
+          lender_type?: string | null
+          notes?: string | null
+          phone?: string | null
+          title?: string | null
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "contacts_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       deals: {
         Row: {
@@ -116,12 +190,15 @@ export type Database = {
         Row: {
           company_id: string
           created_at: string
+          doc_status: Database["public"]["Enums"]["document_status"] | null
           file_path: string
           file_size: number | null
           file_type: string | null
           folder: string | null
           id: string
           name: string
+          notes: string | null
+          owner_id: string | null
           subfolder: string | null
           updated_at: string
           user_id: string
@@ -129,12 +206,15 @@ export type Database = {
         Insert: {
           company_id: string
           created_at?: string
+          doc_status?: Database["public"]["Enums"]["document_status"] | null
           file_path: string
           file_size?: number | null
           file_type?: string | null
           folder?: string | null
           id?: string
           name: string
+          notes?: string | null
+          owner_id?: string | null
           subfolder?: string | null
           updated_at?: string
           user_id: string
@@ -142,12 +222,15 @@ export type Database = {
         Update: {
           company_id?: string
           created_at?: string
+          doc_status?: Database["public"]["Enums"]["document_status"] | null
           file_path?: string
           file_size?: number | null
           file_type?: string | null
           folder?: string | null
           id?: string
           name?: string
+          notes?: string | null
+          owner_id?: string | null
           subfolder?: string | null
           updated_at?: string
           user_id?: string
@@ -176,6 +259,7 @@ export type Database = {
           status: string | null
           updated_at: string
           user_id: string
+          version: number | null
         }
         Insert: {
           assumptions?: Json | null
@@ -190,6 +274,7 @@ export type Database = {
           status?: string | null
           updated_at?: string
           user_id: string
+          version?: number | null
         }
         Update: {
           assumptions?: Json | null
@@ -204,6 +289,7 @@ export type Database = {
           status?: string | null
           updated_at?: string
           user_id?: string
+          version?: number | null
         }
         Relationships: [
           {
@@ -278,6 +364,16 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "member" | "viewer"
+      company_type: "pipeline" | "portfolio" | "prospect" | "passed"
+      contact_category:
+        | "lender"
+        | "executive"
+        | "board"
+        | "legal"
+        | "vendor"
+        | "team"
+        | "other"
+      document_status: "needs_review" | "approved" | "pending" | "rejected"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -406,6 +502,17 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "member", "viewer"],
+      company_type: ["pipeline", "portfolio", "prospect", "passed"],
+      contact_category: [
+        "lender",
+        "executive",
+        "board",
+        "legal",
+        "vendor",
+        "team",
+        "other",
+      ],
+      document_status: ["needs_review", "approved", "pending", "rejected"],
     },
   },
 } as const

@@ -10,6 +10,10 @@ import Pipeline from "./pages/Pipeline";
 import Models from "./pages/Models";
 import Portfolio from "./pages/Portfolio";
 import DataRoom from "./pages/DataRoom";
+import Companies from "./pages/Companies";
+import Contacts from "./pages/Contacts";
+import MarketIntel from "./pages/MarketIntel";
+import DealMatching from "./pages/DealMatching";
 import Auth from "./pages/Auth";
 import Settings from "./pages/Settings";
 import CashFlowBuildupPage from "./pages/CashFlowBuildupPage";
@@ -35,6 +39,10 @@ const App = () => (
               <Route path="/models/view/:modelId" element={<ModelViewerPage />} />
               <Route path="/portfolio" element={<Portfolio />} />
               <Route path="/documents" element={<DataRoom />} />
+              <Route path="/companies" element={<Companies />} />
+              <Route path="/contacts" element={<Contacts />} />
+              <Route path="/market-intel" element={<MarketIntel />} />
+              <Route path="/deal-matching" element={<DealMatching />} />
               <Route path="/settings" element={<Settings />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
