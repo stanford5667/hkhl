@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -15,6 +15,7 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
+  FormDescription,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -26,7 +27,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Sparkles } from 'lucide-react';
+import {
+  fetchIndustryMultiples,
+  getMultipleForIndustry,
+  fallbackIndustryMultiples,
+  type IndustryMultiples,
+} from '@/services/marketData';
 
 const formSchema = z.object({
   name: z.string().min(1, 'Company name is required').max(100),
@@ -34,6 +41,8 @@ const formSchema = z.object({
   website: z.string().url('Invalid URL').optional().or(z.literal('')),
   company_type: z.enum(['pipeline', 'portfolio', 'prospect']),
   pipeline_stage: z.string().optional(),
+  ebitda_ltm: z.number().optional(),
+  valuation: z.number().optional(),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -72,6 +81,9 @@ export function CreateCompanyDialog({
   onSubmit,
 }: CreateCompanyDialogProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [industryMultiples, setIndustryMultiples] = useState<IndustryMultiples>(fallbackIndustryMultiples);
+  const [currentMultiple, setCurrentMultiple] = useState<number | null>(null);
+  const [isAutoValuation, setIsAutoValuation] = useState(false);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -81,25 +93,63 @@ export function CreateCompanyDialog({
       website: '',
       company_type: 'prospect',
       pipeline_stage: '',
+      ebitda_ltm: undefined,
+      valuation: undefined,
     },
   });
 
   const companyType = form.watch('company_type');
+  const industry = form.watch('industry');
+  const ebitda = form.watch('ebitda_ltm');
+
+  // Fetch industry multiples on mount
+  useEffect(() => {
+    if (open) {
+      fetchIndustryMultiples().then((result) => {
+        setIndustryMultiples(result.data);
+      });
+    }
+  }, [open]);
+
+  // Auto-calculate valuation when industry or EBITDA changes
+  useEffect(() => {
+    if (industry && industryMultiples) {
+      const multiple = getMultipleForIndustry(industry, industryMultiples);
+      setCurrentMultiple(multiple);
+
+      if (ebitda && multiple) {
+        const calculatedValuation = ebitda * multiple;
+        form.setValue('valuation', calculatedValuation);
+        setIsAutoValuation(true);
+      }
+    } else {
+      setCurrentMultiple(null);
+    }
+  }, [industry, ebitda, industryMultiples, form]);
 
   const handleSubmit = async (values: FormValues) => {
     setIsSubmitting(true);
     try {
       await onSubmit(values);
       form.reset();
+      setIsAutoValuation(false);
       onOpenChange(false);
     } finally {
       setIsSubmitting(false);
     }
   };
 
+  const formatCurrency = (value: number | undefined) => {
+    if (!value) return '';
+    if (value >= 1000000) {
+      return `$${(value / 1000000).toFixed(1)}M`;
+    }
+    return `$${value.toLocaleString()}`;
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[480px] bg-card border-border">
+      <DialogContent className="sm:max-w-[520px] bg-card border-border max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Create New Company</DialogTitle>
         </DialogHeader>
@@ -144,6 +194,12 @@ export function CreateCompanyDialog({
                       ))}
                     </SelectContent>
                   </Select>
+                  {currentMultiple && (
+                    <FormDescription className="flex items-center gap-1 text-primary">
+                      <Sparkles className="h-3 w-3" />
+                      Market multiple: {currentMultiple.toFixed(1)}x EV/EBITDA
+                    </FormDescription>
+                  )}
                   <FormMessage />
                 </FormItem>
               )}
@@ -205,30 +261,93 @@ export function CreateCompanyDialog({
             />
 
             {companyType === 'pipeline' && (
-              <FormField
-                control={form.control}
-                name="pipeline_stage"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Pipeline Stage</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <FormControl>
-                        <SelectTrigger className="bg-background border-border">
-                          <SelectValue placeholder="Select stage" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {PIPELINE_STAGES.map((stage) => (
-                          <SelectItem key={stage} value={stage.toLowerCase()}>
-                            {stage}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              <>
+                <FormField
+                  control={form.control}
+                  name="pipeline_stage"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Pipeline Stage</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                          <SelectTrigger className="bg-background border-border">
+                            <SelectValue placeholder="Select stage" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {PIPELINE_STAGES.map((stage) => (
+                            <SelectItem key={stage} value={stage.toLowerCase()}>
+                              {stage}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="ebitda_ltm"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>LTM EBITDA ($)</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            placeholder="e.g. 5000000"
+                            className="bg-background border-border"
+                            {...field}
+                            value={field.value || ''}
+                            onChange={(e) => {
+                              const value = e.target.value ? parseFloat(e.target.value) : undefined;
+                              field.onChange(value);
+                            }}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="valuation"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="flex items-center gap-1">
+                          Est. Valuation
+                          {isAutoValuation && (
+                            <span className="text-xs text-primary font-normal">(auto)</span>
+                          )}
+                        </FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            placeholder="Enterprise value"
+                            className="bg-background border-border"
+                            {...field}
+                            value={field.value || ''}
+                            onChange={(e) => {
+                              const value = e.target.value ? parseFloat(e.target.value) : undefined;
+                              field.onChange(value);
+                              setIsAutoValuation(false);
+                            }}
+                          />
+                        </FormControl>
+                        {field.value && (
+                          <FormDescription>
+                            {formatCurrency(field.value)}
+                          </FormDescription>
+                        )}
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              </>
             )}
 
             <div className="flex justify-end gap-3 pt-4">

@@ -52,6 +52,8 @@ export default function Pipeline() {
     website?: string;
     company_type: 'pipeline' | 'portfolio' | 'prospect';
     pipeline_stage?: string;
+    ebitda_ltm?: number;
+    valuation?: number;
   }) => {
     if (!user) {
       toast.error('Please sign in');
@@ -65,6 +67,7 @@ export default function Pipeline() {
       website: values.website || null,
       company_type: 'pipeline',
       pipeline_stage: values.pipeline_stage || 'sourcing',
+      ebitda_ltm: values.ebitda_ltm || null,
     });
 
     if (error) {
