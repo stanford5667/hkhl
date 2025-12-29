@@ -8,6 +8,7 @@ import Index from "./pages/Index";
 import Pipeline from "./pages/Pipeline";
 import Models from "./pages/Models";
 import Portfolio from "./pages/Portfolio";
+import DataRoom from "./pages/DataRoom";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -24,6 +25,7 @@ const App = () => (
             <Route path="/pipeline" element={<Pipeline />} />
             <Route path="/models" element={<Models />} />
             <Route path="/portfolio" element={<Portfolio />} />
+            <Route path="/documents" element={<DataRoom />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
