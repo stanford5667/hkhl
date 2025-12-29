@@ -9,24 +9,29 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { file_content, file_name, file_type } = await req.json();
+    const body = await req.json();
+    // Accept both field naming conventions
+    const documentContent = body.documentContent || body.file_content;
+    const fileName = body.fileName || body.file_name || 'Unknown';
+    const fileType = body.fileType || body.file_type || '';
 
-    if (!file_content) {
+    if (!documentContent) {
       return new Response(
-        JSON.stringify({ success: false, error: 'File content is required' }),
+        JSON.stringify({ error: 'Document content is required' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
     const apiKey = Deno.env.get('LOVABLE_API_KEY');
     if (!apiKey) {
+      console.error('LOVABLE_API_KEY not configured');
       return new Response(
-        JSON.stringify({ success: false, error: 'API key not configured' }),
+        JSON.stringify({ error: 'API key not configured' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    console.log(`Summarizing document: ${file_name}`);
+    console.log(`Summarizing document: ${fileName}, content length: ${documentContent.length}`);
 
     const systemPrompt = `You are a financial analyst expert. Analyze the provided document and extract:
 1. A concise summary (2-3 sentences) of what this document contains
@@ -34,7 +39,7 @@ Deno.serve(async (req) => {
 3. Important dates or time periods covered
 4. Any notable insights or red flags
 
-Respond in this exact JSON format:
+Respond in this exact JSON format (no markdown):
 {
   "summary": "Brief description of document content",
   "key_figures": [
@@ -43,38 +48,40 @@ Respond in this exact JSON format:
   ],
   "time_period": "FY2023-2024",
   "insights": ["Key insight 1", "Key insight 2"],
-  "document_type": "Financial Statement" | "Model" | "Report" | "Other"
+  "document_type": "Financial Statement"
 }
 
 If financial data is not available, provide relevant non-financial insights instead.`;
 
-    const response = await fetch('https://ai-gateway.lovable.dev/v1/chat/completions', {
+    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${apiKey}`,
         'Content-Type': 'application/json',
-        'HTTP-Referer': 'https://lovable.dev',
-        'X-Title': 'DealFlow AI'
       },
       body: JSON.stringify({
         model: 'google/gemini-2.5-flash',
         messages: [
           { role: 'system', content: systemPrompt },
-          { role: 'user', content: `Document: ${file_name}\n\nContent:\n${file_content.substring(0, 15000)}` }
+          { role: 'user', content: `Document: ${fileName}\nType: ${fileType}\n\nContent:\n${documentContent.substring(0, 15000)}` }
         ],
-        temperature: 0.3,
-        max_tokens: 1000
       })
     });
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('AI API error:', errorText);
+      console.error('AI API error:', response.status, errorText);
       
       if (response.status === 429) {
         return new Response(
-          JSON.stringify({ success: false, error: 'Rate limit exceeded' }),
+          JSON.stringify({ error: 'Rate limit exceeded, please try again later' }),
           { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      if (response.status === 402) {
+        return new Response(
+          JSON.stringify({ error: 'AI credits exhausted, please add credits' }),
+          { status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
       
@@ -88,6 +95,8 @@ If financial data is not available, provide relevant non-financial insights inst
       throw new Error('No content in AI response');
     }
 
+    console.log('AI response received, parsing...');
+
     // Parse JSON from response
     let parsed;
     try {
@@ -100,7 +109,7 @@ If financial data is not available, provide relevant non-financial insights inst
       }
       parsed = JSON.parse(jsonContent);
     } catch (e) {
-      console.log('Failed to parse JSON, using raw content');
+      console.log('Failed to parse JSON, using raw content:', e);
       parsed = {
         summary: content,
         key_figures: [],
@@ -112,7 +121,7 @@ If financial data is not available, provide relevant non-financial insights inst
 
     console.log('Document summarized successfully');
     return new Response(
-      JSON.stringify({ success: true, ...parsed }),
+      JSON.stringify(parsed),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
@@ -120,7 +129,7 @@ If financial data is not available, provide relevant non-financial insights inst
     console.error('Error summarizing document:', error);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return new Response(
-      JSON.stringify({ success: false, error: errorMessage }),
+      JSON.stringify({ error: errorMessage }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
