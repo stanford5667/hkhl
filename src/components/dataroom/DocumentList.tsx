@@ -23,11 +23,12 @@ import { cn } from "@/lib/utils";
 export interface Document {
   id: string;
   name: string;
-  type: "xlsx" | "pdf" | "docx" | "csv" | "other";
+  type: "xlsx" | "xls" | "pdf" | "docx" | "csv" | "txt" | "other";
   size: string;
   uploadedAt: string;
   uploadedBy: string;
   status?: "pending" | "reviewed" | "flagged";
+  filePath?: string;
 }
 
 interface DocumentListProps {

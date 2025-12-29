@@ -246,11 +246,13 @@ export default function DataRoom() {
         type: ['xlsx', 'xls'].includes(ext) ? 'xlsx' : 
               ext === 'pdf' ? 'pdf' : 
               ext === 'csv' ? 'csv' : 
-              ext === 'docx' ? 'docx' : 'other',
+              ext === 'docx' ? 'docx' : 
+              ext === 'txt' ? 'txt' : 'other',
         size: doc.file_size ? `${(doc.file_size / 1024).toFixed(1)} KB` : '—',
         uploadedAt: formatDistanceToNow(new Date(doc.created_at), { addSuffix: true }),
         uploadedBy: 'You',
         status: 'reviewed',
+        filePath: doc.file_path,
       });
     });
 

@@ -48,19 +48,26 @@ export function UploadZone({ companyId, folder = "General", subfolder, onUploadC
     }
 
     try {
-      // Simulate progress
-      let progress = 0;
-      const progressInterval = setInterval(() => {
-        progress += 20;
-        if (progress <= 80) {
-          setUploads((prev) =>
-            prev.map((u) => (u.id === id ? { ...u, progress } : u))
-          );
-        }
-      }, 100);
-
       // Get file extension
       const fileExt = file.name.split('.').pop()?.toLowerCase() || '';
+      const timestamp = Date.now();
+      const sanitizedName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+      const filePath = `${user.id}/${companyId}/${timestamp}_${sanitizedName}`;
+
+      // Upload file to storage
+      setUploads((prev) =>
+        prev.map((u) => (u.id === id ? { ...u, progress: 30 } : u))
+      );
+
+      const { error: uploadError } = await supabase.storage
+        .from('documents')
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      setUploads((prev) =>
+        prev.map((u) => (u.id === id ? { ...u, progress: 70 } : u))
+      );
 
       // Save document record to database
       const { data, error } = await supabase
@@ -69,7 +76,7 @@ export function UploadZone({ companyId, folder = "General", subfolder, onUploadC
           company_id: companyId,
           user_id: user.id,
           name: file.name,
-          file_path: `uploads/${companyId}/${file.name}`,
+          file_path: filePath,
           file_type: fileExt,
           file_size: file.size,
           folder: folder,
@@ -77,8 +84,6 @@ export function UploadZone({ companyId, folder = "General", subfolder, onUploadC
         })
         .select()
         .single();
-
-      clearInterval(progressInterval);
 
       if (error) throw error;
 
