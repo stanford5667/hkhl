@@ -44,8 +44,8 @@ const navigation: NavSection[] = [
     title: "INTELLIGENCE",
     items: [
       { label: "AI Models", href: "/models", icon: <Brain className="h-4 w-4" /> },
-      { label: "Analytics", href: "/analytics", icon: <BarChart3 className="h-4 w-4" /> },
-      { label: "Market Intel", href: "/market", icon: <Search className="h-4 w-4" /> },
+      { label: "Market Intel", href: "/market-intel", icon: <BarChart3 className="h-4 w-4" /> },
+      { label: "Deal Matching", href: "/deal-matching", icon: <Search className="h-4 w-4" /> },
     ],
   },
   {
