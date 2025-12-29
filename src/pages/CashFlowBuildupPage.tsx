@@ -12,6 +12,7 @@ import { useCompanies, Company } from '@/hooks/useCompanies';
 import { useModels } from '@/hooks/useModels';
 import { useDocuments } from '@/hooks/useDocuments';
 import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 type Step = 'upload' | 'review' | 'interview' | 'model';
@@ -615,19 +616,33 @@ export default function CashFlowBuildupPage() {
     }
 
     // Save the uploaded file as a document if not already saved
-    if (uploadedFile && !savedDocumentId) {
-      const fileExt = uploadedFile.name.split('.').pop()?.toLowerCase() || '';
-      const doc = await saveDocument({
-        companyId: selectedCompany.id,
-        name: uploadedFile.name,
-        filePath: `uploads/${selectedCompany.id}/${uploadedFile.name}`,
-        fileType: fileExt,
-        fileSize: uploadedFile.size,
-        folder: 'Financial',
-        subfolder: 'Historical'
-      });
-      if (doc) {
-        setSavedDocumentId(doc.id);
+    if (uploadedFile && !savedDocumentId && user) {
+      try {
+        const fileExt = uploadedFile.name.split('.').pop()?.toLowerCase() || '';
+        const timestamp = Date.now();
+        const sanitizedName = uploadedFile.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+        const storagePath = `${user.id}/${selectedCompany.id}/${timestamp}_${sanitizedName}`;
+
+        // Upload to file storage
+        const { error: uploadError } = await supabase.storage
+          .from('documents')
+          .upload(storagePath, uploadedFile);
+
+        if (uploadError) throw uploadError;
+
+        const doc = await saveDocument({
+          companyId: selectedCompany.id,
+          name: uploadedFile.name,
+          filePath: storagePath,
+          fileType: fileExt,
+          fileSize: uploadedFile.size,
+          folder: 'Financial',
+          subfolder: 'Historical'
+        });
+        if (doc) setSavedDocumentId(doc.id);
+      } catch (e) {
+        console.error('Failed to save uploaded file to data room:', e);
+        toast.error('Model saved, but file upload failed. Please upload the file from the Data Room.');
       }
     }
 
