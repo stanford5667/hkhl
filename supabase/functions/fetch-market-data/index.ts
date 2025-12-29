@@ -83,164 +83,120 @@ const fallbackNews: NewsArticle[] = [
   },
 ];
 
-async function fetchHtml(url: string): Promise<string> {
-  const headers = {
-    "User-Agent": USER_AGENT,
-    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
-    "Accept-Language": "en-US,en;q=0.5",
-  };
+async function fetchYahooQuotes(symbols: string[]): Promise<Record<string, any>> {
+  const url = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${encodeURIComponent(
+    symbols.join(",")
+  )}&lang=en-US&region=US&corsDomain=finance.yahoo.com`;
+  console.log(`Fetching Yahoo quote JSON for ${symbols.join(", ")}`);
 
-  // Yahoo frequently triggers HTTP/2 / bot protections from server-to-server environments.
-  // We first try direct fetch, and if it fails we fall back to a text-proxy that returns the rendered HTML.
-  try {
-    const res = await fetch(url, { headers });
-    if (res.ok) return await res.text();
-    console.warn(`Direct fetch failed (${res.status}) for ${url}, falling back...`);
-  } catch (e) {
-    console.warn(`Direct fetch errored for ${url}, falling back...`, e);
+  const res = await fetch(url, {
+    headers: {
+      "User-Agent": USER_AGENT,
+      "Accept": "application/json,text/plain,*/*",
+      "Accept-Language": "en-US,en;q=0.5",
+      "Referer": "https://finance.yahoo.com/",
+    },
+  });
+
+  console.log(`Quote endpoint status: ${res.status}`);
+
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    console.error(`Yahoo quote endpoint failed (${res.status}): ${body.slice(0, 300)}`);
+    throw new Error(`Yahoo quote endpoint failed (${res.status})`);
   }
 
-  // Fallback via Jina AI fetcher (simple HTML proxy)
-  // Format: https://r.jina.ai/https://example.com/page
-  const proxied = `https://r.jina.ai/${url}`;
-  const res2 = await fetch(proxied, { headers });
-  if (!res2.ok) throw new Error(`Fallback fetch failed (${res2.status}) for ${url}`);
-  return await res2.text();
-}
+  const json = await res.json();
+  const results: any[] = json?.quoteResponse?.result ?? [];
+  console.log(`Quote endpoint returned ${results.length} results`);
 
-async function fetchYahooFinance(ticker: string): Promise<MacroData> {
-  const url = `https://finance.yahoo.com/quote/${encodeURIComponent(ticker)}`;
-
-  console.log(`Fetching Yahoo Finance data for ${ticker}...`);
-
-  try {
-    const html = await fetchHtml(url);
-    const $ = cheerio.load(html);
-
-    // Per spec: scrape these fin-streamer fields
-    const priceText =
-      $('fin-streamer[data-field="regularMarketPrice"]').first().attr("data-value") ||
-      $('fin-streamer[data-field="regularMarketPrice"]').first().text();
-
-    const changePctText =
-      $('fin-streamer[data-field="regularMarketChangePercent"]').first().attr("data-value") ||
-      $('fin-streamer[data-field="regularMarketChangePercent"]').first().text();
-
-    const changeText =
-      $('fin-streamer[data-field="regularMarketChange"]').first().attr("data-value") ||
-      $('fin-streamer[data-field="regularMarketChange"]').first().text();
-
-    const price = priceText ? parseFloat(String(priceText).replace(/,/g, "")) : null;
-    const changePercent = changePctText
-      ? parseFloat(String(changePctText).replace(/[()%,]/g, ""))
-      : null;
-    const change = changeText ? parseFloat(String(changeText).replace(/[()%,+]/g, "")) : null;
-
-    const tickerInfo = MACRO_TICKERS.find((t) => t.symbol === ticker);
-
-    console.log(`${ticker}: price=${price}, change=${change}, changePercent=${changePercent}`);
-
-    return {
-      symbol: ticker,
-      name: tickerInfo?.name || ticker,
-      price: Number.isFinite(price as number) ? price : null,
-      change: Number.isFinite(change as number) ? change : null,
-      changePercent: Number.isFinite(changePercent as number) ? changePercent : null,
-    };
-  } catch (error) {
-    console.error(`Error fetching ${ticker}:`, error);
-    const tickerInfo = MACRO_TICKERS.find((t) => t.symbol === ticker);
-    return {
-      symbol: ticker,
-      name: tickerInfo?.name || ticker,
-      price: null,
-      change: null,
-      changePercent: null,
-    };
+  const bySymbol: Record<string, any> = {};
+  for (const item of results) {
+    if (item?.symbol) bySymbol[item.symbol] = item;
   }
+  return bySymbol;
 }
 
 async function fetchMacroData(): Promise<MacroData[]> {
-  console.log("Fetching macro data from Yahoo Finance...");
+  console.log("Fetching macro data from Yahoo Finance quote endpoint...");
 
-  const results: MacroData[] = [];
+  try {
+    const symbols = MACRO_TICKERS.map((t) => t.symbol);
+    const bySymbol = await fetchYahooQuotes(symbols);
 
-  // Fetch sequentially to avoid rate limiting
-  for (const ticker of MACRO_TICKERS) {
-    const data = await fetchYahooFinance(ticker.symbol);
-    results.push(data);
-    // Small delay between requests
-    await new Promise((resolve) => setTimeout(resolve, 250));
+    return MACRO_TICKERS.map((t) => {
+      const q = bySymbol[t.symbol];
+      const price = typeof q?.regularMarketPrice === "number" ? q.regularMarketPrice : null;
+      const change = typeof q?.regularMarketChange === "number" ? q.regularMarketChange : null;
+      const changePercent =
+        typeof q?.regularMarketChangePercent === "number" ? q.regularMarketChangePercent : null;
+
+      return {
+        symbol: t.symbol,
+        name: t.name,
+        price,
+        change,
+        changePercent,
+      };
+    });
+  } catch (e) {
+    console.error("Macro quote endpoint failed, returning nulls:", e);
+    return MACRO_TICKERS.map((t) => ({
+      symbol: t.symbol,
+      name: t.name,
+      price: null,
+      change: null,
+      changePercent: null,
+    }));
   }
-
-  return results;
 }
 
 async function fetchNewsData(): Promise<{ articles: NewsArticle[]; isMock: boolean }> {
-  const url = "https://finance.yahoo.com/topic/mna/";
-
-  console.log("Fetching M&A news from Yahoo Finance...");
+  // Use Yahoo Finance search endpoint for news to avoid HTML bot blocks.
+  const url = "https://query1.finance.yahoo.com/v1/finance/search?q=mergers%20acquisitions&newsCount=7&quotesCount=0&listsCount=0";
+  console.log("Fetching M&A news from Yahoo Finance search endpoint...");
 
   try {
-    const html = await fetchHtml(url);
-    const $ = cheerio.load(html);
-
-    const articles: NewsArticle[] = [];
-
-    // Spec: look for li items in main stream; Yahoo markup shifts, so start with broad LI scan.
-    $("main li").each((_, el) => {
-      if (articles.length >= 7) return false;
-
-      const $li = $(el);
-
-      const headline =
-        $li.find("h3 a").first().text().trim() ||
-        $li.find("h3").first().text().trim() ||
-        $li.find("a").first().text().trim();
-
-      if (!headline || headline.length < 20) return;
-
-      let href = $li.find("h3 a").first().attr("href") || $li.find("a").first().attr("href") || "";
-      if (!href) return;
-
-      if (!href.startsWith("http")) href = `https://finance.yahoo.com${href}`;
-
-      // Source + time are often in small spans near the headline
-      const metaText =
-        $li.find("span").first().text().trim() ||
-        $li.find("span").eq(1).text().trim() ||
-        "";
-
-      const source =
-        $li.find('[class*="provider"], [class*="source"]').first().text().trim() ||
-        (metaText && !metaText.includes("ago") ? metaText : "Yahoo Finance");
-
-      const time =
-        $li.find("time").first().text().trim() ||
-        $li
-          .find("span")
-          .toArray()
-          .map((s) => $(s).text().trim())
-          .find((t) => /ago|hour|minute|day|yesterday/i.test(t || "")) ||
-        "Recently";
-
-      // Deduplicate
-      if (articles.some((a) => a.url === href || a.headline === headline)) return;
-
-      articles.push({
-        id: String(articles.length + 1),
-        headline: headline.slice(0, 200),
-        url: href,
-        source: (source || "Yahoo Finance").slice(0, 50),
-        time: (time || "Recently").slice(0, 50),
-        isMock: false,
-      });
+    const res = await fetch(url, {
+      headers: {
+        "User-Agent": USER_AGENT,
+        "Accept": "application/json,text/plain,*/*",
+        "Accept-Language": "en-US,en;q=0.5",
+        "Referer": "https://finance.yahoo.com/",
+        "Origin": "https://finance.yahoo.com",
+      },
     });
 
-    console.log(`Extracted ${articles.length} news articles`);
+    if (!res.ok) {
+      console.error(`Yahoo news endpoint returned ${res.status}`);
+      return { articles: fallbackNews, isMock: true };
+    }
+
+    const json = await res.json();
+    const items: any[] = json?.news ?? [];
+
+    const articles: NewsArticle[] = items.slice(0, 7).map((n, idx) => {
+      const headline = String(n?.title ?? "").trim();
+      let articleUrl = String(n?.link ?? "").trim();
+      if (articleUrl && !articleUrl.startsWith("http")) {
+        articleUrl = `https://finance.yahoo.com${articleUrl}`;
+      }
+
+      const source = String(n?.publisher ?? n?.provider_name ?? "Yahoo Finance").trim() || "Yahoo Finance";
+      const ts = n?.providerPublishTime ?? n?.provider_publish_time;
+      const time = ts ? new Date(Number(ts) * 1000).toLocaleString() : "";
+
+      return {
+        id: String(n?.uuid ?? n?.id ?? idx + 1),
+        headline: headline || `Article ${idx + 1}`,
+        url: articleUrl || "https://finance.yahoo.com/topic/mna/",
+        source: source.slice(0, 50),
+        time: time || "Recently",
+        isMock: false,
+      };
+    }).filter(a => a.headline && a.url);
 
     if (articles.length < 3) {
-      console.log("Not enough articles found; returning fallback news.");
       return { articles: fallbackNews, isMock: true };
     }
 
