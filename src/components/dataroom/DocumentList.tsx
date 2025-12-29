@@ -37,6 +37,7 @@ interface DocumentListProps {
   onToggleSelect: (docId: string) => void;
   onSelectAll: () => void;
   onViewDocument: (doc: Document) => void;
+  onOpenDetails?: (doc: Document) => void;
 }
 
 export function DocumentList({
@@ -45,6 +46,7 @@ export function DocumentList({
   onToggleSelect,
   onSelectAll,
   onViewDocument,
+  onOpenDetails,
 }: DocumentListProps) {
   const getFileIcon = (type: Document["type"]) => {
     switch (type) {
@@ -140,10 +142,16 @@ export function DocumentList({
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem>
+              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onViewDocument(doc); }}>
                 <Eye className="mr-2 h-4 w-4" />
                 Preview
               </DropdownMenuItem>
+              {onOpenDetails && !doc.id.startsWith('model-') && (
+                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onOpenDetails(doc); }}>
+                  <FileText className="mr-2 h-4 w-4" />
+                  Details
+                </DropdownMenuItem>
+              )}
               <DropdownMenuItem>
                 <Download className="mr-2 h-4 w-4" />
                 Download
