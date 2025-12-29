@@ -12,6 +12,7 @@ import Portfolio from "./pages/Portfolio";
 import DataRoom from "./pages/DataRoom";
 import Auth from "./pages/Auth";
 import Settings from "./pages/Settings";
+import CashFlowBuildupPage from "./pages/CashFlowBuildupPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -29,6 +30,7 @@ const App = () => (
               <Route path="/auth" element={<Auth />} />
               <Route path="/pipeline" element={<Pipeline />} />
               <Route path="/models" element={<Models />} />
+              <Route path="/models/cash-flow-buildup" element={<CashFlowBuildupPage />} />
               <Route path="/portfolio" element={<Portfolio />} />
               <Route path="/documents" element={<DataRoom />} />
               <Route path="/settings" element={<Settings />} />
