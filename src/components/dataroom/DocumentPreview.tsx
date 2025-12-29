@@ -46,6 +46,8 @@ export function DocumentPreview({ document, open, onClose }: DocumentPreviewProp
   const [hasAttemptedFetch, setHasAttemptedFetch] = useState(false);
   const [previewData, setPreviewData] = useState<string[][] | null>(null);
   const [loadingPreview, setLoadingPreview] = useState(false);
+  const [previewError, setPreviewError] = useState<string | null>(null);
+  const [downloading, setDownloading] = useState(false);
 
   // Reset and load preview when document changes
   useEffect(() => {
@@ -53,36 +55,42 @@ export function DocumentPreview({ document, open, onClose }: DocumentPreviewProp
       setSummary(null);
       setHasAttemptedFetch(false);
       setPreviewData(null);
-      loadDocumentPreview();
+      setPreviewError(null);
+      void loadDocumentPreview();
     }
   }, [document?.id, open]);
 
   const loadDocumentPreview = async () => {
     if (!document?.filePath) return;
-    
+
     setLoadingPreview(true);
+    setPreviewError(null);
+
     try {
-      // Download the file from storage
       const { data, error } = await supabase.storage
         .from('documents')
         .download(document.filePath);
-      
+
       if (error) {
         console.error('Error downloading file:', error);
+        setPreviewError(
+          error.message?.includes('Object not found')
+            ? 'This file was saved before uploads were enabled. Please re-upload it to enable preview.'
+            : 'Unable to load preview for this file.'
+        );
         return;
       }
 
-      // Parse Excel/CSV files
       if (document.type === 'xlsx' || document.type === 'xls' || document.type === 'csv') {
         const arrayBuffer = await data.arrayBuffer();
         const workbook = XLSX.read(arrayBuffer, { type: 'array' });
         const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
         const jsonData = XLSX.utils.sheet_to_json<string[]>(firstSheet, { header: 1 });
-        // Get first 20 rows for preview
-        setPreviewData(jsonData.slice(0, 20) as string[][]);
+        setPreviewData((jsonData.slice(0, 20) as string[][]) || []);
       }
     } catch (error) {
       console.error('Error loading preview:', error);
+      setPreviewError('Unable to load preview for this file.');
     } finally {
       setLoadingPreview(false);
     }
@@ -90,53 +98,56 @@ export function DocumentPreview({ document, open, onClose }: DocumentPreviewProp
 
   const fetchSummary = async () => {
     if (!document) return;
-    
+
     setLoading(true);
     try {
       let documentContent = "";
-      
-      // Try to get actual file content
+
       if (document.filePath) {
         const { data, error } = await supabase.storage
           .from('documents')
           .download(document.filePath);
-        
+
         if (!error && data) {
           if (document.type === 'xlsx' || document.type === 'xls' || document.type === 'csv') {
             const arrayBuffer = await data.arrayBuffer();
             const workbook = XLSX.read(arrayBuffer, { type: 'array' });
             const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-            // Convert to CSV for AI analysis
-            documentContent = XLSX.utils.sheet_to_csv(firstSheet);
+            // Send only a bounded sample to AI
+            documentContent = XLSX.utils.sheet_to_csv(firstSheet).slice(0, 15000);
           } else if (document.type === 'pdf' || document.type === 'txt') {
-            documentContent = await data.text();
+            documentContent = (await data.text()).slice(0, 15000);
           }
+        } else if (error) {
+          setPreviewError(
+            error.message?.includes('Object not found')
+              ? 'This file was saved before uploads were enabled. Please re-upload it to enable AI analysis.'
+              : 'Unable to download file for AI analysis.'
+          );
         }
       }
-      
-      // If we couldn't get content, use filename as context
+
       if (!documentContent) {
         documentContent = `Document: ${document.name}\nType: ${document.type}\nSize: ${document.size}`;
       }
-      
-      // Call the edge function
+
       const { data: summaryData, error } = await supabase.functions.invoke('summarize-document', {
-        body: { 
+        body: {
           documentContent,
           fileName: document.name,
-          fileType: document.type
-        }
+          fileType: document.type,
+        },
       });
-      
+
       if (error) {
-        console.error('Edge function error:', error);
+        console.error('Function error:', error);
         throw new Error(error.message || 'Failed to analyze document');
       }
-      
+
       if (summaryData?.error) {
         throw new Error(summaryData.error);
       }
-      
+
       setSummary(summaryData);
       setHasAttemptedFetch(true);
       toast.success('AI analysis complete');
@@ -145,6 +156,30 @@ export function DocumentPreview({ document, open, onClose }: DocumentPreviewProp
       toast.error('Failed to analyze document');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDownload = async () => {
+    if (!document?.filePath) {
+      toast.error('No file available to download');
+      return;
+    }
+
+    setDownloading(true);
+    try {
+      const { data, error } = await supabase.storage
+        .from('documents')
+        .createSignedUrl(document.filePath, 60);
+
+      if (error) throw error;
+      if (!data?.signedUrl) throw new Error('Failed to create download link');
+
+      window.open(data.signedUrl, '_blank', 'noopener,noreferrer');
+    } catch (e) {
+      console.error('Download error:', e);
+      toast.error('Failed to download file');
+    } finally {
+      setDownloading(false);
     }
   };
 
@@ -208,15 +243,26 @@ export function DocumentPreview({ document, open, onClose }: DocumentPreviewProp
                     </table>
                   </div>
                 </div>
+              ) : previewError ? (
+                <div className="flex items-center justify-center h-full">
+                  <div className="text-center max-w-md px-6">
+                    {getFileIcon()}
+                    <p className="text-foreground mt-4 font-medium">Preview unavailable</p>
+                    <p className="text-sm text-muted-foreground mt-2">{previewError}</p>
+                    <p className="text-xs text-muted-foreground/70 mt-4">
+                      Tip: upload the file again from the Data Room   Upload button.
+                    </p>
+                  </div>
+                </div>
               ) : (
                 <div className="flex items-center justify-center h-full">
                   <div className="text-center">
                     {getFileIcon()}
                     <p className="text-muted-foreground mt-4">
-                      {document.filePath ? 'Loading preview...' : 'No preview available'}
+                      {document.filePath ? 'No preview available' : 'No file linked'}
                     </p>
                     <p className="text-xs text-muted-foreground/70 mt-1">
-                      {isSpreadsheet ? 'Click Analyze to extract insights' : 'Upload to storage for preview'}
+                      {isSpreadsheet ? 'Click Analyze to extract insights' : 'Upload to enable preview'}
                     </p>
                     <p className="text-xs text-muted-foreground/50 mt-2">
                       Size: {document.size}
@@ -359,19 +405,23 @@ export function DocumentPreview({ document, open, onClose }: DocumentPreviewProp
 
             {/* Actions */}
             <div className="p-4 border-t border-border space-y-2">
-              <Button className="w-full" variant="outline">
-                <Download className="mr-2 h-4 w-4" />
+              <Button className="w-full" variant="outline" onClick={handleDownload} disabled={!document.filePath || downloading}>
+                {downloading ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <Download className="mr-2 h-4 w-4" />
+                )}
                 Download
               </Button>
-              <Button className="w-full" variant="outline">
+              <Button className="w-full" variant="outline" disabled>
                 <FileText className="mr-2 h-4 w-4" />
                 Extract to Model
               </Button>
-              <Button className="w-full" variant="outline">
+              <Button className="w-full" variant="outline" disabled>
                 <MessageSquare className="mr-2 h-4 w-4" />
                 Ask AI About This
               </Button>
-              <Button className="w-full" variant="outline">
+              <Button className="w-full" variant="outline" disabled>
                 <Share2 className="mr-2 h-4 w-4" />
                 Share
               </Button>
