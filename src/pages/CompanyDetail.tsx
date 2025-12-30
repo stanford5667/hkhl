@@ -8,6 +8,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { CompanyTypeBadge } from '@/components/companies/CompanyTypeBadge';
+import { EditCompanyDialog } from '@/components/companies/EditCompanyDialog';
+import { IndustryNews } from '@/components/companies/IndustryNews';
+import { CompanyDocumentList } from '@/components/companies/CompanyDocumentList';
+import { InlineUploadZone } from '@/components/dataroom/InlineUploadZone';
 import {
   ArrowLeft,
   Building2,
@@ -22,6 +26,9 @@ import {
   Phone,
   FileText,
   TrendingUp,
+  Newspaper,
+  Upload,
+  LayoutDashboard,
 } from 'lucide-react';
 import { format } from 'date-fns';
 
@@ -55,7 +62,13 @@ interface Document {
   id: string;
   name: string;
   file_type: string | null;
+  file_path: string;
+  folder: string | null;
+  subfolder: string | null;
+  file_size: number | null;
+  doc_status: string | null;
   created_at: string;
+  updated_at: string;
 }
 
 interface Model {
@@ -66,6 +79,16 @@ interface Model {
   created_at: string;
 }
 
+const FOLDERS = [
+  { id: 'financials', name: 'Financials', icon: '📊' },
+  { id: 'legal', name: 'Legal', icon: '⚖️' },
+  { id: 'operations', name: 'Operations', icon: '⚙️' },
+  { id: 'hr', name: 'HR & Employment', icon: '👥' },
+  { id: 'commercial', name: 'Commercial', icon: '💼' },
+  { id: 'technology', name: 'Technology', icon: '💻' },
+  { id: 'other', name: 'Other', icon: '📁' },
+];
+
 export default function CompanyDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -75,58 +98,60 @@ export default function CompanyDetail() {
   const [documents, setDocuments] = useState<Document[]>([]);
   const [models, setModels] = useState<Model[]>([]);
   const [loading, setLoading] = useState(true);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [activeFolder, setActiveFolder] = useState<string | null>(null);
 
-  useEffect(() => {
+  const fetchData = async () => {
     if (!id || !user) return;
 
-    const fetchData = async () => {
-      setLoading(true);
-      try {
-        // Fetch company
-        const { data: companyData, error: companyError } = await supabase
-          .from('companies')
-          .select('*')
-          .eq('id', id)
-          .maybeSingle();
+    setLoading(true);
+    try {
+      // Fetch company
+      const { data: companyData, error: companyError } = await supabase
+        .from('companies')
+        .select('*')
+        .eq('id', id)
+        .maybeSingle();
 
-        if (companyError) throw companyError;
-        if (!companyData) {
-          toast.error('Company not found');
-          navigate('/companies');
-          return;
-        }
-        setCompany(companyData as CompanyDetail);
-
-        // Fetch related contacts
-        const { data: contactsData } = await supabase
-          .from('contacts')
-          .select('id, first_name, last_name, email, phone, title, category')
-          .eq('company_id', id);
-        setContacts(contactsData || []);
-
-        // Fetch related documents
-        const { data: docsData } = await supabase
-          .from('documents')
-          .select('id, name, file_type, created_at')
-          .eq('company_id', id)
-          .order('created_at', { ascending: false });
-        setDocuments(docsData || []);
-
-        // Fetch related models
-        const { data: modelsData } = await supabase
-          .from('models')
-          .select('id, name, model_type, status, created_at')
-          .eq('company_id', id)
-          .order('created_at', { ascending: false });
-        setModels(modelsData || []);
-      } catch (error) {
-        console.error('Error fetching company:', error);
-        toast.error('Failed to load company details');
-      } finally {
-        setLoading(false);
+      if (companyError) throw companyError;
+      if (!companyData) {
+        toast.error('Company not found');
+        navigate('/companies');
+        return;
       }
-    };
+      setCompany(companyData as CompanyDetail);
 
+      // Fetch related contacts
+      const { data: contactsData } = await supabase
+        .from('contacts')
+        .select('id, first_name, last_name, email, phone, title, category')
+        .eq('company_id', id);
+      setContacts(contactsData || []);
+
+      // Fetch related documents
+      const { data: docsData } = await supabase
+        .from('documents')
+        .select('*')
+        .eq('company_id', id)
+        .order('created_at', { ascending: false });
+      setDocuments((docsData as Document[]) || []);
+
+      // Fetch related models
+      const { data: modelsData } = await supabase
+        .from('models')
+        .select('id, name, model_type, status, created_at')
+        .eq('company_id', id)
+        .order('created_at', { ascending: false });
+      setModels(modelsData || []);
+    } catch (error) {
+      console.error('Error fetching company:', error);
+      toast.error('Failed to load company details');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchData();
   }, [id, user, navigate]);
 
@@ -144,10 +169,25 @@ export default function CompanyDetail() {
 
   const formatCurrency = (value: number | null) => {
     if (!value) return '—';
-    if (value >= 1000000) return `$${(value / 1000000).toFixed(1)}M`;
-    if (value >= 1000) return `$${(value / 1000).toFixed(0)}K`;
-    return `$${value}`;
+    if (value >= 1000) return `$${(value / 1000).toFixed(1)}B`;
+    return `$${value.toFixed(0)}M`;
   };
+
+  const getHealthScore = () => {
+    if (company.ebitda_ltm && company.revenue_ltm) {
+      return Math.min(100, Math.round((company.ebitda_ltm / company.revenue_ltm) * 100 * 5));
+    }
+    return 75;
+  };
+
+  const filteredDocuments = activeFolder 
+    ? documents.filter(d => d.folder?.toLowerCase() === activeFolder.toLowerCase())
+    : documents;
+
+  const folderCounts = FOLDERS.reduce((acc, folder) => {
+    acc[folder.id] = documents.filter(d => d.folder?.toLowerCase() === folder.id).length;
+    return acc;
+  }, {} as Record<string, number>);
 
   return (
     <div className="p-6 space-y-6 animate-fade-in">
@@ -189,14 +229,14 @@ export default function CompanyDetail() {
             </div>
           </div>
         </div>
-        <Button variant="outline">
+        <Button variant="outline" onClick={() => setEditDialogOpen(true)}>
           <Edit className="h-4 w-4 mr-2" />
           Edit Company
         </Button>
       </div>
 
       {/* Key Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
         <Card className="glass-card">
           <CardContent className="p-4">
             <p className="text-xs text-muted-foreground uppercase tracking-wider">Revenue LTM</p>
@@ -211,7 +251,7 @@ export default function CompanyDetail() {
         </Card>
         <Card className="glass-card">
           <CardContent className="p-4">
-            <p className="text-xs text-muted-foreground uppercase tracking-wider">Enterprise Value</p>
+            <p className="text-xs text-muted-foreground uppercase tracking-wider">EV (8x)</p>
             <p className="text-2xl font-bold mt-1">
               {company.ebitda_ltm ? formatCurrency(company.ebitda_ltm * 8) : '—'}
             </p>
@@ -219,33 +259,43 @@ export default function CompanyDetail() {
         </Card>
         <Card className="glass-card">
           <CardContent className="p-4">
-            <p className="text-xs text-muted-foreground uppercase tracking-wider">Added</p>
-            <p className="text-2xl font-bold mt-1">
-              {format(new Date(company.created_at), 'MMM d, yyyy')}
+            <p className="text-xs text-muted-foreground uppercase tracking-wider">Health Score</p>
+            <p className={`text-2xl font-bold mt-1 ${getHealthScore() >= 70 ? 'text-emerald-400' : getHealthScore() >= 40 ? 'text-yellow-400' : 'text-rose-400'}`}>
+              {getHealthScore()}
             </p>
+          </CardContent>
+        </Card>
+        <Card className="glass-card">
+          <CardContent className="p-4">
+            <p className="text-xs text-muted-foreground uppercase tracking-wider">Documents</p>
+            <p className="text-2xl font-bold mt-1">{documents.length}</p>
           </CardContent>
         </Card>
       </div>
 
       {/* Tabs */}
-      <Tabs defaultValue="overview" className="space-y-6">
+      <Tabs defaultValue="dataroom" className="space-y-6">
         <TabsList className="bg-secondary">
+          <TabsTrigger value="dataroom" className="gap-2">
+            <FolderOpen className="h-4 w-4" />
+            Data Room
+            {documents.length > 0 && (
+              <Badge variant="secondary" className="ml-1">{documents.length}</Badge>
+            )}
+          </TabsTrigger>
           <TabsTrigger value="overview" className="gap-2">
-            <Building2 className="h-4 w-4" />
+            <LayoutDashboard className="h-4 w-4" />
             Overview
+          </TabsTrigger>
+          <TabsTrigger value="news" className="gap-2">
+            <Newspaper className="h-4 w-4" />
+            Industry Intel
           </TabsTrigger>
           <TabsTrigger value="contacts" className="gap-2">
             <Users className="h-4 w-4" />
             Contacts
             {contacts.length > 0 && (
               <Badge variant="secondary" className="ml-1">{contacts.length}</Badge>
-            )}
-          </TabsTrigger>
-          <TabsTrigger value="documents" className="gap-2">
-            <FolderOpen className="h-4 w-4" />
-            Documents
-            {documents.length > 0 && (
-              <Badge variant="secondary" className="ml-1">{documents.length}</Badge>
             )}
           </TabsTrigger>
           <TabsTrigger value="models" className="gap-2">
@@ -255,11 +305,86 @@ export default function CompanyDetail() {
               <Badge variant="secondary" className="ml-1">{models.length}</Badge>
             )}
           </TabsTrigger>
-          <TabsTrigger value="activity" className="gap-2">
-            <Activity className="h-4 w-4" />
-            Activity
-          </TabsTrigger>
         </TabsList>
+
+        {/* Data Room Tab */}
+        <TabsContent value="dataroom" className="space-y-6">
+          <div className="flex gap-6">
+            {/* Folder Sidebar */}
+            <div className="w-64 shrink-0">
+              <Card className="p-4">
+                <h3 className="font-medium text-foreground mb-4 flex items-center gap-2">
+                  <FolderOpen className="h-4 w-4" />
+                  Folders
+                </h3>
+                <div className="space-y-1">
+                  <Button
+                    variant={activeFolder === null ? 'secondary' : 'ghost'}
+                    className="w-full justify-start"
+                    onClick={() => setActiveFolder(null)}
+                  >
+                    <span className="mr-2">📂</span>
+                    All Documents
+                    <Badge variant="secondary" className="ml-auto">{documents.length}</Badge>
+                  </Button>
+                  {FOLDERS.map(folder => (
+                    <Button
+                      key={folder.id}
+                      variant={activeFolder === folder.id ? 'secondary' : 'ghost'}
+                      className="w-full justify-start"
+                      onClick={() => setActiveFolder(folder.id)}
+                    >
+                      <span className="mr-2">{folder.icon}</span>
+                      {folder.name}
+                      {folderCounts[folder.id] > 0 && (
+                        <Badge variant="secondary" className="ml-auto">{folderCounts[folder.id]}</Badge>
+                      )}
+                    </Button>
+                  ))}
+                </div>
+              </Card>
+            </div>
+
+            {/* Documents Area */}
+            <div className="flex-1 space-y-4">
+              {/* Upload Zone */}
+              <InlineUploadZone 
+                companyId={company.id}
+                folder={activeFolder || undefined}
+                onUploadComplete={fetchData}
+              />
+
+              {/* Documents Table */}
+              {filteredDocuments.length === 0 ? (
+                <Card className="p-12 text-center">
+                  <FolderOpen className="h-12 w-12 text-muted-foreground/50 mx-auto mb-3" />
+                  <p className="text-muted-foreground">
+                    {activeFolder ? `No documents in ${FOLDERS.find(f => f.id === activeFolder)?.name || activeFolder}` : 'No documents uploaded yet'}
+                  </p>
+                  <p className="text-muted-foreground text-sm mt-1">
+                    Drag and drop files above to upload
+                  </p>
+                </Card>
+              ) : (
+                <CompanyDocumentList 
+                  documents={filteredDocuments}
+                  onRename={async (docId, newName) => {
+                    await supabase.from('documents').update({ name: newName }).eq('id', docId);
+                    fetchData();
+                  }}
+                  onDelete={async (docId) => {
+                    await supabase.from('documents').delete().eq('id', docId);
+                    fetchData();
+                  }}
+                  onStatusChange={async (docId, status) => {
+                    await supabase.from('documents').update({ doc_status: status as any }).eq('id', docId);
+                    fetchData();
+                  }}
+                />
+              )}
+            </div>
+          </div>
+        </TabsContent>
 
         {/* Overview Tab */}
         <TabsContent value="overview" className="space-y-6">
@@ -271,7 +396,7 @@ export default function CompanyDetail() {
               {company.description ? (
                 <p className="text-muted-foreground">{company.description}</p>
               ) : (
-                <p className="text-muted-foreground italic">No description available</p>
+                <p className="text-muted-foreground italic">No description available. Click Edit to add one.</p>
               )}
             </CardContent>
           </Card>
@@ -297,6 +422,12 @@ export default function CompanyDetail() {
                   <span className="text-muted-foreground">Models</span>
                   <span className="font-medium">{models.length}</span>
                 </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Health Score</span>
+                  <span className={`font-medium ${getHealthScore() >= 70 ? 'text-emerald-400' : 'text-yellow-400'}`}>
+                    {getHealthScore()}
+                  </span>
+                </div>
               </CardContent>
             </Card>
 
@@ -309,10 +440,13 @@ export default function CompanyDetail() {
                   <p className="text-muted-foreground text-sm">No documents uploaded</p>
                 ) : (
                   <ul className="space-y-2">
-                    {documents.slice(0, 3).map((doc) => (
+                    {documents.slice(0, 5).map((doc) => (
                       <li key={doc.id} className="flex items-center gap-2 text-sm">
                         <FileText className="h-4 w-4 text-muted-foreground" />
-                        <span className="truncate">{doc.name}</span>
+                        <span className="truncate flex-1">{doc.name}</span>
+                        <span className="text-muted-foreground text-xs">
+                          {format(new Date(doc.created_at), 'MMM d')}
+                        </span>
                       </li>
                     ))}
                   </ul>
@@ -320,6 +454,29 @@ export default function CompanyDetail() {
               </CardContent>
             </Card>
           </div>
+
+          <Card className="glass-card">
+            <CardHeader>
+              <CardTitle>Timeline</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="flex items-center gap-3">
+                <div className="h-2 w-2 rounded-full bg-primary" />
+                <span className="text-muted-foreground">Created</span>
+                <span className="font-medium">{format(new Date(company.created_at), 'MMMM d, yyyy')}</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="h-2 w-2 rounded-full bg-emerald-500" />
+                <span className="text-muted-foreground">Last Updated</span>
+                <span className="font-medium">{format(new Date(company.updated_at), 'MMMM d, yyyy')}</span>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Industry News Tab */}
+        <TabsContent value="news">
+          <IndustryNews companyName={company.name} industry={company.industry} />
         </TabsContent>
 
         {/* Contacts Tab */}
@@ -374,38 +531,6 @@ export default function CompanyDetail() {
           )}
         </TabsContent>
 
-        {/* Documents Tab */}
-        <TabsContent value="documents">
-          {documents.length === 0 ? (
-            <Card className="glass-card">
-              <CardContent className="flex flex-col items-center justify-center py-12">
-                <FolderOpen className="h-12 w-12 text-muted-foreground/50 mb-3" />
-                <p className="text-muted-foreground">No documents uploaded</p>
-                <Button variant="outline" className="mt-4" onClick={() => navigate('/documents')}>
-                  Upload Document
-                </Button>
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="space-y-2">
-              {documents.map((doc) => (
-                <Card key={doc.id} className="glass-card hover:border-primary/30 transition-colors cursor-pointer">
-                  <CardContent className="p-4 flex items-center gap-4">
-                    <FileText className="h-8 w-8 text-primary" />
-                    <div className="flex-1">
-                      <h4 className="font-medium">{doc.name}</h4>
-                      <p className="text-sm text-muted-foreground">
-                        {doc.file_type?.toUpperCase() || 'File'} • {format(new Date(doc.created_at), 'MMM d, yyyy')}
-                      </p>
-                    </div>
-                    <Button variant="ghost" size="sm">View</Button>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          )}
-        </TabsContent>
-
         {/* Models Tab */}
         <TabsContent value="models">
           {models.length === 0 ? (
@@ -413,7 +538,7 @@ export default function CompanyDetail() {
               <CardContent className="flex flex-col items-center justify-center py-12">
                 <Brain className="h-12 w-12 text-muted-foreground/50 mb-3" />
                 <p className="text-muted-foreground">No models created</p>
-                <Button variant="outline" className="mt-4" onClick={() => navigate('/models')}>
+                <Button variant="outline" className="mt-4" onClick={() => navigate(`/models/new?company=${company.id}`)}>
                   Create Model
                 </Button>
               </CardContent>
@@ -447,20 +572,15 @@ export default function CompanyDetail() {
             </div>
           )}
         </TabsContent>
-
-        {/* Activity Tab */}
-        <TabsContent value="activity">
-          <Card className="glass-card">
-            <CardContent className="flex flex-col items-center justify-center py-12">
-              <Activity className="h-12 w-12 text-muted-foreground/50 mb-3" />
-              <p className="text-muted-foreground">Activity tracking coming soon</p>
-              <p className="text-sm text-muted-foreground mt-1">
-                View deal updates, document changes, and team interactions
-              </p>
-            </CardContent>
-          </Card>
-        </TabsContent>
       </Tabs>
+
+      {/* Edit Dialog */}
+      <EditCompanyDialog
+        open={editDialogOpen}
+        onOpenChange={setEditDialogOpen}
+        company={company}
+        onSave={fetchData}
+      />
     </div>
   );
 }
