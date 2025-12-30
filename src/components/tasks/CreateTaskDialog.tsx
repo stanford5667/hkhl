@@ -97,11 +97,16 @@ export function CreateTaskDialog({
   const handleSubmit = async (data: TaskFormData) => {
     setIsSubmitting(true);
     try {
+      // Handle "unassigned" as null
+      const assigneeId = data.assignee_id && data.assignee_id !== 'unassigned' 
+        ? data.assignee_id 
+        : null;
+      
       await createTask({
         title: data.title,
         description: data.description,
         priority: data.priority,
-        assignee_id: data.assignee_id || null,
+        assignee_id: assigneeId,
         due_date: data.due_date?.toISOString() || null,
         company_id: companyId || null,
         contact_id: contactId || null,
