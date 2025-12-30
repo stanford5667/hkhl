@@ -21,6 +21,7 @@ import Auth from "./pages/Auth";
 import Settings from "./pages/Settings";
 import CashFlowBuildupPage from "./pages/CashFlowBuildupPage";
 import ModelViewerPage from "./pages/ModelViewerPage";
+import Tasks from "./pages/Tasks";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -47,6 +48,7 @@ const App = () => (
               <Route path="/companies" element={<Companies />} />
               <Route path="/companies/:id" element={<CompanyDetail />} />
               <Route path="/contacts" element={<Contacts />} />
+              <Route path="/tasks" element={<Tasks />} />
               <Route path="/market-intel" element={<MarketIntel />} />
               <Route path="/deal-matching" element={<DealMatching />} />
               <Route path="/settings" element={<Settings />} />
