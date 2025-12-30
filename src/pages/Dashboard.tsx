@@ -1,67 +1,79 @@
-import { Target, TrendingUp, DollarSign } from "lucide-react";
-import { MetricCard } from "@/components/dashboard/MetricCard";
-import { ActionItemsCard } from "@/components/dashboard/ActionItemsCard";
-import { ActivityFeed } from "@/components/dashboard/ActivityFeed";
-import { PortfolioChart } from "@/components/dashboard/PortfolioChart";
+import { useNavigate } from 'react-router-dom';
+import { TriggerBanner } from '@/components/dashboard/TriggerBanner';
+import { AIInsightCard } from '@/components/dashboard/AIInsightCard';
+import { StreakCounter } from '@/components/dashboard/StreakCounter';
+import { QuickStatsTile } from '@/components/dashboard/QuickStatsTile';
+import { QuickActions } from '@/components/dashboard/QuickActions';
+import { PortfolioSnapshot } from '@/components/dashboard/PortfolioSnapshot';
+import { ActionItemsCard } from '@/components/dashboard/ActionItemsCard';
+import { ActivityFeed } from '@/components/dashboard/ActivityFeed';
+import { UpcomingEvents } from '@/components/dashboard/UpcomingEvents';
+import { PortfolioChart } from '@/components/dashboard/PortfolioChart';
 
 export default function Dashboard() {
-  const currentDate = new Date().toLocaleDateString("en-US", {
-    weekday: "long",
-    year: "numeric",
-    month: "long",
-    day: "numeric",
+  const navigate = useNavigate();
+  
+  const currentDate = new Date().toLocaleDateString('en-US', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
   });
 
   const getGreeting = () => {
     const hour = new Date().getHours();
-    if (hour < 12) return "Good morning";
-    if (hour < 18) return "Good afternoon";
-    return "Good evening";
+    if (hour < 12) return 'Good morning, Chris!';
+    if (hour < 18) return 'Good afternoon, Chris!';
+    return 'Good evening, Chris!';
   };
 
   return (
-    <div className="p-8 space-y-8 animate-fade-up">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="h1">{getGreeting()}, Chris</h1>
-          <p className="text-muted-foreground mt-1">
-            3 deals require attention • Portfolio up{" "}
-            <span className="text-success font-medium">12.4%</span> YTD
-          </p>
-        </div>
+    <div className="p-6 space-y-6 animate-fade-in">
+      {/* Header with Streak */}
+      <div className="flex items-center justify-between">
         <div className="text-sm text-muted-foreground">{currentDate}</div>
+        <StreakCounter days={5} />
       </div>
 
-      {/* KPI Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 stagger-children">
-        <MetricCard
-          title="Active Pipeline"
-          value="12 Deals"
-          subtitle="$2.4B Total Value"
-          icon={<Target className="h-5 w-5" />}
-        />
-        <MetricCard
-          title="Portfolio Value"
-          value="$847.2M"
-          change={12.4}
-          subtitle="YTD"
-          icon={<TrendingUp className="h-5 w-5" />}
-          variant="success"
-        />
-        <MetricCard
-          title="Dry Powder"
-          value="$125.0M"
-          subtitle="3 deals in DD"
-          icon={<DollarSign className="h-5 w-5" />}
-        />
+      {/* Trigger Banner (Hook: Variable Reward) */}
+      <TriggerBanner
+        greeting={getGreeting()}
+        alertCount={3}
+        portfolioNews="TechCo has news"
+        onReview={() => navigate('/pipeline')}
+      />
+
+      {/* Quick Stats Row (Scannable) */}
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+        <QuickStatsTile label="Total AUM" value="$847M" change={12.4} />
+        <QuickStatsTile label="Active Deals" value="12" />
+        <QuickStatsTile label="Alerts" value="3" />
+        <QuickStatsTile label="Portfolio IRR" value="24.2%" change={2.1} />
+        <QuickStatsTile label="Avg MOIC" value="2.4x" change={0.3} />
       </div>
 
-      {/* Action Items & Activity */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <ActionItemsCard />
-        <ActivityFeed />
+      {/* Main Content Grid (2/3 + 1/3) */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Left Column - Primary Content */}
+        <div className="lg:col-span-2 space-y-6">
+          <PortfolioSnapshot />
+          <AIInsightCard />
+          <ActivityFeed />
+        </div>
+
+        {/* Right Column - Secondary */}
+        <div className="space-y-6">
+          <ActionItemsCard />
+          <UpcomingEvents />
+        </div>
       </div>
+
+      {/* Quick Actions Bar */}
+      <QuickActions
+        onAddCompany={() => navigate('/companies')}
+        onCreateModel={() => navigate('/models')}
+        onUploadFiles={() => navigate('/documents')}
+      />
 
       {/* Portfolio Chart */}
       <PortfolioChart />
