@@ -17,3 +17,9 @@ verify_jwt = false
 
 [functions.industry-intel]
 verify_jwt = false
+
+[functions.extract-document]
+verify_jwt = false
+
+[functions.scrape-website]
+verify_jwt = false
