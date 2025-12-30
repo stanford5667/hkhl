@@ -885,6 +885,7 @@ export type Database = {
         Row: {
           allow_join_requests: boolean | null
           created_at: string | null
+          created_by: string | null
           id: string
           is_public: boolean | null
           logo_url: string | null
@@ -901,6 +902,7 @@ export type Database = {
         Insert: {
           allow_join_requests?: boolean | null
           created_at?: string | null
+          created_by?: string | null
           id?: string
           is_public?: boolean | null
           logo_url?: string | null
@@ -917,6 +919,7 @@ export type Database = {
         Update: {
           allow_join_requests?: boolean | null
           created_at?: string | null
+          created_by?: string | null
           id?: string
           is_public?: boolean | null
           logo_url?: string | null
