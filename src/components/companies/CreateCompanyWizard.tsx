@@ -17,6 +17,8 @@ import {
   Sparkles, Upload, X 
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { FileUploadZone, UploadFile } from './FileUploadZone';
+import { triggerDocumentProcessing } from '@/hooks/useAppData';
 
 interface CreateCompanyWizardProps {
   open: boolean;
@@ -67,7 +69,7 @@ interface WizardData {
   revenueLtm: string;
   ebitdaLtm: string;
   // Step 3
-  documents: File[];
+  uploadFiles: UploadFile[];
   // Step 4/5
   extractedData: Record<string, any>;
   aiSummary: string;
@@ -91,7 +93,7 @@ export function CreateCompanyWizard({ open, onOpenChange, onComplete }: CreateCo
     employeeCount: '',
     revenueLtm: '',
     ebitdaLtm: '',
-    documents: [],
+    uploadFiles: [],
     extractedData: {},
     aiSummary: '',
   });
@@ -117,7 +119,7 @@ export function CreateCompanyWizard({ open, onOpenChange, onComplete }: CreateCo
     setData({
       name: '', website: '', industry: '', stage: 'sourcing', source: '',
       description: '', yearFounded: '', headquarters: '', employeeCount: '',
-      revenueLtm: '', ebitdaLtm: '', documents: [], extractedData: {}, aiSummary: '',
+      revenueLtm: '', ebitdaLtm: '', uploadFiles: [], extractedData: {}, aiSummary: '',
     });
   };
 
@@ -129,6 +131,7 @@ export function CreateCompanyWizard({ open, onOpenChange, onComplete }: CreateCo
 
     setIsLoading(true);
     try {
+      // 1. Create the company
       const { data: company, error } = await supabase
         .from('companies')
         .insert({
@@ -147,6 +150,46 @@ export function CreateCompanyWizard({ open, onOpenChange, onComplete }: CreateCo
         .single();
 
       if (error) throw error;
+
+      // 2. Upload documents if any
+      if (data.uploadFiles.length > 0) {
+        toast.info(`Uploading ${data.uploadFiles.length} documents...`);
+        
+        for (const item of data.uploadFiles) {
+          const { file, documentType } = item;
+          const timestamp = Date.now();
+          const safeName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+          const filePath = `${orgId}/${company.id}/${timestamp}_${safeName}`;
+          
+          // Upload to storage
+          const { error: uploadError } = await supabase.storage
+            .from('documents')
+            .upload(filePath, file);
+          
+          if (uploadError) {
+            console.error('Upload failed:', uploadError);
+            continue;
+          }
+          
+          // Create document record
+          await supabase.from('documents').insert({
+            company_id: company.id,
+            user_id: user.id,
+            organization_id: orgId,
+            name: file.name,
+            file_path: filePath,
+            file_size: file.size,
+            file_type: file.name.split('.').pop()?.toLowerCase(),
+            document_type: documentType,
+            processing_status: 'pending',
+            folder: 'General'
+          });
+        }
+        
+        // 3. Trigger AI processing
+        toast.info('Starting AI analysis...');
+        triggerDocumentProcessing(company.id);
+      }
 
       toast.success('Company created successfully!');
       onOpenChange(false);
@@ -385,57 +428,29 @@ export function CreateCompanyWizard({ open, onOpenChange, onComplete }: CreateCo
           {currentStep === 3 && (
             <div className="space-y-6">
               <div>
-                <h3 className="text-lg font-medium text-white mb-1">Upload documents for AI analysis</h3>
-                <p className="text-sm text-slate-400">The more you upload, the better our AI can help</p>
+                <h3 className="text-lg font-medium text-white mb-1">Upload Documents (Optional)</h3>
+                <p className="text-sm text-slate-400">
+                  Upload CIMs, financials, or other documents to auto-populate company data
+                </p>
               </div>
 
-              <div 
-                className="border-2 border-dashed border-slate-700 rounded-lg p-8 text-center hover:border-purple-500/50 transition-colors cursor-pointer"
-                onClick={() => document.getElementById('file-upload')?.click()}
-              >
-                <Upload className="h-12 w-12 text-slate-500 mx-auto mb-4" />
-                <p className="text-white font-medium mb-1">Drop files here or click to browse</p>
-                <p className="text-sm text-slate-500">PDF, Word, Excel, PowerPoint supported</p>
-                <input 
-                  id="file-upload"
-                  type="file" 
-                  multiple 
-                  accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx"
-                  className="hidden"
-                  onChange={e => {
-                    const files = Array.from(e.target.files || []);
-                    updateData({ documents: [...data.documents, ...files] });
-                  }}
-                />
-              </div>
+              <FileUploadZone
+                files={data.uploadFiles}
+                onChange={(files) => updateData({ uploadFiles: files })}
+                maxFiles={10}
+                maxSizeMB={50}
+              />
 
-              {data.documents.length > 0 && (
-                <div className="space-y-2">
-                  {data.documents.map((file, index) => (
-                    <div key={index} className="flex items-center justify-between p-3 rounded-lg bg-slate-800/50">
-                      <div className="flex items-center gap-3">
-                        <FileText className="h-5 w-5 text-slate-400" />
-                        <div>
-                          <p className="text-sm text-white">{file.name}</p>
-                          <p className="text-xs text-slate-500">{(file.size / 1024).toFixed(1)} KB</p>
-                        </div>
-                      </div>
-                      <Button 
-                        variant="ghost" 
-                        size="sm"
-                        onClick={() => updateData({ 
-                          documents: data.documents.filter((_, i) => i !== index) 
-                        })}
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  ))}
-                </div>
-              )}
+              <div className="p-4 rounded-lg bg-purple-500/10 border border-purple-500/20">
+                <p className="text-sm text-purple-300">
+                  <Sparkles className="h-4 w-4 inline mr-2" />
+                  After creation, our AI will analyze these documents to extract key metrics, 
+                  company info, and generate investment summaries.
+                </p>
+              </div>
 
               <p className="text-sm text-slate-500 text-center">
-                Skip for now - you can upload documents later
+                You can skip this and add documents later
               </p>
             </div>
           )}
@@ -447,8 +462,8 @@ export function CreateCompanyWizard({ open, onOpenChange, onComplete }: CreateCo
               <div>
                 <h3 className="text-lg font-medium text-white mb-2">Ready to Create</h3>
                 <p className="text-sm text-slate-400">
-                  {data.documents.length > 0 
-                    ? `${data.documents.length} documents ready for AI analysis`
+                  {data.uploadFiles.length > 0 
+                    ? `${data.uploadFiles.length} documents ready for AI analysis`
                     : 'No documents uploaded - you can add them later'}
                 </p>
               </div>
@@ -458,11 +473,17 @@ export function CreateCompanyWizard({ open, onOpenChange, onComplete }: CreateCo
                   <Check className="h-4 w-4 text-emerald-400" />
                   <span>Company profile will be created</span>
                 </div>
-                {data.documents.length > 0 && (
-                  <div className="flex items-center gap-2 text-sm text-slate-400">
-                    <Check className="h-4 w-4 text-emerald-400" />
-                    <span>Documents will be stored in data room</span>
-                  </div>
+                {data.uploadFiles.length > 0 && (
+                  <>
+                    <div className="flex items-center gap-2 text-sm text-slate-400">
+                      <Check className="h-4 w-4 text-emerald-400" />
+                      <span>Documents will be stored in data room</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm text-slate-400">
+                      <Check className="h-4 w-4 text-emerald-400" />
+                      <span>AI will extract key metrics & generate summary</span>
+                    </div>
+                  </>
                 )}
               </div>
             </div>
@@ -526,10 +547,10 @@ export function CreateCompanyWizard({ open, onOpenChange, onComplete }: CreateCo
                     </div>
                   )}
 
-                  {data.documents.length > 0 && (
+                  {data.uploadFiles.length > 0 && (
                     <div className="p-4 rounded-lg bg-slate-800/50">
                       <h4 className="text-sm font-medium text-slate-400 mb-3">Documents</h4>
-                      <p className="text-white">{data.documents.length} files ready to upload</p>
+                      <p className="text-white">{data.uploadFiles.length} files ready to upload</p>
                     </div>
                   )}
                 </div>
@@ -562,7 +583,7 @@ export function CreateCompanyWizard({ open, onOpenChange, onComplete }: CreateCo
               disabled={!canProceed()}
               className="bg-purple-600 hover:bg-purple-500"
             >
-              {currentStep === 3 && data.documents.length === 0 ? 'Skip' : 'Continue'}
+              {currentStep === 3 && data.uploadFiles.length === 0 ? 'Skip' : 'Continue'}
               <ArrowRight className="h-4 w-4 ml-2" />
             </Button>
           ) : (
