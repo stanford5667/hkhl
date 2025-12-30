@@ -68,7 +68,27 @@ export function useCachedIndustryIntel(
     });
     
     if (fnError) throw new Error(fnError.message);
-    return responseData;
+    if (!responseData?.success) throw new Error(responseData?.error || 'Failed to fetch intel');
+    
+    // Extract the nested data and map to our expected format
+    const apiData = responseData.data;
+    return {
+      summary: apiData.aiSummary || '',
+      metrics: {
+        marketSize: apiData.keyMetrics?.marketSize || 'N/A',
+        growth: apiData.keyMetrics?.growthRate || 'N/A',
+        avgMultiple: apiData.keyMetrics?.avgMultiple || 'N/A',
+        dealVolume: apiData.keyMetrics?.dealVolume || 'N/A'
+      },
+      news: (apiData.news || []).map((item: any) => ({
+        title: item.title,
+        source: item.source,
+        date: item.date,
+        url: item.url || '',
+        sentiment: item.sentiment || 'neutral'
+      })),
+      sources: responseData.citations || []
+    };
   };
   
   // Load data (from cache or API)
