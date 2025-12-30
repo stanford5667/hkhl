@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { CompanyTypeBadge } from '@/components/companies/CompanyTypeBadge';
 import { EditCompanyDialog } from '@/components/companies/EditCompanyDialog';
-import { IndustryNews } from '@/components/companies/IndustryNews';
+import { MarketIntelTab } from '@/components/companies/MarketIntelTab';
 import { EmbeddedDataRoom } from '@/components/companies/EmbeddedDataRoom';
 
 import { CompanySummaryCard } from '@/components/companies/CompanySummaryCard';
@@ -573,9 +573,9 @@ export default function CompanyDetail() {
           </Card>
         </TabsContent>
 
-        {/* Industry News Tab */}
+        {/* Market Intel Tab */}
         <TabsContent value="news">
-          <IndustryNews companyId={company.id} companyName={company.name} industry={company.industry} />
+          <MarketIntelTab companyId={company.id} companyName={company.name} industry={company.industry} />
         </TabsContent>
 
         {/* Contacts Tab */}
