@@ -159,19 +159,11 @@ export default function MarketIntel() {
         </TabsContent>
 
         <TabsContent value="signals" className="mt-6">
-          <Card className="p-8 text-center text-muted-foreground">
-            <Zap className="h-12 w-12 mx-auto mb-4 opacity-50" />
-            <p className="text-lg font-medium">Signals Tab</p>
-            <p>Alert feed and notification settings</p>
-          </Card>
+          <SignalsContent />
         </TabsContent>
 
         <TabsContent value="macro" className="mt-6">
-          <Card className="p-8 text-center text-muted-foreground">
-            <Globe className="h-12 w-12 mx-auto mb-4 opacity-50" />
-            <p className="text-lg font-medium">Macro Tab</p>
-            <p>Economic indicators and portfolio sensitivity</p>
-          </Card>
+          <MacroContent />
         </TabsContent>
 
         <TabsContent value="deals" className="mt-6">
@@ -525,6 +517,189 @@ function HealthContent() {
           </div>
         </Card>
       </div>
+    </div>
+  );
+}
+
+function SignalsContent() {
+  const { data: alerts } = useAlerts();
+  
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="lg:col-span-2 space-y-4">
+        <div className="flex justify-between items-center">
+          <h3 className="text-lg font-medium">Alert Feed</h3>
+          <Button variant="outline" size="sm">Mark All Read</Button>
+        </div>
+        <div className="space-y-3">
+          {alerts?.map((a: any) => (
+            <Card 
+              key={a.id} 
+              className={`p-4 border-l-4 ${
+                a.severity === 'critical' 
+                  ? 'border-l-rose-500 bg-rose-900/10' 
+                  : a.severity === 'warning' 
+                    ? 'border-l-yellow-500 bg-yellow-900/10' 
+                    : 'border-l-blue-500 bg-card/50'
+              }`}
+            >
+              <div className="flex justify-between mb-2">
+                <div className="flex items-center gap-2">
+                  <Badge variant="outline">{a.portfolio_assets?.name || 'Portfolio'}</Badge>
+                  <Badge variant={a.severity === 'critical' ? 'destructive' : 'secondary'}>{a.severity}</Badge>
+                </div>
+                <span className="text-xs text-muted-foreground">{new Date(a.created_at).toLocaleDateString()}</span>
+              </div>
+              <h4 className="font-medium">{a.title}</h4>
+              <p className="text-sm text-muted-foreground mt-1">{a.description}</p>
+            </Card>
+          ))}
+        </div>
+      </div>
+      <div className="space-y-6">
+        <Card className="bg-secondary/50 border-border p-6">
+          <h3 className="text-lg font-medium mb-4">Alert Settings</h3>
+          <div className="space-y-3 text-sm">
+            {['Revenue variance > 10%', 'EBITDA margin decline > 200bps', 'Covenant headroom < 15%', 'Key departures', 'Competitor news'].map((s) => (
+              <div key={s} className="flex justify-between items-center">
+                <span className="text-muted-foreground">{s}</span>
+                <div className="w-10 h-5 bg-primary rounded-full p-0.5">
+                  <div className="h-4 w-4 bg-background rounded-full translate-x-5" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </Card>
+        <Card className="bg-secondary/50 border-border p-6">
+          <h3 className="text-lg font-medium mb-4">Watchlist</h3>
+          <div className="flex flex-wrap gap-2">
+            <Badge variant="secondary">Midwest Mfg</Badge>
+            <Badge variant="secondary">Consumer Brands</Badge>
+            <Badge variant="secondary">Fed Policy</Badge>
+            <Badge variant="outline">+ Add</Badge>
+          </div>
+        </Card>
+      </div>
+    </div>
+  );
+}
+
+function MacroContent() {
+  const { data: indicators } = useEconomicIndicators();
+  
+  const rates = indicators?.filter((i: any) => i.category === 'rates') || [];
+  const economic = indicators?.filter((i: any) => i.category === 'economic') || [];
+  const markets = indicators?.filter((i: any) => i.category === 'markets') || [];
+
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <Card className="bg-secondary/50 border-border p-6">
+        <h3 className="text-lg font-medium mb-4 flex items-center gap-2">
+          <DollarSign className="h-5 w-5 text-blue-400" />
+          Rates & Credit
+        </h3>
+        <div className="space-y-3">
+          {rates.map((r: any) => (
+            <div key={r.id} className="flex justify-between py-2 border-b border-border last:border-0">
+              <span className="text-muted-foreground text-sm">{r.indicator_name}</span>
+              <div className="flex items-center gap-2">
+                <span className="font-medium">{r.current_value}</span>
+                {r.change_value !== 0 && (
+                  <span className={`text-xs ${r.change_value > 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                    {r.change_value > 0 ? '+' : ''}{r.change_value}%
+                  </span>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+        <div className="mt-4 p-3 bg-blue-900/20 border border-blue-700/30 rounded text-sm text-blue-400">
+          💡 Consider refinancing floating debt
+        </div>
+      </Card>
+
+      <Card className="bg-secondary/50 border-border p-6">
+        <h3 className="text-lg font-medium mb-4 flex items-center gap-2">
+          <BarChart3 className="h-5 w-5 text-emerald-400" />
+          Economic
+        </h3>
+        <div className="space-y-3">
+          {economic.map((e: any) => (
+            <div key={e.id} className="flex justify-between py-2 border-b border-border last:border-0">
+              <span className="text-muted-foreground text-sm">{e.indicator_name}</span>
+              <div className="flex items-center gap-2">
+                <span className="font-medium">{e.current_value}</span>
+                {e.change_value !== 0 && (
+                  <span className={`text-xs ${e.change_value > 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                    {e.change_value > 0 ? '↑' : '↓'}{Math.abs(e.change_value)}
+                  </span>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      </Card>
+
+      <Card className="bg-secondary/50 border-border p-6">
+        <h3 className="text-lg font-medium mb-4 flex items-center gap-2">
+          <LineChart className="h-5 w-5 text-purple-400" />
+          Markets
+        </h3>
+        <div className="space-y-3">
+          {markets.map((m: any) => (
+            <div key={m.id} className="flex justify-between py-2 border-b border-border last:border-0">
+              <span className="text-muted-foreground text-sm">{m.indicator_name}</span>
+              <div className="flex items-center gap-2">
+                <span className="font-medium">{m.current_value}</span>
+                {m.change_value !== 0 && (
+                  <span className={`text-xs ${m.change_value > 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                    {m.change_value > 0 ? '+' : ''}{m.change_value}%
+                  </span>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      </Card>
+
+      <Card className="bg-secondary/50 border-border p-6 md:col-span-2">
+        <h3 className="text-lg font-medium mb-4">Sector Performance (YTD)</h3>
+        <div className="grid grid-cols-3 lg:grid-cols-6 gap-3">
+          {[
+            { n: 'Technology', c: 38.2 },
+            { n: 'Financials', c: 28.1 },
+            { n: 'Healthcare', c: 8.4 },
+            { n: 'Industrials', c: 15.9 },
+            { n: 'Consumer', c: 22.7 },
+            { n: 'Energy', c: -2.3 }
+          ].map((s) => (
+            <div key={s.n} className={`p-3 rounded-lg ${s.c >= 0 ? 'bg-emerald-900/20' : 'bg-rose-900/20'}`}>
+              <div className="text-xs text-muted-foreground">{s.n}</div>
+              <div className={`text-lg font-bold ${s.c >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                {s.c > 0 ? '+' : ''}{s.c}%
+              </div>
+            </div>
+          ))}
+        </div>
+      </Card>
+
+      <Card className="bg-secondary/50 border-border p-6">
+        <h3 className="text-lg font-medium mb-4">Portfolio Sensitivity</h3>
+        <div className="space-y-2">
+          {[
+            { f: '+100bps Rates', i: -12.4 },
+            { f: '-100bps Rates', i: 8.2 },
+            { f: 'Recession', i: -24.6 }
+          ].map((s) => (
+            <div key={s.f} className="flex justify-between py-2">
+              <span className="text-muted-foreground text-sm">{s.f}</span>
+              <span className={s.i >= 0 ? 'text-emerald-400' : 'text-rose-400'}>
+                {s.i > 0 ? '+' : ''}{s.i}% NAV
+              </span>
+            </div>
+          ))}
+        </div>
+      </Card>
     </div>
   );
 }
