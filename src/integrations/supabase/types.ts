@@ -103,6 +103,50 @@ export type Database = {
         }
         Relationships: []
       }
+      company_notes: {
+        Row: {
+          category: string
+          company_id: string
+          content: string
+          created_at: string
+          id: string
+          pinned: boolean
+          title: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          category?: string
+          company_id: string
+          content: string
+          created_at?: string
+          id?: string
+          pinned?: boolean
+          title?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          category?: string
+          company_id?: string
+          content?: string
+          created_at?: string
+          id?: string
+          pinned?: boolean
+          title?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_notes_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       contacts: {
         Row: {
           category: Database["public"]["Enums"]["contact_category"] | null
@@ -115,6 +159,7 @@ export type Database = {
           lender_type: string | null
           notes: string | null
           phone: string | null
+          role_at_company: string | null
           title: string | null
           updated_at: string
           user_id: string
@@ -130,6 +175,7 @@ export type Database = {
           lender_type?: string | null
           notes?: string | null
           phone?: string | null
+          role_at_company?: string | null
           title?: string | null
           updated_at?: string
           user_id: string
@@ -145,6 +191,7 @@ export type Database = {
           lender_type?: string | null
           notes?: string | null
           phone?: string | null
+          role_at_company?: string | null
           title?: string | null
           updated_at?: string
           user_id?: string

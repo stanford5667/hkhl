@@ -12,6 +12,9 @@ import { EditCompanyDialog } from '@/components/companies/EditCompanyDialog';
 import { IndustryNews } from '@/components/companies/IndustryNews';
 import { CompanyDocumentList } from '@/components/companies/CompanyDocumentList';
 import { InlineUploadZone } from '@/components/dataroom/InlineUploadZone';
+import { CompanySummaryCard } from '@/components/companies/CompanySummaryCard';
+import { CompanyContactsCard } from '@/components/companies/CompanyContactsCard';
+import { CompanyNotesSection } from '@/components/companies/CompanyNotesSection';
 import {
   ArrowLeft,
   Building2,
@@ -19,16 +22,15 @@ import {
   Users,
   FolderOpen,
   Brain,
-  Activity,
   Edit,
   ExternalLink,
-  Mail,
-  Phone,
   FileText,
   TrendingUp,
   Newspaper,
-  Upload,
   LayoutDashboard,
+  StickyNote,
+  Mail,
+  Phone,
 } from 'lucide-react';
 import { format } from 'date-fns';
 
