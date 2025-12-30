@@ -3,64 +3,81 @@ import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import {
   LayoutDashboard,
-  Target,
-  Briefcase,
-  Brain,
-  BarChart3,
-  Search,
-  FolderOpen,
   Building2,
   Users,
+  Calculator,
+  Globe,
+  Folder,
   Settings,
-  HelpCircle,
   ChevronLeft,
-  Landmark,
   LogOut,
+  User,
+  Sparkles,
 } from "lucide-react";
 
 interface NavItem {
   label: string;
+  subtitle: string;
   href: string;
-  icon: React.ReactNode;
+  icon: React.ElementType;
+  badge?: number;
 }
 
-interface NavSection {
-  title: string;
-  items: NavItem[];
-}
-
-const navigation: NavSection[] = [
-  {
-    title: "WORKSPACE",
-    items: [
-      { label: "Dashboard", href: "/", icon: <LayoutDashboard className="h-4 w-4" /> },
-      { label: "Deal Pipeline", href: "/pipeline", icon: <Target className="h-4 w-4" /> },
-      { label: "Portfolio", href: "/portfolio", icon: <Briefcase className="h-4 w-4" /> },
-    ],
+// Max 6 items (7±2 cognitive load rule)
+const navigation: NavItem[] = [
+  { 
+    label: "Dashboard", 
+    subtitle: "Command Center",
+    href: "/", 
+    icon: LayoutDashboard 
   },
-  {
-    title: "INTELLIGENCE",
-    items: [
-      { label: "AI Models", href: "/models", icon: <Brain className="h-4 w-4" /> },
-      { label: "Market Intel", href: "/market-intel", icon: <BarChart3 className="h-4 w-4" /> },
-      { label: "Deal Matching", href: "/deal-matching", icon: <Search className="h-4 w-4" /> },
-    ],
+  { 
+    label: "Companies", 
+    subtitle: "Portfolio",
+    href: "/companies", 
+    icon: Building2,
+    badge: 3,
   },
-  {
-    title: "DATA ROOM",
-    items: [
-      { label: "Documents", href: "/documents", icon: <FolderOpen className="h-4 w-4" /> },
-      { label: "Companies", href: "/companies", icon: <Building2 className="h-4 w-4" /> },
-      { label: "Contacts", href: "/contacts", icon: <Users className="h-4 w-4" /> },
-    ],
+  { 
+    label: "Contacts", 
+    subtitle: "Network",
+    href: "/contacts", 
+    icon: Users 
   },
-];
-
-const bottomNav: NavItem[] = [
-  { label: "Settings", href: "/settings", icon: <Settings className="h-4 w-4" /> },
-  { label: "Help", href: "/help", icon: <HelpCircle className="h-4 w-4" /> },
+  { 
+    label: "Models", 
+    subtitle: "Analyze",
+    href: "/models", 
+    icon: Calculator 
+  },
+  { 
+    label: "Market Intel", 
+    subtitle: "Intelligence",
+    href: "/market-intel", 
+    icon: Globe,
+    badge: 2,
+  },
+  { 
+    label: "Data Room", 
+    subtitle: "Documents",
+    href: "/documents", 
+    icon: Folder 
+  },
 ];
 
 export function Sidebar() {
@@ -68,112 +85,188 @@ export function Sidebar() {
   const location = useLocation();
   const { signOut } = useAuth();
 
+  const NavLink = ({ item }: { item: NavItem }) => {
+    const isActive = location.pathname === item.href || 
+      (item.href !== "/" && location.pathname.startsWith(item.href));
+    const Icon = item.icon;
+
+    const linkContent = (
+      <Link
+        to={item.href}
+        className={cn(
+          "group relative flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200",
+          isActive
+            ? "bg-slate-800 text-white"
+            : "text-slate-400 hover:bg-slate-800/50 hover:text-white",
+          collapsed && "justify-center px-2"
+        )}
+      >
+        {/* Active indicator - emerald left border */}
+        {isActive && (
+          <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-emerald-500 rounded-r-full" />
+        )}
+        
+        <Icon className={cn(
+          "h-5 w-5 flex-shrink-0 transition-colors",
+          isActive ? "text-emerald-400" : "text-slate-500 group-hover:text-slate-300"
+        )} />
+        
+        {!collapsed && (
+          <span className="flex-1">{item.label}</span>
+        )}
+        
+        {/* Notification badge */}
+        {item.badge && item.badge > 0 && (
+          <span className={cn(
+            "flex items-center justify-center min-w-[18px] h-[18px] px-1 text-[10px] font-bold rounded-full bg-rose-500 text-white",
+            collapsed && "absolute -top-1 -right-1"
+          )}>
+            {item.badge > 9 ? "9+" : item.badge}
+          </span>
+        )}
+      </Link>
+    );
+
+    if (collapsed) {
+      return (
+        <Tooltip delayDuration={0}>
+          <TooltipTrigger asChild>
+            {linkContent}
+          </TooltipTrigger>
+          <TooltipContent side="right" className="flex flex-col">
+            <span className="font-medium">{item.label}</span>
+            <span className="text-xs text-muted-foreground">{item.subtitle}</span>
+          </TooltipContent>
+        </Tooltip>
+      );
+    }
+
+    return linkContent;
+  };
+
   return (
     <aside
       className={cn(
-        "flex flex-col h-screen bg-sidebar border-r border-sidebar-border transition-all duration-300",
-        collapsed ? "w-16" : "w-64"
+        "flex flex-col h-screen bg-slate-950 border-r border-slate-800 transition-all duration-300",
+        collapsed ? "w-16" : "w-60"
       )}
     >
-      {/* Logo */}
-      <div className="flex items-center justify-between h-16 px-4 border-b border-sidebar-border">
+      {/* Logo with subtle glow */}
+      <div className="flex items-center justify-between h-16 px-3 border-b border-slate-800">
         <Link to="/" className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-gradient-primary flex items-center justify-center shadow-glow-sm">
-            <Landmark className="h-4 w-4 text-primary-foreground" />
+          <div className="relative w-9 h-9 rounded-lg bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center shadow-lg shadow-emerald-500/20">
+            <Sparkles className="h-5 w-5 text-white" />
+            {/* Glow effect */}
+            <div className="absolute inset-0 rounded-lg bg-emerald-400/20 blur-md -z-10" />
           </div>
           {!collapsed && (
-            <span className="font-semibold text-foreground">DealFlow AI</span>
+            <div className="flex flex-col">
+              <span className="font-bold text-white text-sm tracking-tight">Asset Labs</span>
+              <span className="text-[10px] text-emerald-400 font-medium -mt-0.5">AI</span>
+            </div>
           )}
         </Link>
         <Button
           variant="ghost"
-          size="icon-sm"
+          size="icon"
           onClick={() => setCollapsed(!collapsed)}
-          className={cn(collapsed && "ml-auto")}
+          className={cn(
+            "h-8 w-8 text-slate-400 hover:text-white hover:bg-slate-800",
+            collapsed && "hidden"
+          )}
         >
-          <ChevronLeft
-            className={cn(
-              "h-4 w-4 transition-transform duration-200",
-              collapsed && "rotate-180"
-            )}
-          />
+          <ChevronLeft className="h-4 w-4" />
         </Button>
       </div>
 
-      {/* Navigation */}
-      <nav className="flex-1 overflow-y-auto py-4 custom-scrollbar">
-        {navigation.map((section) => (
-          <div key={section.title} className="mb-6">
-            {!collapsed && (
-              <h3 className="px-4 mb-2 text-xs font-medium text-muted-foreground/50 tracking-wider">
-                {section.title}
-              </h3>
-            )}
-            <ul className="space-y-1 px-2">
-              {section.items.map((item) => {
-                const isActive = location.pathname === item.href;
-                return (
-                  <li key={item.href}>
-                    <Link
-                      to={item.href}
-                      className={cn(
-                        "flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-all duration-200",
-                        isActive
-                          ? "bg-sidebar-accent text-sidebar-primary"
-                          : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
-                        collapsed && "justify-center px-2"
-                      )}
-                    >
-                      <span className={cn(isActive && "text-sidebar-primary")}>
-                        {item.icon}
-                      </span>
-                      {!collapsed && <span>{item.label}</span>}
-                    </Link>
-                  </li>
-                );
-              })}
-            </ul>
-          </div>
-        ))}
+      {/* Main Navigation */}
+      <nav className="flex-1 overflow-y-auto py-4 px-2 custom-scrollbar">
+        <ul className="space-y-1">
+          {navigation.map((item) => (
+            <li key={item.href}>
+              <NavLink item={item} />
+            </li>
+          ))}
+        </ul>
       </nav>
 
-      {/* Bottom Navigation */}
-      <div className="border-t border-sidebar-border py-4">
-        <ul className="space-y-1 px-2">
-          {bottomNav.map((item) => {
-            const isActive = location.pathname === item.href;
-            return (
-              <li key={item.href}>
-                <Link
-                  to={item.href}
-                  className={cn(
-                    "flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-all duration-200",
-                    isActive
-                      ? "bg-sidebar-accent text-sidebar-primary"
-                      : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
-                    collapsed && "justify-center px-2"
-                  )}
-                >
-                  {item.icon}
-                  {!collapsed && <span>{item.label}</span>}
-                </Link>
-              </li>
-            );
-          })}
-          <li>
+      {/* Bottom Section */}
+      <div className="border-t border-slate-800 p-2 space-y-1">
+        {/* Settings */}
+        <NavLink 
+          item={{ 
+            label: "Settings", 
+            subtitle: "Preferences",
+            href: "/settings", 
+            icon: Settings 
+          }} 
+        />
+
+        {/* User section with dropdown */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
             <button
-              onClick={signOut}
               className={cn(
-                "w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-all duration-200",
-                "text-sidebar-foreground hover:bg-destructive/10 hover:text-destructive",
+                "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200",
+                "text-slate-400 hover:bg-slate-800/50 hover:text-white",
                 collapsed && "justify-center px-2"
               )}
             >
-              <LogOut className="h-4 w-4" />
-              {!collapsed && <span>Sign Out</span>}
+              <Avatar className="h-8 w-8 border border-slate-700">
+                <AvatarFallback className="bg-slate-800 text-emerald-400 text-xs font-medium">
+                  CS
+                </AvatarFallback>
+              </Avatar>
+              {!collapsed && (
+                <>
+                  <div className="flex-1 text-left">
+                    <p className="text-white text-sm font-medium">Chris S.</p>
+                    <p className="text-xs text-slate-500">Pro Plan</p>
+                  </div>
+                </>
+              )}
             </button>
-          </li>
-        </ul>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent 
+            side={collapsed ? "right" : "top"} 
+            align={collapsed ? "start" : "center"}
+            className="w-56 bg-slate-900 border-slate-800"
+          >
+            <div className="px-3 py-2">
+              <p className="text-sm font-medium text-white">Chris S.</p>
+              <p className="text-xs text-slate-400">chris@assetlabs.ai</p>
+            </div>
+            <DropdownMenuSeparator className="bg-slate-800" />
+            <DropdownMenuItem className="text-slate-300 hover:text-white hover:bg-slate-800 cursor-pointer">
+              <User className="mr-2 h-4 w-4" />
+              Profile
+            </DropdownMenuItem>
+            <DropdownMenuItem className="text-slate-300 hover:text-white hover:bg-slate-800 cursor-pointer">
+              <Settings className="mr-2 h-4 w-4" />
+              Settings
+            </DropdownMenuItem>
+            <DropdownMenuSeparator className="bg-slate-800" />
+            <DropdownMenuItem 
+              onClick={signOut}
+              className="text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 cursor-pointer"
+            >
+              <LogOut className="mr-2 h-4 w-4" />
+              Sign Out
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+
+        {/* Collapse toggle for collapsed state */}
+        {collapsed && (
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setCollapsed(false)}
+            className="w-full h-8 text-slate-400 hover:text-white hover:bg-slate-800"
+          >
+            <ChevronLeft className="h-4 w-4 rotate-180" />
+          </Button>
+        )}
       </div>
     </aside>
   );
