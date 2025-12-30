@@ -1,128 +1,101 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/AuthContext";
 
-// Types
+// Types matching the new schema
 export interface PortfolioAsset {
   id: string;
-  user_id: string;
-  company_name: string;
-  industry: string;
-  investment_date: string;
-  investment_amount: number;
+  name: string;
+  asset_type: 'pe' | 'real_estate' | 'public_equity' | 'credit' | 'alternatives';
+  sector: string | null;
+  invested_capital: number;
   current_value: number;
-  ownership_pct: number;
-  status: string;
-  revenue_ltm: number | null;
-  ebitda_ltm: number | null;
-  employee_count: number | null;
+  irr: number | null;
+  moic: number | null;
+  vintage_year: number | null;
   health_score: number | null;
+  revenue_growth: number | null;
+  ebitda_margin: number | null;
+  debt_service_coverage: number | null;
   created_at: string;
-  updated_at: string;
 }
 
 export interface PortfolioCovenant {
   id: string;
-  user_id: string;
   asset_id: string | null;
-  company_name: string;
   covenant_type: string;
-  threshold: number;
   current_value: number;
-  status: string;
-  next_test_date: string | null;
+  limit_value: number;
+  is_warning: boolean;
   created_at: string;
-  updated_at: string;
 }
 
 export interface Alert {
   id: string;
-  user_id: string;
+  asset_id: string | null;
+  severity: 'critical' | 'warning' | 'info';
   title: string;
   description: string | null;
-  severity: string;
-  category: string;
-  source: string | null;
   is_read: boolean;
   created_at: string;
 }
 
 export interface Event {
   id: string;
-  user_id: string;
   title: string;
-  description: string | null;
-  event_type: string;
+  event_type: 'macro' | 'portfolio' | 'internal';
   event_date: string;
-  company_name: string | null;
   created_at: string;
 }
 
 export interface PEFund {
   id: string;
-  user_id: string;
   fund_name: string;
-  manager: string;
-  strategy: string;
-  vintage_year: number;
-  fund_size: number;
+  manager_name: string;
+  fund_type: string;
+  target_size: number | null;
+  current_size: number | null;
   status: string;
-  irr: number | null;
-  tvpi: number | null;
-  dpi: number | null;
+  prior_fund_irr: number | null;
+  prior_fund_moic: number | null;
   created_at: string;
 }
 
 export interface DealPipeline {
   id: string;
-  user_id: string;
   company_name: string;
-  industry: string;
-  deal_type: string;
+  sector: string | null;
+  revenue: number | null;
+  ebitda: number | null;
+  asking_multiple: number | null;
+  fit_score: 'high' | 'medium' | 'low' | null;
   stage: string;
-  ev_range: string | null;
-  ev_ebitda: number | null;
-  source: string | null;
-  priority: string;
-  notes: string | null;
   created_at: string;
-  updated_at: string;
 }
 
 export interface MATransaction {
   id: string;
-  user_id: string;
   target_name: string;
-  acquirer_name: string;
-  industry: string;
-  deal_value: number | null;
-  ev_ebitda: number | null;
-  ev_revenue: number | null;
-  announced_date: string;
-  status: string;
+  acquirer_name: string | null;
+  sector: string | null;
+  enterprise_value: number | null;
+  ebitda_multiple: number | null;
+  transaction_date: string | null;
   created_at: string;
 }
 
 export interface EconomicIndicator {
   id: string;
-  user_id: string;
   indicator_name: string;
-  category: string;
-  current_value: number;
-  previous_value: number | null;
-  change_pct: number | null;
-  unit: string;
-  source: string | null;
-  as_of_date: string;
-  created_at: string;
+  current_value: string;
+  change_value: number | null;
+  category: 'rates' | 'economic' | 'markets' | null;
+  updated_at: string;
 }
 
 // Hooks
 export function usePortfolioAssets() {
-  const { user } = useAuth();
-  
   return useQuery({
-    queryKey: ["portfolio_assets", user?.id],
+    queryKey: ["portfolio_assets"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("portfolio_assets")
@@ -132,7 +105,6 @@ export function usePortfolioAssets() {
       if (error) throw error;
       return data as PortfolioAsset[];
     },
-    enabled: !!user,
   });
 }
 
@@ -143,16 +115,16 @@ export function useAssetAllocation() {
     return { allocation: [], totalValue: 0 };
   }
   
-  const totalValue = assets.reduce((sum, asset) => sum + asset.current_value, 0);
+  const totalValue = assets.reduce((sum, asset) => sum + (asset.current_value || 0), 0);
   
-  const industryMap = assets.reduce((acc, asset) => {
-    const industry = asset.industry || "Other";
-    acc[industry] = (acc[industry] || 0) + asset.current_value;
+  const typeMap = assets.reduce((acc, asset) => {
+    const type = asset.asset_type || "Other";
+    acc[type] = (acc[type] || 0) + (asset.current_value || 0);
     return acc;
   }, {} as Record<string, number>);
   
-  const allocation = Object.entries(industryMap).map(([name, value]) => ({
-    name,
+  const allocation = Object.entries(typeMap).map(([name, value]) => ({
+    name: name.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()),
     value,
     percentage: ((value / totalValue) * 100).toFixed(1),
   }));
@@ -170,13 +142,16 @@ export function usePortfolioTotals() {
       totalReturn: 0,
       returnPct: 0,
       companyCount: 0,
+      avgMoic: 0,
     };
   }
   
-  const totalInvested = assets.reduce((sum, asset) => sum + asset.investment_amount, 0);
-  const totalValue = assets.reduce((sum, asset) => sum + asset.current_value, 0);
+  const totalInvested = assets.reduce((sum, asset) => sum + (asset.invested_capital || 0), 0);
+  const totalValue = assets.reduce((sum, asset) => sum + (asset.current_value || 0), 0);
   const totalReturn = totalValue - totalInvested;
   const returnPct = totalInvested > 0 ? ((totalReturn / totalInvested) * 100) : 0;
+  const moics = assets.filter(a => a.moic).map(a => a.moic!);
+  const avgMoic = moics.length > 0 ? moics.reduce((a, b) => a + b, 0) / moics.length : 0;
   
   return {
     totalInvested,
@@ -184,36 +159,32 @@ export function usePortfolioTotals() {
     totalReturn,
     returnPct,
     companyCount: assets.length,
+    avgMoic,
   };
 }
 
 export function useCovenants() {
-  const { user } = useAuth();
-  
   return useQuery({
-    queryKey: ["portfolio_covenants", user?.id],
+    queryKey: ["portfolio_covenants"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("portfolio_covenants")
-        .select("*")
-        .order("next_test_date", { ascending: true });
+        .select("*, portfolio_assets(name)")
+        .order("is_warning", { ascending: false });
       
       if (error) throw error;
-      return data as PortfolioCovenant[];
+      return data as (PortfolioCovenant & { portfolio_assets: { name: string } | null })[];
     },
-    enabled: !!user,
   });
 }
 
 export function useAlerts(unreadOnly = false) {
-  const { user } = useAuth();
-  
   return useQuery({
-    queryKey: ["alerts", user?.id, unreadOnly],
+    queryKey: ["alerts", unreadOnly],
     queryFn: async () => {
       let query = supabase
         .from("alerts")
-        .select("*")
+        .select("*, portfolio_assets(name)")
         .order("created_at", { ascending: false });
       
       if (unreadOnly) {
@@ -222,9 +193,8 @@ export function useAlerts(unreadOnly = false) {
       
       const { data, error } = await query;
       if (error) throw error;
-      return data as Alert[];
+      return data as (Alert & { portfolio_assets: { name: string } | null })[];
     },
-    enabled: !!user,
   });
 }
 
@@ -247,29 +217,24 @@ export function useMarkAlertRead() {
 }
 
 export function useEvents() {
-  const { user } = useAuth();
-  
   return useQuery({
-    queryKey: ["events", user?.id],
+    queryKey: ["events"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("events")
         .select("*")
-        .gte("event_date", new Date().toISOString())
+        .gte("event_date", new Date().toISOString().split('T')[0])
         .order("event_date", { ascending: true });
       
       if (error) throw error;
       return data as Event[];
     },
-    enabled: !!user,
   });
 }
 
 export function useEconomicIndicators() {
-  const { user } = useAuth();
-  
   return useQuery({
-    queryKey: ["economic_indicators", user?.id],
+    queryKey: ["economic_indicators"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("economic_indicators")
@@ -279,33 +244,27 @@ export function useEconomicIndicators() {
       if (error) throw error;
       return data as EconomicIndicator[];
     },
-    enabled: !!user,
   });
 }
 
 export function usePEFunds() {
-  const { user } = useAuth();
-  
   return useQuery({
-    queryKey: ["pe_funds", user?.id],
+    queryKey: ["pe_funds"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("pe_funds")
         .select("*")
-        .order("vintage_year", { ascending: false });
+        .order("current_size", { ascending: false });
       
       if (error) throw error;
       return data as PEFund[];
     },
-    enabled: !!user,
   });
 }
 
 export function useDealPipeline() {
-  const { user } = useAuth();
-  
   return useQuery({
-    queryKey: ["deal_pipeline", user?.id],
+    queryKey: ["deal_pipeline"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("deal_pipeline")
@@ -315,24 +274,20 @@ export function useDealPipeline() {
       if (error) throw error;
       return data as DealPipeline[];
     },
-    enabled: !!user,
   });
 }
 
 export function useMATransactions() {
-  const { user } = useAuth();
-  
   return useQuery({
-    queryKey: ["ma_transactions", user?.id],
+    queryKey: ["ma_transactions"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("ma_transactions")
         .select("*")
-        .order("announced_date", { ascending: false });
+        .order("transaction_date", { ascending: false });
       
       if (error) throw error;
       return data as MATransaction[];
     },
-    enabled: !!user,
   });
 }

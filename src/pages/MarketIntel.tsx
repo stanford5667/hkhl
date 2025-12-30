@@ -129,19 +129,9 @@ export default function MarketIntel() {
   const getSeverityColor = (severity: string) => {
     switch (severity) {
       case 'critical': return 'destructive';
-      case 'high': return 'destructive';
-      case 'medium': return 'secondary';
-      case 'low': return 'outline';
+      case 'warning': return 'secondary';
+      case 'info': return 'outline';
       default: return 'secondary';
-    }
-  };
-
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'compliant': return <CheckCircle2 className="h-4 w-4 text-success" />;
-      case 'warning': return <AlertTriangle className="h-4 w-4 text-warning" />;
-      case 'breach': return <XCircle className="h-4 w-4 text-destructive" />;
-      default: return <Clock className="h-4 w-4 text-muted-foreground" />;
     }
   };
 
@@ -179,10 +169,10 @@ export default function MarketIntel() {
           <CardContent className="p-4">
             <div className="flex items-center gap-2 mb-1">
               <Building2 className="h-4 w-4 text-muted-foreground" />
-              <span className="text-xs text-muted-foreground">Companies</span>
+              <span className="text-xs text-muted-foreground">Holdings</span>
             </div>
             <p className="text-xl font-bold">{totals.companyCount}</p>
-            <p className="text-xs text-muted-foreground">Active holdings</p>
+            <p className="text-xs text-muted-foreground">Avg MOIC: {totals.avgMoic.toFixed(1)}x</p>
           </CardContent>
         </Card>
 
@@ -215,7 +205,7 @@ export default function MarketIntel() {
               <span className="text-xs text-muted-foreground">Upcoming</span>
             </div>
             <p className="text-xl font-bold">{events?.length || 0}</p>
-            <p className="text-xs text-muted-foreground">Events this week</p>
+            <p className="text-xs text-muted-foreground">Events scheduled</p>
           </CardContent>
         </Card>
 
@@ -225,7 +215,7 @@ export default function MarketIntel() {
               <Shield className="h-4 w-4 text-muted-foreground" />
               <span className="text-xs text-muted-foreground">Covenants</span>
             </div>
-            <p className="text-xl font-bold">{covenants?.filter(c => c.status === 'compliant').length || 0}/{covenants?.length || 0}</p>
+            <p className="text-xl font-bold">{covenants?.filter(c => !c.is_warning).length || 0}/{covenants?.length || 0}</p>
             <p className="text-xs text-success">Compliant</p>
           </CardContent>
         </Card>
@@ -308,13 +298,13 @@ export default function MarketIntel() {
                 ) : assets?.slice(0, 5).map((asset) => (
                   <div key={asset.id} className="flex items-center justify-between p-2 rounded-lg bg-secondary/30">
                     <div>
-                      <p className="font-medium text-sm">{asset.company_name}</p>
-                      <p className="text-xs text-muted-foreground">{asset.industry}</p>
+                      <p className="font-medium text-sm">{asset.name}</p>
+                      <p className="text-xs text-muted-foreground">{asset.sector || asset.asset_type}</p>
                     </div>
                     <div className="text-right">
                       <p className="font-medium text-sm">{formatCurrency(asset.current_value)}</p>
-                      <p className={`text-xs ${asset.current_value > asset.investment_amount ? 'text-success' : 'text-destructive'}`}>
-                        {((asset.current_value - asset.investment_amount) / asset.investment_amount * 100).toFixed(1)}%
+                      <p className={`text-xs ${asset.moic && asset.moic > 1 ? 'text-success' : 'text-destructive'}`}>
+                        {asset.moic ? `${asset.moic.toFixed(1)}x MOIC` : '—'}
                       </p>
                     </div>
                   </div>
@@ -338,7 +328,7 @@ export default function MarketIntel() {
                   Array.from({ length: 3 }).map((_, i) => (
                     <Skeleton key={i} className="h-16 w-full" />
                   ))
-                ) : alerts?.filter(a => a.severity === 'critical' || a.severity === 'high').slice(0, 4).map((alert) => (
+                ) : alerts?.filter(a => a.severity === 'critical' || a.severity === 'warning').slice(0, 4).map((alert) => (
                   <div 
                     key={alert.id} 
                     className="p-3 rounded-lg border border-destructive/30 bg-destructive/5 cursor-pointer hover:bg-destructive/10 transition-colors"
@@ -355,7 +345,7 @@ export default function MarketIntel() {
                     </div>
                   </div>
                 ))}
-                {!loadingAlerts && (!alerts || alerts.filter(a => a.severity === 'critical' || a.severity === 'high').length === 0) && (
+                {!loadingAlerts && (!alerts || alerts.filter(a => a.severity === 'critical' || a.severity === 'warning').length === 0) && (
                   <p className="text-muted-foreground text-center py-8">No critical alerts</p>
                 )}
               </CardContent>
@@ -381,13 +371,11 @@ export default function MarketIntel() {
                   ) : indicators?.slice(0, 4).map((ind) => (
                     <div key={ind.id} className="p-3 rounded-lg bg-secondary/30">
                       <p className="text-xs text-muted-foreground">{ind.indicator_name}</p>
-                      <p className="text-lg font-bold">
-                        {ind.current_value.toFixed(2)}{ind.unit}
-                      </p>
-                      {ind.change_pct !== null && (
-                        <p className={`text-xs flex items-center gap-1 ${ind.change_pct >= 0 ? 'text-success' : 'text-destructive'}`}>
-                          {ind.change_pct >= 0 ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
-                          {Math.abs(ind.change_pct).toFixed(2)}%
+                      <p className="text-lg font-bold">{ind.current_value}</p>
+                      {ind.change_value !== null && (
+                        <p className={`text-xs flex items-center gap-1 ${ind.change_value >= 0 ? 'text-success' : 'text-destructive'}`}>
+                          {ind.change_value >= 0 ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
+                          {Math.abs(ind.change_value).toFixed(2)}
                         </p>
                       )}
                     </div>
@@ -417,7 +405,6 @@ export default function MarketIntel() {
                     </div>
                     <div className="flex-1">
                       <p className="font-medium text-sm">{event.title}</p>
-                      <p className="text-xs text-muted-foreground">{event.company_name}</p>
                     </div>
                     <Badge variant="outline" className="text-xs">{event.event_type}</Badge>
                   </div>
@@ -451,8 +438,8 @@ export default function MarketIntel() {
                     <div key={asset.id} className="p-3 rounded-lg border border-border/50">
                       <div className="flex items-center justify-between mb-2">
                         <div>
-                          <p className="font-medium">{asset.company_name}</p>
-                          <p className="text-xs text-muted-foreground">{asset.industry}</p>
+                          <p className="font-medium">{asset.name}</p>
+                          <p className="text-xs text-muted-foreground">{asset.sector || asset.asset_type}</p>
                         </div>
                         <Badge variant={asset.health_score && asset.health_score >= 70 ? 'outline' : 'destructive'}>
                           {asset.health_score || 0}% Health
@@ -482,27 +469,26 @@ export default function MarketIntel() {
                   <div key={cov.id} className="p-3 rounded-lg border border-border/50">
                     <div className="flex items-center justify-between mb-2">
                       <div className="flex items-center gap-2">
-                        {getStatusIcon(cov.status)}
-                        <span className="font-medium text-sm">{cov.company_name}</span>
+                        {cov.is_warning ? (
+                          <AlertTriangle className="h-4 w-4 text-warning" />
+                        ) : (
+                          <CheckCircle2 className="h-4 w-4 text-success" />
+                        )}
+                        <span className="font-medium text-sm">{cov.portfolio_assets?.name || 'Unknown'}</span>
                       </div>
-                      <Badge variant={cov.status === 'compliant' ? 'outline' : 'destructive'}>
-                        {cov.status}
+                      <Badge variant={cov.is_warning ? 'destructive' : 'outline'}>
+                        {cov.is_warning ? 'Warning' : 'Compliant'}
                       </Badge>
                     </div>
                     <p className="text-xs text-muted-foreground mb-2">{cov.covenant_type}</p>
                     <div className="flex items-center gap-4">
                       <div className="flex-1">
-                        <Progress value={(cov.current_value / cov.threshold) * 100} className="h-2" />
+                        <Progress value={(cov.current_value / cov.limit_value) * 100} className="h-2" />
                       </div>
                       <span className="text-xs text-muted-foreground">
-                        {cov.current_value.toFixed(1)}x / {cov.threshold.toFixed(1)}x
+                        {cov.current_value.toFixed(1)}x / {cov.limit_value.toFixed(1)}x
                       </span>
                     </div>
-                    {cov.next_test_date && (
-                      <p className="text-xs text-muted-foreground mt-2">
-                        Next test: {format(new Date(cov.next_test_date), 'MMM d, yyyy')}
-                      </p>
-                    )}
                   </div>
                 ))}
                 {!loadingCovenants && (!covenants || covenants.length === 0) && (
@@ -549,7 +535,9 @@ export default function MarketIntel() {
                           <p className="text-xs text-muted-foreground mt-1">{alert.description}</p>
                         )}
                         <div className="flex items-center gap-2 mt-2">
-                          <Badge variant="outline" className="text-xs">{alert.category}</Badge>
+                          {alert.portfolio_assets && (
+                            <Badge variant="outline" className="text-xs">{alert.portfolio_assets.name}</Badge>
+                          )}
                           <span className="text-xs text-muted-foreground">
                             {formatDistanceToNow(new Date(alert.created_at), { addSuffix: true })}
                           </span>
@@ -601,17 +589,15 @@ export default function MarketIntel() {
                   ) : indicators?.map((ind) => (
                     <div key={ind.id} className="p-4 rounded-lg bg-secondary/30 border border-border/50">
                       <p className="text-xs text-muted-foreground mb-1">{ind.indicator_name}</p>
-                      <p className="text-2xl font-bold">
-                        {ind.current_value.toFixed(2)}{ind.unit}
-                      </p>
-                      {ind.change_pct !== null && (
-                        <div className={`flex items-center gap-1 text-sm ${ind.change_pct >= 0 ? 'text-success' : 'text-destructive'}`}>
-                          {ind.change_pct >= 0 ? <ArrowUpRight className="h-4 w-4" /> : <ArrowDownRight className="h-4 w-4" />}
-                          {Math.abs(ind.change_pct).toFixed(2)}% from prev
+                      <p className="text-2xl font-bold">{ind.current_value}</p>
+                      {ind.change_value !== null && (
+                        <div className={`flex items-center gap-1 text-sm ${ind.change_value >= 0 ? 'text-success' : 'text-destructive'}`}>
+                          {ind.change_value >= 0 ? <ArrowUpRight className="h-4 w-4" /> : <ArrowDownRight className="h-4 w-4" />}
+                          {Math.abs(ind.change_value).toFixed(2)} change
                         </div>
                       )}
-                      {ind.source && (
-                        <p className="text-xs text-muted-foreground mt-2">Source: {ind.source}</p>
+                      {ind.category && (
+                        <p className="text-xs text-muted-foreground mt-2 capitalize">{ind.category}</p>
                       )}
                     </div>
                   ))}
@@ -670,18 +656,19 @@ export default function MarketIntel() {
                     <div className="flex items-start justify-between">
                       <div>
                         <p className="font-medium">{tx.target_name}</p>
-                        <p className="text-xs text-muted-foreground">Acquired by {tx.acquirer_name}</p>
+                        <p className="text-xs text-muted-foreground">Acquired by {tx.acquirer_name || 'Undisclosed'}</p>
                       </div>
-                      <Badge variant="outline">{tx.status}</Badge>
+                      <Badge variant="outline">{tx.sector || 'N/A'}</Badge>
                     </div>
                     <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
-                      <span>{tx.industry}</span>
-                      {tx.deal_value && <span>{formatCurrency(tx.deal_value)}</span>}
-                      {tx.ev_ebitda && <span>{tx.ev_ebitda.toFixed(1)}x EV/EBITDA</span>}
+                      {tx.enterprise_value && <span>{formatCurrency(tx.enterprise_value * 1e6)}</span>}
+                      {tx.ebitda_multiple && <span>{tx.ebitda_multiple.toFixed(1)}x EV/EBITDA</span>}
                     </div>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      {format(new Date(tx.announced_date), 'MMM d, yyyy')}
-                    </p>
+                    {tx.transaction_date && (
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {format(new Date(tx.transaction_date), 'MMM d, yyyy')}
+                      </p>
+                    )}
                   </div>
                 ))}
                 {!loadingTransactions && (!transactions || transactions.length === 0) && (
@@ -708,20 +695,17 @@ export default function MarketIntel() {
                     <div className="flex items-start justify-between">
                       <div>
                         <p className="font-medium">{deal.company_name}</p>
-                        <p className="text-xs text-muted-foreground">{deal.industry}</p>
+                        <p className="text-xs text-muted-foreground">{deal.sector || 'N/A'}</p>
                       </div>
-                      <Badge variant={deal.priority === 'high' ? 'destructive' : 'secondary'}>
-                        {deal.priority}
+                      <Badge variant={deal.fit_score === 'high' ? 'default' : 'secondary'}>
+                        {deal.fit_score || 'N/A'} fit
                       </Badge>
                     </div>
                     <div className="flex items-center gap-4 mt-2">
                       <Badge variant="outline" className="text-xs">{deal.stage}</Badge>
-                      {deal.ev_range && <span className="text-xs text-muted-foreground">{deal.ev_range}</span>}
-                      {deal.ev_ebitda && <span className="text-xs text-muted-foreground">{deal.ev_ebitda.toFixed(1)}x</span>}
+                      {deal.revenue && <span className="text-xs text-muted-foreground">${deal.revenue}M Rev</span>}
+                      {deal.asking_multiple && <span className="text-xs text-muted-foreground">{deal.asking_multiple.toFixed(1)}x ask</span>}
                     </div>
-                    {deal.source && (
-                      <p className="text-xs text-muted-foreground mt-1">Source: {deal.source}</p>
-                    )}
                   </div>
                 ))}
                 {!loadingPipeline && (!pipeline || pipeline.length === 0) && (
@@ -792,11 +776,11 @@ export default function MarketIntel() {
                   <div key={fund.id} className="flex items-center justify-between p-3 rounded-lg bg-secondary/30">
                     <div>
                       <p className="font-medium text-sm">{fund.fund_name}</p>
-                      <p className="text-xs text-muted-foreground">{fund.manager}</p>
+                      <p className="text-xs text-muted-foreground">{fund.manager_name}</p>
                     </div>
                     <div className="text-right">
-                      <p className="font-medium">{formatCurrency(fund.fund_size)}</p>
-                      <Badge variant="outline" className="text-xs">{fund.strategy}</Badge>
+                      <p className="font-medium">{formatCurrency((fund.current_size || 0) * 1e6)}</p>
+                      <Badge variant="outline" className="text-xs">{fund.fund_type}</Badge>
                     </div>
                   </div>
                 ))}
@@ -960,18 +944,17 @@ export default function MarketIntel() {
                     <div className="flex items-center justify-between">
                       <div>
                         <p className="font-medium">{fund.fund_name}</p>
-                        <p className="text-xs text-muted-foreground">{fund.manager}</p>
+                        <p className="text-xs text-muted-foreground">{fund.manager_name}</p>
                       </div>
                       <div className="text-right">
-                        <p className="font-medium">{formatCurrency(fund.fund_size)}</p>
-                        <Badge variant="outline" className="text-xs">{fund.vintage_year}</Badge>
+                        <p className="font-medium">{formatCurrency((fund.current_size || 0) * 1e6)}</p>
+                        <Badge variant="outline" className="text-xs">{fund.fund_type}</Badge>
                       </div>
                     </div>
-                    {fund.irr && (
+                    {fund.prior_fund_irr && (
                       <div className="flex gap-4 mt-2 text-xs">
-                        <span>IRR: {fund.irr}%</span>
-                        {fund.tvpi && <span>TVPI: {fund.tvpi}x</span>}
-                        {fund.dpi && <span>DPI: {fund.dpi}x</span>}
+                        <span>Prior IRR: {fund.prior_fund_irr}%</span>
+                        {fund.prior_fund_moic && <span>Prior MOIC: {fund.prior_fund_moic}x</span>}
                       </div>
                     )}
                   </div>
@@ -988,25 +971,25 @@ export default function MarketIntel() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                {[
-                  { name: 'Vista Equity Partners IX', target: 25000, raised: 18500, strategy: 'Tech Buyout' },
-                  { name: 'Thoma Bravo Fund XVI', target: 22000, raised: 15000, strategy: 'Software' },
-                  { name: 'Warburg Pincus Global Growth', target: 16000, raised: 12000, strategy: 'Growth' },
-                ].map((fund) => (
-                  <div key={fund.name} className="p-3 rounded-lg border border-border/50">
+                {loadingFunds ? (
+                  Array.from({ length: 3 }).map((_, i) => (
+                    <Skeleton key={i} className="h-20 w-full" />
+                  ))
+                ) : funds?.filter(f => f.status === 'fundraising').map((fund) => (
+                  <div key={fund.id} className="p-3 rounded-lg border border-border/50">
                     <div className="flex items-center justify-between mb-2">
                       <div>
-                        <p className="font-medium text-sm">{fund.name}</p>
-                        <p className="text-xs text-muted-foreground">{fund.strategy}</p>
+                        <p className="font-medium text-sm">{fund.fund_name}</p>
+                        <p className="text-xs text-muted-foreground">{fund.fund_type}</p>
                       </div>
                       <Badge variant="secondary">Raising</Badge>
                     </div>
                     <div className="space-y-1">
                       <div className="flex justify-between text-xs">
-                        <span>{formatCurrency(fund.raised * 1e6)} raised</span>
-                        <span>Target: {formatCurrency(fund.target * 1e6)}</span>
+                        <span>{formatCurrency((fund.current_size || 0) * 1e6)} raised</span>
+                        <span>Target: {formatCurrency((fund.target_size || 0) * 1e6)}</span>
                       </div>
-                      <Progress value={(fund.raised / fund.target) * 100} className="h-2" />
+                      <Progress value={fund.target_size ? ((fund.current_size || 0) / fund.target_size) * 100 : 0} className="h-2" />
                     </div>
                   </div>
                 ))}
