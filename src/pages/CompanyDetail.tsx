@@ -655,7 +655,7 @@ export default function CompanyDetail() {
 
         {/* Industry News Tab */}
         <TabsContent value="news">
-          <IndustryNews companyName={company.name} industry={company.industry} />
+          <IndustryNews companyId={company.id} companyName={company.name} industry={company.industry} />
         </TabsContent>
 
         {/* Contacts Tab */}
