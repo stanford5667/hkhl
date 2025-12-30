@@ -159,6 +159,56 @@ export type Database = {
           },
         ]
       }
+      company_ai_summaries: {
+        Row: {
+          company_id: string
+          content: string
+          created_at: string | null
+          generated_at: string | null
+          id: string
+          items: Json | null
+          model_used: string | null
+          source_document_ids: string[] | null
+          summary_type: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          company_id: string
+          content: string
+          created_at?: string | null
+          generated_at?: string | null
+          id?: string
+          items?: Json | null
+          model_used?: string | null
+          source_document_ids?: string[] | null
+          summary_type: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          company_id?: string
+          content?: string
+          created_at?: string | null
+          generated_at?: string | null
+          id?: string
+          items?: Json | null
+          model_used?: string | null
+          source_document_ids?: string[] | null
+          summary_type?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_ai_summaries_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       company_data_fields: {
         Row: {
           company_id: string
@@ -539,6 +589,7 @@ export type Database = {
           company_id: string
           created_at: string
           doc_status: Database["public"]["Enums"]["document_status"] | null
+          document_type: string | null
           file_path: string
           file_size: number | null
           file_type: string | null
@@ -548,6 +599,9 @@ export type Database = {
           notes: string | null
           organization_id: string | null
           owner_id: string | null
+          processed_at: string | null
+          processing_error: string | null
+          processing_status: string | null
           subfolder: string | null
           updated_at: string
           user_id: string
@@ -556,6 +610,7 @@ export type Database = {
           company_id: string
           created_at?: string
           doc_status?: Database["public"]["Enums"]["document_status"] | null
+          document_type?: string | null
           file_path: string
           file_size?: number | null
           file_type?: string | null
@@ -565,6 +620,9 @@ export type Database = {
           notes?: string | null
           organization_id?: string | null
           owner_id?: string | null
+          processed_at?: string | null
+          processing_error?: string | null
+          processing_status?: string | null
           subfolder?: string | null
           updated_at?: string
           user_id: string
@@ -573,6 +631,7 @@ export type Database = {
           company_id?: string
           created_at?: string
           doc_status?: Database["public"]["Enums"]["document_status"] | null
+          document_type?: string | null
           file_path?: string
           file_size?: number | null
           file_type?: string | null
@@ -582,6 +641,9 @@ export type Database = {
           notes?: string | null
           organization_id?: string | null
           owner_id?: string | null
+          processed_at?: string | null
+          processing_error?: string | null
+          processing_status?: string | null
           subfolder?: string | null
           updated_at?: string
           user_id?: string
