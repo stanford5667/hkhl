@@ -3,7 +3,9 @@ import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { useOrganization } from "@/contexts/OrganizationContext";
+import { OrganizationSwitcher } from "@/components/organization/OrganizationSwitcher";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -91,6 +93,7 @@ export function Sidebar() {
   const [collapsed, setCollapsed] = useState(false);
   const location = useLocation();
   const { signOut } = useAuth();
+  const { userProfile, currentOrganization } = useOrganization();
 
   const NavLink = ({ item }: { item: NavItem }) => {
     const isActive = location.pathname === item.href || 
@@ -158,32 +161,41 @@ export function Sidebar() {
         collapsed ? "w-16" : "w-60"
       )}
     >
-      {/* Logo with subtle glow */}
-      <div className="flex items-center justify-between h-16 px-3 border-b border-slate-800">
+      {/* Logo */}
+      <div className="flex items-center justify-between h-14 px-3 border-b border-slate-800">
         <Link to="/" className="flex items-center gap-2">
-          <div className="relative w-9 h-9 rounded-lg bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center shadow-lg shadow-emerald-500/20">
-            <Sparkles className="h-5 w-5 text-white" />
-            {/* Glow effect */}
-            <div className="absolute inset-0 rounded-lg bg-emerald-400/20 blur-md -z-10" />
+          <div className="relative w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center">
+            <Sparkles className="h-4 w-4 text-white" />
           </div>
           {!collapsed && (
-            <div className="flex flex-col">
-              <span className="font-bold text-white text-sm tracking-tight">Asset Labs</span>
-              <span className="text-[10px] text-emerald-400 font-medium -mt-0.5">AI</span>
-            </div>
+            <span className="font-bold text-white text-sm">Asset Labs</span>
           )}
         </Link>
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => setCollapsed(!collapsed)}
-          className={cn(
-            "h-8 w-8 text-slate-400 hover:text-white hover:bg-slate-800",
-            collapsed && "hidden"
-          )}
-        >
-          <ChevronLeft className="h-4 w-4" />
-        </Button>
+        {!collapsed && (
+          <Button variant="ghost" size="icon" onClick={() => setCollapsed(!collapsed)} className="h-7 w-7 text-slate-400">
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+        )}
+      </div>
+
+      {/* Organization Switcher */}
+      <div className="border-b border-slate-800 py-2 px-2">
+        {!collapsed ? (
+          <OrganizationSwitcher />
+        ) : (
+          <Tooltip delayDuration={0}>
+            <TooltipTrigger asChild>
+              <div className="flex justify-center">
+                <Avatar className="h-8 w-8 rounded-lg cursor-pointer">
+                  <AvatarFallback className="rounded-lg bg-purple-600 text-white text-xs">
+                    {currentOrganization?.name?.slice(0, 2).toUpperCase() || 'ORG'}
+                  </AvatarFallback>
+                </Avatar>
+              </div>
+            </TooltipTrigger>
+            <TooltipContent side="right">{currentOrganization?.name || 'Organization'}</TooltipContent>
+          </Tooltip>
+        )}
       </div>
 
       {/* Main Navigation */}
@@ -220,15 +232,16 @@ export function Sidebar() {
               )}
             >
               <Avatar className="h-8 w-8 border border-slate-700">
+                <AvatarImage src={userProfile?.avatar_url || undefined} />
                 <AvatarFallback className="bg-slate-800 text-emerald-400 text-xs font-medium">
-                  CS
+                  {userProfile?.full_name?.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() || 'U'}
                 </AvatarFallback>
               </Avatar>
               {!collapsed && (
                 <>
                   <div className="flex-1 text-left">
-                    <p className="text-white text-sm font-medium">Chris S.</p>
-                    <p className="text-xs text-slate-500">Pro Plan</p>
+                    <p className="text-white text-sm font-medium truncate">{userProfile?.full_name || 'User'}</p>
+                    <p className="text-xs text-slate-500 truncate">{currentOrganization?.plan || 'Free'} Plan</p>
                   </div>
                 </>
               )}
@@ -240,8 +253,8 @@ export function Sidebar() {
             className="w-56 bg-slate-900 border-slate-800"
           >
             <div className="px-3 py-2">
-              <p className="text-sm font-medium text-white">Chris S.</p>
-              <p className="text-xs text-slate-400">chris@assetlabs.ai</p>
+              <p className="text-sm font-medium text-white">{userProfile?.full_name || 'User'}</p>
+              <p className="text-xs text-slate-400 truncate">{userProfile?.job_title || 'Team Member'}</p>
             </div>
             <DropdownMenuSeparator className="bg-slate-800" />
             <DropdownMenuItem className="text-slate-300 hover:text-white hover:bg-slate-800 cursor-pointer">
