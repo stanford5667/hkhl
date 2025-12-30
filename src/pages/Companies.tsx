@@ -1,11 +1,11 @@
 import { useState, useMemo } from 'react';
-import { Plus, Search, Filter, List, Columns, Grid3X3 } from 'lucide-react';
+import { Plus, Search, List, Columns, Grid3X3 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useCompanies, CompanyStage } from '@/hooks/useCompanies';
+import { useAppCompanies, CompanyStage } from '@/hooks/useAppData';
 import { CompanyListView } from '@/components/companies/CompanyListView';
 import { PipelineKanbanView } from '@/components/companies/PipelineKanbanView';
 import { PortfolioGridView } from '@/components/companies/PortfolioGridView';
@@ -17,7 +17,7 @@ type StageFilter = 'all' | 'pipeline' | 'portfolio' | 'passed';
 
 export default function Companies() {
   const navigate = useNavigate();
-  const { companies, loading, createCompany, updateStage, updatePipelineStage, deleteCompany } = useCompanies();
+  const { companies, loading, createCompany, updateStage, updatePipelineStage, deleteCompany } = useAppCompanies();
   const [view, setView] = useState<ViewType>('list');
   const [stageFilter, setStageFilter] = useState<StageFilter>('all');
   const [searchQuery, setSearchQuery] = useState('');

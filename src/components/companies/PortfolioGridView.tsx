@@ -2,13 +2,13 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowRight, AlertTriangle, TrendingUp, TrendingDown } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Company } from '@/hooks/useCompanies';
+import { AppCompany } from '@/hooks/useAppData';
 import { CompanyAvatar } from './CompanyAvatar';
 import { HealthScore } from './HealthScore';
 import { cn } from '@/lib/utils';
 
 interface PortfolioGridViewProps {
-  companies: Company[];
+  companies: AppCompany[];
   onViewChange?: (view: 'list' | 'pipeline' | 'portfolio') => void;
 }
 
@@ -38,7 +38,7 @@ export function PortfolioGridView({ companies, onViewChange }: PortfolioGridView
     return `$${value.toFixed(0)}M`;
   };
 
-  const getHealthScore = (company: Company) => {
+  const getHealthScore = (company: AppCompany) => {
     if (company.ebitda_ltm && company.revenue_ltm) {
       return Math.min(100, Math.round((company.ebitda_ltm / company.revenue_ltm) * 100 * 5));
     }
@@ -109,7 +109,7 @@ export function PortfolioGridView({ companies, onViewChange }: PortfolioGridView
 }
 
 interface PortfolioCardProps {
-  company: Company;
+  company: AppCompany;
   healthScore: number;
   onClick: () => void;
 }
