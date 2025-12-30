@@ -6,6 +6,7 @@ import { isToday, isTomorrow, isThisWeek, isPast, startOfDay } from 'date-fns';
 
 export type TaskPriority = 'low' | 'medium' | 'high' | 'urgent';
 export type TaskStatus = 'todo' | 'in_progress' | 'blocked' | 'done';
+export type AssigneeType = 'user' | 'contact' | 'team_member';
 
 export interface Task {
   id: string;
@@ -14,17 +15,23 @@ export interface Task {
   priority: TaskPriority;
   status: TaskStatus;
   due_date: string | null;
+  due_time: string | null;
   completed_at: string | null;
   assignee_id: string | null;
+  assignee_type: AssigneeType | null;
+  assignee_user_id: string | null;
+  assignee_contact_id: string | null;
   created_by: string | null;
   company_id: string | null;
   contact_id: string | null;
+  tags: string[] | null;
   user_id: string;
   created_at: string;
   updated_at: string;
   assignee?: TeamMember;
+  assignee_contact?: { id: string; first_name: string; last_name: string };
   company?: { id: string; name: string };
-  contact?: { id: string; first_name: string; last_name: string };
+  linked_contact?: { id: string; first_name: string; last_name: string };
 }
 
 export interface CreateTaskInput {
@@ -33,13 +40,20 @@ export interface CreateTaskInput {
   priority?: TaskPriority;
   status?: TaskStatus;
   due_date?: string | null;
+  due_time?: string | null;
   assignee_id?: string | null;
+  assignee_type?: AssigneeType | null;
+  assignee_user_id?: string | null;
+  assignee_contact_id?: string | null;
   company_id?: string | null;
   contact_id?: string | null;
+  tags?: string[];
 }
 
 export interface TaskFilters {
   assignee_id?: string;
+  assignee_user_id?: string;
+  assignee_contact_id?: string;
   company_id?: string;
   contact_id?: string;
   status?: TaskStatus | TaskStatus[];
@@ -60,13 +74,20 @@ export function useTasks(filters?: TaskFilters) {
         .select(`
           *,
           assignee:team_members!tasks_assignee_id_fkey(*),
+          assignee_contact:contacts!tasks_assignee_contact_id_fkey(id, first_name, last_name),
           company:companies(id, name),
-          contact:contacts(id, first_name, last_name)
+          linked_contact:contacts!tasks_contact_id_fkey(id, first_name, last_name)
         `)
         .order('due_date', { ascending: true, nullsFirst: false });
       
       if (filters?.assignee_id) {
         query = query.eq('assignee_id', filters.assignee_id);
+      }
+      if (filters?.assignee_user_id) {
+        query = query.eq('assignee_user_id', filters.assignee_user_id);
+      }
+      if (filters?.assignee_contact_id) {
+        query = query.eq('assignee_contact_id', filters.assignee_contact_id);
       }
       if (filters?.company_id) {
         query = query.eq('company_id', filters.company_id);
@@ -90,9 +111,11 @@ export function useTasks(filters?: TaskFilters) {
         ...item,
         priority: item.priority as TaskPriority,
         status: item.status as TaskStatus,
+        assignee_type: item.assignee_type as AssigneeType | null,
         assignee: item.assignee as TeamMember | undefined,
+        assignee_contact: item.assignee_contact as { id: string; first_name: string; last_name: string } | undefined,
         company: item.company as { id: string; name: string } | undefined,
-        contact: item.contact as { id: string; first_name: string; last_name: string } | undefined,
+        linked_contact: item.linked_contact as { id: string; first_name: string; last_name: string } | undefined,
       })) as Task[];
       
       setTasks(mapped);
@@ -101,7 +124,7 @@ export function useTasks(filters?: TaskFilters) {
     } finally {
       setIsLoading(false);
     }
-  }, [user, filters?.assignee_id, filters?.company_id, filters?.contact_id, filters?.status]);
+  }, [user, filters?.assignee_id, filters?.assignee_user_id, filters?.assignee_contact_id, filters?.company_id, filters?.contact_id, filters?.status]);
 
   const createTask = useCallback(async (input: CreateTaskInput) => {
     if (!user) return null;
@@ -109,10 +132,20 @@ export function useTasks(filters?: TaskFilters) {
     const { data, error } = await supabase
       .from('tasks')
       .insert({
-        ...input,
-        user_id: user.id,
+        title: input.title,
+        description: input.description,
         priority: input.priority || 'medium',
         status: input.status || 'todo',
+        due_date: input.due_date,
+        due_time: input.due_time,
+        assignee_id: input.assignee_id,
+        assignee_type: input.assignee_type,
+        assignee_user_id: input.assignee_user_id,
+        assignee_contact_id: input.assignee_contact_id,
+        company_id: input.company_id,
+        contact_id: input.contact_id,
+        tags: input.tags,
+        user_id: user.id,
       })
       .select()
       .single();

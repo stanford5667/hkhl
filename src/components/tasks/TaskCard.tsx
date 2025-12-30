@@ -184,7 +184,7 @@ export function TaskCard({ task, onEdit, compact = false, showCompanyLink = true
               </span>
             )}
             
-            {/* Assignee */}
+            {/* Team member assignee */}
             {task.assignee && (
               <span className="text-xs text-slate-500 flex items-center gap-1">
                 <Avatar className="h-4 w-4">
@@ -193,6 +193,19 @@ export function TaskCard({ task, onEdit, compact = false, showCompanyLink = true
                   </AvatarFallback>
                 </Avatar>
                 {task.assignee.name}
+              </span>
+            )}
+
+            {/* Contact assignee */}
+            {task.assignee_contact && !task.assignee && (
+              <span className="text-xs text-purple-400 flex items-center gap-1">
+                <Avatar className="h-4 w-4">
+                  <AvatarFallback className="text-[8px] bg-purple-700/50">
+                    {task.assignee_contact.first_name[0]}{task.assignee_contact.last_name[0]}
+                  </AvatarFallback>
+                </Avatar>
+                {task.assignee_contact.first_name} {task.assignee_contact.last_name}
+                <span className="text-slate-500">(Contact)</span>
               </span>
             )}
             
@@ -208,11 +221,11 @@ export function TaskCard({ task, onEdit, compact = false, showCompanyLink = true
               </Link>
             )}
             
-            {/* Contact link */}
-            {task.contact && (
+            {/* Linked contact */}
+            {task.linked_contact && (
               <span className="text-xs text-slate-500 flex items-center gap-1">
                 <User className="h-3 w-3" />
-                {task.contact.first_name} {task.contact.last_name}
+                {task.linked_contact.first_name} {task.linked_contact.last_name}
               </span>
             )}
           </div>

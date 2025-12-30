@@ -35,10 +35,13 @@ import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Calendar as CalendarIcon, Building2, User, Loader2 } from 'lucide-react';
+import { Separator } from '@/components/ui/separator';
+import { Calendar as CalendarIcon, Building2, User, Loader2, Users } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTasks, TaskPriority } from '@/hooks/useTasks';
 import { useTeamMembers } from '@/hooks/useTeamMembers';
+import { useContacts } from '@/hooks/useContacts';
+import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 
 const taskSchema = z.object({
@@ -46,6 +49,7 @@ const taskSchema = z.object({
   description: z.string().optional(),
   priority: z.enum(['low', 'medium', 'high', 'urgent']),
   assignee_id: z.string().optional(),
+  assignee_type: z.enum(['user', 'contact', 'team_member']).optional(),
   due_date: z.date().optional().nullable(),
 });
 
@@ -82,6 +86,8 @@ export function CreateTaskDialog({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { createTask } = useTasks();
   const { teamMembers } = useTeamMembers();
+  const { contacts } = useContacts();
+  const { user } = useAuth();
   
   const form = useForm<TaskFormData>({
     resolver: zodResolver(taskSchema),
@@ -90,23 +96,45 @@ export function CreateTaskDialog({
       description: '',
       priority: 'medium',
       assignee_id: defaultAssignee || '',
+      assignee_type: undefined,
       due_date: null,
     },
   });
 
+  // Find current user's team member profile
+  const myTeamMember = teamMembers.find(tm => tm.email === user?.email);
+
   const handleSubmit = async (data: TaskFormData) => {
     setIsSubmitting(true);
     try {
-      // Handle "unassigned" as null
-      const assigneeId = data.assignee_id && data.assignee_id !== 'unassigned' 
-        ? data.assignee_id 
-        : null;
+      let assigneeId: string | null = null;
+      let assigneeType: 'user' | 'contact' | 'team_member' | null = null;
+      let assigneeUserId: string | null = null;
+      let assigneeContactId: string | null = null;
+
+      // Parse assignee selection
+      if (data.assignee_id && data.assignee_id !== 'unassigned') {
+        if (data.assignee_id === 'me' && myTeamMember) {
+          assigneeId = myTeamMember.id;
+          assigneeType = 'team_member';
+          assigneeUserId = user?.id || null;
+        } else if (data.assignee_id.startsWith('team:')) {
+          assigneeId = data.assignee_id.replace('team:', '');
+          assigneeType = 'team_member';
+        } else if (data.assignee_id.startsWith('contact:')) {
+          assigneeContactId = data.assignee_id.replace('contact:', '');
+          assigneeType = 'contact';
+        }
+      }
       
       await createTask({
         title: data.title,
         description: data.description,
         priority: data.priority,
         assignee_id: assigneeId,
+        assignee_type: assigneeType,
+        assignee_user_id: assigneeUserId,
+        assignee_contact_id: assigneeContactId,
         due_date: data.due_date?.toISOString() || null,
         company_id: companyId || null,
         contact_id: contactId || null,
@@ -205,22 +233,81 @@ export function CreateTaskDialog({
                           <SelectValue placeholder="Assign to..." />
                         </SelectTrigger>
                       </FormControl>
-                      <SelectContent className="bg-slate-900 border-slate-800">
+                      <SelectContent className="bg-slate-900 border-slate-800 max-h-72">
                         <SelectItem value="unassigned" className="text-slate-300">
                           Unassigned
                         </SelectItem>
-                        {teamMembers.map((member) => (
-                          <SelectItem key={member.id} value={member.id} className="text-slate-300">
+                        
+                        {/* Me option */}
+                        {myTeamMember && (
+                          <SelectItem value="me" className="text-emerald-400">
                             <div className="flex items-center gap-2">
                               <Avatar className="h-5 w-5">
-                                <AvatarFallback className="text-[10px] bg-slate-700">
-                                  {member.name.split(' ').map(n => n[0]).join('')}
+                                <AvatarFallback className="text-[10px] bg-emerald-700">
+                                  {myTeamMember.name.split(' ').map(n => n[0]).join('')}
                                 </AvatarFallback>
                               </Avatar>
-                              {member.name}
+                              Me ({myTeamMember.name})
                             </div>
                           </SelectItem>
-                        ))}
+                        )}
+                        
+                        {/* Team Members Section */}
+                        {teamMembers.length > 0 && (
+                          <>
+                            <div className="px-2 py-1.5 text-xs font-semibold text-slate-500 flex items-center gap-1">
+                              <Users className="h-3 w-3" />
+                              Team Members
+                            </div>
+                            {teamMembers
+                              .filter(m => m.id !== myTeamMember?.id)
+                              .map((member) => (
+                                <SelectItem key={member.id} value={`team:${member.id}`} className="text-slate-300">
+                                  <div className="flex items-center gap-2">
+                                    <Avatar className="h-5 w-5">
+                                      <AvatarFallback className="text-[10px] bg-slate-700">
+                                        {member.name.split(' ').map(n => n[0]).join('')}
+                                      </AvatarFallback>
+                                    </Avatar>
+                                    {member.name}
+                                  </div>
+                                </SelectItem>
+                              ))}
+                          </>
+                        )}
+                        
+                        {/* Contacts Section */}
+                        {contacts.length > 0 && (
+                          <>
+                            <Separator className="my-1 bg-slate-700" />
+                            <div className="px-2 py-1.5 text-xs font-semibold text-slate-500 flex items-center gap-1">
+                              <User className="h-3 w-3" />
+                              From Contacts
+                            </div>
+                            {contacts.slice(0, 10).map((contact) => (
+                              <SelectItem key={contact.id} value={`contact:${contact.id}`} className="text-purple-300">
+                                <div className="flex items-center gap-2">
+                                  <Avatar className="h-5 w-5">
+                                    <AvatarFallback className="text-[10px] bg-purple-700/50">
+                                      {contact.first_name[0]}{contact.last_name[0]}
+                                    </AvatarFallback>
+                                  </Avatar>
+                                  {contact.first_name} {contact.last_name}
+                                  {contact.company && (
+                                    <span className="text-slate-500 text-xs ml-1">
+                                      @ {contact.company.name}
+                                    </span>
+                                  )}
+                                </div>
+                              </SelectItem>
+                            ))}
+                            {contacts.length > 10 && (
+                              <div className="px-2 py-1 text-xs text-slate-500">
+                                +{contacts.length - 10} more contacts
+                              </div>
+                            )}
+                          </>
+                        )}
                       </SelectContent>
                     </Select>
                   </FormItem>
@@ -279,12 +366,13 @@ export function CreateTaskDialog({
                           </Button>
                         </FormControl>
                       </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0 bg-slate-900 border-slate-800">
+                      <PopoverContent className="w-auto p-0 bg-slate-900 border-slate-800" align="start">
                         <Calendar
                           mode="single"
                           selected={field.value || undefined}
                           onSelect={field.onChange}
                           initialFocus
+                          className="pointer-events-auto"
                         />
                       </PopoverContent>
                     </Popover>
