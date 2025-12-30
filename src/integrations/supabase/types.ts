@@ -16,39 +16,41 @@ export type Database = {
     Tables: {
       alerts: {
         Row: {
-          category: string
-          created_at: string
+          asset_id: string | null
+          created_at: string | null
           description: string | null
           id: string
-          is_read: boolean
+          is_read: boolean | null
           severity: string
-          source: string | null
           title: string
-          user_id: string
         }
         Insert: {
-          category?: string
-          created_at?: string
+          asset_id?: string | null
+          created_at?: string | null
           description?: string | null
           id?: string
-          is_read?: boolean
-          severity?: string
-          source?: string | null
+          is_read?: boolean | null
+          severity: string
           title: string
-          user_id: string
         }
         Update: {
-          category?: string
-          created_at?: string
+          asset_id?: string | null
+          created_at?: string | null
           description?: string | null
           id?: string
-          is_read?: boolean
+          is_read?: boolean | null
           severity?: string
-          source?: string | null
           title?: string
-          user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "alerts_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "portfolio_assets"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       companies: {
         Row: {
@@ -159,49 +161,37 @@ export type Database = {
       }
       deal_pipeline: {
         Row: {
+          asking_multiple: number | null
           company_name: string
-          created_at: string
-          deal_type: string
-          ev_ebitda: number | null
-          ev_range: string | null
+          created_at: string | null
+          ebitda: number | null
+          fit_score: string | null
           id: string
-          industry: string
-          notes: string | null
-          priority: string
-          source: string | null
-          stage: string
-          updated_at: string
-          user_id: string
+          revenue: number | null
+          sector: string | null
+          stage: string | null
         }
         Insert: {
+          asking_multiple?: number | null
           company_name: string
-          created_at?: string
-          deal_type?: string
-          ev_ebitda?: number | null
-          ev_range?: string | null
+          created_at?: string | null
+          ebitda?: number | null
+          fit_score?: string | null
           id?: string
-          industry: string
-          notes?: string | null
-          priority?: string
-          source?: string | null
-          stage?: string
-          updated_at?: string
-          user_id: string
+          revenue?: number | null
+          sector?: string | null
+          stage?: string | null
         }
         Update: {
+          asking_multiple?: number | null
           company_name?: string
-          created_at?: string
-          deal_type?: string
-          ev_ebitda?: number | null
-          ev_range?: string | null
+          created_at?: string | null
+          ebitda?: number | null
+          fit_score?: string | null
           id?: string
-          industry?: string
-          notes?: string | null
-          priority?: string
-          source?: string | null
-          stage?: string
-          updated_at?: string
-          user_id?: string
+          revenue?: number | null
+          sector?: string | null
+          stage?: string | null
         }
         Relationships: []
       }
@@ -366,118 +356,85 @@ export type Database = {
       }
       economic_indicators: {
         Row: {
-          as_of_date: string
-          category: string
-          change_pct: number | null
-          created_at: string
-          current_value: number
+          category: string | null
+          change_value: number | null
+          current_value: string
           id: string
           indicator_name: string
-          previous_value: number | null
-          source: string | null
-          unit: string
-          user_id: string
+          updated_at: string | null
         }
         Insert: {
-          as_of_date?: string
-          category?: string
-          change_pct?: number | null
-          created_at?: string
-          current_value: number
+          category?: string | null
+          change_value?: number | null
+          current_value: string
           id?: string
           indicator_name: string
-          previous_value?: number | null
-          source?: string | null
-          unit?: string
-          user_id: string
+          updated_at?: string | null
         }
         Update: {
-          as_of_date?: string
-          category?: string
-          change_pct?: number | null
-          created_at?: string
-          current_value?: number
+          category?: string | null
+          change_value?: number | null
+          current_value?: string
           id?: string
           indicator_name?: string
-          previous_value?: number | null
-          source?: string | null
-          unit?: string
-          user_id?: string
+          updated_at?: string | null
         }
         Relationships: []
       }
       events: {
         Row: {
-          company_name: string | null
-          created_at: string
-          description: string | null
+          created_at: string | null
           event_date: string
           event_type: string
           id: string
           title: string
-          user_id: string
         }
         Insert: {
-          company_name?: string | null
-          created_at?: string
-          description?: string | null
+          created_at?: string | null
           event_date: string
-          event_type?: string
+          event_type: string
           id?: string
           title: string
-          user_id: string
         }
         Update: {
-          company_name?: string | null
-          created_at?: string
-          description?: string | null
+          created_at?: string | null
           event_date?: string
           event_type?: string
           id?: string
           title?: string
-          user_id?: string
         }
         Relationships: []
       }
       ma_transactions: {
         Row: {
-          acquirer_name: string
-          announced_date: string
-          created_at: string
-          deal_value: number | null
-          ev_ebitda: number | null
-          ev_revenue: number | null
+          acquirer_name: string | null
+          created_at: string | null
+          ebitda_multiple: number | null
+          enterprise_value: number | null
           id: string
-          industry: string
-          status: string
+          sector: string | null
           target_name: string
-          user_id: string
+          transaction_date: string | null
         }
         Insert: {
-          acquirer_name: string
-          announced_date: string
-          created_at?: string
-          deal_value?: number | null
-          ev_ebitda?: number | null
-          ev_revenue?: number | null
+          acquirer_name?: string | null
+          created_at?: string | null
+          ebitda_multiple?: number | null
+          enterprise_value?: number | null
           id?: string
-          industry: string
-          status?: string
+          sector?: string | null
           target_name: string
-          user_id: string
+          transaction_date?: string | null
         }
         Update: {
-          acquirer_name?: string
-          announced_date?: string
-          created_at?: string
-          deal_value?: number | null
-          ev_ebitda?: number | null
-          ev_revenue?: number | null
+          acquirer_name?: string | null
+          created_at?: string | null
+          ebitda_multiple?: number | null
+          enterprise_value?: number | null
           id?: string
-          industry?: string
-          status?: string
+          sector?: string | null
           target_name?: string
-          user_id?: string
+          transaction_date?: string | null
         }
         Relationships: []
       }
@@ -539,142 +496,121 @@ export type Database = {
       }
       pe_funds: {
         Row: {
-          created_at: string
-          dpi: number | null
+          created_at: string | null
+          current_size: number | null
           fund_name: string
-          fund_size: number
+          fund_type: string
           id: string
-          irr: number | null
-          manager: string
-          status: string
-          strategy: string
-          tvpi: number | null
-          user_id: string
-          vintage_year: number
+          manager_name: string
+          prior_fund_irr: number | null
+          prior_fund_moic: number | null
+          status: string | null
+          target_size: number | null
         }
         Insert: {
-          created_at?: string
-          dpi?: number | null
+          created_at?: string | null
+          current_size?: number | null
           fund_name: string
-          fund_size: number
+          fund_type: string
           id?: string
-          irr?: number | null
-          manager: string
-          status?: string
-          strategy: string
-          tvpi?: number | null
-          user_id: string
-          vintage_year: number
+          manager_name: string
+          prior_fund_irr?: number | null
+          prior_fund_moic?: number | null
+          status?: string | null
+          target_size?: number | null
         }
         Update: {
-          created_at?: string
-          dpi?: number | null
+          created_at?: string | null
+          current_size?: number | null
           fund_name?: string
-          fund_size?: number
+          fund_type?: string
           id?: string
-          irr?: number | null
-          manager?: string
-          status?: string
-          strategy?: string
-          tvpi?: number | null
-          user_id?: string
-          vintage_year?: number
+          manager_name?: string
+          prior_fund_irr?: number | null
+          prior_fund_moic?: number | null
+          status?: string | null
+          target_size?: number | null
         }
         Relationships: []
       }
       portfolio_assets: {
         Row: {
-          company_name: string
-          created_at: string
-          current_value: number
-          ebitda_ltm: number | null
-          employee_count: number | null
+          asset_type: string
+          created_at: string | null
+          current_value: number | null
+          debt_service_coverage: number | null
+          ebitda_margin: number | null
           health_score: number | null
           id: string
-          industry: string
-          investment_amount: number
-          investment_date: string
-          ownership_pct: number
-          revenue_ltm: number | null
-          status: string
-          updated_at: string
-          user_id: string
+          invested_capital: number | null
+          irr: number | null
+          moic: number | null
+          name: string
+          revenue_growth: number | null
+          sector: string | null
+          vintage_year: number | null
         }
         Insert: {
-          company_name: string
-          created_at?: string
-          current_value: number
-          ebitda_ltm?: number | null
-          employee_count?: number | null
+          asset_type: string
+          created_at?: string | null
+          current_value?: number | null
+          debt_service_coverage?: number | null
+          ebitda_margin?: number | null
           health_score?: number | null
           id?: string
-          industry: string
-          investment_amount: number
-          investment_date: string
-          ownership_pct: number
-          revenue_ltm?: number | null
-          status?: string
-          updated_at?: string
-          user_id: string
+          invested_capital?: number | null
+          irr?: number | null
+          moic?: number | null
+          name: string
+          revenue_growth?: number | null
+          sector?: string | null
+          vintage_year?: number | null
         }
         Update: {
-          company_name?: string
-          created_at?: string
-          current_value?: number
-          ebitda_ltm?: number | null
-          employee_count?: number | null
+          asset_type?: string
+          created_at?: string | null
+          current_value?: number | null
+          debt_service_coverage?: number | null
+          ebitda_margin?: number | null
           health_score?: number | null
           id?: string
-          industry?: string
-          investment_amount?: number
-          investment_date?: string
-          ownership_pct?: number
-          revenue_ltm?: number | null
-          status?: string
-          updated_at?: string
-          user_id?: string
+          invested_capital?: number | null
+          irr?: number | null
+          moic?: number | null
+          name?: string
+          revenue_growth?: number | null
+          sector?: string | null
+          vintage_year?: number | null
         }
         Relationships: []
       }
       portfolio_covenants: {
         Row: {
           asset_id: string | null
-          company_name: string
           covenant_type: string
-          created_at: string
+          created_at: string | null
           current_value: number
           id: string
-          next_test_date: string | null
-          status: string
-          threshold: number
-          updated_at: string
-          user_id: string
+          is_warning: boolean | null
+          limit_value: number
         }
         Insert: {
           asset_id?: string | null
-          company_name: string
           covenant_type: string
-          created_at?: string
+          created_at?: string | null
           current_value: number
           id?: string
-          next_test_date?: string | null
-          status?: string
-          threshold: number
-          updated_at?: string
-          user_id: string
+          is_warning?: boolean | null
+          limit_value: number
         }
         Update: {
           asset_id?: string | null
-          company_name?: string
           covenant_type?: string
-          created_at?: string
+          created_at?: string | null
           current_value?: number
           id?: string
-          next_test_date?: string | null
-          status?: string
-          threshold?: number
-          updated_at?: string
-          user_id?: string
+          is_warning?: boolean | null
+          limit_value?: number
         }
         Relationships: [
           {
