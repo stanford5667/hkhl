@@ -28,6 +28,7 @@ interface TaskCardProps {
   task: Task;
   onEdit?: () => void;
   compact?: boolean;
+  showCompanyLink?: boolean;
 }
 
 const priorityConfig: Record<TaskPriority, { color: string; bgColor: string }> = {
@@ -37,7 +38,7 @@ const priorityConfig: Record<TaskPriority, { color: string; bgColor: string }> =
   urgent: { color: 'bg-rose-400', bgColor: 'bg-rose-400/10' },
 };
 
-export function TaskCard({ task, onEdit, compact = false }: TaskCardProps) {
+export function TaskCard({ task, onEdit, compact = false, showCompanyLink = true }: TaskCardProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editTitle, setEditTitle] = useState(task.title);
   const { toggleTaskComplete, updateTask, deleteTask } = useTasks();
@@ -196,7 +197,7 @@ export function TaskCard({ task, onEdit, compact = false }: TaskCardProps) {
             )}
             
             {/* Company link */}
-            {task.company && (
+            {showCompanyLink && task.company && (
               <Link
                 to={`/companies/${task.company.id}`}
                 className="text-xs text-slate-500 hover:text-slate-300 flex items-center gap-1"
