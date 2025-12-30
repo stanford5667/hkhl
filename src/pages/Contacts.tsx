@@ -10,23 +10,23 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
-import { useContacts, ContactCategory, Contact } from '@/hooks/useContacts';
-import { useCompanies } from '@/hooks/useCompanies';
+import { useAppContacts, useAppCompanies, AppContact } from '@/hooks/useAppData';
 import { ContactsTable } from '@/components/contacts/ContactsTable';
 import { ContactsBoard } from '@/components/contacts/ContactsBoard';
 import { ContactDetailPanel } from '@/components/contacts/ContactDetailPanel';
 import { CreateContactDialog } from '@/components/contacts/CreateContactDialog';
 import { BulkActionBar } from '@/components/contacts/BulkActionBar';
-import { cn } from '@/lib/utils';
+
+type ContactCategory = 'lender' | 'executive' | 'board' | 'legal' | 'vendor' | 'team' | 'other';
 
 export default function Contacts() {
-  const { contacts, loading, createContact, updateContact, deleteContact } = useContacts();
-  const { companies } = useCompanies();
+  const { contacts, loading, createContact, updateContact, deleteContact } = useAppContacts();
+  const { companies } = useAppCompanies();
   const [view, setView] = useState<'table' | 'board'>('table');
   const [searchQuery, setSearchQuery] = useState('');
   const [filterType, setFilterType] = useState<ContactCategory | 'all'>('all');
   const [selectedContacts, setSelectedContacts] = useState<string[]>([]);
-  const [activeContact, setActiveContact] = useState<Contact | null>(null);
+  const [activeContact, setActiveContact] = useState<AppContact | null>(null);
   const [showChat, setShowChat] = useState(false);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
 
@@ -49,7 +49,7 @@ export default function Contacts() {
     await createContact(values);
   };
 
-  const handleContactClick = (contact: Contact) => {
+  const handleContactClick = (contact: AppContact) => {
     setActiveContact(contact);
     setShowChat(true);
   };

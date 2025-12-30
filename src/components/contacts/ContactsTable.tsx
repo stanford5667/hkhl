@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Contact, ContactCategory } from '@/hooks/useContacts';
+import { AppContact, ContactCategory } from '@/hooks/useAppData';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -35,11 +35,11 @@ import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
 
 interface ContactsTableProps {
-  contacts: Contact[];
+  contacts: AppContact[];
   selectedContacts: string[];
   onSelectContacts: (ids: string[]) => void;
-  onContactClick: (contact: Contact) => void;
-  onUpdateContact?: (id: string, updates: Partial<Contact>) => void;
+  onContactClick: (contact: AppContact) => void;
+  onUpdateContact?: (id: string, updates: Partial<AppContact>) => void;
   onDeleteContact?: (id: string) => void;
 }
 
@@ -66,8 +66,8 @@ export function ContactsTable({
 
   const sortedContacts = useMemo(() => {
     return [...contacts].sort((a, b) => {
-      let aVal: any = a[sortBy as keyof Contact];
-      let bVal: any = b[sortBy as keyof Contact];
+      let aVal: any = a[sortBy as keyof AppContact];
+      let bVal: any = b[sortBy as keyof AppContact];
       
       if (sortBy === 'name') {
         aVal = `${a.last_name} ${a.first_name}`;
@@ -188,11 +188,11 @@ export function ContactsTable({
 }
 
 interface ContactTableRowProps {
-  contact: Contact;
+  contact: AppContact;
   selected: boolean;
   onSelect: () => void;
   onClick: () => void;
-  onUpdate?: (id: string, updates: Partial<Contact>) => void;
+  onUpdate?: (id: string, updates: Partial<AppContact>) => void;
   onDelete?: (id: string) => void;
 }
 

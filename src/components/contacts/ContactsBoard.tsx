@@ -1,4 +1,4 @@
-import { Contact, ContactCategory } from '@/hooks/useContacts';
+import { AppContact, ContactCategory } from '@/hooks/useAppData';
 import { Card } from '@/components/ui/card';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
@@ -28,10 +28,10 @@ import {
 import { cn } from '@/lib/utils';
 
 interface ContactsBoardProps {
-  contacts: Contact[];
+  contacts: AppContact[];
   selectedContacts: string[];
   onSelectContacts: (ids: string[]) => void;
-  onContactClick: (contact: Contact) => void;
+  onContactClick: (contact: AppContact) => void;
 }
 
 const categoryConfig: Record<
@@ -103,7 +103,7 @@ export function ContactsBoard({
       acc[category] = contacts.filter((c) => c.category === category);
       return acc;
     },
-    {} as Record<ContactCategory, Contact[]>
+    {} as Record<ContactCategory, AppContact[]>
   );
 
   return (
@@ -157,7 +157,7 @@ export function ContactsBoard({
 }
 
 interface BoardContactCardProps {
-  contact: Contact;
+  contact: AppContact;
   onClick: () => void;
 }
 

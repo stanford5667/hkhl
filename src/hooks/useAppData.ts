@@ -25,6 +25,8 @@ export interface AppCompany {
   user_id: string;
 }
 
+export type ContactCategory = 'lender' | 'executive' | 'board' | 'legal' | 'vendor' | 'team' | 'other';
+
 export interface AppContact {
   id: string;
   first_name: string;
@@ -32,11 +34,14 @@ export interface AppContact {
   email: string | null;
   phone: string | null;
   title: string | null;
-  category: string | null;
+  category: ContactCategory | null;
+  lender_type: string | null;
+  notes: string | null;
   company_id: string | null;
   organization_id: string | null;
   user_id: string;
   created_at: string;
+  updated_at: string;
   company?: { id: string; name: string } | null;
 }
 
@@ -276,12 +281,56 @@ export function useAppContacts(filters?: {
     },
   });
 
+  const updateMutation = useMutation({
+    mutationFn: async ({ id, updates }: { id: string; updates: Partial<AppContact> }) => {
+      const { company, ...rest } = updates;
+      const updateData: Record<string, any> = { ...rest };
+      if (rest.category) {
+        updateData.category = rest.category as ContactCategory;
+      }
+      const { error } = await supabase
+        .from('contacts')
+        .update(updateData)
+        .eq('id', id);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['contacts'] });
+    },
+    onError: (error: Error) => {
+      toast.error('Failed to update contact: ' + error.message);
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from('contacts')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['contacts'] });
+      toast.success('Contact deleted');
+    },
+    onError: (error: Error) => {
+      toast.error('Failed to delete contact: ' + error.message);
+    },
+  });
+
   return {
     contacts: query.data || [],
     isLoading: query.isLoading,
+    loading: query.isLoading, // Alias for backward compatibility
     error: query.error,
     refetch: query.refetch,
     createContact: createMutation.mutateAsync,
+    updateContact: (id: string, updates: Partial<AppContact>) => 
+      updateMutation.mutateAsync({ id, updates }),
+    deleteContact: deleteMutation.mutateAsync,
   };
 }
 

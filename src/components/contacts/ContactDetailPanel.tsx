@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Contact } from '@/hooks/useContacts';
+import { AppContact } from '@/hooks/useAppData';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -29,7 +29,7 @@ import { ActivityTab } from './ActivityTab';
 import { InfoTab } from './InfoTab';
 
 interface ContactDetailPanelProps {
-  contact: Contact | null;
+  contact: AppContact | null;
   open: boolean;
   onClose: () => void;
 }
