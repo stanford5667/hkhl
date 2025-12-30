@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { 
   Newspaper, 
   ExternalLink, 
@@ -6,13 +6,17 @@ import {
   TrendingUp, 
   TrendingDown,
   Clock,
-  AlertCircle
+  AlertCircle,
+  Zap,
+  BarChart3
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
 interface IndustryNewsProps {
   companyName: string;
@@ -29,70 +33,70 @@ interface NewsItem {
   summary: string;
 }
 
-// Mock news data - in production this would come from an API
-const generateMockNews = (companyName: string, industry: string | null): NewsItem[] => {
-  const industryTerm = industry || 'business';
-  return [
-    {
-      id: '1',
-      title: `${industryTerm} Sector Shows Strong Q4 Growth`,
-      source: 'Industry Weekly',
-      url: '#',
-      date: '2 hours ago',
-      sentiment: 'positive',
-      summary: `The ${industryTerm.toLowerCase()} industry continues to show resilience with strong quarterly results across major players.`
-    },
-    {
-      id: '2',
-      title: `M&A Activity Picks Up in ${industryTerm}`,
-      source: 'Deal Journal',
-      url: '#',
-      date: '5 hours ago',
-      sentiment: 'positive',
-      summary: 'Private equity firms are increasingly targeting mid-market companies in the sector.'
-    },
-    {
-      id: '3',
-      title: `Supply Chain Challenges Persist for ${industryTerm} Companies`,
-      source: 'Business Insider',
-      url: '#',
-      date: '1 day ago',
-      sentiment: 'negative',
-      summary: 'Industry leaders report ongoing supply chain disruptions affecting margins.'
-    },
-    {
-      id: '4',
-      title: `New Regulations Impact ${industryTerm} Sector`,
-      source: 'Regulatory Watch',
-      url: '#',
-      date: '2 days ago',
-      sentiment: 'neutral',
-      summary: 'Recent policy changes may affect how companies operate in the coming quarters.'
-    },
-    {
-      id: '5',
-      title: `Technology Innovation Drives ${industryTerm} Transformation`,
-      source: 'Tech Today',
-      url: '#',
-      date: '3 days ago',
-      sentiment: 'positive',
-      summary: 'Digital transformation initiatives are creating new opportunities for growth.'
-    },
-  ];
-};
+interface KeyMetrics {
+  marketSize?: string;
+  growthRate?: string;
+  avgMultiple?: string;
+}
+
+interface IntelData {
+  news: NewsItem[];
+  aiSummary: string;
+  keyMetrics?: KeyMetrics;
+  citations?: string[];
+}
 
 export function IndustryNews({ companyName, industry }: IndustryNewsProps) {
-  const [news, setNews] = useState<NewsItem[]>(() => generateMockNews(companyName, industry));
+  const [data, setData] = useState<IntelData | null>(null);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const { toast } = useToast();
 
-  const handleRefresh = () => {
+  const fetchIndustryIntel = async () => {
     setLoading(true);
-    // Simulate API call
-    setTimeout(() => {
-      setNews(generateMockNews(companyName, industry));
+    setError(null);
+    
+    try {
+      const { data: result, error: funcError } = await supabase.functions.invoke('industry-intel', {
+        body: { companyName, industry }
+      });
+
+      if (funcError) {
+        throw new Error(funcError.message);
+      }
+
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to fetch industry intelligence');
+      }
+
+      setData({
+        news: result.data.news || [],
+        aiSummary: result.data.aiSummary || '',
+        keyMetrics: result.data.keyMetrics,
+        citations: result.citations
+      });
+
+      toast({
+        title: "Intelligence Updated",
+        description: "Latest industry news and analysis loaded",
+      });
+    } catch (err) {
+      console.error('Error fetching industry intel:', err);
+      setError(err instanceof Error ? err.message : 'Failed to fetch industry intelligence');
+      toast({
+        title: "Error",
+        description: "Failed to fetch industry intelligence. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
       setLoading(false);
-    }, 1500);
+    }
   };
+
+  useEffect(() => {
+    // Auto-fetch on mount
+    fetchIndustryIntel();
+  }, [companyName, industry]);
 
   const getSentimentIcon = (sentiment: string) => {
     switch (sentiment) {
@@ -114,6 +118,8 @@ export function IndustryNews({ companyName, industry }: IndustryNewsProps) {
     return colors[sentiment] || colors.neutral;
   };
 
+  const news = data?.news || [];
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -124,14 +130,53 @@ export function IndustryNews({ companyName, industry }: IndustryNewsProps) {
             Industry News & Intelligence
           </h3>
           <p className="text-muted-foreground text-sm mt-1">
-            Relevant news for {industry || 'this industry'}
+            AI-powered insights for {industry || 'this industry'}
           </p>
         </div>
-        <Button variant="outline" size="sm" onClick={handleRefresh} disabled={loading}>
-          <RefreshCw className={cn("h-4 w-4 mr-2", loading && "animate-spin")} />
-          Refresh
-        </Button>
+        <div className="flex items-center gap-2">
+          <Badge variant="outline" className="text-xs">
+            <Zap className="h-3 w-3 mr-1" />
+            Powered by Perplexity
+          </Badge>
+          <Button variant="outline" size="sm" onClick={fetchIndustryIntel} disabled={loading}>
+            <RefreshCw className={cn("h-4 w-4 mr-2", loading && "animate-spin")} />
+            Refresh
+          </Button>
+        </div>
       </div>
+
+      {/* Key Market Metrics */}
+      {data?.keyMetrics && (
+        <div className="grid grid-cols-3 gap-4">
+          <Card className="bg-primary/10 border-primary/30">
+            <CardContent className="p-4 text-center">
+              <BarChart3 className="h-6 w-6 text-primary mx-auto mb-2" />
+              <p className="text-xl font-bold text-foreground">
+                {data.keyMetrics.marketSize || 'N/A'}
+              </p>
+              <p className="text-muted-foreground text-sm">Market Size</p>
+            </CardContent>
+          </Card>
+          <Card className="bg-emerald-900/20 border-emerald-600/30">
+            <CardContent className="p-4 text-center">
+              <TrendingUp className="h-6 w-6 text-emerald-400 mx-auto mb-2" />
+              <p className="text-xl font-bold text-emerald-400">
+                {data.keyMetrics.growthRate || 'N/A'}
+              </p>
+              <p className="text-muted-foreground text-sm">Growth Rate</p>
+            </CardContent>
+          </Card>
+          <Card className="bg-purple-900/20 border-purple-600/30">
+            <CardContent className="p-4 text-center">
+              <BarChart3 className="h-6 w-6 text-purple-400 mx-auto mb-2" />
+              <p className="text-xl font-bold text-purple-400">
+                {data.keyMetrics.avgMultiple || 'N/A'}
+              </p>
+              <p className="text-muted-foreground text-sm">Avg EV/EBITDA</p>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       {/* News Summary */}
       <div className="grid grid-cols-3 gap-4">
@@ -164,10 +209,26 @@ export function IndustryNews({ companyName, industry }: IndustryNewsProps) {
         </Card>
       </div>
 
+      {/* Error State */}
+      {error && !loading && (
+        <Card className="p-6 border-destructive/50 bg-destructive/10">
+          <div className="flex items-center gap-3 text-destructive">
+            <AlertCircle className="h-5 w-5" />
+            <div>
+              <p className="font-medium">Failed to load intelligence</p>
+              <p className="text-sm opacity-80">{error}</p>
+            </div>
+          </div>
+          <Button variant="outline" size="sm" className="mt-4" onClick={fetchIndustryIntel}>
+            Try Again
+          </Button>
+        </Card>
+      )}
+
       {/* News List */}
       {loading ? (
         <div className="space-y-4">
-          {[1, 2, 3].map(i => (
+          {[1, 2, 3, 4, 5].map(i => (
             <Card key={i} className="p-4">
               <div className="space-y-3">
                 <Skeleton className="h-5 w-3/4" />
@@ -177,13 +238,13 @@ export function IndustryNews({ companyName, industry }: IndustryNewsProps) {
             </Card>
           ))}
         </div>
-      ) : (
+      ) : news.length > 0 ? (
         <div className="space-y-3">
           {news.map((item) => (
             <Card 
               key={item.id} 
               className="p-4 hover:border-primary/30 transition-colors cursor-pointer"
-              onClick={() => window.open(item.url, '_blank')}
+              onClick={() => item.url && window.open(item.url, '_blank')}
             >
               <div className="flex items-start gap-4">
                 <div className="mt-1">
@@ -203,32 +264,55 @@ export function IndustryNews({ companyName, industry }: IndustryNewsProps) {
                       <Clock className="h-3 w-3" />
                       {item.date}
                     </span>
-                    <ExternalLink className="h-3 w-3" />
+                    {item.url && <ExternalLink className="h-3 w-3" />}
                   </div>
                 </div>
               </div>
             </Card>
           ))}
         </div>
+      ) : !error && (
+        <Card className="p-8 text-center">
+          <Newspaper className="h-12 w-12 text-muted-foreground mx-auto mb-4 opacity-50" />
+          <p className="text-muted-foreground">No news available. Click Refresh to fetch latest intelligence.</p>
+        </Card>
       )}
 
       {/* AI Summary */}
-      <Card className="bg-gradient-to-r from-primary/10 to-transparent border-primary/30">
-        <CardHeader>
-          <CardTitle className="text-base flex items-center gap-2">
-            <span className="text-lg">🤖</span>
-            AI Industry Summary
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-muted-foreground text-sm">
-            Based on recent news, the {industry || 'industry'} sector shows mixed signals. 
-            M&A activity remains strong with private equity showing continued interest in mid-market opportunities. 
-            However, supply chain challenges persist as a key concern. 
-            Technology adoption and digital transformation continue to be major themes driving competitive advantage.
-          </p>
-        </CardContent>
-      </Card>
+      {data?.aiSummary && (
+        <Card className="bg-gradient-to-r from-primary/10 to-transparent border-primary/30">
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <span className="text-lg">🤖</span>
+              AI Industry Analysis
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-muted-foreground text-sm whitespace-pre-wrap">
+              {data.aiSummary}
+            </p>
+            {data.citations && data.citations.length > 0 && (
+              <div className="mt-4 pt-4 border-t border-border">
+                <p className="text-xs text-muted-foreground mb-2">Sources:</p>
+                <div className="flex flex-wrap gap-2">
+                  {data.citations.slice(0, 5).map((url, i) => (
+                    <a 
+                      key={i}
+                      href={url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs text-primary hover:underline flex items-center gap-1"
+                    >
+                      <ExternalLink className="h-3 w-3" />
+                      {new URL(url).hostname}
+                    </a>
+                  ))}
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

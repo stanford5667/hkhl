@@ -14,3 +14,6 @@ verify_jwt = false
 
 [functions.fetch-market-data]
 verify_jwt = false
+
+[functions.industry-intel]
+verify_jwt = false
