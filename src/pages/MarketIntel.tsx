@@ -9,7 +9,7 @@ import {
   BarChart3, Shield, AlertTriangle, ArrowUpRight, ArrowDownRight, Home, 
   LineChart, Coins, ChevronRight, AlertCircle, Calendar
 } from 'lucide-react';
-import { usePortfolioTotals, useAlerts, useDealPipeline, usePortfolioAssets, useAssetAllocation, useEvents, useEconomicIndicators, useCovenants } from '@/hooks/useMarketIntel';
+import { usePortfolioTotals, useAlerts, useDealPipeline, usePortfolioAssets, useAssetAllocation, useEvents, useEconomicIndicators, useCovenants, useMATransactions } from '@/hooks/useMarketIntel';
 
 export default function MarketIntel() {
   const [activeTab, setActiveTab] = useState('overview');
@@ -167,11 +167,7 @@ export default function MarketIntel() {
         </TabsContent>
 
         <TabsContent value="deals" className="mt-6">
-          <Card className="p-8 text-center text-muted-foreground">
-            <Briefcase className="h-12 w-12 mx-auto mb-4 opacity-50" />
-            <p className="text-lg font-medium">Deals Tab</p>
-            <p>M&A transactions and pipeline opportunities</p>
-          </Card>
+          <DealsContent />
         </TabsContent>
 
         <TabsContent value="landscape" className="mt-6">
@@ -696,6 +692,125 @@ function MacroContent() {
               <span className={s.i >= 0 ? 'text-emerald-400' : 'text-rose-400'}>
                 {s.i > 0 ? '+' : ''}{s.i}% NAV
               </span>
+            </div>
+          ))}
+        </div>
+      </Card>
+    </div>
+  );
+}
+
+function DealsContent() {
+  const { data: transactions } = useMATransactions();
+  const { data: pipeline } = useDealPipeline();
+  const { data: assets } = usePortfolioAssets();
+  
+  const exitCandidates = assets?.filter((a: any) => a.moic >= 2.0).slice(0, 2) || [];
+
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      {/* M&A Activity */}
+      <Card className="bg-secondary/50 border-border p-6 lg:col-span-2">
+        <h3 className="text-lg font-medium mb-4">Recent M&A Activity</h3>
+        <div className="space-y-3">
+          {transactions?.map((t: any) => (
+            <div key={t.id} className="flex items-center justify-between p-3 bg-card/50 rounded-lg gap-4">
+              <div className="flex-1 min-w-0">
+                <div className="font-medium">{t.target_name}</div>
+                <div className="text-xs text-muted-foreground">by {t.acquirer_name}</div>
+              </div>
+              <Badge variant="outline">{t.sector}</Badge>
+              <div className="text-right">
+                <div>${t.enterprise_value}M</div>
+                <div className="text-xs text-muted-foreground">{t.ebitda_multiple}x</div>
+              </div>
+              <span className="text-xs text-muted-foreground">{new Date(t.transaction_date).toLocaleDateString()}</span>
+            </div>
+          ))}
+        </div>
+      </Card>
+
+      {/* Valuation Benchmarks */}
+      <Card className="bg-secondary/50 border-border p-6">
+        <h3 className="text-lg font-medium mb-4">Valuation Benchmarks</h3>
+        <div className="space-y-3">
+          {[
+            { s: 'Software', r: '12-16x', t: 'up' },
+            { s: 'Healthcare', r: '10-14x', t: 'stable' },
+            { s: 'Industrials', r: '7-10x', t: 'down' },
+            { s: 'Consumer', r: '8-12x', t: 'stable' }
+          ].map((b) => (
+            <div key={b.s} className="flex justify-between py-2 border-b border-border last:border-0">
+              <div className="flex items-center gap-2">
+                {b.t === 'up' ? (
+                  <TrendingUp className="h-3 w-3 text-emerald-400" />
+                ) : b.t === 'down' ? (
+                  <TrendingDown className="h-3 w-3 text-rose-400" />
+                ) : (
+                  <Activity className="h-3 w-3 text-muted-foreground" />
+                )}
+                <span className="text-sm">{b.s}</span>
+              </div>
+              <span className="text-muted-foreground">{b.r}</span>
+            </div>
+          ))}
+        </div>
+      </Card>
+
+      {/* Pipeline */}
+      <Card className="bg-secondary/50 border-border p-6 lg:col-span-2">
+        <h3 className="text-lg font-medium mb-4">Pipeline Opportunities</h3>
+        <div className="space-y-3">
+          {pipeline?.map((p: any) => (
+            <div key={p.id} className="flex items-center justify-between p-3 bg-card/50 rounded-lg gap-4">
+              <div className="flex-1 min-w-0">
+                <div className="font-medium">{p.company_name}</div>
+                <div className="text-xs text-muted-foreground">{p.sector} • {p.stage}</div>
+              </div>
+              <div className="text-right">
+                <div>${p.revenue}M</div>
+                <div className="text-xs text-muted-foreground">Revenue</div>
+              </div>
+              <div className="text-right">
+                <div className="text-emerald-400">${p.ebitda}M</div>
+                <div className="text-xs text-muted-foreground">EBITDA</div>
+              </div>
+              <div className="text-right">
+                <div>{p.asking_multiple}x</div>
+                <div className="text-xs text-muted-foreground">Ask</div>
+              </div>
+              <Badge className={p.fit_score === 'high' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-yellow-500/20 text-yellow-400'}>
+                {p.fit_score}
+              </Badge>
+            </div>
+          ))}
+        </div>
+      </Card>
+
+      {/* Exit Planning */}
+      <Card className="bg-secondary/50 border-border p-6">
+        <h3 className="text-lg font-medium mb-4">Exit Candidates</h3>
+        <div className="space-y-4">
+          {exitCandidates.map((e: any) => (
+            <div key={e.id} className="p-3 bg-card rounded-lg">
+              <div className="flex justify-between mb-2">
+                <span className="font-medium">{e.name}</span>
+                <Badge variant="secondary">2025</Badge>
+              </div>
+              <div className="grid grid-cols-3 gap-2 text-sm">
+                <div>
+                  <span className="text-muted-foreground">Hold:</span>
+                  <span className="ml-1">{2024 - e.vintage_year} yrs</span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Value:</span>
+                  <span className="ml-1">${(e.current_value / 1e6).toFixed(0)}M</span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">MOIC:</span>
+                  <span className="text-emerald-400 ml-1">{e.moic}x</span>
+                </div>
+              </div>
             </div>
           ))}
         </div>
