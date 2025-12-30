@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useOrgId } from '@/contexts/OrganizationContext';
 import { toast } from 'sonner';
 
 export type CompanyStage = 'pipeline' | 'portfolio' | 'passed' | 'prospect';
@@ -9,6 +10,7 @@ export type PipelineSubStage = 'sourcing' | 'initial-review' | 'deep-dive' | 'lo
 export interface Company {
   id: string;
   user_id: string;
+  organization_id: string | null;
   name: string;
   industry: string | null;
   website: string | null;
@@ -25,6 +27,7 @@ export interface Company {
 
 export function useCompanies() {
   const { user } = useAuth();
+  const orgId = useOrgId();
   const [companies, setCompanies] = useState<Company[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -36,10 +39,19 @@ export function useCompanies() {
     }
 
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from('companies')
         .select('*')
         .order('name');
+
+      // Filter by organization if available, otherwise fallback to user_id
+      if (orgId) {
+        query = query.eq('organization_id', orgId);
+      } else {
+        query = query.eq('user_id', user.id);
+      }
+
+      const { data, error } = await query;
 
       if (error) throw error;
       setCompanies((data as Company[]) || []);
@@ -62,6 +74,7 @@ export function useCompanies() {
         .from('companies')
         .insert({ 
           user_id: user.id, 
+          organization_id: orgId || null,
           name: companyData.name,
           industry: companyData.industry || null,
           website: companyData.website || null,
@@ -178,7 +191,7 @@ export function useCompanies() {
 
   useEffect(() => {
     fetchCompanies();
-  }, [user]);
+  }, [user, orgId]);
 
   return { 
     companies, 

@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useOrgId } from '@/contexts/OrganizationContext';
 import { TeamMember } from './useTeamMembers';
 import { isToday, isTomorrow, isThisWeek, isPast, startOfDay } from 'date-fns';
 
@@ -80,6 +81,7 @@ export function useTasks(filters?: TaskFilters) {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { user } = useAuth();
+  const orgId = useOrgId();
 
   const fetchTasks = useCallback(async () => {
     if (!user) return;
@@ -96,6 +98,13 @@ export function useTasks(filters?: TaskFilters) {
         `)
         .eq('is_template', false) // Exclude templates from regular task list
         .order('due_date', { ascending: true, nullsFirst: false });
+
+      // Filter by organization if available
+      if (orgId) {
+        query = query.eq('organization_id', orgId);
+      } else {
+        query = query.eq('user_id', user.id);
+      }
       
       if (filters?.assignee_id) {
         query = query.eq('assignee_id', filters.assignee_id);
@@ -141,7 +150,7 @@ export function useTasks(filters?: TaskFilters) {
     } finally {
       setIsLoading(false);
     }
-  }, [user, filters?.assignee_id, filters?.assignee_user_id, filters?.assignee_contact_id, filters?.company_id, filters?.contact_id, filters?.status]);
+  }, [user, orgId, filters?.assignee_id, filters?.assignee_user_id, filters?.assignee_contact_id, filters?.company_id, filters?.contact_id, filters?.status]);
 
   const createTask = useCallback(async (input: CreateTaskInput) => {
     if (!user) return null;
@@ -168,6 +177,7 @@ export function useTasks(filters?: TaskFilters) {
         contact_id: input.contact_id,
         tags: input.tags,
         user_id: user.id,
+        organization_id: orgId || null,
       })
       .select()
       .single();
