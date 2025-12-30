@@ -11,11 +11,21 @@ import { UpcomingEvents } from '@/components/dashboard/UpcomingEvents';
 import { PortfolioChart } from '@/components/dashboard/PortfolioChart';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { useDashboardStats } from '@/hooks/useAppData';
+import { Skeleton } from '@/components/ui/skeleton';
+
+function formatCurrency(value: number): string {
+  if (value >= 1000) return `$${(value / 1000).toFixed(1)}B`;
+  if (value >= 1) return `$${value.toFixed(0)}M`;
+  if (value > 0) return `$${(value * 1000).toFixed(0)}K`;
+  return '$0';
+}
 
 export default function Dashboard() {
   const navigate = useNavigate();
   const { currentOrganization, userProfile } = useOrganization();
   const { user } = useAuth();
+  const { stats, isLoading } = useDashboardStats();
   
   const currentDate = new Date().toLocaleDateString('en-US', {
     weekday: 'long',
@@ -32,6 +42,9 @@ export default function Dashboard() {
     if (hour < 18) return `Good afternoon, ${userName}!`;
     return `Good evening, ${userName}!`;
   };
+
+  // Calculate alerts count (overdue tasks + urgent items)
+  const alertCount = stats.overdueTasks;
 
   return (
     <div className="p-6 space-y-6 animate-fade-in">
@@ -51,18 +64,48 @@ export default function Dashboard() {
       {/* Trigger Banner (Hook: Variable Reward) */}
       <TriggerBanner
         greeting={getGreeting()}
-        alertCount={3}
-        portfolioNews="TechCo has news"
-        onReview={() => navigate('/pipeline')}
+        alertCount={alertCount}
+        portfolioNews={stats.portfolio > 0 ? `${stats.portfolio} portfolio companies` : undefined}
+        onReview={() => navigate('/companies')}
       />
 
-      {/* Quick Stats Row (Scannable) */}
+      {/* Quick Stats Row (Real Data) */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-        <QuickStatsTile label="Total AUM" value="$847M" change={12.4} />
-        <QuickStatsTile label="Active Deals" value="12" />
-        <QuickStatsTile label="Alerts" value="3" />
-        <QuickStatsTile label="Portfolio IRR" value="24.2%" change={2.1} />
-        <QuickStatsTile label="Avg MOIC" value="2.4x" change={0.3} />
+        {isLoading ? (
+          <>
+            {[...Array(5)].map((_, i) => (
+              <Skeleton key={i} className="h-20 w-full" />
+            ))}
+          </>
+        ) : (
+          <>
+            <QuickStatsTile 
+              label="Total Revenue" 
+              value={formatCurrency(stats.totalRevenue)} 
+              onClick={() => navigate('/companies?view=portfolio')}
+            />
+            <QuickStatsTile 
+              label="Pipeline" 
+              value={stats.pipeline.toString()} 
+              onClick={() => navigate('/companies?type=pipeline')}
+            />
+            <QuickStatsTile 
+              label="Portfolio" 
+              value={stats.portfolio.toString()} 
+              onClick={() => navigate('/companies?type=portfolio')}
+            />
+            <QuickStatsTile 
+              label="Open Tasks" 
+              value={stats.openTasks.toString()} 
+              onClick={() => navigate('/tasks')}
+            />
+            <QuickStatsTile 
+              label="Contacts" 
+              value={stats.totalContacts.toString()} 
+              onClick={() => navigate('/contacts')}
+            />
+          </>
+        )}
       </div>
 
       {/* Main Content Grid (2/3 + 1/3) */}
