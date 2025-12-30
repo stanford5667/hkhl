@@ -1,8 +1,7 @@
 import { useState, useMemo } from 'react';
-import { Plus, Search, Users, Table2, LayoutGrid, List, Star, Clock, AlertCircle } from 'lucide-react';
+import { Plus, Search, Users, Table2, LayoutGrid, Star, Clock, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
 import {
   Select,
   SelectContent,
@@ -10,9 +9,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { useContacts, ContactCategory, Contact } from '@/hooks/useContacts';
 import { useCompanies } from '@/hooks/useCompanies';
 import { ContactsTable } from '@/components/contacts/ContactsTable';
+import { ContactsBoard } from '@/components/contacts/ContactsBoard';
 import { ContactDetailPanel } from '@/components/contacts/ContactDetailPanel';
 import { CreateContactDialog } from '@/components/contacts/CreateContactDialog';
 import { BulkActionBar } from '@/components/contacts/BulkActionBar';
@@ -21,6 +22,7 @@ import { cn } from '@/lib/utils';
 export default function Contacts() {
   const { contacts, loading, createContact, updateContact, deleteContact } = useContacts();
   const { companies } = useCompanies();
+  const [view, setView] = useState<'table' | 'board'>('table');
   const [searchQuery, setSearchQuery] = useState('');
   const [filterType, setFilterType] = useState<ContactCategory | 'all'>('all');
   const [selectedContacts, setSelectedContacts] = useState<string[]>([]);
@@ -132,6 +134,21 @@ export default function Contacts() {
               </Button>
             </div>
           </div>
+
+          {/* View Toggle */}
+          <ToggleGroup
+            type="single"
+            value={view}
+            onValueChange={(v) => v && setView(v as 'table' | 'board')}
+            className="bg-muted/50 p-1 rounded-lg"
+          >
+            <ToggleGroupItem value="table" aria-label="Table view" className="h-8 w-8 p-0">
+              <Table2 className="h-4 w-4" />
+            </ToggleGroupItem>
+            <ToggleGroupItem value="board" aria-label="Board view" className="h-8 w-8 p-0">
+              <LayoutGrid className="h-4 w-4" />
+            </ToggleGroupItem>
+          </ToggleGroup>
         </div>
       </div>
 
@@ -151,7 +168,7 @@ export default function Contacts() {
                 : 'Try adjusting your search or filters'}
             </p>
           </div>
-        ) : (
+        ) : view === 'table' ? (
           <ContactsTable
             contacts={filteredContacts}
             selectedContacts={selectedContacts}
@@ -159,6 +176,13 @@ export default function Contacts() {
             onContactClick={handleContactClick}
             onUpdateContact={(id, updates) => updateContact(id, updates)}
             onDeleteContact={deleteContact}
+          />
+        ) : (
+          <ContactsBoard
+            contacts={filteredContacts}
+            selectedContacts={selectedContacts}
+            onSelectContacts={setSelectedContacts}
+            onContactClick={handleContactClick}
           />
         )}
       </div>
