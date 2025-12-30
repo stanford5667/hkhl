@@ -12,6 +12,7 @@ import {
 import { Bell, Search, Command, Plus, Building2, FileUp, Calculator, ChevronRight } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { CommandDialog } from "./CommandPalette";
+import { TaskQuickAccess } from "@/components/tasks/TaskQuickAccess";
 
 // Page metadata for breadcrumbs and titles
 const pageMetadata: Record<string, { title: string; subtitle: string; parent?: { label: string; href: string } }> = {
@@ -119,6 +120,9 @@ export function TopBar() {
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
+
+          {/* Task Quick Access */}
+          <TaskQuickAccess />
 
           {/* Notifications */}
           <DropdownMenu>
