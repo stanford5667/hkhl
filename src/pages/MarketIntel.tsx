@@ -52,6 +52,8 @@ import {
   Pie,
 } from "recharts";
 import { format, formatDistanceToNow } from "date-fns";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import {
   usePortfolioAssets,
   useAssetAllocation,
@@ -63,7 +65,6 @@ import {
   usePEFunds,
   useDealPipeline,
   useMATransactions,
-  useMarkAlertRead,
 } from "@/hooks/useMarketIntel";
 
 const CHART_COLORS = [
@@ -102,11 +103,12 @@ const fundraisingData = [
 export default function MarketIntel() {
   const [activeTab, setActiveTab] = useState("overview");
   const [selectedStrategy, setSelectedStrategy] = useState("lbo");
+  const queryClient = useQueryClient();
 
   // Fetch all data
   const { data: assets, isLoading: loadingAssets } = usePortfolioAssets();
-  const { allocation, totalValue } = useAssetAllocation();
-  const totals = usePortfolioTotals();
+  const { data: allocation, isLoading: loadingAllocation } = useAssetAllocation();
+  const { data: totals, isLoading: loadingTotals } = usePortfolioTotals();
   const { data: covenants, isLoading: loadingCovenants } = useCovenants();
   const { data: alerts, isLoading: loadingAlerts } = useAlerts();
   const { data: events, isLoading: loadingEvents } = useEvents();
@@ -114,10 +116,25 @@ export default function MarketIntel() {
   const { data: funds, isLoading: loadingFunds } = usePEFunds();
   const { data: pipeline, isLoading: loadingPipeline } = useDealPipeline();
   const { data: transactions, isLoading: loadingTransactions } = useMATransactions();
-  const markAlertRead = useMarkAlertRead();
+
+  // Mark alert as read mutation
+  const markAlertRead = useMutation({
+    mutationFn: async (alertId: string) => {
+      const { error } = await supabase.from('alerts').update({ is_read: true }).eq('id', alertId);
+      if (error) throw error;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['alerts'] }),
+  });
 
   const unreadAlerts = alerts?.filter(a => !a.is_read).length || 0;
   const criticalAlerts = alerts?.filter(a => a.severity === 'critical' && !a.is_read).length || 0;
+  
+  // Computed totals
+  const totalValue = totals?.totalValue || 0;
+  const totalCost = totals?.totalCost || 0;
+  const returnPct = totalCost > 0 ? ((totalValue - totalCost) / totalCost) * 100 : 0;
+  const avgMoic = totals?.avgMoic || 0;
+  const companyCount = assets?.length || 0;
 
   const formatCurrency = (value: number) => {
     if (value >= 1e9) return `$${(value / 1e9).toFixed(1)}B`;
@@ -158,9 +175,9 @@ export default function MarketIntel() {
               <DollarSign className="h-4 w-4 text-primary" />
               <span className="text-xs text-muted-foreground">Portfolio Value</span>
             </div>
-            <p className="text-xl font-bold">{formatCurrency(totals.totalValue)}</p>
-            <p className={`text-xs ${totals.returnPct >= 0 ? 'text-success' : 'text-destructive'}`}>
-              {totals.returnPct >= 0 ? '+' : ''}{totals.returnPct.toFixed(1)}% return
+            <p className="text-xl font-bold">{formatCurrency(totalValue)}</p>
+            <p className={`text-xs ${returnPct >= 0 ? 'text-success' : 'text-destructive'}`}>
+              {returnPct >= 0 ? '+' : ''}{returnPct.toFixed(1)}% return
             </p>
           </CardContent>
         </Card>
@@ -171,8 +188,8 @@ export default function MarketIntel() {
               <Building2 className="h-4 w-4 text-muted-foreground" />
               <span className="text-xs text-muted-foreground">Holdings</span>
             </div>
-            <p className="text-xl font-bold">{totals.companyCount}</p>
-            <p className="text-xs text-muted-foreground">Avg MOIC: {totals.avgMoic.toFixed(1)}x</p>
+            <p className="text-xl font-bold">{companyCount}</p>
+            <p className="text-xs text-muted-foreground">Avg MOIC: {avgMoic.toFixed(1)}x</p>
           </CardContent>
         </Card>
 
