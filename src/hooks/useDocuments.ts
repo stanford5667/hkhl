@@ -1,12 +1,14 @@
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useOrgId } from '@/contexts/OrganizationContext';
 import { toast } from 'sonner';
 
 export interface DocumentRecord {
   id: string;
   company_id: string;
   user_id: string;
+  organization_id: string | null;
   name: string;
   file_path: string;
   file_type: string | null;
@@ -29,6 +31,7 @@ interface SaveDocumentParams {
 
 export function useDocuments() {
   const { user } = useAuth();
+  const orgId = useOrgId();
   const [saving, setSaving] = useState(false);
 
   const saveDocument = async (params: SaveDocumentParams): Promise<DocumentRecord | null> => {
@@ -44,6 +47,7 @@ export function useDocuments() {
         .insert({
           company_id: params.companyId,
           user_id: user.id,
+          organization_id: orgId || null,
           name: params.name,
           file_path: params.filePath,
           file_type: params.fileType,
@@ -71,11 +75,18 @@ export function useDocuments() {
     if (!user) return [];
 
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from('documents')
         .select('*')
         .eq('company_id', companyId)
         .order('created_at', { ascending: false });
+
+      // Filter by organization if available
+      if (orgId) {
+        query = query.eq('organization_id', orgId);
+      }
+
+      const { data, error } = await query;
 
       if (error) throw error;
       return data || [];
