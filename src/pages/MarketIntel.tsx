@@ -175,19 +175,11 @@ export default function MarketIntel() {
         </TabsContent>
 
         <TabsContent value="strategies" className="mt-6">
-          <Card className="p-8 text-center text-muted-foreground">
-            <Target className="h-12 w-12 mx-auto mb-4 opacity-50" />
-            <p className="text-lg font-medium">Strategies Tab</p>
-            <p>LBO, Growth, and Credit strategy overviews</p>
-          </Card>
+          <StrategiesContent />
         </TabsContent>
 
         <TabsContent value="funds" className="mt-6">
-          <Card className="p-8 text-center text-muted-foreground">
-            <Landmark className="h-12 w-12 mx-auto mb-4 opacity-50" />
-            <p className="text-lg font-medium">Funds Tab</p>
-            <p>Recently closed funds and funds in market</p>
-          </Card>
+          <FundsContent />
         </TabsContent>
 
         <TabsContent value="lpgp" className="mt-6">
@@ -958,6 +950,154 @@ function LandscapeContent() {
           ))}
         </Card>
       </div>
+    </div>
+  );
+}
+
+function StrategiesContent() {
+  const [strategy, setStrategy] = useState('lbo');
+  
+  return (
+    <div className="space-y-6">
+      <div className="flex gap-2 flex-wrap">
+        {[{ id: 'lbo', n: 'LBO', i: '🏦' }, { id: 'growth', n: 'Growth Equity', i: '📈' }, { id: 'credit', n: 'Private Credit', i: '💳' }].map((s) => (
+          <Button key={s.id} variant={strategy === s.id ? 'default' : 'outline'} onClick={() => setStrategy(s.id)} className={strategy === s.id ? 'bg-primary' : ''}>
+            {s.i} {s.n}
+          </Button>
+        ))}
+      </div>
+
+      {strategy === 'lbo' && (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <Card className="bg-secondary/50 border-border p-6 lg:col-span-2">
+            <h3 className="text-lg font-medium mb-4">Leveraged Buyout (LBO)</h3>
+            <p className="text-muted-foreground text-sm mb-4">Acquire companies using 50-70% debt. Returns from debt paydown, multiple expansion, EBITDA growth.</p>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+              {[{ l: 'Entry Multiple', v: '8-12x' }, { l: 'Target IRR', v: '20-25%' }, { l: 'Hold Period', v: '4-6 yrs' }, { l: 'Leverage', v: '4-6x' }].map((m) => (
+                <div key={m.l} className="bg-background rounded p-3"><div className="text-xs text-muted-foreground">{m.l}</div><div className="text-xl font-bold">{m.v}</div></div>
+              ))}
+            </div>
+            <h4 className="text-sm text-muted-foreground mb-3">Value Creation Levers</h4>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {[{ t: 'Revenue Growth', items: ['Pricing', 'New customers', 'Expansion'], pct: '20-40%' }, { t: 'Margin', items: ['Procurement', 'Efficiency', 'SG&A'], pct: '25-35%' }, { t: 'Financial', items: ['Debt paydown', 'Refinancing'], pct: '30-50%' }].map((l) => (
+                <div key={l.t} className="bg-background rounded p-4">
+                  <h5 className="font-medium mb-2">{l.t}</h5>
+                  <ul className="text-xs text-muted-foreground mb-2">{l.items.map((i) => <li key={i}>• {i}</li>)}</ul>
+                  <Badge variant="outline" className="text-emerald-400">{l.pct}</Badge>
+                </div>
+              ))}
+            </div>
+          </Card>
+          <Card className="bg-secondary/50 border-border p-6">
+            <h3 className="text-lg font-medium mb-4">Success Factors</h3>
+            <div className="space-y-2 mb-6">
+              {[{ f: 'Stable cash flows', l: 'critical' }, { f: 'Market position', l: 'high' }, { f: 'Strong mgmt', l: 'high' }, { f: 'Multiple exits', l: 'medium' }].map((x) => (
+                <div key={x.f} className="flex justify-between py-1">
+                  <span className="text-muted-foreground text-sm">{x.f}</span>
+                  <Badge variant="outline" className={x.l === 'critical' ? 'text-rose-400' : x.l === 'high' ? 'text-yellow-400' : 'text-blue-400'}>{x.l}</Badge>
+                </div>
+              ))}
+            </div>
+            <h4 className="text-sm text-muted-foreground mb-3">Key Risks</h4>
+            <div className="space-y-1 text-sm">
+              {['Over-leverage', 'Revenue decline', 'Rate exposure', 'Exit compression'].map((r) => (
+                <div key={r} className="flex items-center gap-2 text-rose-400"><AlertTriangle className="h-3 w-3" />{r}</div>
+              ))}
+            </div>
+          </Card>
+        </div>
+      )}
+
+      {strategy === 'growth' && (
+        <Card className="bg-secondary/50 border-border p-6">
+          <h3 className="text-lg font-medium mb-4">Growth Equity</h3>
+          <p className="text-muted-foreground mb-4">Minority investments (20-40%) in profitable, growing companies. Little leverage. Returns from top-line growth.</p>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {[{ l: 'Entry', v: '3-8x Rev' }, { l: 'Target IRR', v: '25-35%' }, { l: 'Hold', v: '4-7 yrs' }, { l: 'Ownership', v: '20-40%' }].map((m) => (
+              <div key={m.l} className="bg-background rounded p-3"><div className="text-xs text-muted-foreground">{m.l}</div><div className="text-xl font-bold">{m.v}</div></div>
+            ))}
+          </div>
+        </Card>
+      )}
+
+      {strategy === 'credit' && (
+        <Card className="bg-secondary/50 border-border p-6">
+          <h3 className="text-lg font-medium mb-4">Private Credit</h3>
+          <p className="text-muted-foreground mb-4">Non-bank lending to middle market. $1.7T+ AUM. Banks retreating since 2008.</p>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {[{ t: 'Direct Lending', y: 'SOFR+500-650', r: 'Lower' }, { t: 'Unitranche', y: 'SOFR+575-700', r: 'Medium' }, { t: 'Mezzanine', y: '12-16% PIK', r: 'Higher' }].map((c) => (
+              <div key={c.t} className="bg-background rounded p-3">
+                <div className="font-medium mb-1">{c.t}</div>
+                <div className="flex justify-between text-xs"><span className="text-emerald-400">{c.y}</span><Badge variant="outline">{c.r}</Badge></div>
+              </div>
+            ))}
+          </div>
+        </Card>
+      )}
+    </div>
+  );
+}
+
+function FundsContent() {
+  const { data: funds } = usePEFunds();
+  const closed = funds?.filter((f: any) => f.status === 'closed') || [];
+  const raising = funds?.filter((f: any) => f.status === 'fundraising') || [];
+
+  return (
+    <div className="space-y-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <Card className="bg-secondary/50 border-border p-6 lg:col-span-2">
+          <h3 className="text-lg font-medium mb-4">Recently Closed Funds</h3>
+          <div className="space-y-3">
+            {closed.map((f: any) => (
+              <div key={f.id} className="flex items-center justify-between p-3 bg-background/50 rounded-lg">
+                <div><div className="font-medium">{f.fund_name}</div><div className="text-xs text-muted-foreground">{f.manager_name} • {f.fund_type}</div></div>
+                <div className="flex gap-6 items-center">
+                  <div className="text-right"><div>${(f.current_size / 1000).toFixed(1)}B</div><div className="text-xs text-muted-foreground">Size</div></div>
+                  <div className="text-right"><div className="text-emerald-400">{f.prior_fund_irr}%</div><div className="text-xs text-muted-foreground">Prior IRR</div></div>
+                  <Badge>Closed</Badge>
+                </div>
+              </div>
+            ))}
+          </div>
+        </Card>
+
+        <Card className="bg-secondary/50 border-border p-6">
+          <h3 className="text-lg font-medium mb-4 flex items-center gap-2"><Activity className="h-5 w-5 text-primary" />In Market</h3>
+          <div className="space-y-3">
+            {raising.map((f: any) => {
+              const pct = (f.current_size / f.target_size) * 100;
+              return (
+                <div key={f.id} className="py-2 border-b border-border last:border-0">
+                  <div className="flex justify-between mb-1"><span className="text-sm">{f.fund_name}</span><span className="text-xs text-muted-foreground">${f.current_size / 1000}B / ${f.target_size / 1000}B</span></div>
+                  <div className="w-full bg-muted rounded-full h-1.5"><div className="bg-primary h-1.5 rounded-full" style={{ width: `${pct}%` }} /></div>
+                </div>
+              );
+            })}
+          </div>
+        </Card>
+      </div>
+
+      <Card className="bg-secondary/50 border-border p-6">
+        <h3 className="text-lg font-medium mb-4">Performance League (2015-2019 Vintage)</h3>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {[
+            { cat: 'Top Buyout', funds: [{ r: '🥇', n: 'Vista VII', irr: 42, m: 3.2 }, { r: '🥈', n: 'Thoma Bravo XIV', irr: 38, m: 2.9 }, { r: '🥉', n: 'Silver Lake V', irr: 34, m: 2.6 }] },
+            { cat: 'Top Growth', funds: [{ r: '🥇', n: 'Insight XI', irr: 48, m: 3.8 }, { r: '🥈', n: 'GA 2018', irr: 32, m: 2.8 }, { r: '🥉', n: 'TA XIII', irr: 28, m: 2.4 }] },
+            { cat: 'Top Credit', funds: [{ r: '🥇', n: 'Ares III', irr: 14, m: 1.5 }, { r: '🥈', n: 'Owl Rock', irr: 12, m: 1.4 }, { r: '🥉', n: 'Golub XIII', irr: 11, m: 1.4 }] },
+          ].map((c) => (
+            <div key={c.cat}>
+              <h4 className="text-sm text-muted-foreground mb-3">{c.cat}</h4>
+              {c.funds.map((f) => (
+                <div key={f.n} className="flex justify-between py-2 border-b border-border last:border-0">
+                  <div className="flex gap-2"><span>{f.r}</span><span className="text-sm">{f.n}</span></div>
+                  <span className="text-emerald-400">{f.irr}% / {f.m}x</span>
+                </div>
+              ))}
+            </div>
+          ))}
+        </div>
+      </Card>
     </div>
   );
 }
