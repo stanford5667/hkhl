@@ -1,13 +1,25 @@
 import { motion } from 'framer-motion';
-import { Task } from '@/hooks/useTasks';
 import { TaskCheckbox } from './TaskCheckbox';
 import { RelationshipBadges } from './RelationshipBadges';
 import { DateDisplay } from './DateDisplay';
-import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 
+// Generic task type that works with both useTasks and useAppTasks
+interface TaskRowTask {
+  id: string;
+  title: string;
+  status: string;
+  priority?: string;
+  due_date?: string | null;
+  completed_at?: string | null;
+  company_id?: string | null;
+  contact_id?: string | null;
+  company?: { id: string; name: string } | null;
+  contact?: { id: string; name: string } | null;
+}
+
 interface TaskRowProps {
-  task: Task;
+  task: TaskRowTask;
   compact?: boolean;
   onToggle?: (taskId: string) => void;
   onClick?: () => void;
@@ -26,12 +38,12 @@ export function TaskRow({ task, compact = false, onToggle, onClick }: TaskRowPro
   // Build relationship data
   const company = task.company_id ? { 
     id: task.company_id, 
-    name: (task as any).company?.name || 'Company' 
+    name: task.company?.name || 'Company' 
   } : null;
   
   const contact = task.contact_id ? { 
     id: task.contact_id, 
-    name: (task as any).contact?.name || 'Contact' 
+    name: task.contact?.name || 'Contact' 
   } : null;
 
   return (
@@ -44,7 +56,7 @@ export function TaskRow({ task, compact = false, onToggle, onClick }: TaskRowPro
       className={cn(
         "flex items-center gap-3 group rounded-lg transition-colors",
         compact ? "p-2" : "p-3",
-        "hover:bg-slate-800/50 cursor-pointer"
+        "hover:bg-secondary/50 cursor-pointer"
       )}
     >
       <TaskCheckbox 
@@ -77,7 +89,7 @@ export function TaskRow({ task, compact = false, onToggle, onClick }: TaskRowPro
         {!compact && task.priority && task.priority !== 'medium' && (
           <div className={cn(
             "h-2 w-2 rounded-full",
-            priorityColors[task.priority]
+            priorityColors[task.priority] || priorityColors.medium
           )} />
         )}
         {task.due_date && (
