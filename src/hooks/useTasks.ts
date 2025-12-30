@@ -7,6 +7,7 @@ import { isToday, isTomorrow, isThisWeek, isPast, startOfDay } from 'date-fns';
 export type TaskPriority = 'low' | 'medium' | 'high' | 'urgent';
 export type TaskStatus = 'todo' | 'in_progress' | 'blocked' | 'done';
 export type AssigneeType = 'user' | 'contact' | 'team_member';
+export type RecurrencePattern = 'daily' | 'weekly' | 'biweekly' | 'monthly' | 'quarterly' | 'yearly';
 
 export interface Task {
   id: string;
@@ -28,6 +29,15 @@ export interface Task {
   user_id: string;
   created_at: string;
   updated_at: string;
+  // Recurring task fields
+  recurrence_pattern: RecurrencePattern | null;
+  recurrence_interval: number | null;
+  recurrence_end_date: string | null;
+  next_occurrence_date: string | null;
+  parent_task_id: string | null;
+  is_template: boolean;
+  template_name: string | null;
+  // Relations
   assignee?: TeamMember;
   assignee_contact?: { id: string; first_name: string; last_name: string };
   company?: { id: string; name: string };
@@ -48,6 +58,12 @@ export interface CreateTaskInput {
   company_id?: string | null;
   contact_id?: string | null;
   tags?: string[];
+  // Recurring task fields
+  recurrence_pattern?: RecurrencePattern | null;
+  recurrence_interval?: number;
+  recurrence_end_date?: string | null;
+  is_template?: boolean;
+  template_name?: string;
 }
 
 export interface TaskFilters {
@@ -78,6 +94,7 @@ export function useTasks(filters?: TaskFilters) {
           company:companies(id, name),
           linked_contact:contacts!tasks_contact_id_fkey(id, first_name, last_name)
         `)
+        .eq('is_template', false) // Exclude templates from regular task list
         .order('due_date', { ascending: true, nullsFirst: false });
       
       if (filters?.assignee_id) {
@@ -142,6 +159,11 @@ export function useTasks(filters?: TaskFilters) {
         assignee_type: input.assignee_type,
         assignee_user_id: input.assignee_user_id,
         assignee_contact_id: input.assignee_contact_id,
+        recurrence_pattern: input.recurrence_pattern,
+        recurrence_interval: input.recurrence_interval || 1,
+        recurrence_end_date: input.recurrence_end_date,
+        is_template: input.is_template || false,
+        template_name: input.template_name,
         company_id: input.company_id,
         contact_id: input.contact_id,
         tags: input.tags,

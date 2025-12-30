@@ -998,9 +998,16 @@ export type Database = {
           due_date: string | null
           due_time: string | null
           id: string
+          is_template: boolean | null
+          next_occurrence_date: string | null
+          parent_task_id: string | null
           priority: string
+          recurrence_end_date: string | null
+          recurrence_interval: number | null
+          recurrence_pattern: string | null
           status: string
           tags: string[] | null
+          template_name: string | null
           title: string
           updated_at: string
           user_id: string
@@ -1019,9 +1026,16 @@ export type Database = {
           due_date?: string | null
           due_time?: string | null
           id?: string
+          is_template?: boolean | null
+          next_occurrence_date?: string | null
+          parent_task_id?: string | null
           priority?: string
+          recurrence_end_date?: string | null
+          recurrence_interval?: number | null
+          recurrence_pattern?: string | null
           status?: string
           tags?: string[] | null
+          template_name?: string | null
           title: string
           updated_at?: string
           user_id: string
@@ -1040,9 +1054,16 @@ export type Database = {
           due_date?: string | null
           due_time?: string | null
           id?: string
+          is_template?: boolean | null
+          next_occurrence_date?: string | null
+          parent_task_id?: string | null
           priority?: string
+          recurrence_end_date?: string | null
+          recurrence_interval?: number | null
+          recurrence_pattern?: string | null
           status?: string
           tags?: string[] | null
+          template_name?: string | null
           title?: string
           updated_at?: string
           user_id?: string
@@ -1081,6 +1102,13 @@ export type Database = {
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "team_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_parent_task_id_fkey"
+            columns: ["parent_task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
             referencedColumns: ["id"]
           },
         ]
