@@ -28,6 +28,7 @@ import {
   LogOut,
   User,
   Sparkles,
+  CheckSquare,
 } from "lucide-react";
 
 interface NavItem {
@@ -58,6 +59,12 @@ const navigation: NavItem[] = [
     subtitle: "Network",
     href: "/contacts", 
     icon: Users 
+  },
+  { 
+    label: "Tasks", 
+    subtitle: "To-Do",
+    href: "/tasks", 
+    icon: CheckSquare 
   },
   { 
     label: "Models", 
