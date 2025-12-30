@@ -26,3 +26,6 @@ verify_jwt = false
 
 [functions.extract-company-financials]
 verify_jwt = false
+
+[functions.market-intel]
+verify_jwt = false
