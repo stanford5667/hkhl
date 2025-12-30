@@ -11,6 +11,8 @@ import { CompanyTypeBadge } from '@/components/companies/CompanyTypeBadge';
 import { EditCompanyDialog } from '@/components/companies/EditCompanyDialog';
 import { MarketIntelTab } from '@/components/companies/MarketIntelTab';
 import { EmbeddedDataRoom } from '@/components/companies/EmbeddedDataRoom';
+import { CompanyTeamPanel } from '@/components/companies/CompanyTeamPanel';
+import { CompanyTasksTab } from '@/components/companies/CompanyTasksTab';
 
 import { CompanySummaryCard } from '@/components/companies/CompanySummaryCard';
 import { CompanyContactsCard } from '@/components/companies/CompanyContactsCard';
@@ -33,8 +35,10 @@ import {
   StickyNote,
   Mail,
   Phone,
+  CheckSquare,
 } from 'lucide-react';
 import { format } from 'date-fns';
+import { useCompanyTasks } from '@/hooks/useTasks';
 
 interface CompanyDetail {
   id: string;
@@ -267,6 +271,10 @@ export default function CompanyDetail() {
             <LayoutDashboard className="h-4 w-4" />
             Overview
           </TabsTrigger>
+          <TabsTrigger value="tasks" className="gap-2">
+            <CheckSquare className="h-4 w-4" />
+            Tasks
+          </TabsTrigger>
           <TabsTrigger value="dataroom" className="gap-2">
             <FolderOpen className="h-4 w-4" />
             Data Room
@@ -293,6 +301,11 @@ export default function CompanyDetail() {
             )}
           </TabsTrigger>
         </TabsList>
+
+        {/* Tasks Tab */}
+        <TabsContent value="tasks">
+          <CompanyTasksTab companyId={company.id} companyName={company.name} />
+        </TabsContent>
 
         {/* Data Room Tab */}
         <TabsContent value="dataroom">
@@ -361,59 +374,64 @@ export default function CompanyDetail() {
             </Card>
 
             {/* Quick Stats Card */}
-            <Card className="glass-card">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <TrendingUp className="h-5 w-5 text-success" />
-                  Quick Stats
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex justify-between items-center">
-                  <span className="text-muted-foreground">Health Score</span>
-                  <span className={`text-xl font-bold ${getHealthScore() >= 70 ? 'text-emerald-400' : getHealthScore() >= 40 ? 'text-yellow-400' : 'text-rose-400'}`}>
-                    {getHealthScore()}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-muted-foreground">EBITDA Margin</span>
-                  <span className="text-foreground font-medium">
-                    {company.revenue_ltm && company.ebitda_ltm 
-                      ? `${((company.ebitda_ltm / company.revenue_ltm) * 100).toFixed(1)}%`
-                      : '—'}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-muted-foreground">Est. EV (8x)</span>
-                  <span className="text-foreground font-medium">
-                    {company.ebitda_ltm ? formatCurrency(company.ebitda_ltm * 8) : '—'}
-                  </span>
-                </div>
-                <div className="pt-3 border-t border-border space-y-2">
-                  <div className="flex justify-between items-center text-sm">
-                    <span className="text-muted-foreground flex items-center gap-1.5">
-                      <Users className="h-3.5 w-3.5" />
-                      Contacts
+            <div className="space-y-6">
+              <Card className="glass-card">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <TrendingUp className="h-5 w-5 text-success" />
+                    Quick Stats
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex justify-between items-center">
+                    <span className="text-muted-foreground">Health Score</span>
+                    <span className={`text-xl font-bold ${getHealthScore() >= 70 ? 'text-emerald-400' : getHealthScore() >= 40 ? 'text-yellow-400' : 'text-rose-400'}`}>
+                      {getHealthScore()}
                     </span>
-                    <span className="text-foreground">{contacts.length}</span>
                   </div>
-                  <div className="flex justify-between items-center text-sm">
-                    <span className="text-muted-foreground flex items-center gap-1.5">
-                      <FolderOpen className="h-3.5 w-3.5" />
-                      Documents
+                  <div className="flex justify-between items-center">
+                    <span className="text-muted-foreground">EBITDA Margin</span>
+                    <span className="text-foreground font-medium">
+                      {company.revenue_ltm && company.ebitda_ltm 
+                        ? `${((company.ebitda_ltm / company.revenue_ltm) * 100).toFixed(1)}%`
+                        : '—'}
                     </span>
-                    <span className="text-foreground">{documents.length}</span>
                   </div>
-                  <div className="flex justify-between items-center text-sm">
-                    <span className="text-muted-foreground flex items-center gap-1.5">
-                      <Brain className="h-3.5 w-3.5" />
-                      Models
+                  <div className="flex justify-between items-center">
+                    <span className="text-muted-foreground">Est. EV (8x)</span>
+                    <span className="text-foreground font-medium">
+                      {company.ebitda_ltm ? formatCurrency(company.ebitda_ltm * 8) : '—'}
                     </span>
-                    <span className="text-foreground">{models.length}</span>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
+                  <div className="pt-3 border-t border-border space-y-2">
+                    <div className="flex justify-between items-center text-sm">
+                      <span className="text-muted-foreground flex items-center gap-1.5">
+                        <Users className="h-3.5 w-3.5" />
+                        Contacts
+                      </span>
+                      <span className="text-foreground">{contacts.length}</span>
+                    </div>
+                    <div className="flex justify-between items-center text-sm">
+                      <span className="text-muted-foreground flex items-center gap-1.5">
+                        <FolderOpen className="h-3.5 w-3.5" />
+                        Documents
+                      </span>
+                      <span className="text-foreground">{documents.length}</span>
+                    </div>
+                    <div className="flex justify-between items-center text-sm">
+                      <span className="text-muted-foreground flex items-center gap-1.5">
+                        <Brain className="h-3.5 w-3.5" />
+                        Models
+                      </span>
+                      <span className="text-foreground">{models.length}</span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Team Panel */}
+              <CompanyTeamPanel companyId={company.id} />
+            </div>
           </div>
 
           {/* Financials Summary */}
