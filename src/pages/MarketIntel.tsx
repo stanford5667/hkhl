@@ -7,7 +7,7 @@ import {
   Activity, PieChart, Briefcase, Zap, Globe, Target, Building2, BookOpen, 
   Landmark, Users, Sparkles, Bell, RefreshCw, DollarSign, TrendingUp, TrendingDown,
   BarChart3, Shield, AlertTriangle, ArrowUpRight, ArrowDownRight, Home, 
-  LineChart, Coins, ChevronRight, AlertCircle, Calendar
+  LineChart, Coins, ChevronRight, AlertCircle, Calendar, ExternalLink
 } from 'lucide-react';
 import { usePortfolioTotals, useAlerts, useDealPipeline, usePortfolioAssets, useAssetAllocation, useEvents, useEconomicIndicators, useCovenants, useMATransactions, usePEFunds } from '@/hooks/useMarketIntel';
 
@@ -183,19 +183,11 @@ export default function MarketIntel() {
         </TabsContent>
 
         <TabsContent value="lpgp" className="mt-6">
-          <Card className="p-8 text-center text-muted-foreground">
-            <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
-            <p className="text-lg font-medium">LP/GP Tab</p>
-            <p>LP sentiment and fee trends</p>
-          </Card>
+          <LPGPContent />
         </TabsContent>
 
         <TabsContent value="research" className="mt-6">
-          <Card className="p-8 text-center text-muted-foreground">
-            <Sparkles className="h-12 w-12 mx-auto mb-4 opacity-50" />
-            <p className="text-lg font-medium">Research Tab</p>
-            <p>AI research assistant and saved reports</p>
-          </Card>
+          <ResearchContent />
         </TabsContent>
       </Tabs>
     </div>
@@ -1098,6 +1090,130 @@ function FundsContent() {
           ))}
         </div>
       </Card>
+    </div>
+  );
+}
+
+function LPGPContent() {
+  return (
+    <div className="space-y-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <Card className="bg-secondary/50 border-border p-6">
+          <h3 className="text-lg font-medium mb-4">LP Sentiment</h3>
+          <div className="space-y-3">
+            {[{ t: 'PE Allocation', s: 'maintain', p: 62 }, { t: 'Credit Allocation', s: 'increase', p: 45 }, { t: 'Secondaries', s: 'increase', p: 52 }, { t: 'Co-Investment', s: 'increase', p: 68 }, { t: 'ESG Requirements', s: 'increase', p: 71 }].map((x) => (
+              <div key={x.t} className="flex justify-between py-2 border-b border-border last:border-0">
+                <span className="text-muted-foreground text-sm">{x.t}</span>
+                <div className="flex gap-2"><span className={x.s === 'increase' ? 'text-emerald-400' : 'text-muted-foreground'}>{x.s}</span><Badge variant="outline">{x.p}%</Badge></div>
+              </div>
+            ))}
+          </div>
+        </Card>
+
+        <Card className="bg-secondary/50 border-border p-6">
+          <h3 className="text-lg font-medium mb-4">Fee & Terms</h3>
+          <div className="space-y-3">
+            {[{ i: 'Management Fee', c: '1.75-2.0%', n: 'Large LPs get 1.5%' }, { i: 'Carry', c: '20%', n: 'Top performers >20%' }, { i: 'Preferred Return', c: '8%', n: 'Standard' }, { i: 'GP Commit', c: '2-5%', n: 'Trending to 5%+' }, { i: 'Fund Term', c: '10+2+1', n: '12yr common' }].map((x) => (
+              <div key={x.i} className="py-2 border-b border-border last:border-0">
+                <div className="flex justify-between"><span className="text-sm">{x.i}</span><span className="text-muted-foreground">{x.c}</span></div>
+                <div className="text-xs text-muted-foreground">{x.n}</div>
+              </div>
+            ))}
+          </div>
+        </Card>
+
+        <Card className="bg-secondary/50 border-border p-6">
+          <h3 className="text-lg font-medium mb-4">LP Universe</h3>
+          <div className="space-y-2">
+            {[{ t: 'Public Pensions', p: 28, tr: '→' }, { t: 'Sovereign Wealth', p: 18, tr: '↑' }, { t: 'Insurance', p: 14, tr: '↑' }, { t: 'Endowments', p: 12, tr: '→' }, { t: 'Family Offices', p: 10, tr: '↑' }, { t: 'Fund of Funds', p: 8, tr: '↓' }].map((x) => (
+              <div key={x.t} className="flex justify-between py-1">
+                <span className="text-muted-foreground text-sm">{x.t}</span>
+                <div className="flex gap-2"><Badge variant="outline">{x.p}%</Badge><span className={x.tr === '↑' ? 'text-emerald-400' : x.tr === '↓' ? 'text-rose-400' : 'text-muted-foreground'}>{x.tr}</span></div>
+              </div>
+            ))}
+          </div>
+        </Card>
+
+        <Card className="bg-secondary/50 border-border p-6 lg:col-span-2">
+          <h3 className="text-lg font-medium mb-4">What LPs Want</h3>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {[{ t: 'Track Record', d: 'Consistent across cycles', p: 'critical' }, { t: 'Differentiation', d: 'Unique strategy', p: 'high' }, { t: 'Team Stability', d: 'Low turnover', p: 'high' }, { t: 'Co-Invest Rights', d: 'Fee-free boost', p: 'high' }, { t: 'Transparency', d: 'Frequent reporting', p: 'high' }, { t: 'ESG', d: 'Formal policy', p: 'medium' }, { t: 'Alignment', d: '5%+ GP commit', p: 'medium' }, { t: 'Fair Terms', d: 'Competitive fees', p: 'medium' }].map((w) => (
+              <div key={w.t} className={`bg-background rounded p-3 border ${w.p === 'critical' ? 'border-rose-500/30' : w.p === 'high' ? 'border-yellow-500/30' : 'border-blue-500/30'}`}>
+                <div className="flex justify-between mb-1"><span className="font-medium text-sm">{w.t}</span><Badge variant="outline" className="text-xs">{w.p}</Badge></div>
+                <p className="text-xs text-muted-foreground">{w.d}</p>
+              </div>
+            ))}
+          </div>
+        </Card>
+
+        <Card className="bg-secondary/50 border-border p-6">
+          <h3 className="text-lg font-medium mb-4">LP News</h3>
+          <div className="space-y-3">
+            {[{ h: 'CalPERS cuts PE to 13%', d: 'Denominator effect' }, { h: 'ADIA $2B to infra', d: 'Digital focus' }, { h: 'Harvard PE returns 11%', d: 'Below benchmark' }, { h: 'OTPP directs program', d: '$5B allocation' }].map((n) => (
+              <div key={n.h} className="py-2 border-b border-border last:border-0">
+                <div className="text-sm">{n.h}</div>
+                <div className="text-xs text-muted-foreground">{n.d}</div>
+              </div>
+            ))}
+          </div>
+        </Card>
+      </div>
+    </div>
+  );
+}
+
+function ResearchContent() {
+  const [query, setQuery] = useState('');
+  
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <Card className="bg-secondary/50 border-border p-6 lg:col-span-2">
+        <h3 className="text-lg font-medium mb-4 flex items-center gap-2"><Sparkles className="h-5 w-5 text-purple-400" />AI Research Assistant</h3>
+        <p className="text-sm text-muted-foreground mb-4">Ask questions about portfolio, markets, or PE industry</p>
+        <div className="bg-background rounded-lg p-4 mb-4 min-h-[200px]">
+          <div className="text-muted-foreground text-sm">
+            <p className="mb-2">Example queries:</p>
+            <ul className="space-y-1">
+              <li>• "Impact of rising rates on our RE portfolio?"</li>
+              <li>• "Compare TechCo margins to software benchmarks"</li>
+              <li>• "Recent M&A activity in healthcare services"</li>
+              <li>• "Which portfolio companies have covenant risk?"</li>
+              <li>• "Generate LP market update memo"</li>
+            </ul>
+          </div>
+        </div>
+        <div className="flex gap-2">
+          <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Ask about portfolio, markets, PE industry..." className="flex-1 bg-background border border-border rounded px-3 py-2" />
+          <Button className="bg-purple-600 hover:bg-purple-500"><Sparkles className="h-4 w-4 mr-2" />Ask</Button>
+        </div>
+      </Card>
+
+      <div className="space-y-6">
+        <Card className="bg-secondary/50 border-border p-6">
+          <h3 className="text-lg font-medium mb-4">Saved Reports</h3>
+          <div className="space-y-2">
+            {[{ t: 'Q4 Portfolio Review', d: 'Dec 20', ty: 'internal' }, { t: 'Healthcare Deep Dive', d: 'Dec 15', ty: 'research' }, { t: 'Rate Impact Analysis', d: 'Dec 10', ty: 'analysis' }, { t: 'TechCo Competitive', d: 'Dec 5', ty: 'company' }].map((r) => (
+              <div key={r.t} className="flex justify-between py-2 border-b border-border last:border-0 hover:bg-background/50 cursor-pointer rounded px-2 -mx-2">
+                <div><div className="text-sm">{r.t}</div><div className="text-xs text-muted-foreground">{r.d}</div></div>
+                <Badge variant="outline">{r.ty}</Badge>
+              </div>
+            ))}
+          </div>
+          <Button variant="outline" className="w-full mt-4" size="sm">+ Generate Report</Button>
+        </Card>
+
+        <Card className="bg-secondary/50 border-border p-6">
+          <h3 className="text-lg font-medium mb-4">Quick Links</h3>
+          <div className="space-y-2">
+            {['Federal Reserve', 'SEC EDGAR', 'Pitchbook', 'Capital IQ', 'Bloomberg'].map((l) => (
+              <a key={l} href="#" className="flex justify-between py-2 text-muted-foreground hover:text-primary">
+                <span className="text-sm">{l}</span>
+                <ExternalLink className="h-3 w-3" />
+              </a>
+            ))}
+          </div>
+        </Card>
+      </div>
     </div>
   );
 }
