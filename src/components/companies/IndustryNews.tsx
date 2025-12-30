@@ -1,8 +1,6 @@
-import { useState, useEffect } from 'react';
 import { 
   Newspaper, 
   ExternalLink, 
-  RefreshCw, 
   TrendingUp, 
   TrendingDown,
   Clock,
@@ -14,89 +12,26 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import { CacheStatusBar } from '@/components/ui/CacheStatusBar';
+import { useCachedIndustryIntel } from '@/hooks/useCachedIndustryIntel';
 import { cn } from '@/lib/utils';
-import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
 
 interface IndustryNewsProps {
+  companyId: string;
   companyName: string;
   industry: string | null;
 }
 
-interface NewsItem {
-  id: string;
-  title: string;
-  source: string;
-  url: string;
-  date: string;
-  sentiment: 'positive' | 'neutral' | 'negative';
-  summary: string;
-}
-
-interface KeyMetrics {
-  marketSize?: string;
-  growthRate?: string;
-  avgMultiple?: string;
-}
-
-interface IntelData {
-  news: NewsItem[];
-  aiSummary: string;
-  keyMetrics?: KeyMetrics;
-  citations?: string[];
-}
-
-export function IndustryNews({ companyName, industry }: IndustryNewsProps) {
-  const [data, setData] = useState<IntelData | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const { toast } = useToast();
-
-  const fetchIndustryIntel = async () => {
-    setLoading(true);
-    setError(null);
-    
-    try {
-      const { data: result, error: funcError } = await supabase.functions.invoke('industry-intel', {
-        body: { companyName, industry }
-      });
-
-      if (funcError) {
-        throw new Error(funcError.message);
-      }
-
-      if (!result.success) {
-        throw new Error(result.error || 'Failed to fetch industry intelligence');
-      }
-
-      setData({
-        news: result.data.news || [],
-        aiSummary: result.data.aiSummary || '',
-        keyMetrics: result.data.keyMetrics,
-        citations: result.citations
-      });
-
-      toast({
-        title: "Intelligence Updated",
-        description: "Latest industry news and analysis loaded",
-      });
-    } catch (err) {
-      console.error('Error fetching industry intel:', err);
-      setError(err instanceof Error ? err.message : 'Failed to fetch industry intelligence');
-      toast({
-        title: "Error",
-        description: "Failed to fetch industry intelligence. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    // Auto-fetch on mount
-    fetchIndustryIntel();
-  }, [companyName, industry]);
+export function IndustryNews({ companyId, companyName, industry }: IndustryNewsProps) {
+  const {
+    data,
+    isLoading,
+    error,
+    lastFetched,
+    expiresAt,
+    isStale,
+    refresh
+  } = useCachedIndustryIntel(companyId, companyName, industry);
 
   const getSentimentIcon = (sentiment: string) => {
     switch (sentiment) {
@@ -133,26 +68,30 @@ export function IndustryNews({ companyName, industry }: IndustryNewsProps) {
             AI-powered insights for {industry || 'this industry'}
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <Badge variant="outline" className="text-xs">
-            <Zap className="h-3 w-3 mr-1" />
-            Powered by Perplexity
-          </Badge>
-          <Button variant="outline" size="sm" onClick={fetchIndustryIntel} disabled={loading}>
-            <RefreshCw className={cn("h-4 w-4 mr-2", loading && "animate-spin")} />
-            Refresh
-          </Button>
-        </div>
+        <Badge variant="outline" className="text-xs">
+          <Zap className="h-3 w-3 mr-1" />
+          Powered by Perplexity
+        </Badge>
       </div>
 
+      {/* Cache Status */}
+      <CacheStatusBar
+        lastFetched={lastFetched}
+        expiresAt={expiresAt}
+        isStale={isStale}
+        isLoading={isLoading}
+        onRefresh={refresh}
+        source="industry intel"
+      />
+
       {/* Key Market Metrics */}
-      {data?.keyMetrics && (
-        <div className="grid grid-cols-3 gap-4">
+      {data?.metrics && (
+        <div className="grid grid-cols-4 gap-4">
           <Card className="bg-primary/10 border-primary/30">
             <CardContent className="p-4 text-center">
               <BarChart3 className="h-6 w-6 text-primary mx-auto mb-2" />
               <p className="text-xl font-bold text-foreground">
-                {data.keyMetrics.marketSize || 'N/A'}
+                {data.metrics.marketSize || 'N/A'}
               </p>
               <p className="text-muted-foreground text-sm">Market Size</p>
             </CardContent>
@@ -161,7 +100,7 @@ export function IndustryNews({ companyName, industry }: IndustryNewsProps) {
             <CardContent className="p-4 text-center">
               <TrendingUp className="h-6 w-6 text-emerald-400 mx-auto mb-2" />
               <p className="text-xl font-bold text-emerald-400">
-                {data.keyMetrics.growthRate || 'N/A'}
+                {data.metrics.growth || 'N/A'}
               </p>
               <p className="text-muted-foreground text-sm">Growth Rate</p>
             </CardContent>
@@ -170,9 +109,18 @@ export function IndustryNews({ companyName, industry }: IndustryNewsProps) {
             <CardContent className="p-4 text-center">
               <BarChart3 className="h-6 w-6 text-purple-400 mx-auto mb-2" />
               <p className="text-xl font-bold text-purple-400">
-                {data.keyMetrics.avgMultiple || 'N/A'}
+                {data.metrics.avgMultiple || 'N/A'}
               </p>
               <p className="text-muted-foreground text-sm">Avg EV/EBITDA</p>
+            </CardContent>
+          </Card>
+          <Card className="bg-blue-900/20 border-blue-600/30">
+            <CardContent className="p-4 text-center">
+              <Newspaper className="h-6 w-6 text-blue-400 mx-auto mb-2" />
+              <p className="text-xl font-bold text-blue-400">
+                {data.metrics.dealVolume || 'N/A'}
+              </p>
+              <p className="text-muted-foreground text-sm">Deal Volume</p>
             </CardContent>
           </Card>
         </div>
@@ -210,7 +158,7 @@ export function IndustryNews({ companyName, industry }: IndustryNewsProps) {
       </div>
 
       {/* Error State */}
-      {error && !loading && (
+      {error && !isLoading && (
         <Card className="p-6 border-destructive/50 bg-destructive/10">
           <div className="flex items-center gap-3 text-destructive">
             <AlertCircle className="h-5 w-5" />
@@ -219,14 +167,14 @@ export function IndustryNews({ companyName, industry }: IndustryNewsProps) {
               <p className="text-sm opacity-80">{error}</p>
             </div>
           </div>
-          <Button variant="outline" size="sm" className="mt-4" onClick={fetchIndustryIntel}>
+          <Button variant="outline" size="sm" className="mt-4" onClick={refresh}>
             Try Again
           </Button>
         </Card>
       )}
 
       {/* News List */}
-      {loading ? (
+      {isLoading && !data ? (
         <div className="space-y-4">
           {[1, 2, 3, 4, 5].map(i => (
             <Card key={i} className="p-4">
@@ -240,9 +188,9 @@ export function IndustryNews({ companyName, industry }: IndustryNewsProps) {
         </div>
       ) : news.length > 0 ? (
         <div className="space-y-3">
-          {news.map((item) => (
+          {news.map((item, index) => (
             <Card 
-              key={item.id} 
+              key={index} 
               className="p-4 hover:border-primary/30 transition-colors cursor-pointer"
               onClick={() => item.url && window.open(item.url, '_blank')}
             >
@@ -257,7 +205,6 @@ export function IndustryNews({ companyName, industry }: IndustryNewsProps) {
                       {item.sentiment}
                     </Badge>
                   </div>
-                  <p className="text-muted-foreground text-sm mt-1">{item.summary}</p>
                   <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
                     <span>{item.source}</span>
                     <span className="flex items-center gap-1">
@@ -271,15 +218,18 @@ export function IndustryNews({ companyName, industry }: IndustryNewsProps) {
             </Card>
           ))}
         </div>
-      ) : !error && (
+      ) : !error && !isLoading && (
         <Card className="p-8 text-center">
           <Newspaper className="h-12 w-12 text-muted-foreground mx-auto mb-4 opacity-50" />
           <p className="text-muted-foreground">No news available. Click Refresh to fetch latest intelligence.</p>
+          <Button variant="outline" size="sm" className="mt-4" onClick={refresh}>
+            Fetch Intel
+          </Button>
         </Card>
       )}
 
       {/* AI Summary */}
-      {data?.aiSummary && (
+      {data?.summary && (
         <Card className="bg-gradient-to-r from-primary/10 to-transparent border-primary/30">
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2">
@@ -289,24 +239,30 @@ export function IndustryNews({ companyName, industry }: IndustryNewsProps) {
           </CardHeader>
           <CardContent>
             <p className="text-muted-foreground text-sm whitespace-pre-wrap">
-              {data.aiSummary}
+              {data.summary}
             </p>
-            {data.citations && data.citations.length > 0 && (
+            {data.sources && data.sources.length > 0 && (
               <div className="mt-4 pt-4 border-t border-border">
                 <p className="text-xs text-muted-foreground mb-2">Sources:</p>
                 <div className="flex flex-wrap gap-2">
-                  {data.citations.slice(0, 5).map((url, i) => (
-                    <a 
-                      key={i}
-                      href={url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-xs text-primary hover:underline flex items-center gap-1"
-                    >
-                      <ExternalLink className="h-3 w-3" />
-                      {new URL(url).hostname}
-                    </a>
-                  ))}
+                  {data.sources.slice(0, 5).map((url, i) => {
+                    try {
+                      return (
+                        <a 
+                          key={i}
+                          href={url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-xs text-primary hover:underline flex items-center gap-1"
+                        >
+                          <ExternalLink className="h-3 w-3" />
+                          {new URL(url).hostname}
+                        </a>
+                      );
+                    } catch {
+                      return null;
+                    }
+                  })}
                 </div>
               </div>
             )}

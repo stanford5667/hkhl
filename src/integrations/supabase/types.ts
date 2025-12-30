@@ -52,6 +52,48 @@ export type Database = {
           },
         ]
       }
+      cached_api_data: {
+        Row: {
+          cache_key: string
+          cache_type: string
+          created_at: string | null
+          data: Json
+          entity_id: string | null
+          entity_type: string | null
+          expires_at: string | null
+          fetched_at: string | null
+          id: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          cache_key: string
+          cache_type: string
+          created_at?: string | null
+          data: Json
+          entity_id?: string | null
+          entity_type?: string | null
+          expires_at?: string | null
+          fetched_at?: string | null
+          id?: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          cache_key?: string
+          cache_type?: string
+          created_at?: string | null
+          data?: Json
+          entity_id?: string | null
+          entity_type?: string | null
+          expires_at?: string | null
+          fetched_at?: string | null
+          id?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       companies: {
         Row: {
           company_type: Database["public"]["Enums"]["company_type"] | null
