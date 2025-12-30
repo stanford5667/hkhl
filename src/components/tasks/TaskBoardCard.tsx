@@ -1,7 +1,8 @@
 import { format, isPast, isToday } from 'date-fns';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { Building2, GripVertical } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Building2, GripVertical, Repeat } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Task, TaskPriority } from '@/hooks/useTasks';
 
@@ -69,8 +70,8 @@ export function TaskBoardCard({ task, onClick, isDragging }: TaskBoardCardProps)
 
       {/* Footer */}
       <div className="flex items-center justify-between mt-2 pt-2 border-t border-slate-700/50">
-        {/* Assignee */}
-        <div className="flex items-center gap-1">
+        {/* Assignee and recurring indicator */}
+        <div className="flex items-center gap-2">
           {task.assignee ? (
             <Avatar className="h-5 w-5">
               <AvatarFallback className="text-[8px] bg-slate-700">
@@ -85,6 +86,28 @@ export function TaskBoardCard({ task, onClick, isDragging }: TaskBoardCardProps)
             </Avatar>
           ) : (
             <div className="h-5 w-5 rounded-full bg-slate-700/50 border border-dashed border-slate-600" />
+          )}
+
+          {/* Recurring indicator */}
+          {task.recurrence_pattern && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div className="flex items-center gap-1 text-purple-400">
+                    <Repeat className="h-3 w-3" />
+                    <span className="text-[10px] capitalize">{task.recurrence_pattern}</span>
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent side="top" className="text-xs">
+                  <p>Repeats {task.recurrence_pattern}</p>
+                  {task.next_occurrence_date && (
+                    <p className="text-slate-400">
+                      Next: {format(new Date(task.next_occurrence_date), 'MMM d, yyyy')}
+                    </p>
+                  )}
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           )}
         </div>
 
