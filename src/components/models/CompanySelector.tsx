@@ -32,7 +32,7 @@ interface CompanySelectorProps {
   companies: Company[];
   selectedCompany: Company | null;
   onSelectCompany: (company: Company | null) => void;
-  onCreateCompany: (name: string, industry?: string) => Promise<Company | null>;
+  onCreateCompany: (companyData: Partial<Company>) => Promise<Company | null>;
   loading?: boolean;
   placeholder?: string;
 }
@@ -55,7 +55,10 @@ export function CompanySelector({
     if (!newCompanyName.trim()) return;
     
     setIsCreating(true);
-    const company = await onCreateCompany(newCompanyName.trim(), newCompanyIndustry.trim() || undefined);
+    const company = await onCreateCompany({ 
+      name: newCompanyName.trim(), 
+      industry: newCompanyIndustry.trim() || null 
+    });
     setIsCreating(false);
     
     if (company) {
