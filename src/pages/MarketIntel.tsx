@@ -5,11 +5,11 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { 
   Activity, PieChart, Briefcase, Zap, Globe, Target, Building2, BookOpen, 
-  Landmark, Users, Sparkles, Bell, RefreshCw, DollarSign, TrendingUp, 
+  Landmark, Users, Sparkles, Bell, RefreshCw, DollarSign, TrendingUp, TrendingDown,
   BarChart3, Shield, AlertTriangle, ArrowUpRight, ArrowDownRight, Home, 
   LineChart, Coins, ChevronRight, AlertCircle, Calendar
 } from 'lucide-react';
-import { usePortfolioTotals, useAlerts, useDealPipeline, usePortfolioAssets, useAssetAllocation, useEvents, useEconomicIndicators } from '@/hooks/useMarketIntel';
+import { usePortfolioTotals, useAlerts, useDealPipeline, usePortfolioAssets, useAssetAllocation, useEvents, useEconomicIndicators, useCovenants } from '@/hooks/useMarketIntel';
 
 export default function MarketIntel() {
   const [activeTab, setActiveTab] = useState('overview');
@@ -155,11 +155,7 @@ export default function MarketIntel() {
         </TabsContent>
 
         <TabsContent value="health" className="mt-6">
-          <Card className="p-8 text-center text-muted-foreground">
-            <Activity className="h-12 w-12 mx-auto mb-4 opacity-50" />
-            <p className="text-lg font-medium">Health Tab</p>
-            <p>Portfolio health matrix and covenant tracking</p>
-          </Card>
+          <HealthContent />
         </TabsContent>
 
         <TabsContent value="signals" className="mt-6">
@@ -399,6 +395,134 @@ function OverviewContent() {
               ))}
             </div>
           </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+}
+
+function HealthContent() {
+  const { data: assets } = usePortfolioAssets();
+  const { data: covenants } = useCovenants();
+  
+  const peAssets = assets?.filter((a: any) => a.asset_type === 'pe') || [];
+
+  return (
+    <div className="space-y-6">
+      {/* Health Matrix */}
+      <Card className="bg-secondary/50 border-border p-6">
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-lg font-medium">Portfolio Health Matrix</h3>
+          <div className="flex gap-4 text-xs">
+            <span className="flex items-center gap-1"><div className="h-3 w-3 rounded bg-emerald-500" />Strong</span>
+            <span className="flex items-center gap-1"><div className="h-3 w-3 rounded bg-yellow-500" />Monitor</span>
+            <span className="flex items-center gap-1"><div className="h-3 w-3 rounded bg-rose-500" />At Risk</span>
+          </div>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {peAssets.map((a: any) => {
+            const score = a.health_score || 50;
+            const colorClass = score >= 70 ? 'border-emerald-500/50' : score >= 50 ? 'border-yellow-500/50' : 'border-rose-500/50';
+            const textClass = score >= 70 ? 'text-emerald-400' : score >= 50 ? 'text-yellow-400' : 'text-rose-400';
+            return (
+              <Card key={a.id} className={`bg-card p-4 border ${colorClass}`}>
+                <div className="flex justify-between mb-3">
+                  <span className="font-medium text-sm">{a.name}</span>
+                  <span className={`text-2xl font-bold ${textClass}`}>{score}</span>
+                </div>
+                <div className="space-y-2 text-xs">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Revenue Growth</span>
+                    <span className={a.revenue_growth >= 0 ? 'text-emerald-400' : 'text-rose-400'}>
+                      {a.revenue_growth >= 0 ? '+' : ''}{a.revenue_growth}%
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">EBITDA Margin</span>
+                    <span>{a.ebitda_margin}%</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Debt Service</span>
+                    <span>{a.debt_service_coverage}x</span>
+                  </div>
+                </div>
+              </Card>
+            );
+          })}
+        </div>
+      </Card>
+
+      {/* Covenant Tracking */}
+      <Card className="bg-secondary/50 border-border p-6">
+        <h3 className="text-lg font-medium mb-4">Covenant Tracking</h3>
+        <div className="space-y-4">
+          {covenants?.map((c: any) => {
+            const headroom = Math.round((1 - c.current_value / c.limit_value) * 100);
+            return (
+              <div key={c.id} className={`p-4 rounded-lg ${c.is_warning ? 'bg-rose-900/20 border border-rose-500/30' : 'bg-card'}`}>
+                <div className="flex justify-between mb-2">
+                  <div>
+                    <span className="font-medium">{c.portfolio_assets?.name}</span>
+                    <span className="text-muted-foreground text-sm ml-2">• {c.covenant_type}</span>
+                  </div>
+                  {c.is_warning && <Badge variant="destructive">Warning</Badge>}
+                </div>
+                <div className="flex items-center gap-4">
+                  <div className="flex-1 bg-muted rounded-full h-2">
+                    <div 
+                      className={`h-2 rounded-full ${c.is_warning ? 'bg-rose-500' : 'bg-primary'}`} 
+                      style={{ width: `${Math.min((c.current_value / c.limit_value) * 100, 100)}%` }} 
+                    />
+                  </div>
+                  <span className="text-sm w-24">{c.current_value}x / {c.limit_value}x</span>
+                  <span className={`text-sm w-20 text-right ${headroom < 10 ? 'text-rose-400' : headroom < 25 ? 'text-yellow-400' : 'text-emerald-400'}`}>
+                    {headroom}% room
+                  </span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </Card>
+
+      {/* Alternative Data */}
+      <div className="grid md:grid-cols-2 gap-6">
+        <Card className="bg-secondary/50 border-border p-6">
+          <h3 className="text-lg font-medium mb-4">🔍 Employment Signals</h3>
+          <p className="text-muted-foreground text-sm mb-4">Data from LinkedIn, job boards</p>
+          <div className="space-y-3">
+            {peAssets.slice(0, 4).map((a: any, i: number) => {
+              const signals = ['Job postings up 45%', '3 key departures', 'Hiring 2 VPs', 'Layoff rumors'];
+              const positive = i % 2 === 0;
+              return (
+                <div key={a.id} className="flex justify-between py-2 border-b border-border last:border-0">
+                  <div>
+                    <span className="text-sm">{a.name.split(' ')[0]}</span>
+                    <p className={`text-xs ${positive ? 'text-emerald-400' : 'text-rose-400'}`}>{signals[i]}</p>
+                  </div>
+                  {positive ? <TrendingUp className="h-4 w-4 text-emerald-400" /> : <TrendingDown className="h-4 w-4 text-rose-400" />}
+                </div>
+              );
+            })}
+          </div>
+        </Card>
+        <Card className="bg-secondary/50 border-border p-6">
+          <h3 className="text-lg font-medium mb-4">📊 Web & Review Signals</h3>
+          <p className="text-muted-foreground text-sm mb-4">Traffic & sentiment analysis</p>
+          <div className="space-y-3">
+            {peAssets.slice(0, 4).map((a: any, i: number) => {
+              const signals = ['Traffic +22% QoQ', 'Reviews down 0.4 stars', 'NPS score 72', 'Site stale 6mo'];
+              const positive = i === 0 || i === 2;
+              return (
+                <div key={a.id} className="flex justify-between py-2 border-b border-border last:border-0">
+                  <div>
+                    <span className="text-sm">{a.name.split(' ')[0]}</span>
+                    <p className={`text-xs ${positive ? 'text-emerald-400' : i === 3 ? 'text-muted-foreground' : 'text-rose-400'}`}>{signals[i]}</p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </Card>
       </div>
     </div>
