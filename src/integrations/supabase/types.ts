@@ -14,6 +14,42 @@ export type Database = {
   }
   public: {
     Tables: {
+      alerts: {
+        Row: {
+          category: string
+          created_at: string
+          description: string | null
+          id: string
+          is_read: boolean
+          severity: string
+          source: string | null
+          title: string
+          user_id: string
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_read?: boolean
+          severity?: string
+          source?: string | null
+          title: string
+          user_id: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_read?: boolean
+          severity?: string
+          source?: string | null
+          title?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       companies: {
         Row: {
           company_type: Database["public"]["Enums"]["company_type"] | null
@@ -120,6 +156,54 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      deal_pipeline: {
+        Row: {
+          company_name: string
+          created_at: string
+          deal_type: string
+          ev_ebitda: number | null
+          ev_range: string | null
+          id: string
+          industry: string
+          notes: string | null
+          priority: string
+          source: string | null
+          stage: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          company_name: string
+          created_at?: string
+          deal_type?: string
+          ev_ebitda?: number | null
+          ev_range?: string | null
+          id?: string
+          industry: string
+          notes?: string | null
+          priority?: string
+          source?: string | null
+          stage?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          company_name?: string
+          created_at?: string
+          deal_type?: string
+          ev_ebitda?: number | null
+          ev_range?: string | null
+          id?: string
+          industry?: string
+          notes?: string | null
+          priority?: string
+          source?: string | null
+          stage?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       deals: {
         Row: {
@@ -280,6 +364,123 @@ export type Database = {
           },
         ]
       }
+      economic_indicators: {
+        Row: {
+          as_of_date: string
+          category: string
+          change_pct: number | null
+          created_at: string
+          current_value: number
+          id: string
+          indicator_name: string
+          previous_value: number | null
+          source: string | null
+          unit: string
+          user_id: string
+        }
+        Insert: {
+          as_of_date?: string
+          category?: string
+          change_pct?: number | null
+          created_at?: string
+          current_value: number
+          id?: string
+          indicator_name: string
+          previous_value?: number | null
+          source?: string | null
+          unit?: string
+          user_id: string
+        }
+        Update: {
+          as_of_date?: string
+          category?: string
+          change_pct?: number | null
+          created_at?: string
+          current_value?: number
+          id?: string
+          indicator_name?: string
+          previous_value?: number | null
+          source?: string | null
+          unit?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      events: {
+        Row: {
+          company_name: string | null
+          created_at: string
+          description: string | null
+          event_date: string
+          event_type: string
+          id: string
+          title: string
+          user_id: string
+        }
+        Insert: {
+          company_name?: string | null
+          created_at?: string
+          description?: string | null
+          event_date: string
+          event_type?: string
+          id?: string
+          title: string
+          user_id: string
+        }
+        Update: {
+          company_name?: string | null
+          created_at?: string
+          description?: string | null
+          event_date?: string
+          event_type?: string
+          id?: string
+          title?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      ma_transactions: {
+        Row: {
+          acquirer_name: string
+          announced_date: string
+          created_at: string
+          deal_value: number | null
+          ev_ebitda: number | null
+          ev_revenue: number | null
+          id: string
+          industry: string
+          status: string
+          target_name: string
+          user_id: string
+        }
+        Insert: {
+          acquirer_name: string
+          announced_date: string
+          created_at?: string
+          deal_value?: number | null
+          ev_ebitda?: number | null
+          ev_revenue?: number | null
+          id?: string
+          industry: string
+          status?: string
+          target_name: string
+          user_id: string
+        }
+        Update: {
+          acquirer_name?: string
+          announced_date?: string
+          created_at?: string
+          deal_value?: number | null
+          ev_ebitda?: number | null
+          ev_revenue?: number | null
+          id?: string
+          industry?: string
+          status?: string
+          target_name?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       models: {
         Row: {
           assumptions: Json | null
@@ -332,6 +533,155 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pe_funds: {
+        Row: {
+          created_at: string
+          dpi: number | null
+          fund_name: string
+          fund_size: number
+          id: string
+          irr: number | null
+          manager: string
+          status: string
+          strategy: string
+          tvpi: number | null
+          user_id: string
+          vintage_year: number
+        }
+        Insert: {
+          created_at?: string
+          dpi?: number | null
+          fund_name: string
+          fund_size: number
+          id?: string
+          irr?: number | null
+          manager: string
+          status?: string
+          strategy: string
+          tvpi?: number | null
+          user_id: string
+          vintage_year: number
+        }
+        Update: {
+          created_at?: string
+          dpi?: number | null
+          fund_name?: string
+          fund_size?: number
+          id?: string
+          irr?: number | null
+          manager?: string
+          status?: string
+          strategy?: string
+          tvpi?: number | null
+          user_id?: string
+          vintage_year?: number
+        }
+        Relationships: []
+      }
+      portfolio_assets: {
+        Row: {
+          company_name: string
+          created_at: string
+          current_value: number
+          ebitda_ltm: number | null
+          employee_count: number | null
+          health_score: number | null
+          id: string
+          industry: string
+          investment_amount: number
+          investment_date: string
+          ownership_pct: number
+          revenue_ltm: number | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          company_name: string
+          created_at?: string
+          current_value: number
+          ebitda_ltm?: number | null
+          employee_count?: number | null
+          health_score?: number | null
+          id?: string
+          industry: string
+          investment_amount: number
+          investment_date: string
+          ownership_pct: number
+          revenue_ltm?: number | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          company_name?: string
+          created_at?: string
+          current_value?: number
+          ebitda_ltm?: number | null
+          employee_count?: number | null
+          health_score?: number | null
+          id?: string
+          industry?: string
+          investment_amount?: number
+          investment_date?: string
+          ownership_pct?: number
+          revenue_ltm?: number | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      portfolio_covenants: {
+        Row: {
+          asset_id: string | null
+          company_name: string
+          covenant_type: string
+          created_at: string
+          current_value: number
+          id: string
+          next_test_date: string | null
+          status: string
+          threshold: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          asset_id?: string | null
+          company_name: string
+          covenant_type: string
+          created_at?: string
+          current_value: number
+          id?: string
+          next_test_date?: string | null
+          status?: string
+          threshold: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          asset_id?: string | null
+          company_name?: string
+          covenant_type?: string
+          created_at?: string
+          current_value?: number
+          id?: string
+          next_test_date?: string | null
+          status?: string
+          threshold?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "portfolio_covenants_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "portfolio_assets"
             referencedColumns: ["id"]
           },
         ]
