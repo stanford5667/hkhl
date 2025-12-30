@@ -26,6 +26,7 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Calendar as CalendarIcon,
   Building2,
@@ -36,6 +37,8 @@ import {
   AlertCircle,
   Loader2,
   X,
+  ListChecks,
+  MessageSquare,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Task, TaskPriority, TaskStatus, useTasks } from '@/hooks/useTasks';
@@ -44,6 +47,8 @@ import { useContacts } from '@/hooks/useContacts';
 import { useAuth } from '@/contexts/AuthContext';
 import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
+import { SubtaskList } from './SubtaskList';
+import { TaskComments } from './TaskComments';
 
 interface TaskDetailDialogProps {
   task: Task | null;
@@ -82,6 +87,7 @@ export function TaskDetailDialog({
   const [assigneeId, setAssigneeId] = useState<string>('');
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [activeTab, setActiveTab] = useState('subtasks');
 
   const { updateTask, deleteTask } = useTasks();
   const { teamMembers } = useTeamMembers();
@@ -179,8 +185,8 @@ export function TaskDetailDialog({
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="sm:max-w-3xl bg-slate-900 border-slate-800 p-0 max-h-[85vh] flex flex-col">
-        <DialogHeader className="p-6 pb-0">
+      <DialogContent className="sm:max-w-4xl bg-slate-900 border-slate-800 p-0 max-h-[90vh] flex flex-col">
+        <DialogHeader className="p-4 pb-0 flex-shrink-0">
           <div className="flex items-start justify-between">
             <DialogTitle className="text-white sr-only">Edit Task</DialogTitle>
             <Button
@@ -194,10 +200,10 @@ export function TaskDetailDialog({
           </div>
         </DialogHeader>
 
-        <ScrollArea className="flex-1 px-6">
-          <div className="flex gap-6 pb-6">
+        <ScrollArea className="flex-1 px-4">
+          <div className="flex gap-6 pb-4">
             {/* Left: Main Content */}
-            <div className="flex-1 space-y-4">
+            <div className="flex-1 space-y-4 min-w-0">
               {/* Title */}
               <Input
                 value={title}
@@ -218,7 +224,7 @@ export function TaskDetailDialog({
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   placeholder="Add a description..."
-                  className="bg-slate-800/50 border-slate-700 text-white placeholder:text-slate-600 min-h-[100px] resize-none"
+                  className="bg-slate-800/50 border-slate-700 text-white placeholder:text-slate-600 min-h-[80px] resize-none"
                 />
               </div>
 
@@ -245,17 +251,33 @@ export function TaskDetailDialog({
                 </div>
               )}
 
-              {/* Activity placeholder */}
-              <div className="pt-4">
-                <label className="text-sm text-slate-500 block mb-2">Activity</label>
-                <div className="bg-slate-800/30 rounded-lg p-4 text-center">
-                  <p className="text-slate-600 text-sm">Activity timeline coming soon</p>
-                </div>
-              </div>
+              <Separator className="bg-slate-800" />
+
+              {/* Tabs for Subtasks and Comments */}
+              <Tabs value={activeTab} onValueChange={setActiveTab}>
+                <TabsList className="bg-slate-800/50 border border-slate-700">
+                  <TabsTrigger value="subtasks" className="data-[state=active]:bg-slate-700 gap-1.5">
+                    <ListChecks className="h-4 w-4" />
+                    Subtasks
+                  </TabsTrigger>
+                  <TabsTrigger value="comments" className="data-[state=active]:bg-slate-700 gap-1.5">
+                    <MessageSquare className="h-4 w-4" />
+                    Comments
+                  </TabsTrigger>
+                </TabsList>
+                
+                <TabsContent value="subtasks" className="mt-4">
+                  <SubtaskList taskId={task.id} />
+                </TabsContent>
+                
+                <TabsContent value="comments" className="mt-4">
+                  <TaskComments taskId={task.id} />
+                </TabsContent>
+              </Tabs>
             </div>
 
             {/* Right: Properties Sidebar */}
-            <div className="w-56 space-y-4">
+            <div className="w-52 space-y-4 flex-shrink-0">
               <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Properties</h3>
 
               {/* Status */}
@@ -413,7 +435,7 @@ export function TaskDetailDialog({
         </ScrollArea>
 
         {/* Footer */}
-        <div className="flex justify-end gap-2 p-4 border-t border-slate-800">
+        <div className="flex justify-end gap-2 p-4 border-t border-slate-800 flex-shrink-0">
           <Button variant="ghost" onClick={onClose} className="text-slate-400">
             Cancel
           </Button>
