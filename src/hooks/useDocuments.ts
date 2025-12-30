@@ -134,6 +134,25 @@ export function useDocuments() {
     }
   };
 
+  const renameDocument = async (documentId: string, newName: string): Promise<boolean> => {
+    if (!user) return false;
+
+    try {
+      const { error } = await supabase
+        .from('documents')
+        .update({ name: newName })
+        .eq('id', documentId);
+
+      if (error) throw error;
+      toast.success('Document renamed');
+      return true;
+    } catch (error) {
+      console.error('Error renaming document:', error);
+      toast.error('Failed to rename document');
+      return false;
+    }
+  };
+
   const getDownloadUrl = async (filePath: string): Promise<string | null> => {
     try {
       const { data, error } = await supabase.storage
@@ -149,5 +168,5 @@ export function useDocuments() {
     }
   };
 
-  return { saveDocument, getDocumentsForCompany, deleteDocument, updateDocumentFolder, getDownloadUrl, saving };
+  return { saveDocument, getDocumentsForCompany, deleteDocument, updateDocumentFolder, renameDocument, getDownloadUrl, saving };
 }
