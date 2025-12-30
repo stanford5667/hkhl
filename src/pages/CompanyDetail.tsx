@@ -13,6 +13,8 @@ import { MarketIntelTab } from '@/components/companies/MarketIntelTab';
 import { EmbeddedDataRoom } from '@/components/companies/EmbeddedDataRoom';
 import { CompanyTeamPanel } from '@/components/companies/CompanyTeamPanel';
 import { CompanyTasksTab } from '@/components/companies/CompanyTasksTab';
+import { ProcessingBanner, ProcessingIndicator, AIAnalyzedBadge } from '@/components/companies/ProcessingBanner';
+import { AISummaryCard } from '@/components/companies/AISummaryCard';
 
 import { CompanySummaryCard } from '@/components/companies/CompanySummaryCard';
 import { CompanyContactsCard } from '@/components/companies/CompanyContactsCard';
@@ -197,6 +199,8 @@ export default function CompanyDetail() {
                   {company.pipeline_stage.replace('-', ' ')}
                 </Badge>
               )}
+              <ProcessingIndicator companyId={company.id} />
+              <AIAnalyzedBadge companyId={company.id} />
             </div>
             <div className="flex items-center gap-4 mt-2 text-muted-foreground">
               {company.industry && (
@@ -314,6 +318,12 @@ export default function CompanyDetail() {
 
         {/* Overview Tab */}
         <TabsContent value="overview" className="space-y-6">
+          {/* Processing Banner - Shows when documents are being analyzed */}
+          <ProcessingBanner companyId={company.id} />
+
+          {/* AI Summary Card - Shows AI-generated insights */}
+          <AISummaryCard companyId={company.id} companyName={company.name} />
+
           {/* Data Extraction Panel */}
           <DataExtractionPanel 
             company={company} 
