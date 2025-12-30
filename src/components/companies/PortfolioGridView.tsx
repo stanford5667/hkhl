@@ -9,7 +9,7 @@ import { cn } from '@/lib/utils';
 
 interface PortfolioGridViewProps {
   companies: Company[];
-  onViewChange?: (view: string) => void;
+  onViewChange?: (view: 'list' | 'pipeline' | 'portfolio') => void;
 }
 
 export function PortfolioGridView({ companies, onViewChange }: PortfolioGridViewProps) {
