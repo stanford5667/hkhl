@@ -116,6 +116,7 @@ export function OrganizationStep({ onComplete, onBack }: OrganizationStepProps) 
           slug: `${slug}-${Date.now().toString(36)}`,
           type: orgType,
           website: orgWebsite.trim() || null,
+          created_by: user.id,
         })
         .select()
         .single();
