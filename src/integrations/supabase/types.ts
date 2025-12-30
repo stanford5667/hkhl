@@ -145,6 +145,80 @@ export type Database = {
         }
         Relationships: []
       }
+      company_data_fields: {
+        Row: {
+          company_id: string
+          confidence: number | null
+          created_at: string | null
+          extracted_at: string | null
+          field_category: string
+          field_name: string
+          id: string
+          is_verified: boolean | null
+          source_excerpt: string | null
+          source_id: string | null
+          source_name: string | null
+          source_type: string
+          source_url: string | null
+          updated_at: string | null
+          user_id: string
+          value: Json
+          value_type: string
+          verified_at: string | null
+          verified_by: string | null
+        }
+        Insert: {
+          company_id: string
+          confidence?: number | null
+          created_at?: string | null
+          extracted_at?: string | null
+          field_category: string
+          field_name: string
+          id?: string
+          is_verified?: boolean | null
+          source_excerpt?: string | null
+          source_id?: string | null
+          source_name?: string | null
+          source_type: string
+          source_url?: string | null
+          updated_at?: string | null
+          user_id: string
+          value: Json
+          value_type: string
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Update: {
+          company_id?: string
+          confidence?: number | null
+          created_at?: string | null
+          extracted_at?: string | null
+          field_category?: string
+          field_name?: string
+          id?: string
+          is_verified?: boolean | null
+          source_excerpt?: string | null
+          source_id?: string | null
+          source_name?: string | null
+          source_type?: string
+          source_url?: string | null
+          updated_at?: string | null
+          user_id?: string
+          value?: Json
+          value_type?: string
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_data_fields_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       company_notes: {
         Row: {
           category: string
@@ -493,6 +567,56 @@ export type Database = {
           title?: string
         }
         Relationships: []
+      }
+      extraction_history: {
+        Row: {
+          company_id: string
+          created_at: string | null
+          error_message: string | null
+          extracted_data: Json | null
+          extraction_type: string
+          fields_extracted: number | null
+          fields_updated: number | null
+          id: string
+          source_name: string | null
+          status: string | null
+          user_id: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string | null
+          error_message?: string | null
+          extracted_data?: Json | null
+          extraction_type: string
+          fields_extracted?: number | null
+          fields_updated?: number | null
+          id?: string
+          source_name?: string | null
+          status?: string | null
+          user_id: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string | null
+          error_message?: string | null
+          extracted_data?: Json | null
+          extraction_type?: string
+          fields_extracted?: number | null
+          fields_updated?: number | null
+          id?: string
+          source_name?: string | null
+          status?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "extraction_history_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       ma_transactions: {
         Row: {
