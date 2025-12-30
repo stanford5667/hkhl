@@ -29,14 +29,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Company, CompanyStage } from '@/hooks/useCompanies';
+import { AppCompany, CompanyStage } from '@/hooks/useAppData';
 import { cn } from '@/lib/utils';
 
 interface CompanyCreationWizardProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onComplete: (company: Company) => void;
-  onCreate: (data: Partial<Company>) => Promise<Company | null>;
+  onComplete: (company: AppCompany) => void;
+  onCreate: (data: Partial<AppCompany>) => Promise<AppCompany | null>;
 }
 
 interface WizardForm {

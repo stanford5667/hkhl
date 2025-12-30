@@ -5,6 +5,8 @@ import { useOrgId } from '@/contexts/OrganizationContext';
 import { toast } from 'sonner';
 
 // ============ Types ============
+export type CompanyStage = 'pipeline' | 'portfolio' | 'prospect' | 'passed';
+
 export interface AppCompany {
   id: string;
   name: string;
@@ -12,7 +14,7 @@ export interface AppCompany {
   website: string | null;
   industry: string | null;
   pipeline_stage: string | null;
-  company_type: 'pipeline' | 'portfolio' | 'prospect' | 'passed' | null;
+  company_type: CompanyStage | null;
   revenue_ltm: number | null;
   ebitda_ltm: number | null;
   deal_lead: string | null;
@@ -173,14 +175,29 @@ export function useAppCompanies(filters?: {
     },
   });
 
+  const updateStage = async (companyId: string, stage: CompanyStage, pipelineStage?: string) => {
+    const updates: Partial<AppCompany> = { company_type: stage };
+    if (pipelineStage) {
+      updates.pipeline_stage = pipelineStage;
+    }
+    await updateMutation.mutateAsync({ id: companyId, updates });
+  };
+
+  const updatePipelineStage = async (companyId: string, pipelineStage: string) => {
+    await updateMutation.mutateAsync({ id: companyId, updates: { pipeline_stage: pipelineStage } });
+  };
+
   return {
     companies: query.data || [],
     isLoading: query.isLoading,
+    loading: query.isLoading, // Alias for backward compatibility
     error: query.error,
     refetch: query.refetch,
     createCompany: createMutation.mutateAsync,
     updateCompany: (id: string, updates: Partial<AppCompany>) => 
       updateMutation.mutateAsync({ id, updates }),
+    updateStage,
+    updatePipelineStage,
     deleteCompany: deleteMutation.mutateAsync,
     isCreating: createMutation.isPending,
   };

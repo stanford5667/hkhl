@@ -4,15 +4,15 @@ import { Inbox, Clock, GripVertical } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Company } from '@/hooks/useCompanies';
+import { AppCompany } from '@/hooks/useAppData';
 import { CompanyAvatar } from './CompanyAvatar';
 import { HealthScore } from './HealthScore';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
 interface PipelineKanbanViewProps {
-  companies: Company[];
-  onUpdatePipelineStage: (companyId: string, stage: string) => Promise<boolean>;
+  companies: AppCompany[];
+  onUpdatePipelineStage: (companyId: string, stage: string) => Promise<void>;
 }
 
 const PIPELINE_COLUMNS = [
@@ -26,7 +26,7 @@ const PIPELINE_COLUMNS = [
 
 export function PipelineKanbanView({ companies, onUpdatePipelineStage }: PipelineKanbanViewProps) {
   const navigate = useNavigate();
-  const [draggedCompany, setDraggedCompany] = useState<Company | null>(null);
+  const [draggedCompany, setDraggedCompany] = useState<AppCompany | null>(null);
   const [dragOverColumn, setDragOverColumn] = useState<string | null>(null);
 
   // Filter only pipeline companies
@@ -36,7 +36,7 @@ export function PipelineKanbanView({ companies, onUpdatePipelineStage }: Pipelin
   const groupedCompanies = PIPELINE_COLUMNS.reduce((acc, col) => {
     acc[col.id] = pipelineCompanies.filter(c => (c.pipeline_stage || 'sourcing') === col.id);
     return acc;
-  }, {} as Record<string, Company[]>);
+  }, {} as Record<string, AppCompany[]>);
 
   // Calculate totals per column
   const columnTotals = PIPELINE_COLUMNS.reduce((acc, col) => {
@@ -44,7 +44,7 @@ export function PipelineKanbanView({ companies, onUpdatePipelineStage }: Pipelin
     return acc;
   }, {} as Record<string, number>);
 
-  const handleDragStart = (e: React.DragEvent, company: Company) => {
+  const handleDragStart = (e: React.DragEvent, company: AppCompany) => {
     setDraggedCompany(company);
     e.dataTransfer.setData('companyId', company.id);
     e.dataTransfer.effectAllowed = 'move';
@@ -68,11 +68,9 @@ export function PipelineKanbanView({ companies, onUpdatePipelineStage }: Pipelin
 
     if (draggedCompany.pipeline_stage === newStage) return;
 
-    const success = await onUpdatePipelineStage(companyId, newStage);
-    if (success) {
-      const stageName = PIPELINE_COLUMNS.find(c => c.id === newStage)?.label || newStage;
-      toast.success(`Moved to ${stageName}`);
-    }
+    await onUpdatePipelineStage(companyId, newStage);
+    const stageName = PIPELINE_COLUMNS.find(c => c.id === newStage)?.label || newStage;
+    toast.success(`Moved to ${stageName}`);
     
     setDraggedCompany(null);
   };
@@ -82,7 +80,7 @@ export function PipelineKanbanView({ companies, onUpdatePipelineStage }: Pipelin
     setDragOverColumn(null);
   };
 
-  const getHealthScore = (company: Company) => {
+  const getHealthScore = (company: AppCompany) => {
     if (company.ebitda_ltm && company.revenue_ltm) {
       return Math.min(100, Math.round((company.ebitda_ltm / company.revenue_ltm) * 100 * 5));
     }
@@ -204,7 +202,7 @@ export function PipelineKanbanView({ companies, onUpdatePipelineStage }: Pipelin
 }
 
 interface PipelineCardProps {
-  company: Company;
+  company: AppCompany;
   healthScore: number;
   isDragging: boolean;
   onDragStart: (e: React.DragEvent) => void;

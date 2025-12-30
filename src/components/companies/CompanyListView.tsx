@@ -32,13 +32,13 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Company, CompanyStage } from '@/hooks/useCompanies';
+import { AppCompany, CompanyStage } from '@/hooks/useAppData';
 import { CompanyAvatar } from './CompanyAvatar';
 import { StageIndicator } from './StageIndicator';
 import { HealthScore } from './HealthScore';
 
 interface CompanyListViewProps {
-  companies: Company[];
+  companies: AppCompany[];
   onUpdateStage: (companyId: string, stage: CompanyStage, subStage?: string) => void;
   onDelete?: (companyId: string) => void;
 }
@@ -46,7 +46,7 @@ interface CompanyListViewProps {
 export function CompanyListView({ companies, onUpdateStage, onDelete }: CompanyListViewProps) {
   const navigate = useNavigate();
 
-  const getHealthScore = (company: Company) => {
+  const getHealthScore = (company: AppCompany) => {
     if (company.ebitda_ltm && company.revenue_ltm) {
       return Math.min(100, Math.round((company.ebitda_ltm / company.revenue_ltm) * 100 * 5));
     }
