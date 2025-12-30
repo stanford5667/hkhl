@@ -9,7 +9,7 @@ import {
   BarChart3, Shield, AlertTriangle, ArrowUpRight, ArrowDownRight, Home, 
   LineChart, Coins, ChevronRight, AlertCircle, Calendar
 } from 'lucide-react';
-import { usePortfolioTotals, useAlerts, useDealPipeline, usePortfolioAssets, useAssetAllocation, useEvents, useEconomicIndicators, useCovenants, useMATransactions } from '@/hooks/useMarketIntel';
+import { usePortfolioTotals, useAlerts, useDealPipeline, usePortfolioAssets, useAssetAllocation, useEvents, useEconomicIndicators, useCovenants, useMATransactions, usePEFunds } from '@/hooks/useMarketIntel';
 
 export default function MarketIntel() {
   const [activeTab, setActiveTab] = useState('overview');
@@ -171,11 +171,7 @@ export default function MarketIntel() {
         </TabsContent>
 
         <TabsContent value="landscape" className="mt-6">
-          <Card className="p-8 text-center text-muted-foreground">
-            <Building2 className="h-12 w-12 mx-auto mb-4 opacity-50" />
-            <p className="text-lg font-medium">PE Landscape Tab</p>
-            <p>Industry stats and fundraising trends</p>
-          </Card>
+          <LandscapeContent />
         </TabsContent>
 
         <TabsContent value="strategies" className="mt-6">
@@ -815,6 +811,153 @@ function DealsContent() {
           ))}
         </div>
       </Card>
+    </div>
+  );
+}
+
+function LandscapeContent() {
+  const { data: funds } = usePEFunds();
+  const closedFunds = funds?.filter((f: any) => f.status === 'closed').slice(0, 4) || [];
+
+  return (
+    <div className="space-y-6">
+      {/* Industry Stats */}
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+        {[
+          { l: 'Global PE AUM', v: '$8.2T', c: 12 },
+          { l: 'Dry Powder', v: '$2.6T', c: 8 },
+          { l: '2024 Deal Value', v: '$1.1T', c: -15 },
+          { l: 'Deal Count', v: '12,847', c: -22 },
+          { l: 'Avg Entry Multiple', v: '11.2x', c: -0.8 },
+          { l: 'Avg Hold Period', v: '5.8 yrs', c: 0.6 },
+        ].map((s) => (
+          <Card key={s.l} className="bg-secondary/50 border-border p-4">
+            <div className="text-xs text-muted-foreground mb-1">{s.l}</div>
+            <div className="text-2xl font-bold">{s.v}</div>
+            <div className={`text-xs mt-1 ${s.c >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+              {s.c >= 0 ? '↑' : '↓'} {Math.abs(s.c)}% YoY
+            </div>
+          </Card>
+        ))}
+      </div>
+
+      <div className="grid lg:grid-cols-3 gap-6">
+        {/* Fundraising */}
+        <Card className="bg-secondary/50 border-border p-6 lg:col-span-2">
+          <h3 className="text-lg font-medium mb-4">2024 Fundraising</h3>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+            {[{ t: 'Buyout', r: 285, f: 142 }, { t: 'Growth', r: 124, f: 198 }, { t: 'Credit', r: 168, f: 87 }, { t: 'Venture', r: 95, f: 412 }].map((x) => (
+              <div key={x.t} className="bg-card rounded-lg p-4">
+                <div className="text-sm text-muted-foreground mb-2">{x.t}</div>
+                <div className="text-xl font-bold">${x.r}B</div>
+                <div className="text-xs text-muted-foreground">{x.f} funds</div>
+              </div>
+            ))}
+          </div>
+          <h4 className="text-sm text-muted-foreground mb-3">Recent Major Closes</h4>
+          <div className="space-y-2">
+            {closedFunds.map((f: any) => (
+              <div key={f.id} className="flex justify-between py-2 border-b border-border last:border-0">
+                <div>
+                  <div className="text-sm">{f.fund_name}</div>
+                  <div className="text-xs text-muted-foreground">{f.fund_type}</div>
+                </div>
+                <span className="font-medium">${(f.current_size / 1000).toFixed(1)}B</span>
+              </div>
+            ))}
+          </div>
+        </Card>
+
+        {/* Returns by Strategy */}
+        <Card className="bg-secondary/50 border-border p-6">
+          <h3 className="text-lg font-medium mb-4">10-Year Returns</h3>
+          <div className="space-y-3">
+            {[
+              { s: 'Lower MM (<$100M)', irr: 21.2, moic: 2.4 },
+              { s: 'Growth Equity', irr: 19.8, moic: 2.2 },
+              { s: 'Mid-Market', irr: 18.4, moic: 2.1 },
+              { s: 'Large Buyout', irr: 16.8, moic: 1.9 },
+              { s: 'Mega Buyout', irr: 14.2, moic: 1.8 },
+              { s: 'Direct Lending', irr: 9.4, moic: 1.3 },
+            ].map((p) => (
+              <div key={p.s} className="flex justify-between py-2 border-b border-border last:border-0">
+                <span className="text-muted-foreground text-sm">{p.s}</span>
+                <div className="flex gap-4">
+                  <span className="text-emerald-400">{p.irr}%</span>
+                  <span className="text-primary">{p.moic}x</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </Card>
+      </div>
+
+      {/* Industry Trends */}
+      <Card className="bg-secondary/50 border-border p-6">
+        <h3 className="text-lg font-medium mb-4">Industry Trends</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {[
+            { t: 'Continuation Funds', d: 'GP-led secondaries at record volumes', i: 'Growing', p: true },
+            { t: 'Private Credit', d: 'Direct lenders taking share; $1.7T AUM', i: 'Accelerating', p: true },
+            { t: 'AI Integration', d: 'PE firms building internal AI for DD', i: 'Emerging', p: true },
+            { t: 'LP Denominator', d: 'Institutional allocations constrained', i: 'Headwind', p: false },
+            { t: 'Carve-Outs', d: 'Corporate divestitures increasing', i: 'Growing', p: true },
+            { t: 'Regulatory', d: 'SEC focus on fees and valuations', i: 'Increasing', p: false },
+            { t: 'ESG', d: 'LP pressure driving reporting', i: 'Maturing', n: true },
+            { t: 'Co-Investment', d: 'LPs want more to reduce fees', i: 'Strong', p: true },
+          ].map((tr) => (
+            <div key={tr.t} className={`rounded-lg p-4 border ${tr.p ? 'border-emerald-500/30 bg-emerald-900/10' : tr.n ? 'border-border bg-card/50' : 'border-rose-500/30 bg-rose-900/10'}`}>
+              <div className="flex justify-between mb-2">
+                <h4 className="font-medium">{tr.t}</h4>
+                <Badge variant="outline" className={tr.p ? 'text-emerald-400' : tr.n ? 'text-muted-foreground' : 'text-rose-400'}>
+                  {tr.i}
+                </Badge>
+              </div>
+              <p className="text-sm text-muted-foreground">{tr.d}</p>
+            </div>
+          ))}
+        </div>
+      </Card>
+
+      {/* Hot/Cold Sectors */}
+      <div className="grid md:grid-cols-2 gap-6">
+        <Card className="bg-secondary/50 border-border p-6">
+          <h3 className="text-lg font-medium mb-4 flex items-center gap-2">
+            <TrendingUp className="h-5 w-5 text-emerald-400" />
+            Hot Sectors
+          </h3>
+          {[{ s: 'Healthcare IT', d: 342, c: 28, m: '14.2x' }, { s: 'Infrastructure Software', d: 287, c: 45, m: '16.8x' }, { s: 'Specialty Insurance', d: 124, c: 32, m: '11.4x' }].map((x) => (
+            <div key={x.s} className="flex justify-between py-2 border-b border-border last:border-0">
+              <div>
+                <div className="text-sm">{x.s}</div>
+                <div className="text-xs text-muted-foreground">{x.d} deals</div>
+              </div>
+              <div className="flex gap-4 items-center">
+                <span className="text-emerald-400">+{x.c}%</span>
+                <Badge variant="outline">{x.m}</Badge>
+              </div>
+            </div>
+          ))}
+        </Card>
+        <Card className="bg-secondary/50 border-border p-6">
+          <h3 className="text-lg font-medium mb-4 flex items-center gap-2">
+            <TrendingDown className="h-5 w-5 text-rose-400" />
+            Cooling Sectors
+          </h3>
+          {[{ s: 'Consumer Retail', d: 156, c: -34, m: '7.2x' }, { s: 'Traditional Media', d: 67, c: -42, m: '6.8x' }, { s: 'Commercial RE', d: 234, c: -28, m: '8.4x' }].map((x) => (
+            <div key={x.s} className="flex justify-between py-2 border-b border-border last:border-0">
+              <div>
+                <div className="text-sm">{x.s}</div>
+                <div className="text-xs text-muted-foreground">{x.d} deals</div>
+              </div>
+              <div className="flex gap-4 items-center">
+                <span className="text-rose-400">{x.c}%</span>
+                <Badge variant="outline">{x.m}</Badge>
+              </div>
+            </div>
+          ))}
+        </Card>
+      </div>
     </div>
   );
 }
