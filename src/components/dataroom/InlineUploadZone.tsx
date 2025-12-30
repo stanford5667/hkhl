@@ -1,17 +1,18 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { Upload, Sparkles, FileUp, X, CheckCircle, Loader2 } from "lucide-react";
+import { Upload, Sparkles, FileUp, X, CheckCircle, Loader2, Brain } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import { triggerDocumentProcessing } from "@/hooks/useAppData";
 
 interface UploadingFile {
   id: string;
   file: File;
   progress: number;
-  status: "uploading" | "complete" | "error";
+  status: "uploading" | "processing" | "complete" | "error";
   error?: string;
 }
 
@@ -20,6 +21,7 @@ interface InlineUploadZoneProps {
   folder?: string;
   subfolder?: string;
   onUploadComplete?: () => void;
+  triggerProcessing?: boolean;
   className?: string;
 }
 
@@ -28,11 +30,14 @@ export function InlineUploadZone({
   folder = "General",
   subfolder,
   onUploadComplete,
+  triggerProcessing = true,
   className,
 }: InlineUploadZoneProps) {
   const { user } = useAuth();
   const [isDragOver, setIsDragOver] = useState(false);
   const [uploads, setUploads] = useState<UploadingFile[]>([]);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const processingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -121,7 +126,6 @@ export function InlineUploadZone({
         setUploads((prev) => prev.filter((u) => u.id !== id));
       }, 2000);
 
-      onUploadComplete?.();
       return true;
     } catch (error) {
       console.error("Upload error:", error);
@@ -138,11 +142,46 @@ export function InlineUploadZone({
   const handleFiles = useCallback(
     async (files: FileList | File[]) => {
       const fileArray = Array.from(files);
+      let uploadedCount = 0;
+      
       for (const file of fileArray) {
-        await uploadFile(file);
+        const success = await uploadFile(file);
+        if (success) uploadedCount++;
+      }
+      
+      // Trigger AI processing after all uploads complete
+      if (uploadedCount > 0 && triggerProcessing) {
+        // Clear any existing timeout
+        if (processingTimeoutRef.current) {
+          clearTimeout(processingTimeoutRef.current);
+        }
+        
+        // Debounce processing trigger (wait 1s for more uploads)
+        processingTimeoutRef.current = setTimeout(async () => {
+          setIsProcessing(true);
+          toast.info("Starting AI analysis of uploaded documents...", {
+            icon: <Brain className="h-4 w-4 animate-pulse" />,
+          });
+          
+          try {
+            const result = await triggerDocumentProcessing(companyId);
+            if (result.error) {
+              console.error("Processing error:", result.error);
+            } else {
+              toast.success(`AI processed ${result.data?.processed || uploadedCount} document(s)`);
+            }
+          } catch (e) {
+            console.error("Failed to trigger processing:", e);
+          } finally {
+            setIsProcessing(false);
+            onUploadComplete?.();
+          }
+        }, 1000);
+      } else {
+        onUploadComplete?.();
       }
     },
-    [user, companyId, folder, subfolder]
+    [user, companyId, folder, subfolder, triggerProcessing, onUploadComplete]
   );
 
   const handleDrop = useCallback(
@@ -200,23 +239,40 @@ export function InlineUploadZone({
           <div
             className={cn(
               "p-2 rounded-full transition-colors",
-              isDragOver ? "bg-primary/10" : "bg-muted"
+              isProcessing
+                ? "bg-primary/20"
+                : isDragOver 
+                  ? "bg-primary/10" 
+                  : "bg-muted"
             )}
           >
-            <Upload
-              className={cn(
-                "h-4 w-4",
-                isDragOver ? "text-primary" : "text-muted-foreground"
-              )}
-            />
+            {isProcessing ? (
+              <Brain className="h-4 w-4 text-primary animate-pulse" />
+            ) : (
+              <Upload
+                className={cn(
+                  "h-4 w-4",
+                  isDragOver ? "text-primary" : "text-muted-foreground"
+                )}
+              />
+            )}
           </div>
           <div className="flex-1">
             <p className="text-sm font-medium text-foreground">
-              Drop files here or click to upload
+              {isProcessing ? "AI is analyzing documents..." : "Drop files here or click to upload"}
             </p>
             <div className="flex items-center gap-1 text-xs text-muted-foreground">
-              <Sparkles className="h-3 w-3 text-primary" />
-              <span>AI auto-organizes into folders</span>
+              {isProcessing ? (
+                <>
+                  <Brain className="h-3 w-3 text-primary animate-pulse" />
+                  <span>Extracting key metrics and insights</span>
+                </>
+              ) : (
+                <>
+                  <Sparkles className="h-3 w-3 text-primary" />
+                  <span>AI auto-extracts data after upload</span>
+                </>
+              )}
             </div>
           </div>
         </label>
