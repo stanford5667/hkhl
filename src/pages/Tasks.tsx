@@ -17,18 +17,25 @@ import {
   CalendarDays,
   ChevronRight,
   Loader2,
+  LayoutList,
+  LayoutGrid,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useTasks } from '@/hooks/useTasks';
+import { useTasks, Task } from '@/hooks/useTasks';
 import { TaskCard } from '@/components/tasks/TaskCard';
 import { CreateTaskDialog } from '@/components/tasks/CreateTaskDialog';
+import { TaskDetailDialog } from '@/components/tasks/TaskDetailDialog';
+import { TaskBoard } from '@/components/tasks/TaskBoard';
 
 type FilterTab = 'my' | 'team' | 'all';
+type ViewMode = 'list' | 'board';
 
 export default function Tasks() {
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState<FilterTab>('all');
+  const [viewMode, setViewMode] = useState<ViewMode>('list');
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
     overdue: true,
     today: true,
@@ -40,6 +47,7 @@ export default function Tasks() {
   });
   
   const {
+    tasks,
     isLoading,
     overdueTasks,
     todayTasks,
@@ -49,6 +57,7 @@ export default function Tasks() {
     noDueDateTasks,
     completedTasks,
     openTasks,
+    refetch,
   } = useTasks();
   
   const toggleSection = (section: string) => {
@@ -58,14 +67,17 @@ export default function Tasks() {
     }));
   };
   
-  const filteredBySearch = (tasks: typeof overdueTasks) => {
-    if (!searchQuery) return tasks;
+  const filteredBySearch = (taskList: Task[]) => {
+    if (!searchQuery) return taskList;
     const query = searchQuery.toLowerCase();
-    return tasks.filter(t => 
+    return taskList.filter(t => 
       t.title.toLowerCase().includes(query) ||
       t.company?.name.toLowerCase().includes(query)
     );
   };
+
+  // Filter all tasks for board view
+  const filteredTasks = filteredBySearch(tasks);
 
   const sections = [
     {
@@ -75,7 +87,6 @@ export default function Tasks() {
       tasks: filteredBySearch(overdueTasks),
       headerClass: 'text-rose-400',
       iconClass: 'text-rose-400',
-      showCount: true,
     },
     {
       id: 'today',
@@ -84,7 +95,6 @@ export default function Tasks() {
       tasks: filteredBySearch(todayTasks),
       headerClass: 'text-blue-400',
       iconClass: 'text-blue-400',
-      showCount: true,
     },
     {
       id: 'tomorrow',
@@ -93,7 +103,6 @@ export default function Tasks() {
       tasks: filteredBySearch(tomorrowTasks),
       headerClass: 'text-amber-400',
       iconClass: 'text-amber-400',
-      showCount: true,
     },
     {
       id: 'thisWeek',
@@ -102,7 +111,6 @@ export default function Tasks() {
       tasks: filteredBySearch(thisWeekTasks),
       headerClass: 'text-emerald-400',
       iconClass: 'text-emerald-400',
-      showCount: true,
     },
     {
       id: 'later',
@@ -111,7 +119,6 @@ export default function Tasks() {
       tasks: filteredBySearch(laterTasks),
       headerClass: 'text-slate-400',
       iconClass: 'text-slate-500',
-      showCount: true,
     },
     {
       id: 'noDueDate',
@@ -120,7 +127,6 @@ export default function Tasks() {
       tasks: filteredBySearch(noDueDateTasks),
       headerClass: 'text-slate-400',
       iconClass: 'text-slate-500',
-      showCount: true,
     },
     {
       id: 'completed',
@@ -129,7 +135,6 @@ export default function Tasks() {
       tasks: filteredBySearch(completedTasks),
       headerClass: 'text-slate-500',
       iconClass: 'text-slate-600',
-      showCount: true,
     },
   ];
 
@@ -214,76 +219,113 @@ export default function Tasks() {
             </Badge>
           )}
         </div>
+
+        {/* View Toggle */}
+        <div className="flex gap-1 bg-slate-800 rounded-lg p-1 ml-auto">
+          <Button
+            variant={viewMode === 'list' ? 'secondary' : 'ghost'}
+            size="icon"
+            className="h-8 w-8"
+            onClick={() => setViewMode('list')}
+          >
+            <LayoutList className="h-4 w-4" />
+          </Button>
+          <Button
+            variant={viewMode === 'board' ? 'secondary' : 'ghost'}
+            size="icon"
+            className="h-8 w-8"
+            onClick={() => setViewMode('board')}
+          >
+            <LayoutGrid className="h-4 w-4" />
+          </Button>
+        </div>
       </div>
       
-      {/* Task Sections */}
-      <div className="space-y-4">
-        {sections.map(section => {
-          if (section.tasks.length === 0) return null;
+      {/* Content */}
+      {viewMode === 'board' ? (
+        <TaskBoard tasks={filteredTasks} onTaskUpdated={refetch} />
+      ) : (
+        /* Task Sections - List View */
+        <div className="space-y-4">
+          {sections.map(section => {
+            if (section.tasks.length === 0) return null;
+            
+            const Icon = section.icon;
+            const isExpanded = expandedSections[section.id];
+            
+            return (
+              <Collapsible
+                key={section.id}
+                open={isExpanded}
+                onOpenChange={() => toggleSection(section.id)}
+              >
+                <CollapsibleTrigger asChild>
+                  <button className="flex items-center gap-2 w-full text-left py-2 group">
+                    <ChevronRight
+                      className={cn(
+                        'h-4 w-4 text-slate-500 transition-transform',
+                        isExpanded && 'rotate-90'
+                      )}
+                    />
+                    <Icon className={cn('h-4 w-4', section.iconClass)} />
+                    <span className={cn('font-medium text-sm', section.headerClass)}>
+                      {section.title}
+                    </span>
+                    <Badge
+                      variant="outline"
+                      className={cn(
+                        'text-xs border-0',
+                        section.headerClass
+                      )}
+                    >
+                      {section.tasks.length}
+                    </Badge>
+                  </button>
+                </CollapsibleTrigger>
+                
+                <CollapsibleContent>
+                  <div className="space-y-2 pl-6 pt-2">
+                    {section.tasks.map(task => (
+                      <div key={task.id} onClick={() => setSelectedTask(task)} className="cursor-pointer">
+                        <TaskCard task={task} />
+                      </div>
+                    ))}
+                  </div>
+                </CollapsibleContent>
+              </Collapsible>
+            );
+          })}
           
-          const Icon = section.icon;
-          const isExpanded = expandedSections[section.id];
-          
-          return (
-            <Collapsible
-              key={section.id}
-              open={isExpanded}
-              onOpenChange={() => toggleSection(section.id)}
-            >
-              <CollapsibleTrigger asChild>
-                <button className="flex items-center gap-2 w-full text-left py-2 group">
-                  <ChevronRight
-                    className={cn(
-                      'h-4 w-4 text-slate-500 transition-transform',
-                      isExpanded && 'rotate-90'
-                    )}
-                  />
-                  <Icon className={cn('h-4 w-4', section.iconClass)} />
-                  <span className={cn('font-medium text-sm', section.headerClass)}>
-                    {section.title}
-                  </span>
-                  <Badge
-                    variant="outline"
-                    className={cn(
-                      'text-xs border-0',
-                      section.headerClass
-                    )}
-                  >
-                    {section.tasks.length}
-                  </Badge>
-                </button>
-              </CollapsibleTrigger>
-              
-              <CollapsibleContent>
-                <div className="space-y-2 pl-6 pt-2">
-                  {section.tasks.map(task => (
-                    <TaskCard key={task.id} task={task} />
-                  ))}
-                </div>
-              </CollapsibleContent>
-            </Collapsible>
-          );
-        })}
-        
-        {openTasks.length === 0 && completedTasks.length === 0 && (
-          <div className="text-center py-16">
-            <CheckSquare className="h-12 w-12 text-slate-700 mx-auto mb-4" />
-            <p className="text-slate-400 mb-2">No tasks yet</p>
-            <p className="text-slate-600 text-sm mb-4">
-              Create your first task to get started
-            </p>
-            <Button onClick={() => setShowCreateDialog(true)}>
-              <Plus className="h-4 w-4 mr-2" />
-              Create Task
-            </Button>
-          </div>
-        )}
-      </div>
+          {openTasks.length === 0 && completedTasks.length === 0 && (
+            <div className="text-center py-16">
+              <CheckSquare className="h-12 w-12 text-slate-700 mx-auto mb-4" />
+              <p className="text-slate-400 mb-2">No tasks yet</p>
+              <p className="text-slate-600 text-sm mb-4">
+                Create your first task to get started
+              </p>
+              <Button onClick={() => setShowCreateDialog(true)}>
+                <Plus className="h-4 w-4 mr-2" />
+                Create Task
+              </Button>
+            </div>
+          )}
+        </div>
+      )}
       
       {/* Create Task Dialog */}
       <CreateTaskDialog
         open={showCreateDialog}
         onClose={() => setShowCreateDialog(false)}
+        onTaskCreated={refetch}
+      />
+
+      {/* Task Detail Dialog */}
+      <TaskDetailDialog
+        task={selectedTask}
+        open={!!selectedTask}
+        onClose={() => setSelectedTask(null)}
+        onTaskUpdated={refetch}
+        onTaskDeleted={refetch}
       />
     </div>
   );
