@@ -10,8 +10,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { CompanyTypeBadge } from '@/components/companies/CompanyTypeBadge';
 import { EditCompanyDialog } from '@/components/companies/EditCompanyDialog';
 import { IndustryNews } from '@/components/companies/IndustryNews';
-import { CompanyDocumentList } from '@/components/companies/CompanyDocumentList';
-import { InlineUploadZone } from '@/components/dataroom/InlineUploadZone';
+import { EmbeddedDataRoom } from '@/components/companies/EmbeddedDataRoom';
+
 import { CompanySummaryCard } from '@/components/companies/CompanySummaryCard';
 import { CompanyContactsCard } from '@/components/companies/CompanyContactsCard';
 import { CompanyNotesSection } from '@/components/companies/CompanyNotesSection';
@@ -83,15 +83,6 @@ interface Model {
   created_at: string;
 }
 
-const FOLDERS = [
-  { id: 'financials', name: 'Financials', icon: '📊' },
-  { id: 'legal', name: 'Legal', icon: '⚖️' },
-  { id: 'operations', name: 'Operations', icon: '⚙️' },
-  { id: 'hr', name: 'HR & Employment', icon: '👥' },
-  { id: 'commercial', name: 'Commercial', icon: '💼' },
-  { id: 'technology', name: 'Technology', icon: '💻' },
-  { id: 'other', name: 'Other', icon: '📁' },
-];
 
 export default function CompanyDetail() {
   const { id } = useParams<{ id: string }>();
@@ -103,7 +94,6 @@ export default function CompanyDetail() {
   const [models, setModels] = useState<Model[]>([]);
   const [loading, setLoading] = useState(true);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
-  const [activeFolder, setActiveFolder] = useState<string | null>(null);
   const [extractionKey, setExtractionKey] = useState(0);
 
   const fetchData = async () => {
@@ -185,14 +175,6 @@ export default function CompanyDetail() {
     return 75;
   };
 
-  const filteredDocuments = activeFolder 
-    ? documents.filter(d => d.folder?.toLowerCase() === activeFolder.toLowerCase())
-    : documents;
-
-  const folderCounts = FOLDERS.reduce((acc, folder) => {
-    acc[folder.id] = documents.filter(d => d.folder?.toLowerCase() === folder.id).length;
-    return acc;
-  }, {} as Record<string, number>);
 
   return (
     <div className="p-6 space-y-6 animate-fade-in">
@@ -313,82 +295,8 @@ export default function CompanyDetail() {
         </TabsList>
 
         {/* Data Room Tab */}
-        <TabsContent value="dataroom" className="space-y-6">
-          <div className="flex gap-6">
-            {/* Folder Sidebar */}
-            <div className="w-64 shrink-0">
-              <Card className="p-4">
-                <h3 className="font-medium text-foreground mb-4 flex items-center gap-2">
-                  <FolderOpen className="h-4 w-4" />
-                  Folders
-                </h3>
-                <div className="space-y-1">
-                  <Button
-                    variant={activeFolder === null ? 'secondary' : 'ghost'}
-                    className="w-full justify-start"
-                    onClick={() => setActiveFolder(null)}
-                  >
-                    <span className="mr-2">📂</span>
-                    All Documents
-                    <Badge variant="secondary" className="ml-auto">{documents.length}</Badge>
-                  </Button>
-                  {FOLDERS.map(folder => (
-                    <Button
-                      key={folder.id}
-                      variant={activeFolder === folder.id ? 'secondary' : 'ghost'}
-                      className="w-full justify-start"
-                      onClick={() => setActiveFolder(folder.id)}
-                    >
-                      <span className="mr-2">{folder.icon}</span>
-                      {folder.name}
-                      {folderCounts[folder.id] > 0 && (
-                        <Badge variant="secondary" className="ml-auto">{folderCounts[folder.id]}</Badge>
-                      )}
-                    </Button>
-                  ))}
-                </div>
-              </Card>
-            </div>
-
-            {/* Documents Area */}
-            <div className="flex-1 space-y-4">
-              {/* Upload Zone */}
-              <InlineUploadZone 
-                companyId={company.id}
-                folder={activeFolder || undefined}
-                onUploadComplete={fetchData}
-              />
-
-              {/* Documents Table */}
-              {filteredDocuments.length === 0 ? (
-                <Card className="p-12 text-center">
-                  <FolderOpen className="h-12 w-12 text-muted-foreground/50 mx-auto mb-3" />
-                  <p className="text-muted-foreground">
-                    {activeFolder ? `No documents in ${FOLDERS.find(f => f.id === activeFolder)?.name || activeFolder}` : 'No documents uploaded yet'}
-                  </p>
-                  <p className="text-muted-foreground text-sm mt-1">
-                    Drag and drop files above to upload
-                  </p>
-                </Card>
-              ) : (
-                <CompanyDocumentList 
-                  documents={filteredDocuments}
-                  onRename={async (docId, newName) => {
-                    await supabase.from('documents').update({ name: newName }).eq('id', docId);
-                    fetchData();
-                  }}
-                  onDelete={async (docId) => {
-                    await supabase.from('documents').delete().eq('id', docId);
-                    fetchData();
-                  }}
-                  onStatusChange={async (docId, status) => {
-                    await supabase.from('documents').update({ doc_status: status as any }).eq('id', docId);
-                    fetchData();
-                  }}
-                />
-              )}
-            </div>
-          </div>
+        <TabsContent value="dataroom">
+          <EmbeddedDataRoom companyId={company.id} companyName={company.name} />
         </TabsContent>
 
         {/* Overview Tab */}
