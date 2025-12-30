@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -36,13 +36,15 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
-import { Calendar as CalendarIcon, Building2, User, Loader2, Users } from 'lucide-react';
+import { Calendar as CalendarIcon, Building2, User, Loader2, Users, RepeatIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useTasks, TaskPriority } from '@/hooks/useTasks';
+import { useTasks, TaskPriority, RecurrencePattern } from '@/hooks/useTasks';
 import { useTeamMembers } from '@/hooks/useTeamMembers';
 import { useContacts } from '@/hooks/useContacts';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
+import { RecurrenceSettings, RecurrenceConfig } from './RecurrenceSettings';
+import { TaskTemplateManager, TaskTemplate } from './TaskTemplateManager';
 
 const taskSchema = z.object({
   title: z.string().min(1, 'Title is required').max(200),
@@ -84,6 +86,11 @@ export function CreateTaskDialog({
   onTaskCreated,
 }: CreateTaskDialogProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [recurrence, setRecurrence] = useState<RecurrenceConfig>({
+    pattern: null,
+    interval: 1,
+    endDate: null,
+  });
   const { createTask } = useTasks();
   const { teamMembers } = useTeamMembers();
   const { contacts } = useContacts();
@@ -101,8 +108,28 @@ export function CreateTaskDialog({
     },
   });
 
+  // Reset recurrence when dialog closes
+  useEffect(() => {
+    if (!open) {
+      setRecurrence({ pattern: null, interval: 1, endDate: null });
+    }
+  }, [open]);
+
   // Find current user's team member profile
   const myTeamMember = teamMembers.find(tm => tm.email === user?.email);
+
+  const handleTemplateSelect = (template: TaskTemplate) => {
+    form.setValue('title', template.title);
+    form.setValue('description', template.description || '');
+    form.setValue('priority', template.priority);
+    if (template.recurrence_pattern) {
+      setRecurrence({
+        pattern: template.recurrence_pattern as RecurrencePattern,
+        interval: template.recurrence_interval || 1,
+        endDate: null,
+      });
+    }
+  };
 
   const handleSubmit = async (data: TaskFormData) => {
     setIsSubmitting(true);
@@ -138,9 +165,13 @@ export function CreateTaskDialog({
         due_date: data.due_date?.toISOString() || null,
         company_id: companyId || null,
         contact_id: contactId || null,
+        recurrence_pattern: recurrence.pattern,
+        recurrence_interval: recurrence.interval,
+        recurrence_end_date: recurrence.endDate?.toISOString() || null,
       });
-      toast.success('Task created');
+      toast.success(recurrence.pattern ? 'Recurring task created' : 'Task created');
       form.reset();
+      setRecurrence({ pattern: null, interval: 1, endDate: null });
       onTaskCreated?.();
       onClose();
     } catch (error) {
@@ -155,15 +186,35 @@ export function CreateTaskDialog({
     form.setValue('due_date', date);
   };
 
+  const currentTaskData = {
+    title: form.watch('title'),
+    description: form.watch('description'),
+    priority: form.watch('priority'),
+    recurrence_pattern: recurrence.pattern,
+    recurrence_interval: recurrence.interval,
+  };
+
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="sm:max-w-lg bg-slate-900 border-slate-800">
         <DialogHeader>
-          <DialogTitle className="text-white">Create Task</DialogTitle>
+          <div className="flex items-center justify-between">
+            <DialogTitle className="text-white">Create Task</DialogTitle>
+            <TaskTemplateManager 
+              onSelectTemplate={handleTemplateSelect}
+              currentTask={currentTaskData}
+            />
+          </div>
         </DialogHeader>
         
         <Form {...form}>
           <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+            {/* Recurrence Settings */}
+            <div className="space-y-2">
+              <FormLabel className="text-slate-400">Repeat</FormLabel>
+              <RecurrenceSettings value={recurrence} onChange={setRecurrence} />
+            </div>
+            
             {/* Title */}
             <FormField
               control={form.control}
