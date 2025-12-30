@@ -276,18 +276,18 @@ export default function CompanyDetail() {
       </div>
 
       {/* Tabs */}
-      <Tabs defaultValue="dataroom" className="space-y-6">
+      <Tabs defaultValue="overview" className="space-y-6">
         <TabsList className="bg-secondary">
+          <TabsTrigger value="overview" className="gap-2">
+            <LayoutDashboard className="h-4 w-4" />
+            Overview
+          </TabsTrigger>
           <TabsTrigger value="dataroom" className="gap-2">
             <FolderOpen className="h-4 w-4" />
             Data Room
             {documents.length > 0 && (
               <Badge variant="secondary" className="ml-1">{documents.length}</Badge>
             )}
-          </TabsTrigger>
-          <TabsTrigger value="overview" className="gap-2">
-            <LayoutDashboard className="h-4 w-4" />
-            Overview
           </TabsTrigger>
           <TabsTrigger value="news" className="gap-2">
             <Newspaper className="h-4 w-4" />
@@ -390,20 +390,57 @@ export default function CompanyDetail() {
 
         {/* Overview Tab */}
         <TabsContent value="overview" className="space-y-6">
-          <Card className="glass-card">
-            <CardHeader>
-              <CardTitle>About</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {company.description ? (
-                <p className="text-muted-foreground">{company.description}</p>
-              ) : (
-                <p className="text-muted-foreground italic">No description available. Click Edit to add one.</p>
-              )}
-            </CardContent>
-          </Card>
+          {/* Company Summary Section */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Main Info Card */}
+            <Card className="glass-card lg:col-span-2">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Building2 className="h-5 w-5 text-primary" />
+                  About {company.name}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {company.description ? (
+                  <p className="text-foreground">{company.description}</p>
+                ) : (
+                  <p className="text-muted-foreground italic">No description available. Click Edit to add one.</p>
+                )}
+                
+                <div className="grid grid-cols-2 gap-4 pt-4 border-t border-border">
+                  <div>
+                    <p className="text-xs text-muted-foreground uppercase tracking-wider">Industry</p>
+                    <p className="text-foreground font-medium mt-1">{company.industry || '—'}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground uppercase tracking-wider">Website</p>
+                    {company.website ? (
+                      <a 
+                        href={company.website} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="text-primary hover:underline font-medium mt-1 flex items-center gap-1"
+                      >
+                        {company.website.replace(/^https?:\/\//, '')}
+                        <ExternalLink className="h-3 w-3" />
+                      </a>
+                    ) : (
+                      <p className="text-foreground font-medium mt-1">—</p>
+                    )}
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground uppercase tracking-wider">Status</p>
+                    <p className="text-foreground font-medium mt-1 capitalize">{company.status || 'Active'}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground uppercase tracking-wider">Deal Lead</p>
+                    <p className="text-foreground font-medium mt-1">{company.deal_lead || '—'}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Quick Stats Card */}
             <Card className="glass-card">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -411,52 +448,192 @@ export default function CompanyDetail() {
                   Quick Stats
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Contacts</span>
-                  <span className="font-medium">{contacts.length}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Documents</span>
-                  <span className="font-medium">{documents.length}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Models</span>
-                  <span className="font-medium">{models.length}</span>
-                </div>
-                <div className="flex justify-between">
+              <CardContent className="space-y-4">
+                <div className="flex justify-between items-center">
                   <span className="text-muted-foreground">Health Score</span>
-                  <span className={`font-medium ${getHealthScore() >= 70 ? 'text-emerald-400' : 'text-yellow-400'}`}>
+                  <span className={`text-xl font-bold ${getHealthScore() >= 70 ? 'text-emerald-400' : getHealthScore() >= 40 ? 'text-yellow-400' : 'text-rose-400'}`}>
                     {getHealthScore()}
                   </span>
                 </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-muted-foreground">EBITDA Margin</span>
+                  <span className="text-foreground font-medium">
+                    {company.revenue_ltm && company.ebitda_ltm 
+                      ? `${((company.ebitda_ltm / company.revenue_ltm) * 100).toFixed(1)}%`
+                      : '—'}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-muted-foreground">Est. EV (8x)</span>
+                  <span className="text-foreground font-medium">
+                    {company.ebitda_ltm ? formatCurrency(company.ebitda_ltm * 8) : '—'}
+                  </span>
+                </div>
+                <div className="pt-3 border-t border-border space-y-2">
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-muted-foreground flex items-center gap-1.5">
+                      <Users className="h-3.5 w-3.5" />
+                      Contacts
+                    </span>
+                    <span className="text-foreground">{contacts.length}</span>
+                  </div>
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-muted-foreground flex items-center gap-1.5">
+                      <FolderOpen className="h-3.5 w-3.5" />
+                      Documents
+                    </span>
+                    <span className="text-foreground">{documents.length}</span>
+                  </div>
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-muted-foreground flex items-center gap-1.5">
+                      <Brain className="h-3.5 w-3.5" />
+                      Models
+                    </span>
+                    <span className="text-foreground">{models.length}</span>
+                  </div>
+                </div>
               </CardContent>
             </Card>
+          </div>
 
+          {/* Financials Summary */}
+          <Card className="glass-card">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <TrendingUp className="h-5 w-5 text-emerald-400" />
+                Financial Summary
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                <div>
+                  <p className="text-xs text-muted-foreground uppercase tracking-wider">Revenue (LTM)</p>
+                  <p className="text-2xl font-bold mt-1">{formatCurrency(company.revenue_ltm)}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground uppercase tracking-wider">EBITDA (LTM)</p>
+                  <p className="text-2xl font-bold mt-1">{formatCurrency(company.ebitda_ltm)}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground uppercase tracking-wider">EBITDA Margin</p>
+                  <p className="text-2xl font-bold mt-1">
+                    {company.revenue_ltm && company.ebitda_ltm 
+                      ? `${((company.ebitda_ltm / company.revenue_ltm) * 100).toFixed(1)}%`
+                      : '—'}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground uppercase tracking-wider">Est. Enterprise Value</p>
+                  <p className="text-2xl font-bold mt-1">
+                    {company.ebitda_ltm ? formatCurrency(company.ebitda_ltm * 8) : '—'}
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Three Column Grid for Summaries */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* Recent Documents */}
             <Card className="glass-card">
-              <CardHeader>
-                <CardTitle>Recent Documents</CardTitle>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <FolderOpen className="h-4 w-4 text-amber-400" />
+                  Recent Documents
+                </CardTitle>
               </CardHeader>
               <CardContent>
                 {documents.length === 0 ? (
-                  <p className="text-muted-foreground text-sm">No documents uploaded</p>
+                  <p className="text-muted-foreground text-sm">No documents uploaded yet</p>
                 ) : (
                   <ul className="space-y-2">
-                    {documents.slice(0, 5).map((doc) => (
+                    {documents.slice(0, 4).map((doc) => (
                       <li key={doc.id} className="flex items-center gap-2 text-sm">
-                        <FileText className="h-4 w-4 text-muted-foreground" />
-                        <span className="truncate flex-1">{doc.name}</span>
-                        <span className="text-muted-foreground text-xs">
+                        <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
+                        <span className="truncate flex-1 text-foreground">{doc.name}</span>
+                        <span className="text-muted-foreground text-xs shrink-0">
                           {format(new Date(doc.created_at), 'MMM d')}
                         </span>
                       </li>
                     ))}
                   </ul>
                 )}
+                {documents.length > 4 && (
+                  <p className="text-xs text-muted-foreground mt-3">+{documents.length - 4} more documents</p>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Contacts Preview */}
+            <Card className="glass-card">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <Users className="h-4 w-4 text-blue-400" />
+                  Key Contacts
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {contacts.length === 0 ? (
+                  <p className="text-muted-foreground text-sm">No contacts assigned yet</p>
+                ) : (
+                  <ul className="space-y-3">
+                    {contacts.slice(0, 4).map((contact) => (
+                      <li key={contact.id} className="flex items-center gap-2">
+                        <div className="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center text-xs font-medium text-primary shrink-0">
+                          {contact.first_name[0]}{contact.last_name[0]}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-medium text-foreground truncate">
+                            {contact.first_name} {contact.last_name}
+                          </p>
+                          <p className="text-xs text-muted-foreground truncate">
+                            {contact.title || contact.category}
+                          </p>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                {contacts.length > 4 && (
+                  <p className="text-xs text-muted-foreground mt-3">+{contacts.length - 4} more contacts</p>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Models Preview */}
+            <Card className="glass-card">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <Brain className="h-4 w-4 text-purple-400" />
+                  Financial Models
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {models.length === 0 ? (
+                  <p className="text-muted-foreground text-sm">No models created yet</p>
+                ) : (
+                  <ul className="space-y-2">
+                    {models.slice(0, 4).map((model) => (
+                      <li key={model.id} className="flex items-center justify-between gap-2 text-sm">
+                        <div className="min-w-0 flex-1">
+                          <p className="text-foreground truncate">{model.name}</p>
+                          <p className="text-xs text-muted-foreground capitalize">{model.model_type}</p>
+                        </div>
+                        <Badge variant={model.status === 'complete' ? 'default' : 'secondary'} className="shrink-0 text-xs">
+                          {model.status || 'Draft'}
+                        </Badge>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                {models.length > 4 && (
+                  <p className="text-xs text-muted-foreground mt-3">+{models.length - 4} more models</p>
+                )}
               </CardContent>
             </Card>
           </div>
 
+          {/* Timeline */}
           <Card className="glass-card">
             <CardHeader>
               <CardTitle>Timeline</CardTitle>
