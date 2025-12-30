@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useOrgId } from '@/contexts/OrganizationContext';
 import { toast } from 'sonner';
 
 export type ContactCategory = 'lender' | 'executive' | 'board' | 'legal' | 'vendor' | 'team' | 'other';
@@ -8,6 +9,7 @@ export type ContactCategory = 'lender' | 'executive' | 'board' | 'legal' | 'vend
 export interface Contact {
   id: string;
   user_id: string;
+  organization_id: string | null;
   company_id: string | null;
   first_name: string;
   last_name: string;
@@ -39,6 +41,7 @@ export interface CreateContactInput {
 
 export function useContacts() {
   const { user } = useAuth();
+  const orgId = useOrgId();
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -50,13 +53,22 @@ export function useContacts() {
     }
 
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from('contacts')
         .select(`
           *,
           company:companies(id, name)
         `)
         .order('last_name');
+
+      // Filter by organization if available
+      if (orgId) {
+        query = query.eq('organization_id', orgId);
+      } else {
+        query = query.eq('user_id', user.id);
+      }
+
+      const { data, error } = await query;
 
       if (error) throw error;
       setContacts((data as Contact[]) || []);
@@ -79,6 +91,7 @@ export function useContacts() {
         .from('contacts')
         .insert({
           user_id: user.id,
+          organization_id: orgId || null,
           ...input,
         })
         .select(`
@@ -138,7 +151,7 @@ export function useContacts() {
 
   useEffect(() => {
     fetchContacts();
-  }, [user]);
+  }, [user, orgId]);
 
   return {
     contacts,
