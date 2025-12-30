@@ -15,6 +15,8 @@ import { InlineUploadZone } from '@/components/dataroom/InlineUploadZone';
 import { CompanySummaryCard } from '@/components/companies/CompanySummaryCard';
 import { CompanyContactsCard } from '@/components/companies/CompanyContactsCard';
 import { CompanyNotesSection } from '@/components/companies/CompanyNotesSection';
+import { DataExtractionPanel } from '@/components/companies/DataExtractionPanel';
+import { ExtractedFieldsDisplay } from '@/components/companies/ExtractedFieldsDisplay';
 import {
   ArrowLeft,
   Building2,
@@ -102,6 +104,7 @@ export default function CompanyDetail() {
   const [loading, setLoading] = useState(true);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [activeFolder, setActiveFolder] = useState<string | null>(null);
+  const [extractionKey, setExtractionKey] = useState(0);
 
   const fetchData = async () => {
     if (!id || !user) return;
@@ -390,6 +393,15 @@ export default function CompanyDetail() {
 
         {/* Overview Tab */}
         <TabsContent value="overview" className="space-y-6">
+          {/* Data Extraction Panel */}
+          <DataExtractionPanel 
+            company={company} 
+            onComplete={() => setExtractionKey(prev => prev + 1)} 
+          />
+
+          {/* Extracted Fields Display */}
+          <ExtractedFieldsDisplay key={extractionKey} companyId={company.id} />
+
           {/* Company Summary Section */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Main Info Card */}
