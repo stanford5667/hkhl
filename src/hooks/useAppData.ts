@@ -498,6 +498,205 @@ export function useRecentCompanies(limit = 5) {
   };
 }
 
+// ============ Document Types ============
+export interface AppDocument {
+  id: string;
+  company_id: string;
+  organization_id: string | null;
+  user_id: string;
+  name: string;
+  file_path: string;
+  file_type: string | null;
+  file_size: number | null;
+  folder: string | null;
+  subfolder: string | null;
+  document_type: string | null;
+  processing_status: 'pending' | 'processing' | 'completed' | 'failed';
+  processed_at: string | null;
+  processing_error: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AISummary {
+  id: string;
+  company_id: string;
+  user_id: string;
+  summary_type: 'overview' | 'investment_thesis' | 'risks' | 'highlights' | 'key_metrics';
+  content: string;
+  items: Array<{ title: string; description: string; sentiment?: string }>;
+  source_document_ids: string[];
+  model_used: string;
+  generated_at: string;
+  created_at: string;
+}
+
+// ============ Company Documents Hook ============
+export function useCompanyDocuments(companyId: string) {
+  const queryClient = useQueryClient();
+
+  const query = useQuery({
+    queryKey: ['company-documents', companyId],
+    queryFn: async () => {
+      if (!companyId) return [];
+      
+      const { data, error } = await supabase
+        .from('documents')
+        .select('*')
+        .eq('company_id', companyId)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      return (data || []) as AppDocument[];
+    },
+    enabled: !!companyId,
+    // Poll every 5s if any documents are processing
+    refetchInterval: (query) => {
+      const data = query.state.data as AppDocument[] | undefined;
+      const hasProcessing = data?.some(d => 
+        d.processing_status === 'pending' || d.processing_status === 'processing'
+      );
+      return hasProcessing ? 5000 : false;
+    },
+  });
+
+  const updateStatusMutation = useMutation({
+    mutationFn: async ({ id, status, error }: { 
+      id: string; 
+      status: AppDocument['processing_status']; 
+      error?: string 
+    }) => {
+      const updateData: Record<string, any> = { 
+        processing_status: status,
+        updated_at: new Date().toISOString()
+      };
+      if (status === 'completed') {
+        updateData.processed_at = new Date().toISOString();
+      }
+      if (error) {
+        updateData.processing_error = error;
+      }
+      
+      const { error: updateError } = await supabase
+        .from('documents')
+        .update(updateData)
+        .eq('id', id);
+
+      if (updateError) throw updateError;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['company-documents', companyId] });
+    },
+  });
+
+  // Processing stats
+  const processingStats = {
+    pending: query.data?.filter(d => d.processing_status === 'pending').length || 0,
+    processing: query.data?.filter(d => d.processing_status === 'processing').length || 0,
+    completed: query.data?.filter(d => d.processing_status === 'completed').length || 0,
+    failed: query.data?.filter(d => d.processing_status === 'failed').length || 0,
+    total: query.data?.length || 0,
+  };
+  
+  const isProcessing = processingStats.pending > 0 || processingStats.processing > 0;
+
+  return {
+    documents: query.data || [],
+    isLoading: query.isLoading,
+    error: query.error,
+    refetch: query.refetch,
+    updateDocumentStatus: updateStatusMutation.mutateAsync,
+    processingStats,
+    isProcessing,
+  };
+}
+
+// ============ AI Summaries Hook ============
+export function useCompanySummaries(companyId: string) {
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+
+  const query = useQuery({
+    queryKey: ['company-summaries', companyId],
+    queryFn: async () => {
+      if (!companyId) return [];
+      
+      const { data, error } = await supabase
+        .from('company_ai_summaries')
+        .select('*')
+        .eq('company_id', companyId);
+
+      if (error) throw error;
+      return (data || []) as unknown as AISummary[];
+    },
+    enabled: !!companyId,
+  });
+
+  const createSummaryMutation = useMutation({
+    mutationFn: async (summaryData: Partial<AISummary> & { company_id: string; summary_type: AISummary['summary_type']; content: string }) => {
+      if (!user) throw new Error('Not authenticated');
+      
+      const { data, error } = await supabase
+        .from('company_ai_summaries')
+        .upsert({
+          company_id: summaryData.company_id,
+          user_id: user.id,
+          summary_type: summaryData.summary_type,
+          content: summaryData.content,
+          items: summaryData.items || [],
+          source_document_ids: summaryData.source_document_ids || [],
+          model_used: summaryData.model_used || 'gemini-2.5-flash',
+          generated_at: new Date().toISOString(),
+        }, { onConflict: 'company_id,summary_type' })
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data as unknown as AISummary;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['company-summaries', companyId] });
+    },
+  });
+
+  // Get specific summary types
+  const overview = query.data?.find(s => s.summary_type === 'overview');
+  const highlights = query.data?.find(s => s.summary_type === 'highlights');
+  const risks = query.data?.find(s => s.summary_type === 'risks');
+  const investmentThesis = query.data?.find(s => s.summary_type === 'investment_thesis');
+
+  return {
+    summaries: query.data || [],
+    overview,
+    highlights,
+    risks,
+    investmentThesis,
+    isLoading: query.isLoading,
+    error: query.error,
+    refetch: query.refetch,
+    createSummary: createSummaryMutation.mutateAsync,
+    isCreatingSummary: createSummaryMutation.isPending,
+  };
+}
+
+// ============ Trigger Document Processing ============
+export async function triggerDocumentProcessing(companyId: string) {
+  const { data, error } = await supabase.functions.invoke('process-documents', {
+    body: { company_id: companyId }
+  });
+  
+  return { data, error };
+}
+
+// ============ Trigger AI Summary Generation ============
+export async function generateAISummary(companyId: string, summaryType: AISummary['summary_type']) {
+  const { data, error } = await supabase.functions.invoke('generate-ai-summary', {
+    body: { company_id: companyId, summary_type: summaryType }
+  });
+  
+  return { data, error };
+}
+
 export function useMyTasks(limit = 5) {
   const { user } = useAuth();
   const { tasks, isLoading } = useAppTasks();
