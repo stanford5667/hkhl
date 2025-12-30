@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { Sparkles, FileText, Globe, Loader2, CheckCircle, AlertCircle, RefreshCw, Database } from 'lucide-react';
+import { Sparkles, FileText, Loader2, CheckCircle, AlertCircle, RefreshCw, Database } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
@@ -24,12 +24,18 @@ interface DataExtractionPanelProps {
 }
 
 interface ExtractionStatus {
-  step: 'idle' | 'company' | 'documents' | 'website' | 'saving' | 'complete' | 'error';
+  step: 'idle' | 'company' | 'documents' | 'saving' | 'complete' | 'error';
   progress: number;
   message?: string;
   fieldsUpdated?: number;
   documentsProcessed?: number;
   error?: string;
+}
+
+interface ExtractedField {
+  value: number | string;
+  confidence: number;
+  excerpt?: string;
 }
 
 export function DataExtractionPanel({ company, onComplete }: DataExtractionPanelProps) {
@@ -51,7 +57,7 @@ export function DataExtractionPanel({ company, onComplete }: DataExtractionPanel
       // Step 1: Extract from existing company data
       setStatus({ step: 'company', progress: 10, message: 'Extracting existing company data...' });
       
-      const companyFields: Record<string, any> = {};
+      const companyFields: Record<string, { value: any; confidence: number; sourceType: string; sourceName: string; excerpt?: string }> = {};
       
       // Map existing company fields
       if (company.description) {
@@ -96,25 +102,42 @@ export function DataExtractionPanel({ company, onComplete }: DataExtractionPanel
       }
 
       // Step 2: Get all documents from data room
-      setStatus({ step: 'documents', progress: 30, message: 'Fetching data room documents...' });
+      setStatus({ step: 'documents', progress: 20, message: 'Fetching data room documents...' });
       
       const { data: documents } = await supabase
         .from('documents')
         .select('id, name, file_type, file_path, folder')
         .eq('company_id', company.id);
 
-      const documentFields: Record<string, any> = {};
+      const documentFields: Record<string, { value: any; confidence: number; sourceType: string; sourceName: string; excerpt?: string }> = {};
 
       if (documents && documents.length > 0) {
         const totalDocs = documents.length;
         
-        for (let i = 0; i < documents.length; i++) {
-          const doc = documents[i];
-          const progressPct = 30 + Math.round((i / totalDocs) * 40);
+        // Filter to financial document types that are likely to contain metrics
+        const financialDocs = documents.filter(doc => {
+          const name = doc.name.toLowerCase();
+          const folder = doc.folder?.toLowerCase() || '';
+          const ext = doc.file_type?.toLowerCase() || name.split('.').pop() || '';
+          
+          // Include spreadsheets, CSVs, and common financial document names
+          const isSpreadsheet = ['xlsx', 'xls', 'csv'].includes(ext);
+          const isFinancialFolder = ['financials', 'financial', 'historical', 'models'].some(f => folder.includes(f));
+          const isFinancialName = ['financial', 'model', 'p&l', 'income', 'balance', 'cim', 'teaser', 'summary', 'revenue', 'ebitda'].some(f => name.includes(f));
+          
+          return isSpreadsheet || isFinancialFolder || isFinancialName;
+        });
+
+        // Process all docs but prioritize financial ones
+        const docsToProcess = [...financialDocs, ...documents.filter(d => !financialDocs.includes(d))];
+        
+        for (let i = 0; i < docsToProcess.length; i++) {
+          const doc = docsToProcess[i];
+          const progressPct = 20 + Math.round((i / docsToProcess.length) * 50);
           setStatus({ 
             step: 'documents', 
             progress: progressPct, 
-            message: `Processing ${doc.name} (${i + 1}/${totalDocs})...` 
+            message: `Extracting from ${doc.name} (${i + 1}/${docsToProcess.length})...` 
           });
 
           try {
@@ -128,134 +151,56 @@ export function DataExtractionPanel({ company, onComplete }: DataExtractionPanel
               continue;
             }
 
-            // Convert to text (for text-based files)
+            // Convert to text
             let textContent = '';
-            if (doc.file_type?.includes('text') || 
-                doc.file_type?.includes('json') || 
-                doc.file_type?.includes('csv') ||
-                doc.name.endsWith('.txt') ||
-                doc.name.endsWith('.csv') ||
-                doc.name.endsWith('.json')) {
+            try {
               textContent = await fileData.text();
-            } else {
-              // For non-text files, try to get text anyway
-              try {
-                textContent = await fileData.text();
-                // If it looks like binary, skip
-                if (textContent.includes('\u0000')) {
-                  console.log(`Skipping ${doc.name}: Binary file`);
-                  continue;
-                }
-              } catch {
-                console.log(`Skipping ${doc.name}: Cannot read as text`);
+              // Skip binary files
+              if (textContent.includes('\u0000') || textContent.length < 50) {
+                console.log(`Skipping ${doc.name}: Binary or too short`);
                 continue;
               }
-            }
-
-            if (!textContent || textContent.length < 50) {
+            } catch {
+              console.log(`Skipping ${doc.name}: Cannot read as text`);
               continue;
             }
 
-            // Call summarize-document to extract structured data
-            const { data: summaryData, error: summaryError } = await supabase.functions.invoke('summarize-document', {
+            // Call extract-company-financials edge function for detailed extraction
+            const { data: extractionResult, error: extractionError } = await supabase.functions.invoke('extract-company-financials', {
               body: {
-                documentContent: textContent.substring(0, 15000),
-                fileName: doc.name,
-                fileType: doc.file_type || ''
+                file_data: textContent,
+                file_name: doc.name,
+                company_name: company.name
               }
             });
 
-            if (summaryError) {
-              console.log(`Error summarizing ${doc.name}:`, summaryError);
+            if (extractionError) {
+              console.log(`Error extracting from ${doc.name}:`, extractionError);
+              // Fall back to summarize-document for non-financial docs
+              continue;
+            }
+
+            if (!extractionResult?.success || !extractionResult?.extracted_fields) {
+              console.log(`No fields extracted from ${doc.name}`);
               continue;
             }
 
             documentsProcessed++;
+            console.log(`Extracted ${Object.keys(extractionResult.extracted_fields).length} fields from ${doc.name}`);
 
-            // Extract key figures into our field format
-            if (summaryData?.key_figures && Array.isArray(summaryData.key_figures)) {
-              for (const figure of summaryData.key_figures) {
-                const label = figure.label?.toLowerCase() || '';
-                const value = figure.value;
-                
-                // Map common labels to our field names
-                if (label.includes('revenue')) {
-                  const numValue = parseNumericValue(value);
-                  if (numValue !== null) {
-                    documentFields['revenue_ltm'] = {
-                      value: numValue,
-                      confidence: 0.8,
-                      sourceType: 'document',
-                      sourceName: doc.name,
-                      excerpt: `${figure.label}: ${figure.value}`
-                    };
-                  }
-                } else if (label.includes('ebitda')) {
-                  const numValue = parseNumericValue(value);
-                  if (numValue !== null) {
-                    documentFields['ebitda_ltm'] = {
-                      value: numValue,
-                      confidence: 0.8,
-                      sourceType: 'document',
-                      sourceName: doc.name,
-                      excerpt: `${figure.label}: ${figure.value}`
-                    };
-                  }
-                } else if (label.includes('employee')) {
-                  const numValue = parseNumericValue(value);
-                  if (numValue !== null) {
-                    documentFields['employee_count'] = {
-                      value: numValue,
-                      confidence: 0.7,
-                      sourceType: 'document',
-                      sourceName: doc.name,
-                      excerpt: `${figure.label}: ${figure.value}`
-                    };
-                  }
-                } else if (label.includes('margin')) {
-                  const numValue = parseNumericValue(value);
-                  if (numValue !== null) {
-                    if (label.includes('ebitda')) {
-                      documentFields['ebitda_margin'] = {
-                        value: numValue,
-                        confidence: 0.8,
-                        sourceType: 'document',
-                        sourceName: doc.name,
-                        excerpt: `${figure.label}: ${figure.value}`
-                      };
-                    } else if (label.includes('gross')) {
-                      documentFields['gross_margin'] = {
-                        value: numValue,
-                        confidence: 0.8,
-                        sourceType: 'document',
-                        sourceName: doc.name,
-                        excerpt: `${figure.label}: ${figure.value}`
-                      };
-                    }
-                  }
-                }
+            // Merge extracted fields - keep highest confidence
+            for (const [fieldName, fieldData] of Object.entries(extractionResult.extracted_fields as Record<string, ExtractedField>)) {
+              const existingField = documentFields[fieldName];
+              
+              if (!existingField || (fieldData.confidence > existingField.confidence)) {
+                documentFields[fieldName] = {
+                  value: fieldData.value,
+                  confidence: fieldData.confidence,
+                  sourceType: 'document',
+                  sourceName: doc.name,
+                  excerpt: fieldData.excerpt
+                };
               }
-            }
-
-            // Store document summary as business_model if we don't have one
-            if (summaryData?.summary && !documentFields['business_model'] && !companyFields['description']) {
-              documentFields['business_model'] = {
-                value: summaryData.summary,
-                confidence: 0.7,
-                sourceType: 'document',
-                sourceName: doc.name,
-                excerpt: summaryData.summary.substring(0, 100)
-              };
-            }
-
-            // Store insights if available
-            if (summaryData?.insights && Array.isArray(summaryData.insights) && summaryData.insights.length > 0) {
-              documentFields['investment_thesis'] = {
-                value: summaryData.insights.join('. '),
-                confidence: 0.6,
-                sourceType: 'document',
-                sourceName: doc.name
-              };
             }
 
           } catch (docError) {
@@ -267,14 +212,25 @@ export function DataExtractionPanel({ company, onComplete }: DataExtractionPanel
       // Step 3: Save all extracted fields
       setStatus({ step: 'saving', progress: 80, message: 'Saving extracted data...' });
 
-      // Merge fields - document fields take precedence if company fields exist but are from user_input
+      // Merge fields - document extractions can supplement profile data
+      // Document data with high confidence can override user input
       const allFields = { ...companyFields };
       for (const [key, value] of Object.entries(documentFields)) {
-        if (!allFields[key] || allFields[key].sourceType === 'user_input') {
-          // Document data can supplement but not override manual entries with higher confidence
-          if (!allFields[key]) {
-            allFields[key] = value;
-          }
+        const existing = allFields[key];
+        
+        // Document data overrides if:
+        // 1. No existing value, OR
+        // 2. Document confidence is high (>= 0.8) and field is a financial metric
+        const isFinancialField = ['revenue_ltm', 'ebitda_ltm', 'ebitda_margin', 'gross_margin', 'net_income', 
+          'revenue_growth_yoy', 'total_debt', 'cash', 'net_debt', 'employee_count', 'asking_price', 
+          'ev_ebitda_multiple', 'customer_count', 'nrr', 'churn_rate', 'customer_concentration',
+          'revenue_cagr_3yr', 'recurring_revenue_pct'].includes(key);
+        
+        if (!existing) {
+          allFields[key] = value;
+        } else if (isFinancialField && value.confidence >= 0.8 && existing.sourceType === 'user_input') {
+          // High-confidence document extraction can update financial metrics
+          allFields[key] = value;
         }
       }
 
@@ -306,6 +262,22 @@ export function DataExtractionPanel({ company, onComplete }: DataExtractionPanel
         }
       }
 
+      // Also update the companies table with key financial metrics from high-confidence extractions
+      const updatePayload: Record<string, number | null> = {};
+      if (documentFields['revenue_ltm']?.confidence >= 0.8 && documentFields['revenue_ltm']?.value) {
+        updatePayload.revenue_ltm = Number(documentFields['revenue_ltm'].value);
+      }
+      if (documentFields['ebitda_ltm']?.confidence >= 0.8 && documentFields['ebitda_ltm']?.value) {
+        updatePayload.ebitda_ltm = Number(documentFields['ebitda_ltm'].value);
+      }
+      
+      if (Object.keys(updatePayload).length > 0) {
+        await supabase
+          .from('companies')
+          .update(updatePayload)
+          .eq('id', company.id);
+      }
+
       // Log extraction history
       await supabase.from('extraction_history').insert({
         company_id: company.id,
@@ -317,7 +289,8 @@ export function DataExtractionPanel({ company, onComplete }: DataExtractionPanel
         status: 'success',
         extracted_data: { 
           documentsProcessed,
-          fieldNames: Object.keys(allFields)
+          fieldNames: Object.keys(allFields),
+          documentFieldsExtracted: Object.keys(documentFields)
         }
       });
 
@@ -353,9 +326,9 @@ export function DataExtractionPanel({ company, onComplete }: DataExtractionPanel
               <Sparkles className="h-5 w-5 text-primary" />
             </div>
             <div>
-              <h4 className="font-medium text-sm">Auto-Fill Data</h4>
+              <h4 className="font-medium text-sm">Auto-Fill Financials</h4>
               <p className="text-xs text-muted-foreground">
-                Extract from data room documents & company profile
+                Extract Revenue, EBITDA & more from data room documents
               </p>
             </div>
           </div>
@@ -386,7 +359,6 @@ export function DataExtractionPanel({ company, onComplete }: DataExtractionPanel
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
               {status.step === 'company' && <Database className="h-4 w-4" />}
               {status.step === 'documents' && <FileText className="h-4 w-4" />}
-              {status.step === 'website' && <Globe className="h-4 w-4" />}
               {status.step === 'saving' && <RefreshCw className="h-4 w-4 animate-spin" />}
               {status.message}
             </div>
@@ -419,41 +391,10 @@ export function DataExtractionPanel({ company, onComplete }: DataExtractionPanel
           </div>
           <div className="flex items-center gap-1">
             <FileText className="h-3 w-3" />
-            Data Room Documents
+            Data Room (Financials, Models, CIMs)
           </div>
         </div>
       </CardContent>
     </Card>
   );
-}
-
-// Helper to parse numeric values from strings like "$45M", "45 million", "45%"
-function parseNumericValue(value: string): number | null {
-  if (!value) return null;
-  
-  const cleaned = value.replace(/[$,]/g, '').toLowerCase().trim();
-  
-  // Handle percentages
-  if (cleaned.includes('%')) {
-    const num = parseFloat(cleaned.replace('%', ''));
-    return isNaN(num) ? null : num;
-  }
-  
-  // Handle millions/billions
-  let multiplier = 1;
-  let numStr = cleaned;
-  
-  if (cleaned.includes('b') || cleaned.includes('billion')) {
-    multiplier = 1000;
-    numStr = cleaned.replace(/b(illion)?/g, '');
-  } else if (cleaned.includes('m') || cleaned.includes('million')) {
-    multiplier = 1;
-    numStr = cleaned.replace(/m(illion)?/g, '');
-  } else if (cleaned.includes('k') || cleaned.includes('thousand')) {
-    multiplier = 0.001;
-    numStr = cleaned.replace(/k|thousand/g, '');
-  }
-  
-  const num = parseFloat(numStr);
-  return isNaN(num) ? null : num * multiplier;
 }
