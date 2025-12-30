@@ -8,11 +8,13 @@ import { PortfolioSnapshot } from '@/components/dashboard/PortfolioSnapshot';
 import { ActionItemsCard } from '@/components/dashboard/ActionItemsCard';
 import { ActivityFeed } from '@/components/dashboard/ActivityFeed';
 import { UpcomingEvents } from '@/components/dashboard/UpcomingEvents';
-import { PortfolioChart } from '@/components/dashboard/PortfolioChart';
+import { RecentCompaniesCard } from '@/components/dashboard/RecentCompaniesCard';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useDashboardStats } from '@/hooks/useAppData';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Badge } from '@/components/ui/badge';
+import { AlertTriangle } from 'lucide-react';
 
 function formatCurrency(value: number): string {
   if (value >= 1000) return `$${(value / 1000).toFixed(1)}B`;
@@ -58,7 +60,15 @@ export default function Dashboard() {
             </div>
           )}
         </div>
-        <StreakCounter days={5} />
+        <div className="flex items-center gap-3">
+          {stats.overdueTasks > 0 && (
+            <Badge variant="destructive" className="flex items-center gap-1">
+              <AlertTriangle className="h-3 w-3" />
+              {stats.overdueTasks} overdue
+            </Badge>
+          )}
+          <StreakCounter days={5} />
+        </div>
       </div>
 
       {/* Trigger Banner (Hook: Variable Reward) */}
@@ -86,7 +96,8 @@ export default function Dashboard() {
             />
             <QuickStatsTile 
               label="Pipeline" 
-              value={stats.pipeline.toString()} 
+              value={stats.pipeline.toString()}
+              subValue={stats.prospect > 0 ? `+${stats.prospect} prospects` : undefined}
               onClick={() => navigate('/companies?type=pipeline')}
             />
             <QuickStatsTile 
@@ -96,7 +107,9 @@ export default function Dashboard() {
             />
             <QuickStatsTile 
               label="Open Tasks" 
-              value={stats.openTasks.toString()} 
+              value={stats.openTasks.toString()}
+              subValue={stats.todayTasks > 0 ? `${stats.todayTasks} due today` : undefined}
+              alert={stats.overdueTasks > 0}
               onClick={() => navigate('/tasks')}
             />
             <QuickStatsTile 
@@ -112,7 +125,7 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left Column - Primary Content */}
         <div className="lg:col-span-2 space-y-6">
-          <PortfolioSnapshot />
+          <RecentCompaniesCard />
           <AIInsightCard />
           <ActivityFeed />
         </div>
@@ -120,19 +133,17 @@ export default function Dashboard() {
         {/* Right Column - Secondary */}
         <div className="space-y-6">
           <ActionItemsCard />
+          <PortfolioSnapshot />
           <UpcomingEvents />
         </div>
       </div>
 
       {/* Quick Actions Bar */}
       <QuickActions
-        onAddCompany={() => navigate('/companies')}
+        onAddCompany={() => navigate('/companies?create=true')}
         onCreateModel={() => navigate('/models')}
         onUploadFiles={() => navigate('/documents')}
       />
-
-      {/* Portfolio Chart */}
-      <PortfolioChart />
     </div>
   );
 }
