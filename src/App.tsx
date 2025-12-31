@@ -8,7 +8,7 @@ import { OrganizationProvider } from "@/contexts/OrganizationContext";
 import { UnifiedDataProvider } from "@/contexts/UnifiedDataContext";
 import { OnboardingFlow } from "@/components/onboarding/OnboardingFlow";
 import { Layout } from "@/components/layout/Layout";
-import Index from "./pages/Index";
+import EnhancedDashboard from "./pages/EnhancedDashboard";
 import Pipeline from "./pages/Pipeline";
 import Models from "./pages/Models";
 import NewModel from "./pages/NewModel";
@@ -42,7 +42,7 @@ const App = () => (
               <OnboardingFlow>
                 <Layout>
                   <Routes>
-                    <Route path="/" element={<Index />} />
+                    <Route path="/" element={<EnhancedDashboard />} />
                     <Route path="/auth" element={<Auth />} />
                     <Route path="/pipeline" element={<Pipeline />} />
                     <Route path="/models" element={<Models />} />
