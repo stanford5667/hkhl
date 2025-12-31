@@ -5,7 +5,7 @@ import { TopBar } from "./TopBar";
 import { useAuth } from "@/contexts/AuthContext";
 import { Loader2 } from "lucide-react";
 import { UniversalCreateMenu } from "@/components/shared/UniversalCreateMenu";
-import { GlobalSearch } from "@/components/shared/GlobalSearch";
+import { EnhancedGlobalSearch, useSearchShortcut } from "@/components/shared/EnhancedGlobalSearch";
 import { toast } from "sonner";
 
 interface LayoutProps {
@@ -20,18 +20,8 @@ export function Layout({ children }: LayoutProps) {
   const [createMenuOpen, setCreateMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
 
-  // Global keyboard shortcut for ⌘K / Ctrl+K
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
-        e.preventDefault();
-        setSearchOpen(true);
-      }
-    };
-    
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, []);
+  // Use the search shortcut hook
+  useSearchShortcut(() => setSearchOpen(true));
 
   // Create handlers
   const handleCreateCompany = () => {
@@ -98,7 +88,7 @@ export function Layout({ children }: LayoutProps) {
         onCreateTask={handleCreateTask}
         onUploadDocument={handleUploadDocument}
       />
-      <GlobalSearch
+      <EnhancedGlobalSearch
         open={searchOpen}
         onOpenChange={setSearchOpen}
       />
