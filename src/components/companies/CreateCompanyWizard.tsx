@@ -108,18 +108,85 @@ export function CreateCompanyWizard({ open, onOpenChange, onComplete }: CreateCo
   const [suggestions, setSuggestions] = useState<CompanySuggestion[]>([]);
   const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
-  const [isLookingUp, setIsLookingUp] = useState(false);
-  const [autoPopulatedFields, setAutoPopulatedFields] = useState<Set<string>>(new Set());
+  const [isAutoFilling, setIsAutoFilling] = useState(false);
+  const [autoFilledFields, setAutoFilledFields] = useState<Set<string>>(new Set());
   const suggestionsRef = useRef<HTMLDivElement>(null);
+  const lastLookedUpName = useRef<string>('');
 
   const updateData = (updates: Partial<WizardData>) => {
     setData(prev => ({ ...prev, ...updates }));
   };
 
-  // Debounced suggestion fetch
+  // Auto-fill company info when name changes (debounced 500ms)
+  useEffect(() => {
+    if (data.name.trim().length < 3) {
+      return;
+    }
+
+    // Don't re-lookup the same name
+    if (data.name.trim().toLowerCase() === lastLookedUpName.current.toLowerCase()) {
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      setIsAutoFilling(true);
+      lastLookedUpName.current = data.name.trim();
+      try {
+        const { data: result, error } = await supabase.functions.invoke('lookup-company', {
+          body: { companyName: data.name.trim() }
+        });
+
+        if (!error && result?.success && result?.data) {
+          const updates: Partial<WizardData> = {};
+          const filled = new Set<string>();
+
+          if (result.data.website && !data.website) {
+            updates.website = result.data.website;
+            filled.add('website');
+          }
+          if (result.data.industry) {
+            const matchedIndustry = INDUSTRIES.find(ind => 
+              result.data.industry.toLowerCase().includes(ind.toLowerCase()) ||
+              ind.toLowerCase().includes(result.data.industry.toLowerCase())
+            );
+            if (matchedIndustry && !data.industry) {
+              updates.industry = matchedIndustry;
+              filled.add('industry');
+            }
+          }
+          if (result.data.description && !data.description) {
+            updates.description = result.data.description;
+            filled.add('description');
+          }
+          if (result.data.headquarters && !data.headquarters) {
+            updates.headquarters = result.data.headquarters;
+            filled.add('headquarters');
+          }
+          if (result.data.founded && !data.yearFounded) {
+            updates.yearFounded = String(result.data.founded);
+            filled.add('yearFounded');
+          }
+
+          if (Object.keys(updates).length > 0) {
+            updateData(updates);
+            setAutoFilledFields(filled);
+            toast.success('Found company info!', { duration: 2000 });
+          }
+        }
+      } catch (e) {
+        console.error('Auto-fill error:', e);
+      } finally {
+        setIsAutoFilling(false);
+      }
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [data.name]);
+
+  // Debounced suggestion fetch (for dropdown)
   useEffect(() => {
     const timer = setTimeout(async () => {
-      if (data.name.length >= 2 && !isLookingUp) {
+      if (data.name.length >= 2 && !isAutoFilling) {
         setIsLoadingSuggestions(true);
         try {
           const { data: result } = await supabase.functions.invoke('suggest-companies', {
@@ -140,7 +207,7 @@ export function CreateCompanyWizard({ open, onOpenChange, onComplete }: CreateCo
       }
     }, 300);
     return () => clearTimeout(timer);
-  }, [data.name, isLookingUp]);
+  }, [data.name, isAutoFilling]);
 
   // Click-outside handler
   useEffect(() => {
@@ -153,71 +220,17 @@ export function CreateCompanyWizard({ open, onOpenChange, onComplete }: CreateCo
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Lookup company details
-  const lookupCompany = async (companyName: string) => {
-    if (!companyName.trim()) return;
-    setIsLookingUp(true);
-    setShowSuggestions(false);
-    try {
-      const { data: result, error } = await supabase.functions.invoke('lookup-company', {
-        body: { companyName }
-      });
-      if (error) throw error;
-      
-      if (result?.success && result?.data) {
-        const newAutoPopulated = new Set<string>();
-        const updates: Partial<WizardData> = {};
-        
-        if (result.data.website && !data.website) {
-          updates.website = result.data.website;
-          newAutoPopulated.add('website');
-        }
-        if (result.data.industry) {
-          // Map to closest industry in our list
-          const matchedIndustry = INDUSTRIES.find(ind => 
-            result.data.industry.toLowerCase().includes(ind.toLowerCase()) ||
-            ind.toLowerCase().includes(result.data.industry.toLowerCase())
-          );
-          if (matchedIndustry && !data.industry) {
-            updates.industry = matchedIndustry;
-            newAutoPopulated.add('industry');
-          }
-        }
-        if (result.data.description && !data.description) {
-          updates.description = result.data.description;
-          newAutoPopulated.add('description');
-        }
-        if (result.data.headquarters && !data.headquarters) {
-          updates.headquarters = result.data.headquarters;
-          newAutoPopulated.add('headquarters');
-        }
-        if (result.data.founded && !data.yearFounded) {
-          updates.yearFounded = String(result.data.founded);
-          newAutoPopulated.add('yearFounded');
-        }
-        
-        if (Object.keys(updates).length > 0) {
-          updateData(updates);
-          setAutoPopulatedFields(newAutoPopulated);
-          toast.success('Company info found!');
-        } else {
-          toast.info('No additional info found');
-        }
-      } else {
-        toast.info('No additional info found');
-      }
-    } catch (e) {
-      console.error('Lookup error:', e);
-      toast.error('Failed to lookup company');
-    } finally {
-      setIsLookingUp(false);
-    }
+  const clearAutoFilled = (field: string) => {
+    const newSet = new Set(autoFilledFields);
+    newSet.delete(field);
+    setAutoFilledFields(newSet);
   };
 
-  const clearAutoPopulated = (field: string) => {
-    const newSet = new Set(autoPopulatedFields);
-    newSet.delete(field);
-    setAutoPopulatedFields(newSet);
+  // Select a suggestion and trigger auto-fill
+  const selectSuggestion = (name: string) => {
+    updateData({ name });
+    setShowSuggestions(false);
+    lastLookedUpName.current = ''; // Reset to trigger lookup for the selected name
   };
 
   const handleNext = () => {
@@ -234,8 +247,9 @@ export function CreateCompanyWizard({ open, onOpenChange, onComplete }: CreateCo
     }
     onOpenChange(false);
     setCurrentStep(1);
-    setAutoPopulatedFields(new Set());
+    setAutoFilledFields(new Set());
     setSuggestions([]);
+    lastLookedUpName.current = '';
     setData({
       name: '', website: '', industry: '', stage: 'sourcing', source: '',
       description: '', yearFounded: '', headquarters: '', employeeCount: '',
@@ -397,7 +411,7 @@ export function CreateCompanyWizard({ open, onOpenChange, onComplete }: CreateCo
               </div>
 
               <div className="space-y-4">
-                {/* Enhanced Company Name Input with Autocomplete */}
+                {/* Company Name Input with Auto-Fill */}
                 <div className="space-y-2 relative" ref={suggestionsRef}>
                   <Label className="text-slate-300">Company Name *</Label>
                   <div className="relative">
@@ -405,33 +419,27 @@ export function CreateCompanyWizard({ open, onOpenChange, onComplete }: CreateCo
                       value={data.name}
                       onChange={e => {
                         updateData({ name: e.target.value });
-                        if (autoPopulatedFields.size > 0) setAutoPopulatedFields(new Set());
+                        setAutoFilledFields(new Set());
                       }}
                       onFocus={() => data.name.length >= 2 && suggestions.length > 0 && setShowSuggestions(true)}
-                      placeholder="Start typing company name..."
-                      className="bg-slate-800 border-slate-700 text-white text-lg pr-24"
+                      placeholder="Enter company name..."
+                      className="bg-slate-800 border-slate-700 text-white text-lg"
                     />
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => lookupCompany(data.name)}
-                      disabled={!data.name.trim() || isLookingUp}
-                      className="absolute right-1 top-1/2 -translate-y-1/2 h-7 px-2 text-purple-400 hover:text-purple-300 hover:bg-purple-500/10"
-                    >
-                      {isLookingUp ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <>
-                          <Sparkles className="h-4 w-4 mr-1" />
-                          Lookup
-                        </>
-                      )}
-                    </Button>
+                    {isAutoFilling && (
+                      <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                        <Loader2 className="h-4 w-4 animate-spin text-purple-400" />
+                      </div>
+                    )}
                   </div>
+                  {isAutoFilling && (
+                    <p className="text-xs text-purple-400 flex items-center gap-1">
+                      <Sparkles className="h-3 w-3" />
+                      Looking up company info...
+                    </p>
+                  )}
                   
                   {/* Suggestions Dropdown */}
-                  {showSuggestions && data.name.length >= 2 && (
+                  {showSuggestions && data.name.length >= 2 && !isAutoFilling && (
                     <div className="absolute z-50 w-full mt-1 bg-slate-800 border border-slate-700 rounded-lg shadow-xl overflow-hidden">
                       {isLoadingSuggestions ? (
                         <div className="p-4 text-center text-slate-400">
@@ -444,11 +452,7 @@ export function CreateCompanyWizard({ open, onOpenChange, onComplete }: CreateCo
                             <button
                               key={i}
                               type="button"
-                              onClick={() => {
-                                updateData({ name: s.name });
-                                setShowSuggestions(false);
-                                lookupCompany(s.name);
-                              }}
+                              onClick={() => selectSuggestion(s.name)}
                               className="w-full px-4 py-3 text-left hover:bg-slate-700/50 border-b border-slate-700/50 last:border-0"
                             >
                               <div className="flex items-center justify-between">
@@ -464,19 +468,19 @@ export function CreateCompanyWizard({ open, onOpenChange, onComplete }: CreateCo
                           ))}
                           <button
                             type="button"
-                            onClick={() => { setShowSuggestions(false); lookupCompany(data.name); }}
+                            onClick={() => setShowSuggestions(false)}
                             className="w-full px-4 py-2 text-purple-400 hover:bg-slate-700/50 text-sm border-t border-slate-700"
                           >
-                            Search for "{data.name}" →
+                            Continue with "{data.name}" →
                           </button>
                         </>
                       ) : (
                         <button
                           type="button"
-                          onClick={() => { setShowSuggestions(false); lookupCompany(data.name); }}
+                          onClick={() => setShowSuggestions(false)}
                           className="w-full px-4 py-3 text-slate-400 hover:bg-slate-700/50"
                         >
-                          No suggestions. Search for "{data.name}" →
+                          Continue with "{data.name}" →
                         </button>
                       )}
                     </div>
@@ -487,18 +491,18 @@ export function CreateCompanyWizard({ open, onOpenChange, onComplete }: CreateCo
                 <div className="space-y-2">
                   <div className="flex items-center gap-2">
                     <Label className="text-slate-300">Website</Label>
-                    {autoPopulatedFields.has('website') && <AIBadge />}
+                    {autoFilledFields.has('website') && <AIBadge />}
                   </div>
                   <Input
                     value={data.website}
                     onChange={e => {
                       updateData({ website: e.target.value });
-                      clearAutoPopulated('website');
+                      clearAutoFilled('website');
                     }}
                     placeholder="https://acme.com"
                     className={cn(
                       "bg-slate-800 border-slate-700 text-white",
-                      autoPopulatedFields.has('website') && "ring-1 ring-purple-500/30"
+                      autoFilledFields.has('website') && "ring-1 ring-purple-500/30"
                     )}
                   />
                   <p className="text-xs text-slate-500">We'll try to pull info from here</p>
@@ -509,18 +513,18 @@ export function CreateCompanyWizard({ open, onOpenChange, onComplete }: CreateCo
                   <div className="space-y-2">
                     <div className="flex items-center gap-2">
                       <Label className="text-slate-300">Industry *</Label>
-                      {autoPopulatedFields.has('industry') && <AIBadge />}
+                      {autoFilledFields.has('industry') && <AIBadge />}
                     </div>
                     <Select 
                       value={data.industry} 
                       onValueChange={val => {
                         updateData({ industry: val });
-                        clearAutoPopulated('industry');
+                        clearAutoFilled('industry');
                       }}
                     >
                       <SelectTrigger className={cn(
                         "bg-slate-800 border-slate-700 text-white",
-                        autoPopulatedFields.has('industry') && "ring-1 ring-purple-500/30"
+                        autoFilledFields.has('industry') && "ring-1 ring-purple-500/30"
                       )}>
                         <SelectValue placeholder="Select industry" />
                       </SelectTrigger>
@@ -577,19 +581,19 @@ export function CreateCompanyWizard({ open, onOpenChange, onComplete }: CreateCo
                 <div className="space-y-2">
                   <div className="flex items-center gap-2">
                     <Label className="text-slate-300">Business Description</Label>
-                    {autoPopulatedFields.has('description') && <AIBadge />}
+                    {autoFilledFields.has('description') && <AIBadge />}
                   </div>
                   <Textarea
                     value={data.description}
                     onChange={e => {
                       updateData({ description: e.target.value });
-                      clearAutoPopulated('description');
+                      clearAutoFilled('description');
                     }}
                     placeholder="What does the company do?"
                     rows={3}
                     className={cn(
                       "bg-slate-800 border-slate-700 text-white",
-                      autoPopulatedFields.has('description') && "ring-1 ring-purple-500/30"
+                      autoFilledFields.has('description') && "ring-1 ring-purple-500/30"
                     )}
                   />
                 </div>
@@ -599,19 +603,19 @@ export function CreateCompanyWizard({ open, onOpenChange, onComplete }: CreateCo
                   <div className="space-y-2">
                     <div className="flex items-center gap-2">
                       <Label className="text-slate-300">Year Founded</Label>
-                      {autoPopulatedFields.has('yearFounded') && <AIBadge />}
+                      {autoFilledFields.has('yearFounded') && <AIBadge />}
                     </div>
                     <Input
                       type="number"
                       value={data.yearFounded}
                       onChange={e => {
                         updateData({ yearFounded: e.target.value });
-                        clearAutoPopulated('yearFounded');
+                        clearAutoFilled('yearFounded');
                       }}
                       placeholder="2010"
                       className={cn(
                         "bg-slate-800 border-slate-700 text-white",
-                        autoPopulatedFields.has('yearFounded') && "ring-1 ring-purple-500/30"
+                        autoFilledFields.has('yearFounded') && "ring-1 ring-purple-500/30"
                       )}
                     />
                   </div>
@@ -620,18 +624,18 @@ export function CreateCompanyWizard({ open, onOpenChange, onComplete }: CreateCo
                   <div className="space-y-2">
                     <div className="flex items-center gap-2">
                       <Label className="text-slate-300">Headquarters</Label>
-                      {autoPopulatedFields.has('headquarters') && <AIBadge />}
+                      {autoFilledFields.has('headquarters') && <AIBadge />}
                     </div>
                     <Input
                       value={data.headquarters}
                       onChange={e => {
                         updateData({ headquarters: e.target.value });
-                        clearAutoPopulated('headquarters');
+                        clearAutoFilled('headquarters');
                       }}
                       placeholder="New York, NY"
                       className={cn(
                         "bg-slate-800 border-slate-700 text-white",
-                        autoPopulatedFields.has('headquarters') && "ring-1 ring-purple-500/30"
+                        autoFilledFields.has('headquarters') && "ring-1 ring-purple-500/30"
                       )}
                     />
                   </div>
@@ -765,7 +769,7 @@ export function CreateCompanyWizard({ open, onOpenChange, onComplete }: CreateCo
                       <div className="flex justify-between items-center">
                         <span className="text-slate-500">Industry</span>
                         <div className="flex items-center gap-2">
-                          {autoPopulatedFields.has('industry') && <AIBadge />}
+                          {autoFilledFields.has('industry') && <AIBadge />}
                           <span className="text-white">{data.industry}</span>
                         </div>
                       </div>
@@ -779,7 +783,7 @@ export function CreateCompanyWizard({ open, onOpenChange, onComplete }: CreateCo
                         <div className="flex justify-between items-center">
                           <span className="text-slate-500">Website</span>
                           <div className="flex items-center gap-2">
-                            {autoPopulatedFields.has('website') && <AIBadge />}
+                            {autoFilledFields.has('website') && <AIBadge />}
                             <span className="text-white truncate max-w-[150px]">{data.website}</span>
                           </div>
                         </div>
@@ -822,7 +826,7 @@ export function CreateCompanyWizard({ open, onOpenChange, onComplete }: CreateCo
                 <div className="p-4 rounded-lg bg-slate-800/50">
                   <div className="flex items-center gap-2 mb-2">
                     <h4 className="text-sm font-medium text-slate-400">Description</h4>
-                    {autoPopulatedFields.has('description') && <AIBadge />}
+                    {autoFilledFields.has('description') && <AIBadge />}
                   </div>
                   <p className="text-slate-300">{data.description}</p>
                 </div>
