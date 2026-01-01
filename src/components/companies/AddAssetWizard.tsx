@@ -15,7 +15,6 @@ import {
   Package,
   Loader2,
   LineChart,
-  Search,
   Sparkles
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -40,6 +39,7 @@ import { useOrganization, AssetType } from '@/contexts/OrganizationContext';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { TickerSearchAutocomplete } from '@/components/shared/TickerSearchAutocomplete';
 
 interface AddAssetWizardProps {
   open: boolean;
@@ -754,29 +754,39 @@ function StepPublicEquityTicker({
   isLoading: boolean;
   quoteData: StockQuoteData | null;
 }) {
+  const handleTickerSelect = (result: { symbol: string; name: string; exchange: string }) => {
+    updateForm({ 
+      tickerSymbol: result.symbol,
+      name: result.name,
+      exchange: result.exchange || 'NYSE'
+    });
+  };
+
   return (
     <div className="space-y-6">
       <div className="text-center mb-6">
         <div className="h-12 w-12 rounded-xl bg-emerald-500/20 flex items-center justify-center mx-auto mb-4">
           <TrendingUp className="h-6 w-6 text-emerald-400" />
         </div>
-        <h3 className="text-xl font-bold text-white">Enter Ticker Symbol</h3>
-        <p className="text-slate-400 mt-2">We'll auto-populate the details</p>
+        <h3 className="text-xl font-bold text-white">Search for Stock</h3>
+        <p className="text-slate-400 mt-2">Type a ticker or company name</p>
       </div>
       
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-500" />
-        <Input
-          value={form.tickerSymbol}
-          onChange={(e) => updateForm({ tickerSymbol: e.target.value.toUpperCase() })}
-          placeholder="e.g., AAPL, MSFT, GOOGL"
-          className="pl-10 py-6 text-xl font-mono bg-slate-800 border-slate-700 text-white uppercase"
-          autoFocus
-        />
-        {isLoading && (
-          <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-emerald-400 animate-spin" />
-        )}
-      </div>
+      <TickerSearchAutocomplete
+        value={form.tickerSymbol}
+        onChange={(value) => updateForm({ tickerSymbol: value.toUpperCase() })}
+        onSelect={handleTickerSelect}
+        placeholder="Search AAPL, Microsoft, Tesla..."
+        className="[&_input]:py-6 [&_input]:text-xl [&_input]:font-mono [&_input]:uppercase [&_input]:bg-slate-800 [&_input]:border-slate-700 [&_input]:text-white"
+        autoFocus
+      />
+      
+      {isLoading && !quoteData && (
+        <div className="flex items-center justify-center py-4 text-slate-400">
+          <Loader2 className="h-5 w-5 animate-spin mr-2" />
+          Fetching quote...
+        </div>
+      )}
       
       {/* Auto-populated data */}
       <AnimatePresence>
