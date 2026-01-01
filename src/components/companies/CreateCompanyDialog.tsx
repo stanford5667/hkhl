@@ -86,6 +86,7 @@ export function CreateCompanyDialog({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLookingUp, setIsLookingUp] = useState(false);
   const [hasAutoFilled, setHasAutoFilled] = useState(false);
+  const [aiFilledFields, setAiFilledFields] = useState<Set<string>>(new Set());
   const [industryMultiples, setIndustryMultiples] = useState<IndustryMultiples>(fallbackIndustryMultiples);
   const [currentMultiple, setCurrentMultiple] = useState<number | null>(null);
   const [isAutoValuation, setIsAutoValuation] = useState(false);
@@ -118,6 +119,7 @@ export function CreateCompanyDialog({
       });
       // Reset autofill state when dialog opens
       setHasAutoFilled(false);
+      setAiFilledFields(new Set());
     }
   }, [open]);
 
@@ -154,10 +156,12 @@ export function CreateCompanyDialog({
 
       if (data?.success && data?.data) {
         const info = data.data;
+        const newAiFields = new Set<string>();
         
         // Only fill fields that are currently empty
         if (info.website && !form.getValues('website')) {
           form.setValue('website', info.website);
+          newAiFields.add('website');
         }
         if (info.industry && !form.getValues('industry')) {
           // Map to closest industry option
@@ -167,12 +171,15 @@ export function CreateCompanyDialog({
           );
           if (matchedIndustry) {
             form.setValue('industry', matchedIndustry);
+            newAiFields.add('industry');
           }
         }
         if (info.description && !form.getValues('description')) {
           form.setValue('description', info.description);
+          newAiFields.add('description');
         }
 
+        setAiFilledFields(newAiFields);
         setHasAutoFilled(true);
         toast({
           title: 'Company info found',
@@ -204,6 +211,7 @@ export function CreateCompanyDialog({
       form.reset();
       setIsAutoValuation(false);
       setHasAutoFilled(false);
+      setAiFilledFields(new Set());
       onOpenChange(false);
     } finally {
       setIsSubmitting(false);
@@ -280,10 +288,28 @@ export function CreateCompanyDialog({
               name="industry"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Industry</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
+                  <FormLabel className="flex items-center gap-2">
+                    Industry
+                    {aiFilledFields.has('industry') && (
+                      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-primary/10 text-primary text-xs font-normal">
+                        <Sparkles className="h-3 w-3" />
+                        AI
+                      </span>
+                    )}
+                  </FormLabel>
+                  <Select 
+                    onValueChange={(value) => {
+                      field.onChange(value);
+                      setAiFilledFields(prev => {
+                        const next = new Set(prev);
+                        next.delete('industry');
+                        return next;
+                      });
+                    }} 
+                    value={field.value}
+                  >
                     <FormControl>
-                      <SelectTrigger className="bg-background border-border">
+                      <SelectTrigger className={`bg-background border-border ${aiFilledFields.has('industry') ? 'ring-1 ring-primary/30' : ''}`}>
                         <SelectValue placeholder="Select industry" />
                       </SelectTrigger>
                     </FormControl>
@@ -311,12 +337,28 @@ export function CreateCompanyDialog({
               name="website"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Website</FormLabel>
+                  <FormLabel className="flex items-center gap-2">
+                    Website
+                    {aiFilledFields.has('website') && (
+                      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-primary/10 text-primary text-xs font-normal">
+                        <Sparkles className="h-3 w-3" />
+                        AI
+                      </span>
+                    )}
+                  </FormLabel>
                   <FormControl>
                     <Input
                       placeholder="https://example.com"
-                      className="bg-background border-border"
+                      className={`bg-background border-border ${aiFilledFields.has('website') ? 'ring-1 ring-primary/30' : ''}`}
                       {...field}
+                      onChange={(e) => {
+                        field.onChange(e);
+                        setAiFilledFields(prev => {
+                          const next = new Set(prev);
+                          next.delete('website');
+                          return next;
+                        });
+                      }}
                     />
                   </FormControl>
                   <FormMessage />
@@ -329,12 +371,28 @@ export function CreateCompanyDialog({
               name="description"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Description</FormLabel>
+                  <FormLabel className="flex items-center gap-2">
+                    Description
+                    {aiFilledFields.has('description') && (
+                      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-primary/10 text-primary text-xs font-normal">
+                        <Sparkles className="h-3 w-3" />
+                        AI
+                      </span>
+                    )}
+                  </FormLabel>
                   <FormControl>
                     <Input
                       placeholder="Brief company description"
-                      className="bg-background border-border"
+                      className={`bg-background border-border ${aiFilledFields.has('description') ? 'ring-1 ring-primary/30' : ''}`}
                       {...field}
+                      onChange={(e) => {
+                        field.onChange(e);
+                        setAiFilledFields(prev => {
+                          const next = new Set(prev);
+                          next.delete('description');
+                          return next;
+                        });
+                      }}
                     />
                   </FormControl>
                   <FormMessage />
