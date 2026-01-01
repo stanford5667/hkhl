@@ -2,6 +2,8 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './AuthContext';
 
+export type AssetType = 'private_equity' | 'public_equity' | 'real_estate' | 'credit' | 'other';
+
 export interface Organization {
   id: string;
   name: string;
@@ -15,6 +17,8 @@ export interface Organization {
   max_companies: number;
   settings: Record<string, unknown>;
   created_at: string;
+  enabled_asset_types: AssetType[];
+  default_asset_view: string;
 }
 
 export interface UserProfile {
@@ -47,6 +51,7 @@ interface OrganizationContextValue {
   userProfile: UserProfile | null;
   memberships: OrganizationMembership[];
   isLoading: boolean;
+  enabledAssetTypes: AssetType[];
   switchOrganization: (orgId: string) => Promise<void>;
   refreshProfile: () => Promise<void>;
   refreshOrganization: () => Promise<void>;
@@ -151,8 +156,25 @@ export function OrganizationProvider({ children }: { children: React.ReactNode }
       return null;
     }
 
-    setCurrentOrganization(data as Organization);
-    return data;
+    const org: Organization = {
+      id: data.id,
+      name: data.name,
+      slug: data.slug,
+      logo_url: data.logo_url,
+      website: data.website,
+      type: data.type || 'private_equity',
+      is_public: data.is_public || false,
+      plan: data.plan || 'free',
+      max_members: data.max_members || 5,
+      max_companies: data.max_companies || 50,
+      settings: (data.settings as Record<string, unknown>) || {},
+      created_at: data.created_at,
+      enabled_asset_types: (data.enabled_asset_types as AssetType[]) || ['private_equity'],
+      default_asset_view: data.default_asset_view || 'all',
+    };
+
+    setCurrentOrganization(org);
+    return org;
   }, []);
 
   const switchOrganization = useCallback(async (orgId: string) => {
@@ -200,6 +222,8 @@ export function OrganizationProvider({ children }: { children: React.ReactNode }
     loadData();
   }, [user, fetchProfile, fetchMemberships, fetchCurrentOrganization]);
 
+  const enabledAssetTypes: AssetType[] = currentOrganization?.enabled_asset_types || ['private_equity'];
+
   return (
     <OrganizationContext.Provider
       value={{
@@ -207,6 +231,7 @@ export function OrganizationProvider({ children }: { children: React.ReactNode }
         userProfile,
         memberships,
         isLoading,
+        enabledAssetTypes,
         switchOrganization,
         refreshProfile,
         refreshOrganization,
