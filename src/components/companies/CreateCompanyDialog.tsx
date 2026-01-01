@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -27,18 +27,21 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Loader2, Sparkles } from 'lucide-react';
+import { Loader2, Sparkles, Wand2 } from 'lucide-react';
 import {
   fetchIndustryMultiples,
   getMultipleForIndustry,
   fallbackIndustryMultiples,
   type IndustryMultiples,
 } from '@/services/marketData';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
 const formSchema = z.object({
   name: z.string().min(1, 'Company name is required').max(100),
   industry: z.string().optional(),
   website: z.string().url('Invalid URL').optional().or(z.literal('')),
+  description: z.string().optional(),
   company_type: z.enum(['pipeline', 'portfolio', 'prospect']),
   pipeline_stage: z.string().optional(),
   ebitda_ltm: z.number().optional(),
@@ -81,9 +84,12 @@ export function CreateCompanyDialog({
   onSubmit,
 }: CreateCompanyDialogProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLookingUp, setIsLookingUp] = useState(false);
+  const [hasAutoFilled, setHasAutoFilled] = useState(false);
   const [industryMultiples, setIndustryMultiples] = useState<IndustryMultiples>(fallbackIndustryMultiples);
   const [currentMultiple, setCurrentMultiple] = useState<number | null>(null);
   const [isAutoValuation, setIsAutoValuation] = useState(false);
+  const { toast } = useToast();
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -91,6 +97,7 @@ export function CreateCompanyDialog({
       name: '',
       industry: '',
       website: '',
+      description: '',
       company_type: 'prospect',
       pipeline_stage: '',
       ebitda_ltm: undefined,
@@ -101,6 +108,7 @@ export function CreateCompanyDialog({
   const companyType = form.watch('company_type');
   const industry = form.watch('industry');
   const ebitda = form.watch('ebitda_ltm');
+  const companyName = form.watch('name');
 
   // Fetch industry multiples on mount
   useEffect(() => {
@@ -108,6 +116,8 @@ export function CreateCompanyDialog({
       fetchIndustryMultiples().then((result) => {
         setIndustryMultiples(result.data);
       });
+      // Reset autofill state when dialog opens
+      setHasAutoFilled(false);
     }
   }, [open]);
 
@@ -127,12 +137,73 @@ export function CreateCompanyDialog({
     }
   }, [industry, ebitda, industryMultiples, form]);
 
+  // Debounced lookup function
+  const lookupCompany = useCallback(async (name: string) => {
+    if (name.trim().length < 3 || hasAutoFilled) return;
+
+    setIsLookingUp(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('lookup-company', {
+        body: { companyName: name },
+      });
+
+      if (error) {
+        console.error('Lookup error:', error);
+        return;
+      }
+
+      if (data?.success && data?.data) {
+        const info = data.data;
+        
+        // Only fill fields that are currently empty
+        if (info.website && !form.getValues('website')) {
+          form.setValue('website', info.website);
+        }
+        if (info.industry && !form.getValues('industry')) {
+          // Map to closest industry option
+          const matchedIndustry = INDUSTRIES.find(ind => 
+            ind.toLowerCase() === info.industry?.toLowerCase() ||
+            info.industry?.toLowerCase().includes(ind.toLowerCase())
+          );
+          if (matchedIndustry) {
+            form.setValue('industry', matchedIndustry);
+          }
+        }
+        if (info.description && !form.getValues('description')) {
+          form.setValue('description', info.description);
+        }
+
+        setHasAutoFilled(true);
+        toast({
+          title: 'Company info found',
+          description: 'Fields auto-populated. Feel free to edit.',
+        });
+      }
+    } catch (err) {
+      console.error('Lookup failed:', err);
+    } finally {
+      setIsLookingUp(false);
+    }
+  }, [form, hasAutoFilled, toast]);
+
+  // Debounce effect for company name lookup
+  useEffect(() => {
+    if (!companyName || companyName.length < 3 || hasAutoFilled) return;
+
+    const timeoutId = setTimeout(() => {
+      lookupCompany(companyName);
+    }, 800);
+
+    return () => clearTimeout(timeoutId);
+  }, [companyName, lookupCompany, hasAutoFilled]);
+
   const handleSubmit = async (values: FormValues) => {
     setIsSubmitting(true);
     try {
       await onSubmit(values);
       form.reset();
       setIsAutoValuation(false);
+      setHasAutoFilled(false);
       onOpenChange(false);
     } finally {
       setIsSubmitting(false);
@@ -145,6 +216,14 @@ export function CreateCompanyDialog({
       return `$${(value / 1000000).toFixed(1)}M`;
     }
     return `$${value.toLocaleString()}`;
+  };
+
+  const handleManualLookup = () => {
+    const name = form.getValues('name');
+    if (name.length >= 3) {
+      setHasAutoFilled(false);
+      lookupCompany(name);
+    }
   };
 
   return (
@@ -162,13 +241,35 @@ export function CreateCompanyDialog({
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Company Name *</FormLabel>
-                  <FormControl>
-                    <Input
-                      placeholder="Enter company name"
-                      className="bg-background border-border"
-                      {...field}
-                    />
-                  </FormControl>
+                  <div className="flex gap-2">
+                    <FormControl>
+                      <Input
+                        placeholder="Enter company name"
+                        className="bg-background border-border"
+                        {...field}
+                      />
+                    </FormControl>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      onClick={handleManualLookup}
+                      disabled={isLookingUp || field.value.length < 3}
+                      title="Look up company info"
+                    >
+                      {isLookingUp ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Wand2 className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </div>
+                  {isLookingUp && (
+                    <FormDescription className="flex items-center gap-1 text-muted-foreground">
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                      Looking up company info...
+                    </FormDescription>
+                  )}
                   <FormMessage />
                 </FormItem>
               )}
@@ -214,6 +315,24 @@ export function CreateCompanyDialog({
                   <FormControl>
                     <Input
                       placeholder="https://example.com"
+                      className="bg-background border-border"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="description"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Description</FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder="Brief company description"
                       className="bg-background border-border"
                       {...field}
                     />
