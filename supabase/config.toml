@@ -44,3 +44,6 @@ verify_jwt = false
 
 [functions.research-asset]
 verify_jwt = false
+
+[functions.stock-quote]
+verify_jwt = false

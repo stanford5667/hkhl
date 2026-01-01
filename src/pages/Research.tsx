@@ -10,6 +10,7 @@ import {
   DollarSign, Newspaper, Users, ExternalLink, RefreshCw, Loader2 
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { StockQuoteHeader } from '@/components/research/StockQuoteHeader';
 
 const TABS = [
   { id: 'overview', label: 'Overview', icon: FileText },
@@ -131,6 +132,9 @@ export default function ResearchPage() {
       {/* Results or Popular */}
       {selectedTicker ? (
         <Card className="bg-slate-900 border-slate-800">
+          {/* Stock Quote Header with Chart */}
+          <StockQuoteHeader ticker={selectedTicker} />
+
           {/* Header */}
           <div className="flex items-center justify-between p-4 border-b border-slate-800">
             <div className="flex items-center gap-3">
