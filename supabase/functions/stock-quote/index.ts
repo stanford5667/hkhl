@@ -31,40 +31,13 @@ serve(async (req) => {
       );
     }
 
-    const prompt = `Get the current stock quote data for ${ticker}. I need the following exact data points in JSON format:
-- Current stock price (number)
-- Price change today in dollars (number, can be negative)
-- Price change percent today (number, can be negative)
-- Today's open price (number)
-- Today's high price (number)
-- Today's low price (number)
-- Trading volume (formatted string like "45.2M" or "1.2B")
-- Market capitalization (formatted string like "2.8T" or "450B")
-- Full company name
+    const prompt = `Get the most recent stock quote data for ${ticker}. If markets are closed or it's a holiday, use the most recent available trading data.
 
-Also provide approximate intraday price data for a simple chart showing price movement throughout today (about 8-10 data points from market open to current time, with time labels like "9:30", "10:00", etc.).
+Return ONLY a valid JSON object with NO explanations, NO markdown, NO text before or after. The response must start with { and end with }:
 
-Return ONLY valid JSON in this exact format, no markdown:
-{
-  "price": 150.25,
-  "change": 2.50,
-  "changePercent": 1.69,
-  "open": 148.00,
-  "high": 151.50,
-  "low": 147.80,
-  "volume": "45.2M",
-  "marketCap": "2.4T",
-  "companyName": "Apple Inc.",
-  "chartData": [
-    {"time": "9:30", "price": 148.00},
-    {"time": "10:00", "price": 149.20},
-    {"time": "10:30", "price": 148.80},
-    {"time": "11:00", "price": 150.10},
-    {"time": "11:30", "price": 149.90},
-    {"time": "12:00", "price": 150.50},
-    {"time": "12:30", "price": 150.25}
-  ]
-}`;
+{"price":150.25,"change":2.50,"changePercent":1.69,"open":148.00,"high":151.50,"low":147.80,"volume":"45.2M","marketCap":"2.4T","companyName":"Apple Inc.","chartData":[{"time":"9:30","price":148.00},{"time":"10:00","price":149.20},{"time":"11:00","price":150.10},{"time":"12:00","price":150.50}]}
+
+Fill in real data for ${ticker}. Use the last trading day's data if markets are closed.`;
 
     const response = await fetch('https://api.perplexity.ai/chat/completions', {
       method: 'POST',
@@ -77,11 +50,10 @@ Return ONLY valid JSON in this exact format, no markdown:
         messages: [
           { 
             role: 'system', 
-            content: 'You are a financial data API that returns accurate, real-time stock data in valid JSON format only. Never include markdown or explanations, only the JSON object.'
+            content: 'You are a JSON-only API. Return ONLY valid JSON objects. Never include explanations, markdown code blocks, or any text outside the JSON. Your entire response must be a parseable JSON object starting with { and ending with }. If markets are closed, use the most recent trading data available.'
           },
           { role: 'user', content: prompt }
         ],
-        search_recency_filter: 'day',
       }),
     });
 
@@ -97,18 +69,28 @@ Return ONLY valid JSON in this exact format, no markdown:
     const data = await response.json();
     const content = data.choices?.[0]?.message?.content || '';
 
-    // Parse JSON from response
+    // Parse JSON from response - extract JSON object even if surrounded by text
     let quote;
     try {
       let cleanContent = content.trim();
+      
+      // Remove markdown code blocks
       if (cleanContent.startsWith('```json')) cleanContent = cleanContent.slice(7);
       if (cleanContent.startsWith('```')) cleanContent = cleanContent.slice(3);
       if (cleanContent.endsWith('```')) cleanContent = cleanContent.slice(0, -3);
-      quote = JSON.parse(cleanContent.trim());
+      cleanContent = cleanContent.trim();
+      
+      // Try to extract JSON object from the response
+      const jsonMatch = cleanContent.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        quote = JSON.parse(jsonMatch[0]);
+      } else {
+        throw new Error('No JSON object found in response');
+      }
     } catch (e) {
       console.error('Parse error:', e, 'Content:', content);
       return new Response(
-        JSON.stringify({ success: false, error: 'Failed to parse stock data' }),
+        JSON.stringify({ success: false, error: 'Failed to parse stock data. Market may be closed.' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
