@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/tooltip";
 import {
   LayoutDashboard,
-  Building2,
+  Layers,
   Users,
   Calculator,
   Globe,
@@ -32,6 +32,9 @@ import {
   Sparkles,
   CheckSquare,
   TrendingUp,
+  Briefcase,
+  Wallet,
+  LineChart,
 } from "lucide-react";
 
 interface NavItem {
@@ -40,67 +43,102 @@ interface NavItem {
   href: string;
   icon: React.ElementType;
   badge?: number;
+  requiresAssetType?: string;
 }
-
-// Max 6 items (7±2 cognitive load rule)
-const navigation: NavItem[] = [
-  { 
-    label: "Dashboard", 
-    subtitle: "Command Center",
-    href: "/", 
-    icon: LayoutDashboard 
-  },
-  { 
-    label: "Companies", 
-    subtitle: "Portfolio",
-    href: "/companies", 
-    icon: Building2,
-    badge: 3,
-  },
-  { 
-    label: "Contacts", 
-    subtitle: "Network",
-    href: "/contacts", 
-    icon: Users 
-  },
-  { 
-    label: "Tasks", 
-    subtitle: "To-Do",
-    href: "/tasks", 
-    icon: CheckSquare 
-  },
-  { 
-    label: "Models", 
-    subtitle: "Analyze",
-    href: "/models", 
-    icon: Calculator 
-  },
-  { 
-    label: "Market Intel", 
-    subtitle: "Intelligence",
-    href: "/market-intel", 
-    icon: Globe,
-    badge: 2,
-  },
-  { 
-    label: "Data Room", 
-    subtitle: "Documents",
-    href: "/documents", 
-    icon: Folder 
-  },
-  { 
-    label: "Research", 
-    subtitle: "Asset Intel",
-    href: "/research", 
-    icon: TrendingUp 
-  },
-];
 
 export function Sidebar() {
   const [collapsed, setCollapsed] = useState(false);
   const location = useLocation();
   const { signOut } = useAuth();
-  const { userProfile, currentOrganization } = useOrganization();
+  const { userProfile, currentOrganization, enabledAssetTypes } = useOrganization();
+
+  // Build navigation based on enabled asset types
+  const navigation = useMemo<NavItem[]>(() => {
+    const items: NavItem[] = [
+      { 
+        label: "Dashboard", 
+        subtitle: "Command Center",
+        href: "/", 
+        icon: LayoutDashboard 
+      },
+      { 
+        label: "Assets", 
+        subtitle: "All Holdings",
+        href: "/companies", 
+        icon: Layers,
+      },
+    ];
+
+    // Add Deals only if private_equity is enabled
+    if (enabledAssetTypes.includes('private_equity')) {
+      items.push({ 
+        label: "Deals", 
+        subtitle: "Pipeline",
+        href: "/pipeline", 
+        icon: Briefcase,
+        requiresAssetType: 'private_equity',
+      });
+    }
+
+    // Add Markets only if public_equity is enabled
+    if (enabledAssetTypes.includes('public_equity')) {
+      items.push({ 
+        label: "Markets", 
+        subtitle: "Research",
+        href: "/research", 
+        icon: LineChart,
+        requiresAssetType: 'public_equity',
+      });
+    }
+
+    // Add Holdings (unified view of owned assets)
+    items.push({ 
+      label: "Holdings", 
+      subtitle: "Portfolio",
+      href: "/portfolio", 
+      icon: Wallet,
+    });
+
+    // Core items
+    items.push(
+      { 
+        label: "Contacts", 
+        subtitle: "Network",
+        href: "/contacts", 
+        icon: Users 
+      },
+      { 
+        label: "Tasks", 
+        subtitle: "To-Do",
+        href: "/tasks", 
+        icon: CheckSquare 
+      },
+    );
+
+    // Secondary items
+    items.push(
+      { 
+        label: "Models", 
+        subtitle: "Analyze",
+        href: "/models", 
+        icon: Calculator 
+      },
+      { 
+        label: "Market Intel", 
+        subtitle: "Intelligence",
+        href: "/market-intel", 
+        icon: Globe,
+      },
+      { 
+        label: "Data Room", 
+        subtitle: "Documents",
+        href: "/documents", 
+        icon: Folder 
+      },
+    );
+
+    return items;
+  }, [enabledAssetTypes]);
 
   const NavLink = ({ item }: { item: NavItem }) => {
     const isActive = location.pathname === item.href || 

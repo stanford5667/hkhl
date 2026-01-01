@@ -11,6 +11,7 @@ import { PipelineKanbanView } from '@/components/companies/PipelineKanbanView';
 import { PortfolioGridView } from '@/components/companies/PortfolioGridView';
 import { CompanyCreationWizard } from '@/components/companies/CompanyCreationWizard';
 import { Skeleton } from '@/components/ui/skeleton';
+import { AssetTypeFilter, useAssetTypeFilter } from '@/components/shared/AssetTypeFilter';
 
 type ViewType = 'list' | 'pipeline' | 'portfolio';
 type StageFilter = 'all' | 'pipeline' | 'portfolio' | 'passed';
@@ -22,6 +23,7 @@ export default function Companies() {
   const [stageFilter, setStageFilter] = useState<StageFilter>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [wizardOpen, setWizardOpen] = useState(false);
+  const assetTypeFilter = useAssetTypeFilter();
 
   // Calculate counts
   const counts = useMemo(() => {
@@ -44,9 +46,11 @@ export default function Companies() {
       const matchesSearch = c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         c.industry?.toLowerCase().includes(searchQuery.toLowerCase());
       const matchesStage = stageFilter === 'all' || c.company_type === stageFilter;
-      return matchesSearch && matchesStage;
+      const matchesAssetType = assetTypeFilter === 'all' || 
+        ((c as any).asset_class || 'private_equity') === assetTypeFilter;
+      return matchesSearch && matchesStage && matchesAssetType;
     });
-  }, [companies, searchQuery, stageFilter]);
+  }, [companies, searchQuery, stageFilter, assetTypeFilter]);
 
   const handleUpdateStage = async (companyId: string, stage: CompanyStage, subStage?: string) => {
     await updateStage(companyId, stage, subStage);
@@ -62,8 +66,8 @@ export default function Companies() {
       {/* Page Header */}
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Companies</h1>
-          <p className="text-muted-foreground">All your opportunities in one place</p>
+          <h1 className="text-2xl font-bold text-foreground">Assets</h1>
+          <p className="text-muted-foreground">All your investments in one place</p>
         </div>
         
         <div className="flex items-center gap-4">
@@ -101,6 +105,9 @@ export default function Companies() {
           </Button>
         </div>
       </div>
+
+      {/* Asset Type Filter */}
+      <AssetTypeFilter className="mb-2" />
 
       {/* Stage Filter Tabs */}
       <div className="flex items-center gap-4">
