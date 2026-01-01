@@ -22,7 +22,9 @@ import {
   LayoutDashboard,
   ArrowUpDown,
   Download,
+  Star,
 } from "lucide-react";
+import { useWatchlist } from '@/hooks/useWatchlist';
 import { 
   DropdownMenu, 
   DropdownMenuContent, 
@@ -668,6 +670,22 @@ function HoldingCard({
   const gainLossPercent = getGainLossPercent(holding);
   const isPositive = gainLossPercent >= 0;
 
+  const { isInWatchlist, toggleWatchlist, isToggling } = useWatchlist();
+  
+  const itemType = assetClass === 'public_equity' ? 'stock' : 'company';
+  const itemId = holding.ticker_symbol || holding.id;
+  const isWatched = isInWatchlist(itemType, itemId);
+
+  const handleToggleWatch = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    toggleWatchlist({
+      itemType,
+      itemId,
+      itemName: holding.name,
+    });
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -703,6 +721,20 @@ function HoldingCard({
                   )}
                 </div>
               </div>
+              
+              {/* Watchlist Star Button */}
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 -mt-1 -mr-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                onClick={handleToggleWatch}
+                disabled={isToggling}
+              >
+                <Star className={cn(
+                  "h-4 w-4 transition-colors",
+                  isWatched ? "text-yellow-500 fill-yellow-500" : "text-muted-foreground hover:text-yellow-500"
+                )} />
+              </Button>
             </div>
             
             {/* Value */}
