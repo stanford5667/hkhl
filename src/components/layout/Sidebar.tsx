@@ -84,8 +84,8 @@ export function Sidebar() {
     if (enabledAssetTypes.includes('public_equity')) {
       items.push({ 
         label: "Markets", 
-        subtitle: "Research",
-        href: "/research", 
+        subtitle: "Equities",
+        href: "/markets", 
         icon: LineChart,
         requiresAssetType: 'public_equity',
       });
