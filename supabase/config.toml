@@ -38,3 +38,6 @@ verify_jwt = false
 
 [functions.lookup-company]
 verify_jwt = false
+
+[functions.suggest-companies]
+verify_jwt = false
