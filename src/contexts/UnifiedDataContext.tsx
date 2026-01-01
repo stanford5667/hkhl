@@ -2,10 +2,12 @@ import React, { createContext, useContext, useEffect, useMemo, useCallback } fro
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { useOrgId } from '@/contexts/OrganizationContext';
+import { useOrgId, AssetType } from '@/contexts/OrganizationContext';
 import { isAfter, isBefore, startOfDay, endOfDay, parseISO } from 'date-fns';
 
 // Types
+export type AssetClass = 'private_equity' | 'public_equity' | 'real_estate' | 'credit' | 'other';
+
 export interface Company {
   id: string;
   name: string;
@@ -22,6 +24,15 @@ export interface Company {
   organization_id: string | null;
   created_at: string;
   updated_at: string;
+  // New asset fields
+  asset_class: AssetClass | null;
+  ticker_symbol: string | null;
+  exchange: string | null;
+  current_price: number | null;
+  price_updated_at: string | null;
+  shares_owned: number | null;
+  cost_basis: number | null;
+  market_value: number | null;
 }
 
 export interface Contact {
@@ -93,6 +104,15 @@ export interface TaskWithRelations extends Task {
   contact: Contact | null;
 }
 
+export interface AssetClassStats {
+  count: number;
+  totalValue: number;
+  totalCostBasis: number;
+  totalMarketValue: number;
+  gainLoss: number;
+  gainLossPercent: number;
+}
+
 export interface DashboardStats {
   totalCompanies: number;
   pipelineCount: number;
@@ -103,6 +123,7 @@ export interface DashboardStats {
   overdueTasks: number;
   todayTasks: number;
   totalDocuments: number;
+  byAssetClass: Record<AssetClass, AssetClassStats>;
 }
 
 export interface PipelineStageStats {
@@ -151,6 +172,10 @@ interface UnifiedDataContextValue {
   // Actions
   refetchAll: () => void;
   searchAll: (query: string) => SearchResult[];
+  
+  // Filtered data helpers
+  getCompaniesByAssetClass: (assetClass: AssetClass | 'all') => CompanyWithRelations[];
+  getHoldings: () => CompanyWithRelations[];
 }
 
 const UnifiedDataContext = createContext<UnifiedDataContextValue | undefined>(undefined);
@@ -356,6 +381,28 @@ export function UnifiedDataProvider({ children }: { children: React.ReactNode })
       return !isBefore(dueDate, todayStart) && !isAfter(dueDate, todayEnd);
     });
 
+    // Compute stats by asset class
+    const assetClasses: AssetClass[] = ['private_equity', 'public_equity', 'real_estate', 'credit', 'other'];
+    const byAssetClass: Record<AssetClass, AssetClassStats> = {} as Record<AssetClass, AssetClassStats>;
+    
+    assetClasses.forEach(assetClass => {
+      const classCompanies = companies.filter(c => (c.asset_class || 'private_equity') === assetClass);
+      const totalValue = classCompanies.reduce((sum, c) => sum + (c.ebitda_ltm || 0), 0);
+      const totalCostBasis = classCompanies.reduce((sum, c) => sum + (c.cost_basis || 0), 0);
+      const totalMarketValue = classCompanies.reduce((sum, c) => sum + (c.market_value || 0), 0);
+      const gainLoss = totalMarketValue - totalCostBasis;
+      const gainLossPercent = totalCostBasis > 0 ? (gainLoss / totalCostBasis) * 100 : 0;
+      
+      byAssetClass[assetClass] = {
+        count: classCompanies.length,
+        totalValue,
+        totalCostBasis,
+        totalMarketValue,
+        gainLoss,
+        gainLossPercent,
+      };
+    });
+
     return {
       totalCompanies: companies.length,
       pipelineCount: companies.filter(c => c.company_type === 'pipeline').length,
@@ -366,6 +413,7 @@ export function UnifiedDataProvider({ children }: { children: React.ReactNode })
       overdueTasks: overdueTasks.length,
       todayTasks: todayTasks.length,
       totalDocuments: documents.length,
+      byAssetClass,
     };
   }, [companies, contacts, tasks, documents]);
 
@@ -480,6 +528,17 @@ export function UnifiedDataProvider({ children }: { children: React.ReactNode })
     queryClient.invalidateQueries({ queryKey: ['unified-documents'] });
   }, [queryClient]);
 
+  // Filter companies by asset class
+  const getCompaniesByAssetClass = useCallback((assetClass: AssetClass | 'all'): CompanyWithRelations[] => {
+    if (assetClass === 'all') return companiesWithRelations;
+    return companiesWithRelations.filter(c => (c.asset_class || 'private_equity') === assetClass);
+  }, [companiesWithRelations]);
+
+  // Get holdings (portfolio companies across all asset classes)
+  const getHoldings = useCallback((): CompanyWithRelations[] => {
+    return companiesWithRelations.filter(c => c.company_type === 'portfolio');
+  }, [companiesWithRelations]);
+
   const value: UnifiedDataContextValue = {
     companies,
     contacts,
@@ -497,6 +556,8 @@ export function UnifiedDataProvider({ children }: { children: React.ReactNode })
     isDocumentsLoading,
     refetchAll,
     searchAll,
+    getCompaniesByAssetClass,
+    getHoldings,
   };
 
   return (
