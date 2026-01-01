@@ -31,6 +31,7 @@ import {
   User,
   Sparkles,
   CheckSquare,
+  TrendingUp,
 } from "lucide-react";
 
 interface NavItem {
@@ -86,6 +87,12 @@ const navigation: NavItem[] = [
     subtitle: "Documents",
     href: "/documents", 
     icon: Folder 
+  },
+  { 
+    label: "Research", 
+    subtitle: "Asset Intel",
+    href: "/research", 
+    icon: TrendingUp 
   },
 ];
 

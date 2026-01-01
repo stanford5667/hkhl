@@ -26,6 +26,7 @@ import OrganizationSettings from "./pages/OrganizationSettings";
 import CashFlowBuildupPage from "./pages/CashFlowBuildupPage";
 import ModelViewerPage from "./pages/ModelViewerPage";
 import Tasks from "./pages/Tasks";
+import Research from "./pages/Research";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -60,6 +61,7 @@ const App = () => (
                     <Route path="/deal-matching" element={<DealMatching />} />
                     <Route path="/settings" element={<Settings />} />
                     <Route path="/settings/organization" element={<OrganizationSettings />} />
+                    <Route path="/research" element={<Research />} />
                     {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                     <Route path="*" element={<NotFound />} />
                   </Routes>

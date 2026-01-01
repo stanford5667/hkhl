@@ -41,3 +41,6 @@ verify_jwt = false
 
 [functions.suggest-companies]
 verify_jwt = false
+
+[functions.research-asset]
+verify_jwt = false
