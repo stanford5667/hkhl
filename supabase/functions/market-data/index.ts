@@ -17,7 +17,7 @@ const CACHE_TTL = {
   tickerSearch: 60 * 60 * 1000,     // 1 hour
 };
 
-type RequestType = 'quote' | 'indices' | 'companyInfo' | 'tickerSearch';
+type RequestType = 'quote' | 'indices' | 'companyInfo' | 'tickerSearch' | 'batchQuotes';
 
 interface QuoteData {
   price: number;
@@ -201,13 +201,31 @@ Get real current data for ${ticker}. Use null for any metrics that are not appli
   return parseJsonResponse<CompanyInfo>(content);
 }
 
+async function getBatchQuotes(tickers: string[]): Promise<Record<string, QuoteData>> {
+  if (tickers.length === 0) return {};
+  
+  // For batch requests, we make a single prompt with all tickers
+  const tickerList = tickers.map(t => t.toUpperCase()).join(', ');
+  
+  const prompt = `Get the current stock quotes for these tickers: ${tickerList}. 
+Return ONLY valid JSON object with ticker symbols as keys:
+{"AAPL":{"price":150.25,"change":2.50,"changePercent":1.69,"volume":"45.2M","marketCap":"2.4T","high52":182.94,"low52":124.17},"MSFT":{"price":380.50,"change":-1.25,"changePercent":-0.33,"volume":"22.1M","marketCap":"2.8T","high52":420.82,"low52":309.45}}
+
+Use real current market data. If markets are closed, use the most recent trading session data.`;
+
+  const systemPrompt = 'You are a stock data API. Return ONLY valid JSON objects with no explanations or markdown.';
+  
+  const content = await callPerplexity(prompt, systemPrompt);
+  return parseJsonResponse<Record<string, QuoteData>>(content);
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { type, ticker, query, userId } = await req.json();
+    const { type, ticker, tickers, query, userId } = await req.json();
 
     if (!type) {
       return new Response(
@@ -219,7 +237,7 @@ serve(async (req) => {
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
     const effectiveUserId = userId || 'anonymous';
 
-    console.log(`[MarketData] Request: ${type}, ticker: ${ticker}, query: ${query}`);
+    console.log(`[MarketData] Request: ${type}, ticker: ${ticker}, tickers: ${tickers?.length || 0}, query: ${query}`);
 
     let result;
     let cacheKey: string;
@@ -243,6 +261,44 @@ serve(async (req) => {
           result = await getQuote(ticker);
           await setCachedData(supabase, cacheKey, result, cacheTtl, effectiveUserId);
         }
+        break;
+
+      case 'batchQuotes':
+        if (!tickers || !Array.isArray(tickers) || tickers.length === 0) {
+          return new Response(
+            JSON.stringify({ success: false, error: 'Tickers array is required for batch quotes' }),
+            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+        
+        // Check cache for each ticker first
+        const batchResults: Record<string, QuoteData> = {};
+        const tickersToFetch: string[] = [];
+        
+        for (const t of tickers) {
+          const key = `market-data:quote:${t.toUpperCase()}`;
+          const cached = await getCachedData<QuoteData>(supabase, key);
+          if (cached) {
+            batchResults[t.toUpperCase()] = cached;
+          } else {
+            tickersToFetch.push(t);
+          }
+        }
+        
+        // Fetch remaining tickers in batch
+        if (tickersToFetch.length > 0) {
+          console.log(`[MarketData] Batch fetching ${tickersToFetch.length} tickers: ${tickersToFetch.join(', ')}`);
+          const fetched = await getBatchQuotes(tickersToFetch);
+          
+          // Cache each result and merge
+          for (const [t, quote] of Object.entries(fetched)) {
+            const key = `market-data:quote:${t.toUpperCase()}`;
+            await setCachedData(supabase, key, quote, CACHE_TTL.quote, effectiveUserId);
+            batchResults[t.toUpperCase()] = quote;
+          }
+        }
+        
+        result = batchResults;
         break;
 
       case 'indices':
