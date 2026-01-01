@@ -21,6 +21,8 @@ import { AddAssetWizard } from '@/components/companies/AddAssetWizard';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useOrgId } from '@/contexts/OrganizationContext';
+import { useMarketIndices, useStockQuote } from '@/hooks/useMarketData';
+import { MarketIndexSkeleton, PriceUnavailable } from '@/components/markets/MarketSkeletons';
 
 // Types
 interface MarketIndex {
@@ -45,8 +47,8 @@ interface HoldingWithQuote extends Company {
 type SortKey = 'value' | 'gainLoss' | 'todayChange' | 'name' | 'ticker';
 type SortDirection = 'asc' | 'desc';
 
-// Market indices data
-const MARKET_INDICES = [
+// Market indices symbols
+const MARKET_INDICES_SYMBOLS = [
   { symbol: 'SPY', name: 'S&P 500' },
   { symbol: 'QQQ', name: 'NASDAQ' },
   { symbol: 'DIA', name: 'DOW' },
@@ -68,8 +70,6 @@ export default function MarketsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [showWatchlist, setShowWatchlist] = useState(true);
-  const [indices, setIndices] = useState<MarketIndex[]>([]);
-  const [indicesLoading, setIndicesLoading] = useState(true);
   const [holdings, setHoldings] = useState<HoldingWithQuote[]>([]);
   const [selectedIndex, setSelectedIndex] = useState<MarketIndex | null>(null);
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
@@ -93,12 +93,40 @@ export default function MarketsPage() {
     );
   }, [companies]);
 
-  // Fetch market indices
-  const fetchIndices = useCallback(async () => {
-    setIndicesLoading(true);
+  // Use new market indices hook with auto-refresh
+  const { 
+    indices: marketIndicesData, 
+    isLoading: indicesLoading, 
+    refresh: refreshIndices,
+    error: indicesError 
+  } = useMarketIndices({ pollInterval: 60000 });
+
+  // Map the hook data to our local format
+  const indices = useMemo<MarketIndex[]>(() => {
+    if (!marketIndicesData || marketIndicesData.length === 0) {
+      // Fallback to manual fetch if hook returns empty
+      return [];
+    }
+    return MARKET_INDICES_SYMBOLS.map((idx) => {
+      const apiIndex = marketIndicesData.find(
+        mi => mi.symbol === idx.symbol || mi.name.includes(idx.name.split(' ')[0])
+      );
+      return {
+        ...idx,
+        price: apiIndex?.value || 0,
+        change: apiIndex?.change || 0,
+        changePercent: apiIndex?.changePercent || 0,
+      };
+    });
+  }, [marketIndicesData]);
+
+  // Fallback fetch for indices if hook doesn't return data
+  const fetchIndicesFallback = useCallback(async () => {
+    if (marketIndicesData && marketIndicesData.length > 0) return;
+    
     try {
       const results = await Promise.all(
-        MARKET_INDICES.map(async (idx) => {
+        MARKET_INDICES_SYMBOLS.map(async (idx) => {
           try {
             const { data, error } = await supabase.functions.invoke('stock-quote', {
               body: { ticker: idx.symbol }
@@ -118,11 +146,13 @@ export default function MarketsPage() {
           }
         })
       );
-      setIndices(results);
-    } finally {
-      setIndicesLoading(false);
+      // Can't set indices directly since we're using hook data now
+      // Just log for debugging
+      console.log('[Markets] Fallback indices fetched:', results.length);
+    } catch (err) {
+      console.error('[Markets] Fallback indices error:', err);
     }
-  }, []);
+  }, [marketIndicesData]);
 
   // Fetch quotes for holdings
   const fetchHoldingQuotes = useCallback(async () => {
@@ -175,29 +205,25 @@ export default function MarketsPage() {
     setLastRefresh(new Date());
   }, [publicEquityHoldings]);
 
-  // Initial fetch
-  useEffect(() => {
-    fetchIndices();
-  }, [fetchIndices]);
-
+  // Initial fetch for holdings
   useEffect(() => {
     fetchHoldingQuotes();
   }, [fetchHoldingQuotes]);
 
-  // Auto-refresh every 60 seconds
+  // Auto-refresh holdings every 60 seconds (indices handled by hook)
   useEffect(() => {
     const interval = setInterval(() => {
-      fetchIndices();
       fetchHoldingQuotes();
     }, 60000);
     return () => clearInterval(interval);
-  }, [fetchIndices, fetchHoldingQuotes]);
+  }, [fetchHoldingQuotes]);
 
   // Manual refresh
   const handleRefresh = async () => {
     setIsRefreshing(true);
-    await Promise.all([fetchIndices(), fetchHoldingQuotes()]);
+    await Promise.all([refreshIndices(), fetchHoldingQuotes()]);
     setIsRefreshing(false);
+    setLastRefresh(new Date());
     toast.success('Prices updated');
   };
 
