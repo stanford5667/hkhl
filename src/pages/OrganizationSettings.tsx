@@ -14,7 +14,8 @@ import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { toast } from 'sonner';
-import { Building2, Copy, Loader2, Mail, Trash2, UserPlus, Users } from 'lucide-react';
+import { Building2, Copy, Loader2, Mail, Trash2, UserPlus, Users, Layers } from 'lucide-react';
+import { AssetTypeConfig } from '@/components/organization/AssetTypeConfig';
 
 interface Member {
   id: string;
@@ -61,6 +62,7 @@ export default function OrganizationSettings() {
   const [orgWebsite, setOrgWebsite] = useState('');
   const [isPublic, setIsPublic] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [enabledAssetTypes, setEnabledAssetTypes] = useState<string[]>(['private_equity']);
   
   // Invite form
   const [inviteEmail, setInviteEmail] = useState('');
@@ -77,6 +79,7 @@ export default function OrganizationSettings() {
       setOrgType(currentOrganization.type);
       setOrgWebsite(currentOrganization.website || '');
       setIsPublic(currentOrganization.is_public);
+      setEnabledAssetTypes(currentOrganization.enabled_asset_types || ['private_equity']);
       fetchMembers();
       fetchInvites();
     }
@@ -239,6 +242,7 @@ export default function OrganizationSettings() {
         <Tabs defaultValue="general">
           <TabsList className="bg-slate-800 border-slate-700">
             <TabsTrigger value="general">General</TabsTrigger>
+            <TabsTrigger value="assets">Asset Types</TabsTrigger>
             <TabsTrigger value="members">Members</TabsTrigger>
             <TabsTrigger value="billing">Billing</TabsTrigger>
           </TabsList>
@@ -300,6 +304,43 @@ export default function OrganizationSettings() {
                     Save Changes
                   </Button>
                 )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Asset Types Tab */}
+          <TabsContent value="assets" className="space-y-6 mt-6">
+            <Card className="bg-slate-900 border-slate-800">
+              <CardHeader>
+                <div className="flex items-center gap-2">
+                  <Layers className="h-5 w-5 text-purple-400" />
+                  <div>
+                    <CardTitle className="text-white">Asset Types</CardTitle>
+                    <CardDescription>Choose which asset classes your organization tracks</CardDescription>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <AssetTypeConfig
+                  enabledTypes={enabledAssetTypes}
+                  onUpdate={async (types) => {
+                    setEnabledAssetTypes(types);
+                    if (currentOrganization && isAdmin) {
+                      const { error } = await supabase
+                        .from('organizations')
+                        .update({ enabled_asset_types: types })
+                        .eq('id', currentOrganization.id);
+                      
+                      if (error) {
+                        toast.error('Failed to save asset types');
+                      } else {
+                        toast.success('Asset types updated');
+                        refreshOrganization();
+                      }
+                    }
+                  }}
+                  disabled={!isAdmin}
+                />
               </CardContent>
             </Card>
           </TabsContent>
