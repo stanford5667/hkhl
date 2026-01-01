@@ -99,6 +99,94 @@ export type Database = {
           },
         ]
       }
+      asset_prices: {
+        Row: {
+          company_id: string
+          created_at: string
+          id: string
+          market_cap: number | null
+          price: number
+          recorded_at: string
+          source: string | null
+          volume: number | null
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          id?: string
+          market_cap?: number | null
+          price: number
+          recorded_at?: string
+          source?: string | null
+          volume?: number | null
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          id?: string
+          market_cap?: number | null
+          price?: number
+          recorded_at?: string
+          source?: string | null
+          volume?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "asset_prices_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      asset_transactions: {
+        Row: {
+          company_id: string
+          created_at: string
+          id: string
+          notes: string | null
+          price_per_share: number | null
+          shares: number | null
+          total_amount: number | null
+          transaction_date: string
+          transaction_type: string
+          user_id: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          price_per_share?: number | null
+          shares?: number | null
+          total_amount?: number | null
+          transaction_date?: string
+          transaction_type: string
+          user_id: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          price_per_share?: number | null
+          shares?: number | null
+          total_amount?: number | null
+          transaction_date?: string
+          transaction_type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "asset_transactions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cached_api_data: {
         Row: {
           cache_key: string
@@ -143,55 +231,79 @@ export type Database = {
       }
       companies: {
         Row: {
+          asset_class: string | null
           company_type: Database["public"]["Enums"]["company_type"] | null
+          cost_basis: number | null
           created_at: string
           created_by: string | null
+          current_price: number | null
           deal_lead: string | null
           description: string | null
           ebitda_ltm: number | null
+          exchange: string | null
           id: string
           industry: string | null
+          market_value: number | null
           name: string
           organization_id: string | null
           pipeline_stage: string | null
+          price_updated_at: string | null
           revenue_ltm: number | null
+          shares_owned: number | null
           status: string | null
+          ticker_symbol: string | null
           updated_at: string
           user_id: string
           website: string | null
         }
         Insert: {
+          asset_class?: string | null
           company_type?: Database["public"]["Enums"]["company_type"] | null
+          cost_basis?: number | null
           created_at?: string
           created_by?: string | null
+          current_price?: number | null
           deal_lead?: string | null
           description?: string | null
           ebitda_ltm?: number | null
+          exchange?: string | null
           id?: string
           industry?: string | null
+          market_value?: number | null
           name: string
           organization_id?: string | null
           pipeline_stage?: string | null
+          price_updated_at?: string | null
           revenue_ltm?: number | null
+          shares_owned?: number | null
           status?: string | null
+          ticker_symbol?: string | null
           updated_at?: string
           user_id: string
           website?: string | null
         }
         Update: {
+          asset_class?: string | null
           company_type?: Database["public"]["Enums"]["company_type"] | null
+          cost_basis?: number | null
           created_at?: string
           created_by?: string | null
+          current_price?: number | null
           deal_lead?: string | null
           description?: string | null
           ebitda_ltm?: number | null
+          exchange?: string | null
           id?: string
           industry?: string | null
+          market_value?: number | null
           name?: string
           organization_id?: string | null
           pipeline_stage?: string | null
+          price_updated_at?: string | null
           revenue_ltm?: number | null
+          shares_owned?: number | null
           status?: string | null
+          ticker_symbol?: string | null
           updated_at?: string
           user_id?: string
           website?: string | null
@@ -995,6 +1107,8 @@ export type Database = {
           allow_join_requests: boolean | null
           created_at: string | null
           created_by: string | null
+          default_asset_view: string | null
+          enabled_asset_types: string[] | null
           id: string
           is_public: boolean | null
           logo_url: string | null
@@ -1012,6 +1126,8 @@ export type Database = {
           allow_join_requests?: boolean | null
           created_at?: string | null
           created_by?: string | null
+          default_asset_view?: string | null
+          enabled_asset_types?: string[] | null
           id?: string
           is_public?: boolean | null
           logo_url?: string | null
@@ -1029,6 +1145,8 @@ export type Database = {
           allow_join_requests?: boolean | null
           created_at?: string | null
           created_by?: string | null
+          default_asset_view?: string | null
+          enabled_asset_types?: string[] | null
           id?: string
           is_public?: boolean | null
           logo_url?: string | null
