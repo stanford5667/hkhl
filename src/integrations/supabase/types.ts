@@ -826,27 +826,45 @@ export type Database = {
       }
       economic_indicators: {
         Row: {
-          category: string | null
+          category: string
+          change_percent: number | null
           change_value: number | null
-          current_value: string
+          current_value: number | null
           id: string
-          indicator_name: string
+          indicator_type: string
+          name: string
+          previous_value: number | null
+          source: string | null
+          symbol: string
+          unit: string | null
           updated_at: string | null
         }
         Insert: {
-          category?: string | null
+          category: string
+          change_percent?: number | null
           change_value?: number | null
-          current_value: string
+          current_value?: number | null
           id?: string
-          indicator_name: string
+          indicator_type: string
+          name: string
+          previous_value?: number | null
+          source?: string | null
+          symbol: string
+          unit?: string | null
           updated_at?: string | null
         }
         Update: {
-          category?: string | null
+          category?: string
+          change_percent?: number | null
           change_value?: number | null
-          current_value?: string
+          current_value?: number | null
           id?: string
-          indicator_name?: string
+          indicator_type?: string
+          name?: string
+          previous_value?: number | null
+          source?: string | null
+          symbol?: string
+          unit?: string | null
           updated_at?: string | null
         }
         Relationships: []
@@ -1618,6 +1636,36 @@ export type Database = {
         Update: {
           id?: string
           role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_watchlist: {
+        Row: {
+          added_at: string | null
+          id: string
+          item_id: string
+          item_name: string
+          item_type: string
+          notes: string | null
+          user_id: string
+        }
+        Insert: {
+          added_at?: string | null
+          id?: string
+          item_id: string
+          item_name: string
+          item_type: string
+          notes?: string | null
+          user_id: string
+        }
+        Update: {
+          added_at?: string | null
+          id?: string
+          item_id?: string
+          item_name?: string
+          item_type?: string
+          notes?: string | null
           user_id?: string
         }
         Relationships: []
