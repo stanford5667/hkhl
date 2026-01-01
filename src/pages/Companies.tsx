@@ -9,7 +9,7 @@ import { useAppCompanies, CompanyStage } from '@/hooks/useAppData';
 import { CompanyListView } from '@/components/companies/CompanyListView';
 import { PipelineKanbanView } from '@/components/companies/PipelineKanbanView';
 import { PortfolioGridView } from '@/components/companies/PortfolioGridView';
-import { CompanyCreationWizard } from '@/components/companies/CompanyCreationWizard';
+import { AddAssetWizard } from '@/components/companies/AddAssetWizard';
 import { Skeleton } from '@/components/ui/skeleton';
 import { AssetTypeFilter, useAssetTypeFilter } from '@/components/shared/AssetTypeFilter';
 
@@ -101,7 +101,7 @@ export default function Companies() {
           
           <Button className="bg-emerald-600 hover:bg-emerald-500" onClick={() => setWizardOpen(true)}>
             <Plus className="h-4 w-4 mr-2" />
-            Add Company
+            Add Asset
           </Button>
         </div>
       </div>
@@ -187,7 +187,7 @@ export default function Companies() {
       )}
 
       {/* Creation Wizard */}
-      <CompanyCreationWizard
+      <AddAssetWizard
         open={wizardOpen}
         onOpenChange={setWizardOpen}
         onCreate={createCompany}
