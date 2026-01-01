@@ -15,6 +15,7 @@ import { CompanyTeamPanel } from '@/components/companies/CompanyTeamPanel';
 import { CompanyTasksTab } from '@/components/companies/CompanyTasksTab';
 import { ProcessingBanner, ProcessingIndicator, AIAnalyzedBadge } from '@/components/companies/ProcessingBanner';
 import { AISummaryCard } from '@/components/companies/AISummaryCard';
+import { PublicEquityDetailView } from '@/components/equity/PublicEquityDetailView';
 
 import { CompanySummaryCard } from '@/components/companies/CompanySummaryCard';
 import { CompanyContactsCard } from '@/components/companies/CompanyContactsCard';
@@ -38,6 +39,8 @@ import {
   Mail,
   Phone,
   CheckSquare,
+  LineChart,
+  Briefcase,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { useCompanyTasks } from '@/hooks/useTasks';
@@ -56,6 +59,14 @@ interface CompanyDetail {
   status: string | null;
   created_at: string;
   updated_at: string;
+  // Public equity fields
+  asset_class: string | null;
+  ticker_symbol: string | null;
+  exchange: string | null;
+  shares_owned: number | null;
+  cost_basis: number | null;
+  current_price: number | null;
+  market_value: number | null;
 }
 
 interface Contact {
@@ -181,7 +192,58 @@ export default function CompanyDetail() {
     return 75;
   };
 
+  const isPublicEquity = company.asset_class === 'public_equity' && company.ticker_symbol;
 
+  // Render public equity view
+  if (isPublicEquity) {
+    return (
+      <div className="p-6 space-y-6 animate-fade-in">
+        {/* Header for Public Equity */}
+        <div className="flex items-start justify-between">
+          <div className="flex items-start gap-4">
+            <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+            <div>
+              <div className="flex items-center gap-3">
+                <LineChart className="h-6 w-6 text-emerald-400" />
+                <h1 className="h1">{company.name}</h1>
+                <Badge variant="outline" className="bg-emerald-500/10 text-emerald-400 border-emerald-500/30">
+                  Public Equity
+                </Badge>
+                <CompanyTypeBadge type={company.company_type} />
+              </div>
+              <div className="flex items-center gap-4 mt-2 text-muted-foreground">
+                {company.industry && (
+                  <span className="flex items-center gap-1">
+                    <Building2 className="h-4 w-4" />
+                    {company.industry}
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+          <Button variant="outline" onClick={() => setEditDialogOpen(true)}>
+            <Edit className="h-4 w-4 mr-2" />
+            Edit
+          </Button>
+        </div>
+
+        {/* Public Equity Detail View */}
+        <PublicEquityDetailView company={company} onUpdate={fetchData} />
+
+        {/* Edit Dialog */}
+        <EditCompanyDialog
+          open={editDialogOpen}
+          onOpenChange={setEditDialogOpen}
+          company={company}
+          onSave={fetchData}
+        />
+      </div>
+    );
+  }
+
+  // Regular company view
   return (
     <div className="p-6 space-y-6 animate-fade-in">
       {/* Header */}
