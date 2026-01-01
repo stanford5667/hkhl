@@ -322,7 +322,8 @@ export function AddAssetWizard({ open, onOpenChange, onComplete, onCreate }: Add
         if (step === 2) return form.stage !== '';
         return true;
       case 'public_equity':
-        if (step === 1) return form.tickerSymbol.length > 0 && quoteData !== null;
+        // Allow proceeding if ticker is set and we have a name (from autocomplete selection or quote fetch)
+        if (step === 1) return form.tickerSymbol.length > 0 && form.name.trim().length > 0;
         return true;
       case 'real_estate':
         if (step === 1) return form.name.trim().length > 0;
