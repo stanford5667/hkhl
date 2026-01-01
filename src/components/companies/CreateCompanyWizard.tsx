@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useOrgId } from '@/contexts/OrganizationContext';
@@ -75,6 +75,12 @@ interface WizardData {
   aiSummary: string;
 }
 
+interface CompanySuggestion {
+  name: string;
+  industry: string;
+  hint?: string;
+}
+
 export function CreateCompanyWizard({ open, onOpenChange, onComplete }: CreateCompanyWizardProps) {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -98,8 +104,120 @@ export function CreateCompanyWizard({ open, onOpenChange, onComplete }: CreateCo
     aiSummary: '',
   });
 
+  // Autocomplete state
+  const [suggestions, setSuggestions] = useState<CompanySuggestion[]>([]);
+  const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [isLookingUp, setIsLookingUp] = useState(false);
+  const [autoPopulatedFields, setAutoPopulatedFields] = useState<Set<string>>(new Set());
+  const suggestionsRef = useRef<HTMLDivElement>(null);
+
   const updateData = (updates: Partial<WizardData>) => {
     setData(prev => ({ ...prev, ...updates }));
+  };
+
+  // Debounced suggestion fetch
+  useEffect(() => {
+    const timer = setTimeout(async () => {
+      if (data.name.length >= 2 && !isLookingUp) {
+        setIsLoadingSuggestions(true);
+        try {
+          const { data: result } = await supabase.functions.invoke('suggest-companies', {
+            body: { query: data.name }
+          });
+          if (result?.suggestions) {
+            setSuggestions(result.suggestions);
+            setShowSuggestions(true);
+          }
+        } catch (e) {
+          console.error('Suggestion error:', e);
+        } finally {
+          setIsLoadingSuggestions(false);
+        }
+      } else {
+        setSuggestions([]);
+        setShowSuggestions(false);
+      }
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [data.name, isLookingUp]);
+
+  // Click-outside handler
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (suggestionsRef.current && !suggestionsRef.current.contains(event.target as Node)) {
+        setShowSuggestions(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Lookup company details
+  const lookupCompany = async (companyName: string) => {
+    if (!companyName.trim()) return;
+    setIsLookingUp(true);
+    setShowSuggestions(false);
+    try {
+      const { data: result, error } = await supabase.functions.invoke('lookup-company', {
+        body: { companyName }
+      });
+      if (error) throw error;
+      
+      if (result?.success && result?.data) {
+        const newAutoPopulated = new Set<string>();
+        const updates: Partial<WizardData> = {};
+        
+        if (result.data.website && !data.website) {
+          updates.website = result.data.website;
+          newAutoPopulated.add('website');
+        }
+        if (result.data.industry) {
+          // Map to closest industry in our list
+          const matchedIndustry = INDUSTRIES.find(ind => 
+            result.data.industry.toLowerCase().includes(ind.toLowerCase()) ||
+            ind.toLowerCase().includes(result.data.industry.toLowerCase())
+          );
+          if (matchedIndustry && !data.industry) {
+            updates.industry = matchedIndustry;
+            newAutoPopulated.add('industry');
+          }
+        }
+        if (result.data.description && !data.description) {
+          updates.description = result.data.description;
+          newAutoPopulated.add('description');
+        }
+        if (result.data.headquarters && !data.headquarters) {
+          updates.headquarters = result.data.headquarters;
+          newAutoPopulated.add('headquarters');
+        }
+        if (result.data.founded && !data.yearFounded) {
+          updates.yearFounded = String(result.data.founded);
+          newAutoPopulated.add('yearFounded');
+        }
+        
+        if (Object.keys(updates).length > 0) {
+          updateData(updates);
+          setAutoPopulatedFields(newAutoPopulated);
+          toast.success('Company info found!');
+        } else {
+          toast.info('No additional info found');
+        }
+      } else {
+        toast.info('No additional info found');
+      }
+    } catch (e) {
+      console.error('Lookup error:', e);
+      toast.error('Failed to lookup company');
+    } finally {
+      setIsLookingUp(false);
+    }
+  };
+
+  const clearAutoPopulated = (field: string) => {
+    const newSet = new Set(autoPopulatedFields);
+    newSet.delete(field);
+    setAutoPopulatedFields(newSet);
   };
 
   const handleNext = () => {
@@ -116,6 +234,8 @@ export function CreateCompanyWizard({ open, onOpenChange, onComplete }: CreateCo
     }
     onOpenChange(false);
     setCurrentStep(1);
+    setAutoPopulatedFields(new Set());
+    setSuggestions([]);
     setData({
       name: '', website: '', industry: '', stage: 'sourcing', source: '',
       description: '', yearFounded: '', headquarters: '', employeeCount: '',
@@ -214,6 +334,13 @@ export function CreateCompanyWizard({ open, onOpenChange, onComplete }: CreateCo
     }
   };
 
+  const AIBadge = () => (
+    <Badge className="bg-purple-500/20 text-purple-300 text-xs border-0 gap-1">
+      <Sparkles className="h-3 w-3" />
+      AI
+    </Badge>
+  );
+
   return (
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="max-w-3xl bg-slate-900 border-slate-800 p-0 gap-0">
@@ -270,32 +397,131 @@ export function CreateCompanyWizard({ open, onOpenChange, onComplete }: CreateCo
               </div>
 
               <div className="space-y-4">
-                <div className="space-y-2">
+                {/* Enhanced Company Name Input with Autocomplete */}
+                <div className="space-y-2 relative" ref={suggestionsRef}>
                   <Label className="text-slate-300">Company Name *</Label>
-                  <Input
-                    value={data.name}
-                    onChange={e => updateData({ name: e.target.value })}
-                    placeholder="Acme Corporation"
-                    className="bg-slate-800 border-slate-700 text-white text-lg"
-                  />
+                  <div className="relative">
+                    <Input
+                      value={data.name}
+                      onChange={e => {
+                        updateData({ name: e.target.value });
+                        if (autoPopulatedFields.size > 0) setAutoPopulatedFields(new Set());
+                      }}
+                      onFocus={() => data.name.length >= 2 && suggestions.length > 0 && setShowSuggestions(true)}
+                      placeholder="Start typing company name..."
+                      className="bg-slate-800 border-slate-700 text-white text-lg pr-24"
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => lookupCompany(data.name)}
+                      disabled={!data.name.trim() || isLookingUp}
+                      className="absolute right-1 top-1/2 -translate-y-1/2 h-7 px-2 text-purple-400 hover:text-purple-300 hover:bg-purple-500/10"
+                    >
+                      {isLookingUp ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <>
+                          <Sparkles className="h-4 w-4 mr-1" />
+                          Lookup
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                  
+                  {/* Suggestions Dropdown */}
+                  {showSuggestions && data.name.length >= 2 && (
+                    <div className="absolute z-50 w-full mt-1 bg-slate-800 border border-slate-700 rounded-lg shadow-xl overflow-hidden">
+                      {isLoadingSuggestions ? (
+                        <div className="p-4 text-center text-slate-400">
+                          <Loader2 className="h-4 w-4 animate-spin inline mr-2" />
+                          Finding suggestions...
+                        </div>
+                      ) : suggestions.length > 0 ? (
+                        <>
+                          {suggestions.map((s, i) => (
+                            <button
+                              key={i}
+                              type="button"
+                              onClick={() => {
+                                updateData({ name: s.name });
+                                setShowSuggestions(false);
+                                lookupCompany(s.name);
+                              }}
+                              className="w-full px-4 py-3 text-left hover:bg-slate-700/50 border-b border-slate-700/50 last:border-0"
+                            >
+                              <div className="flex items-center justify-between">
+                                <div>
+                                  <p className="text-white font-medium">{s.name}</p>
+                                  {s.hint && <p className="text-slate-400 text-sm">{s.hint}</p>}
+                                </div>
+                                <Badge variant="outline" className="text-slate-400 border-slate-600 text-xs">
+                                  {s.industry}
+                                </Badge>
+                              </div>
+                            </button>
+                          ))}
+                          <button
+                            type="button"
+                            onClick={() => { setShowSuggestions(false); lookupCompany(data.name); }}
+                            className="w-full px-4 py-2 text-purple-400 hover:bg-slate-700/50 text-sm border-t border-slate-700"
+                          >
+                            Search for "{data.name}" →
+                          </button>
+                        </>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => { setShowSuggestions(false); lookupCompany(data.name); }}
+                          className="w-full px-4 py-3 text-slate-400 hover:bg-slate-700/50"
+                        >
+                          No suggestions. Search for "{data.name}" →
+                        </button>
+                      )}
+                    </div>
+                  )}
                 </div>
 
+                {/* Website with AI badge */}
                 <div className="space-y-2">
-                  <Label className="text-slate-300">Website</Label>
+                  <div className="flex items-center gap-2">
+                    <Label className="text-slate-300">Website</Label>
+                    {autoPopulatedFields.has('website') && <AIBadge />}
+                  </div>
                   <Input
                     value={data.website}
-                    onChange={e => updateData({ website: e.target.value })}
+                    onChange={e => {
+                      updateData({ website: e.target.value });
+                      clearAutoPopulated('website');
+                    }}
                     placeholder="https://acme.com"
-                    className="bg-slate-800 border-slate-700 text-white"
+                    className={cn(
+                      "bg-slate-800 border-slate-700 text-white",
+                      autoPopulatedFields.has('website') && "ring-1 ring-purple-500/30"
+                    )}
                   />
                   <p className="text-xs text-slate-500">We'll try to pull info from here</p>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
+                  {/* Industry with AI badge */}
                   <div className="space-y-2">
-                    <Label className="text-slate-300">Industry *</Label>
-                    <Select value={data.industry} onValueChange={val => updateData({ industry: val })}>
-                      <SelectTrigger className="bg-slate-800 border-slate-700 text-white">
+                    <div className="flex items-center gap-2">
+                      <Label className="text-slate-300">Industry *</Label>
+                      {autoPopulatedFields.has('industry') && <AIBadge />}
+                    </div>
+                    <Select 
+                      value={data.industry} 
+                      onValueChange={val => {
+                        updateData({ industry: val });
+                        clearAutoPopulated('industry');
+                      }}
+                    >
+                      <SelectTrigger className={cn(
+                        "bg-slate-800 border-slate-700 text-white",
+                        autoPopulatedFields.has('industry') && "ring-1 ring-purple-500/30"
+                      )}>
                         <SelectValue placeholder="Select industry" />
                       </SelectTrigger>
                       <SelectContent className="bg-slate-800 border-slate-700">
@@ -347,36 +573,66 @@ export function CreateCompanyWizard({ open, onOpenChange, onComplete }: CreateCo
               </div>
 
               <div className="space-y-4">
+                {/* Description with AI badge */}
                 <div className="space-y-2">
-                  <Label className="text-slate-300">Business Description</Label>
+                  <div className="flex items-center gap-2">
+                    <Label className="text-slate-300">Business Description</Label>
+                    {autoPopulatedFields.has('description') && <AIBadge />}
+                  </div>
                   <Textarea
                     value={data.description}
-                    onChange={e => updateData({ description: e.target.value })}
+                    onChange={e => {
+                      updateData({ description: e.target.value });
+                      clearAutoPopulated('description');
+                    }}
                     placeholder="What does the company do?"
                     rows={3}
-                    className="bg-slate-800 border-slate-700 text-white"
+                    className={cn(
+                      "bg-slate-800 border-slate-700 text-white",
+                      autoPopulatedFields.has('description') && "ring-1 ring-purple-500/30"
+                    )}
                   />
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
+                  {/* Year Founded with AI badge */}
                   <div className="space-y-2">
-                    <Label className="text-slate-300">Year Founded</Label>
+                    <div className="flex items-center gap-2">
+                      <Label className="text-slate-300">Year Founded</Label>
+                      {autoPopulatedFields.has('yearFounded') && <AIBadge />}
+                    </div>
                     <Input
                       type="number"
                       value={data.yearFounded}
-                      onChange={e => updateData({ yearFounded: e.target.value })}
+                      onChange={e => {
+                        updateData({ yearFounded: e.target.value });
+                        clearAutoPopulated('yearFounded');
+                      }}
                       placeholder="2010"
-                      className="bg-slate-800 border-slate-700 text-white"
+                      className={cn(
+                        "bg-slate-800 border-slate-700 text-white",
+                        autoPopulatedFields.has('yearFounded') && "ring-1 ring-purple-500/30"
+                      )}
                     />
                   </div>
 
+                  {/* Headquarters with AI badge */}
                   <div className="space-y-2">
-                    <Label className="text-slate-300">Headquarters</Label>
+                    <div className="flex items-center gap-2">
+                      <Label className="text-slate-300">Headquarters</Label>
+                      {autoPopulatedFields.has('headquarters') && <AIBadge />}
+                    </div>
                     <Input
                       value={data.headquarters}
-                      onChange={e => updateData({ headquarters: e.target.value })}
+                      onChange={e => {
+                        updateData({ headquarters: e.target.value });
+                        clearAutoPopulated('headquarters');
+                      }}
                       placeholder="New York, NY"
-                      className="bg-slate-800 border-slate-700 text-white"
+                      className={cn(
+                        "bg-slate-800 border-slate-700 text-white",
+                        autoPopulatedFields.has('headquarters') && "ring-1 ring-purple-500/30"
+                      )}
                     />
                   </div>
                 </div>
@@ -506,9 +762,12 @@ export function CreateCompanyWizard({ open, onOpenChange, onComplete }: CreateCo
                         <span className="text-slate-500">Name</span>
                         <span className="text-white font-medium">{data.name}</span>
                       </div>
-                      <div className="flex justify-between">
+                      <div className="flex justify-between items-center">
                         <span className="text-slate-500">Industry</span>
-                        <span className="text-white">{data.industry}</span>
+                        <div className="flex items-center gap-2">
+                          {autoPopulatedFields.has('industry') && <AIBadge />}
+                          <span className="text-white">{data.industry}</span>
+                        </div>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-slate-500">Stage</span>
@@ -517,9 +776,12 @@ export function CreateCompanyWizard({ open, onOpenChange, onComplete }: CreateCo
                         </Badge>
                       </div>
                       {data.website && (
-                        <div className="flex justify-between">
+                        <div className="flex justify-between items-center">
                           <span className="text-slate-500">Website</span>
-                          <span className="text-white truncate max-w-[150px]">{data.website}</span>
+                          <div className="flex items-center gap-2">
+                            {autoPopulatedFields.has('website') && <AIBadge />}
+                            <span className="text-white truncate max-w-[150px]">{data.website}</span>
+                          </div>
                         </div>
                       )}
                     </div>
@@ -558,7 +820,10 @@ export function CreateCompanyWizard({ open, onOpenChange, onComplete }: CreateCo
 
               {data.description && (
                 <div className="p-4 rounded-lg bg-slate-800/50">
-                  <h4 className="text-sm font-medium text-slate-400 mb-2">Description</h4>
+                  <div className="flex items-center gap-2 mb-2">
+                    <h4 className="text-sm font-medium text-slate-400">Description</h4>
+                    {autoPopulatedFields.has('description') && <AIBadge />}
+                  </div>
                   <p className="text-slate-300">{data.description}</p>
                 </div>
               )}
