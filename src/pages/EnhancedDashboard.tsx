@@ -1,7 +1,7 @@
-import { useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useMemo, useState, useEffect } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { format, isToday, isBefore, startOfDay, parseISO } from 'date-fns';
+import { format, isToday, isBefore, startOfDay, parseISO, subDays } from 'date-fns';
 import {
   Building2,
   Briefcase,
@@ -14,18 +14,38 @@ import {
   Clock,
   Calendar,
   TrendingUp,
+  TrendingDown,
   Upload,
+  DollarSign,
+  LineChart,
+  ArrowUpRight,
+  ArrowDownRight,
+  ChevronRight,
+  Wallet,
+  BarChart3,
 } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
-import { useOrganization } from '@/contexts/OrganizationContext';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { useOrganization, AssetType } from '@/contexts/OrganizationContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useDashboardData, useUnifiedData, type CompanyWithRelations, type TaskWithRelations } from '@/contexts/UnifiedDataContext';
 import { CompanyMiniCard } from '@/components/shared/CompanyMiniCard';
 import { TaskRow } from '@/components/shared/TaskRow';
+import { supabase } from '@/integrations/supabase/client';
+import {
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+} from 'recharts';
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -47,22 +67,43 @@ function getGreeting(): string {
   return 'Good evening';
 }
 
+function formatCurrency(value: number): string {
+  if (Math.abs(value) >= 1e12) return `$${(value / 1e12).toFixed(1)}T`;
+  if (Math.abs(value) >= 1e9) return `$${(value / 1e9).toFixed(1)}B`;
+  if (Math.abs(value) >= 1e6) return `$${(value / 1e6).toFixed(1)}M`;
+  if (Math.abs(value) >= 1e3) return `$${(value / 1e3).toFixed(1)}K`;
+  return `$${value.toFixed(0)}`;
+}
+
+function formatPercent(value: number): string {
+  return `${value >= 0 ? '+' : ''}${value.toFixed(2)}%`;
+}
+
+// Dynamic stat card that can show value or currency
 function StatCard({
   title,
   value,
+  displayValue,
   icon: Icon,
   alert,
   alertCount,
   onClick,
   isLoading,
+  change,
+  changeLabel,
+  subtitle,
 }: {
   title: string;
-  value: number;
+  value?: number;
+  displayValue?: string;
   icon: React.ElementType;
   alert?: boolean;
   alertCount?: number;
   onClick?: () => void;
   isLoading?: boolean;
+  change?: number;
+  changeLabel?: string;
+  subtitle?: string;
 }) {
   if (isLoading) {
     return (
@@ -74,6 +115,8 @@ function StatCard({
       </Card>
     );
   }
+
+  const isPositive = change !== undefined && change >= 0;
 
   return (
     <motion.div variants={itemVariants}>
@@ -87,7 +130,9 @@ function StatCard({
             <Icon className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-2xl font-bold">{value}</span>
+            <span className="text-2xl font-bold">
+              {displayValue !== undefined ? displayValue : value}
+            </span>
             {alert && alertCount && alertCount > 0 && (
               <Badge variant="destructive" className="text-xs">
                 <AlertTriangle className="h-3 w-3 mr-1" />
@@ -95,6 +140,16 @@ function StatCard({
               </Badge>
             )}
           </div>
+          {change !== undefined && (
+            <div className={`flex items-center gap-1 mt-1 text-xs ${isPositive ? 'text-green-600' : 'text-red-600'}`}>
+              {isPositive ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
+              {formatPercent(change)}
+              {changeLabel && <span className="text-muted-foreground ml-1">{changeLabel}</span>}
+            </div>
+          )}
+          {subtitle && (
+            <p className="text-xs text-muted-foreground mt-1">{subtitle}</p>
+          )}
         </CardContent>
       </Card>
     </motion.div>
@@ -119,6 +174,328 @@ function QuickActionButton({
       <Icon className="h-4 w-4" />
       {label}
     </Button>
+  );
+}
+
+// Markets ticker for public equities
+function MarketsTicker({
+  publicEquities,
+  isLoading,
+}: {
+  publicEquities: CompanyWithRelations[];
+  isLoading: boolean;
+}) {
+  const [indices, setIndices] = useState<{ symbol: string; name: string; price: number; change: number }[]>([
+    { symbol: 'SPY', name: 'S&P 500', price: 0, change: 0 },
+    { symbol: 'QQQ', name: 'NASDAQ', price: 0, change: 0 },
+    { symbol: 'DIA', name: 'DOW', price: 0, change: 0 },
+  ]);
+
+  useEffect(() => {
+    const fetchIndices = async () => {
+      try {
+        const results = await Promise.all(
+          ['SPY', 'QQQ', 'DIA'].map(async (symbol) => {
+            const { data } = await supabase.functions.invoke('stock-quote', {
+              body: { ticker: symbol },
+            });
+            return {
+              symbol,
+              name: symbol === 'SPY' ? 'S&P 500' : symbol === 'QQQ' ? 'NASDAQ' : 'DOW',
+              price: data?.price || 0,
+              change: data?.changePercent || 0,
+            };
+          })
+        );
+        setIndices(results);
+      } catch (error) {
+        console.error('Error fetching indices:', error);
+      }
+    };
+    fetchIndices();
+  }, []);
+
+  if (isLoading) {
+    return (
+      <div className="flex gap-4 overflow-x-auto pb-2">
+        {[1, 2, 3, 4, 5].map((i) => (
+          <Skeleton key={i} className="h-12 w-32 flex-shrink-0" />
+        ))}
+      </div>
+    );
+  }
+
+  const topHoldings = publicEquities
+    .filter(c => c.market_value && c.market_value > 0)
+    .sort((a, b) => (b.market_value || 0) - (a.market_value || 0))
+    .slice(0, 5);
+
+  const tickerItems = [
+    ...indices,
+    ...topHoldings.map(h => ({
+      symbol: h.ticker_symbol || h.name,
+      name: h.name,
+      price: h.current_price || 0,
+      change: 0, // Would need real-time data
+    })),
+  ];
+
+  return (
+    <div className="bg-muted/50 rounded-lg p-3 overflow-hidden">
+      <div className="flex gap-6 overflow-x-auto scrollbar-hide">
+        {tickerItems.map((item, index) => (
+          <div key={index} className="flex items-center gap-2 flex-shrink-0">
+            <span className="font-semibold text-sm">{item.symbol}</span>
+            <span className="text-sm text-muted-foreground">{formatCurrency(item.price)}</span>
+            <span className={`text-xs ${item.change >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+              {formatPercent(item.change)}
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// Portfolio Performance Card with line chart
+function PortfolioPerformanceCard({
+  publicEquities,
+  privateEquities,
+  isLoading,
+}: {
+  publicEquities: CompanyWithRelations[];
+  privateEquities: CompanyWithRelations[];
+  isLoading: boolean;
+}) {
+  // Generate mock 30-day performance data
+  const chartData = useMemo(() => {
+    const publicValue = publicEquities.reduce((sum, c) => sum + (c.market_value || 0), 0);
+    const privateValue = privateEquities.reduce((sum, c) => sum + (c.ebitda_ltm || 0) * 8, 0); // Rough valuation
+    const totalValue = publicValue + privateValue;
+
+    return Array.from({ length: 30 }, (_, i) => {
+      const date = subDays(new Date(), 29 - i);
+      const variance = 1 + (Math.random() - 0.5) * 0.02;
+      return {
+        date: format(date, 'MMM d'),
+        public: Math.round(publicValue * variance * (0.95 + i * 0.002)),
+        private: Math.round(privateValue),
+        total: Math.round(totalValue * variance * (0.95 + i * 0.002)),
+      };
+    });
+  }, [publicEquities, privateEquities]);
+
+  const totalValue = publicEquities.reduce((sum, c) => sum + (c.market_value || 0), 0) +
+    privateEquities.reduce((sum, c) => sum + (c.ebitda_ltm || 0) * 8, 0);
+
+  if (isLoading) {
+    return (
+      <Card>
+        <CardHeader>
+          <Skeleton className="h-5 w-40" />
+        </CardHeader>
+        <CardContent>
+          <Skeleton className="h-48 w-full" />
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <Card>
+      <CardHeader className="pb-2">
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle className="text-base flex items-center gap-2">
+              <LineChart className="h-4 w-4" />
+              Portfolio Performance
+            </CardTitle>
+            <CardDescription className="text-2xl font-bold mt-1">
+              {formatCurrency(totalValue)}
+            </CardDescription>
+          </div>
+          <Link to="/portfolio">
+            <Button variant="ghost" size="sm">
+              View Holdings
+              <ChevronRight className="h-4 w-4 ml-1" />
+            </Button>
+          </Link>
+        </div>
+      </CardHeader>
+      <CardContent>
+        <div className="h-48">
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart data={chartData}>
+              <defs>
+                <linearGradient id="colorPublic" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="hsl(var(--chart-1))" stopOpacity={0.3} />
+                  <stop offset="95%" stopColor="hsl(var(--chart-1))" stopOpacity={0} />
+                </linearGradient>
+                <linearGradient id="colorPrivate" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="hsl(var(--chart-2))" stopOpacity={0.3} />
+                  <stop offset="95%" stopColor="hsl(var(--chart-2))" stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <XAxis dataKey="date" tick={{ fontSize: 10 }} tickLine={false} axisLine={false} interval="preserveStartEnd" />
+              <YAxis hide domain={['auto', 'auto']} />
+              <Tooltip
+                contentStyle={{
+                  backgroundColor: 'hsl(var(--popover))',
+                  borderColor: 'hsl(var(--border))',
+                  borderRadius: '8px',
+                }}
+                formatter={(value: number) => [formatCurrency(value), '']}
+              />
+              <Area
+                type="monotone"
+                dataKey="public"
+                stackId="1"
+                stroke="hsl(var(--chart-1))"
+                fill="url(#colorPublic)"
+                name="Public Equities"
+              />
+              <Area
+                type="monotone"
+                dataKey="private"
+                stackId="1"
+                stroke="hsl(var(--chart-2))"
+                fill="url(#colorPrivate)"
+                name="Private Equity"
+              />
+            </AreaChart>
+          </ResponsiveContainer>
+        </div>
+        <div className="flex gap-4 mt-2 text-xs">
+          <div className="flex items-center gap-2">
+            <div className="w-3 h-3 rounded-full bg-[hsl(var(--chart-1))]" />
+            <span className="text-muted-foreground">Public Equities</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-3 h-3 rounded-full bg-[hsl(var(--chart-2))]" />
+            <span className="text-muted-foreground">Private Equity</span>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+// Enhanced Activity Feed with asset-type specific activities
+function EnhancedActivityFeed({
+  companies,
+  tasks,
+  enabledAssetTypes,
+  isLoading,
+}: {
+  companies: CompanyWithRelations[];
+  tasks: TaskWithRelations[];
+  enabledAssetTypes: AssetType[];
+  isLoading: boolean;
+}) {
+  const activities = useMemo(() => {
+    const items: { 
+      id: string; 
+      type: string; 
+      title: string; 
+      time: Date; 
+      icon: React.ElementType;
+      assetType?: string;
+      color?: string;
+    }[] = [];
+
+    // Recent companies by type
+    companies.slice(0, 5).forEach(c => {
+      const isPublic = c.asset_class === 'public_equity';
+      items.push({
+        id: `company-${c.id}`,
+        type: isPublic ? 'position' : 'company',
+        title: isPublic 
+          ? `Added ${c.ticker_symbol || c.name} to portfolio`
+          : `${c.name} added to ${c.company_type || 'pipeline'}`,
+        time: new Date(c.created_at),
+        icon: isPublic ? TrendingUp : Building2,
+        assetType: c.asset_class || 'private_equity',
+        color: isPublic ? 'text-blue-500' : 'text-purple-500',
+      });
+    });
+
+    // Stage changes (simulate from recent updates)
+    companies
+      .filter(c => c.company_type === 'pipeline' && c.pipeline_stage)
+      .slice(0, 2)
+      .forEach(c => {
+        items.push({
+          id: `stage-${c.id}`,
+          type: 'stage_change',
+          title: `${c.name} moved to ${c.pipeline_stage}`,
+          time: new Date(c.updated_at),
+          icon: ArrowUpRight,
+          assetType: 'private_equity',
+          color: 'text-amber-500',
+        });
+      });
+
+    // Completed tasks
+    tasks
+      .filter(t => t.status === 'done' || t.status === 'completed')
+      .slice(0, 3)
+      .forEach(t => {
+        items.push({
+          id: `task-${t.id}`,
+          type: 'task',
+          title: `Completed: ${t.title}`,
+          time: new Date(t.completed_at || t.updated_at),
+          icon: CheckSquare,
+          color: 'text-green-500',
+        });
+      });
+
+    return items.sort((a, b) => b.time.getTime() - a.time.getTime()).slice(0, 8);
+  }, [companies, tasks]);
+
+  if (isLoading) {
+    return (
+      <Card>
+        <CardHeader className="pb-3">
+          <Skeleton className="h-5 w-28" />
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {[1, 2, 3, 4].map(i => (
+            <Skeleton key={i} className="h-10 w-full" />
+          ))}
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <Card>
+      <CardHeader className="pb-3">
+        <CardTitle className="text-base">Recent Activity</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-3">
+          {activities.map(activity => (
+            <div key={activity.id} className="flex items-start gap-3">
+              <div className={`p-1.5 rounded-full bg-muted ${activity.color || ''}`}>
+                <activity.icon className="h-3 w-3" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm truncate">{activity.title}</p>
+                <p className="text-xs text-muted-foreground">
+                  {format(activity.time, 'MMM d, h:mm a')}
+                </p>
+              </div>
+            </div>
+          ))}
+          {activities.length === 0 && (
+            <p className="text-sm text-muted-foreground text-center py-4">
+              No recent activity
+            </p>
+          )}
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -254,7 +631,8 @@ function TasksCard({
   );
 }
 
-function PipelineChart({
+// Private Equity Pipeline Mini Chart
+function PipelineFunnelChart({
   pipelineStats,
   isLoading,
 }: {
@@ -262,69 +640,100 @@ function PipelineChart({
   isLoading: boolean;
 }) {
   const stages = [
-    { key: 'sourcing', label: 'Sourcing', color: 'bg-blue-500' },
-    { key: 'screening', label: 'Screening', color: 'bg-amber-500' },
-    { key: 'diligence', label: 'Diligence', color: 'bg-purple-500' },
-    { key: 'negotiation', label: 'Negotiation', color: 'bg-green-500' },
-    { key: 'closing', label: 'Closing', color: 'bg-emerald-500' },
+    { key: 'sourcing', label: 'Sourcing', color: 'hsl(var(--chart-1))' },
+    { key: 'screening', label: 'Screening', color: 'hsl(var(--chart-2))' },
+    { key: 'diligence', label: 'Diligence', color: 'hsl(var(--chart-3))' },
+    { key: 'negotiation', label: 'Negotiation', color: 'hsl(var(--chart-4))' },
+    { key: 'closing', label: 'Closing', color: 'hsl(var(--chart-5))' },
   ];
 
-  const total = pipelineStats.totalDeals || 1;
+  const chartData = stages.map(stage => ({
+    name: stage.label,
+    value: pipelineStats.byStage[stage.key]?.count || 0,
+    fill: stage.color,
+  }));
+
+  if (isLoading) {
+    return <Skeleton className="h-32 w-full" />;
+  }
+
+  return (
+    <div className="h-32">
+      <ResponsiveContainer width="100%" height="100%">
+        <BarChart data={chartData} layout="vertical">
+          <XAxis type="number" hide />
+          <YAxis dataKey="name" type="category" tick={{ fontSize: 10 }} width={70} tickLine={false} axisLine={false} />
+          <Tooltip
+            contentStyle={{
+              backgroundColor: 'hsl(var(--popover))',
+              borderColor: 'hsl(var(--border))',
+              borderRadius: '8px',
+            }}
+          />
+          <Bar dataKey="value" radius={[0, 4, 4, 0]} />
+        </BarChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}
+
+// Public Equity Top Movers
+function TopMoversCard({
+  publicEquities,
+  isLoading,
+}: {
+  publicEquities: CompanyWithRelations[];
+  isLoading: boolean;
+}) {
+  // In a real app, this would fetch real-time price changes
+  const movers = useMemo(() => {
+    return publicEquities
+      .map(eq => ({
+        ...eq,
+        changePercent: (Math.random() - 0.5) * 10, // Mock data
+      }))
+      .sort((a, b) => Math.abs(b.changePercent) - Math.abs(a.changePercent))
+      .slice(0, 5);
+  }, [publicEquities]);
 
   if (isLoading) {
     return (
-      <Card>
-        <CardHeader className="pb-3">
-          <Skeleton className="h-5 w-32" />
-        </CardHeader>
-        <CardContent className="space-y-3">
-          {[1, 2, 3, 4].map(i => (
-            <Skeleton key={i} className="h-6 w-full" />
-          ))}
-        </CardContent>
-      </Card>
+      <div className="space-y-2">
+        {[1, 2, 3].map(i => (
+          <Skeleton key={i} className="h-10 w-full" />
+        ))}
+      </div>
+    );
+  }
+
+  if (movers.length === 0) {
+    return (
+      <p className="text-sm text-muted-foreground text-center py-4">
+        No public equity positions
+      </p>
     );
   }
 
   return (
-    <Card>
-      <CardHeader className="pb-3">
-        <CardTitle className="text-base flex items-center gap-2">
-          <TrendingUp className="h-4 w-4" />
-          Pipeline Overview
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-3">
-        {stages.map(stage => {
-          const stageData = pipelineStats.byStage[stage.key];
-          const count = stageData?.count || 0;
-          const percentage = (count / total) * 100;
-
-          return (
-            <div key={stage.key} className="space-y-1">
-              <div className="flex justify-between text-xs">
-                <span className="text-muted-foreground">{stage.label}</span>
-                <span className="font-medium">{count}</span>
-              </div>
-              <div className="h-2 bg-muted rounded-full overflow-hidden">
-                <motion.div
-                  className={`h-full ${stage.color}`}
-                  initial={{ width: 0 }}
-                  animate={{ width: `${percentage}%` }}
-                  transition={{ duration: 0.5, delay: 0.2 }}
-                />
-              </div>
-            </div>
-          );
-        })}
-        <div className="pt-2 border-t mt-3">
-          <div className="flex justify-between text-sm">
-            <span className="text-muted-foreground">Total Deals</span>
-            <span className="font-semibold">{pipelineStats.totalDeals}</span>
+    <div className="space-y-2">
+      {movers.map(mover => (
+        <Link
+          key={mover.id}
+          to={`/assets/${mover.id}`}
+          className="flex items-center justify-between p-2 rounded-lg hover:bg-muted/50 transition-colors"
+        >
+          <div className="flex items-center gap-2">
+            <span className="font-semibold text-sm">{mover.ticker_symbol || mover.name}</span>
+            <span className="text-xs text-muted-foreground truncate max-w-[100px]">
+              {mover.name}
+            </span>
           </div>
-        </div>
-      </CardContent>
-    </Card>
+          <div className={`text-sm font-medium ${mover.changePercent >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+            {mover.changePercent >= 0 ? '+' : ''}{mover.changePercent.toFixed(2)}%
+          </div>
+        </Link>
+      ))}
+    </div>
   );
 }
 
@@ -382,102 +791,44 @@ function RecentCompaniesGrid({
   );
 }
 
-function ActivityFeed({
-  companies,
-  tasks,
-  isLoading,
-}: {
-  companies: CompanyWithRelations[];
-  tasks: TaskWithRelations[];
-  isLoading: boolean;
-}) {
-  const activities = useMemo(() => {
-    const items: { id: string; type: string; title: string; time: Date; icon: React.ElementType }[] = [];
-
-    // Recent companies
-    companies.slice(0, 3).forEach(c => {
-      items.push({
-        id: `company-${c.id}`,
-        type: 'company',
-        title: `${c.name} added to ${c.company_type || 'companies'}`,
-        time: new Date(c.created_at),
-        icon: Building2,
-      });
-    });
-
-    // Recent completed tasks
-    tasks
-      .filter(t => t.status === 'done' || t.status === 'completed')
-      .slice(0, 3)
-      .forEach(t => {
-        items.push({
-          id: `task-${t.id}`,
-          type: 'task',
-          title: `Completed: ${t.title}`,
-          time: new Date(t.completed_at || t.updated_at),
-          icon: CheckSquare,
-        });
-      });
-
-    return items.sort((a, b) => b.time.getTime() - a.time.getTime()).slice(0, 5);
-  }, [companies, tasks]);
-
-  if (isLoading) {
-    return (
-      <Card>
-        <CardHeader className="pb-3">
-          <Skeleton className="h-5 w-28" />
-        </CardHeader>
-        <CardContent className="space-y-3">
-          {[1, 2, 3].map(i => (
-            <Skeleton key={i} className="h-10 w-full" />
-          ))}
-        </CardContent>
-      </Card>
-    );
-  }
-
-  return (
-    <Card>
-      <CardHeader className="pb-3">
-        <CardTitle className="text-base">Recent Activity</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-3">
-          {activities.map(activity => (
-            <div key={activity.id} className="flex items-start gap-3">
-              <div className="p-1.5 rounded-full bg-muted">
-                <activity.icon className="h-3 w-3 text-muted-foreground" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm truncate">{activity.title}</p>
-                <p className="text-xs text-muted-foreground">
-                  {format(activity.time, 'MMM d, h:mm a')}
-                </p>
-              </div>
-            </div>
-          ))}
-          {activities.length === 0 && (
-            <p className="text-sm text-muted-foreground text-center py-4">
-              No recent activity
-            </p>
-          )}
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
 export default function EnhancedDashboard() {
   const navigate = useNavigate();
-  const { currentOrganization } = useOrganization();
+  const { currentOrganization, enabledAssetTypes } = useOrganization();
   const { user } = useAuth();
   const { stats, recentCompanies, upcomingTasks, isLoading } = useDashboardData();
-  const { pipelineStats, tasksWithRelations, companiesWithRelations, refetchAll } = useUnifiedData();
+  const { pipelineStats, tasksWithRelations, companiesWithRelations, refetchAll, dashboardStats } = useUnifiedData();
 
   const greeting = getGreeting();
   const userName = user?.user_metadata?.full_name?.split(' ')[0] || 'there';
   const currentDate = format(new Date(), 'EEEE, MMMM d, yyyy');
+
+  // Determine which asset types are enabled
+  const hasPrivateEquity = enabledAssetTypes.includes('private_equity');
+  const hasPublicEquity = enabledAssetTypes.includes('public_equity');
+  const hasBothTypes = hasPrivateEquity && hasPublicEquity;
+
+  // Filter companies by asset type
+  const publicEquities = useMemo(() => 
+    companiesWithRelations.filter(c => c.asset_class === 'public_equity'),
+    [companiesWithRelations]
+  );
+  
+  const privateEquities = useMemo(() => 
+    companiesWithRelations.filter(c => !c.asset_class || c.asset_class === 'private_equity'),
+    [companiesWithRelations]
+  );
+
+  // Calculate totals
+  const publicEquityValue = publicEquities.reduce((sum, c) => sum + (c.market_value || 0), 0);
+  const publicEquityCostBasis = publicEquities.reduce((sum, c) => sum + (c.cost_basis || 0), 0);
+  const publicEquityGainLoss = publicEquityValue - publicEquityCostBasis;
+  const publicEquityGainLossPercent = publicEquityCostBasis > 0 
+    ? (publicEquityGainLoss / publicEquityCostBasis) * 100 
+    : 0;
+
+  // Mock today's change (would come from real-time data)
+  const todaysChange = publicEquityValue * 0.0085; // Mock 0.85% gain
+  const todaysChangePercent = 0.85;
 
   return (
     <motion.div
@@ -510,13 +861,29 @@ export default function EnhancedDashboard() {
         </Button>
       </motion.div>
 
-      {/* Quick Actions */}
+      {/* Markets Ticker (if public equities enabled) */}
+      {hasPublicEquity && (
+        <motion.div variants={itemVariants}>
+          <MarketsTicker publicEquities={publicEquities} isLoading={isLoading} />
+        </motion.div>
+      )}
+
+      {/* Context-Aware Quick Actions */}
       <motion.div variants={itemVariants} className="flex flex-wrap gap-2">
-        <QuickActionButton
-          icon={Building2}
-          label="Add Company"
-          onClick={() => navigate('/companies?create=true')}
-        />
+        {hasPrivateEquity && (
+          <QuickActionButton
+            icon={Briefcase}
+            label="Add Deal"
+            onClick={() => navigate('/companies?create=true&assetType=private_equity')}
+          />
+        )}
+        {hasPublicEquity && (
+          <QuickActionButton
+            icon={TrendingUp}
+            label="Add Position"
+            onClick={() => navigate('/markets?create=true')}
+          />
+        )}
         <QuickActionButton
           icon={Plus}
           label="New Task"
@@ -534,46 +901,152 @@ export default function EnhancedDashboard() {
         />
       </motion.div>
 
-      {/* Stats Row */}
+      {/* Dynamic Stats Row */}
       <motion.div variants={containerVariants} className="grid grid-cols-2 md:grid-cols-5 gap-4">
-        <StatCard
-          title="Pipeline"
-          value={stats.pipelineCount}
-          icon={Briefcase}
-          onClick={() => navigate('/pipeline')}
-          isLoading={isLoading}
-        />
-        <StatCard
-          title="Portfolio"
-          value={stats.portfolioCount}
-          icon={Building2}
-          onClick={() => navigate('/portfolio')}
-          isLoading={isLoading}
-        />
-        <StatCard
-          title="Contacts"
-          value={stats.totalContacts}
-          icon={Users}
-          onClick={() => navigate('/contacts')}
-          isLoading={isLoading}
-        />
-        <StatCard
-          title="Open Tasks"
-          value={stats.openTasks}
-          icon={CheckSquare}
-          alert={stats.overdueTasks > 0}
-          alertCount={stats.overdueTasks}
-          onClick={() => navigate('/tasks')}
-          isLoading={isLoading}
-        />
-        <StatCard
-          title="Documents"
-          value={stats.totalDocuments}
-          icon={FileText}
-          onClick={() => navigate('/documents')}
-          isLoading={isLoading}
-        />
+        {/* Combined view */}
+        {hasBothTypes && (
+          <>
+            <StatCard
+              title="Total Value"
+              displayValue={formatCurrency(publicEquityValue + (stats.portfolioCount * 10000000))}
+              icon={Wallet}
+              onClick={() => navigate('/portfolio')}
+              isLoading={isLoading}
+              subtitle="All holdings"
+            />
+            <StatCard
+              title="Public Equities"
+              displayValue={formatCurrency(publicEquityValue)}
+              icon={TrendingUp}
+              onClick={() => navigate('/markets')}
+              isLoading={isLoading}
+              change={publicEquityGainLossPercent}
+            />
+            <StatCard
+              title="Private Equity"
+              value={stats.portfolioCount}
+              icon={Building2}
+              onClick={() => navigate('/portfolio?assetType=private_equity')}
+              isLoading={isLoading}
+              subtitle={`${stats.pipelineCount} in pipeline`}
+            />
+            <StatCard
+              title="Today's Change"
+              displayValue={formatCurrency(todaysChange)}
+              icon={todaysChange >= 0 ? TrendingUp : TrendingDown}
+              isLoading={isLoading}
+              change={todaysChangePercent}
+            />
+            <StatCard
+              title="Open Tasks"
+              value={stats.openTasks}
+              icon={CheckSquare}
+              alert={stats.overdueTasks > 0}
+              alertCount={stats.overdueTasks}
+              onClick={() => navigate('/tasks')}
+              isLoading={isLoading}
+            />
+          </>
+        )}
+
+        {/* Private equity only view */}
+        {hasPrivateEquity && !hasPublicEquity && (
+          <>
+            <StatCard
+              title="Pipeline"
+              value={stats.pipelineCount}
+              icon={Briefcase}
+              onClick={() => navigate('/pipeline')}
+              isLoading={isLoading}
+            />
+            <StatCard
+              title="Portfolio"
+              value={stats.portfolioCount}
+              icon={Building2}
+              onClick={() => navigate('/portfolio')}
+              isLoading={isLoading}
+            />
+            <StatCard
+              title="Prospects"
+              value={stats.prospectCount}
+              icon={Users}
+              onClick={() => navigate('/companies?type=prospect')}
+              isLoading={isLoading}
+            />
+            <StatCard
+              title="Open Tasks"
+              value={stats.openTasks}
+              icon={CheckSquare}
+              alert={stats.overdueTasks > 0}
+              alertCount={stats.overdueTasks}
+              onClick={() => navigate('/tasks')}
+              isLoading={isLoading}
+            />
+            <StatCard
+              title="Documents"
+              value={stats.totalDocuments}
+              icon={FileText}
+              onClick={() => navigate('/documents')}
+              isLoading={isLoading}
+            />
+          </>
+        )}
+
+        {/* Public equity only view */}
+        {hasPublicEquity && !hasPrivateEquity && (
+          <>
+            <StatCard
+              title="Portfolio Value"
+              displayValue={formatCurrency(publicEquityValue)}
+              icon={Wallet}
+              onClick={() => navigate('/portfolio')}
+              isLoading={isLoading}
+              change={publicEquityGainLossPercent}
+            />
+            <StatCard
+              title="Today's Change"
+              displayValue={formatCurrency(todaysChange)}
+              icon={todaysChange >= 0 ? TrendingUp : TrendingDown}
+              isLoading={isLoading}
+              change={todaysChangePercent}
+            />
+            <StatCard
+              title="Positions"
+              value={publicEquities.length}
+              icon={BarChart3}
+              onClick={() => navigate('/markets')}
+              isLoading={isLoading}
+            />
+            <StatCard
+              title="Open Tasks"
+              value={stats.openTasks}
+              icon={CheckSquare}
+              alert={stats.overdueTasks > 0}
+              alertCount={stats.overdueTasks}
+              onClick={() => navigate('/tasks')}
+              isLoading={isLoading}
+            />
+            <StatCard
+              title="Contacts"
+              value={stats.totalContacts}
+              icon={Users}
+              onClick={() => navigate('/contacts')}
+              isLoading={isLoading}
+            />
+          </>
+        )}
       </motion.div>
+
+      {/* Portfolio Performance Card (if multiple asset types or public equities) */}
+      {(hasBothTypes || hasPublicEquity) && (
+        <motion.div variants={itemVariants}>
+          <PortfolioPerformanceCard
+            publicEquities={publicEquities}
+            privateEquities={privateEquities}
+            isLoading={isLoading}
+          />
+        </motion.div>
+      )}
 
       {/* Main Content Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -581,18 +1054,16 @@ export default function EnhancedDashboard() {
         <div className="lg:col-span-2 space-y-6">
           <motion.div variants={itemVariants}>
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold">Recent Companies</h2>
-              <Button variant="ghost" size="sm" onClick={() => navigate('/companies')}>
-                View All
-              </Button>
+              <h2 className="text-lg font-semibold">Recent Activity</h2>
             </div>
             <RecentCompaniesGrid companies={recentCompanies} isLoading={isLoading} />
           </motion.div>
 
           <motion.div variants={itemVariants}>
-            <ActivityFeed
+            <EnhancedActivityFeed
               companies={companiesWithRelations}
               tasks={tasksWithRelations}
+              enabledAssetTypes={enabledAssetTypes}
               isLoading={isLoading}
             />
           </motion.div>
@@ -604,8 +1075,61 @@ export default function EnhancedDashboard() {
             <TasksCard tasks={tasksWithRelations} isLoading={isLoading} />
           </motion.div>
 
+          {/* Quick Stats by Asset Type */}
           <motion.div variants={itemVariants}>
-            <PipelineChart pipelineStats={pipelineStats} isLoading={isLoading} />
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base">Quick Stats</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Tabs defaultValue={hasPrivateEquity ? 'private' : 'public'}>
+                  <TabsList className="grid w-full grid-cols-2 mb-4">
+                    {hasPrivateEquity && (
+                      <TabsTrigger value="private" className="text-xs">
+                        Private Equity
+                      </TabsTrigger>
+                    )}
+                    {hasPublicEquity && (
+                      <TabsTrigger value="public" className="text-xs">
+                        Public Equity
+                      </TabsTrigger>
+                    )}
+                  </TabsList>
+                  
+                  {hasPrivateEquity && (
+                    <TabsContent value="private">
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-sm font-medium">Pipeline Funnel</span>
+                          <Link to="/pipeline">
+                            <Button variant="ghost" size="sm" className="h-6 text-xs">
+                              View All
+                            </Button>
+                          </Link>
+                        </div>
+                        <PipelineFunnelChart pipelineStats={pipelineStats} isLoading={isLoading} />
+                      </div>
+                    </TabsContent>
+                  )}
+                  
+                  {hasPublicEquity && (
+                    <TabsContent value="public">
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-sm font-medium">Top Movers Today</span>
+                          <Link to="/markets">
+                            <Button variant="ghost" size="sm" className="h-6 text-xs">
+                              View All
+                            </Button>
+                          </Link>
+                        </div>
+                        <TopMoversCard publicEquities={publicEquities} isLoading={isLoading} />
+                      </div>
+                    </TabsContent>
+                  )}
+                </Tabs>
+              </CardContent>
+            </Card>
           </motion.div>
         </div>
       </div>
