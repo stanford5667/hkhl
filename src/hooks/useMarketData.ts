@@ -1,18 +1,58 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { 
-  getQuote, 
-  searchTicker, 
-  getMarketIndices, 
-  getCompanyInfo,
-  clearQuoteCache,
-  type QuoteData,
-  type TickerSearchResult,
-  type MarketIndex,
-  type CompanyInfo
-} from '@/services/marketDataService';
-import { getCachedQuote, getCachedIndices } from '@/services/MarketDataManager';
+  getCachedQuote as getCachedQuoteFinnhub, 
+  getCachedFullQuote,
+  getCachedQuotes,
+  clearQuoteCache as clearFinnhubCache,
+} from '@/services/quoteCacheService';
+import { searchTickers } from '@/services/tickerDirectoryService';
 
-// Hook for fetching stock quotes - NO automatic polling
+// Types compatible with existing usage
+export interface QuoteData {
+  price: number;
+  change: number;
+  changePercent: number;
+  volume?: string;
+  marketCap?: string;
+  high52?: number;
+  low52?: number;
+  open?: number;
+  high?: number;
+  low?: number;
+  previousClose?: number;
+  source?: 'live' | 'cache';
+  lastUpdated?: Date;
+}
+
+export interface TickerSearchResult {
+  symbol: string;
+  name: string;
+  exchange?: string;
+  source?: 'live' | 'cache' | 'local';
+}
+
+export interface MarketIndex {
+  name: string;
+  symbol: string;
+  value: number;
+  change: number;
+  changePercent: number;
+  source?: 'live' | 'cache';
+}
+
+export interface CompanyInfo {
+  name: string;
+  ticker: string;
+  exchange?: string;
+  sector?: string;
+  industry?: string;
+  peRatio?: number | null;
+  eps?: number | null;
+  dividendYield?: number | null;
+  description?: string;
+}
+
+// Hook for fetching stock quotes - uses Finnhub via quoteCacheService
 export function useStockQuote(ticker: string | null, options: { enabled?: boolean } = {}) {
   const { enabled = true } = options;
   
@@ -23,38 +63,36 @@ export function useStockQuote(ticker: string | null, options: { enabled?: boolea
   
   const mountedRef = useRef(true);
 
-  // Load from cache on mount - NO automatic fetch
-  useEffect(() => {
-    mountedRef.current = true;
-    
-    if (ticker && enabled) {
-      const cached = getCachedQuote(ticker);
-      if (cached) {
-        setQuote(cached);
-        setLastUpdated(cached.lastUpdated);
-      }
-    }
-    
-    return () => {
-      mountedRef.current = false;
-    };
-  }, [ticker, enabled]);
-
   const fetchQuote = useCallback(async (forceRefresh = false) => {
     if (!ticker || !enabled) return;
     
     if (forceRefresh) {
-      clearQuoteCache(ticker);
+      clearFinnhubCache();
     }
     
     setIsLoading(true);
     setError(null);
     
     try {
-      const data = await getQuote(ticker);
+      const data = await getCachedFullQuote(ticker);
       if (mountedRef.current) {
-        setQuote(data);
-        setLastUpdated(new Date());
+        if (data) {
+          setQuote({
+            price: data.price,
+            change: data.change,
+            changePercent: data.changePercent,
+            open: data.open,
+            high: data.high,
+            low: data.low,
+            previousClose: data.previousClose,
+            marketCap: data.marketCap,
+            source: 'live',
+            lastUpdated: new Date(),
+          });
+          setLastUpdated(new Date());
+        } else {
+          setError('Unable to fetch quote');
+        }
       }
     } catch (err) {
       if (mountedRef.current) {
@@ -66,6 +104,17 @@ export function useStockQuote(ticker: string | null, options: { enabled?: boolea
       }
     }
   }, [ticker, enabled]);
+
+  // Auto-fetch on mount
+  useEffect(() => {
+    mountedRef.current = true;
+    if (ticker && enabled) {
+      fetchQuote();
+    }
+    return () => {
+      mountedRef.current = false;
+    };
+  }, [ticker, enabled, fetchQuote]);
 
   const refresh = useCallback(() => fetchQuote(true), [fetchQuote]);
 
@@ -79,8 +128,8 @@ export function useStockQuote(ticker: string | null, options: { enabled?: boolea
   };
 }
 
-// Hook for debounced ticker search
-export function useTickerSearch(query: string, options: { enabled?: boolean; debounceMs?: number } = {}) {
+// Hook for debounced ticker search - uses local database first
+export function useTickerSearchHook(query: string, options: { enabled?: boolean; debounceMs?: number } = {}) {
   const { enabled = true, debounceMs = 300 } = options;
   
   const [results, setResults] = useState<TickerSearchResult[]>([]);
@@ -107,9 +156,14 @@ export function useTickerSearch(query: string, options: { enabled?: boolean; deb
     
     debounceRef.current = setTimeout(async () => {
       try {
-        const data = await searchTicker(query);
+        const data = await searchTickers(query);
         if (mountedRef.current) {
-          setResults(data);
+          setResults(data.map(r => ({
+            symbol: r.symbol,
+            name: r.name,
+            exchange: r.exchange,
+            source: 'local' as const,
+          })));
           setError(null);
         }
       } catch (err) {
@@ -140,7 +194,7 @@ export function useTickerSearch(query: string, options: { enabled?: boolean; deb
   };
 }
 
-// Hook for market indices - NO automatic polling
+// Hook for market indices - uses Finnhub via quoteCacheService
 export function useMarketIndices(options: { enabled?: boolean } = {}) {
   const { enabled = true } = options;
   
@@ -151,24 +205,6 @@ export function useMarketIndices(options: { enabled?: boolean } = {}) {
   
   const mountedRef = useRef(true);
 
-  // Load from cache on mount - NO automatic fetch
-  useEffect(() => {
-    mountedRef.current = true;
-    
-    if (enabled) {
-      const cached = getCachedIndices();
-      if (cached) {
-        setIndices(cached);
-        // Estimate last updated from cache
-        setLastUpdated(new Date());
-      }
-    }
-    
-    return () => {
-      mountedRef.current = false;
-    };
-  }, [enabled]);
-
   const fetchIndices = useCallback(async () => {
     if (!enabled) return;
     
@@ -176,9 +212,31 @@ export function useMarketIndices(options: { enabled?: boolean } = {}) {
     setError(null);
     
     try {
-      const data = await getMarketIndices();
+      // Fetch major indices using Finnhub
+      const indexSymbols = ['SPY', 'QQQ', 'DIA', 'IWM'];
+      const quotes = await getCachedQuotes(indexSymbols);
+      
+      const indexNames: Record<string, string> = {
+        'SPY': 'S&P 500',
+        'QQQ': 'NASDAQ 100',
+        'DIA': 'Dow Jones',
+        'IWM': 'Russell 2000',
+      };
+      
+      const indexData: MarketIndex[] = [];
+      quotes.forEach((quote, symbol) => {
+        indexData.push({
+          name: indexNames[symbol] || symbol,
+          symbol,
+          value: quote.price,
+          change: quote.change,
+          changePercent: quote.changePercent,
+          source: 'live',
+        });
+      });
+      
       if (mountedRef.current) {
-        setIndices(data);
+        setIndices(indexData);
         setLastUpdated(new Date());
       }
     } catch (err) {
@@ -192,6 +250,17 @@ export function useMarketIndices(options: { enabled?: boolean } = {}) {
     }
   }, [enabled]);
 
+  // Auto-fetch on mount
+  useEffect(() => {
+    mountedRef.current = true;
+    if (enabled) {
+      fetchIndices();
+    }
+    return () => {
+      mountedRef.current = false;
+    };
+  }, [enabled, fetchIndices]);
+
   const refresh = useCallback(() => fetchIndices(), [fetchIndices]);
 
   return {
@@ -203,7 +272,7 @@ export function useMarketIndices(options: { enabled?: boolean } = {}) {
   };
 }
 
-// Hook for company info (one-time fetch on demand)
+// Hook for company info - uses Finnhub profile via quoteCacheService
 export function useCompanyInfo(ticker: string | null, options: { enabled?: boolean } = {}) {
   const { enabled = true } = options;
   
@@ -220,9 +289,22 @@ export function useCompanyInfo(ticker: string | null, options: { enabled?: boole
     setError(null);
     
     try {
-      const data = await getCompanyInfo(ticker);
+      // Use getCachedFullQuote which includes profile info
+      const data = await getCachedFullQuote(ticker);
       if (mountedRef.current) {
-        setCompanyInfo(data);
+        if (data) {
+          setCompanyInfo({
+            name: data.companyName || ticker,
+            ticker: ticker.toUpperCase(),
+            exchange: undefined,
+            sector: undefined,
+            industry: undefined,
+            peRatio: null,
+            eps: null,
+            dividendYield: null,
+            description: undefined,
+          });
+        }
       }
     } catch (err) {
       if (mountedRef.current) {
@@ -239,10 +321,13 @@ export function useCompanyInfo(ticker: string | null, options: { enabled?: boole
 
   useEffect(() => {
     mountedRef.current = true;
+    if (ticker && enabled) {
+      fetchInfo();
+    }
     return () => {
       mountedRef.current = false;
     };
-  }, []);
+  }, [ticker, enabled, fetchInfo]);
 
   return {
     companyInfo,
