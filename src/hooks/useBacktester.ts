@@ -43,6 +43,11 @@ export function useBacktester(options: UseBacktesterOptions = {}) {
     ): Promise<BacktestResult | null> => {
       setIsRunning(true);
       setError(null);
+      // Clear previous results so UI can't show stale metrics if the new run fails
+      setResult(null);
+      setMonteCarloResult(null);
+      setStressTestResults([]);
+      setCorrelationMatrix(null);
       setProgress('Fetching historical data...');
 
       try {
