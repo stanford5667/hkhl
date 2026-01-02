@@ -583,13 +583,24 @@ export async function runBacktest(config: BacktestConfig): Promise<BacktestResul
   console.log(`[Backtester] Running backtest from ${startDate} to ${endDate}`);
   console.log(`[Backtester] Assets: ${assets.map(a => `${a.symbol} (${a.allocation}%)`).join(', ')}`);
   
+  // Validate allocations sum to 100%
+  const totalAllocation = assets.reduce((sum, a) => sum + a.allocation, 0);
+  if (Math.abs(totalAllocation - 100) > 0.01) {
+    throw new Error(`Allocations must sum to 100% (current: ${totalAllocation.toFixed(1)}%)`);
+  }
+  
   // Fetch real historical data for all assets
   const assetData: Map<string, HistoricalDataPoint[]> = new Map();
   
-  for (const asset of assets) {
+  for (let i = 0; i < assets.length; i++) {
+    const asset = assets[i];
+    console.log(`[Backtester] Fetching ${asset.symbol} (${i + 1}/${assets.length})...`);
     const data = await fetchHistoricalPrices(asset.symbol, startDate, endDate);
+    console.log(`[Backtester] Got ${data.length} days for ${asset.symbol}`);
     assetData.set(asset.symbol, data);
-    await delay(200); // Rate limit: 200ms between calls
+    if (i < assets.length - 1) {
+      await delay(300); // Rate limit: 300ms between calls (Finnhub: 60/min)
+    }
   }
   
   // Fetch benchmark data
@@ -851,7 +862,7 @@ export async function runStressTests(config: BacktestConfig): Promise<StressTest
         isHistorical: true,
       });
       
-      await delay(200);
+      await delay(300);
     } catch (e) {
       console.warn(`[Stress Test] Could not fetch data for ${scenario.name}, skipping...`);
     }
@@ -911,12 +922,16 @@ export async function calculateCorrelationMatrix(
   const allDates = new Set<string>();
   
   // Fetch price data for all symbols
-  for (const symbol of symbols) {
+  for (let i = 0; i < symbols.length; i++) {
+    const symbol = symbols[i];
     try {
+      console.log(`[Correlation] Fetching ${symbol} (${i + 1}/${symbols.length})...`);
       const data = await fetchHistoricalPrices(symbol, startDate, endDate);
       data.forEach(d => allDates.add(d.date));
       priceData.set(symbol, []);
-      await delay(200);
+      if (i < symbols.length - 1) {
+        await delay(300);
+      }
     } catch (e) {
       console.warn(`[Correlation] Could not fetch data for ${symbol}`);
     }
