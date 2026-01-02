@@ -1,9 +1,11 @@
 import { useMarketDataQuery, usePriceChangeAnimation } from '@/hooks/useMarketDataQuery';
 import { cn } from '@/lib/utils';
 import { Skeleton } from '@/components/ui/skeleton';
-import { TrendingUp, TrendingDown, Clock, RefreshCw } from 'lucide-react';
+import { TrendingUp, TrendingDown, Clock, RefreshCw, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { getStalenessLevel, getStalenessColor, formatStalenessText } from '@/hooks/useManualRefresh';
+import { DataPausedState } from '@/components/shared/DataPausedState';
 
 interface PriceDisplayProps {
   ticker: string;
@@ -34,6 +36,8 @@ export function PriceDisplay({
   } = useMarketDataQuery(ticker);
   
   const priceChangeDirection = usePriceChangeAnimation(data?.price);
+  
+  const isMock = data?.isMock || data?.source === 'mock';
   
   const sizeClasses = {
     sm: {
@@ -99,14 +103,30 @@ export function PriceDisplay({
             priceChangeDirection === 'up' && 'text-emerald-400 animate-pulse',
             priceChangeDirection === 'down' && 'text-rose-400 animate-pulse',
             !priceChangeDirection && 'text-foreground',
-            isStale && 'opacity-75'
+            (isStale || isMock) && 'opacity-75',
+            isMock && 'italic'
           )}
         >
           ${data.price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
         </span>
         
-        {/* Staleness indicator */}
-        {stalenessText && (
+        {/* Mock data indicator */}
+        {isMock && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span className="inline-flex items-center gap-1 text-xs px-1.5 py-0.5 rounded text-amber-600 bg-amber-50 dark:text-amber-400 dark:bg-amber-900/20">
+                <Info className="h-3 w-3" />
+                sample
+              </span>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p className="max-w-xs">This is sample data for development. Click refresh for live prices.</p>
+            </TooltipContent>
+          </Tooltip>
+        )}
+        
+        {/* Staleness indicator (only show if not mock) */}
+        {!isMock && stalenessText && (
           <span className={cn('text-xs', stalenessColor)}>
             ({stalenessText})
           </span>
@@ -132,7 +152,8 @@ export function PriceDisplay({
           className={cn(
             'flex items-center gap-1',
             sizeClasses[size].change,
-            isPositive ? 'text-emerald-500' : 'text-rose-500'
+            isPositive ? 'text-emerald-500' : 'text-rose-500',
+            isMock && 'opacity-70'
           )}
         >
           {isPositive ? (
@@ -176,6 +197,7 @@ export function InlinePrice({ ticker, showStaleness = true, className }: InlineP
   const { data, isLoading, lastUpdated } = useMarketDataQuery(ticker);
   const priceChangeDirection = usePriceChangeAnimation(data?.price);
   
+  const isMock = data?.isMock || data?.source === 'mock';
   const stalenessLevel = getStalenessLevel(lastUpdated ?? null);
   const stalenessText = formatStalenessText(lastUpdated ?? null);
   const stalenessColor = getStalenessColor(stalenessLevel);
@@ -193,6 +215,7 @@ export function InlinePrice({ ticker, showStaleness = true, className }: InlineP
         priceChangeDirection === 'up' && 'text-emerald-400',
         priceChangeDirection === 'down' && 'text-rose-400',
         !priceChangeDirection && 'text-foreground',
+        isMock && 'opacity-75 italic',
         className
       )}
     >
@@ -205,7 +228,15 @@ export function InlinePrice({ ticker, showStaleness = true, className }: InlineP
       >
         {isPositive ? '+' : ''}{data.changePercent.toFixed(2)}%
       </span>
-      {showStaleness && stalenessText && (
+      {isMock && (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span className="text-xs text-amber-600 dark:text-amber-400">(sample)</span>
+          </TooltipTrigger>
+          <TooltipContent>Sample data. Click refresh for live prices.</TooltipContent>
+        </Tooltip>
+      )}
+      {!isMock && showStaleness && stalenessText && (
         <span className={cn('text-xs', stalenessColor)}>
           ({stalenessText})
         </span>
