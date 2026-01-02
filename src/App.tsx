@@ -30,7 +30,6 @@ import CashFlowBuildupPage from "./pages/CashFlowBuildupPage";
 import ModelViewerPage from "./pages/ModelViewerPage";
 import Tasks from "./pages/Tasks";
 import Research from "./pages/Research";
-import Markets from "./pages/Markets";
 import Backtester from "./pages/Backtester";
 import PortfolioBacktester from "./pages/PortfolioBacktester";
 import Watchlist from "./pages/Watchlist";
@@ -57,8 +56,8 @@ const App = () => (
                       <Route path="/auth" element={<Auth />} />
                       <Route path="/pipeline" element={<Pipeline />} />
                       <Route path="/portfolio" element={<Portfolio />} />
+                      <Route path="/assets" element={<Portfolio />} />
                       <Route path="/portfolio/:id" element={<CompanyDetail />} />
-                      <Route path="/markets" element={<Markets />} />
                       <Route path="/contacts" element={<Contacts />} />
                       <Route path="/tasks" element={<Tasks />} />
                       <Route path="/documents" element={<DataRoom />} />
@@ -79,7 +78,7 @@ const App = () => (
                       {/* Redirects from old routes */}
                       <Route path="/companies" element={<Navigate to="/portfolio" replace />} />
                       <Route path="/companies/:id" element={<CompanyRedirect />} />
-                      <Route path="/assets" element={<Navigate to="/portfolio" replace />} />
+                      <Route path="/markets" element={<Navigate to="/portfolio" replace />} />
                       <Route path="/holdings" element={<Navigate to="/portfolio" replace />} />
                       {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                       <Route path="*" element={<NotFound />} />

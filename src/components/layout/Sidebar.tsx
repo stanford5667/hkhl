@@ -76,24 +76,13 @@ export function Sidebar() {
       });
     }
 
-    // Portfolio - unified view of all owned assets
+    // Portfolio - unified view of all owned assets with live market data
     items.push({ 
       label: "Portfolio", 
       subtitle: "What You Own",
       href: "/portfolio", 
       icon: Briefcase,
     });
-
-    // Add Markets only if public_equity is enabled
-    if (enabledAssetTypes.includes('public_equity')) {
-      items.push({ 
-        label: "Markets", 
-        subtitle: "Research & Discovery",
-        href: "/markets", 
-        icon: TrendingUp,
-        requiresAssetType: 'public_equity',
-      });
-    }
 
     // Core items
     items.push(
