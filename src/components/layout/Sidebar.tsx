@@ -32,6 +32,7 @@ import {
   Briefcase,
   Target,
   Calculator,
+  BarChart3,
 } from "lucide-react";
 
 interface NavItem {
@@ -115,6 +116,12 @@ export function Sidebar() {
         subtitle: "Financial Models",
         href: "/models", 
         icon: Calculator 
+      },
+      { 
+        label: "Market Intel", 
+        subtitle: "Research & Insights",
+        href: "/market-intel", 
+        icon: BarChart3 
       },
     );
 
