@@ -25,6 +25,7 @@ import { useOrgId } from '@/contexts/OrganizationContext';
 import { useMarketIndices, useStockQuote } from '@/hooks/useMarketData';
 import { MarketIndexSkeleton, PriceUnavailable } from '@/components/markets/MarketSkeletons';
 import { MarketDataPausedBanner } from '@/components/dev/MarketDataPausedBanner';
+import { FinnhubApiBanner } from '@/components/shared/FinnhubApiBanner';
 
 // Types
 interface MarketIndex {
@@ -311,6 +312,9 @@ export default function MarketsPage() {
 
   return (
     <div className="p-6 space-y-6">
+      {/* Finnhub API Banner */}
+      <FinnhubApiBanner />
+
       {/* Market Data Paused Banner */}
       <MarketDataPausedBanner />
 

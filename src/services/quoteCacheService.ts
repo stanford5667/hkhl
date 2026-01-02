@@ -2,13 +2,24 @@
  * Multi-layer Quote Cache Service
  * Layer 1: In-memory cache (instant, survives within session)
  * Layer 2: LocalStorage cache (survives page refresh)
+ * Layer 3: Mock data fallback when API unavailable
  */
 
-import { getQuote, getBatchQuotes, getCompanyProfile, type StockQuote } from './finnhubService';
+import { getQuote, getBatchQuotes, getCompanyProfile, isFinnhubConfigured, type StockQuote } from './finnhubService';
+import { getMockStock, getMockIndex, MOCK_STOCKS, type MockQuote } from '@/data/mockMarketData';
+
+// ETF to Index mapping for mock data
+const ETF_TO_INDEX: Record<string, string> = {
+  'SPY': 'SPX',
+  'QQQ': 'NDX',
+  'DIA': 'DJI',
+  'IWM': 'RUT',
+};
 
 interface CachedQuote {
   quote: StockQuote;
   fetchedAt: number;
+  isMock?: boolean;
 }
 
 interface CachedProfile {
@@ -99,7 +110,7 @@ function isProfileCacheValid(cached: CachedProfile): boolean {
 }
 
 /**
- * Get a single quote with multi-layer caching
+ * Get a single quote with multi-layer caching + mock fallback
  */
 export async function getCachedQuote(symbol: string): Promise<StockQuote | null> {
   const upperSymbol = symbol.toUpperCase();
@@ -107,7 +118,7 @@ export async function getCachedQuote(symbol: string): Promise<StockQuote | null>
   // Check memory cache first
   const memCached = memoryCache.get(upperSymbol);
   if (memCached && isCacheValid(memCached)) {
-    console.log(`[CACHE HIT] Memory: ${upperSymbol}`);
+    console.log(`[CACHE HIT] Memory: ${upperSymbol}${memCached.isMock ? ' (mock)' : ''}`);
     return memCached.quote;
   }
 
@@ -115,24 +126,88 @@ export async function getCachedQuote(symbol: string): Promise<StockQuote | null>
   const localCache = getLocalCache();
   const localCached = localCache[upperSymbol];
   if (localCached && isCacheValid(localCached)) {
-    console.log(`[CACHE HIT] Local: ${upperSymbol}`);
+    console.log(`[CACHE HIT] Local: ${upperSymbol}${localCached.isMock ? ' (mock)' : ''}`);
     // Promote to memory cache
     memoryCache.set(upperSymbol, localCached);
     return localCached.quote;
   }
 
-  // Cache miss - fetch from API
-  console.log(`[CACHE MISS] Fetching: ${upperSymbol}`);
-  const quote = await getQuote(upperSymbol);
+  // Try Finnhub API first if configured
+  if (isFinnhubConfigured()) {
+    console.log(`[CACHE MISS] Fetching from Finnhub: ${upperSymbol}`);
+    const quote = await getQuote(upperSymbol);
 
-  if (quote) {
-    const cached = { quote, fetchedAt: Date.now() };
+    if (quote) {
+      const cached = { quote, fetchedAt: Date.now(), isMock: false };
+      memoryCache.set(upperSymbol, cached);
+      localCache[upperSymbol] = cached;
+      setLocalCache(localCache);
+      return quote;
+    }
+  }
+
+  // Fallback to mock data
+  const mockQuote = getMockQuote(upperSymbol);
+  if (mockQuote) {
+    console.log(`[MOCK DATA] Using mock for: ${upperSymbol}`);
+    const cached = { quote: mockQuote, fetchedAt: Date.now(), isMock: true };
     memoryCache.set(upperSymbol, cached);
     localCache[upperSymbol] = cached;
     setLocalCache(localCache);
+    return mockQuote;
   }
 
-  return quote;
+  console.log(`[NO DATA] No quote available for: ${upperSymbol}`);
+  return null;
+}
+
+/**
+ * Convert mock data to StockQuote format
+ */
+function getMockQuote(symbol: string): StockQuote | null {
+  const upperSymbol = symbol.toUpperCase();
+  
+  // Check if it's an ETF that maps to an index
+  const indexSymbol = ETF_TO_INDEX[upperSymbol];
+  if (indexSymbol) {
+    const indexData = getMockIndex(indexSymbol);
+    if (indexData) {
+      return {
+        symbol: upperSymbol,
+        price: indexData.value,
+        change: indexData.change,
+        changePercent: indexData.changePercent,
+        high: indexData.value * 1.005,
+        low: indexData.value * 0.995,
+        open: indexData.value - indexData.change,
+        previousClose: indexData.value - indexData.change,
+        timestamp: Date.now(),
+        companyName: indexData.name,
+        isMock: true,
+      } as StockQuote & { isMock: boolean };
+    }
+  }
+
+  // Check regular stocks
+  const stockData = getMockStock(upperSymbol);
+  if (stockData) {
+    return {
+      symbol: upperSymbol,
+      price: stockData.price,
+      change: stockData.change,
+      changePercent: stockData.changePercent,
+      high: stockData.price * 1.01,
+      low: stockData.price * 0.99,
+      open: stockData.price - stockData.change,
+      previousClose: stockData.price - stockData.change,
+      timestamp: Date.now(),
+      companyName: stockData.name,
+      marketCap: stockData.marketCap ? formatMarketCap(stockData.marketCap) : undefined,
+      isMock: true,
+    } as StockQuote & { isMock: boolean };
+  }
+
+  return null;
 }
 
 /**
@@ -191,7 +266,7 @@ export async function getCachedFullQuote(symbol: string): Promise<StockQuote | n
 }
 
 /**
- * Batch fetch with cache awareness
+ * Batch fetch with cache awareness + mock fallback
  */
 export async function getCachedQuotes(symbols: string[]): Promise<Map<string, StockQuote>> {
   const results = new Map<string, StockQuote>();
@@ -222,23 +297,76 @@ export async function getCachedQuotes(symbols: string[]): Promise<Map<string, St
 
   // Fetch only what we need
   if (toFetch.length > 0) {
-    console.log(`[BATCH FETCH] ${toFetch.length} symbols (${symbols.length - toFetch.length} cached)`);
-    const fetched = await getBatchQuotes(toFetch);
-    const updatedLocalCache = getLocalCache();
+    // Try Finnhub API if configured
+    if (isFinnhubConfigured()) {
+      console.log(`[BATCH FETCH] ${toFetch.length} symbols (${symbols.length - toFetch.length} cached)`);
+      const fetched = await getBatchQuotes(toFetch);
+      const updatedLocalCache = getLocalCache();
 
-    fetched.forEach((quote, symbol) => {
-      results.set(symbol, quote);
-      const cached = { quote, fetchedAt: Date.now() };
-      memoryCache.set(symbol.toUpperCase(), cached);
-      updatedLocalCache[symbol.toUpperCase()] = cached;
-    });
+      fetched.forEach((quote, symbol) => {
+        results.set(symbol, quote);
+        const cached = { quote, fetchedAt: Date.now(), isMock: false };
+        memoryCache.set(symbol.toUpperCase(), cached);
+        updatedLocalCache[symbol.toUpperCase()] = cached;
+      });
 
-    setLocalCache(updatedLocalCache);
+      setLocalCache(updatedLocalCache);
+
+      // For any symbols that weren't fetched, try mock
+      const fetchedSymbols = new Set([...fetched.keys()].map(s => s.toUpperCase()));
+      const stillMissing = toFetch.filter(s => !fetchedSymbols.has(s.toUpperCase()));
+      
+      for (const symbol of stillMissing) {
+        const mockQuote = getMockQuote(symbol.toUpperCase());
+        if (mockQuote) {
+          results.set(symbol, mockQuote);
+          const cached = { quote: mockQuote, fetchedAt: Date.now(), isMock: true };
+          memoryCache.set(symbol.toUpperCase(), cached);
+          updatedLocalCache[symbol.toUpperCase()] = cached;
+        }
+      }
+      if (stillMissing.length > 0) {
+        setLocalCache(updatedLocalCache);
+      }
+    } else {
+      // No API configured, use all mock data
+      console.log(`[MOCK BATCH] Using mock data for ${toFetch.length} symbols`);
+      const updatedLocalCache = getLocalCache();
+      
+      for (const symbol of toFetch) {
+        const mockQuote = getMockQuote(symbol.toUpperCase());
+        if (mockQuote) {
+          results.set(symbol, mockQuote);
+          const cached = { quote: mockQuote, fetchedAt: Date.now(), isMock: true };
+          memoryCache.set(symbol.toUpperCase(), cached);
+          updatedLocalCache[symbol.toUpperCase()] = cached;
+        }
+      }
+      setLocalCache(updatedLocalCache);
+    }
   } else {
     console.log(`[BATCH CACHE HIT] All ${symbols.length} symbols from cache`);
   }
 
   return results;
+}
+
+/**
+ * Check if a cached quote is using mock data
+ */
+export function isQuoteMock(symbol: string): boolean {
+  const cached = memoryCache.get(symbol.toUpperCase());
+  return cached?.isMock ?? false;
+}
+
+/**
+ * Check if any quotes are using mock data
+ */
+export function hasAnyMockData(): boolean {
+  for (const cached of memoryCache.values()) {
+    if (cached.isMock) return true;
+  }
+  return false;
 }
 
 /**
