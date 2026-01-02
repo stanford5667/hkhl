@@ -188,11 +188,12 @@ export default function MarketsPage() {
     setLastRefresh(new Date());
   }, [publicEquityHoldings]);
 
-  // Load from cache on mount - NO automatic fetch
+  // Fetch quotes on mount
   useEffect(() => {
-    // Only load cached data, don't fetch
     if (publicEquityHoldings.length > 0) {
-      setHoldings(publicEquityHoldings.map(h => ({ ...h, isLoading: false })));
+      fetchHoldingQuotes();
+    } else {
+      setHoldings([]);
     }
   }, [publicEquityHoldings]);
 

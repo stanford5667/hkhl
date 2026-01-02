@@ -170,17 +170,22 @@ function getMockQuote(symbol: string): StockQuote | null {
   if (indexSymbol) {
     const indexData = getMockIndex(indexSymbol);
     if (indexData) {
+      // ETFs trade at a fraction of index value: SPY ~1/10 of SPX, QQQ ~1/40 of NDX, etc.
+      const divisor = indexSymbol === 'SPX' ? 10 : indexSymbol === 'NDX' ? 40 : indexSymbol === 'DJI' ? 100 : 10;
+      const etfPrice = indexData.value / divisor;
+      const etfChange = indexData.change / divisor;
+      
       return {
         symbol: upperSymbol,
-        price: indexData.value,
-        change: indexData.change,
+        price: etfPrice,
+        change: etfChange,
         changePercent: indexData.changePercent,
-        high: indexData.value * 1.005,
-        low: indexData.value * 0.995,
-        open: indexData.value - indexData.change,
-        previousClose: indexData.value - indexData.change,
+        high: etfPrice * 1.005,
+        low: etfPrice * 0.995,
+        open: etfPrice - etfChange,
+        previousClose: etfPrice - etfChange,
         timestamp: Date.now(),
-        companyName: indexData.name,
+        companyName: `${indexData.name} ETF`,
         isMock: true,
       } as StockQuote & { isMock: boolean };
     }
