@@ -1,13 +1,15 @@
 import { useMarketDataQuery, usePriceChangeAnimation } from '@/hooks/useMarketDataQuery';
 import { cn } from '@/lib/utils';
 import { Skeleton } from '@/components/ui/skeleton';
-import { TrendingUp, TrendingDown, Clock } from 'lucide-react';
-import { useRef, useEffect } from 'react';
+import { TrendingUp, TrendingDown, Clock, RefreshCw } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { getStalenessLevel, getStalenessColor, formatStalenessText } from '@/hooks/useManualRefresh';
 
 interface PriceDisplayProps {
   ticker: string;
   showChange?: boolean;
   showTimestamp?: boolean;
+  showRefresh?: boolean;
   size?: 'sm' | 'md' | 'lg';
   className?: string;
 }
@@ -16,26 +18,22 @@ export function PriceDisplay({
   ticker,
   showChange = true,
   showTimestamp = false,
+  showRefresh = false,
   size = 'md',
   className,
 }: PriceDisplayProps) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  
   const {
     data,
     isLoading,
+    isFetching,
     timeAgo,
     isStale,
-    setObserverElement,
+    lastUpdated,
+    refresh,
     isMarketOpen,
-  } = useMarketDataQuery(ticker, { subscribeToUpdates: true });
+  } = useMarketDataQuery(ticker);
   
   const priceChangeDirection = usePriceChangeAnimation(data?.price);
-  
-  // Set up intersection observer
-  useEffect(() => {
-    setObserverElement(containerRef.current);
-  }, [setObserverElement]);
   
   const sizeClasses = {
     sm: {
@@ -55,6 +53,10 @@ export function PriceDisplay({
     },
   };
   
+  const stalenessLevel = getStalenessLevel(lastUpdated ?? null);
+  const stalenessText = formatStalenessText(lastUpdated ?? null);
+  const stalenessColor = getStalenessColor(stalenessLevel);
+  
   if (isLoading) {
     return (
       <div className={cn('flex flex-col gap-1', className)}>
@@ -66,8 +68,20 @@ export function PriceDisplay({
   
   if (!data) {
     return (
-      <div className={cn('text-muted-foreground', sizeClasses[size].price, className)}>
-        --
+      <div className={cn('flex items-center gap-2', className)}>
+        <span className={cn('text-muted-foreground', sizeClasses[size].price)}>
+          --
+        </span>
+        {showRefresh && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => refresh()}
+            className="h-6 px-2"
+          >
+            <RefreshCw className="h-3 w-3" />
+          </Button>
+        )}
       </div>
     );
   }
@@ -75,19 +89,41 @@ export function PriceDisplay({
   const isPositive = data.changePercent >= 0;
   
   return (
-    <div ref={containerRef} className={cn('flex flex-col', className)}>
+    <div className={cn('flex flex-col', className)}>
       {/* Price with flash animation */}
-      <div
-        className={cn(
-          sizeClasses[size].price,
-          'transition-all duration-300',
-          priceChangeDirection === 'up' && 'text-emerald-400 animate-pulse',
-          priceChangeDirection === 'down' && 'text-rose-400 animate-pulse',
-          !priceChangeDirection && 'text-foreground',
-          isStale && 'opacity-75'
+      <div className="flex items-center gap-2">
+        <span
+          className={cn(
+            sizeClasses[size].price,
+            'transition-all duration-300',
+            priceChangeDirection === 'up' && 'text-emerald-400 animate-pulse',
+            priceChangeDirection === 'down' && 'text-rose-400 animate-pulse',
+            !priceChangeDirection && 'text-foreground',
+            isStale && 'opacity-75'
+          )}
+        >
+          ${data.price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+        </span>
+        
+        {/* Staleness indicator */}
+        {stalenessText && (
+          <span className={cn('text-xs', stalenessColor)}>
+            ({stalenessText})
+          </span>
         )}
-      >
-        ${data.price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+        
+        {/* Refresh button */}
+        {showRefresh && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => refresh()}
+            disabled={isFetching}
+            className="h-6 px-2"
+          >
+            <RefreshCw className={cn('h-3 w-3', isFetching && 'animate-spin')} />
+          </Button>
+        )}
       </div>
       
       {/* Change */}
@@ -132,12 +168,17 @@ export function PriceDisplay({
 // Compact inline price for lists
 interface InlinePriceProps {
   ticker: string;
+  showStaleness?: boolean;
   className?: string;
 }
 
-export function InlinePrice({ ticker, className }: InlinePriceProps) {
-  const { data, isLoading } = useMarketDataQuery(ticker, { subscribeToUpdates: true });
+export function InlinePrice({ ticker, showStaleness = true, className }: InlinePriceProps) {
+  const { data, isLoading, lastUpdated } = useMarketDataQuery(ticker);
   const priceChangeDirection = usePriceChangeAnimation(data?.price);
+  
+  const stalenessLevel = getStalenessLevel(lastUpdated ?? null);
+  const stalenessText = formatStalenessText(lastUpdated ?? null);
+  const stalenessColor = getStalenessColor(stalenessLevel);
   
   if (isLoading || !data) {
     return <Skeleton className="h-4 w-16 inline-block" />;
@@ -164,6 +205,11 @@ export function InlinePrice({ ticker, className }: InlinePriceProps) {
       >
         {isPositive ? '+' : ''}{data.changePercent.toFixed(2)}%
       </span>
+      {showStaleness && stalenessText && (
+        <span className={cn('text-xs', stalenessColor)}>
+          ({stalenessText})
+        </span>
+      )}
     </span>
   );
 }
