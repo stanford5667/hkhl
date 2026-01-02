@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -19,11 +19,8 @@ import {
   Edit2, Check, X, DollarSign, BarChart3, Newspaper, StickyNote,
   ArrowUpRight, ArrowDownRight, Wallet, Clock, Calendar
 } from 'lucide-react';
-import {
-  AreaChart, Area, XAxis, YAxis, ResponsiveContainer, Tooltip,
-  ReferenceLine, CartesianGrid
-} from 'recharts';
 import { CompanyNotesSection } from '@/components/companies/CompanyNotesSection';
+import { CandlestickChart } from '@/components/charts/CandlestickChart';
 
 interface PublicEquityDetailViewProps {
   company: {
@@ -71,15 +68,10 @@ interface Transaction {
   created_at: string;
 }
 
-type TimeFrame = '1D' | '1W' | '1M' | '3M' | '1Y' | 'ALL';
-
-const TIME_FRAMES: TimeFrame[] = ['1D', '1W', '1M', '3M', '1Y', 'ALL'];
-
 export function PublicEquityDetailView({ company, onUpdate }: PublicEquityDetailViewProps) {
   const { user } = useAuth();
   const [quote, setQuote] = useState<StockQuote | null>(null);
   const [isLoadingQuote, setIsLoadingQuote] = useState(true);
-  const [timeFrame, setTimeFrame] = useState<TimeFrame>('1M');
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [isLoadingTransactions, setIsLoadingTransactions] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -305,10 +297,6 @@ export function PublicEquityDetailView({ company, onUpdate }: PublicEquityDetail
     return `${sign}${value.toFixed(2)}%`;
   };
 
-  // Chart data with cost basis line
-  const chartData = useMemo(() => {
-    return quote?.chartData || [];
-  }, [quote?.chartData]);
 
   return (
     <div className="space-y-6">
@@ -372,96 +360,28 @@ export function PublicEquityDetailView({ company, onUpdate }: PublicEquityDetail
         </Button>
       </div>
 
-      {/* Price Chart - Hero Section */}
+      {/* Price Chart - Hero Section with Candlestick */}
       <Card className="bg-card border-border overflow-hidden">
-        <CardHeader className="flex flex-row items-center justify-between pb-2">
+        <CardHeader className="pb-2">
           <CardTitle className="flex items-center gap-2">
             <BarChart3 className="h-5 w-5 text-primary" />
             Price Chart
           </CardTitle>
-          <div className="flex rounded-lg border border-border overflow-hidden">
-            {TIME_FRAMES.map((tf) => (
-              <Button
-                key={tf}
-                variant={timeFrame === tf ? 'secondary' : 'ghost'}
-                size="sm"
-                onClick={() => setTimeFrame(tf)}
-                className="rounded-none text-xs px-3"
-              >
-                {tf}
-              </Button>
-            ))}
-          </div>
         </CardHeader>
-        <CardContent className="p-0">
-          <div className="h-80 px-4 pb-4">
-            {isLoadingQuote ? (
-              <div className="h-full flex items-center justify-center">
-                <Skeleton className="h-64 w-full" />
-              </div>
-            ) : chartData.length > 0 ? (
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-                  <defs>
-                    <linearGradient id="priceGradient" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor={isPositive ? '#10b981' : '#f43f5e'} stopOpacity={0.3} />
-                      <stop offset="100%" stopColor={isPositive ? '#10b981' : '#f43f5e'} stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
-                  <XAxis 
-                    dataKey="time" 
-                    tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
-                    tickLine={false}
-                    axisLine={false}
-                  />
-                  <YAxis 
-                    domain={['auto', 'auto']}
-                    tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
-                    tickLine={false}
-                    axisLine={false}
-                    tickFormatter={(v) => `$${v}`}
-                    width={60}
-                  />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: 'hsl(var(--card))',
-                      border: '1px solid hsl(var(--border))',
-                      borderRadius: '8px',
-                    }}
-                    labelStyle={{ color: 'hsl(var(--muted-foreground))' }}
-                    formatter={(value: number) => [formatCurrency(value), 'Price']}
-                  />
-                  {/* Cost basis reference line */}
-                  {avgCostPerShare > 0 && (
-                    <ReferenceLine
-                      y={avgCostPerShare}
-                      stroke="hsl(var(--primary))"
-                      strokeDasharray="5 5"
-                      strokeWidth={1.5}
-                      label={{
-                        value: `Avg Cost: ${formatCurrency(avgCostPerShare)}`,
-                        fill: 'hsl(var(--primary))',
-                        fontSize: 11,
-                        position: 'right',
-                      }}
-                    />
-                  )}
-                  <Area
-                    type="monotone"
-                    dataKey="price"
-                    stroke={isPositive ? '#10b981' : '#f43f5e'}
-                    strokeWidth={2}
-                    fill="url(#priceGradient)"
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
-            ) : (
-              <div className="h-full flex items-center justify-center text-muted-foreground">
-                No chart data available
-              </div>
-            )}
-          </div>
+        <CardContent className="px-4 pb-4">
+          {company.ticker_symbol ? (
+            <CandlestickChart
+              symbol={company.ticker_symbol}
+              height={320}
+              showVolume={true}
+              showRangeSelector={true}
+              defaultRange="3M"
+            />
+          ) : (
+            <div className="h-80 flex items-center justify-center text-muted-foreground">
+              No ticker symbol available for chart
+            </div>
+          )}
         </CardContent>
       </Card>
 
