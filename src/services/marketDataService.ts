@@ -43,6 +43,27 @@ export interface CompanyInfo {
   headquarters?: string;
 }
 
+// Dev mode check - returns null if context not available (for use outside React)
+let devModeEnabled: boolean | null = null;
+let devModeLogApiCall: ((endpoint: string, params?: unknown) => void) | null = null;
+
+export function setDevModeState(enabled: boolean, logFn?: (endpoint: string, params?: unknown) => void) {
+  devModeEnabled = enabled;
+  devModeLogApiCall = logFn || null;
+}
+
+export function isMarketDataEnabled(): boolean {
+  return devModeEnabled ?? true;
+}
+
+function logApiCall(endpoint: string, params?: unknown) {
+  if (devModeLogApiCall) {
+    devModeLogApiCall(endpoint, params);
+  } else {
+    console.log(`[API] ${endpoint}`, params || '');
+  }
+}
+
 // In-memory cache for client-side caching
 interface CacheEntry<T> {
   data: T;
@@ -73,6 +94,16 @@ export async function getQuote(ticker: string): Promise<QuoteData> {
   const cached = getCached<QuoteData>(cacheKey, 60 * 1000); // 60 seconds
   if (cached) return cached;
 
+  // Check if market data is paused
+  if (!isMarketDataEnabled()) {
+    // Return cached even if stale, or throw if none
+    const staleCache = memoryCache.get(cacheKey);
+    if (staleCache) return staleCache.data as QuoteData;
+    throw new Error('Market data is paused. Enable live data to fetch quotes.');
+  }
+
+  logApiCall('market-data/quote', { ticker: ticker.toUpperCase() });
+
   const { data, error } = await supabase.functions.invoke('market-data', {
     body: { type: 'quote', ticker: ticker.toUpperCase() }
   });
@@ -92,6 +123,15 @@ export async function searchTicker(query: string): Promise<TickerSearchResult[]>
   const cached = getCached<TickerSearchResult[]>(cacheKey, 60 * 60 * 1000); // 1 hour
   if (cached) return cached;
 
+  // Check if market data is paused
+  if (!isMarketDataEnabled()) {
+    const staleCache = memoryCache.get(cacheKey);
+    if (staleCache) return staleCache.data as TickerSearchResult[];
+    return []; // Return empty for search when paused
+  }
+
+  logApiCall('market-data/tickerSearch', { query });
+
   const { data, error } = await supabase.functions.invoke('market-data', {
     body: { type: 'tickerSearch', query }
   });
@@ -110,6 +150,15 @@ export async function getMarketIndices(): Promise<MarketIndex[]> {
   const cached = getCached<MarketIndex[]>(cacheKey, 5 * 60 * 1000); // 5 minutes
   if (cached) return cached;
 
+  // Check if market data is paused
+  if (!isMarketDataEnabled()) {
+    const staleCache = memoryCache.get(cacheKey);
+    if (staleCache) return staleCache.data as MarketIndex[];
+    return []; // Return empty for indices when paused
+  }
+
+  logApiCall('market-data/indices', {});
+
   const { data, error } = await supabase.functions.invoke('market-data', {
     body: { type: 'indices' }
   });
@@ -126,6 +175,15 @@ export async function getCompanyInfo(ticker: string): Promise<CompanyInfo> {
   const cacheKey = `company:${ticker.toUpperCase()}`;
   const cached = getCached<CompanyInfo>(cacheKey, 24 * 60 * 60 * 1000); // 24 hours
   if (cached) return cached;
+
+  // Check if market data is paused
+  if (!isMarketDataEnabled()) {
+    const staleCache = memoryCache.get(cacheKey);
+    if (staleCache) return staleCache.data as CompanyInfo;
+    throw new Error('Market data is paused. Enable live data to fetch company info.');
+  }
+
+  logApiCall('market-data/companyInfo', { ticker: ticker.toUpperCase() });
 
   const { data, error } = await supabase.functions.invoke('market-data', {
     body: { type: 'companyInfo', ticker: ticker.toUpperCase() }
