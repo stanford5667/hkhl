@@ -31,6 +31,7 @@ import {
   TrendingUp,
   Briefcase,
   Target,
+  Calculator,
 } from "lucide-react";
 
 interface NavItem {
@@ -108,6 +109,12 @@ export function Sidebar() {
         subtitle: "Data Room",
         href: "/documents", 
         icon: Folder 
+      },
+      { 
+        label: "Models", 
+        subtitle: "Financial Models",
+        href: "/models", 
+        icon: Calculator 
       },
     );
 
