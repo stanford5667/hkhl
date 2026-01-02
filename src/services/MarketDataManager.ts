@@ -1,5 +1,9 @@
 import { supabase } from '@/integrations/supabase/client';
 import type { QuoteData, MarketIndex } from './marketDataService';
+import { isMarketDataEnabled, setDevModeState } from './marketDataService';
+
+// Re-export for convenience
+export { setDevModeState };
 
 // ============= Types =============
 
@@ -156,8 +160,23 @@ export async function getBatchQuotes(tickers: string[]): Promise<Map<string, Quo
   
   // Batch fetch remaining tickers
   try {
+    // Skip API call if market data is paused
+    if (!isMarketDataEnabled()) {
+      console.log('[MarketData] Skipping batch fetch - market data paused');
+      // Return stale cache for unfetched tickers
+      for (const ticker of tickersToFetch) {
+        const stale = getCachedQuote(ticker);
+        if (stale) {
+          results.set(ticker, stale);
+        }
+      }
+      return results;
+    }
+
     const batchKey = `batch:${tickersToFetch.sort().join(',')}`;
     
+    console.log(`[API] market-data/batchQuotes`, { tickers: tickersToFetch });
+
     const response = await deduplicatedRequest(batchKey, async () => {
       const { data, error } = await supabase.functions.invoke('market-data', {
         body: { type: 'batchQuotes', tickers: tickersToFetch }
@@ -197,8 +216,16 @@ export async function getQuoteOptimized(ticker: string): Promise<QuoteData> {
   if (cached && !cached.isStale) {
     return cached;
   }
+
+  // If market data is paused, return stale cache or throw
+  if (!isMarketDataEnabled()) {
+    if (cached) return cached;
+    throw new Error('Market data is paused. Enable live data to fetch quotes.');
+  }
   
   const requestKey = `quote:${upperTicker}`;
+  
+  console.log(`[API] market-data/quote`, { ticker: upperTicker });
   
   return deduplicatedRequest(requestKey, async () => {
     const { data, error } = await supabase.functions.invoke('market-data', {
@@ -221,6 +248,14 @@ export async function getQuoteOptimized(ticker: string): Promise<QuoteData> {
 export async function getIndicesOptimized(): Promise<MarketIndex[]> {
   const cached = getCachedIndices();
   if (cached) return cached;
+
+  // If market data is paused, return empty
+  if (!isMarketDataEnabled()) {
+    console.log('[MarketData] Skipping indices fetch - market data paused');
+    return [];
+  }
+  
+  console.log(`[API] market-data/indices`);
   
   return deduplicatedRequest('indices', async () => {
     const { data, error } = await supabase.functions.invoke('market-data', {

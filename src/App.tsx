@@ -6,8 +6,11 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { OrganizationProvider } from "@/contexts/OrganizationContext";
 import { UnifiedDataProvider } from "@/contexts/UnifiedDataContext";
+import { DevModeProvider } from "@/contexts/DevModeContext";
 import { OnboardingFlow } from "@/components/onboarding/OnboardingFlow";
 import { Layout } from "@/components/layout/Layout";
+import { DevModeToggle } from "@/components/dev/DevModeToggle";
+import { DevModeSyncWrapper } from "@/components/dev/DevModeSyncWrapper";
 import EnhancedDashboard from "./pages/EnhancedDashboard";
 import Pipeline from "./pages/Pipeline";
 import Models from "./pages/Models";
@@ -41,38 +44,42 @@ const App = () => (
         <AuthProvider>
           <OrganizationProvider>
             <UnifiedDataProvider>
-              <OnboardingFlow>
-                <Layout>
-                  <Routes>
-                    <Route path="/" element={<EnhancedDashboard />} />
-                    <Route path="/auth" element={<Auth />} />
-                    <Route path="/pipeline" element={<Pipeline />} />
-                    <Route path="/portfolio" element={<Portfolio />} />
-                    <Route path="/portfolio/:id" element={<CompanyDetail />} />
-                    <Route path="/markets" element={<Markets />} />
-                    <Route path="/contacts" element={<Contacts />} />
-                    <Route path="/tasks" element={<Tasks />} />
-                    <Route path="/documents" element={<DataRoom />} />
-                    <Route path="/models" element={<Models />} />
-                    <Route path="/models/new" element={<NewModel />} />
-                    <Route path="/models/:modelId/edit" element={<ModelEditor />} />
-                    <Route path="/models/cash-flow-buildup" element={<CashFlowBuildupPage />} />
-                    <Route path="/models/view/:modelId" element={<ModelViewerPage />} />
-                    <Route path="/market-intel" element={<MarketIntel />} />
-                    <Route path="/deal-matching" element={<DealMatching />} />
-                    <Route path="/settings" element={<Settings />} />
-                    <Route path="/settings/organization" element={<OrganizationSettings />} />
-                    <Route path="/research" element={<Research />} />
-                    {/* Redirects from old routes */}
-                    <Route path="/companies" element={<Navigate to="/portfolio" replace />} />
-                    <Route path="/companies/:id" element={<CompanyRedirect />} />
-                    <Route path="/assets" element={<Navigate to="/portfolio" replace />} />
-                    <Route path="/holdings" element={<Navigate to="/portfolio" replace />} />
-                    {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-                    <Route path="*" element={<NotFound />} />
-                  </Routes>
-                </Layout>
-              </OnboardingFlow>
+              <DevModeProvider>
+                <DevModeSyncWrapper />
+                <OnboardingFlow>
+                  <Layout>
+                    <Routes>
+                      <Route path="/" element={<EnhancedDashboard />} />
+                      <Route path="/auth" element={<Auth />} />
+                      <Route path="/pipeline" element={<Pipeline />} />
+                      <Route path="/portfolio" element={<Portfolio />} />
+                      <Route path="/portfolio/:id" element={<CompanyDetail />} />
+                      <Route path="/markets" element={<Markets />} />
+                      <Route path="/contacts" element={<Contacts />} />
+                      <Route path="/tasks" element={<Tasks />} />
+                      <Route path="/documents" element={<DataRoom />} />
+                      <Route path="/models" element={<Models />} />
+                      <Route path="/models/new" element={<NewModel />} />
+                      <Route path="/models/:modelId/edit" element={<ModelEditor />} />
+                      <Route path="/models/cash-flow-buildup" element={<CashFlowBuildupPage />} />
+                      <Route path="/models/view/:modelId" element={<ModelViewerPage />} />
+                      <Route path="/market-intel" element={<MarketIntel />} />
+                      <Route path="/deal-matching" element={<DealMatching />} />
+                      <Route path="/settings" element={<Settings />} />
+                      <Route path="/settings/organization" element={<OrganizationSettings />} />
+                      <Route path="/research" element={<Research />} />
+                      {/* Redirects from old routes */}
+                      <Route path="/companies" element={<Navigate to="/portfolio" replace />} />
+                      <Route path="/companies/:id" element={<CompanyRedirect />} />
+                      <Route path="/assets" element={<Navigate to="/portfolio" replace />} />
+                      <Route path="/holdings" element={<Navigate to="/portfolio" replace />} />
+                      {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                      <Route path="*" element={<NotFound />} />
+                    </Routes>
+                  </Layout>
+                  <DevModeToggle />
+                </OnboardingFlow>
+              </DevModeProvider>
             </UnifiedDataProvider>
           </OrganizationProvider>
         </AuthProvider>

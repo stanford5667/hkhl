@@ -2,15 +2,19 @@ import { useState, useRef, useEffect } from "react";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Camera, Loader2, User } from "lucide-react";
+import { Camera, Loader2, User, Wifi, WifiOff, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
+import { useDevMode } from "@/contexts/DevModeContext";
 import { supabase } from "@/integrations/supabase/client";
+import { clearAllCache } from "@/services/marketDataService";
+import { clearMarketDataCache } from "@/services/MarketDataManager";
 
 const profileSchema = z.object({
   fullName: z.string().trim().min(2, "Name must be at least 2 characters").max(100, "Name is too long"),
@@ -301,6 +305,79 @@ export default function Settings() {
           </form>
         </CardContent>
       </Card>
+
+      {/* Market Data Settings */}
+      <MarketDataSettings />
     </div>
+  );
+}
+
+function MarketDataSettings() {
+  const { toast } = useToast();
+  const { marketDataEnabled, setMarketDataEnabled, apiCallCount } = useDevMode();
+
+  const handleClearCache = () => {
+    clearAllCache();
+    clearMarketDataCache();
+    toast({
+      title: "Cache cleared",
+      description: "All cached market data has been cleared.",
+    });
+  };
+
+  return (
+    <Card className="glass-card">
+      <CardHeader>
+        <CardTitle>Market Data</CardTitle>
+        <CardDescription>
+          Control live market data fetching to manage API costs
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div className="space-y-0.5">
+            <Label htmlFor="market-data-toggle" className="text-foreground">
+              Enable live market data
+            </Label>
+            <p className="text-sm text-muted-foreground">
+              When disabled, the app shows cached data to reduce API costs
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            {marketDataEnabled ? (
+              <Wifi className="h-4 w-4 text-emerald-400" />
+            ) : (
+              <WifiOff className="h-4 w-4 text-amber-400" />
+            )}
+            <Switch
+              id="market-data-toggle"
+              checked={marketDataEnabled}
+              onCheckedChange={setMarketDataEnabled}
+            />
+          </div>
+        </div>
+
+        <div className="flex items-center justify-between pt-4 border-t border-border">
+          <div className="space-y-0.5">
+            <p className="text-sm font-medium text-foreground">API calls this session</p>
+            <p className="text-2xl font-bold tabular-nums text-foreground">{apiCallCount}</p>
+          </div>
+        </div>
+
+        <div className="pt-4 border-t border-border">
+          <Button 
+            variant="outline" 
+            onClick={handleClearCache}
+            className="gap-2"
+          >
+            <Trash2 className="h-4 w-4" />
+            Clear all cached market data
+          </Button>
+          <p className="text-xs text-muted-foreground mt-2">
+            This will clear all locally cached prices and force fresh data on next fetch
+          </p>
+        </div>
+      </CardContent>
+    </Card>
   );
 }
