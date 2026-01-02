@@ -7,6 +7,19 @@ import {
   BarChart3,
   Settings,
 } from 'lucide-react';
+import {
+  LineChart,
+  Line,
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+  ReferenceLine,
+} from 'recharts';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { PortfolioSetup, PortfolioAsset } from '@/components/backtester/PortfolioSetup';
@@ -141,76 +154,237 @@ function BenchmarkSelector({
   );
 }
 
-function DashboardTab() {
+// Performance data for charts
+const PERFORMANCE_DATA = Array.from({ length: 24 }, (_, i) => {
+  const month = new Date(2022, i, 1);
+  const monthLabel = month.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
+  return {
+    month: monthLabel,
+    portfolio: 100 + Math.random() * 40 + i * 1.5,
+    spy: 100 + Math.random() * 30 + i * 1.2,
+    bridgewater: 100 + Math.random() * 25 + i * 0.8,
+    renaissance: 100 + Math.random() * 50 + i * 2,
+    citadel: 100 + Math.random() * 35 + i * 1.3,
+  };
+});
+
+const DRAWDOWN_DATA = Array.from({ length: 24 }, (_, i) => {
+  const month = new Date(2022, i, 1);
+  const monthLabel = month.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
+  const drawdown = Math.random() > 0.7 ? -Math.random() * 15 : -Math.random() * 5;
+  return {
+    month: monthLabel,
+    drawdown: drawdown,
+  };
+});
+
+const ALL_METRICS = [
+  { id: 'cagr', label: 'CAGR', value: '18.5%', change: '+3.2%' },
+  { id: 'totalReturn', label: 'Total Return', value: '38.2%', change: '+5.1%' },
+  { id: 'sharpeRatio', label: 'Sharpe Ratio', value: '1.25', change: '+0.15' },
+  { id: 'sortinoRatio', label: 'Sortino Ratio', value: '1.98', change: '+0.22' },
+  { id: 'maxDrawdown', label: 'Max Drawdown', value: '-15.3%', change: '-2.1%' },
+  { id: 'calmarRatio', label: 'Calmar Ratio', value: '1.21', change: '+0.08' },
+  { id: 'alpha', label: 'Alpha', value: '4.1%', change: '+0.9%' },
+  { id: 'beta', label: 'Beta', value: '0.92', change: '-0.03' },
+  { id: 'volatility', label: 'Std Dev', value: '14.8%', change: '-1.2%' },
+  { id: 'trackingError', label: 'Tracking Error', value: '3.2%', change: '+0.4%' },
+];
+
+const HEDGE_FUND_DATA = [
+  { name: 'Your Portfolio', aum: '$2.5M', cagr: '18.5%', sharpe: '1.25', maxDD: '-15.3%', alpha: '4.1%', beta: '0.92', percentile: 85, isUser: true },
+  { name: 'Bridgewater', aum: '$124B', cagr: '12.1%', sharpe: '0.95', maxDD: '-21.5%', alpha: '2.3%', beta: '0.78', percentile: 72 },
+  { name: 'Renaissance', aum: '$130B', cagr: '39.1%', sharpe: '2.15', maxDD: '-8.2%', alpha: '28.5%', beta: '0.12', percentile: 99 },
+  { name: 'Citadel', aum: '$62B', cagr: '15.8%', sharpe: '1.42', maxDD: '-12.8%', alpha: '5.2%', beta: '0.65', percentile: 91 },
+  { name: 'Two Sigma', aum: '$60B', cagr: '14.2%', sharpe: '1.28', maxDD: '-14.1%', alpha: '4.8%', beta: '0.58', percentile: 88 },
+  { name: 'Millennium', aum: '$58B', cagr: '13.5%', sharpe: '1.15', maxDD: '-16.2%', alpha: '3.9%', beta: '0.72', percentile: 78 },
+];
+
+function DashboardTab({ selectedMetrics }: { selectedMetrics: string[] }) {
+  const filteredMetrics = ALL_METRICS.filter(m => selectedMetrics.includes(m.id));
+
   return (
     <div className="space-y-6">
-      {/* Key Metrics */}
-      <div className="grid grid-cols-4 gap-4">
-        {[
-          { label: 'Total Return', value: '+24.5%', change: '+2.3%' },
-          { label: 'Sharpe Ratio', value: '1.42', change: '+0.12' },
-          { label: 'Max Drawdown', value: '-12.3%', change: '-1.2%' },
-          { label: 'Win Rate', value: '67%', change: '+3%' },
-        ].map((metric, i) => (
-          <Card key={i}>
-            <CardContent className="p-4">
-              <p className="text-sm text-muted-foreground">{metric.label}</p>
-              <p className="text-2xl font-bold mt-1">{metric.value}</p>
-              <p className={cn('text-xs mt-1', metric.change.startsWith('+') ? 'text-emerald-500' : 'text-destructive')}>
-                {metric.change} vs benchmark
-              </p>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      {/* Charts Placeholder */}
-      <div className="grid grid-cols-2 gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm">Portfolio Performance</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="h-64 bg-muted/50 rounded-lg flex items-center justify-center">
-              <p className="text-muted-foreground text-sm">Equity curve chart</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm">Drawdown Analysis</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="h-64 bg-muted/50 rounded-lg flex items-center justify-center">
-              <p className="text-muted-foreground text-sm">Drawdown chart</p>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Recent Activity */}
+      {/* Performance Chart */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-sm">Recent Trades</CardTitle>
+          <CardTitle className="text-sm">Portfolio Performance vs Benchmarks</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-3">
-            {[
-              { symbol: 'AAPL', action: 'BUY', shares: 50, price: 178.50, date: 'Dec 28, 2025' },
-              { symbol: 'MSFT', action: 'SELL', shares: 25, price: 378.20, date: 'Dec 27, 2025' },
-              { symbol: 'GOOGL', action: 'BUY', shares: 30, price: 141.80, date: 'Dec 26, 2025' },
-            ].map((trade, i) => (
-              <div key={i} className="flex items-center justify-between py-2 border-b last:border-0">
-                <div className="flex items-center gap-3">
-                  <span className={cn('text-xs font-medium px-2 py-0.5 rounded', trade.action === 'BUY' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-destructive/10 text-destructive')}>
-                    {trade.action}
-                  </span>
-                  <span className="font-medium">{trade.symbol}</span>
-                  <span className="text-muted-foreground text-sm">{trade.shares} shares @ ${trade.price}</span>
-                </div>
-                <span className="text-sm text-muted-foreground">{trade.date}</span>
-              </div>
-            ))}
+          <div className="h-72">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={PERFORMANCE_DATA}>
+                <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                <XAxis dataKey="month" tick={{ fontSize: 12 }} className="text-muted-foreground" />
+                <YAxis tick={{ fontSize: 12 }} domain={[90, 'auto']} className="text-muted-foreground" />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: 'hsl(var(--popover))',
+                    border: '1px solid hsl(var(--border))',
+                    borderRadius: '8px',
+                  }}
+                />
+                <Legend />
+                <Line
+                  type="monotone"
+                  dataKey="portfolio"
+                  name="Your Portfolio"
+                  stroke="hsl(var(--primary))"
+                  strokeWidth={3}
+                  dot={false}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="spy"
+                  name="S&P 500"
+                  stroke="hsl(var(--muted-foreground))"
+                  strokeWidth={2}
+                  strokeDasharray="5 5"
+                  dot={false}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="bridgewater"
+                  name="Bridgewater"
+                  stroke="#f59e0b"
+                  strokeWidth={1.5}
+                  dot={false}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="renaissance"
+                  name="Renaissance"
+                  stroke="#8b5cf6"
+                  strokeWidth={1.5}
+                  dot={false}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="citadel"
+                  name="Citadel"
+                  stroke="#06b6d4"
+                  strokeWidth={1.5}
+                  dot={false}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Metrics Cards */}
+      {filteredMetrics.length > 0 && (
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
+          {filteredMetrics.map((metric) => (
+            <Card key={metric.id}>
+              <CardContent className="p-4">
+                <p className="text-sm text-muted-foreground">{metric.label}</p>
+                <p className="text-2xl font-bold mt-1">{metric.value}</p>
+                <p className={cn('text-xs mt-1', metric.change.startsWith('+') ? 'text-emerald-500' : 'text-destructive')}>
+                  {metric.change} vs benchmark
+                </p>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
+
+      {/* Drawdown Chart */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-sm">Drawdown Analysis</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="h-48">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={DRAWDOWN_DATA}>
+                <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                <XAxis dataKey="month" tick={{ fontSize: 12 }} className="text-muted-foreground" />
+                <YAxis tick={{ fontSize: 12 }} domain={['auto', 0]} className="text-muted-foreground" />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: 'hsl(var(--popover))',
+                    border: '1px solid hsl(var(--border))',
+                    borderRadius: '8px',
+                  }}
+                  formatter={(value: number) => [`${value.toFixed(2)}%`, 'Drawdown']}
+                />
+                <ReferenceLine y={0} stroke="hsl(var(--muted-foreground))" />
+                <Area
+                  type="monotone"
+                  dataKey="drawdown"
+                  stroke="hsl(var(--destructive))"
+                  fill="hsl(var(--destructive) / 0.3)"
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Hedge Fund Comparison Table */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-sm">Hedge Fund Comparison</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b text-left text-sm text-muted-foreground">
+                  <th className="pb-3 font-medium">Fund / Portfolio</th>
+                  <th className="pb-3 font-medium">AUM</th>
+                  <th className="pb-3 font-medium">CAGR</th>
+                  <th className="pb-3 font-medium">Sharpe</th>
+                  <th className="pb-3 font-medium">Max DD</th>
+                  <th className="pb-3 font-medium">Alpha</th>
+                  <th className="pb-3 font-medium">Beta</th>
+                  <th className="pb-3 font-medium text-right">Percentile</th>
+                </tr>
+              </thead>
+              <tbody>
+                {HEDGE_FUND_DATA.map((fund, i) => (
+                  <tr
+                    key={i}
+                    className={cn(
+                      'border-b last:border-0',
+                      fund.isUser && 'bg-primary/5'
+                    )}
+                  >
+                    <td className="py-3 pr-4">
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium">{fund.name}</span>
+                        {fund.isUser && (
+                          <span className="text-xs bg-primary text-primary-foreground px-2 py-0.5 rounded-full">
+                            You
+                          </span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="py-3 pr-4 text-sm text-muted-foreground">{fund.aum}</td>
+                    <td className="py-3 pr-4 text-sm font-medium">{fund.cagr}</td>
+                    <td className="py-3 pr-4 text-sm">{fund.sharpe}</td>
+                    <td className="py-3 pr-4 text-sm text-destructive">{fund.maxDD}</td>
+                    <td className="py-3 pr-4 text-sm text-emerald-500">{fund.alpha}</td>
+                    <td className="py-3 pr-4 text-sm">{fund.beta}</td>
+                    <td className="py-3 text-right">
+                      <span
+                        className={cn(
+                          'text-xs font-medium px-2 py-1 rounded-full',
+                          fund.percentile >= 90
+                            ? 'bg-emerald-500/10 text-emerald-500'
+                            : fund.percentile >= 75
+                            ? 'bg-muted text-muted-foreground'
+                            : 'border text-muted-foreground'
+                        )}
+                      >
+                        {fund.percentile}th
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </CardContent>
       </Card>
@@ -427,7 +601,7 @@ export default function PortfolioBacktester() {
   const renderContent = () => {
     switch (activeTab) {
       case 'dashboard':
-        return <DashboardTab />;
+        return <DashboardTab selectedMetrics={selectedMetrics} />;
       case 'portfolio':
         return <PortfolioTab assets={assets} onAssetsChange={setAssets} />;
       case 'macro':
@@ -437,7 +611,7 @@ export default function PortfolioBacktester() {
       case 'reports':
         return <ReportsTab />;
       default:
-        return <DashboardTab />;
+        return <DashboardTab selectedMetrics={selectedMetrics} />;
     }
   };
 
