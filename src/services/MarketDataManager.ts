@@ -1,4 +1,9 @@
-import { supabase } from '@/integrations/supabase/client';
+import { 
+  getQuote as finnhubGetQuote, 
+  getBatchQuotes as finnhubGetBatchQuotes,
+  getFullQuote as finnhubGetFullQuote,
+  type StockQuote as FinnhubQuote 
+} from './finnhubService';
 import type { QuoteData, MarketIndex } from './marketDataService';
 import { isMarketDataEnabled, setDevModeState } from './marketDataService';
 
@@ -158,7 +163,7 @@ export async function getBatchQuotes(tickers: string[]): Promise<Map<string, Quo
     return results;
   }
   
-  // Batch fetch remaining tickers
+  // Batch fetch remaining tickers using Finnhub
   try {
     // Skip API call if market data is paused
     if (!isMarketDataEnabled()) {
@@ -175,22 +180,16 @@ export async function getBatchQuotes(tickers: string[]): Promise<Map<string, Quo
 
     const batchKey = `batch:${tickersToFetch.sort().join(',')}`;
     
-    console.log(`[API] market-data/batchQuotes`, { tickers: tickersToFetch });
+    console.log(`[Finnhub] Batch quotes`, { tickers: tickersToFetch });
 
-    const response = await deduplicatedRequest(batchKey, async () => {
-      const { data, error } = await supabase.functions.invoke('market-data', {
-        body: { type: 'batchQuotes', tickers: tickersToFetch }
-      });
-      
-      if (error) throw error;
-      return data;
+    const quotes = await deduplicatedRequest(batchKey, async () => {
+      return finnhubGetBatchQuotes(tickersToFetch);
     });
     
-    if (response?.success && response?.data) {
-      for (const [ticker, quote] of Object.entries(response.data as Record<string, QuoteData>)) {
-        results.set(ticker.toUpperCase(), quote as QuoteData);
-        setCachedQuote(ticker, quote as QuoteData);
-      }
+    for (const [ticker, quote] of quotes.entries()) {
+      const quoteData = mapFinnhubToQuoteData(quote);
+      results.set(ticker.toUpperCase(), quoteData);
+      setCachedQuote(ticker, quoteData);
     }
   } catch (error) {
     console.error('Batch quote fetch error:', error);
@@ -204,6 +203,25 @@ export async function getBatchQuotes(tickers: string[]): Promise<Map<string, Quo
   }
   
   return results;
+}
+
+// Helper to map Finnhub quote to QuoteData format
+function mapFinnhubToQuoteData(fq: FinnhubQuote): QuoteData {
+  return {
+    price: fq.price,
+    change: fq.change,
+    changePercent: fq.changePercent,
+    high: fq.high,
+    low: fq.low,
+    open: fq.open,
+    previousClose: fq.previousClose,
+    volume: fq.volume || '—',
+    marketCap: fq.marketCap || '—',
+    high52: fq.high,  // Use daily high as fallback
+    low52: fq.low,    // Use daily low as fallback
+    source: 'live' as const,
+    isMock: false,
+  };
 }
 
 // ============= Single Quote with Deduplication =============
@@ -225,25 +243,33 @@ export async function getQuoteOptimized(ticker: string): Promise<QuoteData> {
   
   const requestKey = `quote:${upperTicker}`;
   
-  console.log(`[API] market-data/quote`, { ticker: upperTicker });
+  console.log(`[Finnhub] Quote`, { ticker: upperTicker });
   
   return deduplicatedRequest(requestKey, async () => {
-    const { data, error } = await supabase.functions.invoke('market-data', {
-      body: { type: 'quote', ticker: upperTicker }
-    });
+    const quote = await finnhubGetQuote(upperTicker);
     
-    if (error || !data?.success) {
+    if (!quote) {
       // Return stale cache on error
       if (cached) return cached;
-      throw new Error(error?.message || data?.error || 'Failed to fetch quote');
+      throw new Error('Failed to fetch quote from Finnhub');
     }
     
-    setCachedQuote(upperTicker, data.data);
-    return data.data;
+    const quoteData = mapFinnhubToQuoteData(quote);
+    setCachedQuote(upperTicker, quoteData);
+    return quoteData;
   });
 }
 
 // ============= Market Indices with Deduplication =============
+
+// Major index ETFs as proxies
+const INDEX_SYMBOLS = ['SPY', 'QQQ', 'DIA', 'IWM'];
+const INDEX_NAMES: Record<string, string> = {
+  'SPY': 'S&P 500',
+  'QQQ': 'NASDAQ',
+  'DIA': 'DOW',
+  'IWM': 'Russell 2000',
+};
 
 export async function getIndicesOptimized(): Promise<MarketIndex[]> {
   const cached = getCachedIndices();
@@ -255,19 +281,24 @@ export async function getIndicesOptimized(): Promise<MarketIndex[]> {
     return [];
   }
   
-  console.log(`[API] market-data/indices`);
+  console.log(`[Finnhub] Indices via ETFs`);
   
   return deduplicatedRequest('indices', async () => {
-    const { data, error } = await supabase.functions.invoke('market-data', {
-      body: { type: 'indices' }
+    const quotes = await finnhubGetBatchQuotes(INDEX_SYMBOLS);
+    
+    const indices: MarketIndex[] = INDEX_SYMBOLS.map(symbol => {
+      const quote = quotes.get(symbol);
+      return {
+        symbol,
+        name: INDEX_NAMES[symbol] || symbol,
+        value: quote?.price || 0,
+        change: quote?.change || 0,
+        changePercent: quote?.changePercent || 0,
+      };
     });
     
-    if (error || !data?.success) {
-      throw new Error(error?.message || data?.error || 'Failed to fetch indices');
-    }
-    
-    setCachedIndices(data.data);
-    return data.data;
+    setCachedIndices(indices);
+    return indices;
   });
 }
 
