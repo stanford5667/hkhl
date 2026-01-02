@@ -31,6 +31,7 @@ import ModelViewerPage from "./pages/ModelViewerPage";
 import Tasks from "./pages/Tasks";
 import Research from "./pages/Research";
 import Markets from "./pages/Markets";
+import Backtester from "./pages/Backtester";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -68,6 +69,7 @@ const App = () => (
                       <Route path="/settings" element={<Settings />} />
                       <Route path="/settings/organization" element={<OrganizationSettings />} />
                       <Route path="/research" element={<Research />} />
+                      <Route path="/backtester" element={<Backtester />} />
                       {/* Redirects from old routes */}
                       <Route path="/companies" element={<Navigate to="/portfolio" replace />} />
                       <Route path="/companies/:id" element={<CompanyRedirect />} />

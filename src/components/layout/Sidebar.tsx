@@ -33,6 +33,7 @@ import {
   Target,
   Calculator,
   BarChart3,
+  FlaskConical,
 } from "lucide-react";
 
 interface NavItem {
@@ -122,6 +123,12 @@ export function Sidebar() {
         subtitle: "Research & Insights",
         href: "/market-intel", 
         icon: BarChart3 
+      },
+      { 
+        label: "Backtester", 
+        subtitle: "Strategy Testing",
+        href: "/backtester", 
+        icon: FlaskConical 
       },
     );
 
