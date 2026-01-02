@@ -398,35 +398,45 @@ export default function MarketsPage() {
       </div>
 
       {/* Market Indices with Sparklines */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+      <div className="flex gap-3 overflow-x-auto pb-1">
         {indicesLoading ? (
           Array.from({ length: 5 }).map((_, i) => (
-            <Skeleton key={i} className="h-20 rounded-lg" />
+            <Skeleton key={i} className="h-20 w-32 flex-shrink-0 rounded-lg" />
           ))
         ) : (
           indices.map((idx) => {
             const isUp = idx.changePercent >= 0;
             const color = isUp ? '#10b981' : '#f43f5e';
-            const fillColor = isUp ? 'rgba(16,185,129,0.1)' : 'rgba(244,63,94,0.1)';
             
             return (
-              <Card
+              <button
                 key={idx.symbol}
-                className="p-4 cursor-pointer hover:border-primary/50 transition-all group"
+                className="flex-shrink-0 px-4 py-3 rounded-lg border border-border bg-card hover:border-primary/50 hover:bg-accent/30 transition group text-left"
                 onClick={() => setSelectedIndex(idx)}
               >
-                <div className="flex items-center justify-between">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="font-semibold text-sm text-foreground">{idx.shortName}</span>
-                      <span className={cn("text-xs font-medium", isUp ? "text-emerald-500" : "text-rose-500")}>
-                        {formatPercent(idx.changePercent)}
-                      </span>
+                <div className="flex items-center gap-4">
+                  <div>
+                    <div className="text-xs font-medium text-muted-foreground">{idx.shortName}</div>
+                    <div className="text-lg font-semibold tabular-nums text-foreground">{formatPrice(idx.price)}</div>
+                    <div className={cn(
+                      "text-xs font-medium flex items-center gap-0.5",
+                      isUp ? "text-emerald-500" : "text-rose-500"
+                    )}>
+                      {isUp ? (
+                        <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                        </svg>
+                      ) : (
+                        <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 17h8m0 0v-8m0 8l-8-8-4 4-6-6" />
+                        </svg>
+                      )}
+                      {formatPercent(idx.changePercent)}
                     </div>
-                    <p className="text-lg font-bold tabular-nums text-foreground">{formatPrice(idx.price)}</p>
                   </div>
+                  {/* Sparkline */}
                   {idx.sparklineData && idx.sparklineData.length > 0 && (
-                    <div className="h-10 w-16 opacity-50 group-hover:opacity-100 transition-opacity">
+                    <div className="w-16 h-8 opacity-60 group-hover:opacity-100 transition-opacity">
                       <ResponsiveContainer width="100%" height="100%">
                         <AreaChart data={idx.sparklineData}>
                           <defs>
@@ -441,7 +451,7 @@ export default function MarketsPage() {
                     </div>
                   )}
                 </div>
-              </Card>
+              </button>
             );
           })
         )}
@@ -734,7 +744,7 @@ export default function MarketsPage() {
   );
 }
 
-// Cleaner Holding Card with progressive disclosure
+// Holding Card with live pulse indicator and hover effects
 function HoldingCard({
   holding,
   onClick,
@@ -753,13 +763,27 @@ function HoldingCard({
 
   return (
     <Card 
-      className="p-4 cursor-pointer hover:border-primary/50 transition-all group"
+      className="relative p-4 cursor-pointer hover:border-primary/40 hover:bg-accent/30 transition-all group"
       onClick={onClick}
     >
-      {/* Header: Ticker + Price */}
+      {/* Chart Button - shows on hover */}
+      <button 
+        className="absolute top-3 right-3 p-1.5 rounded-md opacity-0 group-hover:opacity-100 bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground transition z-10"
+        onClick={(e) => { e.stopPropagation(); onClick(); }}
+      >
+        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+        </svg>
+      </button>
+
+      {/* Header: Ticker + Live Pulse + Price */}
       <div className="flex items-start justify-between mb-3">
         <div>
-          <span className="text-lg font-bold text-foreground">{holding.ticker}</span>
+          <div className="flex items-center gap-2">
+            <span className="text-lg font-semibold text-foreground">{holding.ticker}</span>
+            {/* Live pulse indicator */}
+            <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+          </div>
           <p className="text-sm text-muted-foreground truncate max-w-[140px]">{holding.name}</p>
         </div>
         <div className="text-right">
@@ -767,35 +791,53 @@ function HoldingCard({
             <Skeleton className="h-5 w-16" />
           ) : (
             <>
-              <p className="font-semibold tabular-nums text-foreground">{formatPrice(holding.livePrice)}</p>
-              <p className={cn("text-sm tabular-nums", isUp ? "text-emerald-500" : "text-rose-500")}>
+              <p className="text-lg font-semibold tabular-nums text-foreground">{formatPrice(holding.livePrice)}</p>
+              <div className={cn(
+                "text-sm font-medium flex items-center justify-end gap-0.5",
+                isUp ? "text-emerald-500" : "text-rose-500"
+              )}>
+                {isUp ? (
+                  <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                  </svg>
+                ) : (
+                  <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 17h8m0 0v-8m0 8l-8-8-4 4-6-6" />
+                  </svg>
+                )}
                 {formatPercent(holding.liveChangePercent)}
-              </p>
+              </div>
             </>
           )}
         </div>
       </div>
 
+      {/* Divider */}
+      <div className="h-px bg-border mb-3" />
+
       {/* Stats Grid */}
-      <div className="grid grid-cols-2 gap-3 pt-3 border-t border-border">
+      <div className="grid grid-cols-2 gap-3 text-sm">
         <div>
-          <p className="text-xs text-muted-foreground">Value</p>
-          <p className="font-medium tabular-nums text-foreground">{formatCurrency(holding.marketValue)}</p>
+          <span className="text-muted-foreground">Value</span>
+          <div className="font-medium tabular-nums text-foreground">{formatCurrency(holding.marketValue)}</div>
         </div>
         <div className="text-right">
-          <p className="text-xs text-muted-foreground">Return</p>
-          <p className={cn("font-medium tabular-nums", isGainUp ? "text-emerald-500" : "text-rose-500")}>
-            {formatPercent(holding.gainLossPercent)}
-          </p>
+          <span className="text-muted-foreground">Return</span>
+          <div className={cn("font-medium tabular-nums", isGainUp ? "text-emerald-500" : "text-rose-500")}>
+            {isGainUp ? '+' : ''}{formatCurrency(holding.gainLoss)}
+          </div>
         </div>
       </div>
 
-      {/* Details on hover */}
-      <div className="mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
-        <p className="text-xs text-muted-foreground">
-          {holding.shares.toLocaleString()} shares @ {formatPrice(holding.avgCost)} avg
-        </p>
-      </div>
+      {/* Hover Arrow */}
+      <svg 
+        className="absolute bottom-4 right-3 w-4 h-4 opacity-0 group-hover:opacity-100 transform translate-x-0 group-hover:translate-x-1 text-muted-foreground transition-all" 
+        fill="none" 
+        viewBox="0 0 24 24" 
+        stroke="currentColor"
+      >
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+      </svg>
     </Card>
   );
 }
