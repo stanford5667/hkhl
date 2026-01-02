@@ -35,6 +35,7 @@ import {
   BarChart3,
   FlaskConical,
   Star,
+  Sparkles as SparklesIcon,
 } from "lucide-react";
 
 interface NavItem {
@@ -136,6 +137,12 @@ export function Sidebar() {
         subtitle: "Tracked Stocks",
         href: "/watchlist", 
         icon: Star 
+      },
+      { 
+        label: "Screener", 
+        subtitle: "AI Stock Screener",
+        href: "/screener", 
+        icon: SparklesIcon 
       },
     );
 
