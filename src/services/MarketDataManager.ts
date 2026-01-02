@@ -279,17 +279,10 @@ class MarketDataSubscriptionManager {
   private static instance: MarketDataSubscriptionManager;
   
   private subscribedTickers = new Set<string>();
-  private visibleTickers = new Set<string>();
   private callbacks = new Map<string, Set<SubscriptionCallback>>();
-  private pollInterval: ReturnType<typeof setInterval> | null = null;
-  private isPaused = false;
-  private lastPollTime = 0;
   
   private constructor() {
-    // Listen for visibility changes
-    if (typeof document !== 'undefined') {
-      document.addEventListener('visibilitychange', this.handleVisibilityChange);
-    }
+    // No automatic polling - manual refresh only
   }
   
   static getInstance(): MarketDataSubscriptionManager {
@@ -299,14 +292,10 @@ class MarketDataSubscriptionManager {
     return MarketDataSubscriptionManager.instance;
   }
   
-  private handleVisibilityChange = () => {
-    if (document.hidden) {
-      this.pause();
-    } else {
-      this.resume();
-    }
-  };
-  
+  /**
+   * Subscribe to updates for a ticker - NO automatic polling.
+   * Updates only happen when prefetchHoldings or manual refresh is called.
+   */
   subscribe(ticker: string, callback: SubscriptionCallback): () => void {
     const upperTicker = ticker.toUpperCase();
     this.subscribedTickers.add(upperTicker);
@@ -315,8 +304,6 @@ class MarketDataSubscriptionManager {
       this.callbacks.set(upperTicker, new Set());
     }
     this.callbacks.get(upperTicker)!.add(callback);
-    
-    this.startPolling();
     
     // Return unsubscribe function
     return () => {
@@ -328,96 +315,49 @@ class MarketDataSubscriptionManager {
           this.callbacks.delete(upperTicker);
         }
       }
-      
-      if (this.subscribedTickers.size === 0) {
-        this.stopPolling();
-      }
     };
   }
   
-  // Mark ticker as visible in viewport
+  // Mark ticker as visible in viewport (for future optimization)
   markVisible(ticker: string): void {
-    this.visibleTickers.add(ticker.toUpperCase());
+    // No-op - no automatic polling
   }
   
   // Mark ticker as not visible
   markHidden(ticker: string): void {
-    this.visibleTickers.delete(ticker.toUpperCase());
+    // No-op - no automatic polling
   }
   
-  private startPolling(): void {
-    if (this.pollInterval) return;
+  /**
+   * Manually refresh quotes for specified tickers
+   */
+  async refreshTickers(tickers: string[]): Promise<Map<string, CachedQuote>> {
+    if (tickers.length === 0) return new Map();
     
-    const poll = async () => {
-      if (this.isPaused || this.subscribedTickers.size === 0) return;
-      
-      // Only poll visible tickers, or all if none specified
-      const tickersToPoll = this.visibleTickers.size > 0 
-        ? [...this.visibleTickers]
-        : [...this.subscribedTickers];
-      
-      if (tickersToPoll.length === 0) return;
-      
-      try {
-        const quotes = await getBatchQuotes(tickersToPoll);
-        const cachedQuotes = new Map<string, CachedQuote>();
-        
-        for (const [ticker, quote] of quotes.entries()) {
-          const cached = getCachedQuote(ticker);
-          if (cached) cachedQuotes.set(ticker, cached);
+    const quotes = await getBatchQuotes(tickers);
+    const cachedQuotes = new Map<string, CachedQuote>();
+    
+    for (const [ticker, quote] of quotes.entries()) {
+      const cached = getCachedQuote(ticker);
+      if (cached) cachedQuotes.set(ticker, cached);
+    }
+    
+    // Notify subscribers
+    for (const [ticker, callbackSet] of this.callbacks.entries()) {
+      if (cachedQuotes.has(ticker)) {
+        const singleQuoteMap = new Map([[ticker, cachedQuotes.get(ticker)!]]);
+        for (const cb of callbackSet) {
+          cb(singleQuoteMap);
         }
-        
-        // Notify all callbacks
-        for (const [ticker, callbackSet] of this.callbacks.entries()) {
-          if (cachedQuotes.has(ticker)) {
-            const singleQuoteMap = new Map([[ticker, cachedQuotes.get(ticker)!]]);
-            for (const cb of callbackSet) {
-              cb(singleQuoteMap);
-            }
-          }
-        }
-        
-        this.lastPollTime = Date.now();
-      } catch (error) {
-        console.error('Polling error:', error);
       }
-    };
-    
-    // Initial poll
-    poll();
-    
-    // Set up interval based on market hours
-    const scheduleNextPoll = () => {
-      const interval = getPollInterval();
-      this.pollInterval = setTimeout(() => {
-        poll().then(scheduleNextPoll);
-      }, interval);
-    };
-    
-    scheduleNextPoll();
-  }
-  
-  private stopPolling(): void {
-    if (this.pollInterval) {
-      clearTimeout(this.pollInterval);
-      this.pollInterval = null;
     }
+    
+    return cachedQuotes;
   }
   
-  private pause(): void {
-    this.isPaused = true;
-  }
-  
-  private resume(): void {
-    this.isPaused = false;
-    // Immediately poll if stale
-    if (Date.now() - this.lastPollTime > getCacheTTL()) {
-      this.stopPolling();
-      this.startPolling();
-    }
-  }
-  
-  // Prefetch quotes for all holdings on app load
+  /**
+   * Prefetch quotes for holdings - called manually, not automatically
+   */
   async prefetchHoldings(tickers: string[]): Promise<void> {
     if (tickers.length === 0) return;
     await getBatchQuotes(tickers);
@@ -428,13 +368,8 @@ class MarketDataSubscriptionManager {
   }
   
   cleanup(): void {
-    this.stopPolling();
     this.subscribedTickers.clear();
-    this.visibleTickers.clear();
     this.callbacks.clear();
-    if (typeof document !== 'undefined') {
-      document.removeEventListener('visibilitychange', this.handleVisibilityChange);
-    }
   }
 }
 

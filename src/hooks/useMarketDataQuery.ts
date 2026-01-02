@@ -9,7 +9,6 @@ import {
   getCachedIndices,
   isMarketOpen,
   getMarketStatus,
-  getPollInterval,
   getCacheTTL,
   formatTimeAgo,
   type CachedQuote,
@@ -32,27 +31,16 @@ function getStaleTime(): number {
   return getCacheTTL();
 }
 
-function getRefetchInterval(): number | false {
-  // Don't auto-refetch if in the background
-  if (typeof document !== 'undefined' && document.hidden) {
-    return false;
-  }
-  return getPollInterval();
-}
-
-// ============= Individual Quote Hook =============
+// ============= Individual Quote Hook - NO AUTO REFETCH =============
 
 export function useMarketDataQuery(
   ticker: string | null,
   options: {
     enabled?: boolean;
-    subscribeToUpdates?: boolean;
   } = {}
 ) {
-  const { enabled = true, subscribeToUpdates = true } = options;
+  const { enabled = true } = options;
   const [cachedData, setCachedData] = useState<CachedQuote | null>(null);
-  const observerRef = useRef<IntersectionObserver | null>(null);
-  const elementRef = useRef<HTMLElement | null>(null);
   
   // Check for cached data first
   useEffect(() => {
@@ -62,68 +50,16 @@ export function useMarketDataQuery(
     }
   }, [ticker]);
   
-  // Main query
+  // Main query - NO refetchInterval
   const query = useQuery({
     queryKey: marketDataKeys.quote(ticker || ''),
     queryFn: () => getQuoteOptimized(ticker!),
     enabled: enabled && !!ticker,
     staleTime: getStaleTime(),
-    refetchInterval: subscribeToUpdates ? getRefetchInterval() : false,
-    refetchOnWindowFocus: true,
+    refetchInterval: false, // NO automatic polling
+    refetchOnWindowFocus: false, // NO auto-refresh on window focus
     placeholderData: cachedData || undefined,
   });
-  
-  // Subscribe to manager updates
-  useEffect(() => {
-    if (!ticker || !subscribeToUpdates || !enabled) return;
-    
-    const unsubscribe = marketDataManager.subscribe(ticker, (quotes) => {
-      const quote = quotes.get(ticker.toUpperCase());
-      if (quote) {
-        setCachedData(quote);
-      }
-    });
-    
-    return unsubscribe;
-  }, [ticker, subscribeToUpdates, enabled]);
-  
-  // Intersection observer for viewport-based polling
-  const setObserverElement = useCallback((element: HTMLElement | null) => {
-    if (observerRef.current) {
-      observerRef.current.disconnect();
-    }
-    
-    if (!element || !ticker) return;
-    
-    elementRef.current = element;
-    
-    observerRef.current = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            marketDataManager.markVisible(ticker);
-          } else {
-            marketDataManager.markHidden(ticker);
-          }
-        });
-      },
-      { threshold: 0.1 }
-    );
-    
-    observerRef.current.observe(element);
-  }, [ticker]);
-  
-  // Cleanup observer
-  useEffect(() => {
-    return () => {
-      if (observerRef.current) {
-        observerRef.current.disconnect();
-      }
-      if (ticker) {
-        marketDataManager.markHidden(ticker);
-      }
-    };
-  }, [ticker]);
   
   // Compute display values
   const displayData = query.data || cachedData;
@@ -143,11 +79,8 @@ export function useMarketDataQuery(
     timeAgo,
     isStale,
     
-    // Refresh
+    // Manual refresh only
     refresh: query.refetch,
-    
-    // For viewport observation
-    setObserverElement,
     
     // Market status
     marketStatus: getMarketStatus(),
@@ -155,7 +88,7 @@ export function useMarketDataQuery(
   };
 }
 
-// ============= Batch Quotes Hook =============
+// ============= Batch Quotes Hook - NO AUTO REFETCH =============
 
 export function useBatchQuotes(
   tickers: string[],
@@ -178,7 +111,8 @@ export function useBatchQuotes(
     },
     enabled: enabled && tickers.length > 0,
     staleTime: getStaleTime(),
-    refetchInterval: getRefetchInterval(),
+    refetchInterval: false, // NO automatic polling
+    refetchOnWindowFocus: false,
   });
   
   return {
@@ -190,7 +124,7 @@ export function useBatchQuotes(
   };
 }
 
-// ============= Market Indices Hook =============
+// ============= Market Indices Hook - NO AUTO REFETCH =============
 
 export function useMarketIndicesQuery(options: { enabled?: boolean } = {}) {
   const { enabled = true } = options;
@@ -206,8 +140,9 @@ export function useMarketIndicesQuery(options: { enabled?: boolean } = {}) {
     queryKey: marketDataKeys.indices(),
     queryFn: getIndicesOptimized,
     enabled,
-    staleTime: isMarketOpen() ? 30 * 1000 : 5 * 60 * 1000, // 30s open, 5min closed
-    refetchInterval: isMarketOpen() ? 30 * 1000 : 5 * 60 * 1000,
+    staleTime: isMarketOpen() ? 30 * 1000 : 5 * 60 * 1000,
+    refetchInterval: false, // NO automatic polling
+    refetchOnWindowFocus: false,
     placeholderData: cachedData || undefined,
   });
   
@@ -221,25 +156,26 @@ export function useMarketIndicesQuery(options: { enabled?: boolean } = {}) {
   };
 }
 
-// ============= Prefetch Holdings Hook =============
+// ============= Prefetch Holdings Hook (manual trigger) =============
 
 export function usePrefetchHoldings(tickers: string[]) {
   const queryClient = useQueryClient();
   
-  useEffect(() => {
+  const prefetch = useCallback(async () => {
     if (tickers.length === 0) return;
     
-    // Prefetch all holdings on mount
-    marketDataManager.prefetchHoldings(tickers).then(() => {
-      // Update React Query cache
-      for (const ticker of tickers) {
-        const cached = getCachedQuote(ticker);
-        if (cached) {
-          queryClient.setQueryData(marketDataKeys.quote(ticker), cached);
-        }
+    await marketDataManager.prefetchHoldings(tickers);
+    
+    // Update React Query cache
+    for (const ticker of tickers) {
+      const cached = getCachedQuote(ticker);
+      if (cached) {
+        queryClient.setQueryData(marketDataKeys.quote(ticker), cached);
       }
-    });
+    }
   }, [tickers.join(','), queryClient]);
+  
+  return { prefetch };
 }
 
 // ============= Price Change Animation Hook =============
@@ -262,7 +198,6 @@ export function usePriceChangeAnimation(currentPrice: number | undefined) {
     
     prevPriceRef.current = currentPrice;
     
-    // Clear animation after a short delay
     const timer = setTimeout(() => {
       setPriceChangeDirection(null);
     }, 1000);

@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { useDevMode } from '@/contexts/DevModeContext';
 import { 
   getQuote, 
   searchTicker, 
@@ -11,11 +10,11 @@ import {
   type MarketIndex,
   type CompanyInfo
 } from '@/services/marketDataService';
+import { getCachedQuote, getCachedIndices } from '@/services/MarketDataManager';
 
-// Hook for fetching stock quotes with auto-refresh
-export function useStockQuote(ticker: string | null, options: { enabled?: boolean; pollInterval?: number } = {}) {
-  const { enabled = true, pollInterval = 60000 } = options; // Default 60 second polling
-  const { marketDataEnabled } = useDevMode();
+// Hook for fetching stock quotes - NO automatic polling
+export function useStockQuote(ticker: string | null, options: { enabled?: boolean } = {}) {
+  const { enabled = true } = options;
   
   const [quote, setQuote] = useState<QuoteData | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -23,12 +22,27 @@ export function useStockQuote(ticker: string | null, options: { enabled?: boolea
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   
   const mountedRef = useRef(true);
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Load from cache on mount - NO automatic fetch
+  useEffect(() => {
+    mountedRef.current = true;
+    
+    if (ticker && enabled) {
+      const cached = getCachedQuote(ticker);
+      if (cached) {
+        setQuote(cached);
+        setLastUpdated(cached.lastUpdated);
+      }
+    }
+    
+    return () => {
+      mountedRef.current = false;
+    };
+  }, [ticker, enabled]);
 
   const fetchQuote = useCallback(async (forceRefresh = false) => {
     if (!ticker || !enabled) return;
     
-    // Don't fetch if market data is disabled (will use cached data from service)
     if (forceRefresh) {
       clearQuoteCache(ticker);
     }
@@ -45,7 +59,6 @@ export function useStockQuote(ticker: string | null, options: { enabled?: boolea
     } catch (err) {
       if (mountedRef.current) {
         setError(err instanceof Error ? err.message : 'Failed to fetch quote');
-        // Don't clear existing quote data on error
       }
     } finally {
       if (mountedRef.current) {
@@ -55,28 +68,6 @@ export function useStockQuote(ticker: string | null, options: { enabled?: boolea
   }, [ticker, enabled]);
 
   const refresh = useCallback(() => fetchQuote(true), [fetchQuote]);
-
-  useEffect(() => {
-    mountedRef.current = true;
-    
-    if (ticker && enabled) {
-      fetchQuote();
-      
-      // Only set up polling if market data is enabled
-      if (marketDataEnabled) {
-        intervalRef.current = setInterval(() => {
-          fetchQuote(true);
-        }, pollInterval);
-      }
-    }
-    
-    return () => {
-      mountedRef.current = false;
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-      }
-    };
-  }, [ticker, enabled, pollInterval, fetchQuote, marketDataEnabled]);
 
   return {
     quote,
@@ -108,7 +99,6 @@ export function useTickerSearch(query: string, options: { enabled?: boolean; deb
       return;
     }
     
-    // Clear previous debounce
     if (debounceRef.current) {
       clearTimeout(debounceRef.current);
     }
@@ -150,10 +140,9 @@ export function useTickerSearch(query: string, options: { enabled?: boolean; deb
   };
 }
 
-// Hook for market indices with auto-refresh
-export function useMarketIndices(options: { enabled?: boolean; pollInterval?: number } = {}) {
-  const { enabled = true, pollInterval = 5 * 60 * 1000 } = options; // Default 5 minute polling
-  const { marketDataEnabled } = useDevMode();
+// Hook for market indices - NO automatic polling
+export function useMarketIndices(options: { enabled?: boolean } = {}) {
+  const { enabled = true } = options;
   
   const [indices, setIndices] = useState<MarketIndex[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -161,7 +150,24 @@ export function useMarketIndices(options: { enabled?: boolean; pollInterval?: nu
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   
   const mountedRef = useRef(true);
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Load from cache on mount - NO automatic fetch
+  useEffect(() => {
+    mountedRef.current = true;
+    
+    if (enabled) {
+      const cached = getCachedIndices();
+      if (cached) {
+        setIndices(cached);
+        // Estimate last updated from cache
+        setLastUpdated(new Date());
+      }
+    }
+    
+    return () => {
+      mountedRef.current = false;
+    };
+  }, [enabled]);
 
   const fetchIndices = useCallback(async () => {
     if (!enabled) return;
@@ -188,26 +194,6 @@ export function useMarketIndices(options: { enabled?: boolean; pollInterval?: nu
 
   const refresh = useCallback(() => fetchIndices(), [fetchIndices]);
 
-  useEffect(() => {
-    mountedRef.current = true;
-    
-    if (enabled) {
-      fetchIndices();
-      
-      // Only set up polling if market data is enabled
-      if (marketDataEnabled) {
-        intervalRef.current = setInterval(fetchIndices, pollInterval);
-      }
-    }
-    
-    return () => {
-      mountedRef.current = false;
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-      }
-    };
-  }, [enabled, pollInterval, fetchIndices, marketDataEnabled]);
-
   return {
     indices,
     isLoading,
@@ -217,7 +203,7 @@ export function useMarketIndices(options: { enabled?: boolean; pollInterval?: nu
   };
 }
 
-// Hook for company info (typically one-time fetch)
+// Hook for company info (one-time fetch on demand)
 export function useCompanyInfo(ticker: string | null, options: { enabled?: boolean } = {}) {
   const { enabled = true } = options;
   
@@ -253,15 +239,10 @@ export function useCompanyInfo(ticker: string | null, options: { enabled?: boole
 
   useEffect(() => {
     mountedRef.current = true;
-    
-    if (ticker && enabled) {
-      fetchInfo();
-    }
-    
     return () => {
       mountedRef.current = false;
     };
-  }, [ticker, enabled, fetchInfo]);
+  }, []);
 
   return {
     companyInfo,
@@ -271,7 +252,7 @@ export function useCompanyInfo(ticker: string | null, options: { enabled?: boole
   };
 }
 
-// Combined hook for a complete stock view
+// Combined hook for a complete stock view - NO automatic fetching
 export function useStockData(ticker: string | null, options: { enabled?: boolean } = {}) {
   const { enabled = true } = options;
   

@@ -94,13 +94,14 @@ export default function MarketsPage() {
     );
   }, [companies]);
 
-  // Use new market indices hook with auto-refresh
+  // Use market indices hook - NO automatic polling
   const { 
     indices: marketIndicesData, 
     isLoading: indicesLoading, 
     refresh: refreshIndices,
-    error: indicesError 
-  } = useMarketIndices({ pollInterval: 60000 });
+    error: indicesError,
+    lastUpdated: indicesLastUpdated
+  } = useMarketIndices();
 
   // Map the hook data to our local format
   const indices = useMemo<MarketIndex[]>(() => {
@@ -206,18 +207,15 @@ export default function MarketsPage() {
     setLastRefresh(new Date());
   }, [publicEquityHoldings]);
 
-  // Initial fetch for holdings
+  // Load from cache on mount - NO automatic fetch
   useEffect(() => {
-    fetchHoldingQuotes();
-  }, [fetchHoldingQuotes]);
+    // Only load cached data, don't fetch
+    if (publicEquityHoldings.length > 0) {
+      setHoldings(publicEquityHoldings.map(h => ({ ...h, isLoading: false })));
+    }
+  }, [publicEquityHoldings]);
 
-  // Auto-refresh holdings every 60 seconds (indices handled by hook)
-  useEffect(() => {
-    const interval = setInterval(() => {
-      fetchHoldingQuotes();
-    }, 60000);
-    return () => clearInterval(interval);
-  }, [fetchHoldingQuotes]);
+  // NO automatic polling - manual refresh only
 
   // Manual refresh
   const handleRefresh = async () => {
