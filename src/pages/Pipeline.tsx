@@ -484,7 +484,7 @@ export default function Pipeline() {
                       animate="visible"
                       exit="exit"
                       className="border-b border-border hover:bg-muted/50 cursor-pointer transition-colors"
-                      onClick={() => navigate(`/companies/${company.id}`)}
+                      onClick={() => navigate(`/portfolio/${company.id}`)}
                     >
                       <TableCell>
                         <div className="flex items-center gap-3">
@@ -530,14 +530,14 @@ export default function Pipeline() {
                           <DropdownMenuContent align="end" className="bg-popover border-border">
                             <DropdownMenuItem onClick={e => {
                               e.stopPropagation();
-                              navigate(`/companies/${company.id}`);
+                              navigate(`/portfolio/${company.id}`);
                             }}>
                               <Eye className="h-4 w-4 mr-2" />
                               View Details
                             </DropdownMenuItem>
                             <DropdownMenuItem onClick={e => {
                               e.stopPropagation();
-                              navigate(`/companies/${company.id}?edit=true`);
+                              navigate(`/portfolio/${company.id}?edit=true`);
                             }}>
                               <Pencil className="h-4 w-4 mr-2" />
                               Edit
@@ -601,7 +601,7 @@ export default function Pipeline() {
                       animate="visible"
                       exit="exit"
                       className="relative mb-6 cursor-pointer group"
-                      onClick={() => navigate(`/companies/${company.id}`)}
+                      onClick={() => navigate(`/portfolio/${company.id}`)}
                     >
                       {/* Timeline dot */}
                       <div

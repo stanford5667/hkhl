@@ -117,11 +117,11 @@ export function CommandDialog({ open, onOpenChange }: CommandDialogProps) {
           {/* Quick Actions */}
           <CommandGroup heading="Quick Actions">
             <CommandItem 
-              onSelect={() => runCommand(() => navigate("/companies?new=true"))}
+              onSelect={() => runCommand(() => navigate("/portfolio?new=true"))}
               className="text-slate-300 hover:bg-slate-800"
             >
               <Plus className="mr-2 h-4 w-4 text-emerald-400" />
-              <span>Add Company</span>
+              <span>Add Asset</span>
               <span className="ml-auto text-xs text-slate-500">Takes 2 min</span>
             </CommandItem>
             <CommandItem 
@@ -153,12 +153,12 @@ export function CommandDialog({ open, onOpenChange }: CommandDialogProps) {
               <span className="ml-auto text-xs text-slate-500">Command Center</span>
             </CommandItem>
             <CommandItem 
-              onSelect={() => runCommand(() => navigate("/companies"))}
+              onSelect={() => runCommand(() => navigate("/portfolio"))}
               className="text-slate-300 hover:bg-slate-800"
             >
               <Building2 className="mr-2 h-4 w-4 text-slate-500" />
-              <span>Companies</span>
-              <span className="ml-auto text-xs text-slate-500">Portfolio</span>
+              <span>Portfolio</span>
+              <span className="ml-auto text-xs text-slate-500">Your Assets</span>
             </CommandItem>
             <CommandItem 
               onSelect={() => runCommand(() => navigate("/contacts"))}
@@ -201,7 +201,7 @@ export function CommandDialog({ open, onOpenChange }: CommandDialogProps) {
             {recentCompanies.map((company) => (
               <CommandItem 
                 key={company.id}
-                onSelect={() => runCommand(() => navigate(`/companies/${company.id}`))}
+                onSelect={() => runCommand(() => navigate(`/portfolio/${company.id}`))}
                 className="text-slate-300 hover:bg-slate-800"
               >
                 <Building2 className="mr-2 h-4 w-4 text-slate-500" />

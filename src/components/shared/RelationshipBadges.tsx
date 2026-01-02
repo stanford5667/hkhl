@@ -25,7 +25,7 @@ export function RelationshipBadges({
   return (
     <div className={cn("flex items-center gap-1.5 flex-wrap", className)}>
       {company && (
-        <Link to={`/companies/${company.id}`} onClick={(e) => e.stopPropagation()}>
+        <Link to={`/portfolio/${company.id}`} onClick={(e) => e.stopPropagation()}>
           <Badge 
             variant="outline" 
             className={cn(

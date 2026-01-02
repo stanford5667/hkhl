@@ -692,7 +692,7 @@ function HoldingCard({
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.05 }}
     >
-      <Link to={`/companies/${holding.id}`}>
+      <Link to={`/portfolio/${holding.id}`}>
         <Card className="bg-card border-border hover:border-primary/50 transition-all group cursor-pointer">
           <CardContent className="p-4">
             {/* Header */}
@@ -847,7 +847,7 @@ function HoldingsTable({
                 className="border-b border-border/50 hover:bg-muted/30 transition-colors"
               >
                 <td className="py-3 px-4">
-                  <Link to={`/companies/${holding.id}`} className="flex items-center gap-3 group">
+                  <Link to={`/portfolio/${holding.id}`} className="flex items-center gap-3 group">
                     <div className={cn("p-1.5 rounded-md", config.color)}>
                       <Icon className="h-3.5 w-3.5" />
                     </div>
@@ -964,7 +964,7 @@ function HoldingsTreemap({
         {data.map((item) => (
           <Link 
             key={item.id} 
-            to={`/companies/${item.id}`}
+            to={`/portfolio/${item.id}`}
             className="text-xs text-muted-foreground hover:text-foreground transition-colors"
           >
             <span 
@@ -993,7 +993,7 @@ function EmptyState() {
         Add assets with "Portfolio" status to see them here
       </p>
       <Button asChild variant="outline" className="mt-4">
-        <Link to="/companies">Browse Assets</Link>
+        <Link to="/pipeline">View Pipeline</Link>
       </Button>
     </motion.div>
   );

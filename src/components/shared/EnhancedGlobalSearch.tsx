@@ -168,7 +168,7 @@ export function EnhancedGlobalSearch({ open, onOpenChange }: EnhancedGlobalSearc
                     return (
                       <CommandItem
                         key={result.id}
-                        onSelect={() => runCommand(() => navigate(`/companies/${result.id}`))}
+                        onSelect={() => runCommand(() => navigate(`/portfolio/${result.id}`))}
                         className="py-3"
                       >
                         <Avatar className="h-8 w-8 mr-3">

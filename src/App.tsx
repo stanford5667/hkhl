@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { OrganizationProvider } from "@/contexts/OrganizationContext";
 import { UnifiedDataProvider } from "@/contexts/UnifiedDataContext";
@@ -15,8 +15,8 @@ import NewModel from "./pages/NewModel";
 import ModelEditor from "./pages/ModelEditor";
 import Portfolio from "./pages/Portfolio";
 import DataRoom from "./pages/DataRoom";
-import Companies from "./pages/Companies";
 import CompanyDetail from "./pages/CompanyDetail";
+import { CompanyRedirect } from "./components/shared/CompanyRedirect";
 import Contacts from "./pages/Contacts";
 import MarketIntel from "./pages/MarketIntel";
 import DealMatching from "./pages/DealMatching";
@@ -47,23 +47,27 @@ const App = () => (
                     <Route path="/" element={<EnhancedDashboard />} />
                     <Route path="/auth" element={<Auth />} />
                     <Route path="/pipeline" element={<Pipeline />} />
+                    <Route path="/portfolio" element={<Portfolio />} />
+                    <Route path="/portfolio/:id" element={<CompanyDetail />} />
+                    <Route path="/markets" element={<Markets />} />
+                    <Route path="/contacts" element={<Contacts />} />
+                    <Route path="/tasks" element={<Tasks />} />
+                    <Route path="/documents" element={<DataRoom />} />
                     <Route path="/models" element={<Models />} />
                     <Route path="/models/new" element={<NewModel />} />
                     <Route path="/models/:modelId/edit" element={<ModelEditor />} />
                     <Route path="/models/cash-flow-buildup" element={<CashFlowBuildupPage />} />
                     <Route path="/models/view/:modelId" element={<ModelViewerPage />} />
-                    <Route path="/portfolio" element={<Portfolio />} />
-                    <Route path="/documents" element={<DataRoom />} />
-                    <Route path="/companies" element={<Companies />} />
-                    <Route path="/companies/:id" element={<CompanyDetail />} />
-                    <Route path="/contacts" element={<Contacts />} />
-                    <Route path="/tasks" element={<Tasks />} />
                     <Route path="/market-intel" element={<MarketIntel />} />
                     <Route path="/deal-matching" element={<DealMatching />} />
                     <Route path="/settings" element={<Settings />} />
                     <Route path="/settings/organization" element={<OrganizationSettings />} />
                     <Route path="/research" element={<Research />} />
-                    <Route path="/markets" element={<Markets />} />
+                    {/* Redirects from old routes */}
+                    <Route path="/companies" element={<Navigate to="/portfolio" replace />} />
+                    <Route path="/companies/:id" element={<CompanyRedirect />} />
+                    <Route path="/assets" element={<Navigate to="/portfolio" replace />} />
+                    <Route path="/holdings" element={<Navigate to="/portfolio" replace />} />
                     {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                     <Route path="*" element={<NotFound />} />
                   </Routes>

@@ -20,10 +20,7 @@ import {
 } from "@/components/ui/tooltip";
 import {
   LayoutDashboard,
-  Layers,
   Users,
-  Calculator,
-  Globe,
   Folder,
   Settings,
   ChevronLeft,
@@ -33,8 +30,7 @@ import {
   CheckSquare,
   TrendingUp,
   Briefcase,
-  Wallet,
-  LineChart,
+  Target,
 } from "lucide-react";
 
 interface NavItem {
@@ -57,47 +53,41 @@ export function Sidebar() {
     const items: NavItem[] = [
       { 
         label: "Dashboard", 
-        subtitle: "Command Center",
+        subtitle: "Overview",
         href: "/", 
         icon: LayoutDashboard 
       },
-      { 
-        label: "Assets", 
-        subtitle: "All Holdings",
-        href: "/companies", 
-        icon: Layers,
-      },
     ];
 
-    // Add Deals only if private_equity is enabled
+    // Add Pipeline only if private_equity is enabled
     if (enabledAssetTypes.includes('private_equity')) {
       items.push({ 
-        label: "Deals", 
-        subtitle: "Pipeline",
+        label: "Pipeline", 
+        subtitle: "Deals in Progress",
         href: "/pipeline", 
-        icon: Briefcase,
+        icon: Target,
         requiresAssetType: 'private_equity',
       });
     }
+
+    // Portfolio - unified view of all owned assets
+    items.push({ 
+      label: "Portfolio", 
+      subtitle: "What You Own",
+      href: "/portfolio", 
+      icon: Briefcase,
+    });
 
     // Add Markets only if public_equity is enabled
     if (enabledAssetTypes.includes('public_equity')) {
       items.push({ 
         label: "Markets", 
-        subtitle: "Equities",
+        subtitle: "Research & Discovery",
         href: "/markets", 
-        icon: LineChart,
+        icon: TrendingUp,
         requiresAssetType: 'public_equity',
       });
     }
-
-    // Add Holdings (unified view of owned assets)
-    items.push({ 
-      label: "Holdings", 
-      subtitle: "Portfolio",
-      href: "/portfolio", 
-      icon: Wallet,
-    });
 
     // Core items
     items.push(
@@ -113,25 +103,9 @@ export function Sidebar() {
         href: "/tasks", 
         icon: CheckSquare 
       },
-    );
-
-    // Secondary items
-    items.push(
       { 
-        label: "Models", 
-        subtitle: "Analyze",
-        href: "/models", 
-        icon: Calculator 
-      },
-      { 
-        label: "Market Intel", 
-        subtitle: "Intelligence",
-        href: "/market-intel", 
-        icon: Globe,
-      },
-      { 
-        label: "Data Room", 
-        subtitle: "Documents",
+        label: "Documents", 
+        subtitle: "Data Room",
         href: "/documents", 
         icon: Folder 
       },

@@ -43,10 +43,10 @@ export function Layout({ children }: LayoutProps) {
 
   const handleUploadDocument = (companyId?: string) => {
     if (companyId) {
-      navigate(`/companies/${companyId}?tab=dataroom&upload=true`);
+      navigate(`/portfolio/${companyId}?tab=dataroom&upload=true`);
     } else {
       toast.info('Select a company first to upload documents');
-      navigate('/companies');
+      navigate('/portfolio');
     }
   };
 

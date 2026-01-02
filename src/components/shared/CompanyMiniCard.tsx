@@ -38,7 +38,7 @@ export function CompanyMiniCard({ company, variant = 'default', counts, classNam
   };
 
   return (
-    <Link to={`/companies/${company.id}`}>
+    <Link to={`/portfolio/${company.id}`}>
       <Card className={cn(
         "bg-card border-border hover:border-slate-700 transition-all cursor-pointer group",
         variant === 'compact' && "p-2",

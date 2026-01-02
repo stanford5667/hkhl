@@ -40,7 +40,7 @@ export function PipelineDealCard({ company, onDragStart, onMoveStage }: Pipeline
     : null;
 
   const handleViewDetails = () => {
-    navigate(`/companies/${company.id}`);
+    navigate(`/portfolio/${company.id}`);
   };
 
   const handleOpenDataRoom = () => {
