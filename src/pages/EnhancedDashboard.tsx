@@ -36,6 +36,7 @@ import { useDashboardData, useUnifiedData, type CompanyWithRelations, type TaskW
 import { CompanyMiniCard } from '@/components/shared/CompanyMiniCard';
 import { TaskRow } from '@/components/shared/TaskRow';
 import { supabase } from '@/integrations/supabase/client';
+import { FinnhubApiBanner } from '@/components/shared/FinnhubApiBanner';
 import {
   AreaChart,
   Area,
@@ -854,6 +855,13 @@ export default function EnhancedDashboard() {
           Refresh
         </Button>
       </motion.div>
+
+      {/* Finnhub API Banner (if public equities enabled) */}
+      {hasPublicEquity && (
+        <motion.div variants={itemVariants}>
+          <FinnhubApiBanner />
+        </motion.div>
+      )}
 
       {/* Markets Ticker (if public equities enabled) */}
       {hasPublicEquity && (
