@@ -200,7 +200,7 @@ export function AddAssetWizard({ open, onOpenChange, onComplete, onCreate }: Add
     onOpenChange(false);
   };
 
-  // Fetch stock quote when ticker changes using Finnhub
+  // Fetch stock quote when ticker changes using cached Finnhub
   const fetchStockQuote = useCallback(async (ticker: string) => {
     if (!ticker || ticker.length < 1) {
       setQuoteData(null);
@@ -209,8 +209,8 @@ export function AddAssetWizard({ open, onOpenChange, onComplete, onCreate }: Add
 
     setIsLoadingQuote(true);
     try {
-      const { getFullQuote } = await import('@/services/finnhubService');
-      const data = await getFullQuote(ticker.toUpperCase());
+      const { getCachedFullQuote } = await import('@/services/quoteCacheService');
+      const data = await getCachedFullQuote(ticker.toUpperCase());
 
       if (data) {
         setQuoteData({

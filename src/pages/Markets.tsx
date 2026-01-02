@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { getBatchQuotes } from '@/services/finnhubService';
+import { getCachedQuotes } from '@/services/quoteCacheService';
 import { useUnifiedData, Company } from '@/contexts/UnifiedDataContext';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -123,12 +123,12 @@ export default function MarketsPage() {
     });
   }, [marketIndicesData]);
 
-  // Fallback fetch for indices using Finnhub
+  // Fallback fetch for indices using cached Finnhub
   const fetchIndicesFallback = useCallback(async () => {
     if (marketIndicesData && marketIndicesData.length > 0) return;
     
     try {
-      const quotes = await getBatchQuotes(MARKET_INDICES_SYMBOLS.map(idx => idx.symbol));
+      const quotes = await getCachedQuotes(MARKET_INDICES_SYMBOLS.map(idx => idx.symbol));
       const results = MARKET_INDICES_SYMBOLS.map(idx => {
         const quote = quotes.get(idx.symbol);
         return {
@@ -138,9 +138,9 @@ export default function MarketsPage() {
           changePercent: quote?.changePercent || 0,
         };
       });
-      console.log('[Markets] Finnhub indices fetched:', results.length);
+      console.log('[Markets] Cached indices fetched:', results.length);
     } catch (err) {
-      console.error('[Markets] Finnhub indices error:', err);
+      console.error('[Markets] Cached indices error:', err);
     }
   }, [marketIndicesData]);
 
@@ -158,7 +158,7 @@ export default function MarketsPage() {
       .filter(h => h.ticker_symbol)
       .map(h => h.ticker_symbol!);
 
-    const quotes = await getBatchQuotes(tickers);
+    const quotes = await getCachedQuotes(tickers);
 
     const updatedHoldings = publicEquityHoldings.map(holding => {
       if (!holding.ticker_symbol) return { ...holding, isLoading: false };

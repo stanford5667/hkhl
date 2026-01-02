@@ -96,14 +96,14 @@ export function PublicEquityDetailView({ company, onUpdate }: PublicEquityDetail
     notes: '',
   });
   
-  // Fetch stock quote using Finnhub
+  // Fetch stock quote using cached Finnhub
   const fetchQuote = useCallback(async () => {
     if (!company.ticker_symbol) return;
     
     setIsLoadingQuote(true);
     try {
-      const { getFullQuote } = await import('@/services/finnhubService');
-      const data = await getFullQuote(company.ticker_symbol);
+      const { getCachedFullQuote } = await import('@/services/quoteCacheService');
+      const data = await getCachedFullQuote(company.ticker_symbol);
       
       if (data) {
         setQuote({
