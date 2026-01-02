@@ -204,20 +204,13 @@ function MarketsTicker({
         const iwmQuote = quotes.get('IWM');
         
         setIndices([
-          { symbol: 'SPY', name: 'S&P 500', price: spyQuote?.price || 502.15, change: spyQuote?.changePercent || 0.45 },
-          { symbol: 'QQQ', name: 'NASDAQ', price: qqqQuote?.price || 446.32, change: qqqQuote?.changePercent || 0.62 },
-          { symbol: 'DIA', name: 'DOW', price: diaQuote?.price || 386.45, change: diaQuote?.changePercent || 0.28 },
-          { symbol: 'IWM', name: 'Russell', price: iwmQuote?.price || 199.88, change: iwmQuote?.changePercent || 0.35 },
+          { symbol: 'SPY', name: 'S&P 500', price: spyQuote?.price || 0, change: spyQuote?.changePercent || 0 },
+          { symbol: 'QQQ', name: 'NASDAQ', price: qqqQuote?.price || 0, change: qqqQuote?.changePercent || 0 },
+          { symbol: 'DIA', name: 'DOW', price: diaQuote?.price || 0, change: diaQuote?.changePercent || 0 },
+          { symbol: 'IWM', name: 'Russell', price: iwmQuote?.price || 0, change: iwmQuote?.changePercent || 0 },
         ]);
       } catch (error) {
         console.error('Error fetching indices:', error);
-        // Fallback to sample data on error
-        setIndices([
-          { symbol: 'SPY', name: 'S&P 500', price: 502.15, change: 0.45 },
-          { symbol: 'QQQ', name: 'NASDAQ', price: 446.32, change: 0.62 },
-          { symbol: 'DIA', name: 'DOW', price: 386.45, change: 0.28 },
-          { symbol: 'IWM', name: 'Russell', price: 199.88, change: 0.35 },
-        ]);
       }
     };
     fetchIndices();

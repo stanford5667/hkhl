@@ -6,15 +6,7 @@
  */
 
 import { getQuote, getBatchQuotes, getCompanyProfile, type StockQuote } from './finnhubService';
-import { getMockStock, getMockIndex, type MockQuote } from '@/data/mockMarketData';
 
-// ETF to Index mapping for mock data
-const ETF_TO_INDEX: Record<string, string> = {
-  'SPY': 'SPX',
-  'QQQ': 'NDX',
-  'DIA': 'DJI',
-  'IWM': 'RUT',
-};
 
 interface CachedQuote {
   quote: StockQuote;
@@ -148,71 +140,8 @@ export async function getCachedQuote(symbol: string): Promise<StockQuote | null>
     return quote;
   }
 
-  // Fallback to mock data (but don't persist to localStorage - only memory with short TTL)
-  const mockQuote = getMockQuote(upperSymbol);
-  if (mockQuote) {
-    console.log(`[MOCK DATA] Using mock for: ${upperSymbol}`);
-    const cached = { quote: mockQuote, fetchedAt: Date.now(), isMock: true };
-    memoryCache.set(upperSymbol, cached);
-    // Don't save mock data to localStorage - we want to retry live API on refresh
-    return mockQuote;
-  }
-
+  // No mock fallback - return null if API fails
   console.log(`[NO DATA] No quote available for: ${upperSymbol}`);
-  return null;
-}
-
-/**
- * Convert mock data to StockQuote format
- */
-function getMockQuote(symbol: string): StockQuote | null {
-  const upperSymbol = symbol.toUpperCase();
-  
-  // Check if it's an ETF that maps to an index
-  const indexSymbol = ETF_TO_INDEX[upperSymbol];
-  if (indexSymbol) {
-    const indexData = getMockIndex(indexSymbol);
-    if (indexData) {
-      // ETFs trade at a fraction of index value: SPY ~1/10 of SPX, QQQ ~1/40 of NDX, etc.
-      const divisor = indexSymbol === 'SPX' ? 10 : indexSymbol === 'NDX' ? 40 : indexSymbol === 'DJI' ? 100 : 10;
-      const etfPrice = indexData.value / divisor;
-      const etfChange = indexData.change / divisor;
-      
-      return {
-        symbol: upperSymbol,
-        price: etfPrice,
-        change: etfChange,
-        changePercent: indexData.changePercent,
-        high: etfPrice * 1.005,
-        low: etfPrice * 0.995,
-        open: etfPrice - etfChange,
-        previousClose: etfPrice - etfChange,
-        timestamp: Date.now(),
-        companyName: `${indexData.name} ETF`,
-        isMock: true,
-      } as StockQuote & { isMock: boolean };
-    }
-  }
-
-  // Check regular stocks
-  const stockData = getMockStock(upperSymbol);
-  if (stockData) {
-    return {
-      symbol: upperSymbol,
-      price: stockData.price,
-      change: stockData.change,
-      changePercent: stockData.changePercent,
-      high: stockData.price * 1.01,
-      low: stockData.price * 0.99,
-      open: stockData.price - stockData.change,
-      previousClose: stockData.price - stockData.change,
-      timestamp: Date.now(),
-      companyName: stockData.name,
-      marketCap: stockData.marketCap ? formatMarketCap(stockData.marketCap) : undefined,
-      isMock: true,
-    } as StockQuote & { isMock: boolean };
-  }
-
   return null;
 }
 
@@ -321,19 +250,7 @@ export async function getCachedQuotes(symbols: string[]): Promise<Map<string, St
       updatedLocalCache[symbol.toUpperCase()] = cached;
     });
 
-    // For any symbols that weren't fetched (or if fetch failed), use mock
-    const fetchedSymbols = new Set([...fetched.keys()].map(s => s.toUpperCase()));
-    const stillMissing = toFetch.filter(s => !fetchedSymbols.has(s.toUpperCase()));
-
-    for (const symbol of stillMissing) {
-      const mockQuote = getMockQuote(symbol.toUpperCase());
-      if (mockQuote) {
-        results.set(symbol, mockQuote);
-        const cached = { quote: mockQuote, fetchedAt: Date.now(), isMock: true };
-        memoryCache.set(symbol.toUpperCase(), cached);
-        // Don't save mock data to localStorage - retry live API on refresh
-      }
-    }
+    // No mock fallback for batch - symbols without data just won't be in results
 
     setLocalCache(updatedLocalCache);
   } else {
