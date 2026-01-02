@@ -1,6 +1,10 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import * as cheerio from "https://esm.sh/cheerio@1.0.0-rc.12";
 
+// ========== KILL SWITCH - SET TO FALSE TO DISABLE ALL EXTERNAL API CALLS ==========
+const ENABLE_EXTERNAL_APIS = false;
+// ===================================================================================
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -402,6 +406,20 @@ function getFallbackMultiples(): MultiplesData {
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
+  }
+
+  // KILL SWITCH - Return early if external APIs are disabled
+  if (!ENABLE_EXTERNAL_APIS) {
+    console.log('[API BLOCKED] fetch-market-data - External APIs disabled');
+    return new Response(
+      JSON.stringify({
+        success: false,
+        error: 'External API calls disabled for testing',
+        data: null,
+        isBlocked: true
+      }),
+      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
   }
 
   try {
