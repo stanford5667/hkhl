@@ -36,6 +36,7 @@ import {
   FlaskConical,
   Star,
   Sparkles as SparklesIcon,
+  Activity,
 } from "lucide-react";
 
 interface NavItem {
@@ -128,9 +129,9 @@ export function Sidebar() {
       },
       { 
         label: "Backtester", 
-        subtitle: "Strategy Testing",
+        subtitle: "Portfolio Analysis",
         href: "/backtester", 
-        icon: FlaskConical 
+        icon: Activity 
       },
       { 
         label: "Watchlist", 

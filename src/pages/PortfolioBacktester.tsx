@@ -1,0 +1,611 @@
+import { useState } from 'react';
+import {
+  LayoutDashboard,
+  Briefcase,
+  TrendingUp,
+  AlertTriangle,
+  FileText,
+  ChevronLeft,
+  ChevronRight,
+  ChevronDown,
+  Activity,
+  Sparkles,
+  BarChart3,
+  Settings,
+} from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
+import { cn } from '@/lib/utils';
+
+// Sidebar navigation items
+const NAV_ITEMS = [
+  { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { id: 'portfolio', label: 'Portfolio & Strategy', icon: Briefcase },
+  { id: 'macro', label: 'Macro Metrics', icon: TrendingUp },
+  { id: 'stress', label: 'Stress Testing', icon: AlertTriangle },
+  { id: 'reports', label: 'Reports', icon: FileText },
+];
+
+const TIMELINE_OPTIONS = ['1 Year', '2 Years', '5 Years', 'Custom Range'];
+
+const METRICS = [
+  { id: 'totalReturn', label: 'Total Return' },
+  { id: 'cagr', label: 'CAGR' },
+  { id: 'sharpeRatio', label: 'Sharpe Ratio' },
+  { id: 'sortinoRatio', label: 'Sortino Ratio' },
+  { id: 'maxDrawdown', label: 'Max Drawdown' },
+  { id: 'volatility', label: 'Volatility' },
+  { id: 'beta', label: 'Beta' },
+  { id: 'alpha', label: 'Alpha' },
+];
+
+const BENCHMARKS = [
+  { id: 'spy', label: 'S&P 500 (SPY)' },
+  { id: 'qqq', label: 'NASDAQ 100 (QQQ)' },
+  { id: 'iwm', label: 'Russell 2000 (IWM)' },
+  { id: 'dia', label: 'Dow Jones (DIA)' },
+  { id: 'vti', label: 'Total Market (VTI)' },
+  { id: 'agg', label: 'Bonds (AGG)' },
+];
+
+function BacktesterSidebar({
+  collapsed,
+  onToggle,
+  activeTab,
+  onTabChange,
+}: {
+  collapsed: boolean;
+  onToggle: () => void;
+  activeTab: string;
+  onTabChange: (tab: string) => void;
+}) {
+  return (
+    <aside
+      className={cn(
+        'flex flex-col h-full bg-primary text-primary-foreground transition-all duration-300 flex-shrink-0',
+        collapsed ? 'w-20' : 'w-[280px]'
+      )}
+    >
+      {/* Logo */}
+      <div className="flex items-center gap-3 p-4 border-b border-primary-foreground/10">
+        <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-primary-foreground/10 flex items-center justify-center">
+          <Activity className="h-5 w-5" />
+        </div>
+        {!collapsed && (
+          <div className="min-w-0">
+            <h2 className="font-bold text-sm truncate">Asset Labs</h2>
+            <p className="text-xs text-primary-foreground/60 truncate">AI Backtester</p>
+          </div>
+        )}
+      </div>
+
+      {/* Navigation */}
+      <nav className="flex-1 p-3 space-y-1">
+        {NAV_ITEMS.map((item) => {
+          const Icon = item.icon;
+          const isActive = activeTab === item.id;
+          return (
+            <button
+              key={item.id}
+              onClick={() => onTabChange(item.id)}
+              className={cn(
+                'w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
+                isActive
+                  ? 'bg-primary-foreground/20 text-primary-foreground'
+                  : 'text-primary-foreground/70 hover:bg-primary-foreground/10 hover:text-primary-foreground',
+                collapsed && 'justify-center px-2'
+              )}
+            >
+              <Icon className="h-5 w-5 flex-shrink-0" />
+              {!collapsed && <span className="truncate">{item.label}</span>}
+            </button>
+          );
+        })}
+      </nav>
+
+      {/* Toggle Button */}
+      <div className="p-3 border-t border-primary-foreground/10">
+        <button
+          onClick={onToggle}
+          className={cn(
+            'w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-primary-foreground/70 hover:bg-primary-foreground/10 hover:text-primary-foreground transition-colors',
+            collapsed && 'justify-center px-2'
+          )}
+        >
+          {collapsed ? (
+            <ChevronRight className="h-5 w-5" />
+          ) : (
+            <>
+              <ChevronLeft className="h-5 w-5" />
+              <span>Collapse</span>
+            </>
+          )}
+        </button>
+      </div>
+    </aside>
+  );
+}
+
+function MetricsSelector({
+  selected,
+  onChange,
+}: {
+  selected: string[];
+  onChange: (metrics: string[]) => void;
+}) {
+  const toggle = (id: string) => {
+    if (selected.includes(id)) {
+      onChange(selected.filter((m) => m !== id));
+    } else {
+      onChange([...selected, id]);
+    }
+  };
+
+  return (
+    <Dialog>
+      <DialogTrigger asChild>
+        <Button variant="outline" size="sm">
+          <BarChart3 className="h-4 w-4 mr-2" />
+          Metrics
+        </Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Select Metrics</DialogTitle>
+        </DialogHeader>
+        <div className="grid grid-cols-2 gap-3 py-4">
+          {METRICS.map((metric) => (
+            <div key={metric.id} className="flex items-center gap-2">
+              <Checkbox
+                id={metric.id}
+                checked={selected.includes(metric.id)}
+                onCheckedChange={() => toggle(metric.id)}
+              />
+              <Label htmlFor={metric.id} className="text-sm cursor-pointer">
+                {metric.label}
+              </Label>
+            </div>
+          ))}
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function BenchmarkSelector({
+  selected,
+  onChange,
+}: {
+  selected: string[];
+  onChange: (benchmarks: string[]) => void;
+}) {
+  const toggle = (id: string) => {
+    if (selected.includes(id)) {
+      onChange(selected.filter((b) => b !== id));
+    } else {
+      onChange([...selected, id]);
+    }
+  };
+
+  return (
+    <Dialog>
+      <DialogTrigger asChild>
+        <Button variant="outline" size="sm">
+          <TrendingUp className="h-4 w-4 mr-2" />
+          Benchmarks
+        </Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Select Benchmarks</DialogTitle>
+        </DialogHeader>
+        <div className="grid grid-cols-2 gap-3 py-4">
+          {BENCHMARKS.map((benchmark) => (
+            <div key={benchmark.id} className="flex items-center gap-2">
+              <Checkbox
+                id={benchmark.id}
+                checked={selected.includes(benchmark.id)}
+                onCheckedChange={() => toggle(benchmark.id)}
+              />
+              <Label htmlFor={benchmark.id} className="text-sm cursor-pointer">
+                {benchmark.label}
+              </Label>
+            </div>
+          ))}
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function DashboardTab() {
+  return (
+    <div className="space-y-6">
+      {/* Key Metrics */}
+      <div className="grid grid-cols-4 gap-4">
+        {[
+          { label: 'Total Return', value: '+24.5%', change: '+2.3%' },
+          { label: 'Sharpe Ratio', value: '1.42', change: '+0.12' },
+          { label: 'Max Drawdown', value: '-12.3%', change: '-1.2%' },
+          { label: 'Win Rate', value: '67%', change: '+3%' },
+        ].map((metric, i) => (
+          <Card key={i}>
+            <CardContent className="p-4">
+              <p className="text-sm text-muted-foreground">{metric.label}</p>
+              <p className="text-2xl font-bold mt-1">{metric.value}</p>
+              <p className={cn('text-xs mt-1', metric.change.startsWith('+') ? 'text-emerald-500' : 'text-destructive')}>
+                {metric.change} vs benchmark
+              </p>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      {/* Charts Placeholder */}
+      <div className="grid grid-cols-2 gap-6">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm">Portfolio Performance</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="h-64 bg-muted/50 rounded-lg flex items-center justify-center">
+              <p className="text-muted-foreground text-sm">Equity curve chart</p>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm">Drawdown Analysis</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="h-64 bg-muted/50 rounded-lg flex items-center justify-center">
+              <p className="text-muted-foreground text-sm">Drawdown chart</p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Recent Activity */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-sm">Recent Trades</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-3">
+            {[
+              { symbol: 'AAPL', action: 'BUY', shares: 50, price: 178.50, date: 'Dec 28, 2025' },
+              { symbol: 'MSFT', action: 'SELL', shares: 25, price: 378.20, date: 'Dec 27, 2025' },
+              { symbol: 'GOOGL', action: 'BUY', shares: 30, price: 141.80, date: 'Dec 26, 2025' },
+            ].map((trade, i) => (
+              <div key={i} className="flex items-center justify-between py-2 border-b last:border-0">
+                <div className="flex items-center gap-3">
+                  <span className={cn('text-xs font-medium px-2 py-0.5 rounded', trade.action === 'BUY' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-destructive/10 text-destructive')}>
+                    {trade.action}
+                  </span>
+                  <span className="font-medium">{trade.symbol}</span>
+                  <span className="text-muted-foreground text-sm">{trade.shares} shares @ ${trade.price}</span>
+                </div>
+                <span className="text-sm text-muted-foreground">{trade.date}</span>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+function PortfolioTab() {
+  return (
+    <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-sm">Portfolio Allocation</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 gap-6">
+            <div className="h-64 bg-muted/50 rounded-lg flex items-center justify-center">
+              <p className="text-muted-foreground text-sm">Allocation pie chart</p>
+            </div>
+            <div className="space-y-3">
+              {[
+                { sector: 'Technology', weight: 35, color: 'bg-blue-500' },
+                { sector: 'Healthcare', weight: 20, color: 'bg-emerald-500' },
+                { sector: 'Financials', weight: 18, color: 'bg-amber-500' },
+                { sector: 'Consumer', weight: 15, color: 'bg-purple-500' },
+                { sector: 'Other', weight: 12, color: 'bg-gray-500' },
+              ].map((sector) => (
+                <div key={sector.sector} className="flex items-center gap-3">
+                  <div className={cn('w-3 h-3 rounded-full', sector.color)} />
+                  <span className="flex-1 text-sm">{sector.sector}</span>
+                  <span className="text-sm font-medium">{sector.weight}%</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-sm">Strategy Parameters</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-3 gap-4">
+            {[
+              { label: 'Rebalance Frequency', value: 'Monthly' },
+              { label: 'Position Limit', value: '5%' },
+              { label: 'Stop Loss', value: '10%' },
+              { label: 'Take Profit', value: '25%' },
+              { label: 'Max Holdings', value: '20' },
+              { label: 'Cash Buffer', value: '5%' },
+            ].map((param) => (
+              <div key={param.label} className="p-3 bg-muted/50 rounded-lg">
+                <p className="text-xs text-muted-foreground">{param.label}</p>
+                <p className="font-medium mt-1">{param.value}</p>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+function MacroTab() {
+  return (
+    <div className="space-y-6">
+      <div className="grid grid-cols-3 gap-4">
+        {[
+          { label: 'Fed Funds Rate', value: '5.25%', trend: 'stable' },
+          { label: '10Y Treasury', value: '4.52%', trend: 'up' },
+          { label: 'Inflation (CPI)', value: '3.1%', trend: 'down' },
+          { label: 'Unemployment', value: '3.7%', trend: 'stable' },
+          { label: 'GDP Growth', value: '2.4%', trend: 'up' },
+          { label: 'VIX', value: '14.2', trend: 'down' },
+        ].map((indicator) => (
+          <Card key={indicator.label}>
+            <CardContent className="p-4">
+              <p className="text-sm text-muted-foreground">{indicator.label}</p>
+              <div className="flex items-center gap-2 mt-1">
+                <p className="text-xl font-bold">{indicator.value}</p>
+                <span className={cn('text-xs', indicator.trend === 'up' ? 'text-emerald-500' : indicator.trend === 'down' ? 'text-destructive' : 'text-muted-foreground')}>
+                  {indicator.trend === 'up' ? '↑' : indicator.trend === 'down' ? '↓' : '→'}
+                </span>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-sm">Macro Correlation Matrix</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="h-64 bg-muted/50 rounded-lg flex items-center justify-center">
+            <p className="text-muted-foreground text-sm">Correlation heatmap</p>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+function StressTestTab() {
+  return (
+    <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-sm">Scenario Analysis</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {[
+              { scenario: '2008 Financial Crisis', impact: '-42%', recovery: '18 months' },
+              { scenario: 'COVID-19 Crash (2020)', impact: '-34%', recovery: '5 months' },
+              { scenario: 'Dot-Com Bubble (2000)', impact: '-38%', recovery: '24 months' },
+              { scenario: 'Rate Shock (+200bps)', impact: '-15%', recovery: '8 months' },
+              { scenario: 'Inflation Spike (+3%)', impact: '-12%', recovery: '6 months' },
+            ].map((test) => (
+              <div key={test.scenario} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                <span className="font-medium">{test.scenario}</span>
+                <div className="flex items-center gap-6">
+                  <div className="text-right">
+                    <p className="text-xs text-muted-foreground">Portfolio Impact</p>
+                    <p className="font-medium text-destructive">{test.impact}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-xs text-muted-foreground">Est. Recovery</p>
+                    <p className="font-medium">{test.recovery}</p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-sm">Monte Carlo Simulation</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="h-64 bg-muted/50 rounded-lg flex items-center justify-center">
+            <p className="text-muted-foreground text-sm">Monte Carlo distribution chart</p>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+function ReportsTab() {
+  return (
+    <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-sm">Generated Reports</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-3">
+            {[
+              { name: 'Q4 2025 Performance Report', date: 'Dec 31, 2025', type: 'PDF' },
+              { name: 'Annual Risk Assessment', date: 'Dec 28, 2025', type: 'PDF' },
+              { name: 'Strategy Attribution Analysis', date: 'Dec 15, 2025', type: 'Excel' },
+              { name: 'Tax Lot Report', date: 'Dec 1, 2025', type: 'PDF' },
+            ].map((report) => (
+              <div key={report.name} className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors cursor-pointer">
+                <div className="flex items-center gap-3">
+                  <FileText className="h-5 w-5 text-muted-foreground" />
+                  <div>
+                    <p className="font-medium text-sm">{report.name}</p>
+                    <p className="text-xs text-muted-foreground">{report.date}</p>
+                  </div>
+                </div>
+                <span className="text-xs px-2 py-1 bg-muted rounded">{report.type}</span>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      <div className="flex gap-3">
+        <Button variant="outline">
+          <FileText className="h-4 w-4 mr-2" />
+          Generate New Report
+        </Button>
+        <Button variant="outline">
+          <Settings className="h-4 w-4 mr-2" />
+          Report Settings
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+export default function PortfolioBacktester() {
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [activeTab, setActiveTab] = useState('dashboard');
+  const [timeline, setTimeline] = useState('1 Year');
+  const [selectedMetrics, setSelectedMetrics] = useState(['totalReturn', 'sharpeRatio', 'maxDrawdown']);
+  const [selectedBenchmarks, setSelectedBenchmarks] = useState(['spy']);
+  const [isRunning, setIsRunning] = useState(false);
+
+  const handleRunBacktest = () => {
+    setIsRunning(true);
+    setTimeout(() => setIsRunning(false), 2000);
+  };
+
+  const renderContent = () => {
+    switch (activeTab) {
+      case 'dashboard':
+        return <DashboardTab />;
+      case 'portfolio':
+        return <PortfolioTab />;
+      case 'macro':
+        return <MacroTab />;
+      case 'stress':
+        return <StressTestTab />;
+      case 'reports':
+        return <ReportsTab />;
+      default:
+        return <DashboardTab />;
+    }
+  };
+
+  return (
+    <div className="flex h-[calc(100vh-3.5rem)] -m-6 overflow-hidden">
+      {/* Sidebar */}
+      <BacktesterSidebar
+        collapsed={sidebarCollapsed}
+        onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+      />
+
+      {/* Main Content */}
+      <div className="flex-1 flex flex-col overflow-hidden min-w-0">
+        {/* Header */}
+        <header className="flex items-center justify-between px-6 py-4 border-b bg-background flex-shrink-0">
+          <div className="flex items-center gap-3">
+            <Sparkles className="h-5 w-5 text-primary" />
+            <h1 className="text-lg font-semibold">Asset Labs AI Backtester</h1>
+          </div>
+
+          <div className="flex items-center gap-3">
+            {/* Timeline Dropdown */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm">
+                  {timeline}
+                  <ChevronDown className="h-4 w-4 ml-2" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent>
+                {TIMELINE_OPTIONS.map((option) => (
+                  <DropdownMenuItem key={option} onClick={() => setTimeline(option)}>
+                    {option}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            <MetricsSelector selected={selectedMetrics} onChange={setSelectedMetrics} />
+            <BenchmarkSelector selected={selectedBenchmarks} onChange={setSelectedBenchmarks} />
+
+            <Button onClick={handleRunBacktest} disabled={isRunning}>
+              {isRunning ? 'Running...' : 'Run Backtest'}
+            </Button>
+          </div>
+        </header>
+
+        {/* Tabs Navigation */}
+        <div className="border-b bg-background px-6 flex-shrink-0">
+          <div className="flex gap-1 overflow-x-auto">
+            {[
+              { id: 'dashboard', label: 'Dashboard' },
+              { id: 'portfolio', label: 'Portfolio & Strategy' },
+              { id: 'macro', label: 'Macro Metrics' },
+              { id: 'stress', label: 'Analysis & Stress Testing' },
+              { id: 'reports', label: 'Reports' },
+            ].map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={cn(
+                  'px-4 py-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap',
+                  activeTab === tab.id
+                    ? 'border-primary text-primary'
+                    : 'border-transparent text-muted-foreground hover:text-foreground'
+                )}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Content Area */}
+        <main className="flex-1 overflow-auto p-6 bg-muted/30">
+          {renderContent()}
+        </main>
+      </div>
+    </div>
+  );
+}
