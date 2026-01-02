@@ -102,6 +102,10 @@ function getProfileCacheTTL(): number {
 }
 
 function isCacheValid(cached: CachedQuote): boolean {
+  // Mock data expires much faster (5 seconds) so we retry live API quickly
+  if (cached.isMock) {
+    return Date.now() - cached.fetchedAt < 5000;
+  }
   return Date.now() - cached.fetchedAt < getCacheTTL();
 }
 
@@ -144,14 +148,13 @@ export async function getCachedQuote(symbol: string): Promise<StockQuote | null>
     return quote;
   }
 
-  // Fallback to mock data
+  // Fallback to mock data (but don't persist to localStorage - only memory with short TTL)
   const mockQuote = getMockQuote(upperSymbol);
   if (mockQuote) {
     console.log(`[MOCK DATA] Using mock for: ${upperSymbol}`);
     const cached = { quote: mockQuote, fetchedAt: Date.now(), isMock: true };
     memoryCache.set(upperSymbol, cached);
-    localCache[upperSymbol] = cached;
-    setLocalCache(localCache);
+    // Don't save mock data to localStorage - we want to retry live API on refresh
     return mockQuote;
   }
 
@@ -328,7 +331,7 @@ export async function getCachedQuotes(symbols: string[]): Promise<Map<string, St
         results.set(symbol, mockQuote);
         const cached = { quote: mockQuote, fetchedAt: Date.now(), isMock: true };
         memoryCache.set(symbol.toUpperCase(), cached);
-        updatedLocalCache[symbol.toUpperCase()] = cached;
+        // Don't save mock data to localStorage - retry live API on refresh
       }
     }
 
