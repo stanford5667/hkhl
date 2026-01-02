@@ -10,7 +10,7 @@ export const API_CONFIG = {
   ENABLE_PERPLEXITY: false,  // SET TO FALSE - blocks all Perplexity API calls
   
   // Master kill switch for market data API calls
-  ENABLE_MARKET_DATA: false, // SET TO FALSE - blocks market data fetching
+  ENABLE_MARKET_DATA: true, // ENABLED - allows Finnhub market data fetching
   
   // Master kill switch for AI features
   ENABLE_AI_FEATURES: false, // SET TO FALSE - blocks AI summary generation, etc.
