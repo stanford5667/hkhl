@@ -34,6 +34,7 @@ import {
   Calculator,
   BarChart3,
   FlaskConical,
+  Star,
 } from "lucide-react";
 
 interface NavItem {
@@ -129,6 +130,12 @@ export function Sidebar() {
         subtitle: "Strategy Testing",
         href: "/backtester", 
         icon: FlaskConical 
+      },
+      { 
+        label: "Watchlist", 
+        subtitle: "Tracked Stocks",
+        href: "/watchlist", 
+        icon: Star 
       },
     );
 
