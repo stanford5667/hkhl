@@ -4,6 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useDevMode } from '@/contexts/DevModeContext';
 import { cacheService, CacheEntry } from '@/services/cacheService';
 import { CACHE_TTL, CACHE_KEYS } from '@/config/cacheConfig';
+import { API_CONFIG, logBlockedApiCall } from '@/config/apiConfig';
 
 export interface IndustryIntelData {
   summary: string;
@@ -62,6 +63,12 @@ export function useCachedIndustryIntel(
   
   // The actual API call to edge function
   const fetchFromAPI = async (): Promise<IndustryIntelData> => {
+    // KILL SWITCH - Block all Perplexity API calls
+    if (!API_CONFIG.ENABLE_PERPLEXITY) {
+      logBlockedApiCall(`Perplexity industry-intel: ${companyName}`);
+      throw new Error('Perplexity API disabled for testing');
+    }
+    
     // Block API calls when market data is disabled
     if (!marketDataEnabled) {
       throw new Error('Market data is paused. Enable live data to fetch.');

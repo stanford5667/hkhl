@@ -1,5 +1,9 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
+// ========== KILL SWITCH - SET TO FALSE TO DISABLE ALL API CALLS ==========
+const ENABLE_PERPLEXITY_API = false;
+// ==========================================================================
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -8,6 +12,20 @@ const corsHeaders = {
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
+  }
+
+  // KILL SWITCH - Return early if API is disabled
+  if (!ENABLE_PERPLEXITY_API) {
+    console.log('[API BLOCKED] industry-intel function - Perplexity API disabled');
+    return new Response(
+      JSON.stringify({ 
+        success: false, 
+        error: 'API disabled for testing',
+        data: null,
+        isBlocked: true
+      }),
+      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
   }
 
   try {
@@ -22,7 +40,7 @@ serve(async (req) => {
       );
     }
 
-    console.log('Fetching industry intel for:', companyName, industry);
+    console.log('[API CALL] Perplexity industry-intel:', companyName, industry);
 
     // Build search query for relevant news
     const searchQuery = `Latest news and market intelligence for ${industry || 'business'} industry ${companyName ? `related to companies like ${companyName}` : ''} M&A activity, market trends, competitive landscape`;

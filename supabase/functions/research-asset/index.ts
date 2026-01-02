@@ -1,5 +1,9 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
+// ========== KILL SWITCH - SET TO FALSE TO DISABLE ALL API CALLS ==========
+const ENABLE_PERPLEXITY_API = false;
+// ==========================================================================
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -18,6 +22,20 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // KILL SWITCH - Return early if API is disabled
+  if (!ENABLE_PERPLEXITY_API) {
+    console.log('[API BLOCKED] research-asset function - Perplexity API disabled');
+    return new Response(
+      JSON.stringify({ 
+        success: false, 
+        error: 'API disabled for testing',
+        data: null,
+        isBlocked: true
+      }),
+      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+
   try {
     const { ticker, researchType } = await req.json();
 
@@ -28,7 +46,7 @@ serve(async (req) => {
       );
     }
 
-    console.log(`Researching ${ticker} - ${researchType}`);
+    console.log(`[API CALL] Perplexity research-asset: ${ticker} - ${researchType}`);
 
     const PERPLEXITY_API_KEY = Deno.env.get('PERPLEXITY_API_KEY');
     if (!PERPLEXITY_API_KEY) {

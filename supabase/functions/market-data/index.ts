@@ -1,6 +1,10 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 
+// ========== KILL SWITCH - SET TO FALSE TO DISABLE ALL API CALLS ==========
+const ENABLE_PERPLEXITY_API = false;
+// ==========================================================================
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -104,10 +108,18 @@ async function setCachedData(
 }
 
 async function callPerplexity(prompt: string, systemPrompt: string): Promise<string> {
+  // KILL SWITCH CHECK
+  if (!ENABLE_PERPLEXITY_API) {
+    console.log('[API BLOCKED] Perplexity API call blocked - ENABLE_PERPLEXITY_API is false');
+    throw new Error('API disabled for testing');
+  }
+
   const PERPLEXITY_API_KEY = Deno.env.get('PERPLEXITY_API_KEY');
   if (!PERPLEXITY_API_KEY) {
     throw new Error('PERPLEXITY_API_KEY not configured');
   }
+
+  console.log('[API CALL] Perplexity API - market-data');
 
   const response = await fetch('https://api.perplexity.ai/chat/completions', {
     method: 'POST',
@@ -222,6 +234,20 @@ Use real current market data. If markets are closed, use the most recent trading
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
+  }
+
+  // KILL SWITCH - Return early if API is disabled
+  if (!ENABLE_PERPLEXITY_API) {
+    console.log('[API BLOCKED] market-data function - API disabled');
+    return new Response(
+      JSON.stringify({ 
+        success: false, 
+        error: 'API disabled for testing',
+        data: null,
+        isBlocked: true
+      }),
+      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
   }
 
   try {
