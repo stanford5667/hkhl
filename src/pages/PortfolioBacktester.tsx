@@ -36,6 +36,11 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
@@ -43,23 +48,34 @@ import { cn } from '@/lib/utils';
 const TIMELINE_OPTIONS = ['1 Year', '2 Years', '5 Years', 'Custom Range'];
 
 const METRICS = [
-  { id: 'totalReturn', label: 'Total Return' },
   { id: 'cagr', label: 'CAGR' },
+  { id: 'totalReturn', label: 'Total Return' },
   { id: 'sharpeRatio', label: 'Sharpe Ratio' },
   { id: 'sortinoRatio', label: 'Sortino Ratio' },
   { id: 'maxDrawdown', label: 'Max Drawdown' },
-  { id: 'volatility', label: 'Volatility' },
-  { id: 'beta', label: 'Beta' },
+  { id: 'calmarRatio', label: 'Calmar Ratio' },
   { id: 'alpha', label: 'Alpha' },
+  { id: 'beta', label: 'Beta' },
+  { id: 'volatility', label: 'Std Dev' },
+  { id: 'trackingError', label: 'Tracking Error' },
 ];
 
-const BENCHMARKS = [
+const BENCHMARK_INDICES = [
   { id: 'spy', label: 'S&P 500 (SPY)' },
-  { id: 'qqq', label: 'NASDAQ 100 (QQQ)' },
-  { id: 'iwm', label: 'Russell 2000 (IWM)' },
-  { id: 'dia', label: 'Dow Jones (DIA)' },
-  { id: 'vti', label: 'Total Market (VTI)' },
-  { id: 'agg', label: 'Bonds (AGG)' },
+  { id: 'qqq', label: 'NASDAQ (QQQ)' },
+  { id: 'iwm', label: 'Russell 2000' },
+  { id: 'vti', label: 'VTI' },
+];
+
+const BENCHMARK_HEDGE_FUNDS = [
+  { id: 'brk', label: 'Berkshire Hathaway' },
+  { id: 'bridgewater', label: 'Bridgewater Associates' },
+  { id: 'renaissance', label: 'Renaissance Technologies' },
+  { id: 'citadel', label: 'Citadel Advisors' },
+  { id: 'twoSigma', label: 'Two Sigma' },
+  { id: 'millennium', label: 'Millennium' },
+  { id: 'aqr', label: 'AQR Capital' },
+  { id: 'deshaw', label: 'D.E. Shaw' },
 ];
 
 function MetricsSelector({
@@ -77,34 +93,52 @@ function MetricsSelector({
     }
   };
 
+  const selectAll = () => onChange(METRICS.map((m) => m.id));
+  const clearAll = () => onChange([]);
+
   return (
-    <Dialog>
-      <DialogTrigger asChild>
+    <Popover>
+      <PopoverTrigger asChild>
         <Button variant="outline" size="sm">
           <BarChart3 className="h-4 w-4 mr-2" />
           Metrics
+          {selected.length > 0 && (
+            <span className="ml-2 bg-primary text-primary-foreground text-xs px-1.5 py-0.5 rounded-full">
+              {selected.length}
+            </span>
+          )}
         </Button>
-      </DialogTrigger>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Select Metrics</DialogTitle>
-        </DialogHeader>
-        <div className="grid grid-cols-2 gap-3 py-4">
-          {METRICS.map((metric) => (
-            <div key={metric.id} className="flex items-center gap-2">
-              <Checkbox
-                id={metric.id}
-                checked={selected.includes(metric.id)}
-                onCheckedChange={() => toggle(metric.id)}
-              />
-              <Label htmlFor={metric.id} className="text-sm cursor-pointer">
-                {metric.label}
-              </Label>
+      </PopoverTrigger>
+      <PopoverContent className="w-64 bg-popover" align="end">
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h4 className="font-medium text-sm">Select Metrics</h4>
+            <div className="flex gap-2">
+              <button onClick={selectAll} className="text-xs text-primary hover:underline">
+                All
+              </button>
+              <button onClick={clearAll} className="text-xs text-muted-foreground hover:underline">
+                Clear
+              </button>
             </div>
-          ))}
+          </div>
+          <div className="grid grid-cols-1 gap-2">
+            {METRICS.map((metric) => (
+              <div key={metric.id} className="flex items-center gap-2">
+                <Checkbox
+                  id={`metric-${metric.id}`}
+                  checked={selected.includes(metric.id)}
+                  onCheckedChange={() => toggle(metric.id)}
+                />
+                <Label htmlFor={`metric-${metric.id}`} className="text-sm cursor-pointer">
+                  {metric.label}
+                </Label>
+              </div>
+            ))}
+          </div>
         </div>
-      </DialogContent>
-    </Dialog>
+      </PopoverContent>
+    </Popover>
   );
 }
 
@@ -123,34 +157,89 @@ function BenchmarkSelector({
     }
   };
 
+  const selectAllIndices = () => {
+    const indicesIds = BENCHMARK_INDICES.map((b) => b.id);
+    const newSelected = [...new Set([...selected, ...indicesIds])];
+    onChange(newSelected);
+  };
+
+  const selectAllHedgeFunds = () => {
+    const hedgeFundIds = BENCHMARK_HEDGE_FUNDS.map((b) => b.id);
+    const newSelected = [...new Set([...selected, ...hedgeFundIds])];
+    onChange(newSelected);
+  };
+
   return (
-    <Dialog>
-      <DialogTrigger asChild>
+    <Popover>
+      <PopoverTrigger asChild>
         <Button variant="outline" size="sm">
           <TrendingUp className="h-4 w-4 mr-2" />
           Benchmarks
+          {selected.length > 0 && (
+            <span className="ml-2 bg-primary text-primary-foreground text-xs px-1.5 py-0.5 rounded-full">
+              {selected.length}
+            </span>
+          )}
         </Button>
-      </DialogTrigger>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Select Benchmarks</DialogTitle>
-        </DialogHeader>
-        <div className="grid grid-cols-2 gap-3 py-4">
-          {BENCHMARKS.map((benchmark) => (
-            <div key={benchmark.id} className="flex items-center gap-2">
-              <Checkbox
-                id={benchmark.id}
-                checked={selected.includes(benchmark.id)}
-                onCheckedChange={() => toggle(benchmark.id)}
-              />
-              <Label htmlFor={benchmark.id} className="text-sm cursor-pointer">
-                {benchmark.label}
-              </Label>
+      </PopoverTrigger>
+      <PopoverContent className="w-72 bg-popover" align="end">
+        <div className="space-y-4">
+          {/* Indices Section */}
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <h4 className="font-medium text-sm text-muted-foreground uppercase tracking-wide">
+                Indices
+              </h4>
+              <button onClick={selectAllIndices} className="text-xs text-primary hover:underline">
+                Select all
+              </button>
             </div>
-          ))}
+            <div className="grid grid-cols-1 gap-2">
+              {BENCHMARK_INDICES.map((benchmark) => (
+                <div key={benchmark.id} className="flex items-center gap-2">
+                  <Checkbox
+                    id={`bench-${benchmark.id}`}
+                    checked={selected.includes(benchmark.id)}
+                    onCheckedChange={() => toggle(benchmark.id)}
+                  />
+                  <Label htmlFor={`bench-${benchmark.id}`} className="text-sm cursor-pointer">
+                    {benchmark.label}
+                  </Label>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="border-t" />
+
+          {/* Hedge Funds Section */}
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <h4 className="font-medium text-sm text-muted-foreground uppercase tracking-wide">
+                Hedge Funds
+              </h4>
+              <button onClick={selectAllHedgeFunds} className="text-xs text-primary hover:underline">
+                Select all
+              </button>
+            </div>
+            <div className="grid grid-cols-1 gap-2">
+              {BENCHMARK_HEDGE_FUNDS.map((benchmark) => (
+                <div key={benchmark.id} className="flex items-center gap-2">
+                  <Checkbox
+                    id={`bench-${benchmark.id}`}
+                    checked={selected.includes(benchmark.id)}
+                    onCheckedChange={() => toggle(benchmark.id)}
+                  />
+                  <Label htmlFor={`bench-${benchmark.id}`} className="text-sm cursor-pointer">
+                    {benchmark.label}
+                  </Label>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
-      </DialogContent>
-    </Dialog>
+      </PopoverContent>
+    </Popover>
   );
 }
 
