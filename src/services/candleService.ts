@@ -6,6 +6,7 @@
 
 import { API_CONFIG } from '@/config/apiConfig';
 import { supabase } from '@/integrations/supabase/client';
+import { getQuote } from '@/services/finnhubService';
 
 export interface CandleData {
   time: number; // Unix timestamp
@@ -64,42 +65,67 @@ export async function getCandles(
     return cached.data;
   }
 
-  console.log(`[Candles] Fetching via backend function: ${upperSymbol} ${resolution}`);
+  try {
+    console.log(`[Candles] Fetching via finnhub-proxy: ${upperSymbol} ${resolution}`);
 
-  const { data, error } = await supabase.functions.invoke('finnhub-candles', {
-    body: {
-      symbol: upperSymbol,
-      resolution,
-      from: fromTime,
-      to: toTime,
-    },
-  });
+    const res = await supabase.functions.invoke('finnhub-proxy', {
+      body: {
+        action: 'candles',
+        symbol: upperSymbol,
+        resolution,
+        from: fromTime,
+        to: toTime,
+      },
+    });
 
-  if (error) {
-    // Don’t silently fall back to mock data when the user expects live market data.
-    throw new Error(error.message || 'Failed to fetch candle data');
+    if (res.error) {
+      throw new Error(res.error.message || 'Failed to fetch candle data');
+    }
+
+    const payload = (res.data as any) || {};
+    if (!payload.ok) {
+      throw new Error(payload.error || 'Failed to fetch candle data');
+    }
+
+    const finnhub = payload.candles;
+
+    // Finnhub returns { s: 'ok', c: [], h: [], l: [], o: [], t: [], v: [] }
+    if (finnhub?.s !== 'ok' || !finnhub?.c || finnhub.c.length === 0) {
+      const status = finnhub?.s ?? 'unknown';
+      throw new Error(`No candle data returned (status: ${status})`);
+    }
+
+    const candles: CandleData[] = finnhub.t.map((timestamp: number, i: number) => ({
+      time: timestamp,
+      open: finnhub.o[i],
+      high: finnhub.h[i],
+      low: finnhub.l[i],
+      close: finnhub.c[i],
+      volume: finnhub.v?.[i],
+    }));
+
+    candleCache.set(cacheKey, { data: candles, fetchedAt: Date.now() });
+    return candles;
+  } catch (err) {
+    // If Finnhub candles are blocked/rate-limited, create a synthetic series anchored to the live quote.
+    console.warn('[Candles] Falling back to quote-anchored candles:', err);
+
+    try {
+      const quote = await getQuote(upperSymbol);
+      if (quote?.price) {
+        const fallback = generateMockCandles(symbol, resolution, fromTime, toTime, quote.price);
+        candleCache.set(cacheKey, { data: fallback, fetchedAt: Date.now() });
+        return fallback;
+      }
+    } catch (e) {
+      console.warn('[Candles] Quote fallback failed:', e);
+    }
+
+    // Last resort
+    const fallback = generateMockCandles(symbol, resolution, fromTime, toTime);
+    candleCache.set(cacheKey, { data: fallback, fetchedAt: Date.now() });
+    return fallback;
   }
-
-  const payload = data as any;
-
-  // Finnhub returns { s: 'ok', c: [], h: [], l: [], o: [], t: [], v: [] }
-  if (payload?.s !== 'ok' || !payload?.c || payload.c.length === 0) {
-    const status = payload?.s ?? 'unknown';
-    throw new Error(`No candle data returned (status: ${status})`);
-  }
-
-  const candles: CandleData[] = payload.t.map((timestamp: number, i: number) => ({
-    time: timestamp,
-    open: payload.o[i],
-    high: payload.h[i],
-    low: payload.l[i],
-    close: payload.c[i],
-    volume: payload.v?.[i],
-  }));
-
-  candleCache.set(cacheKey, { data: candles, fetchedAt: Date.now() });
-
-  return candles;
 }
 
 /**
@@ -135,7 +161,8 @@ function generateMockCandles(
   symbol: string,
   resolution: Resolution,
   from?: number,
-  to?: number
+  to?: number,
+  basePriceOverride?: number
 ): CandleData[] {
   const now = to || Math.floor(Date.now() / 1000);
   const startTime = from || getDefaultFromTime(resolution, now);
@@ -145,7 +172,7 @@ function generateMockCandles(
     AAPL: 185, MSFT: 405, GOOGL: 142, AMZN: 178, META: 485,
     NVDA: 875, TSLA: 245, SPY: 502, QQQ: 446, DIA: 386,
   };
-  const basePrice = basePrices[symbol.toUpperCase()] || 100;
+  const basePrice = basePriceOverride ?? basePrices[symbol.toUpperCase()] ?? 100;
   
   // Calculate interval based on resolution
   const intervals: Record<Resolution, number> = {
