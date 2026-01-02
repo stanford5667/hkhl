@@ -1,20 +1,46 @@
 # API Call Audit Report
 
 **Generated:** 2026-01-02  
+**Updated:** 2026-01-02 (All automatic polling DISABLED)
 **Purpose:** Identify all external API calls in the codebase for cost/usage control
 
 ---
 
 ## Summary
 
-| Category | Count | With Kill Switch |
-|----------|-------|------------------|
-| Edge Functions (Perplexity) | 6 | 6 ✅ |
-| Edge Functions (Lovable AI) | 11 | 0 ❌ |
-| Edge Functions (Other) | 1 | 0 ❌ |
-| Client Hooks (Perplexity) | 2 | 2 ✅ |
-| Client setInterval | 2 | 0 ❌ |
-| Client refetchInterval | 1 | N/A (conditional) |
+| Category | Count | With Kill Switch | Auto-Polling |
+|----------|-------|------------------|--------------|
+| Edge Functions (Perplexity) | 6 | 6 ✅ | N/A |
+| Edge Functions (Lovable AI) | 11 | 0 ❌ | N/A |
+| Edge Functions (Other) | 1 | 0 ❌ | N/A |
+| Client Hooks (Perplexity) | 2 | 2 ✅ | ❌ DISABLED |
+| Client setInterval | 2 | 2 ✅ | ❌ DISABLED |
+| Client refetchInterval | All | All ✅ | ❌ DISABLED |
+
+---
+
+## ✅ AUTOMATIC POLLING STATUS: ALL DISABLED
+
+### Changes Made:
+
+1. **`useAppData.ts`** - `refetchInterval` for documents processing: **REMOVED**
+2. **`PublicEquityDetailView.tsx`** - 60s auto-refresh interval: **REMOVED**
+3. **`useMarketDataQuery.ts`** - Market status interval: **REMOVED**
+4. **`useMarketIntel.ts`** - All hooks now have `staleTime: Infinity`, no auto-refetch
+5. **`useEconomicIndicators.ts`** - All hooks now have `staleTime: Infinity`, no auto-refetch
+6. **`useWatchlist.ts`** - All hooks now have `staleTime: Infinity`, no auto-refetch
+7. **`usePerplexityMarketIntel.ts`** - Auto-load on mount: **REMOVED**
+8. **`useCachedIndustryIntel.ts`** - Auto-load on mount: **REMOVED**
+
+### All useQuery hooks now use:
+```typescript
+{
+  staleTime: Infinity,           // Never auto-stale
+  refetchOnWindowFocus: false,   // No auto-refresh on focus
+  refetchOnMount: false,         // No auto-fetch on mount
+  refetchOnReconnect: false,     // No auto-fetch on reconnect
+}
+```
 
 ---
 
@@ -75,30 +101,40 @@
 | `src/components/companies/CreateCompanyDialog.tsx` | 148 | `lookup-company` | On name blur | NO |
 | `src/components/companies/DataExtractionPanel.tsx` | 169 | `extract-company-financials` | Manual button | NO |
 | `src/components/dataroom/UploadZone.tsx` | 121 | `suggest-folder` | On upload | NO |
-| `src/hooks/usePerplexityMarketIntel.ts` | 75 | `market-intel` | On demand | YES ✅ |
-| `src/hooks/useCachedIndustryIntel.ts` | 79 | `industry-intel` | On demand | YES ✅ |
+| `src/hooks/usePerplexityMarketIntel.ts` | 75 | `market-intel` | Manual only | YES ✅ |
+| `src/hooks/useCachedIndustryIntel.ts` | 79 | `industry-intel` | Manual only | YES ✅ |
 | `src/hooks/useAppData.ts` | 684 | `process-documents` | Manual | NO |
 | `src/hooks/useAppData.ts` | 693 | `generate-ai-summary` | Manual | NO |
 
 ---
 
-## 3. Polling/Interval Patterns
+## 3. Polling/Interval Patterns - ALL DISABLED ✅
 
-### refetchInterval (useQuery)
+### refetchInterval (useQuery) - ALL DISABLED
 
-| File | Line | Query | Interval | Condition |
-|------|------|-------|----------|-----------|
-| `src/hooks/useMarketDataQuery.ts` | 59 | quote | `false` (disabled) | N/A |
-| `src/hooks/useMarketDataQuery.ts` | 114 | batchQuotes | `false` (disabled) | N/A |
-| `src/hooks/useMarketDataQuery.ts` | 144 | indices | `false` (disabled) | N/A |
-| `src/hooks/useAppData.ts` | 554 | company-documents | 5000ms | Only if docs processing |
+| File | Line | Query | Status |
+|------|------|-------|--------|
+| `src/hooks/useMarketDataQuery.ts` | 59 | quote | ❌ DISABLED |
+| `src/hooks/useMarketDataQuery.ts` | 114 | batchQuotes | ❌ DISABLED |
+| `src/hooks/useMarketDataQuery.ts` | 144 | indices | ❌ DISABLED |
+| `src/hooks/useAppData.ts` | 554 | company-documents | ❌ DISABLED (was 5s polling) |
+| `src/hooks/useMarketIntel.ts` | all | all queries | ❌ DISABLED |
+| `src/hooks/useEconomicIndicators.ts` | all | all queries | ❌ DISABLED |
+| `src/hooks/useWatchlist.ts` | all | all queries | ❌ DISABLED |
 
-### setInterval
+### setInterval - ALL DISABLED
 
-| File | Line | Purpose | Interval | Has Kill Switch |
-|------|------|---------|----------|-----------------|
-| `src/hooks/useMarketDataQuery.ts` | 218 | Market status check | 60s | NO (no API call) |
-| `src/components/equity/PublicEquityDetailView.tsx` | 151 | Auto-refresh quote | 60s | **NO** ⚠️ |
+| File | Line | Purpose | Status |
+|------|------|---------|--------|
+| `src/hooks/useMarketDataQuery.ts` | 218 | Market status check | ❌ DISABLED |
+| `src/components/equity/PublicEquityDetailView.tsx` | 151 | Auto-refresh quote | ❌ DISABLED |
+
+### Auto-Load on Mount - ALL DISABLED
+
+| File | Hook | Status |
+|------|------|--------|
+| `src/hooks/usePerplexityMarketIntel.ts` | useMarketIntelQuery | ❌ DISABLED |
+| `src/hooks/useCachedIndustryIntel.ts` | useCachedIndustryIntel | ❌ DISABLED |
 
 ---
 
@@ -160,33 +196,18 @@ export const API_CONFIG = {
 
 ---
 
-## 6. Priority Issues
+## 6. Current Status
 
-### 🔴 HIGH PRIORITY - Missing Kill Switches
+### ✅ COMPLETED
+- All Perplexity API calls blocked at edge function level
+- All automatic polling/intervals removed
+- All useQuery hooks use `staleTime: Infinity`
+- No auto-refetch on window focus, mount, or reconnect
+- Market intel hooks require explicit user action to fetch
 
-1. **`PublicEquityDetailView.tsx` line 151** - 60s auto-refresh interval with no kill switch
-2. **11 Lovable AI edge functions** - No kill switch, will incur costs on every call
-
-### 🟡 MEDIUM PRIORITY
-
-1. Edge functions without kill switches are triggered by user actions (not polling)
-2. Lovable AI calls may be free/included - verify billing
-
-### 🟢 LOW PRIORITY
-
-1. All Perplexity API calls are properly blocked
-2. refetchInterval is disabled on market data queries
-3. Client-side hooks check API_CONFIG before calling
-
----
-
-## 7. Recommendations
-
-1. **Add kill switch to remaining 11 Lovable AI edge functions**
-2. **Add kill switch to `PublicEquityDetailView.tsx` auto-refresh**
-3. **Verify if Lovable AI gateway calls incur costs**
-4. **Add API call counter/logger for monitoring**
-5. **Consider circuit breaker pattern for production**
+### ⚠️ REMAINING ISSUES
+- 11 Lovable AI edge functions lack kill switches (triggered by user action only)
+- `fetch-market-data` lacks kill switch
 
 ---
 

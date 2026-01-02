@@ -1,6 +1,14 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 
+// Default query options - NO automatic fetching
+const noAutoFetchOptions = {
+  staleTime: Infinity,
+  refetchOnWindowFocus: false,
+  refetchOnMount: false,
+  refetchOnReconnect: false,
+};
+
 export function usePortfolioAssets() {
   return useQuery({
     queryKey: ['portfolio-assets'],
@@ -12,6 +20,7 @@ export function usePortfolioAssets() {
       if (error) throw error;
       return data;
     },
+    ...noAutoFetchOptions,
   });
 }
 
@@ -35,6 +44,7 @@ export function useAssetAllocation() {
         gain_pct: v.cost > 0 ? ((v.value - v.cost) / v.cost) * 100 : 0,
       }));
     },
+    ...noAutoFetchOptions,
   });
 }
 
@@ -51,6 +61,7 @@ export function usePortfolioTotals() {
         avgMoic: data?.length ? data.reduce((s, a) => s + (a.moic || 0), 0) / data.length : 0,
       };
     },
+    ...noAutoFetchOptions,
   });
 }
 
@@ -62,6 +73,7 @@ export function useCovenants() {
       if (error) throw error;
       return data;
     },
+    ...noAutoFetchOptions,
   });
 }
 
@@ -73,6 +85,7 @@ export function useAlerts() {
       if (error) throw error;
       return data;
     },
+    ...noAutoFetchOptions,
   });
 }
 
@@ -84,6 +97,7 @@ export function useEvents() {
       if (error) throw error;
       return data;
     },
+    ...noAutoFetchOptions,
   });
 }
 
@@ -95,6 +109,7 @@ export function useEconomicIndicators() {
       if (error) throw error;
       return data;
     },
+    ...noAutoFetchOptions,
   });
 }
 
@@ -106,6 +121,7 @@ export function usePEFunds() {
       if (error) throw error;
       return data;
     },
+    ...noAutoFetchOptions,
   });
 }
 
@@ -117,6 +133,7 @@ export function useDealPipeline() {
       if (error) throw error;
       return data;
     },
+    ...noAutoFetchOptions,
   });
 }
 
@@ -128,5 +145,6 @@ export function useMATransactions() {
       if (error) throw error;
       return data;
     },
+    ...noAutoFetchOptions,
   });
 }

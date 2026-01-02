@@ -25,6 +25,14 @@ interface UseEconomicIndicatorsOptions {
   symbols?: string[];
 }
 
+// Default query options - NO automatic fetching
+const noAutoFetchOptions = {
+  staleTime: Infinity,
+  refetchOnWindowFocus: false,
+  refetchOnMount: false,
+  refetchOnReconnect: false,
+};
+
 export function useEconomicIndicators(options: UseEconomicIndicatorsOptions = {}) {
   const { category, type, symbols } = options;
 
@@ -53,7 +61,7 @@ export function useEconomicIndicators(options: UseEconomicIndicatorsOptions = {}
       if (error) throw error;
       return data as EconomicIndicator[];
     },
-    staleTime: 2 * 60 * 1000, // 2 minutes
+    ...noAutoFetchOptions,
   });
 }
 
@@ -85,7 +93,7 @@ export function useIndicator(symbol: string) {
       return data as EconomicIndicator | null;
     },
     enabled: !!symbol,
-    staleTime: 2 * 60 * 1000,
+    ...noAutoFetchOptions,
   });
 }
 

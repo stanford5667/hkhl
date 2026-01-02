@@ -146,11 +146,11 @@ export function PublicEquityDetailView({ company, onUpdate }: PublicEquityDetail
     fetchTransactions();
   }, [fetchTransactions]);
 
-  // Auto-refresh every 60 seconds
-  useEffect(() => {
-    const interval = setInterval(fetchQuote, 60000);
-    return () => clearInterval(interval);
-  }, [fetchQuote]);
+  // DISABLED: Auto-refresh removed - user must click Refresh button
+  // useEffect(() => {
+  //   const interval = setInterval(fetchQuote, 60000);
+  //   return () => clearInterval(interval);
+  // }, [fetchQuote]);
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
