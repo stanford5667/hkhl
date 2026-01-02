@@ -625,18 +625,39 @@ export async function runBacktest(config: BacktestConfig): Promise<BacktestResul
     throw new Error('Not enough common trading days for backtest');
   }
   
-  // Build combined portfolio data
+  // Calculate initial shares for each asset based on allocation
+  const assetShares: Map<string, number> = new Map();
+  const firstDate = commonDates[0];
+  
+  for (const asset of assets) {
+    const assetPrices = assetData.get(asset.symbol)!;
+    const firstDayData = assetPrices.find(d => d.date === firstDate);
+    if (firstDayData) {
+      const allocation = (asset.allocation / 100) * initialCapital;
+      const shares = allocation / firstDayData.price;
+      assetShares.set(asset.symbol, shares);
+      console.log(`[Backtester] ${asset.symbol}: $${allocation.toFixed(0)} → ${shares.toFixed(4)} shares @ $${firstDayData.price.toFixed(2)}`);
+    }
+  }
+  
+  // Build portfolio data - each day's value is sum of (shares * price) for all assets
   const portfolioData: HistoricalDataPoint[] = commonDates.map(date => {
-    let weightedPrice = 0;
+    let dailyValue = 0;
     for (const asset of assets) {
       const assetPrices = assetData.get(asset.symbol)!;
       const dayData = assetPrices.find(d => d.date === date);
+      const shares = assetShares.get(asset.symbol) || 0;
       if (dayData) {
-        weightedPrice += dayData.price * (asset.allocation / 100);
+        dailyValue += shares * dayData.price;
       }
     }
-    return { date, price: weightedPrice };
+    // Return normalized "price" that represents portfolio value relative to initial
+    // This allows strategies to work with the combined portfolio
+    return { date, price: dailyValue };
   });
+  
+  console.log(`[Backtester] Initial portfolio value: $${portfolioData[0]?.price.toFixed(2)}`);
+  console.log(`[Backtester] Final portfolio value: $${portfolioData[portfolioData.length - 1]?.price.toFixed(2)}`);
   
   // Run strategy
   const params: StrategyParams = {
