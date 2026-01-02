@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -7,18 +7,21 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { 
   LineChart, Line, AreaChart, Area, XAxis, YAxis, CartesianGrid, 
   Tooltip, ResponsiveContainer, Legend, ReferenceLine 
 } from 'recharts';
 import { 
   Play, RefreshCw, TrendingUp, TrendingDown, BarChart3, 
-  DollarSign, Percent, AlertTriangle, Activity, Zap 
+  DollarSign, Percent, AlertTriangle, Activity, Zap, Plus, X, Loader2
 } from 'lucide-react';
-import { useBacktester } from '@/hooks/useBacktester';
+import { useBacktester, BacktestAsset } from '@/hooks/useBacktester';
 import { StrategyType, STRATEGY_INFO, BacktestResult } from '@/services/backtesterService';
 
 const STRATEGIES: StrategyType[] = ['buy-hold', 'dca', 'momentum', 'mean-reversion', 'rsi'];
+
+const POPULAR_SYMBOLS = ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'NVDA', 'SPY', 'QQQ', 'TSLA', 'META', 'JPM'];
 
 function MetricCard({ 
   label, 
@@ -79,39 +82,73 @@ function TradesList({ trades }: { trades: BacktestResult['trades'] }) {
 }
 
 export default function Backtester() {
-  const { isRunning, result, generateData, runTest, reset } = useBacktester();
+  const { isRunning, result, error, progress, runTest, reset } = useBacktester();
+  
+  // Assets configuration
+  const [assets, setAssets] = useState<BacktestAsset[]>([
+    { symbol: 'AAPL', allocation: 50 },
+    { symbol: 'MSFT', allocation: 50 },
+  ]);
+  const [newSymbol, setNewSymbol] = useState('');
+  
+  // Date range
+  const [startDate, setStartDate] = useState(() => {
+    const date = new Date();
+    date.setFullYear(date.getFullYear() - 1);
+    return date.toISOString().split('T')[0];
+  });
+  const [endDate, setEndDate] = useState(() => {
+    return new Date().toISOString().split('T')[0];
+  });
   
   const [strategy, setStrategy] = useState<StrategyType>('buy-hold');
   const [initialCapital, setInitialCapital] = useState(100000);
-  const [days, setDays] = useState(252);
-  const [startPrice, setStartPrice] = useState(100);
-  const [volatility, setVolatility] = useState(0.02);
   
-  // Strategy-specific params
-  const [dcaAmount, setDcaAmount] = useState(5000);
-  const [dcaFrequency, setDcaFrequency] = useState<'daily' | 'weekly' | 'monthly'>('monthly');
-  const [momentumPeriod, setMomentumPeriod] = useState(20);
-  const [momentumThreshold, setMomentumThreshold] = useState(0.02);
-  const [maPeriod, setMaPeriod] = useState(20);
-  const [deviationThreshold, setDeviationThreshold] = useState(0.05);
-  const [rsiPeriod, setRsiPeriod] = useState(14);
-  const [rsiOversold, setRsiOversold] = useState(30);
-  const [rsiOverbought, setRsiOverbought] = useState(70);
+  const totalAllocation = useMemo(() => 
+    assets.reduce((sum, a) => sum + a.allocation, 0), 
+    [assets]
+  );
+  
+  const handleAddAsset = () => {
+    const symbol = newSymbol.toUpperCase().trim();
+    if (!symbol || assets.some(a => a.symbol === symbol)) return;
+    
+    setAssets([...assets, { symbol, allocation: 0 }]);
+    setNewSymbol('');
+  };
+  
+  const handleRemoveAsset = (symbol: string) => {
+    setAssets(assets.filter(a => a.symbol !== symbol));
+  };
+  
+  const handleUpdateAllocation = (symbol: string, allocation: number) => {
+    setAssets(assets.map(a => 
+      a.symbol === symbol ? { ...a, allocation: Math.max(0, Math.min(100, allocation)) } : a
+    ));
+  };
+  
+  const handleEqualWeight = () => {
+    const weight = Math.floor(100 / assets.length);
+    const remainder = 100 - (weight * assets.length);
+    
+    setAssets(assets.map((a, i) => ({
+      ...a,
+      allocation: weight + (i === 0 ? remainder : 0),
+    })));
+  };
   
   const handleRun = async () => {
-    const data = generateData(days, startPrice, volatility);
-    await runTest(strategy, {
-      initialCapital,
-      dcaAmount,
-      dcaFrequency,
-      momentumPeriod,
-      momentumThreshold,
-      maPeriod,
-      deviationThreshold,
-      rsiPeriod,
-      rsiOversold,
-      rsiOverbought,
-    }, data);
+    if (totalAllocation !== 100) {
+      alert('Total allocation must equal 100%');
+      return;
+    }
+    
+    if (assets.length === 0) {
+      alert('Add at least one asset');
+      return;
+    }
+    
+    await runTest(assets, startDate, endDate, initialCapital, strategy);
   };
   
   const chartData = useMemo(() => {
@@ -143,18 +180,18 @@ export default function Backtester() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">Strategy Backtester</h1>
-          <p className="text-muted-foreground">Test trading strategies with historical data simulation</p>
+          <p className="text-muted-foreground">Test trading strategies with real historical data from Finnhub</p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={reset}>
+          <Button variant="outline" onClick={reset} disabled={isRunning}>
             <RefreshCw className="h-4 w-4 mr-2" />
             Reset
           </Button>
-          <Button onClick={handleRun} disabled={isRunning}>
+          <Button onClick={handleRun} disabled={isRunning || totalAllocation !== 100}>
             {isRunning ? (
               <>
-                <Activity className="h-4 w-4 mr-2 animate-spin" />
-                Running...
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                {progress || 'Running...'}
               </>
             ) : (
               <>
@@ -166,14 +203,127 @@ export default function Backtester() {
         </div>
       </div>
       
-      <div className="grid lg:grid-cols-[320px,1fr] gap-6">
+      {error && (
+        <Alert variant="destructive">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+      
+      <div className="grid lg:grid-cols-[380px,1fr] gap-6">
         {/* Configuration Panel */}
         <div className="space-y-4">
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg">Portfolio Assets</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* Asset List */}
+              <div className="space-y-2">
+                {assets.map(asset => (
+                  <div key={asset.symbol} className="flex items-center gap-2">
+                    <Badge variant="outline" className="w-16 justify-center font-mono">
+                      {asset.symbol}
+                    </Badge>
+                    <Input
+                      type="number"
+                      min={0}
+                      max={100}
+                      value={asset.allocation}
+                      onChange={(e) => handleUpdateAllocation(asset.symbol, Number(e.target.value))}
+                      className="w-20 text-center"
+                    />
+                    <span className="text-sm text-muted-foreground">%</span>
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="h-8 w-8"
+                      onClick={() => handleRemoveAsset(asset.symbol)}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+              
+              {/* Add Asset */}
+              <div className="flex gap-2">
+                <Input
+                  placeholder="Symbol (e.g., AAPL)"
+                  value={newSymbol}
+                  onChange={(e) => setNewSymbol(e.target.value.toUpperCase())}
+                  onKeyDown={(e) => e.key === 'Enter' && handleAddAsset()}
+                  className="flex-1"
+                />
+                <Button variant="outline" size="icon" onClick={handleAddAsset}>
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </div>
+              
+              {/* Quick Add */}
+              <div className="flex flex-wrap gap-1">
+                {POPULAR_SYMBOLS.filter(s => !assets.some(a => a.symbol === s)).slice(0, 5).map(symbol => (
+                  <Badge
+                    key={symbol}
+                    variant="secondary"
+                    className="cursor-pointer hover:bg-primary hover:text-primary-foreground"
+                    onClick={() => setAssets([...assets, { symbol, allocation: 0 }])}
+                  >
+                    + {symbol}
+                  </Badge>
+                ))}
+              </div>
+              
+              {/* Allocation Summary */}
+              <div className="flex items-center justify-between pt-2 border-t">
+                <div className="text-sm">
+                  Total: <span className={totalAllocation === 100 ? 'text-emerald-500 font-bold' : 'text-rose-500 font-bold'}>
+                    {totalAllocation}%
+                  </span>
+                </div>
+                <Button variant="outline" size="sm" onClick={handleEqualWeight}>
+                  Equal Weight
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+          
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-lg">Configuration</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
+              {/* Date Range */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <Label className="text-xs">Start Date</Label>
+                  <Input
+                    type="date"
+                    value={startDate}
+                    onChange={(e) => setStartDate(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-xs">End Date</Label>
+                  <Input
+                    type="date"
+                    value={endDate}
+                    onChange={(e) => setEndDate(e.target.value)}
+                  />
+                </div>
+              </div>
+              
+              <div className="space-y-2">
+                <Label className="text-xs">Initial Capital</Label>
+                <Input
+                  type="number"
+                  value={initialCapital}
+                  onChange={(e) => setInitialCapital(Number(e.target.value))}
+                />
+              </div>
+              
+              <Separator />
+              
               {/* Strategy Selection */}
               <div className="space-y-2">
                 <Label>Strategy</Label>
@@ -194,167 +344,6 @@ export default function Backtester() {
                 </Select>
                 <p className="text-xs text-muted-foreground">{STRATEGY_INFO[strategy].description}</p>
               </div>
-              
-              <Separator />
-              
-              {/* Basic Params */}
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-2">
-                  <Label className="text-xs">Initial Capital</Label>
-                  <Input
-                    type="number"
-                    value={initialCapital}
-                    onChange={(e) => setInitialCapital(Number(e.target.value))}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label className="text-xs">Days</Label>
-                  <Input
-                    type="number"
-                    value={days}
-                    onChange={(e) => setDays(Number(e.target.value))}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label className="text-xs">Start Price</Label>
-                  <Input
-                    type="number"
-                    value={startPrice}
-                    onChange={(e) => setStartPrice(Number(e.target.value))}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label className="text-xs">Volatility</Label>
-                  <Input
-                    type="number"
-                    step="0.01"
-                    value={volatility}
-                    onChange={(e) => setVolatility(Number(e.target.value))}
-                  />
-                </div>
-              </div>
-              
-              {/* Strategy-specific params */}
-              {strategy === 'dca' && (
-                <>
-                  <Separator />
-                  <div className="space-y-3">
-                    <Label className="text-sm font-medium">DCA Settings</Label>
-                    <div className="space-y-2">
-                      <Label className="text-xs">Amount per Purchase</Label>
-                      <Input
-                        type="number"
-                        value={dcaAmount}
-                        onChange={(e) => setDcaAmount(Number(e.target.value))}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label className="text-xs">Frequency</Label>
-                      <Select value={dcaFrequency} onValueChange={(v) => setDcaFrequency(v as any)}>
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="daily">Daily</SelectItem>
-                          <SelectItem value="weekly">Weekly</SelectItem>
-                          <SelectItem value="monthly">Monthly</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                </>
-              )}
-              
-              {strategy === 'momentum' && (
-                <>
-                  <Separator />
-                  <div className="space-y-3">
-                    <Label className="text-sm font-medium">Momentum Settings</Label>
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="space-y-2">
-                        <Label className="text-xs">Lookback Period</Label>
-                        <Input
-                          type="number"
-                          value={momentumPeriod}
-                          onChange={(e) => setMomentumPeriod(Number(e.target.value))}
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label className="text-xs">Threshold</Label>
-                        <Input
-                          type="number"
-                          step="0.01"
-                          value={momentumThreshold}
-                          onChange={(e) => setMomentumThreshold(Number(e.target.value))}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </>
-              )}
-              
-              {strategy === 'mean-reversion' && (
-                <>
-                  <Separator />
-                  <div className="space-y-3">
-                    <Label className="text-sm font-medium">Mean Reversion Settings</Label>
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="space-y-2">
-                        <Label className="text-xs">MA Period</Label>
-                        <Input
-                          type="number"
-                          value={maPeriod}
-                          onChange={(e) => setMaPeriod(Number(e.target.value))}
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label className="text-xs">Deviation %</Label>
-                        <Input
-                          type="number"
-                          step="0.01"
-                          value={deviationThreshold}
-                          onChange={(e) => setDeviationThreshold(Number(e.target.value))}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </>
-              )}
-              
-              {strategy === 'rsi' && (
-                <>
-                  <Separator />
-                  <div className="space-y-3">
-                    <Label className="text-sm font-medium">RSI Settings</Label>
-                    <div className="space-y-2">
-                      <Label className="text-xs">RSI Period</Label>
-                      <Input
-                        type="number"
-                        value={rsiPeriod}
-                        onChange={(e) => setRsiPeriod(Number(e.target.value))}
-                      />
-                    </div>
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="space-y-2">
-                        <Label className="text-xs">Oversold</Label>
-                        <Input
-                          type="number"
-                          value={rsiOversold}
-                          onChange={(e) => setRsiOversold(Number(e.target.value))}
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label className="text-xs">Overbought</Label>
-                        <Input
-                          type="number"
-                          value={rsiOverbought}
-                          onChange={(e) => setRsiOverbought(Number(e.target.value))}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </>
-              )}
             </CardContent>
           </Card>
         </div>
@@ -373,6 +362,13 @@ export default function Backtester() {
                   trend={result.totalReturnPercent >= 0 ? 'up' : 'down'}
                 />
                 <MetricCard
+                  label="CAGR"
+                  value={`${result.annualizedReturn >= 0 ? '+' : ''}${result.annualizedReturn.toFixed(2)}%`}
+                  subValue="Annualized"
+                  icon={Percent}
+                  trend={result.annualizedReturn >= 0 ? 'up' : 'down'}
+                />
+                <MetricCard
                   label="Sharpe Ratio"
                   value={result.sharpeRatio.toFixed(2)}
                   subValue={result.sharpeRatio > 1 ? 'Good' : result.sharpeRatio > 0 ? 'Moderate' : 'Poor'}
@@ -386,17 +382,10 @@ export default function Backtester() {
                   icon={AlertTriangle}
                   trend="down"
                 />
-                <MetricCard
-                  label="Annualized Return"
-                  value={`${result.annualizedReturn >= 0 ? '+' : ''}${result.annualizedReturn.toFixed(2)}%`}
-                  subValue={`${result.totalTrades} trades`}
-                  icon={Percent}
-                  trend={result.annualizedReturn >= 0 ? 'up' : 'down'}
-                />
               </div>
               
               {/* Secondary Metrics */}
-              <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+              <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
                 <div className="p-3 rounded-lg bg-card border border-border/50">
                   <div className="text-xs text-muted-foreground mb-1">Final Value</div>
                   <div className="text-lg font-bold tabular-nums">${result.finalValue.toLocaleString(undefined, { maximumFractionDigits: 0 })}</div>
@@ -410,12 +399,18 @@ export default function Backtester() {
                   <div className="text-lg font-bold tabular-nums">{result.volatility.toFixed(2)}%</div>
                 </div>
                 <div className="p-3 rounded-lg bg-card border border-border/50">
-                  <div className="text-xs text-muted-foreground mb-1">Total Trades</div>
-                  <div className="text-lg font-bold tabular-nums">{result.totalTrades}</div>
+                  <div className="text-xs text-muted-foreground mb-1">Beta</div>
+                  <div className="text-lg font-bold tabular-nums">{result.beta?.toFixed(2) || 'N/A'}</div>
+                </div>
+                <div className="p-3 rounded-lg bg-card border border-border/50">
+                  <div className="text-xs text-muted-foreground mb-1">Alpha</div>
+                  <div className={`text-lg font-bold tabular-nums ${(result.alpha || 0) >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
+                    {result.alpha ? `${result.alpha >= 0 ? '+' : ''}${result.alpha.toFixed(2)}%` : 'N/A'}
+                  </div>
                 </div>
                 {result.benchmarkReturn !== undefined && (
                   <div className="p-3 rounded-lg bg-card border border-border/50">
-                    <div className="text-xs text-muted-foreground mb-1">vs Buy & Hold</div>
+                    <div className="text-xs text-muted-foreground mb-1">vs SPY</div>
                     <div className={`text-lg font-bold tabular-nums ${
                       result.totalReturnPercent > result.benchmarkReturn ? 'text-emerald-500' : 'text-rose-500'
                     }`}>
@@ -427,127 +422,115 @@ export default function Backtester() {
               </div>
               
               {/* Charts */}
-              <Tabs defaultValue="equity" className="w-full">
+              <Tabs defaultValue="equity" className="space-y-4">
                 <TabsList>
                   <TabsTrigger value="equity">Equity Curve</TabsTrigger>
                   <TabsTrigger value="drawdown">Drawdown</TabsTrigger>
-                  <TabsTrigger value="trades">Trade Log</TabsTrigger>
+                  <TabsTrigger value="trades">Trades</TabsTrigger>
                 </TabsList>
                 
-                <TabsContent value="equity" className="mt-4">
+                <TabsContent value="equity">
                   <Card>
-                    <CardHeader className="pb-2">
-                      <CardTitle className="text-base">Portfolio Value Over Time</CardTitle>
-                      <CardDescription>
-                        {result.startDate} to {result.endDate}
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="h-[350px]">
-                        <ResponsiveContainer width="100%" height="100%">
-                          <AreaChart data={chartData}>
-                            <defs>
-                              <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3}/>
-                                <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0}/>
-                              </linearGradient>
-                            </defs>
-                            <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                            <XAxis 
-                              dataKey="date" 
-                              tickFormatter={(v) => v.slice(5)}
-                              className="text-xs"
-                            />
-                            <YAxis 
-                              tickFormatter={(v) => `$${(v/1000).toFixed(0)}k`}
-                              className="text-xs"
-                            />
-                            <Tooltip 
-                              contentStyle={{ 
-                                backgroundColor: 'hsl(var(--card))', 
-                                border: '1px solid hsl(var(--border))',
-                                borderRadius: '8px',
-                              }}
-                              formatter={(value: number) => [`$${value.toLocaleString()}`, 'Value']}
-                            />
-                            <ReferenceLine 
-                              y={result.initialCapital} 
-                              stroke="hsl(var(--muted-foreground))" 
-                              strokeDasharray="3 3"
-                            />
-                            <Area 
-                              type="monotone" 
-                              dataKey="value" 
-                              stroke="hsl(var(--primary))" 
-                              fill="url(#colorValue)"
-                              strokeWidth={2}
-                            />
-                          </AreaChart>
-                        </ResponsiveContainer>
-                      </div>
+                    <CardContent className="pt-6">
+                      <ResponsiveContainer width="100%" height={350}>
+                        <AreaChart data={chartData}>
+                          <defs>
+                            <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3} />
+                              <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0} />
+                            </linearGradient>
+                          </defs>
+                          <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                          <XAxis 
+                            dataKey="date" 
+                            tick={{ fontSize: 11 }} 
+                            tickFormatter={(v) => v.slice(5)}
+                            className="text-muted-foreground"
+                          />
+                          <YAxis 
+                            tick={{ fontSize: 11 }}
+                            tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`}
+                            className="text-muted-foreground"
+                          />
+                          <Tooltip
+                            formatter={(value: number) => [`$${value.toLocaleString()}`, 'Value']}
+                            labelFormatter={(label) => `Date: ${label}`}
+                            contentStyle={{ 
+                              backgroundColor: 'hsl(var(--card))', 
+                              border: '1px solid hsl(var(--border))',
+                              borderRadius: '8px'
+                            }}
+                          />
+                          <ReferenceLine 
+                            y={result.initialCapital} 
+                            stroke="hsl(var(--muted-foreground))" 
+                            strokeDasharray="5 5"
+                            label={{ value: 'Initial', position: 'right', fontSize: 10 }}
+                          />
+                          <Area
+                            type="monotone"
+                            dataKey="value"
+                            stroke="hsl(var(--primary))"
+                            fill="url(#colorValue)"
+                            strokeWidth={2}
+                          />
+                        </AreaChart>
+                      </ResponsiveContainer>
                     </CardContent>
                   </Card>
                 </TabsContent>
                 
-                <TabsContent value="drawdown" className="mt-4">
+                <TabsContent value="drawdown">
                   <Card>
-                    <CardHeader className="pb-2">
-                      <CardTitle className="text-base">Drawdown Analysis</CardTitle>
-                      <CardDescription>
-                        Maximum drawdown: {result.maxDrawdownPercent.toFixed(2)}%
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="h-[350px]">
-                        <ResponsiveContainer width="100%" height="100%">
-                          <AreaChart data={drawdownData}>
-                            <defs>
-                              <linearGradient id="colorDrawdown" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="5%" stopColor="hsl(var(--destructive))" stopOpacity={0.4}/>
-                                <stop offset="95%" stopColor="hsl(var(--destructive))" stopOpacity={0}/>
-                              </linearGradient>
-                            </defs>
-                            <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                            <XAxis 
-                              dataKey="date" 
-                              tickFormatter={(v) => v.slice(5)}
-                              className="text-xs"
-                            />
-                            <YAxis 
-                              tickFormatter={(v) => `-${v}%`}
-                              domain={[0, 'dataMax']}
-                              reversed
-                              className="text-xs"
-                            />
-                            <Tooltip 
-                              contentStyle={{ 
-                                backgroundColor: 'hsl(var(--card))', 
-                                border: '1px solid hsl(var(--border))',
-                                borderRadius: '8px',
-                              }}
-                              formatter={(value: number) => [`-${value.toFixed(2)}%`, 'Drawdown']}
-                            />
-                            <Area 
-                              type="monotone" 
-                              dataKey="drawdown" 
-                              stroke="hsl(var(--destructive))" 
-                              fill="url(#colorDrawdown)"
-                              strokeWidth={2}
-                            />
-                          </AreaChart>
-                        </ResponsiveContainer>
-                      </div>
+                    <CardContent className="pt-6">
+                      <ResponsiveContainer width="100%" height={350}>
+                        <AreaChart data={drawdownData}>
+                          <defs>
+                            <linearGradient id="colorDrawdown" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="5%" stopColor="hsl(var(--destructive))" stopOpacity={0.3} />
+                              <stop offset="95%" stopColor="hsl(var(--destructive))" stopOpacity={0} />
+                            </linearGradient>
+                          </defs>
+                          <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                          <XAxis 
+                            dataKey="date" 
+                            tick={{ fontSize: 11 }}
+                            tickFormatter={(v) => v.slice(5)}
+                            className="text-muted-foreground"
+                          />
+                          <YAxis 
+                            tick={{ fontSize: 11 }}
+                            tickFormatter={(v) => `-${v}%`}
+                            domain={[0, 'auto']}
+                            reversed
+                            className="text-muted-foreground"
+                          />
+                          <Tooltip
+                            formatter={(value: number) => [`-${value.toFixed(2)}%`, 'Drawdown']}
+                            labelFormatter={(label) => `Date: ${label}`}
+                            contentStyle={{ 
+                              backgroundColor: 'hsl(var(--card))', 
+                              border: '1px solid hsl(var(--border))',
+                              borderRadius: '8px'
+                            }}
+                          />
+                          <Area
+                            type="monotone"
+                            dataKey="drawdown"
+                            stroke="hsl(var(--destructive))"
+                            fill="url(#colorDrawdown)"
+                            strokeWidth={2}
+                          />
+                        </AreaChart>
+                      </ResponsiveContainer>
                     </CardContent>
                   </Card>
                 </TabsContent>
                 
-                <TabsContent value="trades" className="mt-4">
+                <TabsContent value="trades">
                   <Card>
-                    <CardHeader className="pb-2">
-                      <CardTitle className="text-base">Trade History</CardTitle>
-                      <CardDescription>
-                        {result.totalTrades} trades | {result.profitableTrades} profitable ({result.winRate.toFixed(1)}% win rate)
-                      </CardDescription>
+                    <CardHeader>
+                      <CardTitle className="text-lg">Trade History</CardTitle>
                     </CardHeader>
                     <CardContent>
                       <TradesList trades={result.trades} />
@@ -557,17 +540,20 @@ export default function Backtester() {
               </Tabs>
             </>
           ) : (
-            <Card className="flex flex-col items-center justify-center py-16">
-              <BarChart3 className="h-16 w-16 text-muted-foreground/50 mb-4" />
-              <h3 className="text-xl font-semibold mb-2">Ready to Backtest</h3>
-              <p className="text-muted-foreground text-center max-w-md mb-6">
-                Configure your strategy parameters and click "Run Backtest" to simulate 
-                trading performance with historical data.
-              </p>
-              <Button onClick={handleRun} disabled={isRunning}>
-                <Play className="h-4 w-4 mr-2" />
-                Run Backtest
-              </Button>
+            <Card className="h-[500px] flex items-center justify-center">
+              <div className="text-center space-y-4">
+                <BarChart3 className="h-16 w-16 mx-auto text-muted-foreground/30" />
+                <div>
+                  <h3 className="text-lg font-medium">No Backtest Results</h3>
+                  <p className="text-muted-foreground text-sm mt-1">
+                    Add assets, set date range, and click "Run Backtest" to see results
+                  </p>
+                </div>
+                <div className="text-xs text-muted-foreground bg-muted/50 rounded-lg p-3 max-w-md mx-auto">
+                  <strong>Tip:</strong> Uses real historical data from Finnhub API. 
+                  Free tier allows 1 year of daily data and 60 API calls per minute.
+                </div>
+              </div>
             </Card>
           )}
         </div>

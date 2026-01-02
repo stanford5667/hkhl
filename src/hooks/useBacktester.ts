@@ -1,113 +1,197 @@
 import { useState, useCallback } from 'react';
 import {
   runBacktest,
-  generateHistoricalData,
+  fetchHistoricalPrices,
   StrategyType,
-  StrategyParams,
   BacktestResult,
-  HistoricalDataPoint,
+  BacktestConfig,
+  MonteCarloResult,
+  StressTestResult,
+  CorrelationMatrix,
+  runMonteCarloSimulation,
+  runStressTests,
+  calculateCorrelationMatrix,
 } from '@/services/backtesterService';
 
 interface UseBacktesterOptions {
-  defaultDays?: number;
-  defaultStartPrice?: number;
-  defaultVolatility?: number;
+  defaultBenchmark?: string;
+}
+
+export interface BacktestAsset {
+  symbol: string;
+  allocation: number;
 }
 
 export function useBacktester(options: UseBacktesterOptions = {}) {
-  const {
-    defaultDays = 252, // 1 year of trading days
-    defaultStartPrice = 100,
-    defaultVolatility = 0.02,
-  } = options;
+  const { defaultBenchmark = 'SPY' } = options;
 
   const [isRunning, setIsRunning] = useState(false);
   const [result, setResult] = useState<BacktestResult | null>(null);
-  const [historicalData, setHistoricalData] = useState<HistoricalDataPoint[]>([]);
+  const [monteCarloResult, setMonteCarloResult] = useState<MonteCarloResult | null>(null);
+  const [stressTestResults, setStressTestResults] = useState<StressTestResult[]>([]);
+  const [correlationMatrix, setCorrelationMatrix] = useState<CorrelationMatrix | null>(null);
   const [error, setError] = useState<string | null>(null);
-
-  const generateData = useCallback(
-    (days: number = defaultDays, startPrice: number = defaultStartPrice, volatility: number = defaultVolatility) => {
-      const data = generateHistoricalData(startPrice, days, volatility);
-      setHistoricalData(data);
-      return data;
-    },
-    [defaultDays, defaultStartPrice, defaultVolatility]
-  );
+  const [progress, setProgress] = useState<string>('');
 
   const runTest = useCallback(
     async (
-      strategy: StrategyType,
-      params: StrategyParams,
-      data?: HistoricalDataPoint[]
+      assets: BacktestAsset[],
+      startDate: string,
+      endDate: string,
+      initialCapital: number,
+      strategy: StrategyType = 'buy-hold'
     ): Promise<BacktestResult | null> => {
       setIsRunning(true);
       setError(null);
+      setProgress('Fetching historical data...');
 
       try {
-        const testData = data || historicalData.length > 0 ? (data || historicalData) : generateData();
-        
-        // Simulate async operation for UI responsiveness
-        await new Promise(resolve => setTimeout(resolve, 100));
-        
-        const backTestResult = runBacktest(strategy, testData, params);
+        const config: BacktestConfig = {
+          assets,
+          startDate,
+          endDate,
+          initialCapital,
+          strategy,
+          benchmarkSymbol: defaultBenchmark,
+        };
+
+        setProgress('Running backtest...');
+        const backTestResult = await runBacktest(config);
         setResult(backTestResult);
+        setProgress('');
         return backTestResult;
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : 'Backtest failed';
         setError(errorMessage);
+        setProgress('');
         return null;
       } finally {
         setIsRunning(false);
       }
     },
-    [historicalData, generateData]
+    [defaultBenchmark]
   );
 
-  const compareStrategies = useCallback(
+  const runMonteCarlo = useCallback(
     async (
-      strategies: StrategyType[],
-      params: StrategyParams,
-      data?: HistoricalDataPoint[]
-    ): Promise<BacktestResult[]> => {
+      assets: BacktestAsset[],
+      initialCapital: number,
+      projectionYears: number = 5,
+      numSimulations: number = 1000
+    ): Promise<MonteCarloResult | null> => {
       setIsRunning(true);
       setError(null);
+      setProgress('Running Monte Carlo simulation...');
 
       try {
-        const testData = data || historicalData.length > 0 ? (data || historicalData) : generateData();
-        
-        const results: BacktestResult[] = [];
-        for (const strategy of strategies) {
-          await new Promise(resolve => setTimeout(resolve, 50));
-          results.push(runBacktest(strategy, testData, params));
-        }
-        
+        const config: BacktestConfig = {
+          assets,
+          startDate: '', // Will be set by the function
+          endDate: '',
+          initialCapital,
+          strategy: 'buy-hold',
+          benchmarkSymbol: defaultBenchmark,
+        };
+
+        const mcResult = await runMonteCarloSimulation(config, numSimulations, projectionYears);
+        setMonteCarloResult(mcResult);
+        setProgress('');
+        return mcResult;
+      } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : 'Monte Carlo simulation failed';
+        setError(errorMessage);
+        setProgress('');
+        return null;
+      } finally {
+        setIsRunning(false);
+      }
+    },
+    [defaultBenchmark]
+  );
+
+  const runStress = useCallback(
+    async (
+      assets: BacktestAsset[],
+      initialCapital: number
+    ): Promise<StressTestResult[]> => {
+      setIsRunning(true);
+      setError(null);
+      setProgress('Running stress tests...');
+
+      try {
+        const config: BacktestConfig = {
+          assets,
+          startDate: '',
+          endDate: '',
+          initialCapital,
+          strategy: 'buy-hold',
+          benchmarkSymbol: defaultBenchmark,
+        };
+
+        const results = await runStressTests(config);
+        setStressTestResults(results);
+        setProgress('');
         return results;
       } catch (err) {
-        const errorMessage = err instanceof Error ? err.message : 'Strategy comparison failed';
+        const errorMessage = err instanceof Error ? err.message : 'Stress tests failed';
         setError(errorMessage);
+        setProgress('');
         return [];
       } finally {
         setIsRunning(false);
       }
     },
-    [historicalData, generateData]
+    [defaultBenchmark]
+  );
+
+  const calculateCorrelations = useCallback(
+    async (
+      symbols: string[],
+      startDate: string,
+      endDate: string
+    ): Promise<CorrelationMatrix | null> => {
+      setIsRunning(true);
+      setError(null);
+      setProgress('Calculating correlations...');
+
+      try {
+        const matrix = await calculateCorrelationMatrix(symbols, startDate, endDate);
+        setCorrelationMatrix(matrix);
+        setProgress('');
+        return matrix;
+      } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : 'Correlation calculation failed';
+        setError(errorMessage);
+        setProgress('');
+        return null;
+      } finally {
+        setIsRunning(false);
+      }
+    },
+    []
   );
 
   const reset = useCallback(() => {
     setResult(null);
+    setMonteCarloResult(null);
+    setStressTestResults([]);
+    setCorrelationMatrix(null);
     setError(null);
-    setHistoricalData([]);
+    setProgress('');
   }, []);
 
   return {
     isRunning,
     result,
-    historicalData,
+    monteCarloResult,
+    stressTestResults,
+    correlationMatrix,
     error,
-    generateData,
+    progress,
     runTest,
-    compareStrategies,
+    runMonteCarlo,
+    runStress,
+    calculateCorrelations,
     reset,
   };
 }
