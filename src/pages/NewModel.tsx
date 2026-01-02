@@ -309,7 +309,7 @@ export default function NewModel() {
                   ) : companies.length === 0 ? (
                     <div className="text-sm text-muted-foreground">
                       No companies found.{" "}
-                      <Button variant="link" className="p-0 h-auto" onClick={() => navigate("/companies")}>
+                      <Button variant="link" className="p-0 h-auto" onClick={() => navigate("/portfolio")}>
                         Create one first
                       </Button>
                     </div>

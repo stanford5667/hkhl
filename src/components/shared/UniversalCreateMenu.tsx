@@ -46,7 +46,7 @@ export function UniversalCreateMenu({
   const context = useMemo(() => {
     const path = location.pathname;
     
-    if (path.startsWith('/companies/')) {
+    if (path.startsWith('/portfolio/')) {
       const companyId = path.split('/')[2];
       const company = companies.find(c => c.id === companyId);
       if (company) {

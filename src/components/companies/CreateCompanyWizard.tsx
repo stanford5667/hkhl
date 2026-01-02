@@ -328,7 +328,7 @@ export function CreateCompanyWizard({ open, onOpenChange, onComplete }: CreateCo
       toast.success('Company created successfully!');
       onOpenChange(false);
       onComplete?.(company.id);
-      navigate(`/companies/${company.id}`);
+      navigate(`/portfolio/${company.id}`);
     } catch (error) {
       console.error('Create error:', error);
       toast.error('Failed to create company');

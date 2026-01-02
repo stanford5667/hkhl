@@ -83,7 +83,7 @@ export function PortfolioGridView({ companies, onViewChange }: PortfolioGridView
             key={company.id} 
             company={company} 
             healthScore={getHealthScore(company)}
-            onClick={() => navigate(`/companies/${company.id}`)}
+            onClick={() => navigate(`/portfolio/${company.id}`)}
           />
         ))}
         

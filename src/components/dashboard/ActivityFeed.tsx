@@ -164,7 +164,7 @@ export function ActivityFeed() {
             
             if (activity.entityType === "company" && activity.entityId) {
               return (
-                <Link key={activity.id} to={`/companies/${activity.entityId}`}>
+                <Link key={activity.id} to={`/portfolio/${activity.entityId}`}>
                   {content}
                 </Link>
               );

@@ -212,7 +212,7 @@ export function TaskCard({ task, onEdit, compact = false, showCompanyLink = true
             {/* Company link */}
             {showCompanyLink && task.company && (
               <Link
-                to={`/companies/${task.company.id}`}
+                to={`/portfolio/${task.company.id}`}
                 className="text-xs text-slate-500 hover:text-slate-300 flex items-center gap-1"
                 onClick={(e) => e.stopPropagation()}
               >

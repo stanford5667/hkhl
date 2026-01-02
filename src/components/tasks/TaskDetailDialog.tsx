@@ -234,7 +234,7 @@ export function TaskDetailDialog({
                   <label className="text-sm text-slate-500 block">Links</label>
                   <div className="flex flex-wrap gap-2">
                     {task.company && (
-                      <Link to={`/companies/${task.company.id}`}>
+                      <Link to={`/portfolio/${task.company.id}`}>
                         <Badge variant="outline" className="text-slate-300 border-slate-700 hover:bg-slate-800">
                           <Building2 className="h-3 w-3 mr-1" />
                           {task.company.name}

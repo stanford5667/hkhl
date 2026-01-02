@@ -518,7 +518,7 @@ export default function MarketsPage() {
                 >
                   <HoldingCard 
                     holding={holding} 
-                    onClick={() => navigate(`/companies/${holding.id}`)}
+                    onClick={() => navigate(`/portfolio/${holding.id}`)}
                     formatCurrency={formatCurrency}
                     formatPrice={formatPrice}
                     formatPercent={formatPercent}
@@ -591,7 +591,7 @@ export default function MarketsPage() {
                     <TableRow 
                       key={holding.id} 
                       className="border-border cursor-pointer hover:bg-muted/30"
-                      onClick={() => navigate(`/companies/${holding.id}`)}
+                      onClick={() => navigate(`/portfolio/${holding.id}`)}
                     >
                       <TableCell>
                         <div className="flex items-center gap-2">
@@ -699,7 +699,7 @@ export default function MarketsPage() {
                     <Card
                       key={item.id}
                       className="p-3 bg-card border-border hover:border-primary/50 transition-all cursor-pointer"
-                      onClick={() => navigate(`/companies/${item.id}`)}
+                      onClick={() => navigate(`/portfolio/${item.id}`)}
                     >
                       <div className="flex items-center gap-3">
                         <div>

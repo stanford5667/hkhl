@@ -194,7 +194,7 @@ export default function Companies() {
         onComplete={(company) => {
           if (company.company_type === 'pipeline') setView('pipeline');
           else if (company.company_type === 'portfolio') setView('portfolio');
-          navigate(`/companies/${company.id}`);
+          navigate(`/portfolio/${company.id}`);
         }}
       />
     </div>

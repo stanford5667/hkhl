@@ -182,7 +182,7 @@ export function PipelineKanbanView({ companies, onUpdatePipelineStage }: Pipelin
                     isDragging={draggedCompany?.id === company.id}
                     onDragStart={(e) => handleDragStart(e, company)}
                     onDragEnd={handleDragEnd}
-                    onClick={() => navigate(`/companies/${company.id}`)}
+                    onClick={() => navigate(`/portfolio/${company.id}`)}
                   />
                 ))}
                 

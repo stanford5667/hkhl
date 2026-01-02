@@ -148,7 +148,7 @@ export function GlobalSearch({ open, onOpenChange }: GlobalSearchProps) {
                   {results.companies.map((company) => (
                     <CommandItem
                       key={company.id}
-                      onSelect={() => runCommand(() => navigate(`/companies/${company.id}`))}
+                      onSelect={() => runCommand(() => navigate(`/portfolio/${company.id}`))}
                       className="text-slate-300 hover:bg-slate-800"
                     >
                       <Building2 className="mr-2 h-4 w-4 text-blue-400" />
@@ -221,7 +221,7 @@ export function GlobalSearch({ open, onOpenChange }: GlobalSearchProps) {
                   {recentItems.companies.map((company) => (
                     <CommandItem
                       key={company.id}
-                      onSelect={() => runCommand(() => navigate(`/companies/${company.id}`))}
+                      onSelect={() => runCommand(() => navigate(`/portfolio/${company.id}`))}
                       className="text-slate-300 hover:bg-slate-800"
                     >
                       <Clock className="mr-2 h-4 w-4 text-slate-500" />

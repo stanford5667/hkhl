@@ -87,7 +87,7 @@ export function CompanyListView({ companies, onUpdateStage, onDelete }: CompanyL
             <TableRow 
               key={company.id}
               className="border-border hover:bg-muted/50 cursor-pointer"
-              onClick={() => navigate(`/companies/${company.id}`)}
+              onClick={() => navigate(`/portfolio/${company.id}`)}
             >
               <TableCell>
                 <div className="flex items-center gap-3">
@@ -126,7 +126,7 @@ export function CompanyListView({ companies, onUpdateStage, onDelete }: CompanyL
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={(e) => { e.stopPropagation(); navigate(`/companies/${company.id}`); }}>
+                    <DropdownMenuItem onClick={(e) => { e.stopPropagation(); navigate(`/portfolio/${company.id}`); }}>
                       <Eye className="h-4 w-4 mr-2" />
                       View Details
                     </DropdownMenuItem>
