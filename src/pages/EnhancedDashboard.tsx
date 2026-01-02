@@ -37,6 +37,9 @@ import { CompanyMiniCard } from '@/components/shared/CompanyMiniCard';
 import { TaskRow } from '@/components/shared/TaskRow';
 import { supabase } from '@/integrations/supabase/client';
 import { FinnhubApiBanner } from '@/components/shared/FinnhubApiBanner';
+import { useDashboardWidgets } from '@/hooks/useDashboardWidgets';
+import { WidgetConfigDialog } from '@/components/dashboard/WidgetConfigDialog';
+import { DashboardGrid } from '@/components/dashboard/DashboardGrid';
 import {
   AreaChart,
   Area,
@@ -678,6 +681,7 @@ export default function EnhancedDashboard() {
   const { user } = useAuth();
   const { stats, recentCompanies, upcomingTasks, isLoading } = useDashboardData();
   const { pipelineStats, tasksWithRelations, companiesWithRelations, refetchAll, dashboardStats } = useUnifiedData();
+  const { widgets, enabledWidgets, toggleWidget, resetToDefaults } = useDashboardWidgets();
 
   const greeting = getGreeting();
   const userName = user?.user_metadata?.full_name?.split(' ')[0] || 'there';
@@ -731,15 +735,21 @@ export default function EnhancedDashboard() {
             )}
           </p>
         </div>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={refetchAll}
-          className="self-start md:self-auto"
-        >
-          <RefreshCw className="h-4 w-4 mr-2" />
-          Refresh
-        </Button>
+        <div className="flex items-center gap-2 self-start md:self-auto">
+          <WidgetConfigDialog
+            widgets={widgets}
+            onToggle={toggleWidget}
+            onReset={resetToDefaults}
+          />
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={refetchAll}
+          >
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Refresh
+          </Button>
+        </div>
       </motion.div>
 
       {/* Finnhub API Banner (if public equities enabled) */}
