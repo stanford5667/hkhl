@@ -49,7 +49,7 @@ export async function getCandles(
   }
 
   const upperSymbol = symbol.toUpperCase();
-  
+
   // Default time range based on resolution
   const now = Math.floor(Date.now() / 1000);
   const defaultFrom = getDefaultFromTime(resolution, now);
@@ -64,57 +64,42 @@ export async function getCandles(
     return cached.data;
   }
 
-  try {
-    console.log(`[Candles] Fetching via edge function: ${upperSymbol} ${resolution}`);
-    
-    const { data, error } = await supabase.functions.invoke('finnhub-candles', {
-      body: null,
-      headers: {},
-    });
+  console.log(`[Candles] Fetching via backend function: ${upperSymbol} ${resolution}`);
 
-    // Use query params via URL construction
-    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-    const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
-    
-    const url = `${supabaseUrl}/functions/v1/finnhub-candles?symbol=${upperSymbol}&resolution=${resolution}&from=${fromTime}&to=${toTime}`;
-    
-    const response = await fetch(url, {
-      headers: {
-        'Authorization': `Bearer ${supabaseKey}`,
-        'Content-Type': 'application/json',
-      },
-    });
+  const { data, error } = await supabase.functions.invoke('finnhub-candles', {
+    body: {
+      symbol: upperSymbol,
+      resolution,
+      from: fromTime,
+      to: toTime,
+    },
+  });
 
-    if (!response.ok) {
-      console.error('[Candles] Edge function error:', response.status);
-      return generateMockCandles(symbol, resolution, fromTime, toTime);
-    }
-
-    const responseData = await response.json();
-
-    // Finnhub returns { s: 'ok', c: [], h: [], l: [], o: [], t: [], v: [] }
-    if (responseData.s !== 'ok' || !responseData.c || responseData.c.length === 0) {
-      console.warn('[Candles] No data returned for', upperSymbol);
-      return generateMockCandles(symbol, resolution, fromTime, toTime);
-    }
-
-    const candles: CandleData[] = responseData.t.map((timestamp: number, i: number) => ({
-      time: timestamp,
-      open: responseData.o[i],
-      high: responseData.h[i],
-      low: responseData.l[i],
-      close: responseData.c[i],
-      volume: responseData.v?.[i],
-    }));
-
-    // Cache the result
-    candleCache.set(cacheKey, { data: candles, fetchedAt: Date.now() });
-
-    return candles;
-  } catch (error) {
-    console.error('[Candles] Fetch error:', error);
-    return generateMockCandles(symbol, resolution, fromTime, toTime);
+  if (error) {
+    // Don’t silently fall back to mock data when the user expects live market data.
+    throw new Error(error.message || 'Failed to fetch candle data');
   }
+
+  const payload = data as any;
+
+  // Finnhub returns { s: 'ok', c: [], h: [], l: [], o: [], t: [], v: [] }
+  if (payload?.s !== 'ok' || !payload?.c || payload.c.length === 0) {
+    const status = payload?.s ?? 'unknown';
+    throw new Error(`No candle data returned (status: ${status})`);
+  }
+
+  const candles: CandleData[] = payload.t.map((timestamp: number, i: number) => ({
+    time: timestamp,
+    open: payload.o[i],
+    high: payload.h[i],
+    low: payload.l[i],
+    close: payload.c[i],
+    volume: payload.v?.[i],
+  }));
+
+  candleCache.set(cacheKey, { data: candles, fetchedAt: Date.now() });
+
+  return candles;
 }
 
 /**
