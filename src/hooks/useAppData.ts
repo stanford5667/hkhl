@@ -550,14 +550,12 @@ export function useCompanyDocuments(companyId: string) {
       return (data || []) as AppDocument[];
     },
     enabled: !!companyId,
-    // Poll every 5s if any documents are processing
-    refetchInterval: (query) => {
-      const data = query.state.data as AppDocument[] | undefined;
-      const hasProcessing = data?.some(d => 
-        d.processing_status === 'pending' || d.processing_status === 'processing'
-      );
-      return hasProcessing ? 5000 : false;
-    },
+    staleTime: Infinity, // Never auto-stale
+    refetchOnWindowFocus: false, // No auto-refresh
+    refetchOnMount: false, // No auto-fetch on mount
+    refetchOnReconnect: false, // No auto-fetch on reconnect
+    // DISABLED: Auto-polling removed - user must click Refresh
+    // refetchInterval: false,
   });
 
   const updateStatusMutation = useMutation({

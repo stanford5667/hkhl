@@ -15,6 +15,14 @@ export interface WatchlistItem {
   notes: string | null;
 }
 
+// Default query options - NO automatic fetching
+const noAutoFetchOptions = {
+  staleTime: Infinity,
+  refetchOnWindowFocus: false,
+  refetchOnMount: false,
+  refetchOnReconnect: false,
+};
+
 export function useWatchlist(itemType?: WatchlistItemType) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -39,6 +47,7 @@ export function useWatchlist(itemType?: WatchlistItemType) {
       return data as WatchlistItem[];
     },
     enabled: !!user?.id,
+    ...noAutoFetchOptions,
   });
 
   const addToWatchlist = useMutation({

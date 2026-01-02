@@ -163,12 +163,12 @@ export function useCachedIndustryIntel(
     ? formatTimeUntil(expiresAt) 
     : 'Unknown';
   
-  // Initial load
+  // DISABLED: No auto-load on mount - user must click Refresh
+  // Data is only loaded when user explicitly calls refresh()
   useEffect(() => {
     mountedRef.current = true;
-    if (user) {
-      loadData(false);
-    }
+    // NO AUTO-FETCH: loadData() is NOT called automatically
+    // User must click a "Load" or "Refresh" button to trigger data fetch
     
     return () => {
       mountedRef.current = false;

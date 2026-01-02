@@ -211,16 +211,11 @@ export function usePriceChangeAnimation(currentPrice: number | undefined) {
 // ============= Market Status Hook =============
 
 export function useMarketStatus() {
+  // DISABLED: Auto-polling removed - status calculated on-demand only
   const [status, setStatus] = useState(getMarketStatus);
   
-  useEffect(() => {
-    // Check every minute
-    const interval = setInterval(() => {
-      setStatus(getMarketStatus());
-    }, 60 * 1000);
-    
-    return () => clearInterval(interval);
-  }, []);
+  // No automatic interval - status is calculated when component mounts
+  // User can trigger re-calculation by refreshing the page
   
   return {
     status,
