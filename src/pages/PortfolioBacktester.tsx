@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { PortfolioSetup, PortfolioAsset } from '@/components/backtester/PortfolioSetup';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -217,40 +218,14 @@ function DashboardTab() {
   );
 }
 
-function PortfolioTab() {
+function PortfolioTab({ assets, onAssetsChange }: { assets: PortfolioAsset[]; onAssetsChange: (assets: PortfolioAsset[]) => void }) {
   return (
     <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-sm">Portfolio Allocation</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 gap-6">
-            <div className="h-64 bg-muted/50 rounded-lg flex items-center justify-center">
-              <p className="text-muted-foreground text-sm">Allocation pie chart</p>
-            </div>
-            <div className="space-y-3">
-              {[
-                { sector: 'Technology', weight: 35, color: 'bg-blue-500' },
-                { sector: 'Healthcare', weight: 20, color: 'bg-emerald-500' },
-                { sector: 'Financials', weight: 18, color: 'bg-amber-500' },
-                { sector: 'Consumer', weight: 15, color: 'bg-purple-500' },
-                { sector: 'Other', weight: 12, color: 'bg-gray-500' },
-              ].map((sector) => (
-                <div key={sector.sector} className="flex items-center gap-3">
-                  <div className={cn('w-3 h-3 rounded-full', sector.color)} />
-                  <span className="flex-1 text-sm">{sector.sector}</span>
-                  <span className="text-sm font-medium">{sector.weight}%</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      <PortfolioSetup assets={assets} onAssetsChange={onAssetsChange} />
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-sm">Strategy Parameters</CardTitle>
+          <CardTitle className="text-sm">Strategy Parameters Summary</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-3 gap-4">
@@ -406,12 +381,43 @@ function ReportsTab() {
   );
 }
 
+const DEFAULT_ASSETS: PortfolioAsset[] = [
+  {
+    id: '1',
+    symbol: 'AAPL',
+    strategy: 'covered-call',
+    allocation: 40,
+    startDate: new Date('2022-01-01'),
+    endDate: new Date('2023-12-31'),
+    advancedSettings: { stopLoss: 10, takeProfit: 25, rebalanceFrequency: 'monthly', useTrailingStop: false },
+  },
+  {
+    id: '2',
+    symbol: 'TSLA',
+    strategy: 'day-trading',
+    allocation: 30,
+    startDate: new Date('2023-03-15'),
+    endDate: new Date('2023-04-15'),
+    advancedSettings: { stopLoss: 5, takeProfit: 15, rebalanceFrequency: 'daily', useTrailingStop: true },
+  },
+  {
+    id: '3',
+    symbol: 'SPY',
+    strategy: 'long-term-hold',
+    allocation: 30,
+    startDate: new Date('2022-06-01'),
+    endDate: new Date('2023-12-01'),
+    advancedSettings: { stopLoss: 15, takeProfit: 50, rebalanceFrequency: 'quarterly', useTrailingStop: false },
+  },
+];
+
 export default function PortfolioBacktester() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [timeline, setTimeline] = useState('1 Year');
   const [selectedMetrics, setSelectedMetrics] = useState(['totalReturn', 'sharpeRatio', 'maxDrawdown']);
   const [selectedBenchmarks, setSelectedBenchmarks] = useState(['spy']);
   const [isRunning, setIsRunning] = useState(false);
+  const [assets, setAssets] = useState<PortfolioAsset[]>(DEFAULT_ASSETS);
 
   const handleRunBacktest = () => {
     setIsRunning(true);
@@ -423,7 +429,7 @@ export default function PortfolioBacktester() {
       case 'dashboard':
         return <DashboardTab />;
       case 'portfolio':
-        return <PortfolioTab />;
+        return <PortfolioTab assets={assets} onAssetsChange={setAssets} />;
       case 'macro':
         return <MacroTab />;
       case 'stress':
