@@ -96,26 +96,35 @@ export function PublicEquityDetailView({ company, onUpdate }: PublicEquityDetail
     notes: '',
   });
   
-  // Fetch stock quote
+  // Fetch stock quote using Finnhub
   const fetchQuote = useCallback(async () => {
     if (!company.ticker_symbol) return;
     
     setIsLoadingQuote(true);
     try {
-      const { data, error } = await supabase.functions.invoke('stock-quote', {
-        body: { ticker: company.ticker_symbol, timeframe: timeFrame }
-      });
+      const { getFullQuote } = await import('@/services/finnhubService');
+      const data = await getFullQuote(company.ticker_symbol);
       
-      if (error) throw error;
-      if (data?.success && data?.quote) {
-        setQuote(data.quote);
+      if (data) {
+        setQuote({
+          price: data.price,
+          change: data.change,
+          changePercent: data.changePercent,
+          open: data.open,
+          high: data.high,
+          low: data.low,
+          volume: '-',
+          marketCap: data.marketCap || '-',
+          companyName: data.companyName || company.name,
+          chartData: [], // Finnhub free tier doesn't include intraday chart
+        });
       }
     } catch (e) {
       console.error('Quote error:', e);
     } finally {
       setIsLoadingQuote(false);
     }
-  }, [company.ticker_symbol, timeFrame]);
+  }, [company.ticker_symbol, company.name]);
 
   // Fetch transactions
   const fetchTransactions = useCallback(async () => {

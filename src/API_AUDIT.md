@@ -1,7 +1,7 @@
 # API Call Audit Report
 
 **Generated:** 2026-01-02  
-**Updated:** 2026-01-02 (ALL edge functions now have kill switches!)
+**Updated:** 2026-01-02 (Stock quotes now use Finnhub API!)
 **Purpose:** Identify all external API calls in the codebase for cost/usage control
 
 ---
@@ -13,11 +13,41 @@
 | Edge Functions (Perplexity) | 6 | 6 ✅ | N/A |
 | Edge Functions (Lovable AI) | 11 | 11 ✅ | N/A |
 | Edge Functions (Other) | 1 | 1 ✅ | N/A |
+| **Finnhub API (Client)** | 5 | Rate Limited | Manual Only |
 | Client Hooks (Perplexity) | 2 | 2 ✅ | ❌ DISABLED |
 | Client setInterval | 2 | 2 ✅ | ❌ DISABLED |
 | Client refetchInterval | All | All ✅ | ❌ DISABLED |
 
 ---
+
+## 🆕 FINNHUB API INTEGRATION
+
+Stock quotes now use **Finnhub API** (free tier: 60 calls/minute) instead of edge functions.
+
+### Finnhub Service (`src/services/finnhubService.ts`)
+
+| Function | Purpose | Rate Limited |
+|----------|---------|--------------|
+| `getQuote(symbol)` | Single stock quote | ✅ Yes |
+| `getFullQuote(symbol)` | Quote + company profile | ✅ Yes |
+| `getBatchQuotes(symbols)` | Multiple quotes | ✅ Yes |
+| `searchSymbol(query)` | Symbol search | ✅ Yes |
+| `getCompanyProfile(symbol)` | Company info | ✅ Yes |
+
+### Files Using Finnhub (Replaces supabase.functions.invoke('stock-quote'))
+
+| File | Function | Trigger |
+|------|----------|---------|
+| `src/pages/Markets.tsx` | `getBatchQuotes` | Manual refresh button |
+| `src/pages/EnhancedDashboard.tsx` | `getBatchQuotes` | On mount (indices only) |
+| `src/components/research/StockQuoteHeader.tsx` | `getFullQuote` | On mount |
+| `src/components/companies/AddAssetWizard.tsx` | `getFullQuote` | On ticker input (debounced) |
+| `src/components/equity/PublicEquityDetailView.tsx` | `getFullQuote` | On mount + manual refresh |
+
+### Environment Variable Required
+```
+VITE_FINNHUB_API_KEY=your_finnhub_api_key
+```
 
 ## ✅ ALL EDGE FUNCTIONS NOW HAVE KILL SWITCHES
 

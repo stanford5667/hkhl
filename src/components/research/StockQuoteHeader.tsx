@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { getFullQuote } from '@/services/finnhubService';
 import { Skeleton } from '@/components/ui/skeleton';
 import { TrendingUp, TrendingDown, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -32,14 +32,21 @@ export function StockQuoteHeader({ ticker }: StockQuoteHeaderProps) {
     setIsLoading(true);
     setError(null);
     try {
-      const { data, error: fnError } = await supabase.functions.invoke('stock-quote', {
-        body: { ticker }
-      });
+      const data = await getFullQuote(ticker);
 
-      if (fnError) throw fnError;
-
-      if (data?.success && data?.quote) {
-        setQuote(data.quote);
+      if (data) {
+        setQuote({
+          price: data.price,
+          change: data.change,
+          changePercent: data.changePercent,
+          open: data.open,
+          high: data.high,
+          low: data.low,
+          volume: '-', // Finnhub free tier doesn't include volume in quote
+          marketCap: data.marketCap || '-',
+          companyName: data.companyName || ticker,
+          chartData: [], // Finnhub free tier doesn't include intraday chart
+        });
       } else {
         setError('Unable to fetch quote');
       }
