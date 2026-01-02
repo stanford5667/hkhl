@@ -24,6 +24,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { PortfolioSetup, PortfolioAsset } from '@/components/backtester/PortfolioSetup';
 import { MetricsSelector, METRICS } from '@/components/backtester/MetricsSelector';
 import { BenchmarkSelector } from '@/components/backtester/BenchmarkSelector';
+import { AdvancedMetricsPanel } from '@/components/backtester/AdvancedMetricsPanel';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -152,22 +153,8 @@ function DashboardTab({ selectedMetrics }: { selectedMetrics: string[] }) {
         </CardContent>
       </Card>
 
-      {/* Metrics Cards */}
-      {filteredMetrics.length > 0 && (
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
-          {filteredMetrics.map((metric) => (
-            <Card key={metric.id}>
-              <CardContent className="p-4">
-                <p className="text-sm text-muted-foreground">{metric.label}</p>
-                <p className="text-2xl font-bold mt-1">{metric.value}</p>
-                <p className={cn('text-xs mt-1', metric.change.startsWith('+') ? 'text-emerald-500' : 'text-destructive')}>
-                  {metric.change} vs benchmark
-                </p>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      )}
+      {/* Advanced Metrics Panel */}
+      <AdvancedMetricsPanel visibleMetrics={filteredMetrics} />
 
       {/* Drawdown Chart */}
       <Card>
