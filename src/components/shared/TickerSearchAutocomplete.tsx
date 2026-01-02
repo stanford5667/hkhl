@@ -3,13 +3,13 @@ import { Search, Loader2, TrendingUp, X } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import { useTickerSearch } from '@/hooks/useMarketData';
+import { useTickerSearchHook } from '@/hooks/useMarketData';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface TickerSearchResult {
   symbol: string;
   name: string;
-  exchange: string;
+  exchange?: string;
 }
 
 interface TickerSearchAutocompleteProps {
@@ -36,7 +36,7 @@ export function TickerSearchAutocomplete({
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLUListElement>(null);
   
-  const { results, isSearching, hasResults, error } = useTickerSearch(value, {
+  const { results, isSearching, hasResults, error } = useTickerSearchHook(value, {
     enabled: value.length >= 1,
     debounceMs: 300,
   });
