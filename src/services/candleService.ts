@@ -1,13 +1,11 @@
 /**
  * Finnhub Candle Data Service
- * Fetches OHLCV data for candlestick charts
+ * Fetches OHLCV data for candlestick charts via edge function
  * Free tier: 60 calls/minute
  */
 
 import { API_CONFIG } from '@/config/apiConfig';
-
-const FINNHUB_API_KEY = import.meta.env.VITE_FINNHUB_API_KEY;
-const BASE_URL = 'https://finnhub.io/api/v1';
+import { supabase } from '@/integrations/supabase/client';
 
 export interface CandleData {
   time: number; // Unix timestamp
@@ -50,11 +48,6 @@ export async function getCandles(
     return generateMockCandles(symbol, resolution, from, to);
   }
 
-  if (!FINNHUB_API_KEY) {
-    console.warn('[Candles] No Finnhub API key, using mock data');
-    return generateMockCandles(symbol, resolution, from, to);
-  }
-
   const upperSymbol = symbol.toUpperCase();
   
   // Default time range based on resolution
@@ -72,31 +65,46 @@ export async function getCandles(
   }
 
   try {
-    const url = `${BASE_URL}/stock/candle?symbol=${upperSymbol}&resolution=${resolution}&from=${fromTime}&to=${toTime}&token=${FINNHUB_API_KEY}`;
+    console.log(`[Candles] Fetching via edge function: ${upperSymbol} ${resolution}`);
     
-    console.log(`[Candles] Fetching: ${upperSymbol} ${resolution}`);
-    const response = await fetch(url);
+    const { data, error } = await supabase.functions.invoke('finnhub-candles', {
+      body: null,
+      headers: {},
+    });
+
+    // Use query params via URL construction
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+    const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+    
+    const url = `${supabaseUrl}/functions/v1/finnhub-candles?symbol=${upperSymbol}&resolution=${resolution}&from=${fromTime}&to=${toTime}`;
+    
+    const response = await fetch(url, {
+      headers: {
+        'Authorization': `Bearer ${supabaseKey}`,
+        'Content-Type': 'application/json',
+      },
+    });
 
     if (!response.ok) {
-      console.error('[Candles] API error:', response.status);
+      console.error('[Candles] Edge function error:', response.status);
       return generateMockCandles(symbol, resolution, fromTime, toTime);
     }
 
-    const data = await response.json();
+    const responseData = await response.json();
 
     // Finnhub returns { s: 'ok', c: [], h: [], l: [], o: [], t: [], v: [] }
-    if (data.s !== 'ok' || !data.c || data.c.length === 0) {
+    if (responseData.s !== 'ok' || !responseData.c || responseData.c.length === 0) {
       console.warn('[Candles] No data returned for', upperSymbol);
       return generateMockCandles(symbol, resolution, fromTime, toTime);
     }
 
-    const candles: CandleData[] = data.t.map((timestamp: number, i: number) => ({
+    const candles: CandleData[] = responseData.t.map((timestamp: number, i: number) => ({
       time: timestamp,
-      open: data.o[i],
-      high: data.h[i],
-      low: data.l[i],
-      close: data.c[i],
-      volume: data.v?.[i],
+      open: responseData.o[i],
+      high: responseData.h[i],
+      low: responseData.l[i],
+      close: responseData.c[i],
+      volume: responseData.v?.[i],
     }));
 
     // Cache the result
