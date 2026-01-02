@@ -199,7 +199,8 @@ export function CandlestickChart({
         }
       } catch (err) {
         console.error('[CandlestickChart] Error:', err);
-        setError('Failed to load chart data');
+        const message = err instanceof Error ? err.message : 'Failed to load chart data';
+        setError(message);
       } finally {
         setIsLoading(false);
       }

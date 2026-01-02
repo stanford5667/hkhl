@@ -7,7 +7,7 @@ const corsHeaders = {
 
 const BASE_URL = "https://finnhub.io/api/v1";
 
-type Action = "quote" | "profile" | "search" | "batch";
+type Action = "quote" | "candles" | "profile" | "search" | "batch";
 
 function json(data: unknown, status = 200) {
   return new Response(JSON.stringify(data), {
@@ -65,6 +65,23 @@ serve(async (req) => {
           companyName: symbol,
         },
       });
+    }
+
+    if (action === "candles") {
+      const symbol = String(body.symbol || "").toUpperCase();
+      const resolution = String(body.resolution || "D");
+      const from = body.from != null ? String(body.from) : "";
+      const to = body.to != null ? String(body.to) : "";
+
+      if (!symbol) return json({ ok: false, error: "symbol is required" }, 400);
+      if (!from || !to) return json({ ok: false, error: "from and to are required" }, 400);
+
+      const data = await fetchFinnhub(
+        `/stock/candle?symbol=${encodeURIComponent(symbol)}&resolution=${encodeURIComponent(resolution)}&from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`,
+        FINNHUB_API_KEY
+      );
+
+      return json({ ok: true, candles: data });
     }
 
     if (action === "profile") {
