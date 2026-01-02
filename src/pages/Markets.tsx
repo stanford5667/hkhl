@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { getBatchQuotes } from '@/services/finnhubService';
 import { useUnifiedData, Company } from '@/contexts/UnifiedDataContext';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -122,41 +123,28 @@ export default function MarketsPage() {
     });
   }, [marketIndicesData]);
 
-  // Fallback fetch for indices if hook doesn't return data
+  // Fallback fetch for indices using Finnhub
   const fetchIndicesFallback = useCallback(async () => {
     if (marketIndicesData && marketIndicesData.length > 0) return;
     
     try {
-      const results = await Promise.all(
-        MARKET_INDICES_SYMBOLS.map(async (idx) => {
-          try {
-            const { data, error } = await supabase.functions.invoke('stock-quote', {
-              body: { ticker: idx.symbol }
-            });
-            if (error || !data?.success) {
-              return { ...idx, price: 0, change: 0, changePercent: 0 };
-            }
-            return {
-              ...idx,
-              price: data.quote.price,
-              change: data.quote.change,
-              changePercent: data.quote.changePercent,
-              chartData: data.quote.chartData,
-            };
-          } catch {
-            return { ...idx, price: 0, change: 0, changePercent: 0 };
-          }
-        })
-      );
-      // Can't set indices directly since we're using hook data now
-      // Just log for debugging
-      console.log('[Markets] Fallback indices fetched:', results.length);
+      const quotes = await getBatchQuotes(MARKET_INDICES_SYMBOLS.map(idx => idx.symbol));
+      const results = MARKET_INDICES_SYMBOLS.map(idx => {
+        const quote = quotes.get(idx.symbol);
+        return {
+          ...idx,
+          price: quote?.price || 0,
+          change: quote?.change || 0,
+          changePercent: quote?.changePercent || 0,
+        };
+      });
+      console.log('[Markets] Finnhub indices fetched:', results.length);
     } catch (err) {
-      console.error('[Markets] Fallback indices error:', err);
+      console.error('[Markets] Finnhub indices error:', err);
     }
   }, [marketIndicesData]);
 
-  // Fetch quotes for holdings
+  // Fetch quotes for holdings using Finnhub
   const fetchHoldingQuotes = useCallback(async () => {
     if (publicEquityHoldings.length === 0) {
       setHoldings([]);
@@ -166,42 +154,34 @@ export default function MarketsPage() {
     // Initialize with loading state
     setHoldings(publicEquityHoldings.map(h => ({ ...h, isLoading: true })));
 
-    const updatedHoldings = await Promise.all(
-      publicEquityHoldings.map(async (holding) => {
-        if (!holding.ticker_symbol) return { ...holding, isLoading: false };
-        
-        try {
-          const { data, error } = await supabase.functions.invoke('stock-quote', {
-            body: { ticker: holding.ticker_symbol }
-          });
-          
-          if (error || !data?.success) {
-            return { ...holding, isLoading: false };
-          }
+    const tickers = publicEquityHoldings
+      .filter(h => h.ticker_symbol)
+      .map(h => h.ticker_symbol!);
 
-          const quote = data.quote;
-          const shares = holding.shares_owned || 0;
-          const liveValue = shares * quote.price;
-          const todayGainLoss = shares * quote.change;
-          const todayGainLossPercent = quote.changePercent;
+    const quotes = await getBatchQuotes(tickers);
 
-          return {
-            ...holding,
-            livePrice: quote.price,
-            liveChange: quote.change,
-            liveChangePercent: quote.changePercent,
-            todayGainLoss,
-            todayGainLossPercent,
-            sparklineData: quote.chartData,
-            isLoading: false,
-            // Update market value with live price
-            market_value: liveValue,
-          };
-        } catch {
-          return { ...holding, isLoading: false };
-        }
-      })
-    );
+    const updatedHoldings = publicEquityHoldings.map(holding => {
+      if (!holding.ticker_symbol) return { ...holding, isLoading: false };
+      
+      const quote = quotes.get(holding.ticker_symbol.toUpperCase());
+      if (!quote) return { ...holding, isLoading: false };
+
+      const shares = holding.shares_owned || 0;
+      const liveValue = shares * quote.price;
+      const todayGainLoss = shares * quote.change;
+      const todayGainLossPercent = quote.changePercent;
+
+      return {
+        ...holding,
+        livePrice: quote.price,
+        liveChange: quote.change,
+        liveChangePercent: quote.changePercent,
+        todayGainLoss,
+        todayGainLossPercent,
+        isLoading: false,
+        market_value: liveValue,
+      };
+    });
 
     setHoldings(updatedHoldings);
     setLastRefresh(new Date());

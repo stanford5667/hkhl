@@ -200,7 +200,7 @@ export function AddAssetWizard({ open, onOpenChange, onComplete, onCreate }: Add
     onOpenChange(false);
   };
 
-  // Fetch stock quote when ticker changes
+  // Fetch stock quote when ticker changes using Finnhub
   const fetchStockQuote = useCallback(async (ticker: string) => {
     if (!ticker || ticker.length < 1) {
       setQuoteData(null);
@@ -209,21 +209,25 @@ export function AddAssetWizard({ open, onOpenChange, onComplete, onCreate }: Add
 
     setIsLoadingQuote(true);
     try {
-      const { data, error } = await supabase.functions.invoke('stock-quote', {
-        body: { ticker: ticker.toUpperCase() }
-      });
+      const { getFullQuote } = await import('@/services/finnhubService');
+      const data = await getFullQuote(ticker.toUpperCase());
 
-      if (error) throw error;
-
-      if (data?.success && data?.data) {
-        setQuoteData(data.data);
-        updateForm({
-          name: data.data.companyName || ticker.toUpperCase(),
-          currentPrice: data.data.price,
-          marketCap: data.data.marketCap,
-          exchange: 'NYSE', // Default, could be improved with real data
+      if (data) {
+        setQuoteData({
+          price: data.price,
+          change: data.change,
+          changePercent: data.changePercent,
+          companyName: data.companyName || ticker.toUpperCase(),
+          marketCap: data.marketCap || '',
+          chartData: [],
         });
-        toast.success(`Found ${data.data.companyName}`);
+        updateForm({
+          name: data.companyName || ticker.toUpperCase(),
+          currentPrice: data.price,
+          marketCap: data.marketCap || '',
+          exchange: 'NYSE',
+        });
+        toast.success(`Found ${data.companyName || ticker}`);
       }
     } catch (e) {
       console.error('Quote fetch error:', e);

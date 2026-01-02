@@ -194,20 +194,14 @@ function MarketsTicker({
   useEffect(() => {
     const fetchIndices = async () => {
       try {
-        const results = await Promise.all(
-          ['SPY', 'QQQ', 'DIA'].map(async (symbol) => {
-            const { data } = await supabase.functions.invoke('stock-quote', {
-              body: { ticker: symbol },
-            });
-            return {
-              symbol,
-              name: symbol === 'SPY' ? 'S&P 500' : symbol === 'QQQ' ? 'NASDAQ' : 'DOW',
-              price: data?.price || 0,
-              change: data?.changePercent || 0,
-            };
-          })
-        );
-        setIndices(results);
+        const { getBatchQuotes } = await import('@/services/finnhubService');
+        const quotes = await getBatchQuotes(['SPY', 'QQQ', 'DIA']);
+        
+        setIndices([
+          { symbol: 'SPY', name: 'S&P 500', price: quotes.get('SPY')?.price || 0, change: quotes.get('SPY')?.changePercent || 0 },
+          { symbol: 'QQQ', name: 'NASDAQ', price: quotes.get('QQQ')?.price || 0, change: quotes.get('QQQ')?.changePercent || 0 },
+          { symbol: 'DIA', name: 'DOW', price: quotes.get('DIA')?.price || 0, change: quotes.get('DIA')?.changePercent || 0 },
+        ]);
       } catch (error) {
         console.error('Error fetching indices:', error);
       }
