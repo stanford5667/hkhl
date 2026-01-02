@@ -258,128 +258,8 @@ function MarketsTicker({
   );
 }
 
-// Portfolio Performance Card with line chart
-function PortfolioPerformanceCard({
-  publicEquities,
-  privateEquities,
-  isLoading,
-}: {
-  publicEquities: CompanyWithRelations[];
-  privateEquities: CompanyWithRelations[];
-  isLoading: boolean;
-}) {
-  // Generate mock 30-day performance data
-  const chartData = useMemo(() => {
-    const publicValue = publicEquities.reduce((sum, c) => sum + (c.market_value || 0), 0);
-    const privateValue = privateEquities.reduce((sum, c) => sum + (c.ebitda_ltm || 0) * 8, 0); // Rough valuation
-    const totalValue = publicValue + privateValue;
-
-    return Array.from({ length: 30 }, (_, i) => {
-      const date = subDays(new Date(), 29 - i);
-      const variance = 1 + (Math.random() - 0.5) * 0.02;
-      return {
-        date: format(date, 'MMM d'),
-        public: Math.round(publicValue * variance * (0.95 + i * 0.002)),
-        private: Math.round(privateValue),
-        total: Math.round(totalValue * variance * (0.95 + i * 0.002)),
-      };
-    });
-  }, [publicEquities, privateEquities]);
-
-  const totalValue = publicEquities.reduce((sum, c) => sum + (c.market_value || 0), 0) +
-    privateEquities.reduce((sum, c) => sum + (c.ebitda_ltm || 0) * 8, 0);
-
-  if (isLoading) {
-    return (
-      <Card>
-        <CardHeader>
-          <Skeleton className="h-5 w-40" />
-        </CardHeader>
-        <CardContent>
-          <Skeleton className="h-48 w-full" />
-        </CardContent>
-      </Card>
-    );
-  }
-
-  return (
-    <Card>
-      <CardHeader className="pb-2">
-        <div className="flex items-center justify-between">
-          <div>
-            <CardTitle className="text-base flex items-center gap-2">
-              <LineChart className="h-4 w-4" />
-              Portfolio Performance
-            </CardTitle>
-            <CardDescription className="text-2xl font-bold mt-1">
-              {formatCurrency(totalValue)}
-            </CardDescription>
-          </div>
-          <Link to="/portfolio">
-            <Button variant="ghost" size="sm">
-              View Holdings
-              <ChevronRight className="h-4 w-4 ml-1" />
-            </Button>
-          </Link>
-        </div>
-      </CardHeader>
-      <CardContent>
-        <div className="h-48">
-          <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={chartData}>
-              <defs>
-                <linearGradient id="colorPublic" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="hsl(var(--chart-1))" stopOpacity={0.3} />
-                  <stop offset="95%" stopColor="hsl(var(--chart-1))" stopOpacity={0} />
-                </linearGradient>
-                <linearGradient id="colorPrivate" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="hsl(var(--chart-2))" stopOpacity={0.3} />
-                  <stop offset="95%" stopColor="hsl(var(--chart-2))" stopOpacity={0} />
-                </linearGradient>
-              </defs>
-              <XAxis dataKey="date" tick={{ fontSize: 10 }} tickLine={false} axisLine={false} interval="preserveStartEnd" />
-              <YAxis hide domain={['auto', 'auto']} />
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: 'hsl(var(--popover))',
-                  borderColor: 'hsl(var(--border))',
-                  borderRadius: '8px',
-                }}
-                formatter={(value: number) => [formatCurrency(value), '']}
-              />
-              <Area
-                type="monotone"
-                dataKey="public"
-                stackId="1"
-                stroke="hsl(var(--chart-1))"
-                fill="url(#colorPublic)"
-                name="Public Equities"
-              />
-              <Area
-                type="monotone"
-                dataKey="private"
-                stackId="1"
-                stroke="hsl(var(--chart-2))"
-                fill="url(#colorPrivate)"
-                name="Private Equity"
-              />
-            </AreaChart>
-          </ResponsiveContainer>
-        </div>
-        <div className="flex gap-4 mt-2 text-xs">
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-full bg-[hsl(var(--chart-1))]" />
-            <span className="text-muted-foreground">Public Equities</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-full bg-[hsl(var(--chart-2))]" />
-            <span className="text-muted-foreground">Private Equity</span>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
+// Re-export the new PortfolioPerformanceCard
+import { PortfolioPerformanceCard } from '@/components/dashboard/PortfolioPerformanceCard';
 
 // Enhanced Activity Feed with asset-type specific activities
 function EnhancedActivityFeed({
@@ -1048,11 +928,7 @@ export default function EnhancedDashboard() {
       {/* Portfolio Performance Card (if multiple asset types or public equities) */}
       {(hasBothTypes || hasPublicEquity) && (
         <motion.div variants={itemVariants}>
-          <PortfolioPerformanceCard
-            publicEquities={publicEquities}
-            privateEquities={privateEquities}
-            isLoading={isLoading}
-          />
+          <PortfolioPerformanceCard days={30} showAllocation />
         </motion.div>
       )}
 
