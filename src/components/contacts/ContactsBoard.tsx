@@ -27,11 +27,13 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-interface ContactsBoardProps {
+export interface ContactsBoardProps {
   contacts: AppContact[];
   selectedContacts: string[];
   onSelectContacts: (ids: string[]) => void;
   onContactClick: (contact: AppContact) => void;
+  onContactDoubleClick?: (contact: AppContact) => void;
+  highlightedContactId?: string | null;
 }
 
 const categoryConfig: Record<
@@ -97,6 +99,8 @@ export function ContactsBoard({
   selectedContacts,
   onSelectContacts,
   onContactClick,
+  onContactDoubleClick,
+  highlightedContactId,
 }: ContactsBoardProps) {
   const contactsByCategory = categoryOrder.reduce(
     (acc, category) => {
@@ -143,7 +147,9 @@ export function ContactsBoard({
                     <BoardContactCard
                       key={contact.id}
                       contact={contact}
+                      highlighted={highlightedContactId === contact.id}
                       onClick={() => onContactClick(contact)}
+                      onDoubleClick={() => onContactDoubleClick?.(contact)}
                     />
                   ))
                 )}
@@ -158,17 +164,23 @@ export function ContactsBoard({
 
 interface BoardContactCardProps {
   contact: AppContact;
+  highlighted?: boolean;
   onClick: () => void;
+  onDoubleClick?: () => void;
 }
 
-function BoardContactCard({ contact, onClick }: BoardContactCardProps) {
+function BoardContactCard({ contact, highlighted, onClick, onDoubleClick }: BoardContactCardProps) {
   const initials = `${contact.first_name[0]}${contact.last_name[0]}`.toUpperCase();
   const isTeamMember = contact.category === 'team';
 
   return (
     <Card
-      className="p-3 bg-card border-border hover:border-primary/30 cursor-pointer transition-all group"
+      className={cn(
+        "p-3 bg-card border-border hover:border-primary/30 cursor-pointer transition-all group",
+        highlighted && "border-primary/50 bg-primary/5 ring-1 ring-primary/30"
+      )}
       onClick={onClick}
+      onDoubleClick={onDoubleClick}
     >
       <div className="flex items-start gap-3">
         {/* Avatar */}
