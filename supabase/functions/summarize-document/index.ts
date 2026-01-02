@@ -1,3 +1,7 @@
+// ========== KILL SWITCH - SET TO FALSE TO DISABLE ALL API CALLS ==========
+const ENABLE_LOVABLE_AI = false;
+// ==========================================================================
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -6,6 +10,19 @@ const corsHeaders = {
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
+  }
+
+  // KILL SWITCH - Return early if API is disabled
+  if (!ENABLE_LOVABLE_AI) {
+    console.log('[API BLOCKED] summarize-document - Lovable AI disabled');
+    return new Response(
+      JSON.stringify({ 
+        error: 'AI API disabled for testing',
+        summary: null,
+        isBlocked: true
+      }),
+      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
   }
 
   try {
