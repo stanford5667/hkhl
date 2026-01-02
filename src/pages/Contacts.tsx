@@ -16,6 +16,9 @@ import { ContactsBoard } from '@/components/contacts/ContactsBoard';
 import { ContactDetailPanel } from '@/components/contacts/ContactDetailPanel';
 import { CreateContactDialog } from '@/components/contacts/CreateContactDialog';
 import { BulkActionBar } from '@/components/contacts/BulkActionBar';
+import { useListSelection } from '@/hooks/useListSelection';
+import { SelectableListLayout } from '@/components/shared/SelectableListLayout';
+import { ContactQuickPreview } from '@/components/shared/QuickPreview';
 
 type ContactCategory = 'lender' | 'executive' | 'board' | 'legal' | 'vendor' | 'team' | 'other';
 
@@ -27,7 +30,7 @@ export default function Contacts() {
   const [filterType, setFilterType] = useState<ContactCategory | 'all'>('all');
   const [selectedContacts, setSelectedContacts] = useState<string[]>([]);
   const [activeContact, setActiveContact] = useState<AppContact | null>(null);
-  const [showChat, setShowChat] = useState(false);
+  const [showDetailPanel, setShowDetailPanel] = useState(false);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
 
   const filteredContacts = useMemo(() => {
@@ -45,14 +48,96 @@ export default function Contacts() {
     });
   }, [contacts, searchQuery, filterType]);
 
+  // List selection hook for quick preview
+  const {
+    selectedId,
+    selectedItem,
+    handleItemClick,
+    handleKeyDown,
+    clearSelection,
+    isSelected,
+    containerRef,
+  } = useListSelection<AppContact>({
+    items: filteredContacts,
+    getItemId: (contact) => contact.id,
+    onOpenDetail: (contact) => {
+      setActiveContact(contact);
+      setShowDetailPanel(true);
+    },
+  });
+
   const handleCreateContact = async (values: any) => {
     await createContact(values);
   };
 
-  const handleContactClick = (contact: AppContact) => {
+  // Open detail panel (double-click or "Open Details" button)
+  const handleOpenDetail = (contact: AppContact) => {
     setActiveContact(contact);
-    setShowChat(true);
+    setShowDetailPanel(true);
   };
+
+  // Quick preview content
+  const previewContent = selectedItem ? (
+    <ContactQuickPreview
+      contact={selectedItem}
+      companyName={selectedItem.company?.name}
+      onClose={clearSelection}
+      onOpenDetail={() => handleOpenDetail(selectedItem)}
+      onEdit={() => {
+        handleOpenDetail(selectedItem);
+      }}
+      onAddTask={() => {
+        // Could open task creation with contact pre-selected
+        handleOpenDetail(selectedItem);
+      }}
+    />
+  ) : null;
+
+  // List content
+  const listContent = (
+    <div
+      ref={containerRef}
+      onKeyDown={handleKeyDown}
+      tabIndex={0}
+      className="focus:outline-none"
+    >
+      {loading ? (
+        <div className="flex items-center justify-center h-64">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+        </div>
+      ) : filteredContacts.length === 0 ? (
+        <div className="flex flex-col items-center justify-center h-64 text-muted-foreground">
+          <Users className="h-12 w-12 mb-3 opacity-50" />
+          <p>No contacts found</p>
+          <p className="text-sm">
+            {contacts.length === 0
+              ? 'Add your first contact to get started'
+              : 'Try adjusting your search or filters'}
+          </p>
+        </div>
+      ) : view === 'table' ? (
+        <ContactsTable
+          contacts={filteredContacts}
+          selectedContacts={selectedContacts}
+          onSelectContacts={setSelectedContacts}
+          onContactClick={handleItemClick}
+          onContactDoubleClick={handleOpenDetail}
+          highlightedContactId={selectedId}
+          onUpdateContact={(id, updates) => updateContact(id, updates)}
+          onDeleteContact={deleteContact}
+        />
+      ) : (
+        <ContactsBoard
+          contacts={filteredContacts}
+          selectedContacts={selectedContacts}
+          onSelectContacts={setSelectedContacts}
+          onContactClick={handleItemClick}
+          onContactDoubleClick={handleOpenDetail}
+          highlightedContactId={selectedId}
+        />
+      )}
+    </div>
+  );
 
   return (
     <div className="p-6 h-full animate-fade-in">
@@ -152,47 +237,21 @@ export default function Contacts() {
         </div>
       </div>
 
-      {/* Main Content */}
-      <div className="h-[calc(100vh-240px)]">
-        {loading ? (
-          <div className="flex items-center justify-center h-full">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
-          </div>
-        ) : filteredContacts.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
-            <Users className="h-12 w-12 mb-3 opacity-50" />
-            <p>No contacts found</p>
-            <p className="text-sm">
-              {contacts.length === 0
-                ? 'Add your first contact to get started'
-                : 'Try adjusting your search or filters'}
-            </p>
-          </div>
-        ) : view === 'table' ? (
-          <ContactsTable
-            contacts={filteredContacts}
-            selectedContacts={selectedContacts}
-            onSelectContacts={setSelectedContacts}
-            onContactClick={handleContactClick}
-            onUpdateContact={(id, updates) => updateContact(id, updates)}
-            onDeleteContact={deleteContact}
-          />
-        ) : (
-          <ContactsBoard
-            contacts={filteredContacts}
-            selectedContacts={selectedContacts}
-            onSelectContacts={setSelectedContacts}
-            onContactClick={handleContactClick}
-          />
-        )}
-      </div>
+      {/* Main Content with Quick Preview */}
+      <SelectableListLayout
+        listContent={listContent}
+        previewContent={previewContent}
+        hasSelection={!!selectedItem}
+        emptyMessage="Click a contact to preview their details"
+        className="h-[calc(100vh-240px)]"
+      />
 
-      {/* Contact Detail Panel */}
+      {/* Contact Detail Panel (slide-out for full details) */}
       <ContactDetailPanel
         contact={activeContact}
-        open={showChat}
+        open={showDetailPanel}
         onClose={() => {
-          setShowChat(false);
+          setShowDetailPanel(false);
           setActiveContact(null);
         }}
       />

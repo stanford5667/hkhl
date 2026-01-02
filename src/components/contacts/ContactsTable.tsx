@@ -34,11 +34,13 @@ import {
 import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
 
-interface ContactsTableProps {
+export interface ContactsTableProps {
   contacts: AppContact[];
   selectedContacts: string[];
   onSelectContacts: (ids: string[]) => void;
   onContactClick: (contact: AppContact) => void;
+  onContactDoubleClick?: (contact: AppContact) => void;
+  highlightedContactId?: string | null;
   onUpdateContact?: (id: string, updates: Partial<AppContact>) => void;
   onDeleteContact?: (id: string) => void;
 }
@@ -58,6 +60,8 @@ export function ContactsTable({
   selectedContacts,
   onSelectContacts,
   onContactClick,
+  onContactDoubleClick,
+  highlightedContactId,
   onUpdateContact,
   onDeleteContact,
 }: ContactsTableProps) {
@@ -175,8 +179,10 @@ export function ContactsTable({
               key={contact.id}
               contact={contact}
               selected={selectedContacts.includes(contact.id)}
+              highlighted={highlightedContactId === contact.id}
               onSelect={() => toggleSelect(contact.id)}
               onClick={() => onContactClick(contact)}
+              onDoubleClick={() => onContactDoubleClick?.(contact)}
               onUpdate={onUpdateContact}
               onDelete={onDeleteContact}
             />
@@ -190,13 +196,15 @@ export function ContactsTable({
 interface ContactTableRowProps {
   contact: AppContact;
   selected: boolean;
+  highlighted?: boolean;
   onSelect: () => void;
   onClick: () => void;
+  onDoubleClick?: () => void;
   onUpdate?: (id: string, updates: Partial<AppContact>) => void;
   onDelete?: (id: string) => void;
 }
 
-function ContactTableRow({ contact, selected, onSelect, onClick, onUpdate, onDelete }: ContactTableRowProps) {
+function ContactTableRow({ contact, selected, highlighted, onSelect, onClick, onDoubleClick, onUpdate, onDelete }: ContactTableRowProps) {
   const [isHovered, setIsHovered] = useState(false);
   const initials = `${contact.first_name[0]}${contact.last_name[0]}`.toUpperCase();
   const categoryStyle = categoryConfig[contact.category] || categoryConfig.other;
@@ -206,11 +214,13 @@ function ContactTableRow({ contact, selected, onSelect, onClick, onUpdate, onDel
       className={cn(
         "cursor-pointer transition-colors",
         selected && "bg-primary/5",
-        isHovered && "bg-muted/50"
+        highlighted && "bg-primary/10 ring-1 ring-primary/30",
+        isHovered && !highlighted && "bg-muted/50"
       )}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       onClick={onClick}
+      onDoubleClick={onDoubleClick}
     >
       <TableCell onClick={(e) => e.stopPropagation()}>
         <Checkbox checked={selected} onCheckedChange={onSelect} />
