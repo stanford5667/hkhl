@@ -7,6 +7,7 @@
 import { API_CONFIG } from '@/config/apiConfig';
 import { supabase } from '@/integrations/supabase/client';
 import { getQuote } from '@/services/finnhubService';
+import { getMockStock, getMockIndex } from '@/data/mockMarketData';
 
 export interface CandleData {
   time: number; // Unix timestamp
@@ -156,6 +157,7 @@ function getDefaultFromTime(resolution: Resolution, now: number): number {
 
 /**
  * Generate mock candle data for development/fallback
+ * Uses the same mock data source as quoteCacheService for consistency
  */
 function generateMockCandles(
   symbol: string,
@@ -166,13 +168,42 @@ function generateMockCandles(
 ): CandleData[] {
   const now = to || Math.floor(Date.now() / 1000);
   const startTime = from || getDefaultFromTime(resolution, now);
+  const upperSymbol = symbol.toUpperCase();
   
-  // Get a base price based on symbol
-  const basePrices: Record<string, number> = {
-    AAPL: 185, MSFT: 405, GOOGL: 142, AMZN: 178, META: 485,
-    NVDA: 875, TSLA: 245, SPY: 502, QQQ: 446, DIA: 386,
-  };
-  const basePrice = basePriceOverride ?? basePrices[symbol.toUpperCase()] ?? 100;
+  // Get the target end price from mockMarketData for consistency
+  let targetPrice = 100;
+  let dailyChange = 0;
+  
+  // If override provided (from live quote), use it
+  if (basePriceOverride) {
+    targetPrice = basePriceOverride;
+  } else {
+    // First try stocks
+    const mockStock = getMockStock(upperSymbol);
+    if (mockStock) {
+      targetPrice = mockStock.price;
+      dailyChange = mockStock.change;
+    } else {
+      // Try ETF to index mapping (same as quoteCacheService)
+      const etfToIndex: Record<string, { index: string; divisor: number }> = {
+        'SPY': { index: 'SPX', divisor: 10 },
+        'QQQ': { index: 'NDX', divisor: 40 },
+        'DIA': { index: 'DJI', divisor: 100 },
+        'IWM': { index: 'RUT', divisor: 10 },
+        'VXX': { index: 'VIX', divisor: 1 },
+        'VIX': { index: 'VIX', divisor: 1 },
+      };
+      
+      const mapping = etfToIndex[upperSymbol];
+      if (mapping) {
+        const mockIndex = getMockIndex(mapping.index);
+        if (mockIndex) {
+          targetPrice = mockIndex.value / mapping.divisor;
+          dailyChange = mockIndex.change / mapping.divisor;
+        }
+      }
+    }
+  }
   
   // Calculate interval based on resolution
   const intervals: Record<Resolution, number> = {
@@ -181,21 +212,46 @@ function generateMockCandles(
   };
   const interval = intervals[resolution];
   
+  // Generate candles working backwards from target price
   const candles: CandleData[] = [];
-  let price = basePrice;
+  const numCandles = Math.max(1, Math.floor((now - startTime) / interval));
   
-  for (let time = startTime; time <= now; time += interval) {
-    // Random walk
-    const change = (Math.random() - 0.48) * price * 0.02; // Slight upward bias
-    const open = price;
-    const close = price + change;
-    const high = Math.max(open, close) * (1 + Math.random() * 0.01);
-    const low = Math.min(open, close) * (1 - Math.random() * 0.01);
+  // Work backwards: start from a historical price and drift towards target
+  const volatility = targetPrice * 0.015; // 1.5% daily volatility
+  let prices: number[] = [targetPrice];
+  
+  // Generate price path backwards
+  for (let i = 1; i < numCandles; i++) {
+    const prevPrice = prices[i - 1];
+    const randomChange = (Math.random() - 0.52) * volatility; // Slight downward when going backwards
+    prices.push(Math.max(prevPrice * 0.5, prevPrice - randomChange)); // Prevent going too low
+  }
+  
+  // Reverse to get chronological order
+  prices.reverse();
+  
+  for (let i = 0; i < numCandles; i++) {
+    const time = startTime + i * interval;
+    const close = prices[i];
+    const intraVolatility = close * 0.008; // Intraday variation
+    const open = close + (Math.random() - 0.5) * intraVolatility;
+    const high = Math.max(open, close) * (1 + Math.random() * 0.005);
+    const low = Math.min(open, close) * (1 - Math.random() * 0.005);
     const volume = Math.floor(1000000 + Math.random() * 5000000);
     
     candles.push({ time, open, high, low, close, volume });
-    price = close;
   }
+  
+  // CRITICAL: Ensure last candle matches mock data exactly
+  if (candles.length > 0) {
+    const lastCandle = candles[candles.length - 1];
+    lastCandle.close = targetPrice;
+    lastCandle.open = targetPrice - dailyChange;
+    lastCandle.high = Math.max(lastCandle.open, lastCandle.close) * 1.003;
+    lastCandle.low = Math.min(lastCandle.open, lastCandle.close) * 0.997;
+  }
+  
+  console.log(`[Candles] Generated ${candles.length} mock candles for ${upperSymbol}, ending at $${targetPrice.toFixed(2)}`);
   
   return candles;
 }
