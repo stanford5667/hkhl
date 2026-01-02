@@ -4,6 +4,8 @@
  * https://finnhub.io/
  */
 
+import { API_CONFIG } from '@/config/apiConfig';
+
 const FINNHUB_API_KEY = import.meta.env.VITE_FINNHUB_API_KEY;
 const BASE_URL = 'https://finnhub.io/api/v1';
 
@@ -46,6 +48,11 @@ export interface SymbolSearchResult {
  * Get a single stock quote from Finnhub
  */
 export async function getQuote(symbol: string): Promise<StockQuote | null> {
+  if (!API_CONFIG.ENABLE_MARKET_DATA) {
+    console.log('[Finnhub] Market data disabled via kill switch');
+    return null;
+  }
+
   if (!FINNHUB_API_KEY) {
     console.warn('[Finnhub] No API key configured');
     return null;
@@ -106,7 +113,7 @@ export async function getCompanyProfile(symbol: string): Promise<{
   exchange: string;
   industry: string;
 } | null> {
-  if (!FINNHUB_API_KEY) return null;
+  if (!API_CONFIG.ENABLE_MARKET_DATA || !FINNHUB_API_KEY) return null;
 
   if (!rateLimiter.canCall()) {
     await new Promise(r => setTimeout(r, 1000));
@@ -185,7 +192,7 @@ export async function getBatchQuotes(symbols: string[]): Promise<Map<string, Sto
  * Search for symbols
  */
 export async function searchSymbol(query: string): Promise<SymbolSearchResult[]> {
-  if (!FINNHUB_API_KEY || !query) return [];
+  if (!API_CONFIG.ENABLE_MARKET_DATA || !FINNHUB_API_KEY || !query) return [];
 
   if (!rateLimiter.canCall()) return [];
   rateLimiter.recordCall();
