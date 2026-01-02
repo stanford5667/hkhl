@@ -25,6 +25,7 @@ import { PortfolioSetup, PortfolioAsset } from '@/components/backtester/Portfoli
 import { MetricsSelector, METRICS } from '@/components/backtester/MetricsSelector';
 import { BenchmarkSelector } from '@/components/backtester/BenchmarkSelector';
 import { AdvancedMetricsPanel } from '@/components/backtester/AdvancedMetricsPanel';
+import { MacroMetricsModule } from '@/components/backtester/MacroMetricsModule';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -291,43 +292,7 @@ function PortfolioTab({ assets, onAssetsChange }: { assets: PortfolioAsset[]; on
 }
 
 function MacroTab() {
-  return (
-    <div className="space-y-6">
-      <div className="grid grid-cols-3 gap-4">
-        {[
-          { label: 'Fed Funds Rate', value: '5.25%', trend: 'stable' },
-          { label: '10Y Treasury', value: '4.52%', trend: 'up' },
-          { label: 'Inflation (CPI)', value: '3.1%', trend: 'down' },
-          { label: 'Unemployment', value: '3.7%', trend: 'stable' },
-          { label: 'GDP Growth', value: '2.4%', trend: 'up' },
-          { label: 'VIX', value: '14.2', trend: 'down' },
-        ].map((indicator) => (
-          <Card key={indicator.label}>
-            <CardContent className="p-4">
-              <p className="text-sm text-muted-foreground">{indicator.label}</p>
-              <div className="flex items-center gap-2 mt-1">
-                <p className="text-xl font-bold">{indicator.value}</p>
-                <span className={cn('text-xs', indicator.trend === 'up' ? 'text-emerald-500' : indicator.trend === 'down' ? 'text-destructive' : 'text-muted-foreground')}>
-                  {indicator.trend === 'up' ? '↑' : indicator.trend === 'down' ? '↓' : '→'}
-                </span>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-sm">Macro Correlation Matrix</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="h-64 bg-muted/50 rounded-lg flex items-center justify-center">
-            <p className="text-muted-foreground text-sm">Correlation heatmap</p>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
-  );
+  return <MacroMetricsModule />;
 }
 
 function StressTestTab() {
