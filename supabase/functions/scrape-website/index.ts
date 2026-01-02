@@ -1,5 +1,10 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
+// ========== KILL SWITCH - SET TO FALSE TO DISABLE ALL API CALLS ==========
+const ENABLE_PERPLEXITY_API = false;
+const ENABLE_LOVABLE_AI = false;
+// ==========================================================================
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -8,6 +13,20 @@ const corsHeaders = {
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
+  }
+
+  // KILL SWITCH - Return early if APIs are disabled
+  if (!ENABLE_PERPLEXITY_API && !ENABLE_LOVABLE_AI) {
+    console.log('[API BLOCKED] scrape-website function - All APIs disabled');
+    return new Response(
+      JSON.stringify({ 
+        success: false, 
+        error: 'API disabled for testing',
+        data: null,
+        isBlocked: true
+      }),
+      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
   }
 
   try {
@@ -49,7 +68,9 @@ Search for information about this company from their website and any available p
     let extractedData: Record<string, any> = {};
     let pagesScraped: string[] = [normalizedUrl];
 
-    if (PERPLEXITY_API_KEY) {
+    if (PERPLEXITY_API_KEY && ENABLE_PERPLEXITY_API) {
+      console.log('[API CALL] Perplexity scrape-website:', normalizedUrl);
+      
       const perplexityResponse = await fetch('https://api.perplexity.ai/chat/completions', {
         method: 'POST',
         headers: {
@@ -102,7 +123,9 @@ Use null for values you cannot find. Set confidence between 0.0-1.0 based on how
           console.error('Failed to parse Perplexity response:', parseError);
         }
       }
-    } else if (LOVABLE_API_KEY) {
+    } else if (LOVABLE_API_KEY && ENABLE_LOVABLE_AI) {
+      console.log('[API CALL] Lovable AI scrape-website:', normalizedUrl);
+      
       // Fallback to Lovable AI with web search context
       const lovableResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
         method: 'POST',

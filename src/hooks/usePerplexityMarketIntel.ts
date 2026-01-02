@@ -4,6 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useDevMode } from '@/contexts/DevModeContext';
 import { cacheService } from '@/services/cacheService';
 import { CACHE_TTL } from '@/config/cacheConfig';
+import { API_CONFIG, logBlockedApiCall } from '@/config/apiConfig';
 
 export type IntelType = 'company_news' | 'competitors' | 'industry_trends' | 'ma_activity' | 'market_data' | 'regulatory' | 'earnings_events';
 
@@ -58,6 +59,12 @@ export function useMarketIntelQuery<T>({
   const cacheKey = `market-intel:${type}:${companyId || industry || 'general'}`;
 
   const fetchFromAPI = async (): Promise<T> => {
+    // KILL SWITCH - Block all Perplexity API calls
+    if (!API_CONFIG.ENABLE_PERPLEXITY) {
+      logBlockedApiCall(`Perplexity market-intel: ${type}`);
+      throw new Error('Perplexity API disabled for testing');
+    }
+    
     // Block API calls when market data is disabled
     if (!marketDataEnabled) {
       throw new Error('Market data is paused. Enable live data to fetch.');
