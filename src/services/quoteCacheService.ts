@@ -5,8 +5,8 @@
  * Layer 3: Mock data fallback when API unavailable
  */
 
-import { getQuote, getBatchQuotes, getCompanyProfile, isFinnhubConfigured, type StockQuote } from './finnhubService';
-import { getMockStock, getMockIndex, MOCK_STOCKS, type MockQuote } from '@/data/mockMarketData';
+import { getQuote, getBatchQuotes, getCompanyProfile, type StockQuote } from './finnhubService';
+import { getMockStock, getMockIndex, type MockQuote } from '@/data/mockMarketData';
 
 // ETF to Index mapping for mock data
 const ETF_TO_INDEX: Record<string, string> = {
@@ -132,18 +132,16 @@ export async function getCachedQuote(symbol: string): Promise<StockQuote | null>
     return localCached.quote;
   }
 
-  // Try Finnhub API first if configured
-  if (isFinnhubConfigured()) {
-    console.log(`[CACHE MISS] Fetching from Finnhub: ${upperSymbol}`);
-    const quote = await getQuote(upperSymbol);
+  // Try Finnhub first (service will transparently use backend proxy if needed)
+  console.log(`[CACHE MISS] Fetching from Finnhub: ${upperSymbol}`);
+  const quote = await getQuote(upperSymbol);
 
-    if (quote) {
-      const cached = { quote, fetchedAt: Date.now(), isMock: false };
-      memoryCache.set(upperSymbol, cached);
-      localCache[upperSymbol] = cached;
-      setLocalCache(localCache);
-      return quote;
-    }
+  if (quote) {
+    const cached = { quote, fetchedAt: Date.now(), isMock: false };
+    memoryCache.set(upperSymbol, cached);
+    localCache[upperSymbol] = cached;
+    setLocalCache(localCache);
+    return quote;
   }
 
   // Fallback to mock data
@@ -297,53 +295,39 @@ export async function getCachedQuotes(symbols: string[]): Promise<Map<string, St
 
   // Fetch only what we need
   if (toFetch.length > 0) {
-    // Try Finnhub API if configured
-    if (isFinnhubConfigured()) {
-      console.log(`[BATCH FETCH] ${toFetch.length} symbols (${symbols.length - toFetch.length} cached)`);
-      const fetched = await getBatchQuotes(toFetch);
-      const updatedLocalCache = getLocalCache();
+    console.log(`[BATCH FETCH] ${toFetch.length} symbols (${symbols.length - toFetch.length} cached)`);
 
-      fetched.forEach((quote, symbol) => {
-        results.set(symbol, quote);
-        const cached = { quote, fetchedAt: Date.now(), isMock: false };
+    const updatedLocalCache = getLocalCache();
+
+    let fetched = new Map<string, StockQuote>();
+    try {
+      fetched = await getBatchQuotes(toFetch);
+    } catch (e) {
+      console.warn('[BATCH FETCH] Finnhub fetch failed, falling back to mock for missing', e);
+    }
+
+    fetched.forEach((quote, symbol) => {
+      results.set(symbol, quote);
+      const cached = { quote, fetchedAt: Date.now(), isMock: false };
+      memoryCache.set(symbol.toUpperCase(), cached);
+      updatedLocalCache[symbol.toUpperCase()] = cached;
+    });
+
+    // For any symbols that weren't fetched (or if fetch failed), use mock
+    const fetchedSymbols = new Set([...fetched.keys()].map(s => s.toUpperCase()));
+    const stillMissing = toFetch.filter(s => !fetchedSymbols.has(s.toUpperCase()));
+
+    for (const symbol of stillMissing) {
+      const mockQuote = getMockQuote(symbol.toUpperCase());
+      if (mockQuote) {
+        results.set(symbol, mockQuote);
+        const cached = { quote: mockQuote, fetchedAt: Date.now(), isMock: true };
         memoryCache.set(symbol.toUpperCase(), cached);
         updatedLocalCache[symbol.toUpperCase()] = cached;
-      });
-
-      setLocalCache(updatedLocalCache);
-
-      // For any symbols that weren't fetched, try mock
-      const fetchedSymbols = new Set([...fetched.keys()].map(s => s.toUpperCase()));
-      const stillMissing = toFetch.filter(s => !fetchedSymbols.has(s.toUpperCase()));
-      
-      for (const symbol of stillMissing) {
-        const mockQuote = getMockQuote(symbol.toUpperCase());
-        if (mockQuote) {
-          results.set(symbol, mockQuote);
-          const cached = { quote: mockQuote, fetchedAt: Date.now(), isMock: true };
-          memoryCache.set(symbol.toUpperCase(), cached);
-          updatedLocalCache[symbol.toUpperCase()] = cached;
-        }
       }
-      if (stillMissing.length > 0) {
-        setLocalCache(updatedLocalCache);
-      }
-    } else {
-      // No API configured, use all mock data
-      console.log(`[MOCK BATCH] Using mock data for ${toFetch.length} symbols`);
-      const updatedLocalCache = getLocalCache();
-      
-      for (const symbol of toFetch) {
-        const mockQuote = getMockQuote(symbol.toUpperCase());
-        if (mockQuote) {
-          results.set(symbol, mockQuote);
-          const cached = { quote: mockQuote, fetchedAt: Date.now(), isMock: true };
-          memoryCache.set(symbol.toUpperCase(), cached);
-          updatedLocalCache[symbol.toUpperCase()] = cached;
-        }
-      }
-      setLocalCache(updatedLocalCache);
     }
+
+    setLocalCache(updatedLocalCache);
   } else {
     console.log(`[BATCH CACHE HIT] All ${symbols.length} symbols from cache`);
   }
