@@ -23,6 +23,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useOrgId } from '@/contexts/OrganizationContext';
 import { useMarketIndices, useStockQuote } from '@/hooks/useMarketData';
 import { MarketIndexSkeleton, PriceUnavailable } from '@/components/markets/MarketSkeletons';
+import { MarketDataPausedBanner } from '@/components/dev/MarketDataPausedBanner';
 
 // Types
 interface MarketIndex {
