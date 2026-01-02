@@ -1,6 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
+import { MetricWithTooltip, FINANCIAL_TERMS } from './EducationalTooltip';
 import { cn } from '@/lib/utils';
 
 interface MetricData {
@@ -15,21 +16,21 @@ interface AdvancedMetricsPanelProps {
 }
 
 const RISK_METRICS = [
-  { label: 'Value at Risk (95%)', value: '-$12,450' },
-  { label: 'Conditional VaR', value: '-$18,200' },
-  { label: 'Maximum Drawdown', value: '-15.3%' },
-  { label: 'Downside Deviation', value: '8.2%' },
-  { label: 'Ulcer Index', value: '4.1' },
-  { label: 'Pain Index', value: '2.8' },
+  { id: 'var', label: 'Value at Risk (95%)', value: '-$12,450' },
+  { id: 'cvar', label: 'Conditional VaR', value: '-$18,200' },
+  { id: 'maxDrawdown', label: 'Maximum Drawdown', value: '-15.3%' },
+  { id: 'downsideDev', label: 'Downside Deviation', value: '8.2%' },
+  { id: 'ulcer', label: 'Ulcer Index', value: '4.1' },
+  { id: 'pain', label: 'Pain Index', value: '2.8' },
 ];
 
 const PERFORMANCE_METRICS = [
-  { label: "Jensen's Alpha", value: '4.1%' },
-  { label: 'Treynor Ratio', value: '0.18' },
-  { label: 'Information Ratio', value: '1.25' },
-  { label: 'Modigliani M²', value: '2.3%' },
-  { label: 'Omega Ratio', value: '1.45' },
-  { label: 'Kappa 3', value: '0.82' },
+  { id: 'alpha', label: "Jensen's Alpha", value: '4.1%' },
+  { id: 'treynorRatio', label: 'Treynor Ratio', value: '0.18' },
+  { id: 'informationRatio', label: 'Information Ratio', value: '1.25' },
+  { id: 'modigliani', label: 'Modigliani M²', value: '2.3%' },
+  { id: 'omegaRatio', label: 'Omega Ratio', value: '1.45' },
+  { id: 'kappa', label: 'Kappa 3', value: '0.82' },
 ];
 
 const FACTOR_EXPOSURE = [
@@ -51,16 +52,24 @@ const STYLE_ANALYSIS = [
   { style: 'Small Cap', percentage: 4, confidence: 'Low' },
 ];
 
-function MetricCard({ label, value, change }: { label: string; value: string; change?: string }) {
+function MetricCard({ id, label, value, change }: { id: string; label: string; value: string; change?: string }) {
+  const hasTerm = id in FINANCIAL_TERMS;
+  
   return (
     <Card>
       <CardContent className="p-4">
-        <p className="text-sm text-muted-foreground">{label}</p>
-        <p className="text-2xl font-bold mt-1">{value}</p>
-        {change && (
-          <p className={cn('text-xs mt-1', change.startsWith('+') ? 'text-emerald-500' : 'text-destructive')}>
-            {change} vs benchmark
-          </p>
+        {hasTerm ? (
+          <MetricWithTooltip term={id as keyof typeof FINANCIAL_TERMS} label={label} value={value} change={change} />
+        ) : (
+          <>
+            <p className="text-sm text-muted-foreground">{label}</p>
+            <p className="text-2xl font-bold mt-1">{value}</p>
+            {change && (
+              <p className={cn('text-xs mt-1', change.startsWith('+') ? 'text-emerald-500' : 'text-destructive')}>
+                {change} vs benchmark
+              </p>
+            )}
+          </>
         )}
       </CardContent>
     </Card>
@@ -90,6 +99,7 @@ export function AdvancedMetricsPanel({ visibleMetrics }: AdvancedMetricsPanelPro
                 {visibleMetrics.map((metric) => (
                   <MetricCard
                     key={metric.id}
+                    id={metric.id}
                     label={metric.label}
                     value={metric.value}
                     change={metric.change}
@@ -107,7 +117,7 @@ export function AdvancedMetricsPanel({ visibleMetrics }: AdvancedMetricsPanelPro
           <TabsContent value="risk">
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
               {RISK_METRICS.map((metric) => (
-                <MetricCard key={metric.label} label={metric.label} value={metric.value} />
+                <MetricCard key={metric.id} id={metric.id} label={metric.label} value={metric.value} />
               ))}
             </div>
           </TabsContent>
@@ -116,7 +126,7 @@ export function AdvancedMetricsPanel({ visibleMetrics }: AdvancedMetricsPanelPro
           <TabsContent value="performance">
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
               {PERFORMANCE_METRICS.map((metric) => (
-                <MetricCard key={metric.label} label={metric.label} value={metric.value} />
+                <MetricCard key={metric.id} id={metric.id} label={metric.label} value={metric.value} />
               ))}
             </div>
           </TabsContent>
