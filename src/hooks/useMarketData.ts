@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { useDevMode } from '@/contexts/DevModeContext';
 import { 
   getQuote, 
   searchTicker, 
@@ -14,6 +15,7 @@ import {
 // Hook for fetching stock quotes with auto-refresh
 export function useStockQuote(ticker: string | null, options: { enabled?: boolean; pollInterval?: number } = {}) {
   const { enabled = true, pollInterval = 60000 } = options; // Default 60 second polling
+  const { marketDataEnabled } = useDevMode();
   
   const [quote, setQuote] = useState<QuoteData | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -26,6 +28,7 @@ export function useStockQuote(ticker: string | null, options: { enabled?: boolea
   const fetchQuote = useCallback(async (forceRefresh = false) => {
     if (!ticker || !enabled) return;
     
+    // Don't fetch if market data is disabled (will use cached data from service)
     if (forceRefresh) {
       clearQuoteCache(ticker);
     }
@@ -59,10 +62,12 @@ export function useStockQuote(ticker: string | null, options: { enabled?: boolea
     if (ticker && enabled) {
       fetchQuote();
       
-      // Set up polling
-      intervalRef.current = setInterval(() => {
-        fetchQuote(true);
-      }, pollInterval);
+      // Only set up polling if market data is enabled
+      if (marketDataEnabled) {
+        intervalRef.current = setInterval(() => {
+          fetchQuote(true);
+        }, pollInterval);
+      }
     }
     
     return () => {
@@ -71,7 +76,7 @@ export function useStockQuote(ticker: string | null, options: { enabled?: boolea
         clearInterval(intervalRef.current);
       }
     };
-  }, [ticker, enabled, pollInterval, fetchQuote]);
+  }, [ticker, enabled, pollInterval, fetchQuote, marketDataEnabled]);
 
   return {
     quote,
@@ -148,6 +153,7 @@ export function useTickerSearch(query: string, options: { enabled?: boolean; deb
 // Hook for market indices with auto-refresh
 export function useMarketIndices(options: { enabled?: boolean; pollInterval?: number } = {}) {
   const { enabled = true, pollInterval = 5 * 60 * 1000 } = options; // Default 5 minute polling
+  const { marketDataEnabled } = useDevMode();
   
   const [indices, setIndices] = useState<MarketIndex[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -188,8 +194,10 @@ export function useMarketIndices(options: { enabled?: boolean; pollInterval?: nu
     if (enabled) {
       fetchIndices();
       
-      // Set up polling
-      intervalRef.current = setInterval(fetchIndices, pollInterval);
+      // Only set up polling if market data is enabled
+      if (marketDataEnabled) {
+        intervalRef.current = setInterval(fetchIndices, pollInterval);
+      }
     }
     
     return () => {
@@ -198,7 +206,7 @@ export function useMarketIndices(options: { enabled?: boolean; pollInterval?: nu
         clearInterval(intervalRef.current);
       }
     };
-  }, [enabled, pollInterval, fetchIndices]);
+  }, [enabled, pollInterval, fetchIndices, marketDataEnabled]);
 
   return {
     indices,
