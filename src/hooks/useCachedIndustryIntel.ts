@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useDevMode } from '@/contexts/DevModeContext';
 import { cacheService, CacheEntry } from '@/services/cacheService';
 import { CACHE_TTL, CACHE_KEYS } from '@/config/cacheConfig';
 
@@ -45,6 +46,7 @@ export function useCachedIndustryIntel(
 ): UseCachedIndustryIntelReturn {
   const { enabled = true } = options;
   const { user } = useAuth();
+  const { marketDataEnabled, logApiCall } = useDevMode();
   
   const [data, setData] = useState<IndustryIntelData | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -60,6 +62,13 @@ export function useCachedIndustryIntel(
   
   // The actual API call to edge function
   const fetchFromAPI = async (): Promise<IndustryIntelData> => {
+    // Block API calls when market data is disabled
+    if (!marketDataEnabled) {
+      throw new Error('Market data is paused. Enable live data to fetch.');
+    }
+    
+    logApiCall(`Perplexity industry-intel: ${companyName}`);
+    
     const { data: responseData, error: fnError } = await supabase.functions.invoke('industry-intel', {
       body: { 
         companyName, 
@@ -94,6 +103,12 @@ export function useCachedIndustryIntel(
   // Load data (from cache or API)
   const loadData = useCallback(async (forceRefresh = false) => {
     if (!enabled || !companyId || !user || fetchingRef.current) return;
+    
+    // If market data is disabled and we're forcing a refresh, show error
+    if (!marketDataEnabled && forceRefresh) {
+      setError('Market data is paused. Enable live data to refresh.');
+      return;
+    }
     
     fetchingRef.current = true;
     setIsLoading(true);
