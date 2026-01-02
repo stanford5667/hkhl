@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { getFullQuote } from '@/services/finnhubService';
+import { getCachedFullQuote } from '@/services/quoteCacheService';
 import { Skeleton } from '@/components/ui/skeleton';
 import { TrendingUp, TrendingDown, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -32,7 +32,7 @@ export function StockQuoteHeader({ ticker }: StockQuoteHeaderProps) {
     setIsLoading(true);
     setError(null);
     try {
-      const data = await getFullQuote(ticker);
+      const data = await getCachedFullQuote(ticker);
 
       if (data) {
         setQuote({

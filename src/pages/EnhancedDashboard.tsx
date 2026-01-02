@@ -194,8 +194,8 @@ function MarketsTicker({
   useEffect(() => {
     const fetchIndices = async () => {
       try {
-        const { getBatchQuotes } = await import('@/services/finnhubService');
-        const quotes = await getBatchQuotes(['SPY', 'QQQ', 'DIA']);
+        const { getCachedQuotes } = await import('@/services/quoteCacheService');
+        const quotes = await getCachedQuotes(['SPY', 'QQQ', 'DIA']);
         
         setIndices([
           { symbol: 'SPY', name: 'S&P 500', price: quotes.get('SPY')?.price || 0, change: quotes.get('SPY')?.changePercent || 0 },
