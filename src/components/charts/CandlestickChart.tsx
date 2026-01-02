@@ -6,7 +6,6 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { getCandlesForRange, TIME_RANGES, type TimeRange, type CandleData } from '@/services/candleService';
 
@@ -33,190 +32,181 @@ export function CandlestickChart({
   const chartRef = useRef<any>(null);
   const candleSeriesRef = useRef<any>(null);
   const volumeSeriesRef = useRef<any>(null);
+  const isInitializedRef = useRef(false);
   
   const [isLoading, setIsLoading] = useState(true);
   const [selectedRange, setSelectedRange] = useState<TimeRange>(defaultRange);
-  const [candles, setCandles] = useState<CandleData[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [chartReady, setChartReady] = useState(false);
 
-  // Load chart library dynamically
-  const initChart = useCallback(async () => {
-    if (!chartContainerRef.current) return;
+  // Initialize chart once on mount
+  useEffect(() => {
+    if (!chartContainerRef.current || isInitializedRef.current) return;
 
-    // Dynamically import lightweight-charts
-    const { createChart, ColorType, CrosshairMode } = await import('lightweight-charts');
+    let chart: any = null;
+    let resizeHandler: (() => void) | null = null;
 
-    // Clean up existing chart
-    if (chartRef.current) {
-      chartRef.current.remove();
-    }
+    const initChart = async () => {
+      if (!chartContainerRef.current) return;
 
-    const container = chartContainerRef.current;
-    const chartHeight = showVolume ? height : height;
-    
-    // Create chart with dark theme
-    const chart = createChart(container, {
-      width: container.clientWidth,
-      height: chartHeight,
-      layout: {
-        background: { type: ColorType.Solid, color: 'transparent' },
-        textColor: '#9ca3af',
-      },
-      grid: {
-        vertLines: { color: 'rgba(255, 255, 255, 0.05)' },
-        horzLines: { color: 'rgba(255, 255, 255, 0.05)' },
-      },
-      crosshair: {
-        mode: CrosshairMode.Normal,
-        vertLine: {
-          color: 'rgba(255, 255, 255, 0.2)',
-          width: 1,
-          style: 2,
-        },
-        horzLine: {
-          color: 'rgba(255, 255, 255, 0.2)',
-          width: 1,
-          style: 2,
-        },
-      },
-      rightPriceScale: {
-        borderColor: 'rgba(255, 255, 255, 0.1)',
-        scaleMargins: {
-          top: 0.1,
-          bottom: showVolume ? 0.25 : 0.1,
-        },
-      },
-      timeScale: {
-        borderColor: 'rgba(255, 255, 255, 0.1)',
-        timeVisible: true,
-        secondsVisible: false,
-      },
-      handleScroll: {
-        mouseWheel: true,
-        pressedMouseMove: true,
-        horzTouchDrag: true,
-        vertTouchDrag: false,
-      },
-      handleScale: {
-        mouseWheel: true,
-        pinch: true,
-        axisPressedMouseMove: true,
-      },
-    });
+      // Dynamically import lightweight-charts
+      const { createChart, ColorType, CrosshairMode } = await import('lightweight-charts');
 
-    // Add candlestick series
-    const candleSeries = chart.addCandlestickSeries({
-      upColor: '#22c55e',
-      downColor: '#ef4444',
-      borderUpColor: '#22c55e',
-      borderDownColor: '#ef4444',
-      wickUpColor: '#22c55e',
-      wickDownColor: '#ef4444',
-    });
-
-    // Add volume series if enabled
-    let volumeSeries = null;
-    if (showVolume) {
-      volumeSeries = chart.addHistogramSeries({
-        color: '#6366f1',
-        priceFormat: {
-          type: 'volume',
-        },
-        priceScaleId: '',
-      });
+      const container = chartContainerRef.current;
       
-      volumeSeries.priceScale().applyOptions({
-        scaleMargins: {
-          top: 0.8,
-          bottom: 0,
+      // Create chart with dark theme
+      chart = createChart(container, {
+        width: container.clientWidth,
+        height: height,
+        layout: {
+          background: { type: ColorType.Solid, color: 'transparent' },
+          textColor: '#9ca3af',
+        },
+        grid: {
+          vertLines: { color: 'rgba(255, 255, 255, 0.05)' },
+          horzLines: { color: 'rgba(255, 255, 255, 0.05)' },
+        },
+        crosshair: {
+          mode: CrosshairMode.Normal,
+          vertLine: {
+            color: 'rgba(255, 255, 255, 0.2)',
+            width: 1,
+            style: 2,
+          },
+          horzLine: {
+            color: 'rgba(255, 255, 255, 0.2)',
+            width: 1,
+            style: 2,
+          },
+        },
+        rightPriceScale: {
+          borderColor: 'rgba(255, 255, 255, 0.1)',
+          scaleMargins: {
+            top: 0.1,
+            bottom: showVolume ? 0.25 : 0.1,
+          },
+        },
+        timeScale: {
+          borderColor: 'rgba(255, 255, 255, 0.1)',
+          timeVisible: true,
+          secondsVisible: false,
+        },
+        handleScroll: {
+          mouseWheel: true,
+          pressedMouseMove: true,
+          horzTouchDrag: true,
+          vertTouchDrag: false,
+        },
+        handleScale: {
+          mouseWheel: true,
+          pinch: true,
+          axisPressedMouseMove: true,
         },
       });
-    }
 
-    // Handle resize
-    const handleResize = () => {
-      if (chartContainerRef.current) {
-        chart.applyOptions({ width: chartContainerRef.current.clientWidth });
+      // Add candlestick series
+      const candleSeries = chart.addCandlestickSeries({
+        upColor: '#22c55e',
+        downColor: '#ef4444',
+        borderUpColor: '#22c55e',
+        borderDownColor: '#ef4444',
+        wickUpColor: '#22c55e',
+        wickDownColor: '#ef4444',
+      });
+
+      // Add volume series if enabled
+      let volumeSeries = null;
+      if (showVolume) {
+        volumeSeries = chart.addHistogramSeries({
+          color: '#6366f1',
+          priceFormat: {
+            type: 'volume',
+          },
+          priceScaleId: '',
+        });
+        
+        volumeSeries.priceScale().applyOptions({
+          scaleMargins: {
+            top: 0.8,
+            bottom: 0,
+          },
+        });
       }
-    };
-    window.addEventListener('resize', handleResize);
 
-    // Crosshair move handler for price display
-    chart.subscribeCrosshairMove((param: any) => {
-      if (param.time && onPriceChange) {
-        const data = param.seriesData.get(candleSeries);
-        if (data) {
-          const firstCandle = candles[0];
-          if (firstCandle) {
-            const change = data.close - firstCandle.open;
-            const changePercent = (change / firstCandle.open) * 100;
-            onPriceChange(data.close, change, changePercent);
-          }
+      // Handle resize
+      resizeHandler = () => {
+        if (chartContainerRef.current && chart) {
+          chart.applyOptions({ width: chartContainerRef.current.clientWidth });
         }
-      }
-    });
+      };
+      window.addEventListener('resize', resizeHandler);
 
-    chartRef.current = chart;
-    candleSeriesRef.current = candleSeries;
-    volumeSeriesRef.current = volumeSeries;
+      chartRef.current = chart;
+      candleSeriesRef.current = candleSeries;
+      volumeSeriesRef.current = volumeSeries;
+      isInitializedRef.current = true;
+      setChartReady(true);
+    };
+
+    initChart();
 
     return () => {
-      window.removeEventListener('resize', handleResize);
-      chart.remove();
-    };
-  }, [height, showVolume, onPriceChange, candles]);
-
-  // Fetch candle data
-  const fetchCandles = useCallback(async (range: TimeRange) => {
-    setIsLoading(true);
-    setError(null);
-    
-    try {
-      const data = await getCandlesForRange(symbol, range);
-      setCandles(data);
-      
-      // Update chart with new data
-      if (candleSeriesRef.current && data.length > 0) {
-        const chartData = data.map(c => ({
-          time: c.time as any, // lightweight-charts expects UTCTimestamp
-          open: c.open,
-          high: c.high,
-          low: c.low,
-          close: c.close,
-        }));
-        candleSeriesRef.current.setData(chartData);
-        
-        if (volumeSeriesRef.current && showVolume) {
-          const volumeData = data.map(c => ({
-            time: c.time as any,
-            value: c.volume || 0,
-            color: c.close >= c.open ? 'rgba(34, 197, 94, 0.5)' : 'rgba(239, 68, 68, 0.5)',
-          }));
-          volumeSeriesRef.current.setData(volumeData);
-        }
-        
-        // Fit content
-        chartRef.current?.timeScale().fitContent();
+      if (resizeHandler) {
+        window.removeEventListener('resize', resizeHandler);
       }
-    } catch (err) {
-      console.error('[CandlestickChart] Error:', err);
-      setError('Failed to load chart data');
-    } finally {
-      setIsLoading(false);
-    }
-  }, [symbol, showVolume]);
+      if (chart) {
+        chart.remove();
+      }
+      chartRef.current = null;
+      candleSeriesRef.current = null;
+      volumeSeriesRef.current = null;
+      isInitializedRef.current = false;
+      setChartReady(false);
+    };
+  }, [height, showVolume]);
 
-  // Initialize chart on mount
+  // Fetch and update data when chart is ready or range/symbol changes
   useEffect(() => {
-    initChart();
-  }, [initChart]);
+    if (!chartReady || !candleSeriesRef.current) return;
 
-  // Fetch data when range changes
-  useEffect(() => {
-    if (chartRef.current) {
-      fetchCandles(selectedRange);
-    }
-  }, [selectedRange, fetchCandles, symbol]);
+    const fetchData = async () => {
+      setIsLoading(true);
+      setError(null);
+      
+      try {
+        const data = await getCandlesForRange(symbol, selectedRange);
+        
+        if (candleSeriesRef.current && data.length > 0) {
+          const chartData = data.map(c => ({
+            time: c.time as any,
+            open: c.open,
+            high: c.high,
+            low: c.low,
+            close: c.close,
+          }));
+          candleSeriesRef.current.setData(chartData);
+          
+          if (volumeSeriesRef.current && showVolume) {
+            const volumeData = data.map(c => ({
+              time: c.time as any,
+              value: c.volume || 0,
+              color: c.close >= c.open ? 'rgba(34, 197, 94, 0.5)' : 'rgba(239, 68, 68, 0.5)',
+            }));
+            volumeSeriesRef.current.setData(volumeData);
+          }
+          
+          chartRef.current?.timeScale().fitContent();
+        }
+      } catch (err) {
+        console.error('[CandlestickChart] Error:', err);
+        setError('Failed to load chart data');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [chartReady, symbol, selectedRange, showVolume]);
 
   // Handle range change
   const handleRangeChange = (range: TimeRange) => {
