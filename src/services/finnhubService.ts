@@ -274,6 +274,79 @@ function formatMarketCap(value: number): string {
 }
 
 /**
+ * Candle data structure for historical prices
+ */
+export interface CandleData {
+  date: string;
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+  volume: number;
+  timestamp: number;
+}
+
+/**
+ * Get historical candle data for a symbol
+ * @param symbol - Stock symbol
+ * @param resolution - D (daily), W (weekly), M (monthly)
+ * @param from - Start timestamp (Unix seconds)
+ * @param to - End timestamp (Unix seconds)
+ */
+export async function getCandles(
+  symbol: string,
+  resolution: string,
+  from: number,
+  to: number
+): Promise<CandleData[]> {
+  if (!API_CONFIG.ENABLE_MARKET_DATA) {
+    console.log('[Finnhub] Market data disabled via kill switch');
+    throw new Error('Market data is disabled');
+  }
+
+  const upper = symbol.toUpperCase();
+  console.log(`[Finnhub] Fetching candles for ${upper} from ${new Date(from * 1000).toISOString().split('T')[0]} to ${new Date(to * 1000).toISOString().split('T')[0]}`);
+
+  // Use the edge function for candles
+  try {
+    const { data, error } = await supabase.functions.invoke('finnhub-candles', {
+      body: { symbol: upper, resolution, from, to },
+    });
+
+    if (error) {
+      console.error('[Finnhub] Candles error:', error);
+      throw new Error(`Failed to fetch candles: ${error.message}`);
+    }
+
+    // Finnhub returns { s: 'ok', c: [], o: [], h: [], l: [], v: [], t: [] }
+    if (!data || data.s !== 'ok' || !data.c || data.c.length === 0) {
+      console.warn('[Finnhub] No candle data for symbol:', symbol);
+      throw new Error(`No historical data available for ${symbol}`);
+    }
+
+    const candles: CandleData[] = [];
+    for (let i = 0; i < data.c.length; i++) {
+      const date = new Date(data.t[i] * 1000);
+      candles.push({
+        date: date.toISOString().split('T')[0],
+        open: data.o[i],
+        high: data.h[i],
+        low: data.l[i],
+        close: data.c[i],
+        volume: data.v[i],
+        timestamp: data.t[i],
+      });
+    }
+
+    console.log(`[Finnhub] Retrieved ${candles.length} candles for ${upper}`);
+    return candles;
+  } catch (error) {
+    console.error('[Finnhub] Candles error:', error);
+    throw error;
+  }
+}
+
+/**
  * Check if Finnhub API is configured
  * - true if a client key exists (local/dev)
  * - OR if we've successfully used the backend proxy in this browser
