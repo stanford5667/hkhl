@@ -1,12 +1,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { searchSymbol, type StockQuote } from '@/services/finnhubService';
+import { searchTickersWithQuotes, type SearchResult } from '@/services/tickerDirectoryService';
 import { getCachedQuote } from '@/services/quoteCacheService';
-
-interface SearchResult {
-  symbol: string;
-  name: string;
-  quote?: StockQuote;
-}
+import type { StockQuote } from '@/services/finnhubService';
 
 export function useTickerSearch(debounceMs = 300) {
   const [query, setQuery] = useState('');
@@ -28,16 +23,6 @@ export function useTickerSearch(debounceMs = 300) {
     
     const upperQ = q.toUpperCase();
     
-    // Check if exact ticker match (1-5 uppercase letters)
-    if (/^[A-Z]{1,5}$/.test(upperQ)) {
-      // Try to get quote directly
-      const quote = await getCachedQuote(upperQ);
-      if (quote) {
-        setResults([{ symbol: upperQ, name: quote.companyName || upperQ, quote }]);
-        return;
-      }
-    }
-    
     // Check if request already in flight
     if (inFlightRef.current.has(upperQ)) {
       const existing = await inFlightRef.current.get(upperQ);
@@ -45,18 +30,8 @@ export function useTickerSearch(debounceMs = 300) {
       return;
     }
     
-    // Make new request
-    const promise = searchSymbol(q).then(async (symbols) => {
-      // Enrich top 5 results with quotes (from cache if available)
-      const enriched = await Promise.all(
-        symbols.slice(0, 5).map(async (s) => ({
-          symbol: s.symbol,
-          name: s.description,
-          quote: await getCachedQuote(s.symbol) || undefined,
-        }))
-      );
-      return enriched;
-    });
+    // Use local-first search (queries database first, then API fallback)
+    const promise = searchTickersWithQuotes(q);
     
     inFlightRef.current.set(upperQ, promise);
     

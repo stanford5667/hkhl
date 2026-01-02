@@ -1622,6 +1622,45 @@ export type Database = {
         }
         Relationships: []
       }
+      ticker_directory: {
+        Row: {
+          created_at: string | null
+          exchange: string | null
+          industry: string | null
+          is_active: boolean | null
+          is_etf: boolean | null
+          market_cap_tier: string | null
+          name: string
+          sector: string | null
+          symbol: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          exchange?: string | null
+          industry?: string | null
+          is_active?: boolean | null
+          is_etf?: boolean | null
+          market_cap_tier?: string | null
+          name: string
+          sector?: string | null
+          symbol: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          exchange?: string | null
+          industry?: string | null
+          is_active?: boolean | null
+          is_etf?: boolean | null
+          market_cap_tier?: string | null
+          name?: string
+          sector?: string | null
+          symbol?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           id: string
