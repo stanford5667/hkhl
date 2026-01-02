@@ -1,14 +1,8 @@
 import { useState } from 'react';
 import {
-  LayoutDashboard,
-  Briefcase,
   TrendingUp,
-  AlertTriangle,
   FileText,
-  ChevronLeft,
-  ChevronRight,
   ChevronDown,
-  Activity,
   Sparkles,
   BarChart3,
   Settings,
@@ -32,15 +26,6 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 
-// Sidebar navigation items
-const NAV_ITEMS = [
-  { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { id: 'portfolio', label: 'Portfolio & Strategy', icon: Briefcase },
-  { id: 'macro', label: 'Macro Metrics', icon: TrendingUp },
-  { id: 'stress', label: 'Stress Testing', icon: AlertTriangle },
-  { id: 'reports', label: 'Reports', icon: FileText },
-];
-
 const TIMELINE_OPTIONS = ['1 Year', '2 Years', '5 Years', 'Custom Range'];
 
 const METRICS = [
@@ -62,84 +47,6 @@ const BENCHMARKS = [
   { id: 'vti', label: 'Total Market (VTI)' },
   { id: 'agg', label: 'Bonds (AGG)' },
 ];
-
-function BacktesterSidebar({
-  collapsed,
-  onToggle,
-  activeTab,
-  onTabChange,
-}: {
-  collapsed: boolean;
-  onToggle: () => void;
-  activeTab: string;
-  onTabChange: (tab: string) => void;
-}) {
-  return (
-    <aside
-      className={cn(
-        'flex flex-col h-full bg-primary text-primary-foreground transition-all duration-300 flex-shrink-0',
-        collapsed ? 'w-20' : 'w-[280px]'
-      )}
-    >
-      {/* Logo */}
-      <div className="flex items-center gap-3 p-4 border-b border-primary-foreground/10">
-        <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-primary-foreground/10 flex items-center justify-center">
-          <Activity className="h-5 w-5" />
-        </div>
-        {!collapsed && (
-          <div className="min-w-0">
-            <h2 className="font-bold text-sm truncate">Asset Labs</h2>
-            <p className="text-xs text-primary-foreground/60 truncate">AI Backtester</p>
-          </div>
-        )}
-      </div>
-
-      {/* Navigation */}
-      <nav className="flex-1 p-3 space-y-1">
-        {NAV_ITEMS.map((item) => {
-          const Icon = item.icon;
-          const isActive = activeTab === item.id;
-          return (
-            <button
-              key={item.id}
-              onClick={() => onTabChange(item.id)}
-              className={cn(
-                'w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
-                isActive
-                  ? 'bg-primary-foreground/20 text-primary-foreground'
-                  : 'text-primary-foreground/70 hover:bg-primary-foreground/10 hover:text-primary-foreground',
-                collapsed && 'justify-center px-2'
-              )}
-            >
-              <Icon className="h-5 w-5 flex-shrink-0" />
-              {!collapsed && <span className="truncate">{item.label}</span>}
-            </button>
-          );
-        })}
-      </nav>
-
-      {/* Toggle Button */}
-      <div className="p-3 border-t border-primary-foreground/10">
-        <button
-          onClick={onToggle}
-          className={cn(
-            'w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-primary-foreground/70 hover:bg-primary-foreground/10 hover:text-primary-foreground transition-colors',
-            collapsed && 'justify-center px-2'
-          )}
-        >
-          {collapsed ? (
-            <ChevronRight className="h-5 w-5" />
-          ) : (
-            <>
-              <ChevronLeft className="h-5 w-5" />
-              <span>Collapse</span>
-            </>
-          )}
-        </button>
-      </div>
-    </aside>
-  );
-}
 
 function MetricsSelector({
   selected,
@@ -500,7 +407,6 @@ function ReportsTab() {
 }
 
 export default function PortfolioBacktester() {
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [activeTab, setActiveTab] = useState('dashboard');
   const [timeline, setTimeline] = useState('1 Year');
   const [selectedMetrics, setSelectedMetrics] = useState(['totalReturn', 'sharpeRatio', 'maxDrawdown']);
@@ -530,81 +436,70 @@ export default function PortfolioBacktester() {
   };
 
   return (
-    <div className="flex h-[calc(100vh-3.5rem)] -m-6 overflow-hidden">
-      {/* Sidebar */}
-      <BacktesterSidebar
-        collapsed={sidebarCollapsed}
-        onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
-        activeTab={activeTab}
-        onTabChange={setActiveTab}
-      />
-
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col overflow-hidden min-w-0">
-        {/* Header */}
-        <header className="flex items-center justify-between px-6 py-4 border-b bg-background flex-shrink-0">
-          <div className="flex items-center gap-3">
-            <Sparkles className="h-5 w-5 text-primary" />
-            <h1 className="text-lg font-semibold">Asset Labs AI Backtester</h1>
-          </div>
-
-          <div className="flex items-center gap-3">
-            {/* Timeline Dropdown */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm">
-                  {timeline}
-                  <ChevronDown className="h-4 w-4 ml-2" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent>
-                {TIMELINE_OPTIONS.map((option) => (
-                  <DropdownMenuItem key={option} onClick={() => setTimeline(option)}>
-                    {option}
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
-
-            <MetricsSelector selected={selectedMetrics} onChange={setSelectedMetrics} />
-            <BenchmarkSelector selected={selectedBenchmarks} onChange={setSelectedBenchmarks} />
-
-            <Button onClick={handleRunBacktest} disabled={isRunning}>
-              {isRunning ? 'Running...' : 'Run Backtest'}
-            </Button>
-          </div>
-        </header>
-
-        {/* Tabs Navigation */}
-        <div className="border-b bg-background px-6 flex-shrink-0">
-          <div className="flex gap-1 overflow-x-auto">
-            {[
-              { id: 'dashboard', label: 'Dashboard' },
-              { id: 'portfolio', label: 'Portfolio & Strategy' },
-              { id: 'macro', label: 'Macro Metrics' },
-              { id: 'stress', label: 'Analysis & Stress Testing' },
-              { id: 'reports', label: 'Reports' },
-            ].map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={cn(
-                  'px-4 py-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap',
-                  activeTab === tab.id
-                    ? 'border-primary text-primary'
-                    : 'border-transparent text-muted-foreground hover:text-foreground'
-                )}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </div>
+    <div className="space-y-6">
+      {/* Header */}
+      <header className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <Sparkles className="h-5 w-5 text-primary" />
+          <h1 className="text-2xl font-bold">Asset Labs AI Backtester</h1>
         </div>
 
-        {/* Content Area */}
-        <main className="flex-1 overflow-auto p-6 bg-muted/30">
-          {renderContent()}
-        </main>
+        <div className="flex items-center gap-3">
+          {/* Timeline Dropdown */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm">
+                {timeline}
+                <ChevronDown className="h-4 w-4 ml-2" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent>
+              {TIMELINE_OPTIONS.map((option) => (
+                <DropdownMenuItem key={option} onClick={() => setTimeline(option)}>
+                  {option}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          <MetricsSelector selected={selectedMetrics} onChange={setSelectedMetrics} />
+          <BenchmarkSelector selected={selectedBenchmarks} onChange={setSelectedBenchmarks} />
+
+          <Button onClick={handleRunBacktest} disabled={isRunning}>
+            {isRunning ? 'Running...' : 'Run Backtest'}
+          </Button>
+        </div>
+      </header>
+
+      {/* Tabs Navigation */}
+      <div className="border-b">
+        <div className="flex gap-1 overflow-x-auto">
+          {[
+            { id: 'dashboard', label: 'Dashboard' },
+            { id: 'portfolio', label: 'Portfolio & Strategy' },
+            { id: 'macro', label: 'Macro Metrics' },
+            { id: 'stress', label: 'Analysis & Stress Testing' },
+            { id: 'reports', label: 'Reports' },
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={cn(
+                'px-4 py-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap',
+                activeTab === tab.id
+                  ? 'border-primary text-primary'
+                  : 'border-transparent text-muted-foreground hover:text-foreground'
+              )}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Content Area */}
+      <div className="pt-2">
+        {renderContent()}
       </div>
     </div>
   );
