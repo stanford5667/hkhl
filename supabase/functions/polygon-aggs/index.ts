@@ -198,12 +198,18 @@ serve(async (req) => {
     }
 
     // Fetch from Polygon API
+    // Prefer VITE_POLYGON_API_KEY if present (often the actively-maintained key),
+    // but allow POLYGON_API_KEY for backwards compatibility.
     const POLYGON_API_KEY =
-      Deno.env.get("POLYGON_API_KEY") || Deno.env.get("VITE_POLYGON_API_KEY");
+      Deno.env.get("VITE_POLYGON_API_KEY") || Deno.env.get("POLYGON_API_KEY");
 
     if (!POLYGON_API_KEY) {
       return json({ ok: false, error: "Polygon API key not configured" }, 500);
     }
+
+    console.log(
+      `[polygon-aggs] Using API key from ${Deno.env.get("VITE_POLYGON_API_KEY") ? "VITE_POLYGON_API_KEY" : "POLYGON_API_KEY"}`
+    );
 
     console.log(`[polygon-aggs] Fetching ${ticker} ${timespan} ${startDate}..${endDate} from Polygon API`);
 
