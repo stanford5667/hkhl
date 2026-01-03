@@ -68,6 +68,74 @@ serve(async (req) => {
       console.log('[AI Portfolio Advisor] Co-Pilot answers:', JSON.stringify(coPilotAnswers));
     }
 
+    // Build strict asset class constraints based on user selection
+    const allowedAssetClasses = profile.assetUniverse || ['stocks', 'etfs', 'bonds'];
+    const hasStocks = allowedAssetClasses.includes('stocks');
+    const hasETFs = allowedAssetClasses.includes('etfs');
+    const hasBonds = allowedAssetClasses.includes('bonds');
+    const hasCrypto = allowedAssetClasses.includes('crypto');
+    const hasCommodities = allowedAssetClasses.includes('commodities');
+    const hasRealEstate = allowedAssetClasses.includes('real_estate');
+    
+    console.log('[AI Portfolio Advisor] Allowed asset classes:', allowedAssetClasses);
+
+    // Build asset class instructions based on what user selected
+    let assetClassInstructions = `
+CRITICAL CONSTRAINT - ASSET CLASSES:
+The investor has EXPLICITLY selected these asset classes: ${allowedAssetClasses.join(', ')}
+
+YOU MUST ONLY INCLUDE ASSETS FROM THESE CATEGORIES:`;
+
+    if (hasStocks) {
+      assetClassInstructions += `
+- INDIVIDUAL STOCKS: Include specific company tickers (AAPL, MSFT, NVDA, GOOGL, JPM, JNJ, AMZN, META, UNH, V, etc.). These should make up a significant portion of the portfolio.`;
+    }
+    if (hasETFs) {
+      assetClassInstructions += `
+- ETFs/INDEX FUNDS: Include diversified ETFs (VTI, SPY, QQQ, VXUS, VEA, etc.) for broad market exposure.`;
+    }
+    if (hasBonds) {
+      assetClassInstructions += `
+- BONDS: Include bond ETFs or individual bonds (BND, AGG, TLT, GOVT, LQD, HYG, etc.) for stability and income.`;
+    }
+    if (hasCrypto) {
+      assetClassInstructions += `
+- CRYPTOCURRENCY: Include crypto assets or crypto ETFs (BTC, ETH, BITO, IBIT, etc.) for digital asset exposure.`;
+    }
+    if (hasCommodities) {
+      assetClassInstructions += `
+- COMMODITIES: Include commodity ETFs (GLD, SLV, USO, DBA, PDBC, etc.) for inflation hedging.`;
+    }
+    if (hasRealEstate) {
+      assetClassInstructions += `
+- REAL ESTATE: Include REITs and real estate ETFs (VNQ, SCHH, O, SPG, AMT, etc.) for property exposure.`;
+    }
+
+    assetClassInstructions += `
+
+DO NOT include any asset classes that are NOT in the list above!
+- If "etfs" is NOT selected, DO NOT include ANY ETFs like VTI, SPY, QQQ, etc.
+- If "stocks" is NOT selected, DO NOT include ANY individual stocks like AAPL, MSFT, etc.
+- If "bonds" is NOT selected, DO NOT include ANY bond products.
+
+This is a HARD REQUIREMENT. The user's preferences MUST be respected.`;
+
+    // Determine allocation strategy based on what's available
+    let allocationStrategy = '';
+    if (hasStocks && hasETFs) {
+      allocationStrategy = `
+Since both individual stocks AND ETFs are allowed, balance them based on risk:
+- Conservative (risk < 40): 70% ETFs, 30% individual stocks
+- Moderate (risk 40-70): 50% ETFs, 50% individual stocks  
+- Aggressive (risk > 70): 30% ETFs, 70% individual stocks`;
+    } else if (hasStocks && !hasETFs) {
+      allocationStrategy = `
+ONLY individual stocks are allowed (NO ETFs). Build a diversified portfolio of 8-12 individual stocks across different sectors.`;
+    } else if (!hasStocks && hasETFs) {
+      allocationStrategy = `
+ONLY ETFs are allowed (NO individual stocks). Build a diversified portfolio of 5-8 ETFs covering different asset classes and regions.`;
+    }
+
     const systemPrompt = `You are an institutional-grade portfolio advisor with expertise in modern portfolio theory, factor investing, and risk management. You provide detailed, actionable portfolio recommendations based on investor profiles.
 
 Your analysis should be grounded in:
@@ -77,14 +145,9 @@ Your analysis should be grounded in:
 - Risk parity concepts
 - J.P. Morgan's 60/40+ framework for alternative allocations
 
-IMPORTANT: Create a DIVERSIFIED portfolio that includes BOTH:
-1. Individual stocks (at least 3-5 specific company tickers like AAPL, MSFT, NVDA, GOOGL, JPM, JNJ, etc.) for alpha generation
-2. ETFs/Index funds for broad market exposure and diversification
+${assetClassInstructions}
 
-The mix should depend on the investor's risk profile:
-- Conservative (risk < 40): 70% ETFs, 30% individual stocks
-- Moderate (risk 40-70): 50% ETFs, 50% individual stocks  
-- Aggressive (risk > 70): 30% ETFs, 70% individual stocks
+${allocationStrategy}
 
 When selecting individual stocks, consider:
 - Blue-chip quality companies with strong fundamentals
