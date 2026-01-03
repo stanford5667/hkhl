@@ -1,5 +1,5 @@
 // Portfolio Visualizer - Institutional Multi-Asset Management Suite
-// "Choose Your Path" experience: Manual vs AI Co-Pilot modes
+// "Choose Your Path" experience: Manual vs AI Co-Pilot vs IPS Questionnaire modes
 
 import { useState, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
@@ -40,6 +40,7 @@ import {
   PortfolioAllocation,
   EfficientFrontierPoint,
 } from '@/types/portfolio';
+import { InvestorPolicyStatement } from '@/types/investorPolicy';
 import { AssetData as PolygonAssetData, CorrelationMatrix as PolygonCorrelationMatrix } from '@/services/polygonDataHandler';
 
 // Components
@@ -50,6 +51,7 @@ import { EfficientFrontierSlider } from '@/components/backtester/EfficientFronti
 import { AdvancedMetricsDashboard } from '@/components/backtester/AdvancedMetricsDashboard';
 import { AIPortfolioInsights, AIPortfolioAdvice } from '@/components/backtester/AIPortfolioInsights';
 import { EducationalDashboard } from '@/components/backtester/EducationalDashboard';
+import { InvestorPolicyQuestionnaire } from '@/components/backtester/InvestorPolicyQuestionnaire';
 import { supabase } from '@/integrations/supabase/client';
 
 // Services
@@ -61,8 +63,9 @@ import { calculateAllAdvancedMetrics, AdvancedRiskMetrics } from '@/services/adv
 import { generateEfficientFrontier, findOptimalPortfolio } from '@/services/efficientFrontierService';
 import { runAllStressTests, checkLiquidityRisks, StressTestResult, LiquidityRiskResult } from '@/services/stressTestService';
 import { fetchMultipleTickerDetails, TickerDetails } from '@/services/tickerDetailsService';
+import { scoreQuestionnaire, ScoringResult } from '@/services/questionnaireScoring';
 
-type AppFlow = 'choose-path' | 'manual-form' | 'ai-wizard' | 'analyzing' | 'results';
+type AppFlow = 'choose-path' | 'manual-form' | 'ai-wizard' | 'questionnaire' | 'analyzing' | 'results';
 
 const DEFAULT_PROFILE: InvestorProfile = {
   investableCapital: 100000,
@@ -477,6 +480,30 @@ export default function PortfolioVisualizer() {
     setTickerDetails(new Map());
   };
 
+  // Handle IPS questionnaire completion
+  const handleQuestionnaireComplete = (policy: InvestorPolicyStatement) => {
+    // Convert IPS to InvestorProfile for analysis
+    const profile: InvestorProfile = {
+      investableCapital: 100000, // Default, could add to questionnaire
+      liquidityConstraint: policy.liquidityNeeds.emergencyFundMonths >= 3 ? 'high' : 'locked',
+      assetUniverse: ['stocks', 'etfs', 'bonds'],
+      riskTolerance: policy.riskProfile.emotionalTolerance,
+      taxBracket: 'medium',
+      investmentHorizon: 10, // Could derive from goals
+    };
+    
+    // Add alternatives based on constraints
+    if (!policy.constraints.ethicalExclusions.includes('crypto')) {
+      profile.assetUniverse.push('crypto');
+    }
+    
+    setInvestorProfile(profile);
+    setPortfolioMode('ai');
+    const aiAllocations = generateAIPortfolio(profile);
+    setAllocations(aiAllocations);
+    runAnalysis(profile, aiAllocations, 'ai');
+  };
+
   // Render based on current flow
   if (currentFlow === 'choose-path') {
     return (
@@ -484,6 +511,7 @@ export default function PortfolioVisualizer() {
         <ChooseYourPath
           onSelectManual={() => setCurrentFlow('manual-form')}
           onSelectAI={() => setCurrentFlow('ai-wizard')}
+          onSelectQuestionnaire={() => setCurrentFlow('questionnaire')}
         />
       </div>
     );
@@ -508,6 +536,15 @@ export default function PortfolioVisualizer() {
           onBack={() => setCurrentFlow('choose-path')}
         />
       </div>
+    );
+  }
+
+  if (currentFlow === 'questionnaire') {
+    return (
+      <InvestorPolicyQuestionnaire
+        onComplete={handleQuestionnaireComplete}
+        onBack={() => setCurrentFlow('choose-path')}
+      />
     );
   }
 
