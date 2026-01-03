@@ -56,3 +56,9 @@ verify_jwt = false
 
 [functions.finnhub-candles]
 verify_jwt = false
+
+[functions.fetch-stock-batch]
+verify_jwt = false
+
+[functions.run-backtest]
+verify_jwt = false
