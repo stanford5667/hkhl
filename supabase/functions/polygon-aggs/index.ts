@@ -118,21 +118,23 @@ function cacheToPolygonFormat(cacheRows: any[]) {
   }));
 }
 
-// Limit date range to what's available on Polygon free plan (last 2 years)
-function limitToFreePlanDates(startDate: string, endDate: string): { start: string; end: string; wasLimited: boolean } {
+// Limit date range based on Polygon plan (paid plans get 10+ years)
+function limitToPolygonPlanDates(startDate: string, endDate: string): { start: string; end: string; wasLimited: boolean } {
   const now = new Date();
-  const twoYearsAgo = new Date(now);
-  twoYearsAgo.setFullYear(twoYearsAgo.getFullYear() - 2);
+  // Paid plans ($30+) have access to 10+ years of data
+  const maxHistoryYears = 10;
+  const maxHistoryDate = new Date(now);
+  maxHistoryDate.setFullYear(maxHistoryDate.getFullYear() - maxHistoryYears);
   
   let start = new Date(startDate);
   const end = new Date(endDate);
   
-  const wasLimited = start < twoYearsAgo;
+  const wasLimited = start < maxHistoryDate;
   
-  // If start date is before 2 years ago, limit it
+  // If start date is before max history, limit it
   if (wasLimited) {
-    start = twoYearsAgo;
-    console.log(`[polygon-aggs] Limiting start date from ${startDate} to ${start.toISOString().split('T')[0]} (free plan limit)`);
+    start = maxHistoryDate;
+    console.log(`[polygon-aggs] Limiting start date from ${startDate} to ${start.toISOString().split('T')[0]} (max ${maxHistoryYears} years)`);
   }
   
   return {
@@ -158,7 +160,7 @@ serve(async (req) => {
     if (!requestedStartDate || !requestedEndDate) return json({ ok: false, error: "startDate and endDate are required" }, 400);
 
     // Limit dates to free plan range
-    const { start: startDate, end: endDate, wasLimited } = limitToFreePlanDates(requestedStartDate, requestedEndDate);
+    const { start: startDate, end: endDate, wasLimited } = limitToPolygonPlanDates(requestedStartDate, requestedEndDate);
     
     if (wasLimited) {
       console.log(`[polygon-aggs] Date range limited for ${ticker} due to free plan restrictions`);
