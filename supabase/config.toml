@@ -89,3 +89,6 @@ verify_jwt = false
 
 [functions.seed-asset-universe]
 verify_jwt = false
+
+[functions.scheduled-sync]
+verify_jwt = false
