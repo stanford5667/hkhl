@@ -38,7 +38,8 @@ export function useBacktester(options: UseBacktesterOptions = {}) {
       startDate: string,
       endDate: string,
       initialCapital: number,
-      strategy: StrategyType = 'buy-hold'
+      strategy: StrategyType = 'buy-hold',
+      runFullAnalysis: boolean = true
     ): Promise<BacktestResult | null> => {
       setIsRunning(true);
       setError(null);
@@ -47,7 +48,7 @@ export function useBacktester(options: UseBacktesterOptions = {}) {
       setMonteCarloResult(null);
       setStressTestResults([]);
       setCorrelationMatrix(null);
-      setProgress('Fetching historical data...');
+      setProgress('Step 1/4: Fetching historical data...');
 
       try {
         const config: BacktestConfig = {
@@ -59,10 +60,49 @@ export function useBacktester(options: UseBacktesterOptions = {}) {
           benchmarkSymbol: defaultBenchmark,
         };
 
-        setProgress('Running backtest...');
+        // Step 1: Run main backtest
+        setProgress('Step 1/4: Running backtest...');
         const backTestResult = await runBacktest(config);
         setResult(backTestResult);
-        setProgress('');
+
+        if (!runFullAnalysis) {
+          setProgress('');
+          setIsRunning(false);
+          return backTestResult;
+        }
+
+        // Step 2: Monte Carlo Simulation
+        setProgress('Step 2/4: Running Monte Carlo simulation...');
+        try {
+          const mcResult = await runMonteCarloSimulation(config, 500, 5);
+          setMonteCarloResult(mcResult);
+        } catch (mcErr) {
+          console.warn('Monte Carlo failed:', mcErr);
+        }
+
+        // Step 3: Stress Tests
+        setProgress('Step 3/4: Running stress tests...');
+        try {
+          const stressResults = await runStressTests(config);
+          setStressTestResults(stressResults);
+        } catch (stressErr) {
+          console.warn('Stress tests failed:', stressErr);
+        }
+
+        // Step 4: Correlation Matrix
+        setProgress('Step 4/4: Calculating correlations...');
+        try {
+          const symbols = assets.map(a => a.symbol);
+          if (symbols.length > 1) {
+            const matrix = await calculateCorrelationMatrix(symbols, startDate, endDate);
+            setCorrelationMatrix(matrix);
+          }
+        } catch (corrErr) {
+          console.warn('Correlation calculation failed:', corrErr);
+        }
+
+        setProgress('Complete!');
+        setTimeout(() => setProgress(''), 1500);
         return backTestResult;
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : 'Backtest failed';
