@@ -77,7 +77,21 @@ Your analysis should be grounded in:
 - Risk parity concepts
 - J.P. Morgan's 60/40+ framework for alternative allocations
 
-Always provide specific ETF tickers that are liquid and accessible to retail investors.
+IMPORTANT: Create a DIVERSIFIED portfolio that includes BOTH:
+1. Individual stocks (at least 3-5 specific company tickers like AAPL, MSFT, NVDA, GOOGL, JPM, JNJ, etc.) for alpha generation
+2. ETFs/Index funds for broad market exposure and diversification
+
+The mix should depend on the investor's risk profile:
+- Conservative (risk < 40): 70% ETFs, 30% individual stocks
+- Moderate (risk 40-70): 50% ETFs, 50% individual stocks  
+- Aggressive (risk > 70): 30% ETFs, 70% individual stocks
+
+When selecting individual stocks, consider:
+- Blue-chip quality companies with strong fundamentals
+- Sector alignment with the investor's loved/hated sectors
+- Growth vs value based on risk tolerance
+- Dividend stocks for income-focused conservative investors
+
 When explaining why each asset fits the profile, be specific about how it relates to their risk tolerance, time horizon, and preferences.`;
 
     const sectorPreferences = coPilotAnswers ? `
@@ -107,15 +121,26 @@ Provide your response as a JSON object with this exact structure:
   "drawdownRecoveryMonths": 18,
   "allocations": [
     {
+      "symbol": "AAPL",
+      "name": "Apple Inc.",
+      "weight": 12,
+      "assetClass": "stocks",
+      "rationale": "Market leader in consumer tech with strong cash flow and ecosystem lock-in",
+      "expectedReturn": 12,
+      "volatility": 25,
+      "idealHoldPeriod": "3+ years",
+      "whyThisFitsProfile": "As a growth-oriented blue chip, AAPL balances your appetite for returns with quality. Its consistent performance suits your moderate risk tolerance."
+    },
+    {
       "symbol": "VTI",
       "name": "Vanguard Total Stock Market ETF",
-      "weight": 40,
-      "assetClass": "stocks",
+      "weight": 30,
+      "assetClass": "etf",
       "rationale": "Core US equity exposure with low expense ratio providing broad market access",
       "expectedReturn": 9.5,
       "volatility": 18,
       "idealHoldPeriod": "5+ years",
-      "whyThisFitsProfile": "With your 5-year horizon and moderate risk tolerance, VTI provides growth potential while the diversification reduces single-stock risk. Since you don't need liquidity immediately, you can ride out short-term volatility."
+      "whyThisFitsProfile": "With your 5-year horizon and moderate risk tolerance, VTI provides growth potential while the diversification reduces single-stock risk."
     }
   ],
   "riskAnalysis": {
