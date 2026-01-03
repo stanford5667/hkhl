@@ -38,6 +38,7 @@ import {
   Sparkles as SparklesIcon,
   Activity,
   Brain,
+  PieChart,
 } from "lucide-react";
 
 interface NavItem {
@@ -140,6 +141,12 @@ export function Sidebar() {
         subtitle: "GNN + HRP Optimizer",
         href: "/neuro-engine", 
         icon: Brain 
+      },
+      { 
+        label: "Visualizer", 
+        subtitle: "Portfolio Optimizer",
+        href: "/portfolio-visualizer", 
+        icon: PieChart 
       },
     );
 
