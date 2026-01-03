@@ -80,3 +80,6 @@ verify_jwt = false
 
 [functions.ai-portfolio-chat]
 verify_jwt = false
+
+[functions.ai-calculate-metrics]
+verify_jwt = false
