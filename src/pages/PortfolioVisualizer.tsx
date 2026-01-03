@@ -285,26 +285,50 @@ export default function PortfolioVisualizer() {
       
       setProgress({ message: 'Calculating advanced metrics...', percent: 75 });
       
-      // Calculate metrics for selected point
-      if (optimalPoint) {
-        const dailyReturns: number[] = [];
-        const portfolioValues: number[] = [investorProfile.investableCapital];
+      // Calculate metrics for selected point using REAL returns data
+      if (optimalPoint && fetchResult.assetData.size > 0) {
+        // Get the weights from the optimal portfolio
+        const weights = optimalPoint.weights;
         
+        // Find the minimum length of returns across all assets
+        let minLength = Infinity;
+        fetchResult.assetData.forEach((asset) => {
+          if (asset.returns.length < minLength) {
+            minLength = asset.returns.length;
+          }
+        });
+        
+        // Calculate weighted portfolio returns from real asset returns
+        const portfolioReturns: number[] = [];
+        for (let i = 0; i < minLength; i++) {
+          let dayReturn = 0;
+          weights.forEach((weight, ticker) => {
+            const assetReturns = fetchResult.assetData.get(ticker)?.returns;
+            if (assetReturns && i < assetReturns.length) {
+              dayReturn += weight * assetReturns[i];
+            }
+          });
+          portfolioReturns.push(dayReturn);
+        }
+        
+        // Calculate portfolio value series from real returns
+        const portfolioValues: number[] = [investorProfile.investableCapital];
         let value = investorProfile.investableCapital;
-        for (let i = 1; i < 252; i++) {
-          const dailyReturn = (Math.random() - 0.5) * 0.02 + 0.0003;
-          dailyReturns.push(dailyReturn);
+        for (const dailyReturn of portfolioReturns) {
           value *= (1 + dailyReturn);
           portfolioValues.push(value);
         }
         
+        console.log('[PortfolioVisualizer] Using real returns:', portfolioReturns.length, 'days');
+        console.log('[PortfolioVisualizer] Portfolio final value:', value.toFixed(2));
+        
         const metrics = calculateAllAdvancedMetrics(
-          dailyReturns,
+          portfolioReturns,
           portfolioValues,
           optimalPoint.weights,
           optimalPoint.return,
-          15,
-          1,
+          15, // benchmark for tracking error
+          1,  // years
           undefined
         );
         setAdvancedMetrics(metrics);
