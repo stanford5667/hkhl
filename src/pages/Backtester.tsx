@@ -391,8 +391,10 @@ export default function Backtester() {
                   <div className="text-lg font-bold tabular-nums">${result.finalValue.toLocaleString(undefined, { maximumFractionDigits: 0 })}</div>
                 </div>
                 <div className="p-3 rounded-lg bg-card border border-border/50">
-                  <div className="text-xs text-muted-foreground mb-1">Win Rate</div>
-                  <div className="text-lg font-bold tabular-nums">{result.winRate.toFixed(1)}%</div>
+                  <div className="text-xs text-muted-foreground mb-1">Sortino Ratio</div>
+                  <div className={`text-lg font-bold tabular-nums ${(result.sortinoRatio || 0) > 1 ? 'text-emerald-500' : 'text-muted-foreground'}`}>
+                    {result.sortinoRatio?.toFixed(2) || 'N/A'}
+                  </div>
                 </div>
                 <div className="p-3 rounded-lg bg-card border border-border/50">
                   <div className="text-xs text-muted-foreground mb-1">Volatility</div>

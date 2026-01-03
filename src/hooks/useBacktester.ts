@@ -1,7 +1,6 @@
 import { useState, useCallback } from 'react';
 import {
   runBacktest,
-  fetchHistoricalPrices,
   StrategyType,
   BacktestResult,
   BacktestConfig,
