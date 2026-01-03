@@ -69,6 +69,27 @@ export default function BacktestPage() {
   const [isFetching, setIsFetching] = useState(false);
   const [results, setResults] = useState<BacktestResults | null>(null);
 
+  // Regime and optimization state
+  const [regime, setRegime] = useState<{
+    currentRegime: { 
+      regime: string; 
+      turbulenceIndex: number; 
+      volatility: number;
+      date: string;
+    } | null;
+    signals: Array<{ date: string; regime: string; turbulenceIndex: number }>;
+    summary: { assetsAnalyzed: number; assets: string[] };
+  } | null>(null);
+  const [optimalWeights, setOptimalWeights] = useState<{
+    weights: Record<string, number>;
+    regime: string;
+    expectedVolatility: number;
+    correlationMatrix: Record<string, Record<string, number>>;
+    volatilities: Record<string, number>;
+    methodology?: string;
+  } | null>(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+
   const addTicker = () => {
     const t = tickerInput.toUpperCase().trim();
     if (t && !tickers.includes(t) && t.length <= 5) {
@@ -132,6 +153,52 @@ export default function BacktestPage() {
     } finally {
       setIsLoading(false);
       setIsFetching(false);
+    }
+  };
+
+  const runAnalysis = async () => {
+    if (tickers.length < 3) {
+      toast.error('Need at least 3 tickers for regime analysis');
+      return;
+    }
+
+    setIsAnalyzing(true);
+    setRegime(null);
+    setOptimalWeights(null);
+
+    try {
+      // Step 1: Detect regime
+      const { data: regimeData, error: regimeError } = await supabase.functions.invoke('detect-regime', {
+        body: { tickers, lookbackDays: 60 }
+      });
+
+      if (regimeError) throw regimeError;
+      
+      if (!regimeData?.success) {
+        throw new Error(regimeData?.error || 'Regime detection failed');
+      }
+      
+      setRegime(regimeData);
+      const currentRegimeType = regimeData.currentRegime?.regime || 'normal';
+
+      // Step 2: Get optimal weights using detected regime
+      const { data: optData, error: optError } = await supabase.functions.invoke('optimize-portfolio', {
+        body: { tickers, regime: currentRegimeType }
+      });
+
+      if (optError) throw optError;
+      
+      if (!optData?.success) {
+        throw new Error(optData?.error || 'Optimization failed');
+      }
+      
+      setOptimalWeights(optData);
+      toast.success('Analysis complete!');
+    } catch (e) {
+      console.error('Analysis error:', e);
+      toast.error(e instanceof Error ? e.message : 'Analysis failed. Make sure you have run a backtest first to populate the cache.');
+    } finally {
+      setIsAnalyzing(false);
     }
   };
 
@@ -273,20 +340,44 @@ export default function BacktestPage() {
               </div>
             </div>
 
-            {/* Run Button */}
-            <Button onClick={runBacktest} disabled={isLoading} className="w-full bg-emerald-600 hover:bg-emerald-700 text-white">
-              {isLoading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  {isFetching ? 'Fetching Data...' : 'Running Backtest...'}
-                </>
-              ) : (
-                <>
-                  <Play className="mr-2 h-4 w-4" />
-                  Run Backtest
-                </>
+            {/* Run Buttons */}
+            <div className="space-y-2">
+              <Button onClick={runBacktest} disabled={isLoading || isAnalyzing} className="w-full bg-emerald-600 hover:bg-emerald-700 text-white">
+                {isLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    {isFetching ? 'Fetching Data...' : 'Running Backtest...'}
+                  </>
+                ) : (
+                  <>
+                    <Play className="mr-2 h-4 w-4" />
+                    Run Backtest
+                  </>
+                )}
+              </Button>
+
+              <Button
+                onClick={runAnalysis}
+                disabled={isLoading || isAnalyzing || tickers.length < 3}
+                variant="outline"
+                className="w-full border-border"
+              >
+                {isAnalyzing ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    Analyzing...
+                  </>
+                ) : (
+                  <>
+                    <Activity className="h-4 w-4 mr-2" />
+                    Analyze Regime
+                  </>
+                )}
+              </Button>
+              {tickers.length < 3 && (
+                <p className="text-xs text-muted-foreground text-center">Add 3+ tickers for regime analysis</p>
               )}
-            </Button>
+            </div>
           </Card>
 
           {/* Right Panel - Results */}
@@ -448,6 +539,117 @@ export default function BacktestPage() {
                       </AccordionContent>
                     </AccordionItem>
                   </Accordion>
+                )}
+
+                {/* Regime Analysis Section */}
+                {(regime || optimalWeights) && (
+                  <Card className="p-6 bg-card border-border mt-6">
+                    <div className="flex items-center gap-2 mb-4">
+                      <Activity className="h-5 w-5 text-emerald-500" />
+                      <h2 className="text-lg font-semibold text-foreground">Regime Analysis & Optimization</h2>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                      {/* Current Regime */}
+                      {regime?.currentRegime && (
+                        <div className="space-y-4">
+                          <h3 className="text-sm font-medium text-muted-foreground">Current Market Regime</h3>
+                          
+                          <div className="flex items-center gap-4 p-4 rounded-lg bg-muted/50">
+                            <Badge 
+                              className={cn(
+                                "text-lg px-4 py-2 font-bold",
+                                regime.currentRegime.regime === 'low_vol' && "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30",
+                                regime.currentRegime.regime === 'normal' && "bg-blue-500/20 text-blue-400 border border-blue-500/30",
+                                regime.currentRegime.regime === 'high_vol' && "bg-amber-500/20 text-amber-400 border border-amber-500/30",
+                                regime.currentRegime.regime === 'crisis' && "bg-rose-500/20 text-rose-400 border border-rose-500/30",
+                              )}
+                            >
+                              {regime.currentRegime.regime.replace('_', ' ').toUpperCase()}
+                            </Badge>
+                            
+                            <div className="grid grid-cols-2 gap-4">
+                              <div>
+                                <p className="text-xs text-muted-foreground">Turbulence</p>
+                                <p className="text-xl font-bold text-foreground">{regime.currentRegime.turbulenceIndex}</p>
+                              </div>
+                              <div>
+                                <p className="text-xs text-muted-foreground">Volatility</p>
+                                <p className="text-xl font-bold text-foreground">{regime.currentRegime.volatility}%</p>
+                              </div>
+                            </div>
+                          </div>
+                          
+                          {(regime.currentRegime.regime === 'high_vol' || regime.currentRegime.regime === 'crisis') && (
+                            <Alert className="bg-amber-500/10 border-amber-500/30">
+                              <AlertTriangle className="h-4 w-4 text-amber-400" />
+                              <AlertDescription className="text-amber-400">
+                                Elevated volatility detected. Consider increasing allocation to defensive assets (GLD, TLT, TIP, BND).
+                              </AlertDescription>
+                            </Alert>
+                          )}
+                          
+                          {regime.currentRegime.regime === 'low_vol' && (
+                            <Alert className="bg-emerald-500/10 border-emerald-500/30">
+                              <TrendingUp className="h-4 w-4 text-emerald-400" />
+                              <AlertDescription className="text-emerald-400">
+                                Low volatility regime. Favorable conditions for growth-oriented allocations.
+                              </AlertDescription>
+                            </Alert>
+                          )}
+                          
+                          <p className="text-xs text-muted-foreground">
+                            Based on {regime.summary.assetsAnalyzed} assets: {regime.summary.assets.join(', ')}
+                          </p>
+                        </div>
+                      )}
+
+                      {/* Optimal Weights */}
+                      {optimalWeights && (
+                        <div className="space-y-4">
+                          <div className="flex items-center justify-between">
+                            <h3 className="text-sm font-medium text-muted-foreground">HRP Optimal Weights</h3>
+                            <span className="text-xs text-muted-foreground">
+                              Expected Vol: {optimalWeights.expectedVolatility}%
+                            </span>
+                          </div>
+                          
+                          <div className="space-y-2">
+                            {Object.entries(optimalWeights.weights)
+                              .sort((a, b) => b[1] - a[1])
+                              .map(([ticker, weight]) => (
+                                <div key={ticker} className="flex items-center justify-between p-2 rounded bg-muted/30">
+                                  <div className="flex items-center gap-2">
+                                    <span className="font-medium text-foreground w-12">{ticker}</span>
+                                    <span className="text-xs text-muted-foreground">
+                                      (Vol: {optimalWeights.volatilities[ticker]}%)
+                                    </span>
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    <div className="w-24 bg-muted rounded-full h-2">
+                                      <div
+                                        className={cn(
+                                          "rounded-full h-2 transition-all",
+                                          weight > 20 ? "bg-emerald-500" : weight > 10 ? "bg-blue-500" : "bg-muted-foreground"
+                                        )}
+                                        style={{ width: `${Math.min(weight, 100)}%` }}
+                                      />
+                                    </div>
+                                    <span className="text-sm font-mono text-foreground w-14 text-right">
+                                      {weight.toFixed(1)}%
+                                    </span>
+                                  </div>
+                                </div>
+                              ))}
+                          </div>
+                          
+                          <p className="text-xs text-muted-foreground">
+                            {optimalWeights.methodology}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </Card>
                 )}
               </div>
             ) : (
