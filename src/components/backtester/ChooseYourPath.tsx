@@ -78,9 +78,14 @@ export function ChooseYourPath({ onSelectManual, onSelectAIChat, onSelectQuestio
               "relative overflow-hidden cursor-pointer transition-all duration-300 flex-1",
               "hover:shadow-2xl hover:shadow-blue-500/10 hover:-translate-y-2",
               "border-2 border-transparent hover:border-blue-500/30",
+              "focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2",
               "group"
             )}
             onClick={() => handleSelect('manual', onSelectManual)}
+            onKeyDown={(e) => e.key === 'Enter' && handleSelect('manual', onSelectManual)}
+            tabIndex={0}
+            role="button"
+            aria-label="Quick Builder - Enter tickers and weights directly for experienced investors"
           >
             {/* Gradient Top Bar */}
             <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-blue-500 via-cyan-500 to-blue-500" />
@@ -156,10 +161,15 @@ export function ChooseYourPath({ onSelectManual, onSelectAIChat, onSelectQuestio
               "relative overflow-hidden cursor-pointer transition-all duration-300 flex-1",
               "hover:shadow-2xl hover:shadow-emerald-500/20 hover:-translate-y-2",
               "border-2 border-emerald-500/30 hover:border-emerald-500/50",
+              "focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2",
               "group",
               "ring-2 ring-emerald-500/20 ring-offset-2 ring-offset-background"
             )}
             onClick={() => handleSelect('ai-chat', onSelectAIChat)}
+            onKeyDown={(e) => e.key === 'Enter' && handleSelect('ai-chat', onSelectAIChat)}
+            tabIndex={0}
+            role="button"
+            aria-label="AI Chat Advisor - Have a conversation with AI to discover the right portfolio"
           >
             {/* Gradient Top Bar */}
             <div className="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-emerald-500 via-teal-400 to-emerald-500" />
@@ -249,9 +259,14 @@ export function ChooseYourPath({ onSelectManual, onSelectAIChat, onSelectQuestio
               "relative overflow-hidden cursor-pointer transition-all duration-300 flex-1",
               "hover:shadow-2xl hover:shadow-purple-500/10 hover:-translate-y-2",
               "border-2 border-transparent hover:border-purple-500/30",
+              "focus-visible:ring-2 focus-visible:ring-purple-500 focus-visible:ring-offset-2",
               "group"
             )}
             onClick={() => handleSelect('questionnaire', onSelectQuestionnaire)}
+            onKeyDown={(e) => e.key === 'Enter' && handleSelect('questionnaire', onSelectQuestionnaire)}
+            tabIndex={0}
+            role="button"
+            aria-label="Guided Questionnaire - Step-by-step questions to build an Investor Policy Statement"
           >
             {/* Gradient Top Bar */}
             <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-purple-500 via-violet-500 to-purple-500" />

@@ -192,7 +192,12 @@ export function ManualPortfolioForm({ onComplete, onBack }: ManualPortfolioFormP
                   className="flex-1"
                   maxLength={10}
                 />
-                <Button onClick={addAllocation} disabled={!newSymbol.trim()} size="icon">
+                <Button 
+                  onClick={addAllocation} 
+                  disabled={!newSymbol.trim()} 
+                  size="icon"
+                  aria-label="Add ticker"
+                >
                   <Plus className="h-4 w-4" />
                 </Button>
               </div>
@@ -288,8 +293,9 @@ export function ManualPortfolioForm({ onComplete, onBack }: ManualPortfolioFormP
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-8 w-8 text-destructive hover:text-destructive"
+                          className="h-8 w-8 text-destructive hover:text-destructive focus-visible:ring-2 focus-visible:ring-destructive"
                           onClick={() => removeAllocation(allocation.symbol)}
+                          aria-label={`Remove ${allocation.symbol}`}
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>

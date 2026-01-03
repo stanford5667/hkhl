@@ -891,10 +891,18 @@ export default function PortfolioVisualizer() {
       
     } catch (err) {
       console.error('Analysis error:', err);
-      setError(err instanceof Error ? err.message : 'Analysis failed');
+      const errorMessage = err instanceof Error ? err.message : 'Analysis failed';
+      setError(errorMessage);
       setIsAnalyzing(false);
-      setCurrentFlow('choose-path');
       setProgress({ message: '', percent: 0 });
+      
+      // Keep on analyzing flow to show retry option instead of resetting
+      if (errorMessage.includes('API') || errorMessage.includes('fetch') || errorMessage.includes('network')) {
+        toast.error('Data fetch failed. Please try again.');
+      } else {
+        toast.error(errorMessage);
+        setCurrentFlow('choose-path');
+      }
     }
   };
 
@@ -1032,19 +1040,33 @@ export default function PortfolioVisualizer() {
   }
 
   if (currentFlow === 'analyzing') {
+    const hasError = !!error;
+    const canRetry = hasError && allocations.length > 0;
+    
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-6">
         <Card className="w-full max-w-xl">
           <CardContent className="py-8">
             <div className="text-center mb-6">
-              <div className="p-4 rounded-full bg-primary/10 w-fit mx-auto mb-4">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              <div className={cn(
+                "p-4 rounded-full w-fit mx-auto mb-4",
+                hasError ? "bg-destructive/10" : "bg-primary/10"
+              )}>
+                {hasError ? (
+                  <AlertTriangle className="h-8 w-8 text-destructive" />
+                ) : (
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                )}
               </div>
-              <h2 className="text-xl font-bold mb-2">Analyzing Your Portfolio</h2>
-              <p className="text-sm text-muted-foreground">{progress.message}</p>
+              <h2 className="text-xl font-bold mb-2">
+                {hasError ? 'Analysis Failed' : 'Analyzing Your Portfolio'}
+              </h2>
+              <p className="text-sm text-muted-foreground">
+                {hasError ? error : progress.message}
+              </p>
             </div>
             
-            <Progress value={progress.percent} className="h-2 mb-6" />
+            {!hasError && <Progress value={progress.percent} className="h-2 mb-6" />}
             
             {/* Analysis Steps */}
             <div className="space-y-2">
@@ -1055,9 +1077,28 @@ export default function PortfolioVisualizer() {
               </AnimatePresence>
             </div>
             
-            <p className="text-center text-xs text-muted-foreground mt-4">
-              {progress.percent}% complete
-            </p>
+            {hasError ? (
+              <div className="flex justify-center gap-3 mt-6">
+                <Button variant="outline" onClick={resetWizard}>
+                  Start Over
+                </Button>
+                {canRetry && (
+                  <Button 
+                    onClick={() => {
+                      setError(null);
+                      runAnalysis(investorProfile, allocations, portfolioMode || 'manual');
+                    }}
+                  >
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                    Retry Analysis
+                  </Button>
+                )}
+              </div>
+            ) : (
+              <p className="text-center text-xs text-muted-foreground mt-4">
+                {progress.percent}% complete
+              </p>
+            )}
           </CardContent>
         </Card>
       </div>
