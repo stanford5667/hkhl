@@ -7,13 +7,13 @@ import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Brain, Play, TrendingUp, TrendingDown, Network, BarChart3, PieChart, AlertTriangle, RefreshCw } from 'lucide-react';
+import { Brain, Play, TrendingUp, TrendingDown, Network, BarChart3, PieChart, AlertTriangle, RefreshCw, CheckCircle2, XCircle } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, AreaChart, Area, BarChart, Bar, Cell } from 'recharts';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { NeuroSymbolicOptimizer, AssetData, RegimeSignal as OptimizerRegimeSignal } from '@/services/portfolioOptimizer';
 import { runBacktest, BacktestResult } from '@/services/backtestEngine';
-import { polygonData, CorrelationMatrix, RegimeSignal as PolygonRegimeSignal } from '@/services/polygonDataHandler';
+import { polygonData, CorrelationMatrix, RegimeSignal as PolygonRegimeSignal, TickerFetchResult } from '@/services/polygonDataHandler';
 
 // Extended RegimeSignal for UI
 interface RegimeSignal {
@@ -44,6 +44,7 @@ const NeuroSymbolicEngine = () => {
   const [optimalWeights, setOptimalWeights] = useState<Map<string, number> | null>(null);
   const [expectedMetrics, setExpectedMetrics] = useState<{ return: number; vol: number; sharpe: number } | null>(null);
   const [backtestResult, setBacktestResult] = useState<BacktestResult | null>(null);
+  const [fetchDiagnostics, setFetchDiagnostics] = useState<TickerFetchResult[]>([]);
 
   // Handlers
   const handleAnalyze = async () => {
@@ -55,10 +56,11 @@ const NeuroSymbolicEngine = () => {
     setIsLoading(true);
     setProgress(0);
     setProgressMsg('Fetching historical data...');
+    setFetchDiagnostics([]);
 
     try {
       // Fetch data using Polygon API
-      const assetDataMap = await polygonData.fetchAndCleanHistory(
+      const { assetData: assetDataMap, diagnostics } = await polygonData.fetchAndCleanHistory(
         tickers,
         startDate,
         endDate,
@@ -67,6 +69,8 @@ const NeuroSymbolicEngine = () => {
           setProgress(pct * 0.5);
         }
       );
+
+      setFetchDiagnostics(diagnostics);
 
       const activeTickers = Array.from(assetDataMap.keys());
       if (activeTickers.length < 3) {
@@ -365,6 +369,57 @@ const NeuroSymbolicEngine = () => {
                 <div className="space-y-2">
                   <Progress value={progress} className="h-2" />
                   <p className="text-sm text-muted-foreground">{progressMsg}</p>
+                </div>
+              )}
+
+              {/* Diagnostics Panel */}
+              {fetchDiagnostics.length > 0 && (
+                <div className="mt-6 p-4 rounded-lg bg-muted/50 border border-border">
+                  <h4 className="text-sm font-medium mb-3 flex items-center gap-2">
+                    <BarChart3 className="h-4 w-4 text-muted-foreground" />
+                    Fetch Diagnostics
+                  </h4>
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
+                    {fetchDiagnostics.map((d) => (
+                      <div
+                        key={d.ticker}
+                        className={cn(
+                          "p-2 rounded-md text-sm flex items-start gap-2",
+                          d.success 
+                            ? "bg-emerald-500/10 border border-emerald-500/20" 
+                            : "bg-rose-500/10 border border-rose-500/20"
+                        )}
+                      >
+                        {d.success ? (
+                          <CheckCircle2 className="h-4 w-4 text-emerald-500 flex-shrink-0 mt-0.5" />
+                        ) : (
+                          <XCircle className="h-4 w-4 text-rose-500 flex-shrink-0 mt-0.5" />
+                        )}
+                        <div className="min-w-0 flex-1">
+                          <p className={cn("font-medium", d.success ? "text-emerald-400" : "text-rose-400")}>
+                            {d.ticker}
+                          </p>
+                          {d.success ? (
+                            <p className="text-xs text-muted-foreground">{d.bars} bars</p>
+                          ) : (
+                            <p className="text-xs text-rose-400/80 truncate" title={d.error}>
+                              {d.error}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="mt-3 flex gap-4 text-xs text-muted-foreground">
+                    <span className="flex items-center gap-1">
+                      <CheckCircle2 className="h-3 w-3 text-emerald-500" />
+                      {fetchDiagnostics.filter(d => d.success).length} succeeded
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <XCircle className="h-3 w-3 text-rose-500" />
+                      {fetchDiagnostics.filter(d => !d.success).length} failed
+                    </span>
+                  </div>
                 </div>
               )}
             </CardContent>
