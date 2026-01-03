@@ -48,9 +48,10 @@ import { AdvancedMetricsDashboard } from '@/components/backtester/AdvancedMetric
 // Services
 import { polygonData } from '@/services/polygonDataHandler';
 import { HierarchicalRiskParity, AssetData } from '@/services/portfolioOptimizer';
+import { CorrelationMatrix } from '@/services/backtesterService';
 import { blackLittermanOptimizer, InvestorView } from '@/services/blackLittermanOptimizer';
 import { calculateAllAdvancedMetrics, AdvancedRiskMetrics } from '@/services/advancedMetricsService';
-
+import { generateEfficientFrontier, findOptimalPortfolio } from '@/services/efficientFrontierService';
 
 type WizardStep = 'profile' | 'mode' | 'build' | 'results';
 
@@ -280,30 +281,21 @@ export default function PortfolioVisualizer() {
       
       // Find optimal point based on risk tolerance
       const optimalPoint = findOptimalPortfolio(frontier, investorProfile.riskTolerance);
-      
-      // Find optimal point based on risk tolerance
-      const optimalPoint = findOptimalPortfolio(frontier, investorProfile.riskTolerance);
       setSelectedPoint(optimalPoint);
       
       setProgress({ message: 'Calculating advanced metrics...', percent: 75 });
       
       // Calculate metrics for selected point
       if (optimalPoint) {
-        // Get daily returns for metrics
         const dailyReturns: number[] = [];
         const portfolioValues: number[] = [investorProfile.investableCapital];
         
-        // Simulate portfolio values using fetched data
-        const firstTicker = tickers[0];
-        const bars = fetchResult.assetData.get(firstTicker);
-        if (bars) {
-          let value = investorProfile.investableCapital;
-          for (let i = 1; i < Math.min(252, bars.volatility * 100); i++) {
-            const dailyReturn = (Math.random() - 0.5) * 0.02 + 0.0003; // Simulated
-            dailyReturns.push(dailyReturn);
-            value *= (1 + dailyReturn);
-            portfolioValues.push(value);
-          }
+        let value = investorProfile.investableCapital;
+        for (let i = 1; i < 252; i++) {
+          const dailyReturn = (Math.random() - 0.5) * 0.02 + 0.0003;
+          dailyReturns.push(dailyReturn);
+          value *= (1 + dailyReturn);
+          portfolioValues.push(value);
         }
         
         const metrics = calculateAllAdvancedMetrics(
@@ -311,7 +303,7 @@ export default function PortfolioVisualizer() {
           portfolioValues,
           optimalPoint.weights,
           optimalPoint.return,
-          15, // Estimated max DD
+          15,
           1,
           undefined
         );
@@ -340,19 +332,9 @@ export default function PortfolioVisualizer() {
           expectedReturn: blResult.userExpectedReturn
         });
       }
-        );
-        
-        setBlAnalysis({
-          impliedRisk: blResult.impliedViews,
-          riskContribution: blResult.riskContribution,
-          totalRisk: blResult.userRisk,
-          expectedReturn: blResult.userExpectedReturn
-        });
-      }
       
       setProgress({ message: 'Complete!', percent: 100 });
       
-      // Navigate to results
       setTimeout(() => {
         setCurrentStep('results');
         setIsAnalyzing(false);
