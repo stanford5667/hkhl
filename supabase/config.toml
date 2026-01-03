@@ -68,3 +68,6 @@ verify_jwt = false
 
 [functions.optimize-portfolio]
 verify_jwt = false
+
+[functions.polygon-aggs]
+verify_jwt = false
