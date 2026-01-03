@@ -5,16 +5,6 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-interface StockData {
-  symbol: string;
-  date: string;
-  open: number;
-  high: number;
-  low: number;
-  close: number;
-  volume: number;
-}
-
 interface Trade {
   date: string;
   ticker: string;
@@ -31,110 +21,13 @@ interface PortfolioSnapshot {
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
-async function getStockData(supabase: any, ticker: string, startDate: string, endDate: string): Promise<StockData[]> {
-  const cacheKey = `stock_${ticker}_${startDate}_${endDate}`;
-  
-  console.log(`[run-backtest] Looking for cache key: ${cacheKey}`);
-  
-  const { data: cachedData, error } = await supabase
-    .from('cached_api_data')
-    .select('data')
-    .eq('cache_key', cacheKey)
-    .eq('cache_type', 'stock_historical')
-    .maybeSingle();
-
-  if (error) {
-    console.error(`[run-backtest] Cache lookup error:`, error);
-    return [];
-  }
-
-  if (cachedData?.data) {
-    console.log(`[run-backtest] Found cached data for ${ticker}`);
-    return cachedData.data as StockData[];
-  }
-  
-  console.log(`[run-backtest] No cached data found for ${ticker}`);
-  return [];
-}
-
-function calculateMetrics(
-  portfolioHistory: PortfolioSnapshot[],
-  initialCapital: number,
-  trades: Trade[]
-): Record<string, number> {
-  if (portfolioHistory.length === 0) {
-    return {
-      totalReturn: 0,
-      annualizedReturn: 0,
-      sharpeRatio: 0,
-      maxDrawdown: 0,
-      initialCapital,
-      finalValue: initialCapital,
-      tradingDays: 0,
-      totalTrades: 0,
-      volatility: 0,
-    };
-  }
-
-  const finalValue = portfolioHistory[portfolioHistory.length - 1].value;
-  const totalReturn = ((finalValue - initialCapital) / initialCapital) * 100;
-
-  // Calculate daily returns
-  const dailyReturns: number[] = [];
-  for (let i = 1; i < portfolioHistory.length; i++) {
-    const ret = (portfolioHistory[i].value - portfolioHistory[i - 1].value) / portfolioHistory[i - 1].value;
-    dailyReturns.push(ret);
-  }
-
-  // Annualized return
-  const tradingDays = portfolioHistory.length;
-  const years = tradingDays / 252;
-  const annualizedReturn = years > 0 ? (Math.pow(finalValue / initialCapital, 1 / years) - 1) * 100 : 0;
-
-  // Volatility (annualized)
-  const avgReturn = dailyReturns.reduce((a, b) => a + b, 0) / dailyReturns.length || 0;
-  const variance = dailyReturns.reduce((sum, ret) => sum + Math.pow(ret - avgReturn, 2), 0) / dailyReturns.length || 0;
-  const dailyVolatility = Math.sqrt(variance);
-  const annualizedVolatility = dailyVolatility * Math.sqrt(252) * 100;
-
-  // Sharpe Ratio (assuming risk-free rate of 4%)
-  const riskFreeRate = 0.04;
-  const excessReturn = annualizedReturn / 100 - riskFreeRate;
-  const sharpeRatio = annualizedVolatility > 0 ? excessReturn / (annualizedVolatility / 100) : 0;
-
-  // Max Drawdown
-  let maxDrawdown = 0;
-  let peak = portfolioHistory[0].value;
-  for (const snapshot of portfolioHistory) {
-    if (snapshot.value > peak) {
-      peak = snapshot.value;
-    }
-    const drawdown = (peak - snapshot.value) / peak;
-    if (drawdown > maxDrawdown) {
-      maxDrawdown = drawdown;
-    }
-  }
-
-  return {
-    totalReturn: Math.round(totalReturn * 100) / 100,
-    annualizedReturn: Math.round(annualizedReturn * 100) / 100,
-    sharpeRatio: Math.round(sharpeRatio * 100) / 100,
-    maxDrawdown: Math.round(maxDrawdown * 10000) / 100,
-    initialCapital,
-    finalValue: Math.round(finalValue * 100) / 100,
-    tradingDays,
-    totalTrades: trades.length,
-    volatility: Math.round(annualizedVolatility * 100) / 100,
-  };
-}
-
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { tickers, startDate, endDate, initialCapital, strategy, rebalanceFrequency } = await req.json();
+    const { tickers, startDate, endDate, initialCapital = 100000, strategy = 'buy_hold', rebalanceFrequency = 'monthly' } = await req.json();
 
     if (!tickers || !Array.isArray(tickers) || tickers.length === 0) {
       return new Response(
@@ -147,89 +40,162 @@ Deno.serve(async (req) => {
     console.log(`[run-backtest] Strategy: ${strategy}, Capital: ${initialCapital}`);
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+    const normalizedTickers = tickers.map((t: string) => t.toUpperCase().trim());
 
-    // Fetch all stock data
-    const stockDataMap: Record<string, StockData[]> = {};
-    for (const ticker of tickers) {
-      stockDataMap[ticker] = await getStockData(supabase, ticker, startDate, endDate);
-      console.log(`[run-backtest] Got ${stockDataMap[ticker].length} bars for ${ticker}`);
+    // Fetch price data from stock_price_cache table
+    const { data: priceData, error } = await supabase
+      .from('stock_price_cache')
+      .select('ticker, trade_date, open_price, close_price, adjusted_close, volume')
+      .in('ticker', normalizedTickers)
+      .gte('trade_date', startDate)
+      .lte('trade_date', endDate)
+      .order('trade_date', { ascending: true });
+
+    if (error) {
+      console.error('[run-backtest] Database error:', error);
+      return new Response(
+        JSON.stringify({ success: false, error: `Database error: ${error.message}` }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+      );
     }
 
-    // Check if we have data
-    const hasData = Object.values(stockDataMap).some(data => data.length > 0);
-    if (!hasData) {
+    if (!priceData || priceData.length === 0) {
       return new Response(
         JSON.stringify({ 
           success: false, 
-          error: 'No stock data available. Please run fetch-stock-batch first.' 
+          error: 'No price data found. The data will be fetched automatically - please try again.',
+          hint: 'The fetch-stock-batch function should populate the cache first.'
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
       );
     }
 
-    // Build a unified timeline
-    const allDates = new Set<string>();
-    for (const data of Object.values(stockDataMap)) {
-      for (const bar of data) {
-        allDates.add(bar.date);
+    console.log(`[run-backtest] Retrieved ${priceData.length} total price rows from stock_price_cache`);
+
+    // Organize data by date
+    const pricesByDate: Record<string, Record<string, number>> = {};
+    const allDatesSet = new Set<string>();
+    const tickerCounts: Record<string, number> = {};
+    
+    priceData.forEach(row => {
+      const price = row.adjusted_close || row.close_price;
+      if (!price || price <= 0) return;
+      
+      if (!pricesByDate[row.trade_date]) {
+        pricesByDate[row.trade_date] = {};
+      }
+      pricesByDate[row.trade_date][row.ticker] = price;
+      allDatesSet.add(row.trade_date);
+      tickerCounts[row.ticker] = (tickerCounts[row.ticker] || 0) + 1;
+    });
+
+    const allDates = Array.from(allDatesSet).sort();
+    
+    console.log(`[run-backtest] Unique trading dates: ${allDates.length}`);
+    console.log(`[run-backtest] Date range: ${allDates[0]} to ${allDates[allDates.length - 1]}`);
+    console.log(`[run-backtest] Rows per ticker:`, tickerCounts);
+
+    // Calculate expected trading days
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    const totalDays = Math.floor((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+    const expectedTradingDays = Math.floor(totalDays * 252 / 365);
+    
+    const warnings: string[] = [];
+    if (allDates.length < expectedTradingDays * 0.8) {
+      warnings.push(`Data may be incomplete: ${allDates.length} trading days found, expected ~${expectedTradingDays}`);
+    }
+
+    for (const ticker of normalizedTickers) {
+      if (!tickerCounts[ticker]) {
+        warnings.push(`No data found for ${ticker}`);
+      } else if (tickerCounts[ticker] < expectedTradingDays * 0.8) {
+        warnings.push(`${ticker} has only ${tickerCounts[ticker]} days of data (expected ~${expectedTradingDays})`);
       }
     }
-    const sortedDates = Array.from(allDates).sort();
 
-    // Build price maps
-    const priceMaps: Record<string, Record<string, number>> = {};
-    for (const ticker of tickers) {
-      priceMaps[ticker] = {};
-      for (const bar of stockDataMap[ticker]) {
-        priceMaps[ticker][bar.date] = bar.close;
-      }
+    if (allDates.length === 0) {
+      return new Response(
+        JSON.stringify({ success: false, error: 'No valid trading days found in data' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+      );
     }
 
-    // Initialize portfolio
-    const trades: Trade[] = [];
+    // Run backtest
     const portfolioHistory: PortfolioSnapshot[] = [];
-    const holdings: Record<string, number> = {};
+    const trades: Trade[] = [];
+    
     let cash = initialCapital;
-    const allocationPerStock = initialCapital / tickers.length;
+    const holdings: Record<string, number> = {};
+    
+    // Get first date prices
+    const firstDate = allDates[0];
+    const firstPrices = pricesByDate[firstDate];
+    
+    // Initial allocation - only use tickers that have prices on first date
+    const availableTickers = normalizedTickers.filter(t => firstPrices[t] && firstPrices[t] > 0);
+    
+    if (availableTickers.length === 0) {
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: 'No tickers have valid prices on the start date',
+          firstDate,
+          requestedTickers: normalizedTickers,
+          availablePrices: firstPrices
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+      );
+    }
 
-    // Buy initial positions on first day
-    const firstDate = sortedDates[0];
-    for (const ticker of tickers) {
-      const price = priceMaps[ticker][firstDate];
-      if (price && price > 0) {
-        const shares = Math.floor(allocationPerStock / price);
-        if (shares > 0) {
-          holdings[ticker] = shares;
-          cash -= shares * price;
-          trades.push({
-            date: firstDate,
-            ticker,
-            action: 'BUY',
-            shares,
-            price,
-          });
-        }
+    console.log(`[run-backtest] Available tickers on ${firstDate}: ${availableTickers.join(', ')}`);
+
+    // Buy initial positions
+    const perStock = initialCapital / availableTickers.length;
+    
+    for (const ticker of availableTickers) {
+      const price = firstPrices[ticker];
+      const shares = Math.floor(perStock / price);
+      
+      if (shares > 0) {
+        holdings[ticker] = shares;
+        const cost = shares * price;
+        cash -= cost;
+        
+        trades.push({
+          date: firstDate,
+          ticker,
+          action: 'BUY',
+          shares,
+          price: Math.round(price * 100) / 100,
+        });
+        
+        console.log(`[run-backtest] Initial buy: ${shares} ${ticker} @ $${price.toFixed(2)}`);
       }
     }
 
-    // Track portfolio value over time
+    // Track portfolio daily
     let lastRebalanceMonth = new Date(firstDate).getMonth();
     let lastRebalanceQuarter = Math.floor(new Date(firstDate).getMonth() / 3);
-
-    for (const date of sortedDates) {
-      // Calculate current portfolio value
-      let portfolioValue = cash;
-      for (const ticker of tickers) {
-        const shares = holdings[ticker] || 0;
-        const price = priceMaps[ticker][date];
-        if (price && shares > 0) {
-          portfolioValue += shares * price;
+    
+    for (const date of allDates) {
+      const prices = pricesByDate[date];
+      
+      // Calculate portfolio value
+      let stockValue = 0;
+      for (const [ticker, shares] of Object.entries(holdings)) {
+        if (prices[ticker]) {
+          stockValue += shares * prices[ticker];
         }
       }
+      const portfolioValue = cash + stockValue;
+      
+      portfolioHistory.push({ 
+        date, 
+        value: Math.round(portfolioValue * 100) / 100 
+      });
 
-      portfolioHistory.push({ date, value: Math.round(portfolioValue * 100) / 100 });
-
-      // Rebalancing logic for equal_weight strategy
+      // Rebalancing for equal weight strategy
       if (strategy === 'equal_weight' && date !== firstDate) {
         const currentDate = new Date(date);
         const currentMonth = currentDate.getMonth();
@@ -243,68 +209,146 @@ Deno.serve(async (req) => {
           shouldRebalance = true;
           lastRebalanceQuarter = currentQuarter;
         }
-
+        
         if (shouldRebalance) {
-          // Sell all positions
-          for (const ticker of tickers) {
-            const shares = holdings[ticker] || 0;
-            const price = priceMaps[ticker][date];
-            if (price && shares > 0) {
-              cash += shares * price;
+          // Sell all holdings
+          for (const [ticker, shares] of Object.entries(holdings)) {
+            if (prices[ticker] && shares > 0) {
+              const value = shares * prices[ticker];
+              cash += value;
               trades.push({
                 date,
                 ticker,
                 action: 'SELL',
                 shares,
-                price,
+                price: Math.round(prices[ticker] * 100) / 100,
               });
               holdings[ticker] = 0;
             }
           }
 
-          // Buy equal weight
-          const perStockAllocation = cash / tickers.length;
-          for (const ticker of tickers) {
-            const price = priceMaps[ticker][date];
-            if (price && price > 0) {
-              const shares = Math.floor(perStockAllocation / price);
-              if (shares > 0) {
-                holdings[ticker] = shares;
-                cash -= shares * price;
-                trades.push({
-                  date,
-                  ticker,
-                  action: 'BUY',
-                  shares,
-                  price,
-                });
-              }
+          // Rebuy equal weight
+          const tickersWithPrices = availableTickers.filter(t => prices[t] && prices[t] > 0);
+          const newPerStock = cash / tickersWithPrices.length;
+          
+          for (const ticker of tickersWithPrices) {
+            const price = prices[ticker];
+            const shares = Math.floor(newPerStock / price);
+            if (shares > 0) {
+              holdings[ticker] = shares;
+              const cost = shares * price;
+              cash -= cost;
+              trades.push({
+                date,
+                ticker,
+                action: 'BUY',
+                shares,
+                price: Math.round(price * 100) / 100,
+              });
             }
           }
         }
       }
     }
 
-    // Calculate final holdings
-    const finalHoldings: Record<string, number> = {};
-    for (const ticker of tickers) {
-      if (holdings[ticker] && holdings[ticker] > 0) {
-        finalHoldings[ticker] = holdings[ticker];
+    // Calculate metrics
+    const finalValue = portfolioHistory[portfolioHistory.length - 1]?.value || initialCapital;
+    const totalReturn = (finalValue - initialCapital) / initialCapital;
+    
+    // Use actual trading days for annualization
+    const years = allDates.length / 252;
+    const annualizedReturn = years > 0 ? Math.pow(1 + totalReturn, 1 / years) - 1 : 0;
+
+    // Calculate daily returns
+    const dailyReturns: number[] = [];
+    for (let i = 1; i < portfolioHistory.length; i++) {
+      const prevValue = portfolioHistory[i-1].value;
+      if (prevValue > 0) {
+        dailyReturns.push((portfolioHistory[i].value - prevValue) / prevValue);
       }
     }
 
-    // Calculate metrics
-    const metrics = calculateMetrics(portfolioHistory, initialCapital, trades);
+    // Sharpe ratio and volatility
+    let sharpeRatio = 0;
+    let annualizedVol = 0;
+    
+    if (dailyReturns.length > 1) {
+      const avgReturn = dailyReturns.reduce((a, b) => a + b, 0) / dailyReturns.length;
+      const variance = dailyReturns.reduce((sum, r) => sum + Math.pow(r - avgReturn, 2), 0) / (dailyReturns.length - 1);
+      const dailyVol = Math.sqrt(variance);
+      annualizedVol = dailyVol * Math.sqrt(252);
+      
+      // Sharpe = (Return - Risk-free) / Volatility, using 4% risk-free rate
+      sharpeRatio = annualizedVol > 0 ? (annualizedReturn - 0.04) / annualizedVol : 0;
+    }
 
-    console.log(`[run-backtest] Backtest complete. Final value: $${metrics.finalValue}, Return: ${metrics.totalReturn}%`);
+    // Max drawdown
+    let peak = initialCapital;
+    let maxDrawdown = 0;
+    
+    for (const point of portfolioHistory) {
+      if (point.value > peak) {
+        peak = point.value;
+      }
+      const drawdown = (peak - point.value) / peak;
+      if (drawdown > maxDrawdown) {
+        maxDrawdown = drawdown;
+      }
+    }
+
+    // Calculate final holdings values
+    const lastDate = allDates[allDates.length - 1];
+    const lastPrices = pricesByDate[lastDate];
+    const finalHoldings: Record<string, number> = {};
+    
+    for (const [ticker, shares] of Object.entries(holdings)) {
+      if (shares > 0) {
+        finalHoldings[ticker] = shares;
+      }
+    }
+
+    const metrics = {
+      totalReturn: Math.round(totalReturn * 10000) / 100,
+      annualizedReturn: Math.round(annualizedReturn * 10000) / 100,
+      sharpeRatio: Math.round(sharpeRatio * 100) / 100,
+      maxDrawdown: Math.round(maxDrawdown * 10000) / 100,
+      volatility: Math.round(annualizedVol * 10000) / 100,
+      initialCapital,
+      finalValue: Math.round(finalValue * 100) / 100,
+      tradingDays: allDates.length,
+      years: Math.round(years * 100) / 100,
+      totalTrades: trades.length
+    };
+
+    const dataQuality = {
+      totalRows: priceData.length,
+      tradingDays: allDates.length,
+      expectedDays: expectedTradingDays,
+      completeness: Math.round((allDates.length / expectedTradingDays) * 100),
+      dateRange: {
+        requested: { start: startDate, end: endDate },
+        actual: { start: allDates[0], end: allDates[allDates.length - 1] }
+      },
+      rowsPerTicker: tickerCounts
+    };
+
+    console.log('[run-backtest] Complete:', {
+      tradingDays: allDates.length,
+      years: metrics.years,
+      totalReturn: metrics.totalReturn,
+      annualizedReturn: metrics.annualizedReturn
+    });
 
     return new Response(
       JSON.stringify({
         success: true,
         metrics,
+        dataQuality,
+        warnings: warnings.length > 0 ? warnings : undefined,
         portfolioHistory,
         finalHoldings,
         trades,
+        cashRemaining: Math.round(cash * 100) / 100
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );

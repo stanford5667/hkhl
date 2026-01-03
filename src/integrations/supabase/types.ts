@@ -1367,6 +1367,48 @@ export type Database = {
           },
         ]
       }
+      stock_price_cache: {
+        Row: {
+          adjusted_close: number | null
+          close_price: number | null
+          created_at: string | null
+          high_price: number | null
+          id: string
+          low_price: number | null
+          open_price: number | null
+          ticker: string
+          trade_date: string
+          updated_at: string | null
+          volume: number | null
+        }
+        Insert: {
+          adjusted_close?: number | null
+          close_price?: number | null
+          created_at?: string | null
+          high_price?: number | null
+          id?: string
+          low_price?: number | null
+          open_price?: number | null
+          ticker: string
+          trade_date: string
+          updated_at?: string | null
+          volume?: number | null
+        }
+        Update: {
+          adjusted_close?: number | null
+          close_price?: number | null
+          created_at?: string | null
+          high_price?: number | null
+          id?: string
+          low_price?: number | null
+          open_price?: number | null
+          ticker?: string
+          trade_date?: string
+          updated_at?: string | null
+          volume?: number | null
+        }
+        Relationships: []
+      }
       subtasks: {
         Row: {
           completed: boolean | null

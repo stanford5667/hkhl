@@ -9,7 +9,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { toast } from 'sonner';
-import { Plus, X, Play, Loader2, LineChart, TrendingUp, TrendingDown, Activity } from 'lucide-react';
+import { Plus, X, Play, Loader2, LineChart, TrendingUp, TrendingDown, Activity, AlertTriangle } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { LineChart as RechartsLineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { cn } from '@/lib/utils';
 
@@ -27,7 +28,20 @@ interface BacktestResults {
     tradingDays: number;
     totalTrades: number;
     volatility: number;
+    years?: number;
   };
+  dataQuality?: {
+    totalRows: number;
+    tradingDays: number;
+    expectedDays: number;
+    completeness: number;
+    dateRange: {
+      requested: { start: string; end: string };
+      actual: { start: string; end: string };
+    };
+    rowsPerTicker: Record<string, number>;
+  };
+  warnings?: string[];
   portfolioHistory: Array<{ date: string; value: number }>;
   finalHoldings: Record<string, number>;
   trades: Array<{
@@ -279,6 +293,21 @@ export default function BacktestPage() {
           <Card className="lg:col-span-2 p-6 bg-card border-border">
             {results ? (
               <div className="space-y-6">
+                {/* Data Quality Warnings */}
+                {results.warnings && results.warnings.length > 0 && (
+                  <Alert className="border-amber-500/50 bg-amber-500/10">
+                    <AlertTriangle className="h-4 w-4 text-amber-500" />
+                    <AlertDescription className="text-amber-200">
+                      <p className="font-medium mb-1">Data Quality Warnings</p>
+                      <ul className="text-sm space-y-1">
+                        {results.warnings.map((w, i) => (
+                          <li key={i}>• {w}</li>
+                        ))}
+                      </ul>
+                    </AlertDescription>
+                  </Alert>
+                )}
+
                 {/* Metrics */}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   <Card className="p-4 bg-muted/50 border-border">
@@ -289,7 +318,9 @@ export default function BacktestPage() {
                   </Card>
                   <Card className="p-4 bg-muted/50 border-border">
                     <p className="text-xs text-muted-foreground">Annualized</p>
-                    <p className="text-2xl font-bold text-foreground">{results.metrics.annualizedReturn}%</p>
+                    <p className={cn("text-2xl font-bold", results.metrics.annualizedReturn >= 0 ? "text-emerald-400" : "text-rose-400")}>
+                      {results.metrics.annualizedReturn >= 0 ? '+' : ''}{results.metrics.annualizedReturn}%
+                    </p>
                   </Card>
                   <Card className="p-4 bg-muted/50 border-border">
                     <p className="text-xs text-muted-foreground">Sharpe Ratio</p>
@@ -300,6 +331,33 @@ export default function BacktestPage() {
                     <p className="text-2xl font-bold text-rose-400">-{results.metrics.maxDrawdown}%</p>
                   </Card>
                 </div>
+
+                {/* Data Quality Info */}
+                {results.dataQuality && (
+                  <Card className="p-4 bg-muted/50 border-border">
+                    <p className="text-sm font-medium text-foreground mb-3">Data Quality</p>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                      <div>
+                        <span className="text-muted-foreground">Trading Days</span>
+                        <p className="text-foreground font-medium">{results.dataQuality.tradingDays}</p>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">Expected</span>
+                        <p className="text-foreground font-medium">~{results.dataQuality.expectedDays}</p>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">Completeness</span>
+                        <p className={cn("font-medium", results.dataQuality.completeness >= 90 ? "text-emerald-400" : "text-amber-400")}>
+                          {results.dataQuality.completeness}%
+                        </p>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">Years</span>
+                        <p className="text-foreground font-medium">{results.metrics.years || (results.dataQuality.tradingDays / 252).toFixed(2)}</p>
+                      </div>
+                    </div>
+                  </Card>
+                )}
 
                 {/* Chart */}
                 <Card className="p-4 bg-muted/50 border-border">

@@ -5,63 +5,9 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-interface StockData {
-  symbol: string;
-  date: string;
-  open: number;
-  high: number;
-  low: number;
-  close: number;
-  volume: number;
-}
-
-interface CacheEntry {
-  symbol: string;
-  data: StockData[];
-  fetched_at: string;
-  start_date: string;
-  end_date: string;
-}
-
 const POLYGON_API_KEY = Deno.env.get('POLYGON_API_KEY');
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-
-// Cache expiry: 24 hours for historical data
-const CACHE_EXPIRY_MS = 24 * 60 * 60 * 1000;
-
-async function fetchFromPolygon(symbol: string, startDate: string, endDate: string): Promise<StockData[]> {
-  if (!POLYGON_API_KEY) {
-    throw new Error('POLYGON_API_KEY not configured');
-  }
-
-  const url = `https://api.polygon.io/v2/aggs/ticker/${symbol}/range/1/day/${startDate}/${endDate}?adjusted=true&sort=asc&apiKey=${POLYGON_API_KEY}`;
-  
-  console.log(`[fetch-stock-batch] Fetching ${symbol} from Polygon: ${startDate} to ${endDate}`);
-  
-  const response = await fetch(url);
-  
-  if (!response.ok) {
-    throw new Error(`Polygon API error: ${response.status} ${response.statusText}`);
-  }
-
-  const data = await response.json();
-  
-  if (!data.results || data.results.length === 0) {
-    console.log(`[fetch-stock-batch] No data for ${symbol}`);
-    return [];
-  }
-
-  return data.results.map((bar: any) => ({
-    symbol,
-    date: new Date(bar.t).toISOString().split('T')[0],
-    open: bar.o,
-    high: bar.h,
-    low: bar.l,
-    close: bar.c,
-    volume: bar.v,
-  }));
-}
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -85,82 +31,152 @@ Deno.serve(async (req) => {
       );
     }
 
-    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+    if (!POLYGON_API_KEY) {
+      return new Response(
+        JSON.stringify({ success: false, error: 'POLYGON_API_KEY not configured' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+      );
+    }
 
-    const results: Record<string, StockData[]> = {};
+    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+    const normalizedTickers = tickers.map((t: string) => t.toUpperCase().trim());
+
+    // Calculate expected trading days
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    const totalDays = Math.floor((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+    const expectedTradingDays = Math.floor(totalDays * 252 / 365);
+
+    console.log(`[fetch-stock-batch] Fetching ${normalizedTickers.length} tickers from ${startDate} to ${endDate}`);
+    console.log(`[fetch-stock-batch] Expected ~${expectedTradingDays} trading days`);
+
+    const results: Record<string, { fromCache: boolean; rowCount: number; dateRange?: { first: string; last: string } }> = {};
     let fromCache = 0;
     let fromApi = 0;
 
-    for (const ticker of tickers) {
-      const cacheKey = `stock_${ticker}_${startDate}_${endDate}`;
-      
-      // Check cache
-      const { data: cachedData } = await supabase
-        .from('cached_api_data')
-        .select('*')
-        .eq('cache_key', cacheKey)
-        .eq('cache_type', 'stock_historical')
-        .single();
+    for (const ticker of normalizedTickers) {
+      // Check existing cache in stock_price_cache table
+      const { data: existingData, error: cacheError } = await supabase
+        .from('stock_price_cache')
+        .select('trade_date')
+        .eq('ticker', ticker)
+        .gte('trade_date', startDate)
+        .lte('trade_date', endDate)
+        .order('trade_date', { ascending: true });
 
-      if (cachedData) {
-        const fetchedAt = new Date(cachedData.fetched_at || cachedData.created_at).getTime();
-        const now = Date.now();
-        
-        if (now - fetchedAt < CACHE_EXPIRY_MS) {
-          console.log(`[fetch-stock-batch] Cache hit for ${ticker}`);
-          results[ticker] = cachedData.data as StockData[];
-          fromCache++;
-          continue;
-        }
+      if (cacheError) {
+        console.error(`[fetch-stock-batch] Cache check error for ${ticker}:`, cacheError);
       }
 
-      // Fetch from API
+      const cachedCount = existingData?.length || 0;
+      const completeness = expectedTradingDays > 0 ? cachedCount / expectedTradingDays : 0;
+
+      console.log(`[fetch-stock-batch] ${ticker}: ${cachedCount} cached rows (${Math.round(completeness * 100)}% complete)`);
+
+      // If we have >90% of expected data, use cache
+      if (completeness > 0.9) {
+        results[ticker] = { 
+          fromCache: true, 
+          rowCount: cachedCount,
+          dateRange: existingData && existingData.length > 0 ? {
+            first: existingData[0].trade_date,
+            last: existingData[existingData.length - 1].trade_date
+          } : undefined
+        };
+        fromCache++;
+        console.log(`[fetch-stock-batch] ${ticker}: Using cached data`);
+        continue;
+      }
+
+      // Fetch from Polygon API
+      console.log(`[fetch-stock-batch] ${ticker}: Fetching from Polygon API...`);
+      
       try {
-        const stockData = await fetchFromPolygon(ticker, startDate, endDate);
-        results[ticker] = stockData;
-        fromApi++;
+        const url = `https://api.polygon.io/v2/aggs/ticker/${ticker}/range/1/day/${startDate}/${endDate}?adjusted=true&sort=asc&limit=50000&apiKey=${POLYGON_API_KEY}`;
+        
+        const response = await fetch(url);
+        
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error(`[fetch-stock-batch] Polygon API error for ${ticker}: ${response.status} - ${errorText}`);
+          results[ticker] = { fromCache: false, rowCount: 0 };
+          continue;
+        }
 
-        // Store in cache
-        if (stockData.length > 0) {
-          const cacheEntry = {
-            cache_key: cacheKey,
-            cache_type: 'stock_historical',
-            data: stockData,
-            entity_type: 'stock',
-            fetched_at: new Date().toISOString(),
-            user_id: '00000000-0000-0000-0000-000000000000', // System user for public cache
-          };
+        const data = await response.json();
+        
+        if (data.status !== 'OK' || !data.results || data.results.length === 0) {
+          console.warn(`[fetch-stock-batch] No data from Polygon for ${ticker}: status=${data.status}, resultsCount=${data.resultsCount}`);
+          results[ticker] = { fromCache: false, rowCount: 0 };
+          continue;
+        }
 
-          const { error: upsertError } = await supabase
-            .from('cached_api_data')
-            .upsert(cacheEntry, { onConflict: 'cache_key' });
+        console.log(`[fetch-stock-batch] ${ticker}: Received ${data.results.length} bars from Polygon`);
+
+        // Transform to stock_price_cache schema
+        const bars = data.results.map((bar: any) => ({
+          ticker,
+          trade_date: new Date(bar.t).toISOString().split('T')[0],
+          open_price: bar.o,
+          high_price: bar.h,
+          low_price: bar.l,
+          close_price: bar.c,
+          adjusted_close: bar.c, // Polygon adjusted=true means close is already adjusted
+          volume: bar.v,
+        }));
+
+        // Batch insert in chunks of 500
+        const BATCH_SIZE = 500;
+        let insertedCount = 0;
+
+        for (let i = 0; i < bars.length; i += BATCH_SIZE) {
+          const batch = bars.slice(i, i + BATCH_SIZE);
           
-          if (upsertError) {
-            console.error(`[fetch-stock-batch] Cache upsert error for ${ticker}:`, upsertError);
+          const { error: insertError } = await supabase
+            .from('stock_price_cache')
+            .upsert(batch, { 
+              onConflict: 'ticker,trade_date',
+              ignoreDuplicates: false 
+            });
+
+          if (insertError) {
+            console.error(`[fetch-stock-batch] Insert error for ${ticker} batch ${i}:`, insertError);
           } else {
-            console.log(`[fetch-stock-batch] Cached ${ticker} data (${stockData.length} bars)`);
+            insertedCount += batch.length;
           }
         }
 
+        console.log(`[fetch-stock-batch] ${ticker}: Inserted ${insertedCount} rows into stock_price_cache`);
+
+        results[ticker] = { 
+          fromCache: false, 
+          rowCount: insertedCount,
+          dateRange: bars.length > 0 ? {
+            first: bars[0].trade_date,
+            last: bars[bars.length - 1].trade_date
+          } : undefined
+        };
+        fromApi++;
+
         // Rate limiting: Polygon free tier is 5 requests/minute
-        if (fromApi < tickers.length) {
-          await new Promise(resolve => setTimeout(resolve, 250));
-        }
-      } catch (error) {
-        console.error(`[fetch-stock-batch] Error fetching ${ticker}:`, error);
-        results[ticker] = [];
+        await new Promise(resolve => setTimeout(resolve, 250));
+
+      } catch (fetchError) {
+        console.error(`[fetch-stock-batch] Fetch error for ${ticker}:`, fetchError);
+        results[ticker] = { fromCache: false, rowCount: 0 };
       }
     }
 
     return new Response(
       JSON.stringify({
         success: true,
-        data: results,
         summary: {
-          total: tickers.length,
+          total: normalizedTickers.length,
           fromCache,
           fromApi,
-        }
+          expectedTradingDays
+        },
+        results
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
