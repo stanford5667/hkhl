@@ -66,8 +66,8 @@ export interface CalculationTrace {
     step: number;
     description: string;
     formula: string;
-    inputs: Record<string, any>;
-    result: any;
+    inputs: Record<string, number | string>;
+    result: number | string;
   }[];
 }
 

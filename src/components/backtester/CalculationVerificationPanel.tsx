@@ -10,11 +10,28 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 import { METRIC_DEFINITIONS, getMetricDefinition } from '@/data/metricDefinitions';
-import type { PortfolioMetrics, CalculationTrace } from '@/hooks/usePortfolioCalculations';
+
+// Local type definitions to avoid circular imports
+interface TraceStep {
+  step: number;
+  description: string;
+  formula: string;
+  inputs: Record<string, number | string>;
+  result: number | string;
+}
+
+interface CalcTrace {
+  metricId: string;
+  steps: TraceStep[];
+}
+
+interface MetricsData {
+  [key: string]: number;
+}
 
 export interface CalculationVerificationPanelProps {
-  metrics: PortfolioMetrics;
-  traces: CalculationTrace[];
+  metrics: MetricsData;
+  traces: CalcTrace[];
   dataInfo: {
     startDate: string;
     endDate: string;
