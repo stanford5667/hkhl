@@ -591,11 +591,12 @@ export default function PortfolioBacktester() {
   const { 
     isRunning, 
     result, 
+    monteCarloResult,
     stressTestResults,
+    correlationMatrix,
     error, 
     progress, 
     runTest, 
-    runStress,
     reset 
   } = useBacktester();
 
@@ -635,10 +636,13 @@ export default function PortfolioBacktester() {
     
     console.log('[PortfolioBacktester] Running backtest with:', backtestAssets);
     
-    await runTest(backtestAssets, startDate, endDate, initialCapital, 'buy-hold');
+    // Run full backtest (includes Monte Carlo, stress tests, and correlations)
+    const backtestResult = await runTest(backtestAssets, startDate, endDate, initialCapital, 'buy-hold', true);
     
-    // Also run stress tests
-    await runStress(backtestAssets, initialCapital);
+    // Auto-switch to Dashboard tab to show results
+    if (backtestResult) {
+      setActiveTab('dashboard');
+    }
   };
 
   const totalAllocation = assets.reduce((sum, a) => sum + a.allocation, 0);
