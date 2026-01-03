@@ -72,5 +72,8 @@ verify_jwt = false
 [functions.polygon-aggs]
 verify_jwt = false
 
+[functions.polygon-ticker-details]
+verify_jwt = false
+
 [functions.ai-portfolio-advisor]
 verify_jwt = false

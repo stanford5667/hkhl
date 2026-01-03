@@ -1,7 +1,10 @@
+// Enhanced AI Portfolio Insights with educational features
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { 
   TrendingUp, 
   TrendingDown, 
@@ -12,13 +15,18 @@ import {
   BarChart3,
   RefreshCw,
   Lightbulb,
-  PieChart
+  PieChart,
+  Info,
+  Droplets,
+  CheckCircle2,
+  XCircle
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export interface AIPortfolioAdvice {
   portfolioName: string;
-  strategy: string;
+  strategy?: string;
+  strategyRationale?: string;
   expectedAnnualReturn: number;
   expectedVolatility: number;
   sharpeRatio: number;
@@ -33,6 +41,7 @@ export interface AIPortfolioAdvice {
     expectedReturn: number;
     volatility: number;
     idealHoldPeriod: string;
+    whyThisFitsProfile?: string;
   }[];
   riskAnalysis: {
     tailRisk: string;
@@ -41,10 +50,17 @@ export interface AIPortfolioAdvice {
   };
   drawdownScenarios: {
     scenario: string;
+    historicalDates?: string;
     estimatedDrawdown: number;
     recoveryTime: string;
     explanation: string;
   }[];
+  liquidityAnalysis?: {
+    averageDailyVolume: string;
+    liquidityScore: number;
+    liquidityRisks: string[];
+    timeToLiquidate: string;
+  };
   rebalancingStrategy: {
     frequency: string;
     thresholdBands: string;
@@ -76,7 +92,9 @@ export function AIPortfolioInsights({ advice, investableCapital }: AIPortfolioIn
           <div className="flex items-center justify-between">
             <div>
               <CardTitle className="text-xl">{advice.portfolioName}</CardTitle>
-              <CardDescription className="mt-1">{advice.strategy}</CardDescription>
+              <CardDescription className="mt-1">
+                {advice.strategyRationale || advice.strategy}
+              </CardDescription>
             </div>
             <Badge variant="outline" className="text-primary border-primary">
               AI Generated
@@ -118,14 +136,15 @@ export function AIPortfolioInsights({ advice, investableCapital }: AIPortfolioIn
       </Card>
 
       <Tabs defaultValue="allocations" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="allocations">Allocations</TabsTrigger>
-          <TabsTrigger value="drawdown">Drawdown</TabsTrigger>
+          <TabsTrigger value="drawdown">Stress Tests</TabsTrigger>
+          <TabsTrigger value="liquidity">Liquidity</TabsTrigger>
           <TabsTrigger value="risk">Risk Analysis</TabsTrigger>
           <TabsTrigger value="insights">Insights</TabsTrigger>
         </TabsList>
 
-        {/* Allocations Tab */}
+        {/* Allocations Tab with Why This? explanations */}
         <TabsContent value="allocations" className="space-y-4">
           <div className="grid gap-4">
             {advice.allocations.map((asset, idx) => (
@@ -157,6 +176,19 @@ export function AIPortfolioInsights({ advice, investableCapital }: AIPortfolioIn
                     <Progress value={asset.weight} className="h-2" />
                     
                     <p className="text-sm text-muted-foreground">{asset.rationale}</p>
+                    
+                    {/* Why This Fits Your Profile */}
+                    {asset.whyThisFitsProfile && (
+                      <div className="p-3 rounded-lg bg-primary/5 border border-primary/20">
+                        <div className="flex items-start gap-2">
+                          <Info className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+                          <div>
+                            <p className="text-xs font-medium text-primary mb-1">Why this fits your profile:</p>
+                            <p className="text-sm text-muted-foreground">{asset.whyThisFitsProfile}</p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                     
                     <div className="flex items-center gap-4 text-xs">
                       <div className="flex items-center gap-1">
@@ -205,23 +237,28 @@ export function AIPortfolioInsights({ advice, investableCapital }: AIPortfolioIn
           </Card>
         </TabsContent>
 
-        {/* Drawdown Tab */}
+        {/* Stress Tests Tab */}
         <TabsContent value="drawdown" className="space-y-4">
           <Card>
             <CardHeader>
               <CardTitle className="text-sm flex items-center gap-2">
                 <AlertTriangle className="h-4 w-4 text-amber-500" />
-                Stress Test Scenarios
+                Historical Stress Test Scenarios
               </CardTitle>
               <CardDescription>
-                How your portfolio might perform during market stress
+                How your portfolio would have performed during real market crises
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               {advice.drawdownScenarios.map((scenario, idx) => (
                 <div key={idx} className="p-4 rounded-lg border bg-card/50">
                   <div className="flex items-center justify-between mb-2">
-                    <div className="font-medium">{scenario.scenario}</div>
+                    <div>
+                      <div className="font-medium">{scenario.scenario}</div>
+                      {scenario.historicalDates && (
+                        <div className="text-xs text-muted-foreground">{scenario.historicalDates}</div>
+                      )}
+                    </div>
                     <div className="flex items-center gap-3">
                       <Badge variant="destructive">
                         {scenario.estimatedDrawdown}%
@@ -235,13 +272,14 @@ export function AIPortfolioInsights({ advice, investableCapital }: AIPortfolioIn
                   <p className="text-sm text-muted-foreground">{scenario.explanation}</p>
                   
                   {/* Visual drawdown bar */}
-                  <div className="mt-3 relative h-4 bg-muted rounded overflow-hidden">
+                  <div className="mt-3 relative h-6 bg-muted rounded overflow-hidden">
                     <div 
-                      className="absolute inset-y-0 left-0 bg-rose-500/50"
-                      style={{ width: `${Math.abs(scenario.estimatedDrawdown)}%` }}
-                    />
-                    <div className="absolute inset-0 flex items-center justify-center text-xs font-medium">
-                      ${((investableCapital * Math.abs(scenario.estimatedDrawdown)) / 100).toLocaleString()} at risk
+                      className="absolute inset-y-0 left-0 bg-rose-500/50 flex items-center justify-end pr-2"
+                      style={{ width: `${Math.min(Math.abs(scenario.estimatedDrawdown), 100)}%` }}
+                    >
+                      <span className="text-xs font-medium text-rose-900">
+                        -${((investableCapital * Math.abs(scenario.estimatedDrawdown)) / 100).toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -273,6 +311,69 @@ export function AIPortfolioInsights({ advice, investableCapital }: AIPortfolioIn
               </div>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        {/* Liquidity Tab */}
+        <TabsContent value="liquidity" className="space-y-4">
+          {advice.liquidityAnalysis ? (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <Droplets className="h-4 w-4 text-blue-500" />
+                  Liquidity Analysis
+                </CardTitle>
+                <CardDescription>
+                  How easily you can convert your portfolio to cash
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div className="p-4 rounded-lg border">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm text-muted-foreground">Liquidity Score</span>
+                      <Badge variant={
+                        advice.liquidityAnalysis.liquidityScore >= 80 ? 'default' :
+                        advice.liquidityAnalysis.liquidityScore >= 50 ? 'secondary' :
+                        'destructive'
+                      }>
+                        {advice.liquidityAnalysis.liquidityScore}/100
+                      </Badge>
+                    </div>
+                    <Progress value={advice.liquidityAnalysis.liquidityScore} className="h-2" />
+                  </div>
+                  
+                  <div className="p-4 rounded-lg border">
+                    <div className="text-sm text-muted-foreground mb-1">Time to Liquidate</div>
+                    <div className="font-medium">{advice.liquidityAnalysis.timeToLiquidate}</div>
+                  </div>
+                </div>
+
+                <div className="p-4 rounded-lg bg-muted/50">
+                  <div className="text-sm text-muted-foreground mb-2">Average Daily Volume</div>
+                  <div className="font-medium">{advice.liquidityAnalysis.averageDailyVolume}</div>
+                </div>
+
+                {advice.liquidityAnalysis.liquidityRisks.length > 0 && (
+                  <div className="space-y-2">
+                    <div className="text-sm font-medium">Liquidity Risks</div>
+                    {advice.liquidityAnalysis.liquidityRisks.map((risk, idx) => (
+                      <div key={idx} className="flex items-start gap-2 p-2 rounded bg-amber-500/10">
+                        <AlertTriangle className="h-4 w-4 text-amber-500 mt-0.5" />
+                        <span className="text-sm">{risk}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          ) : (
+            <Card>
+              <CardContent className="py-12 text-center text-muted-foreground">
+                <Droplets className="h-8 w-8 mx-auto mb-3 opacity-50" />
+                <p>Liquidity analysis not available</p>
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
 
         {/* Risk Analysis Tab */}

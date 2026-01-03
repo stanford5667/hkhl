@@ -1,7 +1,7 @@
 // Portfolio Visualizer - Institutional Multi-Asset Management Suite
 // "Choose Your Path" experience: Manual vs AI Co-Pilot modes
 
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -11,7 +11,6 @@ import { Progress } from '@/components/ui/progress';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import {
-  ArrowLeft,
   RefreshCw,
   Loader2,
   BarChart3,
@@ -20,7 +19,8 @@ import {
   TrendingUp,
   AlertTriangle,
   Brain,
-  Settings
+  Settings,
+  GraduationCap
 } from 'lucide-react';
 
 // Types
@@ -39,6 +39,7 @@ import { ManualPortfolioForm } from '@/components/backtester/ManualPortfolioForm
 import { EfficientFrontierSlider } from '@/components/backtester/EfficientFrontierSlider';
 import { AdvancedMetricsDashboard } from '@/components/backtester/AdvancedMetricsDashboard';
 import { AIPortfolioInsights, AIPortfolioAdvice } from '@/components/backtester/AIPortfolioInsights';
+import { EducationalDashboard } from '@/components/backtester/EducationalDashboard';
 import { supabase } from '@/integrations/supabase/client';
 
 // Services
@@ -48,6 +49,8 @@ import { CorrelationMatrix } from '@/services/backtesterService';
 import { blackLittermanOptimizer } from '@/services/blackLittermanOptimizer';
 import { calculateAllAdvancedMetrics, AdvancedRiskMetrics } from '@/services/advancedMetricsService';
 import { generateEfficientFrontier, findOptimalPortfolio } from '@/services/efficientFrontierService';
+import { runAllStressTests, checkLiquidityRisks, StressTestResult, LiquidityRiskResult } from '@/services/stressTestService';
+import { fetchMultipleTickerDetails, TickerDetails } from '@/services/tickerDetailsService';
 
 type AppFlow = 'choose-path' | 'manual-form' | 'ai-wizard' | 'analyzing' | 'results';
 
@@ -91,6 +94,12 @@ export default function PortfolioVisualizer() {
   // AI Portfolio Advice
   const [aiAdvice, setAiAdvice] = useState<AIPortfolioAdvice | null>(null);
   const [isLoadingAI, setIsLoadingAI] = useState(false);
+
+  // Stress Tests and Ticker Details
+  const [stressTestResults, setStressTestResults] = useState<StressTestResult[]>([]);
+  const [liquidityRisks, setLiquidityRisks] = useState<LiquidityRiskResult[]>([]);
+  const [tickerDetails, setTickerDetails] = useState<Map<string, TickerDetails>>(new Map());
+  const [portfolioVolatility, setPortfolioVolatility] = useState(15);
 
   // Results tab
   const [resultsTab, setResultsTab] = useState('frontier');
@@ -317,6 +326,14 @@ export default function PortfolioVisualizer() {
           undefined
         );
         setAdvancedMetrics(metrics);
+        
+        // Calculate portfolio volatility from returns
+        if (portfolioReturns.length > 0) {
+          const mean = portfolioReturns.reduce((a, b) => a + b, 0) / portfolioReturns.length;
+          const variance = portfolioReturns.reduce((sum, r) => sum + Math.pow(r - mean, 2), 0) / portfolioReturns.length;
+          const annualizedVol = Math.sqrt(variance) * Math.sqrt(252) * 100;
+          setPortfolioVolatility(annualizedVol);
+        }
       }
       
       setProgress({ message: 'Running Black-Litterman analysis...', percent: 85 });
@@ -340,6 +357,33 @@ export default function PortfolioVisualizer() {
           totalRisk: blResult.userRisk,
           expectedReturn: blResult.userExpectedReturn
         });
+      }
+      
+      setProgress({ message: 'Fetching ticker details...', percent: 90 });
+      
+      // Fetch ticker details for educational tooltips
+      try {
+        const details = await fetchMultipleTickerDetails(tickers);
+        setTickerDetails(details);
+      } catch (detailsError) {
+        console.warn('[PortfolioVisualizer] Could not fetch ticker details:', detailsError);
+      }
+      
+      setProgress({ message: 'Running stress tests...', percent: 95 });
+      
+      // Run stress tests
+      try {
+        const weightsMap = new Map<string, number>();
+        finalAllocations.forEach(a => weightsMap.set(a.symbol, a.weight / 100));
+        
+        const stressResults = await runAllStressTests(weightsMap, profile.investableCapital);
+        setStressTestResults(stressResults);
+        
+        // Check liquidity risks for short horizons
+        const liquidityResults = await checkLiquidityRisks(tickers, profile.investmentHorizon);
+        setLiquidityRisks(liquidityResults);
+      } catch (stressError) {
+        console.warn('[PortfolioVisualizer] Stress test error:', stressError);
       }
       
       setProgress({ message: 'Complete!', percent: 100 });
@@ -404,6 +448,9 @@ export default function PortfolioVisualizer() {
     setAiAdvice(null);
     setError(null);
     setInvestorProfile(DEFAULT_PROFILE);
+    setStressTestResults([]);
+    setLiquidityRisks([]);
+    setTickerDetails(new Map());
   };
 
   // Render based on current flow
@@ -499,8 +546,8 @@ export default function PortfolioVisualizer() {
 
         <Tabs value={resultsTab} onValueChange={setResultsTab}>
           <TabsList className={cn(
-            "grid w-full max-w-3xl mx-auto mb-6",
-            portfolioMode === 'ai' && aiAdvice ? "grid-cols-5" : "grid-cols-4"
+            "grid w-full max-w-4xl mx-auto mb-6",
+            portfolioMode === 'ai' && aiAdvice ? "grid-cols-6" : "grid-cols-5"
           )}>
             {portfolioMode === 'ai' && aiAdvice && (
               <TabsTrigger value="ai-insights" className="gap-2">
@@ -508,6 +555,10 @@ export default function PortfolioVisualizer() {
                 AI Insights
               </TabsTrigger>
             )}
+            <TabsTrigger value="educational" className="gap-2">
+              <GraduationCap className="h-4 w-4" />
+              Learn
+            </TabsTrigger>
             <TabsTrigger value="frontier" className="gap-2">
               <Target className="h-4 w-4" />
               Frontier
@@ -535,6 +586,34 @@ export default function PortfolioVisualizer() {
               />
             </TabsContent>
           )}
+
+          {/* Educational Dashboard Tab */}
+          <TabsContent value="educational">
+            {advancedMetrics ? (
+              <EducationalDashboard
+                metrics={advancedMetrics}
+                investableCapital={investorProfile.investableCapital}
+                portfolioVolatility={portfolioVolatility}
+                stressTestResults={stressTestResults}
+                tickerDetails={tickerDetails}
+                allocations={allocations.map(a => ({
+                  symbol: a.symbol,
+                  name: a.name || a.symbol,
+                  weight: a.weight,
+                  assetClass: a.assetClass as string,
+                  whyThisFitsProfile: aiAdvice?.allocations.find(ai => ai.symbol === a.symbol)?.whyThisFitsProfile
+                }))}
+                portfolioMode={portfolioMode || 'manual'}
+              />
+            ) : (
+              <Card>
+                <CardContent className="py-12 text-center text-muted-foreground">
+                  <GraduationCap className="h-8 w-8 mx-auto mb-3 opacity-50" />
+                  <p>Educational dashboard will appear after analysis</p>
+                </CardContent>
+              </Card>
+            )}
+          </TabsContent>
 
           <TabsContent value="frontier">
             <EfficientFrontierSlider
