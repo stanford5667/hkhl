@@ -812,6 +812,204 @@ const constraintsQuestions: QuestionnaireQuestion[] = [
         description: 'High risk, high conviction approach. Make sure you can afford to be wrong.'
       }
     ]
+  },
+  {
+    id: 'constraints-crypto',
+    category: 'constraints',
+    question: 'How do you feel about cryptocurrency as part of your portfolio?',
+    explanation: 'Cryptocurrency is highly volatile but some investors view it as a hedge against traditional finance or a high-growth opportunity. It\'s not for everyone.',
+    technicalTerm: 'Digital Assets',
+    technicalDefinition: 'Cryptocurrencies like Bitcoin and Ethereum are decentralized digital currencies. They can gain or lose 50%+ in months.',
+    impactDescription: 'Your comfort with crypto affects whether we include any digital asset exposure and at what allocation level.',
+    inputType: 'select',
+    options: [
+      {
+        value: 'no-crypto',
+        label: 'No thanks - I don\'t want any cryptocurrency',
+        description: 'Completely avoid crypto. Focus on traditional assets only.'
+      },
+      {
+        value: 'small-allocation',
+        label: 'A small allocation (1-3%) might be interesting',
+        description: 'Dip your toes in. Small enough to not hurt if it crashes, enough to benefit if it moons.'
+      },
+      {
+        value: 'moderate-allocation',
+        label: 'I\'d consider 5-10% in established crypto',
+        description: 'Meaningful exposure to Bitcoin/Ethereum. Adds volatility and potential upside.'
+      },
+      {
+        value: 'crypto-enthusiast',
+        label: 'I\'m bullish on crypto - willing to go higher',
+        description: 'Aggressive crypto exposure. High risk, high potential reward.'
+      },
+      {
+        value: 'already-have',
+        label: 'I already hold crypto separately',
+        description: 'No need to add more here. We\'ll focus on traditional assets to balance your overall portfolio.'
+      }
+    ]
+  },
+  {
+    id: 'constraints-esg-importance',
+    category: 'constraints',
+    question: 'How important is it that your investments have positive environmental and social impact?',
+    explanation: 'ESG (Environmental, Social, Governance) investing considers factors beyond financial returns. Some studies suggest ESG funds perform similarly to traditional funds, though results vary.',
+    technicalTerm: 'Impact Investing',
+    technicalDefinition: 'Investing with the intention of generating positive environmental or social impact alongside financial returns.',
+    impactDescription: 'Your ESG preference determines whether we use standard index funds or ESG-screened alternatives.',
+    inputType: 'select',
+    options: [
+      {
+        value: 'not-important',
+        label: 'Not important - I focus purely on returns',
+        description: 'Maximum flexibility. We\'ll optimize purely for risk-adjusted returns.'
+      },
+      {
+        value: 'nice-to-have',
+        label: 'Nice to have if it doesn\'t hurt returns',
+        description: 'We\'ll prefer ESG options when they\'re comparable in cost and expected return.'
+      },
+      {
+        value: 'important',
+        label: 'Important - I\'m willing to accept slightly different returns',
+        description: 'We\'ll prioritize ESG funds even if fees are slightly higher.'
+      },
+      {
+        value: 'essential',
+        label: 'Essential - I only want impact-focused investments',
+        description: 'Full ESG portfolio. Every holding will be screened for positive impact.'
+      }
+    ]
+  },
+  {
+    id: 'constraints-sector-interests',
+    category: 'constraints',
+    question: 'Are there any sectors you\'re particularly interested in or want to overweight?',
+    explanation: 'While diversification is generally wise, some investors have strong convictions about certain sectors. Just know that sector bets add risk.',
+    impactDescription: 'Sector preferences will inform tactical tilts in your portfolio, balanced against diversification principles.',
+    inputType: 'multi-select',
+    options: [
+      {
+        value: 'no-preference',
+        label: 'No preference - I trust the market weights',
+        description: 'Maximum diversification. Let the market decide sector allocations.'
+      },
+      {
+        value: 'technology',
+        label: 'Technology and AI',
+        description: 'Focus on tech innovation, software, semiconductors, and AI companies.'
+      },
+      {
+        value: 'healthcare',
+        label: 'Healthcare and Biotech',
+        description: 'Pharmaceutical companies, biotech, medical devices, and healthcare services.'
+      },
+      {
+        value: 'clean-energy',
+        label: 'Clean Energy and Climate',
+        description: 'Solar, wind, EVs, and companies addressing climate change.'
+      },
+      {
+        value: 'financials',
+        label: 'Financials and Banking',
+        description: 'Banks, insurance companies, fintech, and financial services.'
+      },
+      {
+        value: 'real-estate',
+        label: 'Real Estate (REITs)',
+        description: 'Real estate investment trusts providing exposure to property.'
+      },
+      {
+        value: 'consumer',
+        label: 'Consumer goods and brands',
+        description: 'Companies selling products and services to consumers.'
+      },
+      {
+        value: 'industrials',
+        label: 'Industrials and Infrastructure',
+        description: 'Manufacturing, construction, transportation, and infrastructure.'
+      }
+    ]
+  },
+  {
+    id: 'constraints-alternatives',
+    category: 'constraints',
+    question: 'How interested are you in alternative investments beyond stocks and bonds?',
+    explanation: 'Alternatives like commodities, gold, and REITs can provide diversification benefits but add complexity. They often behave differently from traditional assets.',
+    technicalTerm: 'Alternative Investments',
+    technicalDefinition: 'Assets outside traditional stocks and bonds, including commodities, real estate, gold, and more exotic instruments.',
+    impactDescription: 'Your interest in alternatives determines portfolio complexity and diversification approach.',
+    inputType: 'select',
+    options: [
+      {
+        value: 'stocks-bonds-only',
+        label: 'Keep it simple - stocks and bonds only',
+        description: 'Traditional portfolio. Easier to understand and manage.'
+      },
+      {
+        value: 'some-alternatives',
+        label: 'Open to some alternatives for diversification',
+        description: 'May include REITs, commodities, or gold for added diversification.'
+      },
+      {
+        value: 'interested',
+        label: 'I\'m interested in a diversified multi-asset approach',
+        description: 'Broader asset allocation including alternatives for portfolio resilience.'
+      },
+      {
+        value: 'sophisticated',
+        label: 'I want exposure to various alternative strategies',
+        description: 'More sophisticated portfolio with meaningful alternative allocations.'
+      }
+    ]
+  },
+  {
+    id: 'constraints-factor-investing',
+    category: 'constraints',
+    question: 'Would you like to tilt your portfolio toward specific investment styles?',
+    explanation: 'Factor investing means tilting toward characteristics that have historically provided higher returns (with higher risk). This is more sophisticated than basic indexing.',
+    technicalTerm: 'Smart Beta / Factor Investing',
+    technicalDefinition: 'Strategies that target specific factors like value, momentum, quality, or small-cap that have historically outperformed.',
+    impactDescription: 'Factor preferences guide whether we use plain index funds or factor-tilted alternatives.',
+    inputType: 'multi-select',
+    options: [
+      {
+        value: 'no-preference',
+        label: 'No preference - just track the market',
+        description: 'Standard market-cap weighted index funds. Simple and effective.'
+      },
+      {
+        value: 'value',
+        label: 'Value - buy underpriced companies',
+        description: 'Tilt toward stocks trading below their intrinsic value.'
+      },
+      {
+        value: 'growth',
+        label: 'Growth - focus on fast-growing companies',
+        description: 'Emphasize companies with high revenue and earnings growth.'
+      },
+      {
+        value: 'quality',
+        label: 'Quality - stable, profitable companies',
+        description: 'Focus on companies with strong balance sheets and consistent profitability.'
+      },
+      {
+        value: 'dividend',
+        label: 'Dividend - income-generating stocks',
+        description: 'Tilt toward high-dividend-yield companies.'
+      },
+      {
+        value: 'small-cap',
+        label: 'Small-cap - smaller companies with growth potential',
+        description: 'Overweight smaller companies that may offer higher long-term returns.'
+      },
+      {
+        value: 'momentum',
+        label: 'Momentum - ride winning trends',
+        description: 'Follow price momentum, buying recent winners.'
+      }
+    ]
   }
 ];
 
