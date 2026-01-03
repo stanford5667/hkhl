@@ -118,6 +118,30 @@ function cacheToPolygonFormat(cacheRows: any[]) {
   }));
 }
 
+// Limit date range to what's available on Polygon free plan (last 2 years)
+function limitToFreePlanDates(startDate: string, endDate: string): { start: string; end: string; wasLimited: boolean } {
+  const now = new Date();
+  const twoYearsAgo = new Date(now);
+  twoYearsAgo.setFullYear(twoYearsAgo.getFullYear() - 2);
+  
+  let start = new Date(startDate);
+  const end = new Date(endDate);
+  
+  const wasLimited = start < twoYearsAgo;
+  
+  // If start date is before 2 years ago, limit it
+  if (wasLimited) {
+    start = twoYearsAgo;
+    console.log(`[polygon-aggs] Limiting start date from ${startDate} to ${start.toISOString().split('T')[0]} (free plan limit)`);
+  }
+  
+  return {
+    start: start.toISOString().split('T')[0],
+    end: end.toISOString().split('T')[0],
+    wasLimited
+  };
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -125,13 +149,20 @@ serve(async (req) => {
     const body = await req.json().catch(() => ({}));
 
     const ticker = String(body.ticker || "").toUpperCase().trim();
-    const startDate = String(body.startDate || "").trim();
-    const endDate = String(body.endDate || "").trim();
+    const requestedStartDate = String(body.startDate || "").trim();
+    const requestedEndDate = String(body.endDate || "").trim();
     const timespan = String(body.timespan || "day").trim();
     const skipCache = body.skipCache === true;
 
     if (!ticker) return json({ ok: false, error: "ticker is required" }, 400);
-    if (!startDate || !endDate) return json({ ok: false, error: "startDate and endDate are required" }, 400);
+    if (!requestedStartDate || !requestedEndDate) return json({ ok: false, error: "startDate and endDate are required" }, 400);
+
+    // Limit dates to free plan range
+    const { start: startDate, end: endDate, wasLimited } = limitToFreePlanDates(requestedStartDate, requestedEndDate);
+    
+    if (wasLimited) {
+      console.log(`[polygon-aggs] Date range limited for ${ticker} due to free plan restrictions`);
+    }
 
     // Only cache daily data
     const canCache = timespan === "day";
@@ -157,7 +188,7 @@ serve(async (req) => {
           console.log(`[polygon-aggs] Cache hit for ${ticker}: ${cachedData.length} bars (${(cacheRatio * 100).toFixed(0)}% coverage)`);
           
           const results = cacheToPolygonFormat(cachedData);
-          return json({ ok: true, ticker, results, fromCache: true }, 200);
+          return json({ ok: true, ticker, results, fromCache: true, dateLimited: wasLimited }, 200);
         } else {
           console.log(`[polygon-aggs] Cache partial for ${ticker}: ${cachedData.length} bars (${(cacheRatio * 100).toFixed(0)}% coverage), fetching fresh data`);
         }
@@ -218,7 +249,7 @@ serve(async (req) => {
       });
     }
 
-    return json({ ok: true, ticker, results: allResults, fromCache: false }, 200);
+    return json({ ok: true, ticker, results: allResults, fromCache: false, dateLimited: wasLimited }, 200);
   } catch (error) {
     console.error("[polygon-aggs] Error:", error);
     const message = error instanceof Error ? error.message : "Unknown error";
