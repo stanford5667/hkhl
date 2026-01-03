@@ -26,8 +26,12 @@ interface RegimeSignal {
 const NeuroSymbolicEngine = () => {
   // State
   const [tickers, setTickers] = useState(['SPY', 'QQQ', 'IWM', 'AAPL', 'MSFT', 'GOOGL', 'GLD', 'TLT', 'VNQ']);
-  const [startDate, setStartDate] = useState('2022-01-01');
-  const [endDate, setEndDate] = useState('2024-01-01');
+  const [startDate, setStartDate] = useState(() => {
+    const d = new Date();
+    d.setFullYear(d.getFullYear() - 1);
+    return d.toISOString().slice(0, 10);
+  });
+  const [endDate, setEndDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [initialCapital, setInitialCapital] = useState(100000);
   const [rebalanceFrequency, setRebalanceFrequency] = useState<'weekly' | 'monthly'>('monthly');
   const [isLoading, setIsLoading] = useState(false);

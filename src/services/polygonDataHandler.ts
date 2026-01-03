@@ -227,7 +227,25 @@ class PolygonDataHandler {
 
     if (!data?.ok) {
       console.error("[Polygon] Backend returned error:", data);
-      throw new Error(data?.error || "Polygon backend error");
+
+      let message = data?.error || "Polygon backend error";
+
+      // If backend provided a Polygon JSON payload in `details`, surface the real message.
+      if (typeof data?.details === "string" && data.details.trim().startsWith("{") ) {
+        try {
+          const parsed = JSON.parse(data.details);
+          if (parsed?.message) message = String(parsed.message);
+        } catch {
+          // ignore parse errors
+        }
+      }
+
+      // Make the common subscription limitation actionable.
+      if (data?.status === 403 && /plan doesn't include this data timeframe/i.test(message)) {
+        message = `${message} Try a more recent date range (e.g. last 6–12 months) or upgrade your Polygon plan.`;
+      }
+
+      throw new Error(message);
     }
 
     return Array.isArray(data.results) ? (data.results as PolygonAggResult[]) : [];
