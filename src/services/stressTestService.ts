@@ -99,7 +99,7 @@ export async function runStressTest(
   
   for (const ticker of tickers) {
     try {
-      const bars = await polygonData.fetchHistory(ticker, startDate, endDate);
+      const { bars } = await polygonData.fetchHistory(ticker, startDate, endDate);
       
       if (bars.length === 0) {
         console.warn(`[StressTest] No data for ${ticker} during ${period.name}`);
@@ -181,7 +181,7 @@ export async function checkLiquidityRisks(
   
   for (const ticker of tickers) {
     try {
-      const bars = await polygonData.fetchHistory(ticker, startDate, endDate);
+      const { bars } = await polygonData.fetchHistory(ticker, startDate, endDate);
       
       if (bars.length === 0) {
         results.push({

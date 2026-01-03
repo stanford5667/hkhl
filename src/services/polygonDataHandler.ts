@@ -1,6 +1,14 @@
-// Polygon.io Data Handler with Caching and Regime Detection
+// Polygon.io Data Handler with Caching, Validation, and Regime Detection
 
 import { supabase } from "@/integrations/supabase/client";
+import {
+  validateTickerData,
+  validateCorrelationMatrix,
+  generateDataAuditReport,
+  type DataValidationResult,
+  type DataAuditReport,
+  type OHLCVBar as ValidationOHLCVBar,
+} from "./dataValidationService";
 
 const POLYGON_API_KEY = import.meta.env.VITE_POLYGON_API_KEY;
 const BASE_URL = 'https://api.polygon.io';
@@ -21,6 +29,7 @@ export interface AssetData {
   bars: OHLCVBar[];
   returns: number[];
   volatility: number;
+  validation?: DataValidationResult;
 }
 
 export interface TickerFetchResult {
@@ -28,11 +37,15 @@ export interface TickerFetchResult {
   success: boolean;
   bars?: number;
   error?: string;
+  dataQuality?: 'high' | 'medium' | 'low';
+  validationIssues?: string[];
+  source?: 'cache' | 'api';
 }
 
 export interface FetchHistoryResult {
   assetData: Map<string, AssetData>;
   diagnostics: TickerFetchResult[];
+  dataAudit?: DataAuditReport;
 }
 
 export interface RegimeSignal {
@@ -46,19 +59,35 @@ export interface CorrelationMatrix {
   tickers: string[];
   matrix: number[][];
   timestamp: Date;
+  validation?: {
+    isValid: boolean;
+    issues: string[];
+  };
 }
 
-// Cache entry with expiry
+export interface DataIntegrityReport {
+  overallStatus: 'valid' | 'warnings' | 'errors';
+  tickerStatuses: Map<string, DataValidationResult>;
+  correlationValid: boolean;
+  warnings: string[];
+  errors: string[];
+  timestamp: Date;
+}
+
+// Cache entry with expiry and validation metadata
 interface CacheEntry<T> {
   data: T;
   expiresAt: number;
+  validation?: DataValidationResult;
+  fetchedAt: number;
+  source: 'api';
 }
 
 // Memory cache with TTL
 class DataCache {
   private cache: Map<string, CacheEntry<unknown>> = new Map();
 
-  get<T>(key: string): T | null {
+  get<T>(key: string): { data: T; validation?: DataValidationResult; fetchedAt: number } | null {
     const entry = this.cache.get(key);
     if (!entry) return null;
 
@@ -67,13 +96,20 @@ class DataCache {
       return null;
     }
 
-    return entry.data as T;
+    return {
+      data: entry.data as T,
+      validation: entry.validation,
+      fetchedAt: entry.fetchedAt,
+    };
   }
 
-  set<T>(key: string, data: T, ttlMs: number): void {
+  set<T>(key: string, data: T, ttlMs: number, validation?: DataValidationResult): void {
     this.cache.set(key, {
       data,
       expiresAt: Date.now() + ttlMs,
+      validation,
+      fetchedAt: Date.now(),
+      source: 'api',
     });
   }
 
@@ -204,6 +240,18 @@ function calculateFractalDimension(returns: number[]): number {
   return Math.max(1, Math.min(2, 2 - hurst));
 }
 
+// Convert internal bars to validation format
+function toValidationBars(bars: OHLCVBar[]): ValidationOHLCVBar[] {
+  return bars.map(b => ({
+    t: b.timestamp,
+    o: b.open,
+    h: b.high,
+    l: b.low,
+    c: b.close,
+    v: b.volume,
+  }));
+}
+
 type PolygonAggResult = {
   t: number;
   o: number;
@@ -218,6 +266,42 @@ type PolygonAggResult = {
 class PolygonDataHandler {
   private cache = new DataCache();
   private readonly CACHE_TTL = 60 * 60 * 1000; // 1 hour
+  private readonly MAX_RETRIES = 3;
+  private readonly RETRY_DELAYS = [300, 600, 1200]; // Exponential backoff
+
+  /**
+   * Fetch with retry - attempts up to 3 times with exponential backoff
+   */
+  private async fetchWithRetry<T>(
+    fetchFn: () => Promise<T>,
+    context: string
+  ): Promise<T> {
+    let lastError: Error | undefined;
+
+    for (let attempt = 0; attempt < this.MAX_RETRIES; attempt++) {
+      try {
+        if (attempt > 0) {
+          const delay = this.RETRY_DELAYS[attempt - 1];
+          console.log(`[Polygon] Retry attempt ${attempt + 1}/${this.MAX_RETRIES} for ${context} after ${delay}ms`);
+          await new Promise(resolve => setTimeout(resolve, delay));
+        }
+
+        return await fetchFn();
+      } catch (error) {
+        lastError = error instanceof Error ? error : new Error(String(error));
+        console.warn(`[Polygon] Attempt ${attempt + 1}/${this.MAX_RETRIES} failed for ${context}:`, lastError.message);
+
+        // Don't retry on certain errors
+        if (lastError.message.includes('403') || lastError.message.includes('401')) {
+          console.error(`[Polygon] Non-retryable error for ${context}, aborting retries`);
+          throw lastError;
+        }
+      }
+    }
+
+    console.error(`[Polygon] All ${this.MAX_RETRIES} retry attempts failed for ${context}`);
+    throw lastError || new Error(`Failed to fetch ${context} after ${this.MAX_RETRIES} attempts`);
+  }
 
   private async fetchAggsViaBackend(params: {
     ticker: string;
@@ -268,53 +352,57 @@ class PolygonDataHandler {
     startDate: string,
     endDate: string,
     timespan: string = 'day'
-  ): Promise<OHLCVBar[]> {
+  ): Promise<{ bars: OHLCVBar[]; source: 'cache' | 'api'; validation?: DataValidationResult }> {
     const cacheKey = `history:${ticker}:${startDate}:${endDate}:${timespan}`;
 
     // Check cache first
     const cached = this.cache.get<OHLCVBar[]>(cacheKey);
     if (cached) {
-      console.log('[Polygon] Cache hit for', ticker);
-      return cached;
+      console.log(`[Polygon] Cache hit for ${ticker} (fetched ${new Date(cached.fetchedAt).toLocaleTimeString()})`);
+      return { bars: cached.data, source: 'cache', validation: cached.validation };
     }
 
-    console.log('[Polygon] Fetching', ticker, 'from', startDate, 'to', endDate);
+    console.log(`[Polygon] API fetch for ${ticker} from ${startDate} to ${endDate}`);
 
-    try {
-      // NOTE: We intentionally do NOT fetch Polygon directly from the browser.
-      // Some environments block CORS and `VITE_` env values may not be available until rebuild.
-      // We route through a backend function instead.
-      const results = await this.fetchAggsViaBackend({ ticker, startDate, endDate, timespan });
+    // Fetch with retry
+    const results = await this.fetchWithRetry(
+      () => this.fetchAggsViaBackend({ ticker, startDate, endDate, timespan }),
+      ticker
+    );
 
-      const allBars: OHLCVBar[] = results.map((r) => ({
-        timestamp: r.t,
-        open: r.o,
-        high: r.h,
-        low: r.l,
-        close: r.c,
-        volume: r.v,
-        vwap: r.vw || r.c,
-      }));
+    const allBars: OHLCVBar[] = results.map((r) => ({
+      timestamp: r.t,
+      open: r.o,
+      high: r.h,
+      low: r.l,
+      close: r.c,
+      volume: r.v,
+      vwap: r.vw || r.c,
+    }));
 
-      console.log('[Polygon] Got', allBars.length, 'bars for', ticker);
+    console.log(`[Polygon] Got ${allBars.length} bars for ${ticker} from API`);
 
-      // Forward-fill gaps
-      const filledBars = forwardFillGaps(allBars);
+    // Forward-fill gaps
+    const filledBars = forwardFillGaps(allBars);
 
-      // Cache results
-      this.cache.set(cacheKey, filledBars, this.CACHE_TTL);
+    // Validate the data
+    const validationBars = toValidationBars(filledBars);
+    const validation = validateTickerData(ticker, validationBars, {
+      start: new Date(startDate),
+      end: new Date(endDate),
+    });
 
-      return filledBars;
-    } catch (error) {
-      console.error('[Polygon] Error fetching', ticker, ':', error);
-
-      // If the user configured VITE_POLYGON_API_KEY, log it for debugging (never print the key itself)
-      if (!POLYGON_API_KEY) {
-        console.warn('[Polygon] VITE_POLYGON_API_KEY is not present on the client; using backend proxy instead');
-      }
-
-      throw error;
+    // Log validation status
+    if (validation.isValid) {
+      console.log(`[Polygon] ✓ ${ticker} validation passed (quality: ${validation.dataQuality})`);
+    } else {
+      console.warn(`[Polygon] ⚠ ${ticker} validation issues:`, validation.issues);
     }
+
+    // Cache results with validation metadata
+    this.cache.set(cacheKey, filledBars, this.CACHE_TTL, validation);
+
+    return { bars: filledBars, source: 'api', validation };
   }
 
   async fetchAndCleanHistory(
@@ -325,20 +413,28 @@ class PolygonDataHandler {
   ): Promise<FetchHistoryResult> {
     const assetData = new Map<string, AssetData>();
     const diagnostics: TickerFetchResult[] = [];
+    const tickerDataForAudit: Record<string, ValidationOHLCVBar[]> = {};
+
+    console.log(`[Polygon] Starting fetch for ${tickers.length} tickers (${startDate} to ${endDate})`);
 
     for (let i = 0; i < tickers.length; i++) {
       const ticker = tickers[i];
       const pct = (i / tickers.length) * 100;
 
       onProgress?.(`Fetching ${ticker}...`, pct);
-      console.log('[Polygon] Processing', ticker, `(${i + 1}/${tickers.length})`);
+      console.log(`[Polygon] Processing ${ticker} (${i + 1}/${tickers.length})`);
 
       try {
-        const bars = await this.fetchHistory(ticker, startDate, endDate);
+        const { bars, source, validation } = await this.fetchHistory(ticker, startDate, endDate);
 
         if (bars.length === 0) {
-          console.warn('[Polygon] No data for', ticker);
-          diagnostics.push({ ticker, success: false, error: 'No data returned' });
+          console.warn(`[Polygon] No data for ${ticker}`);
+          diagnostics.push({ 
+            ticker, 
+            success: false, 
+            error: 'No data returned',
+            source,
+          });
           continue;
         }
 
@@ -354,13 +450,26 @@ class PolygonDataHandler {
           bars,
           returns,
           volatility,
+          validation,
         });
 
-        diagnostics.push({ ticker, success: true, bars: bars.length });
-        console.log('[Polygon]', ticker, '- Vol:', (volatility * 100).toFixed(2) + '%');
+        // Store for audit
+        tickerDataForAudit[ticker] = toValidationBars(bars);
+
+        diagnostics.push({ 
+          ticker, 
+          success: true, 
+          bars: bars.length,
+          dataQuality: validation?.dataQuality || 'high',
+          validationIssues: validation?.issues || [],
+          source,
+        });
+
+        const qualityIcon = validation?.dataQuality === 'high' ? '✓' : validation?.dataQuality === 'medium' ? '~' : '⚠';
+        console.log(`[Polygon] ${qualityIcon} ${ticker} - ${bars.length} bars, Vol: ${(volatility * 100).toFixed(2)}%, Source: ${source}`);
       } catch (error) {
         const errorMsg = error instanceof Error ? error.message : 'Unknown error';
-        console.error('[Polygon] Failed to fetch', ticker, ':', error);
+        console.error(`[Polygon] ✗ Failed to fetch ${ticker}:`, error);
         diagnostics.push({ ticker, success: false, error: errorMsg });
         // Continue with other tickers
       }
@@ -369,8 +478,95 @@ class PolygonDataHandler {
       await new Promise((resolve) => setTimeout(resolve, 300));
     }
 
+    // Generate data audit report
+    const metrics = this.calculateAggregateMetrics(assetData);
+    const dataAudit = generateDataAuditReport(tickerDataForAudit, metrics);
+
+    // Log summary
+    const successCount = diagnostics.filter(d => d.success).length;
+    const cacheHits = diagnostics.filter(d => d.source === 'cache').length;
+    console.log(`[Polygon] Fetch complete: ${successCount}/${tickers.length} successful, ${cacheHits} from cache`);
+    console.log(`[Polygon] Data quality: ${dataAudit.overallDataQuality}, Total issues: ${dataAudit.totalIssues}`);
+
     onProgress?.('Data fetching complete', 100);
-    return { assetData, diagnostics };
+    return { assetData, diagnostics, dataAudit };
+  }
+
+  /**
+   * Calculate aggregate metrics for audit report
+   */
+  private calculateAggregateMetrics(assetData: Map<string, AssetData>): {
+    volatility?: number;
+  } {
+    if (assetData.size === 0) return {};
+
+    // Calculate average volatility across all assets
+    const volatilities = Array.from(assetData.values()).map(a => a.volatility);
+    const avgVolatility = volatilities.reduce((a, b) => a + b, 0) / volatilities.length;
+
+    return {
+      volatility: avgVolatility,
+    };
+  }
+
+  /**
+   * Verify data integrity - runs all validation checks on fetched data
+   */
+  verifyDataIntegrity(assetData: Map<string, AssetData>): DataIntegrityReport {
+    console.log(`[Polygon] Verifying data integrity for ${assetData.size} assets`);
+
+    const tickerStatuses = new Map<string, DataValidationResult>();
+    const warnings: string[] = [];
+    const errors: string[] = [];
+
+    // Validate each ticker's data
+    for (const [ticker, data] of assetData.entries()) {
+      const validationBars = toValidationBars(data.bars);
+      const validation = validateTickerData(ticker, validationBars);
+      tickerStatuses.set(ticker, validation);
+
+      if (!validation.isValid) {
+        if (validation.dataQuality === 'low') {
+          errors.push(`${ticker}: ${validation.issues.join(', ')}`);
+        } else {
+          warnings.push(`${ticker}: ${validation.issues.join(', ')}`);
+        }
+      }
+
+      console.log(`[Polygon] ${ticker} integrity: ${validation.isValid ? '✓' : '⚠'} (${validation.dataQuality})`);
+    }
+
+    // Validate correlation matrix if we have multiple assets
+    let correlationValid = true;
+    if (assetData.size > 1) {
+      const corrMatrix = this.buildCorrelationMatrix(assetData);
+      const corrValidation = validateCorrelationMatrix(corrMatrix.matrix, corrMatrix.tickers);
+      correlationValid = corrValidation.isValid;
+
+      if (!correlationValid) {
+        warnings.push(`Correlation matrix: ${corrValidation.issues.join(', ')}`);
+      }
+      console.log(`[Polygon] Correlation matrix integrity: ${correlationValid ? '✓' : '⚠'}`);
+    }
+
+    // Determine overall status
+    let overallStatus: 'valid' | 'warnings' | 'errors' = 'valid';
+    if (errors.length > 0) {
+      overallStatus = 'errors';
+    } else if (warnings.length > 0) {
+      overallStatus = 'warnings';
+    }
+
+    console.log(`[Polygon] Overall integrity: ${overallStatus} (${errors.length} errors, ${warnings.length} warnings)`);
+
+    return {
+      overallStatus,
+      tickerStatuses,
+      correlationValid,
+      warnings,
+      errors,
+      timestamp: new Date(),
+    };
   }
 
   getRegimeProxy(assetData: Map<string, AssetData>, lookbackDays: number = 60): RegimeSignal[] {
@@ -505,10 +701,22 @@ class PolygonDataHandler {
       }
     }
 
+    // Validate the correlation matrix
+    const corrValidation = validateCorrelationMatrix(matrix, tickers);
+    if (!corrValidation.isValid) {
+      console.warn('[Polygon] Correlation matrix validation issues:', corrValidation.issues);
+    } else {
+      console.log('[Polygon] ✓ Correlation matrix validated');
+    }
+
     return {
       tickers,
       matrix,
       timestamp: new Date(),
+      validation: {
+        isValid: corrValidation.isValid,
+        issues: corrValidation.issues,
+      },
     };
   }
 
@@ -524,4 +732,3 @@ class PolygonDataHandler {
 
 // Export singleton instance
 export const polygonData = new PolygonDataHandler();
-
