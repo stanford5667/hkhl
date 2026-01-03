@@ -32,6 +32,7 @@ import Tasks from "./pages/Tasks";
 import Research from "./pages/Research";
 import Backtester from "./pages/Backtester";
 import PortfolioBacktester from "./pages/PortfolioBacktester";
+import Backtest from "./pages/Backtest";
 import Watchlist from "./pages/Watchlist";
 import Screener from "./pages/Screener";
 import NotFound from "./pages/NotFound";
@@ -73,6 +74,7 @@ const App = () => (
                       <Route path="/research" element={<Research />} />
                       <Route path="/backtester" element={<PortfolioBacktester />} />
                       <Route path="/strategy-tester" element={<Backtester />} />
+                      <Route path="/backtest" element={<Backtest />} />
                       <Route path="/watchlist" element={<Watchlist />} />
                       <Route path="/screener" element={<Screener />} />
                       {/* Redirects from old routes */}
