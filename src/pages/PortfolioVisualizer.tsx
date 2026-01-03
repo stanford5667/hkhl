@@ -44,6 +44,8 @@ import { PortfolioModeSelection } from '@/components/backtester/PortfolioModeSel
 import { ManualPortfolioBuilder } from '@/components/backtester/ManualPortfolioBuilder';
 import { EfficientFrontierSlider } from '@/components/backtester/EfficientFrontierSlider';
 import { AdvancedMetricsDashboard } from '@/components/backtester/AdvancedMetricsDashboard';
+import { AIPortfolioInsights, AIPortfolioAdvice } from '@/components/backtester/AIPortfolioInsights';
+import { supabase } from '@/integrations/supabase/client';
 
 // Services
 import { polygonData } from '@/services/polygonDataHandler';
@@ -91,6 +93,10 @@ export default function PortfolioVisualizer() {
     totalRisk: number;
     expectedReturn: number;
   } | null>(null);
+
+  // AI Portfolio Advice
+  const [aiAdvice, setAiAdvice] = useState<AIPortfolioAdvice | null>(null);
+  const [isLoadingAI, setIsLoadingAI] = useState(false);
 
   // Results tab
   const [resultsTab, setResultsTab] = useState('frontier');
@@ -213,16 +219,50 @@ export default function PortfolioVisualizer() {
     setProgress({ message: 'Initializing...', percent: 0 });
     
     try {
-      // Generate AI portfolio if in AI mode
       let finalAllocations = allocations;
+      
+      // For AI mode, call the AI advisor edge function
       if (portfolioMode === 'ai') {
-        generateAIPortfolio();
-        // Wait for state update
-        await new Promise(r => setTimeout(r, 100));
-        finalAllocations = allocations.length > 0 ? allocations : await new Promise((resolve) => {
+        setProgress({ message: 'Consulting AI Portfolio Advisor...', percent: 5 });
+        setIsLoadingAI(true);
+        
+        try {
+          const { data, error: fnError } = await supabase.functions.invoke('ai-portfolio-advisor', {
+            body: { investorProfile }
+          });
+          
+          if (fnError) {
+            console.error('[AI Advisor] Function error:', fnError);
+            toast.error('AI Advisor unavailable, using fallback suggestions');
+            generateAIPortfolio();
+          } else if (data?.success && data.data) {
+            const advice = data.data as AIPortfolioAdvice;
+            setAiAdvice(advice);
+            
+            // Convert AI allocations to our format
+            finalAllocations = advice.allocations.map(a => ({
+              symbol: a.symbol,
+              name: a.name,
+              weight: a.weight,
+              assetClass: a.assetClass as any,
+            }));
+            setAllocations(finalAllocations);
+            
+            toast.success(`AI generated: ${advice.portfolioName}`);
+          } else {
+            console.error('[AI Advisor] Response error:', data?.error);
+            toast.error(data?.error || 'AI Advisor failed, using fallback');
+            generateAIPortfolio();
+          }
+        } catch (aiError) {
+          console.error('[AI Advisor] Error:', aiError);
+          toast.error('AI Advisor unavailable, using fallback');
           generateAIPortfolio();
-          setTimeout(() => resolve(allocations), 100);
-        });
+        }
+        
+        setIsLoadingAI(false);
+        await new Promise(r => setTimeout(r, 100));
+        finalAllocations = allocations;
       }
       
       // Use current allocations if AI didn't update yet
@@ -363,6 +403,10 @@ export default function PortfolioVisualizer() {
         setCurrentStep('results');
         setIsAnalyzing(false);
         setProgress({ message: '', percent: 0 });
+        // Default to AI Insights tab if we have AI advice
+        if (portfolioMode === 'ai' && aiAdvice) {
+          setResultsTab('ai-insights');
+        }
         toast.success('Portfolio analysis complete!');
       }, 500);
       
@@ -390,6 +434,7 @@ export default function PortfolioVisualizer() {
     setSelectedPoint(null);
     setAdvancedMetrics(null);
     setBlAnalysis(null);
+    setAiAdvice(null);
     setError(null);
   };
 
@@ -528,7 +573,16 @@ export default function PortfolioVisualizer() {
         {currentStep === 'results' && (
           <div className="space-y-6">
             <Tabs value={resultsTab} onValueChange={setResultsTab}>
-              <TabsList className="grid grid-cols-4 w-full max-w-2xl mx-auto">
+              <TabsList className={cn(
+                "grid w-full max-w-3xl mx-auto",
+                portfolioMode === 'ai' && aiAdvice ? "grid-cols-5" : "grid-cols-4"
+              )}>
+                {portfolioMode === 'ai' && aiAdvice && (
+                  <TabsTrigger value="ai-insights" className="gap-2">
+                    <Brain className="h-4 w-4" />
+                    AI Insights
+                  </TabsTrigger>
+                )}
                 <TabsTrigger value="frontier" className="gap-2">
                   <Target className="h-4 w-4" />
                   Frontier
@@ -546,6 +600,16 @@ export default function PortfolioVisualizer() {
                   Allocation
                 </TabsTrigger>
               </TabsList>
+
+              {/* AI Insights Tab - Only for AI mode */}
+              {portfolioMode === 'ai' && aiAdvice && (
+                <TabsContent value="ai-insights" className="mt-6">
+                  <AIPortfolioInsights 
+                    advice={aiAdvice} 
+                    investableCapital={investorProfile.investableCapital} 
+                  />
+                </TabsContent>
+              )}
 
               <TabsContent value="frontier" className="mt-6">
                 <EfficientFrontierSlider
