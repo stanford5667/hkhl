@@ -6,12 +6,25 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { cn } from '@/lib/utils';
 import { getMetricDefinition, formatMetricValue, getInterpretation } from '@/data/metricDefinitions';
-import type { CalculationTrace } from '@/hooks/usePortfolioCalculations';
+
+// Local type definition to avoid circular imports
+interface TraceStep {
+  step: number;
+  description: string;
+  formula: string;
+  inputs: Record<string, number | string>;
+  result: number | string;
+}
+
+interface CalcTrace {
+  metricId: string;
+  steps: TraceStep[];
+}
 
 export interface MetricExplanationCardProps {
   metricId: string;
   value: number;
-  trace?: CalculationTrace;
+  trace?: CalcTrace;
   mode?: 'compact' | 'expanded';
   onToggleExpand?: () => void;
   className?: string;

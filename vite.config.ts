@@ -1,3 +1,4 @@
+// Vite configuration - cache bust v2
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
