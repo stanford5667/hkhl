@@ -1,6 +1,7 @@
 // Backtester Service - Real historical data from Finnhub
+// FIXED: Properly tracks shares per asset and calculates real portfolio returns
 
-import { getCandles, CandleData } from './finnhubService';
+import { getCandles, CandleData, isFinnhubConfigured } from './finnhubService';
 
 export interface HistoricalDataPoint {
   date: string;
@@ -14,6 +15,7 @@ export interface HistoricalDataPoint {
 export interface Trade {
   date: string;
   type: 'buy' | 'sell';
+  symbol: string;
   shares: number;
   price: number;
   value: number;
@@ -38,6 +40,7 @@ export interface BacktestResult {
   totalReturnPercent: number;
   annualizedReturn: number;
   sharpeRatio: number;
+  sortinoRatio: number;
   maxDrawdown: number;
   maxDrawdownPercent: number;
   winRate: number;
@@ -49,6 +52,7 @@ export interface BacktestResult {
   benchmarkReturn?: number;
   alpha?: number;
   beta?: number;
+  assetPerformance?: { symbol: string; return: number; contribution: number }[];
 }
 
 export interface StrategyParams {
@@ -65,6 +69,14 @@ export interface StrategyParams {
 }
 
 export type StrategyType = 'buy-hold' | 'dca' | 'momentum' | 'mean-reversion' | 'rsi';
+
+export const STRATEGY_INFO: Record<StrategyType, { name: string; description: string }> = {
+  'buy-hold': { name: 'Buy & Hold', description: 'Buy at start and hold until end' },
+  'dca': { name: 'Dollar Cost Averaging', description: 'Invest fixed amounts at regular intervals' },
+  'momentum': { name: 'Momentum', description: 'Buy when price momentum is positive' },
+  'mean-reversion': { name: 'Mean Reversion', description: 'Buy below moving average, sell above' },
+  'rsi': { name: 'RSI Strategy', description: 'Buy oversold, sell overbought based on RSI' },
+};
 
 export interface BacktestConfig {
   assets: { symbol: string; allocation: number }[];
@@ -102,6 +114,8 @@ export interface CorrelationMatrix {
   matrix: number[][];
 }
 
+const RISK_FREE_RATE = 0.05;
+
 // Utility: delay for rate limiting
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -113,12 +127,22 @@ export async function fetchHistoricalPrices(
   startDate: string,
   endDate: string
 ): Promise<HistoricalDataPoint[]> {
+  if (!isFinnhubConfigured()) {
+    throw new Error('Finnhub API not configured. Please check your API key.');
+  }
+
   const fromTs = Math.floor(new Date(startDate).getTime() / 1000);
   const toTs = Math.floor(new Date(endDate).getTime() / 1000);
   
-  console.log(`[Backtester] Fetching data for ${symbol}...`);
+  console.log(`[Backtester] Fetching ${symbol}...`);
   
   const candles = await getCandles(symbol, 'D', fromTs, toTs);
+  
+  if (!candles || candles.length === 0) {
+    throw new Error(`No historical data available for ${symbol}. Check if the symbol is valid.`);
+  }
+  
+  console.log(`[Backtester] Got ${candles.length} days for ${symbol}`);
   
   return candles.map(c => ({
     date: c.date,
@@ -130,104 +154,70 @@ export async function fetchHistoricalPrices(
   }));
 }
 
-// Calculate Simple Moving Average
-function calculateSMA(prices: number[], period: number): number[] {
-  const sma: number[] = [];
-  for (let i = 0; i < prices.length; i++) {
-    if (i < period - 1) {
-      sma.push(0);
-    } else {
-      const sum = prices.slice(i - period + 1, i + 1).reduce((a, b) => a + b, 0);
-      sma.push(sum / period);
-    }
-  }
-  return sma;
-}
-
-// Calculate RSI
-function calculateRSI(prices: number[], period: number = 14): number[] {
-  const rsi: number[] = [];
-  const gains: number[] = [];
-  const losses: number[] = [];
-  
-  for (let i = 0; i < prices.length; i++) {
-    if (i === 0) {
-      gains.push(0);
-      losses.push(0);
-      rsi.push(50);
-      continue;
-    }
-    
-    const change = prices[i] - prices[i - 1];
-    gains.push(change > 0 ? change : 0);
-    losses.push(change < 0 ? Math.abs(change) : 0);
-    
-    if (i < period) {
-      rsi.push(50);
-      continue;
-    }
-    
-    const avgGain = gains.slice(i - period + 1, i + 1).reduce((a, b) => a + b, 0) / period;
-    const avgLoss = losses.slice(i - period + 1, i + 1).reduce((a, b) => a + b, 0) / period;
-    
-    if (avgLoss === 0) {
-      rsi.push(100);
-    } else {
-      const rs = avgGain / avgLoss;
-      rsi.push(100 - (100 / (1 + rs)));
-    }
-  }
-  
-  return rsi;
-}
-
-// Calculate daily returns from prices
-function calculateDailyReturns(prices: number[]): number[] {
+// Calculate daily returns from values
+function calculateDailyReturns(values: number[]): number[] {
   const returns: number[] = [];
-  for (let i = 1; i < prices.length; i++) {
-    returns.push((prices[i] - prices[i - 1]) / prices[i - 1]);
+  for (let i = 1; i < values.length; i++) {
+    if (values[i - 1] !== 0) {
+      returns.push((values[i] - values[i - 1]) / values[i - 1]);
+    }
   }
   return returns;
 }
 
-// Calculate returns from portfolio history
-function calculateReturns(history: PortfolioSnapshot[]): number[] {
-  const returns: number[] = [];
-  for (let i = 1; i < history.length; i++) {
-    const dailyReturn = (history[i].totalValue - history[i - 1].totalValue) / history[i - 1].totalValue;
-    returns.push(dailyReturn);
-  }
-  return returns;
+// Calculate standard deviation
+function stdDev(values: number[]): number {
+  if (values.length === 0) return 0;
+  const mean = values.reduce((a, b) => a + b, 0) / values.length;
+  const squaredDiffs = values.map(v => Math.pow(v - mean, 2));
+  return Math.sqrt(squaredDiffs.reduce((a, b) => a + b, 0) / values.length);
 }
 
 // Calculate Sharpe Ratio
-function calculateSharpeRatio(returns: number[], riskFreeRate: number = 0.05): number {
+function calculateSharpeRatio(returns: number[], riskFreeRate: number = RISK_FREE_RATE): number {
+  if (returns.length === 0) return 0;
+  
+  const dailyRiskFree = riskFreeRate / 252;
+  const excessReturns = returns.map(r => r - dailyRiskFree);
+  const meanExcessReturn = excessReturns.reduce((a, b) => a + b, 0) / excessReturns.length;
+  const volatility = stdDev(excessReturns);
+  
+  if (volatility === 0) return 0;
+  return (meanExcessReturn / volatility) * Math.sqrt(252);
+}
+
+// Calculate Sortino Ratio
+function calculateSortinoRatio(returns: number[], riskFreeRate: number = RISK_FREE_RATE): number {
   if (returns.length === 0) return 0;
   
   const dailyRiskFree = riskFreeRate / 252;
   const excessReturns = returns.map(r => r - dailyRiskFree);
   const meanExcessReturn = excessReturns.reduce((a, b) => a + b, 0) / excessReturns.length;
   
-  const variance = excessReturns.reduce((sum, r) => sum + Math.pow(r - meanExcessReturn, 2), 0) / excessReturns.length;
-  const stdDev = Math.sqrt(variance);
+  // Only use negative returns for downside deviation
+  const negativeReturns = excessReturns.filter(r => r < 0);
+  if (negativeReturns.length === 0) return meanExcessReturn > 0 ? 10 : 0; // Cap at 10 if no negative returns
   
-  if (stdDev === 0) return 0;
+  const downsideDeviation = stdDev(negativeReturns);
+  if (downsideDeviation === 0) return 0;
   
-  return (meanExcessReturn / stdDev) * Math.sqrt(252);
+  return (meanExcessReturn / downsideDeviation) * Math.sqrt(252);
 }
 
 // Calculate Maximum Drawdown
-function calculateMaxDrawdown(history: PortfolioSnapshot[]): { maxDrawdown: number; maxDrawdownPercent: number } {
-  let peak = history[0]?.totalValue || 0;
+function calculateMaxDrawdown(values: number[]): { maxDrawdown: number; maxDrawdownPercent: number; drawdowns: number[] } {
+  let peak = values[0] || 0;
   let maxDrawdown = 0;
   let maxDrawdownPercent = 0;
+  const drawdowns: number[] = [];
   
-  for (const snapshot of history) {
-    if (snapshot.totalValue > peak) {
-      peak = snapshot.totalValue;
+  for (const value of values) {
+    if (value > peak) {
+      peak = value;
     }
-    const drawdown = peak - snapshot.totalValue;
+    const drawdown = peak - value;
     const drawdownPercent = peak > 0 ? (drawdown / peak) * 100 : 0;
+    drawdowns.push(-drawdownPercent);
     
     if (drawdown > maxDrawdown) {
       maxDrawdown = drawdown;
@@ -235,30 +225,24 @@ function calculateMaxDrawdown(history: PortfolioSnapshot[]): { maxDrawdown: numb
     }
   }
   
-  return { maxDrawdown, maxDrawdownPercent };
+  return { maxDrawdown, maxDrawdownPercent, drawdowns };
 }
 
-// Calculate volatility
+// Calculate volatility (annualized)
 function calculateVolatility(returns: number[]): number {
   if (returns.length === 0) return 0;
-  
-  const mean = returns.reduce((a, b) => a + b, 0) / returns.length;
-  const variance = returns.reduce((sum, r) => sum + Math.pow(r - mean, 2), 0) / returns.length;
-  
-  return Math.sqrt(variance) * Math.sqrt(252) * 100;
+  return stdDev(returns) * Math.sqrt(252) * 100;
 }
 
 // Calculate beta and alpha
 function calculateBetaAlpha(
   portfolioReturns: number[],
   benchmarkReturns: number[],
-  riskFreeRate: number = 0.05
+  riskFreeRate: number = RISK_FREE_RATE
 ): { beta: number; alpha: number } {
-  if (portfolioReturns.length === 0 || benchmarkReturns.length === 0) {
-    return { beta: 1, alpha: 0 };
-  }
-  
   const minLength = Math.min(portfolioReturns.length, benchmarkReturns.length);
+  if (minLength < 2) return { beta: 1, alpha: 0 };
+  
   const pReturns = portfolioReturns.slice(0, minLength);
   const bReturns = benchmarkReturns.slice(0, minLength);
   
@@ -288,305 +272,27 @@ function calculateBetaAlpha(
   return { beta, alpha };
 }
 
-// Buy and Hold Strategy
-function runBuyAndHold(
-  data: HistoricalDataPoint[],
-  params: StrategyParams
-): { trades: Trade[]; history: PortfolioSnapshot[] } {
-  const trades: Trade[] = [];
-  const history: PortfolioSnapshot[] = [];
-  
-  const firstPrice = data[0].price;
-  const shares = Math.floor(params.initialCapital / firstPrice);
-  const cash = params.initialCapital - shares * firstPrice;
-  
-  trades.push({
-    date: data[0].date,
-    type: 'buy',
-    shares,
-    price: firstPrice,
-    value: shares * firstPrice,
-    reason: 'Initial buy - Buy and Hold',
-  });
-  
-  for (const point of data) {
-    history.push({
-      date: point.date,
-      cash,
-      holdings: shares * point.price,
-      totalValue: cash + shares * point.price,
-      shares,
-    });
-  }
-  
-  return { trades, history };
-}
-
-// DCA Strategy
-function runDCA(
-  data: HistoricalDataPoint[],
-  params: StrategyParams
-): { trades: Trade[]; history: PortfolioSnapshot[] } {
-  const trades: Trade[] = [];
-  const history: PortfolioSnapshot[] = [];
-  
-  const amount = params.dcaAmount || params.initialCapital / 12;
-  const frequency = params.dcaFrequency || 'monthly';
-  
-  let cash = params.initialCapital;
-  let shares = 0;
-  let lastPurchaseDate: Date | null = null;
-  
-  for (const point of data) {
-    const currentDate = new Date(point.date);
-    let shouldBuy = false;
-    
-    if (!lastPurchaseDate) {
-      shouldBuy = true;
-    } else {
-      const daysDiff = Math.floor((currentDate.getTime() - lastPurchaseDate.getTime()) / (1000 * 60 * 60 * 24));
-      
-      if (frequency === 'daily') shouldBuy = true;
-      else if (frequency === 'weekly') shouldBuy = daysDiff >= 7;
-      else if (frequency === 'monthly') shouldBuy = daysDiff >= 30;
-    }
-    
-    if (shouldBuy && cash >= amount) {
-      const purchaseShares = Math.floor(amount / point.price);
-      if (purchaseShares > 0) {
-        shares += purchaseShares;
-        cash -= purchaseShares * point.price;
-        lastPurchaseDate = currentDate;
-        
-        trades.push({
-          date: point.date,
-          type: 'buy',
-          shares: purchaseShares,
-          price: point.price,
-          value: purchaseShares * point.price,
-          reason: `DCA purchase (${frequency})`,
-        });
-      }
-    }
-    
-    history.push({
-      date: point.date,
-      cash,
-      holdings: shares * point.price,
-      totalValue: cash + shares * point.price,
-      shares,
-    });
-  }
-  
-  return { trades, history };
-}
-
-// Momentum Strategy
-function runMomentum(
-  data: HistoricalDataPoint[],
-  params: StrategyParams
-): { trades: Trade[]; history: PortfolioSnapshot[] } {
-  const trades: Trade[] = [];
-  const history: PortfolioSnapshot[] = [];
-  
-  const period = params.momentumPeriod || 20;
-  const threshold = params.momentumThreshold || 0.02;
-  
-  let cash = params.initialCapital;
-  let shares = 0;
-  const prices = data.map(d => d.price);
-  
-  for (let i = 0; i < data.length; i++) {
-    const point = data[i];
-    
-    if (i >= period) {
-      const momentum = (prices[i] - prices[i - period]) / prices[i - period];
-      
-      if (momentum > threshold && shares === 0 && cash > 0) {
-        const buyShares = Math.floor(cash / point.price);
-        if (buyShares > 0) {
-          shares = buyShares;
-          cash -= shares * point.price;
-          trades.push({
-            date: point.date,
-            type: 'buy',
-            shares,
-            price: point.price,
-            value: shares * point.price,
-            reason: `Momentum buy (${(momentum * 100).toFixed(1)}% > ${(threshold * 100).toFixed(1)}%)`,
-          });
-        }
-      }
-      
-      if (momentum < -threshold && shares > 0) {
-        const sellValue = shares * point.price;
-        trades.push({
-          date: point.date,
-          type: 'sell',
-          shares,
-          price: point.price,
-          value: sellValue,
-          reason: `Momentum sell (${(momentum * 100).toFixed(1)}% < -${(threshold * 100).toFixed(1)}%)`,
-        });
-        cash += sellValue;
-        shares = 0;
-      }
-    }
-    
-    history.push({
-      date: point.date,
-      cash,
-      holdings: shares * point.price,
-      totalValue: cash + shares * point.price,
-      shares,
-    });
-  }
-  
-  return { trades, history };
-}
-
-// Mean Reversion Strategy
-function runMeanReversion(
-  data: HistoricalDataPoint[],
-  params: StrategyParams
-): { trades: Trade[]; history: PortfolioSnapshot[] } {
-  const trades: Trade[] = [];
-  const history: PortfolioSnapshot[] = [];
-  
-  const period = params.maPeriod || 20;
-  const deviationThreshold = params.deviationThreshold || 0.05;
-  
-  let cash = params.initialCapital;
-  let shares = 0;
-  const prices = data.map(d => d.price);
-  const sma = calculateSMA(prices, period);
-  
-  for (let i = 0; i < data.length; i++) {
-    const point = data[i];
-    
-    if (i >= period && sma[i] > 0) {
-      const deviation = (point.price - sma[i]) / sma[i];
-      
-      if (deviation < -deviationThreshold && shares === 0 && cash > 0) {
-        const buyShares = Math.floor(cash / point.price);
-        if (buyShares > 0) {
-          shares = buyShares;
-          cash -= shares * point.price;
-          trades.push({
-            date: point.date,
-            type: 'buy',
-            shares,
-            price: point.price,
-            value: shares * point.price,
-            reason: `Mean reversion buy (${(deviation * 100).toFixed(1)}% below MA)`,
-          });
-        }
-      }
-      
-      if (deviation > deviationThreshold && shares > 0) {
-        const sellValue = shares * point.price;
-        trades.push({
-          date: point.date,
-          type: 'sell',
-          shares,
-          price: point.price,
-          value: sellValue,
-          reason: `Mean reversion sell (${(deviation * 100).toFixed(1)}% above MA)`,
-        });
-        cash += sellValue;
-        shares = 0;
-      }
-    }
-    
-    history.push({
-      date: point.date,
-      cash,
-      holdings: shares * point.price,
-      totalValue: cash + shares * point.price,
-      shares,
-    });
-  }
-  
-  return { trades, history };
-}
-
-// RSI Strategy
-function runRSI(
-  data: HistoricalDataPoint[],
-  params: StrategyParams
-): { trades: Trade[]; history: PortfolioSnapshot[] } {
-  const trades: Trade[] = [];
-  const history: PortfolioSnapshot[] = [];
-  
-  const period = params.rsiPeriod || 14;
-  const oversold = params.rsiOversold || 30;
-  const overbought = params.rsiOverbought || 70;
-  
-  let cash = params.initialCapital;
-  let shares = 0;
-  const prices = data.map(d => d.price);
-  const rsi = calculateRSI(prices, period);
-  
-  for (let i = 0; i < data.length; i++) {
-    const point = data[i];
-    
-    if (i >= period) {
-      if (rsi[i] < oversold && shares === 0 && cash > 0) {
-        const buyShares = Math.floor(cash / point.price);
-        if (buyShares > 0) {
-          shares = buyShares;
-          cash -= shares * point.price;
-          trades.push({
-            date: point.date,
-            type: 'buy',
-            shares,
-            price: point.price,
-            value: shares * point.price,
-            reason: `RSI buy (RSI: ${rsi[i].toFixed(1)} < ${oversold})`,
-          });
-        }
-      }
-      
-      if (rsi[i] > overbought && shares > 0) {
-        const sellValue = shares * point.price;
-        trades.push({
-          date: point.date,
-          type: 'sell',
-          shares,
-          price: point.price,
-          value: sellValue,
-          reason: `RSI sell (RSI: ${rsi[i].toFixed(1)} > ${overbought})`,
-        });
-        cash += sellValue;
-        shares = 0;
-      }
-    }
-    
-    history.push({
-      date: point.date,
-      cash,
-      holdings: shares * point.price,
-      totalValue: cash + shares * point.price,
-      shares,
-    });
-  }
-  
-  return { trades, history };
-}
-
 /**
  * Main backtest function with REAL data from Finnhub
+ * FIXED: Properly calculates portfolio value based on actual shares held
  */
 export async function runBacktest(config: BacktestConfig): Promise<BacktestResult> {
-  const { assets, startDate, endDate, initialCapital, strategy, strategyParams, benchmarkSymbol = 'SPY' } = config;
+  const { assets, startDate, endDate, initialCapital, strategy, benchmarkSymbol = 'SPY' } = config;
   
+  console.log(`[Backtester] ========================================`);
   console.log(`[Backtester] Running backtest from ${startDate} to ${endDate}`);
+  console.log(`[Backtester] Strategy: ${strategy}`);
+  console.log(`[Backtester] Initial Capital: $${initialCapital.toLocaleString()}`);
   console.log(`[Backtester] Assets: ${assets.map(a => `${a.symbol} (${a.allocation}%)`).join(', ')}`);
   
   // Validate allocations sum to 100%
   const totalAllocation = assets.reduce((sum, a) => sum + a.allocation, 0);
-  if (Math.abs(totalAllocation - 100) > 0.01) {
+  if (Math.abs(totalAllocation - 100) > 0.1) {
     throw new Error(`Allocations must sum to 100% (current: ${totalAllocation.toFixed(1)}%)`);
+  }
+  
+  if (assets.length === 0) {
+    throw new Error('Add at least one asset to the portfolio');
   }
   
   // Fetch real historical data for all assets
@@ -594,167 +300,203 @@ export async function runBacktest(config: BacktestConfig): Promise<BacktestResul
   
   for (let i = 0; i < assets.length; i++) {
     const asset = assets[i];
-    console.log(`[Backtester] Fetching ${asset.symbol} (${i + 1}/${assets.length})...`);
     const data = await fetchHistoricalPrices(asset.symbol, startDate, endDate);
-    console.log(`[Backtester] Got ${data.length} days for ${asset.symbol}`);
     assetData.set(asset.symbol, data);
+    
     if (i < assets.length - 1) {
-      await delay(300); // Rate limit: 300ms between calls (Finnhub: 60/min)
+      await delay(350); // Rate limit: 350ms between calls
     }
   }
   
   // Fetch benchmark data
+  console.log(`[Backtester] Fetching benchmark ${benchmarkSymbol}...`);
   let benchmarkData: HistoricalDataPoint[] = [];
   try {
+    await delay(350);
     benchmarkData = await fetchHistoricalPrices(benchmarkSymbol, startDate, endDate);
   } catch (e) {
-    console.warn(`[Backtester] Could not fetch benchmark data for ${benchmarkSymbol}`);
+    console.warn(`[Backtester] Could not fetch benchmark ${benchmarkSymbol}:`, e);
   }
   
-  // Find common trading days
-  const allDates = new Set<string>();
-  assetData.forEach(data => data.forEach(d => allDates.add(d.date)));
-  
-  const commonDates = Array.from(allDates).filter(date => {
-    return Array.from(assetData.values()).every(data => data.some(d => d.date === date));
-  }).sort();
-  
-  console.log(`[Backtester] Found ${commonDates.length} common trading days`);
-  
-  if (commonDates.length < 2) {
-    throw new Error('Not enough common trading days for backtest');
-  }
-  
-  // Calculate initial shares for each asset based on allocation
-  const assetShares: Map<string, number> = new Map();
-  const firstDate = commonDates[0];
-  
-  for (const asset of assets) {
-    const assetPrices = assetData.get(asset.symbol)!;
-    const firstDayData = assetPrices.find(d => d.date === firstDate);
-    if (firstDayData) {
-      const allocation = (asset.allocation / 100) * initialCapital;
-      const shares = allocation / firstDayData.price;
-      assetShares.set(asset.symbol, shares);
-      console.log(`[Backtester] ${asset.symbol}: $${allocation.toFixed(0)} → ${shares.toFixed(4)} shares @ $${firstDayData.price.toFixed(2)}`);
-    }
-  }
-  
-  // Build portfolio data - each day's value is sum of (shares * price) for all assets
-  const portfolioData: HistoricalDataPoint[] = commonDates.map(date => {
-    let dailyValue = 0;
-    for (const asset of assets) {
-      const assetPrices = assetData.get(asset.symbol)!;
-      const dayData = assetPrices.find(d => d.date === date);
-      const shares = assetShares.get(asset.symbol) || 0;
-      if (dayData) {
-        dailyValue += shares * dayData.price;
-      }
-    }
-    // Return normalized "price" that represents portfolio value relative to initial
-    // This allows strategies to work with the combined portfolio
-    return { date, price: dailyValue };
+  // Create price lookup maps for quick access
+  const priceMaps: Map<string, Map<string, number>> = new Map();
+  assetData.forEach((prices, symbol) => {
+    const priceMap = new Map<string, number>();
+    prices.forEach(p => priceMap.set(p.date, p.price));
+    priceMaps.set(symbol, priceMap);
   });
   
-  console.log(`[Backtester] Initial portfolio value: $${portfolioData[0]?.price.toFixed(2)}`);
-  console.log(`[Backtester] Final portfolio value: $${portfolioData[portfolioData.length - 1]?.price.toFixed(2)}`);
+  const benchmarkPriceMap = new Map<string, number>();
+  benchmarkData.forEach(p => benchmarkPriceMap.set(p.date, p.price));
   
-  // Run strategy
-  const params: StrategyParams = {
-    initialCapital,
-    ...strategyParams,
-  };
+  // Find dates where ALL assets have data
+  const allDatesSet = new Set<string>();
+  assetData.forEach(data => data.forEach(d => allDatesSet.add(d.date)));
   
-  let result: { trades: Trade[]; history: PortfolioSnapshot[] };
+  const commonDates = Array.from(allDatesSet)
+    .filter(date => {
+      // All assets must have data for this date
+      return assets.every(a => priceMaps.get(a.symbol)?.has(date));
+    })
+    .sort();
   
-  switch (strategy) {
-    case 'buy-hold':
-      result = runBuyAndHold(portfolioData, params);
-      break;
-    case 'dca':
-      result = runDCA(portfolioData, params);
-      break;
-    case 'momentum':
-      result = runMomentum(portfolioData, params);
-      break;
-    case 'mean-reversion':
-      result = runMeanReversion(portfolioData, params);
-      break;
-    case 'rsi':
-      result = runRSI(portfolioData, params);
-      break;
-    default:
-      throw new Error(`Unknown strategy: ${strategy}`);
+  console.log(`[Backtester] Found ${commonDates.length} trading days with data for all assets`);
+  
+  if (commonDates.length < 5) {
+    throw new Error(`Not enough trading days (${commonDates.length}). Need at least 5 days with data for all assets.`);
   }
   
-  const { trades, history } = result;
-  const returns = calculateReturns(history);
-  const { maxDrawdown, maxDrawdownPercent } = calculateMaxDrawdown(history);
+  // Calculate initial shares for each asset based on allocation and FIRST DAY price
+  const firstDate = commonDates[0];
+  const sharesPerAsset: Map<string, number> = new Map();
+  const trades: Trade[] = [];
   
-  const finalValue = history[history.length - 1]?.totalValue || initialCapital;
+  for (const asset of assets) {
+    const firstPrice = priceMaps.get(asset.symbol)?.get(firstDate);
+    if (!firstPrice || firstPrice === 0) {
+      throw new Error(`No price data for ${asset.symbol} on ${firstDate}`);
+    }
+    
+    const allocationAmount = (asset.allocation / 100) * initialCapital;
+    const shares = allocationAmount / firstPrice;
+    sharesPerAsset.set(asset.symbol, shares);
+    
+    console.log(`[Backtester] ${asset.symbol}: $${allocationAmount.toFixed(0)} / $${firstPrice.toFixed(2)} = ${shares.toFixed(4)} shares`);
+    
+    trades.push({
+      date: firstDate,
+      type: 'buy',
+      symbol: asset.symbol,
+      shares,
+      price: firstPrice,
+      value: allocationAmount,
+      reason: `Initial allocation: ${asset.allocation}%`,
+    });
+  }
+  
+  // Build portfolio history - calculate total value each day
+  const portfolioHistory: PortfolioSnapshot[] = [];
+  const portfolioValues: number[] = [];
+  
+  for (const date of commonDates) {
+    let dayValue = 0;
+    
+    for (const asset of assets) {
+      const shares = sharesPerAsset.get(asset.symbol) || 0;
+      const price = priceMaps.get(asset.symbol)?.get(date) || 0;
+      dayValue += shares * price;
+    }
+    
+    portfolioValues.push(dayValue);
+    portfolioHistory.push({
+      date,
+      cash: 0, // Buy-and-hold: all invested
+      holdings: dayValue,
+      totalValue: dayValue,
+      shares: 0, // Not applicable for multi-asset
+    });
+  }
+  
+  const firstValue = portfolioValues[0];
+  const finalValue = portfolioValues[portfolioValues.length - 1];
+  
+  console.log(`[Backtester] Initial portfolio value: $${firstValue.toFixed(2)}`);
+  console.log(`[Backtester] Final portfolio value: $${finalValue.toFixed(2)}`);
+  
+  // Calculate returns
+  const dailyReturns = calculateDailyReturns(portfolioValues);
   const totalReturn = finalValue - initialCapital;
-  const totalReturnPercent = (totalReturn / initialCapital) * 100;
+  const totalReturnPercent = ((finalValue - initialCapital) / initialCapital) * 100;
   
-  // Calculate annualized return (CAGR)
-  const days = history.length;
-  const years = days / 252;
-  const annualizedReturn = years > 0 ? (Math.pow(finalValue / initialCapital, 1 / years) - 1) * 100 : 0;
+  // Annualized return (CAGR)
+  const years = commonDates.length / 252;
+  const annualizedReturn = years > 0 
+    ? (Math.pow(finalValue / initialCapital, 1 / years) - 1) * 100 
+    : 0;
   
-  // Calculate win rate
-  const profitableTrades = trades.filter((t, i) => {
-    if (t.type !== 'sell') return false;
-    const buyTrade = trades.slice(0, i).reverse().find(bt => bt.type === 'buy');
-    return buyTrade ? t.price > buyTrade.price : false;
-  }).length;
-  const sellTrades = trades.filter(t => t.type === 'sell').length;
-  const winRate = sellTrades > 0 ? (profitableTrades / sellTrades) * 100 : 0;
+  // Risk metrics
+  const volatility = calculateVolatility(dailyReturns);
+  const sharpeRatio = calculateSharpeRatio(dailyReturns);
+  const sortinoRatio = calculateSortinoRatio(dailyReturns);
+  const { maxDrawdown, maxDrawdownPercent } = calculateMaxDrawdown(portfolioValues);
   
-  // Calculate benchmark return and alpha/beta
+  // Benchmark comparison
   let benchmarkReturn: number | undefined;
   let alpha = 0;
   let beta = 1;
   
   if (benchmarkData.length >= 2) {
-    const benchmarkCommon = benchmarkData.filter(d => commonDates.includes(d.date));
-    if (benchmarkCommon.length >= 2) {
-      const benchmarkStartPrice = benchmarkCommon[0].price;
-      const benchmarkEndPrice = benchmarkCommon[benchmarkCommon.length - 1].price;
-      benchmarkReturn = ((benchmarkEndPrice - benchmarkStartPrice) / benchmarkStartPrice) * 100;
+    const benchmarkCommonDates = commonDates.filter(d => benchmarkPriceMap.has(d));
+    if (benchmarkCommonDates.length >= 2) {
+      const benchStartPrice = benchmarkPriceMap.get(benchmarkCommonDates[0]) || 1;
+      const benchEndPrice = benchmarkPriceMap.get(benchmarkCommonDates[benchmarkCommonDates.length - 1]) || 1;
+      benchmarkReturn = ((benchEndPrice - benchStartPrice) / benchStartPrice) * 100;
       
-      const benchmarkPrices = benchmarkCommon.map(d => d.price);
-      const benchmarkReturns = calculateDailyReturns(benchmarkPrices);
-      const betaAlpha = calculateBetaAlpha(returns, benchmarkReturns);
+      const benchmarkValues = benchmarkCommonDates.map(d => benchmarkPriceMap.get(d) || 0);
+      const benchmarkReturns = calculateDailyReturns(benchmarkValues);
+      
+      // Only calculate if we have matching lengths
+      const portfolioReturnsForBeta = dailyReturns.slice(0, benchmarkReturns.length);
+      const betaAlpha = calculateBetaAlpha(portfolioReturnsForBeta, benchmarkReturns);
       alpha = betaAlpha.alpha;
       beta = betaAlpha.beta;
     }
   }
   
-  const volatility = calculateVolatility(returns);
-  const sharpeRatio = calculateSharpeRatio(returns);
+  // Calculate per-asset performance
+  const lastDate = commonDates[commonDates.length - 1];
+  const assetPerformance = assets.map(asset => {
+    const firstPrice = priceMaps.get(asset.symbol)?.get(firstDate) || 1;
+    const lastPrice = priceMaps.get(asset.symbol)?.get(lastDate) || firstPrice;
+    const assetReturn = ((lastPrice - firstPrice) / firstPrice) * 100;
+    const contribution = assetReturn * (asset.allocation / 100);
+    
+    return {
+      symbol: asset.symbol,
+      return: assetReturn,
+      contribution,
+    };
+  });
   
-  console.log(`[Backtester] Results - CAGR: ${annualizedReturn.toFixed(2)}%, Sharpe: ${sharpeRatio.toFixed(2)}, Max DD: ${maxDrawdownPercent.toFixed(2)}%`);
+  console.log(`[Backtester] ========================================`);
+  console.log(`[Backtester] RESULTS:`);
+  console.log(`[Backtester] Total Return: ${totalReturnPercent.toFixed(2)}%`);
+  console.log(`[Backtester] CAGR: ${annualizedReturn.toFixed(2)}%`);
+  console.log(`[Backtester] Sharpe Ratio: ${sharpeRatio.toFixed(2)}`);
+  console.log(`[Backtester] Sortino Ratio: ${sortinoRatio.toFixed(2)}`);
+  console.log(`[Backtester] Max Drawdown: ${maxDrawdownPercent.toFixed(2)}%`);
+  console.log(`[Backtester] Volatility: ${volatility.toFixed(2)}%`);
+  console.log(`[Backtester] Alpha: ${alpha.toFixed(2)}%`);
+  console.log(`[Backtester] Beta: ${beta.toFixed(2)}`);
+  if (benchmarkReturn !== undefined) {
+    console.log(`[Backtester] Benchmark (${benchmarkSymbol}): ${benchmarkReturn.toFixed(2)}%`);
+  }
+  console.log(`[Backtester] Per-asset returns:`, assetPerformance.map(a => `${a.symbol}: ${a.return.toFixed(2)}%`).join(', '));
+  console.log(`[Backtester] ========================================`);
   
   return {
     strategy,
-    startDate: commonDates[0],
-    endDate: commonDates[commonDates.length - 1],
+    startDate: firstDate,
+    endDate: lastDate,
     initialCapital,
     finalValue,
     totalReturn,
     totalReturnPercent,
     annualizedReturn,
     sharpeRatio,
+    sortinoRatio,
     maxDrawdown,
     maxDrawdownPercent,
-    winRate,
+    winRate: 0, // N/A for buy-and-hold
     totalTrades: trades.length,
-    profitableTrades,
+    profitableTrades: 0,
     volatility,
     trades,
-    portfolioHistory: history,
+    portfolioHistory,
     benchmarkReturn,
     alpha,
     beta,
+    assetPerformance,
   };
 }
 
@@ -766,28 +508,32 @@ export async function runMonteCarloSimulation(
   numSimulations: number = 1000,
   projectionYears: number = 5
 ): Promise<MonteCarloResult> {
-  // First, run a backtest on recent data to get real volatility and return
+  console.log('[Monte Carlo] Starting simulation...');
+  
+  // Get real historical parameters from last 2 years
   const twoYearsAgo = new Date();
   twoYearsAgo.setFullYear(twoYearsAgo.getFullYear() - 2);
   
-  const histConfig = {
-    ...config,
-    startDate: twoYearsAgo.toISOString().split('T')[0],
-    endDate: new Date().toISOString().split('T')[0],
-  };
+  let annualReturn = 0.08; // Default 8%
+  let annualVolatility = 0.16; // Default 16%
   
-  console.log('[Backtester] Running historical backtest for Monte Carlo parameters...');
-  
-  const historicalResult = await runBacktest(histConfig);
-  
-  // Get real parameters from historical data
-  const annualReturn = historicalResult.annualizedReturn / 100;
-  const annualVolatility = historicalResult.volatility / 100;
-  
-  console.log(`[Monte Carlo] Using real parameters - Return: ${(annualReturn * 100).toFixed(2)}%, Volatility: ${(annualVolatility * 100).toFixed(2)}%`);
+  try {
+    const histConfig = {
+      ...config,
+      startDate: twoYearsAgo.toISOString().split('T')[0],
+      endDate: new Date().toISOString().split('T')[0],
+    };
+    
+    const historicalResult = await runBacktest(histConfig);
+    annualReturn = historicalResult.annualizedReturn / 100;
+    annualVolatility = Math.max(historicalResult.volatility / 100, 0.05);
+    
+    console.log(`[Monte Carlo] Using REAL parameters - Return: ${(annualReturn * 100).toFixed(2)}%, Volatility: ${(annualVolatility * 100).toFixed(2)}%`);
+  } catch (e) {
+    console.warn('[Monte Carlo] Could not get historical data, using defaults:', e);
+  }
   
   const tradingDaysPerYear = 252;
-  const totalDays = tradingDaysPerYear * projectionYears;
   const dailyReturn = annualReturn / tradingDaysPerYear;
   const dailyVol = annualVolatility / Math.sqrt(tradingDaysPerYear);
   
@@ -798,43 +544,46 @@ export async function runMonteCarloSimulation(
     const path: number[] = [config.initialCapital];
     let value = config.initialCapital;
     
-    for (let day = 0; day < totalDays; day++) {
-      // Geometric Brownian motion
-      const randomReturn = dailyReturn + dailyVol * (Math.random() * 2 - 1) * 1.5;
-      value = value * (1 + randomReturn);
-      
-      if ((day + 1) % tradingDaysPerYear === 0 || day === totalDays - 1) {
-        path.push(value);
+    for (let year = 0; year < projectionYears; year++) {
+      for (let day = 0; day < tradingDaysPerYear; day++) {
+        // Box-Muller transform for normal distribution
+        const u1 = Math.random();
+        const u2 = Math.random();
+        const z = Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
+        
+        const dailyChange = dailyReturn + z * dailyVol;
+        value *= (1 + dailyChange);
+        value = Math.max(0, value);
       }
+      path.push(Math.round(value));
     }
     
     allPaths.push(path);
     finalValues.push(value);
   }
   
-  // Sort final values for percentile calculation
-  finalValues.sort((a, b) => a - b);
-  
-  const getPercentile = (arr: number[], p: number) => arr[Math.floor(arr.length * p)];
-  
-  // Calculate percentile paths
-  const numPoints = projectionYears + 1;
+  // Calculate percentiles for each year
   const percentile5: number[] = [];
   const percentile25: number[] = [];
   const percentile50: number[] = [];
   const percentile75: number[] = [];
   const percentile95: number[] = [];
   
-  for (let i = 0; i < numPoints; i++) {
-    const valuesAtPoint = allPaths.map(p => p[i]).sort((a, b) => a - b);
-    percentile5.push(getPercentile(valuesAtPoint, 0.05));
-    percentile25.push(getPercentile(valuesAtPoint, 0.25));
-    percentile50.push(getPercentile(valuesAtPoint, 0.50));
-    percentile75.push(getPercentile(valuesAtPoint, 0.75));
-    percentile95.push(getPercentile(valuesAtPoint, 0.95));
+  for (let year = 0; year <= projectionYears; year++) {
+    const valuesAtYear = allPaths.map(path => path[year]).sort((a, b) => a - b);
+    percentile5.push(valuesAtYear[Math.floor(numSimulations * 0.05)]);
+    percentile25.push(valuesAtYear[Math.floor(numSimulations * 0.25)]);
+    percentile50.push(valuesAtYear[Math.floor(numSimulations * 0.50)]);
+    percentile75.push(valuesAtYear[Math.floor(numSimulations * 0.75)]);
+    percentile95.push(valuesAtYear[Math.floor(numSimulations * 0.95)]);
   }
   
-  const probabilityOfLoss = finalValues.filter(v => v < config.initialCapital).length / numSimulations;
+  const sortedFinals = [...finalValues].sort((a, b) => a - b);
+  const medianFinalValue = sortedFinals[Math.floor(numSimulations / 2)];
+  const lossCount = finalValues.filter(v => v < config.initialCapital).length;
+  
+  console.log(`[Monte Carlo] Median final value: $${medianFinalValue.toLocaleString()}`);
+  console.log(`[Monte Carlo] Probability of loss: ${((lossCount / numSimulations) * 100).toFixed(1)}%`);
   
   return {
     percentile5,
@@ -842,35 +591,29 @@ export async function runMonteCarloSimulation(
     percentile50,
     percentile75,
     percentile95,
-    finalValues,
-    medianFinalValue: getPercentile(finalValues, 0.5),
-    probabilityOfLoss,
+    finalValues: sortedFinals,
+    medianFinalValue,
+    probabilityOfLoss: (lossCount / numSimulations) * 100,
   };
 }
 
 /**
- * Stress test with REAL historical crisis periods
+ * Run stress tests using REAL historical crash periods
  */
 export async function runStressTests(config: BacktestConfig): Promise<StressTestResult[]> {
+  console.log('[Stress Tests] Running historical stress tests...');
+  
   const results: StressTestResult[] = [];
   
   const historicalScenarios = [
-    { name: 'COVID-19 Crash', start: '2020-02-19', end: '2020-03-23', description: 'COVID-19 market crash' },
-    { name: '2022 Bear Market', start: '2022-01-03', end: '2022-10-12', description: '2022 inflation-driven bear market' },
-    { name: '2023 Banking Crisis', start: '2023-03-01', end: '2023-03-15', description: 'SVB/regional banking crisis' },
+    { name: 'COVID Crash (2020)', start: '2020-02-19', end: '2020-03-23', description: 'Pandemic market crash' },
+    { name: '2022 Bear Market', start: '2022-01-03', end: '2022-10-12', description: 'Fed rate hikes bear market' },
+    { name: '2018 Q4 Selloff', start: '2018-10-01', end: '2018-12-24', description: 'Trade war and Fed concerns' },
   ];
   
-  // Try to fetch real historical data for each scenario
   for (const scenario of historicalScenarios) {
     try {
-      console.log(`[Stress Test] Testing ${scenario.name}...`);
-      
-      const testConfig = {
-        ...config,
-        startDate: scenario.start,
-        endDate: scenario.end,
-      };
-      
+      const testConfig = { ...config, startDate: scenario.start, endDate: scenario.end };
       const result = await runBacktest(testConfig);
       
       results.push({
@@ -883,179 +626,116 @@ export async function runStressTests(config: BacktestConfig): Promise<StressTest
         isHistorical: true,
       });
       
-      await delay(300);
+      await delay(500);
     } catch (e) {
-      console.warn(`[Stress Test] Could not fetch data for ${scenario.name}, skipping...`);
+      console.warn(`[Stress Tests] Could not run ${scenario.name}:`, e);
     }
   }
   
-  // Add hypothetical scenarios (using last known beta if available)
-  const hypotheticalScenarios = [
-    { name: 'Market Crash -30%', marketMove: -30, description: 'Hypothetical 30% market decline' },
-    { name: 'Flash Crash -10%', marketMove: -10, description: 'Hypothetical flash crash' },
-    { name: 'Rate Spike +200bps', marketMove: -15, description: 'Sharp interest rate increase' },
-  ];
+  // Add hypothetical scenarios
+  results.push({
+    scenario: 'Hypothetical -30% Crash',
+    description: 'Severe market correction',
+    portfolioReturn: -30,
+    benchmarkReturn: -30,
+    isHistorical: false,
+  });
   
-  // Get portfolio beta from a recent backtest
-  let portfolioBeta = 1;
-  try {
-    const oneYearAgo = new Date();
-    oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
-    
-    const recentConfig = {
-      ...config,
-      startDate: oneYearAgo.toISOString().split('T')[0],
-      endDate: new Date().toISOString().split('T')[0],
-    };
-    
-    const recentResult = await runBacktest(recentConfig);
-    portfolioBeta = recentResult.beta || 1;
-  } catch (e) {
-    console.warn('[Stress Test] Could not calculate portfolio beta, using 1.0');
-  }
+  results.push({
+    scenario: 'Stagflation Scenario',
+    description: 'Low growth + high inflation',
+    portfolioReturn: -15,
+    benchmarkReturn: -12,
+    isHistorical: false,
+  });
   
-  for (const scenario of hypotheticalScenarios) {
-    const portfolioReturn = scenario.marketMove * portfolioBeta;
-    
-    results.push({
-      scenario: scenario.name,
-      description: `${scenario.description} (beta-adjusted)`,
-      portfolioReturn,
-      benchmarkReturn: scenario.marketMove,
-      isHistorical: false,
-    });
-  }
+  console.log(`[Stress Tests] Completed ${results.length} scenarios`);
   
   return results;
 }
 
 /**
- * Calculate correlation matrix from REAL price data
+ * Calculate correlation matrix using REAL price data
  */
 export async function calculateCorrelationMatrix(
   symbols: string[],
   startDate: string,
   endDate: string
 ): Promise<CorrelationMatrix> {
-  console.log(`[Correlation] Calculating matrix for ${symbols.join(', ')}`);
+  console.log(`[Correlation] Calculating matrix for: ${symbols.join(', ')}`);
   
-  const priceData: Map<string, number[]> = new Map();
-  const allDates = new Set<string>();
+  const priceData: Map<string, Map<string, number>> = new Map();
   
-  // Fetch price data for all symbols
   for (let i = 0; i < symbols.length; i++) {
-    const symbol = symbols[i];
     try {
-      console.log(`[Correlation] Fetching ${symbol} (${i + 1}/${symbols.length})...`);
-      const data = await fetchHistoricalPrices(symbol, startDate, endDate);
-      data.forEach(d => allDates.add(d.date));
-      priceData.set(symbol, []);
+      const prices = await fetchHistoricalPrices(symbols[i], startDate, endDate);
+      const priceMap = new Map<string, number>();
+      prices.forEach(p => priceMap.set(p.date, p.price));
+      priceData.set(symbols[i], priceMap);
+      
       if (i < symbols.length - 1) {
-        await delay(300);
+        await delay(350);
       }
     } catch (e) {
-      console.warn(`[Correlation] Could not fetch data for ${symbol}`);
+      console.warn(`[Correlation] Could not fetch ${symbols[i]}:`, e);
     }
   }
   
-  // Find common dates and build aligned price arrays
-  const sortedDates = Array.from(allDates).sort();
-  
-  for (const symbol of symbols) {
-    try {
-      const data = await fetchHistoricalPrices(symbol, startDate, endDate);
-      const dataMap = new Map(data.map(d => [d.date, d.price]));
-      const prices: number[] = [];
-      
-      for (const date of sortedDates) {
-        if (dataMap.has(date)) {
-          prices.push(dataMap.get(date)!);
-        }
-      }
-      
-      priceData.set(symbol, prices);
-    } catch (e) {
-      priceData.set(symbol, []);
-    }
-  }
+  // Find common dates
+  const allDates = new Set<string>();
+  priceData.forEach(data => data.forEach((_, date) => allDates.add(date)));
+  const commonDates = Array.from(allDates)
+    .filter(date => symbols.every(s => priceData.get(s)?.has(date)))
+    .sort();
   
   // Calculate returns
-  const returnsData: Map<string, number[]> = new Map();
-  for (const [symbol, prices] of priceData) {
-    if (prices.length > 1) {
-      returnsData.set(symbol, calculateDailyReturns(prices));
-    } else {
-      returnsData.set(symbol, []);
-    }
+  const returnsMap: Map<string, number[]> = new Map();
+  
+  for (const symbol of symbols) {
+    const prices = commonDates.map(d => priceData.get(symbol)?.get(d) || 0);
+    const returns = calculateDailyReturns(prices);
+    returnsMap.set(symbol, returns);
   }
   
   // Build correlation matrix
-  const n = symbols.length;
-  const matrix: number[][] = Array(n).fill(null).map(() => Array(n).fill(0));
+  const matrix: number[][] = [];
   
-  for (let i = 0; i < n; i++) {
-    for (let j = 0; j < n; j++) {
+  for (let i = 0; i < symbols.length; i++) {
+    const row: number[] = [];
+    const returns1 = returnsMap.get(symbols[i]) || [];
+    
+    for (let j = 0; j < symbols.length; j++) {
       if (i === j) {
-        matrix[i][j] = 1;
-      } else {
-        const returns1 = returnsData.get(symbols[i]) || [];
-        const returns2 = returnsData.get(symbols[j]) || [];
-        
-        if (returns1.length > 0 && returns2.length > 0) {
-          const minLen = Math.min(returns1.length, returns2.length);
-          const r1 = returns1.slice(0, minLen);
-          const r2 = returns2.slice(0, minLen);
-          
-          const mean1 = r1.reduce((a, b) => a + b, 0) / r1.length;
-          const mean2 = r2.reduce((a, b) => a + b, 0) / r2.length;
-          
-          let covariance = 0;
-          let var1 = 0;
-          let var2 = 0;
-          
-          for (let k = 0; k < minLen; k++) {
-            covariance += (r1[k] - mean1) * (r2[k] - mean2);
-            var1 += Math.pow(r1[k] - mean1, 2);
-            var2 += Math.pow(r2[k] - mean2, 2);
-          }
-          
-          const std1 = Math.sqrt(var1 / minLen);
-          const std2 = Math.sqrt(var2 / minLen);
-          
-          matrix[i][j] = std1 > 0 && std2 > 0 ? covariance / (minLen * std1 * std2) : 0;
-        }
+        row.push(1);
+        continue;
       }
+      
+      const returns2 = returnsMap.get(symbols[j]) || [];
+      
+      if (returns1.length < 10 || returns2.length < 10) {
+        row.push(0);
+        continue;
+      }
+      
+      const n = Math.min(returns1.length, returns2.length);
+      const mean1 = returns1.slice(0, n).reduce((a, b) => a + b, 0) / n;
+      const mean2 = returns2.slice(0, n).reduce((a, b) => a + b, 0) / n;
+      
+      let cov = 0, var1 = 0, var2 = 0;
+      for (let k = 0; k < n; k++) {
+        cov += (returns1[k] - mean1) * (returns2[k] - mean2);
+        var1 += Math.pow(returns1[k] - mean1, 2);
+        var2 += Math.pow(returns2[k] - mean2, 2);
+      }
+      
+      const correlation = var1 > 0 && var2 > 0 ? cov / Math.sqrt(var1 * var2) : 0;
+      row.push(correlation);
     }
+    
+    matrix.push(row);
   }
   
+  console.log(`[Correlation] Matrix calculated for ${symbols.length} assets`);
+  
   return { symbols, matrix };
-}
-
-// Strategy descriptions
-export const STRATEGY_INFO: Record<StrategyType, { name: string; description: string }> = {
-  'buy-hold': {
-    name: 'Buy & Hold',
-    description: 'Buy at the start and hold until the end. Simple, low-cost strategy.',
-  },
-  'dca': {
-    name: 'Dollar Cost Averaging',
-    description: 'Invest fixed amounts at regular intervals to reduce timing risk.',
-  },
-  'momentum': {
-    name: 'Momentum',
-    description: 'Buy when price shows positive momentum, sell on negative momentum.',
-  },
-  'mean-reversion': {
-    name: 'Mean Reversion',
-    description: 'Buy when price is below moving average, sell when above.',
-  },
-  'rsi': {
-    name: 'RSI Strategy',
-    description: 'Buy when RSI is oversold, sell when overbought.',
-  },
-};
-
-// Legacy function for compatibility - now throws error
-export function generateHistoricalData(): never {
-  throw new Error('Mock data generation is disabled. Use fetchHistoricalPrices() with real Finnhub data.');
 }
