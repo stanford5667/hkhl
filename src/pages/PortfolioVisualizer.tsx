@@ -35,6 +35,7 @@ import {
   FileText,
   Download,
   CircleDot,
+  BookOpen,
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -64,11 +65,13 @@ import { AIPortfolioInsights, AIPortfolioAdvice } from '@/components/backtester/
 import { EducationalDashboard } from '@/components/backtester/EducationalDashboard';
 import { InvestorPolicyQuestionnaire } from '@/components/backtester/InvestorPolicyQuestionnaire';
 import { DataValidationPanel } from '@/components/backtester/DataValidationPanel';
+import { CalculationVerificationPanel } from '@/components/backtester/CalculationVerificationPanel';
+import { MetricExplanationCard } from '@/components/shared/MetricExplanationCard';
 import { supabase } from '@/integrations/supabase/client';
 
 // NEW: Integrated services and hooks
 import { marketDataService, FetchProgress, TickerData } from '@/services/hybridMarketDataService';
-import { usePortfolioCalculations, PortfolioAllocation as CalcAllocation } from '@/hooks/usePortfolioCalculations';
+import { usePortfolioCalculations, PortfolioAllocation as CalcAllocation, CalculationTrace } from '@/hooks/usePortfolioCalculations';
 import { METRIC_DEFINITIONS, getMetricDefinition, formatMetricValue, getInterpretation } from '@/data/metricDefinitions';
 
 // Legacy services (still needed for some features)
@@ -395,6 +398,7 @@ export default function PortfolioVisualizer() {
     'regime': true,
     'allocation': true,
     'data-quality': true,
+    'understand': true,
   });
   
   const toggleTabVisibility = (tabId: string) => {
@@ -412,20 +416,33 @@ export default function PortfolioVisualizer() {
 
   const {
     metrics: calcMetrics,
+    traces: calcTraces,
     aiAnalysis,
+    dataInfo: calcDataInfo,
     correlationMatrix: calcCorrelationMatrix,
     portfolioValues: calcPortfolioValues,
     portfolioReturns: calcPortfolioReturns,
     dates: calcDates,
     isLoading: isCalcLoading,
     progress: calcProgress,
-    recalculate
+    recalculate,
+    getMetricWithTrace
   } = usePortfolioCalculations({
     allocations: calcAllocations,
     investableCapital: investorProfile.investableCapital,
     enabled: currentFlow === 'results' && allocations.length > 0,
-    includeAIAnalysis: portfolioMode === 'ai'
+    includeAIAnalysis: portfolioMode === 'ai',
+    generateTraces: true
   });
+  
+  // Check if data is stale (more than 1 day old)
+  const isDataStale = useMemo(() => {
+    if (!calcDataInfo?.endDate) return false;
+    const endDate = new Date(calcDataInfo.endDate);
+    const now = new Date();
+    const diffDays = Math.floor((now.getTime() - endDate.getTime()) / (1000 * 60 * 60 * 24));
+    return diffDays > 1;
+  }, [calcDataInfo]);
 
   // Compute data source status
   const dataSourceStatus = useMemo(() => {
@@ -1163,7 +1180,58 @@ export default function PortfolioVisualizer() {
               </div>
             </div>
             
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3">
+              {/* Data Freshness Indicator */}
+              {calcDataInfo && (
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div className={cn(
+                        "flex items-center gap-2 px-3 py-1.5 rounded-lg border text-sm",
+                        isDataStale 
+                          ? "bg-amber-500/10 border-amber-500/30 text-amber-600" 
+                          : "bg-muted/50 border-border text-muted-foreground"
+                      )}>
+                        <Clock className="h-4 w-4" />
+                        <span>Data as of: {calcDataInfo.endDate}</span>
+                        {isDataStale && (
+                          <AlertTriangle className="h-4 w-4 text-amber-500" />
+                        )}
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <div className="space-y-1">
+                        <p className="font-medium">
+                          {isDataStale ? 'Data may be stale' : 'Data is fresh'}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {calcDataInfo.tradingDays} trading days from {calcDataInfo.startDate}
+                        </p>
+                        {isDataStale && (
+                          <p className="text-xs text-amber-500">
+                            Click refresh to update with latest data
+                          </p>
+                        )}
+                      </div>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              )}
+              
+              {/* Manual Refresh Button */}
+              <Button 
+                variant={isDataStale ? "default" : "outline"} 
+                size="sm"
+                onClick={handleRefreshData}
+                disabled={isCalcLoading}
+                className={cn(
+                  isDataStale && "bg-amber-500 hover:bg-amber-600"
+                )}
+              >
+                <RefreshCw className={cn("h-4 w-4 mr-2", isCalcLoading && "animate-spin")} />
+                {isDataStale ? 'Refresh Data' : 'Refresh'}
+              </Button>
+              
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="outline" size="icon">
@@ -1188,6 +1256,13 @@ export default function PortfolioVisualizer() {
                   >
                     <GraduationCap className="h-4 w-4 mr-2" />
                     Learn
+                  </DropdownMenuCheckboxItem>
+                  <DropdownMenuCheckboxItem
+                    checked={visibleTabs['understand']}
+                    onCheckedChange={() => toggleTabVisibility('understand')}
+                  >
+                    <BookOpen className="h-4 w-4 mr-2" />
+                    Understand Results
                   </DropdownMenuCheckboxItem>
                   <DropdownMenuCheckboxItem
                     checked={visibleTabs['metrics']}
@@ -1279,7 +1354,7 @@ export default function PortfolioVisualizer() {
             const visibleTabCount = [
               portfolioMode === 'ai' && aiAdvice && visibleTabs['ai-insights'],
               visibleTabs['educational'],
-              visibleTabs['frontier'],
+              visibleTabs['understand'],
               visibleTabs['metrics'],
               visibleTabs['data-quality'],
               visibleTabs['regime'],
@@ -1289,7 +1364,7 @@ export default function PortfolioVisualizer() {
             return (
               <TabsList className={cn(
                 "grid w-full max-w-5xl mx-auto mb-6",
-                visibleTabCount === 7 ? "grid-cols-7" :
+                visibleTabCount >= 7 ? "grid-cols-7" :
                 visibleTabCount === 6 ? "grid-cols-6" :
                 visibleTabCount === 5 ? "grid-cols-5" :
                 visibleTabCount === 4 ? "grid-cols-4" :
@@ -1306,6 +1381,12 @@ export default function PortfolioVisualizer() {
                   <TabsTrigger value="educational" className="gap-2">
                     <GraduationCap className="h-4 w-4" />
                     <span className="hidden sm:inline">Learn</span>
+                  </TabsTrigger>
+                )}
+                {visibleTabs['understand'] && (
+                  <TabsTrigger value="understand" className="gap-2">
+                    <BookOpen className="h-4 w-4" />
+                    <span className="hidden sm:inline">Understand</span>
                   </TabsTrigger>
                 )}
                 {visibleTabs['metrics'] && (
@@ -1370,6 +1451,182 @@ export default function PortfolioVisualizer() {
                   <CardContent className="py-12 text-center text-muted-foreground">
                     <GraduationCap className="h-8 w-8 mx-auto mb-3 opacity-50" />
                     <p>Educational dashboard will appear after analysis</p>
+                  </CardContent>
+                </Card>
+              )}
+            </TabsContent>
+          )}
+
+          {/* Understand Your Results Tab - All metrics with MetricExplanationCard */}
+          {visibleTabs['understand'] && (
+            <TabsContent value="understand">
+              {calcMetrics ? (
+                <div className="space-y-8">
+                  {/* Returns Category */}
+                  <div>
+                    <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                      <TrendingUp className="h-5 w-5 text-emerald-500" />
+                      Returns
+                    </h3>
+                    <div className="grid gap-4 md:grid-cols-2">
+                      {calcMetrics.totalReturn !== undefined && (
+                        <MetricExplanationCard
+                          metricId="totalReturn"
+                          value={calcMetrics.totalReturn}
+                          trace={calcTraces.find(t => t.metricId === 'totalReturn')}
+                          mode="compact"
+                        />
+                      )}
+                      {calcMetrics.cagr !== undefined && (
+                        <MetricExplanationCard
+                          metricId="cagr"
+                          value={calcMetrics.cagr}
+                          trace={calcTraces.find(t => t.metricId === 'cagr')}
+                          mode="compact"
+                        />
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Risk Category */}
+                  <div>
+                    <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                      <AlertTriangle className="h-5 w-5 text-amber-500" />
+                      Risk Metrics
+                    </h3>
+                    <div className="grid gap-4 md:grid-cols-2">
+                      {calcMetrics.volatility !== undefined && (
+                        <MetricExplanationCard
+                          metricId="volatility"
+                          value={calcMetrics.volatility}
+                          trace={calcTraces.find(t => t.metricId === 'volatility')}
+                          mode="compact"
+                        />
+                      )}
+                      {calcMetrics.maxDrawdown !== undefined && (
+                        <MetricExplanationCard
+                          metricId="maxDrawdown"
+                          value={calcMetrics.maxDrawdown}
+                          trace={calcTraces.find(t => t.metricId === 'maxDrawdown')}
+                          mode="compact"
+                        />
+                      )}
+                      {calcMetrics.var95 !== undefined && (
+                        <MetricExplanationCard
+                          metricId="var95"
+                          value={calcMetrics.var95}
+                          trace={calcTraces.find(t => t.metricId === 'var95')}
+                          mode="compact"
+                        />
+                      )}
+                      {calcMetrics.cvar95 !== undefined && (
+                        <MetricExplanationCard
+                          metricId="cvar95"
+                          value={calcMetrics.cvar95}
+                          trace={calcTraces.find(t => t.metricId === 'cvar95')}
+                          mode="compact"
+                        />
+                      )}
+                      {calcMetrics.ulcerIndex !== undefined && (
+                        <MetricExplanationCard
+                          metricId="ulcerIndex"
+                          value={calcMetrics.ulcerIndex}
+                          trace={calcTraces.find(t => t.metricId === 'ulcerIndex')}
+                          mode="compact"
+                        />
+                      )}
+                      {calcMetrics.tailRatio !== undefined && (
+                        <MetricExplanationCard
+                          metricId="tailRatio"
+                          value={calcMetrics.tailRatio}
+                          trace={calcTraces.find(t => t.metricId === 'tailRatio')}
+                          mode="compact"
+                        />
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Risk-Adjusted Category */}
+                  <div>
+                    <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                      <Target className="h-5 w-5 text-blue-500" />
+                      Risk-Adjusted Performance
+                    </h3>
+                    <div className="grid gap-4 md:grid-cols-2">
+                      {calcMetrics.sharpeRatio !== undefined && (
+                        <MetricExplanationCard
+                          metricId="sharpeRatio"
+                          value={calcMetrics.sharpeRatio}
+                          trace={calcTraces.find(t => t.metricId === 'sharpeRatio')}
+                          mode="compact"
+                        />
+                      )}
+                      {calcMetrics.sortinoRatio !== undefined && (
+                        <MetricExplanationCard
+                          metricId="sortinoRatio"
+                          value={calcMetrics.sortinoRatio}
+                          trace={calcTraces.find(t => t.metricId === 'sortinoRatio')}
+                          mode="compact"
+                        />
+                      )}
+                      {calcMetrics.calmarRatio !== undefined && (
+                        <MetricExplanationCard
+                          metricId="calmarRatio"
+                          value={calcMetrics.calmarRatio}
+                          trace={calcTraces.find(t => t.metricId === 'calmarRatio')}
+                          mode="compact"
+                        />
+                      )}
+                      {calcMetrics.omegaRatio !== undefined && (
+                        <MetricExplanationCard
+                          metricId="omegaRatio"
+                          value={calcMetrics.omegaRatio}
+                          trace={calcTraces.find(t => t.metricId === 'omegaRatio')}
+                          mode="compact"
+                        />
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Benchmark Comparison Category */}
+                  <div>
+                    <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                      <Activity className="h-5 w-5 text-purple-500" />
+                      Benchmark Comparison
+                    </h3>
+                    <div className="grid gap-4 md:grid-cols-2">
+                      {calcMetrics.alpha !== undefined && (
+                        <MetricExplanationCard
+                          metricId="alpha"
+                          value={calcMetrics.alpha}
+                          trace={calcTraces.find(t => t.metricId === 'alpha')}
+                          mode="compact"
+                        />
+                      )}
+                      {calcMetrics.beta !== undefined && (
+                        <MetricExplanationCard
+                          metricId="beta"
+                          value={calcMetrics.beta}
+                          trace={calcTraces.find(t => t.metricId === 'beta')}
+                          mode="compact"
+                        />
+                      )}
+                      {calcMetrics.informationRatio !== undefined && (
+                        <MetricExplanationCard
+                          metricId="informationRatio"
+                          value={calcMetrics.informationRatio}
+                          trace={calcTraces.find(t => t.metricId === 'informationRatio')}
+                          mode="compact"
+                        />
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <Card>
+                  <CardContent className="py-12 text-center text-muted-foreground">
+                    <BookOpen className="h-8 w-8 mx-auto mb-3 opacity-50" />
+                    <p>Metric explanations will appear after analysis</p>
                   </CardContent>
                 </Card>
               )}
@@ -1560,9 +1817,27 @@ export default function PortfolioVisualizer() {
           )}
         </Tabs>
 
+        {/* Calculation Verification Panel - Collapsible at bottom */}
+        {calcMetrics && calcDataInfo && resultsTab !== 'data-quality' && (
+          <div className="mt-8">
+            <CalculationVerificationPanel
+              metrics={calcMetrics as unknown as Record<string, number>}
+              traces={calcTraces}
+              dataInfo={{
+                startDate: calcDataInfo.startDate,
+                endDate: calcDataInfo.endDate,
+                tradingDays: calcDataInfo.tradingDays,
+                dataSource: calcDataInfo.dataSource
+              }}
+              allocations={calcAllocations.map(a => ({ ticker: a.ticker, weight: a.weight }))}
+              onRecalculate={recalculate}
+            />
+          </div>
+        )}
+
         {/* Data Validation Panel - Collapsed at bottom */}
         {validationData && resultsTab !== 'data-quality' && (
-          <div className="mt-8">
+          <div className="mt-4">
             <DataValidationPanel
               dataSources={validationData.dataSources}
               calculations={validationData.calculations}
