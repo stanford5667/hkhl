@@ -1,11 +1,13 @@
 // Efficient Frontier Calculation Service
 // Generates risk-return tradeoff curve for portfolio optimization
+// Aligned with Portfolio Visualizer methodology
 
 import { CorrelationMatrix } from './backtesterService';
 import { AssetData } from './portfolioOptimizer';
 import { EfficientFrontierPoint } from '@/types/portfolio';
 
 const NUM_FRONTIER_POINTS = 50;
+const RISK_FREE_RATE = 0.05; // 5% annual
 
 /**
  * Generate random portfolio weights
@@ -25,6 +27,7 @@ function portfolioReturn(weights: number[], returns: number[]): number {
 
 /**
  * Calculate portfolio risk (standard deviation) given weights and covariance matrix
+ * Using proper portfolio variance: w' * Σ * w
  */
 function portfolioRisk(weights: number[], covariance: number[][]): number {
   let variance = 0;
@@ -41,6 +44,7 @@ function portfolioRisk(weights: number[], covariance: number[][]): number {
 
 /**
  * Convert correlation matrix to covariance using volatilities
+ * Cov(i,j) = Corr(i,j) * σi * σj
  */
 function correlationToCovariance(
   correlationMatrix: CorrelationMatrix,
@@ -65,6 +69,7 @@ function correlationToCovariance(
 
 /**
  * Generate efficient frontier using Monte Carlo simulation
+ * Returns are expressed as annualized percentages
  */
 export function generateEfficientFrontier(
   correlationMatrix: CorrelationMatrix,
@@ -79,7 +84,18 @@ export function generateEfficientFrontier(
   console.log('[EfficientFrontier] Generating frontier for', n, 'assets');
   
   // Get expected returns from asset data
-  const expectedReturns = symbols.map(s => (assetData.get(s)?.avgReturn || 0.08) * 100);
+  // avgReturn should already be annualized, convert to percentage
+  const expectedReturns = symbols.map(s => {
+    const data = assetData.get(s);
+    if (data && data.avgReturn !== undefined) {
+      // avgReturn is already annualized (from daily returns * 252)
+      return data.avgReturn * 100;
+    }
+    // Default to 8% if no data
+    return 8;
+  });
+  
+  console.log('[EfficientFrontier] Expected returns:', expectedReturns.map(r => r.toFixed(2) + '%'));
   
   // Convert to covariance matrix
   const covariance = correlationToCovariance(correlationMatrix, assetData);
