@@ -23,6 +23,18 @@ export interface AssetData {
   volatility: number;
 }
 
+export interface TickerFetchResult {
+  ticker: string;
+  success: boolean;
+  bars?: number;
+  error?: string;
+}
+
+export interface FetchHistoryResult {
+  assetData: Map<string, AssetData>;
+  diagnostics: TickerFetchResult[];
+}
+
 export interface RegimeSignal {
   timestamp: number;
   turbulenceIndex: number;
@@ -310,8 +322,9 @@ class PolygonDataHandler {
     startDate: string,
     endDate: string,
     onProgress?: (msg: string, pct: number) => void
-  ): Promise<Map<string, AssetData>> {
+  ): Promise<FetchHistoryResult> {
     const assetData = new Map<string, AssetData>();
+    const diagnostics: TickerFetchResult[] = [];
 
     for (let i = 0; i < tickers.length; i++) {
       const ticker = tickers[i];
@@ -325,6 +338,7 @@ class PolygonDataHandler {
 
         if (bars.length === 0) {
           console.warn('[Polygon] No data for', ticker);
+          diagnostics.push({ ticker, success: false, error: 'No data returned' });
           continue;
         }
 
@@ -342,9 +356,12 @@ class PolygonDataHandler {
           volatility,
         });
 
+        diagnostics.push({ ticker, success: true, bars: bars.length });
         console.log('[Polygon]', ticker, '- Vol:', (volatility * 100).toFixed(2) + '%');
       } catch (error) {
+        const errorMsg = error instanceof Error ? error.message : 'Unknown error';
         console.error('[Polygon] Failed to fetch', ticker, ':', error);
+        diagnostics.push({ ticker, success: false, error: errorMsg });
         // Continue with other tickers
       }
 
@@ -353,7 +370,7 @@ class PolygonDataHandler {
     }
 
     onProgress?.('Data fetching complete', 100);
-    return assetData;
+    return { assetData, diagnostics };
   }
 
   getRegimeProxy(assetData: Map<string, AssetData>, lookbackDays: number = 60): RegimeSignal[] {
