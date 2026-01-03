@@ -1,5 +1,5 @@
 // Portfolio Visualizer - Institutional Multi-Asset Management Suite
-// Replaces legacy single-asset backtester with "Build from Scratch" vs "AI Suggestion" flows
+// "Choose Your Path" experience: Manual vs AI Co-Pilot modes
 
 import { useState, useMemo, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
@@ -12,20 +12,15 @@ import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import {
   ArrowLeft,
-  ArrowRight,
-  Play,
   RefreshCw,
   Loader2,
   BarChart3,
   Target,
   Shield,
-  Sparkles,
   TrendingUp,
   AlertTriangle,
-  CheckCircle2,
-  FileText,
-  Settings,
-  Brain
+  Brain,
+  Settings
 } from 'lucide-react';
 
 // Types
@@ -34,14 +29,13 @@ import {
   PortfolioMode, 
   PortfolioAllocation,
   EfficientFrontierPoint,
-  ASSET_CLASS_ETFS
 } from '@/types/portfolio';
 import { AssetData as PolygonAssetData, CorrelationMatrix as PolygonCorrelationMatrix } from '@/services/polygonDataHandler';
 
 // Components
-import { InvestorProfileForm } from '@/components/backtester/InvestorProfileForm';
-import { PortfolioModeSelection } from '@/components/backtester/PortfolioModeSelection';
-import { ManualPortfolioBuilder } from '@/components/backtester/ManualPortfolioBuilder';
+import { ChooseYourPath } from '@/components/backtester/ChooseYourPath';
+import { AICoPilotWizard } from '@/components/backtester/AICoPilotWizard';
+import { ManualPortfolioForm } from '@/components/backtester/ManualPortfolioForm';
 import { EfficientFrontierSlider } from '@/components/backtester/EfficientFrontierSlider';
 import { AdvancedMetricsDashboard } from '@/components/backtester/AdvancedMetricsDashboard';
 import { AIPortfolioInsights, AIPortfolioAdvice } from '@/components/backtester/AIPortfolioInsights';
@@ -49,13 +43,13 @@ import { supabase } from '@/integrations/supabase/client';
 
 // Services
 import { polygonData } from '@/services/polygonDataHandler';
-import { HierarchicalRiskParity, AssetData } from '@/services/portfolioOptimizer';
+import { AssetData } from '@/services/portfolioOptimizer';
 import { CorrelationMatrix } from '@/services/backtesterService';
-import { blackLittermanOptimizer, InvestorView } from '@/services/blackLittermanOptimizer';
+import { blackLittermanOptimizer } from '@/services/blackLittermanOptimizer';
 import { calculateAllAdvancedMetrics, AdvancedRiskMetrics } from '@/services/advancedMetricsService';
 import { generateEfficientFrontier, findOptimalPortfolio } from '@/services/efficientFrontierService';
 
-type WizardStep = 'profile' | 'mode' | 'build' | 'results';
+type AppFlow = 'choose-path' | 'manual-form' | 'ai-wizard' | 'analyzing' | 'results';
 
 const DEFAULT_PROFILE: InvestorProfile = {
   investableCapital: 100000,
@@ -67,10 +61,10 @@ const DEFAULT_PROFILE: InvestorProfile = {
 };
 
 export default function PortfolioVisualizer() {
-  // Wizard state
-  const [currentStep, setCurrentStep] = useState<WizardStep>('profile');
-  const [investorProfile, setInvestorProfile] = useState<InvestorProfile>(DEFAULT_PROFILE);
+  // Flow state
+  const [currentFlow, setCurrentFlow] = useState<AppFlow>('choose-path');
   const [portfolioMode, setPortfolioMode] = useState<PortfolioMode | null>(null);
+  const [investorProfile, setInvestorProfile] = useState<InvestorProfile>(DEFAULT_PROFILE);
   const [allocations, setAllocations] = useState<PortfolioAllocation[]>([]);
   
   // Analysis state
@@ -101,52 +95,12 @@ export default function PortfolioVisualizer() {
   // Results tab
   const [resultsTab, setResultsTab] = useState('frontier');
 
-  // Navigation
-  const steps: WizardStep[] = ['profile', 'mode', 'build', 'results'];
-  const stepIndex = steps.indexOf(currentStep);
-  
-  const canProceed = useMemo(() => {
-    switch (currentStep) {
-      case 'profile':
-        return investorProfile.assetUniverse.length > 0 && investorProfile.investableCapital > 0;
-      case 'mode':
-        return portfolioMode !== null;
-      case 'build':
-        if (portfolioMode === 'manual') {
-          const total = allocations.reduce((sum, a) => sum + a.weight, 0);
-          return allocations.length > 0 && Math.abs(total - 100) < 0.1;
-        }
-        return true; // AI mode auto-generates
-      default:
-        return true;
-    }
-  }, [currentStep, investorProfile, portfolioMode, allocations]);
-
-  const goNext = () => {
-    const idx = steps.indexOf(currentStep);
-    if (idx < steps.length - 1) {
-      if (currentStep === 'build') {
-        runAnalysis();
-      } else {
-        setCurrentStep(steps[idx + 1]);
-      }
-    }
-  };
-
-  const goBack = () => {
-    const idx = steps.indexOf(currentStep);
-    if (idx > 0) {
-      setCurrentStep(steps[idx - 1]);
-      setError(null);
-    }
-  };
-
   // Generate AI portfolio based on profile
-  const generateAIPortfolio = useCallback(() => {
+  const generateAIPortfolio = useCallback((profile: InvestorProfile): PortfolioAllocation[] => {
     const suggestions: PortfolioAllocation[] = [];
     
     // Based on JP Morgan 60/40+ framework
-    const hasAlternatives = investorProfile.assetUniverse.some(a => 
+    const hasAlternatives = profile.assetUniverse.some(a => 
       ['crypto', 'commodities', 'real_estate'].includes(a)
     );
     
@@ -156,10 +110,10 @@ export default function PortfolioVisualizer() {
     let altWeight = hasAlternatives ? 30 : 0;
     
     // Adjust based on risk tolerance
-    if (investorProfile.riskTolerance > 70) {
+    if (profile.riskTolerance > 70) {
       equityWeight = 75;
       bondWeight = 15;
-    } else if (investorProfile.riskTolerance < 30) {
+    } else if (profile.riskTolerance < 30) {
       equityWeight = 40;
       bondWeight = 50;
     }
@@ -171,27 +125,27 @@ export default function PortfolioVisualizer() {
     altWeight = (altWeight / total) * 100;
     
     // Add equity ETFs
-    if (investorProfile.assetUniverse.includes('stocks') || investorProfile.assetUniverse.includes('etfs')) {
+    if (profile.assetUniverse.includes('stocks') || profile.assetUniverse.includes('etfs')) {
       suggestions.push({ symbol: 'VTI', weight: equityWeight * 0.6, assetClass: 'etfs', name: 'Total Stock Market' });
       suggestions.push({ symbol: 'VEA', weight: equityWeight * 0.25, assetClass: 'etfs', name: 'International' });
       suggestions.push({ symbol: 'VWO', weight: equityWeight * 0.15, assetClass: 'etfs', name: 'Emerging Markets' });
     }
     
     // Add bonds
-    if (investorProfile.assetUniverse.includes('bonds')) {
+    if (profile.assetUniverse.includes('bonds')) {
       suggestions.push({ symbol: 'BND', weight: bondWeight * 0.7, assetClass: 'bonds', name: 'Total Bond' });
       suggestions.push({ symbol: 'TIP', weight: bondWeight * 0.3, assetClass: 'bonds', name: 'TIPS' });
     }
     
     // Add alternatives
-    if (investorProfile.assetUniverse.includes('real_estate')) {
+    if (profile.assetUniverse.includes('real_estate')) {
       suggestions.push({ symbol: 'VNQ', weight: altWeight * 0.4, assetClass: 'real_estate', name: 'Real Estate' });
     }
-    if (investorProfile.assetUniverse.includes('commodities')) {
+    if (profile.assetUniverse.includes('commodities')) {
       suggestions.push({ symbol: 'GLD', weight: altWeight * 0.3, assetClass: 'commodities', name: 'Gold' });
       suggestions.push({ symbol: 'DBC', weight: altWeight * 0.15, assetClass: 'commodities', name: 'Commodities' });
     }
-    if (investorProfile.assetUniverse.includes('crypto') && investorProfile.liquidityConstraint === 'locked') {
+    if (profile.assetUniverse.includes('crypto') && profile.liquidityConstraint === 'locked') {
       suggestions.push({ symbol: 'BITO', weight: altWeight * 0.15, assetClass: 'crypto', name: 'Bitcoin ETF' });
     }
     
@@ -209,32 +163,33 @@ export default function PortfolioVisualizer() {
       normalized[0].weight = Math.round(normalized[0].weight * 10) / 10;
     }
     
-    setAllocations(normalized);
-  }, [investorProfile]);
+    return normalized;
+  }, []);
 
   // Run full analysis
-  const runAnalysis = async () => {
+  const runAnalysis = async (profile: InvestorProfile, allocs: PortfolioAllocation[], mode: PortfolioMode) => {
+    setCurrentFlow('analyzing');
     setIsAnalyzing(true);
     setError(null);
     setProgress({ message: 'Initializing...', percent: 0 });
     
     try {
-      let finalAllocations = allocations;
+      let finalAllocations = allocs;
       
       // For AI mode, call the AI advisor edge function
-      if (portfolioMode === 'ai') {
+      if (mode === 'ai') {
         setProgress({ message: 'Consulting AI Portfolio Advisor...', percent: 5 });
         setIsLoadingAI(true);
         
         try {
           const { data, error: fnError } = await supabase.functions.invoke('ai-portfolio-advisor', {
-            body: { investorProfile }
+            body: { investorProfile: profile }
           });
           
           if (fnError) {
             console.error('[AI Advisor] Function error:', fnError);
             toast.error('AI Advisor unavailable, using fallback suggestions');
-            generateAIPortfolio();
+            finalAllocations = generateAIPortfolio(profile);
           } else if (data?.success && data.data) {
             const advice = data.data as AIPortfolioAdvice;
             setAiAdvice(advice);
@@ -246,31 +201,25 @@ export default function PortfolioVisualizer() {
               weight: a.weight,
               assetClass: a.assetClass as any,
             }));
-            setAllocations(finalAllocations);
             
             toast.success(`AI generated: ${advice.portfolioName}`);
           } else {
             console.error('[AI Advisor] Response error:', data?.error);
             toast.error(data?.error || 'AI Advisor failed, using fallback');
-            generateAIPortfolio();
+            finalAllocations = generateAIPortfolio(profile);
           }
         } catch (aiError) {
           console.error('[AI Advisor] Error:', aiError);
           toast.error('AI Advisor unavailable, using fallback');
-          generateAIPortfolio();
+          finalAllocations = generateAIPortfolio(profile);
         }
         
         setIsLoadingAI(false);
-        await new Promise(r => setTimeout(r, 100));
-        finalAllocations = allocations;
       }
       
-      // Use current allocations if AI didn't update yet
-      const tickers = finalAllocations.length > 0 
-        ? finalAllocations.map(a => a.symbol) 
-        : portfolioMode === 'ai' 
-          ? ['VTI', 'BND', 'VNQ', 'GLD'] 
-          : allocations.map(a => a.symbol);
+      setAllocations(finalAllocations);
+      
+      const tickers = finalAllocations.map(a => a.symbol);
       
       if (tickers.length === 0) {
         throw new Error('No assets selected for analysis');
@@ -320,17 +269,15 @@ export default function PortfolioVisualizer() {
       setEfficientFrontier(frontier);
       
       // Find optimal point based on risk tolerance
-      const optimalPoint = findOptimalPortfolio(frontier, investorProfile.riskTolerance);
+      const optimalPoint = findOptimalPortfolio(frontier, profile.riskTolerance);
       setSelectedPoint(optimalPoint);
       
       setProgress({ message: 'Calculating advanced metrics...', percent: 75 });
       
       // Calculate metrics for selected point using REAL returns data
       if (optimalPoint && fetchResult.assetData.size > 0) {
-        // Get the weights from the optimal portfolio
         const weights = optimalPoint.weights;
         
-        // Find the minimum length of returns across all assets
         let minLength = Infinity;
         fetchResult.assetData.forEach((asset) => {
           if (asset.returns.length < minLength) {
@@ -338,7 +285,6 @@ export default function PortfolioVisualizer() {
           }
         });
         
-        // Calculate weighted portfolio returns from real asset returns
         const portfolioReturns: number[] = [];
         for (let i = 0; i < minLength; i++) {
           let dayReturn = 0;
@@ -351,9 +297,8 @@ export default function PortfolioVisualizer() {
           portfolioReturns.push(dayReturn);
         }
         
-        // Calculate portfolio value series from real returns
-        const portfolioValues: number[] = [investorProfile.investableCapital];
-        let value = investorProfile.investableCapital;
+        const portfolioValues: number[] = [profile.investableCapital];
+        let value = profile.investableCapital;
         for (const dailyReturn of portfolioReturns) {
           value *= (1 + dailyReturn);
           portfolioValues.push(value);
@@ -367,8 +312,8 @@ export default function PortfolioVisualizer() {
           portfolioValues,
           optimalPoint.weights,
           optimalPoint.return,
-          15, // benchmark for tracking error
-          1,  // years
+          15,
+          1,
           undefined
         );
         setAdvancedMetrics(metrics);
@@ -377,9 +322,9 @@ export default function PortfolioVisualizer() {
       setProgress({ message: 'Running Black-Litterman analysis...', percent: 85 });
       
       // Run Black-Litterman for manual mode
-      if (portfolioMode === 'manual' && allocations.length > 0 && corrMatrix) {
+      if (mode === 'manual' && finalAllocations.length > 0 && corrMatrix) {
         const userWeights = new Map<string, number>();
-        allocations.forEach(a => userWeights.set(a.symbol, a.weight / 100));
+        finalAllocations.forEach(a => userWeights.set(a.symbol, a.weight / 100));
         
         const backtesterCorrForBL: CorrelationMatrix = { symbols: corrMatrix.tickers, matrix: corrMatrix.matrix };
         
@@ -400,11 +345,10 @@ export default function PortfolioVisualizer() {
       setProgress({ message: 'Complete!', percent: 100 });
       
       setTimeout(() => {
-        setCurrentStep('results');
+        setCurrentFlow('results');
         setIsAnalyzing(false);
         setProgress({ message: '', percent: 0 });
-        // Default to AI Insights tab if we have AI advice
-        if (portfolioMode === 'ai' && aiAdvice) {
+        if (mode === 'ai' && aiAdvice) {
           setResultsTab('ai-insights');
         }
         toast.success('Portfolio analysis complete!');
@@ -414,8 +358,31 @@ export default function PortfolioVisualizer() {
       console.error('Analysis error:', err);
       setError(err instanceof Error ? err.message : 'Analysis failed');
       setIsAnalyzing(false);
+      setCurrentFlow('choose-path');
       setProgress({ message: '', percent: 0 });
     }
+  };
+
+  // Handle manual form completion
+  const handleManualComplete = (data: { capital: number; horizon: number; allocations: PortfolioAllocation[] }) => {
+    const profile: InvestorProfile = {
+      ...DEFAULT_PROFILE,
+      investableCapital: data.capital,
+      investmentHorizon: data.horizon,
+    };
+    setInvestorProfile(profile);
+    setAllocations(data.allocations);
+    setPortfolioMode('manual');
+    runAnalysis(profile, data.allocations, 'manual');
+  };
+
+  // Handle AI wizard completion
+  const handleAIComplete = (profile: InvestorProfile) => {
+    setInvestorProfile(profile);
+    setPortfolioMode('ai');
+    const aiAllocations = generateAIPortfolio(profile);
+    setAllocations(aiAllocations);
+    runAnalysis(profile, aiAllocations, 'ai');
   };
 
   // Update selected point when risk tolerance changes
@@ -427,7 +394,7 @@ export default function PortfolioVisualizer() {
 
   // Reset to start
   const resetWizard = () => {
-    setCurrentStep('profile');
+    setCurrentFlow('choose-path');
     setPortfolioMode(null);
     setAllocations([]);
     setEfficientFrontier([]);
@@ -436,8 +403,64 @@ export default function PortfolioVisualizer() {
     setBlAnalysis(null);
     setAiAdvice(null);
     setError(null);
+    setInvestorProfile(DEFAULT_PROFILE);
   };
 
+  // Render based on current flow
+  if (currentFlow === 'choose-path') {
+    return (
+      <div className="min-h-screen bg-background">
+        <ChooseYourPath
+          onSelectManual={() => setCurrentFlow('manual-form')}
+          onSelectAI={() => setCurrentFlow('ai-wizard')}
+        />
+      </div>
+    );
+  }
+
+  if (currentFlow === 'manual-form') {
+    return (
+      <div className="min-h-screen bg-background">
+        <ManualPortfolioForm
+          onComplete={handleManualComplete}
+          onBack={() => setCurrentFlow('choose-path')}
+        />
+      </div>
+    );
+  }
+
+  if (currentFlow === 'ai-wizard') {
+    return (
+      <div className="min-h-screen bg-background">
+        <AICoPilotWizard
+          onComplete={handleAIComplete}
+          onBack={() => setCurrentFlow('choose-path')}
+        />
+      </div>
+    );
+  }
+
+  if (currentFlow === 'analyzing') {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-6">
+        <Card className="w-full max-w-lg">
+          <CardContent className="py-12">
+            <div className="text-center mb-8">
+              <Loader2 className="h-12 w-12 animate-spin text-primary mx-auto mb-4" />
+              <h2 className="text-xl font-bold mb-2">Analyzing Your Portfolio</h2>
+              <p className="text-muted-foreground">{progress.message}</p>
+            </div>
+            <Progress value={progress.percent} className="h-2" />
+            <p className="text-center text-sm text-muted-foreground mt-2">
+              {progress.percent}% complete
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Results view
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
@@ -449,41 +472,17 @@ export default function PortfolioVisualizer() {
                 <BarChart3 className="h-6 w-6 text-purple-500" />
               </div>
               <div>
-                <h1 className="text-xl font-bold">Portfolio Visualizer</h1>
+                <h1 className="text-xl font-bold">Portfolio Analysis Results</h1>
                 <p className="text-sm text-muted-foreground">
-                  Institutional-grade portfolio optimization
+                  {portfolioMode === 'ai' ? 'AI Co-Pilot' : 'Manual'} • {allocations.length} assets • {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(investorProfile.investableCapital)}
                 </p>
               </div>
             </div>
             
-            {/* Step indicator */}
-            <div className="flex items-center gap-2">
-              {steps.map((step, idx) => (
-                <div key={step} className="flex items-center">
-                  <div className={cn(
-                    "w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-colors",
-                    idx < stepIndex ? "bg-primary text-primary-foreground" :
-                    idx === stepIndex ? "bg-primary/20 text-primary border-2 border-primary" :
-                    "bg-muted text-muted-foreground"
-                  )}>
-                    {idx < stepIndex ? <CheckCircle2 className="h-4 w-4" /> : idx + 1}
-                  </div>
-                  {idx < steps.length - 1 && (
-                    <div className={cn(
-                      "w-8 h-0.5 mx-1",
-                      idx < stepIndex ? "bg-primary" : "bg-muted"
-                    )} />
-                  )}
-                </div>
-              ))}
-            </div>
-            
-            {currentStep === 'results' && (
-              <Button variant="outline" onClick={resetWizard}>
-                <RefreshCw className="h-4 w-4 mr-2" />
-                Start Over
-              </Button>
-            )}
+            <Button variant="outline" onClick={resetWizard}>
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Start Over
+            </Button>
           </div>
         </div>
       </div>
@@ -497,270 +496,167 @@ export default function PortfolioVisualizer() {
             <AlertDescription>{error}</AlertDescription>
           </Alert>
         )}
-        
-        {/* Loading State */}
-        {isAnalyzing && (
-          <Card className="mb-6">
-            <CardContent className="py-6">
-              <div className="flex items-center gap-4">
-                <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                <div className="flex-1">
-                  <p className="font-medium">{progress.message}</p>
-                  <Progress value={progress.percent} className="mt-2" />
+
+        <Tabs value={resultsTab} onValueChange={setResultsTab}>
+          <TabsList className={cn(
+            "grid w-full max-w-3xl mx-auto mb-6",
+            portfolioMode === 'ai' && aiAdvice ? "grid-cols-5" : "grid-cols-4"
+          )}>
+            {portfolioMode === 'ai' && aiAdvice && (
+              <TabsTrigger value="ai-insights" className="gap-2">
+                <Brain className="h-4 w-4" />
+                AI Insights
+              </TabsTrigger>
+            )}
+            <TabsTrigger value="frontier" className="gap-2">
+              <Target className="h-4 w-4" />
+              Frontier
+            </TabsTrigger>
+            <TabsTrigger value="metrics" className="gap-2">
+              <BarChart3 className="h-4 w-4" />
+              Metrics
+            </TabsTrigger>
+            <TabsTrigger value="regime" className="gap-2">
+              <Shield className="h-4 w-4" />
+              Regime
+            </TabsTrigger>
+            <TabsTrigger value="allocation" className="gap-2">
+              <Settings className="h-4 w-4" />
+              Allocation
+            </TabsTrigger>
+          </TabsList>
+
+          {/* AI Insights Tab */}
+          {portfolioMode === 'ai' && aiAdvice && (
+            <TabsContent value="ai-insights">
+              <AIPortfolioInsights 
+                advice={aiAdvice} 
+                investableCapital={investorProfile.investableCapital} 
+              />
+            </TabsContent>
+          )}
+
+          <TabsContent value="frontier">
+            <EfficientFrontierSlider
+              frontierPoints={efficientFrontier}
+              selectedPoint={selectedPoint}
+              onRiskToleranceChange={handleRiskToleranceChange}
+              riskTolerance={riskTolerance}
+            />
+          </TabsContent>
+
+          <TabsContent value="metrics">
+            {advancedMetrics ? (
+              <AdvancedMetricsDashboard metrics={advancedMetrics} />
+            ) : (
+              <Card>
+                <CardContent className="py-12 text-center text-muted-foreground">
+                  <BarChart3 className="h-8 w-8 mx-auto mb-3 opacity-50" />
+                  <p>Advanced metrics will appear after analysis</p>
+                </CardContent>
+              </Card>
+            )}
+          </TabsContent>
+
+          <TabsContent value="regime">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <Shield className="h-4 w-4 text-amber-500" />
+                  Macro-Regime Stress Testing
+                </CardTitle>
+                <CardDescription>
+                  Performance during "Monetary Dominance" vs "Fiscal Activism" periods
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid md:grid-cols-2 gap-6">
+                  <div className="p-4 rounded-lg border border-emerald-500/30 bg-emerald-500/5">
+                    <div className="flex items-center gap-2 mb-3">
+                      <TrendingUp className="h-5 w-5 text-emerald-500" />
+                      <span className="font-medium">Monetary Dominance</span>
+                    </div>
+                    <p className="text-sm text-muted-foreground mb-3">
+                      Low inflation, central bank control (2010-2019)
+                    </p>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between">
+                        <span>Expected Return:</span>
+                        <span className="text-emerald-500">+12.5%</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Volatility:</span>
+                        <span>14.2%</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="p-4 rounded-lg border border-rose-500/30 bg-rose-500/5">
+                    <div className="flex items-center gap-2 mb-3">
+                      <AlertTriangle className="h-5 w-5 text-rose-500" />
+                      <span className="font-medium">Fiscal Activism</span>
+                    </div>
+                    <p className="text-sm text-muted-foreground mb-3">
+                      High inflation/volatility (2020-2022, projected 2025-2036)
+                    </p>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between">
+                        <span>Expected Return:</span>
+                        <span className="text-rose-500">+4.2%</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Volatility:</span>
+                        <span>28.5%</span>
+                      </div>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
-        )}
+                <Alert className="mt-4">
+                  <Brain className="h-4 w-4" />
+                  <AlertDescription>
+                    <strong>2025-2036 Projection:</strong> Fiscal Activism regime expected. 
+                    Consider increasing commodity and real asset exposure for inflation protection.
+                  </AlertDescription>
+                </Alert>
+              </CardContent>
+            </Card>
+          </TabsContent>
 
-        {/* Step Content */}
-        {currentStep === 'profile' && (
-          <div className="space-y-6">
-            <div className="text-center max-w-2xl mx-auto mb-8">
-              <h2 className="text-2xl font-bold mb-2">Investor Profile</h2>
-              <p className="text-muted-foreground">
-                Tell us about your investment constraints to generate an optimal portfolio.
-              </p>
-            </div>
-            <InvestorProfileForm 
-              profile={investorProfile} 
-              onProfileChange={setInvestorProfile} 
-            />
-          </div>
-        )}
-
-        {currentStep === 'mode' && (
-          <div className="space-y-6">
-            <div className="text-center max-w-2xl mx-auto mb-8">
-              <h2 className="text-2xl font-bold mb-2">Choose Your Approach</h2>
-              <p className="text-muted-foreground">
-                Build your own portfolio or let our AI generate one based on your profile.
-              </p>
-            </div>
-            <PortfolioModeSelection 
-              selectedMode={portfolioMode}
-              onModeSelect={(mode) => {
-                setPortfolioMode(mode);
-                if (mode === 'ai') {
-                  generateAIPortfolio();
-                }
-              }}
-            />
-          </div>
-        )}
-
-        {currentStep === 'build' && (
-          <div className="space-y-6">
-            <div className="text-center max-w-2xl mx-auto mb-8">
-              <h2 className="text-2xl font-bold mb-2">
-                {portfolioMode === 'manual' ? 'Build Your Portfolio' : 'AI-Generated Portfolio'}
-              </h2>
-              <p className="text-muted-foreground">
-                {portfolioMode === 'manual' 
-                  ? 'Select tickers and assign weights. We\'ll analyze using Black-Litterman.'
-                  : 'Review and customize the AI-suggested allocations based on your profile.'}
-              </p>
-            </div>
-            <ManualPortfolioBuilder
-              allocations={allocations}
-              onAllocationsChange={setAllocations}
-              assetUniverse={investorProfile.assetUniverse}
-              blackLittermanAnalysis={blAnalysis || undefined}
-            />
-          </div>
-        )}
-
-        {currentStep === 'results' && (
-          <div className="space-y-6">
-            <Tabs value={resultsTab} onValueChange={setResultsTab}>
-              <TabsList className={cn(
-                "grid w-full max-w-3xl mx-auto",
-                portfolioMode === 'ai' && aiAdvice ? "grid-cols-5" : "grid-cols-4"
-              )}>
-                {portfolioMode === 'ai' && aiAdvice && (
-                  <TabsTrigger value="ai-insights" className="gap-2">
-                    <Brain className="h-4 w-4" />
-                    AI Insights
-                  </TabsTrigger>
-                )}
-                <TabsTrigger value="frontier" className="gap-2">
-                  <Target className="h-4 w-4" />
-                  Frontier
-                </TabsTrigger>
-                <TabsTrigger value="metrics" className="gap-2">
-                  <BarChart3 className="h-4 w-4" />
-                  Metrics
-                </TabsTrigger>
-                <TabsTrigger value="regime" className="gap-2">
-                  <Shield className="h-4 w-4" />
-                  Regime
-                </TabsTrigger>
-                <TabsTrigger value="allocation" className="gap-2">
-                  <Settings className="h-4 w-4" />
-                  Allocation
-                </TabsTrigger>
-              </TabsList>
-
-              {/* AI Insights Tab - Only for AI mode */}
-              {portfolioMode === 'ai' && aiAdvice && (
-                <TabsContent value="ai-insights" className="mt-6">
-                  <AIPortfolioInsights 
-                    advice={aiAdvice} 
-                    investableCapital={investorProfile.investableCapital} 
-                  />
-                </TabsContent>
-              )}
-
-              <TabsContent value="frontier" className="mt-6">
-                <EfficientFrontierSlider
-                  frontierPoints={efficientFrontier}
-                  selectedPoint={selectedPoint}
-                  onRiskToleranceChange={handleRiskToleranceChange}
-                  riskTolerance={riskTolerance}
-                />
-              </TabsContent>
-
-              <TabsContent value="metrics" className="mt-6">
-                {advancedMetrics ? (
-                  <AdvancedMetricsDashboard metrics={advancedMetrics} />
-                ) : (
-                  <Card>
-                    <CardContent className="py-12 text-center text-muted-foreground">
-                      <BarChart3 className="h-8 w-8 mx-auto mb-3 opacity-50" />
-                      <p>Advanced metrics will appear after analysis</p>
-                    </CardContent>
-                  </Card>
-                )}
-              </TabsContent>
-
-              <TabsContent value="regime" className="mt-6">
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-sm flex items-center gap-2">
-                      <Shield className="h-4 w-4 text-amber-500" />
-                      Macro-Regime Stress Testing
-                    </CardTitle>
-                    <CardDescription>
-                      Performance during "Monetary Dominance" vs "Fiscal Activism" periods
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="grid md:grid-cols-2 gap-6">
-                      <div className="p-4 rounded-lg border border-emerald-500/30 bg-emerald-500/5">
-                        <div className="flex items-center gap-2 mb-3">
-                          <TrendingUp className="h-5 w-5 text-emerald-500" />
-                          <span className="font-medium">Monetary Dominance</span>
+          <TabsContent value="allocation">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-sm">Final Allocation</CardTitle>
+                <CardDescription>
+                  {portfolioMode === 'manual' 
+                    ? 'Your weights adjusted via Black-Litterman'
+                    : 'HRP-optimized allocation based on your profile'}
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {(selectedPoint?.weights 
+                    ? Array.from(selectedPoint.weights.entries()) 
+                    : allocations.map(a => [a.symbol, a.weight / 100] as [string, number])
+                  )
+                    .filter(([_, w]) => w > 0.01)
+                    .sort((a, b) => b[1] - a[1])
+                    .map(([symbol, weight]) => (
+                      <div key={symbol} className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+                        <div className="flex items-center gap-3">
+                          <Badge variant="outline" className="font-mono">{symbol}</Badge>
                         </div>
-                        <p className="text-sm text-muted-foreground mb-3">
-                          Low inflation, central bank control (2010-2019)
-                        </p>
-                        <div className="space-y-2 text-sm">
-                          <div className="flex justify-between">
-                            <span>Expected Return:</span>
-                            <span className="text-emerald-500">+12.5%</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span>Volatility:</span>
-                            <span>14.2%</span>
-                          </div>
+                        <div className="flex items-center gap-4">
+                          <Progress value={weight * 100} className="w-32 h-2" />
+                          <span className="font-bold w-16 text-right">
+                            {(weight * 100).toFixed(1)}%
+                          </span>
                         </div>
                       </div>
-                      <div className="p-4 rounded-lg border border-rose-500/30 bg-rose-500/5">
-                        <div className="flex items-center gap-2 mb-3">
-                          <AlertTriangle className="h-5 w-5 text-rose-500" />
-                          <span className="font-medium">Fiscal Activism</span>
-                        </div>
-                        <p className="text-sm text-muted-foreground mb-3">
-                          High inflation/volatility (2020-2022, projected 2025-2036)
-                        </p>
-                        <div className="space-y-2 text-sm">
-                          <div className="flex justify-between">
-                            <span>Expected Return:</span>
-                            <span className="text-rose-500">+4.2%</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span>Volatility:</span>
-                            <span>28.5%</span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                    <Alert className="mt-4">
-                      <Brain className="h-4 w-4" />
-                      <AlertDescription>
-                        <strong>2025-2036 Projection:</strong> Fiscal Activism regime expected. 
-                        Consider increasing commodity and real asset exposure for inflation protection.
-                      </AlertDescription>
-                    </Alert>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-
-              <TabsContent value="allocation" className="mt-6">
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-sm">Final Allocation</CardTitle>
-                    <CardDescription>
-                      {portfolioMode === 'manual' 
-                        ? 'Your weights adjusted via Black-Litterman'
-                        : 'HRP-optimized allocation based on your profile'}
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-3">
-                      {(selectedPoint?.weights ? Array.from(selectedPoint.weights.entries()) : allocations.map(a => [a.symbol, a.weight / 100] as [string, number]))
-                        .filter(([_, w]) => w > 0.01)
-                        .sort((a, b) => b[1] - a[1])
-                        .map(([symbol, weight]) => (
-                          <div key={symbol} className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
-                            <div className="flex items-center gap-3">
-                              <Badge variant="outline" className="font-mono">{symbol}</Badge>
-                            </div>
-                            <div className="flex items-center gap-4">
-                              <Progress value={weight * 100} className="w-32 h-2" />
-                              <span className="font-bold w-16 text-right">
-                                {(weight * 100).toFixed(1)}%
-                              </span>
-                            </div>
-                          </div>
-                        ))}
-                    </div>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-            </Tabs>
-          </div>
-        )}
-
-        {/* Navigation Footer */}
-        {currentStep !== 'results' && (
-          <div className="flex justify-between mt-8 pt-6 border-t border-border">
-            <Button
-              variant="outline"
-              onClick={goBack}
-              disabled={stepIndex === 0 || isAnalyzing}
-            >
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back
-            </Button>
-            <Button
-              onClick={goNext}
-              disabled={!canProceed || isAnalyzing}
-            >
-              {currentStep === 'build' ? (
-                <>
-                  <Play className="h-4 w-4 mr-2" />
-                  Analyze Portfolio
-                </>
-              ) : (
-                <>
-                  Next
-                  <ArrowRight className="h-4 w-4 ml-2" />
-                </>
-              )}
-            </Button>
-          </div>
-        )}
+                    ))}
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );
