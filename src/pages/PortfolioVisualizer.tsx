@@ -20,8 +20,18 @@ import {
   AlertTriangle,
   Brain,
   Settings,
-  GraduationCap
+  GraduationCap,
+  Eye,
+  EyeOff
 } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuCheckboxItem,
+  DropdownMenuTrigger,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+} from '@/components/ui/dropdown-menu';
 
 // Types
 import { 
@@ -103,6 +113,20 @@ export default function PortfolioVisualizer() {
 
   // Results tab
   const [resultsTab, setResultsTab] = useState('frontier');
+  
+  // Tab visibility state
+  const [visibleTabs, setVisibleTabs] = useState({
+    'ai-insights': true,
+    'educational': true,
+    'frontier': true,
+    'metrics': true,
+    'regime': true,
+    'allocation': true,
+  });
+  
+  const toggleTabVisibility = (tabId: string) => {
+    setVisibleTabs(prev => ({ ...prev, [tabId]: !prev[tabId as keyof typeof prev] }));
+  };
 
   // Generate AI portfolio based on profile
   const generateAIPortfolio = useCallback((profile: InvestorProfile): PortfolioAllocation[] => {
@@ -526,10 +550,68 @@ export default function PortfolioVisualizer() {
               </div>
             </div>
             
-            <Button variant="outline" onClick={resetWizard}>
-              <RefreshCw className="h-4 w-4 mr-2" />
-              Start Over
-            </Button>
+            <div className="flex items-center gap-2">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="icon">
+                    <Eye className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuLabel>Show/Hide Tabs</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  {portfolioMode === 'ai' && aiAdvice && (
+                    <DropdownMenuCheckboxItem
+                      checked={visibleTabs['ai-insights']}
+                      onCheckedChange={() => toggleTabVisibility('ai-insights')}
+                    >
+                      <Brain className="h-4 w-4 mr-2" />
+                      AI Insights
+                    </DropdownMenuCheckboxItem>
+                  )}
+                  <DropdownMenuCheckboxItem
+                    checked={visibleTabs['educational']}
+                    onCheckedChange={() => toggleTabVisibility('educational')}
+                  >
+                    <GraduationCap className="h-4 w-4 mr-2" />
+                    Learn
+                  </DropdownMenuCheckboxItem>
+                  <DropdownMenuCheckboxItem
+                    checked={visibleTabs['frontier']}
+                    onCheckedChange={() => toggleTabVisibility('frontier')}
+                  >
+                    <Target className="h-4 w-4 mr-2" />
+                    Frontier
+                  </DropdownMenuCheckboxItem>
+                  <DropdownMenuCheckboxItem
+                    checked={visibleTabs['metrics']}
+                    onCheckedChange={() => toggleTabVisibility('metrics')}
+                  >
+                    <BarChart3 className="h-4 w-4 mr-2" />
+                    Metrics
+                  </DropdownMenuCheckboxItem>
+                  <DropdownMenuCheckboxItem
+                    checked={visibleTabs['regime']}
+                    onCheckedChange={() => toggleTabVisibility('regime')}
+                  >
+                    <Shield className="h-4 w-4 mr-2" />
+                    Regime
+                  </DropdownMenuCheckboxItem>
+                  <DropdownMenuCheckboxItem
+                    checked={visibleTabs['allocation']}
+                    onCheckedChange={() => toggleTabVisibility('allocation')}
+                  >
+                    <Settings className="h-4 w-4 mr-2" />
+                    Allocation
+                  </DropdownMenuCheckboxItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+              
+              <Button variant="outline" onClick={resetWizard}>
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Start Over
+              </Button>
+            </div>
           </div>
         </div>
       </div>
@@ -545,40 +627,67 @@ export default function PortfolioVisualizer() {
         )}
 
         <Tabs value={resultsTab} onValueChange={setResultsTab}>
-          <TabsList className={cn(
-            "grid w-full max-w-4xl mx-auto mb-6",
-            portfolioMode === 'ai' && aiAdvice ? "grid-cols-6" : "grid-cols-5"
-          )}>
-            {portfolioMode === 'ai' && aiAdvice && (
-              <TabsTrigger value="ai-insights" className="gap-2">
-                <Brain className="h-4 w-4" />
-                AI Insights
-              </TabsTrigger>
-            )}
-            <TabsTrigger value="educational" className="gap-2">
-              <GraduationCap className="h-4 w-4" />
-              Learn
-            </TabsTrigger>
-            <TabsTrigger value="frontier" className="gap-2">
-              <Target className="h-4 w-4" />
-              Frontier
-            </TabsTrigger>
-            <TabsTrigger value="metrics" className="gap-2">
-              <BarChart3 className="h-4 w-4" />
-              Metrics
-            </TabsTrigger>
-            <TabsTrigger value="regime" className="gap-2">
-              <Shield className="h-4 w-4" />
-              Regime
-            </TabsTrigger>
-            <TabsTrigger value="allocation" className="gap-2">
-              <Settings className="h-4 w-4" />
-              Allocation
-            </TabsTrigger>
-          </TabsList>
+          {(() => {
+            const visibleTabCount = [
+              portfolioMode === 'ai' && aiAdvice && visibleTabs['ai-insights'],
+              visibleTabs['educational'],
+              visibleTabs['frontier'],
+              visibleTabs['metrics'],
+              visibleTabs['regime'],
+              visibleTabs['allocation'],
+            ].filter(Boolean).length;
+            
+            return (
+              <TabsList className={cn(
+                "grid w-full max-w-4xl mx-auto mb-6",
+                visibleTabCount === 6 ? "grid-cols-6" :
+                visibleTabCount === 5 ? "grid-cols-5" :
+                visibleTabCount === 4 ? "grid-cols-4" :
+                visibleTabCount === 3 ? "grid-cols-3" :
+                visibleTabCount === 2 ? "grid-cols-2" : "grid-cols-1"
+              )}>
+                {portfolioMode === 'ai' && aiAdvice && visibleTabs['ai-insights'] && (
+                  <TabsTrigger value="ai-insights" className="gap-2">
+                    <Brain className="h-4 w-4" />
+                    AI Insights
+                  </TabsTrigger>
+                )}
+                {visibleTabs['educational'] && (
+                  <TabsTrigger value="educational" className="gap-2">
+                    <GraduationCap className="h-4 w-4" />
+                    Learn
+                  </TabsTrigger>
+                )}
+                {visibleTabs['frontier'] && (
+                  <TabsTrigger value="frontier" className="gap-2">
+                    <Target className="h-4 w-4" />
+                    Frontier
+                  </TabsTrigger>
+                )}
+                {visibleTabs['metrics'] && (
+                  <TabsTrigger value="metrics" className="gap-2">
+                    <BarChart3 className="h-4 w-4" />
+                    Metrics
+                  </TabsTrigger>
+                )}
+                {visibleTabs['regime'] && (
+                  <TabsTrigger value="regime" className="gap-2">
+                    <Shield className="h-4 w-4" />
+                    Regime
+                  </TabsTrigger>
+                )}
+                {visibleTabs['allocation'] && (
+                  <TabsTrigger value="allocation" className="gap-2">
+                    <Settings className="h-4 w-4" />
+                    Allocation
+                  </TabsTrigger>
+                )}
+              </TabsList>
+            );
+          })()}
 
           {/* AI Insights Tab */}
-          {portfolioMode === 'ai' && aiAdvice && (
+          {portfolioMode === 'ai' && aiAdvice && visibleTabs['ai-insights'] && (
             <TabsContent value="ai-insights">
               <AIPortfolioInsights 
                 advice={aiAdvice} 
@@ -588,153 +697,163 @@ export default function PortfolioVisualizer() {
           )}
 
           {/* Educational Dashboard Tab */}
-          <TabsContent value="educational">
-            {advancedMetrics ? (
-              <EducationalDashboard
-                metrics={advancedMetrics}
-                investableCapital={investorProfile.investableCapital}
-                portfolioVolatility={portfolioVolatility}
-                stressTestResults={stressTestResults}
-                tickerDetails={tickerDetails}
-                allocations={allocations.map(a => ({
-                  symbol: a.symbol,
-                  name: a.name || a.symbol,
-                  weight: a.weight,
-                  assetClass: a.assetClass as string,
-                  whyThisFitsProfile: aiAdvice?.allocations.find(ai => ai.symbol === a.symbol)?.whyThisFitsProfile
-                }))}
-                portfolioMode={portfolioMode || 'manual'}
+          {visibleTabs['educational'] && (
+            <TabsContent value="educational">
+              {advancedMetrics ? (
+                <EducationalDashboard
+                  metrics={advancedMetrics}
+                  investableCapital={investorProfile.investableCapital}
+                  portfolioVolatility={portfolioVolatility}
+                  stressTestResults={stressTestResults}
+                  tickerDetails={tickerDetails}
+                  allocations={allocations.map(a => ({
+                    symbol: a.symbol,
+                    name: a.name || a.symbol,
+                    weight: a.weight,
+                    assetClass: a.assetClass as string,
+                    whyThisFitsProfile: aiAdvice?.allocations.find(ai => ai.symbol === a.symbol)?.whyThisFitsProfile
+                  }))}
+                  portfolioMode={portfolioMode || 'manual'}
+                />
+              ) : (
+                <Card>
+                  <CardContent className="py-12 text-center text-muted-foreground">
+                    <GraduationCap className="h-8 w-8 mx-auto mb-3 opacity-50" />
+                    <p>Educational dashboard will appear after analysis</p>
+                  </CardContent>
+                </Card>
+              )}
+            </TabsContent>
+          )}
+
+          {visibleTabs['frontier'] && (
+            <TabsContent value="frontier">
+              <EfficientFrontierSlider
+                frontierPoints={efficientFrontier}
+                selectedPoint={selectedPoint}
+                onRiskToleranceChange={handleRiskToleranceChange}
+                riskTolerance={riskTolerance}
               />
-            ) : (
+            </TabsContent>
+          )}
+
+          {visibleTabs['metrics'] && (
+            <TabsContent value="metrics">
+              {advancedMetrics ? (
+                <AdvancedMetricsDashboard metrics={advancedMetrics} />
+              ) : (
+                <Card>
+                  <CardContent className="py-12 text-center text-muted-foreground">
+                    <BarChart3 className="h-8 w-8 mx-auto mb-3 opacity-50" />
+                    <p>Advanced metrics will appear after analysis</p>
+                  </CardContent>
+                </Card>
+              )}
+            </TabsContent>
+          )}
+
+          {visibleTabs['regime'] && (
+            <TabsContent value="regime">
               <Card>
-                <CardContent className="py-12 text-center text-muted-foreground">
-                  <GraduationCap className="h-8 w-8 mx-auto mb-3 opacity-50" />
-                  <p>Educational dashboard will appear after analysis</p>
-                </CardContent>
-              </Card>
-            )}
-          </TabsContent>
-
-          <TabsContent value="frontier">
-            <EfficientFrontierSlider
-              frontierPoints={efficientFrontier}
-              selectedPoint={selectedPoint}
-              onRiskToleranceChange={handleRiskToleranceChange}
-              riskTolerance={riskTolerance}
-            />
-          </TabsContent>
-
-          <TabsContent value="metrics">
-            {advancedMetrics ? (
-              <AdvancedMetricsDashboard metrics={advancedMetrics} />
-            ) : (
-              <Card>
-                <CardContent className="py-12 text-center text-muted-foreground">
-                  <BarChart3 className="h-8 w-8 mx-auto mb-3 opacity-50" />
-                  <p>Advanced metrics will appear after analysis</p>
-                </CardContent>
-              </Card>
-            )}
-          </TabsContent>
-
-          <TabsContent value="regime">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-sm flex items-center gap-2">
-                  <Shield className="h-4 w-4 text-amber-500" />
-                  Macro-Regime Stress Testing
-                </CardTitle>
-                <CardDescription>
-                  Performance during "Monetary Dominance" vs "Fiscal Activism" periods
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="grid md:grid-cols-2 gap-6">
-                  <div className="p-4 rounded-lg border border-emerald-500/30 bg-emerald-500/5">
-                    <div className="flex items-center gap-2 mb-3">
-                      <TrendingUp className="h-5 w-5 text-emerald-500" />
-                      <span className="font-medium">Monetary Dominance</span>
-                    </div>
-                    <p className="text-sm text-muted-foreground mb-3">
-                      Low inflation, central bank control (2010-2019)
-                    </p>
-                    <div className="space-y-2 text-sm">
-                      <div className="flex justify-between">
-                        <span>Expected Return:</span>
-                        <span className="text-emerald-500">+12.5%</span>
+                <CardHeader>
+                  <CardTitle className="text-sm flex items-center gap-2">
+                    <Shield className="h-4 w-4 text-amber-500" />
+                    Macro-Regime Stress Testing
+                  </CardTitle>
+                  <CardDescription>
+                    Performance during "Monetary Dominance" vs "Fiscal Activism" periods
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid md:grid-cols-2 gap-6">
+                    <div className="p-4 rounded-lg border border-emerald-500/30 bg-emerald-500/5">
+                      <div className="flex items-center gap-2 mb-3">
+                        <TrendingUp className="h-5 w-5 text-emerald-500" />
+                        <span className="font-medium">Monetary Dominance</span>
                       </div>
-                      <div className="flex justify-between">
-                        <span>Volatility:</span>
-                        <span>14.2%</span>
+                      <p className="text-sm text-muted-foreground mb-3">
+                        Low inflation, central bank control (2010-2019)
+                      </p>
+                      <div className="space-y-2 text-sm">
+                        <div className="flex justify-between">
+                          <span>Expected Return:</span>
+                          <span className="text-emerald-500">+12.5%</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Volatility:</span>
+                          <span>14.2%</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="p-4 rounded-lg border border-rose-500/30 bg-rose-500/5">
+                      <div className="flex items-center gap-2 mb-3">
+                        <AlertTriangle className="h-5 w-5 text-rose-500" />
+                        <span className="font-medium">Fiscal Activism</span>
+                      </div>
+                      <p className="text-sm text-muted-foreground mb-3">
+                        High inflation/volatility (2020-2022, projected 2025-2036)
+                      </p>
+                      <div className="space-y-2 text-sm">
+                        <div className="flex justify-between">
+                          <span>Expected Return:</span>
+                          <span className="text-rose-500">+4.2%</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Volatility:</span>
+                          <span>28.5%</span>
+                        </div>
                       </div>
                     </div>
                   </div>
-                  <div className="p-4 rounded-lg border border-rose-500/30 bg-rose-500/5">
-                    <div className="flex items-center gap-2 mb-3">
-                      <AlertTriangle className="h-5 w-5 text-rose-500" />
-                      <span className="font-medium">Fiscal Activism</span>
-                    </div>
-                    <p className="text-sm text-muted-foreground mb-3">
-                      High inflation/volatility (2020-2022, projected 2025-2036)
-                    </p>
-                    <div className="space-y-2 text-sm">
-                      <div className="flex justify-between">
-                        <span>Expected Return:</span>
-                        <span className="text-rose-500">+4.2%</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>Volatility:</span>
-                        <span>28.5%</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                <Alert className="mt-4">
-                  <Brain className="h-4 w-4" />
-                  <AlertDescription>
-                    <strong>2025-2036 Projection:</strong> Fiscal Activism regime expected. 
-                    Consider increasing commodity and real asset exposure for inflation protection.
-                  </AlertDescription>
-                </Alert>
-              </CardContent>
-            </Card>
-          </TabsContent>
+                  <Alert className="mt-4">
+                    <Brain className="h-4 w-4" />
+                    <AlertDescription>
+                      <strong>2025-2036 Projection:</strong> Fiscal Activism regime expected. 
+                      Consider increasing commodity and real asset exposure for inflation protection.
+                    </AlertDescription>
+                  </Alert>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          )}
 
-          <TabsContent value="allocation">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-sm">Final Allocation</CardTitle>
-                <CardDescription>
-                  {portfolioMode === 'manual' 
-                    ? 'Your weights adjusted via Black-Litterman'
-                    : 'HRP-optimized allocation based on your profile'}
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {(selectedPoint?.weights 
-                    ? Array.from(selectedPoint.weights.entries()) 
-                    : allocations.map(a => [a.symbol, a.weight / 100] as [string, number])
-                  )
-                    .filter(([_, w]) => w > 0.01)
-                    .sort((a, b) => b[1] - a[1])
-                    .map(([symbol, weight]) => (
-                      <div key={symbol} className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
-                        <div className="flex items-center gap-3">
-                          <Badge variant="outline" className="font-mono">{symbol}</Badge>
+          {visibleTabs['allocation'] && (
+            <TabsContent value="allocation">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-sm">Final Allocation</CardTitle>
+                  <CardDescription>
+                    {portfolioMode === 'manual' 
+                      ? 'Your weights adjusted via Black-Litterman'
+                      : 'HRP-optimized allocation based on your profile'}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    {(selectedPoint?.weights 
+                      ? Array.from(selectedPoint.weights.entries()) 
+                      : allocations.map(a => [a.symbol, a.weight / 100] as [string, number])
+                    )
+                      .filter(([_, w]) => w > 0.01)
+                      .sort((a, b) => b[1] - a[1])
+                      .map(([symbol, weight]) => (
+                        <div key={symbol} className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+                          <div className="flex items-center gap-3">
+                            <Badge variant="outline" className="font-mono">{symbol}</Badge>
+                          </div>
+                          <div className="flex items-center gap-4">
+                            <Progress value={weight * 100} className="w-32 h-2" />
+                            <span className="font-bold w-16 text-right">
+                              {(weight * 100).toFixed(1)}%
+                            </span>
+                          </div>
                         </div>
-                        <div className="flex items-center gap-4">
-                          <Progress value={weight * 100} className="w-32 h-2" />
-                          <span className="font-bold w-16 text-right">
-                            {(weight * 100).toFixed(1)}%
-                          </span>
-                        </div>
-                      </div>
-                    ))}
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
+                      ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          )}
         </Tabs>
       </div>
     </div>
