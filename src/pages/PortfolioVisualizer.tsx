@@ -2,6 +2,7 @@
 // "Choose Your Path" experience: Manual vs AI Co-Pilot vs IPS Questionnaire modes
 
 import { useState, useCallback, useMemo } from 'react';
+import WelcomeOnboarding, { useWelcomeOnboarding } from '@/components/backtester/WelcomeOnboarding';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -322,6 +323,9 @@ function IPSSummaryCard({ policy }: { policy: InvestorPolicyStatement }) {
 }
 
 export default function PortfolioVisualizer() {
+  // Onboarding state
+  const { showOnboarding, completeOnboarding } = useWelcomeOnboarding();
+  
   // Flow state
   const [currentFlow, setCurrentFlow] = useState<AppFlow>('choose-path');
   const [portfolioMode, setPortfolioMode] = useState<PortfolioMode | null>(null);
@@ -978,6 +982,12 @@ export default function PortfolioVisualizer() {
   };
 
   // Render based on current flow
+  
+  // Show onboarding for first-time users
+  if (showOnboarding) {
+    return <WelcomeOnboarding onComplete={completeOnboarding} />;
+  }
+  
   if (currentFlow === 'choose-path') {
     return (
       <div className="min-h-screen bg-background">
