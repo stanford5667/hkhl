@@ -121,7 +121,7 @@ function cacheToPolygonFormat(cacheRows: any[]) {
 // Limit date range based on Polygon plan
 // Stocks Starter ($29/mo) = 5 years, Stocks Developer ($79/mo) = 10 years
 // Default to 5 years for safety (covers Starter plan)
-function limitToPolygonPlanDates(startDate: string, endDate: string): { start: string; end: string; wasLimited: boolean } {
+function limitToPolygonPlanDates(startDate: string, endDate: string): { start: string; end: string; wasLimited: boolean; invalidRange: boolean } {
   const now = new Date();
   // Stocks Starter plan ($29/mo) has access to 5 years of historical data
   const maxHistoryYears = 5;
@@ -139,10 +139,17 @@ function limitToPolygonPlanDates(startDate: string, endDate: string): { start: s
     console.log(`[polygon-aggs] Limiting start date from ${startDate} to ${start.toISOString().split('T')[0]} (max ${maxHistoryYears} years on Starter plan)`);
   }
   
+  // Check if the limited start is now after the end date
+  const invalidRange = start > end;
+  if (invalidRange) {
+    console.log(`[polygon-aggs] Invalid range after limiting: start ${start.toISOString().split('T')[0]} > end ${end.toISOString().split('T')[0]}`);
+  }
+  
   return {
     start: start.toISOString().split('T')[0],
     end: end.toISOString().split('T')[0],
-    wasLimited
+    wasLimited,
+    invalidRange
   };
 }
 
@@ -161,11 +168,24 @@ serve(async (req) => {
     if (!ticker) return json({ ok: false, error: "ticker is required" }, 400);
     if (!requestedStartDate || !requestedEndDate) return json({ ok: false, error: "startDate and endDate are required" }, 400);
 
-    // Limit dates to free plan range
-    const { start: startDate, end: endDate, wasLimited } = limitToPolygonPlanDates(requestedStartDate, requestedEndDate);
+    // Limit dates to plan range
+    const { start: startDate, end: endDate, wasLimited, invalidRange } = limitToPolygonPlanDates(requestedStartDate, requestedEndDate);
+    
+    // If the entire requested range is outside the plan's history, return empty results gracefully
+    if (invalidRange) {
+      console.log(`[polygon-aggs] Requested range entirely outside plan limits for ${ticker}, returning empty results`);
+      return json({ 
+        ok: true, 
+        ticker, 
+        results: [], 
+        fromCache: false, 
+        dateLimited: true,
+        message: "Requested date range is beyond plan's historical data limit (5 years)" 
+      }, 200);
+    }
     
     if (wasLimited) {
-      console.log(`[polygon-aggs] Date range limited for ${ticker} due to free plan restrictions`);
+      console.log(`[polygon-aggs] Date range limited for ${ticker} due to plan restrictions`);
     }
 
     // Only cache daily data
