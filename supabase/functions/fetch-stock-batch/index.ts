@@ -126,17 +126,20 @@ Deno.serve(async (req) => {
             cache_key: cacheKey,
             cache_type: 'stock_historical',
             data: stockData,
-            entity_id: ticker,
             entity_type: 'stock',
             fetched_at: new Date().toISOString(),
             user_id: '00000000-0000-0000-0000-000000000000', // System user for public cache
           };
 
-          await supabase
+          const { error: upsertError } = await supabase
             .from('cached_api_data')
             .upsert(cacheEntry, { onConflict: 'cache_key' });
-            
-          console.log(`[fetch-stock-batch] Cached ${ticker} data (${stockData.length} bars)`);
+          
+          if (upsertError) {
+            console.error(`[fetch-stock-batch] Cache upsert error for ${ticker}:`, upsertError);
+          } else {
+            console.log(`[fetch-stock-batch] Cached ${ticker} data (${stockData.length} bars)`);
+          }
         }
 
         // Rate limiting: Polygon free tier is 5 requests/minute

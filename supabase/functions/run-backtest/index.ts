@@ -34,17 +34,26 @@ const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 async function getStockData(supabase: any, ticker: string, startDate: string, endDate: string): Promise<StockData[]> {
   const cacheKey = `stock_${ticker}_${startDate}_${endDate}`;
   
-  const { data: cachedData } = await supabase
+  console.log(`[run-backtest] Looking for cache key: ${cacheKey}`);
+  
+  const { data: cachedData, error } = await supabase
     .from('cached_api_data')
     .select('data')
     .eq('cache_key', cacheKey)
     .eq('cache_type', 'stock_historical')
-    .single();
+    .maybeSingle();
+
+  if (error) {
+    console.error(`[run-backtest] Cache lookup error:`, error);
+    return [];
+  }
 
   if (cachedData?.data) {
+    console.log(`[run-backtest] Found cached data for ${ticker}`);
     return cachedData.data as StockData[];
   }
   
+  console.log(`[run-backtest] No cached data found for ${ticker}`);
   return [];
 }
 
