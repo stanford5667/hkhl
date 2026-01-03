@@ -11,9 +11,17 @@ import { Brain, Play, TrendingUp, TrendingDown, Network, BarChart3, PieChart, Al
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, AreaChart, Area, BarChart, Bar, Cell } from 'recharts';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
-import { NeuroSymbolicOptimizer, AssetData, RegimeSignal } from '@/services/portfolioOptimizer';
+import { NeuroSymbolicOptimizer, AssetData, RegimeSignal as OptimizerRegimeSignal } from '@/services/portfolioOptimizer';
 import { runBacktest, BacktestResult } from '@/services/backtestEngine';
-import { fetchHistoricalPrices, CorrelationMatrix } from '@/services/backtesterService';
+import { polygonData, CorrelationMatrix, RegimeSignal as PolygonRegimeSignal } from '@/services/polygonDataHandler';
+
+// Extended RegimeSignal for UI
+interface RegimeSignal {
+  regime: 'low_vol' | 'normal' | 'high_vol' | 'crisis';
+  turbulenceIndex: number;
+  volatility: number;
+  date: string;
+}
 
 const NeuroSymbolicEngine = () => {
   // State
@@ -45,165 +53,114 @@ const NeuroSymbolicEngine = () => {
     setProgressMsg('Fetching historical data...');
 
     try {
-      // Fetch data for each ticker
-      const historicalData: Map<string, { date: string; price: number }[]> = new Map();
-      
-      for (let i = 0; i < tickers.length; i++) {
-        const ticker = tickers[i];
-        setProgressMsg(`Fetching ${ticker}...`);
-        setProgress((i / tickers.length) * 40);
-        
-        try {
-          const data = await fetchHistoricalPrices(ticker, startDate, endDate);
-          historicalData.set(ticker, data);
-        } catch (err) {
-          console.warn(`Failed to fetch ${ticker}:`, err);
+      // Fetch data using Polygon API
+      const assetDataMap = await polygonData.fetchAndCleanHistory(
+        tickers,
+        startDate,
+        endDate,
+        (msg, pct) => {
+          setProgressMsg(msg);
+          setProgress(pct * 0.5);
         }
-        
-        // Rate limiting
-        if (i < tickers.length - 1) {
-          await new Promise(r => setTimeout(r, 300));
-        }
-      }
+      );
 
-      const activeTickers = Array.from(historicalData.keys());
+      const activeTickers = Array.from(assetDataMap.keys());
       if (activeTickers.length < 3) {
         throw new Error('Need at least 3 tickers with valid data');
       }
 
-      // Build asset data
-      setProgressMsg('Calculating asset statistics...');
-      setProgress(50);
-      
-      const assetDataMap = new Map<string, AssetData>();
-      activeTickers.forEach(ticker => {
-        const data = historicalData.get(ticker) || [];
-        if (data.length < 20) return;
-
-        const returns: number[] = [];
-        for (let i = 1; i < data.length; i++) {
-          if (data[i - 1].price > 0) {
-            returns.push(Math.log(data[i].price / data[i - 1].price));
-          }
-        }
-
-        const avgReturn = returns.reduce((a, b) => a + b, 0) / returns.length * 252;
-        const variance = returns.reduce((sum, r) => sum + Math.pow(r - avgReturn / 252, 2), 0) / returns.length;
-        const volatility = Math.sqrt(variance) * Math.sqrt(252);
-        const stdDev = Math.sqrt(variance);
-        const skewness = stdDev > 0 
-          ? returns.reduce((sum, r) => sum + Math.pow((r - avgReturn / 252) / stdDev, 3), 0) / returns.length
-          : 0;
-        const kurtosis = stdDev > 0
-          ? returns.reduce((sum, r) => sum + Math.pow((r - avgReturn / 252) / stdDev, 4), 0) / returns.length
-          : 3;
-
-        assetDataMap.set(ticker, {
-          ticker,
-          volatility,
-          avgReturn,
-          skewness,
-          kurtosis,
-          volume: 1000000
-        });
-      });
-
-      setAssetData(assetDataMap);
-
-      // Build correlation matrix
+      // Build correlation matrix using Polygon data
       setProgressMsg('Building correlation matrix...');
       setProgress(60);
       
-      const n = activeTickers.length;
-      const matrix: number[][] = Array(n).fill(null).map(() => Array(n).fill(0));
-      const returnsMap = new Map<string, number[]>();
-
-      activeTickers.forEach(ticker => {
-        const data = historicalData.get(ticker) || [];
-        const returns: number[] = [];
-        for (let i = 1; i < data.length; i++) {
-          if (data[i - 1].price > 0) {
-            returns.push(Math.log(data[i].price / data[i - 1].price));
-          }
-        }
-        returnsMap.set(ticker, returns);
-      });
-
-      for (let i = 0; i < n; i++) {
-        for (let j = 0; j < n; j++) {
-          if (i === j) {
-            matrix[i][j] = 1;
-          } else {
-            const r1 = returnsMap.get(activeTickers[i]) || [];
-            const r2 = returnsMap.get(activeTickers[j]) || [];
-            matrix[i][j] = calculateCorrelation(r1, r2);
-          }
-        }
-      }
-
-      const corrMatrix: CorrelationMatrix = { symbols: activeTickers, matrix };
+      const corrMatrix = polygonData.buildCorrelationMatrix(assetDataMap);
       setCorrelationMatrix(corrMatrix);
 
-      // Calculate regime signal
+      // Calculate regime signal using Polygon data
       setProgressMsg('Detecting market regime...');
       setProgress(70);
 
-      // Aggregate portfolio returns
-      const allReturns: number[] = [];
-      const firstTicker = activeTickers[0];
-      const firstData = historicalData.get(firstTicker) || [];
-      
-      for (let i = 1; i < firstData.length; i++) {
-        let dayReturn = 0;
-        let count = 0;
-        activeTickers.forEach(ticker => {
-          const data = historicalData.get(ticker) || [];
-          if (data[i] && data[i - 1] && data[i - 1].price > 0) {
-            dayReturn += Math.log(data[i].price / data[i - 1].price);
-            count++;
-          }
+      const signals = polygonData.getRegimeProxy(assetDataMap);
+      const latestSignal = signals.length > 0 ? signals[signals.length - 1] : null;
+
+      if (latestSignal) {
+        // Convert to the component's expected format
+        const signal: RegimeSignal = {
+          regime: latestSignal.regime,
+          turbulenceIndex: parseFloat(latestSignal.turbulenceIndex.toFixed(2)),
+          volatility: 0, // Will calculate below
+          date: endDate
+        };
+
+        // Calculate average volatility across all assets
+        let totalVol = 0;
+        assetDataMap.forEach(asset => {
+          totalVol += asset.volatility;
         });
-        if (count > 0) {
-          allReturns.push(dayReturn / count);
-        }
+        signal.volatility = parseFloat(((totalVol / assetDataMap.size) * 100).toFixed(2));
+
+        setCurrentRegime(signal);
+        setRegimeSignals([signal]);
       }
 
-      const mean = allReturns.reduce((a, b) => a + b, 0) / allReturns.length;
-      const variance = allReturns.reduce((sum, r) => sum + Math.pow(r - mean, 2), 0) / allReturns.length;
-      const vol = Math.sqrt(variance) * Math.sqrt(252) * 100;
+      // Convert Polygon AssetData to optimizer format
+      const optimizerAssetData = new Map<string, AssetData>();
+      assetDataMap.forEach((asset, ticker) => {
+        const returns = asset.returns;
+        const avgReturn = returns.length > 0 
+          ? returns.reduce((a, b) => a + b, 0) / returns.length * 252
+          : 0;
+        
+        // Calculate skewness and kurtosis
+        const mean = returns.reduce((a, b) => a + b, 0) / returns.length || 0;
+        const variance = returns.reduce((sum, r) => sum + Math.pow(r - mean, 2), 0) / returns.length;
+        const stdDev = Math.sqrt(variance);
+        
+        const skewness = stdDev > 0 
+          ? returns.reduce((sum, r) => sum + Math.pow((r - mean) / stdDev, 3), 0) / returns.length
+          : 0;
+        const kurtosis = stdDev > 0
+          ? returns.reduce((sum, r) => sum + Math.pow((r - mean) / stdDev, 4), 0) / returns.length
+          : 3;
 
-      const recentReturns = allReturns.slice(-20);
-      const recentVol = Math.sqrt(
-        recentReturns.reduce((sum, r) => sum + Math.pow(r - mean, 2), 0) / recentReturns.length
-      ) * Math.sqrt(252) * 100;
+        optimizerAssetData.set(ticker, {
+          ticker,
+          volatility: asset.volatility,
+          avgReturn,
+          skewness,
+          kurtosis,
+          volume: asset.bars.reduce((sum, b) => sum + b.volume, 0) / asset.bars.length
+        });
+      });
 
-      const turbulence = recentVol / Math.max(vol, 1) * 10;
-
-      let regime: RegimeSignal['regime'];
-      if (turbulence > 25) regime = 'crisis';
-      else if (turbulence > 15) regime = 'high_vol';
-      else if (turbulence > 8) regime = 'normal';
-      else regime = 'low_vol';
-
-      const signal: RegimeSignal = {
-        regime,
-        turbulenceIndex: parseFloat(turbulence.toFixed(2)),
-        volatility: parseFloat(vol.toFixed(2)),
-        date: endDate
-      };
-
-      setCurrentRegime(signal);
-      setRegimeSignals([signal]);
+      setAssetData(optimizerAssetData);
 
       // Compute optimal weights
       setProgressMsg('Computing optimal weights...');
       setProgress(85);
 
       const optimizer = new NeuroSymbolicOptimizer();
+      
+      // Build correlation matrix in optimizer format
+      const optimizerCorr = {
+        symbols: corrMatrix.tickers,
+        matrix: corrMatrix.matrix
+      };
+
+      // Convert polygon signal to optimizer format
+      const optimizerSignal: OptimizerRegimeSignal = latestSignal 
+        ? {
+            regime: latestSignal.regime,
+            turbulenceIndex: latestSignal.turbulenceIndex,
+            volatility: currentRegime?.volatility || 15,
+            date: endDate
+          }
+        : { regime: 'normal', turbulenceIndex: 10, volatility: 15, date: endDate };
+
       const optimal = optimizer.computeOptimalWeights(
-        assetDataMap,
-        corrMatrix,
-        signal,
+        optimizerAssetData,
+        optimizerCorr,
+        optimizerSignal,
         activeTickers
       );
 
