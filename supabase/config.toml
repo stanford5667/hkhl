@@ -86,3 +86,6 @@ verify_jwt = false
 
 [functions.sync-market-data]
 verify_jwt = false
+
+[functions.seed-asset-universe]
+verify_jwt = false
