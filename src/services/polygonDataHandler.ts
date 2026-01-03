@@ -1,5 +1,7 @@
 // Polygon.io Data Handler with Caching and Regime Detection
 
+import { supabase } from "@/integrations/supabase/client";
+
 const POLYGON_API_KEY = import.meta.env.VITE_POLYGON_API_KEY;
 const BASE_URL = 'https://api.polygon.io';
 
@@ -47,12 +49,12 @@ class DataCache {
   get<T>(key: string): T | null {
     const entry = this.cache.get(key);
     if (!entry) return null;
-    
+
     if (Date.now() > entry.expiresAt) {
       this.cache.delete(key);
       return null;
     }
-    
+
     return entry.data as T;
   }
 
@@ -83,11 +85,11 @@ function calculateReturns(prices: number[]): number[] {
 
 function calculateVolatility(returns: number[]): number {
   if (returns.length === 0) return 0;
-  
+
   const mean = returns.reduce((a, b) => a + b, 0) / returns.length;
   const variance = returns.reduce((sum, r) => sum + Math.pow(r - mean, 2), 0) / returns.length;
   const stdDev = Math.sqrt(variance);
-  
+
   // Annualize: multiply by sqrt(252 trading days)
   return stdDev * Math.sqrt(252);
 }
@@ -126,10 +128,10 @@ function forwardFillGaps(bars: OHLCVBar[]): OHLCVBar[] {
   for (let i = 1; i < bars.length; i++) {
     const prevBar = bars[i - 1];
     const currBar = bars[i];
-    
+
     // Check for gaps (more than 3 days between bars - accounts for weekends)
     const gapDays = Math.floor((currBar.timestamp - prevBar.timestamp) / oneDayMs);
-    
+
     if (gapDays > 3) {
       // Fill gaps with previous close
       for (let d = 1; d < gapDays; d++) {
@@ -149,7 +151,7 @@ function forwardFillGaps(bars: OHLCVBar[]): OHLCVBar[] {
         }
       }
     }
-    
+
     filled.push(currBar);
   }
 
@@ -159,11 +161,11 @@ function forwardFillGaps(bars: OHLCVBar[]): OHLCVBar[] {
 // Calculate fractal dimension using box-counting approximation
 function calculateFractalDimension(returns: number[]): number {
   if (returns.length < 10) return 1.5;
-  
+
   // Simplified Hurst exponent estimation
   const n = returns.length;
   const mean = returns.reduce((a, b) => a + b, 0) / n;
-  
+
   // Calculate cumulative deviations
   let cumSum = 0;
   const cumDevs: number[] = [];
@@ -171,29 +173,65 @@ function calculateFractalDimension(returns: number[]): number {
     cumSum += r - mean;
     cumDevs.push(cumSum);
   }
-  
+
   // Range
   const range = Math.max(...cumDevs) - Math.min(...cumDevs);
-  
+
   // Standard deviation
   const stdDev = Math.sqrt(returns.reduce((sum, r) => sum + Math.pow(r - mean, 2), 0) / n);
-  
+
   if (stdDev === 0) return 1.5;
-  
+
   // R/S statistic
   const rs = range / stdDev;
-  
+
   // Hurst exponent approximation
   const hurst = Math.log(rs) / Math.log(n);
-  
+
   // Fractal dimension = 2 - Hurst
   return Math.max(1, Math.min(2, 2 - hurst));
 }
+
+type PolygonAggResult = {
+  t: number;
+  o: number;
+  h: number;
+  l: number;
+  c: number;
+  v: number;
+  vw?: number;
+};
 
 // Main handler class
 class PolygonDataHandler {
   private cache = new DataCache();
   private readonly CACHE_TTL = 60 * 60 * 1000; // 1 hour
+
+  private async fetchAggsViaBackend(params: {
+    ticker: string;
+    startDate: string;
+    endDate: string;
+    timespan: string;
+  }): Promise<PolygonAggResult[]> {
+    const { ticker, startDate, endDate, timespan } = params;
+
+    // Uses backend function so API keys never touch the browser and avoids CORS issues.
+    const { data, error } = await supabase.functions.invoke("polygon-aggs", {
+      body: { ticker, startDate, endDate, timespan },
+    });
+
+    if (error) {
+      console.error("[Polygon] Backend function error:", error);
+      throw new Error(error.message || "Polygon backend function failed");
+    }
+
+    if (!data?.ok) {
+      console.error("[Polygon] Backend returned error:", data);
+      throw new Error(data?.error || "Polygon backend error");
+    }
+
+    return Array.isArray(data.results) ? (data.results as PolygonAggResult[]) : [];
+  }
 
   async fetchHistory(
     ticker: string,
@@ -202,7 +240,7 @@ class PolygonDataHandler {
     timespan: string = 'day'
   ): Promise<OHLCVBar[]> {
     const cacheKey = `history:${ticker}:${startDate}:${endDate}:${timespan}`;
-    
+
     // Check cache first
     const cached = this.cache.get<OHLCVBar[]>(cacheKey);
     if (cached) {
@@ -210,57 +248,23 @@ class PolygonDataHandler {
       return cached;
     }
 
-    if (!POLYGON_API_KEY) {
-      console.error('[Polygon] API key not configured');
-      throw new Error('Polygon API key not configured. Please add VITE_POLYGON_API_KEY to your environment.');
-    }
-
     console.log('[Polygon] Fetching', ticker, 'from', startDate, 'to', endDate);
 
     try {
-      const allBars: OHLCVBar[] = [];
-      let url: string | null = `${BASE_URL}/v2/aggs/ticker/${ticker}/range/1/${timespan}/${startDate}/${endDate}?adjusted=true&sort=asc&limit=50000&apiKey=${POLYGON_API_KEY}`;
+      // NOTE: We intentionally do NOT fetch Polygon directly from the browser.
+      // Some environments block CORS and `VITE_` env values may not be available until rebuild.
+      // We route through a backend function instead.
+      const results = await this.fetchAggsViaBackend({ ticker, startDate, endDate, timespan });
 
-      while (url) {
-        const response = await fetch(url);
-        
-        if (!response.ok) {
-          const errorText = await response.text();
-          console.error('[Polygon] API error:', response.status, errorText);
-          throw new Error(`Polygon API error: ${response.status} - ${errorText}`);
-        }
-
-        const data = await response.json();
-
-        if (data.results && Array.isArray(data.results)) {
-          const bars: OHLCVBar[] = data.results.map((r: {
-            t: number;
-            o: number;
-            h: number;
-            l: number;
-            c: number;
-            v: number;
-            vw?: number;
-          }) => ({
-            timestamp: r.t,
-            open: r.o,
-            high: r.h,
-            low: r.l,
-            close: r.c,
-            volume: r.v,
-            vwap: r.vw || r.c,
-          }));
-          allBars.push(...bars);
-        }
-
-        // Handle pagination
-        url = data.next_url ? `${data.next_url}&apiKey=${POLYGON_API_KEY}` : null;
-        
-        // Rate limiting - wait 200ms between requests
-        if (url) {
-          await new Promise(resolve => setTimeout(resolve, 200));
-        }
-      }
+      const allBars: OHLCVBar[] = results.map((r) => ({
+        timestamp: r.t,
+        open: r.o,
+        high: r.h,
+        low: r.l,
+        close: r.c,
+        volume: r.v,
+        vwap: r.vw || r.c,
+      }));
 
       console.log('[Polygon] Got', allBars.length, 'bars for', ticker);
 
@@ -273,6 +277,12 @@ class PolygonDataHandler {
       return filledBars;
     } catch (error) {
       console.error('[Polygon] Error fetching', ticker, ':', error);
+
+      // If the user configured VITE_POLYGON_API_KEY, log it for debugging (never print the key itself)
+      if (!POLYGON_API_KEY) {
+        console.warn('[Polygon] VITE_POLYGON_API_KEY is not present on the client; using backend proxy instead');
+      }
+
       throw error;
     }
   }
@@ -288,22 +298,22 @@ class PolygonDataHandler {
     for (let i = 0; i < tickers.length; i++) {
       const ticker = tickers[i];
       const pct = (i / tickers.length) * 100;
-      
+
       onProgress?.(`Fetching ${ticker}...`, pct);
       console.log('[Polygon] Processing', ticker, `(${i + 1}/${tickers.length})`);
 
       try {
         const bars = await this.fetchHistory(ticker, startDate, endDate);
-        
+
         if (bars.length === 0) {
           console.warn('[Polygon] No data for', ticker);
           continue;
         }
 
         // Calculate returns from close prices
-        const prices = bars.map(b => b.close);
+        const prices = bars.map((b) => b.close);
         const returns = calculateReturns(prices);
-        
+
         // Calculate annualized volatility
         const volatility = calculateVolatility(returns);
 
@@ -321,22 +331,19 @@ class PolygonDataHandler {
       }
 
       // Rate limiting between tickers
-      await new Promise(resolve => setTimeout(resolve, 300));
+      await new Promise((resolve) => setTimeout(resolve, 300));
     }
 
     onProgress?.('Data fetching complete', 100);
     return assetData;
   }
 
-  getRegimeProxy(
-    assetData: Map<string, AssetData>,
-    lookbackDays: number = 60
-  ): RegimeSignal[] {
+  getRegimeProxy(assetData: Map<string, AssetData>, lookbackDays: number = 60): RegimeSignal[] {
     console.log('[Polygon] Calculating regime signals with lookback', lookbackDays);
 
     const signals: RegimeSignal[] = [];
     const tickers = Array.from(assetData.keys());
-    
+
     if (tickers.length === 0) return signals;
 
     // Get the first asset to determine date range
@@ -363,7 +370,7 @@ class PolygonDataHandler {
     // Calculate regime for each day after lookback period
     for (let day = lookbackDays; day < totalDays - 1; day++) {
       const timestamp = firstAsset.bars[day].timestamp;
-      
+
       // Get lookback window returns for all assets
       const windowReturns: number[][] = [];
       for (let a = 0; a < numAssets; a++) {
@@ -372,7 +379,7 @@ class PolygonDataHandler {
       }
 
       // Calculate mean returns for each asset in window
-      const means: number[] = windowReturns.map(w => 
+      const means: number[] = windowReturns.map((w) =>
         w.length > 0 ? w.reduce((a, b) => a + b, 0) / w.length : 0
       );
 
@@ -431,7 +438,7 @@ class PolygonDataHandler {
       });
 
       if (day === totalDays - 2) {
-        console.log('[Polygon] Current regime:', regime, 'Turbulence:', turbulenceIndex.toFixed(2));
+        console.log('[Polygon] Regime:', regime, 'Turbulence:', turbulenceIndex);
       }
     }
 
@@ -441,7 +448,7 @@ class PolygonDataHandler {
   buildCorrelationMatrix(assetData: Map<string, AssetData>): CorrelationMatrix {
     const tickers = Array.from(assetData.keys());
     const n = tickers.length;
-    
+
     console.log('[Polygon] Building correlation matrix for', n, 'assets');
 
     const matrix: number[][] = [];
@@ -449,7 +456,7 @@ class PolygonDataHandler {
     for (let i = 0; i < n; i++) {
       matrix[i] = [];
       const assetI = assetData.get(tickers[i])!;
-      
+
       for (let j = 0; j < n; j++) {
         if (i === j) {
           matrix[i][j] = 1;
@@ -482,3 +489,4 @@ class PolygonDataHandler {
 
 // Export singleton instance
 export const polygonData = new PolygonDataHandler();
+
