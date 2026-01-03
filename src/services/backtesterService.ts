@@ -1,7 +1,20 @@
 // Backtester Service - Real historical data from Finnhub
-// FIXED: Properly tracks shares per asset and calculates real portfolio returns
+// Aligned with Portfolio Visualizer methodology
+// Reference: https://www.portfoliovisualizer.com/faq
 
 import { getCandles, CandleData } from './finnhubService';
+import {
+  arithmeticMean,
+  standardDeviation,
+  calculateSharpeRatio as calcSharpe,
+  calculateSortinoRatio as calcSortino,
+  calculateMaxDrawdown as calcMaxDD,
+  calculateBetaAlpha as calcBetaAlpha,
+  calculateCAGR,
+  annualizedVolatility,
+  yearsBetween
+} from './portfolioMetricsService';
+
 export interface HistoricalDataPoint {
   date: string;
   price: number;
@@ -149,7 +162,10 @@ export async function fetchHistoricalPrices(
   }));
 }
 
-// Calculate daily returns from values
+/**
+ * Calculate daily returns from portfolio values
+ * Using simple returns: (P1 - P0) / P0
+ */
 function calculateDailyReturns(values: number[]): number[] {
   const returns: number[] = [];
   for (let i = 1; i < values.length; i++) {
@@ -160,111 +176,13 @@ function calculateDailyReturns(values: number[]): number[] {
   return returns;
 }
 
-// Calculate standard deviation
-function stdDev(values: number[]): number {
-  if (values.length === 0) return 0;
-  const mean = values.reduce((a, b) => a + b, 0) / values.length;
-  const squaredDiffs = values.map(v => Math.pow(v - mean, 2));
-  return Math.sqrt(squaredDiffs.reduce((a, b) => a + b, 0) / values.length);
-}
-
-// Calculate Sharpe Ratio
-function calculateSharpeRatio(returns: number[], riskFreeRate: number = RISK_FREE_RATE): number {
-  if (returns.length === 0) return 0;
-  
-  const dailyRiskFree = riskFreeRate / 252;
-  const excessReturns = returns.map(r => r - dailyRiskFree);
-  const meanExcessReturn = excessReturns.reduce((a, b) => a + b, 0) / excessReturns.length;
-  const volatility = stdDev(excessReturns);
-  
-  if (volatility === 0) return 0;
-  return (meanExcessReturn / volatility) * Math.sqrt(252);
-}
-
-// Calculate Sortino Ratio
-function calculateSortinoRatio(returns: number[], riskFreeRate: number = RISK_FREE_RATE): number {
-  if (returns.length === 0) return 0;
-  
-  const dailyRiskFree = riskFreeRate / 252;
-  const excessReturns = returns.map(r => r - dailyRiskFree);
-  const meanExcessReturn = excessReturns.reduce((a, b) => a + b, 0) / excessReturns.length;
-  
-  // Only use negative returns for downside deviation
-  const negativeReturns = excessReturns.filter(r => r < 0);
-  if (negativeReturns.length === 0) return meanExcessReturn > 0 ? 10 : 0; // Cap at 10 if no negative returns
-  
-  const downsideDeviation = stdDev(negativeReturns);
-  if (downsideDeviation === 0) return 0;
-  
-  return (meanExcessReturn / downsideDeviation) * Math.sqrt(252);
-}
-
-// Calculate Maximum Drawdown
-function calculateMaxDrawdown(values: number[]): { maxDrawdown: number; maxDrawdownPercent: number; drawdowns: number[] } {
-  let peak = values[0] || 0;
-  let maxDrawdown = 0;
-  let maxDrawdownPercent = 0;
-  const drawdowns: number[] = [];
-  
-  for (const value of values) {
-    if (value > peak) {
-      peak = value;
-    }
-    const drawdown = peak - value;
-    const drawdownPercent = peak > 0 ? (drawdown / peak) * 100 : 0;
-    drawdowns.push(-drawdownPercent);
-    
-    if (drawdown > maxDrawdown) {
-      maxDrawdown = drawdown;
-      maxDrawdownPercent = drawdownPercent;
-    }
-  }
-  
-  return { maxDrawdown, maxDrawdownPercent, drawdowns };
-}
-
-// Calculate volatility (annualized)
-function calculateVolatility(returns: number[]): number {
-  if (returns.length === 0) return 0;
-  return stdDev(returns) * Math.sqrt(252) * 100;
-}
-
-// Calculate beta and alpha
-function calculateBetaAlpha(
+// Wrapper for beta/alpha calculation
+function calculateBetaAlphaWrapper(
   portfolioReturns: number[],
   benchmarkReturns: number[],
   riskFreeRate: number = RISK_FREE_RATE
 ): { beta: number; alpha: number } {
-  const minLength = Math.min(portfolioReturns.length, benchmarkReturns.length);
-  if (minLength < 2) return { beta: 1, alpha: 0 };
-  
-  const pReturns = portfolioReturns.slice(0, minLength);
-  const bReturns = benchmarkReturns.slice(0, minLength);
-  
-  const pMean = pReturns.reduce((a, b) => a + b, 0) / pReturns.length;
-  const bMean = bReturns.reduce((a, b) => a + b, 0) / bReturns.length;
-  
-  let covariance = 0;
-  let variance = 0;
-  
-  for (let i = 0; i < minLength; i++) {
-    covariance += (pReturns[i] - pMean) * (bReturns[i] - bMean);
-    variance += Math.pow(bReturns[i] - bMean, 2);
-  }
-  
-  covariance /= minLength;
-  variance /= minLength;
-  
-  const beta = variance > 0 ? covariance / variance : 1;
-  
-  // Annualize returns
-  const annualPReturn = pMean * 252;
-  const annualBReturn = bMean * 252;
-  
-  // Alpha = portfolio return - (risk-free + beta * (benchmark - risk-free))
-  const alpha = (annualPReturn - (riskFreeRate + beta * (annualBReturn - riskFreeRate))) * 100;
-  
-  return { beta, alpha };
+  return calcBetaAlpha(portfolioReturns, benchmarkReturns, riskFreeRate);
 }
 
 /**
@@ -398,22 +316,23 @@ export async function runBacktest(config: BacktestConfig): Promise<BacktestResul
   console.log(`[Backtester] Initial portfolio value: $${firstValue.toFixed(2)}`);
   console.log(`[Backtester] Final portfolio value: $${finalValue.toFixed(2)}`);
   
+  // Calculate per-asset performance
+  const lastDate = commonDates[commonDates.length - 1];
+  
   // Calculate returns
   const dailyReturns = calculateDailyReturns(portfolioValues);
   const totalReturn = finalValue - initialCapital;
   const totalReturnPercent = ((finalValue - initialCapital) / initialCapital) * 100;
   
-  // Annualized return (CAGR)
-  const years = commonDates.length / 252;
-  const annualizedReturn = years > 0 
-    ? (Math.pow(finalValue / initialCapital, 1 / years) - 1) * 100 
-    : 0;
+  // Calculate actual years using calendar days
+  const years = yearsBetween(firstDate, lastDate);
+  const annualizedReturn = calculateCAGR(initialCapital, finalValue, years) * 100;
   
-  // Risk metrics
-  const volatility = calculateVolatility(dailyReturns);
-  const sharpeRatio = calculateSharpeRatio(dailyReturns);
-  const sortinoRatio = calculateSortinoRatio(dailyReturns);
-  const { maxDrawdown, maxDrawdownPercent } = calculateMaxDrawdown(portfolioValues);
+  // Risk metrics using proper formulas
+  const volatility = annualizedVolatility(dailyReturns) * 100;
+  const sharpeRatio = calcSharpe(dailyReturns, RISK_FREE_RATE);
+  const sortinoRatio = calcSortino(dailyReturns, RISK_FREE_RATE);
+  const { maxDrawdown, maxDrawdownPercent } = calcMaxDD(portfolioValues);
   
   // Benchmark comparison
   let benchmarkReturn: number | undefined;
@@ -432,14 +351,12 @@ export async function runBacktest(config: BacktestConfig): Promise<BacktestResul
       
       // Only calculate if we have matching lengths
       const portfolioReturnsForBeta = dailyReturns.slice(0, benchmarkReturns.length);
-      const betaAlpha = calculateBetaAlpha(portfolioReturnsForBeta, benchmarkReturns);
+      const betaAlpha = calculateBetaAlphaWrapper(portfolioReturnsForBeta, benchmarkReturns);
       alpha = betaAlpha.alpha;
       beta = betaAlpha.beta;
     }
   }
   
-  // Calculate per-asset performance
-  const lastDate = commonDates[commonDates.length - 1];
   const assetPerformance = assets.map(asset => {
     const firstPrice = priceMaps.get(asset.symbol)?.get(firstDate) || 1;
     const lastPrice = priceMaps.get(asset.symbol)?.get(lastDate) || firstPrice;

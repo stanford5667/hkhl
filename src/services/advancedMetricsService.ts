@@ -1,7 +1,25 @@
 // Advanced Risk Metrics Service
 // CVaR, Sortino, Liquidity Score, and more institutional metrics
+// Aligned with Portfolio Visualizer methodology
+// Reference: https://www.portfoliovisualizer.com/faq
 
 import { LIQUIDITY_SCORES } from '@/types/portfolio';
+import {
+  arithmeticMean,
+  standardDeviation,
+  calculateVaR as calcVaR,
+  calculateCVaR as calcCVaR,
+  calculateSortinoRatio,
+  calculateCalmarRatio as calcCalmar,
+  calculateTreynorRatio as calcTreynor,
+  calculateInformationRatio as calcIR,
+  calculateOmega as calcOmega,
+  calculateTailRatio as calcTailRatio,
+  calculateSkewness as calcSkewness,
+  calculateKurtosis as calcKurtosis,
+  calculateUlcerIndex as calcUlcer,
+  calculateMaxDrawdown
+} from './portfolioMetricsService';
 
 export interface AdvancedRiskMetrics {
   // Value at Risk metrics
@@ -39,14 +57,7 @@ const RISK_FREE_RATE = 0.05; // 5% annual
  * Average loss in the worst X% of cases
  */
 export function calculateCVaR(returns: number[], confidence: number = 0.95): number {
-  if (returns.length === 0) return 0;
-  
-  const sorted = [...returns].sort((a, b) => a - b);
-  const cutoffIndex = Math.floor(sorted.length * (1 - confidence));
-  const tailReturns = sorted.slice(0, Math.max(1, cutoffIndex));
-  
-  const cvar = tailReturns.reduce((sum, r) => sum + r, 0) / tailReturns.length;
-  return Math.abs(cvar) * 100; // Return as positive percentage
+  return calcCVaR(returns, confidence);
 }
 
 /**
@@ -54,37 +65,18 @@ export function calculateCVaR(returns: number[], confidence: number = 0.95): num
  * The maximum expected loss at X% confidence
  */
 export function calculateVaR(returns: number[], confidence: number = 0.95): number {
-  if (returns.length === 0) return 0;
-  
-  const sorted = [...returns].sort((a, b) => a - b);
-  const index = Math.floor(sorted.length * (1 - confidence));
-  
-  return Math.abs(sorted[index] || 0) * 100;
+  return calcVaR(returns, confidence);
 }
 
 /**
  * Calculate Sortino Ratio
  * Like Sharpe but uses downside deviation only
  */
-export function calculateSortinoRatio(
+export function calculateSortino(
   returns: number[],
   riskFreeRate: number = RISK_FREE_RATE
 ): number {
-  if (returns.length === 0) return 0;
-  
-  const dailyRf = riskFreeRate / 252;
-  const excessReturns = returns.map(r => r - dailyRf);
-  const meanExcess = excessReturns.reduce((a, b) => a + b, 0) / excessReturns.length;
-  
-  // Downside deviation - only negative returns
-  const negativeReturns = excessReturns.filter(r => r < 0);
-  if (negativeReturns.length === 0) return meanExcess > 0 ? 10 : 0;
-  
-  const downsideVariance = negativeReturns.reduce((sum, r) => sum + r * r, 0) / negativeReturns.length;
-  const downsideDeviation = Math.sqrt(downsideVariance);
-  
-  if (downsideDeviation === 0) return 0;
-  return (meanExcess / downsideDeviation) * Math.sqrt(252);
+  return calculateSortinoRatio(returns, riskFreeRate);
 }
 
 /**
@@ -92,8 +84,7 @@ export function calculateSortinoRatio(
  * CAGR / Max Drawdown
  */
 export function calculateCalmarRatio(annualizedReturn: number, maxDrawdown: number): number {
-  if (maxDrawdown === 0) return 0;
-  return annualizedReturn / maxDrawdown;
+  return calcCalmar(annualizedReturn / 100, maxDrawdown);
 }
 
 /**
@@ -105,8 +96,7 @@ export function calculateTreynorRatio(
   beta: number,
   riskFreeRate: number = RISK_FREE_RATE
 ): number {
-  if (beta === 0) return 0;
-  return (annualizedReturn / 100 - riskFreeRate) / beta;
+  return calcTreynor(annualizedReturn / 100, beta, riskFreeRate);
 }
 
 /**
@@ -117,17 +107,7 @@ export function calculateInformationRatio(
   portfolioReturns: number[],
   benchmarkReturns: number[]
 ): number {
-  if (portfolioReturns.length === 0 || benchmarkReturns.length === 0) return 0;
-  
-  const minLen = Math.min(portfolioReturns.length, benchmarkReturns.length);
-  const activeReturns = portfolioReturns.slice(0, minLen).map((r, i) => r - benchmarkReturns[i]);
-  
-  const meanActive = activeReturns.reduce((a, b) => a + b, 0) / activeReturns.length;
-  const variance = activeReturns.reduce((sum, r) => sum + (r - meanActive) ** 2, 0) / activeReturns.length;
-  const trackingError = Math.sqrt(variance);
-  
-  if (trackingError === 0) return 0;
-  return (meanActive / trackingError) * Math.sqrt(252);
+  return calcIR(portfolioReturns, benchmarkReturns);
 }
 
 /**
@@ -135,11 +115,7 @@ export function calculateInformationRatio(
  * Probability-weighted ratio of gains to losses above/below threshold
  */
 export function calculateOmega(returns: number[], threshold: number = 0): number {
-  const gains = returns.filter(r => r > threshold).reduce((sum, r) => sum + (r - threshold), 0);
-  const losses = returns.filter(r => r < threshold).reduce((sum, r) => sum + (threshold - r), 0);
-  
-  if (losses === 0) return gains > 0 ? 10 : 1;
-  return 1 + (gains / losses);
+  return calcOmega(returns, threshold);
 }
 
 /**
@@ -147,19 +123,21 @@ export function calculateOmega(returns: number[], threshold: number = 0): number
  * Ratio of average gains in top 5% to average losses in bottom 5%
  */
 export function calculateTailRatio(returns: number[]): number {
-  if (returns.length < 20) return 1;
-  
-  const sorted = [...returns].sort((a, b) => a - b);
-  const cutoff = Math.max(1, Math.floor(sorted.length * 0.05));
-  
-  const bottomTail = sorted.slice(0, cutoff);
-  const topTail = sorted.slice(-cutoff);
-  
-  const avgLoss = Math.abs(bottomTail.reduce((a, b) => a + b, 0) / bottomTail.length);
-  const avgGain = topTail.reduce((a, b) => a + b, 0) / topTail.length;
-  
-  if (avgLoss === 0) return avgGain > 0 ? 10 : 1;
-  return avgGain / avgLoss;
+  return calcTailRatio(returns);
+}
+
+/**
+ * Calculate Skewness
+ */
+export function calculateSkewness(returns: number[]): number {
+  return calcSkewness(returns);
+}
+
+/**
+ * Calculate Kurtosis (excess kurtosis)
+ */
+export function calculateKurtosis(returns: number[]): number {
+  return calcKurtosis(returns);
 }
 
 /**
@@ -167,54 +145,7 @@ export function calculateTailRatio(returns: number[]): number {
  * Measures depth and duration of drawdowns
  */
 export function calculateUlcerIndex(values: number[]): number {
-  if (values.length === 0) return 0;
-  
-  let peak = values[0];
-  let sumSquaredDrawdowns = 0;
-  
-  for (const value of values) {
-    if (value > peak) peak = value;
-    const drawdownPercent = peak > 0 ? ((peak - value) / peak) * 100 : 0;
-    sumSquaredDrawdowns += drawdownPercent * drawdownPercent;
-  }
-  
-  return Math.sqrt(sumSquaredDrawdowns / values.length);
-}
-
-/**
- * Calculate Skewness
- */
-export function calculateSkewness(returns: number[]): number {
-  if (returns.length < 3) return 0;
-  
-  const n = returns.length;
-  const mean = returns.reduce((a, b) => a + b, 0) / n;
-  const variance = returns.reduce((sum, r) => sum + (r - mean) ** 2, 0) / n;
-  const stdDev = Math.sqrt(variance);
-  
-  if (stdDev === 0) return 0;
-  
-  const skewSum = returns.reduce((sum, r) => sum + ((r - mean) / stdDev) ** 3, 0);
-  return (n / ((n - 1) * (n - 2))) * skewSum;
-}
-
-/**
- * Calculate Kurtosis (excess kurtosis)
- */
-export function calculateKurtosis(returns: number[]): number {
-  if (returns.length < 4) return 0;
-  
-  const n = returns.length;
-  const mean = returns.reduce((a, b) => a + b, 0) / n;
-  const variance = returns.reduce((sum, r) => sum + (r - mean) ** 2, 0) / n;
-  const stdDev = Math.sqrt(variance);
-  
-  if (stdDev === 0) return 0;
-  
-  const kurtSum = returns.reduce((sum, r) => sum + ((r - mean) / stdDev) ** 4, 0);
-  const kurtosis = (kurtSum / n);
-  
-  return kurtosis - 3; // Excess kurtosis
+  return calcUlcer(values);
 }
 
 /**

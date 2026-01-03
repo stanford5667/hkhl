@@ -6,6 +6,16 @@ import {
   AssetData,
   RegimeSignal 
 } from './portfolioOptimizer';
+import {
+  yearsBetween,
+  calculateCAGR,
+  calculateSharpeRatio,
+  calculateSortinoRatio,
+  calculateMaxDrawdown,
+  calculateCalmarRatio,
+  standardDeviation,
+  arithmeticMean
+} from './portfolioMetricsService';
 
 // Types
 export interface BacktestConfig {
@@ -586,38 +596,31 @@ export class BacktestEngine {
     const finalValue = snapshots[snapshots.length - 1].portfolioValue;
     const totalReturn = (finalValue - initialValue) / initialValue;
 
-    // CAGR
-    const years = snapshots.length / 252;
-    const cagr = years > 0 ? Math.pow(finalValue / initialValue, 1 / years) - 1 : 0;
+    // Use actual calendar dates for CAGR calculation
+    const startDate = snapshots[0].date;
+    const endDate = snapshots[snapshots.length - 1].date;
+    const years = yearsBetween(startDate, endDate);
+    const cagr = calculateCAGR(initialValue, finalValue, years);
 
-    // Volatility
+    // Daily returns for metrics
     const returns = snapshots.map(s => s.dailyReturn);
-    const avgReturn = returns.reduce((a, b) => a + b, 0) / returns.length;
-    const variance = returns.reduce((sum, r) => sum + Math.pow(r - avgReturn, 2), 0) / returns.length;
-    const volatility = Math.sqrt(variance) * Math.sqrt(252);
+    
+    // Volatility using sample standard deviation, annualized
+    const volatility = standardDeviation(returns) * Math.sqrt(252);
 
-    // Sharpe Ratio
-    const sharpeRatio = volatility > 0 ? (cagr - RISK_FREE_RATE) / volatility : 0;
+    // Sharpe Ratio (proper formula)
+    const sharpeRatio = calculateSharpeRatio(returns, RISK_FREE_RATE);
 
-    // Sortino Ratio (downside deviation)
-    const negativeReturns = returns.filter(r => r < 0);
-    const downsideVariance = negativeReturns.length > 0
-      ? negativeReturns.reduce((sum, r) => sum + Math.pow(r, 2), 0) / negativeReturns.length
-      : variance;
-    const downsideDeviation = Math.sqrt(downsideVariance) * Math.sqrt(252);
-    const sortinoRatio = downsideDeviation > 0 ? (cagr - RISK_FREE_RATE) / downsideDeviation : 0;
+    // Sortino Ratio (proper formula with downside deviation)
+    const sortinoRatio = calculateSortinoRatio(returns, RISK_FREE_RATE);
 
     // Max Drawdown
-    let peak = initialValue;
-    let maxDrawdown = 0;
-    snapshots.forEach(s => {
-      if (s.portfolioValue > peak) peak = s.portfolioValue;
-      const drawdown = (peak - s.portfolioValue) / peak;
-      if (drawdown > maxDrawdown) maxDrawdown = drawdown;
-    });
+    const portfolioValues = snapshots.map(s => s.portfolioValue);
+    const { maxDrawdownPercent } = calculateMaxDrawdown(portfolioValues);
+    const maxDrawdown = maxDrawdownPercent / 100;
 
     // Calmar Ratio
-    const calmarRatio = maxDrawdown > 0 ? cagr / maxDrawdown : 0;
+    const calmarRatio = calculateCalmarRatio(cagr, maxDrawdownPercent);
 
     // After-tax return
     const afterTaxReturn = (finalValue - initialValue - totalTaxPaid) / initialValue;
