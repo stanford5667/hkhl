@@ -77,3 +77,6 @@ verify_jwt = false
 
 [functions.ai-portfolio-advisor]
 verify_jwt = false
+
+[functions.ai-portfolio-chat]
+verify_jwt = false
