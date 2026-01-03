@@ -380,7 +380,6 @@ export default function PortfolioVisualizer() {
   const [visibleTabs, setVisibleTabs] = useState({
     'ai-insights': true,
     'educational': true,
-    'frontier': true,
     'metrics': true,
     'regime': true,
     'allocation': true,
@@ -1154,13 +1153,6 @@ export default function PortfolioVisualizer() {
                     Learn
                   </DropdownMenuCheckboxItem>
                   <DropdownMenuCheckboxItem
-                    checked={visibleTabs['frontier']}
-                    onCheckedChange={() => toggleTabVisibility('frontier')}
-                  >
-                    <Target className="h-4 w-4 mr-2" />
-                    Frontier
-                  </DropdownMenuCheckboxItem>
-                  <DropdownMenuCheckboxItem
                     checked={visibleTabs['metrics']}
                     onCheckedChange={() => toggleTabVisibility('metrics')}
                   >
@@ -1279,12 +1271,6 @@ export default function PortfolioVisualizer() {
                     <span className="hidden sm:inline">Learn</span>
                   </TabsTrigger>
                 )}
-                {visibleTabs['frontier'] && (
-                  <TabsTrigger value="frontier" className="gap-2">
-                    <Target className="h-4 w-4" />
-                    <span className="hidden sm:inline">Frontier</span>
-                  </TabsTrigger>
-                )}
                 {visibleTabs['metrics'] && (
                   <TabsTrigger value="metrics" className="gap-2">
                     <BarChart3 className="h-4 w-4" />
@@ -1353,16 +1339,6 @@ export default function PortfolioVisualizer() {
             </TabsContent>
           )}
 
-          {visibleTabs['frontier'] && (
-            <TabsContent value="frontier">
-              <EfficientFrontierSlider
-                frontierPoints={efficientFrontier}
-                selectedPoint={selectedPoint}
-                onRiskToleranceChange={handleRiskToleranceChange}
-                riskTolerance={riskTolerance}
-              />
-            </TabsContent>
-          )}
 
           {visibleTabs['metrics'] && (
             <TabsContent value="metrics">
