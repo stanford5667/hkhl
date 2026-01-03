@@ -146,49 +146,133 @@ serve(async (req) => {
       );
     }
     
-    // Fetch portfolio returns from flat file database
-    console.log('[AICalculate] Fetching portfolio returns from database...');
+    // Fetch data for each ticker using polygon-aggs edge function
+    console.log('[AICalculate] Fetching price data for each ticker...');
     
-    const { data: portfolioReturns, error: returnsError } = await supabase.rpc(
-      'get_portfolio_returns',
-      {
-        p_tickers: tickers,
-        p_weights: weights,
-        p_start_date: startDate,
-        p_end_date: endDate
+    const tickerData: Map<string, { date: string; close: number; return: number }[]> = new Map();
+    
+    // Fetch data for all tickers in parallel
+    const polygonUrl = `${Deno.env.get("SUPABASE_URL")}/functions/v1/polygon-aggs`;
+    
+    await Promise.all(tickers.map(async (ticker) => {
+      try {
+        console.log(`[AICalculate] Fetching data for ${ticker}...`);
+        const response = await fetch(polygonUrl, {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${Deno.env.get("SUPABASE_ANON_KEY")}`
+          },
+          body: JSON.stringify({
+            ticker,
+            startDate,
+            endDate,
+            timespan: 'day'
+          })
+        });
+        
+        if (!response.ok) {
+          const text = await response.text();
+          console.error(`[AICalculate] Failed to fetch ${ticker}:`, text);
+          return;
+        }
+        
+        const data = await response.json();
+        if (!data.ok || !data.results || data.results.length === 0) {
+          console.warn(`[AICalculate] No results for ${ticker}`);
+          return;
+        }
+        
+        // Convert to daily returns
+        const bars: { date: string; close: number; return: number }[] = [];
+        const results = data.results;
+        
+        for (let i = 0; i < results.length; i++) {
+          const bar = results[i];
+          const date = new Date(bar.t).toISOString().split('T')[0];
+          const close = bar.c;
+          const dailyReturn = i > 0 ? (close - results[i-1].c) / results[i-1].c : 0;
+          
+          bars.push({ date, close, return: dailyReturn });
+        }
+        
+        console.log(`[AICalculate] Got ${bars.length} bars for ${ticker}`);
+        tickerData.set(ticker, bars);
+      } catch (err) {
+        console.error(`[AICalculate] Error fetching ${ticker}:`, err);
       }
-    );
+    }));
     
-    if (returnsError) {
-      console.error('[AICalculate] Error fetching portfolio returns:', returnsError);
-      throw new Error(`Failed to fetch portfolio returns: ${returnsError.message}`);
+    // Check we have data for all tickers
+    const missingTickers = tickers.filter(t => !tickerData.has(t) || tickerData.get(t)!.length < 20);
+    if (missingTickers.length > 0) {
+      throw new Error(`Insufficient data for tickers: ${missingTickers.join(', ')}`);
     }
     
-    if (!portfolioReturns || portfolioReturns.length < 20) {
-      console.error(`[AICalculate] Insufficient data: ${portfolioReturns?.length || 0} days`);
-      throw new Error(`Insufficient data: only ${portfolioReturns?.length || 0} trading days available. Need at least 20 days.`);
+    // Find common dates across all tickers
+    const allDates = new Set<string>();
+    tickerData.forEach(bars => bars.forEach(b => allDates.add(b.date)));
+    
+    const commonDates = [...allDates].filter(date => 
+      tickers.every(ticker => tickerData.get(ticker)?.some(b => b.date === date))
+    ).sort();
+    
+    console.log(`[AICalculate] Found ${commonDates.length} common trading days across all tickers`);
+    
+    if (commonDates.length < 20) {
+      throw new Error(`Insufficient overlapping data: only ${commonDates.length} common trading days. Need at least 20 days.`);
     }
     
-    console.log(`[AICalculate] Retrieved ${portfolioReturns.length} trading days of data`);
+    // Calculate weighted portfolio returns for each common date
+    const portfolioReturns = commonDates.slice(1).map(date => {
+      let weightedReturn = 0;
+      
+      for (let i = 0; i < tickers.length; i++) {
+        const tickerBars = tickerData.get(tickers[i])!;
+        const bar = tickerBars.find(b => b.date === date);
+        if (bar) {
+          weightedReturn += bar.return * weights[i];
+        }
+      }
+      
+      return { bar_date: date, portfolio_return: weightedReturn };
+    });
     
-    // Fetch benchmark returns
-    const { data: benchmarkData, error: benchmarkError } = await supabase
-      .from('market_daily_bars')
-      .select('bar_date, daily_return')
-      .eq('ticker', benchmarkTicker)
-      .gte('bar_date', startDate)
-      .lte('bar_date', endDate)
-      .not('daily_return', 'is', null)
-      .order('bar_date');
+    console.log(`[AICalculate] Calculated ${portfolioReturns.length} portfolio returns`);
     
-    if (benchmarkError) {
-      console.warn('[AICalculate] Benchmark fetch error:', benchmarkError);
+    // Fetch benchmark returns using polygon-aggs
+    console.log(`[AICalculate] Fetching benchmark data for ${benchmarkTicker}...`);
+    let benchmarkReturns: number[] = [];
+    
+    try {
+      const benchResponse = await fetch(polygonUrl, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${Deno.env.get("SUPABASE_ANON_KEY")}`
+        },
+        body: JSON.stringify({
+          ticker: benchmarkTicker,
+          startDate,
+          endDate,
+          timespan: 'day'
+        })
+      });
+      
+      if (benchResponse.ok) {
+        const benchData = await benchResponse.json();
+        if (benchData.ok && benchData.results && benchData.results.length > 0) {
+          benchmarkReturns = benchData.results.slice(1).map((bar: any, i: number) => 
+            (bar.c - benchData.results[i].c) / benchData.results[i].c
+          );
+          console.log(`[AICalculate] Benchmark (${benchmarkTicker}): ${benchmarkReturns.length} days`);
+        }
+      }
+    } catch (err) {
+      console.warn('[AICalculate] Benchmark fetch error:', err);
     }
     
-    const benchmarkReturns = benchmarkData?.map(d => d.daily_return) || [];
     const returns = portfolioReturns.map((d: any) => d.portfolio_return);
-    
-    console.log(`[AICalculate] Benchmark (${benchmarkTicker}): ${benchmarkReturns.length} days`);
     
     // Calculate all metrics locally (fast)
     console.log('[AICalculate] Calculating metrics...');
