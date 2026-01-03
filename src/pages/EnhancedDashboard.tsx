@@ -184,9 +184,11 @@ function QuickActionButton({
 // Markets ticker for public equities
 function MarketsTicker({
   publicEquities,
+  quotesMap,
   isLoading,
 }: {
   publicEquities: CompanyWithRelations[];
+  quotesMap: Map<string, { price: number; change: number; changePercent: number }>;
   isLoading: boolean;
 }) {
   const [indices, setIndices] = useState<{ symbol: string; name: string; price: number; change: number }[]>([
@@ -240,7 +242,7 @@ function MarketsTicker({
       symbol: h.ticker_symbol || h.name,
       name: h.name,
       price: h.current_price || 0,
-      change: 0, // Would need real-time data
+      change: quotesMap.get(h.ticker_symbol || '')?.changePercent || 0,
     })),
   ];
 
@@ -564,21 +566,23 @@ function PipelineFunnelChart({
 // Public Equity Top Movers
 function TopMoversCard({
   publicEquities,
+  quotesMap,
   isLoading,
 }: {
   publicEquities: CompanyWithRelations[];
+  quotesMap: Map<string, { price: number; change: number; changePercent: number }>;
   isLoading: boolean;
 }) {
-  // In a real app, this would fetch real-time price changes
   const movers = useMemo(() => {
     return publicEquities
+      .filter(eq => eq.ticker_symbol)
       .map(eq => ({
         ...eq,
-        changePercent: (Math.random() - 0.5) * 10, // Mock data
+        changePercent: quotesMap.get(eq.ticker_symbol!)?.changePercent || 0,
       }))
       .sort((a, b) => Math.abs(b.changePercent) - Math.abs(a.changePercent))
       .slice(0, 5);
-  }, [publicEquities]);
+  }, [publicEquities, quotesMap]);
 
   if (isLoading) {
     return (
@@ -683,6 +687,9 @@ export default function EnhancedDashboard() {
   const { pipelineStats, tasksWithRelations, companiesWithRelations, refetchAll, dashboardStats } = useUnifiedData();
   const { widgets, enabledWidgets, toggleWidget, resetToDefaults } = useDashboardWidgets();
 
+  // Live quotes state for public equities
+  const [quotesMap, setQuotesMap] = useState<Map<string, { price: number; change: number; changePercent: number }>>(new Map());
+
   const greeting = getGreeting();
   const userName = user?.user_metadata?.full_name?.split(' ')[0] || 'there';
   const currentDate = format(new Date(), 'EEEE, MMMM d, yyyy');
@@ -703,6 +710,27 @@ export default function EnhancedDashboard() {
     [companiesWithRelations]
   );
 
+  // Fetch live quotes for public equities
+  useEffect(() => {
+    const fetchQuotes = async () => {
+      const symbols = publicEquities
+        .filter(c => c.ticker_symbol)
+        .map(c => c.ticker_symbol!);
+      if (symbols.length > 0) {
+        try {
+          const { getCachedQuotes } = await import('@/services/quoteCacheService');
+          const quotes = await getCachedQuotes(symbols);
+          setQuotesMap(quotes);
+        } catch (error) {
+          console.error('Failed to fetch quotes:', error);
+        }
+      }
+    };
+    fetchQuotes();
+    const interval = setInterval(fetchQuotes, 60000);
+    return () => clearInterval(interval);
+  }, [publicEquities]);
+
   // Calculate totals
   const publicEquityValue = publicEquities.reduce((sum, c) => sum + (c.market_value || 0), 0);
   const publicEquityCostBasis = publicEquities.reduce((sum, c) => sum + (c.cost_basis || 0), 0);
@@ -711,9 +739,17 @@ export default function EnhancedDashboard() {
     ? (publicEquityGainLoss / publicEquityCostBasis) * 100 
     : 0;
 
-  // Mock today's change (would come from real-time data)
-  const todaysChange = publicEquityValue * 0.0085; // Mock 0.85% gain
-  const todaysChangePercent = 0.85;
+  // Calculate today's change from real quote data
+  const todaysChange = publicEquities.reduce((sum, c) => {
+    if (!c.ticker_symbol) return sum;
+    const quote = quotesMap.get(c.ticker_symbol);
+    const shares = c.shares_owned || 0;
+    return sum + (quote ? shares * quote.change : 0);
+  }, 0);
+  
+  const todaysChangePercent = publicEquityValue > 0 
+    ? (todaysChange / (publicEquityValue - todaysChange)) * 100 
+    : 0;
 
   return (
     <motion.div
@@ -762,7 +798,7 @@ export default function EnhancedDashboard() {
       {/* Markets Ticker (if public equities enabled) */}
       {hasPublicEquity && (
         <motion.div variants={itemVariants}>
-          <MarketsTicker publicEquities={publicEquities} isLoading={isLoading} />
+          <MarketsTicker publicEquities={publicEquities} quotesMap={quotesMap} isLoading={isLoading} />
         </motion.div>
       )}
 
@@ -1017,7 +1053,7 @@ export default function EnhancedDashboard() {
                             </Button>
                           </Link>
                         </div>
-                        <TopMoversCard publicEquities={publicEquities} isLoading={isLoading} />
+                        <TopMoversCard publicEquities={publicEquities} quotesMap={quotesMap} isLoading={isLoading} />
                       </div>
                     </TabsContent>
                   )}
