@@ -510,7 +510,7 @@ export default function PortfolioVisualizer() {
       <div className="min-h-screen bg-background">
         <ChooseYourPath
           onSelectManual={() => setCurrentFlow('manual-form')}
-          onSelectAI={() => setCurrentFlow('ai-wizard')}
+          onSelectAIChat={() => setCurrentFlow('ai-wizard')}
           onSelectQuestionnaire={() => setCurrentFlow('questionnaire')}
         />
       </div>
