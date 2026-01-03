@@ -1,8 +1,7 @@
-// Backtester Service - Real historical data from Alpha Vantage
+// Backtester Service - Real historical data from Finnhub
 // FIXED: Properly tracks shares per asset and calculates real portfolio returns
 
-import { getHistoricalDaily, filterPricesByDateRange, isAlphaVantageConfigured } from './alphaVantageService';
-
+import { getCandles, CandleData } from './finnhubService';
 export interface HistoricalDataPoint {
   date: string;
   price: number;
@@ -120,36 +119,33 @@ const RISK_FREE_RATE = 0.05;
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 /**
- * Fetch historical prices from Alpha Vantage
+ * Fetch historical prices from Finnhub
  */
 export async function fetchHistoricalPrices(
   symbol: string,
   startDate: string,
   endDate: string
 ): Promise<HistoricalDataPoint[]> {
-  if (!isAlphaVantageConfigured()) {
-    console.warn('[Backtester] No Alpha Vantage API key configured, using demo mode (limited)');
-  }
-
-  console.log(`[Backtester] Fetching ${symbol} from ${startDate} to ${endDate}...`);
+  console.log(`[Backtester] Fetching ${symbol} from ${startDate} to ${endDate} via Finnhub...`);
   
-  // Get full history then filter to date range
-  const allPrices = await getHistoricalDaily(symbol);
-  const filtered = filterPricesByDateRange(allPrices, startDate, endDate);
+  const fromTs = Math.floor(new Date(startDate).getTime() / 1000);
+  const toTs = Math.floor(new Date(endDate).getTime() / 1000);
   
-  if (filtered.length === 0) {
+  const candles = await getCandles(symbol, 'D', fromTs, toTs);
+  
+  if (!candles || candles.length === 0) {
     throw new Error(`No data for ${symbol} in date range ${startDate} to ${endDate}`);
   }
   
-  console.log(`[Backtester] Got ${filtered.length} days for ${symbol}`);
+  console.log(`[Backtester] Got ${candles.length} days for ${symbol}`);
   
-  return filtered.map(p => ({
-    date: p.date,
-    price: p.close,
-    open: p.open,
-    high: p.high,
-    low: p.low,
-    volume: p.volume,
+  return candles.map(c => ({
+    date: c.date,
+    price: c.close,
+    open: c.open,
+    high: c.high,
+    low: c.low,
+    volume: c.volume,
   }));
 }
 
@@ -303,7 +299,7 @@ export async function runBacktest(config: BacktestConfig): Promise<BacktestResul
     assetData.set(asset.symbol, data);
     
     if (i < assets.length - 1) {
-      await delay(12000); // Alpha Vantage rate limit: 5 calls/min = 12s between calls
+      await delay(350); // Finnhub rate limit: 60 calls/min
     }
   }
   
@@ -311,7 +307,7 @@ export async function runBacktest(config: BacktestConfig): Promise<BacktestResul
   console.log(`[Backtester] Fetching benchmark ${benchmarkSymbol}...`);
   let benchmarkData: HistoricalDataPoint[] = [];
   try {
-    await delay(12000); // Alpha Vantage rate limit
+    await delay(350); // Finnhub rate limit
     benchmarkData = await fetchHistoricalPrices(benchmarkSymbol, startDate, endDate);
   } catch (e) {
     console.warn(`[Backtester] Could not fetch benchmark ${benchmarkSymbol}:`, e);
