@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -18,10 +19,152 @@ function sleep(ms: number) {
   return new Promise((r) => setTimeout(r, ms));
 }
 
+// Create Supabase client with service role for cache operations
+function getSupabaseClient() {
+  const supabaseUrl = Deno.env.get("SUPABASE_URL");
+  const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  
+  if (!supabaseUrl || !serviceRoleKey) {
+    console.warn("[polygon-aggs] Supabase credentials not available for caching");
+    return null;
+  }
+  
+  return createClient(supabaseUrl, serviceRoleKey);
+}
+
+// Check cache for existing data
+async function getCachedData(
+  supabase: any,
+  ticker: string,
+  startDate: string,
+  endDate: string
+) {
+  try {
+    const { data, error } = await supabase
+      .from("stock_price_cache")
+      .select("trade_date, open_price, high_price, low_price, close_price, volume")
+      .eq("ticker", ticker)
+      .gte("trade_date", startDate)
+      .lte("trade_date", endDate)
+      .order("trade_date", { ascending: true });
+
+    if (error) {
+      console.error("[polygon-aggs] Cache read error:", error.message);
+      return null;
+    }
+
+    return data;
+  } catch (err) {
+    console.error("[polygon-aggs] Cache read exception:", err);
+    return null;
+  }
+}
+
+// Save fetched data to cache
+async function saveToCache(
+  supabase: any,
+  ticker: string,
+  results: any[]
+) {
+  if (!results || results.length === 0) return;
+
+  try {
+    // Convert Polygon results to cache format
+    const rows = results.map((r: any) => ({
+      ticker,
+      trade_date: new Date(r.t).toISOString().split("T")[0],
+      open_price: r.o,
+      high_price: r.h,
+      low_price: r.l,
+      close_price: r.c,
+      adjusted_close: r.c, // Polygon adjusted=true means c is already adjusted
+      volume: r.v,
+    }));
+
+    // Upsert in batches of 500
+    const batchSize = 500;
+    for (let i = 0; i < rows.length; i += batchSize) {
+      const batch = rows.slice(i, i + batchSize);
+      
+      const { error } = await supabase
+        .from("stock_price_cache")
+        .upsert(batch, { 
+          onConflict: "ticker,trade_date",
+          ignoreDuplicates: false 
+        });
+
+      if (error) {
+        console.error("[polygon-aggs] Cache write error:", error.message);
+        // Continue anyway - caching is best effort
+      }
+    }
+
+    console.log(`[polygon-aggs] Cached ${rows.length} bars for ${ticker}`);
+  } catch (err) {
+    console.error("[polygon-aggs] Cache write exception:", err);
+  }
+}
+
+// Convert cache rows back to Polygon format
+function cacheToPolygonFormat(cacheRows: any[]) {
+  return cacheRows.map((row) => ({
+    t: new Date(row.trade_date).getTime(),
+    o: row.open_price,
+    h: row.high_price,
+    l: row.low_price,
+    c: row.close_price,
+    v: row.volume,
+    vw: row.close_price, // approximate VWAP with close
+  }));
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
+    const body = await req.json().catch(() => ({}));
+
+    const ticker = String(body.ticker || "").toUpperCase().trim();
+    const startDate = String(body.startDate || "").trim();
+    const endDate = String(body.endDate || "").trim();
+    const timespan = String(body.timespan || "day").trim();
+    const skipCache = body.skipCache === true;
+
+    if (!ticker) return json({ ok: false, error: "ticker is required" }, 400);
+    if (!startDate || !endDate) return json({ ok: false, error: "startDate and endDate are required" }, 400);
+
+    // Only cache daily data
+    const canCache = timespan === "day";
+    const supabase = canCache ? getSupabaseClient() : null;
+
+    // Try cache first (unless skipCache is set)
+    if (supabase && !skipCache) {
+      console.log(`[polygon-aggs] Checking cache for ${ticker} ${startDate}..${endDate}`);
+      
+      const cachedData = await getCachedData(supabase, ticker, startDate, endDate);
+      
+      if (cachedData && cachedData.length > 0) {
+        // Calculate expected trading days (rough estimate: ~252 per year)
+        const start = new Date(startDate);
+        const end = new Date(endDate);
+        const daysDiff = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+        const expectedTradingDays = Math.floor(daysDiff * (252 / 365));
+        
+        // If we have at least 80% of expected data, use cache
+        const cacheRatio = cachedData.length / Math.max(expectedTradingDays, 1);
+        
+        if (cacheRatio >= 0.8) {
+          console.log(`[polygon-aggs] Cache hit for ${ticker}: ${cachedData.length} bars (${(cacheRatio * 100).toFixed(0)}% coverage)`);
+          
+          const results = cacheToPolygonFormat(cachedData);
+          return json({ ok: true, ticker, results, fromCache: true }, 200);
+        } else {
+          console.log(`[polygon-aggs] Cache partial for ${ticker}: ${cachedData.length} bars (${(cacheRatio * 100).toFixed(0)}% coverage), fetching fresh data`);
+        }
+      }
+    }
+
+    // Fetch from Polygon API
     const POLYGON_API_KEY =
       Deno.env.get("POLYGON_API_KEY") || Deno.env.get("VITE_POLYGON_API_KEY");
 
@@ -29,17 +172,7 @@ serve(async (req) => {
       return json({ ok: false, error: "Polygon API key not configured" }, 500);
     }
 
-    const body = await req.json().catch(() => ({}));
-
-    const ticker = String(body.ticker || "").toUpperCase().trim();
-    const startDate = String(body.startDate || "").trim();
-    const endDate = String(body.endDate || "").trim();
-    const timespan = String(body.timespan || "day").trim();
-
-    if (!ticker) return json({ ok: false, error: "ticker is required" }, 400);
-    if (!startDate || !endDate) return json({ ok: false, error: "startDate and endDate are required" }, 400);
-
-    console.log(`[polygon-aggs] Fetching ${ticker} ${timespan} ${startDate}..${endDate}`);
+    console.log(`[polygon-aggs] Fetching ${ticker} ${timespan} ${startDate}..${endDate} from Polygon API`);
 
     const allResults: any[] = [];
     let url: string | null = `${BASE_URL}/v2/aggs/ticker/${encodeURIComponent(
@@ -75,9 +208,17 @@ serve(async (req) => {
       if (url) await sleep(200);
     }
 
-    console.log(`[polygon-aggs] Got ${allResults.length} bars for ${ticker}`);
+    console.log(`[polygon-aggs] Got ${allResults.length} bars for ${ticker} from API`);
 
-    return json({ ok: true, ticker, results: allResults }, 200);
+    // Cache the results for future use
+    if (supabase && allResults.length > 0) {
+      // Don't await - let it run in background
+      saveToCache(supabase, ticker, allResults).catch((err) => {
+        console.error("[polygon-aggs] Background cache save failed:", err);
+      });
+    }
+
+    return json({ ok: true, ticker, results: allResults, fromCache: false }, 200);
   } catch (error) {
     console.error("[polygon-aggs] Error:", error);
     const message = error instanceof Error ? error.message : "Unknown error";
