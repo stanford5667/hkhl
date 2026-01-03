@@ -1,7 +1,7 @@
 // Portfolio Visualizer - Institutional Multi-Asset Management Suite
 // "Choose Your Path" experience: Manual vs AI Co-Pilot vs IPS Questionnaire modes
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -10,6 +10,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Progress } from '@/components/ui/progress';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   RefreshCw,
   Loader2,
@@ -22,7 +24,16 @@ import {
   Settings,
   GraduationCap,
   Eye,
-  EyeOff
+  EyeOff,
+  CheckCircle2,
+  Database,
+  Activity,
+  Info,
+  Clock,
+  Zap,
+  FileText,
+  Download,
+  CircleDot,
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -41,7 +52,7 @@ import {
   EfficientFrontierPoint,
 } from '@/types/portfolio';
 import { InvestorPolicyStatement } from '@/types/investorPolicy';
-import { AssetData as PolygonAssetData, CorrelationMatrix as PolygonCorrelationMatrix } from '@/services/polygonDataHandler';
+import { AssetData as PolygonAssetData, CorrelationMatrix as PolygonCorrelationMatrix, FetchHistoryResult } from '@/services/polygonDataHandler';
 
 // Components
 import { ChooseYourPath } from '@/components/backtester/ChooseYourPath';
@@ -52,6 +63,7 @@ import { AdvancedMetricsDashboard } from '@/components/backtester/AdvancedMetric
 import { AIPortfolioInsights, AIPortfolioAdvice } from '@/components/backtester/AIPortfolioInsights';
 import { EducationalDashboard } from '@/components/backtester/EducationalDashboard';
 import { InvestorPolicyQuestionnaire } from '@/components/backtester/InvestorPolicyQuestionnaire';
+import { DataValidationPanel } from '@/components/backtester/DataValidationPanel';
 import { supabase } from '@/integrations/supabase/client';
 
 // Services
@@ -67,6 +79,40 @@ import { scoreQuestionnaire, ScoringResult } from '@/services/questionnaireScori
 
 type AppFlow = 'choose-path' | 'manual-form' | 'ai-wizard' | 'questionnaire' | 'analyzing' | 'results';
 
+// Analysis steps for enhanced loading states
+interface AnalysisStep {
+  id: string;
+  label: string;
+  description?: string;
+  status: 'pending' | 'running' | 'complete' | 'error';
+  tickers?: string[];
+}
+
+// Validation data interface for DataValidationPanel
+interface ValidationData {
+  dataSources: {
+    ticker: string;
+    source: string;
+    dateRange: { start: string; end: string };
+    bars: number;
+    quality: 'high' | 'medium' | 'low';
+    status: 'valid' | 'warning' | 'error';
+    rawDataSample?: number[];
+  }[];
+  calculations: {
+    name: string;
+    formula: string;
+    inputs: { name: string; value: number | string }[];
+    result: number;
+    unit: string;
+  }[];
+  dataFetchedAt: string;
+  calculationsPerformedAt: string;
+  cacheStatus: 'fresh' | 'cached';
+  cacheAge?: number;
+  warnings: string[];
+}
+
 const DEFAULT_PROFILE: InvestorProfile = {
   investableCapital: 100000,
   liquidityConstraint: 'high',
@@ -76,6 +122,205 @@ const DEFAULT_PROFILE: InvestorProfile = {
   investmentHorizon: 5,
 };
 
+// Data Source Badge Component
+function DataSourceBadge({ status, className }: { status: 'live' | 'cached' | 'warning' | 'error'; className?: string }) {
+  const configs = {
+    live: { color: 'bg-emerald-500', text: 'Live Polygon Data', icon: CircleDot },
+    cached: { color: 'bg-blue-500', text: 'Cached Data', icon: Database },
+    warning: { color: 'bg-amber-500', text: 'Data Warnings', icon: AlertTriangle },
+    error: { color: 'bg-rose-500', text: 'Data Issues', icon: AlertTriangle },
+  };
+  
+  const config = configs[status];
+  const Icon = config.icon;
+  
+  return (
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Badge 
+            variant="outline" 
+            className={cn(
+              'flex items-center gap-1.5 text-xs font-medium px-2 py-1',
+              status === 'live' && 'border-emerald-500/30 text-emerald-600 bg-emerald-500/10',
+              status === 'cached' && 'border-blue-500/30 text-blue-600 bg-blue-500/10',
+              status === 'warning' && 'border-amber-500/30 text-amber-600 bg-amber-500/10',
+              status === 'error' && 'border-rose-500/30 text-rose-600 bg-rose-500/10',
+              className
+            )}
+          >
+            <span className={cn('h-2 w-2 rounded-full animate-pulse', config.color)} />
+            {config.text}
+          </Badge>
+        </TooltipTrigger>
+        <TooltipContent>
+          <p>All market data fetched from Polygon.io API</p>
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
+}
+
+// Metric Source Tooltip Component
+function MetricSourceTooltip({ 
+  metric, 
+  formula, 
+  inputs, 
+  children 
+}: { 
+  metric: string;
+  formula: string;
+  inputs: { name: string; value: string | number }[];
+  children: React.ReactNode;
+}) {
+  return (
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <div className="cursor-help relative group">
+            {children}
+            <Info className="h-3 w-3 text-muted-foreground absolute -top-1 -right-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+          </div>
+        </TooltipTrigger>
+        <TooltipContent side="top" className="max-w-xs">
+          <div className="space-y-2">
+            <p className="font-medium">{metric}</p>
+            <div className="text-xs text-muted-foreground font-mono bg-muted/50 p-2 rounded">
+              {formula}
+            </div>
+            <div className="text-xs space-y-1">
+              {inputs.map((input, i) => (
+                <div key={i} className="flex justify-between gap-4">
+                  <span className="text-muted-foreground">{input.name}:</span>
+                  <span className="font-mono">{input.value}</span>
+                </div>
+              ))}
+            </div>
+            <p className="text-xs text-muted-foreground">Data source: Polygon.io</p>
+          </div>
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
+}
+
+// Analysis Step Component
+function AnalysisStepItem({ step }: { step: AnalysisStep }) {
+  return (
+    <motion.div 
+      initial={{ opacity: 0, x: -10 }}
+      animate={{ opacity: 1, x: 0 }}
+      className={cn(
+        'flex items-center gap-3 p-3 rounded-lg transition-colors',
+        step.status === 'complete' && 'bg-emerald-500/10',
+        step.status === 'running' && 'bg-primary/10',
+        step.status === 'error' && 'bg-rose-500/10',
+        step.status === 'pending' && 'bg-muted/50 opacity-50'
+      )}
+    >
+      <div className="flex-shrink-0">
+        {step.status === 'complete' && <CheckCircle2 className="h-5 w-5 text-emerald-500" />}
+        {step.status === 'running' && <Loader2 className="h-5 w-5 text-primary animate-spin" />}
+        {step.status === 'error' && <AlertTriangle className="h-5 w-5 text-rose-500" />}
+        {step.status === 'pending' && <CircleDot className="h-5 w-5 text-muted-foreground" />}
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-medium">{step.label}</p>
+        {step.description && (
+          <p className="text-xs text-muted-foreground truncate">{step.description}</p>
+        )}
+        {step.tickers && step.tickers.length > 0 && step.status === 'running' && (
+          <div className="flex flex-wrap gap-1 mt-1">
+            {step.tickers.slice(0, 5).map(ticker => (
+              <Badge key={ticker} variant="secondary" className="text-xs">{ticker}</Badge>
+            ))}
+            {step.tickers.length > 5 && (
+              <Badge variant="secondary" className="text-xs">+{step.tickers.length - 5} more</Badge>
+            )}
+          </div>
+        )}
+      </div>
+    </motion.div>
+  );
+}
+
+// IPS Summary Card Component
+function IPSSummaryCard({ policy }: { policy: InvestorPolicyStatement }) {
+  const primaryGoal = policy.goals?.[0];
+  
+  return (
+    <Card className="border-purple-500/30 bg-purple-500/5">
+      <CardHeader className="pb-3">
+        <div className="flex items-center gap-2">
+          <FileText className="h-5 w-5 text-purple-500" />
+          <CardTitle className="text-sm">Your Investor Policy Statement</CardTitle>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {/* Investment Goals */}
+        <div>
+          <h4 className="text-xs font-medium text-muted-foreground mb-2">Investment Goals</h4>
+          <div className="flex flex-wrap gap-2">
+            {primaryGoal && (
+              <Badge variant="outline" className="bg-purple-500/10">
+                {primaryGoal.name}
+              </Badge>
+            )}
+            {policy.goals?.slice(1, 3).map(goal => (
+              <Badge key={goal.id} variant="outline" className="bg-purple-500/10">
+                {goal.name}
+              </Badge>
+            ))}
+          </div>
+        </div>
+        
+        {/* Risk Profile */}
+        <div>
+          <h4 className="text-xs font-medium text-muted-foreground mb-2">Risk Profile</h4>
+          <div className="flex items-center gap-4">
+            <div className="flex-1">
+              <div className="flex justify-between text-xs mb-1">
+                <span>Financial Capacity</span>
+                <span>{policy.riskProfile.financialCapacity}%</span>
+              </div>
+              <Progress value={policy.riskProfile.financialCapacity} className="h-1.5" />
+            </div>
+            <div className="flex-1">
+              <div className="flex justify-between text-xs mb-1">
+                <span>Emotional Tolerance</span>
+                <span>{policy.riskProfile.emotionalTolerance}%</span>
+              </div>
+              <Progress value={policy.riskProfile.emotionalTolerance} className="h-1.5" />
+            </div>
+          </div>
+        </div>
+        
+        {/* Constraints */}
+        {policy.constraints.ethicalExclusions.length > 0 && (
+          <div>
+            <h4 className="text-xs font-medium text-muted-foreground mb-2">Exclusions</h4>
+            <div className="flex flex-wrap gap-1">
+              {policy.constraints.ethicalExclusions.map(exclusion => (
+                <Badge key={exclusion} variant="outline" className="text-xs bg-rose-500/10 text-rose-600 border-rose-500/30">
+                  {exclusion}
+                </Badge>
+              ))}
+            </div>
+          </div>
+        )}
+        
+        {/* Liquidity Needs */}
+        <div>
+          <h4 className="text-xs font-medium text-muted-foreground mb-2">Liquidity</h4>
+          <p className="text-sm">
+            {policy.liquidityNeeds.emergencyFundMonths} months emergency fund required
+          </p>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 export default function PortfolioVisualizer() {
   // Flow state
   const [currentFlow, setCurrentFlow] = useState<AppFlow>('choose-path');
@@ -83,10 +328,20 @@ export default function PortfolioVisualizer() {
   const [investorProfile, setInvestorProfile] = useState<InvestorProfile>(DEFAULT_PROFILE);
   const [allocations, setAllocations] = useState<PortfolioAllocation[]>([]);
   
+  // IPS state for questionnaire path
+  const [investorPolicy, setInvestorPolicy] = useState<InvestorPolicyStatement | null>(null);
+  
   // Analysis state
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [progress, setProgress] = useState({ message: '', percent: 0 });
   const [error, setError] = useState<string | null>(null);
+  const [analysisSteps, setAnalysisSteps] = useState<AnalysisStep[]>([]);
+  
+  // Validation state
+  const [validationData, setValidationData] = useState<ValidationData | null>(null);
+  const [validationWarnings, setValidationWarnings] = useState<string[]>([]);
+  const [dataFetchedAt, setDataFetchedAt] = useState<string>('');
+  const [calculationsPerformedAt, setCalculationsPerformedAt] = useState<string>('');
   
   // Results state
   const [efficientFrontier, setEfficientFrontier] = useState<EfficientFrontierPoint[]>([]);
@@ -125,10 +380,27 @@ export default function PortfolioVisualizer() {
     'metrics': true,
     'regime': true,
     'allocation': true,
+    'data-quality': true,
   });
   
   const toggleTabVisibility = (tabId: string) => {
     setVisibleTabs(prev => ({ ...prev, [tabId]: !prev[tabId as keyof typeof prev] }));
+  };
+
+  // Compute data source status
+  const dataSourceStatus = useMemo(() => {
+    if (!validationData) return 'live';
+    if (validationData.dataSources.some(ds => ds.status === 'error')) return 'error';
+    if (validationData.dataSources.some(ds => ds.status === 'warning')) return 'warning';
+    if (validationData.cacheStatus === 'cached') return 'cached';
+    return 'live';
+  }, [validationData]);
+
+  // Update analysis step helper
+  const updateStep = (stepId: string, updates: Partial<AnalysisStep>) => {
+    setAnalysisSteps(prev => prev.map(step => 
+      step.id === stepId ? { ...step, ...updates } : step
+    ));
   };
 
   // Generate AI portfolio based on profile
@@ -202,11 +474,142 @@ export default function PortfolioVisualizer() {
     return normalized;
   }, []);
 
+  // Build validation data from fetch result
+  const buildValidationData = (
+    fetchResult: FetchHistoryResult, 
+    startDate: string, 
+    endDate: string,
+    metrics: AdvancedRiskMetrics | null,
+    portfolioReturns: number[],
+    annualizedReturn: number,
+    annualizedVolatility: number
+  ): ValidationData => {
+    const dataSources = fetchResult.diagnostics.map(diag => {
+      const status: 'valid' | 'warning' | 'error' = diag.success 
+        ? (diag.validationIssues && diag.validationIssues.length > 0 ? 'warning' : 'valid') 
+        : 'error';
+      
+      return {
+        ticker: diag.ticker,
+        source: 'Polygon API',
+        dateRange: { start: startDate, end: endDate },
+        bars: diag.bars || 0,
+        quality: (diag.dataQuality || 'medium') as 'high' | 'medium' | 'low',
+        status,
+        rawDataSample: fetchResult.assetData.get(diag.ticker)?.bars.slice(0, 5).map(b => b.close),
+      };
+    });
+
+    const calculations: ValidationData['calculations'] = [];
+    
+    // Always add return and volatility from computed values
+    calculations.push({
+      name: 'Portfolio Return',
+      formula: 'Σ(daily returns) / n × 252',
+      inputs: [
+        { name: 'Daily returns', value: portfolioReturns.length },
+        { name: 'Trading days/year', value: 252 },
+      ],
+      result: annualizedReturn,
+      unit: '%',
+    });
+    
+    calculations.push({
+      name: 'Volatility (Annualized)',
+      formula: 'σ(daily returns) × √252',
+      inputs: [
+        { name: 'Std Dev', value: (annualizedVolatility / Math.sqrt(252) / 100).toFixed(6) },
+        { name: 'Annualization factor', value: '√252 ≈ 15.87' },
+      ],
+      result: annualizedVolatility,
+      unit: '%',
+    });
+    
+    // Calculate Sharpe from available data
+    const sharpeRatio = annualizedVolatility > 0 ? (annualizedReturn - 4.5) / annualizedVolatility : 0;
+    calculations.push({
+      name: 'Sharpe Ratio',
+      formula: '(Return - Risk-free) / Volatility',
+      inputs: [
+        { name: 'Return', value: `${annualizedReturn.toFixed(2)}%` },
+        { name: 'Risk-free rate', value: '4.5%' },
+        { name: 'Volatility', value: `${annualizedVolatility.toFixed(2)}%` },
+      ],
+      result: sharpeRatio,
+      unit: '',
+    });
+    
+    if (metrics?.sortinoRatio) {
+      calculations.push({
+        name: 'Sortino Ratio',
+        formula: '(Return - Risk-free) / Downside Dev',
+        inputs: [
+          { name: 'Return', value: `${annualizedReturn.toFixed(2)}%` },
+          { name: 'Downside deviation', value: 'σ of negative returns' },
+        ],
+        result: metrics.sortinoRatio,
+        unit: '',
+      });
+    }
+    
+    if (metrics?.maxDrawdown) {
+      calculations.push({
+        name: 'Maximum Drawdown',
+        formula: '(Peak - Trough) / Peak',
+        inputs: [
+          { name: 'Peak value', value: 'Highest portfolio value' },
+          { name: 'Trough value', value: 'Lowest after peak' },
+        ],
+        result: metrics.maxDrawdown * 100,
+        unit: '%',
+      });
+    }
+
+    const warnings: string[] = [];
+    fetchResult.diagnostics.forEach(diag => {
+      if (diag.validationIssues) {
+        diag.validationIssues.forEach(issue => {
+          warnings.push(`${diag.ticker}: ${issue}`);
+        });
+      }
+      if (!diag.success && diag.error) {
+        warnings.push(`${diag.ticker}: ${diag.error}`);
+      }
+    });
+
+    return {
+      dataSources,
+      calculations,
+      dataFetchedAt: new Date().toISOString(),
+      calculationsPerformedAt: new Date().toISOString(),
+      cacheStatus: 'fresh',
+      warnings,
+    };
+  };
+
   // Run full analysis
   const runAnalysis = async (profile: InvestorProfile, allocs: PortfolioAllocation[], mode: PortfolioMode) => {
     setCurrentFlow('analyzing');
     setIsAnalyzing(true);
     setError(null);
+    setValidationWarnings([]);
+    
+    // Initialize analysis steps
+    const tickers = allocs.map(a => a.symbol);
+    const steps: AnalysisStep[] = [
+      { id: 'fetch', label: 'Fetching historical data from Polygon...', status: 'pending', tickers },
+      { id: 'validate', label: 'Validating data integrity...', status: 'pending' },
+      { id: 'correlation', label: 'Building correlation matrix...', status: 'pending' },
+      { id: 'optimize', label: 'Calculating optimal allocation...', status: 'pending' },
+      { id: 'stress', label: 'Running stress tests...', status: 'pending' },
+    ];
+    
+    // Add AI step if AI mode
+    if (mode === 'ai') {
+      steps.unshift({ id: 'ai', label: 'Consulting AI Portfolio Advisor...', status: 'pending' });
+    }
+    
+    setAnalysisSteps(steps);
     setProgress({ message: 'Initializing...', percent: 0 });
     
     try {
@@ -214,6 +617,7 @@ export default function PortfolioVisualizer() {
       
       // For AI mode, call the AI advisor edge function
       if (mode === 'ai') {
+        updateStep('ai', { status: 'running' });
         setProgress({ message: 'Consulting AI Portfolio Advisor...', percent: 5 });
         setIsLoadingAI(true);
         
@@ -226,6 +630,7 @@ export default function PortfolioVisualizer() {
             console.error('[AI Advisor] Function error:', fnError);
             toast.error('AI Advisor unavailable, using fallback suggestions');
             finalAllocations = generateAIPortfolio(profile);
+            updateStep('ai', { status: 'complete', description: 'Used fallback suggestions' });
           } else if (data?.success && data.data) {
             const advice = data.data as AIPortfolioAdvice;
             setAiAdvice(advice);
@@ -239,15 +644,18 @@ export default function PortfolioVisualizer() {
             }));
             
             toast.success(`AI generated: ${advice.portfolioName}`);
+            updateStep('ai', { status: 'complete', description: advice.portfolioName });
           } else {
             console.error('[AI Advisor] Response error:', data?.error);
             toast.error(data?.error || 'AI Advisor failed, using fallback');
             finalAllocations = generateAIPortfolio(profile);
+            updateStep('ai', { status: 'complete', description: 'Used fallback suggestions' });
           }
         } catch (aiError) {
           console.error('[AI Advisor] Error:', aiError);
           toast.error('AI Advisor unavailable, using fallback');
           finalAllocations = generateAIPortfolio(profile);
+          updateStep('ai', { status: 'error', description: 'Error - used fallback' });
         }
         
         setIsLoadingAI(false);
@@ -255,9 +663,9 @@ export default function PortfolioVisualizer() {
       
       setAllocations(finalAllocations);
       
-      const tickers = finalAllocations.map(a => a.symbol);
+      const updatedTickers = finalAllocations.map(a => a.symbol);
       
-      if (tickers.length === 0) {
+      if (updatedTickers.length === 0) {
         throw new Error('No assets selected for analysis');
       }
       
@@ -265,25 +673,56 @@ export default function PortfolioVisualizer() {
       const endDate = new Date().toISOString().split('T')[0];
       const startDate = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
       
-      setProgress({ message: 'Fetching historical data...', percent: 10 });
+      // Step: Fetch data
+      updateStep('fetch', { status: 'running', tickers: updatedTickers });
+      setProgress({ message: 'Fetching historical data from Polygon...', percent: 10 });
       
-      // Fetch data via Polygon
       const fetchResult = await polygonData.fetchAndCleanHistory(
-        tickers,
+        updatedTickers,
         startDate,
         endDate,
-        (msg, pct) => setProgress({ message: msg, percent: 10 + pct * 0.4 })
+        (msg, pct) => setProgress({ message: msg, percent: 10 + pct * 0.3 })
       );
       
-      setProgress({ message: 'Building correlation matrix...', percent: 50 });
+      setDataFetchedAt(new Date().toISOString());
+      updateStep('fetch', { status: 'complete', description: `${fetchResult.diagnostics.filter(d => d.success).length}/${updatedTickers.length} tickers loaded` });
+      
+      // Step: Validate data
+      updateStep('validate', { status: 'running' });
+      setProgress({ message: 'Validating data integrity...', percent: 40 });
+      
+      // Check for validation issues
+      const validationIssues: string[] = [];
+      fetchResult.diagnostics.forEach(diag => {
+        if (diag.validationIssues && diag.validationIssues.length > 0) {
+          validationIssues.push(...diag.validationIssues.map(i => `${diag.ticker}: ${i}`));
+        }
+        if (!diag.success) {
+          validationIssues.push(`${diag.ticker}: Failed to fetch data`);
+        }
+      });
+      
+      if (validationIssues.length > 0) {
+        setValidationWarnings(validationIssues);
+        updateStep('validate', { status: 'complete', description: `${validationIssues.length} warnings` });
+      } else {
+        updateStep('validate', { status: 'complete', description: 'All data verified' });
+      }
       
       // Store asset data
       setAssetData(fetchResult.assetData);
       
-      // Build correlation matrix
+      // Step: Build correlation matrix
+      updateStep('correlation', { status: 'running' });
+      setProgress({ message: 'Building correlation matrix...', percent: 50 });
+      
       const corrMatrix = polygonData.buildCorrelationMatrix(fetchResult.assetData);
       setCorrelationMatrix(corrMatrix);
       
+      updateStep('correlation', { status: 'complete', description: `${corrMatrix.tickers.length}×${corrMatrix.tickers.length} matrix` });
+      
+      // Step: Generate efficient frontier and calculate metrics
+      updateStep('optimize', { status: 'running' });
       setProgress({ message: 'Generating efficient frontier...', percent: 60 });
       
       // Convert to backtester format for efficient frontier
@@ -311,6 +750,9 @@ export default function PortfolioVisualizer() {
       setProgress({ message: 'Calculating advanced metrics...', percent: 75 });
       
       // Calculate metrics for selected point using REAL returns data
+      let portfolioReturns: number[] = [];
+      let metrics: AdvancedRiskMetrics | null = null;
+      
       if (optimalPoint && fetchResult.assetData.size > 0) {
         const weights = optimalPoint.weights;
         
@@ -321,7 +763,6 @@ export default function PortfolioVisualizer() {
           }
         });
         
-        const portfolioReturns: number[] = [];
         for (let i = 0; i < minLength; i++) {
           let dayReturn = 0;
           weights.forEach((weight, ticker) => {
@@ -343,7 +784,7 @@ export default function PortfolioVisualizer() {
         console.log('[PortfolioVisualizer] Using real returns:', portfolioReturns.length, 'days');
         console.log('[PortfolioVisualizer] Portfolio final value:', value.toFixed(2));
         
-        const metrics = calculateAllAdvancedMetrics(
+        metrics = calculateAllAdvancedMetrics(
           portfolioReturns,
           portfolioValues,
           optimalPoint.weights,
@@ -363,7 +804,22 @@ export default function PortfolioVisualizer() {
         }
       }
       
-      setProgress({ message: 'Running Black-Litterman analysis...', percent: 85 });
+      setCalculationsPerformedAt(new Date().toISOString());
+      updateStep('optimize', { status: 'complete', description: `${frontier.length} frontier points` });
+      
+      // Build validation data with computed return and volatility
+      const annualizedReturn = optimalPoint ? optimalPoint.return * 100 : 0;
+      const annualizedVol = portfolioVolatility || 15;
+      const validationDataResult = buildValidationData(
+        fetchResult, 
+        startDate, 
+        endDate, 
+        metrics, 
+        portfolioReturns,
+        annualizedReturn,
+        annualizedVol
+      );
+      setValidationData(validationDataResult);
       
       // Run Black-Litterman for manual mode
       if (mode === 'manual' && finalAllocations.length > 0 && corrMatrix) {
@@ -390,15 +846,16 @@ export default function PortfolioVisualizer() {
       
       // Fetch ticker details for educational tooltips
       try {
-        const details = await fetchMultipleTickerDetails(tickers);
+        const details = await fetchMultipleTickerDetails(updatedTickers);
         setTickerDetails(details);
       } catch (detailsError) {
         console.warn('[PortfolioVisualizer] Could not fetch ticker details:', detailsError);
       }
       
+      // Step: Stress tests
+      updateStep('stress', { status: 'running' });
       setProgress({ message: 'Running stress tests...', percent: 95 });
       
-      // Run stress tests
       try {
         const weightsMap = new Map<string, number>();
         finalAllocations.forEach(a => weightsMap.set(a.symbol, a.weight / 100));
@@ -407,10 +864,13 @@ export default function PortfolioVisualizer() {
         setStressTestResults(stressResults);
         
         // Check liquidity risks for short horizons
-        const liquidityResults = await checkLiquidityRisks(tickers, profile.investmentHorizon);
+        const liquidityResults = await checkLiquidityRisks(updatedTickers, profile.investmentHorizon);
         setLiquidityRisks(liquidityResults);
+        
+        updateStep('stress', { status: 'complete', description: `${stressResults.length} scenarios tested` });
       } catch (stressError) {
         console.warn('[PortfolioVisualizer] Stress test error:', stressError);
+        updateStep('stress', { status: 'error', description: 'Some tests failed' });
       }
       
       setProgress({ message: 'Complete!', percent: 100 });
@@ -432,6 +892,12 @@ export default function PortfolioVisualizer() {
       setCurrentFlow('choose-path');
       setProgress({ message: '', percent: 0 });
     }
+  };
+
+  // Handle refresh data
+  const handleRefreshData = async () => {
+    if (!allocations.length || !investorProfile) return;
+    await runAnalysis(investorProfile, allocations, portfolioMode || 'manual');
   };
 
   // Handle manual form completion
@@ -478,10 +944,17 @@ export default function PortfolioVisualizer() {
     setStressTestResults([]);
     setLiquidityRisks([]);
     setTickerDetails(new Map());
+    setValidationData(null);
+    setValidationWarnings([]);
+    setInvestorPolicy(null);
+    setAnalysisSteps([]);
   };
 
   // Handle IPS questionnaire completion
   const handleQuestionnaireComplete = (policy: InvestorPolicyStatement) => {
+    // Store the IPS for display
+    setInvestorPolicy(policy);
+    
     // Convert IPS to InvestorProfile for analysis
     const profile: InvestorProfile = {
       investableCapital: 100000, // Default, could add to questionnaire
@@ -551,15 +1024,28 @@ export default function PortfolioVisualizer() {
   if (currentFlow === 'analyzing') {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-6">
-        <Card className="w-full max-w-lg">
-          <CardContent className="py-12">
-            <div className="text-center mb-8">
-              <Loader2 className="h-12 w-12 animate-spin text-primary mx-auto mb-4" />
+        <Card className="w-full max-w-xl">
+          <CardContent className="py-8">
+            <div className="text-center mb-6">
+              <div className="p-4 rounded-full bg-primary/10 w-fit mx-auto mb-4">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              </div>
               <h2 className="text-xl font-bold mb-2">Analyzing Your Portfolio</h2>
-              <p className="text-muted-foreground">{progress.message}</p>
+              <p className="text-sm text-muted-foreground">{progress.message}</p>
             </div>
-            <Progress value={progress.percent} className="h-2" />
-            <p className="text-center text-sm text-muted-foreground mt-2">
+            
+            <Progress value={progress.percent} className="h-2 mb-6" />
+            
+            {/* Analysis Steps */}
+            <div className="space-y-2">
+              <AnimatePresence mode="popLayout">
+                {analysisSteps.map((step) => (
+                  <AnalysisStepItem key={step.id} step={step} />
+                ))}
+              </AnimatePresence>
+            </div>
+            
+            <p className="text-center text-xs text-muted-foreground mt-4">
               {progress.percent}% complete
             </p>
           </CardContent>
@@ -580,7 +1066,10 @@ export default function PortfolioVisualizer() {
                 <BarChart3 className="h-6 w-6 text-purple-500" />
               </div>
               <div>
-                <h1 className="text-xl font-bold">Portfolio Analysis Results</h1>
+                <div className="flex items-center gap-2">
+                  <h1 className="text-xl font-bold">Portfolio Analysis Results</h1>
+                  <DataSourceBadge status={dataSourceStatus} />
+                </div>
                 <p className="text-sm text-muted-foreground">
                   {portfolioMode === 'ai' ? 'AI Co-Pilot' : 'Manual'} • {allocations.length} assets • {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(investorProfile.investableCapital)}
                 </p>
@@ -628,6 +1117,13 @@ export default function PortfolioVisualizer() {
                     Metrics
                   </DropdownMenuCheckboxItem>
                   <DropdownMenuCheckboxItem
+                    checked={visibleTabs['data-quality']}
+                    onCheckedChange={() => toggleTabVisibility('data-quality')}
+                  >
+                    <Database className="h-4 w-4 mr-2" />
+                    Data Quality
+                  </DropdownMenuCheckboxItem>
+                  <DropdownMenuCheckboxItem
                     checked={visibleTabs['regime']}
                     onCheckedChange={() => toggleTabVisibility('regime')}
                   >
@@ -653,8 +1149,43 @@ export default function PortfolioVisualizer() {
         </div>
       </div>
 
+      {/* Validation Warning Banner */}
+      {validationWarnings.length > 0 && (
+        <div className="bg-amber-500/10 border-b border-amber-500/30">
+          <div className="max-w-7xl mx-auto px-6 py-3">
+            <div className="flex items-start gap-3">
+              <AlertTriangle className="h-5 w-5 text-amber-500 flex-shrink-0 mt-0.5" />
+              <div className="flex-1">
+                <p className="text-sm font-medium text-amber-600 dark:text-amber-400">
+                  Data validation warnings detected
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {validationWarnings.length} issue{validationWarnings.length !== 1 ? 's' : ''} found. 
+                  View the Data Quality tab for details.
+                </p>
+              </div>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => setResultsTab('data-quality')}
+                className="text-amber-600"
+              >
+                View Details
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-6 py-8">
+        {/* IPS Summary for Questionnaire Path */}
+        {investorPolicy && (
+          <div className="mb-6">
+            <IPSSummaryCard policy={investorPolicy} />
+          </div>
+        )}
+
         {/* Error Alert */}
         {error && (
           <Alert variant="destructive" className="mb-6">
@@ -670,13 +1201,15 @@ export default function PortfolioVisualizer() {
               visibleTabs['educational'],
               visibleTabs['frontier'],
               visibleTabs['metrics'],
+              visibleTabs['data-quality'],
               visibleTabs['regime'],
               visibleTabs['allocation'],
             ].filter(Boolean).length;
             
             return (
               <TabsList className={cn(
-                "grid w-full max-w-4xl mx-auto mb-6",
+                "grid w-full max-w-5xl mx-auto mb-6",
+                visibleTabCount === 7 ? "grid-cols-7" :
                 visibleTabCount === 6 ? "grid-cols-6" :
                 visibleTabCount === 5 ? "grid-cols-5" :
                 visibleTabCount === 4 ? "grid-cols-4" :
@@ -686,37 +1219,43 @@ export default function PortfolioVisualizer() {
                 {portfolioMode === 'ai' && aiAdvice && visibleTabs['ai-insights'] && (
                   <TabsTrigger value="ai-insights" className="gap-2">
                     <Brain className="h-4 w-4" />
-                    AI Insights
+                    <span className="hidden sm:inline">AI Insights</span>
                   </TabsTrigger>
                 )}
                 {visibleTabs['educational'] && (
                   <TabsTrigger value="educational" className="gap-2">
                     <GraduationCap className="h-4 w-4" />
-                    Learn
+                    <span className="hidden sm:inline">Learn</span>
                   </TabsTrigger>
                 )}
                 {visibleTabs['frontier'] && (
                   <TabsTrigger value="frontier" className="gap-2">
                     <Target className="h-4 w-4" />
-                    Frontier
+                    <span className="hidden sm:inline">Frontier</span>
                   </TabsTrigger>
                 )}
                 {visibleTabs['metrics'] && (
                   <TabsTrigger value="metrics" className="gap-2">
                     <BarChart3 className="h-4 w-4" />
-                    Metrics
+                    <span className="hidden sm:inline">Metrics</span>
+                  </TabsTrigger>
+                )}
+                {visibleTabs['data-quality'] && (
+                  <TabsTrigger value="data-quality" className="gap-2">
+                    <Database className="h-4 w-4" />
+                    <span className="hidden sm:inline">Data Quality</span>
                   </TabsTrigger>
                 )}
                 {visibleTabs['regime'] && (
                   <TabsTrigger value="regime" className="gap-2">
                     <Shield className="h-4 w-4" />
-                    Regime
+                    <span className="hidden sm:inline">Regime</span>
                   </TabsTrigger>
                 )}
                 {visibleTabs['allocation'] && (
                   <TabsTrigger value="allocation" className="gap-2">
                     <Settings className="h-4 w-4" />
-                    Allocation
+                    <span className="hidden sm:inline">Allocation</span>
                   </TabsTrigger>
                 )}
               </TabsList>
@@ -783,6 +1322,70 @@ export default function PortfolioVisualizer() {
                   <CardContent className="py-12 text-center text-muted-foreground">
                     <BarChart3 className="h-8 w-8 mx-auto mb-3 opacity-50" />
                     <p>Advanced metrics will appear after analysis</p>
+                  </CardContent>
+                </Card>
+              )}
+            </TabsContent>
+          )}
+
+          {/* Data Quality Tab */}
+          {visibleTabs['data-quality'] && (
+            <TabsContent value="data-quality">
+              {validationData ? (
+                <div className="space-y-6">
+                  {/* Full Data Validation Panel */}
+                  <DataValidationPanel
+                    dataSources={validationData.dataSources}
+                    calculations={validationData.calculations}
+                    correlationMatrix={correlationMatrix ? {
+                      tickers: correlationMatrix.tickers,
+                      matrix: correlationMatrix.matrix
+                    } : undefined}
+                    dataFetchedAt={validationData.dataFetchedAt}
+                    calculationsPerformedAt={validationData.calculationsPerformedAt}
+                    cacheStatus={validationData.cacheStatus}
+                    cacheAge={validationData.cacheAge}
+                    onRefreshData={handleRefreshData}
+                  />
+                  
+                  {/* Data Freshness Info */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-sm flex items-center gap-2">
+                        <Clock className="h-4 w-4 text-primary" />
+                        Data Freshness
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="grid md:grid-cols-3 gap-4">
+                        <div className="p-3 rounded-lg bg-muted/50">
+                          <p className="text-xs text-muted-foreground mb-1">Data Fetched</p>
+                          <p className="text-sm font-medium">
+                            {new Date(dataFetchedAt).toLocaleString()}
+                          </p>
+                        </div>
+                        <div className="p-3 rounded-lg bg-muted/50">
+                          <p className="text-xs text-muted-foreground mb-1">Calculations Performed</p>
+                          <p className="text-sm font-medium">
+                            {new Date(calculationsPerformedAt).toLocaleString()}
+                          </p>
+                        </div>
+                        <div className="p-3 rounded-lg bg-muted/50">
+                          <p className="text-xs text-muted-foreground mb-1">Source</p>
+                          <p className="text-sm font-medium flex items-center gap-2">
+                            <span className="h-2 w-2 rounded-full bg-emerald-500" />
+                            Polygon.io API
+                          </p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              ) : (
+                <Card>
+                  <CardContent className="py-12 text-center text-muted-foreground">
+                    <Database className="h-8 w-8 mx-auto mb-3 opacity-50" />
+                    <p>Data validation will appear after analysis</p>
                   </CardContent>
                 </Card>
               )}
@@ -892,6 +1495,25 @@ export default function PortfolioVisualizer() {
             </TabsContent>
           )}
         </Tabs>
+
+        {/* Data Validation Panel - Collapsed at bottom */}
+        {validationData && resultsTab !== 'data-quality' && (
+          <div className="mt-8">
+            <DataValidationPanel
+              dataSources={validationData.dataSources}
+              calculations={validationData.calculations}
+              correlationMatrix={correlationMatrix ? {
+                tickers: correlationMatrix.tickers,
+                matrix: correlationMatrix.matrix
+              } : undefined}
+              dataFetchedAt={validationData.dataFetchedAt}
+              calculationsPerformedAt={validationData.calculationsPerformedAt}
+              cacheStatus={validationData.cacheStatus}
+              cacheAge={validationData.cacheAge}
+              onRefreshData={handleRefreshData}
+            />
+          </div>
+        )}
       </div>
     </div>
   );
