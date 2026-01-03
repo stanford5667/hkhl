@@ -187,6 +187,120 @@ export type Database = {
           },
         ]
       }
+      asset_universe: {
+        Row: {
+          asset_type: string
+          aum: number | null
+          avg_daily_dollar_volume: number | null
+          avg_daily_volume: number | null
+          beta_spy: number | null
+          category: string
+          change_percent_1d: number | null
+          change_percent_1m: number | null
+          change_percent_1w: number | null
+          change_percent_ytd: number | null
+          created_at: string | null
+          currency: string | null
+          data_end_date: string | null
+          data_start_date: string | null
+          description: string | null
+          expense_ratio: number | null
+          industry: string | null
+          is_active: boolean | null
+          is_free_tier: boolean | null
+          is_validated: boolean | null
+          last_close: number | null
+          liquidity_score: number | null
+          market_cap_tier: string | null
+          metadata: Json | null
+          name: string
+          polygon_ticker_id: string | null
+          primary_exchange: string | null
+          sector: string | null
+          short_description: string | null
+          tags: string[] | null
+          ticker: string
+          total_bars: number | null
+          updated_at: string | null
+          validation_date: string | null
+          volatility_30d: number | null
+        }
+        Insert: {
+          asset_type: string
+          aum?: number | null
+          avg_daily_dollar_volume?: number | null
+          avg_daily_volume?: number | null
+          beta_spy?: number | null
+          category: string
+          change_percent_1d?: number | null
+          change_percent_1m?: number | null
+          change_percent_1w?: number | null
+          change_percent_ytd?: number | null
+          created_at?: string | null
+          currency?: string | null
+          data_end_date?: string | null
+          data_start_date?: string | null
+          description?: string | null
+          expense_ratio?: number | null
+          industry?: string | null
+          is_active?: boolean | null
+          is_free_tier?: boolean | null
+          is_validated?: boolean | null
+          last_close?: number | null
+          liquidity_score?: number | null
+          market_cap_tier?: string | null
+          metadata?: Json | null
+          name: string
+          polygon_ticker_id?: string | null
+          primary_exchange?: string | null
+          sector?: string | null
+          short_description?: string | null
+          tags?: string[] | null
+          ticker: string
+          total_bars?: number | null
+          updated_at?: string | null
+          validation_date?: string | null
+          volatility_30d?: number | null
+        }
+        Update: {
+          asset_type?: string
+          aum?: number | null
+          avg_daily_dollar_volume?: number | null
+          avg_daily_volume?: number | null
+          beta_spy?: number | null
+          category?: string
+          change_percent_1d?: number | null
+          change_percent_1m?: number | null
+          change_percent_1w?: number | null
+          change_percent_ytd?: number | null
+          created_at?: string | null
+          currency?: string | null
+          data_end_date?: string | null
+          data_start_date?: string | null
+          description?: string | null
+          expense_ratio?: number | null
+          industry?: string | null
+          is_active?: boolean | null
+          is_free_tier?: boolean | null
+          is_validated?: boolean | null
+          last_close?: number | null
+          liquidity_score?: number | null
+          market_cap_tier?: string | null
+          metadata?: Json | null
+          name?: string
+          polygon_ticker_id?: string | null
+          primary_exchange?: string | null
+          sector?: string | null
+          short_description?: string | null
+          tags?: string[] | null
+          ticker?: string
+          total_bars?: number | null
+          updated_at?: string | null
+          validation_date?: string | null
+          volatility_30d?: number | null
+        }
+        Relationships: []
+      }
       cached_api_data: {
         Row: {
           cache_key: string
@@ -226,6 +340,69 @@ export type Database = {
           id?: string
           updated_at?: string | null
           user_id?: string
+        }
+        Relationships: []
+      }
+      calculation_cache: {
+        Row: {
+          ai_interpretation: Json | null
+          ai_suggestions: Json | null
+          benchmark_ticker: string | null
+          calculated_at: string | null
+          calculation_traces: Json | null
+          data_version: number | null
+          end_date: string
+          expires_at: string | null
+          id: string
+          is_valid: boolean | null
+          metrics: Json
+          portfolio_hash: string
+          returns_series: Json | null
+          risk_free_rate: number | null
+          start_date: string
+          tickers: string[]
+          user_id: string | null
+          weights: number[]
+        }
+        Insert: {
+          ai_interpretation?: Json | null
+          ai_suggestions?: Json | null
+          benchmark_ticker?: string | null
+          calculated_at?: string | null
+          calculation_traces?: Json | null
+          data_version?: number | null
+          end_date: string
+          expires_at?: string | null
+          id?: string
+          is_valid?: boolean | null
+          metrics: Json
+          portfolio_hash: string
+          returns_series?: Json | null
+          risk_free_rate?: number | null
+          start_date: string
+          tickers: string[]
+          user_id?: string | null
+          weights: number[]
+        }
+        Update: {
+          ai_interpretation?: Json | null
+          ai_suggestions?: Json | null
+          benchmark_ticker?: string | null
+          calculated_at?: string | null
+          calculation_traces?: Json | null
+          data_version?: number | null
+          end_date?: string
+          expires_at?: string | null
+          id?: string
+          is_valid?: boolean | null
+          metrics?: Json
+          portfolio_hash?: string
+          returns_series?: Json | null
+          risk_free_rate?: number | null
+          start_date?: string
+          tickers?: string[]
+          user_id?: string | null
+          weights?: number[]
         }
         Relationships: []
       }
@@ -596,6 +773,60 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      data_sync_log: {
+        Row: {
+          bars_inserted: number | null
+          bars_updated: number | null
+          completed_at: string | null
+          errors: Json | null
+          id: number
+          metadata: Json | null
+          started_at: string
+          status: string
+          sync_type: string
+          tickers_failed: number | null
+          tickers_processed: number | null
+          tickers_succeeded: number | null
+          tickers_total: number | null
+          triggered_by: string | null
+          warnings: Json | null
+        }
+        Insert: {
+          bars_inserted?: number | null
+          bars_updated?: number | null
+          completed_at?: string | null
+          errors?: Json | null
+          id?: number
+          metadata?: Json | null
+          started_at?: string
+          status: string
+          sync_type: string
+          tickers_failed?: number | null
+          tickers_processed?: number | null
+          tickers_succeeded?: number | null
+          tickers_total?: number | null
+          triggered_by?: string | null
+          warnings?: Json | null
+        }
+        Update: {
+          bars_inserted?: number | null
+          bars_updated?: number | null
+          completed_at?: string | null
+          errors?: Json | null
+          id?: number
+          metadata?: Json | null
+          started_at?: string
+          status?: string
+          sync_type?: string
+          tickers_failed?: number | null
+          tickers_processed?: number | null
+          tickers_succeeded?: number | null
+          tickers_total?: number | null
+          triggered_by?: string | null
+          warnings?: Json | null
+        }
+        Relationships: []
       }
       deal_pipeline: {
         Row: {
@@ -973,6 +1204,108 @@ export type Database = {
           sector?: string | null
           target_name?: string
           transaction_date?: string | null
+        }
+        Relationships: []
+      }
+      market_daily_bars: {
+        Row: {
+          bar_date: string
+          close: number
+          created_at: string | null
+          daily_return: number | null
+          high: number
+          id: number
+          log_return: number | null
+          low: number
+          open: number
+          ticker: string
+          transactions: number | null
+          updated_at: string | null
+          volume: number
+          vwap: number | null
+        }
+        Insert: {
+          bar_date: string
+          close: number
+          created_at?: string | null
+          daily_return?: number | null
+          high: number
+          id?: number
+          log_return?: number | null
+          low: number
+          open: number
+          ticker: string
+          transactions?: number | null
+          updated_at?: string | null
+          volume: number
+          vwap?: number | null
+        }
+        Update: {
+          bar_date?: string
+          close?: number
+          created_at?: string | null
+          daily_return?: number | null
+          high?: number
+          id?: number
+          log_return?: number | null
+          low?: number
+          open?: number
+          ticker?: string
+          transactions?: number | null
+          updated_at?: string | null
+          volume?: number
+          vwap?: number | null
+        }
+        Relationships: []
+      }
+      metric_definitions: {
+        Row: {
+          category: string
+          color: string | null
+          display_order: number | null
+          example_calculation: string | null
+          formula: string
+          formula_explained: string
+          icon: string | null
+          id: string
+          interpretation: Json
+          is_active: boolean | null
+          name: string
+          plain_english: string
+          updated_at: string | null
+          why_it_matters: string
+        }
+        Insert: {
+          category: string
+          color?: string | null
+          display_order?: number | null
+          example_calculation?: string | null
+          formula: string
+          formula_explained: string
+          icon?: string | null
+          id: string
+          interpretation: Json
+          is_active?: boolean | null
+          name: string
+          plain_english: string
+          updated_at?: string | null
+          why_it_matters: string
+        }
+        Update: {
+          category?: string
+          color?: string | null
+          display_order?: number | null
+          example_calculation?: string | null
+          formula?: string
+          formula_explained?: string
+          icon?: string | null
+          id?: string
+          interpretation?: Json
+          is_active?: boolean | null
+          name?: string
+          plain_english?: string
+          updated_at?: string | null
+          why_it_matters?: string
         }
         Relationships: []
       }
@@ -1664,6 +1997,30 @@ export type Database = {
         }
         Relationships: []
       }
+      ticker_correlations: {
+        Row: {
+          calculated_at: string | null
+          correlation: number
+          period_days: number
+          ticker_a: string
+          ticker_b: string
+        }
+        Insert: {
+          calculated_at?: string | null
+          correlation: number
+          period_days: number
+          ticker_a: string
+          ticker_b: string
+        }
+        Update: {
+          calculated_at?: string | null
+          correlation?: number
+          period_days?: number
+          ticker_a?: string
+          ticker_b?: string
+        }
+        Relationships: []
+      }
       ticker_directory: {
         Row: {
           created_at: string | null
@@ -1759,6 +2116,34 @@ export type Database = {
       generate_invite_code: { Args: never; Returns: string }
       generate_slug: { Args: { name: string }; Returns: string }
       get_current_organization_id: { Args: never; Returns: string }
+      get_data_freshness: {
+        Args: never
+        Returns: {
+          days_stale: number
+          last_bar_date: string
+          needs_refresh: boolean
+          ticker: string
+        }[]
+      }
+      get_portfolio_returns: {
+        Args: {
+          p_end_date?: string
+          p_start_date?: string
+          p_tickers: string[]
+          p_weights: number[]
+        }
+        Returns: {
+          bar_date: string
+          portfolio_return: number
+        }[]
+      }
+      get_ticker_returns: {
+        Args: { p_end_date?: string; p_start_date?: string; p_ticker: string }
+        Returns: {
+          bar_date: string
+          daily_return: number
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
