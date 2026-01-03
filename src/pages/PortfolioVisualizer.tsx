@@ -1,7 +1,7 @@
 // Portfolio Visualizer - Institutional Multi-Asset Management Suite
 // "Choose Your Path" experience: Manual vs AI Co-Pilot vs IPS Questionnaire modes
 
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import WelcomeOnboarding, { useWelcomeOnboarding } from '@/components/backtester/WelcomeOnboarding';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -53,7 +53,6 @@ import {
   EfficientFrontierPoint,
 } from '@/types/portfolio';
 import { InvestorPolicyStatement } from '@/types/investorPolicy';
-import { AssetData as PolygonAssetData, CorrelationMatrix as PolygonCorrelationMatrix, FetchHistoryResult } from '@/services/polygonDataHandler';
 
 // Components
 import { ChooseYourPath } from '@/components/backtester/ChooseYourPath';
@@ -67,16 +66,25 @@ import { InvestorPolicyQuestionnaire } from '@/components/backtester/InvestorPol
 import { DataValidationPanel } from '@/components/backtester/DataValidationPanel';
 import { supabase } from '@/integrations/supabase/client';
 
-// Services
-import { polygonData } from '@/services/polygonDataHandler';
-import { AssetData } from '@/services/portfolioOptimizer';
+// NEW: Integrated services and hooks
+import { marketDataService, FetchProgress, TickerData } from '@/services/hybridMarketDataService';
+import { usePortfolioCalculations, PortfolioAllocation as CalcAllocation } from '@/hooks/usePortfolioCalculations';
+import { METRIC_DEFINITIONS, getMetricDefinition, formatMetricValue, getInterpretation } from '@/data/metricDefinitions';
+
+// Legacy services (still needed for some features)
+import { 
+  polygonData,
+  AssetData as PolygonAssetData,
+  CorrelationMatrix as PolygonCorrelationMatrix,
+  FetchHistoryResult
+} from '@/services/polygonDataHandler';
 import { CorrelationMatrix } from '@/services/backtesterService';
+import { AssetData } from '@/services/portfolioOptimizer';
 import { blackLittermanOptimizer } from '@/services/blackLittermanOptimizer';
 import { calculateAllAdvancedMetrics, AdvancedRiskMetrics } from '@/services/advancedMetricsService';
 import { generateEfficientFrontier, findOptimalPortfolio } from '@/services/efficientFrontierService';
 import { runAllStressTests, checkLiquidityRisks, StressTestResult, LiquidityRiskResult } from '@/services/stressTestService';
 import { fetchMultipleTickerDetails, TickerDetails } from '@/services/tickerDetailsService';
-import { scoreQuestionnaire, ScoringResult } from '@/services/questionnaireScoring';
 
 type AppFlow = 'choose-path' | 'manual-form' | 'ai-wizard' | 'questionnaire' | 'analyzing' | 'results';
 
@@ -372,6 +380,9 @@ export default function PortfolioVisualizer() {
   const [liquidityRisks, setLiquidityRisks] = useState<LiquidityRiskResult[]>([]);
   const [tickerDetails, setTickerDetails] = useState<Map<string, TickerDetails>>(new Map());
   const [portfolioVolatility, setPortfolioVolatility] = useState(15);
+  
+  // NEW: Data fetch progress tracking from hybrid service
+  const [dataProgress, setDataProgress] = useState<FetchProgress>({ status: 'idle', current: 0, total: 0 });
 
   // Results tab
   const [resultsTab, setResultsTab] = useState('frontier');
@@ -389,6 +400,32 @@ export default function PortfolioVisualizer() {
   const toggleTabVisibility = (tabId: string) => {
     setVisibleTabs(prev => ({ ...prev, [tabId]: !prev[tabId as keyof typeof prev] }));
   };
+
+  // NEW: Use the portfolio calculations hook when we have allocations and are showing results
+  const calcAllocations: CalcAllocation[] = useMemo(() => {
+    return allocations.map(a => ({
+      ticker: a.symbol,
+      weight: a.weight / 100, // Convert from percentage to decimal
+      name: a.name
+    }));
+  }, [allocations]);
+
+  const {
+    metrics: calcMetrics,
+    aiAnalysis,
+    correlationMatrix: calcCorrelationMatrix,
+    portfolioValues: calcPortfolioValues,
+    portfolioReturns: calcPortfolioReturns,
+    dates: calcDates,
+    isLoading: isCalcLoading,
+    progress: calcProgress,
+    recalculate
+  } = usePortfolioCalculations({
+    allocations: calcAllocations,
+    investableCapital: investorProfile.investableCapital,
+    enabled: currentFlow === 'results' && allocations.length > 0,
+    includeAIAnalysis: portfolioMode === 'ai'
+  });
 
   // Compute data source status
   const dataSourceStatus = useMemo(() => {

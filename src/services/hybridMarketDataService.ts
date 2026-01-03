@@ -53,7 +53,7 @@ const memoryCache = new Map<string, { data: TickerData; expiry: number }>();
 // Service class
 class HybridMarketDataService {
   private queryClient: QueryClient | null = null;
-  private subscriptions: Map<string, ReturnType<typeof supabase.channel>> = new Map();
+  private subscriptions: Map<string, any> = new Map();
   
   setQueryClient(client: QueryClient) {
     this.queryClient = client;

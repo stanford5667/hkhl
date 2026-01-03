@@ -16,7 +16,8 @@ import {
   ArrowUpRight,
   ArrowDownRight,
   Percent,
-  DollarSign
+  DollarSign,
+  Info
 } from 'lucide-react';
 import { AdvancedRiskMetrics } from '@/services/advancedMetricsService';
 import { cn } from '@/lib/utils';
@@ -26,6 +27,9 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+
+// Import metric definitions for enhanced tooltips
+import { getMetricDefinition, getInterpretation, formatMetricValue } from '@/data/metricDefinitions';
 
 interface AdvancedMetricsDashboardProps {
   metrics: AdvancedRiskMetrics;
@@ -38,20 +42,27 @@ interface MetricCardProps {
   icon: React.ElementType;
   trend?: 'good' | 'bad' | 'neutral';
   benchmark?: string;
+  metricId?: string; // NEW: Link to metric definition
 }
 
-function MetricCard({ label, value, description, icon: Icon, trend, benchmark }: MetricCardProps) {
+function MetricCard({ label, value, description, icon: Icon, trend, benchmark, metricId }: MetricCardProps) {
+  // Get rich definition if available
+  const definition = metricId ? getMetricDefinition(metricId) : null;
+  
   return (
     <TooltipProvider>
       <Tooltip>
         <TooltipTrigger asChild>
-          <div className="p-4 rounded-lg bg-muted/30 border border-border/50 cursor-help hover:bg-muted/50 transition-colors">
+          <div className="p-4 rounded-lg bg-muted/30 border border-border/50 cursor-help hover:bg-muted/50 transition-colors group">
             <div className="flex items-center gap-2 mb-2">
               <Icon className={cn(
                 "h-4 w-4",
                 trend === 'good' ? 'text-emerald-500' : trend === 'bad' ? 'text-rose-500' : 'text-muted-foreground'
               )} />
               <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">{label}</span>
+              {definition && (
+                <Info className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity ml-auto" />
+              )}
             </div>
             <div className={cn(
               "text-2xl font-bold tabular-nums",
@@ -63,7 +74,21 @@ function MetricCard({ label, value, description, icon: Icon, trend, benchmark }:
           </div>
         </TooltipTrigger>
         <TooltipContent side="top" className="max-w-xs">
-          <p>{description}</p>
+          <div className="space-y-2">
+            {definition ? (
+              <>
+                <p className="font-medium">{definition.name}</p>
+                <p className="text-sm text-muted-foreground">{definition.plainEnglish}</p>
+                <div className="text-xs font-mono bg-muted/50 p-2 rounded border border-border/50">
+                  {definition.formula}
+                </div>
+                <p className="text-xs text-muted-foreground italic">{definition.whyItMatters}</p>
+              </>
+            ) : (
+              <p>{description}</p>
+            )}
+            <p className="text-xs text-muted-foreground">Data source: Polygon.io / Supabase</p>
+          </div>
         </TooltipContent>
       </Tooltip>
     </TooltipProvider>
@@ -242,6 +267,7 @@ export function AdvancedMetricsDashboard({ metrics }: AdvancedMetricsDashboardPr
               icon={TrendingUp}
               trend={metrics.alpha > 1 ? 'good' : metrics.alpha > 0 ? 'neutral' : 'bad'}
               benchmark="Target: >0%"
+              metricId="alpha"
             />
             <MetricCard
               label="Beta"
@@ -250,6 +276,7 @@ export function AdvancedMetricsDashboard({ metrics }: AdvancedMetricsDashboardPr
               icon={Activity}
               trend={metrics.beta >= 0.8 && metrics.beta <= 1.2 ? 'neutral' : metrics.beta < 0.8 ? 'good' : 'bad'}
               benchmark="Market = 1.0"
+              metricId="beta"
             />
             <MetricCard
               label="R-Squared"
@@ -344,6 +371,7 @@ export function AdvancedMetricsDashboard({ metrics }: AdvancedMetricsDashboardPr
               icon={TrendingDown}
               trend={metrics.cvar95 < 3 ? 'good' : metrics.cvar95 < 5 ? 'neutral' : 'bad'}
               benchmark="Target: <3%"
+              metricId="cvar95"
             />
             <MetricCard
               label="CVaR (99%)"
@@ -352,6 +380,7 @@ export function AdvancedMetricsDashboard({ metrics }: AdvancedMetricsDashboardPr
               icon={TrendingDown}
               trend={metrics.cvar99 < 5 ? 'good' : metrics.cvar99 < 8 ? 'neutral' : 'bad'}
               benchmark="Target: <5%"
+              metricId="cvar99"
             />
             <MetricCard
               label="Tail Ratio"
@@ -360,6 +389,7 @@ export function AdvancedMetricsDashboard({ metrics }: AdvancedMetricsDashboardPr
               icon={BarChart3}
               trend={metrics.tailRatio > 1.2 ? 'good' : metrics.tailRatio > 0.8 ? 'neutral' : 'bad'}
               benchmark="Target: >1.0"
+              metricId="tailRatio"
             />
             <MetricCard
               label="Ulcer Index"
@@ -368,6 +398,7 @@ export function AdvancedMetricsDashboard({ metrics }: AdvancedMetricsDashboardPr
               icon={Activity}
               trend={metrics.ulcerIndex < 5 ? 'good' : metrics.ulcerIndex < 10 ? 'neutral' : 'bad'}
               benchmark="Target: <5"
+              metricId="ulcerIndex"
             />
           </div>
         </CardContent>
@@ -390,6 +421,7 @@ export function AdvancedMetricsDashboard({ metrics }: AdvancedMetricsDashboardPr
               icon={Target}
               trend={metrics.sortinoRatio > 2 ? 'good' : metrics.sortinoRatio > 1 ? 'neutral' : 'bad'}
               benchmark="Target: >2.0"
+              metricId="sortinoRatio"
             />
             <MetricCard
               label="Calmar Ratio"
@@ -398,6 +430,7 @@ export function AdvancedMetricsDashboard({ metrics }: AdvancedMetricsDashboardPr
               icon={Gauge}
               trend={metrics.calmarRatio > 1 ? 'good' : metrics.calmarRatio > 0.5 ? 'neutral' : 'bad'}
               benchmark="Target: >1.0"
+              metricId="calmarRatio"
             />
             <MetricCard
               label="Omega Ratio"
@@ -406,6 +439,7 @@ export function AdvancedMetricsDashboard({ metrics }: AdvancedMetricsDashboardPr
               icon={BarChart3}
               trend={metrics.omega > 2 ? 'good' : metrics.omega > 1.5 ? 'neutral' : 'bad'}
               benchmark="Target: >1.5"
+              metricId="omegaRatio"
             />
             <MetricCard
               label="Info Ratio"
@@ -414,6 +448,7 @@ export function AdvancedMetricsDashboard({ metrics }: AdvancedMetricsDashboardPr
               icon={Target}
               trend={metrics.informationRatio > 0.5 ? 'good' : metrics.informationRatio > 0 ? 'neutral' : 'bad'}
               benchmark="Target: >0.5"
+              metricId="informationRatio"
             />
           </div>
         </CardContent>
