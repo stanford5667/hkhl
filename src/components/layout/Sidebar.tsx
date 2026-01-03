@@ -37,6 +37,7 @@ import {
   Star,
   Sparkles as SparklesIcon,
   Activity,
+  Brain,
 } from "lucide-react";
 
 interface NavItem {
@@ -133,6 +134,12 @@ export function Sidebar() {
         subtitle: "AI Stock Screener",
         href: "/screener", 
         icon: SparklesIcon 
+      },
+      { 
+        label: "Neuro Engine", 
+        subtitle: "GNN + HRP Optimizer",
+        href: "/neuro-engine", 
+        icon: Brain 
       },
     );
 
