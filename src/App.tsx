@@ -35,7 +35,6 @@ import PortfolioBacktester from "./pages/PortfolioBacktester";
 import Backtest from "./pages/Backtest";
 import Watchlist from "./pages/Watchlist";
 import Screener from "./pages/Screener";
-import NeuroSymbolicEngine from "./pages/NeuroSymbolicEngine";
 import PortfolioVisualizer from "./pages/PortfolioVisualizer";
 import NotFound from "./pages/NotFound";
 
@@ -79,7 +78,6 @@ const App = () => (
                       <Route path="/backtest" element={<Backtest />} />
                       <Route path="/watchlist" element={<Watchlist />} />
                       <Route path="/screener" element={<Screener />} />
-                      <Route path="/neuro-engine" element={<NeuroSymbolicEngine />} />
                       <Route path="/portfolio-visualizer" element={<PortfolioVisualizer />} />
                       {/* Redirects from old routes */}
                       <Route path="/companies" element={<Navigate to="/portfolio" replace />} />

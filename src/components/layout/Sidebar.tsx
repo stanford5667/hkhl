@@ -137,12 +137,6 @@ export function Sidebar() {
         icon: SparklesIcon 
       },
       { 
-        label: "Neuro Engine", 
-        subtitle: "GNN + HRP Optimizer",
-        href: "/neuro-engine", 
-        icon: Brain 
-      },
-      { 
         label: "Visualizer", 
         subtitle: "Portfolio Optimizer",
         href: "/portfolio-visualizer", 
