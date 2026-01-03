@@ -697,71 +697,192 @@ function generateAllTraces(
 ): CalculationTrace[] {
   const traces: CalculationTrace[] = [];
   
-  // Sharpe Ratio trace
-  traces.push(generateSharpeTrace(returns, riskFreeRate));
+  // Core Returns
+  traces.push(generateTotalReturnTrace(returns, investableCapital));
+  traces.push(generateCAGRTrace(returns, investableCapital));
   
-  // Volatility trace
+  // Risk Metrics
   traces.push(generateVolatilityTrace(returns));
-  
-  // Max Drawdown trace
   traces.push(generateMaxDrawdownTrace(returns, investableCapital));
+  traces.push(generateVaRTrace(returns, 0.95, 'var95'));
+  traces.push(generateVaRTrace(returns, 0.99, 'var99'));
+  traces.push(generateCVaRTrace(returns, 0.95, 'cvar95'));
+  traces.push(generateCVaRTrace(returns, 0.99, 'cvar99'));
   
-  // Sortino Ratio trace
+  // Risk-Adjusted
+  traces.push(generateSharpeTrace(returns, riskFreeRate));
   traces.push(generateSortinoTrace(returns, riskFreeRate));
+  traces.push(generateCalmarTrace(returns, investableCapital));
+  traces.push(generateOmegaTrace(returns));
+  
+  // Tail Risk
+  traces.push(generateTailRatioTrace(returns));
+  traces.push(generateUlcerIndexTrace(returns, investableCapital));
+  
+  // Benchmark metrics (if benchmark data available)
+  if (benchmarkReturns.length > 20) {
+    traces.push(generateBetaTrace(returns, benchmarkReturns));
+    traces.push(generateAlphaTrace(returns, benchmarkReturns, riskFreeRate));
+    traces.push(generateInformationRatioTrace(returns, benchmarkReturns));
+  }
   
   return traces;
 }
 
-function generateSharpeTrace(returns: number[], riskFreeRate: number): CalculationTrace {
-  const n = returns.length;
-  const dailyRf = riskFreeRate / 252;
-  const meanReturn = mean(returns);
-  const excessReturns = returns.map(r => r - dailyRf);
-  const meanExcess = mean(excessReturns);
-  const stdExcess = stdDev(excessReturns);
-  const sharpe = stdExcess > 0 ? (meanExcess / stdExcess) * Math.sqrt(252) : 0;
+// ============================================
+// CORE RETURN TRACES
+// ============================================
+
+function generateTotalReturnTrace(returns: number[], investableCapital: number): CalculationTrace {
+  let value = investableCapital;
+  for (const r of returns) {
+    value *= (1 + r);
+  }
+  const totalReturn = (value - investableCapital) / investableCapital;
   
   return {
-    metricId: 'sharpeRatio',
+    metricId: 'totalReturn',
     steps: [
       {
         step: 1,
-        description: 'Convert annual risk-free rate to daily',
-        formula: 'rf_daily = rf_annual / 252',
-        inputs: { rf_annual: riskFreeRate, tradingDays: 252 },
-        result: roundTo(dailyRf, 6)
+        description: 'Start with initial portfolio value',
+        formula: 'V₀ = Initial Investment',
+        inputs: { initialValue: investableCapital },
+        result: investableCapital
       },
       {
         step: 2,
-        description: 'Calculate mean daily portfolio return',
-        formula: 'μ = (1/n) × Σ Rᵢ',
-        inputs: { n, sumReturns: roundTo(returns.reduce((a, b) => a + b, 0), 6) },
-        result: roundTo(meanReturn, 6)
+        description: 'Compound daily returns',
+        formula: 'V_final = V₀ × Π(1 + Rᵢ)',
+        inputs: { days: returns.length },
+        result: roundTo(value, 2)
       },
       {
         step: 3,
-        description: 'Calculate daily excess returns (return minus risk-free)',
-        formula: 'excess_i = Rᵢ - rf_daily',
-        inputs: { meanReturn: roundTo(meanReturn, 6), dailyRf: roundTo(dailyRf, 6) },
-        result: roundTo(meanExcess, 6)
+        description: 'Calculate total return percentage',
+        formula: 'Total Return = (V_final - V₀) / V₀ × 100',
+        inputs: { finalValue: roundTo(value, 2), initialValue: investableCapital },
+        result: roundTo(totalReturn * 100, 2) + '%'
+      }
+    ]
+  };
+}
+
+function generateCAGRTrace(returns: number[], investableCapital: number): CalculationTrace {
+  let value = investableCapital;
+  for (const r of returns) {
+    value *= (1 + r);
+  }
+  const totalReturn = (value - investableCapital) / investableCapital;
+  const years = returns.length / 252;
+  const cagr = years > 0 ? Math.pow(1 + totalReturn, 1 / years) - 1 : 0;
+  
+  return {
+    metricId: 'cagr',
+    steps: [
+      {
+        step: 1,
+        description: 'Calculate total return',
+        formula: 'Total Return = (V_final - V₀) / V₀',
+        inputs: { finalValue: roundTo(value, 2), initialValue: investableCapital },
+        result: roundTo(totalReturn, 4)
+      },
+      {
+        step: 2,
+        description: 'Convert trading days to years',
+        formula: 'Years = Trading Days / 252',
+        inputs: { tradingDays: returns.length },
+        result: roundTo(years, 2)
+      },
+      {
+        step: 3,
+        description: 'Calculate CAGR (Compound Annual Growth Rate)',
+        formula: 'CAGR = (1 + Total Return)^(1/Years) - 1',
+        inputs: { totalReturn: roundTo(totalReturn, 4), years: roundTo(years, 2) },
+        result: roundTo(cagr * 100, 2) + '%'
+      }
+    ]
+  };
+}
+
+// ============================================
+// RISK METRIC TRACES
+// ============================================
+
+function generateVaRTrace(returns: number[], confidence: number, metricId: string): CalculationTrace {
+  const n = returns.length;
+  const alpha = 1 - confidence;
+  const sortedReturns = [...returns].sort((a, b) => a - b);
+  const cutoffIndex = Math.floor(n * alpha);
+  const varValue = Math.abs(sortedReturns[cutoffIndex] || 0);
+  
+  return {
+    metricId,
+    steps: [
+      {
+        step: 1,
+        description: 'Sort all daily returns ascending (worst to best)',
+        formula: 'sorted = sort(returns)',
+        inputs: { n },
+        result: 'Sorted array of returns'
+      },
+      {
+        step: 2,
+        description: `Find ${(alpha * 100).toFixed(0)}th percentile cutoff index`,
+        formula: 'cutoff_idx = floor(n × α)',
+        inputs: { n, alpha: alpha },
+        result: cutoffIndex
+      },
+      {
+        step: 3,
+        description: 'Get the return at cutoff index',
+        formula: `VaR${(confidence * 100).toFixed(0)} = |sorted[cutoff_idx]|`,
+        inputs: { cutoffIndex, returnAtCutoff: roundTo(sortedReturns[cutoffIndex] || 0, 6) },
+        result: roundTo(varValue * 100, 2) + '%'
+      }
+    ]
+  };
+}
+
+function generateCVaRTrace(returns: number[], confidence: number, metricId: string): CalculationTrace {
+  const n = returns.length;
+  const alpha = 1 - confidence;
+  const sortedReturns = [...returns].sort((a, b) => a - b);
+  const cutoffIndex = Math.max(1, Math.floor(n * alpha));
+  const worstReturns = sortedReturns.slice(0, cutoffIndex);
+  const cvarValue = Math.abs(mean(worstReturns));
+  const annualizedCVar = cvarValue * Math.sqrt(252);
+  
+  return {
+    metricId,
+    steps: [
+      {
+        step: 1,
+        description: 'Sort all daily returns ascending (worst to best)',
+        formula: 'sorted = sort(returns)',
+        inputs: { n },
+        result: 'Sorted array'
+      },
+      {
+        step: 2,
+        description: `Find ${(alpha * 100).toFixed(0)}th percentile cutoff`,
+        formula: 'cutoff_idx = floor(n × α)',
+        inputs: { n, percentile: alpha },
+        result: cutoffIndex
+      },
+      {
+        step: 3,
+        description: `Take mean of worst ${(alpha * 100).toFixed(0)}% returns`,
+        formula: 'CVaR = |mean(returns[0:cutoff_idx])|',
+        inputs: { worstReturnsCount: cutoffIndex, worstReturnsMean: roundTo(mean(worstReturns), 6) },
+        result: roundTo(cvarValue * 100, 2) + '%'
       },
       {
         step: 4,
-        description: 'Calculate standard deviation of excess returns',
-        formula: 'σ = √[(1/(n-1)) × Σ(excessᵢ - μ_excess)²]',
-        inputs: { n },
-        result: roundTo(stdExcess, 6)
-      },
-      {
-        step: 5,
-        description: 'Annualize Sharpe Ratio',
-        formula: 'Sharpe = (μ_excess / σ) × √252',
-        inputs: { 
-          meanExcess: roundTo(meanExcess, 6), 
-          stdExcess: roundTo(stdExcess, 6), 
-          sqrtDays: roundTo(Math.sqrt(252), 4) 
-        },
-        result: roundTo(sharpe, 4)
+        description: 'Annualize (optional)',
+        formula: 'CVaR_annual = CVaR × √252',
+        inputs: { dailyCVaR: roundTo(cvarValue, 4) },
+        result: roundTo(annualizedCVar * 100, 2) + '%'
       }
     ]
   };
@@ -825,15 +946,11 @@ function generateMaxDrawdownTrace(returns: number[], investableCapital: number):
   
   let peak = values[0];
   let maxDD = 0;
-  let maxDDDate = 0;
   
   for (let i = 0; i < values.length; i++) {
     if (values[i] > peak) peak = values[i];
     const dd = (peak - values[i]) / peak * 100;
-    if (dd > maxDD) {
-      maxDD = dd;
-      maxDDDate = i;
-    }
+    if (dd > maxDD) maxDD = dd;
   }
   
   return {
@@ -873,6 +990,65 @@ function generateMaxDrawdownTrace(returns: number[], investableCapital: number):
         formula: 'MaxDD = max(DD₀, DD₁, ..., DD_n)',
         inputs: { peakValue: roundTo(peak, 2) },
         result: roundTo(maxDD, 2) + '%'
+      }
+    ]
+  };
+}
+
+// ============================================
+// RISK-ADJUSTED TRACES
+// ============================================
+
+function generateSharpeTrace(returns: number[], riskFreeRate: number): CalculationTrace {
+  const n = returns.length;
+  const dailyRf = riskFreeRate / 252;
+  const meanReturn = mean(returns);
+  const excessReturns = returns.map(r => r - dailyRf);
+  const meanExcess = mean(excessReturns);
+  const stdExcess = stdDev(excessReturns);
+  const sharpe = stdExcess > 0 ? (meanExcess / stdExcess) * Math.sqrt(252) : 0;
+  
+  return {
+    metricId: 'sharpeRatio',
+    steps: [
+      {
+        step: 1,
+        description: 'Convert annual risk-free rate to daily',
+        formula: 'rf_daily = rf_annual / 252',
+        inputs: { rf_annual: riskFreeRate, tradingDays: 252 },
+        result: roundTo(dailyRf, 6)
+      },
+      {
+        step: 2,
+        description: 'Calculate mean daily portfolio return',
+        formula: 'μ = (1/n) × Σ Rᵢ',
+        inputs: { n, sumReturns: roundTo(returns.reduce((a, b) => a + b, 0), 6) },
+        result: roundTo(meanReturn, 6)
+      },
+      {
+        step: 3,
+        description: 'Calculate daily excess returns (return minus risk-free)',
+        formula: 'excess_i = Rᵢ - rf_daily',
+        inputs: { meanReturn: roundTo(meanReturn, 6), dailyRf: roundTo(dailyRf, 6) },
+        result: roundTo(meanExcess, 6)
+      },
+      {
+        step: 4,
+        description: 'Calculate standard deviation of excess returns',
+        formula: 'σ = √[(1/(n-1)) × Σ(excessᵢ - μ_excess)²]',
+        inputs: { n },
+        result: roundTo(stdExcess, 6)
+      },
+      {
+        step: 5,
+        description: 'Annualize Sharpe Ratio',
+        formula: 'Sharpe = (μ_excess / σ) × √252',
+        inputs: { 
+          meanExcess: roundTo(meanExcess, 6), 
+          stdExcess: roundTo(stdExcess, 6), 
+          sqrtDays: roundTo(Math.sqrt(252), 4) 
+        },
+        result: roundTo(sharpe, 4)
       }
     ]
   };
@@ -933,6 +1109,361 @@ function generateSortinoTrace(returns: number[], riskFreeRate: number): Calculat
           downsideDev: roundTo(downsideDeviation, 6)
         },
         result: roundTo(sortino, 4)
+      }
+    ]
+  };
+}
+
+function generateCalmarTrace(returns: number[], investableCapital: number): CalculationTrace {
+  // Calculate CAGR
+  let value = investableCapital;
+  for (const r of returns) {
+    value *= (1 + r);
+  }
+  const totalReturn = (value - investableCapital) / investableCapital;
+  const years = returns.length / 252;
+  const cagr = years > 0 ? Math.pow(1 + totalReturn, 1 / years) - 1 : 0;
+  
+  // Calculate Max Drawdown
+  value = investableCapital;
+  const values: number[] = [value];
+  for (const r of returns) {
+    value *= (1 + r);
+    values.push(value);
+  }
+  
+  let peak = values[0];
+  let maxDD = 0;
+  for (const v of values) {
+    if (v > peak) peak = v;
+    const dd = (peak - v) / peak * 100;
+    if (dd > maxDD) maxDD = dd;
+  }
+  
+  const calmar = maxDD > 0 ? (cagr * 100) / maxDD : 0;
+  
+  return {
+    metricId: 'calmarRatio',
+    steps: [
+      {
+        step: 1,
+        description: 'Calculate CAGR',
+        formula: 'CAGR = (1 + Total Return)^(1/Years) - 1',
+        inputs: { totalReturn: roundTo(totalReturn, 4), years: roundTo(years, 2) },
+        result: roundTo(cagr * 100, 2) + '%'
+      },
+      {
+        step: 2,
+        description: 'Calculate Maximum Drawdown',
+        formula: 'MaxDD = max(all drawdowns)',
+        inputs: { peakValue: roundTo(peak, 2) },
+        result: roundTo(maxDD, 2) + '%'
+      },
+      {
+        step: 3,
+        description: 'Calculate Calmar Ratio',
+        formula: 'Calmar = CAGR / MaxDD',
+        inputs: { cagr: roundTo(cagr * 100, 2), maxDD: roundTo(maxDD, 2) },
+        result: roundTo(calmar, 4)
+      }
+    ]
+  };
+}
+
+function generateOmegaTrace(returns: number[]): CalculationTrace {
+  const gains = returns.filter(r => r > 0);
+  const losses = returns.filter(r => r < 0);
+  const totalGains = gains.reduce((a, b) => a + b, 0);
+  const totalLosses = Math.abs(losses.reduce((a, b) => a + b, 0));
+  const omega = totalLosses > 0 ? 1 + (totalGains / totalLosses) : (totalGains > 0 ? 10 : 1);
+  
+  return {
+    metricId: 'omegaRatio',
+    steps: [
+      {
+        step: 1,
+        description: 'Sum all positive returns (gains)',
+        formula: 'Gains = Σ max(Rᵢ, 0)',
+        inputs: { positiveCount: gains.length },
+        result: roundTo(totalGains, 6)
+      },
+      {
+        step: 2,
+        description: 'Sum all negative returns (losses)',
+        formula: 'Losses = |Σ min(Rᵢ, 0)|',
+        inputs: { negativeCount: losses.length },
+        result: roundTo(totalLosses, 6)
+      },
+      {
+        step: 3,
+        description: 'Calculate Omega Ratio',
+        formula: 'Omega = 1 + (Gains / Losses)',
+        inputs: { totalGains: roundTo(totalGains, 6), totalLosses: roundTo(totalLosses, 6) },
+        result: roundTo(omega, 4)
+      }
+    ]
+  };
+}
+
+// ============================================
+// TAIL RISK TRACES
+// ============================================
+
+function generateTailRatioTrace(returns: number[]): CalculationTrace {
+  const n = returns.length;
+  const sortedReturns = [...returns].sort((a, b) => a - b);
+  const cutoff = Math.max(1, Math.floor(n * 0.05));
+  
+  const bottom5Pct = sortedReturns.slice(0, cutoff);
+  const top5Pct = sortedReturns.slice(-cutoff);
+  
+  const avgBottom = mean(bottom5Pct);
+  const avgTop = mean(top5Pct);
+  const tailRatio = Math.abs(avgBottom) > 0 ? avgTop / Math.abs(avgBottom) : 1;
+  
+  return {
+    metricId: 'tailRatio',
+    steps: [
+      {
+        step: 1,
+        description: 'Sort returns and find 5% cutoff',
+        formula: 'cutoff = floor(n × 0.05)',
+        inputs: { n, percentile: 0.05 },
+        result: cutoff
+      },
+      {
+        step: 2,
+        description: 'Calculate mean of worst 5% returns (left tail)',
+        formula: 'Avg_bottom = mean(returns[0:cutoff])',
+        inputs: { count: cutoff },
+        result: roundTo(avgBottom * 100, 4) + '%'
+      },
+      {
+        step: 3,
+        description: 'Calculate mean of best 5% returns (right tail)',
+        formula: 'Avg_top = mean(returns[-cutoff:])',
+        inputs: { count: cutoff },
+        result: roundTo(avgTop * 100, 4) + '%'
+      },
+      {
+        step: 4,
+        description: 'Calculate Tail Ratio',
+        formula: 'Tail Ratio = Avg_top / |Avg_bottom|',
+        inputs: { avgTop: roundTo(avgTop, 6), avgBottom: roundTo(avgBottom, 6) },
+        result: roundTo(tailRatio, 4)
+      }
+    ]
+  };
+}
+
+function generateUlcerIndexTrace(returns: number[], investableCapital: number): CalculationTrace {
+  let value = investableCapital;
+  const values: number[] = [value];
+  for (const r of returns) {
+    value *= (1 + r);
+    values.push(value);
+  }
+  
+  let peak = values[0];
+  const drawdowns: number[] = [];
+  
+  for (const v of values) {
+    if (v > peak) peak = v;
+    const dd = (peak - v) / peak * 100;
+    drawdowns.push(dd);
+  }
+  
+  const squaredDD = drawdowns.map(d => d * d);
+  const avgSquaredDD = mean(squaredDD);
+  const ulcer = Math.sqrt(avgSquaredDD);
+  
+  return {
+    metricId: 'ulcerIndex',
+    steps: [
+      {
+        step: 1,
+        description: 'Build portfolio value series',
+        formula: 'Vₜ = Vₜ₋₁ × (1 + Rₜ)',
+        inputs: { days: returns.length },
+        result: `${values.length} values`
+      },
+      {
+        step: 2,
+        description: 'Calculate drawdown at each point from running peak',
+        formula: 'DDₜ = (Peak - Vₜ) / Peak × 100',
+        inputs: {},
+        result: 'Daily drawdown series'
+      },
+      {
+        step: 3,
+        description: 'Square each drawdown',
+        formula: 'DD²ₜ = (DDₜ)²',
+        inputs: {},
+        result: 'Squared drawdowns'
+      },
+      {
+        step: 4,
+        description: 'Calculate mean of squared drawdowns',
+        formula: 'Avg_DD² = (1/n) × Σ DD²ₜ',
+        inputs: { n: drawdowns.length },
+        result: roundTo(avgSquaredDD, 4)
+      },
+      {
+        step: 5,
+        description: 'Take square root for Ulcer Index',
+        formula: 'Ulcer = √(Avg_DD²)',
+        inputs: { avgSquaredDD: roundTo(avgSquaredDD, 4) },
+        result: roundTo(ulcer, 4)
+      }
+    ]
+  };
+}
+
+// ============================================
+// BENCHMARK METRIC TRACES
+// ============================================
+
+function generateBetaTrace(returns: number[], benchmarkReturns: number[]): CalculationTrace {
+  const minLen = Math.min(returns.length, benchmarkReturns.length);
+  const pRet = returns.slice(0, minLen);
+  const bRet = benchmarkReturns.slice(0, minLen);
+  
+  const covar = covariance(pRet, bRet);
+  const bVar = variance(bRet);
+  const beta = bVar > 0 ? covar / bVar : 1;
+  
+  return {
+    metricId: 'beta',
+    steps: [
+      {
+        step: 1,
+        description: 'Align portfolio and benchmark returns by date',
+        formula: 'Aligned series',
+        inputs: { portfolioDays: returns.length, benchmarkDays: benchmarkReturns.length },
+        result: `${minLen} common days`
+      },
+      {
+        step: 2,
+        description: 'Calculate covariance between portfolio and benchmark',
+        formula: 'Cov(Rp, Rb) = (1/(n-1)) × Σ(Rp - μp)(Rb - μb)',
+        inputs: { n: minLen },
+        result: roundTo(covar, 8)
+      },
+      {
+        step: 3,
+        description: 'Calculate variance of benchmark returns',
+        formula: 'Var(Rb) = (1/(n-1)) × Σ(Rb - μb)²',
+        inputs: { n: minLen },
+        result: roundTo(bVar, 8)
+      },
+      {
+        step: 4,
+        description: 'Calculate Beta',
+        formula: 'Beta = Cov(Rp, Rb) / Var(Rb)',
+        inputs: { covariance: roundTo(covar, 6), benchmarkVariance: roundTo(bVar, 6) },
+        result: roundTo(beta, 4)
+      }
+    ]
+  };
+}
+
+function generateAlphaTrace(returns: number[], benchmarkReturns: number[], riskFreeRate: number): CalculationTrace {
+  const minLen = Math.min(returns.length, benchmarkReturns.length);
+  const pRet = returns.slice(0, minLen);
+  const bRet = benchmarkReturns.slice(0, minLen);
+  
+  const covar = covariance(pRet, bRet);
+  const bVar = variance(bRet);
+  const beta = bVar > 0 ? covar / bVar : 1;
+  
+  const meanP = mean(pRet);
+  const meanB = mean(bRet);
+  const dailyAlpha = meanP - beta * meanB;
+  const annualAlpha = dailyAlpha * 252 * 100;
+  
+  return {
+    metricId: 'alpha',
+    steps: [
+      {
+        step: 1,
+        description: 'Calculate Beta (see Beta trace)',
+        formula: 'Beta = Cov(Rp, Rb) / Var(Rb)',
+        inputs: {},
+        result: roundTo(beta, 4)
+      },
+      {
+        step: 2,
+        description: 'Calculate mean portfolio return',
+        formula: 'μp = (1/n) × Σ Rp,i',
+        inputs: { n: minLen },
+        result: roundTo(meanP, 6)
+      },
+      {
+        step: 3,
+        description: 'Calculate mean benchmark return',
+        formula: 'μb = (1/n) × Σ Rb,i',
+        inputs: { n: minLen },
+        result: roundTo(meanB, 6)
+      },
+      {
+        step: 4,
+        description: 'Calculate daily Alpha (Jensen\'s Alpha)',
+        formula: 'α_daily = μp - β × μb',
+        inputs: { meanP: roundTo(meanP, 6), beta: roundTo(beta, 4), meanB: roundTo(meanB, 6) },
+        result: roundTo(dailyAlpha, 6)
+      },
+      {
+        step: 5,
+        description: 'Annualize Alpha',
+        formula: 'α_annual = α_daily × 252 × 100',
+        inputs: { dailyAlpha: roundTo(dailyAlpha, 6), tradingDays: 252 },
+        result: roundTo(annualAlpha, 2) + '%'
+      }
+    ]
+  };
+}
+
+function generateInformationRatioTrace(returns: number[], benchmarkReturns: number[]): CalculationTrace {
+  const minLen = Math.min(returns.length, benchmarkReturns.length);
+  const pRet = returns.slice(0, minLen);
+  const bRet = benchmarkReturns.slice(0, minLen);
+  
+  const activeReturns = pRet.map((r, i) => r - bRet[i]);
+  const meanActive = mean(activeReturns);
+  const trackingError = stdDev(activeReturns) * Math.sqrt(252);
+  const annualActiveReturn = meanActive * 252;
+  const ir = trackingError > 0 ? annualActiveReturn / trackingError : 0;
+  
+  return {
+    metricId: 'informationRatio',
+    steps: [
+      {
+        step: 1,
+        description: 'Calculate active returns (portfolio minus benchmark)',
+        formula: 'AR_t = Rp,t - Rb,t',
+        inputs: { n: minLen },
+        result: `${minLen} active return values`
+      },
+      {
+        step: 2,
+        description: 'Calculate mean active return',
+        formula: 'μ_AR = (1/n) × Σ AR_t',
+        inputs: { n: minLen },
+        result: roundTo(meanActive, 6)
+      },
+      {
+        step: 3,
+        description: 'Calculate Tracking Error (std of active returns, annualized)',
+        formula: 'TE = σ(AR) × √252',
+        inputs: { dailyTE: roundTo(stdDev(activeReturns), 6) },
+        result: roundTo(trackingError * 100, 2) + '%'
+      },
+      {
+        step: 4,
+        description: 'Calculate Information Ratio',
+        formula: 'IR = (μ_AR × 252) / TE',
+        inputs: { annualActiveReturn: roundTo(annualActiveReturn * 100, 2), trackingError: roundTo(trackingError * 100, 2) },
+        result: roundTo(ir, 4)
       }
     ]
   };
