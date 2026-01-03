@@ -1,68 +1,86 @@
-// Choose Your Path - Manual vs AI Co-Pilot vs IPS Questionnaire landing experience
+// Choose Your Path - Manual vs AI Chat vs IPS Questionnaire landing experience
+import { useEffect, useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { 
-  Wrench, 
-  Sparkles, 
+  Zap, 
+  MessageSquare, 
   ChevronRight,
-  Target,
-  MessageSquare,
-  BarChart3,
   Clock,
-  TrendingUp,
   Shield,
   Brain,
   ClipboardList,
   GraduationCap,
-  Lightbulb
+  Lightbulb,
+  CheckCircle2,
+  Lock,
+  Sparkles,
+  TrendingUp,
+  Target,
+  BarChart3
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
 
 interface ChooseYourPathProps {
   onSelectManual: () => void;
-  onSelectAI: () => void;
-  onSelectQuestionnaire?: () => void;
+  onSelectAIChat: () => void;
+  onSelectQuestionnaire: () => void;
 }
 
-export function ChooseYourPath({ onSelectManual, onSelectAI, onSelectQuestionnaire }: ChooseYourPathProps) {
+const LAST_PATH_KEY = 'portfolio-last-path';
+
+export function ChooseYourPath({ onSelectManual, onSelectAIChat, onSelectQuestionnaire }: ChooseYourPathProps) {
+  const [lastPath, setLastPath] = useState<string | null>(null);
+
+  useEffect(() => {
+    const saved = localStorage.getItem(LAST_PATH_KEY);
+    if (saved) setLastPath(saved);
+  }, []);
+
+  const handleSelect = (path: 'manual' | 'ai-chat' | 'questionnaire', callback: () => void) => {
+    localStorage.setItem(LAST_PATH_KEY, path);
+    callback();
+  };
+
   return (
-    <div className="min-h-[70vh] flex flex-col items-center justify-center px-6 py-12">
+    <div className="min-h-[80vh] flex flex-col items-center justify-center px-6 py-12">
       {/* Hero Header */}
       <motion.div 
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        className="text-center mb-12 max-w-2xl"
+        className="text-center mb-10 max-w-3xl"
       >
-        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-sm font-medium mb-6">
-          <BarChart3 className="h-4 w-4" />
-          Portfolio Visualizer
-        </div>
-        <h1 className="text-4xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-foreground to-foreground/60 bg-clip-text text-transparent">
-          Choose Your Path
+        <h1 className="text-4xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
+          Build Your Investment Portfolio
         </h1>
-        <p className="text-lg text-muted-foreground">
-          Build your investment portfolio with precision, AI guidance, or a comprehensive questionnaire
+        <p className="text-lg text-muted-foreground mb-6">
+          Choose how you'd like to create your personalized investment strategy
         </p>
+        <Badge className="bg-primary/10 text-primary border-primary/20 px-4 py-2 text-sm">
+          <BarChart3 className="h-4 w-4 mr-2 inline-block" />
+          📊 Powered by Real Market Data from Polygon.io
+        </Badge>
       </motion.div>
 
       {/* Path Cards */}
-      <div className="grid md:grid-cols-3 gap-6 max-w-6xl w-full">
-        {/* Manual Mode Card */}
+      <div className="grid md:grid-cols-3 gap-6 max-w-6xl w-full items-stretch">
+        {/* Quick Builder Card */}
         <motion.div
           initial={{ opacity: 0, x: -30 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.5, delay: 0.2 }}
+          className="flex"
         >
           <Card 
             className={cn(
-              "relative overflow-hidden cursor-pointer transition-all duration-300 h-full",
-              "hover:shadow-2xl hover:shadow-blue-500/10 hover:-translate-y-1",
+              "relative overflow-hidden cursor-pointer transition-all duration-300 flex-1",
+              "hover:shadow-2xl hover:shadow-blue-500/10 hover:-translate-y-2",
               "border-2 border-transparent hover:border-blue-500/30",
               "group"
             )}
-            onClick={onSelectManual}
+            onClick={() => handleSelect('manual', onSelectManual)}
           >
             {/* Gradient Top Bar */}
             <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-blue-500 via-cyan-500 to-blue-500" />
@@ -70,191 +88,255 @@ export function ChooseYourPath({ onSelectManual, onSelectAI, onSelectQuestionnai
             {/* Background Gradient */}
             <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-cyan-500/5 opacity-0 group-hover:opacity-100 transition-opacity" />
             
+            {/* Last Used Indicator */}
+            {lastPath === 'manual' && (
+              <div className="absolute top-3 right-3">
+                <Badge variant="outline" className="text-xs bg-background">
+                  Last used
+                </Badge>
+              </div>
+            )}
+            
             <CardContent className="p-6 relative flex flex-col h-full">
               {/* Icon */}
-              <div className="p-3 rounded-xl bg-gradient-to-br from-blue-500/20 to-cyan-500/20 w-fit mb-4 group-hover:scale-110 transition-transform">
-                <Wrench className="h-6 w-6 text-blue-500" />
+              <div className="p-4 rounded-2xl bg-gradient-to-br from-blue-500 to-cyan-500 w-fit mb-5 group-hover:scale-110 transition-transform shadow-lg">
+                <Zap className="h-7 w-7 text-white" />
               </div>
               
               {/* Title */}
-              <h2 className="text-xl font-bold mb-2">I have a strategy</h2>
-              <p className="text-sm text-muted-foreground mb-4 flex-1">
-                For experienced investors who know their targets and allocations.
+              <h2 className="text-xl font-bold mb-2">Quick Builder</h2>
+              <p className="text-sm text-muted-foreground mb-5">
+                Already know what you want? Enter your tickers and weights directly.
               </p>
               
               {/* Features */}
-              <div className="space-y-2 mb-6">
-                <div className="flex items-center gap-2 text-sm">
-                  <Target className="h-4 w-4 text-blue-500" />
-                  <span>Set custom ticker weights</span>
+              <div className="space-y-3 mb-6 flex-1">
+                <div className="flex items-center gap-3 text-sm">
+                  <Target className="h-4 w-4 text-blue-500 flex-shrink-0" />
+                  <span>Enter custom ticker allocations</span>
                 </div>
-                <div className="flex items-center gap-2 text-sm">
-                  <Clock className="h-4 w-4 text-blue-500" />
-                  <span>Define time horizon</span>
+                <div className="flex items-center gap-3 text-sm">
+                  <Brain className="h-4 w-4 text-blue-500 flex-shrink-0" />
+                  <span>Black-Litterman optimization</span>
                 </div>
-                <div className="flex items-center gap-2 text-sm">
-                  <BarChart3 className="h-4 w-4 text-blue-500" />
-                  <span>Black-Litterman analysis</span>
+                <div className="flex items-center gap-3 text-sm">
+                  <TrendingUp className="h-4 w-4 text-blue-500 flex-shrink-0" />
+                  <span>Real historical data analysis</span>
                 </div>
               </div>
               
-              {/* CTA */}
-              <div className="flex items-center justify-between mt-auto">
-                <Badge variant="outline" className="bg-blue-500/10 text-blue-500 border-blue-500/30">
-                  Full Control
-                </Badge>
-                <ChevronRight className="h-5 w-5 text-blue-500 group-hover:translate-x-1 transition-transform" />
+              {/* Footer */}
+              <div className="pt-4 border-t border-border/50">
+                <div className="flex items-center justify-between mb-3">
+                  <Badge variant="outline" className="bg-blue-500/10 text-blue-500 border-blue-500/30">
+                    For Experienced Investors
+                  </Badge>
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                    <Clock className="h-3.5 w-3.5" />
+                    <span>~2 minutes</span>
+                  </div>
+                  <ChevronRight className="h-5 w-5 text-blue-500 group-hover:translate-x-1 transition-transform" />
+                </div>
               </div>
             </CardContent>
           </Card>
         </motion.div>
 
-        {/* AI Co-Pilot Card */}
+        {/* AI Chat Advisor Card (Highlighted) */}
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.3 }}
+          className="flex md:-mt-2 md:mb-2"
         >
           <Card 
             className={cn(
-              "relative overflow-hidden cursor-pointer transition-all duration-300 h-full",
-              "hover:shadow-2xl hover:shadow-purple-500/10 hover:-translate-y-1",
-              "border-2 border-transparent hover:border-purple-500/30",
-              "group"
+              "relative overflow-hidden cursor-pointer transition-all duration-300 flex-1",
+              "hover:shadow-2xl hover:shadow-emerald-500/20 hover:-translate-y-2",
+              "border-2 border-emerald-500/30 hover:border-emerald-500/50",
+              "group",
+              "ring-2 ring-emerald-500/20 ring-offset-2 ring-offset-background"
             )}
-            onClick={onSelectAI}
+            onClick={() => handleSelect('ai-chat', onSelectAIChat)}
           >
             {/* Gradient Top Bar */}
-            <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-purple-500 via-pink-500 to-purple-500" />
+            <div className="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-emerald-500 via-teal-400 to-emerald-500" />
             
-            {/* Background Gradient */}
-            <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 to-pink-500/5 opacity-0 group-hover:opacity-100 transition-opacity" />
+            {/* Subtle Glow Effect */}
+            <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/8 to-teal-500/8" />
+            <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 to-teal-500/10 opacity-0 group-hover:opacity-100 transition-opacity" />
             
-            {/* Recommended Badge */}
-            <div className="absolute top-3 right-3">
-              <Badge className="bg-gradient-to-r from-purple-500 to-pink-500 text-white border-0 text-xs">
-                Quick
-              </Badge>
+            {/* Most Popular Ribbon */}
+            <div className="absolute -top-1 -right-8 rotate-45 bg-gradient-to-r from-emerald-500 to-teal-500 text-white text-xs font-bold px-10 py-1 shadow-lg">
+              Popular
             </div>
+            
+            {/* Last Used Indicator */}
+            {lastPath === 'ai-chat' && (
+              <div className="absolute top-3 left-3">
+                <Badge variant="outline" className="text-xs bg-background">
+                  Last used
+                </Badge>
+              </div>
+            )}
             
             <CardContent className="p-6 relative flex flex-col h-full">
               {/* Icon */}
-              <div className="p-3 rounded-xl bg-gradient-to-br from-purple-500/20 to-pink-500/20 w-fit mb-4 group-hover:scale-110 transition-transform">
-                <Sparkles className="h-6 w-6 text-purple-500" />
+              <div className="p-4 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-500 w-fit mb-5 group-hover:scale-110 transition-transform shadow-lg">
+                <div className="relative">
+                  <MessageSquare className="h-7 w-7 text-white" />
+                  <Sparkles className="h-3.5 w-3.5 text-yellow-300 absolute -top-1 -right-1" />
+                </div>
               </div>
               
-              {/* Title */}
-              <h2 className="text-xl font-bold mb-2">Quick AI wizard</h2>
-              <p className="text-sm text-muted-foreground mb-4 flex-1">
-                Fast setup with AI guidance. Perfect for getting started quickly.
+              {/* Title with Badge */}
+              <div className="flex items-center gap-2 mb-2">
+                <h2 className="text-xl font-bold">AI Chat Advisor</h2>
+                <Badge className="bg-gradient-to-r from-emerald-500 to-teal-500 text-white border-0 text-xs">
+                  ✨ Recommended
+                </Badge>
+              </div>
+              <p className="text-sm text-muted-foreground mb-5">
+                Have a conversation with our AI to discover the right portfolio for your goals.
               </p>
               
               {/* Features */}
-              <div className="space-y-2 mb-6">
-                <div className="flex items-center gap-2 text-sm">
-                  <MessageSquare className="h-4 w-4 text-purple-500" />
-                  <span>Step-by-step wizard</span>
+              <div className="space-y-3 mb-6 flex-1">
+                <div className="flex items-center gap-3 text-sm">
+                  <MessageSquare className="h-4 w-4 text-emerald-500 flex-shrink-0" />
+                  <span>Natural conversation about your goals</span>
                 </div>
-                <div className="flex items-center gap-2 text-sm">
-                  <Shield className="h-4 w-4 text-purple-500" />
-                  <span>Risk assessment</span>
+                <div className="flex items-center gap-3 text-sm">
+                  <GraduationCap className="h-4 w-4 text-emerald-500 flex-shrink-0" />
+                  <span>Learn as you go - every term explained</span>
                 </div>
-                <div className="flex items-center gap-2 text-sm">
-                  <Brain className="h-4 w-4 text-purple-500" />
-                  <span>AI-optimized allocation</span>
+                <div className="flex items-center gap-3 text-sm">
+                  <Lightbulb className="h-4 w-4 text-emerald-500 flex-shrink-0" />
+                  <span>Personalized recommendations</span>
                 </div>
               </div>
               
-              {/* CTA */}
-              <div className="flex items-center justify-between mt-auto">
-                <Badge variant="outline" className="bg-purple-500/10 text-purple-500 border-purple-500/30">
-                  AI Co-Pilot
-                </Badge>
-                <ChevronRight className="h-5 w-5 text-purple-500 group-hover:translate-x-1 transition-transform" />
+              {/* Footer */}
+              <div className="pt-4 border-t border-emerald-500/20">
+                <div className="flex items-center justify-between mb-3">
+                  <Badge variant="outline" className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30">
+                    Best for Learning
+                  </Badge>
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                    <Clock className="h-3.5 w-3.5" />
+                    <span>~5-10 minutes</span>
+                  </div>
+                  <ChevronRight className="h-5 w-5 text-emerald-500 group-hover:translate-x-1 transition-transform" />
+                </div>
               </div>
             </CardContent>
           </Card>
         </motion.div>
 
-        {/* IPS Questionnaire Card */}
-        {onSelectQuestionnaire && (
-          <motion.div
-            initial={{ opacity: 0, x: 30 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.5, delay: 0.4 }}
+        {/* Guided Questionnaire Card */}
+        <motion.div
+          initial={{ opacity: 0, x: 30 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.5, delay: 0.4 }}
+          className="flex"
+        >
+          <Card 
+            className={cn(
+              "relative overflow-hidden cursor-pointer transition-all duration-300 flex-1",
+              "hover:shadow-2xl hover:shadow-purple-500/10 hover:-translate-y-2",
+              "border-2 border-transparent hover:border-purple-500/30",
+              "group"
+            )}
+            onClick={() => handleSelect('questionnaire', onSelectQuestionnaire)}
           >
-            <Card 
-              className={cn(
-                "relative overflow-hidden cursor-pointer transition-all duration-300 h-full",
-                "hover:shadow-2xl hover:shadow-emerald-500/10 hover:-translate-y-1",
-                "border-2 border-transparent hover:border-emerald-500/30",
-                "group"
-              )}
-              onClick={onSelectQuestionnaire}
-            >
-              {/* Gradient Top Bar */}
-              <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-500" />
-              
-              {/* Background Gradient */}
-              <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 to-teal-500/5 opacity-0 group-hover:opacity-100 transition-opacity" />
-              
-              {/* Recommended Badge */}
+            {/* Gradient Top Bar */}
+            <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-purple-500 via-violet-500 to-purple-500" />
+            
+            {/* Background Gradient */}
+            <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 to-violet-500/5 opacity-0 group-hover:opacity-100 transition-opacity" />
+            
+            {/* Last Used Indicator */}
+            {lastPath === 'questionnaire' && (
               <div className="absolute top-3 right-3">
-                <Badge className="bg-gradient-to-r from-emerald-500 to-teal-500 text-white border-0 text-xs">
-                  Recommended
+                <Badge variant="outline" className="text-xs bg-background">
+                  Last used
                 </Badge>
               </div>
+            )}
+            
+            <CardContent className="p-6 relative flex flex-col h-full">
+              {/* Icon */}
+              <div className="p-4 rounded-2xl bg-gradient-to-br from-purple-500 to-violet-500 w-fit mb-5 group-hover:scale-110 transition-transform shadow-lg">
+                <ClipboardList className="h-7 w-7 text-white" />
+              </div>
               
-              <CardContent className="p-6 relative flex flex-col h-full">
-                {/* Icon */}
-                <div className="p-3 rounded-xl bg-gradient-to-br from-emerald-500/20 to-teal-500/20 w-fit mb-4 group-hover:scale-110 transition-transform">
-                  <ClipboardList className="h-6 w-6 text-emerald-500" />
+              {/* Title */}
+              <h2 className="text-xl font-bold mb-2">Guided Questionnaire</h2>
+              <p className="text-sm text-muted-foreground mb-5">
+                Step-by-step questions to build a complete Investor Policy Statement.
+              </p>
+              
+              {/* Features */}
+              <div className="space-y-3 mb-6 flex-1">
+                <div className="flex items-center gap-3 text-sm">
+                  <Shield className="h-4 w-4 text-purple-500 flex-shrink-0" />
+                  <span>Comprehensive risk assessment</span>
                 </div>
-                
-                {/* Title */}
-                <h2 className="text-xl font-bold mb-2">Build my investor profile</h2>
-                <p className="text-sm text-muted-foreground mb-4 flex-1">
-                  Comprehensive questionnaire to build your personalized Investor Policy Statement.
-                </p>
-                
-                {/* Features */}
-                <div className="space-y-2 mb-6">
-                  <div className="flex items-center gap-2 text-sm">
-                    <GraduationCap className="h-4 w-4 text-emerald-500" />
-                    <span>Educational explanations</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-sm">
-                    <Lightbulb className="h-4 w-4 text-emerald-500" />
-                    <span>Goals & risk analysis</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-sm">
-                    <TrendingUp className="h-4 w-4 text-emerald-500" />
-                    <span>Personalized IPS</span>
-                  </div>
+                <div className="flex items-center gap-3 text-sm">
+                  <Target className="h-4 w-4 text-purple-500 flex-shrink-0" />
+                  <span>Goal-based planning</span>
                 </div>
-                
-                {/* CTA */}
-                <div className="flex items-center justify-between mt-auto">
-                  <Badge variant="outline" className="bg-emerald-500/10 text-emerald-500 border-emerald-500/30">
-                    Deep Dive
+                <div className="flex items-center gap-3 text-sm">
+                  <ClipboardList className="h-4 w-4 text-purple-500 flex-shrink-0" />
+                  <span>Professional IPS document</span>
+                </div>
+              </div>
+              
+              {/* Footer */}
+              <div className="pt-4 border-t border-border/50">
+                <div className="flex items-center justify-between mb-3">
+                  <Badge variant="outline" className="bg-purple-500/10 text-purple-500 border-purple-500/30">
+                    Most Thorough
                   </Badge>
-                  <ChevronRight className="h-5 w-5 text-emerald-500 group-hover:translate-x-1 transition-transform" />
                 </div>
-              </CardContent>
-            </Card>
-          </motion.div>
-        )}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                    <Clock className="h-3.5 w-3.5" />
+                    <span>~10-15 minutes</span>
+                  </div>
+                  <ChevronRight className="h-5 w-5 text-purple-500 group-hover:translate-x-1 transition-transform" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
       </div>
 
-      {/* Footer note */}
-      <motion.p 
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
+      {/* Trust Indicators */}
+      <motion.div 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: 0.5 }}
-        className="text-sm text-muted-foreground mt-12 text-center max-w-2xl"
+        className="mt-12 flex flex-wrap items-center justify-center gap-6 text-sm text-muted-foreground"
       >
-        All paths provide institutional-grade analysis powered by Black-Litterman and HRP optimization
-      </motion.p>
+        <div className="flex items-center gap-2">
+          <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+          <span>All analysis uses real market data</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <Lock className="h-4 w-4 text-emerald-500" />
+          <span>Your data is never shared</span>
+        </div>
+        <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-muted/50">
+          <span className="font-medium">Polygon.io</span>
+          <span>•</span>
+          <span>Institutional-grade analysis</span>
+        </div>
+      </motion.div>
     </div>
   );
 }
