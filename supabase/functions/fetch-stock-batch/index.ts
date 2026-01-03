@@ -105,11 +105,16 @@ Deno.serve(async (req) => {
 
         const data = await response.json();
         
-        if (data.status !== 'OK' || !data.results || data.results.length === 0) {
+        // Accept both OK and DELAYED status (DELAYED = free tier with valid data)
+        const validStatus = data.status === 'OK' || data.status === 'DELAYED';
+        
+        if (!validStatus || !data.results || data.results.length === 0) {
           console.warn(`[fetch-stock-batch] No data from Polygon for ${ticker}: status=${data.status}, resultsCount=${data.resultsCount}`);
           results[ticker] = { fromCache: false, rowCount: 0 };
           continue;
         }
+        
+        console.log(`[fetch-stock-batch] ${ticker}: Polygon status=${data.status}, received ${data.results.length} bars`);
 
         console.log(`[fetch-stock-batch] ${ticker}: Received ${data.results.length} bars from Polygon`);
 
