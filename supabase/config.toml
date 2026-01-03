@@ -83,3 +83,6 @@ verify_jwt = false
 
 [functions.ai-calculate-metrics]
 verify_jwt = false
+
+[functions.sync-market-data]
+verify_jwt = false
