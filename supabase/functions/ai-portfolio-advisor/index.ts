@@ -5,6 +5,16 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+interface CoPilotAnswers {
+  capital: number;
+  horizon: number;
+  riskTolerance: number;
+  assetClasses: string[];
+  lovedSectors: string[];
+  hatedSectors: string[];
+  needsLiquidity: boolean;
+}
+
 interface InvestorProfile {
   investableCapital: number;
   liquidityConstraint: 'high' | 'medium' | 'locked';
@@ -23,6 +33,7 @@ interface PortfolioSuggestion {
   expectedReturn: number;
   volatility: number;
   idealHoldPeriod: string;
+  whyThisFitsProfile: string;
 }
 
 serve(async (req) => {
@@ -31,14 +42,31 @@ serve(async (req) => {
   }
 
   try {
-    const { investorProfile } = await req.json() as { investorProfile: InvestorProfile };
+    const body = await req.json();
+    const { investorProfile, coPilotAnswers } = body as { 
+      investorProfile?: InvestorProfile;
+      coPilotAnswers?: CoPilotAnswers;
+    };
+    
+    // Build profile from either source
+    const profile: InvestorProfile = investorProfile || {
+      investableCapital: coPilotAnswers?.capital || 100000,
+      liquidityConstraint: coPilotAnswers?.needsLiquidity || (coPilotAnswers?.horizon || 5) <= 1 ? 'high' : 'locked',
+      assetUniverse: coPilotAnswers?.assetClasses || ['stocks', 'etfs', 'bonds'],
+      riskTolerance: coPilotAnswers?.riskTolerance || 50,
+      taxBracket: (coPilotAnswers?.capital || 100000) > 500000 ? 'high' : (coPilotAnswers?.capital || 100000) > 100000 ? 'medium' : 'low',
+      investmentHorizon: coPilotAnswers?.horizon || 5,
+    };
     
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
 
-    console.log('[AI Portfolio Advisor] Processing profile:', JSON.stringify(investorProfile));
+    console.log('[AI Portfolio Advisor] Processing profile:', JSON.stringify(profile));
+    if (coPilotAnswers) {
+      console.log('[AI Portfolio Advisor] Co-Pilot answers:', JSON.stringify(coPilotAnswers));
+    }
 
     const systemPrompt = `You are an institutional-grade portfolio advisor with expertise in modern portfolio theory, factor investing, and risk management. You provide detailed, actionable portfolio recommendations based on investor profiles.
 
@@ -49,22 +77,29 @@ Your analysis should be grounded in:
 - Risk parity concepts
 - J.P. Morgan's 60/40+ framework for alternative allocations
 
-Always provide specific ETF tickers that are liquid and accessible to retail investors.`;
+Always provide specific ETF tickers that are liquid and accessible to retail investors.
+When explaining why each asset fits the profile, be specific about how it relates to their risk tolerance, time horizon, and preferences.`;
+
+    const sectorPreferences = coPilotAnswers ? `
+**Sector Preferences:**
+- Loved sectors: ${coPilotAnswers.lovedSectors?.length > 0 ? coPilotAnswers.lovedSectors.join(', ') : 'None specified'}
+- Avoided sectors: ${coPilotAnswers.hatedSectors?.length > 0 ? coPilotAnswers.hatedSectors.join(', ') : 'None specified'}` : '';
 
     const userPrompt = `Analyze this investor profile and create an optimal portfolio allocation:
 
 **Investor Profile:**
-- Investable Capital: $${investorProfile.investableCapital.toLocaleString()}
-- Liquidity Constraint: ${investorProfile.liquidityConstraint} (${investorProfile.liquidityConstraint === 'high' ? 'needs access within 30 days' : investorProfile.liquidityConstraint === 'locked' ? 'can hold 5+ years' : 'moderate flexibility'})
-- Asset Universe: ${investorProfile.assetUniverse.join(', ')}
-- Risk Tolerance: ${investorProfile.riskTolerance}/100 (${investorProfile.riskTolerance > 70 ? 'aggressive' : investorProfile.riskTolerance > 40 ? 'moderate' : 'conservative'})
-- Tax Bracket: ${investorProfile.taxBracket}
-- Investment Horizon: ${investorProfile.investmentHorizon} years
+- Investable Capital: $${profile.investableCapital.toLocaleString()}
+- Liquidity Constraint: ${profile.liquidityConstraint} (${profile.liquidityConstraint === 'high' ? 'needs access within 30 days' : profile.liquidityConstraint === 'locked' ? 'can hold 5+ years' : 'moderate flexibility'})
+- Asset Universe: ${profile.assetUniverse.join(', ')}
+- Risk Tolerance: ${profile.riskTolerance}/100 (${profile.riskTolerance > 70 ? 'aggressive' : profile.riskTolerance > 40 ? 'moderate' : 'conservative'})
+- Tax Bracket: ${profile.taxBracket}
+- Investment Horizon: ${profile.investmentHorizon} years
+${sectorPreferences}
 
 Provide your response as a JSON object with this exact structure:
 {
   "portfolioName": "Descriptive name for this portfolio strategy",
-  "strategy": "Brief description of the overall strategy approach",
+  "strategyRationale": "2-3 sentences explaining the overall strategy approach and why it fits this investor",
   "expectedAnnualReturn": 8.5,
   "expectedVolatility": 12.0,
   "sharpeRatio": 0.58,
@@ -76,10 +111,11 @@ Provide your response as a JSON object with this exact structure:
       "name": "Vanguard Total Stock Market ETF",
       "weight": 40,
       "assetClass": "stocks",
-      "rationale": "Core US equity exposure with low expense ratio...",
+      "rationale": "Core US equity exposure with low expense ratio providing broad market access",
       "expectedReturn": 9.5,
       "volatility": 18,
-      "idealHoldPeriod": "5+ years"
+      "idealHoldPeriod": "5+ years",
+      "whyThisFitsProfile": "With your 5-year horizon and moderate risk tolerance, VTI provides growth potential while the diversification reduces single-stock risk. Since you don't need liquidity immediately, you can ride out short-term volatility."
     }
   ],
   "riskAnalysis": {
@@ -89,18 +125,26 @@ Provide your response as a JSON object with this exact structure:
   },
   "drawdownScenarios": [
     {
-      "scenario": "2008-style Financial Crisis",
-      "estimatedDrawdown": -35,
-      "recoveryTime": "24-36 months",
-      "explanation": "Why this drawdown is expected"
+      "scenario": "2020 COVID Crash",
+      "historicalDates": "Feb-Mar 2020",
+      "estimatedDrawdown": -25,
+      "recoveryTime": "6 months",
+      "explanation": "Rapid selloff but quick recovery due to Fed intervention"
     },
     {
-      "scenario": "2020 COVID Crash",
-      "estimatedDrawdown": -25,
-      "recoveryTime": "6-12 months",
-      "explanation": "Why this drawdown is expected"
+      "scenario": "2022 Bear Market",
+      "historicalDates": "Jan-Oct 2022",
+      "estimatedDrawdown": -20,
+      "recoveryTime": "12-18 months",
+      "explanation": "Interest rate hikes caused prolonged drawdown in growth assets"
     }
   ],
+  "liquidityAnalysis": {
+    "averageDailyVolume": "High - all selected assets trade millions of shares daily",
+    "liquidityScore": 95,
+    "liquidityRisks": ["None - all assets are highly liquid ETFs"],
+    "timeToLiquidate": "Same day for full portfolio"
+  },
   "rebalancingStrategy": {
     "frequency": "Quarterly",
     "thresholdBands": "5% drift tolerance",
@@ -112,7 +156,11 @@ Provide your response as a JSON object with this exact structure:
   ]
 }
 
-Ensure all weights sum to 100. Be specific and data-driven in your rationales.`;
+CRITICAL: 
+- All weights must sum to 100
+- Be specific and data-driven in your rationales
+- The "whyThisFitsProfile" field should directly reference the investor's specific inputs (time horizon, risk tolerance, sector preferences)
+- Include realistic drawdown scenarios based on actual 2020 COVID and 2022 bear market data`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -127,7 +175,7 @@ Ensure all weights sum to 100. Be specific and data-driven in your rationales.`;
           { role: "user", content: userPrompt }
         ],
         temperature: 0.7,
-        max_tokens: 4000,
+        max_tokens: 5000,
       }),
     });
 
@@ -156,7 +204,7 @@ Ensure all weights sum to 100. Be specific and data-driven in your rationales.`;
       throw new Error("No content in AI response");
     }
 
-    console.log("[AI Portfolio Advisor] Raw response:", content.substring(0, 500));
+    console.log("[AI Portfolio Advisor] Raw response length:", content.length);
 
     // Parse JSON from response (handle markdown code blocks)
     let jsonStr = content;
