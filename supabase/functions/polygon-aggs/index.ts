@@ -118,11 +118,13 @@ function cacheToPolygonFormat(cacheRows: any[]) {
   }));
 }
 
-// Limit date range based on Polygon plan (paid plans get 10+ years)
+// Limit date range based on Polygon plan
+// Stocks Starter ($29/mo) = 5 years, Stocks Developer ($79/mo) = 10 years
+// Default to 5 years for safety (covers Starter plan)
 function limitToPolygonPlanDates(startDate: string, endDate: string): { start: string; end: string; wasLimited: boolean } {
   const now = new Date();
-  // Paid plans ($30+) have access to 10+ years of data
-  const maxHistoryYears = 10;
+  // Stocks Starter plan ($29/mo) has access to 5 years of historical data
+  const maxHistoryYears = 5;
   const maxHistoryDate = new Date(now);
   maxHistoryDate.setFullYear(maxHistoryDate.getFullYear() - maxHistoryYears);
   
@@ -134,7 +136,7 @@ function limitToPolygonPlanDates(startDate: string, endDate: string): { start: s
   // If start date is before max history, limit it
   if (wasLimited) {
     start = maxHistoryDate;
-    console.log(`[polygon-aggs] Limiting start date from ${startDate} to ${start.toISOString().split('T')[0]} (max ${maxHistoryYears} years)`);
+    console.log(`[polygon-aggs] Limiting start date from ${startDate} to ${start.toISOString().split('T')[0]} (max ${maxHistoryYears} years on Starter plan)`);
   }
   
   return {
