@@ -119,10 +119,10 @@ export function Sidebar() {
       { 
         label: "Backtester", 
         subtitle: "Portfolio Analysis",
-        href: "/backtester", 
+        href: "/backtest", 
         icon: Activity 
       },
-      { 
+      {
         label: "Watchlist", 
         subtitle: "Tracked Stocks",
         href: "/watchlist", 
