@@ -180,7 +180,7 @@ export default function Backtester() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">Strategy Backtester</h1>
-          <p className="text-muted-foreground">Test trading strategies with real historical data from Finnhub</p>
+          <p className="text-muted-foreground">Test trading strategies with real historical data from Alpha Vantage</p>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" onClick={reset} disabled={isRunning}>
@@ -203,6 +203,17 @@ export default function Backtester() {
         </div>
       </div>
       
+      {/* Alpha Vantage Rate Limit Warning */}
+      <Alert className="bg-amber-500/10 border-amber-500/30">
+        <AlertTriangle className="h-4 w-4 text-amber-500" />
+        <AlertDescription className="text-sm">
+          <strong>Free tier limits:</strong> 5 calls/minute, 25 calls/day. 
+          Each asset = 1 API call + 1 for benchmark. Results are cached for 1 hour.
+          <br />
+          <span className="text-muted-foreground">A 3-asset backtest = 4 API calls. Please be patient during fetching.</span>
+        </AlertDescription>
+      </Alert>
+
       {error && (
         <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4" />
