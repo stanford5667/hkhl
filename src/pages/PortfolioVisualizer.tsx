@@ -67,6 +67,10 @@ import { InvestorPolicyQuestionnaire } from '@/components/backtester/InvestorPol
 import { DataValidationPanel } from '@/components/backtester/DataValidationPanel';
 import { CalculationVerificationPanel } from '@/components/backtester/CalculationVerificationPanel';
 import { MetricExplanationCard } from '@/components/shared/MetricExplanationCard';
+import { ErrorBoundary } from '@/components/shared/ErrorBoundary';
+import { MetricGridSkeleton } from '@/components/shared/MetricCardSkeleton';
+import { AdvancedMetricsDashboardSkeleton, CalculationProgress } from '@/components/shared/DashboardSkeleton';
+import { VerificationPanelSkeleton } from '@/components/shared/VerificationPanelSkeleton';
 import { supabase } from '@/integrations/supabase/client';
 
 // NEW: Integrated services and hooks
@@ -1420,232 +1424,251 @@ export default function PortfolioVisualizer() {
           {/* AI Insights Tab */}
           {portfolioMode === 'ai' && aiAdvice && visibleTabs['ai-insights'] && (
             <TabsContent value="ai-insights">
-              <AIPortfolioInsights 
-                advice={aiAdvice} 
-                investableCapital={investorProfile.investableCapital} 
-              />
+              <ErrorBoundary variant="default">
+                <AIPortfolioInsights 
+                  advice={aiAdvice} 
+                  investableCapital={investorProfile.investableCapital} 
+                />
+              </ErrorBoundary>
             </TabsContent>
           )}
 
           {/* Educational Dashboard Tab */}
           {visibleTabs['educational'] && (
             <TabsContent value="educational">
-              {advancedMetrics ? (
-                <EducationalDashboard
-                  metrics={advancedMetrics}
-                  investableCapital={investorProfile.investableCapital}
-                  portfolioVolatility={portfolioVolatility}
-                  stressTestResults={stressTestResults}
-                  tickerDetails={tickerDetails}
-                  allocations={allocations.map(a => ({
-                    symbol: a.symbol,
-                    name: a.name || a.symbol,
-                    weight: a.weight,
-                    assetClass: a.assetClass as string,
-                    whyThisFitsProfile: aiAdvice?.allocations.find(ai => ai.symbol === a.symbol)?.whyThisFitsProfile
-                  }))}
-                  portfolioMode={portfolioMode || 'manual'}
-                />
-              ) : (
-                <Card>
-                  <CardContent className="py-12 text-center text-muted-foreground">
-                    <GraduationCap className="h-8 w-8 mx-auto mb-3 opacity-50" />
-                    <p>Educational dashboard will appear after analysis</p>
-                  </CardContent>
-                </Card>
-              )}
+              <ErrorBoundary variant="default">
+                {isAnalyzing ? (
+                  <AdvancedMetricsDashboardSkeleton />
+                ) : advancedMetrics ? (
+                  <EducationalDashboard
+                    metrics={advancedMetrics}
+                    investableCapital={investorProfile.investableCapital}
+                    portfolioVolatility={portfolioVolatility}
+                    stressTestResults={stressTestResults}
+                    tickerDetails={tickerDetails}
+                    allocations={allocations.map(a => ({
+                      symbol: a.symbol,
+                      name: a.name || a.symbol,
+                      weight: a.weight,
+                      assetClass: a.assetClass as string,
+                      whyThisFitsProfile: aiAdvice?.allocations.find(ai => ai.symbol === a.symbol)?.whyThisFitsProfile
+                    }))}
+                    portfolioMode={portfolioMode || 'manual'}
+                  />
+                ) : (
+                  <Card>
+                    <CardContent className="py-12 text-center text-muted-foreground">
+                      <GraduationCap className="h-8 w-8 mx-auto mb-3 opacity-50" />
+                      <p>Educational dashboard will appear after analysis</p>
+                    </CardContent>
+                  </Card>
+                )}
+              </ErrorBoundary>
             </TabsContent>
           )}
 
           {/* Understand Your Results Tab - All metrics with MetricExplanationCard */}
           {visibleTabs['understand'] && (
             <TabsContent value="understand">
-              {calcMetrics ? (
-                <div className="space-y-8">
-                  {/* Returns Category */}
-                  <div>
-                    <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                      <TrendingUp className="h-5 w-5 text-emerald-500" />
-                      Returns
-                    </h3>
-                    <div className="grid gap-4 md:grid-cols-2">
-                      {calcMetrics.totalReturn !== undefined && (
-                        <MetricExplanationCard
-                          metricId="totalReturn"
-                          value={calcMetrics.totalReturn}
-                          trace={calcTraces.find(t => t.metricId === 'totalReturn')}
-                          mode="compact"
-                        />
-                      )}
-                      {calcMetrics.cagr !== undefined && (
-                        <MetricExplanationCard
-                          metricId="cagr"
-                          value={calcMetrics.cagr}
-                          trace={calcTraces.find(t => t.metricId === 'cagr')}
-                          mode="compact"
-                        />
-                      )}
-                    </div>
+              <ErrorBoundary variant="calculation">
+                {isCalcLoading ? (
+                  <div className="space-y-4">
+                    <CalculationProgress 
+                      progress={calcProgress.total > 0 ? (calcProgress.current / calcProgress.total) * 100 : 0}
+                      message={calcProgress.message}
+                    />
+                    <MetricGridSkeleton count={8} columns={2} />
                   </div>
+                ) : calcMetrics ? (
+                  <div className="space-y-8">
+                    {/* Returns Category */}
+                    <div>
+                      <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                        <TrendingUp className="h-5 w-5 text-emerald-500" />
+                        Returns
+                      </h3>
+                      <div className="grid gap-4 md:grid-cols-2">
+                        {calcMetrics.totalReturn !== undefined && (
+                          <MetricExplanationCard
+                            metricId="totalReturn"
+                            value={calcMetrics.totalReturn}
+                            trace={calcTraces.find(t => t.metricId === 'totalReturn')}
+                            mode="compact"
+                          />
+                        )}
+                        {calcMetrics.cagr !== undefined && (
+                          <MetricExplanationCard
+                            metricId="cagr"
+                            value={calcMetrics.cagr}
+                            trace={calcTraces.find(t => t.metricId === 'cagr')}
+                            mode="compact"
+                          />
+                        )}
+                      </div>
+                    </div>
 
-                  {/* Risk Category */}
-                  <div>
-                    <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                      <AlertTriangle className="h-5 w-5 text-amber-500" />
-                      Risk Metrics
-                    </h3>
-                    <div className="grid gap-4 md:grid-cols-2">
-                      {calcMetrics.volatility !== undefined && (
-                        <MetricExplanationCard
-                          metricId="volatility"
-                          value={calcMetrics.volatility}
-                          trace={calcTraces.find(t => t.metricId === 'volatility')}
-                          mode="compact"
-                        />
-                      )}
-                      {calcMetrics.maxDrawdown !== undefined && (
-                        <MetricExplanationCard
-                          metricId="maxDrawdown"
-                          value={calcMetrics.maxDrawdown}
-                          trace={calcTraces.find(t => t.metricId === 'maxDrawdown')}
-                          mode="compact"
-                        />
-                      )}
-                      {calcMetrics.var95 !== undefined && (
-                        <MetricExplanationCard
-                          metricId="var95"
-                          value={calcMetrics.var95}
-                          trace={calcTraces.find(t => t.metricId === 'var95')}
-                          mode="compact"
-                        />
-                      )}
-                      {calcMetrics.cvar95 !== undefined && (
-                        <MetricExplanationCard
-                          metricId="cvar95"
-                          value={calcMetrics.cvar95}
-                          trace={calcTraces.find(t => t.metricId === 'cvar95')}
-                          mode="compact"
-                        />
-                      )}
-                      {calcMetrics.ulcerIndex !== undefined && (
-                        <MetricExplanationCard
-                          metricId="ulcerIndex"
-                          value={calcMetrics.ulcerIndex}
-                          trace={calcTraces.find(t => t.metricId === 'ulcerIndex')}
-                          mode="compact"
-                        />
-                      )}
-                      {calcMetrics.tailRatio !== undefined && (
-                        <MetricExplanationCard
-                          metricId="tailRatio"
-                          value={calcMetrics.tailRatio}
-                          trace={calcTraces.find(t => t.metricId === 'tailRatio')}
-                          mode="compact"
-                        />
-                      )}
+                    {/* Risk Category */}
+                    <div>
+                      <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                        <AlertTriangle className="h-5 w-5 text-amber-500" />
+                        Risk Metrics
+                      </h3>
+                      <div className="grid gap-4 md:grid-cols-2">
+                        {calcMetrics.volatility !== undefined && (
+                          <MetricExplanationCard
+                            metricId="volatility"
+                            value={calcMetrics.volatility}
+                            trace={calcTraces.find(t => t.metricId === 'volatility')}
+                            mode="compact"
+                          />
+                        )}
+                        {calcMetrics.maxDrawdown !== undefined && (
+                          <MetricExplanationCard
+                            metricId="maxDrawdown"
+                            value={calcMetrics.maxDrawdown}
+                            trace={calcTraces.find(t => t.metricId === 'maxDrawdown')}
+                            mode="compact"
+                          />
+                        )}
+                        {calcMetrics.var95 !== undefined && (
+                          <MetricExplanationCard
+                            metricId="var95"
+                            value={calcMetrics.var95}
+                            trace={calcTraces.find(t => t.metricId === 'var95')}
+                            mode="compact"
+                          />
+                        )}
+                        {calcMetrics.cvar95 !== undefined && (
+                          <MetricExplanationCard
+                            metricId="cvar95"
+                            value={calcMetrics.cvar95}
+                            trace={calcTraces.find(t => t.metricId === 'cvar95')}
+                            mode="compact"
+                          />
+                        )}
+                        {calcMetrics.ulcerIndex !== undefined && (
+                          <MetricExplanationCard
+                            metricId="ulcerIndex"
+                            value={calcMetrics.ulcerIndex}
+                            trace={calcTraces.find(t => t.metricId === 'ulcerIndex')}
+                            mode="compact"
+                          />
+                        )}
+                        {calcMetrics.tailRatio !== undefined && (
+                          <MetricExplanationCard
+                            metricId="tailRatio"
+                            value={calcMetrics.tailRatio}
+                            trace={calcTraces.find(t => t.metricId === 'tailRatio')}
+                            mode="compact"
+                          />
+                        )}
+                      </div>
                     </div>
-                  </div>
 
-                  {/* Risk-Adjusted Category */}
-                  <div>
-                    <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                      <Target className="h-5 w-5 text-blue-500" />
-                      Risk-Adjusted Performance
-                    </h3>
-                    <div className="grid gap-4 md:grid-cols-2">
-                      {calcMetrics.sharpeRatio !== undefined && (
-                        <MetricExplanationCard
-                          metricId="sharpeRatio"
-                          value={calcMetrics.sharpeRatio}
-                          trace={calcTraces.find(t => t.metricId === 'sharpeRatio')}
-                          mode="compact"
-                        />
-                      )}
-                      {calcMetrics.sortinoRatio !== undefined && (
-                        <MetricExplanationCard
-                          metricId="sortinoRatio"
-                          value={calcMetrics.sortinoRatio}
-                          trace={calcTraces.find(t => t.metricId === 'sortinoRatio')}
-                          mode="compact"
-                        />
-                      )}
-                      {calcMetrics.calmarRatio !== undefined && (
-                        <MetricExplanationCard
-                          metricId="calmarRatio"
-                          value={calcMetrics.calmarRatio}
-                          trace={calcTraces.find(t => t.metricId === 'calmarRatio')}
-                          mode="compact"
-                        />
-                      )}
-                      {calcMetrics.omegaRatio !== undefined && (
-                        <MetricExplanationCard
-                          metricId="omegaRatio"
-                          value={calcMetrics.omegaRatio}
-                          trace={calcTraces.find(t => t.metricId === 'omegaRatio')}
-                          mode="compact"
-                        />
-                      )}
+                    {/* Risk-Adjusted Category */}
+                    <div>
+                      <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                        <Target className="h-5 w-5 text-blue-500" />
+                        Risk-Adjusted Performance
+                      </h3>
+                      <div className="grid gap-4 md:grid-cols-2">
+                        {calcMetrics.sharpeRatio !== undefined && (
+                          <MetricExplanationCard
+                            metricId="sharpeRatio"
+                            value={calcMetrics.sharpeRatio}
+                            trace={calcTraces.find(t => t.metricId === 'sharpeRatio')}
+                            mode="compact"
+                          />
+                        )}
+                        {calcMetrics.sortinoRatio !== undefined && (
+                          <MetricExplanationCard
+                            metricId="sortinoRatio"
+                            value={calcMetrics.sortinoRatio}
+                            trace={calcTraces.find(t => t.metricId === 'sortinoRatio')}
+                            mode="compact"
+                          />
+                        )}
+                        {calcMetrics.calmarRatio !== undefined && (
+                          <MetricExplanationCard
+                            metricId="calmarRatio"
+                            value={calcMetrics.calmarRatio}
+                            trace={calcTraces.find(t => t.metricId === 'calmarRatio')}
+                            mode="compact"
+                          />
+                        )}
+                        {calcMetrics.omegaRatio !== undefined && (
+                          <MetricExplanationCard
+                            metricId="omegaRatio"
+                            value={calcMetrics.omegaRatio}
+                            trace={calcTraces.find(t => t.metricId === 'omegaRatio')}
+                            mode="compact"
+                          />
+                        )}
+                      </div>
                     </div>
-                  </div>
 
-                  {/* Benchmark Comparison Category */}
-                  <div>
-                    <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                      <Activity className="h-5 w-5 text-purple-500" />
-                      Benchmark Comparison
-                    </h3>
-                    <div className="grid gap-4 md:grid-cols-2">
-                      {calcMetrics.alpha !== undefined && (
-                        <MetricExplanationCard
-                          metricId="alpha"
-                          value={calcMetrics.alpha}
-                          trace={calcTraces.find(t => t.metricId === 'alpha')}
-                          mode="compact"
-                        />
-                      )}
-                      {calcMetrics.beta !== undefined && (
-                        <MetricExplanationCard
-                          metricId="beta"
-                          value={calcMetrics.beta}
-                          trace={calcTraces.find(t => t.metricId === 'beta')}
-                          mode="compact"
-                        />
-                      )}
-                      {calcMetrics.informationRatio !== undefined && (
-                        <MetricExplanationCard
-                          metricId="informationRatio"
-                          value={calcMetrics.informationRatio}
-                          trace={calcTraces.find(t => t.metricId === 'informationRatio')}
-                          mode="compact"
-                        />
-                      )}
+                    {/* Benchmark Comparison Category */}
+                    <div>
+                      <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                        <Activity className="h-5 w-5 text-purple-500" />
+                        Benchmark Comparison
+                      </h3>
+                      <div className="grid gap-4 md:grid-cols-2">
+                        {calcMetrics.alpha !== undefined && (
+                          <MetricExplanationCard
+                            metricId="alpha"
+                            value={calcMetrics.alpha}
+                            trace={calcTraces.find(t => t.metricId === 'alpha')}
+                            mode="compact"
+                          />
+                        )}
+                        {calcMetrics.beta !== undefined && (
+                          <MetricExplanationCard
+                            metricId="beta"
+                            value={calcMetrics.beta}
+                            trace={calcTraces.find(t => t.metricId === 'beta')}
+                            mode="compact"
+                          />
+                        )}
+                        {calcMetrics.informationRatio !== undefined && (
+                          <MetricExplanationCard
+                            metricId="informationRatio"
+                            value={calcMetrics.informationRatio}
+                            trace={calcTraces.find(t => t.metricId === 'informationRatio')}
+                            mode="compact"
+                          />
+                        )}
+                      </div>
                     </div>
                   </div>
-                </div>
-              ) : (
-                <Card>
-                  <CardContent className="py-12 text-center text-muted-foreground">
-                    <BookOpen className="h-8 w-8 mx-auto mb-3 opacity-50" />
-                    <p>Metric explanations will appear after analysis</p>
-                  </CardContent>
-                </Card>
-              )}
+                ) : (
+                  <Card>
+                    <CardContent className="py-12 text-center text-muted-foreground">
+                      <BookOpen className="h-8 w-8 mx-auto mb-3 opacity-50" />
+                      <p>Metric explanations will appear after analysis</p>
+                    </CardContent>
+                  </Card>
+                )}
+              </ErrorBoundary>
             </TabsContent>
           )}
 
-
           {visibleTabs['metrics'] && (
             <TabsContent value="metrics">
-              {advancedMetrics ? (
-                <AdvancedMetricsDashboard metrics={advancedMetrics} />
-              ) : (
-                <Card>
-                  <CardContent className="py-12 text-center text-muted-foreground">
-                    <BarChart3 className="h-8 w-8 mx-auto mb-3 opacity-50" />
-                    <p>Advanced metrics will appear after analysis</p>
-                  </CardContent>
-                </Card>
-              )}
+              <ErrorBoundary variant="calculation">
+                {isAnalyzing ? (
+                  <AdvancedMetricsDashboardSkeleton />
+                ) : advancedMetrics ? (
+                  <AdvancedMetricsDashboard metrics={advancedMetrics} />
+                ) : (
+                  <Card>
+                    <CardContent className="py-12 text-center text-muted-foreground">
+                      <BarChart3 className="h-8 w-8 mx-auto mb-3 opacity-50" />
+                      <p>Advanced metrics will appear after analysis</p>
+                    </CardContent>
+                  </Card>
+                )}
+              </ErrorBoundary>
             </TabsContent>
           )}
 
@@ -1818,22 +1841,28 @@ export default function PortfolioVisualizer() {
         </Tabs>
 
         {/* Calculation Verification Panel - Collapsible at bottom */}
-        {calcMetrics && calcDataInfo && resultsTab !== 'data-quality' && (
-          <div className="mt-8">
-            <CalculationVerificationPanel
-              metrics={calcMetrics as unknown as Record<string, number>}
-              traces={calcTraces}
-              dataInfo={{
-                startDate: calcDataInfo.startDate,
-                endDate: calcDataInfo.endDate,
-                tradingDays: calcDataInfo.tradingDays,
-                dataSource: calcDataInfo.dataSource
-              }}
-              allocations={calcAllocations.map(a => ({ ticker: a.ticker, weight: a.weight }))}
-              onRecalculate={recalculate}
-            />
-          </div>
-        )}
+        <ErrorBoundary variant="inline">
+          {isCalcLoading && resultsTab !== 'data-quality' ? (
+            <div className="mt-8">
+              <VerificationPanelSkeleton />
+            </div>
+          ) : calcMetrics && calcDataInfo && resultsTab !== 'data-quality' ? (
+            <div className="mt-8">
+              <CalculationVerificationPanel
+                metrics={calcMetrics as unknown as Record<string, number>}
+                traces={calcTraces}
+                dataInfo={{
+                  startDate: calcDataInfo.startDate,
+                  endDate: calcDataInfo.endDate,
+                  tradingDays: calcDataInfo.tradingDays,
+                  dataSource: calcDataInfo.dataSource
+                }}
+                allocations={calcAllocations.map(a => ({ ticker: a.ticker, weight: a.weight }))}
+                onRecalculate={recalculate}
+              />
+            </div>
+          ) : null}
+        </ErrorBoundary>
 
         {/* Data Validation Panel - Collapsed at bottom */}
         {validationData && resultsTab !== 'data-quality' && (
