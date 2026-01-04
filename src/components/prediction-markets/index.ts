@@ -9,6 +9,7 @@ export { TradeIdeaCard } from './TradeIdeaCard';
 export { FullAnalysisModal } from './FullAnalysisModal';
 export { CalculateSizeModal } from './CalculateSizeModal';
 export { MarketChatAssistant } from './MarketChatAssistant';
+export { GlobalCommandSearch } from './GlobalCommandSearch';
 export { NaturalLanguageSearch } from './NaturalLanguageSearch';
 export { AlertCenter } from './AlertCenter';
 export { DailyBriefing } from './DailyBriefing';

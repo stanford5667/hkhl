@@ -15,7 +15,8 @@ import {
   AlertCenter, 
   DailyBriefing, 
   StrategyBacktester, 
-  NaturalLanguageSearch 
+  NaturalLanguageSearch,
+  GlobalCommandSearch
 } from "@/components/prediction-markets";
 import { AIBrainChat } from "@/components/prediction-markets/AIBrainChat";
 import { DataSyncPanel } from "@/components/prediction-markets/DataSyncPanel";
@@ -35,15 +36,22 @@ export default function PredictionMarketsAI() {
   return (
     <div className="p-6 space-y-6">
       {/* Header */}
-      <div className="flex items-center gap-3">
-        <div className="p-2 rounded-lg bg-gradient-to-br from-violet-500 to-purple-600">
-          <Brain className="h-6 w-6 text-white" />
+      <div className="flex items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <div className="p-2 rounded-lg bg-gradient-to-br from-violet-500 to-purple-600">
+            <Brain className="h-6 w-6 text-white" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold">Prediction Markets AI</h1>
+            <p className="text-muted-foreground">
+              AI-powered intelligence for prediction market trading
+            </p>
+          </div>
         </div>
-        <div>
-          <h1 className="text-2xl font-bold">Prediction Markets AI</h1>
-          <p className="text-muted-foreground">
-            AI-powered intelligence for prediction market trading
-          </p>
+        
+        {/* Global Semantic Search */}
+        <div className="flex-1 max-w-md">
+          <GlobalCommandSearch />
         </div>
       </div>
 
