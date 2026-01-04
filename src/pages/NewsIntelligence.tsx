@@ -21,8 +21,9 @@ import {
   Film,
   Coins,
   BarChart3,
-  ChevronRight,
-  ArrowUpRight
+  ArrowUpRight,
+  RefreshCw,
+  Loader2
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
@@ -42,7 +43,7 @@ export default function NewsIntelligence() {
   const [selectedCategory, setSelectedCategory] = useState<NewsCategory>('all');
   const [searchQuery, setSearchQuery] = useState('');
 
-  const { articles, isLoading, stats } = useNewsIntelligence({
+  const { articles, isLoading, stats, fetchNews, isFetchingNews } = useNewsIntelligence({
     category: selectedCategory,
     searchQuery,
   });
@@ -93,6 +94,21 @@ export default function NewsIntelligence() {
                   className="pl-9 h-9"
                 />
               </div>
+              
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => fetchNews()}
+                disabled={isFetchingNews}
+                className="gap-2"
+              >
+                {isFetchingNews ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <RefreshCw className="h-4 w-4" />
+                )}
+                <span className="hidden sm:inline">Fetch News</span>
+              </Button>
             </div>
           </div>
 
@@ -125,7 +141,7 @@ export default function NewsIntelligence() {
         {isLoading ? (
           <LoadingState />
         ) : articles.length === 0 ? (
-          <EmptyState />
+          <EmptyState onFetch={() => fetchNews()} isFetching={isFetchingNews} />
         ) : (
           <div className="space-y-8">
             {/* Hero Section */}
@@ -387,17 +403,27 @@ function LoadingState() {
   );
 }
 
-// Empty State
-function EmptyState() {
+// Empty State with fetch button
+function EmptyState({ onFetch, isFetching }: { onFetch?: () => void; isFetching?: boolean }) {
   return (
     <div className="flex flex-col items-center justify-center py-20 text-center">
       <div className="p-4 rounded-full bg-muted mb-4">
         <Newspaper className="h-8 w-8 text-muted-foreground" />
       </div>
-      <h3 className="text-lg font-semibold mb-2">No stories found</h3>
-      <p className="text-muted-foreground max-w-md">
-        Try adjusting your filters or check back later for new market intelligence.
+      <h3 className="text-lg font-semibold mb-2">No stories yet</h3>
+      <p className="text-muted-foreground max-w-md mb-6">
+        Click the button below to fetch the latest news from multiple sources.
       </p>
+      {onFetch && (
+        <Button onClick={onFetch} disabled={isFetching} className="gap-2">
+          {isFetching ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <RefreshCw className="h-4 w-4" />
+          )}
+          Fetch Latest News
+        </Button>
+      )}
     </div>
   );
 }
