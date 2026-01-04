@@ -146,3 +146,6 @@ verify_jwt = false
 
 [functions.semantic-insight-match]
 verify_jwt = false
+
+[functions.semantic-search]
+verify_jwt = false
