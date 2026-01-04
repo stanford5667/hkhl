@@ -99,6 +99,51 @@ export type Database = {
           },
         ]
       }
+      arbitrage_opportunities: {
+        Row: {
+          actual_profit: number | null
+          confidence: number | null
+          details: Json | null
+          detected_at: string
+          executed_at: string | null
+          expires_at: string | null
+          id: string
+          markets: string[]
+          platforms: string[]
+          profit_potential: number
+          status: string
+          type: string
+        }
+        Insert: {
+          actual_profit?: number | null
+          confidence?: number | null
+          details?: Json | null
+          detected_at?: string
+          executed_at?: string | null
+          expires_at?: string | null
+          id?: string
+          markets: string[]
+          platforms: string[]
+          profit_potential: number
+          status?: string
+          type: string
+        }
+        Update: {
+          actual_profit?: number | null
+          confidence?: number | null
+          details?: Json | null
+          detected_at?: string
+          executed_at?: string | null
+          expires_at?: string | null
+          id?: string
+          markets?: string[]
+          platforms?: string[]
+          profit_potential?: number
+          status?: string
+          type?: string
+        }
+        Relationships: []
+      }
       asset_prices: {
         Row: {
           company_id: string
@@ -1100,6 +1145,45 @@ export type Database = {
         }
         Relationships: []
       }
+      event_market_correlations: {
+        Row: {
+          avg_price_impact: number | null
+          avg_time_to_impact: unknown
+          confidence_interval_high: number | null
+          confidence_interval_low: number | null
+          correlation_coefficient: number | null
+          event_type: string
+          id: string
+          last_calculated: string | null
+          market_category: string
+          sample_size: number
+        }
+        Insert: {
+          avg_price_impact?: number | null
+          avg_time_to_impact?: unknown
+          confidence_interval_high?: number | null
+          confidence_interval_low?: number | null
+          correlation_coefficient?: number | null
+          event_type: string
+          id?: string
+          last_calculated?: string | null
+          market_category: string
+          sample_size?: number
+        }
+        Update: {
+          avg_price_impact?: number | null
+          avg_time_to_impact?: unknown
+          confidence_interval_high?: number | null
+          confidence_interval_low?: number | null
+          correlation_coefficient?: number | null
+          event_type?: string
+          id?: string
+          last_calculated?: string | null
+          market_category?: string
+          sample_size?: number
+        }
+        Relationships: []
+      }
       events: {
         Row: {
           created_at: string | null
@@ -1170,6 +1254,170 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      historical_outcomes: {
+        Row: {
+          final_pre_resolution_probability: number | null
+          id: string
+          initial_probability: number | null
+          market_id: string
+          price_path: Json | null
+          resolution_source: string | null
+          resolution_value: number | null
+          resolved_at: string
+          total_volume: number | null
+          unique_traders: number | null
+          winning_outcome_id: string | null
+        }
+        Insert: {
+          final_pre_resolution_probability?: number | null
+          id?: string
+          initial_probability?: number | null
+          market_id: string
+          price_path?: Json | null
+          resolution_source?: string | null
+          resolution_value?: number | null
+          resolved_at: string
+          total_volume?: number | null
+          unique_traders?: number | null
+          winning_outcome_id?: string | null
+        }
+        Update: {
+          final_pre_resolution_probability?: number | null
+          id?: string
+          initial_probability?: number | null
+          market_id?: string
+          price_path?: Json | null
+          resolution_source?: string | null
+          resolution_value?: number | null
+          resolved_at?: string
+          total_volume?: number | null
+          unique_traders?: number | null
+          winning_outcome_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "historical_outcomes_market_id_fkey"
+            columns: ["market_id"]
+            isOneToOne: false
+            referencedRelation: "prediction_markets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "historical_outcomes_winning_outcome_id_fkey"
+            columns: ["winning_outcome_id"]
+            isOneToOne: false
+            referencedRelation: "market_outcomes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      kol_accounts: {
+        Row: {
+          accuracy_score: number | null
+          category: string[] | null
+          display_name: string | null
+          follower_count: number | null
+          id: string
+          influence_score: number | null
+          is_verified: boolean | null
+          last_updated: string | null
+          metadata: Json | null
+          platform: string
+          platform_user_id: string | null
+          username: string
+        }
+        Insert: {
+          accuracy_score?: number | null
+          category?: string[] | null
+          display_name?: string | null
+          follower_count?: number | null
+          id?: string
+          influence_score?: number | null
+          is_verified?: boolean | null
+          last_updated?: string | null
+          metadata?: Json | null
+          platform: string
+          platform_user_id?: string | null
+          username: string
+        }
+        Update: {
+          accuracy_score?: number | null
+          category?: string[] | null
+          display_name?: string | null
+          follower_count?: number | null
+          id?: string
+          influence_score?: number | null
+          is_verified?: boolean | null
+          last_updated?: string | null
+          metadata?: Json | null
+          platform?: string
+          platform_user_id?: string | null
+          username?: string
+        }
+        Relationships: []
+      }
+      kol_sentiment: {
+        Row: {
+          confidence: number | null
+          content_hash: string | null
+          content_snippet: string | null
+          detected_at: string
+          engagement_score: number | null
+          entities: string[] | null
+          full_content: string | null
+          id: string
+          kol_id: string
+          platform: string | null
+          post_url: string | null
+          posted_at: string | null
+          related_markets: string[] | null
+          sentiment_score: number | null
+          topics: string[] | null
+        }
+        Insert: {
+          confidence?: number | null
+          content_hash?: string | null
+          content_snippet?: string | null
+          detected_at?: string
+          engagement_score?: number | null
+          entities?: string[] | null
+          full_content?: string | null
+          id?: string
+          kol_id: string
+          platform?: string | null
+          post_url?: string | null
+          posted_at?: string | null
+          related_markets?: string[] | null
+          sentiment_score?: number | null
+          topics?: string[] | null
+        }
+        Update: {
+          confidence?: number | null
+          content_hash?: string | null
+          content_snippet?: string | null
+          detected_at?: string
+          engagement_score?: number | null
+          entities?: string[] | null
+          full_content?: string | null
+          id?: string
+          kol_id?: string
+          platform?: string | null
+          post_url?: string | null
+          posted_at?: string | null
+          related_markets?: string[] | null
+          sentiment_score?: number | null
+          topics?: string[] | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "kol_sentiment_kol_id_fkey"
+            columns: ["kol_id"]
+            isOneToOne: false
+            referencedRelation: "kol_accounts"
             referencedColumns: ["id"]
           },
         ]
@@ -1257,6 +1505,98 @@ export type Database = {
           vwap?: number | null
         }
         Relationships: []
+      }
+      market_outcomes: {
+        Row: {
+          current_price: number | null
+          id: string
+          last_trade_price: number | null
+          market_id: string
+          open_interest: number | null
+          platform_outcome_id: string | null
+          price_change_24h: number | null
+          title: string
+          updated_at: string
+          volume_24h: number | null
+          volume_total: number | null
+        }
+        Insert: {
+          current_price?: number | null
+          id?: string
+          last_trade_price?: number | null
+          market_id: string
+          open_interest?: number | null
+          platform_outcome_id?: string | null
+          price_change_24h?: number | null
+          title: string
+          updated_at?: string
+          volume_24h?: number | null
+          volume_total?: number | null
+        }
+        Update: {
+          current_price?: number | null
+          id?: string
+          last_trade_price?: number | null
+          market_id?: string
+          open_interest?: number | null
+          platform_outcome_id?: string | null
+          price_change_24h?: number | null
+          title?: string
+          updated_at?: string
+          volume_24h?: number | null
+          volume_total?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "market_outcomes_market_id_fkey"
+            columns: ["market_id"]
+            isOneToOne: false
+            referencedRelation: "prediction_markets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      market_price_history: {
+        Row: {
+          id: number
+          market_id: string
+          outcome_id: string
+          price: number
+          timestamp: string
+          volume: number | null
+        }
+        Insert: {
+          id?: number
+          market_id: string
+          outcome_id: string
+          price: number
+          timestamp?: string
+          volume?: number | null
+        }
+        Update: {
+          id?: number
+          market_id?: string
+          outcome_id?: string
+          price?: number
+          timestamp?: string
+          volume?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "market_price_history_market_id_fkey"
+            columns: ["market_id"]
+            isOneToOne: false
+            referencedRelation: "prediction_markets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "market_price_history_outcome_id_fkey"
+            columns: ["outcome_id"]
+            isOneToOne: false
+            referencedRelation: "market_outcomes"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       metric_definitions: {
         Row: {
@@ -1641,6 +1981,63 @@ export type Database = {
           },
         ]
       }
+      prediction_markets: {
+        Row: {
+          category: string
+          created_at: string
+          description: string | null
+          id: string
+          is_binary: boolean
+          metadata: Json | null
+          platform: string
+          platform_market_id: string
+          resolution_date: string | null
+          resolution_source: string | null
+          resolved_at: string | null
+          status: string
+          subcategory: string | null
+          tags: string[] | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_binary?: boolean
+          metadata?: Json | null
+          platform: string
+          platform_market_id: string
+          resolution_date?: string | null
+          resolution_source?: string | null
+          resolved_at?: string | null
+          status?: string
+          subcategory?: string | null
+          tags?: string[] | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_binary?: boolean
+          metadata?: Json | null
+          platform?: string
+          platform_market_id?: string
+          resolution_date?: string | null
+          resolution_source?: string | null
+          resolved_at?: string | null
+          status?: string
+          subcategory?: string | null
+          tags?: string[] | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -1699,6 +2096,54 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      real_world_events: {
+        Row: {
+          category: string | null
+          description: string | null
+          detected_at: string
+          entities: string[] | null
+          event_date: string | null
+          id: string
+          metadata: Json | null
+          related_markets: string[] | null
+          sentiment_score: number | null
+          severity: string | null
+          source: string | null
+          source_url: string | null
+          title: string
+        }
+        Insert: {
+          category?: string | null
+          description?: string | null
+          detected_at?: string
+          entities?: string[] | null
+          event_date?: string | null
+          id?: string
+          metadata?: Json | null
+          related_markets?: string[] | null
+          sentiment_score?: number | null
+          severity?: string | null
+          source?: string | null
+          source_url?: string | null
+          title: string
+        }
+        Update: {
+          category?: string | null
+          description?: string | null
+          detected_at?: string
+          entities?: string[] | null
+          event_date?: string | null
+          id?: string
+          metadata?: Json | null
+          related_markets?: string[] | null
+          sentiment_score?: number | null
+          severity?: string | null
+          source?: string | null
+          source_url?: string | null
+          title?: string
+        }
+        Relationships: []
       }
       stock_price_cache: {
         Row: {
@@ -2060,6 +2505,53 @@ export type Database = {
         }
         Relationships: []
       }
+      user_alerts: {
+        Row: {
+          alert_type: string
+          channels: string[] | null
+          conditions: Json
+          created_at: string
+          id: string
+          is_active: boolean
+          last_triggered: string | null
+          market_id: string | null
+          trigger_count: number | null
+          user_id: string
+        }
+        Insert: {
+          alert_type: string
+          channels?: string[] | null
+          conditions?: Json
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          last_triggered?: string | null
+          market_id?: string | null
+          trigger_count?: number | null
+          user_id: string
+        }
+        Update: {
+          alert_type?: string
+          channels?: string[] | null
+          conditions?: Json
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          last_triggered?: string | null
+          market_id?: string | null
+          trigger_count?: number | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_alerts_market_id_fkey"
+            columns: ["market_id"]
+            isOneToOne: false
+            referencedRelation: "prediction_markets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           id: string
@@ -2105,6 +2597,142 @@ export type Database = {
           item_type?: string
           notes?: string | null
           user_id?: string
+        }
+        Relationships: []
+      }
+      user_watchlists: {
+        Row: {
+          alert_settings: Json | null
+          created_at: string
+          id: string
+          market_ids: string[] | null
+          name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          alert_settings?: Json | null
+          created_at?: string
+          id?: string
+          market_ids?: string[] | null
+          name: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          alert_settings?: Json | null
+          created_at?: string
+          id?: string
+          market_ids?: string[] | null
+          name?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      whale_transactions: {
+        Row: {
+          amount: number
+          block_number: number | null
+          id: string
+          market_id: string
+          outcome_id: string | null
+          price: number
+          side: string
+          timestamp: string
+          transaction_hash: string | null
+          wallet_id: string
+        }
+        Insert: {
+          amount: number
+          block_number?: number | null
+          id?: string
+          market_id: string
+          outcome_id?: string | null
+          price: number
+          side: string
+          timestamp?: string
+          transaction_hash?: string | null
+          wallet_id: string
+        }
+        Update: {
+          amount?: number
+          block_number?: number | null
+          id?: string
+          market_id?: string
+          outcome_id?: string | null
+          price?: number
+          side?: string
+          timestamp?: string
+          transaction_hash?: string | null
+          wallet_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whale_transactions_market_id_fkey"
+            columns: ["market_id"]
+            isOneToOne: false
+            referencedRelation: "prediction_markets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whale_transactions_outcome_id_fkey"
+            columns: ["outcome_id"]
+            isOneToOne: false
+            referencedRelation: "market_outcomes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whale_transactions_wallet_id_fkey"
+            columns: ["wallet_id"]
+            isOneToOne: false
+            referencedRelation: "whale_wallets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      whale_wallets: {
+        Row: {
+          address: string
+          avg_position_size: number | null
+          first_seen: string
+          id: string
+          is_smart_money: boolean | null
+          label: string | null
+          metadata: Json | null
+          profitable_trades: number | null
+          tags: string[] | null
+          total_trades: number | null
+          total_volume: number | null
+          win_rate: number | null
+        }
+        Insert: {
+          address: string
+          avg_position_size?: number | null
+          first_seen?: string
+          id?: string
+          is_smart_money?: boolean | null
+          label?: string | null
+          metadata?: Json | null
+          profitable_trades?: number | null
+          tags?: string[] | null
+          total_trades?: number | null
+          total_volume?: number | null
+          win_rate?: number | null
+        }
+        Update: {
+          address?: string
+          avg_position_size?: number | null
+          first_seen?: string
+          id?: string
+          is_smart_money?: boolean | null
+          label?: string | null
+          metadata?: Json | null
+          profitable_trades?: number | null
+          tags?: string[] | null
+          total_trades?: number | null
+          total_volume?: number | null
+          win_rate?: number | null
         }
         Relationships: []
       }
