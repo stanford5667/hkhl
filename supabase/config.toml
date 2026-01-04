@@ -104,3 +104,6 @@ verify_jwt = false
 
 [functions.ai-query-parser]
 verify_jwt = false
+
+[functions.ai-alert-generator]
+verify_jwt = false
