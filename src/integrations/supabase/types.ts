@@ -2099,13 +2099,23 @@ export type Database = {
       }
       real_world_events: {
         Row: {
+          ai_classification: Json | null
+          ai_extracted_entities: Json | null
+          ai_market_links: Json | null
+          ai_sentiment: Json | null
           category: string | null
+          content_hash: string | null
           description: string | null
           detected_at: string
+          duplicate_of: string | null
           entities: string[] | null
           event_date: string | null
+          full_content: string | null
           id: string
+          is_duplicate: boolean | null
           metadata: Json | null
+          processed_at: string | null
+          processing_status: string | null
           related_markets: string[] | null
           sentiment_score: number | null
           severity: string | null
@@ -2114,13 +2124,23 @@ export type Database = {
           title: string
         }
         Insert: {
+          ai_classification?: Json | null
+          ai_extracted_entities?: Json | null
+          ai_market_links?: Json | null
+          ai_sentiment?: Json | null
           category?: string | null
+          content_hash?: string | null
           description?: string | null
           detected_at?: string
+          duplicate_of?: string | null
           entities?: string[] | null
           event_date?: string | null
+          full_content?: string | null
           id?: string
+          is_duplicate?: boolean | null
           metadata?: Json | null
+          processed_at?: string | null
+          processing_status?: string | null
           related_markets?: string[] | null
           sentiment_score?: number | null
           severity?: string | null
@@ -2129,13 +2149,23 @@ export type Database = {
           title: string
         }
         Update: {
+          ai_classification?: Json | null
+          ai_extracted_entities?: Json | null
+          ai_market_links?: Json | null
+          ai_sentiment?: Json | null
           category?: string | null
+          content_hash?: string | null
           description?: string | null
           detected_at?: string
+          duplicate_of?: string | null
           entities?: string[] | null
           event_date?: string | null
+          full_content?: string | null
           id?: string
+          is_duplicate?: boolean | null
           metadata?: Json | null
+          processed_at?: string | null
+          processing_status?: string | null
           related_markets?: string[] | null
           sentiment_score?: number | null
           severity?: string | null
@@ -2143,7 +2173,15 @@ export type Database = {
           source_url?: string | null
           title?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "real_world_events_duplicate_of_fkey"
+            columns: ["duplicate_of"]
+            isOneToOne: false
+            referencedRelation: "real_world_events"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       stock_price_cache: {
         Row: {
