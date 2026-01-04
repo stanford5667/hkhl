@@ -1,11 +1,11 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Zap, AlertTriangle } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useNewsIntelligence, NewsArticle, NewsCategory, NewsSeverity, TimeRange } from "@/hooks/useNewsIntelligence";
 import { formatDistanceToNow } from "date-fns";
-import { QuickStats, ActivityPulse, NewsFeedList, AnalysisPanel, NewsFilters } from "@/components/news";
+import { QuickStats, ActivityPulse, NewsFeedList, AnalysisPanel, NewsFilters, TickerHeatmap } from "@/components/news";
 
 // Breaking News Hero Component
 function BreakingNewsHero({ article, onSelect }: { article: NewsArticle; onSelect: (article: NewsArticle) => void }) {
@@ -48,6 +48,7 @@ export default function NewsIntelligence() {
   const [severity, setSeverity] = useState<NewsSeverity>('all');
   const [timeRange, setTimeRange] = useState<TimeRange>('24h');
   const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null);
+  const [selectedTicker, setSelectedTicker] = useState<string | null>(null);
 
   const { articles, isLoading, stats, refetch } = useNewsIntelligence({
     category,
@@ -55,8 +56,16 @@ export default function NewsIntelligence() {
     timeRange,
   });
 
+  // Filter articles by selected ticker
+  const filteredArticles = useMemo(() => {
+    if (!selectedTicker) return articles;
+    return articles.filter(a => 
+      a.related_markets?.includes(selectedTicker)
+    );
+  }, [articles, selectedTicker]);
+
   // Find breaking news (most recent critical article)
-  const breakingNews = articles.find(a => a.severity === 'critical');
+  const breakingNews = filteredArticles.find(a => a.severity === 'critical');
 
   return (
     <div className="p-6 space-y-4 bg-[#0a0a0f] min-h-screen">
@@ -106,20 +115,27 @@ export default function NewsIntelligence() {
         )}
         
         {/* Top Row Widgets */}
-        <div className="col-span-12 lg:col-span-6 h-44">
+        <div className="col-span-12 md:col-span-6 lg:col-span-4 h-44">
           <ActivityPulse articles={articles} />
         </div>
-        <div className="col-span-12 lg:col-span-6 h-44">
+        <div className="col-span-12 md:col-span-6 lg:col-span-4 h-44">
           <QuickStats stats={{
             ...stats,
             marketsAffected: articles.filter(a => a.related_markets && a.related_markets.length > 0).length
           }} />
         </div>
+        <div className="col-span-12 lg:col-span-4 h-44">
+          <TickerHeatmap 
+            articles={articles}
+            selectedTicker={selectedTicker}
+            onTickerClick={setSelectedTicker}
+          />
+        </div>
         
         {/* Main Content */}
         <div className="col-span-12 lg:col-span-7 h-[500px]">
           <NewsFeedList 
-            articles={articles} 
+            articles={filteredArticles} 
             selectedId={selectedArticle?.id || null}
             onSelect={setSelectedArticle}
             isLoading={isLoading}
