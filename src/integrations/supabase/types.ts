@@ -61,6 +61,59 @@ export type Database = {
           },
         ]
       }
+      ai_insights: {
+        Row: {
+          asset_focus: string | null
+          confidence: number | null
+          correlation_vector: string | null
+          created_at: string | null
+          id: string
+          impact_score: number | null
+          model_version: string | null
+          news_event_id: string
+          related_tickers: string[] | null
+          sentiment: Database["public"]["Enums"]["news_sentiment"] | null
+          thesis: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          asset_focus?: string | null
+          confidence?: number | null
+          correlation_vector?: string | null
+          created_at?: string | null
+          id?: string
+          impact_score?: number | null
+          model_version?: string | null
+          news_event_id: string
+          related_tickers?: string[] | null
+          sentiment?: Database["public"]["Enums"]["news_sentiment"] | null
+          thesis?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          asset_focus?: string | null
+          confidence?: number | null
+          correlation_vector?: string | null
+          created_at?: string | null
+          id?: string
+          impact_score?: number | null
+          model_version?: string | null
+          news_event_id?: string
+          related_tickers?: string[] | null
+          sentiment?: Database["public"]["Enums"]["news_sentiment"] | null
+          thesis?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_insights_news_event_id_fkey"
+            columns: ["news_event_id"]
+            isOneToOne: false
+            referencedRelation: "news_events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       alerts: {
         Row: {
           asset_id: string | null
@@ -1922,6 +1975,42 @@ export type Database = {
         }
         Relationships: []
       }
+      news_events: {
+        Row: {
+          created_at: string | null
+          id: string
+          published_at: string | null
+          raw_concepts: Json | null
+          source_id: string
+          summary: string | null
+          title: string
+          updated_at: string | null
+          url: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          published_at?: string | null
+          raw_concepts?: Json | null
+          source_id: string
+          summary?: string | null
+          title: string
+          updated_at?: string | null
+          url?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          published_at?: string | null
+          raw_concepts?: Json | null
+          source_id?: string
+          summary?: string | null
+          title?: string
+          updated_at?: string | null
+          url?: string | null
+        }
+        Relationships: []
+      }
       organization_invites: {
         Row: {
           created_at: string | null
@@ -2850,6 +2939,42 @@ export type Database = {
         }
         Relationships: []
       }
+      tickers_map: {
+        Row: {
+          asset_type: string | null
+          concept: string
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          sector: string | null
+          ticker: string
+          ticker_name: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          asset_type?: string | null
+          concept: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          sector?: string | null
+          ticker: string
+          ticker_name?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          asset_type?: string | null
+          concept?: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          sector?: string | null
+          ticker?: string
+          ticker_name?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       trade_idea_feedback: {
         Row: {
           action: string
@@ -3033,6 +3158,42 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      user_portfolios: {
+        Row: {
+          added_at: string | null
+          alert_threshold: number | null
+          id: string
+          is_watchlist: boolean | null
+          notes: string | null
+          ticker: string
+          ticker_name: string | null
+          user_id: string
+          weight: number | null
+        }
+        Insert: {
+          added_at?: string | null
+          alert_threshold?: number | null
+          id?: string
+          is_watchlist?: boolean | null
+          notes?: string | null
+          ticker: string
+          ticker_name?: string | null
+          user_id: string
+          weight?: number | null
+        }
+        Update: {
+          added_at?: string | null
+          alert_threshold?: number | null
+          id?: string
+          is_watchlist?: boolean | null
+          notes?: string | null
+          ticker?: string
+          ticker_name?: string | null
+          user_id?: string
+          weight?: number | null
+        }
+        Relationships: []
       }
       user_roles: {
         Row: {
@@ -3223,6 +3384,16 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      find_similar_insights: {
+        Args: { p_embedding: string; p_limit?: number; p_threshold?: number }
+        Returns: {
+          asset_focus: string
+          insight_id: string
+          news_event_id: string
+          similarity: number
+          thesis: string
+        }[]
+      }
       generate_invite_code: { Args: never; Returns: string }
       generate_slug: { Args: { name: string }; Returns: string }
       get_current_organization_id: { Args: never; Returns: string }
@@ -3233,6 +3404,20 @@ export type Database = {
           last_bar_date: string
           needs_refresh: boolean
           ticker: string
+        }[]
+      }
+      get_portfolio_news: {
+        Args: { p_limit?: number; p_user_id: string }
+        Returns: {
+          impact_score: number
+          matching_tickers: string[]
+          news_id: string
+          published_at: string
+          sentiment: Database["public"]["Enums"]["news_sentiment"]
+          summary: string
+          thesis: string
+          title: string
+          url: string
         }[]
       }
       get_portfolio_returns: {
@@ -3306,6 +3491,7 @@ export type Database = {
         | "team"
         | "other"
       document_status: "needs_review" | "approved" | "pending" | "rejected"
+      news_sentiment: "bullish" | "bearish" | "neutral"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -3445,6 +3631,7 @@ export const Constants = {
         "other",
       ],
       document_status: ["needs_review", "approved", "pending", "rejected"],
+      news_sentiment: ["bullish", "bearish", "neutral"],
     },
   },
 } as const
