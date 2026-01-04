@@ -1,7 +1,8 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
-export type NewsCategory = 'politics' | 'crypto' | 'economics' | 'sports' | 'tech' | 'science' | 'entertainment' | 'all';
+export type NewsCategory = 'politics' | 'crypto' | 'economics' | 'sports' | 'tech' | 'science' | 'entertainment' | 'finance' | 'prediction_markets' | 'all';
 export type NewsSeverity = 'critical' | 'high' | 'medium' | 'low' | 'all';
 export type TimeRange = '1h' | '24h' | '7d' | 'all';
 
@@ -21,7 +22,6 @@ export interface NewsArticle {
   ai_classification: Record<string, unknown> | null;
   ai_sentiment: Record<string, unknown> | null;
   ai_market_links: Record<string, unknown> | null;
-  // AI insights (if available)
   ai_insight?: {
     thesis: string | null;
     sentiment: string | null;
@@ -67,6 +67,8 @@ export function useNewsIntelligence(options: UseNewsIntelligenceOptions = {}) {
     searchQuery = '',
     timeRange = 'all',
   } = options;
+
+  const queryClient = useQueryClient();
 
   const {
     data,
@@ -140,9 +142,34 @@ export function useNewsIntelligence(options: UseNewsIntelligenceOptions = {}) {
 
       return enhancedArticles;
     },
-    refetchInterval: 60000, // Auto-refresh every 60 seconds
-    staleTime: 30000, // Consider data stale after 30 seconds
+    refetchInterval: 60000,
+    staleTime: 30000,
   });
+
+  // Mutation to fetch fresh news from RSS
+  const fetchNewsMutation = useMutation({
+    mutationFn: async (categories?: string[]) => {
+      const { data, error } = await supabase.functions.invoke('ingest-google-news-rss', {
+        body: categories ? { categories } : {}
+      });
+      
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (data) => {
+      toast.success(`Fetched ${data?.articles_inserted || 0} new articles`);
+      queryClient.invalidateQueries({ queryKey: ['news-intelligence'] });
+    },
+    onError: (error) => {
+      console.error('Failed to fetch news:', error);
+      toast.error('Failed to fetch news. Please try again.');
+    }
+  });
+
+  // Wrapper function with optional categories
+  const fetchNews = (categories?: string[]) => {
+    fetchNewsMutation.mutate(categories);
+  };
 
   // Calculate stats
   const stats: NewsStats = {
@@ -159,5 +186,7 @@ export function useNewsIntelligence(options: UseNewsIntelligenceOptions = {}) {
     error,
     refetch,
     stats,
+    fetchNews,
+    isFetchingNews: fetchNewsMutation.isPending,
   };
 }
