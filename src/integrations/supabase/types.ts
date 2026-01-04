@@ -1705,6 +1705,104 @@ export type Database = {
           },
         ]
       }
+      narrative_timeline: {
+        Row: {
+          cluster_id: string | null
+          created_at: string | null
+          development: string
+          event_date: string
+          id: string
+          related_article_id: string | null
+          sentiment_change: number | null
+          significance: string | null
+        }
+        Insert: {
+          cluster_id?: string | null
+          created_at?: string | null
+          development: string
+          event_date?: string
+          id?: string
+          related_article_id?: string | null
+          sentiment_change?: number | null
+          significance?: string | null
+        }
+        Update: {
+          cluster_id?: string | null
+          created_at?: string | null
+          development?: string
+          event_date?: string
+          id?: string
+          related_article_id?: string | null
+          sentiment_change?: number | null
+          significance?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "narrative_timeline_cluster_id_fkey"
+            columns: ["cluster_id"]
+            isOneToOne: false
+            referencedRelation: "news_clusters"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      news_clusters: {
+        Row: {
+          article_count: number | null
+          article_ids: string[] | null
+          cluster_date: string
+          created_at: string | null
+          first_detected: string | null
+          id: string
+          is_emerging: boolean | null
+          key_developments: Json | null
+          last_updated: string | null
+          main_entities: string[] | null
+          market_correlation: Json | null
+          momentum_score: number | null
+          narrative_summary: string | null
+          narrative_title: string
+          related_market_ids: string[] | null
+          sentiment_arc: string | null
+        }
+        Insert: {
+          article_count?: number | null
+          article_ids?: string[] | null
+          cluster_date?: string
+          created_at?: string | null
+          first_detected?: string | null
+          id?: string
+          is_emerging?: boolean | null
+          key_developments?: Json | null
+          last_updated?: string | null
+          main_entities?: string[] | null
+          market_correlation?: Json | null
+          momentum_score?: number | null
+          narrative_summary?: string | null
+          narrative_title: string
+          related_market_ids?: string[] | null
+          sentiment_arc?: string | null
+        }
+        Update: {
+          article_count?: number | null
+          article_ids?: string[] | null
+          cluster_date?: string
+          created_at?: string | null
+          first_detected?: string | null
+          id?: string
+          is_emerging?: boolean | null
+          key_developments?: Json | null
+          last_updated?: string | null
+          main_entities?: string[] | null
+          market_correlation?: Json | null
+          momentum_score?: number | null
+          narrative_summary?: string | null
+          narrative_title?: string
+          related_market_ids?: string[] | null
+          sentiment_arc?: string | null
+        }
+        Relationships: []
+      }
       organization_invites: {
         Row: {
           created_at: string | null
