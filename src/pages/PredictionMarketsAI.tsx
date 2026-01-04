@@ -4,25 +4,19 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { 
   Bell, 
   Newspaper, 
-  LineChart, 
   Search, 
   Brain,
   MessageSquare,
   Sparkles,
-  Database,
-  AlertTriangle,
   Zap
 } from "lucide-react";
 import { 
   AlertCenter, 
   DailyBriefing, 
-  StrategyBacktester, 
   NaturalLanguageSearch,
-  GlobalCommandSearch,
-  AnomalyScanner
+  GlobalCommandSearch
 } from "@/components/prediction-markets";
 import { AIBrainChat } from "@/components/prediction-markets/AIBrainChat";
-import { DataSyncPanel } from "@/components/prediction-markets/DataSyncPanel";
 import { AlphaDashboard } from "@/components/alpha-dashboard";
 
 export default function PredictionMarketsAI() {
@@ -30,12 +24,9 @@ export default function PredictionMarketsAI() {
 
   const tabs = [
     { id: "alpha", label: "Alpha Feed", icon: Zap, description: "AI-powered trade signals" },
-    { id: "anomalies", label: "Anomaly Scanner", icon: AlertTriangle, description: "Sentiment divergence detection" },
-    { id: "sync", label: "Data Sync", icon: Database, description: "Sync market data" },
     { id: "briefing", label: "Daily Briefing", icon: Newspaper, description: "AI-generated market summaries" },
     { id: "alerts", label: "Smart Alerts", icon: Bell, description: "AI-powered notifications" },
     { id: "search", label: "Market Search", icon: Search, description: "Natural language queries" },
-    { id: "backtest", label: "Strategy Tester", icon: LineChart, description: "Backtest trading strategies" },
     { id: "chat", label: "AI Assistant", icon: MessageSquare, description: "Chat with AI brain" },
   ];
 
@@ -84,8 +75,8 @@ export default function PredictionMarketsAI() {
         <Card className="bg-gradient-to-br from-blue-500/10 to-cyan-500/10 border-blue-500/20">
           <CardContent className="p-4">
             <div className="flex items-center gap-2">
-              <LineChart className="h-4 w-4 text-blue-400" />
-              <span className="text-sm text-muted-foreground">Strategies</span>
+              <Newspaper className="h-4 w-4 text-blue-400" />
+              <span className="text-sm text-muted-foreground">Briefings</span>
             </div>
             <p className="text-xl font-bold mt-1">—</p>
           </CardContent>
@@ -103,7 +94,7 @@ export default function PredictionMarketsAI() {
 
       {/* Main Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-8 h-auto p-1 bg-muted/50">
+        <TabsList className="grid w-full grid-cols-5 h-auto p-1 bg-muted/50">
           {tabs.map((tab) => (
             <TabsTrigger
               key={tab.id}
@@ -118,14 +109,6 @@ export default function PredictionMarketsAI() {
 
         <TabsContent value="alpha" className="mt-6">
           <AlphaDashboard />
-        </TabsContent>
-
-        <TabsContent value="anomalies" className="mt-6">
-          <AnomalyScanner />
-        </TabsContent>
-
-        <TabsContent value="sync" className="mt-6">
-          <DataSyncPanel />
         </TabsContent>
 
         <TabsContent value="briefing" className="mt-6">
@@ -151,10 +134,6 @@ export default function PredictionMarketsAI() {
               <NaturalLanguageSearch />
             </CardContent>
           </Card>
-        </TabsContent>
-
-        <TabsContent value="backtest" className="mt-6">
-          <StrategyBacktester />
         </TabsContent>
 
         <TabsContent value="chat" className="mt-6">
