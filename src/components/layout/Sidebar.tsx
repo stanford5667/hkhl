@@ -142,6 +142,12 @@ export function Sidebar() {
         href: "/portfolio-visualizer", 
         icon: PieChart 
       },
+      { 
+        label: "AI Markets", 
+        subtitle: "Prediction Markets AI",
+        href: "/prediction-ai", 
+        icon: Brain 
+      },
     );
 
     return items;
