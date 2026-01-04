@@ -465,7 +465,7 @@ export default function DiscoveryHub() {
                     ? "text-emerald-500" 
                     : "text-rose-500"
                 }`}>
-                  {selectedMarket?.price_change_24h !== null 
+                  {selectedMarket?.price_change_24h != null 
                     ? `${(selectedMarket.price_change_24h * 100).toFixed(1)}%`
                     : "—"
                   }
