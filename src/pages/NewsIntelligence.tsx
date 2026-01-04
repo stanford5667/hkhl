@@ -2,16 +2,13 @@ import { useState } from "react";
 import { 
   Zap, 
   RefreshCw, 
-  Filter, 
   AlertTriangle, 
   TrendingUp, 
   TrendingDown,
-  Activity,
   Newspaper,
   Clock,
   ExternalLink,
   Sparkles,
-  BarChart3,
   Target
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -28,6 +25,8 @@ import {
 import { cn } from "@/lib/utils";
 import { useNewsIntelligence, NewsArticle, NewsCategory, NewsSeverity, TimeRange } from "@/hooks/useNewsIntelligence";
 import { formatDistanceToNow } from "date-fns";
+import { QuickStats } from "@/components/news/QuickStats";
+import { ActivityPulse } from "@/components/news/ActivityPulse";
 
 // Breaking News Hero Component
 function BreakingNewsHero({ article }: { article: NewsArticle }) {
@@ -59,95 +58,6 @@ function BreakingNewsHero({ article }: { article: NewsArticle }) {
   );
 }
 
-// Activity Pulse Component
-function ActivityPulse({ articles }: { articles: NewsArticle[] }) {
-  // Group articles by hour for the last 24 hours
-  const hourlyActivity = Array.from({ length: 24 }, (_, i) => {
-    const hourAgo = new Date(Date.now() - i * 60 * 60 * 1000);
-    const hourBefore = new Date(Date.now() - (i + 1) * 60 * 60 * 1000);
-    return articles.filter(a => {
-      const detected = new Date(a.detected_at);
-      return detected >= hourBefore && detected < hourAgo;
-    }).length;
-  }).reverse();
-
-  const maxActivity = Math.max(...hourlyActivity, 1);
-
-  return (
-    <Card className="h-full bg-slate-900/80 border-slate-800 backdrop-blur-sm">
-      <CardHeader className="pb-2">
-        <CardTitle className="text-sm font-medium text-slate-400 flex items-center gap-2">
-          <Activity className="h-4 w-4 text-emerald-400" />
-          Activity Pulse (24h)
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="pb-4">
-        <div className="flex items-end gap-1 h-20">
-          {hourlyActivity.map((count, i) => (
-            <div
-              key={i}
-              className="flex-1 bg-emerald-500/20 rounded-t transition-all hover:bg-emerald-500/40"
-              style={{ 
-                height: `${Math.max((count / maxActivity) * 100, 4)}%`,
-                opacity: 0.3 + (i / 24) * 0.7
-              }}
-              title={`${count} events`}
-            />
-          ))}
-        </div>
-        <div className="flex justify-between mt-2 text-xs text-slate-500">
-          <span>24h ago</span>
-          <span>Now</span>
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
-// Quick Stats Component
-function QuickStats({ stats, articles }: { stats: { total: number; critical: number; avgSentiment: number }; articles: NewsArticle[] }) {
-  const positiveCount = articles.filter(a => (a.sentiment_score || 0) > 0.2).length;
-  const negativeCount = articles.filter(a => (a.sentiment_score || 0) < -0.2).length;
-
-  return (
-    <Card className="h-full bg-slate-900/80 border-slate-800 backdrop-blur-sm">
-      <CardHeader className="pb-2">
-        <CardTitle className="text-sm font-medium text-slate-400 flex items-center gap-2">
-          <BarChart3 className="h-4 w-4 text-blue-400" />
-          Quick Stats
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="pb-4">
-        <div className="grid grid-cols-3 gap-3">
-          <div className="text-center p-2 rounded-lg bg-slate-800/50">
-            <div className="text-2xl font-bold text-white">{stats.total}</div>
-            <div className="text-xs text-slate-500">Total Events</div>
-          </div>
-          <div className="text-center p-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
-            <div className="text-2xl font-bold text-emerald-400 flex items-center justify-center gap-1">
-              <TrendingUp className="h-4 w-4" />
-              {positiveCount}
-            </div>
-            <div className="text-xs text-slate-500">Positive</div>
-          </div>
-          <div className="text-center p-2 rounded-lg bg-rose-500/10 border border-rose-500/20">
-            <div className="text-2xl font-bold text-rose-400 flex items-center justify-center gap-1">
-              <TrendingDown className="h-4 w-4" />
-              {negativeCount}
-            </div>
-            <div className="text-xs text-slate-500">Negative</div>
-          </div>
-        </div>
-        {stats.critical > 0 && (
-          <div className="mt-3 p-2 rounded-lg bg-rose-500/10 border border-rose-500/20 flex items-center gap-2">
-            <AlertTriangle className="h-4 w-4 text-rose-400" />
-            <span className="text-sm text-rose-300">{stats.critical} critical alerts</span>
-          </div>
-        )}
-      </CardContent>
-    </Card>
-  );
-}
 
 // News Feed List Component
 function NewsFeedList({ 
@@ -441,7 +351,6 @@ export default function NewsIntelligence() {
           {/* Category Filter */}
           <Select value={category} onValueChange={(v) => setCategory(v as NewsCategory)}>
             <SelectTrigger className="w-32 bg-slate-900 border-slate-800 text-slate-300 h-9">
-              <Filter className="h-4 w-4 mr-2" />
               <SelectValue />
             </SelectTrigger>
             <SelectContent className="bg-slate-900 border-slate-800">
@@ -496,7 +405,10 @@ export default function NewsIntelligence() {
           <ActivityPulse articles={articles} />
         </div>
         <div className="col-span-12 lg:col-span-6 h-44">
-          <QuickStats stats={stats} articles={articles} />
+          <QuickStats stats={{
+            ...stats,
+            marketsAffected: articles.filter(a => a.related_markets && a.related_markets.length > 0).length
+          }} />
         </div>
         
         {/* Main Content */}
