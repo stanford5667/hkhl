@@ -50,6 +50,7 @@ import {
   SlidersHorizontal,
   Eye,
   EyeOff,
+  Newspaper,
 } from "lucide-react";
 
 interface NavItem {
@@ -98,6 +99,12 @@ export function Sidebar() {
         subtitle: "Overview",
         href: "/", 
         icon: LayoutDashboard 
+      },
+      { 
+        label: "News", 
+        subtitle: "Intelligence Feed",
+        href: "/news", 
+        icon: Newspaper 
       },
     ];
 
