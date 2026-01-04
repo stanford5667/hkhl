@@ -2156,17 +2156,21 @@ export type Database = {
           created_at: string
           description: string | null
           id: string
+          image_url: string | null
           is_binary: boolean
+          liquidity: number | null
           metadata: Json | null
           platform: string
           platform_market_id: string
           resolution_date: string | null
           resolution_source: string | null
           resolved_at: string | null
+          source_url: string | null
           status: string
           subcategory: string | null
           tags: string[] | null
           title: string
+          total_volume: number | null
           updated_at: string
         }
         Insert: {
@@ -2174,17 +2178,21 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
+          image_url?: string | null
           is_binary?: boolean
+          liquidity?: number | null
           metadata?: Json | null
           platform: string
           platform_market_id: string
           resolution_date?: string | null
           resolution_source?: string | null
           resolved_at?: string | null
+          source_url?: string | null
           status?: string
           subcategory?: string | null
           tags?: string[] | null
           title: string
+          total_volume?: number | null
           updated_at?: string
         }
         Update: {
@@ -2192,17 +2200,21 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
+          image_url?: string | null
           is_binary?: boolean
+          liquidity?: number | null
           metadata?: Json | null
           platform?: string
           platform_market_id?: string
           resolution_date?: string | null
           resolution_source?: string | null
           resolved_at?: string | null
+          source_url?: string | null
           status?: string
           subcategory?: string | null
           tags?: string[] | null
           title?: string
+          total_volume?: number | null
           updated_at?: string
         }
         Relationships: []
