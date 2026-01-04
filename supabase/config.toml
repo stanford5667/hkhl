@@ -110,3 +110,6 @@ verify_jwt = false
 
 [functions.ai-daily-briefing]
 verify_jwt = false
+
+[functions.ai-strategy-backtest]
+verify_jwt = false
