@@ -1577,6 +1577,54 @@ export type Database = {
         }
         Relationships: []
       }
+      market_drivers: {
+        Row: {
+          ai_reasoning: string | null
+          confidence: number | null
+          created_at: string
+          direction: string
+          id: string
+          impact_score: number
+          market_id: string
+          signal_id: string
+        }
+        Insert: {
+          ai_reasoning?: string | null
+          confidence?: number | null
+          created_at?: string
+          direction: string
+          id?: string
+          impact_score: number
+          market_id: string
+          signal_id: string
+        }
+        Update: {
+          ai_reasoning?: string | null
+          confidence?: number | null
+          created_at?: string
+          direction?: string
+          id?: string
+          impact_score?: number
+          market_id?: string
+          signal_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "market_drivers_market_id_fkey"
+            columns: ["market_id"]
+            isOneToOne: false
+            referencedRelation: "prediction_markets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "market_drivers_signal_id_fkey"
+            columns: ["signal_id"]
+            isOneToOne: false
+            referencedRelation: "raw_signals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       market_outcomes: {
         Row: {
           current_price: number | null
@@ -2158,6 +2206,7 @@ export type Database = {
           id: string
           image_url: string | null
           is_binary: boolean
+          last_ai_analyzed_at: string | null
           liquidity: number | null
           metadata: Json | null
           platform: string
@@ -2180,6 +2229,7 @@ export type Database = {
           id?: string
           image_url?: string | null
           is_binary?: boolean
+          last_ai_analyzed_at?: string | null
           liquidity?: number | null
           metadata?: Json | null
           platform: string
@@ -2202,6 +2252,7 @@ export type Database = {
           id?: string
           image_url?: string | null
           is_binary?: boolean
+          last_ai_analyzed_at?: string | null
           liquidity?: number | null
           metadata?: Json | null
           platform?: string
@@ -2277,6 +2328,42 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      raw_signals: {
+        Row: {
+          content: string
+          created_at: string
+          embedding: string | null
+          id: string
+          metadata: Json | null
+          published_at: string | null
+          source_type: string | null
+          source_url: string | null
+          updated_at: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          embedding?: string | null
+          id?: string
+          metadata?: Json | null
+          published_at?: string | null
+          source_type?: string | null
+          source_url?: string | null
+          updated_at?: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          embedding?: string | null
+          id?: string
+          metadata?: Json | null
+          published_at?: string | null
+          source_type?: string | null
+          source_url?: string | null
+          updated_at?: string
+        }
+        Relationships: []
       }
       real_world_events: {
         Row: {
@@ -2768,6 +2855,7 @@ export type Database = {
           counter_arguments: Json | null
           created_at: string | null
           direction: string
+          divergence_score: number | null
           entry_price: number | null
           expected_value: number | null
           generated_at: string | null
@@ -2800,6 +2888,7 @@ export type Database = {
           counter_arguments?: Json | null
           created_at?: string | null
           direction: string
+          divergence_score?: number | null
           entry_price?: number | null
           expected_value?: number | null
           generated_at?: string | null
@@ -2832,6 +2921,7 @@ export type Database = {
           counter_arguments?: Json | null
           created_at?: string | null
           direction?: string
+          divergence_score?: number | null
           entry_price?: number | null
           expected_value?: number | null
           generated_at?: string | null
