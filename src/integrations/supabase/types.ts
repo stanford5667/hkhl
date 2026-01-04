@@ -1258,6 +1258,77 @@ export type Database = {
           },
         ]
       }
+      generated_alerts: {
+        Row: {
+          actioned_at: string | null
+          ai_analysis: Json | null
+          alert_type: string
+          confidence: number | null
+          created_at: string | null
+          dismissed_at: string | null
+          headline: string
+          id: string
+          read_at: string | null
+          related_market_id: string | null
+          related_news_ids: string[] | null
+          related_whale_txs: string[] | null
+          status: string | null
+          suggested_actions: Json | null
+          summary: string | null
+          urgency: string | null
+          user_id: string
+          why_it_matters: string | null
+        }
+        Insert: {
+          actioned_at?: string | null
+          ai_analysis?: Json | null
+          alert_type: string
+          confidence?: number | null
+          created_at?: string | null
+          dismissed_at?: string | null
+          headline: string
+          id?: string
+          read_at?: string | null
+          related_market_id?: string | null
+          related_news_ids?: string[] | null
+          related_whale_txs?: string[] | null
+          status?: string | null
+          suggested_actions?: Json | null
+          summary?: string | null
+          urgency?: string | null
+          user_id: string
+          why_it_matters?: string | null
+        }
+        Update: {
+          actioned_at?: string | null
+          ai_analysis?: Json | null
+          alert_type?: string
+          confidence?: number | null
+          created_at?: string | null
+          dismissed_at?: string | null
+          headline?: string
+          id?: string
+          read_at?: string | null
+          related_market_id?: string | null
+          related_news_ids?: string[] | null
+          related_whale_txs?: string[] | null
+          status?: string | null
+          suggested_actions?: Json | null
+          summary?: string | null
+          urgency?: string | null
+          user_id?: string
+          why_it_matters?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "generated_alerts_related_market_id_fkey"
+            columns: ["related_market_id"]
+            isOneToOne: false
+            referencedRelation: "prediction_markets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       historical_outcomes: {
         Row: {
           final_pre_resolution_probability: number | null
