@@ -116,3 +116,24 @@ verify_jwt = false
 
 [functions.ai-brain]
 verify_jwt = false
+
+[functions.ai-news-engine]
+verify_jwt = false
+
+[functions.ai-news-clusters]
+verify_jwt = false
+
+[functions.sync-polymarket]
+verify_jwt = false
+
+[functions.sync-kalshi]
+verify_jwt = false
+
+[functions.scan-arbitrage]
+verify_jwt = false
+
+[functions.track-whales]
+verify_jwt = false
+
+[functions.ingest-google-news-rss]
+verify_jwt = false

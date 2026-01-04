@@ -14,3 +14,4 @@ export { AlertCenter } from './AlertCenter';
 export { DailyBriefing } from './DailyBriefing';
 export { StrategyBacktester } from './StrategyBacktester';
 export { AIBrainChat } from './AIBrainChat';
+export { DataSyncPanel } from './DataSyncPanel';
