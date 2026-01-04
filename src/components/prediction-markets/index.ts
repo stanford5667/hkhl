@@ -9,3 +9,4 @@ export { TradeIdeaCard } from './TradeIdeaCard';
 export { FullAnalysisModal } from './FullAnalysisModal';
 export { CalculateSizeModal } from './CalculateSizeModal';
 export { MarketChatAssistant } from './MarketChatAssistant';
+export { NaturalLanguageSearch } from './NaturalLanguageSearch';
