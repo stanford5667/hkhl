@@ -4,3 +4,4 @@ export { NewsFeedList } from './NewsFeedList';
 export { AnalysisPanel } from './AnalysisPanel';
 export { NewsFilters } from './NewsFilters';
 export { TickerHeatmap } from './TickerHeatmap';
+export { BreakingNewsHero } from './BreakingNewsHero';
