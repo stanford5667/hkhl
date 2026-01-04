@@ -448,6 +448,67 @@ export default function PortfolioVisualizer() {
     return diffDays > 1;
   }, [calcDataInfo]);
 
+  // Convert calcMetrics to AdvancedRiskMetrics format for EducationalDashboard and AdvancedMetricsDashboard
+  // This ensures all tabs use the same data source
+  const unifiedAdvancedMetrics: AdvancedRiskMetrics | null = useMemo(() => {
+    if (!calcMetrics) return advancedMetrics; // Fallback to legacy metrics if calcMetrics not available
+    
+    return {
+      // Core Returns
+      totalReturn: calcMetrics.totalReturn ?? 0,
+      cagr: calcMetrics.cagr ?? 0,
+      annualizedReturn: calcMetrics.annualizedReturn ?? calcMetrics.cagr ?? 0,
+      bestYear: advancedMetrics?.bestYear ?? 0,
+      worstYear: advancedMetrics?.worstYear ?? 0,
+      bestMonth: advancedMetrics?.bestMonth ?? 0,
+      worstMonth: advancedMetrics?.worstMonth ?? 0,
+      positiveMonths: advancedMetrics?.positiveMonths ?? 50,
+      avgMonthlyReturn: advancedMetrics?.avgMonthlyReturn ?? 0,
+      monthlyVolatility: advancedMetrics?.monthlyVolatility ?? 0,
+      
+      // Benchmark comparison
+      alpha: calcMetrics.alpha ?? 0,
+      beta: calcMetrics.beta ?? 1,
+      rSquared: advancedMetrics?.rSquared ?? 0,
+      trackingError: advancedMetrics?.trackingError ?? 0,
+      upCapture: advancedMetrics?.upCapture ?? 100,
+      downCapture: advancedMetrics?.downCapture ?? 100,
+      
+      // Value at Risk metrics
+      var95: calcMetrics.var95 ?? 0,
+      var99: calcMetrics.var99 ?? 0,
+      cvar95: calcMetrics.cvar95 ?? 0,
+      cvar99: calcMetrics.cvar99 ?? 0,
+      
+      // Risk-adjusted returns
+      sharpeRatio: calcMetrics.sharpeRatio ?? 0,
+      sortinoRatio: calcMetrics.sortinoRatio ?? 0,
+      calmarRatio: calcMetrics.calmarRatio ?? 0,
+      treynorRatio: advancedMetrics?.treynorRatio ?? 0,
+      informationRatio: calcMetrics.informationRatio ?? 0,
+      omega: calcMetrics.omegaRatio ?? 1,
+      
+      // Tail risk
+      tailRatio: calcMetrics.tailRatio ?? 1,
+      skewness: calcMetrics.skewness ?? 0,
+      kurtosis: calcMetrics.kurtosis ?? 3,
+      
+      // Drawdown metrics
+      maxDrawdown: calcMetrics.maxDrawdown ?? 0,
+      avgDrawdown: advancedMetrics?.avgDrawdown ?? 0,
+      ulcerIndex: calcMetrics.ulcerIndex ?? 0,
+      
+      // Liquidity
+      liquidityScore: calcMetrics.liquidityScore ?? 50,
+      daysToLiquidate: calcMetrics.daysToLiquidate ?? 1,
+    };
+  }, [calcMetrics, advancedMetrics]);
+  
+  // Use volatility from calcMetrics if available
+  const unifiedPortfolioVolatility = useMemo(() => {
+    return calcMetrics?.volatility ?? portfolioVolatility;
+  }, [calcMetrics, portfolioVolatility]);
+
   // Compute data source status
   const dataSourceStatus = useMemo(() => {
     if (!validationData) return 'live';
@@ -1437,13 +1498,13 @@ export default function PortfolioVisualizer() {
           {visibleTabs['educational'] && (
             <TabsContent value="educational">
               <ErrorBoundary variant="default">
-                {isAnalyzing ? (
+                {isAnalyzing || isCalcLoading ? (
                   <AdvancedMetricsDashboardSkeleton />
-                ) : advancedMetrics ? (
+                ) : unifiedAdvancedMetrics ? (
                   <EducationalDashboard
-                    metrics={advancedMetrics}
+                    metrics={unifiedAdvancedMetrics}
                     investableCapital={investorProfile.investableCapital}
-                    portfolioVolatility={portfolioVolatility}
+                    portfolioVolatility={unifiedPortfolioVolatility}
                     stressTestResults={stressTestResults}
                     tickerDetails={tickerDetails}
                     allocations={allocations.map(a => ({
@@ -1656,10 +1717,10 @@ export default function PortfolioVisualizer() {
           {visibleTabs['metrics'] && (
             <TabsContent value="metrics">
               <ErrorBoundary variant="calculation">
-                {isAnalyzing ? (
+                {isAnalyzing || isCalcLoading ? (
                   <AdvancedMetricsDashboardSkeleton />
-                ) : advancedMetrics ? (
-                  <AdvancedMetricsDashboard metrics={advancedMetrics} />
+                ) : unifiedAdvancedMetrics ? (
+                  <AdvancedMetricsDashboard metrics={unifiedAdvancedMetrics} />
                 ) : (
                   <Card>
                     <CardContent className="py-12 text-center text-muted-foreground">
