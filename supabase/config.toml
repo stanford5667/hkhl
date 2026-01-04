@@ -137,3 +137,6 @@ verify_jwt = false
 
 [functions.ingest-google-news-rss]
 verify_jwt = false
+
+[functions.analyze-market-movement]
+verify_jwt = false
