@@ -146,18 +146,25 @@ export function useNewsIntelligence(options: UseNewsIntelligenceOptions = {}) {
     staleTime: 30000,
   });
 
-  // Mutation to fetch fresh news from RSS
+  // Mutation to fetch fresh news from NewsAPI.ai
   const fetchNewsMutation = useMutation({
     mutationFn: async (categories?: string[]) => {
-      const { data, error } = await supabase.functions.invoke('ingest-google-news-rss', {
-        body: categories ? { categories } : {}
+      const { data, error } = await supabase.functions.invoke('fetch-newsapi-ai', {
+        body: { 
+          categories: categories || ['business', 'politics', 'technology', 'science'],
+          limit: 50
+        }
       });
       
       if (error) throw error;
       return data;
     },
     onSuccess: (data) => {
-      toast.success(`Fetched ${data?.articles_inserted || 0} new articles`);
+      if (data?.success) {
+        toast.success(`Fetched ${data.articles_inserted} new articles from NewsAPI.ai`);
+      } else {
+        toast.error(data?.error || 'Failed to fetch news');
+      }
       queryClient.invalidateQueries({ queryKey: ['news-intelligence'] });
     },
     onError: (error) => {
