@@ -2203,6 +2203,7 @@ export type Database = {
           category: string
           created_at: string
           description: string | null
+          embedding: string | null
           id: string
           image_url: string | null
           is_binary: boolean
@@ -2226,6 +2227,7 @@ export type Database = {
           category: string
           created_at?: string
           description?: string | null
+          embedding?: string | null
           id?: string
           image_url?: string | null
           is_binary?: boolean
@@ -2249,6 +2251,7 @@ export type Database = {
           category?: string
           created_at?: string
           description?: string | null
+          embedding?: string | null
           id?: string
           image_url?: string | null
           is_binary?: boolean
@@ -3224,6 +3227,36 @@ export type Database = {
       }
       is_org_admin: { Args: { org_id: string }; Returns: boolean }
       is_org_member: { Args: { org_id: string }; Returns: boolean }
+      search_markets_semantic: {
+        Args: {
+          match_count?: number
+          match_threshold?: number
+          query_embedding: string
+        }
+        Returns: {
+          category: string
+          id: string
+          platform: string
+          similarity: number
+          title: string
+          total_volume: number
+        }[]
+      }
+      search_signals_semantic: {
+        Args: {
+          match_count?: number
+          match_threshold?: number
+          query_embedding: string
+        }
+        Returns: {
+          content: string
+          id: string
+          published_at: string
+          similarity: number
+          source_type: string
+          source_url: string
+        }[]
+      }
     }
     Enums: {
       app_role: "admin" | "member" | "viewer"
