@@ -39,6 +39,7 @@ import {
   Activity,
   Brain,
   PieChart,
+  Compass,
 } from "lucide-react";
 
 interface NavItem {
@@ -147,6 +148,12 @@ export function Sidebar() {
         subtitle: "Prediction Markets AI",
         href: "/prediction-ai", 
         icon: Brain 
+      },
+      { 
+        label: "Discovery", 
+        subtitle: "Market Terminal",
+        href: "/discovery", 
+        icon: Compass 
       },
     );
 
