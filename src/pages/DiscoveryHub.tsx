@@ -1,12 +1,14 @@
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Table,
   TableBody,
@@ -37,9 +39,15 @@ import {
   AlertTriangle,
   Filter,
   ExternalLink,
-  Newspaper
+  Newspaper,
+  Zap,
+  Brain,
+  Bell,
+  LineChart,
+  ArrowRight
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
+import { AlphaDashboard } from "@/components/alpha-dashboard";
 
 // Platform icons mapping
 const PlatformIcon = ({ platform }: { platform: string }) => {
@@ -75,6 +83,8 @@ interface RawSignal {
 }
 
 export default function DiscoveryHub() {
+  const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState("markets");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedMarket, setSelectedMarket] = useState<MarketWithDetails | null>(null);
   const [filters, setFilters] = useState({
@@ -242,199 +252,290 @@ export default function DiscoveryHub() {
           <div>
             <h1 className="text-2xl font-bold">Market Discovery</h1>
             <p className="text-muted-foreground">
-              High-density terminal view • {filteredMarkets.length} active markets
+              AI-powered market intelligence & discovery hub
             </p>
           </div>
         </div>
+        
+        <Button 
+          onClick={() => navigate('/prediction-ai')}
+          className="bg-gradient-to-r from-violet-500 to-purple-600 hover:from-violet-600 hover:to-purple-700"
+        >
+          <Brain className="h-4 w-4 mr-2" />
+          Full AI Suite
+          <ArrowRight className="h-4 w-4 ml-2" />
+        </Button>
       </div>
 
-      {/* Filters */}
-      <Card>
-        <CardContent className="p-4">
-          <div className="flex flex-wrap items-center gap-4">
-            <div className="relative flex-1 min-w-[200px] max-w-md">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search markets..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9"
-              />
-            </div>
-            
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2">
-                <Checkbox
-                  id="highVolume"
-                  checked={filters.highVolume}
-                  onCheckedChange={(checked) => 
-                    setFilters(f => ({ ...f, highVolume: checked === true }))
-                  }
-                />
-                <label htmlFor="highVolume" className="text-sm cursor-pointer">
-                  Volume &gt; $10K
-                </label>
-              </div>
-              
-              <div className="flex items-center gap-2">
-                <Checkbox
-                  id="whaleActivity"
-                  checked={filters.whaleActivity}
-                  onCheckedChange={(checked) => 
-                    setFilters(f => ({ ...f, whaleActivity: checked === true }))
-                  }
-                />
-                <label htmlFor="whaleActivity" className="text-sm cursor-pointer flex items-center gap-1">
-                  <Fish className="h-3 w-3" /> Whale Activity
-                </label>
-              </div>
-              
-              <div className="flex items-center gap-2">
-                <Checkbox
-                  id="highDivergence"
-                  checked={filters.highDivergence}
-                  onCheckedChange={(checked) => 
-                    setFilters(f => ({ ...f, highDivergence: checked === true }))
-                  }
-                />
-                <label htmlFor="highDivergence" className="text-sm cursor-pointer flex items-center gap-1">
-                  <AlertTriangle className="h-3 w-3" /> High Divergence
-                </label>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Main Tabs */}
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+        <TabsList className="grid w-full grid-cols-4 h-auto p-1 bg-muted/50">
+          <TabsTrigger value="markets" className="flex items-center gap-2 py-3 data-[state=active]:bg-background">
+            <Compass className="h-4 w-4" />
+            <span className="text-sm font-medium">Markets</span>
+          </TabsTrigger>
+          <TabsTrigger value="alpha" className="flex items-center gap-2 py-3 data-[state=active]:bg-background">
+            <Zap className="h-4 w-4" />
+            <span className="text-sm font-medium">Alpha Feed</span>
+          </TabsTrigger>
+          <TabsTrigger value="alerts" className="flex items-center gap-2 py-3 data-[state=active]:bg-background">
+            <Bell className="h-4 w-4" />
+            <span className="text-sm font-medium">Smart Alerts</span>
+          </TabsTrigger>
+          <TabsTrigger value="backtest" className="flex items-center gap-2 py-3 data-[state=active]:bg-background">
+            <LineChart className="h-4 w-4" />
+            <span className="text-sm font-medium">Strategy Tester</span>
+          </TabsTrigger>
+        </TabsList>
 
-      {/* Data Grid */}
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-lg flex items-center gap-2">
-            <Filter className="h-4 w-4" />
-            Active Markets
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="p-0">
-          {marketsLoading ? (
-            <div className="p-4 space-y-3">
-              {Array.from({ length: 10 }).map((_, i) => (
-                <Skeleton key={i} className="h-12 w-full" />
-              ))}
-            </div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow className="hover:bg-transparent">
-                  <TableHead className="w-[400px]">Market</TableHead>
-                  <TableHead className="text-right">Price</TableHead>
-                  <TableHead className="text-right">24h Change</TableHead>
-                  <TableHead className="text-right">Volume</TableHead>
-                  <TableHead className="text-center">Signals</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredMarkets.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
-                      No markets match your filters
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  filteredMarkets.map((market) => (
-                    <TableRow 
-                      key={market.id}
-                      className="cursor-pointer"
-                      onClick={() => setSelectedMarket(market)}
-                    >
-                      <TableCell>
-                        <div className="flex items-center gap-3">
-                          <PlatformIcon platform={market.platform} />
-                          <div className="min-w-0">
-                            <p className="font-medium truncate max-w-[350px]">
-                              {market.title}
-                            </p>
-                            <p className="text-xs text-muted-foreground">
-                              {market.category}
-                            </p>
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-right font-mono">
-                        {formatPrice(market.current_price)}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        {market.price_change_24h !== null ? (
-                          <span className={`flex items-center justify-end gap-1 font-mono ${
-                            market.price_change_24h >= 0 
-                              ? "text-emerald-500" 
-                              : "text-rose-500"
-                          }`}>
-                            {market.price_change_24h >= 0 ? (
-                              <TrendingUp className="h-3 w-3" />
-                            ) : (
-                              <TrendingDown className="h-3 w-3" />
-                            )}
-                            {market.price_change_24h >= 0 ? "+" : ""}
-                            {(market.price_change_24h * 100).toFixed(1)}%
-                          </span>
-                        ) : (
-                          <span className="text-muted-foreground">—</span>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-right font-mono text-muted-foreground">
-                        {formatVolume(market.total_volume)}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center justify-center gap-2">
-                          {market.has_whale_activity && (
-                            <Tooltip>
-                              <TooltipTrigger>
-                                <Badge variant="secondary" className="bg-blue-500/10 text-blue-500 border-blue-500/20">
-                                  <Fish className="h-3 w-3" />
-                                </Badge>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                Smart money activity in last 12h
-                              </TooltipContent>
-                            </Tooltip>
-                          )}
-                          
-                          {market.divergence_score && market.divergence_score > 0.15 && (
-                            <Tooltip>
-                              <TooltipTrigger>
-                                <Badge variant="secondary" className="bg-amber-500/10 text-amber-500 border-amber-500/20">
-                                  <AlertTriangle className="h-3 w-3" />
-                                </Badge>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                High divergence: {(market.divergence_score * 100).toFixed(0)}%
-                              </TooltipContent>
-                            </Tooltip>
-                          )}
-                          
-                          {market.has_ai_driver && (
-                            <Tooltip>
-                              <TooltipTrigger>
-                                <Badge variant="secondary" className="bg-violet-500/10 text-violet-500 border-violet-500/20">
-                                  <Info className="h-3 w-3" />
-                                </Badge>
-                              </TooltipTrigger>
-                              <TooltipContent className="max-w-sm">
-                                <p className="font-medium mb-1">AI Explanation</p>
-                                <p className="text-xs">{market.ai_reasoning || "Analysis available"}</p>
-                              </TooltipContent>
-                            </Tooltip>
-                          )}
-                        </div>
-                      </TableCell>
+        <TabsContent value="markets" className="space-y-6">
+          {/* Filters */}
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex flex-wrap items-center gap-4">
+                <div className="relative flex-1 min-w-[200px] max-w-md">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search markets..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-9"
+                  />
+                </div>
+                
+                <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-2">
+                    <Checkbox
+                      id="highVolume"
+                      checked={filters.highVolume}
+                      onCheckedChange={(checked) => 
+                        setFilters(f => ({ ...f, highVolume: checked === true }))
+                      }
+                    />
+                    <label htmlFor="highVolume" className="text-sm cursor-pointer">
+                      Volume &gt; $10K
+                    </label>
+                  </div>
+                  
+                  <div className="flex items-center gap-2">
+                    <Checkbox
+                      id="whaleActivity"
+                      checked={filters.whaleActivity}
+                      onCheckedChange={(checked) => 
+                        setFilters(f => ({ ...f, whaleActivity: checked === true }))
+                      }
+                    />
+                    <label htmlFor="whaleActivity" className="text-sm cursor-pointer flex items-center gap-1">
+                      <Fish className="h-3 w-3" /> Whale Activity
+                    </label>
+                  </div>
+                  
+                  <div className="flex items-center gap-2">
+                    <Checkbox
+                      id="highDivergence"
+                      checked={filters.highDivergence}
+                      onCheckedChange={(checked) => 
+                        setFilters(f => ({ ...f, highDivergence: checked === true }))
+                      }
+                    />
+                    <label htmlFor="highDivergence" className="text-sm cursor-pointer flex items-center gap-1">
+                      <AlertTriangle className="h-3 w-3" /> High Divergence
+                    </label>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          
+          <p className="text-sm text-muted-foreground">
+            {filteredMarkets.length} active markets
+          </p>
+
+          {/* Data Grid */}
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Filter className="h-4 w-4" />
+                Active Markets
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-0">
+              {marketsLoading ? (
+                <div className="p-4 space-y-3">
+                  {Array.from({ length: 10 }).map((_, i) => (
+                    <Skeleton key={i} className="h-12 w-full" />
+                  ))}
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow className="hover:bg-transparent">
+                      <TableHead className="w-[400px]">Market</TableHead>
+                      <TableHead className="text-right">Price</TableHead>
+                      <TableHead className="text-right">24h Change</TableHead>
+                      <TableHead className="text-right">Volume</TableHead>
+                      <TableHead className="text-center">Signals</TableHead>
                     </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredMarkets.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                          No markets match your filters
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      filteredMarkets.map((market) => (
+                        <TableRow 
+                          key={market.id}
+                          className="cursor-pointer"
+                          onClick={() => setSelectedMarket(market)}
+                        >
+                          <TableCell>
+                            <div className="flex items-center gap-3">
+                              <PlatformIcon platform={market.platform} />
+                              <div className="min-w-0">
+                                <p className="font-medium truncate max-w-[350px]">
+                                  {market.title}
+                                </p>
+                                <p className="text-xs text-muted-foreground">
+                                  {market.category}
+                                </p>
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-right font-mono">
+                            {formatPrice(market.current_price)}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            {market.price_change_24h !== null ? (
+                              <span className={`flex items-center justify-end gap-1 font-mono ${
+                                market.price_change_24h >= 0 
+                                  ? "text-emerald-500" 
+                                  : "text-rose-500"
+                              }`}>
+                                {market.price_change_24h >= 0 ? (
+                                  <TrendingUp className="h-3 w-3" />
+                                ) : (
+                                  <TrendingDown className="h-3 w-3" />
+                                )}
+                                {market.price_change_24h >= 0 ? "+" : ""}
+                                {(market.price_change_24h * 100).toFixed(1)}%
+                              </span>
+                            ) : (
+                              <span className="text-muted-foreground">—</span>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-right font-mono text-muted-foreground">
+                            {formatVolume(market.total_volume)}
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center justify-center gap-2">
+                              {market.has_whale_activity && (
+                                <Tooltip>
+                                  <TooltipTrigger>
+                                    <Badge variant="secondary" className="bg-blue-500/10 text-blue-500 border-blue-500/20">
+                                      <Fish className="h-3 w-3" />
+                                    </Badge>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    Smart money activity in last 12h
+                                  </TooltipContent>
+                                </Tooltip>
+                              )}
+                              
+                              {market.divergence_score && market.divergence_score > 0.15 && (
+                                <Tooltip>
+                                  <TooltipTrigger>
+                                    <Badge variant="secondary" className="bg-amber-500/10 text-amber-500 border-amber-500/20">
+                                      <AlertTriangle className="h-3 w-3" />
+                                    </Badge>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    High divergence: {(market.divergence_score * 100).toFixed(0)}%
+                                  </TooltipContent>
+                                </Tooltip>
+                              )}
+                              
+                              {market.has_ai_driver && (
+                                <Tooltip>
+                                  <TooltipTrigger>
+                                    <Badge variant="secondary" className="bg-violet-500/10 text-violet-500 border-violet-500/20">
+                                      <Info className="h-3 w-3" />
+                                    </Badge>
+                                  </TooltipTrigger>
+                                  <TooltipContent className="max-w-sm">
+                                    <p className="font-medium mb-1">AI Explanation</p>
+                                    <p className="text-xs">{market.ai_reasoning || "Analysis available"}</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              )}
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="alpha" className="mt-6">
+          <AlphaDashboard />
+        </TabsContent>
+
+        <TabsContent value="alerts" className="mt-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Bell className="h-5 w-5" />
+                Smart Alerts
+              </CardTitle>
+              <CardDescription>
+                AI-powered notifications for market movements and opportunities
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="text-center py-8 text-muted-foreground">
+                <Bell className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <p>No alerts configured</p>
+                <p className="text-sm mt-2">
+                  Visit the <Button variant="link" className="p-0 h-auto" onClick={() => navigate('/prediction-ai')}>
+                    full AI Suite
+                  </Button> to set up smart alerts
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="backtest" className="mt-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <LineChart className="h-5 w-5" />
+                Strategy Tester
+              </CardTitle>
+              <CardDescription>
+                Backtest your trading strategies on historical data
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="text-center py-8 text-muted-foreground">
+                <LineChart className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <p>Ready to test your strategies</p>
+                <p className="text-sm mt-2">
+                  Visit the <Button variant="link" className="p-0 h-auto" onClick={() => navigate('/prediction-ai')}>
+                    full AI Suite
+                  </Button> for advanced backtesting
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
 
       {/* Signal Drawer */}
       <Sheet open={!!selectedMarket} onOpenChange={() => setSelectedMarket(null)}>
