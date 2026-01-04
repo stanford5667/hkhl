@@ -113,3 +113,6 @@ verify_jwt = false
 
 [functions.ai-strategy-backtest]
 verify_jwt = false
+
+[functions.ai-brain]
+verify_jwt = false
