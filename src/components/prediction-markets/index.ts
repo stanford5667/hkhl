@@ -8,3 +8,4 @@ export { TradeIdeasDashboard } from './TradeIdeasDashboard';
 export { TradeIdeaCard } from './TradeIdeaCard';
 export { FullAnalysisModal } from './FullAnalysisModal';
 export { CalculateSizeModal } from './CalculateSizeModal';
+export { MarketChatAssistant } from './MarketChatAssistant';
