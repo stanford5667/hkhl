@@ -6,7 +6,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-interface NewsAPIArticle {
+interface EventRegistryArticle {
   uri: string;
   title: string;
   body: string;
@@ -32,6 +32,7 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     
     if (!eventRegistryApiKey) {
+      console.error('EVENT_REGISTRY_API_KEY not found');
       return new Response(JSON.stringify({
         success: false,
         error: 'EVENT_REGISTRY_API_KEY not configured'
@@ -42,57 +43,91 @@ serve(async (req) => {
     }
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
-    const { categories = ['business', 'politics', 'technology'], limit = 50 } = await req.json().catch(() => ({}));
+    const { keywords = ['politics', 'economy', 'technology', 'cryptocurrency'], limit = 50 } = await req.json().catch(() => ({}));
 
-    console.log('Fetching from NewsAPI.ai (Event Registry)...');
+    console.log('Fetching from Event Registry with keywords:', keywords);
 
-    // Fetch articles from Event Registry API
+    // Use the simpler getArticles endpoint with keyword search
+    const requestBody = {
+      action: "getArticles",
+      keyword: keywords,
+      keywordOper: "or",
+      lang: "eng",
+      articlesPage: 1,
+      articlesCount: limit,
+      articlesSortBy: "date",
+      articlesSortByAsc: false,
+      articlesArticleBodyLen: -1,
+      resultType: "articles",
+      dataType: ["news"],
+      apiKey: eventRegistryApiKey,
+      forceMaxDataTimeWindow: 31
+    };
+
+    console.log('Request body:', JSON.stringify(requestBody, null, 2));
+
     const articlesResponse = await fetch('https://eventregistry.org/api/v1/article/getArticles', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        apiKey: eventRegistryApiKey,
-        resultType: 'articles',
-        articlesSortBy: 'date',
-        articlesCount: limit,
-        lang: 'eng',
-        includeArticleCategories: true,
-        includeArticleConcepts: true,
-        includeArticleImage: true,
-        includeSourceTitle: true,
-        categoryUri: categories.map((c: string) => `news/${c}`),
-        dataType: ['news', 'blog'],
-      })
+      body: JSON.stringify(requestBody)
     });
 
+    const responseText = await articlesResponse.text();
+    console.log('API Response status:', articlesResponse.status);
+    console.log('API Response preview:', responseText.substring(0, 500));
+
     if (!articlesResponse.ok) {
-      const errorText = await articlesResponse.text();
-      console.error('NewsAPI.ai error:', errorText);
+      console.error('Event Registry API error:', responseText);
       return new Response(JSON.stringify({
         success: false,
-        error: `API error: ${articlesResponse.status}`
+        error: `API error: ${articlesResponse.status}`,
+        details: responseText.substring(0, 200)
       }), {
         status: articlesResponse.status,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
 
-    const data = await articlesResponse.json();
-    const articles: NewsAPIArticle[] = data.articles?.results || [];
+    let data;
+    try {
+      data = JSON.parse(responseText);
+    } catch (e) {
+      console.error('Failed to parse response:', e);
+      return new Response(JSON.stringify({
+        success: false,
+        error: 'Failed to parse API response'
+      }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
+    // Event Registry returns articles in data.articles.results
+    const articles: EventRegistryArticle[] = data.articles?.results || [];
     
-    console.log(`Fetched ${articles.length} articles from NewsAPI.ai`);
+    console.log(`Fetched ${articles.length} articles from Event Registry`);
+
+    if (articles.length === 0) {
+      console.log('No articles returned. Full response:', JSON.stringify(data).substring(0, 1000));
+    }
 
     let insertedCount = 0;
     let skippedCount = 0;
+    const errors: string[] = [];
 
     for (const article of articles) {
       try {
+        if (!article.url) {
+          skippedCount++;
+          continue;
+        }
+
         // Check for existing article
         const { data: existing } = await supabase
           .from('real_world_events')
           .select('id')
           .eq('source_url', article.url)
-          .single();
+          .maybeSingle();
 
         if (existing) {
           skippedCount++;
@@ -105,7 +140,8 @@ serve(async (req) => {
         // Extract entities from concepts
         const entities = article.concepts
           ?.filter(c => c.type === 'person' || c.type === 'org' || c.type === 'loc')
-          .map(c => c.label.eng)
+          .map(c => c.label?.eng)
+          .filter(Boolean)
           .slice(0, 10) || [];
 
         // Generate AI summary if we have content
@@ -121,17 +157,17 @@ serve(async (req) => {
         const { error: insertError } = await supabase
           .from('real_world_events')
           .insert({
-            title: article.title.slice(0, 500),
+            title: article.title?.slice(0, 500) || 'Untitled',
             description: aiSummary || article.body?.slice(0, 500) || null,
             full_content: article.body || null,
-            source: article.source?.title || 'NewsAPI.ai',
+            source: article.source?.title || 'Event Registry',
             source_url: article.url,
             category,
             severity,
             sentiment_score: article.sentiment || null,
             entities,
             detected_at: new Date().toISOString(),
-            event_date: article.dateTimePub || article.dateTime,
+            event_date: article.dateTimePub || article.dateTime || new Date().toISOString(),
             ai_extracted_entities: {
               concepts: article.concepts?.slice(0, 20) || [],
               categories: article.categories || []
@@ -147,19 +183,20 @@ serve(async (req) => {
               market_sentiment_impact: {
                 direction: article.sentiment > 0.2 ? 'bullish' : article.sentiment < -0.2 ? 'bearish' : 'neutral',
                 strength: Math.abs(article.sentiment) > 0.5 ? 'strong' : 'moderate',
-                reasoning: 'Sentiment derived from NewsAPI.ai analysis'
+                reasoning: 'Sentiment derived from Event Registry analysis'
               }
             } : null,
             metadata: {
               uri: article.uri,
               image: article.image,
               source_uri: article.source?.uri,
-              ingested_via: 'newsapi-ai'
+              ingested_via: 'event-registry'
             }
           });
 
         if (insertError) {
           console.error('Insert error:', insertError.message);
+          errors.push(insertError.message);
         } else {
           insertedCount++;
         }
@@ -174,17 +211,18 @@ serve(async (req) => {
       articles_fetched: articles.length,
       articles_inserted: insertedCount,
       articles_skipped: skippedCount,
+      errors: errors.slice(0, 5),
       timestamp: new Date().toISOString()
     };
 
-    console.log('NewsAPI.ai ingestion complete:', result);
+    console.log('Event Registry ingestion complete:', result);
 
     return new Response(JSON.stringify(result), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
 
   } catch (error) {
-    console.error('NewsAPI.ai fetch error:', error);
+    console.error('Event Registry fetch error:', error);
     return new Response(JSON.stringify({
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error'
@@ -195,28 +233,37 @@ serve(async (req) => {
   }
 });
 
-function determineCategory(article: NewsAPIArticle): string {
+function determineCategory(article: EventRegistryArticle): string {
   const categories = article.categories || [];
   
   for (const cat of categories) {
-    const label = cat.label.toLowerCase();
-    if (label.includes('politic') || label.includes('election')) return 'politics';
-    if (label.includes('crypto') || label.includes('bitcoin')) return 'crypto';
-    if (label.includes('econom') || label.includes('financ') || label.includes('business')) return 'economics';
+    const label = (cat.label || '').toLowerCase();
+    if (label.includes('politic') || label.includes('election') || label.includes('government')) return 'politics';
+    if (label.includes('crypto') || label.includes('bitcoin') || label.includes('blockchain')) return 'crypto';
+    if (label.includes('econom') || label.includes('financ') || label.includes('business') || label.includes('market')) return 'economics';
     if (label.includes('sport')) return 'sports';
-    if (label.includes('tech')) return 'tech';
-    if (label.includes('science')) return 'science';
-    if (label.includes('entertainment')) return 'entertainment';
+    if (label.includes('tech') || label.includes('computer') || label.includes('software')) return 'tech';
+    if (label.includes('science') || label.includes('research')) return 'science';
+    if (label.includes('entertainment') || label.includes('celebrity')) return 'entertainment';
   }
 
-  // Check concepts for crypto
+  // Check concepts for keywords
   const concepts = article.concepts || [];
   for (const concept of concepts) {
-    const label = concept.label.eng.toLowerCase();
+    const label = (concept.label?.eng || '').toLowerCase();
     if (label.includes('bitcoin') || label.includes('ethereum') || label.includes('cryptocurrency')) {
       return 'crypto';
     }
+    if (label.includes('president') || label.includes('congress') || label.includes('senate')) {
+      return 'politics';
+    }
   }
+
+  // Check title for keywords
+  const title = (article.title || '').toLowerCase();
+  if (title.includes('stock') || title.includes('market') || title.includes('economy')) return 'economics';
+  if (title.includes('trump') || title.includes('biden') || title.includes('election')) return 'politics';
+  if (title.includes('bitcoin') || title.includes('crypto')) return 'crypto';
 
   return 'economics'; // Default
 }
