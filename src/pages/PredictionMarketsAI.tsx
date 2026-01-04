@@ -10,7 +10,8 @@ import {
   MessageSquare,
   Sparkles,
   Database,
-  AlertTriangle
+  AlertTriangle,
+  Zap
 } from "lucide-react";
 import { 
   AlertCenter, 
@@ -22,11 +23,13 @@ import {
 } from "@/components/prediction-markets";
 import { AIBrainChat } from "@/components/prediction-markets/AIBrainChat";
 import { DataSyncPanel } from "@/components/prediction-markets/DataSyncPanel";
+import { AlphaDashboard } from "@/components/alpha-dashboard";
 
 export default function PredictionMarketsAI() {
-  const [activeTab, setActiveTab] = useState("anomalies");
+  const [activeTab, setActiveTab] = useState("alpha");
 
   const tabs = [
+    { id: "alpha", label: "Alpha Feed", icon: Zap, description: "AI-powered trade signals" },
     { id: "anomalies", label: "Anomaly Scanner", icon: AlertTriangle, description: "Sentiment divergence detection" },
     { id: "sync", label: "Data Sync", icon: Database, description: "Sync market data" },
     { id: "briefing", label: "Daily Briefing", icon: Newspaper, description: "AI-generated market summaries" },
@@ -100,7 +103,7 @@ export default function PredictionMarketsAI() {
 
       {/* Main Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-7 h-auto p-1 bg-muted/50">
+        <TabsList className="grid w-full grid-cols-8 h-auto p-1 bg-muted/50">
           {tabs.map((tab) => (
             <TabsTrigger
               key={tab.id}
@@ -112,6 +115,10 @@ export default function PredictionMarketsAI() {
             </TabsTrigger>
           ))}
         </TabsList>
+
+        <TabsContent value="alpha" className="mt-6">
+          <AlphaDashboard />
+        </TabsContent>
 
         <TabsContent value="anomalies" className="mt-6">
           <AnomalyScanner />
