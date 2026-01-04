@@ -149,3 +149,6 @@ verify_jwt = false
 
 [functions.semantic-search]
 verify_jwt = false
+
+[functions.get-article-intelligence]
+verify_jwt = false
