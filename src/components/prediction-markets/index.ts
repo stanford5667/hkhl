@@ -5,6 +5,7 @@ export { AIAnalysisPanel } from './AIAnalysisPanel';
 export { SentimentTimeline } from './SentimentTimeline';
 export { NewsMarketGraph } from './NewsMarketGraph';
 export { TradeIdeasDashboard } from './TradeIdeasDashboard';
+export { AnomalyScanner } from './AnomalyScanner';
 export { TradeIdeaCard } from './TradeIdeaCard';
 export { FullAnalysisModal } from './FullAnalysisModal';
 export { CalculateSizeModal } from './CalculateSizeModal';

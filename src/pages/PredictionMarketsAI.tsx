@@ -9,22 +9,25 @@ import {
   Brain,
   MessageSquare,
   Sparkles,
-  Database
+  Database,
+  AlertTriangle
 } from "lucide-react";
 import { 
   AlertCenter, 
   DailyBriefing, 
   StrategyBacktester, 
   NaturalLanguageSearch,
-  GlobalCommandSearch
+  GlobalCommandSearch,
+  AnomalyScanner
 } from "@/components/prediction-markets";
 import { AIBrainChat } from "@/components/prediction-markets/AIBrainChat";
 import { DataSyncPanel } from "@/components/prediction-markets/DataSyncPanel";
 
 export default function PredictionMarketsAI() {
-  const [activeTab, setActiveTab] = useState("sync");
+  const [activeTab, setActiveTab] = useState("anomalies");
 
   const tabs = [
+    { id: "anomalies", label: "Anomaly Scanner", icon: AlertTriangle, description: "Sentiment divergence detection" },
     { id: "sync", label: "Data Sync", icon: Database, description: "Sync market data" },
     { id: "briefing", label: "Daily Briefing", icon: Newspaper, description: "AI-generated market summaries" },
     { id: "alerts", label: "Smart Alerts", icon: Bell, description: "AI-powered notifications" },
@@ -97,7 +100,7 @@ export default function PredictionMarketsAI() {
 
       {/* Main Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-6 h-auto p-1 bg-muted/50">
+        <TabsList className="grid w-full grid-cols-7 h-auto p-1 bg-muted/50">
           {tabs.map((tab) => (
             <TabsTrigger
               key={tab.id}
@@ -109,6 +112,10 @@ export default function PredictionMarketsAI() {
             </TabsTrigger>
           ))}
         </TabsList>
+
+        <TabsContent value="anomalies" className="mt-6">
+          <AnomalyScanner />
+        </TabsContent>
 
         <TabsContent value="sync" className="mt-6">
           <DataSyncPanel />
