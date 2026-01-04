@@ -7,21 +7,17 @@ const corsHeaders = {
 
 interface TradeIdea {
   id: string;
-  generated_at: string;
   market_id: string;
-  market_title: string;
-  platform: string;
+  generated_at: string;
   direction: 'buy_yes' | 'buy_no' | 'sell_yes' | 'sell_no';
-  current_price: number;
+  entry_price: number;
   target_price: number;
+  stop_loss_price: number;
   confidence: number;
-  suggested_allocation: number;
-  kelly_fraction: number;
-  max_position: number;
   thesis_summary: string;
   thesis_detailed: string;
   supporting_evidence: Array<{
-    type: 'news' | 'sentiment' | 'whale' | 'calibration' | 'arbitrage' | 'technical';
+    type: string;
     description: string;
     strength: 'strong' | 'moderate' | 'weak';
     source_id: string;
@@ -32,14 +28,20 @@ interface TradeIdea {
     mitigation: string;
   }>;
   risk_level: 'low' | 'medium' | 'high' | 'very_high';
-  max_loss: number;
-  stop_loss_price: number;
+  suggested_allocation: number;
+  kelly_fraction: number;
+  max_position: number;
+  expected_value: number;
   time_horizon: 'hours' | 'days' | 'weeks' | 'until_resolution';
   catalyst_events: Array<{ event: string; date: string; impact: string }>;
+  market_title: string;
+  platform: string;
+  category: string;
+  status: string;
   similar_past_ideas: Array<{
     idea_summary: string;
     outcome: 'win' | 'loss';
-    return: number;
+    return_pct: number;
   }>;
 }
 
@@ -49,10 +51,52 @@ interface Opportunity {
   market_id: string;
   market_title: string;
   platform: string;
+  category: string;
   current_price: number;
   description: string;
   potential_edge: number;
   data: Record<string, unknown>;
+}
+
+// Kelly Criterion calculation
+function calculateKelly(probability: number, marketPrice: number, maxFraction: number = 0.25): {
+  full_kelly: number;
+  half_kelly: number;
+  quarter_kelly: number;
+  expected_value: number;
+  edge: number;
+} {
+  const edge = probability - marketPrice;
+  const odds = (1 - marketPrice) / marketPrice;
+  const fullKelly = edge > 0 ? (edge * odds) / (odds + 1) : 0;
+  
+  return {
+    full_kelly: Math.min(fullKelly, 1),
+    half_kelly: Math.min(fullKelly * 0.5, maxFraction),
+    quarter_kelly: Math.min(fullKelly * 0.25, maxFraction),
+    expected_value: edge,
+    edge: edge,
+  };
+}
+
+// Expected value calculation
+function calculateExpectedValue(probability: number, price: number, position: number): {
+  expected_profit: number;
+  max_loss: number;
+  max_gain: number;
+  probability_of_profit: number;
+} {
+  const payout = position / price;
+  const maxGain = payout - position;
+  const maxLoss = position;
+  const expectedProfit = probability * maxGain - (1 - probability) * maxLoss;
+  
+  return {
+    expected_profit: expectedProfit,
+    max_loss: maxLoss,
+    max_gain: maxGain,
+    probability_of_profit: probability,
+  };
 }
 
 serve(async (req) => {
@@ -70,20 +114,32 @@ serve(async (req) => {
       throw new Error('Supabase credentials not configured');
     }
 
-    const { user_bankroll = 10000, risk_tolerance = 'moderate', max_ideas = 5 } = await req.json();
+    const body = await req.json();
+    const {
+      mode = 'generate_new',
+      filters = {},
+      count = 5,
+      user_context = { bankroll: 10000, risk_tolerance: 'moderate', existing_positions: [] }
+    } = body;
 
-    console.log('Starting trade idea generation...');
+    const { categories, min_confidence = 50, max_risk = 'high', platforms } = filters;
+    const { bankroll, risk_tolerance, existing_positions } = user_context;
 
-    // Step 1: OPPORTUNITY SCANNING - Gather all potential opportunities
+    console.log(`Starting trade idea generation: mode=${mode}, count=${count}`);
+
+    // STEP 1: OPPORTUNITY SCANNING
     const opportunities: Opportunity[] = [];
 
     // Scan arbitrage opportunities
-    const arbResponse = await fetch(`${SUPABASE_URL}/rest/v1/arbitrage_opportunities?status=eq.active&order=profit_potential.desc&limit=10`, {
-      headers: {
-        'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
-        'apikey': SUPABASE_SERVICE_ROLE_KEY,
-      },
-    });
+    const arbResponse = await fetch(
+      `${SUPABASE_URL}/rest/v1/arbitrage_opportunities?status=eq.active&order=profit_potential.desc&limit=15`,
+      {
+        headers: {
+          'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+          'apikey': SUPABASE_SERVICE_ROLE_KEY,
+        },
+      }
+    );
     
     if (arbResponse.ok) {
       const arbitrages = await arbResponse.json();
@@ -91,37 +147,42 @@ serve(async (req) => {
         opportunities.push({
           id: `arb_${arb.id}`,
           type: 'arbitrage',
-          market_id: arb.markets?.[0] || 'unknown',
+          market_id: arb.markets?.[0] || arb.id,
           market_title: `Arbitrage: ${arb.type}`,
           platform: arb.platforms?.join(', ') || 'multiple',
-          current_price: 0,
+          category: 'arbitrage',
+          current_price: 0.5,
           description: `${arb.type} arbitrage with ${(arb.profit_potential * 100).toFixed(2)}% profit potential`,
-          potential_edge: arb.profit_potential,
+          potential_edge: arb.profit_potential || 0,
           data: arb,
         });
       }
     }
 
-    // Scan markets with recent high-impact news
-    const newsResponse = await fetch(`${SUPABASE_URL}/rest/v1/news_clusters?is_emerging=eq.true&order=momentum_score.desc&limit=10`, {
-      headers: {
-        'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
-        'apikey': SUPABASE_SERVICE_ROLE_KEY,
-      },
-    });
+    // Scan high-momentum news clusters
+    const newsResponse = await fetch(
+      `${SUPABASE_URL}/rest/v1/news_clusters?order=momentum_score.desc&limit=15`,
+      {
+        headers: {
+          'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+          'apikey': SUPABASE_SERVICE_ROLE_KEY,
+        },
+      }
+    );
 
     if (newsResponse.ok) {
-      const newsClusters = await newsResponse.json();
-      for (const cluster of newsClusters) {
+      const clusters = await newsResponse.json();
+      for (const cluster of clusters) {
         if (cluster.related_market_ids?.length > 0) {
           opportunities.push({
             id: `news_${cluster.id}`,
             type: 'news',
             market_id: cluster.related_market_ids[0],
-            market_title: cluster.narrative_title || 'News Impact',
+            market_title: cluster.narrative_title || 'News-Driven Opportunity',
             platform: 'multiple',
-            current_price: 0,
-            description: `Breaking narrative: ${cluster.narrative_title}. Sentiment: ${cluster.sentiment_arc}`,
+            category: 'news',
+            current_price: 0.5,
+            description: `${cluster.narrative_title}: ${cluster.sentiment_arc} sentiment, momentum ${cluster.momentum_score?.toFixed(1) || 'N/A'}`,
             potential_edge: Math.abs(cluster.momentum_score || 0) / 100,
             data: cluster,
           });
@@ -130,132 +191,145 @@ serve(async (req) => {
     }
 
     // Scan whale activity
-    const whaleResponse = await fetch(`${SUPABASE_URL}/rest/v1/whale_transactions?order=created_at.desc&limit=20`, {
-      headers: {
-        'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
-        'apikey': SUPABASE_SERVICE_ROLE_KEY,
-      },
-    });
+    const whaleResponse = await fetch(
+      `${SUPABASE_URL}/rest/v1/whale_transactions?order=created_at.desc&limit=30`,
+      {
+        headers: {
+          'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+          'apikey': SUPABASE_SERVICE_ROLE_KEY,
+        },
+      }
+    );
 
     if (whaleResponse.ok) {
       const whaleTxs = await whaleResponse.json();
-      // Group by market and detect divergence
-      const marketWhaleActivity: Record<string, { buys: number; sells: number; volume: number }> = {};
+      const marketActivity: Record<string, { buys: number; sells: number; totalVolume: number; txCount: number }> = {};
       
       for (const tx of whaleTxs) {
-        const marketId = tx.market_id;
-        if (!marketId) continue;
-        
-        if (!marketWhaleActivity[marketId]) {
-          marketWhaleActivity[marketId] = { buys: 0, sells: 0, volume: 0 };
+        const mktId = tx.market_id;
+        if (!mktId) continue;
+        if (!marketActivity[mktId]) {
+          marketActivity[mktId] = { buys: 0, sells: 0, totalVolume: 0, txCount: 0 };
         }
-        
+        const amt = tx.amount || 0;
         if (tx.direction === 'buy') {
-          marketWhaleActivity[marketId].buys += tx.amount || 0;
+          marketActivity[mktId].buys += amt;
         } else {
-          marketWhaleActivity[marketId].sells += tx.amount || 0;
+          marketActivity[mktId].sells += amt;
         }
-        marketWhaleActivity[marketId].volume += tx.amount || 0;
+        marketActivity[mktId].totalVolume += amt;
+        marketActivity[mktId].txCount++;
       }
 
-      for (const [marketId, activity] of Object.entries(marketWhaleActivity)) {
+      for (const [mktId, activity] of Object.entries(marketActivity)) {
+        if (activity.txCount < 2) continue;
         const buyRatio = activity.buys / (activity.buys + activity.sells + 0.001);
-        if (buyRatio > 0.7 || buyRatio < 0.3) {
+        if (buyRatio > 0.65 || buyRatio < 0.35) {
           opportunities.push({
-            id: `whale_${marketId}`,
+            id: `whale_${mktId}`,
             type: 'whale',
-            market_id: marketId,
-            market_title: `Whale Activity Detected`,
+            market_id: mktId,
+            market_title: 'Whale Divergence Signal',
             platform: 'unknown',
-            current_price: 0,
-            description: `Whales ${buyRatio > 0.5 ? 'accumulating' : 'distributing'} with ${(buyRatio * 100).toFixed(0)}% buy ratio`,
-            potential_edge: Math.abs(buyRatio - 0.5) * 0.3,
+            category: 'whale',
+            current_price: 0.5,
+            description: `Smart money ${buyRatio > 0.5 ? 'accumulating' : 'distributing'}: ${(buyRatio * 100).toFixed(0)}% buy ratio across ${activity.txCount} txs`,
+            potential_edge: Math.abs(buyRatio - 0.5) * 0.4,
             data: { ...activity, buyRatio },
           });
         }
       }
     }
 
-    // Scan KOL sentiment shifts
-    const kolResponse = await fetch(`${SUPABASE_URL}/rest/v1/kol_sentiment?order=detected_at.desc&limit=30`, {
-      headers: {
-        'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
-        'apikey': SUPABASE_SERVICE_ROLE_KEY,
-      },
-    });
+    // Scan KOL sentiment
+    const kolResponse = await fetch(
+      `${SUPABASE_URL}/rest/v1/kol_sentiment?order=detected_at.desc&limit=40`,
+      {
+        headers: {
+          'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+          'apikey': SUPABASE_SERVICE_ROLE_KEY,
+        },
+      }
+    );
 
     if (kolResponse.ok) {
-      const kolSentiments = await kolResponse.json();
-      // Aggregate sentiment by related markets
+      const sentiments = await kolResponse.json();
       const marketSentiment: Record<string, { scores: number[]; count: number }> = {};
       
-      for (const sentiment of kolSentiments) {
-        for (const marketId of (sentiment.related_markets || [])) {
-          if (!marketSentiment[marketId]) {
-            marketSentiment[marketId] = { scores: [], count: 0 };
+      for (const s of sentiments) {
+        for (const mktId of (s.related_markets || [])) {
+          if (!marketSentiment[mktId]) {
+            marketSentiment[mktId] = { scores: [], count: 0 };
           }
-          if (sentiment.sentiment_score !== null) {
-            marketSentiment[marketId].scores.push(sentiment.sentiment_score);
-            marketSentiment[marketId].count++;
+          if (s.sentiment_score !== null) {
+            marketSentiment[mktId].scores.push(s.sentiment_score);
+            marketSentiment[mktId].count++;
           }
         }
       }
 
-      for (const [marketId, data] of Object.entries(marketSentiment)) {
-        if (data.count >= 3) {
-          const avgSentiment = data.scores.reduce((a, b) => a + b, 0) / data.scores.length;
-          if (Math.abs(avgSentiment) > 0.3) {
+      for (const [mktId, data] of Object.entries(marketSentiment)) {
+        if (data.count >= 2) {
+          const avg = data.scores.reduce((a, b) => a + b, 0) / data.scores.length;
+          if (Math.abs(avg) > 0.25) {
             opportunities.push({
-              id: `sentiment_${marketId}`,
+              id: `sentiment_${mktId}`,
               type: 'sentiment',
-              market_id: marketId,
-              market_title: `KOL Sentiment Signal`,
+              market_id: mktId,
+              market_title: 'KOL Sentiment Signal',
               platform: 'multiple',
-              current_price: 0,
-              description: `KOL consensus: ${avgSentiment > 0 ? 'bullish' : 'bearish'} (${avgSentiment.toFixed(2)} avg score from ${data.count} KOLs)`,
-              potential_edge: Math.abs(avgSentiment) * 0.2,
-              data: { avgSentiment, count: data.count },
+              category: 'sentiment',
+              current_price: 0.5,
+              description: `KOL consensus: ${avg > 0 ? 'bullish' : 'bearish'} (avg ${avg.toFixed(2)} from ${data.count} KOLs)`,
+              potential_edge: Math.abs(avg) * 0.25,
+              data: { avgSentiment: avg, count: data.count },
             });
           }
         }
       }
     }
 
-    console.log(`Found ${opportunities.length} potential opportunities`);
+    // Apply filters
+    let filteredOpportunities = opportunities;
+    if (categories?.length) {
+      filteredOpportunities = filteredOpportunities.filter(o => categories.includes(o.category) || categories.includes(o.type));
+    }
+    if (platforms?.length) {
+      filteredOpportunities = filteredOpportunities.filter(o => platforms.some((p: string) => o.platform.toLowerCase().includes(p.toLowerCase())));
+    }
 
-    if (opportunities.length === 0) {
+    console.log(`Found ${filteredOpportunities.length} opportunities after filtering`);
+
+    if (filteredOpportunities.length === 0) {
       return new Response(JSON.stringify({
         trade_ideas: [],
-        opportunities_scanned: 0,
-        message: 'No opportunities found at this time',
+        opportunities_scanned: opportunities.length,
+        market_summary: 'No opportunities match your criteria at this time.',
+        portfolio_recommendation: 'Consider relaxing your filters or checking back later.',
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    // Step 2: OPPORTUNITY RANKING via LLM
-    const rankingPrompt = `You are a quantitative trading analyst. Rank these potential opportunities by expected risk-adjusted return.
+    // STEP 2: OPPORTUNITY RANKING via LLM
+    const rankingPrompt = `You are a quantitative trading analyst. Rank these opportunities by expected risk-adjusted return.
 
 Opportunities:
-${opportunities.map((opp, i) => `${i + 1}. [${opp.type.toUpperCase()}] ${opp.description} (Edge estimate: ${(opp.potential_edge * 100).toFixed(1)}%)`).join('\n')}
+${filteredOpportunities.slice(0, 20).map((o, i) => `${i + 1}. [${o.type.toUpperCase()}] ${o.description} | Edge est: ${(o.potential_edge * 100).toFixed(1)}%`).join('\n')}
 
-User risk tolerance: ${risk_tolerance}
-User bankroll: $${user_bankroll.toLocaleString()}
+User profile:
+- Risk tolerance: ${risk_tolerance}
+- Bankroll: $${bankroll.toLocaleString()}
+- Existing positions: ${existing_positions.length} active
+- Min confidence required: ${min_confidence}%
+- Max risk level: ${max_risk}
 
-Output JSON:
+Return JSON:
 {
   "ranked_opportunities": [
-    {
-      "opportunity_index": <1-based index>,
-      "rank": <1 = best>,
-      "expected_ev": <0-1>,
-      "confidence": <0-100>,
-      "reasoning": "<brief reasoning>"
-    }
+    {"index": <1-based>, "rank": <1=best>, "expected_ev": <0-0.5>, "confidence": <0-100>, "reasoning": "<brief>"}
   ],
-  "opportunities_to_skip": [
-    {"opportunity_index": <index>, "reason": "<why skip>"}
-  ]
+  "skip": [{"index": <num>, "reason": "<why>"}]
 }`;
 
     const rankingResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
@@ -267,84 +341,113 @@ Output JSON:
       body: JSON.stringify({
         model: 'google/gemini-2.5-flash',
         messages: [
-          { role: 'system', content: 'You are a quantitative trading analyst. Always respond with valid JSON.' },
+          { role: 'system', content: 'You are a quantitative analyst. Respond only with valid JSON.' },
           { role: 'user', content: rankingPrompt },
         ],
       }),
     });
 
     if (!rankingResponse.ok) {
-      const errorText = await rankingResponse.text();
-      console.error('Ranking LLM error:', errorText);
       throw new Error(`Ranking failed: ${rankingResponse.status}`);
     }
 
     const rankingData = await rankingResponse.json();
-    let ranking: { ranked_opportunities: Array<{ opportunity_index: number; rank: number; expected_ev: number; confidence: number; reasoning: string }>; opportunities_to_skip: Array<{ opportunity_index: number; reason: string }> };
+    let ranking: { ranked_opportunities: Array<{ index: number; rank: number; expected_ev: number; confidence: number; reasoning: string }>; skip?: Array<{ index: number; reason: string }> };
     
     try {
       const content = rankingData.choices?.[0]?.message?.content || '{}';
       const jsonMatch = content.match(/\{[\s\S]*\}/);
-      ranking = jsonMatch ? JSON.parse(jsonMatch[0]) : { ranked_opportunities: [], opportunities_to_skip: [] };
-    } catch (e) {
-      console.error('Failed to parse ranking:', e);
-      ranking = { ranked_opportunities: [], opportunities_to_skip: [] };
+      ranking = jsonMatch ? JSON.parse(jsonMatch[0]) : { ranked_opportunities: [] };
+    } catch {
+      ranking = { ranked_opportunities: [] };
     }
 
-    // Sort by rank and take top opportunities
-    const topOpportunities = ranking.ranked_opportunities
+    // Get top opportunities
+    const topOpps = ranking.ranked_opportunities
+      ?.filter(r => r.confidence >= min_confidence)
       .sort((a, b) => a.rank - b.rank)
-      .slice(0, max_ideas)
-      .map(r => ({
-        ...opportunities[r.opportunity_index - 1],
-        ranking: r,
-      }))
-      .filter(o => o !== undefined);
+      .slice(0, count)
+      .map(r => ({ ...filteredOpportunities[r.index - 1], ranking: r }))
+      .filter(Boolean) || [];
 
-    console.log(`Generating ${topOpportunities.length} trade ideas...`);
+    console.log(`Processing ${topOpps.length} top opportunities for deep analysis`);
 
-    // Step 3: GENERATE DETAILED TRADE IDEAS via LLM
+    // STEP 3: DEEP ANALYSIS + STEP 4: CALCULATIONS + STEP 5: SIMILAR TRADE LOOKUP
     const tradeIdeas: TradeIdea[] = [];
 
-    for (const opp of topOpportunities) {
-      const ideaPrompt = `Generate a detailed trade idea for this opportunity.
+    // Fetch similar past ideas for comparison
+    const pastIdeasResponse = await fetch(
+      `${SUPABASE_URL}/rest/v1/trade_ideas?status=in.(resolved,closed)&order=generated_at.desc&limit=50`,
+      {
+        headers: {
+          'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+          'apikey': SUPABASE_SERVICE_ROLE_KEY,
+        },
+      }
+    );
+    const pastIdeas = pastIdeasResponse.ok ? await pastIdeasResponse.json() : [];
 
-Opportunity Type: ${opp.type}
-Description: ${opp.description}
-Market: ${opp.market_title}
-Ranking Reasoning: ${opp.ranking.reasoning}
-Expected EV: ${(opp.ranking.expected_ev * 100).toFixed(1)}%
-Confidence: ${opp.ranking.confidence}%
+    for (const opp of topOpps) {
+      // Find similar past ideas by type
+      const similarPast = pastIdeas
+        .filter((p: Record<string, unknown>) => p.category === opp.category || p.risk_level === opp.ranking.expected_ev > 0.1 ? 'high' : 'medium')
+        .slice(0, 3)
+        .map((p: Record<string, unknown>) => ({
+          idea_summary: p.thesis_summary as string || 'Past trade',
+          outcome: (p.outcome as string) || 'unknown',
+          return_pct: (p.actual_return as number) || 0,
+        }));
 
-User Context:
-- Bankroll: $${user_bankroll.toLocaleString()}
-- Risk Tolerance: ${risk_tolerance}
+      // Calculate historical accuracy for this type
+      const typeIdeas = pastIdeas.filter((p: Record<string, unknown>) => p.category === opp.type);
+      const wins = typeIdeas.filter((p: Record<string, unknown>) => p.outcome === 'win').length;
+      const historicalAccuracy = typeIdeas.length > 0 ? wins / typeIdeas.length : 0.5;
 
-Generate a complete trade idea with the following JSON structure:
+      // Deep analysis prompt
+      const deepPrompt = `Generate a complete trade idea with full analysis.
+
+Opportunity:
+- Type: ${opp.type}
+- Description: ${opp.description}
+- Market: ${opp.market_title}
+- Estimated edge: ${(opp.potential_edge * 100).toFixed(1)}%
+- Initial confidence: ${opp.ranking.confidence}%
+- Ranking reasoning: ${opp.ranking.reasoning}
+
+Raw Data:
+${JSON.stringify(opp.data, null, 2)}
+
+Historical Context:
+- Similar ideas accuracy: ${(historicalAccuracy * 100).toFixed(0)}% (${typeIdeas.length} samples)
+- Past similar trades: ${JSON.stringify(similarPast)}
+
+User Profile:
+- Bankroll: $${bankroll.toLocaleString()}
+- Risk tolerance: ${risk_tolerance}
+- Existing positions: ${existing_positions.length}
+
+Generate complete trade analysis JSON:
 {
-  "direction": "buy_yes" | "buy_no" | "sell_yes" | "sell_no",
-  "target_price": <0-1, where you think fair value is>,
-  "confidence": <0-100>,
-  "suggested_allocation": <percentage of bankroll, e.g., 5 for 5%>,
-  "kelly_fraction": <0-1, fraction of kelly to use>,
+  "direction": "buy_yes" | "buy_no",
+  "estimated_probability": <0-1, your true probability estimate>,
+  "target_price": <0-1>,
+  "stop_loss_price": <0-1>,
+  "confidence": <0-100, adjusted for historical accuracy>,
   "thesis_summary": "<2-3 sentence summary>",
-  "thesis_detailed": "<full analysis paragraph>",
+  "thesis_detailed": "<full analysis, 2-3 paragraphs>",
   "supporting_evidence": [
     {"type": "${opp.type}", "description": "<evidence>", "strength": "strong|moderate|weak", "source_id": "${opp.id}"}
   ],
   "counter_arguments": [
-    {"argument": "<potential flaw>", "severity": "high|medium|low", "mitigation": "<how to handle>"}
+    {"argument": "<potential flaw>", "severity": "high|medium|low", "mitigation": "<mitigation>"}
   ],
   "risk_level": "low|medium|high|very_high",
-  "max_loss_percent": <max loss as percentage of position>,
-  "stop_loss_price": <price to exit>,
   "time_horizon": "hours|days|weeks|until_resolution",
-  "catalyst_events": [
-    {"event": "<upcoming event>", "date": "<date>", "impact": "<expected impact>"}
-  ]
+  "catalyst_events": [{"event": "<event>", "date": "<date>", "impact": "<impact>"}],
+  "exit_strategy": "<when to exit>"
 }`;
 
-      const ideaResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+      const deepResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${LOVABLE_API_KEY}`,
@@ -353,111 +456,148 @@ Generate a complete trade idea with the following JSON structure:
         body: JSON.stringify({
           model: 'google/gemini-2.5-flash',
           messages: [
-            { role: 'system', content: 'You are a quantitative trading analyst generating actionable trade ideas. Always respond with valid JSON.' },
-            { role: 'user', content: ideaPrompt },
+            { role: 'system', content: 'You are a quantitative trading analyst. Respond with valid JSON only.' },
+            { role: 'user', content: deepPrompt },
           ],
         }),
       });
 
-      if (!ideaResponse.ok) {
-        console.error(`Failed to generate idea for ${opp.id}`);
+      if (!deepResponse.ok) {
+        console.error(`Deep analysis failed for ${opp.id}`);
         continue;
       }
 
-      const ideaData = await ideaResponse.json();
+      const deepData = await deepResponse.json();
       
       try {
-        const content = ideaData.choices?.[0]?.message?.content || '{}';
+        const content = deepData.choices?.[0]?.message?.content || '{}';
         const jsonMatch = content.match(/\{[\s\S]*\}/);
-        const ideaJson = jsonMatch ? JSON.parse(jsonMatch[0]) : null;
+        const analysis = jsonMatch ? JSON.parse(jsonMatch[0]) : null;
         
-        if (ideaJson) {
-          const tradeIdea: TradeIdea = {
-            id: crypto.randomUUID(),
-            generated_at: new Date().toISOString(),
-            market_id: opp.market_id,
-            market_title: opp.market_title,
-            platform: opp.platform,
-            direction: ideaJson.direction || 'buy_yes',
-            current_price: opp.current_price,
-            target_price: ideaJson.target_price || 0.5,
-            confidence: ideaJson.confidence || 50,
-            suggested_allocation: ideaJson.suggested_allocation || 2,
-            kelly_fraction: ideaJson.kelly_fraction || 0.25,
-            max_position: (user_bankroll * (ideaJson.suggested_allocation || 2)) / 100,
-            thesis_summary: ideaJson.thesis_summary || '',
-            thesis_detailed: ideaJson.thesis_detailed || '',
-            supporting_evidence: ideaJson.supporting_evidence || [],
-            counter_arguments: ideaJson.counter_arguments || [],
-            risk_level: ideaJson.risk_level || 'medium',
-            max_loss: (user_bankroll * (ideaJson.suggested_allocation || 2) * (ideaJson.max_loss_percent || 100)) / 10000,
-            stop_loss_price: ideaJson.stop_loss_price || 0,
-            time_horizon: ideaJson.time_horizon || 'days',
-            catalyst_events: ideaJson.catalyst_events || [],
-            similar_past_ideas: [], // Would need historical trade idea tracking
-          };
+        if (!analysis) continue;
 
+        // STEP 4: Calculate precise sizing using Kelly
+        const estimatedProb = analysis.estimated_probability || 0.55;
+        const marketPrice = opp.current_price || 0.5;
+        const kelly = calculateKelly(estimatedProb, marketPrice);
+        
+        // Adjust kelly based on risk tolerance
+        let kellyMultiplier = 0.25; // quarter kelly default
+        if (risk_tolerance === 'aggressive') kellyMultiplier = 0.5;
+        if (risk_tolerance === 'conservative') kellyMultiplier = 0.125;
+        
+        const suggestedAllocation = Math.min(kelly.full_kelly * kellyMultiplier * 100, 10); // max 10%
+        const maxPosition = bankroll * (suggestedAllocation / 100);
+        
+        const ev = calculateExpectedValue(estimatedProb, marketPrice, maxPosition);
+
+        const tradeIdea: TradeIdea = {
+          id: crypto.randomUUID(),
+          market_id: opp.market_id,
+          generated_at: new Date().toISOString(),
+          direction: analysis.direction || 'buy_yes',
+          entry_price: marketPrice,
+          target_price: analysis.target_price || estimatedProb,
+          stop_loss_price: analysis.stop_loss_price || marketPrice * 0.8,
+          confidence: Math.round(analysis.confidence * (0.5 + historicalAccuracy * 0.5)), // Adjust for track record
+          thesis_summary: analysis.thesis_summary || '',
+          thesis_detailed: analysis.thesis_detailed || '',
+          supporting_evidence: analysis.supporting_evidence || [],
+          counter_arguments: analysis.counter_arguments || [],
+          risk_level: analysis.risk_level || 'medium',
+          suggested_allocation: suggestedAllocation,
+          kelly_fraction: kellyMultiplier,
+          max_position: maxPosition,
+          expected_value: ev.expected_profit,
+          time_horizon: analysis.time_horizon || 'days',
+          catalyst_events: analysis.catalyst_events || [],
+          market_title: opp.market_title,
+          platform: opp.platform,
+          category: opp.type,
+          status: 'active',
+          similar_past_ideas: similarPast,
+        };
+
+        // Filter by risk level
+        const riskOrder = { low: 1, medium: 2, high: 3, very_high: 4 };
+        const maxRiskNum = riskOrder[max_risk as keyof typeof riskOrder] || 3;
+        const ideaRiskNum = riskOrder[tradeIdea.risk_level] || 2;
+        
+        if (ideaRiskNum <= maxRiskNum) {
           tradeIdeas.push(tradeIdea);
         }
       } catch (e) {
-        console.error(`Failed to parse idea for ${opp.id}:`, e);
+        console.error(`Failed to process ${opp.id}:`, e);
       }
     }
 
-    // Step 4: FINAL PORTFOLIO CHECK via LLM
-    if (tradeIdeas.length > 1) {
-      const portfolioCheckPrompt = `Review these trade ideas for portfolio coherence and concentration risk.
-
-Trade Ideas:
-${tradeIdeas.map((idea, i) => `${i + 1}. ${idea.market_title}: ${idea.direction} at ${idea.suggested_allocation}% allocation (${idea.risk_level} risk)`).join('\n')}
-
-Total allocation: ${tradeIdeas.reduce((sum, i) => sum + i.suggested_allocation, 0)}%
-Risk tolerance: ${risk_tolerance}
-
-Provide brief portfolio-level recommendations in JSON:
-{
-  "total_risk_assessment": "acceptable|high|too_concentrated",
-  "correlation_warning": "<any correlated bets?>",
-  "adjustment_suggestions": ["<suggestion 1>", "<suggestion 2>"],
-  "overall_portfolio_confidence": <0-100>
-}`;
-
-      const portfolioResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+    // Save trade ideas to database
+    if (tradeIdeas.length > 0) {
+      const insertResponse = await fetch(`${SUPABASE_URL}/rest/v1/trade_ideas`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+          'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+          'apikey': SUPABASE_SERVICE_ROLE_KEY,
           'Content-Type': 'application/json',
+          'Prefer': 'return=minimal',
         },
-        body: JSON.stringify({
-          model: 'google/gemini-2.5-flash',
-          messages: [
-            { role: 'system', content: 'You are a portfolio risk manager. Always respond with valid JSON.' },
-            { role: 'user', content: portfolioCheckPrompt },
-          ],
-        }),
+        body: JSON.stringify(tradeIdeas.map(idea => ({
+          id: idea.id,
+          market_id: idea.market_id,
+          direction: idea.direction,
+          entry_price: idea.entry_price,
+          target_price: idea.target_price,
+          stop_loss_price: idea.stop_loss_price,
+          confidence: idea.confidence,
+          thesis_summary: idea.thesis_summary,
+          thesis_detailed: idea.thesis_detailed,
+          supporting_evidence: idea.supporting_evidence,
+          counter_arguments: idea.counter_arguments,
+          risk_level: idea.risk_level,
+          suggested_allocation: idea.suggested_allocation,
+          kelly_fraction: idea.kelly_fraction,
+          max_position: idea.max_position,
+          expected_value: idea.expected_value,
+          time_horizon: idea.time_horizon,
+          catalyst_events: idea.catalyst_events,
+          market_title: idea.market_title,
+          platform: idea.platform,
+          category: idea.category,
+          status: 'active',
+          is_public: true,
+        }))),
       });
 
-      if (portfolioResponse.ok) {
-        const portfolioData = await portfolioResponse.json();
-        try {
-          const content = portfolioData.choices?.[0]?.message?.content || '{}';
-          const jsonMatch = content.match(/\{[\s\S]*\}/);
-          const portfolioCheck = jsonMatch ? JSON.parse(jsonMatch[0]) : null;
-          
-          console.log('Portfolio check:', portfolioCheck);
-        } catch (e) {
-          console.error('Failed to parse portfolio check:', e);
-        }
+      if (!insertResponse.ok) {
+        console.error('Failed to save trade ideas:', await insertResponse.text());
       }
     }
+
+    // Generate portfolio-level summary
+    const totalAllocation = tradeIdeas.reduce((sum, i) => sum + i.suggested_allocation, 0);
+    const avgConfidence = tradeIdeas.length > 0 
+      ? tradeIdeas.reduce((sum, i) => sum + i.confidence, 0) / tradeIdeas.length 
+      : 0;
+    const highConviction = tradeIdeas.filter(i => i.confidence >= 75).length;
+
+    const marketSummary = tradeIdeas.length > 0
+      ? `Found ${tradeIdeas.length} trade opportunities. ${highConviction} high-conviction ideas (75%+ confidence). Average confidence: ${avgConfidence.toFixed(0)}%. Total suggested allocation: ${totalAllocation.toFixed(1)}% of bankroll.`
+      : 'No high-quality trade ideas found matching your criteria.';
+
+    const portfolioRec = tradeIdeas.length > 1
+      ? `Consider diversifying across ${new Set(tradeIdeas.map(i => i.category)).size} different signal types. Highest conviction: "${tradeIdeas[0]?.market_title}" at ${tradeIdeas[0]?.confidence}% confidence.`
+      : tradeIdeas.length === 1
+        ? `Single high-quality opportunity identified. Consider position sizing at ${tradeIdeas[0].suggested_allocation.toFixed(1)}% of bankroll.`
+        : 'Stay patient and wait for clearer signals.';
 
     console.log(`Generated ${tradeIdeas.length} trade ideas`);
 
     return new Response(JSON.stringify({
       trade_ideas: tradeIdeas,
       opportunities_scanned: opportunities.length,
-      opportunities_ranked: ranking.ranked_opportunities?.length || 0,
-      opportunities_skipped: ranking.opportunities_to_skip?.length || 0,
+      opportunities_filtered: filteredOpportunities.length,
+      market_summary: marketSummary,
+      portfolio_recommendation: portfolioRec,
       generation_timestamp: new Date().toISOString(),
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

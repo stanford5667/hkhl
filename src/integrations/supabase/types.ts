@@ -2641,6 +2641,140 @@ export type Database = {
         }
         Relationships: []
       }
+      trade_idea_feedback: {
+        Row: {
+          action: string
+          created_at: string | null
+          feedback: string | null
+          id: string
+          idea_id: string | null
+          user_id: string | null
+        }
+        Insert: {
+          action: string
+          created_at?: string | null
+          feedback?: string | null
+          id?: string
+          idea_id?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          action?: string
+          created_at?: string | null
+          feedback?: string | null
+          id?: string
+          idea_id?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trade_idea_feedback_idea_id_fkey"
+            columns: ["idea_id"]
+            isOneToOne: false
+            referencedRelation: "trade_ideas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      trade_ideas: {
+        Row: {
+          actual_return: number | null
+          catalyst_events: Json | null
+          category: string | null
+          confidence: number | null
+          counter_arguments: Json | null
+          created_at: string | null
+          direction: string
+          entry_price: number | null
+          expected_value: number | null
+          generated_at: string | null
+          id: string
+          is_public: boolean | null
+          kelly_fraction: number | null
+          market_id: string | null
+          market_title: string | null
+          max_position: number | null
+          outcome: string | null
+          platform: string | null
+          resolved_at: string | null
+          risk_level: string | null
+          status: string | null
+          stop_loss_price: number | null
+          suggested_allocation: number | null
+          supporting_evidence: Json | null
+          target_price: number | null
+          thesis_detailed: string | null
+          thesis_summary: string | null
+          time_horizon: string | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          actual_return?: number | null
+          catalyst_events?: Json | null
+          category?: string | null
+          confidence?: number | null
+          counter_arguments?: Json | null
+          created_at?: string | null
+          direction: string
+          entry_price?: number | null
+          expected_value?: number | null
+          generated_at?: string | null
+          id?: string
+          is_public?: boolean | null
+          kelly_fraction?: number | null
+          market_id?: string | null
+          market_title?: string | null
+          max_position?: number | null
+          outcome?: string | null
+          platform?: string | null
+          resolved_at?: string | null
+          risk_level?: string | null
+          status?: string | null
+          stop_loss_price?: number | null
+          suggested_allocation?: number | null
+          supporting_evidence?: Json | null
+          target_price?: number | null
+          thesis_detailed?: string | null
+          thesis_summary?: string | null
+          time_horizon?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          actual_return?: number | null
+          catalyst_events?: Json | null
+          category?: string | null
+          confidence?: number | null
+          counter_arguments?: Json | null
+          created_at?: string | null
+          direction?: string
+          entry_price?: number | null
+          expected_value?: number | null
+          generated_at?: string | null
+          id?: string
+          is_public?: boolean | null
+          kelly_fraction?: number | null
+          market_id?: string | null
+          market_title?: string | null
+          max_position?: number | null
+          outcome?: string | null
+          platform?: string | null
+          resolved_at?: string | null
+          risk_level?: string | null
+          status?: string | null
+          stop_loss_price?: number | null
+          suggested_allocation?: number | null
+          supporting_evidence?: Json | null
+          target_price?: number | null
+          thesis_detailed?: string | null
+          thesis_summary?: string | null
+          time_horizon?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       user_alerts: {
         Row: {
           alert_type: string
