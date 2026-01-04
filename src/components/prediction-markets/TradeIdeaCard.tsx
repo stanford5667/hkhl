@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -12,6 +12,11 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { TradeIdea } from './TradeIdeasDashboard';
+import {
+  calculateKellyCriterion,
+  calculateExpectedValue,
+  priceToDecimalOdds,
+} from '@/utils/predictionMath';
 
 interface TradeIdeaCardProps {
   idea: TradeIdea;
@@ -55,8 +60,25 @@ export function TradeIdeaCard({
   const [isExpanded, setIsExpanded] = useState(false);
 
   const expectedReturn = ((idea.target_price - idea.entry_price) / idea.entry_price) * 100;
-  const suggestedAmount = (userBankroll * (idea.suggested_allocation / 100));
   const isBullish = idea.direction === 'buy_yes' || idea.direction === 'sell_no';
+
+  // Calculate sizing using pure TypeScript math (AI only provides confidence score)
+  const sizing = useMemo(() => {
+    const winProbability = idea.confidence / 100;
+    const decimalOdds = priceToDecimalOdds(idea.entry_price);
+    const kelly = calculateKellyCriterion(winProbability, decimalOdds);
+    // Use quarter Kelly for display (conservative default)
+    const suggestedFraction = kelly.quarterKelly;
+    const suggestedAmount = userBankroll * suggestedFraction;
+    const suggestedPercent = suggestedFraction * 100;
+    
+    return {
+      suggestedAmount,
+      suggestedPercent,
+      isPositiveEV: kelly.isPositiveEV,
+      edge: kelly.edge * 100,
+    };
+  }, [idea.confidence, idea.entry_price, userBankroll]);
 
   const getIdeaTypeLabel = () => {
     if (idea.supporting_evidence?.some(e => e.type === 'arbitrage')) {
@@ -240,15 +262,18 @@ export function TradeIdeaCard({
 
               <Separator />
 
-              {/* Sizing & Risk */}
+              {/* Sizing & Risk - Calculated locally using Kelly Criterion */}
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1">
                   <p className="text-xs text-muted-foreground flex items-center gap-1">
                     <Calculator className="h-3 w-3" />
-                    Sizing
+                    Sizing (¼ Kelly)
                   </p>
                   <p className="text-sm font-medium">
-                    ${suggestedAmount.toFixed(0)} ({idea.suggested_allocation.toFixed(1)}% of bankroll)
+                    ${sizing.suggestedAmount.toFixed(0)} ({sizing.suggestedPercent.toFixed(1)}% of bankroll)
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Edge: {sizing.isPositiveEV ? '+' : ''}{sizing.edge.toFixed(1)}%
                   </p>
                 </div>
                 <div className="space-y-1">

@@ -7,14 +7,25 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Slider } from '@/components/ui/slider';
 import { Separator } from '@/components/ui/separator';
 import { 
   Calculator, DollarSign, PieChart, TrendingUp, TrendingDown,
-  AlertTriangle, Shield, Target
+  AlertTriangle, Shield, Target, Info
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { TradeIdea } from './TradeIdeasDashboard';
+import {
+  calculateKellyCriterion,
+  calculateExpectedValue,
+  calculatePositionSize,
+  priceToDecimalOdds,
+} from '@/utils/predictionMath';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 
 interface CalculateSizeModalProps {
   idea: TradeIdea | null;
@@ -36,59 +47,59 @@ export function CalculateSizeModal({
   const [customBankroll, setCustomBankroll] = useState(userBankroll);
   const [kellyMode, setKellyMode] = useState<KellyMode>('quarter');
   const [existingExposure, setExistingExposure] = useState(0);
+  // Allow user to override confidence if they disagree with AI
+  const [customConfidence, setCustomConfidence] = useState<number | null>(null);
 
   if (!idea) return null;
 
   const expectedReturn = ((idea.target_price - idea.entry_price) / idea.entry_price) * 100;
-  const maxLoss = ((idea.entry_price - idea.stop_loss_price) / idea.entry_price) * 100;
+  const maxLossPercent = ((idea.entry_price - idea.stop_loss_price) / idea.entry_price) * 100;
   const isBullish = idea.direction === 'buy_yes' || idea.direction === 'sell_no';
 
-  // Calculate position sizes
+  // Use AI confidence as win probability, or custom override
+  const winProbability = (customConfidence ?? idea.confidence) / 100;
+
+  // Calculate using pure TypeScript utilities - NO AI
   const calculations = useMemo(() => {
     const effectiveBankroll = customBankroll - existingExposure;
     
-    // Kelly criterion: f* = (bp - q) / b
-    // where b = odds received (target/entry - 1), p = win probability, q = 1-p
-    const b = idea.target_price / idea.entry_price - 1;
-    const p = idea.confidence / 100;
-    const q = 1 - p;
+    // Convert entry price to decimal odds
+    const decimalOdds = priceToDecimalOdds(idea.entry_price);
     
-    const fullKelly = Math.max(0, (b * p - q) / b);
-    const halfKelly = fullKelly / 2;
-    const quarterKelly = fullKelly / 4;
-
+    // Calculate Kelly criterion
+    const kelly = calculateKellyCriterion(winProbability, decimalOdds);
+    
+    // Select Kelly fraction based on mode
     const kellyMultiplier = kellyMode === 'full' ? 1 : kellyMode === 'half' ? 0.5 : 0.25;
-    const suggestedFraction = fullKelly * kellyMultiplier;
+    const selectedKellyFraction = kelly.fullKelly * kellyMultiplier;
     
-    const suggestedAmount = effectiveBankroll * suggestedFraction;
-    const suggestedPercentage = suggestedFraction * 100;
-
-    // Expected value calculation
-    const expectedValue = p * (idea.target_price - idea.entry_price) - q * (idea.entry_price - idea.stop_loss_price);
-    const expectedValuePercent = (expectedValue / idea.entry_price) * 100;
-
-    // Risk metrics
-    const maxLossAmount = suggestedAmount * (maxLoss / 100);
-    const maxGainAmount = suggestedAmount * (expectedReturn / 100);
-
-    // Portfolio impact
-    const newExposure = existingExposure + suggestedAmount;
+    // Calculate position size
+    const position = calculatePositionSize(
+      customBankroll,
+      selectedKellyFraction,
+      idea.entry_price,
+      idea.target_price,
+      idea.stop_loss_price,
+      existingExposure
+    );
+    
+    // Calculate expected value
+    const ev = calculateExpectedValue(winProbability, decimalOdds);
+    
+    // Portfolio exposure
+    const newExposure = existingExposure + position.positionSize;
     const exposurePercent = (newExposure / customBankroll) * 100;
 
     return {
-      fullKelly: fullKelly * 100,
-      halfKelly: halfKelly * 100,
-      quarterKelly: quarterKelly * 100,
-      suggestedAmount,
-      suggestedPercentage,
-      expectedValue: expectedValuePercent,
-      maxLossAmount,
-      maxGainAmount,
+      kelly,
+      position,
+      ev,
+      selectedKellyFraction,
+      effectiveBankroll,
       newExposure,
       exposurePercent,
-      effectiveBankroll,
     };
-  }, [idea, customBankroll, existingExposure, kellyMode]);
+  }, [idea, customBankroll, existingExposure, kellyMode, winProbability]);
 
   const kellyModeLabel: Record<KellyMode, string> = {
     quarter: 'Conservative (Quarter Kelly)',
@@ -98,11 +109,11 @@ export function CalculateSizeModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Calculator className="h-5 w-5 text-primary" />
-            Calculate Position Size
+            Position Sizing Calculator
           </DialogTitle>
         </DialogHeader>
 
@@ -110,7 +121,7 @@ export function CalculateSizeModal({
           {/* Trade Summary */}
           <div className="p-4 bg-muted/50 rounded-lg">
             <h4 className="font-medium mb-2">{idea.market?.title || 'Trade'}</h4>
-            <div className="flex items-center gap-3 text-sm">
+            <div className="flex items-center gap-3 text-sm flex-wrap">
               <Badge 
                 variant="outline"
                 className={cn(
@@ -124,7 +135,6 @@ export function CalculateSizeModal({
               </Badge>
               <span>@ {idea.entry_price.toFixed(2)}</span>
               <span>→ Target: {idea.target_price.toFixed(2)}</span>
-              <Badge variant="secondary">{idea.confidence}% confidence</Badge>
             </div>
           </div>
 
@@ -159,6 +169,55 @@ export function CalculateSizeModal({
                 Amount already committed to other trades
               </p>
             </div>
+          </div>
+
+          {/* Win Probability (AI Confidence) */}
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <Label htmlFor="confidence">Win Probability</Label>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger>
+                    <Info className="h-4 w-4 text-muted-foreground" />
+                  </TooltipTrigger>
+                  <TooltipContent className="max-w-xs">
+                    <p>AI provides a confidence score as the estimated win probability. 
+                    You can override this if you disagree with the AI's assessment.</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="relative flex-1">
+                <Input
+                  id="confidence"
+                  type="number"
+                  min={1}
+                  max={99}
+                  value={customConfidence ?? idea.confidence}
+                  onChange={(e) => {
+                    const val = parseInt(e.target.value);
+                    if (val >= 1 && val <= 99) {
+                      setCustomConfidence(val);
+                    }
+                  }}
+                  className="pr-8"
+                />
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground">%</span>
+              </div>
+              {customConfidence !== null && customConfidence !== idea.confidence && (
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  onClick={() => setCustomConfidence(null)}
+                >
+                  Reset to AI: {idea.confidence}%
+                </Button>
+              )}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              AI confidence: {idea.confidence}% • Used as win probability in Kelly formula
+            </p>
           </div>
 
           {/* Kelly Mode Selection */}
@@ -199,10 +258,10 @@ export function CalculateSizeModal({
                 <div className="text-center">
                   <p className="text-sm text-muted-foreground mb-1">Suggested Position Size</p>
                   <p className="text-4xl font-bold text-primary">
-                    ${calculations.suggestedAmount.toFixed(0)}
+                    ${calculations.position.positionSize.toFixed(0)}
                   </p>
                   <p className="text-sm text-muted-foreground mt-1">
-                    {calculations.suggestedPercentage.toFixed(1)}% of bankroll
+                    {calculations.position.positionPercent.toFixed(1)}% of bankroll
                   </p>
                 </div>
               </CardContent>
@@ -215,25 +274,43 @@ export function CalculateSizeModal({
                 kellyMode === 'quarter' ? "bg-primary/10 ring-2 ring-primary" : "bg-muted/50"
               )}>
                 <p className="text-xs text-muted-foreground">Quarter Kelly</p>
-                <p className="font-semibold">{calculations.quarterKelly.toFixed(1)}%</p>
-                <p className="text-xs">${(calculations.effectiveBankroll * calculations.quarterKelly / 100).toFixed(0)}</p>
+                <p className="font-semibold">{(calculations.kelly.quarterKelly * 100).toFixed(1)}%</p>
+                <p className="text-xs">${(calculations.effectiveBankroll * calculations.kelly.quarterKelly).toFixed(0)}</p>
               </div>
               <div className={cn(
                 "p-3 rounded-lg text-center",
                 kellyMode === 'half' ? "bg-primary/10 ring-2 ring-primary" : "bg-muted/50"
               )}>
                 <p className="text-xs text-muted-foreground">Half Kelly</p>
-                <p className="font-semibold">{calculations.halfKelly.toFixed(1)}%</p>
-                <p className="text-xs">${(calculations.effectiveBankroll * calculations.halfKelly / 100).toFixed(0)}</p>
+                <p className="font-semibold">{(calculations.kelly.halfKelly * 100).toFixed(1)}%</p>
+                <p className="text-xs">${(calculations.effectiveBankroll * calculations.kelly.halfKelly).toFixed(0)}</p>
               </div>
               <div className={cn(
                 "p-3 rounded-lg text-center",
                 kellyMode === 'full' ? "bg-primary/10 ring-2 ring-primary" : "bg-muted/50"
               )}>
                 <p className="text-xs text-muted-foreground">Full Kelly</p>
-                <p className="font-semibold">{calculations.fullKelly.toFixed(1)}%</p>
-                <p className="text-xs">${(calculations.effectiveBankroll * calculations.fullKelly / 100).toFixed(0)}</p>
+                <p className="font-semibold">{(calculations.kelly.fullKelly * 100).toFixed(1)}%</p>
+                <p className="text-xs">${(calculations.effectiveBankroll * calculations.kelly.fullKelly).toFixed(0)}</p>
               </div>
+            </div>
+
+            {/* Edge indicator */}
+            <div className="p-3 bg-muted/50 rounded-lg">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">Your Edge</span>
+                <span className={cn(
+                  "font-medium",
+                  calculations.kelly.edge > 0 ? "text-emerald-500" : "text-rose-500"
+                )}>
+                  {(calculations.kelly.edge * 100).toFixed(1)}%
+                </span>
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">
+                {calculations.kelly.isPositiveEV 
+                  ? "✓ Positive expected value - bet has edge"
+                  : "✗ Negative expected value - no edge detected"}
+              </p>
             </div>
 
             {/* Risk/Reward */}
@@ -244,7 +321,7 @@ export function CalculateSizeModal({
                   Max Potential Gain
                 </p>
                 <p className="text-lg font-bold text-emerald-500">
-                  +${calculations.maxGainAmount.toFixed(0)}
+                  +${calculations.position.maxGain.toFixed(0)}
                 </p>
                 <p className="text-xs text-muted-foreground">
                   +{expectedReturn.toFixed(1)}% return
@@ -256,10 +333,10 @@ export function CalculateSizeModal({
                   Max Potential Loss
                 </p>
                 <p className="text-lg font-bold text-rose-500">
-                  -${calculations.maxLossAmount.toFixed(0)}
+                  -${calculations.position.maxLoss.toFixed(0)}
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  -{maxLoss.toFixed(1)}% at stop loss
+                  -{maxLossPercent.toFixed(1)}% at stop loss
                 </p>
               </div>
             </div>
@@ -270,14 +347,24 @@ export function CalculateSizeModal({
                 <span className="font-medium">Expected Value (EV)</span>
                 <span className={cn(
                   "text-lg font-bold",
-                  calculations.expectedValue >= 0 ? "text-emerald-500" : "text-rose-500"
+                  calculations.ev.isPositiveEV ? "text-emerald-500" : "text-rose-500"
                 )}>
-                  {calculations.expectedValue >= 0 ? '+' : ''}{calculations.expectedValue.toFixed(2)}%
+                  {calculations.ev.expectedValuePercent >= 0 ? '+' : ''}{calculations.ev.expectedValuePercent.toFixed(2)}%
                 </span>
               </div>
               <p className="text-xs text-muted-foreground mt-1">
-                Per dollar invested, based on {idea.confidence}% win probability
+                Per dollar invested, based on {(winProbability * 100).toFixed(0)}% win probability
               </p>
+            </div>
+
+            {/* Risk/Reward Ratio */}
+            <div className="p-3 bg-muted/50 rounded-lg">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">Risk/Reward Ratio</span>
+                <span className="font-medium">
+                  1:{calculations.position.riskRewardRatio.toFixed(2)}
+                </span>
+              </div>
             </div>
 
             {/* Portfolio Impact Warning */}
@@ -293,6 +380,27 @@ export function CalculateSizeModal({
                 </div>
               </div>
             )}
+
+            {/* No edge warning */}
+            {!calculations.kelly.isPositiveEV && (
+              <div className="flex items-start gap-2 p-3 bg-rose-500/10 border border-rose-500/20 rounded-lg">
+                <AlertTriangle className="h-4 w-4 text-rose-500 mt-0.5" />
+                <div>
+                  <p className="text-sm font-medium text-rose-500">No Edge Detected</p>
+                  <p className="text-xs text-muted-foreground">
+                    Based on your win probability estimate, this bet has negative expected value.
+                    Kelly suggests 0% allocation. Consider passing on this trade.
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Formula explanation */}
+          <div className="p-3 bg-muted/30 rounded-lg text-xs text-muted-foreground">
+            <p className="font-medium mb-1">Kelly Formula: f* = (bp - q) / b</p>
+            <p>where b = odds - 1, p = win probability, q = 1 - p</p>
+            <p className="mt-1">All calculations done locally in TypeScript - no AI involved in sizing.</p>
           </div>
 
           {/* Actions */}
