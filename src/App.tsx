@@ -36,6 +36,7 @@ import Screener from "./pages/Screener";
 import PortfolioVisualizer from "./pages/PortfolioVisualizer";
 import PredictionMarketsAI from "./pages/PredictionMarketsAI";
 import DiscoveryHub from "./pages/DiscoveryHub";
+import NewsIntelligence from "./pages/NewsIntelligence";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -55,6 +56,7 @@ const App = () => (
                   <Layout>
                     <Routes>
                       <Route path="/" element={<EnhancedDashboard />} />
+                      <Route path="/news" element={<NewsIntelligence />} />
                       <Route path="/auth" element={<Auth />} />
                       <Route path="/pipeline" element={<Pipeline />} />
                       <Route path="/portfolio" element={<Portfolio />} />
