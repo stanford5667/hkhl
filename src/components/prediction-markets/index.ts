@@ -4,3 +4,7 @@ export { NewsFeedItem } from './NewsFeedItem';
 export { AIAnalysisPanel } from './AIAnalysisPanel';
 export { SentimentTimeline } from './SentimentTimeline';
 export { NewsMarketGraph } from './NewsMarketGraph';
+export { TradeIdeasDashboard } from './TradeIdeasDashboard';
+export { TradeIdeaCard } from './TradeIdeaCard';
+export { FullAnalysisModal } from './FullAnalysisModal';
+export { CalculateSizeModal } from './CalculateSizeModal';
