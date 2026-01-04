@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -18,6 +18,13 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Switch } from "@/components/ui/switch";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   LayoutDashboard,
   Users,
@@ -40,6 +47,9 @@ import {
   Brain,
   PieChart,
   Compass,
+  SlidersHorizontal,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 
 interface NavItem {
@@ -51,14 +61,37 @@ interface NavItem {
   requiresAssetType?: string;
 }
 
+const STORAGE_KEY = "sidebar-hidden-tabs";
+
 export function Sidebar() {
   const [collapsed, setCollapsed] = useState(false);
+  const [hiddenTabs, setHiddenTabs] = useState<string[]>(() => {
+    try {
+      const stored = localStorage.getItem(STORAGE_KEY);
+      return stored ? JSON.parse(stored) : [];
+    } catch {
+      return [];
+    }
+  });
   const location = useLocation();
   const { signOut } = useAuth();
   const { userProfile, currentOrganization, enabledAssetTypes } = useOrganization();
 
+  // Persist hidden tabs to localStorage
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(hiddenTabs));
+  }, [hiddenTabs]);
+
+  const toggleTab = (href: string) => {
+    setHiddenTabs(prev => 
+      prev.includes(href) 
+        ? prev.filter(h => h !== href)
+        : [...prev, href]
+    );
+  };
+
   // Build navigation based on enabled asset types
-  const navigation = useMemo<NavItem[]>(() => {
+  const allNavigation = useMemo<NavItem[]>(() => {
     const items: NavItem[] = [
       { 
         label: "Dashboard", 
@@ -159,6 +192,12 @@ export function Sidebar() {
 
     return items;
   }, [enabledAssetTypes]);
+
+  // Filter out hidden tabs for display
+  const navigation = useMemo(() => 
+    allNavigation.filter(item => !hiddenTabs.includes(item.href)),
+    [allNavigation, hiddenTabs]
+  );
 
   const NavLink = ({ item }: { item: NavItem }) => {
     const isActive = location.pathname === item.href || 
@@ -276,6 +315,69 @@ export function Sidebar() {
 
       {/* Bottom Section */}
       <div className="border-t border-slate-800 p-2 space-y-1">
+        {/* Tab Visibility Control */}
+        <Popover>
+          <PopoverTrigger asChild>
+            <button
+              className={cn(
+                "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200",
+                "text-slate-400 hover:bg-slate-800/50 hover:text-white",
+                collapsed && "justify-center px-2"
+              )}
+            >
+              <SlidersHorizontal className="h-5 w-5 flex-shrink-0 text-slate-500" />
+              {!collapsed && <span>Customize Tabs</span>}
+            </button>
+          </PopoverTrigger>
+          <PopoverContent 
+            side="right" 
+            align="end" 
+            className="w-64 p-0 bg-slate-900 border-slate-800"
+          >
+            <div className="p-3 border-b border-slate-800">
+              <h4 className="font-medium text-white text-sm">Show/Hide Tabs</h4>
+              <p className="text-xs text-slate-400 mt-1">Toggle visibility of navigation items</p>
+            </div>
+            <ScrollArea className="h-[300px]">
+              <div className="p-2 space-y-1">
+                {allNavigation.map((item) => {
+                  const Icon = item.icon;
+                  const isVisible = !hiddenTabs.includes(item.href);
+                  return (
+                    <div
+                      key={item.href}
+                      className="flex items-center justify-between px-2 py-2 rounded-lg hover:bg-slate-800/50"
+                    >
+                      <div className="flex items-center gap-2">
+                        <Icon className="h-4 w-4 text-slate-500" />
+                        <span className="text-sm text-slate-300">{item.label}</span>
+                      </div>
+                      <Switch
+                        checked={isVisible}
+                        onCheckedChange={() => toggleTab(item.href)}
+                        className="data-[state=checked]:bg-emerald-600"
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+            </ScrollArea>
+            {hiddenTabs.length > 0 && (
+              <div className="p-2 border-t border-slate-800">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setHiddenTabs([])}
+                  className="w-full text-xs text-slate-400 hover:text-white"
+                >
+                  <Eye className="h-3 w-3 mr-1" />
+                  Show All ({hiddenTabs.length} hidden)
+                </Button>
+              </div>
+            )}
+          </PopoverContent>
+        </Popover>
+
         {/* Settings */}
         <NavLink 
           item={{ 
