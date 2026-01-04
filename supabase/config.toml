@@ -152,3 +152,6 @@ verify_jwt = false
 
 [functions.get-article-intelligence]
 verify_jwt = false
+
+[functions.fetch-newsapi-ai]
+verify_jwt = false
