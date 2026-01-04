@@ -36,7 +36,24 @@ import {
   Download,
   CircleDot,
   BookOpen,
+  Save,
+  FolderOpen,
+  Trash2,
 } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { useAuth } from '@/contexts/AuthContext';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -338,8 +355,18 @@ function IPSSummaryCard({ policy }: { policy: InvestorPolicyStatement }) {
 }
 
 export default function PortfolioVisualizer() {
+  // Auth and query client
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+  
   // Onboarding state
   const { showOnboarding, completeOnboarding } = useWelcomeOnboarding();
+  
+  // Save/Load portfolio state
+  const [saveDialogOpen, setSaveDialogOpen] = useState(false);
+  const [loadDialogOpen, setLoadDialogOpen] = useState(false);
+  const [portfolioName, setPortfolioName] = useState('');
+  const [portfolioDescription, setPortfolioDescription] = useState('');
   
   // Flow state
   const [currentFlow, setCurrentFlow] = useState<AppFlow>('choose-path');
@@ -407,6 +434,79 @@ export default function PortfolioVisualizer() {
   
   const toggleTabVisibility = (tabId: string) => {
     setVisibleTabs(prev => ({ ...prev, [tabId]: !prev[tabId as keyof typeof prev] }));
+  };
+
+  // Saved Portfolios Query
+  const { data: savedPortfolios = [], refetch: refetchSavedPortfolios } = useQuery({
+    queryKey: ['saved-portfolios', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return [];
+      const { data, error } = await supabase
+        .from('saved_portfolios')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('updated_at', { ascending: false });
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!user?.id,
+  });
+
+  // Save Portfolio Mutation
+  const savePortfolioMutation = useMutation({
+    mutationFn: async ({ name, description }: { name: string; description: string }) => {
+      if (!user?.id) throw new Error('Must be logged in to save portfolio');
+      const { error } = await supabase.from('saved_portfolios').insert([{
+        user_id: user.id,
+        name,
+        description,
+        allocations: JSON.parse(JSON.stringify(allocations)),
+        investor_profile: JSON.parse(JSON.stringify(investorProfile)),
+        portfolio_mode: portfolioMode,
+      }]);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success('Portfolio saved successfully');
+      setSaveDialogOpen(false);
+      setPortfolioName('');
+      setPortfolioDescription('');
+      refetchSavedPortfolios();
+    },
+    onError: (error: Error) => {
+      toast.error(`Failed to save: ${error.message}`);
+    },
+  });
+
+  // Delete Portfolio Mutation
+  const deletePortfolioMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from('saved_portfolios').delete().eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success('Portfolio deleted');
+      refetchSavedPortfolios();
+    },
+    onError: (error: Error) => {
+      toast.error(`Failed to delete: ${error.message}`);
+    },
+  });
+
+  // Load a saved portfolio
+  const loadPortfolio = (saved: { 
+    allocations: unknown; 
+    investor_profile: unknown; 
+    portfolio_mode: string | null;
+  }) => {
+    const loadedAllocations = saved.allocations as PortfolioAllocation[];
+    const loadedProfile = saved.investor_profile as InvestorProfile;
+    setAllocations(loadedAllocations);
+    setInvestorProfile(loadedProfile || DEFAULT_PROFILE);
+    setPortfolioMode((saved.portfolio_mode as PortfolioMode) || 'manual');
+    setLoadDialogOpen(false);
+    setCurrentFlow('results');
+    toast.success('Portfolio loaded');
   };
 
   // NEW: Use the portfolio calculations hook when we have allocations and are showing results
@@ -1359,6 +1459,112 @@ export default function PortfolioVisualizer() {
                   </DropdownMenuCheckboxItem>
                 </DropdownMenuContent>
               </DropdownMenu>
+              
+              {/* Save Portfolio Button */}
+              {user && (
+                <Dialog open={saveDialogOpen} onOpenChange={setSaveDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button variant="outline" size="sm">
+                      <Save className="h-4 w-4 mr-2" />
+                      Save
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Save Portfolio</DialogTitle>
+                      <DialogDescription>
+                        Save this portfolio configuration to load later.
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="name">Portfolio Name</Label>
+                        <Input
+                          id="name"
+                          placeholder="My Growth Portfolio"
+                          value={portfolioName}
+                          onChange={(e) => setPortfolioName(e.target.value)}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="description">Description (optional)</Label>
+                        <Textarea
+                          id="description"
+                          placeholder="High-growth tech-focused portfolio..."
+                          value={portfolioDescription}
+                          onChange={(e) => setPortfolioDescription(e.target.value)}
+                        />
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        {allocations.length} assets • {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(investorProfile.investableCapital)}
+                      </div>
+                    </div>
+                    <DialogFooter>
+                      <Button
+                        onClick={() => savePortfolioMutation.mutate({ name: portfolioName, description: portfolioDescription })}
+                        disabled={!portfolioName.trim() || savePortfolioMutation.isPending}
+                      >
+                        {savePortfolioMutation.isPending ? (
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        ) : (
+                          <Save className="h-4 w-4 mr-2" />
+                        )}
+                        Save Portfolio
+                      </Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+              )}
+
+              {/* Load Portfolio Button */}
+              {user && savedPortfolios.length > 0 && (
+                <Dialog open={loadDialogOpen} onOpenChange={setLoadDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button variant="outline" size="sm">
+                      <FolderOpen className="h-4 w-4 mr-2" />
+                      Load
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-lg">
+                    <DialogHeader>
+                      <DialogTitle>Load Saved Portfolio</DialogTitle>
+                      <DialogDescription>
+                        Select a previously saved portfolio to load.
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-2 max-h-[400px] overflow-y-auto py-4">
+                      {savedPortfolios.map((saved) => (
+                        <div
+                          key={saved.id}
+                          className="flex items-center justify-between p-3 rounded-lg border hover:bg-muted/50 cursor-pointer transition-colors"
+                          onClick={() => loadPortfolio(saved)}
+                        >
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium truncate">{saved.name}</p>
+                            {saved.description && (
+                              <p className="text-xs text-muted-foreground truncate">{saved.description}</p>
+                            )}
+                            <p className="text-xs text-muted-foreground mt-1">
+                              {saved.portfolio_mode} • {new Date(saved.updated_at).toLocaleDateString()}
+                            </p>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="ml-2 text-muted-foreground hover:text-destructive"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              deletePortfolioMutation.mutate(saved.id);
+                            }}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  </DialogContent>
+                </Dialog>
+              )}
               
               <Button variant="outline" onClick={resetWizard}>
                 <RefreshCw className="h-4 w-4 mr-2" />

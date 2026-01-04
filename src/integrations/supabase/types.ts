@@ -2454,6 +2454,42 @@ export type Database = {
           },
         ]
       }
+      saved_portfolios: {
+        Row: {
+          allocations: Json
+          created_at: string
+          description: string | null
+          id: string
+          investor_profile: Json | null
+          name: string
+          portfolio_mode: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          allocations?: Json
+          created_at?: string
+          description?: string | null
+          id?: string
+          investor_profile?: Json | null
+          name: string
+          portfolio_mode?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          allocations?: Json
+          created_at?: string
+          description?: string | null
+          id?: string
+          investor_profile?: Json | null
+          name?: string
+          portfolio_mode?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       stock_price_cache: {
         Row: {
           adjusted_close: number | null
