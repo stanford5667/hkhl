@@ -184,12 +184,6 @@ export function Sidebar() {
         icon: PieChart 
       },
       { 
-        label: "AI Markets", 
-        subtitle: "Prediction Markets AI",
-        href: "/prediction-ai", 
-        icon: Brain 
-      },
-      { 
         label: "Discovery", 
         subtitle: "Market Terminal",
         href: "/discovery", 
