@@ -37,6 +37,7 @@ import Watchlist from "./pages/Watchlist";
 import Screener from "./pages/Screener";
 import PortfolioVisualizer from "./pages/PortfolioVisualizer";
 import PredictionMarketsAI from "./pages/PredictionMarketsAI";
+import DiscoveryHub from "./pages/DiscoveryHub";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -81,6 +82,7 @@ const App = () => (
                       <Route path="/screener" element={<Screener />} />
                       <Route path="/portfolio-visualizer" element={<PortfolioVisualizer />} />
                       <Route path="/prediction-ai" element={<PredictionMarketsAI />} />
+                      <Route path="/discovery" element={<DiscoveryHub />} />
                       {/* Redirects from old routes */}
                       <Route path="/companies" element={<Navigate to="/portfolio" replace />} />
                       <Route path="/companies/:id" element={<CompanyRedirect />} />
