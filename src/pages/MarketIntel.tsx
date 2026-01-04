@@ -105,6 +105,27 @@ export default function MarketIntel() {
         />
       </div>
 
+      {/* News Redirect Notice */}
+      <Card className="bg-gradient-to-r from-amber-950/30 to-slate-900/50 border-amber-500/20">
+        <CardContent className="p-4 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-amber-500/20">
+              <Zap className="h-5 w-5 text-amber-400" />
+            </div>
+            <div>
+              <p className="font-medium text-white">Looking for news signals?</p>
+              <p className="text-sm text-slate-400">We've moved news to a dedicated Intelligence Feed with AI-powered analysis.</p>
+            </div>
+          </div>
+          <Button asChild variant="outline" className="border-amber-500/30 text-amber-400 hover:bg-amber-500/10">
+            <a href="/news" className="flex items-center gap-2">
+              <span>Visit Intelligence Feed</span>
+              <ChevronRight className="h-4 w-4" />
+            </a>
+          </Button>
+        </CardContent>
+      </Card>
+
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="flex flex-wrap h-auto gap-1 bg-secondary/50 p-1">
@@ -115,10 +136,6 @@ export default function MarketIntel() {
           <TabsTrigger value="health" className="text-sm">
             <Activity className="h-4 w-4 mr-1.5" />
             Health
-          </TabsTrigger>
-          <TabsTrigger value="signals" className="text-sm">
-            <Zap className="h-4 w-4 mr-1.5" />
-            Signals
           </TabsTrigger>
           <TabsTrigger value="macro" className="text-sm">
             <Globe className="h-4 w-4 mr-1.5" />
@@ -156,10 +173,6 @@ export default function MarketIntel() {
 
         <TabsContent value="health" className="mt-6">
           <HealthContent />
-        </TabsContent>
-
-        <TabsContent value="signals" className="mt-6">
-          <SignalsContent />
         </TabsContent>
 
         <TabsContent value="macro" className="mt-6">
@@ -490,69 +503,6 @@ function HealthContent() {
                 </div>
               );
             })}
-          </div>
-        </Card>
-      </div>
-    </div>
-  );
-}
-
-function SignalsContent() {
-  const { data: alerts } = useAlerts();
-  
-  return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-      <div className="lg:col-span-2 space-y-4">
-        <div className="flex justify-between items-center">
-          <h3 className="text-lg font-medium">Alert Feed</h3>
-          <Button variant="outline" size="sm">Mark All Read</Button>
-        </div>
-        <div className="space-y-3">
-          {alerts?.map((a: any) => (
-            <Card 
-              key={a.id} 
-              className={`p-4 border-l-4 ${
-                a.severity === 'critical' 
-                  ? 'border-l-rose-500 bg-rose-900/10' 
-                  : a.severity === 'warning' 
-                    ? 'border-l-yellow-500 bg-yellow-900/10' 
-                    : 'border-l-blue-500 bg-card/50'
-              }`}
-            >
-              <div className="flex justify-between mb-2">
-                <div className="flex items-center gap-2">
-                  <Badge variant="outline">{a.portfolio_assets?.name || 'Portfolio'}</Badge>
-                  <Badge variant={a.severity === 'critical' ? 'destructive' : 'secondary'}>{a.severity}</Badge>
-                </div>
-                <span className="text-xs text-muted-foreground">{new Date(a.created_at).toLocaleDateString()}</span>
-              </div>
-              <h4 className="font-medium">{a.title}</h4>
-              <p className="text-sm text-muted-foreground mt-1">{a.description}</p>
-            </Card>
-          ))}
-        </div>
-      </div>
-      <div className="space-y-6">
-        <Card className="bg-secondary/50 border-border p-6">
-          <h3 className="text-lg font-medium mb-4">Alert Settings</h3>
-          <div className="space-y-3 text-sm">
-            {['Revenue variance > 10%', 'EBITDA margin decline > 200bps', 'Covenant headroom < 15%', 'Key departures', 'Competitor news'].map((s) => (
-              <div key={s} className="flex justify-between items-center">
-                <span className="text-muted-foreground">{s}</span>
-                <div className="w-10 h-5 bg-primary rounded-full p-0.5">
-                  <div className="h-4 w-4 bg-background rounded-full translate-x-5" />
-                </div>
-              </div>
-            ))}
-          </div>
-        </Card>
-        <Card className="bg-secondary/50 border-border p-6">
-          <h3 className="text-lg font-medium mb-4">Watchlist</h3>
-          <div className="flex flex-wrap gap-2">
-            <Badge variant="secondary">Midwest Mfg</Badge>
-            <Badge variant="secondary">Consumer Brands</Badge>
-            <Badge variant="secondary">Fed Policy</Badge>
-            <Badge variant="outline">+ Add</Badge>
           </div>
         </Card>
       </div>
