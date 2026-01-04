@@ -83,6 +83,7 @@ import { EducationalDashboard } from '@/components/backtester/EducationalDashboa
 import { InvestorPolicyQuestionnaire } from '@/components/backtester/InvestorPolicyQuestionnaire';
 import { DataValidationPanel } from '@/components/backtester/DataValidationPanel';
 import { CalculationVerificationPanel } from '@/components/backtester/CalculationVerificationPanel';
+import { SavedPortfoliosPanel } from '@/components/backtester/SavedPortfoliosPanel';
 import { MetricExplanationCard } from '@/components/shared/MetricExplanationCard';
 import { ErrorBoundary } from '@/components/shared/ErrorBoundary';
 import { MetricGridSkeleton } from '@/components/shared/MetricCardSkeleton';
@@ -1222,6 +1223,35 @@ export default function PortfolioVisualizer() {
           onSelectAIChat={() => setCurrentFlow('ai-wizard')}
           onSelectQuestionnaire={() => setCurrentFlow('questionnaire')}
         />
+        
+        {/* Saved Portfolios Section */}
+        {user && savedPortfolios.length > 0 && (
+          <div className="max-w-6xl mx-auto px-6 pb-12">
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-primary/10">
+                      <FolderOpen className="h-5 w-5 text-primary" />
+                    </div>
+                    <div>
+                      <CardTitle>Saved Portfolios</CardTitle>
+                      <CardDescription>Continue where you left off</CardDescription>
+                    </div>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <SavedPortfoliosPanel
+                  portfolios={savedPortfolios}
+                  onLoad={loadPortfolio}
+                  onDelete={(id) => deletePortfolioMutation.mutate(id)}
+                  isDeleting={deletePortfolioMutation.isPending}
+                />
+              </CardContent>
+            </Card>
+          </div>
+        )}
       </div>
     );
   }
