@@ -30,8 +30,6 @@ import CashFlowBuildupPage from "./pages/CashFlowBuildupPage";
 import ModelViewerPage from "./pages/ModelViewerPage";
 import Tasks from "./pages/Tasks";
 import Research from "./pages/Research";
-import Backtester from "./pages/Backtester";
-import PortfolioBacktester from "./pages/PortfolioBacktester";
 import Backtest from "./pages/Backtest";
 import Watchlist from "./pages/Watchlist";
 import Screener from "./pages/Screener";
@@ -75,8 +73,6 @@ const App = () => (
                       <Route path="/settings" element={<Settings />} />
                       <Route path="/settings/organization" element={<OrganizationSettings />} />
                       <Route path="/research" element={<Research />} />
-                      <Route path="/backtester" element={<PortfolioBacktester />} />
-                      <Route path="/strategy-tester" element={<Backtester />} />
                       <Route path="/backtest" element={<Backtest />} />
                       <Route path="/watchlist" element={<Watchlist />} />
                       <Route path="/screener" element={<Screener />} />
