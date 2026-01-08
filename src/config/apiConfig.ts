@@ -5,6 +5,31 @@
  * This prevents unwanted API charges from Perplexity, market data providers, etc.
  */
 
+/**
+ * Polygon API Subscription Limits
+ * Starter plan: 5 years of historical data
+ * Update this if you upgrade/downgrade your Polygon plan
+ */
+export const POLYGON_CONFIG = {
+  // Maximum years of historical data available on current plan
+  MAX_HISTORY_YEARS: 5,
+  
+  // Get the earliest date we can fetch based on plan
+  getEarliestDate(): string {
+    const date = new Date();
+    date.setFullYear(date.getFullYear() - this.MAX_HISTORY_YEARS);
+    return date.toISOString().split('T')[0];
+  },
+  
+  // Get date N years ago (capped at plan limit)
+  getDateYearsAgo(years: number): string {
+    const cappedYears = Math.min(years, this.MAX_HISTORY_YEARS);
+    const date = new Date();
+    date.setFullYear(date.getFullYear() - cappedYears);
+    return date.toISOString().split('T')[0];
+  },
+} as const;
+
 export const API_CONFIG = {
   // Master kill switch for Perplexity API calls
   ENABLE_PERPLEXITY: false,  // SET TO FALSE - blocks all Perplexity API calls
