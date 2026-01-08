@@ -133,6 +133,8 @@ interface ValidationData {
     quality: 'high' | 'medium' | 'low';
     status: 'valid' | 'warning' | 'error';
     rawDataSample?: number[];
+    issues?: string[];
+    expectedBars?: number;
   }[];
   calculations: {
     name: string;
@@ -713,14 +715,32 @@ export default function PortfolioVisualizer() {
         ? (diag.validationIssues && diag.validationIssues.length > 0 ? 'warning' : 'valid') 
         : 'error';
       
+      // Build comprehensive issues list
+      const issues: string[] = [];
+      if (diag.validationIssues) {
+        issues.push(...diag.validationIssues);
+      }
+      if (!diag.success && diag.error) {
+        issues.push(diag.error);
+      }
+      if (diag.bars === 0) {
+        issues.push('No data returned from API - ticker may be invalid or outside available date range');
+      }
+      
+      // Calculate expected bars (approx trading days)
+      const daysDiff = Math.ceil((new Date(endDate).getTime() - new Date(startDate).getTime()) / (1000 * 60 * 60 * 24));
+      const expectedBars = Math.floor(daysDiff * 252 / 365); // Approx trading days
+      
       return {
         ticker: diag.ticker,
-        source: 'Polygon API',
+        source: diag.source === 'cache' ? 'Polygon API (cached)' : 'Polygon API',
         dateRange: { start: startDate, end: endDate },
         bars: diag.bars || 0,
         quality: (diag.dataQuality || 'medium') as 'high' | 'medium' | 'low',
         status,
         rawDataSample: fetchResult.assetData.get(diag.ticker)?.bars.slice(0, 5).map(b => b.close),
+        issues: issues.length > 0 ? issues : undefined,
+        expectedBars,
       };
     });
 

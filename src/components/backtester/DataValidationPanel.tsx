@@ -42,6 +42,9 @@ interface DataSource {
   quality: 'high' | 'medium' | 'low';
   status: 'valid' | 'warning' | 'error';
   rawDataSample?: number[];
+  issues?: string[];
+  expectedBars?: number;
+  missingDates?: string[];
 }
 
 interface CalculationDetail {
@@ -402,13 +405,18 @@ export const DataValidationPanel: React.FC<DataValidationPanelProps> = ({
                             <TableHead className="text-right">Bars</TableHead>
                             <TableHead>Quality</TableHead>
                             <TableHead>Status</TableHead>
+                            <TableHead>Issues</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
                           {dataSources.map((source) => (
                             <TableRow
                               key={source.ticker}
-                              className="cursor-pointer hover:bg-muted/50"
+                              className={cn(
+                                "cursor-pointer hover:bg-muted/50",
+                                source.status === 'error' && "bg-rose-500/5",
+                                source.status === 'warning' && "bg-amber-500/5"
+                              )}
                               onClick={() =>
                                 setSelectedDataSource(
                                   selectedDataSource?.ticker === source.ticker ? null : source
@@ -428,6 +436,11 @@ export const DataValidationPanel: React.FC<DataValidationPanelProps> = ({
                               </TableCell>
                               <TableCell className="text-right font-mono">
                                 {source.bars.toLocaleString()}
+                                {source.expectedBars && source.bars < source.expectedBars && (
+                                  <span className="text-amber-500 text-xs ml-1">
+                                    /{source.expectedBars}
+                                  </span>
+                                )}
                               </TableCell>
                               <TableCell>
                                 <QualityBadge quality={source.quality} />
@@ -435,27 +448,145 @@ export const DataValidationPanel: React.FC<DataValidationPanelProps> = ({
                               <TableCell>
                                 <StatusIcon status={source.status} />
                               </TableCell>
+                              <TableCell className="max-w-[200px]">
+                                {source.issues && source.issues.length > 0 ? (
+                                  <TooltipProvider>
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <Badge 
+                                          variant="outline" 
+                                          className={cn(
+                                            "text-xs cursor-help",
+                                            source.status === 'error' 
+                                              ? "border-rose-500/50 text-rose-600" 
+                                              : "border-amber-500/50 text-amber-600"
+                                          )}
+                                        >
+                                          {source.issues.length} issue{source.issues.length > 1 ? 's' : ''}
+                                        </Badge>
+                                      </TooltipTrigger>
+                                      <TooltipContent side="left" className="max-w-[300px]">
+                                        <ul className="text-xs space-y-1">
+                                          {source.issues.map((issue, i) => (
+                                            <li key={i} className="flex items-start gap-1">
+                                              <span className="text-rose-500">•</span>
+                                              <span>{issue}</span>
+                                            </li>
+                                          ))}
+                                        </ul>
+                                      </TooltipContent>
+                                    </Tooltip>
+                                  </TooltipProvider>
+                                ) : (
+                                  <span className="text-xs text-muted-foreground">—</span>
+                                )}
+                              </TableCell>
                             </TableRow>
                           ))}
                         </TableBody>
                       </Table>
 
-                      {/* Raw Data Sample */}
+                      {/* Detailed Issue Panel */}
                       <AnimatePresence>
-                        {selectedDataSource && selectedDataSource.rawDataSample && (
+                        {selectedDataSource && (
                           <motion.div
                             initial={{ opacity: 0, y: -10 }}
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, y: -10 }}
-                            className="mt-4 p-4 bg-muted/50 rounded-lg"
+                            className="mt-4 p-4 bg-muted/50 rounded-lg space-y-3"
                           >
-                            <h4 className="text-sm font-medium mb-2">
-                              Raw Data Sample: {selectedDataSource.ticker}
+                            <h4 className="text-sm font-medium flex items-center gap-2">
+                              <StatusIcon status={selectedDataSource.status} />
+                              {selectedDataSource.ticker} Details
                             </h4>
-                            <div className="font-mono text-xs text-muted-foreground bg-background p-2 rounded">
-                              [{selectedDataSource.rawDataSample.slice(0, 10).join(', ')}
-                              {selectedDataSource.rawDataSample.length > 10 && ', ...'}]
+                            
+                            {/* Issues List */}
+                            {selectedDataSource.issues && selectedDataSource.issues.length > 0 && (
+                              <div className="space-y-2">
+                                <h5 className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                                  Issues Found
+                                </h5>
+                                <div className={cn(
+                                  "rounded-md border p-3 space-y-2",
+                                  selectedDataSource.status === 'error' 
+                                    ? "bg-rose-500/5 border-rose-500/20" 
+                                    : "bg-amber-500/5 border-amber-500/20"
+                                )}>
+                                  {selectedDataSource.issues.map((issue, i) => (
+                                    <div key={i} className="flex items-start gap-2 text-sm">
+                                      {selectedDataSource.status === 'error' ? (
+                                        <XCircle className="h-4 w-4 text-rose-500 mt-0.5 shrink-0" />
+                                      ) : (
+                                        <AlertTriangle className="h-4 w-4 text-amber-500 mt-0.5 shrink-0" />
+                                      )}
+                                      <span>{issue}</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                            
+                            {/* Data Summary */}
+                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm">
+                              <div>
+                                <span className="text-muted-foreground text-xs">Source</span>
+                                <p className="font-medium">{selectedDataSource.source}</p>
+                              </div>
+                              <div>
+                                <span className="text-muted-foreground text-xs">Bars Received</span>
+                                <p className="font-mono font-medium">
+                                  {selectedDataSource.bars.toLocaleString()}
+                                  {selectedDataSource.expectedBars && (
+                                    <span className="text-muted-foreground">
+                                      /{selectedDataSource.expectedBars}
+                                    </span>
+                                  )}
+                                </p>
+                              </div>
+                              <div>
+                                <span className="text-muted-foreground text-xs">Date Range</span>
+                                <p className="font-mono text-xs">
+                                  {selectedDataSource.dateRange.start} → {selectedDataSource.dateRange.end}
+                                </p>
+                              </div>
+                              <div>
+                                <span className="text-muted-foreground text-xs">Data Quality</span>
+                                <p><QualityBadge quality={selectedDataSource.quality} /></p>
+                              </div>
                             </div>
+
+                            {/* Raw Data Sample */}
+                            {selectedDataSource.rawDataSample && (
+                              <div>
+                                <h5 className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1">
+                                  Raw Data Sample
+                                </h5>
+                                <div className="font-mono text-xs text-muted-foreground bg-background p-2 rounded border">
+                                  [{selectedDataSource.rawDataSample.slice(0, 10).join(', ')}
+                                  {selectedDataSource.rawDataSample.length > 10 && ', ...'}]
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Debugging Hints */}
+                            {selectedDataSource.status !== 'valid' && (
+                              <div className="text-xs text-muted-foreground border-t pt-3 mt-3">
+                                <strong>Debug tips:</strong>
+                                <ul className="mt-1 space-y-0.5 list-disc list-inside">
+                                  {selectedDataSource.bars === 0 && (
+                                    <li>No data returned - check if ticker is valid and within Polygon API date limits (max 5 years)</li>
+                                  )}
+                                  {selectedDataSource.bars > 0 && selectedDataSource.expectedBars && 
+                                   selectedDataSource.bars < selectedDataSource.expectedBars * 0.8 && (
+                                    <li>Missing {((1 - selectedDataSource.bars / selectedDataSource.expectedBars) * 100).toFixed(0)}% of expected trading days</li>
+                                  )}
+                                  {selectedDataSource.issues?.some(i => i.includes('coverage')) && (
+                                    <li>Try a shorter date range or check if the asset was trading during this period</li>
+                                  )}
+                                  <li>Check console logs for detailed API response</li>
+                                </ul>
+                              </div>
+                            )}
                           </motion.div>
                         )}
                       </AnimatePresence>
