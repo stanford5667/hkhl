@@ -798,12 +798,18 @@ export default function Portfolio() {
 
   // Treemap data
   const treemapData = useMemo(() => {
-    return filteredHoldings.map(h => ({
-      name: h.ticker_symbol || h.name,
-      size: getHoldingValue(h, liveQuotes),
-      color: ASSET_CLASS_CONFIG[(h.asset_class || 'private_equity') as AssetClass].chartColor,
-      id: h.id,
-    }));
+    return filteredHoldings.map(h => {
+      const rawAssetClass = h.asset_class || 'public_equity';
+      const assetClass: AssetClass = ASSET_CLASS_CONFIG[rawAssetClass as AssetClass] 
+        ? (rawAssetClass as AssetClass) 
+        : 'other';
+      return {
+        name: h.ticker_symbol || h.name,
+        size: getHoldingValue(h, liveQuotes),
+        color: ASSET_CLASS_CONFIG[assetClass].chartColor,
+        id: h.id,
+      };
+    });
   }, [filteredHoldings, liveQuotes]);
 
   const handleSort = (option: SortOption) => {
