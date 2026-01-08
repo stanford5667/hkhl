@@ -173,8 +173,8 @@ export function Sidebar() {
         icon: SparklesIcon 
       },
       { 
-        label: "Visualizer", 
-        subtitle: "Portfolio Optimizer",
+        label: "Portfolio Builder", 
+        subtitle: "Build & Analyze",
         href: "/portfolio-visualizer", 
         icon: PieChart 
       },
