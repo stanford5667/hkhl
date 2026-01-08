@@ -1,11 +1,10 @@
 /**
  * Ticker Directory Service
- * Local-first search that queries the database before falling back to API
- * Reduces API calls by ~95% for common tickers
+ * Local-first search that queries the database before falling back to Polygon API
+ * Supports ALL Polygon tickers (10,000+ US stocks, ETFs, REITs)
  */
 
 import { supabase } from '@/integrations/supabase/client';
-import { searchSymbol } from './finnhubService';
 import { getCachedQuote } from './quoteCacheService';
 import type { StockQuote } from './finnhubService';
 
@@ -24,12 +23,41 @@ export interface SearchResult {
   name: string;
   exchange?: string | null;
   sector?: string | null;
+  type?: string;
   quote?: StockQuote;
-  source: 'local' | 'api';
+  source: 'local' | 'polygon' | 'api';
 }
 
 /**
- * Search tickers - local database first, then API fallback
+ * Search tickers using Polygon API (supports 10,000+ tickers)
+ */
+async function searchPolygonTickers(query: string): Promise<SearchResult[]> {
+  try {
+    const { data, error } = await supabase.functions.invoke('polygon-ticker-search', {
+      body: { query, limit: 20, market: 'stocks' }
+    });
+
+    if (error || !data?.ok) {
+      console.error('[TickerDirectory] Polygon search error:', error || data?.error);
+      return [];
+    }
+
+    return (data.results || []).map((r: any) => ({
+      symbol: r.ticker,
+      name: r.name,
+      exchange: r.primaryExchange,
+      type: r.type,
+      source: 'polygon' as const,
+    }));
+  } catch (e) {
+    console.error('[TickerDirectory] Polygon search exception:', e);
+    return [];
+  }
+}
+
+/**
+ * Search tickers - local database first, then Polygon API fallback
+ * This enables access to ALL Polygon-supported tickers (10,000+)
  */
 export async function searchTickers(query: string): Promise<SearchResult[]> {
   if (!query || query.length < 1) return [];
@@ -70,24 +98,20 @@ export async function searchTickers(query: string): Promise<SearchResult[]> {
     return localMapped;
   }
 
-  // Fallback to Finnhub for obscure tickers
-  console.log(`[TickerDirectory] Only ${localMapped.length} local results, calling API for: ${query}`);
+  // Fallback to Polygon API for comprehensive ticker search (10,000+ tickers)
+  console.log(`[TickerDirectory] Only ${localMapped.length} local results, searching Polygon for: ${query}`);
   
-  try {
-    const apiResults = await searchSymbol(query);
-    const apiMapped: SearchResult[] = apiResults
-      .filter(r => !localMapped.some(l => l.symbol === r.symbol)) // Avoid duplicates
-      .map(r => ({
-        symbol: r.symbol,
-        name: r.description,
-        source: 'api' as const,
-      }));
-
-    return [...localMapped, ...apiMapped].slice(0, 10);
-  } catch (e) {
-    console.error('[TickerDirectory] API search error:', e);
-    return localMapped;
+  const polygonResults = await searchPolygonTickers(query);
+  
+  // Merge and deduplicate
+  const merged: SearchResult[] = [...localMapped];
+  for (const pr of polygonResults) {
+    if (!merged.some(m => m.symbol === pr.symbol)) {
+      merged.push(pr);
+    }
   }
+
+  return merged.slice(0, 15);
 }
 
 /**
