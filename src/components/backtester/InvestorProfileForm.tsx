@@ -13,6 +13,7 @@ import {
   AssetClass,
   JPMORGAN_DEFAULTS 
 } from '@/types/portfolio';
+import { POLYGON_CONFIG } from '@/config/apiConfig';
 import { 
   DollarSign, 
   Clock, 
@@ -249,15 +250,15 @@ export function InvestorProfileForm({ profile, onProfileChange }: InvestorProfil
             <Input
               type="number"
               value={profile.investmentHorizon}
-              onChange={(e) => updateProfile({ investmentHorizon: Math.max(1, Number(e.target.value)) })}
+              onChange={(e) => updateProfile({ investmentHorizon: Math.min(POLYGON_CONFIG.MAX_HISTORY_YEARS, Math.max(1, Number(e.target.value))) })}
               min={1}
-              max={30}
+              max={POLYGON_CONFIG.MAX_HISTORY_YEARS}
               className="w-24"
             />
-            <span className="text-muted-foreground">years</span>
+            <span className="text-muted-foreground">years (max {POLYGON_CONFIG.MAX_HISTORY_YEARS})</span>
           </div>
           <div className="flex gap-2 mt-3">
-            {[1, 3, 5, 10, 20].map(years => (
+            {[1, 2, 3, 4, 5].filter(y => y <= POLYGON_CONFIG.MAX_HISTORY_YEARS).map(years => (
               <button
                 key={years}
                 onClick={() => updateProfile({ investmentHorizon: years })}

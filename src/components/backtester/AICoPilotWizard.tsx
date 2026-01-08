@@ -25,6 +25,7 @@ import {
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import { InvestorProfile, AssetClass } from '@/types/portfolio';
+import { POLYGON_CONFIG } from '@/config/apiConfig';
 
 type WizardStep = 'capital' | 'horizon' | 'risk' | 'preferences' | 'review';
 
@@ -44,12 +45,12 @@ const WIZARD_STEPS: { id: WizardStep; title: string; icon: React.ReactNode }[] =
 const PRESET_CAPITALS = [10000, 50000, 100000, 250000, 500000, 1000000];
 
 const TIME_HORIZONS = [
-  { years: 1, label: 'Less than 1 year', description: 'Short-term, emergency fund' },
-  { years: 3, label: '1-3 years', description: 'Medium-term goals' },
-  { years: 5, label: '3-5 years', description: 'House down payment, education' },
-  { years: 10, label: '5-10 years', description: 'Long-term growth' },
-  { years: 20, label: '10+ years', description: 'Retirement, wealth building' },
-];
+  { years: 1, label: '1 year', description: 'Short-term, emergency fund' },
+  { years: 2, label: '2 years', description: 'Near-term goals' },
+  { years: 3, label: '3 years', description: 'Medium-term goals' },
+  { years: 4, label: '4 years', description: 'Intermediate planning' },
+  { years: 5, label: '5 years', description: 'Max historical data available' },
+].filter(h => h.years <= POLYGON_CONFIG.MAX_HISTORY_YEARS);
 
 const RISK_REACTIONS = [
   { 
