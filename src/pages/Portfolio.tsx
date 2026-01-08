@@ -14,6 +14,7 @@ import { useUnifiedData, AssetClass, CompanyWithRelations, useDashboardData, typ
 import { useAuth } from '@/contexts/AuthContext';
 import { useOrgId, useOrganization, AssetType } from '@/contexts/OrganizationContext';
 import { useMarketIndices } from '@/hooks/useMarketData';
+import { useAlerts, useEvents, useEconomicIndicators } from '@/hooks/useMarketIntel';
 import { getCachedQuotes } from '@/services/quoteCacheService';
 import { supabase } from '@/integrations/supabase/client';
 import { 
@@ -48,6 +49,13 @@ import {
   BarChart3,
   Save,
   FolderOpen,
+  Zap,
+  ChevronRight,
+  Activity,
+  AlertCircle,
+  Home,
+  Coins,
+  Globe,
 } from "lucide-react";
 import { 
   DropdownMenu, 
@@ -517,6 +525,11 @@ export default function Portfolio() {
 
   // Market indices
   const { indices: marketIndicesData, isLoading: indicesLoading, refresh: refreshIndices } = useMarketIndices();
+  
+  // Market intel data for bottom sections
+  const { data: alerts } = useAlerts();
+  const { data: events } = useEvents();
+  const { data: economicIndicators } = useEconomicIndicators();
 
   // Handle creating a new portfolio
   const handleCreatePortfolio = async (data: { name: string; description: string }) => {
@@ -840,9 +853,55 @@ export default function Portfolio() {
     );
   }
 
+  // Calculate allocation by asset class for the overview
+  const allocationByClass = useMemo(() => {
+    const classMap: Record<string, { value: number; cost: number; color: string; icon: React.ElementType }> = {};
+    allHoldings.forEach(h => {
+      const assetClass = (h.asset_class as AssetClass) || 'other';
+      const cfg = ASSET_CLASS_CONFIG[assetClass] || ASSET_CLASS_CONFIG.other;
+      if (!classMap[assetClass]) {
+        classMap[assetClass] = { value: 0, cost: 0, color: cfg.chartColor, icon: cfg.icon };
+      }
+      classMap[assetClass].value += getHoldingValue(h, liveQuotes);
+      classMap[assetClass].cost += h.cost_basis || 0;
+    });
+    const total = Object.values(classMap).reduce((sum, c) => sum + c.value, 0);
+    return Object.entries(classMap).map(([key, data]) => ({
+      asset_type: key,
+      label: ASSET_CLASS_CONFIG[key as AssetClass]?.label || key,
+      current_value: data.value,
+      cost_basis: data.cost,
+      allocation_pct: total > 0 ? (data.value / total) * 100 : 0,
+      gain_pct: data.cost > 0 ? ((data.value - data.cost) / data.cost) * 100 : 0,
+      Icon: data.icon,
+      color: data.color,
+    })).sort((a, b) => b.current_value - a.current_value);
+  }, [allHoldings, liveQuotes]);
+
+  // Top holdings with metrics
+  const topHoldings = useMemo(() => {
+    return [...allHoldings]
+      .sort((a, b) => getHoldingValue(b, liveQuotes) - getHoldingValue(a, liveQuotes))
+      .slice(0, 5)
+      .map(h => {
+        const value = getHoldingValue(h, liveQuotes);
+        const cost = h.cost_basis || 0;
+        const irr = cost > 0 ? ((value - cost) / cost) * 100 : 0;
+        const moic = cost > 0 ? value / cost : 0;
+        const healthScore = Math.min(100, Math.max(0, 50 + irr / 2));
+        return {
+          ...h,
+          value,
+          irr,
+          moic,
+          healthScore: Math.round(healthScore),
+        };
+      });
+  }, [allHoldings, liveQuotes]);
+
   return (
     <motion.div
-      className="p-6 space-y-6 max-w-7xl mx-auto"
+      className="p-6 space-y-6 animate-fade-up"
       variants={containerVariants}
       initial="hidden"
       animate="visible"
@@ -850,23 +909,19 @@ export default function Portfolio() {
       <FinnhubApiBanner />
       <MarketDataPausedBanner />
 
-      {/* Header with Greeting and Portfolio Switcher */}
-      <motion.div variants={itemVariants} className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div className="flex items-center gap-4">
-          <div>
-            <h1 className="text-2xl font-bold">
-              {greeting}, {userName}!
-            </h1>
-            <p className="text-muted-foreground">
-              {currentDate}
-              {currentOrganization && (
-                <span className="ml-2">• {currentOrganization.name}</span>
-              )}
-            </p>
-          </div>
+      {/* Header - Market Intel Style */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold flex items-center gap-3">
+            <Wallet className="h-7 w-7 text-primary" />
+            Portfolio
+          </h1>
+          <p className="text-muted-foreground mt-1">
+            {activePortfolio?.name || 'My Portfolio'} • {allHoldings.length} Holdings
+          </p>
         </div>
-        <div className="flex items-center gap-2 self-start md:self-auto flex-wrap">
-          {/* Portfolio Switcher */}
+
+        <div className="flex items-center gap-2 flex-wrap">
           <PortfolioSwitcher
             portfolios={portfolios}
             activePortfolioId={activePortfolioId}
@@ -878,60 +933,28 @@ export default function Portfolio() {
             isLoading={portfoliosLoading}
             isDeleting={isDeleting}
           />
-          <WidgetConfigDialog
-            widgets={widgets}
-            onToggle={toggleWidget}
-            onReset={resetToDefaults}
-          />
           <Button
             variant="outline"
             size="sm"
             onClick={handleRefresh}
             disabled={isRefreshing}
-            className="gap-2"
           >
             <RefreshCw className={cn("h-4 w-4", isRefreshing && "animate-spin")} />
-            Refresh
           </Button>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            className="gap-2"
-            onClick={() => {
-              // Export portfolio data as CSV
-              if (allHoldings.length === 0) {
-                toast.info('No holdings to export');
-                return;
-              }
-              const headers = ['Name', 'Ticker', 'Asset Class', 'Shares', 'Cost Basis', 'Current Value'];
-              const rows = allHoldings.map(h => [
-                h.name,
-                h.ticker_symbol || '',
-                h.asset_class || 'other',
-                h.shares_owned || 0,
-                h.cost_basis || 0,
-                getHoldingValue(h, liveQuotes)
-              ]);
-              const csv = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
-              const blob = new Blob([csv], { type: 'text/csv' });
-              const url = URL.createObjectURL(blob);
-              const a = document.createElement('a');
-              a.href = url;
-              a.download = `portfolio-${activePortfolio?.name || 'export'}-${format(new Date(), 'yyyy-MM-dd')}.csv`;
-              a.click();
-              URL.revokeObjectURL(url);
-              toast.success('Portfolio exported');
-            }}
-          >
-            <Download className="h-4 w-4" />
-            Export
+          <Button variant="outline" size="sm" className="relative">
+            <AlertTriangle className="h-4 w-4" />
+            {stats.overdueTasks > 0 && (
+              <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-destructive text-[10px] font-medium flex items-center justify-center text-destructive-foreground">
+                {stats.overdueTasks}
+              </span>
+            )}
           </Button>
-          <Button onClick={() => setShowAddDialog(true)} className="gap-2">
+          <Button onClick={() => setShowAddDialog(true)} size="sm" className="gap-2">
             <Plus className="h-4 w-4" />
             Add Position
           </Button>
         </div>
-      </motion.div>
+      </div>
 
       {/* Create Portfolio Dialog */}
       <CreatePortfolioDialog
@@ -940,39 +963,6 @@ export default function Portfolio() {
         onSave={handleCreatePortfolio}
         isSaving={isSaving}
       />
-
-      {/* Quick Actions */}
-      <motion.div variants={itemVariants} className="flex flex-wrap gap-2">
-        {hasPrivateEquity && (
-          <QuickActionButton
-            icon={Briefcase}
-            label="Add Deal"
-            onClick={() => navigate('/companies?create=true&assetType=private_equity')}
-          />
-        )}
-        {hasPublicEquity && (
-          <QuickActionButton
-            icon={TrendingUp}
-            label="Add Position"
-            onClick={() => setShowAddDialog(true)}
-          />
-        )}
-        <QuickActionButton
-          icon={Plus}
-          label="New Task"
-          onClick={() => navigate('/tasks?create=true')}
-        />
-        <QuickActionButton
-          icon={Users}
-          label="Add Contact"
-          onClick={() => navigate('/contacts?create=true')}
-        />
-        <QuickActionButton
-          icon={Upload}
-          label="Upload Docs"
-          onClick={() => navigate('/documents?upload=true')}
-        />
-      </motion.div>
 
       {/* Dynamic Stats Row - Market Intel Style */}
       <motion.div variants={containerVariants} className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
@@ -1036,6 +1026,25 @@ export default function Portfolio() {
           subtitle={stats.overdueTasks > 0 ? `${stats.overdueTasks} overdue` : 'All on track'}
         />
       </motion.div>
+
+      {/* CTA Banner - Market Intel Style */}
+      <Card className="bg-gradient-to-r from-primary/10 to-secondary/30 border-primary/20">
+        <CardContent className="p-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-primary/20">
+              <Zap className="h-5 w-5 text-primary" />
+            </div>
+            <div>
+              <p className="font-medium">Want to optimize your portfolio?</p>
+              <p className="text-sm text-muted-foreground">Use our AI-powered Portfolio Builder to analyze and rebalance your positions.</p>
+            </div>
+          </div>
+          <Button onClick={() => navigate('/backtester')} variant="outline" className="border-primary/30 text-primary hover:bg-primary/10 shrink-0">
+            <span>Open Portfolio Builder</span>
+            <ChevronRight className="h-4 w-4 ml-1" />
+          </Button>
+        </CardContent>
+      </Card>
 
       {/* Real Portfolio Performance Chart - Uses actual calculation data */}
       {portfolioAllocations && portfolioAllocations.length > 0 ? (
@@ -1120,6 +1129,181 @@ export default function Portfolio() {
           })
         )}
       </motion.div>
+
+      {/* Asset Allocation + Top Holdings Row - Market Intel Style */}
+      <div className="grid lg:grid-cols-2 gap-6">
+        {/* Asset Allocation */}
+        <Card>
+          <CardContent className="p-6">
+            <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+              <BarChart3 className="h-5 w-5 text-primary" />
+              Asset Allocation
+            </h3>
+            <div className="space-y-4">
+              {allocationByClass.length > 0 ? (
+                allocationByClass.map((a) => {
+                  const IconComponent = a.Icon;
+                  return (
+                    <div key={a.asset_type} className="flex items-center gap-4 p-3 rounded-lg bg-secondary/30 hover:bg-secondary/50 transition-colors">
+                      <div 
+                        className="w-10 h-10 rounded-lg flex items-center justify-center"
+                        style={{ backgroundColor: `${a.color}30` }}
+                      >
+                        <IconComponent className="h-5 w-5" style={{ color: a.color }} />
+                      </div>
+                      <div className="flex-1">
+                        <p className="font-semibold">{formatCurrency(a.current_value, true)}</p>
+                        <p className="text-sm text-muted-foreground">{a.label}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-medium">{a.allocation_pct.toFixed(1)}%</p>
+                        <p className={cn(
+                          "text-sm",
+                          a.gain_pct >= 0 ? 'text-emerald-400' : 'text-rose-400'
+                        )}>
+                          {a.gain_pct >= 0 ? '+' : ''}{a.gain_pct.toFixed(1)}%
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })
+              ) : (
+                <p className="text-muted-foreground text-center py-8">No holdings yet</p>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Top Holdings */}
+        <Card>
+          <CardContent className="p-6">
+            <h3 className="text-lg font-semibold mb-4">Top Holdings</h3>
+            <div className="space-y-3">
+              {topHoldings.length > 0 ? (
+                topHoldings.map((h) => (
+                  <div 
+                    key={h.id} 
+                    className="flex items-center justify-between p-3 rounded-lg bg-secondary/30 hover:bg-secondary/50 transition-colors group cursor-pointer"
+                    onClick={() => h.id.startsWith('virtual-') ? null : navigate(`/companies/${h.id}`)}
+                  >
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium group-hover:text-primary transition-colors truncate">
+                        {h.name}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {h.asset_class ? ASSET_CLASS_CONFIG[h.asset_class as AssetClass]?.shortLabel : ''} • {h.industry || h.ticker_symbol || 'N/A'}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-4 text-sm">
+                      <div className="text-right hidden sm:block">
+                        <p className="font-medium">{formatCurrency(h.value, true)}</p>
+                        <p className="text-xs text-muted-foreground">Value</p>
+                      </div>
+                      <div className="text-right hidden md:block">
+                        <p className={cn("font-medium", h.irr >= 0 ? 'text-emerald-400' : 'text-rose-400')}>
+                          {h.irr.toFixed(1)}%
+                        </p>
+                        <p className="text-xs text-muted-foreground">IRR</p>
+                      </div>
+                      <div className="text-right hidden md:block">
+                        <p className="font-medium">{h.moic.toFixed(1)}x</p>
+                        <p className="text-xs text-muted-foreground">MOIC</p>
+                      </div>
+                      <div className="text-right">
+                        <p className={cn(
+                          "font-medium",
+                          h.healthScore >= 70 ? 'text-emerald-400' : h.healthScore >= 50 ? 'text-yellow-400' : 'text-rose-400'
+                        )}>
+                          {h.healthScore}
+                        </p>
+                        <p className="text-xs text-muted-foreground">Health</p>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <p className="text-muted-foreground text-center py-8">No holdings yet</p>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Bottom Row - Alerts + Macro + Upcoming - Market Intel Style */}
+      <div className="grid md:grid-cols-3 gap-6">
+        {/* Alerts */}
+        <Card>
+          <CardContent className="p-6">
+            <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-yellow-400" />
+              Alerts
+            </h3>
+            <div className="space-y-3">
+              {alerts && alerts.length > 0 ? (
+                alerts.slice(0, 3).map((a: any) => (
+                  <div key={a.id} className="flex gap-3 p-2 rounded-lg hover:bg-secondary/30 transition-colors cursor-pointer">
+                    {a.severity === 'critical' ? (
+                      <AlertTriangle className="h-5 w-5 text-rose-400 shrink-0" />
+                    ) : (
+                      <AlertCircle className="h-5 w-5 text-yellow-400 shrink-0" />
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-sm truncate">{a.title}</p>
+                      <p className="text-xs text-muted-foreground truncate">{a.description?.substring(0, 50)}...</p>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <p className="text-muted-foreground text-sm text-center py-4">No alerts</p>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Macro Indicators */}
+        <Card>
+          <CardContent className="p-6">
+            <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+              <Globe className="h-5 w-5 text-primary" />
+              Macro
+            </h3>
+            <div className="space-y-3">
+              {economicIndicators && economicIndicators.length > 0 ? (
+                economicIndicators.slice(0, 5).map((m: any) => (
+                  <div key={m.id} className="flex justify-between items-center text-sm">
+                    <span className="text-muted-foreground truncate">{m.name}</span>
+                    <span className="font-medium tabular-nums">{m.current_value?.toFixed(2) || 'N/A'}</span>
+                  </div>
+                ))
+              ) : (
+                <p className="text-muted-foreground text-sm text-center py-4">No data</p>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Upcoming Events */}
+        <Card>
+          <CardContent className="p-6">
+            <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+              <Calendar className="h-5 w-5 text-primary" />
+              Upcoming
+            </h3>
+            <div className="space-y-3">
+              {events && events.length > 0 ? (
+                events.slice(0, 5).map((e: any) => (
+                  <div key={e.id} className="flex justify-between items-center text-sm gap-2">
+                    <span className="truncate flex-1">{e.title}</span>
+                    <Badge variant="outline" className="shrink-0 text-xs">{e.event_type}</Badge>
+                  </div>
+                ))
+              ) : (
+                <p className="text-muted-foreground text-sm text-center py-4">No upcoming events</p>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
 
       {/* Tasks and News Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
