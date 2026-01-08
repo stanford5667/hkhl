@@ -23,6 +23,11 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import { Switch } from "@/components/ui/switch";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
@@ -31,6 +36,7 @@ import {
   Folder,
   Settings,
   ChevronLeft,
+  ChevronDown,
   LogOut,
   User,
   Sparkles,
@@ -51,6 +57,7 @@ import {
   Eye,
   EyeOff,
   Newspaper,
+  Building2,
 } from "lucide-react";
 
 interface NavItem {
@@ -60,12 +67,22 @@ interface NavItem {
   icon: React.ElementType;
   badge?: number;
   requiresAssetType?: string;
+  children?: NavItem[];
 }
 
 const STORAGE_KEY = "sidebar-hidden-tabs";
+const ORG_EXPANDED_KEY = "sidebar-org-expanded";
 
 export function Sidebar() {
   const [collapsed, setCollapsed] = useState(false);
+  const [orgExpanded, setOrgExpanded] = useState(() => {
+    try {
+      const stored = localStorage.getItem(ORG_EXPANDED_KEY);
+      return stored ? JSON.parse(stored) : true;
+    } catch {
+      return true;
+    }
+  });
   const [hiddenTabs, setHiddenTabs] = useState<string[]>(() => {
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
@@ -83,6 +100,11 @@ export function Sidebar() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(hiddenTabs));
   }, [hiddenTabs]);
 
+  // Persist org expanded state
+  useEffect(() => {
+    localStorage.setItem(ORG_EXPANDED_KEY, JSON.stringify(orgExpanded));
+  }, [orgExpanded]);
+
   const toggleTab = (href: string) => {
     setHiddenTabs(prev => 
       prev.includes(href) 
@@ -90,6 +112,37 @@ export function Sidebar() {
         : [...prev, href]
     );
   };
+
+  // Organization sub-items
+  const organizationChildren: NavItem[] = useMemo(() => {
+    const children: NavItem[] = [
+      { 
+        label: "Contacts", 
+        subtitle: "Network",
+        href: "/contacts", 
+        icon: Users 
+      },
+      { 
+        label: "Tasks", 
+        subtitle: "To-Do",
+        href: "/tasks", 
+        icon: CheckSquare 
+      },
+    ];
+    
+    // Add Pipeline only if private_equity is enabled
+    if (enabledAssetTypes.includes('private_equity')) {
+      children.push({ 
+        label: "Pipeline", 
+        subtitle: "Deals in Progress",
+        href: "/pipeline", 
+        icon: Target,
+        requiresAssetType: 'private_equity',
+      });
+    }
+    
+    return children;
+  }, [enabledAssetTypes]);
 
   // Build navigation based on enabled asset types
   const allNavigation = useMemo<NavItem[]>(() => {
@@ -106,40 +159,20 @@ export function Sidebar() {
         href: "/news", 
         icon: Newspaper 
       },
-    ];
-
-    // Add Pipeline only if private_equity is enabled
-    if (enabledAssetTypes.includes('private_equity')) {
-      items.push({ 
-        label: "Pipeline", 
-        subtitle: "Deals in Progress",
-        href: "/pipeline", 
-        icon: Target,
-        requiresAssetType: 'private_equity',
-      });
-    }
-
-    // Portfolio - unified view of all owned assets with live market data
-    items.push({ 
-      label: "Portfolio", 
-      subtitle: "What You Own",
-      href: "/portfolio", 
-      icon: Briefcase,
-    });
-
-    // Core items
-    items.push(
+      // Portfolio - unified view of all owned assets with live market data
       { 
-        label: "Contacts", 
-        subtitle: "Network",
-        href: "/contacts", 
-        icon: Users 
+        label: "Portfolio", 
+        subtitle: "What You Own",
+        href: "/portfolio", 
+        icon: Briefcase,
       },
+      // Organization group with children
       { 
-        label: "Tasks", 
-        subtitle: "To-Do",
-        href: "/tasks", 
-        icon: CheckSquare 
+        label: "Organization", 
+        subtitle: "Team & Workflow",
+        href: "#organization", 
+        icon: Building2,
+        children: organizationChildren,
       },
       { 
         label: "Documents", 
@@ -184,10 +217,10 @@ export function Sidebar() {
         href: "/discovery", 
         icon: Compass 
       },
-    );
+    ];
 
     return items;
-  }, [enabledAssetTypes]);
+  }, [organizationChildren]);
 
   // Filter out hidden tabs for display
   const navigation = useMemo(() => 
@@ -303,7 +336,42 @@ export function Sidebar() {
         <ul className="space-y-1">
           {navigation.map((item) => (
             <li key={item.href}>
-              <NavLink item={item} />
+              {item.children ? (
+                // Collapsible group for Organization
+                <Collapsible open={orgExpanded} onOpenChange={setOrgExpanded}>
+                  <CollapsibleTrigger asChild>
+                    <button
+                      className={cn(
+                        "w-full group relative flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200",
+                        "text-slate-400 hover:bg-slate-800/50 hover:text-white",
+                        collapsed && "justify-center px-2"
+                      )}
+                    >
+                      <item.icon className="h-5 w-5 flex-shrink-0 text-slate-500 group-hover:text-slate-300" />
+                      {!collapsed && (
+                        <>
+                          <span className="flex-1 text-left">{item.label}</span>
+                          <ChevronDown className={cn(
+                            "h-4 w-4 text-slate-500 transition-transform duration-200",
+                            orgExpanded && "rotate-180"
+                          )} />
+                        </>
+                      )}
+                    </button>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent className="mt-1">
+                    <ul className={cn("space-y-1", !collapsed && "ml-4 border-l border-slate-800 pl-2")}>
+                      {item.children.map((child) => (
+                        <li key={child.href}>
+                          <NavLink item={child} />
+                        </li>
+                      ))}
+                    </ul>
+                  </CollapsibleContent>
+                </Collapsible>
+              ) : (
+                <NavLink item={item} />
+              )}
             </li>
           ))}
         </ul>
