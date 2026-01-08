@@ -300,43 +300,6 @@ export function PublicEquityDetailView({ company, onUpdate }: PublicEquityDetail
 
   return (
     <div className="space-y-6">
-      {/* Price Header */}
-      <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4">
-        <div className="space-y-2">
-          <div className="flex items-center gap-3">
-            <span className="text-3xl font-bold text-foreground">{company.ticker_symbol}</span>
-            <Badge variant="outline">{company.exchange || 'NYSE'}</Badge>
-            <span className={cn(
-              "w-2.5 h-2.5 rounded-full animate-pulse",
-              isLoadingQuote ? "bg-muted" : "bg-emerald-400"
-            )} title="Live price" />
-          </div>
-        </div>
-        
-        <div className="flex flex-col items-end gap-1">
-          {isLoadingQuote ? (
-            <>
-              <Skeleton className="h-10 w-32" />
-              <Skeleton className="h-5 w-24" />
-            </>
-          ) : (
-            <>
-              <span className="text-4xl font-bold text-foreground tabular-nums">
-                {formatCurrency(currentPrice)}
-              </span>
-              <div className={cn(
-                "flex items-center gap-1 text-lg font-medium",
-                isPositive ? "text-emerald-400" : "text-rose-400"
-              )}>
-                {isPositive ? <ArrowUpRight className="h-5 w-5" /> : <ArrowDownRight className="h-5 w-5" />}
-                <span>{isPositive ? '+' : ''}{quote?.change?.toFixed(2)}</span>
-                <span>({formatPercent(quote?.changePercent)})</span>
-                <span className="text-muted-foreground text-sm ml-2">Today</span>
-              </div>
-            </>
-          )}
-        </div>
-      </div>
 
       {/* Quick Actions */}
       <div className="flex gap-2 flex-wrap">
