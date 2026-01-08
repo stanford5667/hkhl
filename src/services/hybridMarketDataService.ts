@@ -179,11 +179,15 @@ class HybridMarketDataService {
       onProgress
     } = options;
     
+    // Normalize weights if they're percentages
+    const weightSum = weights.reduce((s, w) => s + w, 0);
+    const normalizedWeights = weightSum > 1.5 ? weights.map(w => w / weightSum) : weights;
+    
     // Try Supabase function first (most efficient)
     try {
       const { data, error } = await supabase.rpc('get_portfolio_returns', {
         p_tickers: tickers,
-        p_weights: weights,
+        p_weights: normalizedWeights,
         p_start_date: startDate,
         p_end_date: endDate
       });

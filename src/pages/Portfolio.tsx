@@ -79,6 +79,7 @@ import { useActivePortfolio } from '@/hooks/useActivePortfolio';
 import { PortfolioSwitcher } from '@/components/portfolio/PortfolioSwitcher';
 import { CreatePortfolioDialog } from '@/components/portfolio/CreatePortfolioDialog';
 import { PortfolioMetricsPanel } from '@/components/portfolio/PortfolioMetricsPanel';
+import { RealPerformanceChart } from '@/components/portfolio/RealPerformanceChart';
 
 // Animation variants
 const containerVariants = {
@@ -890,7 +891,36 @@ export default function Portfolio() {
             <RefreshCw className={cn("h-4 w-4", isRefreshing && "animate-spin")} />
             Refresh
           </Button>
-          <Button variant="outline" size="sm" className="gap-2">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="gap-2"
+            onClick={() => {
+              // Export portfolio data as CSV
+              if (allHoldings.length === 0) {
+                toast.info('No holdings to export');
+                return;
+              }
+              const headers = ['Name', 'Ticker', 'Asset Class', 'Shares', 'Cost Basis', 'Current Value'];
+              const rows = allHoldings.map(h => [
+                h.name,
+                h.ticker_symbol || '',
+                h.asset_class || 'other',
+                h.shares_owned || 0,
+                h.cost_basis || 0,
+                getHoldingValue(h, liveQuotes)
+              ]);
+              const csv = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+              const blob = new Blob([csv], { type: 'text/csv' });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.href = url;
+              a.download = `portfolio-${activePortfolio?.name || 'export'}-${format(new Date(), 'yyyy-MM-dd')}.csv`;
+              a.click();
+              URL.revokeObjectURL(url);
+              toast.success('Portfolio exported');
+            }}
+          >
             <Download className="h-4 w-4" />
             Export
           </Button>
@@ -948,7 +978,7 @@ export default function Portfolio() {
           title="Total Value"
           displayValue={formatCurrency(portfolioStats.totalValue, true)}
           icon={Wallet}
-          onClick={() => {}}
+          onClick={() => navigate('/backtester')}
           isLoading={isLoading}
           change={portfolioStats.totalGainLossPercent}
           subtitle={activePortfolio ? `${activePortfolio.name} • ${allHoldings.length} holdings` : `${allHoldings.length} holdings`}
@@ -959,6 +989,10 @@ export default function Portfolio() {
           icon={portfolioStats.todayChange >= 0 ? TrendingUp : TrendingDown}
           isLoading={isLoading}
           change={portfolioStats.todayChangePercent}
+          onClick={() => {
+            // Scroll to performance chart
+            document.querySelector('[data-performance-chart]')?.scrollIntoView({ behavior: 'smooth' });
+          }}
           subtitle={activePortfolio?.name}
         />
         <StatCard
@@ -966,12 +1000,20 @@ export default function Portfolio() {
           value={portfolioStats.gainersCount}
           icon={ArrowUpRight}
           isLoading={isLoading}
+          onClick={() => {
+            setSortBy('todayChange');
+            setSortAsc(false);
+          }}
         />
         <StatCard
           title="Losers"
           value={portfolioStats.losersCount}
           icon={ArrowDownRight}
           isLoading={isLoading}
+          onClick={() => {
+            setSortBy('todayChange');
+            setSortAsc(true);
+          }}
         />
         <StatCard
           title="Open Tasks"
@@ -984,18 +1026,29 @@ export default function Portfolio() {
         />
       </motion.div>
 
-      {/* Portfolio Performance Card */}
-      <motion.div variants={itemVariants}>
-        <PortfolioPerformanceCard 
-          days={30} 
-          showAllocation 
-          portfolioId={activePortfolioId}
-          portfolioName={activePortfolio?.name}
-          allocations={portfolioAllocations || undefined}
-        />
-      </motion.div>
+      {/* Real Portfolio Performance Chart - Uses actual calculation data */}
+      {portfolioAllocations && portfolioAllocations.length > 0 ? (
+        <motion.div variants={itemVariants}>
+          <RealPerformanceChart
+            allocations={portfolioAllocations}
+            investableCapital={portfolioStats.totalValue || 100000}
+            portfolioName={activePortfolio?.name}
+            showMetrics={true}
+          />
+        </motion.div>
+      ) : (
+        <motion.div variants={itemVariants}>
+          <PortfolioPerformanceCard 
+            days={30} 
+            showAllocation 
+            portfolioId={activePortfolioId}
+            portfolioName={activePortfolio?.name}
+            allocations={portfolioAllocations || undefined}
+          />
+        </motion.div>
+      )}
 
-      {/* Portfolio Metrics Panel - Using same calculation logic as Portfolio Builder */}
+      {/* Portfolio Metrics Panel - Detailed metrics matching Portfolio Builder */}
       {portfolioAllocations && portfolioAllocations.length > 0 && (
         <motion.div variants={itemVariants}>
           <PortfolioMetricsPanel

@@ -161,7 +161,13 @@ export function usePortfolioCalculations({
       }
       
       const tickers = allocations.map(a => a.ticker);
-      const weights = allocations.map(a => a.weight);
+      // Ensure weights are in decimal format (0-1), not percentages (0-100)
+      const rawWeights = allocations.map(a => a.weight);
+      const weightSum = rawWeights.reduce((sum, w) => sum + w, 0);
+      // If weights sum to more than 1.5, they're likely percentages - convert them
+      const weights = weightSum > 1.5 
+        ? rawWeights.map(w => w / weightSum) 
+        : rawWeights;
       
       setProgress({ status: 'fetching', current: 0, total: 3, message: 'Loading market data...' });
       
