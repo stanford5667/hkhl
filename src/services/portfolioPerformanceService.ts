@@ -49,9 +49,9 @@ const MAX_HISTORY_DAYS = 365;
 /**
  * Get stored portfolio history from localStorage
  */
-function getStoredHistory(): PortfolioSnapshot[] {
+function getStoredHistory(cacheKey: string = PORTFOLIO_HISTORY_KEY): PortfolioSnapshot[] {
   try {
-    const stored = localStorage.getItem(PORTFOLIO_HISTORY_KEY);
+    const stored = localStorage.getItem(cacheKey);
     return stored ? JSON.parse(stored) : [];
   } catch {
     return [];
@@ -61,9 +61,9 @@ function getStoredHistory(): PortfolioSnapshot[] {
 /**
  * Store portfolio snapshot to history
  */
-function storeSnapshot(snapshot: PortfolioSnapshot) {
+function storeSnapshot(snapshot: PortfolioSnapshot, cacheKey: string = PORTFOLIO_HISTORY_KEY) {
   try {
-    let history = getStoredHistory();
+    let history = getStoredHistory(cacheKey);
     
     // Check if we already have today's snapshot
     const existingIndex = history.findIndex(h => h.date === snapshot.date);
@@ -79,7 +79,7 @@ function storeSnapshot(snapshot: PortfolioSnapshot) {
       history = history.slice(-MAX_HISTORY_DAYS);
     }
     
-    localStorage.setItem(PORTFOLIO_HISTORY_KEY, JSON.stringify(history));
+    localStorage.setItem(cacheKey, JSON.stringify(history));
   } catch (e) {
     console.warn('[PortfolioPerformance] Failed to store snapshot:', e);
   }
@@ -142,7 +142,8 @@ function calculateHoldingValue(
  * Calculate full portfolio performance from holdings
  */
 export async function calculatePortfolioPerformance(
-  holdings: PortfolioHolding[]
+  holdings: PortfolioHolding[],
+  cacheKey: string = PORTFOLIO_HISTORY_KEY
 ): Promise<PortfolioPerformanceResult> {
   // Filter to portfolio holdings only
   const portfolioHoldings = holdings.filter(h => h.company_type === 'portfolio');
@@ -233,10 +234,10 @@ export async function calculatePortfolioPerformance(
       other: byAssetClass.other.value,
     },
   };
-  storeSnapshot(snapshot);
+  storeSnapshot(snapshot, cacheKey);
 
   // Get historical data
-  const history = getStoredHistory();
+  const history = getStoredHistory(cacheKey);
 
   return {
     totalValue,
@@ -253,7 +254,11 @@ export async function calculatePortfolioPerformance(
 /**
  * Generate demo historical data for testing
  */
-export function generateDemoHistory(currentValue: number, byAssetClass: Record<string, number>): PortfolioSnapshot[] {
+export function generateDemoHistory(
+  currentValue: number, 
+  byAssetClass: Record<string, number>,
+  cacheKey: string = PORTFOLIO_HISTORY_KEY
+): PortfolioSnapshot[] {
   const today = new Date();
   const history: PortfolioSnapshot[] = [];
   
@@ -283,7 +288,7 @@ export function generateDemoHistory(currentValue: number, byAssetClass: Record<s
   
   // Store the generated history
   try {
-    localStorage.setItem(PORTFOLIO_HISTORY_KEY, JSON.stringify(history));
+    localStorage.setItem(cacheKey, JSON.stringify(history));
   } catch (e) {
     console.warn('[PortfolioPerformance] Failed to store demo history:', e);
   }
