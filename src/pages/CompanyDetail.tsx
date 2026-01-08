@@ -296,7 +296,7 @@ export default function CompanyDetail() {
 
       {/* Tabs */}
       <Tabs defaultValue="overview" className="space-y-6">
-        <TabsList className="bg-secondary h-12">
+        <TabsList className="bg-secondary h-12 flex-wrap">
           <TabsTrigger value="overview" className="gap-2 text-base px-5 py-3">
             <LayoutDashboard className="h-5 w-5" />
             Overview
@@ -312,9 +312,19 @@ export default function CompanyDetail() {
               <Badge variant="secondary" className="ml-1">{documents.length}</Badge>
             )}
           </TabsTrigger>
+          <TabsTrigger value="notes" className="gap-2 text-base px-5 py-3">
+            <StickyNote className="h-5 w-5" />
+            Notes
+          </TabsTrigger>
+          {isPublicEquity && (
+            <TabsTrigger value="transactions" className="gap-2 text-base px-5 py-3">
+              <Briefcase className="h-5 w-5" />
+              Transactions
+            </TabsTrigger>
+          )}
           <TabsTrigger value="news" className="gap-2 text-base px-5 py-3">
             <Newspaper className="h-5 w-5" />
-            Industry Intel
+            {isPublicEquity ? 'News' : 'Industry Intel'}
           </TabsTrigger>
           <TabsTrigger value="contacts" className="gap-2 text-base px-5 py-3">
             <Users className="h-5 w-5" />
@@ -635,7 +645,23 @@ export default function CompanyDetail() {
           )}
         </TabsContent>
 
-        {/* Market Intel Tab */}
+        {/* Notes Tab */}
+        <TabsContent value="notes">
+          <CompanyNotesSection companyId={company.id} />
+        </TabsContent>
+
+        {/* Transactions Tab - Public Equity Only */}
+        {isPublicEquity && (
+          <TabsContent value="transactions">
+            <PublicEquityDetailView 
+              company={company} 
+              onUpdate={fetchData} 
+              showOnlyTransactions={true}
+            />
+          </TabsContent>
+        )}
+
+        {/* Market Intel / News Tab */}
         <TabsContent value="news">
           <MarketIntelTab companyId={company.id} companyName={company.name} industry={company.industry} />
         </TabsContent>
