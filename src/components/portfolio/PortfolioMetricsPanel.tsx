@@ -105,9 +105,10 @@ export function PortfolioMetricsPanel({
   className 
 }: PortfolioMetricsPanelProps) {
   // Convert allocations to the format expected by usePortfolioCalculations
+  // Weights come in as percentages (0-100) but the edge function expects decimals (0-1)
   const calcAllocations = allocations.map(a => ({
     ticker: a.symbol,
-    weight: a.weight,
+    weight: a.weight > 1 ? a.weight / 100 : a.weight, // Convert percentage to decimal if needed
   }));
 
   const {
