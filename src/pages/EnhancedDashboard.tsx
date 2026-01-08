@@ -265,6 +265,7 @@ function MarketsTicker({
 
 // Re-export the new PortfolioPerformanceCard
 import { PortfolioPerformanceCard } from '@/components/dashboard/PortfolioPerformanceCard';
+import { PortfolioNews } from '@/components/dashboard/PortfolioNews';
 
 // Enhanced Activity Feed with asset-type specific activities
 function EnhancedActivityFeed({
@@ -990,12 +991,7 @@ export default function EnhancedDashboard() {
           </motion.div>
 
           <motion.div variants={itemVariants}>
-            <EnhancedActivityFeed
-              companies={companiesWithRelations}
-              tasks={tasksWithRelations}
-              enabledAssetTypes={enabledAssetTypes}
-              isLoading={isLoading}
-            />
+            <PortfolioNews />
           </motion.div>
         </div>
 
