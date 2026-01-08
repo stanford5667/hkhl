@@ -870,7 +870,27 @@ export default function PortfolioVisualizer() {
             body: { investorProfile: profile }
           });
           
-          if (fnError) {
+          // Check for specific error conditions
+          const isCreditsExhausted = 
+            fnError?.message?.includes('402') || 
+            data?.error?.includes('credits exhausted') ||
+            data?.error?.includes('payment_required');
+          
+          const isRateLimited = 
+            fnError?.message?.includes('429') || 
+            data?.error?.includes('Rate limit');
+          
+          if (isCreditsExhausted) {
+            console.warn('[AI Advisor] AI credits exhausted, using fallback');
+            toast.error('AI credits exhausted - using smart fallback portfolio', { duration: 5000 });
+            finalAllocations = generateAIPortfolio(profile);
+            updateStep('ai', { status: 'complete', description: 'Credits exhausted - fallback used' });
+          } else if (isRateLimited) {
+            console.warn('[AI Advisor] Rate limited, using fallback');
+            toast.error('AI rate limited - using smart fallback portfolio');
+            finalAllocations = generateAIPortfolio(profile);
+            updateStep('ai', { status: 'complete', description: 'Rate limited - fallback used' });
+          } else if (fnError) {
             console.error('[AI Advisor] Function error:', fnError);
             toast.error('AI Advisor unavailable, using fallback suggestions');
             finalAllocations = generateAIPortfolio(profile);
