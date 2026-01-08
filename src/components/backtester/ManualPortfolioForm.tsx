@@ -21,6 +21,7 @@ import {
 import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
 import { PortfolioAllocation, AssetClass, ASSET_CLASS_ETFS } from '@/types/portfolio';
+import { POLYGON_CONFIG } from '@/config/apiConfig';
 
 interface ManualPortfolioFormProps {
   onComplete: (data: {
@@ -161,13 +162,13 @@ export function ManualPortfolioForm({ onComplete, onBack }: ManualPortfolioFormP
                   value={[horizon]}
                   onValueChange={([v]) => setHorizon(v)}
                   min={1}
-                  max={30}
+                  max={POLYGON_CONFIG.MAX_HISTORY_YEARS}
                   step={1}
                   className="mt-3"
                 />
                 <div className="flex justify-between text-xs text-muted-foreground mt-1">
                   <span>1 year</span>
-                  <span>30 years</span>
+                  <span>{POLYGON_CONFIG.MAX_HISTORY_YEARS} years</span>
                 </div>
               </div>
             </CardContent>
