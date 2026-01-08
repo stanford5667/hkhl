@@ -6,7 +6,7 @@ import { AIInsightCard } from '@/components/dashboard/AIInsightCard';
 import { StreakCounter } from '@/components/dashboard/StreakCounter';
 import { QuickActions } from '@/components/dashboard/QuickActions';
 import { ActionItemsCard } from '@/components/dashboard/ActionItemsCard';
-import { ActivityFeed } from '@/components/dashboard/ActivityFeed';
+import { PortfolioNews } from '@/components/dashboard/PortfolioNews';
 import { UpcomingEvents } from '@/components/dashboard/UpcomingEvents';
 import { RecentCompaniesCard } from '@/components/dashboard/RecentCompaniesCard';
 import { useOrganization } from '@/contexts/OrganizationContext';
@@ -272,7 +272,7 @@ export default function Dashboard() {
 
           <RecentCompaniesCard />
           <AIInsightCard />
-          <ActivityFeed />
+          <PortfolioNews />
         </div>
 
         {/* Right Column - Secondary */}
