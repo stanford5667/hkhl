@@ -300,7 +300,7 @@ export function PublicEquityDetailView({ company, onUpdate }: PublicEquityDetail
 
   return (
     <div className="space-y-6">
-      {/* Header with Price */}
+      {/* Price Header */}
       <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4">
         <div className="space-y-2">
           <div className="flex items-center gap-3">
@@ -311,7 +311,6 @@ export function PublicEquityDetailView({ company, onUpdate }: PublicEquityDetail
               isLoadingQuote ? "bg-muted" : "bg-emerald-400"
             )} title="Live price" />
           </div>
-          <p className="text-muted-foreground">{quote?.companyName || company.name}</p>
         </div>
         
         <div className="flex flex-col items-end gap-1">
