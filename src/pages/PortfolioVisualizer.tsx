@@ -95,6 +95,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { marketDataService, FetchProgress, TickerData } from '@/services/hybridMarketDataService';
 import { usePortfolioCalculations, PortfolioAllocation as CalcAllocation, CalculationTrace } from '@/hooks/usePortfolioCalculations';
 import { METRIC_DEFINITIONS, getMetricDefinition, formatMetricValue, getInterpretation } from '@/data/metricDefinitions';
+import { POLYGON_CONFIG } from '@/config/apiConfig';
 
 // Legacy services (still needed for some features)
 import { 
@@ -892,9 +893,9 @@ export default function PortfolioVisualizer() {
         throw new Error('No assets selected for analysis');
       }
       
-      // Calculate date range (1 year for free Polygon tier)
+      // Calculate date range (5 years max on Polygon Starter plan)
       const endDate = new Date().toISOString().split('T')[0];
-      const startDate = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+      const startDate = POLYGON_CONFIG.getEarliestDate();
       
       // Step: Fetch data
       updateStep('fetch', { status: 'running', tickers: updatedTickers });

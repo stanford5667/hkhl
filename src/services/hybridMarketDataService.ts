@@ -15,6 +15,7 @@
 
 import { supabase } from '@/integrations/supabase/client';
 import { QueryClient } from '@tanstack/react-query';
+import { POLYGON_CONFIG } from '@/config/apiConfig';
 
 // Types
 export interface BarData {
@@ -72,7 +73,7 @@ class HybridMarketDataService {
     } = {}
   ): Promise<Map<string, TickerData>> {
     const {
-      startDate = this.getOneYearAgo(),
+      startDate = this.getDefaultStartDate(),
       endDate = this.getToday(),
       forceRefresh = false,
       onProgress
@@ -173,7 +174,7 @@ class HybridMarketDataService {
     } = {}
   ): Promise<{ dates: string[]; returns: number[]; values: number[] }> {
     const {
-      startDate = this.getOneYearAgo(),
+      startDate = this.getDefaultStartDate(),
       endDate = this.getToday(),
       onProgress
     } = options;
@@ -578,10 +579,9 @@ class HybridMarketDataService {
     return den === 0 ? 0 : num / den;
   }
   
-  private getOneYearAgo(): string {
-    const date = new Date();
-    date.setFullYear(date.getFullYear() - 1);
-    return date.toISOString().split('T')[0];
+  private getDefaultStartDate(): string {
+    // Use full history available on Polygon plan (5 years for Starter)
+    return POLYGON_CONFIG.getEarliestDate();
   }
   
   private getToday(): string {
