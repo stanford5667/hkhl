@@ -36,6 +36,7 @@ interface PublicEquityDetailViewProps {
     company_type: string | null;
   };
   onUpdate: () => void;
+  showOnlyTransactions?: boolean;
 }
 
 interface StockQuote {
@@ -68,7 +69,7 @@ interface Transaction {
   created_at: string;
 }
 
-export function PublicEquityDetailView({ company, onUpdate }: PublicEquityDetailViewProps) {
+export function PublicEquityDetailView({ company, onUpdate, showOnlyTransactions = false }: PublicEquityDetailViewProps) {
   const { user } = useAuth();
   const [quote, setQuote] = useState<StockQuote | null>(null);
   const [isLoadingQuote, setIsLoadingQuote] = useState(true);
@@ -298,6 +299,174 @@ export function PublicEquityDetailView({ company, onUpdate }: PublicEquityDetail
   };
 
 
+  // If showing only transactions, render just the transactions card
+  if (showOnlyTransactions) {
+    return (
+      <>
+        <Card className="bg-card border-border">
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle className="flex items-center gap-2">
+              <Clock className="h-5 w-5 text-primary" />
+              Transaction History
+            </CardTitle>
+            <Button size="sm" onClick={() => setShowTransactionDialog(true)}>
+              <Plus className="h-4 w-4 mr-2" />
+              Add Transaction
+            </Button>
+          </CardHeader>
+          <CardContent>
+            {isLoadingTransactions ? (
+              <div className="space-y-2">
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <Skeleton key={i} className="h-12 w-full" />
+                ))}
+              </div>
+            ) : transactions.length > 0 ? (
+              <Table>
+                <TableHeader>
+                  <TableRow className="border-border">
+                    <TableHead>Date</TableHead>
+                    <TableHead>Type</TableHead>
+                    <TableHead className="text-right">Shares</TableHead>
+                    <TableHead className="text-right">Price</TableHead>
+                    <TableHead className="text-right">Total</TableHead>
+                    <TableHead>Notes</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {transactions.map((tx) => (
+                    <TableRow key={tx.id} className="border-border">
+                      <TableCell className="tabular-nums">
+                        {format(new Date(tx.transaction_date), 'MMM d, yyyy')}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={tx.transaction_type === 'buy' ? 'default' : 'outline'}>
+                          {tx.transaction_type === 'buy' ? 'Buy' : 'Sell'}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right tabular-nums">
+                        {tx.shares?.toLocaleString() || '—'}
+                      </TableCell>
+                      <TableCell className="text-right tabular-nums">
+                        {tx.price_per_share ? formatCurrency(tx.price_per_share) : '—'}
+                      </TableCell>
+                      <TableCell className="text-right tabular-nums font-medium">
+                        {tx.total_amount ? formatCurrency(tx.total_amount) : '—'}
+                      </TableCell>
+                      <TableCell className="text-muted-foreground max-w-[150px] truncate">
+                        {tx.notes || '—'}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                <Clock className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                <p>No transactions recorded</p>
+                <Button 
+                  variant="link" 
+                  onClick={() => setShowTransactionDialog(true)}
+                  className="mt-2"
+                >
+                  Record your first transaction
+                </Button>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Transaction Dialog */}
+        <Dialog open={showTransactionDialog} onOpenChange={setShowTransactionDialog}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>
+                Record {transactionType === 'buy' ? 'Purchase' : 'Sale'} - {company.ticker_symbol}
+              </DialogTitle>
+            </DialogHeader>
+            
+            <div className="space-y-4 py-4">
+              <div className="flex gap-2">
+                <Button
+                  variant={transactionType === 'buy' ? 'default' : 'outline'}
+                  onClick={() => setTransactionType('buy')}
+                  className="flex-1"
+                >
+                  Buy
+                </Button>
+                <Button
+                  variant={transactionType === 'sell' ? 'default' : 'outline'}
+                  onClick={() => setTransactionType('sell')}
+                  className="flex-1"
+                >
+                  Sell
+                </Button>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Shares</Label>
+                  <Input
+                    type="number"
+                    value={transactionForm.shares}
+                    onChange={(e) => setTransactionForm(f => ({ ...f, shares: e.target.value }))}
+                    placeholder="0"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Price per Share</Label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    value={transactionForm.pricePerShare}
+                    onChange={(e) => setTransactionForm(f => ({ ...f, pricePerShare: e.target.value }))}
+                    placeholder={currentPrice.toFixed(2)}
+                  />
+                </div>
+              </div>
+              
+              <div className="space-y-2">
+                <Label>Date</Label>
+                <Input
+                  type="date"
+                  value={transactionForm.date}
+                  onChange={(e) => setTransactionForm(f => ({ ...f, date: e.target.value }))}
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label>Notes (optional)</Label>
+                <Input
+                  value={transactionForm.notes}
+                  onChange={(e) => setTransactionForm(f => ({ ...f, notes: e.target.value }))}
+                  placeholder="Add notes about this transaction..."
+                />
+              </div>
+              
+              {transactionForm.shares && transactionForm.pricePerShare && (
+                <div className="bg-secondary rounded-lg p-3">
+                  <p className="text-sm text-muted-foreground">Total Amount</p>
+                  <p className="text-xl font-bold">
+                    {formatCurrency(parseFloat(transactionForm.shares) * parseFloat(transactionForm.pricePerShare))}
+                  </p>
+                </div>
+              )}
+            </div>
+            
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowTransactionDialog(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleRecordTransaction}>
+                Record {transactionType === 'buy' ? 'Purchase' : 'Sale'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </>
+    );
+  }
+
   return (
     <div className="space-y-6">
 
@@ -367,8 +536,7 @@ export function PublicEquityDetailView({ company, onUpdate }: PublicEquityDetail
                     type="number"
                     value={sharesInput}
                     onChange={(e) => setSharesInput(e.target.value)}
-                    className="w-24 h-8 text-right"
-                    autoFocus
+                    className="w-24 h-8"
                   />
                   <Button size="icon" variant="ghost" className="h-8 w-8" onClick={handleUpdateShares}>
                     <Check className="h-4 w-4 text-emerald-400" />
@@ -378,75 +546,69 @@ export function PublicEquityDetailView({ company, onUpdate }: PublicEquityDetail
                   </Button>
                 </div>
               ) : (
-                <button
-                  onClick={() => { setSharesInput(shares.toString()); setEditingShares(true); }}
-                  className="flex items-center gap-2 text-foreground font-medium hover:text-primary transition-colors"
-                >
-                  {shares.toLocaleString()}
-                  <Edit2 className="h-3 w-3 text-muted-foreground" />
-                </button>
+                <div className="flex items-center gap-2">
+                  <span className="font-medium tabular-nums">{shares.toLocaleString()}</span>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="h-6 w-6"
+                    onClick={() => {
+                      setSharesInput(shares.toString());
+                      setEditingShares(true);
+                    }}
+                  >
+                    <Edit2 className="h-3 w-3" />
+                  </Button>
+                </div>
               )}
-            </div>
-            
-            {/* Avg Cost */}
-            <div className="flex items-center justify-between">
-              <span className="text-muted-foreground">Avg Cost/Share</span>
-              <span className="text-foreground font-medium tabular-nums">
-                {formatCurrency(avgCostPerShare)}
-              </span>
             </div>
             
             {/* Cost Basis */}
             <div className="flex items-center justify-between">
-              <span className="text-muted-foreground">Cost Basis</span>
-              <span className="text-foreground font-medium tabular-nums">
-                {formatCurrency(costBasis)}
-              </span>
+              <span className="text-muted-foreground">Avg Cost/Share</span>
+              <span className="font-medium tabular-nums">{formatCurrency(avgCostPerShare)}</span>
             </div>
             
-            {/* Current Value */}
-            <div className="flex items-center justify-between border-t border-border pt-4">
-              <span className="text-muted-foreground">Current Value</span>
-              <span className="text-xl font-bold text-foreground tabular-nums">
-                {formatCurrency(marketValue)}
-              </span>
-            </div>
-            
-            {/* Total Gain/Loss */}
+            {/* Total Cost */}
             <div className="flex items-center justify-between">
-              <span className="text-muted-foreground">Total Gain/Loss</span>
-              <div className="text-right">
-                <p className={cn(
-                  "font-bold tabular-nums",
-                  isGainPositive ? "text-emerald-400" : "text-rose-400"
-                )}>
-                  {isGainPositive ? '+' : ''}{formatCurrency(totalGainLoss)}
-                </p>
-                <p className={cn(
-                  "text-sm tabular-nums",
-                  isGainPositive ? "text-emerald-400/70" : "text-rose-400/70"
-                )}>
-                  {formatPercent(totalGainLossPercent)}
-                </p>
+              <span className="text-muted-foreground">Cost Basis</span>
+              <span className="font-medium tabular-nums">{formatCurrency(costBasis)}</span>
+            </div>
+            
+            <div className="border-t border-border pt-4 space-y-3">
+              {/* Current Value */}
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">Current Value</span>
+                <span className="font-bold text-lg tabular-nums">{formatCurrency(marketValue)}</span>
+              </div>
+              
+              {/* Total Gain/Loss */}
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">Total Gain/Loss</span>
+                <div className="text-right">
+                  <span className={cn(
+                    "font-bold tabular-nums",
+                    isGainPositive ? "text-emerald-400" : "text-rose-400"
+                  )}>
+                    {isGainPositive ? '+' : ''}{formatCurrency(totalGainLoss)}
+                  </span>
+                  <span className={cn(
+                    "text-sm ml-2",
+                    isGainPositive ? "text-emerald-400" : "text-rose-400"
+                  )}>
+                    {formatPercent(totalGainLossPercent)}
+                  </span>
+                </div>
               </div>
             </div>
-            
-            <Button 
-              variant="outline" 
-              className="w-full mt-2"
-              onClick={() => setShowTransactionDialog(true)}
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Record Transaction
-            </Button>
           </CardContent>
         </Card>
 
-        {/* Key Stats */}
+        {/* Key Statistics Card */}
         <Card className="bg-card border-border lg:col-span-2">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <BarChart3 className="h-5 w-5 text-emerald-400" />
+              <BarChart3 className="h-5 w-5 text-primary" />
               Key Statistics
             </CardTitle>
           </CardHeader>
@@ -501,118 +663,6 @@ export function PublicEquityDetailView({ company, onUpdate }: PublicEquityDetail
           </CardContent>
         </Card>
       </div>
-
-      {/* Tabs: Transactions, News, Notes */}
-      <Tabs defaultValue="transactions" className="space-y-4">
-        <TabsList className="bg-secondary">
-          <TabsTrigger value="transactions" className="gap-2">
-            <Clock className="h-4 w-4" />
-            Transaction History
-          </TabsTrigger>
-          <TabsTrigger value="news" className="gap-2">
-            <Newspaper className="h-4 w-4" />
-            News
-          </TabsTrigger>
-          <TabsTrigger value="notes" className="gap-2">
-            <StickyNote className="h-4 w-4" />
-            Notes
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="transactions">
-          <Card className="bg-card border-border">
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle>Transaction History</CardTitle>
-              <Button size="sm" onClick={() => setShowTransactionDialog(true)}>
-                <Plus className="h-4 w-4 mr-2" />
-                Add
-              </Button>
-            </CardHeader>
-            <CardContent>
-              {isLoadingTransactions ? (
-                <div className="space-y-2">
-                  {Array.from({ length: 3 }).map((_, i) => (
-                    <Skeleton key={i} className="h-12 w-full" />
-                  ))}
-                </div>
-              ) : transactions.length > 0 ? (
-                <Table>
-                  <TableHeader>
-                    <TableRow className="border-border">
-                      <TableHead>Date</TableHead>
-                      <TableHead>Type</TableHead>
-                      <TableHead className="text-right">Shares</TableHead>
-                      <TableHead className="text-right">Price</TableHead>
-                      <TableHead className="text-right">Total</TableHead>
-                      <TableHead>Notes</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {transactions.map((tx) => (
-                      <TableRow key={tx.id} className="border-border">
-                        <TableCell className="tabular-nums">
-                          {format(new Date(tx.transaction_date), 'MMM d, yyyy')}
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant={tx.transaction_type === 'buy' ? 'default' : 'outline'}>
-                            {tx.transaction_type === 'buy' ? 'Buy' : 'Sell'}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-right tabular-nums">
-                          {tx.shares?.toLocaleString() || '—'}
-                        </TableCell>
-                        <TableCell className="text-right tabular-nums">
-                          {tx.price_per_share ? formatCurrency(tx.price_per_share) : '—'}
-                        </TableCell>
-                        <TableCell className="text-right tabular-nums font-medium">
-                          {tx.total_amount ? formatCurrency(tx.total_amount) : '—'}
-                        </TableCell>
-                        <TableCell className="text-muted-foreground max-w-[150px] truncate">
-                          {tx.notes || '—'}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              ) : (
-                <div className="text-center py-8 text-muted-foreground">
-                  <Clock className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                  <p>No transactions recorded</p>
-                  <Button 
-                    variant="link" 
-                    onClick={() => setShowTransactionDialog(true)}
-                    className="mt-2"
-                  >
-                    Record your first transaction
-                  </Button>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="news">
-          <Card className="bg-card border-border">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Newspaper className="h-5 w-5" />
-                Latest News
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-center py-8 text-muted-foreground">
-                <Newspaper className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                <p>News integration coming soon</p>
-                <p className="text-sm mt-1">Check the Research page for AI-powered news analysis</p>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="notes">
-          <CompanyNotesSection companyId={company.id} />
-        </TabsContent>
-      </Tabs>
 
       {/* Transaction Dialog */}
       <Dialog open={showTransactionDialog} onOpenChange={setShowTransactionDialog}>
