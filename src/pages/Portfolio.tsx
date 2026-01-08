@@ -1614,7 +1614,10 @@ function HoldingsTable({
         </TableHeader>
         <TableBody>
           {holdings.map((holding) => {
-            const assetClass = (holding.asset_class || 'private_equity') as AssetClass;
+            const rawAssetClass = holding.asset_class || 'public_equity';
+            const assetClass: AssetClass = ASSET_CLASS_CONFIG[rawAssetClass as AssetClass]
+              ? (rawAssetClass as AssetClass)
+              : 'other';
             const config = ASSET_CLASS_CONFIG[assetClass];
             const Icon = config.icon;
             const value = getHoldingValue(holding, liveQuotes);
