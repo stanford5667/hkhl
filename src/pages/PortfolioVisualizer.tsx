@@ -90,6 +90,7 @@ import { MetricGridSkeleton } from '@/components/shared/MetricCardSkeleton';
 import { AdvancedMetricsDashboardSkeleton, CalculationProgress } from '@/components/shared/DashboardSkeleton';
 import { VerificationPanelSkeleton } from '@/components/shared/VerificationPanelSkeleton';
 import { supabase } from '@/integrations/supabase/client';
+import { useActivePortfolio } from '@/hooks/useActivePortfolio';
 
 // NEW: Integrated services and hooks
 import { marketDataService, FetchProgress, TickerData } from '@/services/hybridMarketDataService';
@@ -366,6 +367,17 @@ export default function PortfolioVisualizer() {
   // Onboarding state
   const { showOnboarding, completeOnboarding } = useWelcomeOnboarding();
   
+  // Shared portfolio management hook
+  const {
+    portfolios: savedPortfolios,
+    portfoliosLoading,
+    savePortfolio: saveToSharedPortfolios,
+    deletePortfolio: deleteSharedPortfolio,
+    isSaving: isSavingShared,
+    isDeleting: isDeletingShared,
+    refetch: refetchSavedPortfolios,
+  } = useActivePortfolio();
+  
   // Save/Load portfolio state
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
   const [loadDialogOpen, setLoadDialogOpen] = useState(false);
@@ -440,62 +452,28 @@ export default function PortfolioVisualizer() {
     setVisibleTabs(prev => ({ ...prev, [tabId]: !prev[tabId as keyof typeof prev] }));
   };
 
-  // Saved Portfolios Query
-  const { data: savedPortfolios = [], refetch: refetchSavedPortfolios } = useQuery({
-    queryKey: ['saved-portfolios', user?.id],
-    queryFn: async () => {
-      if (!user?.id) return [];
-      const { data, error } = await supabase
-        .from('saved_portfolios')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('updated_at', { ascending: false });
-      if (error) throw error;
-      return data || [];
-    },
-    enabled: !!user?.id,
-  });
-
-  // Save Portfolio Mutation
-  const savePortfolioMutation = useMutation({
-    mutationFn: async ({ name, description }: { name: string; description: string }) => {
-      if (!user?.id) throw new Error('Must be logged in to save portfolio');
-      const { error } = await supabase.from('saved_portfolios').insert([{
-        user_id: user.id,
-        name,
-        description,
+  // Save Portfolio using shared hook
+  const handleSavePortfolio = async () => {
+    if (!portfolioName.trim()) {
+      toast.error('Please enter a portfolio name');
+      return;
+    }
+    
+    try {
+      await saveToSharedPortfolios({
+        name: portfolioName.trim(),
+        description: portfolioDescription.trim() || undefined,
         allocations: JSON.parse(JSON.stringify(allocations)),
         investor_profile: JSON.parse(JSON.stringify(investorProfile)),
-        portfolio_mode: portfolioMode,
-      }]);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      toast.success('Portfolio saved successfully');
+        portfolio_mode: portfolioMode || 'manual',
+      });
       setSaveDialogOpen(false);
       setPortfolioName('');
       setPortfolioDescription('');
-      refetchSavedPortfolios();
-    },
-    onError: (error: Error) => {
-      toast.error(`Failed to save: ${error.message}`);
-    },
-  });
-
-  // Delete Portfolio Mutation
-  const deletePortfolioMutation = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from('saved_portfolios').delete().eq('id', id);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      toast.success('Portfolio deleted');
-      refetchSavedPortfolios();
-    },
-    onError: (error: Error) => {
-      toast.error(`Failed to delete: ${error.message}`);
-    },
-  });
+    } catch (error) {
+      // Error handled by hook
+    }
+  };
 
   // Load a saved portfolio
   const loadPortfolio = (saved: { 
@@ -1286,8 +1264,8 @@ export default function PortfolioVisualizer() {
                 <SavedPortfoliosPanel
                   portfolios={savedPortfolios}
                   onLoad={loadPortfolio}
-                  onDelete={(id) => deletePortfolioMutation.mutate(id)}
-                  isDeleting={deletePortfolioMutation.isPending}
+                  onDelete={(id) => deleteSharedPortfolio(id)}
+                  isDeleting={isDeletingShared}
                 />
               </CardContent>
             </Card>
@@ -1572,10 +1550,10 @@ export default function PortfolioVisualizer() {
                     </div>
                     <DialogFooter>
                       <Button
-                        onClick={() => savePortfolioMutation.mutate({ name: portfolioName, description: portfolioDescription })}
-                        disabled={!portfolioName.trim() || savePortfolioMutation.isPending}
+                        onClick={handleSavePortfolio}
+                        disabled={!portfolioName.trim() || isSavingShared}
                       >
-                        {savePortfolioMutation.isPending ? (
+                        {isSavingShared ? (
                           <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                         ) : (
                           <Save className="h-4 w-4 mr-2" />
@@ -1625,7 +1603,7 @@ export default function PortfolioVisualizer() {
                             className="ml-2 text-muted-foreground hover:text-destructive"
                             onClick={(e) => {
                               e.stopPropagation();
-                              deletePortfolioMutation.mutate(saved.id);
+                              deleteSharedPortfolio(saved.id);
                             }}
                           >
                             <Trash2 className="h-4 w-4" />

@@ -46,6 +46,8 @@ import {
   Clock,
   Calendar,
   BarChart3,
+  Save,
+  FolderOpen,
 } from "lucide-react";
 import { 
   DropdownMenu, 
@@ -73,6 +75,9 @@ import { useDashboardWidgets } from '@/hooks/useDashboardWidgets';
 import { WidgetConfigDialog } from '@/components/dashboard/WidgetConfigDialog';
 import { PortfolioPerformanceCard } from '@/components/dashboard/PortfolioPerformanceCard';
 import { PortfolioNews } from '@/components/dashboard/PortfolioNews';
+import { useActivePortfolio } from '@/hooks/useActivePortfolio';
+import { PortfolioSwitcher } from '@/components/portfolio/PortfolioSwitcher';
+import { CreatePortfolioDialog } from '@/components/portfolio/CreatePortfolioDialog';
 
 // Animation variants
 const containerVariants = {
@@ -473,6 +478,23 @@ export default function Portfolio() {
   const { stats, recentCompanies } = useDashboardData();
   const { widgets, enabledWidgets, toggleWidget, resetToDefaults } = useDashboardWidgets();
   
+  // Portfolio management
+  const {
+    portfolios,
+    portfoliosLoading,
+    activePortfolioId,
+    activePortfolio,
+    setActivePortfolio,
+    savePortfolio,
+    updatePortfolio,
+    deletePortfolio,
+    duplicatePortfolio,
+    isSaving,
+    isDeleting,
+  } = useActivePortfolio();
+  
+  const [showCreatePortfolioDialog, setShowCreatePortfolioDialog] = useState(false);
+  
   const [viewMode, setViewMode] = useState<ViewMode>(() => {
     return (localStorage.getItem('portfolio-view-mode') as ViewMode) || 'cards';
   });
@@ -491,6 +513,21 @@ export default function Portfolio() {
 
   // Market indices
   const { indices: marketIndicesData, isLoading: indicesLoading, refresh: refreshIndices } = useMarketIndices();
+
+  // Handle creating a new portfolio
+  const handleCreatePortfolio = async (data: { name: string; description: string }) => {
+    await savePortfolio({
+      name: data.name,
+      description: data.description,
+      allocations: [],
+    });
+    setShowCreatePortfolioDialog(false);
+  };
+
+  // Handle renaming portfolio
+  const handleRenamePortfolio = async (id: string, name: string) => {
+    await updatePortfolio(id, { name });
+  };
 
   // Greeting
   const greeting = getGreeting();
@@ -731,20 +768,34 @@ export default function Portfolio() {
       <FinnhubApiBanner />
       <MarketDataPausedBanner />
 
-      {/* Header with Greeting */}
+      {/* Header with Greeting and Portfolio Switcher */}
       <motion.div variants={itemVariants} className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold">
-            {greeting}, {userName}!
-          </h1>
-          <p className="text-muted-foreground">
-            {currentDate}
-            {currentOrganization && (
-              <span className="ml-2">• {currentOrganization.name}</span>
-            )}
-          </p>
+        <div className="flex items-center gap-4">
+          <div>
+            <h1 className="text-2xl font-bold">
+              {greeting}, {userName}!
+            </h1>
+            <p className="text-muted-foreground">
+              {currentDate}
+              {currentOrganization && (
+                <span className="ml-2">• {currentOrganization.name}</span>
+              )}
+            </p>
+          </div>
         </div>
-        <div className="flex items-center gap-2 self-start md:self-auto">
+        <div className="flex items-center gap-2 self-start md:self-auto flex-wrap">
+          {/* Portfolio Switcher */}
+          <PortfolioSwitcher
+            portfolios={portfolios}
+            activePortfolioId={activePortfolioId}
+            onSelect={setActivePortfolio}
+            onCreateNew={() => setShowCreatePortfolioDialog(true)}
+            onDelete={deletePortfolio}
+            onDuplicate={duplicatePortfolio}
+            onRename={handleRenamePortfolio}
+            isLoading={portfoliosLoading}
+            isDeleting={isDeleting}
+          />
           <WidgetConfigDialog
             widgets={widgets}
             onToggle={toggleWidget}
@@ -770,6 +821,14 @@ export default function Portfolio() {
           </Button>
         </div>
       </motion.div>
+
+      {/* Create Portfolio Dialog */}
+      <CreatePortfolioDialog
+        open={showCreatePortfolioDialog}
+        onOpenChange={setShowCreatePortfolioDialog}
+        onSave={handleCreatePortfolio}
+        isSaving={isSaving}
+      />
 
       {/* Quick Actions */}
       <motion.div variants={itemVariants} className="flex flex-wrap gap-2">
