@@ -1,7 +1,7 @@
 // Portfolio Analysis Tabs - Brings Portfolio Builder tabs to the Portfolio page
 // Provides Overview, Metrics, Holdings, Data Quality, and Stress Test views
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -27,6 +27,8 @@ import {
   DollarSign,
   Percent,
   Gauge,
+  ArrowUpRight,
+  ArrowDownRight,
 } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip } from 'recharts';
 import { cn } from '@/lib/utils';
@@ -34,6 +36,7 @@ import { usePortfolioCalculations, PortfolioMetrics } from '@/hooks/usePortfolio
 import { ErrorBoundary } from '@/components/shared/ErrorBoundary';
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
 import { MetricExplanationCard } from '@/components/shared/MetricExplanationCard';
+import { getCachedQuotes } from '@/services/quoteCacheService';
 
 // Pie chart colors
 const PIE_COLORS = [
@@ -104,12 +107,41 @@ export function PortfolioAnalysisTabs({
   className 
 }: PortfolioAnalysisTabsProps) {
   const [activeTab, setActiveTab] = useState('overview');
+  const [liveQuotes, setLiveQuotes] = useState<Map<string, { price: number; change: number; changePercent: number }>>(new Map());
+  const [quotesLoading, setQuotesLoading] = useState(false);
 
   // Convert allocations to the format expected by usePortfolioCalculations
   const calcAllocations = useMemo(() => allocations.map(a => ({
     ticker: a.symbol,
     weight: a.weight > 1 ? a.weight / 100 : a.weight,
   })), [allocations]);
+
+  // Get unique tickers
+  const tickers = useMemo(() => 
+    allocations.map(a => a.symbol.toUpperCase()),
+    [allocations]
+  );
+
+  // Fetch live quotes
+  const fetchQuotes = useCallback(async () => {
+    if (tickers.length === 0) return;
+    setQuotesLoading(true);
+    try {
+      const quotes = await getCachedQuotes(tickers);
+      setLiveQuotes(quotes);
+    } catch (err) {
+      console.error('Failed to fetch quotes:', err);
+    } finally {
+      setQuotesLoading(false);
+    }
+  }, [tickers]);
+
+  // Fetch quotes on mount and when tickers change
+  useEffect(() => {
+    if (tickers.length > 0) {
+      fetchQuotes();
+    }
+  }, [tickers.length]);
 
   const {
     metrics,
@@ -767,75 +799,94 @@ export function PortfolioAnalysisTabs({
 
                 {/* Holdings Table */}
                 <div className="lg:col-span-3">
-                  <div className="overflow-x-auto">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Asset</TableHead>
-                          <TableHead className="text-right">Weight</TableHead>
-                          <TableHead className="text-right">Value</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {allocations.map((alloc, i) => {
-                          const weight = alloc.weight > 1 ? alloc.weight : alloc.weight * 100;
-                          const value = (alloc.weight > 1 ? alloc.weight / 100 : alloc.weight) * investableCapital;
-                          return (
-                            <TableRow key={i} className="hover:bg-muted/30">
-                              <TableCell>
-                                <div className="flex items-center gap-3">
-                                  <div 
-                                    className="w-8 h-8 rounded-lg flex items-center justify-center"
-                                    style={{ backgroundColor: `${PIE_COLORS[i % PIE_COLORS.length]}20` }}
-                                  >
-                                    <span 
-                                      className="font-mono font-bold text-xs"
-                                      style={{ color: PIE_COLORS[i % PIE_COLORS.length] }}
-                                    >
-                                      {alloc.symbol.slice(0, 2)}
-                                    </span>
-                                  </div>
-                                  <div>
-                                    <p className="font-medium text-sm">{alloc.symbol}</p>
-                                    {alloc.name && (
-                                      <p className="text-xs text-muted-foreground line-clamp-1">{alloc.name}</p>
-                                    )}
-                                  </div>
-                                </div>
-                              </TableCell>
-                              <TableCell className="text-right">
-                                <div className="flex items-center justify-end gap-2">
-                                  <div className="w-16 h-1.5 bg-muted rounded-full overflow-hidden">
+                  {quotesLoading ? (
+                    <div className="space-y-2">
+                      {allocations.map((_, i) => (
+                        <Skeleton key={i} className="h-14 w-full" />
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Asset</TableHead>
+                            <TableHead className="text-right">Price</TableHead>
+                            <TableHead className="text-right">Return</TableHead>
+                            <TableHead className="text-right">Value</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {allocations.map((alloc, i) => {
+                            const quote = liveQuotes.get(alloc.symbol.toUpperCase());
+                            const weight = alloc.weight > 1 ? alloc.weight : alloc.weight * 100;
+                            const value = (alloc.weight > 1 ? alloc.weight / 100 : alloc.weight) * investableCapital;
+                            const price = quote?.price ?? 0;
+                            const changePercent = quote?.changePercent ?? 0;
+                            const isUp = changePercent >= 0;
+                            
+                            return (
+                              <TableRow key={i} className="hover:bg-muted/30">
+                                <TableCell>
+                                  <div className="flex items-center gap-3">
                                     <div 
-                                      className="h-full rounded-full"
-                                      style={{ 
-                                        width: `${weight}%`,
-                                        backgroundColor: PIE_COLORS[i % PIE_COLORS.length],
-                                      }}
-                                    />
+                                      className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg flex items-center justify-center flex-shrink-0"
+                                      style={{ backgroundColor: `${PIE_COLORS[i % PIE_COLORS.length]}20` }}
+                                    >
+                                      <span 
+                                        className="font-mono font-bold text-xs sm:text-sm"
+                                        style={{ color: PIE_COLORS[i % PIE_COLORS.length] }}
+                                      >
+                                        {alloc.symbol.slice(0, 3)}
+                                      </span>
+                                    </div>
+                                    <div className="min-w-0">
+                                      <p className="font-medium text-sm">{alloc.symbol}</p>
+                                      {alloc.name && (
+                                        <p className="text-xs text-muted-foreground line-clamp-1">{alloc.name}</p>
+                                      )}
+                                      <p className="text-xs text-muted-foreground sm:hidden">{weight.toFixed(1)}% weight</p>
+                                    </div>
                                   </div>
-                                  <span className="font-bold tabular-nums w-12 text-right">{weight.toFixed(1)}%</span>
-                                </div>
-                              </TableCell>
-                              <TableCell className="text-right">
-                                <span className="font-medium tabular-nums">
-                                  ${value.toLocaleString(undefined, { maximumFractionDigits: 0 })}
-                                </span>
-                              </TableCell>
-                            </TableRow>
-                          );
-                        })}
-                      </TableBody>
-                    </Table>
-                  </div>
+                                </TableCell>
+                                <TableCell className="text-right">
+                                  <span className="font-medium tabular-nums">
+                                    {price > 0 ? `$${price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '—'}
+                                  </span>
+                                </TableCell>
+                                <TableCell className="text-right">
+                                  {price > 0 ? (
+                                    <div className={cn(
+                                      "flex items-center justify-end gap-1 font-medium tabular-nums",
+                                      isUp ? "text-emerald-500" : "text-rose-500"
+                                    )}>
+                                      {isUp ? <ArrowUpRight className="h-3.5 w-3.5" /> : <ArrowDownRight className="h-3.5 w-3.5" />}
+                                      {changePercent >= 0 ? '+' : ''}{changePercent.toFixed(2)}%
+                                    </div>
+                                  ) : (
+                                    <span className="text-muted-foreground">—</span>
+                                  )}
+                                </TableCell>
+                                <TableCell className="text-right">
+                                  <span className="font-bold tabular-nums">
+                                    ${value.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                                  </span>
+                                </TableCell>
+                              </TableRow>
+                            );
+                          })}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  )}
                   
                   {/* Summary Row */}
-                  <div className="flex items-center justify-between p-3 mt-3 rounded-lg bg-muted/30 border border-border/50">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-3 mt-3 rounded-lg bg-muted/30 border border-border/50 gap-2">
                     <div className="flex items-center gap-2">
                       <Target className="h-4 w-4 text-primary" />
                       <span className="text-sm font-medium">Total Portfolio</span>
                     </div>
-                    <div className="flex items-center gap-6">
+                    <div className="flex items-center gap-4 sm:gap-6">
                       <span className="text-sm text-muted-foreground">{allocations.length} holdings</span>
                       <span className="font-bold tabular-nums">
                         ${investableCapital.toLocaleString(undefined, { maximumFractionDigits: 0 })}
