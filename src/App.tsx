@@ -85,6 +85,7 @@ const App = () => (
                       <Route path="/companies/:id" element={<CompanyRedirect />} />
                       <Route path="/markets" element={<Navigate to="/" replace />} />
                       <Route path="/holdings" element={<Navigate to="/" replace />} />
+                      <Route path="/backtester" element={<Navigate to="/portfolio-visualizer" replace />} />
                       {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                       <Route path="*" element={<NotFound />} />
                     </Routes>
