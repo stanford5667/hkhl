@@ -148,23 +148,16 @@ export function Sidebar() {
   const allNavigation = useMemo<NavItem[]>(() => {
     const items: NavItem[] = [
       { 
-        label: "Dashboard", 
-        subtitle: "Overview",
+        label: "Portfolio", 
+        subtitle: "Overview & Holdings",
         href: "/", 
-        icon: LayoutDashboard 
+        icon: Briefcase 
       },
       { 
         label: "News", 
         subtitle: "Intelligence Feed",
         href: "/news", 
         icon: Newspaper 
-      },
-      // Portfolio - unified view of all owned assets with live market data
-      { 
-        label: "Portfolio", 
-        subtitle: "What You Own",
-        href: "/portfolio", 
-        icon: Briefcase,
       },
       // Organization group with children
       { 
