@@ -1,5 +1,5 @@
 // Portfolio Analysis Tabs - Brings Portfolio Builder tabs to the Portfolio page
-// Provides Learn, Metrics, Data Quality, Regime, and Allocation views
+// Provides Overview, Metrics, Holdings, Data Quality, and Stress Test views
 
 import { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -89,7 +89,7 @@ export function PortfolioAnalysisTabs({
   portfolioName,
   className 
 }: PortfolioAnalysisTabsProps) {
-  const [activeTab, setActiveTab] = useState('learn');
+  const [activeTab, setActiveTab] = useState('overview');
 
   // Convert allocations to the format expected by usePortfolioCalculations
   const calcAllocations = useMemo(() => allocations.map(a => ({
@@ -211,31 +211,31 @@ export function PortfolioAnalysisTabs({
       </CardHeader>
       <CardContent>
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-5 mb-4">
-            <TabsTrigger value="learn" className="gap-1.5 text-xs">
-              <GraduationCap className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline">Learn</span>
+          <TabsList className="grid w-full grid-cols-5 h-auto gap-1 p-1 mb-4">
+            <TabsTrigger value="overview" className="gap-1.5 text-xs px-2 py-2 flex-col sm:flex-row">
+              <GraduationCap className="h-4 w-4 sm:h-3.5 sm:w-3.5" />
+              <span className="text-[10px] sm:text-xs">Overview</span>
             </TabsTrigger>
-            <TabsTrigger value="metrics" className="gap-1.5 text-xs">
-              <BarChart3 className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline">Metrics</span>
+            <TabsTrigger value="metrics" className="gap-1.5 text-xs px-2 py-2 flex-col sm:flex-row">
+              <BarChart3 className="h-4 w-4 sm:h-3.5 sm:w-3.5" />
+              <span className="text-[10px] sm:text-xs">Metrics</span>
             </TabsTrigger>
-            <TabsTrigger value="data-quality" className="gap-1.5 text-xs">
-              <Database className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline">Data</span>
+            <TabsTrigger value="holdings" className="gap-1.5 text-xs px-2 py-2 flex-col sm:flex-row">
+              <Settings className="h-4 w-4 sm:h-3.5 sm:w-3.5" />
+              <span className="text-[10px] sm:text-xs">Holdings</span>
             </TabsTrigger>
-            <TabsTrigger value="regime" className="gap-1.5 text-xs">
-              <Shield className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline">Regime</span>
+            <TabsTrigger value="data-quality" className="gap-1.5 text-xs px-2 py-2 flex-col sm:flex-row">
+              <Database className="h-4 w-4 sm:h-3.5 sm:w-3.5" />
+              <span className="text-[10px] sm:text-xs">Data</span>
             </TabsTrigger>
-            <TabsTrigger value="allocation" className="gap-1.5 text-xs">
-              <Settings className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline">Allocation</span>
+            <TabsTrigger value="stress-test" className="gap-1.5 text-xs px-2 py-2 flex-col sm:flex-row">
+              <Shield className="h-4 w-4 sm:h-3.5 sm:w-3.5" />
+              <span className="text-[10px] sm:text-xs">Stress Test</span>
             </TabsTrigger>
           </TabsList>
 
-          {/* Learn Tab - Human-readable insights */}
-          <TabsContent value="learn" className="mt-0">
+          {/* Overview Tab - Human-readable insights */}
+          <TabsContent value="overview" className="mt-0">
             <ErrorBoundary variant="default">
               <div className="space-y-4">
                 {/* Sleep Score + Worst Case + Turbulence */}
@@ -626,8 +626,8 @@ export function PortfolioAnalysisTabs({
             </ErrorBoundary>
           </TabsContent>
 
-          {/* Regime Tab */}
-          <TabsContent value="regime" className="mt-0">
+          {/* Stress Test Tab */}
+          <TabsContent value="stress-test" className="mt-0">
             <ErrorBoundary variant="default">
               <div className="space-y-4">
                 <Card className="bg-muted/30 border-border/50">
@@ -686,8 +686,8 @@ export function PortfolioAnalysisTabs({
             </ErrorBoundary>
           </TabsContent>
 
-          {/* Allocation Tab */}
-          <TabsContent value="allocation" className="mt-0">
+          {/* Holdings Tab */}
+          <TabsContent value="holdings" className="mt-0">
             <ErrorBoundary variant="default">
               <div className="space-y-4">
                 <div className="grid grid-cols-1 gap-2">

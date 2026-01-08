@@ -1300,24 +1300,15 @@ export default function Portfolio() {
         </Card>
       </div>
 
-      {/* Main Content Grid - Tasks and Activity */}
+      {/* Tasks and News Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left Column - Recent Activity */}
-        <div className="lg:col-span-2 space-y-6">
-          <motion.div variants={itemVariants}>
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold">Recent Activity</h2>
-            </div>
-            <RecentCompaniesGrid companies={recentCompanies} isLoading={isLoading} />
-          </motion.div>
-
+        <div className="lg:col-span-2">
           <motion.div variants={itemVariants}>
             <PortfolioNews />
           </motion.div>
         </div>
 
-        {/* Right Column - Tasks */}
-        <div className="space-y-6">
+        <div>
           <motion.div variants={itemVariants}>
             <TasksCard tasks={tasksWithRelations} isLoading={isLoading} />
           </motion.div>
