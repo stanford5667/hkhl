@@ -11,7 +11,6 @@ import { OnboardingFlow } from "@/components/onboarding/OnboardingFlow";
 import { Layout } from "@/components/layout/Layout";
 import { DevModeToggle } from "@/components/dev/DevModeToggle";
 import { DevModeSyncWrapper } from "@/components/dev/DevModeSyncWrapper";
-import EnhancedDashboard from "./pages/EnhancedDashboard";
 import Pipeline from "./pages/Pipeline";
 import Models from "./pages/Models";
 import NewModel from "./pages/NewModel";
@@ -55,11 +54,10 @@ const App = () => (
                 <OnboardingFlow>
                   <Layout>
                     <Routes>
-                      <Route path="/" element={<EnhancedDashboard />} />
+                      <Route path="/" element={<Portfolio />} />
                       <Route path="/news" element={<NewsIntelligence />} />
                       <Route path="/auth" element={<Auth />} />
                       <Route path="/pipeline" element={<Pipeline />} />
-                      <Route path="/portfolio" element={<Portfolio />} />
                       <Route path="/assets" element={<Portfolio />} />
                       <Route path="/portfolio/:id" element={<CompanyDetail />} />
                       <Route path="/contacts" element={<Contacts />} />
@@ -82,10 +80,11 @@ const App = () => (
                       <Route path="/prediction-ai" element={<PredictionMarketsAI />} />
                       <Route path="/discovery" element={<DiscoveryHub />} />
                       {/* Redirects from old routes */}
-                      <Route path="/companies" element={<Navigate to="/portfolio" replace />} />
+                      <Route path="/portfolio" element={<Navigate to="/" replace />} />
+                      <Route path="/companies" element={<Navigate to="/" replace />} />
                       <Route path="/companies/:id" element={<CompanyRedirect />} />
-                      <Route path="/markets" element={<Navigate to="/portfolio" replace />} />
-                      <Route path="/holdings" element={<Navigate to="/portfolio" replace />} />
+                      <Route path="/markets" element={<Navigate to="/" replace />} />
+                      <Route path="/holdings" element={<Navigate to="/" replace />} />
                       {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                       <Route path="*" element={<NotFound />} />
                     </Routes>

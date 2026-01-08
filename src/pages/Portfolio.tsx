@@ -1,16 +1,18 @@
 import { useMemo, useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { motion } from 'framer-motion';
+import { format, isToday, isBefore, startOfDay, parseISO } from 'date-fns';
+import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useUnifiedData, AssetClass, CompanyWithRelations } from '@/contexts/UnifiedDataContext';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { useUnifiedData, AssetClass, CompanyWithRelations, useDashboardData, type TaskWithRelations } from '@/contexts/UnifiedDataContext';
 import { useAuth } from '@/contexts/AuthContext';
-import { useOrgId } from '@/contexts/OrganizationContext';
+import { useOrgId, useOrganization, AssetType } from '@/contexts/OrganizationContext';
 import { useMarketIndices } from '@/hooks/useMarketData';
 import { getCachedQuotes } from '@/services/quoteCacheService';
 import { supabase } from '@/integrations/supabase/client';
@@ -35,6 +37,15 @@ import {
   Search,
   ChevronDown,
   ChevronUp,
+  Building2,
+  Users,
+  CheckSquare,
+  FileText,
+  Upload,
+  AlertTriangle,
+  Clock,
+  Calendar,
+  BarChart3,
 } from "lucide-react";
 import { 
   DropdownMenu, 
@@ -49,13 +60,33 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Treemap, AreaChart, Area, XAxis, YAxis } from 'recharts';
-import { motion, AnimatePresence } from 'framer-motion';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Treemap, AreaChart, Area, XAxis, YAxis, BarChart, Bar } from 'recharts';
+import { AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { AddAssetWizard } from '@/components/companies/AddAssetWizard';
 import { MarketDataPausedBanner } from '@/components/dev/MarketDataPausedBanner';
 import { FinnhubApiBanner } from '@/components/shared/FinnhubApiBanner';
 import { toast } from 'sonner';
+import { CompanyMiniCard } from '@/components/shared/CompanyMiniCard';
+import { TaskRow } from '@/components/shared/TaskRow';
+import { useDashboardWidgets } from '@/hooks/useDashboardWidgets';
+import { WidgetConfigDialog } from '@/components/dashboard/WidgetConfigDialog';
+import { PortfolioPerformanceCard } from '@/components/dashboard/PortfolioPerformanceCard';
+import { PortfolioNews } from '@/components/dashboard/PortfolioNews';
+
+// Animation variants
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: { staggerChildren: 0.1 },
+  },
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { opacity: 1, y: 0 },
+};
 
 // Asset class configuration
 const ASSET_CLASS_CONFIG: Record<AssetClass, { 
@@ -139,11 +170,308 @@ function generateSparkline(basePrice: number, changePercent: number): { v: numbe
   return data;
 }
 
+function getGreeting(): string {
+  const hour = new Date().getHours();
+  if (hour < 12) return 'Good morning';
+  if (hour < 17) return 'Good afternoon';
+  return 'Good evening';
+}
+
+// Stat Card Component
+function StatCard({
+  title,
+  value,
+  displayValue,
+  icon: Icon,
+  alert,
+  alertCount,
+  onClick,
+  isLoading,
+  change,
+  changeLabel,
+  subtitle,
+}: {
+  title: string;
+  value?: number;
+  displayValue?: string;
+  icon: React.ElementType;
+  alert?: boolean;
+  alertCount?: number;
+  onClick?: () => void;
+  isLoading?: boolean;
+  change?: number;
+  changeLabel?: string;
+  subtitle?: string;
+}) {
+  if (isLoading) {
+    return (
+      <Card className="cursor-pointer hover:shadow-md transition-shadow">
+        <CardContent className="p-4">
+          <Skeleton className="h-4 w-20 mb-2" />
+          <Skeleton className="h-8 w-12" />
+        </CardContent>
+      </Card>
+    );
+  }
+
+  const isPositive = change !== undefined && change >= 0;
+
+  return (
+    <motion.div variants={itemVariants}>
+      <Card
+        className="cursor-pointer hover:shadow-md transition-all hover:scale-[1.02] group"
+        onClick={onClick}
+      >
+        <CardContent className="p-4">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-sm text-muted-foreground">{title}</span>
+            <Icon className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-2xl font-bold">
+              {displayValue !== undefined ? displayValue : value}
+            </span>
+            {alert && alertCount && alertCount > 0 && (
+              <Badge variant="destructive" className="text-xs">
+                <AlertTriangle className="h-3 w-3 mr-1" />
+                {alertCount} overdue
+              </Badge>
+            )}
+          </div>
+          {change !== undefined && (
+            <div className={`flex items-center gap-1 mt-1 text-xs ${isPositive ? 'text-green-600' : 'text-red-600'}`}>
+              {isPositive ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
+              {formatPercent(change)}
+              {changeLabel && <span className="text-muted-foreground ml-1">{changeLabel}</span>}
+            </div>
+          )}
+          {subtitle && (
+            <p className="text-xs text-muted-foreground mt-1">{subtitle}</p>
+          )}
+        </CardContent>
+      </Card>
+    </motion.div>
+  );
+}
+
+// Quick Action Button
+function QuickActionButton({
+  icon: Icon,
+  label,
+  onClick,
+}: {
+  icon: React.ElementType;
+  label: string;
+  onClick: () => void;
+}) {
+  return (
+    <Button
+      variant="outline"
+      className="flex items-center gap-2 hover:bg-primary hover:text-primary-foreground transition-all"
+      onClick={onClick}
+    >
+      <Icon className="h-4 w-4" />
+      {label}
+    </Button>
+  );
+}
+
+// Tasks Card Component
+function TasksCard({
+  tasks,
+  isLoading,
+}: {
+  tasks: TaskWithRelations[];
+  isLoading: boolean;
+}) {
+  const now = new Date();
+  const todayStart = startOfDay(now);
+
+  const { overdue, today, upcoming } = useMemo(() => {
+    const openTasks = tasks.filter(t => t.status !== 'done' && t.status !== 'completed');
+    
+    const overdue = openTasks.filter(t => {
+      if (!t.due_date) return false;
+      return isBefore(parseISO(t.due_date), todayStart);
+    });
+
+    const today = openTasks.filter(t => {
+      if (!t.due_date) return false;
+      return isToday(parseISO(t.due_date));
+    });
+
+    const upcoming = openTasks.filter(t => {
+      if (!t.due_date) return false;
+      const dueDate = parseISO(t.due_date);
+      return !isBefore(dueDate, todayStart) && !isToday(dueDate);
+    }).slice(0, 5);
+
+    return { overdue, today, upcoming };
+  }, [tasks, todayStart]);
+
+  if (isLoading) {
+    return (
+      <Card>
+        <CardHeader className="pb-3">
+          <Skeleton className="h-5 w-24" />
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {[1, 2, 3].map(i => (
+            <Skeleton key={i} className="h-12 w-full" />
+          ))}
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <Card>
+      <CardHeader className="pb-3">
+        <CardTitle className="text-base flex items-center gap-2">
+          <CheckSquare className="h-4 w-4" />
+          My Tasks
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {overdue.length > 0 && (
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <AlertTriangle className="h-3 w-3 text-destructive" />
+              <span className="text-xs font-medium text-destructive">Overdue ({overdue.length})</span>
+            </div>
+            <div className="space-y-1">
+              {overdue.slice(0, 3).map(task => (
+                <TaskRow
+                  key={task.id}
+                  task={{
+                    ...task,
+                    company: task.company ? { id: task.company.id, name: task.company.name } : null,
+                    contact: task.contact ? { id: task.contact.id, name: `${task.contact.first_name} ${task.contact.last_name}` } : null,
+                  }}
+                  compact
+                />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {today.length > 0 && (
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <Clock className="h-3 w-3 text-amber-500" />
+              <span className="text-xs font-medium text-amber-600">Today ({today.length})</span>
+            </div>
+            <div className="space-y-1">
+              {today.slice(0, 3).map(task => (
+                <TaskRow
+                  key={task.id}
+                  task={{
+                    ...task,
+                    company: task.company ? { id: task.company.id, name: task.company.name } : null,
+                    contact: task.contact ? { id: task.contact.id, name: `${task.contact.first_name} ${task.contact.last_name}` } : null,
+                  }}
+                  compact
+                />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {upcoming.length > 0 && (
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <Calendar className="h-3 w-3 text-muted-foreground" />
+              <span className="text-xs font-medium text-muted-foreground">Upcoming</span>
+            </div>
+            <div className="space-y-1">
+              {upcoming.map(task => (
+                <TaskRow
+                  key={task.id}
+                  task={{
+                    ...task,
+                    company: task.company ? { id: task.company.id, name: task.company.name } : null,
+                    contact: task.contact ? { id: task.contact.id, name: `${task.contact.first_name} ${task.contact.last_name}` } : null,
+                  }}
+                  compact
+                />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {overdue.length === 0 && today.length === 0 && upcoming.length === 0 && (
+          <p className="text-sm text-muted-foreground text-center py-4">
+            No upcoming tasks
+          </p>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+// Recent Companies Grid
+function RecentCompaniesGrid({
+  companies,
+  isLoading,
+}: {
+  companies: CompanyWithRelations[];
+  isLoading: boolean;
+}) {
+  if (isLoading) {
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {[1, 2, 3, 4, 5, 6].map(i => (
+          <Card key={i}>
+            <CardContent className="p-4">
+              <Skeleton className="h-5 w-32 mb-2" />
+              <Skeleton className="h-4 w-24 mb-3" />
+              <div className="flex gap-2">
+                <Skeleton className="h-5 w-16" />
+                <Skeleton className="h-5 w-16" />
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    );
+  }
+
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      {companies.slice(0, 6).map((company, index) => (
+        <motion.div
+          key={company.id}
+          variants={itemVariants}
+          custom={index}
+        >
+          <CompanyMiniCard
+            company={{
+              id: company.id,
+              name: company.name,
+              industry: company.industry,
+              company_type: company.company_type,
+              pipeline_stage: company.pipeline_stage,
+            }}
+            variant="detailed"
+            counts={{
+              tasks: company.openTaskCount,
+              contacts: company.contactCount,
+            }}
+          />
+        </motion.div>
+      ))}
+    </div>
+  );
+}
+
 export default function Portfolio() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const orgId = useOrgId();
-  const { companiesWithRelations, isLoading, refetchAll } = useUnifiedData();
+  const { currentOrganization, enabledAssetTypes } = useOrganization();
+  const { companiesWithRelations, isLoading, refetchAll, tasksWithRelations, pipelineStats } = useUnifiedData();
+  const { stats, recentCompanies } = useDashboardData();
+  const { widgets, enabledWidgets, toggleWidget, resetToDefaults } = useDashboardWidgets();
   
   const [viewMode, setViewMode] = useState<ViewMode>(() => {
     return (localStorage.getItem('portfolio-view-mode') as ViewMode) || 'cards';
@@ -164,6 +492,16 @@ export default function Portfolio() {
   // Market indices
   const { indices: marketIndicesData, isLoading: indicesLoading, refresh: refreshIndices } = useMarketIndices();
 
+  // Greeting
+  const greeting = getGreeting();
+  const userName = user?.user_metadata?.full_name?.split(' ')[0] || 'there';
+  const currentDate = format(new Date(), 'EEEE, MMMM d, yyyy');
+
+  // Asset type flags
+  const hasPrivateEquity = enabledAssetTypes.includes('private_equity');
+  const hasPublicEquity = enabledAssetTypes.includes('public_equity');
+  const hasBothTypes = hasPrivateEquity && hasPublicEquity;
+
   // Save view mode preference
   useEffect(() => {
     localStorage.setItem('portfolio-view-mode', viewMode);
@@ -173,6 +511,12 @@ export default function Portfolio() {
   const allHoldings = useMemo(() => {
     return companiesWithRelations.filter(c => c.company_type === 'portfolio');
   }, [companiesWithRelations]);
+
+  // Filter companies by asset type
+  const publicEquities = useMemo(() => 
+    companiesWithRelations.filter(c => c.asset_class === 'public_equity'),
+    [companiesWithRelations]
+  );
 
   // Get unique tickers for public equities
   const publicEquityTickers = useMemo(() => {
@@ -209,9 +553,9 @@ export default function Portfolio() {
   // Manual refresh
   const handleRefresh = async () => {
     setIsRefreshing(true);
-    await Promise.all([refreshIndices(), fetchQuotes()]);
+    await Promise.all([refreshIndices(), fetchQuotes(), refetchAll()]);
     setIsRefreshing(false);
-    toast.success('Prices updated');
+    toast.success('Data refreshed');
   };
 
   // Map market indices with sparklines
@@ -238,12 +582,10 @@ export default function Portfolio() {
   const filteredHoldings = useMemo(() => {
     let filtered = allHoldings;
     
-    // Apply asset class filter
     if (assetFilter !== 'all') {
       filtered = filtered.filter(h => h.asset_class === assetFilter);
     }
     
-    // Apply search filter
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
       filtered = filtered.filter(h => 
@@ -253,7 +595,6 @@ export default function Portfolio() {
       );
     }
     
-    // Sort holdings
     return filtered.sort((a, b) => {
       let comparison = 0;
       switch (sortBy) {
@@ -278,7 +619,7 @@ export default function Portfolio() {
   }, [allHoldings, assetFilter, searchQuery, sortBy, sortAsc, liveQuotes]);
 
   // Calculate portfolio stats
-  const stats = useMemo(() => {
+  const portfolioStats = useMemo(() => {
     let totalValue = 0;
     let totalCostBasis = 0;
     let todayChange = 0;
@@ -314,11 +655,18 @@ export default function Portfolio() {
       ? (todayChange / (totalValue - todayChange)) * 100 
       : 0;
     
+    const totalGainLoss = totalValue - totalCostBasis;
+    const totalGainLossPercent = totalCostBasis > 0 
+      ? (totalGainLoss / totalCostBasis) * 100 
+      : 0;
+    
     return {
       totalValue,
       totalCostBasis,
       todayChange,
       todayChangePercent,
+      totalGainLoss,
+      totalGainLossPercent,
       gainersCount,
       losersCount,
       byType,
@@ -327,7 +675,7 @@ export default function Portfolio() {
 
   // Allocation chart data
   const allocationData = useMemo(() => {
-    return Object.entries(stats.byType)
+    return Object.entries(portfolioStats.byType)
       .filter(([_, data]) => data.value > 0)
       .map(([type, data]) => ({
         name: ASSET_CLASS_CONFIG[type as AssetClass].label,
@@ -337,7 +685,7 @@ export default function Portfolio() {
         count: data.count,
         id: type,
       }));
-  }, [stats]);
+  }, [portfolioStats]);
 
   // Treemap data
   const treemapData = useMemo(() => {
@@ -374,30 +722,34 @@ export default function Portfolio() {
   }
 
   return (
-    <div className="p-6 space-y-6 max-w-7xl mx-auto">
+    <motion.div
+      className="p-6 space-y-6 max-w-7xl mx-auto"
+      variants={containerVariants}
+      initial="hidden"
+      animate="visible"
+    >
       <FinnhubApiBanner />
       <MarketDataPausedBanner />
 
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="flex items-center gap-4">
-          <div>
-            <h1 className="text-2xl font-bold text-foreground">Portfolio</h1>
-            <p className="text-sm text-muted-foreground">
-              Updated {lastRefresh.toLocaleTimeString()}
-            </p>
-          </div>
-          {/* Portfolio Selector - placeholder for multi-portfolio support */}
-          <Select defaultValue="main">
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Select portfolio" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="main">Main Portfolio</SelectItem>
-            </SelectContent>
-          </Select>
+      {/* Header with Greeting */}
+      <motion.div variants={itemVariants} className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold">
+            {greeting}, {userName}!
+          </h1>
+          <p className="text-muted-foreground">
+            {currentDate}
+            {currentOrganization && (
+              <span className="ml-2">• {currentOrganization.name}</span>
+            )}
+          </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 self-start md:self-auto">
+          <WidgetConfigDialog
+            widgets={widgets}
+            onToggle={toggleWidget}
+            onReset={resetToDefaults}
+          />
           <Button
             variant="outline"
             size="sm"
@@ -417,10 +769,89 @@ export default function Portfolio() {
             Add Position
           </Button>
         </div>
-      </div>
+      </motion.div>
+
+      {/* Quick Actions */}
+      <motion.div variants={itemVariants} className="flex flex-wrap gap-2">
+        {hasPrivateEquity && (
+          <QuickActionButton
+            icon={Briefcase}
+            label="Add Deal"
+            onClick={() => navigate('/companies?create=true&assetType=private_equity')}
+          />
+        )}
+        {hasPublicEquity && (
+          <QuickActionButton
+            icon={TrendingUp}
+            label="Add Position"
+            onClick={() => setShowAddDialog(true)}
+          />
+        )}
+        <QuickActionButton
+          icon={Plus}
+          label="New Task"
+          onClick={() => navigate('/tasks?create=true')}
+        />
+        <QuickActionButton
+          icon={Users}
+          label="Add Contact"
+          onClick={() => navigate('/contacts?create=true')}
+        />
+        <QuickActionButton
+          icon={Upload}
+          label="Upload Docs"
+          onClick={() => navigate('/documents?upload=true')}
+        />
+      </motion.div>
+
+      {/* Dynamic Stats Row */}
+      <motion.div variants={containerVariants} className="grid grid-cols-2 md:grid-cols-5 gap-4">
+        <StatCard
+          title="Total Value"
+          displayValue={formatCurrency(portfolioStats.totalValue, true)}
+          icon={Wallet}
+          onClick={() => {}}
+          isLoading={isLoading}
+          change={portfolioStats.totalGainLossPercent}
+          subtitle={`${allHoldings.length} holdings`}
+        />
+        <StatCard
+          title="Today's Change"
+          displayValue={formatCurrency(portfolioStats.todayChange, true)}
+          icon={portfolioStats.todayChange >= 0 ? TrendingUp : TrendingDown}
+          isLoading={isLoading}
+          change={portfolioStats.todayChangePercent}
+        />
+        <StatCard
+          title="Gainers"
+          value={portfolioStats.gainersCount}
+          icon={ArrowUpRight}
+          isLoading={isLoading}
+        />
+        <StatCard
+          title="Losers"
+          value={portfolioStats.losersCount}
+          icon={ArrowDownRight}
+          isLoading={isLoading}
+        />
+        <StatCard
+          title="Open Tasks"
+          value={stats.openTasks}
+          icon={CheckSquare}
+          alert={stats.overdueTasks > 0}
+          alertCount={stats.overdueTasks}
+          onClick={() => navigate('/tasks')}
+          isLoading={isLoading}
+        />
+      </motion.div>
+
+      {/* Portfolio Performance Card */}
+      <motion.div variants={itemVariants}>
+        <PortfolioPerformanceCard days={30} showAllocation />
+      </motion.div>
 
       {/* Market Indices Row */}
-      <div className="flex gap-3 overflow-x-auto pb-1">
+      <motion.div variants={itemVariants} className="flex gap-3 overflow-x-auto pb-1">
         {indicesLoading ? (
           Array.from({ length: 4 }).map((_, i) => (
             <Skeleton key={i} className="h-20 w-32 flex-shrink-0 rounded-lg" />
@@ -468,73 +899,7 @@ export default function Portfolio() {
             );
           })
         )}
-      </div>
-
-      {/* Stats Row */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card className="bg-gradient-to-br from-primary/20 to-primary/5 border-primary/30">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Total Value</span>
-              <Wallet className="h-4 w-4 text-primary" />
-            </div>
-            <span className="text-2xl font-bold tabular-nums text-foreground">
-              {formatCurrency(stats.totalValue, true)}
-            </span>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Day Change</span>
-              {stats.todayChange >= 0 ? (
-                <TrendingUp className="h-4 w-4 text-emerald-500" />
-              ) : (
-                <TrendingDown className="h-4 w-4 text-rose-500" />
-              )}
-            </div>
-            <div className="flex items-baseline gap-2">
-              <span className={cn(
-                "text-2xl font-bold tabular-nums",
-                stats.todayChange >= 0 ? "text-emerald-500" : "text-rose-500"
-              )}>
-                {stats.todayChange >= 0 ? '+' : ''}{formatCurrency(stats.todayChange, true)}
-              </span>
-              <span className={cn(
-                "text-sm",
-                stats.todayChange >= 0 ? "text-emerald-500" : "text-rose-500"
-              )}>
-                {formatPercent(stats.todayChangePercent)}
-              </span>
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Gainers</span>
-              <ArrowUpRight className="h-4 w-4 text-emerald-500" />
-            </div>
-            <span className="text-2xl font-bold tabular-nums text-emerald-500">
-              {stats.gainersCount}
-            </span>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Losers</span>
-              <ArrowDownRight className="h-4 w-4 text-rose-500" />
-            </div>
-            <span className="text-2xl font-bold tabular-nums text-rose-500">
-              {stats.losersCount}
-            </span>
-          </CardContent>
-        </Card>
-      </div>
+      </motion.div>
 
       {/* Asset Class Filter Tabs */}
       <Tabs value={assetFilter} onValueChange={(v) => setAssetFilter(v as AssetFilter)} className="w-full">
@@ -544,7 +909,7 @@ export default function Portfolio() {
             <Badge variant="secondary" className="h-5 px-1.5 text-xs">{allHoldings.length}</Badge>
           </TabsTrigger>
           {Object.entries(ASSET_CLASS_CONFIG).map(([key, config]) => {
-            const count = stats.byType[key as AssetClass]?.count || 0;
+            const count = portfolioStats.byType[key as AssetClass]?.count || 0;
             if (count === 0) return null;
             const Icon = config.icon;
             return (
@@ -725,6 +1090,30 @@ export default function Portfolio() {
         </Card>
       </div>
 
+      {/* Main Content Grid - Tasks and Activity */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Left Column - Recent Activity */}
+        <div className="lg:col-span-2 space-y-6">
+          <motion.div variants={itemVariants}>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold">Recent Activity</h2>
+            </div>
+            <RecentCompaniesGrid companies={recentCompanies} isLoading={isLoading} />
+          </motion.div>
+
+          <motion.div variants={itemVariants}>
+            <PortfolioNews />
+          </motion.div>
+        </div>
+
+        {/* Right Column - Tasks */}
+        <div className="space-y-6">
+          <motion.div variants={itemVariants}>
+            <TasksCard tasks={tasksWithRelations} isLoading={isLoading} />
+          </motion.div>
+        </div>
+      </div>
+
       {/* Add Asset Wizard */}
       <AddAssetWizard
         open={showAddDialog}
@@ -798,7 +1187,7 @@ export default function Portfolio() {
           </div>
         </DialogContent>
       </Dialog>
-    </div>
+    </motion.div>
   );
 }
 
@@ -921,7 +1310,6 @@ function HoldingCard({
   const gainLossPercent = getGainLossPercent(holding, liveQuotes);
   const isPositive = gainLossPercent >= 0;
   
-  // Get live quote for public equities
   const quote = holding.ticker_symbol 
     ? liveQuotes.get(holding.ticker_symbol.toUpperCase()) 
     : null;
@@ -937,14 +1325,12 @@ function HoldingCard({
       <Link to={`/portfolio/${holding.id}`}>
         <Card className="bg-card border-border hover:border-primary/50 transition-all group cursor-pointer relative">
           <CardContent className="p-4">
-            {/* Live indicator for public equities */}
             {assetClass === 'public_equity' && (
               <div className="absolute top-3 right-3">
                 <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
               </div>
             )}
             
-            {/* Header */}
             <div className="flex items-start gap-3 mb-3">
               <div className={cn("p-2 rounded-lg", config.color)}>
                 <Icon className="h-4 w-4" />
@@ -970,7 +1356,6 @@ function HoldingCard({
               </div>
             </div>
             
-            {/* Value and Price */}
             <div className="flex items-end justify-between mb-3">
               <div>
                 <span className="text-2xl font-bold tabular-nums text-foreground">
@@ -998,7 +1383,6 @@ function HoldingCard({
               )}
             </div>
             
-            {/* Performance */}
             <div className="flex items-center justify-between">
               <div className={cn(
                 "flex items-center gap-1 text-sm font-medium",
