@@ -1,5 +1,5 @@
 // Portfolio Analysis Tabs - Brings Portfolio Builder tabs to the Portfolio page
-// Provides Learn, Metrics, Data Quality, Regime, and Allocation views
+// Provides Learn, Understand, Metrics, Data Quality, Regime, and Allocation views
 
 import { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -31,6 +31,7 @@ import { cn } from '@/lib/utils';
 import { usePortfolioCalculations, PortfolioMetrics } from '@/hooks/usePortfolioCalculations';
 import { ErrorBoundary } from '@/components/shared/ErrorBoundary';
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
+import { MetricExplanationCard } from '@/components/shared/MetricExplanationCard';
 
 interface PortfolioAnalysisTabsProps {
   allocations: { symbol: string; weight: number; name?: string }[];
@@ -210,10 +211,14 @@ export function PortfolioAnalysisTabs({
       </CardHeader>
       <CardContent>
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-5 mb-4">
+          <TabsList className="grid w-full grid-cols-6 mb-4">
             <TabsTrigger value="learn" className="gap-1.5 text-xs">
               <GraduationCap className="h-3.5 w-3.5" />
               <span className="hidden sm:inline">Learn</span>
+            </TabsTrigger>
+            <TabsTrigger value="understand" className="gap-1.5 text-xs">
+              <BookOpen className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Understand</span>
             </TabsTrigger>
             <TabsTrigger value="metrics" className="gap-1.5 text-xs">
               <BarChart3 className="h-3.5 w-3.5" />
@@ -339,6 +344,173 @@ export function PortfolioAnalysisTabs({
                     </CardContent>
                   </Card>
                 )}
+              </div>
+            </ErrorBoundary>
+          </TabsContent>
+
+          {/* Understand Tab - Detailed metric explanations with traces */}
+          <TabsContent value="understand" className="mt-0">
+            <ErrorBoundary variant="default">
+              <div className="space-y-8">
+                {/* Returns Category */}
+                <div>
+                  <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                    <TrendingUp className="h-5 w-5 text-emerald-500" />
+                    Returns
+                  </h3>
+                  <div className="grid gap-4 md:grid-cols-2">
+                    {metrics.totalReturn !== undefined && (
+                      <MetricExplanationCard
+                        metricId="totalReturn"
+                        value={metrics.totalReturn}
+                        trace={traces.find(t => t.metricId === 'totalReturn')}
+                        mode="compact"
+                      />
+                    )}
+                    {metrics.cagr !== undefined && (
+                      <MetricExplanationCard
+                        metricId="cagr"
+                        value={metrics.cagr}
+                        trace={traces.find(t => t.metricId === 'cagr')}
+                        mode="compact"
+                      />
+                    )}
+                  </div>
+                </div>
+
+                {/* Risk Category */}
+                <div>
+                  <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                    <AlertTriangle className="h-5 w-5 text-amber-500" />
+                    Risk Metrics
+                  </h3>
+                  <div className="grid gap-4 md:grid-cols-2">
+                    {metrics.volatility !== undefined && (
+                      <MetricExplanationCard
+                        metricId="volatility"
+                        value={metrics.volatility}
+                        trace={traces.find(t => t.metricId === 'volatility')}
+                        mode="compact"
+                      />
+                    )}
+                    {metrics.maxDrawdown !== undefined && (
+                      <MetricExplanationCard
+                        metricId="maxDrawdown"
+                        value={metrics.maxDrawdown}
+                        trace={traces.find(t => t.metricId === 'maxDrawdown')}
+                        mode="compact"
+                      />
+                    )}
+                    {metrics.var95 !== undefined && (
+                      <MetricExplanationCard
+                        metricId="var95"
+                        value={metrics.var95}
+                        trace={traces.find(t => t.metricId === 'var95')}
+                        mode="compact"
+                      />
+                    )}
+                    {metrics.cvar95 !== undefined && (
+                      <MetricExplanationCard
+                        metricId="cvar95"
+                        value={metrics.cvar95}
+                        trace={traces.find(t => t.metricId === 'cvar95')}
+                        mode="compact"
+                      />
+                    )}
+                  </div>
+                </div>
+
+                {/* Risk-Adjusted Category */}
+                <div>
+                  <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                    <Target className="h-5 w-5 text-blue-500" />
+                    Risk-Adjusted Performance
+                  </h3>
+                  <div className="grid gap-4 md:grid-cols-2">
+                    {metrics.sharpeRatio !== undefined && (
+                      <MetricExplanationCard
+                        metricId="sharpeRatio"
+                        value={metrics.sharpeRatio}
+                        trace={traces.find(t => t.metricId === 'sharpeRatio')}
+                        mode="compact"
+                      />
+                    )}
+                    {metrics.sortinoRatio !== undefined && (
+                      <MetricExplanationCard
+                        metricId="sortinoRatio"
+                        value={metrics.sortinoRatio}
+                        trace={traces.find(t => t.metricId === 'sortinoRatio')}
+                        mode="compact"
+                      />
+                    )}
+                    {metrics.calmarRatio !== undefined && (
+                      <MetricExplanationCard
+                        metricId="calmarRatio"
+                        value={metrics.calmarRatio}
+                        trace={traces.find(t => t.metricId === 'calmarRatio')}
+                        mode="compact"
+                      />
+                    )}
+                    {metrics.omegaRatio !== undefined && (
+                      <MetricExplanationCard
+                        metricId="omegaRatio"
+                        value={metrics.omegaRatio}
+                        trace={traces.find(t => t.metricId === 'omegaRatio')}
+                        mode="compact"
+                      />
+                    )}
+                  </div>
+                </div>
+
+                {/* Benchmark Comparison Category */}
+                <div>
+                  <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                    <Activity className="h-5 w-5 text-purple-500" />
+                    Benchmark Comparison
+                  </h3>
+                  <div className="grid gap-4 md:grid-cols-2">
+                    {metrics.alpha !== undefined && (
+                      <MetricExplanationCard
+                        metricId="alpha"
+                        value={metrics.alpha}
+                        trace={traces.find(t => t.metricId === 'alpha')}
+                        mode="compact"
+                      />
+                    )}
+                    {metrics.beta !== undefined && (
+                      <MetricExplanationCard
+                        metricId="beta"
+                        value={metrics.beta}
+                        trace={traces.find(t => t.metricId === 'beta')}
+                        mode="compact"
+                      />
+                    )}
+                    {(metrics as any).rSquared !== undefined && (
+                      <MetricExplanationCard
+                        metricId="rSquared"
+                        value={(metrics as any).rSquared}
+                        trace={traces.find(t => t.metricId === 'rSquared')}
+                        mode="compact"
+                      />
+                    )}
+                    {(metrics as any).trackingError !== undefined && (
+                      <MetricExplanationCard
+                        metricId="trackingError"
+                        value={(metrics as any).trackingError}
+                        trace={traces.find(t => t.metricId === 'trackingError')}
+                        mode="compact"
+                      />
+                    )}
+                    {metrics.informationRatio !== undefined && (
+                      <MetricExplanationCard
+                        metricId="informationRatio"
+                        value={metrics.informationRatio}
+                        trace={traces.find(t => t.metricId === 'informationRatio')}
+                        mode="compact"
+                      />
+                    )}
+                  </div>
+                </div>
               </div>
             </ErrorBoundary>
           </TabsContent>
