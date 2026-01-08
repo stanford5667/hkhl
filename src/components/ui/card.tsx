@@ -15,7 +15,14 @@ const cardVariants = cva(
         success: "bg-gradient-to-br from-success/10 to-success/5 border-success/20 shadow-card",
         warning: "bg-gradient-to-br from-warning/10 to-warning/5 border-warning/20 shadow-card",
         destructive: "bg-gradient-to-br from-destructive/10 to-destructive/5 border-destructive/20 shadow-card",
-        interactive: "bg-card/50 backdrop-blur-xl border-border/50 shadow-card hover:border-border hover:shadow-card-hover cursor-pointer",
+        interactive: "bg-card/50 backdrop-blur-xl border-border/50 shadow-card hover:border-primary/30 hover:shadow-card-hover cursor-pointer",
+        // Market Intel variants
+        surface: "bg-surface-3 border-border/30 shadow-card",
+        "accent-positive": "bg-card border-border/50 shadow-card accent-bar-positive",
+        "accent-negative": "bg-card border-border/50 shadow-card accent-bar-negative",
+        "accent-warning": "bg-card border-border/50 shadow-card accent-bar-warning",
+        "accent-primary": "bg-card border-border/50 shadow-card accent-bar-primary",
+        glow: "bg-card/50 backdrop-blur-xl border-border/50 shadow-card card-glow",
       },
     },
     defaultVariants: {
