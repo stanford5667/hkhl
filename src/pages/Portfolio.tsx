@@ -740,7 +740,11 @@ export default function Portfolio() {
     };
     
     allHoldings.forEach(h => {
-      const assetClass = (h.asset_class || 'private_equity') as AssetClass;
+      const rawAssetClass = h.asset_class || 'public_equity';
+      // Ensure assetClass is a valid key, fallback to 'other' if not recognized
+      const assetClass: AssetClass = byType[rawAssetClass as AssetClass] 
+        ? (rawAssetClass as AssetClass) 
+        : 'other';
       const value = getHoldingValue(h, liveQuotes);
       const costBasis = h.cost_basis || 0;
       const dayChange = getTodayChange(h, liveQuotes);
