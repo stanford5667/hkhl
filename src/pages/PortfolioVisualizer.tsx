@@ -434,8 +434,8 @@ export default function PortfolioVisualizer() {
   // NEW: Data fetch progress tracking from hybrid service
   const [dataProgress, setDataProgress] = useState<FetchProgress>({ status: 'idle', current: 0, total: 0 });
 
-  // Results tab
-  const [resultsTab, setResultsTab] = useState('frontier');
+  // Results tab - default to 'learn' for educational content
+  const [resultsTab, setResultsTab] = useState('learn');
   
   // Tab visibility state
   const [visibleTabs, setVisibleTabs] = useState({
