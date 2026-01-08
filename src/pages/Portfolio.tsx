@@ -544,10 +544,37 @@ export default function Portfolio() {
     localStorage.setItem('portfolio-view-mode', viewMode);
   }, [viewMode]);
 
-  // Get all portfolio holdings
+  // Get portfolio allocations from active portfolio
+  const portfolioAllocations = useMemo(() => {
+    if (!activePortfolio?.allocations) return null;
+    try {
+      const allocs = activePortfolio.allocations as { symbol: string; weight: number; assetClass?: string }[];
+      if (Array.isArray(allocs) && allocs.length > 0) {
+        return allocs;
+      }
+    } catch {
+      // Invalid allocations format
+    }
+    return null;
+  }, [activePortfolio]);
+
+  // Get all portfolio holdings - filter by active portfolio if it has allocations
   const allHoldings = useMemo(() => {
-    return companiesWithRelations.filter(c => c.company_type === 'portfolio');
-  }, [companiesWithRelations]);
+    const portfolioCompanies = companiesWithRelations.filter(c => c.company_type === 'portfolio');
+    
+    // If we have portfolio allocations, filter to only matching tickers
+    if (portfolioAllocations && portfolioAllocations.length > 0) {
+      const allocationSymbols = new Set(portfolioAllocations.map(a => a.symbol.toUpperCase()));
+      return portfolioCompanies.filter(c => {
+        if (c.ticker_symbol && allocationSymbols.has(c.ticker_symbol.toUpperCase())) {
+          return true;
+        }
+        return false;
+      });
+    }
+    
+    return portfolioCompanies;
+  }, [companiesWithRelations, portfolioAllocations]);
 
   // Filter companies by asset type
   const publicEquities = useMemo(() => 
@@ -872,7 +899,7 @@ export default function Portfolio() {
           onClick={() => {}}
           isLoading={isLoading}
           change={portfolioStats.totalGainLossPercent}
-          subtitle={`${allHoldings.length} holdings`}
+          subtitle={activePortfolio ? `${activePortfolio.name} • ${allHoldings.length} holdings` : `${allHoldings.length} holdings`}
         />
         <StatCard
           title="Today's Change"
@@ -880,6 +907,7 @@ export default function Portfolio() {
           icon={portfolioStats.todayChange >= 0 ? TrendingUp : TrendingDown}
           isLoading={isLoading}
           change={portfolioStats.todayChangePercent}
+          subtitle={activePortfolio?.name}
         />
         <StatCard
           title="Gainers"
@@ -906,7 +934,13 @@ export default function Portfolio() {
 
       {/* Portfolio Performance Card */}
       <motion.div variants={itemVariants}>
-        <PortfolioPerformanceCard days={30} showAllocation />
+        <PortfolioPerformanceCard 
+          days={30} 
+          showAllocation 
+          portfolioId={activePortfolioId}
+          portfolioName={activePortfolio?.name}
+          allocations={portfolioAllocations || undefined}
+        />
       </motion.div>
 
       {/* Market Indices Row */}
@@ -1059,7 +1093,7 @@ export default function Portfolio() {
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between flex-wrap gap-2">
               <CardTitle className="text-sm font-medium text-foreground">
-                Holdings
+                {activePortfolio ? `${activePortfolio.name} Holdings` : 'Holdings'}
                 <span className="text-muted-foreground font-normal ml-2">
                   ({filteredHoldings.length})
                 </span>

@@ -12,7 +12,7 @@ import {
   RefreshCw,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { usePortfolioPerformance } from '@/hooks/usePortfolioPerformance';
+import { usePortfolioPerformance, PortfolioAllocationInput } from '@/hooks/usePortfolioPerformance';
 import {
   AreaChart,
   Area,
@@ -29,6 +29,9 @@ interface PortfolioPerformanceCardProps {
   days?: number;
   showAllocation?: boolean;
   className?: string;
+  portfolioId?: string | null;
+  portfolioName?: string;
+  allocations?: PortfolioAllocationInput[];
 }
 
 function formatCurrency(value: number): string {
@@ -63,6 +66,9 @@ export function PortfolioPerformanceCard({
   days = 30,
   showAllocation = true,
   className,
+  portfolioId,
+  portfolioName,
+  allocations,
 }: PortfolioPerformanceCardProps) {
   const {
     totalValue,
@@ -79,7 +85,7 @@ export function PortfolioPerformanceCard({
     hasHistory,
     refresh,
     generateDemoHistory,
-  } = usePortfolioPerformance(days);
+  } = usePortfolioPerformance({ days, portfolioId, allocations });
 
   const [isRefreshing, setIsRefreshing] = useState(false);
 
@@ -122,7 +128,7 @@ export function PortfolioPerformanceCard({
           <div>
             <CardTitle className="text-base flex items-center gap-2">
               <LineChart className="h-4 w-4" />
-              Portfolio Performance
+              {portfolioName ? `${portfolioName} Performance` : 'Portfolio Performance'}
             </CardTitle>
             <div className="flex items-baseline gap-3 mt-1">
               <CardDescription className="text-2xl font-bold text-foreground">

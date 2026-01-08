@@ -7,6 +7,7 @@ import {
   type PortfolioPerformanceResult,
   type PortfolioSnapshot,
   type AssetClassData,
+  type PortfolioHolding,
 } from '@/services/portfolioPerformanceService';
 import { format, subDays, parseISO } from 'date-fns';
 
@@ -18,6 +19,13 @@ export interface ChartDataPoint {
   credit: number;
   other: number;
   total: number;
+}
+
+export interface PortfolioAllocationInput {
+  symbol: string;
+  weight: number;
+  assetClass?: string;
+  name?: string;
 }
 
 export interface PortfolioPerformanceData {
@@ -48,18 +56,47 @@ export interface PortfolioPerformanceData {
   generateDemoHistory: () => void;
 }
 
+interface UsePortfolioPerformanceOptions {
+  days?: number;
+  portfolioId?: string | null;
+  allocations?: PortfolioAllocationInput[];
+}
+
 /**
  * Hook for portfolio performance data with live prices
- * @param days Number of days to show in chart (default 30)
+ * @param options Configuration including days, portfolioId, and allocations
  */
-export function usePortfolioPerformance(days: number = 30): PortfolioPerformanceData {
+export function usePortfolioPerformance(
+  optionsOrDays: number | UsePortfolioPerformanceOptions = 30
+): PortfolioPerformanceData {
+  // Handle both legacy (number) and new (object) signatures
+  const options: UsePortfolioPerformanceOptions = typeof optionsOrDays === 'number' 
+    ? { days: optionsOrDays } 
+    : optionsOrDays;
+  
+  const { days = 30, portfolioId, allocations } = options;
+  
   const { companies, isLoading: dataLoading } = useUnifiedData();
   const [performance, setPerformance] = useState<PortfolioPerformanceResult | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Convert companies to holdings format
+  // Convert companies to holdings format, filtering by portfolio allocations if provided
   const holdings = useMemo(() => {
-    return companies.map(c => ({
+    let filteredCompanies = companies;
+    
+    // If allocations are provided, filter to only matching tickers
+    if (allocations && allocations.length > 0) {
+      const allocationSymbols = new Set(allocations.map(a => a.symbol.toUpperCase()));
+      filteredCompanies = companies.filter(c => {
+        // Match by ticker symbol
+        if (c.ticker_symbol && allocationSymbols.has(c.ticker_symbol.toUpperCase())) {
+          return true;
+        }
+        return false;
+      });
+    }
+    
+    return filteredCompanies.map(c => ({
       id: c.id,
       name: c.name,
       asset_class: c.asset_class,
@@ -72,7 +109,13 @@ export function usePortfolioPerformance(days: number = 30): PortfolioPerformance
       ebitda_ltm: c.ebitda_ltm,
       company_type: c.company_type,
     }));
-  }, [companies]);
+  }, [companies, allocations]);
+
+  // Generate a cache key based on portfolio
+  const cacheKey = useMemo(() => {
+    if (portfolioId) return `portfolio-history-${portfolioId}`;
+    return 'portfolio-history';
+  }, [portfolioId]);
 
   // Fetch performance data
   const refresh = useCallback(async () => {
@@ -99,14 +142,14 @@ export function usePortfolioPerformance(days: number = 30): PortfolioPerformance
 
     setIsLoading(true);
     try {
-      const result = await calculatePortfolioPerformance(holdings);
+      const result = await calculatePortfolioPerformance(holdings, cacheKey);
       setPerformance(result);
     } catch (e) {
       console.error('[usePortfolioPerformance] Error calculating performance:', e);
     } finally {
       setIsLoading(false);
     }
-  }, [holdings]);
+  }, [holdings, cacheKey]);
 
   // Initial load
   useEffect(() => {
@@ -124,9 +167,9 @@ export function usePortfolioPerformance(days: number = 30): PortfolioPerformance
       byAssetClass[key] = data.value;
     });
     
-    const demoHistory = generateDemoHistory(performance.totalValue, byAssetClass);
+    const demoHistory = generateDemoHistory(performance.totalValue, byAssetClass, cacheKey);
     setPerformance(prev => prev ? { ...prev, history: demoHistory } : prev);
-  }, [performance]);
+  }, [performance, cacheKey]);
 
   // Build chart data from history
   const chartData = useMemo<ChartDataPoint[]>(() => {
