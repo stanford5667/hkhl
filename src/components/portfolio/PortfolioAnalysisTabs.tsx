@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Progress } from '@/components/ui/progress';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { 
   GraduationCap,
   BarChart3,
@@ -27,11 +28,24 @@ import {
   Percent,
   Gauge,
 } from 'lucide-react';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip } from 'recharts';
 import { cn } from '@/lib/utils';
 import { usePortfolioCalculations, PortfolioMetrics } from '@/hooks/usePortfolioCalculations';
 import { ErrorBoundary } from '@/components/shared/ErrorBoundary';
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
 import { MetricExplanationCard } from '@/components/shared/MetricExplanationCard';
+
+// Pie chart colors
+const PIE_COLORS = [
+  'hsl(280, 65%, 60%)', // purple
+  'hsl(160, 84%, 39%)', // emerald
+  'hsl(38, 92%, 50%)',  // amber
+  'hsl(217, 91%, 60%)', // blue
+  'hsl(340, 82%, 52%)', // rose
+  'hsl(142, 76%, 36%)', // green
+  'hsl(25, 95%, 53%)',  // orange
+  'hsl(199, 89%, 48%)', // cyan
+];
 
 interface PortfolioAnalysisTabsProps {
   allocations: { symbol: string; weight: number; name?: string }[];
@@ -689,50 +703,146 @@ export function PortfolioAnalysisTabs({
           {/* Holdings Tab */}
           <TabsContent value="holdings" className="mt-0">
             <ErrorBoundary variant="default">
-              <div className="space-y-4">
-                <div className="grid grid-cols-1 gap-2">
-                  {allocations.map((alloc, i) => (
-                    <div 
-                      key={i}
-                      className="flex items-center justify-between p-3 rounded-lg bg-muted/30 border border-border/50"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                          <span className="font-mono font-bold text-xs text-primary">
-                            {alloc.symbol.slice(0, 3)}
-                          </span>
+              <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
+                {/* Allocation Pie Chart */}
+                <div className="lg:col-span-1">
+                  <div className="h-[180px]">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={allocations.map((a, i) => ({
+                            name: a.symbol,
+                            value: (a.weight > 1 ? a.weight / 100 : a.weight) * investableCapital,
+                            weight: a.weight > 1 ? a.weight : a.weight * 100,
+                            color: PIE_COLORS[i % PIE_COLORS.length],
+                          }))}
+                          cx="50%"
+                          cy="50%"
+                          innerRadius={40}
+                          outerRadius={65}
+                          paddingAngle={2}
+                          dataKey="value"
+                        >
+                          {allocations.map((_, i) => (
+                            <Cell key={`cell-${i}`} fill={PIE_COLORS[i % PIE_COLORS.length]} />
+                          ))}
+                        </Pie>
+                        <RechartsTooltip
+                          content={({ active, payload }) => {
+                            if (active && payload?.[0]) {
+                              const data = payload[0].payload;
+                              return (
+                                <div className="bg-popover border border-border rounded-lg p-2 shadow-lg">
+                                  <p className="font-medium text-sm">{data.name}</p>
+                                  <p className="text-xs text-muted-foreground">
+                                    ${data.value.toLocaleString(undefined, { maximumFractionDigits: 0 })} ({data.weight.toFixed(1)}%)
+                                  </p>
+                                </div>
+                              );
+                            }
+                            return null;
+                          }}
+                        />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+                  {/* Legend */}
+                  <div className="space-y-1 mt-2">
+                    {allocations.map((alloc, i) => (
+                      <div key={i} className="flex items-center justify-between text-xs p-1.5 rounded hover:bg-muted/50">
+                        <div className="flex items-center gap-2">
+                          <div 
+                            className="w-2.5 h-2.5 rounded-full" 
+                            style={{ backgroundColor: PIE_COLORS[i % PIE_COLORS.length] }} 
+                          />
+                          <span className="font-medium">{alloc.symbol}</span>
                         </div>
-                        <div>
-                          <p className="font-medium text-sm">{alloc.symbol}</p>
-                          {alloc.name && (
-                            <p className="text-xs text-muted-foreground">{alloc.name}</p>
-                          )}
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <p className="font-bold tabular-nums">
+                        <span className="text-muted-foreground tabular-nums">
                           {(alloc.weight > 1 ? alloc.weight : alloc.weight * 100).toFixed(1)}%
-                        </p>
-                        <p className="text-xs text-muted-foreground tabular-nums">
-                          ${((alloc.weight > 1 ? alloc.weight / 100 : alloc.weight) * investableCapital).toLocaleString()}
-                        </p>
+                        </span>
                       </div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
-                
-                {/* AI Insight */}
-                {aiAnalysis && (
-                  <div className="p-4 rounded-lg bg-gradient-to-br from-primary/5 to-primary/10 border border-primary/20">
-                    <div className="flex items-start gap-3">
-                      <Info className="h-5 w-5 text-primary mt-0.5" />
-                      <div>
-                        <p className="text-sm font-medium text-primary mb-1">AI Insight</p>
-                        <p className="text-sm text-muted-foreground">{aiAnalysis.keyInsight}</p>
-                      </div>
+
+                {/* Holdings Table */}
+                <div className="lg:col-span-3">
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Asset</TableHead>
+                          <TableHead className="text-right">Weight</TableHead>
+                          <TableHead className="text-right">Value</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {allocations.map((alloc, i) => {
+                          const weight = alloc.weight > 1 ? alloc.weight : alloc.weight * 100;
+                          const value = (alloc.weight > 1 ? alloc.weight / 100 : alloc.weight) * investableCapital;
+                          return (
+                            <TableRow key={i} className="hover:bg-muted/30">
+                              <TableCell>
+                                <div className="flex items-center gap-3">
+                                  <div 
+                                    className="w-8 h-8 rounded-lg flex items-center justify-center"
+                                    style={{ backgroundColor: `${PIE_COLORS[i % PIE_COLORS.length]}20` }}
+                                  >
+                                    <span 
+                                      className="font-mono font-bold text-xs"
+                                      style={{ color: PIE_COLORS[i % PIE_COLORS.length] }}
+                                    >
+                                      {alloc.symbol.slice(0, 2)}
+                                    </span>
+                                  </div>
+                                  <div>
+                                    <p className="font-medium text-sm">{alloc.symbol}</p>
+                                    {alloc.name && (
+                                      <p className="text-xs text-muted-foreground line-clamp-1">{alloc.name}</p>
+                                    )}
+                                  </div>
+                                </div>
+                              </TableCell>
+                              <TableCell className="text-right">
+                                <div className="flex items-center justify-end gap-2">
+                                  <div className="w-16 h-1.5 bg-muted rounded-full overflow-hidden">
+                                    <div 
+                                      className="h-full rounded-full"
+                                      style={{ 
+                                        width: `${weight}%`,
+                                        backgroundColor: PIE_COLORS[i % PIE_COLORS.length],
+                                      }}
+                                    />
+                                  </div>
+                                  <span className="font-bold tabular-nums w-12 text-right">{weight.toFixed(1)}%</span>
+                                </div>
+                              </TableCell>
+                              <TableCell className="text-right">
+                                <span className="font-medium tabular-nums">
+                                  ${value.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                                </span>
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
+                  </div>
+                  
+                  {/* Summary Row */}
+                  <div className="flex items-center justify-between p-3 mt-3 rounded-lg bg-muted/30 border border-border/50">
+                    <div className="flex items-center gap-2">
+                      <Target className="h-4 w-4 text-primary" />
+                      <span className="text-sm font-medium">Total Portfolio</span>
+                    </div>
+                    <div className="flex items-center gap-6">
+                      <span className="text-sm text-muted-foreground">{allocations.length} holdings</span>
+                      <span className="font-bold tabular-nums">
+                        ${investableCapital.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                      </span>
                     </div>
                   </div>
-                )}
+                </div>
               </div>
             </ErrorBoundary>
           </TabsContent>
