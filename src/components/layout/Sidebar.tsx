@@ -159,12 +159,7 @@ export function Sidebar() {
         href: "/market-intel", 
         icon: BarChart3 
       },
-      { 
-        label: "Backtester", 
-        subtitle: "Portfolio Analysis",
-        href: "/backtest", 
-        icon: Activity 
-      },
+      // Backtester hidden
       {
         label: "Watchlist", 
         subtitle: "Tracked Stocks",
