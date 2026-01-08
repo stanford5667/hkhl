@@ -207,12 +207,17 @@ export default function CompanyDetail() {
             <div className="flex items-center gap-3">
               {isPublicEquity && <LineChart className="h-6 w-6 text-emerald-400" />}
               <h1 className="h1">{company.name}</h1>
-              {isPublicEquity && (
-                <Badge variant="outline" className="bg-emerald-500/10 text-emerald-400 border-emerald-500/30">
-                  Public Equity
+              {isPublicEquity && company.ticker_symbol && (
+                <Badge variant="secondary" className="text-base font-mono">
+                  {company.ticker_symbol}
                 </Badge>
               )}
-              <CompanyTypeBadge type={company.company_type} />
+              {isPublicEquity && company.exchange && (
+                <Badge variant="outline">
+                  {company.exchange}
+                </Badge>
+              )}
+              {!isPublicEquity && <CompanyTypeBadge type={company.company_type} />}
               {!isPublicEquity && company.pipeline_stage && (
                 <Badge variant="outline" className="capitalize">
                   {company.pipeline_stage.replace('-', ' ')}
