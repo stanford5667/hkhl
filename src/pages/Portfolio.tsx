@@ -227,34 +227,35 @@ function StatCard({
   return (
     <motion.div variants={itemVariants}>
       <Card
-        className="cursor-pointer hover:shadow-md transition-all hover:scale-[1.02] group"
+        className="cursor-pointer hover:shadow-md transition-all hover:scale-[1.02] group bg-gradient-to-br from-card to-secondary/20"
         onClick={onClick}
       >
         <CardContent className="p-4">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-sm text-muted-foreground">{title}</span>
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-xs text-muted-foreground">{title}</span>
             <Icon className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
           </div>
-          <div className="flex items-center gap-2">
-            <span className="text-2xl font-bold">
-              {displayValue !== undefined ? displayValue : value}
-            </span>
-            {alert && alertCount && alertCount > 0 && (
-              <Badge variant="destructive" className="text-xs">
-                <AlertTriangle className="h-3 w-3 mr-1" />
-                {alertCount} overdue
-              </Badge>
-            )}
-          </div>
+          <p className="text-xl font-bold">
+            {displayValue !== undefined ? displayValue : value}
+          </p>
           {change !== undefined && (
-            <div className={`flex items-center gap-1 mt-1 text-xs ${isPositive ? 'text-green-600' : 'text-red-600'}`}>
+            <p className={cn(
+              "text-xs flex items-center gap-1",
+              isPositive ? 'text-emerald-400' : 'text-rose-400'
+            )}>
               {isPositive ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
               {formatPercent(change)}
               {changeLabel && <span className="text-muted-foreground ml-1">{changeLabel}</span>}
-            </div>
+            </p>
           )}
-          {subtitle && (
-            <p className="text-xs text-muted-foreground mt-1">{subtitle}</p>
+          {alert && alertCount && alertCount > 0 && (
+            <Badge variant="destructive" className="text-xs mt-1">
+              <AlertTriangle className="h-3 w-3 mr-1" />
+              {alertCount} overdue
+            </Badge>
+          )}
+          {subtitle && !alert && (
+            <p className="text-xs text-muted-foreground">{subtitle}</p>
           )}
         </CardContent>
       </Card>
@@ -973,28 +974,34 @@ export default function Portfolio() {
         />
       </motion.div>
 
-      {/* Dynamic Stats Row */}
-      <motion.div variants={containerVariants} className="grid grid-cols-2 md:grid-cols-5 gap-4">
+      {/* Dynamic Stats Row - Market Intel Style */}
+      <motion.div variants={containerVariants} className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
         <StatCard
-          title="Total Value"
+          title="Portfolio Value"
           displayValue={formatCurrency(portfolioStats.totalValue, true)}
           icon={Wallet}
           onClick={() => navigate('/backtester')}
           isLoading={isLoading}
           change={portfolioStats.totalGainLossPercent}
-          subtitle={activePortfolio ? `${activePortfolio.name} • ${allHoldings.length} holdings` : `${allHoldings.length} holdings`}
+          subtitle={`${allHoldings.length} holdings`}
         />
         <StatCard
-          title="Today's Change"
+          title="Today's P&L"
           displayValue={formatCurrency(portfolioStats.todayChange, true)}
           icon={portfolioStats.todayChange >= 0 ? TrendingUp : TrendingDown}
           isLoading={isLoading}
           change={portfolioStats.todayChangePercent}
           onClick={() => {
-            // Scroll to performance chart
             document.querySelector('[data-performance-chart]')?.scrollIntoView({ behavior: 'smooth' });
           }}
-          subtitle={activePortfolio?.name}
+        />
+        <StatCard
+          title="Total Gain/Loss"
+          displayValue={formatCurrency(portfolioStats.totalGainLoss, true)}
+          icon={portfolioStats.totalGainLoss >= 0 ? TrendingUp : TrendingDown}
+          isLoading={isLoading}
+          change={portfolioStats.totalGainLossPercent}
+          changeLabel="all-time"
         />
         <StatCard
           title="Gainers"
@@ -1005,6 +1012,7 @@ export default function Portfolio() {
             setSortBy('todayChange');
             setSortAsc(false);
           }}
+          subtitle="Today's winners"
         />
         <StatCard
           title="Losers"
@@ -1015,6 +1023,7 @@ export default function Portfolio() {
             setSortBy('todayChange');
             setSortAsc(true);
           }}
+          subtitle="Today's laggards"
         />
         <StatCard
           title="Open Tasks"
@@ -1024,6 +1033,7 @@ export default function Portfolio() {
           alertCount={stats.overdueTasks}
           onClick={() => navigate('/tasks')}
           isLoading={isLoading}
+          subtitle={stats.overdueTasks > 0 ? `${stats.overdueTasks} overdue` : 'All on track'}
         />
       </motion.div>
 
