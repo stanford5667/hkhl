@@ -80,6 +80,7 @@ import { PortfolioSwitcher } from '@/components/portfolio/PortfolioSwitcher';
 import { CreatePortfolioDialog } from '@/components/portfolio/CreatePortfolioDialog';
 import { PortfolioMetricsPanel } from '@/components/portfolio/PortfolioMetricsPanel';
 import { RealPerformanceChart } from '@/components/portfolio/RealPerformanceChart';
+import { PortfolioAnalysisTabs } from '@/components/portfolio/PortfolioAnalysisTabs';
 
 // Animation variants
 const containerVariants = {
@@ -1048,10 +1049,10 @@ export default function Portfolio() {
         </motion.div>
       )}
 
-      {/* Portfolio Metrics Panel - Detailed metrics matching Portfolio Builder */}
+      {/* Portfolio Analysis Tabs - Same tabs as Portfolio Builder */}
       {portfolioAllocations && portfolioAllocations.length > 0 && (
         <motion.div variants={itemVariants}>
-          <PortfolioMetricsPanel
+          <PortfolioAnalysisTabs
             allocations={portfolioAllocations}
             investableCapital={portfolioStats.totalValue || 100000}
             portfolioName={activePortfolio?.name}
