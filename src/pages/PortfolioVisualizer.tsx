@@ -434,8 +434,8 @@ export default function PortfolioVisualizer() {
   // NEW: Data fetch progress tracking from hybrid service
   const [dataProgress, setDataProgress] = useState<FetchProgress>({ status: 'idle', current: 0, total: 0 });
 
-  // Results tab - default to 'learn' for educational content
-  const [resultsTab, setResultsTab] = useState('learn');
+  // Results tab - default to 'educational' for educational content
+  const [resultsTab, setResultsTab] = useState('educational');
   
   // Tab visibility state
   const [visibleTabs, setVisibleTabs] = useState({
@@ -1634,10 +1634,19 @@ export default function PortfolioVisualizer() {
                 <p className="text-sm font-medium text-amber-600 dark:text-amber-400">
                   Data validation warnings detected
                 </p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  {validationWarnings.length} issue{validationWarnings.length !== 1 ? 's' : ''} found. 
-                  View the Data Quality tab for details.
-                </p>
+                <ul className="text-xs text-muted-foreground mt-1 space-y-0.5 max-h-20 overflow-y-auto">
+                  {validationWarnings.slice(0, 5).map((warning, i) => (
+                    <li key={i} className="flex items-start gap-1">
+                      <span className="text-amber-500">•</span>
+                      <span>{warning}</span>
+                    </li>
+                  ))}
+                  {validationWarnings.length > 5 && (
+                    <li className="text-amber-600 font-medium">
+                      +{validationWarnings.length - 5} more issues...
+                    </li>
+                  )}
+                </ul>
               </div>
               <Button 
                 variant="ghost" 
