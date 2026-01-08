@@ -838,22 +838,7 @@ export default function Portfolio() {
     }
   };
 
-  if (isLoading) {
-    return (
-      <div className="p-6 space-y-6">
-        <Skeleton className="h-10 w-48" />
-        <div className="flex gap-3">
-          {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-20 w-32 flex-shrink-0" />)}
-        </div>
-        <div className="grid grid-cols-4 gap-4">
-          {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-24" />)}
-        </div>
-        <Skeleton className="h-96" />
-      </div>
-    );
-  }
-
-  // Calculate allocation by asset class for the overview
+  // Calculate allocation by asset class for the overview - MUST be before any conditional returns
   const allocationByClass = useMemo(() => {
     const classMap: Record<string, { value: number; cost: number; color: string; icon: React.ElementType }> = {};
     allHoldings.forEach(h => {
@@ -878,7 +863,7 @@ export default function Portfolio() {
     })).sort((a, b) => b.current_value - a.current_value);
   }, [allHoldings, liveQuotes]);
 
-  // Top holdings with metrics
+  // Top holdings with metrics - MUST be before any conditional returns
   const topHoldings = useMemo(() => {
     return [...allHoldings]
       .sort((a, b) => getHoldingValue(b, liveQuotes) - getHoldingValue(a, liveQuotes))
@@ -898,6 +883,23 @@ export default function Portfolio() {
         };
       });
   }, [allHoldings, liveQuotes]);
+
+  if (isLoading) {
+    return (
+      <div className="p-6 space-y-6">
+        <Skeleton className="h-10 w-48" />
+        <div className="flex gap-3">
+          {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-20 w-32 flex-shrink-0" />)}
+        </div>
+        <div className="grid grid-cols-4 gap-4">
+          {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-24" />)}
+        </div>
+        <Skeleton className="h-96" />
+      </div>
+    );
+  }
+
+
 
   return (
     <motion.div
