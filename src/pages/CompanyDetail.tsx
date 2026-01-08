@@ -291,35 +291,35 @@ export default function CompanyDetail() {
 
       {/* Tabs */}
       <Tabs defaultValue="overview" className="space-y-6">
-        <TabsList className="bg-secondary">
-          <TabsTrigger value="overview" className="gap-2">
-            <LayoutDashboard className="h-4 w-4" />
+        <TabsList className="bg-secondary h-12">
+          <TabsTrigger value="overview" className="gap-2 text-base px-5 py-3">
+            <LayoutDashboard className="h-5 w-5" />
             Overview
           </TabsTrigger>
-          <TabsTrigger value="tasks" className="gap-2">
-            <CheckSquare className="h-4 w-4" />
+          <TabsTrigger value="tasks" className="gap-2 text-base px-5 py-3">
+            <CheckSquare className="h-5 w-5" />
             Tasks
           </TabsTrigger>
-          <TabsTrigger value="dataroom" className="gap-2">
-            <FolderOpen className="h-4 w-4" />
+          <TabsTrigger value="dataroom" className="gap-2 text-base px-5 py-3">
+            <FolderOpen className="h-5 w-5" />
             Data Room
             {documents.length > 0 && (
               <Badge variant="secondary" className="ml-1">{documents.length}</Badge>
             )}
           </TabsTrigger>
-          <TabsTrigger value="news" className="gap-2">
-            <Newspaper className="h-4 w-4" />
+          <TabsTrigger value="news" className="gap-2 text-base px-5 py-3">
+            <Newspaper className="h-5 w-5" />
             Industry Intel
           </TabsTrigger>
-          <TabsTrigger value="contacts" className="gap-2">
-            <Users className="h-4 w-4" />
+          <TabsTrigger value="contacts" className="gap-2 text-base px-5 py-3">
+            <Users className="h-5 w-5" />
             Contacts
             {contacts.length > 0 && (
               <Badge variant="secondary" className="ml-1">{contacts.length}</Badge>
             )}
           </TabsTrigger>
-          <TabsTrigger value="models" className="gap-2">
-            <Brain className="h-4 w-4" />
+          <TabsTrigger value="models" className="gap-2 text-base px-5 py-3">
+            <Brain className="h-5 w-5" />
             Models
             {models.length > 0 && (
               <Badge variant="secondary" className="ml-1">{models.length}</Badge>
