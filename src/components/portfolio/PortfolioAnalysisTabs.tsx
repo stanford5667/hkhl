@@ -1,5 +1,5 @@
 // Portfolio Analysis Tabs - Brings Portfolio Builder tabs to the Portfolio page
-// Provides Overview, Metrics, Holdings, Data Quality, and Stress Test views
+// Provides Overview, Health, Metrics, Holdings, Data Quality, and Stress Test views
 
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -29,6 +29,7 @@ import {
   Gauge,
   ArrowUpRight,
   ArrowDownRight,
+  Heart,
 } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip } from 'recharts';
 import { cn } from '@/lib/utils';
@@ -37,6 +38,7 @@ import { ErrorBoundary } from '@/components/shared/ErrorBoundary';
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
 import { MetricExplanationCard } from '@/components/shared/MetricExplanationCard';
 import { getCachedQuotes } from '@/services/quoteCacheService';
+import { PortfolioHealthPanel } from './PortfolioHealthPanel';
 
 // Pie chart colors
 const PIE_COLORS = [
@@ -257,10 +259,14 @@ export function PortfolioAnalysisTabs({
       </CardHeader>
       <CardContent>
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-5 h-auto gap-1 p-1 mb-4">
+          <TabsList className="grid w-full grid-cols-3 sm:grid-cols-6 h-auto gap-1 p-1 mb-4">
             <TabsTrigger value="overview" className="gap-1.5 text-xs px-2 py-2 flex-col sm:flex-row">
               <GraduationCap className="h-4 w-4 sm:h-3.5 sm:w-3.5" />
               <span className="text-[10px] sm:text-xs">Overview</span>
+            </TabsTrigger>
+            <TabsTrigger value="health" className="gap-1.5 text-xs px-2 py-2 flex-col sm:flex-row">
+              <Heart className="h-4 w-4 sm:h-3.5 sm:w-3.5" />
+              <span className="text-[10px] sm:text-xs">Health</span>
             </TabsTrigger>
             <TabsTrigger value="metrics" className="gap-1.5 text-xs px-2 py-2 flex-col sm:flex-row">
               <BarChart3 className="h-4 w-4 sm:h-3.5 sm:w-3.5" />
@@ -276,7 +282,7 @@ export function PortfolioAnalysisTabs({
             </TabsTrigger>
             <TabsTrigger value="stress-test" className="gap-1.5 text-xs px-2 py-2 flex-col sm:flex-row">
               <Shield className="h-4 w-4 sm:h-3.5 sm:w-3.5" />
-              <span className="text-[10px] sm:text-xs">Stress Test</span>
+              <span className="text-[10px] sm:text-xs">Stress</span>
             </TabsTrigger>
           </TabsList>
 
@@ -387,6 +393,18 @@ export function PortfolioAnalysisTabs({
                   </Card>
                 )}
               </div>
+            </ErrorBoundary>
+          </TabsContent>
+
+          {/* Health Tab - Market Intel-style health matrix */}
+          <TabsContent value="health" className="mt-0">
+            <ErrorBoundary variant="default">
+              <PortfolioHealthPanel
+                allocations={allocations}
+                investableCapital={investableCapital}
+                liveQuotes={liveQuotes}
+                metrics={metrics}
+              />
             </ErrorBoundary>
           </TabsContent>
 
