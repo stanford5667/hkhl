@@ -85,13 +85,17 @@ export function RealPerformanceChart({
   });
 
   // Build chart data from real returns
+  // portfolioValues are already absolute dollar amounts (starting from investableCapital)
   const chartData = useMemo(() => {
     if (!portfolioValues.length || !dates.length) return [];
+
+    // Scale the values to match the user's investableCapital (data comes scaled to $100k)
+    const scaleFactor = investableCapital / 100000;
 
     return dates.map((date, i) => ({
       date: format(new Date(date), 'MMM d'),
       fullDate: date,
-      value: portfolioValues[i] * investableCapital,
+      value: portfolioValues[i] * scaleFactor,
       return: portfolioReturns[i] ? portfolioReturns[i] * 100 : 0,
     }));
   }, [portfolioValues, portfolioReturns, dates, investableCapital]);
