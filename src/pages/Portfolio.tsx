@@ -78,6 +78,7 @@ import { PortfolioNews } from '@/components/dashboard/PortfolioNews';
 import { useActivePortfolio } from '@/hooks/useActivePortfolio';
 import { PortfolioSwitcher } from '@/components/portfolio/PortfolioSwitcher';
 import { CreatePortfolioDialog } from '@/components/portfolio/CreatePortfolioDialog';
+import { PortfolioMetricsPanel } from '@/components/portfolio/PortfolioMetricsPanel';
 
 // Animation variants
 const containerVariants = {
@@ -993,6 +994,17 @@ export default function Portfolio() {
           allocations={portfolioAllocations || undefined}
         />
       </motion.div>
+
+      {/* Portfolio Metrics Panel - Using same calculation logic as Portfolio Builder */}
+      {portfolioAllocations && portfolioAllocations.length > 0 && (
+        <motion.div variants={itemVariants}>
+          <PortfolioMetricsPanel
+            allocations={portfolioAllocations}
+            investableCapital={portfolioStats.totalValue || 100000}
+            portfolioName={activePortfolio?.name}
+          />
+        </motion.div>
+      )}
 
       {/* Market Indices Row */}
       <motion.div variants={itemVariants} className="flex gap-3 overflow-x-auto pb-1">
