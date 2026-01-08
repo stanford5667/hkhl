@@ -558,18 +558,59 @@ export default function Portfolio() {
     return null;
   }, [activePortfolio]);
 
-  // Get all portfolio holdings - filter by active portfolio if it has allocations
+  // Get all portfolio holdings - create virtual holdings from portfolio allocations OR show all companies
   const allHoldings = useMemo(() => {
     const portfolioCompanies = companiesWithRelations.filter(c => c.company_type === 'portfolio');
     
-    // If we have portfolio allocations, filter to only matching tickers
+    // If we have an active portfolio with allocations, create virtual holdings from allocations
     if (portfolioAllocations && portfolioAllocations.length > 0) {
-      const allocationSymbols = new Set(portfolioAllocations.map(a => a.symbol.toUpperCase()));
-      return portfolioCompanies.filter(c => {
-        if (c.ticker_symbol && allocationSymbols.has(c.ticker_symbol.toUpperCase())) {
-          return true;
+      return portfolioAllocations.map(alloc => {
+        // Find matching company if it exists
+        const existingCompany = portfolioCompanies.find(
+          c => c.ticker_symbol?.toUpperCase() === alloc.symbol.toUpperCase()
+        );
+        
+        if (existingCompany) {
+          return existingCompany;
         }
-        return false;
+        
+        // Create a virtual holding for portfolio-only allocations
+        return {
+          id: `virtual-${alloc.symbol}`,
+          name: alloc.symbol,
+          ticker_symbol: alloc.symbol.toUpperCase(),
+          asset_class: alloc.assetClass || 'public_equity',
+          company_type: 'portfolio' as const,
+          status: 'active',
+          shares_owned: null,
+          cost_basis: null,
+          current_price: null,
+          market_value: null,
+          industry: null,
+          description: null,
+          website: null,
+          exchange: null,
+          revenue_ltm: null,
+          ebitda_ltm: null,
+          pipeline_stage: null,
+          deal_lead: null,
+          user_id: '',
+          organization_id: null,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          created_by: null,
+          price_updated_at: null,
+          contacts: [],
+          tasks: [],
+          documents: [],
+          notes: [],
+          openTaskCount: 0,
+          overdueTaskCount: 0,
+          contactCount: 0,
+          documentCount: 0,
+          lastActivity: null,
+          _portfolioWeight: alloc.weight,
+        } as CompanyWithRelations & { _portfolioWeight?: number };
       });
     }
     
