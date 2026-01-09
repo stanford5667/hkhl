@@ -18,6 +18,7 @@ import { useAlerts, useEvents, useEconomicIndicators } from '@/hooks/useMarketIn
 import { getCachedQuotes } from '@/services/quoteCacheService';
 import { supabase } from '@/integrations/supabase/client';
 import { usePositions } from '@/hooks/usePositions';
+import { usePortfolioPerformance } from '@/hooks/usePortfolioPerformance';
 import { UnifiedAddPositionDialog, EnhancedPortfolioBuilder } from '@/components/portfolio';
 import { usePortfolioForVisualizer } from '@/hooks/useUnifiedPortfolio';
 import { 
@@ -511,6 +512,20 @@ export default function Portfolio() {
   // Synced positions from database
   const { positions: syncedPositions, isLoading: positionsLoading, refetch: refetchPositions } = usePositions(activePortfolioId || undefined);
   
+  // Real portfolio performance from synced positions
+  const {
+    totalValue: perfTotalValue,
+    totalCostBasis: perfCostBasis,
+    todayChange: perfTodayChange,
+    todayChangePercent: perfTodayChangePercent,
+    totalGainLoss: perfTotalGainLoss,
+    totalGainLossPercent: perfTotalGainLossPercent,
+    byAssetClass: perfByAssetClass,
+    positionCount: perfPositionCount,
+    isLoading: perfLoading,
+    refresh: refreshPerformance,
+  } = usePortfolioPerformance({ portfolioId: activePortfolioId });
+  
   const [showCreatePortfolioDialog, setShowCreatePortfolioDialog] = useState(false);
   
   const [viewMode, setViewMode] = useState<ViewMode>(() => {
@@ -739,7 +754,7 @@ export default function Portfolio() {
   // Manual refresh
   const handleRefresh = async () => {
     setIsRefreshing(true);
-    await Promise.all([refreshIndices(), fetchQuotes(), refetchAll(), refetchPositions()]);
+    await Promise.all([refreshIndices(), fetchQuotes(), refetchAll(), refetchPositions(), refreshPerformance()]);
     setIsRefreshing(false);
     toast.success('Data refreshed');
   };
@@ -1030,33 +1045,33 @@ export default function Portfolio() {
         isSaving={isSaving}
       />
 
-      {/* Dynamic Stats Row - Market Intel Style */}
+      {/* Dynamic Stats Row - Using Real Performance Data */}
       <motion.div variants={containerVariants} className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
         <StatCard
           title="Portfolio Value"
-          displayValue={formatCurrency(portfolioStats.totalValue, true)}
+          displayValue={formatCurrency(perfTotalValue || portfolioStats.totalValue, true)}
           icon={Wallet}
           onClick={() => navigate('/backtester')}
-          isLoading={isLoading}
-          change={portfolioStats.totalGainLossPercent}
-          subtitle={`${allHoldings.length} holdings`}
+          isLoading={perfLoading || isLoading}
+          change={perfTotalGainLossPercent || portfolioStats.totalGainLossPercent}
+          subtitle={`${perfPositionCount || allHoldings.length} holdings`}
         />
         <StatCard
           title="Today's P&L"
-          displayValue={formatCurrency(portfolioStats.todayChange, true)}
-          icon={portfolioStats.todayChange >= 0 ? TrendingUp : TrendingDown}
-          isLoading={isLoading}
-          change={portfolioStats.todayChangePercent}
+          displayValue={formatCurrency(perfTodayChange || portfolioStats.todayChange, true)}
+          icon={(perfTodayChange || portfolioStats.todayChange) >= 0 ? TrendingUp : TrendingDown}
+          isLoading={perfLoading || isLoading}
+          change={perfTodayChangePercent || portfolioStats.todayChangePercent}
           onClick={() => {
             document.querySelector('[data-performance-chart]')?.scrollIntoView({ behavior: 'smooth' });
           }}
         />
         <StatCard
           title="Total Gain/Loss"
-          displayValue={formatCurrency(portfolioStats.totalGainLoss, true)}
-          icon={portfolioStats.totalGainLoss >= 0 ? TrendingUp : TrendingDown}
-          isLoading={isLoading}
-          change={portfolioStats.totalGainLossPercent}
+          displayValue={formatCurrency(perfTotalGainLoss || portfolioStats.totalGainLoss, true)}
+          icon={(perfTotalGainLoss || portfolioStats.totalGainLoss) >= 0 ? TrendingUp : TrendingDown}
+          isLoading={perfLoading || isLoading}
+          change={perfTotalGainLossPercent || portfolioStats.totalGainLossPercent}
           changeLabel="all-time"
         />
         <StatCard
@@ -1137,8 +1152,16 @@ export default function Portfolio() {
                 .single();
               
               if (error) throw error;
-              refetchPositions();
-              refetchAll();
+              
+              // Refresh all data sources
+              await Promise.all([
+                refetchPositions(),
+                refetchAll(),
+                refreshPerformance(),
+              ]);
+              
+              toast.success(`Added ${data.symbol.toUpperCase()} to portfolio`);
+              setShowAddDialog(false);
               return position as any;
             }}
             onPositionsImport={async (positions) => {
@@ -1160,16 +1183,26 @@ export default function Portfolio() {
                 .select();
               
               if (error) throw error;
-              refetchPositions();
-              refetchAll();
+              
+              // Refresh all data sources
+              await Promise.all([
+                refetchPositions(),
+                refetchAll(),
+                refreshPerformance(),
+              ]);
+              
               toast.success(`Imported ${positions.length} positions`);
+              setShowAddDialog(false);
               return inserted as any[];
             }}
-            onBrokerageSync={() => {
-              refetchPositions();
-              refetchAll();
+            onBrokerageSync={async () => {
+              await Promise.all([
+                refetchPositions(),
+                refetchAll(),
+                refreshPerformance(),
+              ]);
             }}
-            totalValue={portfolioStats.totalValue}
+            totalValue={perfTotalValue || portfolioStats.totalValue}
           />
         </motion.div>
       )}
@@ -1191,7 +1224,6 @@ export default function Portfolio() {
             showAllocation 
             portfolioId={activePortfolioId}
             portfolioName={activePortfolio?.name}
-            allocations={portfolioAllocations || undefined}
           />
         </motion.div>
       )}
