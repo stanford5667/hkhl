@@ -4,6 +4,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import {
   Select,
   SelectContent,
@@ -11,11 +13,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Search, Plus, Loader2, DollarSign, Hash, TrendingUp, TrendingDown } from 'lucide-react';
+import { Search, Plus, Loader2, DollarSign, Hash, TrendingUp, TrendingDown, CalendarIcon } from 'lucide-react';
 import { useTickerSearch } from '@/hooks/useTickerSearch';
 import { ASSET_TYPES, type PositionFormData } from '@/types/positions';
 import { cn } from '@/lib/utils';
 import { useBatchQuotes } from '@/hooks/useMarketDataQuery';
+import { format } from 'date-fns';
 
 interface ManualPositionFormProps {
   onSubmit: (data: PositionFormData) => Promise<void>;
@@ -28,6 +31,7 @@ export function ManualPositionForm({ onSubmit, isSubmitting }: ManualPositionFor
   const [quantity, setQuantity] = useState<string>('');
   const [costPerShare, setCostPerShare] = useState<string>('');
   const [assetType, setAssetType] = useState('stock');
+  const [purchaseDate, setPurchaseDate] = useState<Date | undefined>(new Date());
 
   // Ticker search - use the hook and update its query
   const tickerSearch = useTickerSearch(300);
@@ -71,6 +75,7 @@ export function ManualPositionForm({ onSubmit, isSubmitting }: ManualPositionFor
       cost_per_share: parsedCostPerShare || undefined,
       cost_basis: totalCostBasis || undefined,
       asset_type: assetType,
+      purchase_date: purchaseDate ? format(purchaseDate, 'yyyy-MM-dd') : undefined,
     });
 
     // Reset form
@@ -78,6 +83,7 @@ export function ManualPositionForm({ onSubmit, isSubmitting }: ManualPositionFor
     setQuantity('');
     setCostPerShare('');
     setAssetType('stock');
+    setPurchaseDate(new Date());
   };
 
   const isValid = selectedTicker && parsedQuantity > 0;
@@ -187,24 +193,55 @@ export function ManualPositionForm({ onSubmit, isSubmitting }: ManualPositionFor
         </div>
       </div>
 
-      {/* Asset Type */}
-      <div className="space-y-2">
-        <Label>Asset Type</Label>
-        <Select value={assetType} onValueChange={setAssetType}>
-          <SelectTrigger>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {ASSET_TYPES.map((type) => (
-              <SelectItem key={type.id} value={type.id}>
-                <span className="flex items-center gap-2">
-                  <span>{type.icon}</span>
-                  <span>{type.label}</span>
-                </span>
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+      {/* Asset Type & Purchase Date */}
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label>Asset Type</Label>
+          <Select value={assetType} onValueChange={setAssetType}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {ASSET_TYPES.map((type) => (
+                <SelectItem key={type.id} value={type.id}>
+                  <span className="flex items-center gap-2">
+                    <span>{type.icon}</span>
+                    <span>{type.label}</span>
+                  </span>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        
+        <div className="space-y-2">
+          <Label className="flex items-center gap-2">
+            <CalendarIcon className="h-4 w-4" />
+            Purchase Date
+          </Label>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                className={cn(
+                  "w-full justify-start text-left font-normal",
+                  !purchaseDate && "text-muted-foreground"
+                )}
+              >
+                {purchaseDate ? format(purchaseDate, "MMM d, yyyy") : "Select date"}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar
+                mode="single"
+                selected={purchaseDate}
+                onSelect={setPurchaseDate}
+                initialFocus
+                disabled={(date) => date > new Date()}
+              />
+            </PopoverContent>
+          </Popover>
+        </div>
       </div>
 
       {/* Position Preview */}

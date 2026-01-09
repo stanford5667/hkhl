@@ -2731,6 +2731,7 @@ export type Database = {
           last_price_update: string | null
           name: string | null
           portfolio_id: string | null
+          purchase_date: string | null
           quantity: number
           source: string
           symbol: string
@@ -2751,6 +2752,7 @@ export type Database = {
           last_price_update?: string | null
           name?: string | null
           portfolio_id?: string | null
+          purchase_date?: string | null
           quantity?: number
           source?: string
           symbol: string
@@ -2771,6 +2773,7 @@ export type Database = {
           last_price_update?: string | null
           name?: string | null
           portfolio_id?: string | null
+          purchase_date?: string | null
           quantity?: number
           source?: string
           symbol?: string

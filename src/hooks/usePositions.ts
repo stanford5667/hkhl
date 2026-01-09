@@ -59,6 +59,7 @@ export function usePositions(portfolioId?: string) {
       cost_basis: costBasis,
       cost_per_share: data.cost_per_share || null,
       asset_type: data.asset_type || 'stock',
+      purchase_date: data.purchase_date || new Date().toISOString().split('T')[0],
       source,
     };
 
@@ -121,6 +122,7 @@ export function usePositions(portfolioId?: string) {
       cost_basis: data.cost_basis ?? (data.cost_per_share && data.quantity ? data.cost_per_share * data.quantity : null),
       cost_per_share: data.cost_per_share || null,
       asset_type: data.asset_type || 'stock',
+      purchase_date: data.purchase_date || new Date().toISOString().split('T')[0],
       source: 'csv' as const,
     }));
 

@@ -12,21 +12,44 @@ import {
   Clock, 
   Loader2,
   ExternalLink,
-  Trash2
+  Trash2,
+  Download
 } from 'lucide-react';
-import { SUPPORTED_BROKERAGES, type BrokerageConnection } from '@/types/positions';
-import { useBrokerageConnections } from '@/hooks/usePositions';
+import { SUPPORTED_BROKERAGES, type BrokerageConnection, type PositionFormData } from '@/types/positions';
+import { useBrokerageConnections, usePositions } from '@/hooks/usePositions';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 
 interface BrokerageConnectionPanelProps {
+  portfolioId?: string;
   onSyncComplete?: () => void;
 }
 
-export function BrokerageConnectionPanel({ onSyncComplete }: BrokerageConnectionPanelProps) {
-  const { connections, isLoading, addConnection, deleteConnection, refetch } = useBrokerageConnections();
+// Sample positions that would come from a real brokerage API
+const DEMO_BROKERAGE_POSITIONS: Record<string, PositionFormData[]> = {
+  'Robinhood': [
+    { symbol: 'AAPL', name: 'Apple Inc', quantity: 10, cost_per_share: 175.50, asset_type: 'stock' },
+    { symbol: 'TSLA', name: 'Tesla Inc', quantity: 5, cost_per_share: 248.00, asset_type: 'stock' },
+    { symbol: 'NVDA', name: 'NVIDIA Corp', quantity: 8, cost_per_share: 450.25, asset_type: 'stock' },
+  ],
+  'Fidelity': [
+    { symbol: 'SPY', name: 'SPDR S&P 500 ETF', quantity: 50, cost_per_share: 450.00, asset_type: 'etf' },
+    { symbol: 'VTI', name: 'Vanguard Total Stock Market', quantity: 100, cost_per_share: 220.50, asset_type: 'etf' },
+    { symbol: 'MSFT', name: 'Microsoft Corp', quantity: 15, cost_per_share: 380.00, asset_type: 'stock' },
+  ],
+  'Charles Schwab': [
+    { symbol: 'GOOGL', name: 'Alphabet Inc', quantity: 12, cost_per_share: 140.00, asset_type: 'stock' },
+    { symbol: 'AMZN', name: 'Amazon.com Inc', quantity: 20, cost_per_share: 175.00, asset_type: 'stock' },
+    { symbol: 'BND', name: 'Vanguard Total Bond', quantity: 75, cost_per_share: 72.50, asset_type: 'bond' },
+  ],
+};
+
+export function BrokerageConnectionPanel({ portfolioId, onSyncComplete }: BrokerageConnectionPanelProps) {
+  const { connections, isLoading, addConnection, deleteConnection, updateConnection, refetch } = useBrokerageConnections();
+  const { importPositions } = usePositions(portfolioId);
   const [connectingId, setConnectingId] = useState<string | null>(null);
+  const [syncingId, setSyncingId] = useState<string | null>(null);
 
   const handleConnect = async (brokerageId: string) => {
     const brokerage = SUPPORTED_BROKERAGES.find(b => b.id === brokerageId);
@@ -35,11 +58,38 @@ export function BrokerageConnectionPanel({ onSyncComplete }: BrokerageConnection
     setConnectingId(brokerageId);
     
     try {
-      // In production, this would initiate Plaid/SnapTrade OAuth flow
-      await addConnection(brokerage.name);
-      toast.success(`Connected to ${brokerage.name}`, {
-        description: 'Account linked successfully. Positions will sync shortly.',
-      });
+      // Create the connection record
+      const connection = await addConnection(brokerage.name);
+      
+      // Simulate OAuth flow and position sync
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      // Get demo positions for this brokerage
+      const positions = DEMO_BROKERAGE_POSITIONS[brokerage.name] || [];
+      
+      if (positions.length > 0) {
+        // Import the positions
+        await importPositions(positions);
+        
+        // Update connection status to connected
+        await updateConnection(connection.id, {
+          connection_status: 'connected',
+          last_sync_at: new Date().toISOString(),
+          account_name: `${brokerage.name} Account`,
+          account_mask: '4589',
+        });
+        
+        toast.success(`${brokerage.name} connected!`, {
+          description: `Imported ${positions.length} positions from your account.`,
+        });
+      } else {
+        await updateConnection(connection.id, {
+          connection_status: 'connected',
+          last_sync_at: new Date().toISOString(),
+        });
+        toast.success(`Connected to ${brokerage.name}`);
+      }
+      
       onSyncComplete?.();
     } catch (err) {
       toast.error('Connection failed', {
@@ -47,6 +97,32 @@ export function BrokerageConnectionPanel({ onSyncComplete }: BrokerageConnection
       });
     } finally {
       setConnectingId(null);
+    }
+  };
+  
+  const handleSyncPositions = async (connection: BrokerageConnection) => {
+    setSyncingId(connection.id);
+    
+    try {
+      // Simulate fetching latest positions
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      const positions = DEMO_BROKERAGE_POSITIONS[connection.brokerage_name] || [];
+      
+      if (positions.length > 0) {
+        await importPositions(positions);
+        await updateConnection(connection.id, {
+          last_sync_at: new Date().toISOString(),
+        });
+        toast.success('Positions synced', {
+          description: `Updated ${positions.length} positions from ${connection.brokerage_name}`,
+        });
+        onSyncComplete?.();
+      }
+    } catch (err) {
+      toast.error('Sync failed');
+    } finally {
+      setSyncingId(null);
     }
   };
 
@@ -131,10 +207,11 @@ export function BrokerageConnectionPanel({ onSyncComplete }: BrokerageConnection
                   <Button
                     variant="ghost"
                     size="icon"
-                    onClick={() => refetch()}
+                    onClick={() => handleSyncPositions(connection)}
+                    disabled={syncingId === connection.id}
                     className="h-8 w-8"
                   >
-                    <RefreshCw className="h-4 w-4" />
+                    <RefreshCw className={cn("h-4 w-4", syncingId === connection.id && "animate-spin")} />
                   </Button>
                   <Button
                     variant="ghost"

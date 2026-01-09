@@ -17,6 +17,8 @@ import { useMarketIndices } from '@/hooks/useMarketData';
 import { useAlerts, useEvents, useEconomicIndicators } from '@/hooks/useMarketIntel';
 import { getCachedQuotes } from '@/services/quoteCacheService';
 import { supabase } from '@/integrations/supabase/client';
+import { usePositions } from '@/hooks/usePositions';
+import { UnifiedAddPositionDialog } from '@/components/portfolio';
 import { 
   TrendingUp, 
   TrendingDown,
@@ -505,6 +507,9 @@ export default function Portfolio() {
     isDeleting,
   } = useActivePortfolio();
   
+  // Synced positions from database
+  const { positions: syncedPositions, isLoading: positionsLoading, refetch: refetchPositions } = usePositions(activePortfolioId || undefined);
+  
   const [showCreatePortfolioDialog, setShowCreatePortfolioDialog] = useState(false);
   
   const [viewMode, setViewMode] = useState<ViewMode>(() => {
@@ -575,64 +580,122 @@ export default function Portfolio() {
     return null;
   }, [activePortfolio]);
 
-  // Get all portfolio holdings - create virtual holdings from portfolio allocations OR show all companies
+  // Get all portfolio holdings - merge synced positions + companies + portfolio allocations
   const allHoldings = useMemo(() => {
     const portfolioCompanies = companiesWithRelations.filter(c => c.company_type === 'portfolio');
+    const holdingsMap = new Map<string, CompanyWithRelations & { _portfolioWeight?: number; _syncedPosition?: boolean }>();
     
-    // If we have an active portfolio with allocations, create virtual holdings from allocations
+    // First, add synced positions from database
+    syncedPositions.forEach(pos => {
+      const symbol = pos.symbol.toUpperCase();
+      holdingsMap.set(symbol, {
+        id: `synced-${pos.id}`,
+        name: pos.name || symbol,
+        ticker_symbol: symbol,
+        asset_class: pos.asset_type === 'etf' ? 'public_equity' : 
+                     pos.asset_type === 'bond' ? 'credit' :
+                     pos.asset_type === 'crypto' ? 'other' : 'public_equity',
+        company_type: 'portfolio' as const,
+        status: 'active',
+        shares_owned: pos.quantity,
+        cost_basis: pos.cost_basis,
+        current_price: pos.current_price,
+        market_value: pos.current_value,
+        industry: null,
+        description: null,
+        website: null,
+        exchange: null,
+        revenue_ltm: null,
+        ebitda_ltm: null,
+        pipeline_stage: null,
+        deal_lead: null,
+        user_id: pos.user_id,
+        organization_id: null,
+        created_at: pos.created_at,
+        updated_at: pos.updated_at,
+        created_by: null,
+        price_updated_at: pos.last_price_update,
+        contacts: [],
+        tasks: [],
+        documents: [],
+        notes: [],
+        openTaskCount: 0,
+        overdueTaskCount: 0,
+        contactCount: 0,
+        documentCount: 0,
+        lastActivity: null,
+        _syncedPosition: true,
+      } as CompanyWithRelations & { _portfolioWeight?: number; _syncedPosition?: boolean });
+    });
+    
+    // Then add portfolio allocations (if any)
     if (portfolioAllocations && portfolioAllocations.length > 0) {
-      return portfolioAllocations.map(alloc => {
-        // Find matching company if it exists
+      portfolioAllocations.forEach(alloc => {
+        const symbol = alloc.symbol.toUpperCase();
         const existingCompany = portfolioCompanies.find(
-          c => c.ticker_symbol?.toUpperCase() === alloc.symbol.toUpperCase()
+          c => c.ticker_symbol?.toUpperCase() === symbol
         );
         
-        if (existingCompany) {
-          return existingCompany;
+        // Only add if not already from synced positions
+        if (!holdingsMap.has(symbol)) {
+          if (existingCompany) {
+            holdingsMap.set(symbol, { ...existingCompany, _portfolioWeight: alloc.weight });
+          } else {
+            holdingsMap.set(symbol, {
+              id: `virtual-${alloc.symbol}`,
+              name: alloc.symbol,
+              ticker_symbol: symbol,
+              asset_class: alloc.assetClass || 'public_equity',
+              company_type: 'portfolio' as const,
+              status: 'active',
+              shares_owned: null,
+              cost_basis: null,
+              current_price: null,
+              market_value: null,
+              industry: null,
+              description: null,
+              website: null,
+              exchange: null,
+              revenue_ltm: null,
+              ebitda_ltm: null,
+              pipeline_stage: null,
+              deal_lead: null,
+              user_id: '',
+              organization_id: null,
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+              created_by: null,
+              price_updated_at: null,
+              contacts: [],
+              tasks: [],
+              documents: [],
+              notes: [],
+              openTaskCount: 0,
+              overdueTaskCount: 0,
+              contactCount: 0,
+              documentCount: 0,
+              lastActivity: null,
+              _portfolioWeight: alloc.weight,
+            } as CompanyWithRelations & { _portfolioWeight?: number });
+          }
+        } else {
+          // Update weight on existing synced position
+          const existing = holdingsMap.get(symbol)!;
+          holdingsMap.set(symbol, { ...existing, _portfolioWeight: alloc.weight });
         }
-        
-        // Create a virtual holding for portfolio-only allocations
-        return {
-          id: `virtual-${alloc.symbol}`,
-          name: alloc.symbol,
-          ticker_symbol: alloc.symbol.toUpperCase(),
-          asset_class: alloc.assetClass || 'public_equity',
-          company_type: 'portfolio' as const,
-          status: 'active',
-          shares_owned: null,
-          cost_basis: null,
-          current_price: null,
-          market_value: null,
-          industry: null,
-          description: null,
-          website: null,
-          exchange: null,
-          revenue_ltm: null,
-          ebitda_ltm: null,
-          pipeline_stage: null,
-          deal_lead: null,
-          user_id: '',
-          organization_id: null,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-          created_by: null,
-          price_updated_at: null,
-          contacts: [],
-          tasks: [],
-          documents: [],
-          notes: [],
-          openTaskCount: 0,
-          overdueTaskCount: 0,
-          contactCount: 0,
-          documentCount: 0,
-          lastActivity: null,
-          _portfolioWeight: alloc.weight,
-        } as CompanyWithRelations & { _portfolioWeight?: number };
       });
     }
     
-    return portfolioCompanies;
-  }, [companiesWithRelations, portfolioAllocations]);
+    // Finally, add any remaining portfolio companies not yet included
+    portfolioCompanies.forEach(company => {
+      const symbol = company.ticker_symbol?.toUpperCase();
+      if (symbol && !holdingsMap.has(symbol)) {
+        holdingsMap.set(symbol, company);
+      }
+    });
+    
+    return Array.from(holdingsMap.values());
+  }, [companiesWithRelations, portfolioAllocations, syncedPositions]);
 
   // Filter companies by asset type
   const publicEquities = useMemo(() => 
@@ -675,7 +738,7 @@ export default function Portfolio() {
   // Manual refresh
   const handleRefresh = async () => {
     setIsRefreshing(true);
-    await Promise.all([refreshIndices(), fetchQuotes(), refetchAll()]);
+    await Promise.all([refreshIndices(), fetchQuotes(), refetchAll(), refetchPositions()]);
     setIsRefreshing(false);
     toast.success('Data refreshed');
   };
@@ -1322,30 +1385,18 @@ export default function Portfolio() {
         </div>
       </div>
 
-      {/* Add Asset Wizard */}
-      <AddAssetWizard
+      {/* Add Position Dialog */}
+      <UnifiedAddPositionDialog
         open={showAddDialog}
         onOpenChange={setShowAddDialog}
-        onComplete={() => {
+        portfolioId={activePortfolioId || undefined}
+        onPositionAdded={() => {
+          refetchPositions();
           refetchAll();
-          toast.success('Position added');
         }}
-        onCreate={async (data) => {
-          if (!user) return null;
-          const { data: newCompany, error } = await supabase
-            .from('companies')
-            .insert({
-              ...data,
-              user_id: user.id,
-              organization_id: orgId || null,
-            } as any)
-            .select()
-            .single();
-          if (error) {
-            toast.error('Failed to create position');
-            return null;
-          }
-          return newCompany as any;
+        onPositionsImported={() => {
+          refetchPositions();
+          refetchAll();
         }}
       />
 
