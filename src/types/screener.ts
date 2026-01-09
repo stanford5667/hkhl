@@ -180,10 +180,22 @@ export interface ScreenerCriteria {
   chartPattern?: ChartPattern[];
   candlestickPattern?: CandlestickPattern[];
 
+  // Backtest / Risk-Adjusted Metrics
+  minSharpe?: number;
+  maxSharpe?: number;
+  minSortino?: number;
+  maxSortino?: number;
+  minAlpha?: number;
+  maxAlpha?: number;
+  minMaxDrawdown?: number;  // e.g., 10 = max 10% drawdown
+  maxMaxDrawdown?: number;
+  minCalmar?: number;
+  maxCalmar?: number;
+
   // Pagination & Sorting
   limit?: number;
   offset?: number;
-  sortBy?: 'ticker' | 'marketCap' | 'price' | 'change' | 'volume' | 'pe' | 'dividendYield';
+  sortBy?: 'ticker' | 'marketCap' | 'price' | 'change' | 'volume' | 'pe' | 'dividendYield' | 'sharpe' | 'sortino' | 'alpha';
   sortOrder?: 'asc' | 'desc';
 }
 
@@ -241,6 +253,13 @@ export interface ScreenerResult {
   perfQuarter: number | null;
   perfYear: number | null;
   perfYTD: number | null;
+
+  // Backtest / Risk-Adjusted Metrics
+  sharpe: number | null;
+  sortino: number | null;
+  alpha: number | null;
+  maxDrawdown: number | null;
+  calmar: number | null;
 
   // Metadata
   matchScore: number;

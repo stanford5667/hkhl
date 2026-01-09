@@ -118,6 +118,22 @@ function AppliedFiltersCard({ criteria }: { criteria: ScreenerCriteria }) {
   if (criteria.minRelativeVolume) {
     filterItems.push({ label: 'Relative Volume', value: `${criteria.minRelativeVolume}x+` });
   }
+  // Backtest filters
+  if (criteria.minSharpe !== undefined) {
+    filterItems.push({ label: 'Min Sharpe', value: `${criteria.minSharpe}+` });
+  }
+  if (criteria.minSortino !== undefined) {
+    filterItems.push({ label: 'Min Sortino', value: `${criteria.minSortino}+` });
+  }
+  if (criteria.minAlpha !== undefined) {
+    filterItems.push({ label: 'Min Alpha', value: `${criteria.minAlpha}%+` });
+  }
+  if (criteria.maxMaxDrawdown !== undefined) {
+    filterItems.push({ label: 'Max Drawdown', value: `≤${criteria.maxMaxDrawdown}%` });
+  }
+  if (criteria.minCalmar !== undefined) {
+    filterItems.push({ label: 'Min Calmar', value: `${criteria.minCalmar}+` });
+  }
 
   if (filterItems.length === 0) {
     return (
@@ -159,6 +175,13 @@ function QuickScreensCard({ onSelect }: { onSelect: (criteria: ScreenerCriteria,
     'Fundamental': ['high_dividend', 'value_stocks', 'high_growth', 'high_roe'],
     'Market Cap': ['mega_cap', 'large_cap', 'mid_cap', 'small_cap'],
   };
+
+  // Additional backtest quick filters (inline since QUICK_SCREENS may not have these)
+  const backtestFilters = [
+    { name: 'High Sharpe (>1)', criteria: { minSharpe: 1 } },
+    { name: 'Positive Alpha', criteria: { minAlpha: 0 } },
+    { name: 'Low Drawdown (<20%)', criteria: { maxMaxDrawdown: 20 } },
+  ];
 
   return (
     <Card className="bg-card border-border/50">
@@ -372,6 +395,7 @@ function AdvancedFiltersSheet({
             <TabsTrigger value="descriptive" className="text-xs">Descriptive</TabsTrigger>
             <TabsTrigger value="fundamental" className="text-xs">Fundamental</TabsTrigger>
             <TabsTrigger value="technical" className="text-xs">Technical</TabsTrigger>
+            <TabsTrigger value="backtest" className="text-xs">Backtest</TabsTrigger>
           </TabsList>
 
           {/* Descriptive Tab */}
@@ -638,6 +662,78 @@ function AdvancedFiltersSheet({
                     <NumberRangeInput label="Gap Down (%)" minKey="minGapDown" maxKey="maxGapDown" />
                   </div>
                 </FilterSection>
+              </div>
+            </ScrollArea>
+          </TabsContent>
+
+          {/* Backtest / Risk-Adjusted Tab */}
+          <TabsContent value="backtest" className="m-0">
+            <ScrollArea className="h-[calc(100vh-220px)] px-4">
+              <div className="space-y-5 py-4">
+                <div className="p-3 rounded-lg bg-primary/5 border border-primary/20 mb-4">
+                  <p className="text-xs text-muted-foreground">
+                    Filter stocks by historical risk-adjusted performance metrics. 
+                    These are calculated from 3-year rolling windows.
+                  </p>
+                </div>
+
+                <FilterSection title="Risk-Adjusted Returns">
+                  <div className="space-y-3">
+                    <NumberRangeInput label="Sharpe Ratio" minKey="minSharpe" maxKey="maxSharpe" minPlaceholder="0" maxPlaceholder="3+" />
+                    <NumberRangeInput label="Sortino Ratio" minKey="minSortino" maxKey="maxSortino" minPlaceholder="0" maxPlaceholder="4+" />
+                    <NumberRangeInput label="Calmar Ratio" minKey="minCalmar" maxKey="maxCalmar" minPlaceholder="0" maxPlaceholder="2+" />
+                  </div>
+                </FilterSection>
+
+                <FilterSection title="Benchmark Comparison">
+                  <div className="space-y-3">
+                    <NumberRangeInput label="Alpha (%)" minKey="minAlpha" maxKey="maxAlpha" minPlaceholder="-5" maxPlaceholder="+10" />
+                  </div>
+                </FilterSection>
+
+                <FilterSection title="Drawdown Risk">
+                  <div className="space-y-3">
+                    <NumberRangeInput label="Max Drawdown (%)" minKey="minMaxDrawdown" maxKey="maxMaxDrawdown" minPlaceholder="5" maxPlaceholder="50" />
+                  </div>
+                </FilterSection>
+
+                <div className="p-3 rounded-lg bg-muted/50 border border-border">
+                  <p className="text-xs text-muted-foreground font-medium mb-2">Quick Filters</p>
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-7 text-xs"
+                      onClick={() => setLocalCriteria(f => ({ ...f, minSharpe: 1 }))}
+                    >
+                      Sharpe &gt; 1
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-7 text-xs"
+                      onClick={() => setLocalCriteria(f => ({ ...f, minAlpha: 0 }))}
+                    >
+                      Positive Alpha
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-7 text-xs"
+                      onClick={() => setLocalCriteria(f => ({ ...f, maxMaxDrawdown: 20 }))}
+                    >
+                      Low Drawdown
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-7 text-xs"
+                      onClick={() => setLocalCriteria(f => ({ ...f, minSortino: 1.5 }))}
+                    >
+                      Sortino &gt; 1.5
+                    </Button>
+                  </div>
+                </div>
               </div>
             </ScrollArea>
           </TabsContent>
