@@ -3,14 +3,17 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
 import { 
   Activity, PieChart, Briefcase, Zap, Globe, Target, Building2, BookOpen, 
   Landmark, Users, Sparkles, Bell, RefreshCw, DollarSign, TrendingUp, TrendingDown,
   BarChart3, Shield, AlertTriangle, ArrowUpRight, ArrowDownRight, Home, 
-  LineChart, Coins, ChevronRight, AlertCircle, Calendar, ExternalLink
+  LineChart, Coins, ChevronRight, AlertCircle, Calendar, ExternalLink,
+  Gem, Fuel, Wheat, Banknote
 } from 'lucide-react';
 import { usePortfolioTotals, useAlerts, useDealPipeline, usePortfolioAssets, useAssetAllocation, useEvents, useEconomicIndicators, useCovenants, useMATransactions, usePEFunds } from '@/hooks/useMarketIntel';
 import { LiveMacroContent } from '@/components/markets/LiveMacroContent';
+import { useCommodities, useForex, groupCommoditiesByCategory, groupForexByCategory, type CommodityData, type ForexData } from '@/hooks/useForexCommodities';
 
 export default function MarketIntel() {
   const [activeTab, setActiveTab] = useState('macro');
@@ -72,6 +75,14 @@ export default function MarketIntel() {
             <Globe className="h-4 w-4 mr-1.5" />
             Macro
           </TabsTrigger>
+          <TabsTrigger value="commodities" className="text-sm">
+            <Gem className="h-4 w-4 mr-1.5" />
+            Commodities
+          </TabsTrigger>
+          <TabsTrigger value="currencies" className="text-sm">
+            <Banknote className="h-4 w-4 mr-1.5" />
+            Currencies
+          </TabsTrigger>
           <TabsTrigger value="deals" className="text-sm">
             <Briefcase className="h-4 w-4 mr-1.5" />
             Deals
@@ -98,6 +109,14 @@ export default function MarketIntel() {
           </TabsTrigger>
         </TabsList>
 
+
+        <TabsContent value="commodities" className="mt-6">
+          <CommoditiesContent />
+        </TabsContent>
+
+        <TabsContent value="currencies" className="mt-6">
+          <CurrenciesContent />
+        </TabsContent>
 
         <TabsContent value="macro" className="mt-6">
           <LiveMacroContent />
@@ -1088,6 +1107,397 @@ function ResearchContent() {
           </div>
         </Card>
       </div>
+    </div>
+  );
+}
+
+// Commodity price display card
+function CommodityPriceCard({ commodity }: { commodity: CommodityData }) {
+  const isUp = commodity.change >= 0;
+  
+  return (
+    <div className="flex items-center justify-between p-3 rounded-lg bg-background/50 border border-border/50 hover:border-border transition-colors">
+      <div className="flex items-center gap-3">
+        <div className={`p-2 rounded-lg ${
+          commodity.category === 'metals' ? 'bg-yellow-500/10' :
+          commodity.category === 'energy' ? 'bg-orange-500/10' :
+          'bg-green-500/10'
+        }`}>
+          {commodity.category === 'metals' ? (
+            <Gem className={`h-4 w-4 ${
+              commodity.category === 'metals' ? 'text-yellow-500' :
+              commodity.category === 'energy' ? 'text-orange-500' :
+              'text-green-500'
+            }`} />
+          ) : commodity.category === 'energy' ? (
+            <Fuel className="h-4 w-4 text-orange-500" />
+          ) : (
+            <Wheat className="h-4 w-4 text-green-500" />
+          )}
+        </div>
+        <div>
+          <div className="font-medium text-sm">{commodity.name}</div>
+          <div className="text-xs text-muted-foreground">
+            {commodity.unit && `per ${commodity.unit}`}
+          </div>
+        </div>
+      </div>
+      <div className="text-right">
+        <div className="font-bold tabular-nums">
+          ${commodity.price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+        </div>
+        <div className={`flex items-center justify-end gap-1 text-xs ${isUp ? 'text-emerald-400' : 'text-rose-400'}`}>
+          {isUp ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
+          <span className="tabular-nums">{isUp ? '+' : ''}{commodity.change.toFixed(2)}</span>
+          <span className="tabular-nums">({isUp ? '+' : ''}{commodity.changePercent.toFixed(2)}%)</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function CommoditiesContent() {
+  const { data, isLoading, error, lastUpdated, refetch } = useCommodities();
+  const grouped = groupCommoditiesByCategory(data);
+  
+  if (isLoading && data.length === 0) {
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {[1, 2, 3].map((i) => (
+          <Card key={i} className="bg-secondary/50 border-border p-6">
+            <Skeleton className="h-6 w-32 mb-4" />
+            <div className="space-y-3">
+              {[1, 2, 3, 4, 5].map((j) => (
+                <Skeleton key={j} className="h-14 w-full" />
+              ))}
+            </div>
+          </Card>
+        ))}
+      </div>
+    );
+  }
+  
+  if (error) {
+    return (
+      <Card className="bg-secondary/50 border-border p-6">
+        <div className="flex items-center gap-3 text-amber-400">
+          <AlertTriangle className="h-5 w-5" />
+          <div>
+            <p className="font-medium">Unable to load commodities data</p>
+            <p className="text-sm text-muted-foreground">{error}</p>
+          </div>
+        </div>
+        <Button onClick={refetch} variant="outline" size="sm" className="mt-4">
+          <RefreshCw className="h-4 w-4 mr-2" />
+          Retry
+        </Button>
+      </Card>
+    );
+  }
+  
+  return (
+    <div className="space-y-6">
+      {/* Header with last updated */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Gem className="h-5 w-5 text-primary" />
+          <span className="text-sm text-muted-foreground">
+            Real-time commodity prices from global markets
+          </span>
+        </div>
+        <div className="flex items-center gap-4">
+          {lastUpdated && (
+            <span className="text-xs text-muted-foreground">
+              Updated {lastUpdated.toLocaleTimeString()}
+            </span>
+          )}
+          <Button onClick={refetch} variant="outline" size="sm" disabled={isLoading}>
+            <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+            Refresh
+          </Button>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {/* Metals */}
+        <Card className="bg-secondary/50 border-border p-6">
+          <h3 className="text-lg font-medium mb-4 flex items-center gap-2">
+            <Gem className="h-5 w-5 text-yellow-400" />
+            Precious Metals
+          </h3>
+          <div className="space-y-2">
+            {grouped.metals.length > 0 ? (
+              grouped.metals.map((commodity) => (
+                <CommodityPriceCard key={commodity.symbol} commodity={commodity} />
+              ))
+            ) : (
+              <p className="text-sm text-muted-foreground py-4 text-center">No data available</p>
+            )}
+          </div>
+        </Card>
+
+        {/* Energy */}
+        <Card className="bg-secondary/50 border-border p-6">
+          <h3 className="text-lg font-medium mb-4 flex items-center gap-2">
+            <Fuel className="h-5 w-5 text-orange-400" />
+            Energy
+          </h3>
+          <div className="space-y-2">
+            {grouped.energy.length > 0 ? (
+              grouped.energy.map((commodity) => (
+                <CommodityPriceCard key={commodity.symbol} commodity={commodity} />
+              ))
+            ) : (
+              <p className="text-sm text-muted-foreground py-4 text-center">No data available</p>
+            )}
+          </div>
+        </Card>
+
+        {/* Agriculture */}
+        <Card className="bg-secondary/50 border-border p-6">
+          <h3 className="text-lg font-medium mb-4 flex items-center gap-2">
+            <Wheat className="h-5 w-5 text-green-400" />
+            Agriculture
+          </h3>
+          <div className="space-y-2 max-h-[500px] overflow-y-auto">
+            {grouped.agriculture.length > 0 ? (
+              grouped.agriculture.map((commodity) => (
+                <CommodityPriceCard key={commodity.symbol} commodity={commodity} />
+              ))
+            ) : (
+              <p className="text-sm text-muted-foreground py-4 text-center">No data available</p>
+            )}
+          </div>
+        </Card>
+      </div>
+
+      {/* Market Summary */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {[
+          { label: 'Gold', value: grouped.metals.find(m => m.name === 'Gold'), color: 'yellow' },
+          { label: 'Crude Oil', value: grouped.energy.find(m => m.name === 'Crude Oil WTI'), color: 'orange' },
+          { label: 'Natural Gas', value: grouped.energy.find(m => m.name === 'Natural Gas'), color: 'blue' },
+          { label: 'Corn', value: grouped.agriculture.find(m => m.name === 'Corn'), color: 'green' },
+        ].map((item) => {
+          const isUp = item.value && item.value.change >= 0;
+          return (
+            <Card key={item.label} className="bg-secondary/50 border-border p-4">
+              <div className="text-xs text-muted-foreground mb-1">{item.label}</div>
+              <div className="text-xl font-bold tabular-nums">
+                {item.value ? `$${item.value.price.toLocaleString(undefined, { maximumFractionDigits: 2 })}` : '--'}
+              </div>
+              {item.value && (
+                <div className={`text-sm ${isUp ? 'text-emerald-400' : 'text-rose-400'}`}>
+                  {isUp ? '+' : ''}{item.value.changePercent.toFixed(2)}%
+                </div>
+              )}
+            </Card>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// Currency pair display card
+function ForexPriceCard({ forex }: { forex: ForexData }) {
+  const isUp = forex.change >= 0;
+  
+  return (
+    <div className="flex items-center justify-between p-3 rounded-lg bg-background/50 border border-border/50 hover:border-border transition-colors">
+      <div className="flex items-center gap-3">
+        <div className={`p-2 rounded-lg ${
+          forex.category === 'major' ? 'bg-blue-500/10' :
+          forex.category === 'cross' ? 'bg-purple-500/10' :
+          'bg-emerald-500/10'
+        }`}>
+          <Banknote className={`h-4 w-4 ${
+            forex.category === 'major' ? 'text-blue-500' :
+            forex.category === 'cross' ? 'text-purple-500' :
+            'text-emerald-500'
+          }`} />
+        </div>
+        <div>
+          <div className="font-medium text-sm">{forex.name}</div>
+          <div className="text-xs text-muted-foreground">
+            {forex.base}/{forex.quote}
+          </div>
+        </div>
+      </div>
+      <div className="text-right">
+        <div className="font-bold tabular-nums text-base">
+          {forex.price.toFixed(forex.quote === 'JPY' ? 3 : 5)}
+        </div>
+        <div className={`flex items-center justify-end gap-1 text-xs ${isUp ? 'text-emerald-400' : 'text-rose-400'}`}>
+          {isUp ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
+          <span className="tabular-nums">{isUp ? '+' : ''}{forex.changePercent.toFixed(2)}%</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function CurrenciesContent() {
+  const { data, isLoading, error, lastUpdated, refetch } = useForex();
+  const grouped = groupForexByCategory(data);
+  
+  if (isLoading && data.length === 0) {
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {[1, 2, 3].map((i) => (
+          <Card key={i} className="bg-secondary/50 border-border p-6">
+            <Skeleton className="h-6 w-32 mb-4" />
+            <div className="space-y-3">
+              {[1, 2, 3, 4, 5].map((j) => (
+                <Skeleton key={j} className="h-14 w-full" />
+              ))}
+            </div>
+          </Card>
+        ))}
+      </div>
+    );
+  }
+  
+  if (error) {
+    return (
+      <Card className="bg-secondary/50 border-border p-6">
+        <div className="flex items-center gap-3 text-amber-400">
+          <AlertTriangle className="h-5 w-5" />
+          <div>
+            <p className="font-medium">Unable to load forex data</p>
+            <p className="text-sm text-muted-foreground">{error}</p>
+          </div>
+        </div>
+        <Button onClick={refetch} variant="outline" size="sm" className="mt-4">
+          <RefreshCw className="h-4 w-4 mr-2" />
+          Retry
+        </Button>
+      </Card>
+    );
+  }
+  
+  return (
+    <div className="space-y-6">
+      {/* Header with last updated */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Globe className="h-5 w-5 text-primary" />
+          <span className="text-sm text-muted-foreground">
+            Real-time foreign exchange rates
+          </span>
+        </div>
+        <div className="flex items-center gap-4">
+          {lastUpdated && (
+            <span className="text-xs text-muted-foreground">
+              Updated {lastUpdated.toLocaleTimeString()}
+            </span>
+          )}
+          <Button onClick={refetch} variant="outline" size="sm" disabled={isLoading}>
+            <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+            Refresh
+          </Button>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {/* Major Pairs */}
+        <Card className="bg-secondary/50 border-border p-6">
+          <h3 className="text-lg font-medium mb-4 flex items-center gap-2">
+            <DollarSign className="h-5 w-5 text-blue-400" />
+            Major Pairs
+          </h3>
+          <div className="space-y-2">
+            {grouped.major.length > 0 ? (
+              grouped.major.map((forex) => (
+                <ForexPriceCard key={forex.symbol} forex={forex} />
+              ))
+            ) : (
+              <p className="text-sm text-muted-foreground py-4 text-center">No data available</p>
+            )}
+          </div>
+        </Card>
+
+        {/* Cross Pairs */}
+        <Card className="bg-secondary/50 border-border p-6">
+          <h3 className="text-lg font-medium mb-4 flex items-center gap-2">
+            <Activity className="h-5 w-5 text-purple-400" />
+            Cross Pairs
+          </h3>
+          <div className="space-y-2">
+            {grouped.cross.length > 0 ? (
+              grouped.cross.map((forex) => (
+                <ForexPriceCard key={forex.symbol} forex={forex} />
+              ))
+            ) : (
+              <p className="text-sm text-muted-foreground py-4 text-center">No data available</p>
+            )}
+          </div>
+        </Card>
+
+        {/* Emerging Markets */}
+        <Card className="bg-secondary/50 border-border p-6">
+          <h3 className="text-lg font-medium mb-4 flex items-center gap-2">
+            <Globe className="h-5 w-5 text-emerald-400" />
+            Emerging Markets
+          </h3>
+          <div className="space-y-2 max-h-[500px] overflow-y-auto">
+            {grouped.emerging.length > 0 ? (
+              grouped.emerging.map((forex) => (
+                <ForexPriceCard key={forex.symbol} forex={forex} />
+              ))
+            ) : (
+              <p className="text-sm text-muted-foreground py-4 text-center">No data available</p>
+            )}
+          </div>
+        </Card>
+      </div>
+
+      {/* Key Rates Summary */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {[
+          { label: 'EUR/USD', value: grouped.major.find(m => m.name === 'EUR/USD'), color: 'blue' },
+          { label: 'GBP/USD', value: grouped.major.find(m => m.name === 'GBP/USD'), color: 'purple' },
+          { label: 'USD/JPY', value: grouped.major.find(m => m.name === 'USD/JPY'), color: 'rose' },
+          { label: 'USD/CNY', value: grouped.emerging.find(m => m.name === 'USD/CNY'), color: 'emerald' },
+        ].map((item) => {
+          const isUp = item.value && item.value.change >= 0;
+          const decimals = item.value?.quote === 'JPY' ? 3 : 4;
+          return (
+            <Card key={item.label} className="bg-secondary/50 border-border p-4">
+              <div className="text-xs text-muted-foreground mb-1">{item.label}</div>
+              <div className="text-xl font-bold tabular-nums">
+                {item.value ? item.value.price.toFixed(decimals) : '--'}
+              </div>
+              {item.value && (
+                <div className={`text-sm ${isUp ? 'text-emerald-400' : 'text-rose-400'}`}>
+                  {isUp ? '+' : ''}{item.value.changePercent.toFixed(2)}%
+                </div>
+              )}
+            </Card>
+          );
+        })}
+      </div>
+
+      {/* DXY Index Card */}
+      <Card className="bg-gradient-to-r from-blue-900/20 to-purple-900/20 border-blue-500/20 p-6">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="p-3 rounded-lg bg-blue-500/20">
+              <DollarSign className="h-6 w-6 text-blue-400" />
+            </div>
+            <div>
+              <h3 className="text-lg font-medium">US Dollar Index (DXY)</h3>
+              <p className="text-sm text-muted-foreground">Trade-weighted dollar strength</p>
+            </div>
+          </div>
+          <div className="text-right">
+            <div className="text-2xl font-bold tabular-nums">
+              {grouped.major.length > 0 ? '~' : '--'}
+            </div>
+            <p className="text-xs text-muted-foreground">Based on major pairs</p>
+          </div>
+        </div>
+      </Card>
     </div>
   );
 }
