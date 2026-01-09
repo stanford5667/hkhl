@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { cn } from '@/lib/utils';
-import { TrendingUp, TrendingDown } from 'lucide-react';
+import { TrendingUp, TrendingDown, Loader2 } from 'lucide-react';
+import { useBatchQuotes } from '@/hooks/useMarketDataQuery';
 
 interface TickerItem {
   symbol: string;
@@ -8,41 +9,57 @@ interface TickerItem {
   change: number;
 }
 
-const mockTickers: TickerItem[] = [
-  { symbol: 'SPY', price: 594.32, change: 0.42 },
-  { symbol: 'QQQ', price: 518.76, change: 0.67 },
-  { symbol: 'AAPL', price: 248.13, change: -0.23 },
-  { symbol: 'MSFT', price: 438.92, change: 0.89 },
-  { symbol: 'GOOGL', price: 197.45, change: 1.12 },
-  { symbol: 'AMZN', price: 224.67, change: 0.34 },
-  { symbol: 'NVDA', price: 142.58, change: 2.45 },
-  { symbol: 'TSLA', price: 412.34, change: -1.23 },
-  { symbol: 'META', price: 612.89, change: 0.78 },
-  { symbol: 'BRK.B', price: 468.21, change: 0.15 },
-  { symbol: 'JPM', price: 248.56, change: 0.52 },
-  { symbol: 'V', price: 318.43, change: 0.31 },
-  { symbol: 'DIA', price: 438.12, change: 0.28 },
-  { symbol: 'IWM', price: 224.89, change: -0.45 },
-  { symbol: 'GLD', price: 242.67, change: 0.89 },
+// Default tickers to show in the stream
+const STREAM_TICKERS = [
+  'SPY', 'QQQ', 'AAPL', 'MSFT', 'GOOGL', 'AMZN', 'NVDA', 'TSLA', 
+  'META', 'BRK.B', 'JPM', 'V', 'DIA', 'IWM', 'GLD'
 ];
 
 export function TickerStream({ className }: { className?: string }) {
-  const [tickers, setTickers] = useState<TickerItem[]>(mockTickers);
+  const { quotes, isLoading, isFetching, refresh } = useBatchQuotes(STREAM_TICKERS);
+  
+  // Map quotes to ticker items
+  const tickers = useMemo<TickerItem[]>(() => {
+    return STREAM_TICKERS.map(symbol => {
+      const quote = quotes.get(symbol);
+      return {
+        symbol,
+        price: quote?.price ?? 0,
+        change: quote?.changePercent ?? 0,
+      };
+    }).filter(t => t.price > 0); // Only show tickers with valid prices
+  }, [quotes]);
 
-  // Simulate live updates
+  // Auto-refresh every 60 seconds during market hours
   useEffect(() => {
     const interval = setInterval(() => {
-      setTickers(prev => prev.map(t => ({
-        ...t,
-        price: t.price * (1 + (Math.random() - 0.5) * 0.001),
-        change: t.change + (Math.random() - 0.5) * 0.1
-      })));
-    }, 3000);
+      refresh();
+    }, 60 * 1000);
     return () => clearInterval(interval);
-  }, []);
+  }, [refresh]);
 
   // Double the tickers for seamless loop
   const displayTickers = [...tickers, ...tickers];
+
+  // Show loading state if no data yet
+  if (isLoading && tickers.length === 0) {
+    return (
+      <div className={cn(
+        "w-full overflow-hidden bg-surface-1 border-b border-border/30 py-2",
+        className
+      )}>
+        <div className="flex items-center justify-center gap-2 text-muted-foreground text-xs">
+          <Loader2 className="h-3 w-3 animate-spin" />
+          <span>Loading market data...</span>
+        </div>
+      </div>
+    );
+  }
+
+  // Don't render if no tickers available
+  if (tickers.length === 0) {
+    return null;
+  }
 
   return (
     <div className={cn(
@@ -73,6 +90,11 @@ export function TickerStream({ className }: { className?: string }) {
           </div>
         ))}
       </div>
+      {isFetching && (
+        <div className="absolute right-2 top-1/2 -translate-y-1/2">
+          <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
+        </div>
+      )}
     </div>
   );
 }
