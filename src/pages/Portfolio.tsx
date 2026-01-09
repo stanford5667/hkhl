@@ -1270,12 +1270,15 @@ export default function Portfolio() {
         <StatCard
           title="Today's P&L"
           displayValue={formatCurrency(
-            backtestMetrics?.todayChange ?? (allocTotalValue > 0 ? allocTodayChange : (perfTodayChange || portfolioStats.todayChange)),
+            // Hybrid: Use live change % applied to backtest value (not original capital)
+            backtestMetrics?.currentValue && allocTodayChangePercent
+              ? backtestMetrics.currentValue * (allocTodayChangePercent / 100)
+              : (allocTotalValue > 0 ? allocTodayChange : (perfTodayChange || portfolioStats.todayChange)),
             true
           )}
-          icon={(backtestMetrics?.todayChange ?? (allocTotalValue > 0 ? allocTodayChange : (perfTodayChange || portfolioStats.todayChange))) >= 0 ? TrendingUp : TrendingDown}
+          icon={(allocTodayChangePercent >= 0) ? TrendingUp : TrendingDown}
           isLoading={allocLoading || perfLoading || isLoading}
-          change={backtestMetrics?.todayChangePercent ?? (allocTotalValue > 0 ? allocTodayChangePercent : (perfTodayChangePercent || portfolioStats.todayChangePercent))}
+          change={allocTodayChangePercent || (perfTodayChangePercent || portfolioStats.todayChangePercent)}
           onClick={() => {
             document.querySelector('[data-performance-chart]')?.scrollIntoView({ behavior: 'smooth' });
           }}
