@@ -399,6 +399,62 @@ export type Database = {
         }
         Relationships: []
       }
+      brokerage_connections: {
+        Row: {
+          access_token: string | null
+          account_mask: string | null
+          account_name: string | null
+          brokerage_name: string
+          connection_status: string
+          created_at: string
+          id: string
+          last_sync_at: string | null
+          metadata: Json | null
+          portfolio_id: string | null
+          sync_error: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          access_token?: string | null
+          account_mask?: string | null
+          account_name?: string | null
+          brokerage_name: string
+          connection_status?: string
+          created_at?: string
+          id?: string
+          last_sync_at?: string | null
+          metadata?: Json | null
+          portfolio_id?: string | null
+          sync_error?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          access_token?: string | null
+          account_mask?: string | null
+          account_name?: string | null
+          brokerage_name?: string
+          connection_status?: string
+          created_at?: string
+          id?: string
+          last_sync_at?: string | null
+          metadata?: Json | null
+          portfolio_id?: string | null
+          sync_error?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "brokerage_connections_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "saved_portfolios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cached_api_data: {
         Row: {
           cache_key: string
@@ -2658,6 +2714,84 @@ export type Database = {
             columns: ["task_id"]
             isOneToOne: false
             referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      synced_positions: {
+        Row: {
+          asset_type: string | null
+          connection_id: string | null
+          cost_basis: number | null
+          cost_per_share: number | null
+          created_at: string
+          current_price: number | null
+          current_value: number | null
+          id: string
+          last_price_update: string | null
+          name: string | null
+          portfolio_id: string | null
+          quantity: number
+          source: string
+          symbol: string
+          unrealized_gain: number | null
+          unrealized_gain_percent: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          asset_type?: string | null
+          connection_id?: string | null
+          cost_basis?: number | null
+          cost_per_share?: number | null
+          created_at?: string
+          current_price?: number | null
+          current_value?: number | null
+          id?: string
+          last_price_update?: string | null
+          name?: string | null
+          portfolio_id?: string | null
+          quantity?: number
+          source?: string
+          symbol: string
+          unrealized_gain?: number | null
+          unrealized_gain_percent?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          asset_type?: string | null
+          connection_id?: string | null
+          cost_basis?: number | null
+          cost_per_share?: number | null
+          created_at?: string
+          current_price?: number | null
+          current_value?: number | null
+          id?: string
+          last_price_update?: string | null
+          name?: string | null
+          portfolio_id?: string | null
+          quantity?: number
+          source?: string
+          symbol?: string
+          unrealized_gain?: number | null
+          unrealized_gain_percent?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "synced_positions_connection_id_fkey"
+            columns: ["connection_id"]
+            isOneToOne: false
+            referencedRelation: "brokerage_connections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "synced_positions_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "saved_portfolios"
             referencedColumns: ["id"]
           },
         ]
