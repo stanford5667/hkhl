@@ -237,12 +237,12 @@ function StatCard({
   const isPositive = change !== undefined && change >= 0;
 
   const cardContent = (
-    <motion.div variants={itemVariants}>
+    <motion.div variants={itemVariants} className="h-full">
       <Card
-        className="cursor-pointer hover:shadow-md transition-all hover:scale-[1.02] group bg-gradient-to-br from-card to-secondary/20 relative"
+        className="cursor-pointer hover:shadow-md transition-all hover:scale-[1.02] group bg-gradient-to-br from-card to-secondary/20 relative h-full flex flex-col"
         onClick={onClick}
       >
-        <CardContent className="p-4 pb-6">
+        <CardContent className="p-4 pb-6 flex-1 flex flex-col min-h-[100px]">
           <div className="flex items-center justify-between mb-1">
             <div className="flex items-center gap-1">
               <span className="text-xs text-muted-foreground">{title}</span>
@@ -270,27 +270,28 @@ function StatCard({
           <p className="text-xl font-bold">
             {displayValue !== undefined ? displayValue : value}
           </p>
-          {change !== undefined && (
-            <p className={cn(
-              "text-xs flex items-center gap-1",
-              isPositive ? 'text-emerald-400' : 'text-rose-400'
-            )}>
-              {isPositive ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
-              {formatPercent(change)}
-              {changeLabel && <span className="text-muted-foreground ml-1">{changeLabel}</span>}
-            </p>
-          )}
-          {alert && alertCount && alertCount > 0 && (
-            <Badge variant="destructive" className="text-xs mt-1">
-              <AlertTriangle className="h-3 w-3 mr-1" />
-              {alertCount} overdue
-            </Badge>
-          )}
-          {subtitle && !alert && (
-            <p className="text-xs text-muted-foreground">{subtitle}</p>
-          )}
+          <div className="mt-auto">
+            {change !== undefined && (
+              <p className={cn(
+                "text-xs flex items-center gap-1",
+                isPositive ? 'text-emerald-400' : 'text-rose-400'
+              )}>
+                {isPositive ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
+                {formatPercent(change)}
+                {changeLabel && <span className="text-muted-foreground ml-1">{changeLabel}</span>}
+              </p>
+            )}
+            {alert && alertCount && alertCount > 0 && (
+              <Badge variant="destructive" className="text-xs mt-1">
+                <AlertTriangle className="h-3 w-3 mr-1" />
+                {alertCount} overdue
+              </Badge>
+            )}
+            {subtitle && !alert && (
+              <p className="text-xs text-muted-foreground">{subtitle}</p>
+            )}
+          </div>
           
-          {/* Data Source Footer */}
           {dataSource && (
             <div className="absolute bottom-1 right-2">
               <Tooltip>
@@ -1233,7 +1234,7 @@ export default function Portfolio() {
       />
 
       {/* Dynamic Stats Row - Now includes Portfolio Builder metrics (CAGR, Sharpe, Max DD) */}
-      <motion.div variants={containerVariants} className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4">
+      <motion.div variants={containerVariants} className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4 auto-rows-fr">
         <StatCard
           title="Portfolio Value"
           displayValue={formatCurrency(
