@@ -17,6 +17,7 @@ import { ProcessingBanner, ProcessingIndicator, AIAnalyzedBadge } from '@/compon
 import { AISummaryCard } from '@/components/companies/AISummaryCard';
 import { PublicEquityDetailView } from '@/components/equity/PublicEquityDetailView';
 import { AssetBacktestPanel } from '@/components/equity/AssetBacktestPanel';
+import { QuantitativeStudiesPanel } from '@/components/equity/QuantitativeStudiesPanel';
 
 import { CompanySummaryCard } from '@/components/companies/CompanySummaryCard';
 import { CompanyContactsCard } from '@/components/companies/CompanyContactsCard';
@@ -43,6 +44,7 @@ import {
   LineChart,
   Briefcase,
   BarChart3,
+  FlaskConical,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { useCompanyTasks } from '@/hooks/useTasks';
@@ -371,6 +373,12 @@ export default function CompanyDetail() {
             <TabsTrigger value="backtest" className="gap-2 text-base px-5 py-3">
               <BarChart3 className="h-5 w-5" />
               Backtest
+            </TabsTrigger>
+          )}
+          {isPublicEquity && (
+            <TabsTrigger value="studies" className="gap-2 text-base px-5 py-3">
+              <FlaskConical className="h-5 w-5" />
+              Studies
             </TabsTrigger>
           )}
           <TabsTrigger value="news" className="gap-2 text-base px-5 py-3">
@@ -716,6 +724,16 @@ export default function CompanyDetail() {
         {isPublicEquity && company.ticker_symbol && (
           <TabsContent value="backtest">
             <AssetBacktestPanel 
+              ticker={company.ticker_symbol}
+              companyName={company.name}
+            />
+          </TabsContent>
+        )}
+
+        {/* Studies Tab - Public Equity Only */}
+        {isPublicEquity && company.ticker_symbol && (
+          <TabsContent value="studies">
+            <QuantitativeStudiesPanel 
               ticker={company.ticker_symbol}
               companyName={company.name}
             />
