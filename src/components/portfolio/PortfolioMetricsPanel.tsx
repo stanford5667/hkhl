@@ -30,6 +30,8 @@ import {
 } from '@/components/ui/tooltip';
 import { usePortfolioCalculations, PortfolioMetrics } from '@/hooks/usePortfolioCalculations';
 import { getMetricDefinition, formatMetricValue, getInterpretation } from '@/data/metricDefinitions';
+import { MetricInfoIcon } from '@/components/shared/MetricInfoIcon';
+import { KeyTakeawayCard } from '@/components/shared/KeyTakeawayCard';
 
 interface PortfolioMetricsPanelProps {
   allocations: { symbol: string; weight: number }[];
@@ -232,6 +234,7 @@ export function PortfolioMetricsPanel({
             <div className="flex items-center gap-2 mb-1">
               <DollarSign className="h-4 w-4 text-emerald-500" />
               <span className="text-xs font-medium text-muted-foreground">CAGR</span>
+              <MetricInfoIcon termKey="cagr" iconSize={12} />
             </div>
             <p className={cn(
               "text-2xl font-bold tabular-nums",
@@ -245,6 +248,7 @@ export function PortfolioMetricsPanel({
             <div className="flex items-center gap-2 mb-1">
               <Activity className="h-4 w-4 text-blue-500" />
               <span className="text-xs font-medium text-muted-foreground">Volatility</span>
+              <MetricInfoIcon termKey="volatility" iconSize={12} />
             </div>
             <p className="text-2xl font-bold tabular-nums text-foreground">
               {metrics.volatility.toFixed(2)}%
@@ -255,6 +259,7 @@ export function PortfolioMetricsPanel({
             <div className="flex items-center gap-2 mb-1">
               <Target className="h-4 w-4 text-amber-500" />
               <span className="text-xs font-medium text-muted-foreground">Sharpe</span>
+              <MetricInfoIcon termKey="sharpeRatio" iconSize={12} />
             </div>
             <p className={cn(
               "text-2xl font-bold tabular-nums",
@@ -268,6 +273,7 @@ export function PortfolioMetricsPanel({
             <div className="flex items-center gap-2 mb-1">
               <TrendingDown className="h-4 w-4 text-rose-500" />
               <span className="text-xs font-medium text-muted-foreground">Max DD</span>
+              <MetricInfoIcon termKey="maxDrawdown" iconSize={12} />
             </div>
             <p className="text-2xl font-bold tabular-nums text-rose-500">
               {metrics.maxDrawdown.toFixed(2)}%
@@ -326,6 +332,20 @@ export function PortfolioMetricsPanel({
             size="sm"
           />
         </div>
+
+        {/* Key Takeaway Card */}
+        <KeyTakeawayCard
+          data={{
+            cagr: metrics.cagr,
+            volatility: metrics.volatility,
+            sharpeRatio: metrics.sharpeRatio,
+            maxDrawdown: metrics.maxDrawdown,
+            alpha: metrics.alpha,
+            beta: metrics.beta,
+            totalReturn: metrics.totalReturn,
+          }}
+          chartType="performance"
+        />
 
         {/* AI Insight Summary */}
         {aiAnalysis && (

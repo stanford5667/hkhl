@@ -2,6 +2,7 @@ import { ReactNode } from "react";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { TrendingUp, TrendingDown } from "lucide-react";
+import { MetricInfoIcon } from "@/components/shared/MetricInfoIcon";
 
 interface MetricCardProps {
   title: string;
@@ -10,6 +11,8 @@ interface MetricCardProps {
   change?: number;
   icon: ReactNode;
   variant?: "default" | "success" | "warning" | "destructive";
+  /** Key from financialTerms to show educational tooltip */
+  termKey?: string;
 }
 
 export function MetricCard({
@@ -19,6 +22,7 @@ export function MetricCard({
   change,
   icon,
   variant = "default",
+  termKey,
 }: MetricCardProps) {
   const variantStyles = {
     default: "border-border/50",
@@ -38,7 +42,10 @@ export function MetricCard({
     <Card className={cn("p-6", variantStyles[variant])}>
       <div className="flex items-start justify-between">
         <div className="space-y-2">
-          <p className="text-sm font-medium text-muted-foreground">{title}</p>
+          <div className="flex items-center gap-1.5">
+            <p className="text-sm font-medium text-muted-foreground">{title}</p>
+            {termKey && <MetricInfoIcon termKey={termKey} iconSize={12} />}
+          </div>
           <p className="metric-medium text-foreground">{value}</p>
           {subtitle && (
             <div className="flex items-center gap-2">
