@@ -9,10 +9,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { toast } from 'sonner';
-import { Plus, X, Play, Loader2, LineChart, TrendingUp, TrendingDown, Activity, AlertTriangle } from 'lucide-react';
+import { Plus, X, Play, Loader2, LineChart, TrendingUp, TrendingDown, Activity, AlertTriangle, FolderOpen } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { LineChart as RechartsLineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { cn } from '@/lib/utils';
+import { usePortfolioForBacktest } from '@/hooks/useUnifiedPortfolio';
 
 const POPULAR_TICKERS = ['SPY', 'QQQ', 'AAPL', 'MSFT', 'GOOGL', 'AMZN', 'NVDA', 'TSLA'];
 
@@ -54,6 +55,9 @@ interface BacktestResults {
 }
 
 export default function BacktestPage() {
+  // Use unified portfolio hook to get real portfolio positions
+  const { tickers: portfolioTickers, tickerWeights: portfolioWeights, allocations: portfolioAllocations } = usePortfolioForBacktest();
+  
   const [tickers, setTickers] = useState(['SPY']);
   const [tickerInput, setTickerInput] = useState('');
   const [startDate, setStartDate] = useState(() => {
@@ -89,6 +93,16 @@ export default function BacktestPage() {
     methodology?: string;
   } | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  
+  // Import tickers from real portfolio
+  const handleImportFromPortfolio = () => {
+    if (portfolioTickers.length === 0) {
+      toast.error('No positions in your portfolio to import');
+      return;
+    }
+    setTickers(portfolioTickers);
+    toast.success(`Imported ${portfolioTickers.length} positions from portfolio`);
+  };
 
   const addTicker = () => {
     const t = tickerInput.toUpperCase().trim();
@@ -263,6 +277,19 @@ export default function BacktestPage() {
                   </Button>
                 ))}
               </div>
+              
+              {/* Import from Portfolio */}
+              {portfolioTickers.length > 0 && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleImportFromPortfolio}
+                  className="w-full border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10"
+                >
+                  <FolderOpen className="h-4 w-4 mr-2" />
+                  Import from Portfolio ({portfolioTickers.length})
+                </Button>
+              )}
             </div>
 
             {/* Date Range */}

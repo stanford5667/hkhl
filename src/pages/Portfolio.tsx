@@ -18,7 +18,8 @@ import { useAlerts, useEvents, useEconomicIndicators } from '@/hooks/useMarketIn
 import { getCachedQuotes } from '@/services/quoteCacheService';
 import { supabase } from '@/integrations/supabase/client';
 import { usePositions } from '@/hooks/usePositions';
-import { UnifiedAddPositionDialog } from '@/components/portfolio';
+import { UnifiedAddPositionDialog, EnhancedPortfolioBuilder } from '@/components/portfolio';
+import { usePortfolioForVisualizer } from '@/hooks/useUnifiedPortfolio';
 import { 
   TrendingUp, 
   TrendingDown,
@@ -1110,6 +1111,68 @@ export default function Portfolio() {
           </Button>
         </CardContent>
       </Card>
+      
+      {/* Enhanced Portfolio Builder - Unified Position Management */}
+      {showAddDialog && (
+        <motion.div variants={itemVariants}>
+          <EnhancedPortfolioBuilder
+            mode="positions"
+            positions={[]}
+            onPositionAdd={async (data) => {
+              // Add position through existing flow
+              const { data: position, error } = await supabase
+                .from('synced_positions')
+                .insert({
+                  symbol: data.symbol.toUpperCase(),
+                  name: data.name,
+                  quantity: data.quantity || 0,
+                  cost_basis: data.cost_basis,
+                  cost_per_share: data.cost_per_share,
+                  asset_type: data.asset_type || 'stock',
+                  portfolio_id: activePortfolioId,
+                  user_id: user?.id,
+                  source: 'manual',
+                })
+                .select()
+                .single();
+              
+              if (error) throw error;
+              refetchPositions();
+              refetchAll();
+              return position as any;
+            }}
+            onPositionsImport={async (positions) => {
+              const { data: inserted, error } = await supabase
+                .from('synced_positions')
+                .insert(
+                  positions.map(p => ({
+                    symbol: p.symbol.toUpperCase(),
+                    name: p.name,
+                    quantity: p.quantity || 0,
+                    cost_basis: p.cost_basis,
+                    cost_per_share: p.cost_per_share,
+                    asset_type: p.asset_type || 'stock',
+                    portfolio_id: activePortfolioId,
+                    user_id: user?.id,
+                    source: 'csv',
+                  }))
+                )
+                .select();
+              
+              if (error) throw error;
+              refetchPositions();
+              refetchAll();
+              toast.success(`Imported ${positions.length} positions`);
+              return inserted as any[];
+            }}
+            onBrokerageSync={() => {
+              refetchPositions();
+              refetchAll();
+            }}
+            totalValue={portfolioStats.totalValue}
+          />
+        </motion.div>
+      )}
 
       {/* Real Portfolio Performance Chart - Uses actual calculation data */}
       {portfolioAllocations && portfolioAllocations.length > 0 ? (
