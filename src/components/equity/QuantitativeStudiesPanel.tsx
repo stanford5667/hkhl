@@ -6,6 +6,9 @@ import { Progress } from '@/components/ui/progress';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Slider } from '@/components/ui/slider';
 import {
   Select,
   SelectContent,
@@ -33,7 +36,9 @@ import {
   Mountain,
   Crosshair,
   ArrowLeftRight,
-  FlaskConical
+  FlaskConical,
+  Settings2,
+  ChevronDown
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
@@ -55,6 +60,38 @@ interface QuantitativeStudiesPanelProps {
   ticker: string;
   companyName: string;
 }
+
+// Parameter definitions for each study type
+const STUDY_PARAMS: Record<string, { label: string; key: string; type: 'number' | 'slider'; min: number; max: number; step: number; default: number; description?: string }[]> = {
+  rsi_analysis: [
+    { label: 'RSI Period', key: 'period', type: 'slider', min: 5, max: 30, step: 1, default: 14, description: 'Number of days for RSI calculation' },
+    { label: 'Overbought Level', key: 'overbought', type: 'slider', min: 60, max: 90, step: 5, default: 70 },
+    { label: 'Oversold Level', key: 'oversold', type: 'slider', min: 10, max: 40, step: 5, default: 30 },
+    { label: 'Forward Days', key: 'forwardDays', type: 'slider', min: 1, max: 20, step: 1, default: 5, description: 'Days to measure return after signal' },
+  ],
+  moving_average_analysis: [
+    { label: 'Short MA', key: 'shortPeriod', type: 'slider', min: 5, max: 50, step: 5, default: 20 },
+    { label: 'Medium MA', key: 'mediumPeriod', type: 'slider', min: 20, max: 100, step: 10, default: 50 },
+    { label: 'Long MA', key: 'longPeriod', type: 'slider', min: 100, max: 300, step: 50, default: 200 },
+  ],
+  volume_analysis: [
+    { label: 'Avg Period', key: 'avgPeriod', type: 'slider', min: 5, max: 50, step: 5, default: 20, description: 'Days for volume average' },
+    { label: 'High Vol Threshold', key: 'highVolThreshold', type: 'slider', min: 1.0, max: 3.0, step: 0.25, default: 1.5, description: 'Multiplier for high volume detection' },
+  ],
+  mean_reversion: [
+    { label: 'Std Dev Threshold', key: 'stdDevThreshold', type: 'slider', min: 1, max: 4, step: 0.5, default: 2, description: 'Standard deviations for extreme move' },
+  ],
+  high_low_analysis: [
+    { label: 'Lookback Period', key: 'lookbackPeriod', type: 'slider', min: 5, max: 60, step: 5, default: 20, description: 'Days to check for new highs/lows' },
+    { label: 'Forward Days', key: 'forwardDays', type: 'slider', min: 1, max: 20, step: 1, default: 5 },
+  ],
+  trend_strength: [
+    { label: 'Short MA', key: 'shortMa', type: 'slider', min: 5, max: 50, step: 5, default: 20 },
+    { label: 'Medium MA', key: 'mediumMa', type: 'slider', min: 20, max: 100, step: 10, default: 50 },
+    { label: 'Long MA', key: 'longMa', type: 'slider', min: 100, max: 300, step: 50, default: 200 },
+    { label: 'Recent Days', key: 'recentDays', type: 'slider', min: 5, max: 60, step: 5, default: 20, description: 'Days for higher highs/lows analysis' },
+  ],
+};
 
 const STUDY_CATEGORIES = {
   basic: {
@@ -205,6 +242,29 @@ export function QuantitativeStudiesPanel({ ticker, companyName }: QuantitativeSt
   const [usedMockData, setUsedMockData] = useState(false);
   const [dateRange, setDateRange] = useState<{ start: string; end: string } | null>(null);
   const [activeCategory, setActiveCategory] = useState('basic');
+  const [showParams, setShowParams] = useState(false);
+  const [studyParams, setStudyParams] = useState<Record<string, Record<string, number>>>({});
+
+  // Get current params for selected study
+  const currentParams = selectedStudy ? (studyParams[selectedStudy] || {}) : {};
+  const paramDefs = selectedStudy ? (STUDY_PARAMS[selectedStudy] || []) : [];
+
+  // Update a parameter value
+  const updateParam = (key: string, value: number) => {
+    if (!selectedStudy) return;
+    setStudyParams(prev => ({
+      ...prev,
+      [selectedStudy]: { ...(prev[selectedStudy] || {}), [key]: value }
+    }));
+  };
+
+  // Reset params to defaults
+  const resetParams = () => {
+    if (!selectedStudy || !STUDY_PARAMS[selectedStudy]) return;
+    const defaults: Record<string, number> = {};
+    STUDY_PARAMS[selectedStudy].forEach(p => { defaults[p.key] = p.default; });
+    setStudyParams(prev => ({ ...prev, [selectedStudy]: defaults }));
+  };
 
   const runStudy = async () => {
     if (!selectedStudy) {
@@ -226,7 +286,8 @@ export function QuantitativeStudiesPanel({ ticker, companyName }: QuantitativeSt
           ticker,
           studyType: selectedStudy,
           startDate: startDate.toISOString().split('T')[0],
-          endDate
+          endDate,
+          params: currentParams
         }
       });
 
@@ -346,7 +407,7 @@ export function QuantitativeStudiesPanel({ ticker, companyName }: QuantitativeSt
             ))}
           </Tabs>
 
-          <div className="flex items-center gap-4 pt-2 border-t">
+          <div className="flex flex-wrap items-center gap-4 pt-2 border-t relative">
             <div className="flex items-center gap-2">
               <span className="text-sm text-muted-foreground">Period:</span>
               <Select value={period} onValueChange={setPeriod}>
@@ -360,6 +421,51 @@ export function QuantitativeStudiesPanel({ ticker, companyName }: QuantitativeSt
                 </SelectContent>
               </Select>
             </div>
+
+            {/* Parameter Controls */}
+            {paramDefs.length > 0 && (
+              <Collapsible open={showParams} onOpenChange={setShowParams}>
+                <CollapsibleTrigger asChild>
+                  <Button variant="outline" size="sm" className="gap-2">
+                    <Settings2 className="h-4 w-4" />
+                    Parameters
+                    <ChevronDown className={cn("h-4 w-4 transition-transform", showParams && "rotate-180")} />
+                  </Button>
+                </CollapsibleTrigger>
+                <CollapsibleContent className="absolute z-50 mt-2 p-4 bg-card border rounded-lg shadow-lg w-80 left-0">
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <h4 className="text-sm font-medium">Study Parameters</h4>
+                      <Button variant="ghost" size="sm" onClick={resetParams} className="h-7 text-xs">
+                        Reset Defaults
+                      </Button>
+                    </div>
+                    {paramDefs.map((param) => {
+                      const value = currentParams[param.key] ?? param.default;
+                      return (
+                        <div key={param.key} className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <Label className="text-xs">{param.label}</Label>
+                            <span className="text-xs font-mono bg-muted px-1.5 py-0.5 rounded">{value}</span>
+                          </div>
+                          <Slider
+                            value={[value]}
+                            onValueChange={([v]) => updateParam(param.key, v)}
+                            min={param.min}
+                            max={param.max}
+                            step={param.step}
+                            className="w-full"
+                          />
+                          {param.description && (
+                            <p className="text-xs text-muted-foreground">{param.description}</p>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </CollapsibleContent>
+              </Collapsible>
+            )}
 
             <Button 
               onClick={runStudy} 
@@ -409,6 +515,16 @@ export function QuantitativeStudiesPanel({ ticker, companyName }: QuantitativeSt
                 )}
               </div>
             </CardTitle>
+            {/* Show parameters used */}
+            {result?.params && Object.keys(result.params).length > 0 && (
+              <div className="flex flex-wrap gap-2 mt-2">
+                {Object.entries(result.params).map(([key, value]) => (
+                  <Badge key={key} variant="outline" className="text-xs font-mono">
+                    {key}: {String(value)}
+                  </Badge>
+                ))}
+              </div>
+            )}
             {usedMockData && (
               <div className="flex items-center gap-2 text-amber-500 text-sm">
                 <AlertCircle className="h-4 w-4" />
