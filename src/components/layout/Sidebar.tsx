@@ -148,6 +148,12 @@ export function Sidebar() {
   const allNavigation = useMemo<NavItem[]>(() => {
     const items: NavItem[] = [
       { 
+        label: "Portfolio Builder", 
+        subtitle: "Build & Analyze",
+        href: "/portfolio-visualizer", 
+        icon: PieChart 
+      },
+      { 
         label: "Portfolio Tracker", 
         subtitle: "Overview & Holdings",
         href: "/", 
@@ -197,12 +203,6 @@ export function Sidebar() {
         subtitle: "AI Stock Screener",
         href: "/screener", 
         icon: SparklesIcon 
-      },
-      { 
-        label: "Portfolio Builder", 
-        subtitle: "Build & Analyze",
-        href: "/portfolio-visualizer", 
-        icon: PieChart 
       },
       // { 
       //   label: "Discovery", 
