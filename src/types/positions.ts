@@ -31,6 +31,7 @@ export interface SyncedPosition {
   unrealized_gain_percent: number | null;
   asset_type: string;
   source: 'manual' | 'brokerage' | 'csv';
+  purchase_date: string | null;
   last_price_update: string | null;
   created_at: string;
   updated_at: string;
@@ -43,6 +44,7 @@ export interface PositionFormData {
   cost_per_share?: number;
   cost_basis?: number;
   asset_type?: string;
+  purchase_date?: string; // ISO date string YYYY-MM-DD
 }
 
 export interface CSVImportRow {
