@@ -204,12 +204,12 @@ export function Sidebar() {
         href: "/portfolio-visualizer", 
         icon: PieChart 
       },
-      { 
-        label: "Discovery", 
-        subtitle: "Market Terminal",
-        href: "/discovery", 
-        icon: Compass 
-      },
+      // { 
+      //   label: "Discovery", 
+      //   subtitle: "Market Terminal",
+      //   href: "/discovery", 
+      //   icon: Compass 
+      // },
     ];
 
     return items;
