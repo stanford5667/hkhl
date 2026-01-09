@@ -118,25 +118,24 @@ export default function CompanyDetail() {
   const fetchData = async () => {
     if (!id) return;
 
-    // Check if this is a synced position (not a real company UUID)
-    // Synced positions have IDs like "synced-xxx" or other non-UUID formats
-    const isValidUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
-    
+    // If this route was used for a synced position, ids may be prefixed with "synced-"
+    const lookupId = id.startsWith('synced-') ? id.replace(/^synced-/, '') : id;
+
+    // Company IDs are UUIDs. Anything else likely came from a synced position route.
+    const isValidUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(lookupId);
+
     if (!isValidUUID) {
-      // Try to extract ticker from synced_positions table
       const { data: positionData } = await supabase
         .from('synced_positions')
         .select('symbol')
-        .eq('id', id)
+        .eq('id', lookupId)
         .maybeSingle();
-      
+
       if (positionData?.symbol) {
-        // Redirect to ticker detail page
         navigate(`/stock/${positionData.symbol}`, { replace: true });
         return;
       }
-      
-      // If no position found, redirect home
+
       toast.error('Position not found');
       navigate('/');
       return;
@@ -148,7 +147,7 @@ export default function CompanyDetail() {
       const { data: companyData, error: companyError } = await supabase
         .from('companies')
         .select('*')
-        .eq('id', id)
+        .eq('id', lookupId)
         .maybeSingle();
 
       if (companyError) throw companyError;
