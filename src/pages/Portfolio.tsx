@@ -1658,13 +1658,17 @@ function HoldingCard({
   const todayChangePercent = quote?.changePercent || 0;
   const isTodayUp = todayChangePercent >= 0;
 
+  const detailHref = holding.id.startsWith('synced-') && holding.ticker_symbol
+    ? `/stock/${holding.ticker_symbol}`
+    : `/portfolio/${holding.id}`;
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.03 }}
     >
-      <Link to={`/portfolio/${holding.id}`}>
+      <Link to={detailHref}>
         <Card className="bg-card border-border hover:border-primary/50 transition-all group cursor-pointer relative">
           <CardContent className="p-4">
             {assetClass === 'public_equity' && (
