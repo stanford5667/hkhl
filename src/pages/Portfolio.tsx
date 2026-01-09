@@ -667,7 +667,7 @@ export default function Portfolio() {
   } = usePortfolioPerformance({ portfolioId: activePortfolioId });
   
   const [showCreatePortfolioDialog, setShowCreatePortfolioDialog] = useState(false);
-  
+
   const [viewMode, setViewMode] = useState<ViewMode>(() => {
     return (localStorage.getItem('portfolio-view-mode') as ViewMode) || 'cards';
   });
@@ -679,6 +679,23 @@ export default function Portfolio() {
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
+
+  const [backtestMetrics, setBacktestMetrics] = useState<null | {
+    currentValue: number;
+    totalReturn: number;
+    totalReturnPercent: number;
+    todayChange: number;
+    todayChangePercent: number;
+    cagr: number;
+    maxDrawdown: number;
+    sharpeRatio: number;
+    volatility: number;
+  }>(null);
+
+  // Reset whenever user switches portfolios (so we don't show stale numbers)
+  useEffect(() => {
+    setBacktestMetrics(null);
+  }, [activePortfolioId]);
   
   // Live quotes state
   const [liveQuotes, setLiveQuotes] = useState<Map<string, { price: number; change: number; changePercent: number }>>(new Map());
@@ -1239,13 +1256,13 @@ export default function Portfolio() {
         <StatCard
           title="Portfolio Value"
           displayValue={formatCurrency(
-            allocTotalValue > 0 ? allocTotalValue : (perfTotalValue || portfolioStats.totalValue), 
+            backtestMetrics?.currentValue ?? (allocTotalValue > 0 ? allocTotalValue : (perfTotalValue || portfolioStats.totalValue)),
             true
           )}
           icon={Wallet}
           onClick={() => navigate('/backtester')}
           isLoading={allocLoading || perfLoading || isLoading}
-          change={allocTotalValue > 0 ? allocGainLossPercent : (perfTotalGainLossPercent || portfolioStats.totalGainLossPercent)}
+          change={backtestMetrics?.totalReturnPercent ?? (allocTotalValue > 0 ? allocGainLossPercent : (perfTotalGainLossPercent || portfolioStats.totalGainLossPercent))}
           subtitle={`${allocPositionCount > 0 ? allocPositionCount : (perfPositionCount || allHoldings.length)} holdings`}
           termKey="portfolioValue"
           dataSource="Polygon.io"
@@ -1253,12 +1270,12 @@ export default function Portfolio() {
         <StatCard
           title="Today's P&L"
           displayValue={formatCurrency(
-            allocTotalValue > 0 ? allocTodayChange : (perfTodayChange || portfolioStats.todayChange), 
+            backtestMetrics?.todayChange ?? (allocTotalValue > 0 ? allocTodayChange : (perfTodayChange || portfolioStats.todayChange)),
             true
           )}
-          icon={(allocTotalValue > 0 ? allocTodayChange : (perfTodayChange || portfolioStats.todayChange)) >= 0 ? TrendingUp : TrendingDown}
+          icon={(backtestMetrics?.todayChange ?? (allocTotalValue > 0 ? allocTodayChange : (perfTodayChange || portfolioStats.todayChange))) >= 0 ? TrendingUp : TrendingDown}
           isLoading={allocLoading || perfLoading || isLoading}
-          change={allocTotalValue > 0 ? allocTodayChangePercent : (perfTodayChangePercent || portfolioStats.todayChangePercent)}
+          change={backtestMetrics?.todayChangePercent ?? (allocTotalValue > 0 ? allocTodayChangePercent : (perfTodayChangePercent || portfolioStats.todayChangePercent))}
           onClick={() => {
             document.querySelector('[data-performance-chart]')?.scrollIntoView({ behavior: 'smooth' });
           }}
@@ -1449,6 +1466,7 @@ export default function Portfolio() {
               maxDrawdown: allocMaxDD,
               totalReturn: allocAdvancedMetrics.totalReturn,
             } : undefined}
+            onMetricsCalculated={setBacktestMetrics}
           />
         </motion.div>
       ) : (
