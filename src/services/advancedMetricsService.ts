@@ -223,12 +223,18 @@ export function estimateLiquidationDays(
 
 /**
  * Convert daily returns to monthly returns
+ * Uses actual ~21 trading days per month average
  */
 function aggregateToMonthly(dailyReturns: number[], tradingDaysPerMonth: number = 21): number[] {
+  if (dailyReturns.length < tradingDaysPerMonth) {
+    // Not enough data for even one month - return empty
+    return [];
+  }
+  
   const monthlyReturns: number[] = [];
   for (let i = 0; i < dailyReturns.length; i += tradingDaysPerMonth) {
     const monthSlice = dailyReturns.slice(i, Math.min(i + tradingDaysPerMonth, dailyReturns.length));
-    if (monthSlice.length > 0) {
+    if (monthSlice.length >= tradingDaysPerMonth * 0.5) { // At least half a month
       // Compound daily returns to get monthly return
       const monthReturn = monthSlice.reduce((acc, r) => acc * (1 + r), 1) - 1;
       monthlyReturns.push(monthReturn);
@@ -241,6 +247,11 @@ function aggregateToMonthly(dailyReturns: number[], tradingDaysPerMonth: number 
  * Convert daily returns to yearly returns
  */
 function aggregateToYearly(dailyReturns: number[], tradingDaysPerYear: number = 252): number[] {
+  if (dailyReturns.length < tradingDaysPerYear * 0.5) {
+    // Not enough data for even half a year - return empty
+    return [];
+  }
+  
   const yearlyReturns: number[] = [];
   for (let i = 0; i < dailyReturns.length; i += tradingDaysPerYear) {
     const yearSlice = dailyReturns.slice(i, Math.min(i + tradingDaysPerYear, dailyReturns.length));
