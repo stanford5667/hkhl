@@ -513,6 +513,7 @@ export default function Portfolio() {
     isLoading: allocLoading,
     isLoadingAdvanced: allocAdvancedLoading,
     // Advanced metrics from same calculation as Portfolio Builder
+    advancedMetrics: allocAdvancedMetrics,
     cagr: allocCagr,
     sharpeRatio: allocSharpe,
     maxDrawdown: allocMaxDD,
@@ -1301,9 +1302,16 @@ export default function Portfolio() {
         <motion.div variants={itemVariants}>
           <RealPerformanceChart
             allocations={portfolioAllocations}
-            investableCapital={portfolioStats.totalValue || 100000}
+            investableCapital={investableCapital || portfolioStats.totalValue || 100000}
             portfolioName={activePortfolio?.name}
             showMetrics={true}
+            preCalculatedMetrics={allocAdvancedMetrics ? {
+              cagr: allocCagr,
+              volatility: allocVolatility,
+              sharpeRatio: allocSharpe,
+              maxDrawdown: allocMaxDD,
+              totalReturn: allocAdvancedMetrics.totalReturn,
+            } : undefined}
           />
         </motion.div>
       ) : (

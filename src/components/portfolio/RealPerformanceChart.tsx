@@ -32,12 +32,23 @@ import { cn } from '@/lib/utils';
 import { usePortfolioCalculations, PortfolioMetrics } from '@/hooks/usePortfolioCalculations';
 import { format, subYears } from 'date-fns';
 
+// Pre-calculated metrics that can be passed from parent
+interface PreCalculatedMetrics {
+  cagr?: number;
+  volatility?: number;
+  sharpeRatio?: number;
+  maxDrawdown?: number;
+  totalReturn?: number;
+}
+
 interface RealPerformanceChartProps {
   allocations: { symbol: string; weight: number }[];
   investableCapital?: number;
   portfolioName?: string;
   className?: string;
   showMetrics?: boolean;
+  // Optional: pass pre-calculated metrics to ensure consistency with Portfolio Builder
+  preCalculatedMetrics?: PreCalculatedMetrics;
 }
 
 function formatCurrency(value: number): string {
@@ -57,6 +68,7 @@ export function RealPerformanceChart({
   portfolioName,
   className,
   showMetrics = true,
+  preCalculatedMetrics,
 }: RealPerformanceChartProps) {
   // Convert allocations - weights come as percentages (0-100), need decimals (0-1)
   const calcAllocations = useMemo(() => {
@@ -101,23 +113,38 @@ export function RealPerformanceChart({
   }, [portfolioValues, portfolioReturns, dates, investableCapital]);
 
   // Calculate current value and changes
+  // Use preCalculatedMetrics.totalReturn if provided for consistency with Portfolio Builder
   const { currentValue, totalReturn, totalReturnPercent, isPositive } = useMemo(() => {
+    // If we have pre-calculated metrics from Portfolio Builder, use those for consistency
+    if (preCalculatedMetrics?.totalReturn !== undefined) {
+      const returnPercent = preCalculatedMetrics.totalReturn;
+      const returnDollars = investableCapital * (returnPercent / 100);
+      const endValue = investableCapital + returnDollars;
+      return {
+        currentValue: endValue,
+        totalReturn: returnDollars,
+        totalReturnPercent: returnPercent,
+        isPositive: returnPercent >= 0,
+      };
+    }
+    
+    // Fallback to chart data calculation
     if (!chartData.length) {
       return { currentValue: investableCapital, totalReturn: 0, totalReturnPercent: 0, isPositive: true };
     }
 
     const startValue = investableCapital;
     const endValue = chartData[chartData.length - 1]?.value || investableCapital;
-    const totalReturn = endValue - startValue;
-    const totalReturnPercent = (totalReturn / startValue) * 100;
+    const totalReturnVal = endValue - startValue;
+    const totalReturnPercentVal = (totalReturnVal / startValue) * 100;
 
     return {
       currentValue: endValue,
-      totalReturn,
-      totalReturnPercent,
-      isPositive: totalReturn >= 0,
+      totalReturn: totalReturnVal,
+      totalReturnPercent: totalReturnPercentVal,
+      isPositive: totalReturnVal >= 0,
     };
-  }, [chartData, investableCapital]);
+  }, [chartData, investableCapital, preCalculatedMetrics]);
 
   if (allocations.length === 0) {
     return (
@@ -233,31 +260,31 @@ export function RealPerformanceChart({
       </CardHeader>
       
       <CardContent className="space-y-4">
-        {/* Quick Stats Row */}
-        {showMetrics && metrics && (
+        {/* Quick Stats Row - Use preCalculatedMetrics if provided for consistency */}
+        {showMetrics && (preCalculatedMetrics || metrics) && (
           <div className="flex gap-4 text-sm flex-wrap">
             <div>
               <span className="text-muted-foreground">CAGR: </span>
-              <span className={cn("font-medium", metrics.cagr >= 0 ? "text-emerald-500" : "text-rose-500")}>
-                {formatPercent(metrics.cagr)}
+              <span className={cn("font-medium", (preCalculatedMetrics?.cagr ?? metrics?.cagr ?? 0) >= 0 ? "text-emerald-500" : "text-rose-500")}>
+                {formatPercent(preCalculatedMetrics?.cagr ?? metrics?.cagr ?? 0)}
               </span>
             </div>
             <div>
               <span className="text-muted-foreground">Volatility: </span>
-              <span className="font-medium">{metrics.volatility.toFixed(1)}%</span>
+              <span className="font-medium">{(preCalculatedMetrics?.volatility ?? metrics?.volatility ?? 0).toFixed(1)}%</span>
             </div>
             <div>
               <span className="text-muted-foreground">Sharpe: </span>
               <span className={cn(
                 "font-medium",
-                metrics.sharpeRatio >= 1 ? "text-emerald-500" : metrics.sharpeRatio >= 0.5 ? "text-amber-500" : "text-rose-500"
+                (preCalculatedMetrics?.sharpeRatio ?? metrics?.sharpeRatio ?? 0) >= 1 ? "text-emerald-500" : (preCalculatedMetrics?.sharpeRatio ?? metrics?.sharpeRatio ?? 0) >= 0.5 ? "text-amber-500" : "text-rose-500"
               )}>
-                {metrics.sharpeRatio.toFixed(2)}
+                {(preCalculatedMetrics?.sharpeRatio ?? metrics?.sharpeRatio ?? 0).toFixed(2)}
               </span>
             </div>
             <div>
               <span className="text-muted-foreground">Max DD: </span>
-              <span className="font-medium text-rose-500">{metrics.maxDrawdown.toFixed(1)}%</span>
+              <span className="font-medium text-rose-500">{(preCalculatedMetrics?.maxDrawdown ?? metrics?.maxDrawdown ?? 0).toFixed(1)}%</span>
             </div>
           </div>
         )}
