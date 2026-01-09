@@ -151,6 +151,8 @@ export function usePortfolioCalculations({
   } = useQuery({
     queryKey: ['portfolio-calculations', allocationsKey, investableCapital, benchmarkTicker, startDate, endDate],
     queryFn: async (): Promise<PortfolioCalculationResult> => {
+      console.log('[usePortfolioCalculations] Starting calculation with dates:', { startDate, endDate });
+      
       if (allocations.length === 0) {
         return {
           metrics: null,
