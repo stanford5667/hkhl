@@ -348,6 +348,33 @@ export function PortfolioAnalysisTabs({
                     initialCapital={investableCapital}
                   />
                   
+                  {/* Quick Stats Row */}
+                  <div className="flex gap-4 text-sm flex-wrap px-1">
+                    <div>
+                      <span className="text-muted-foreground">CAGR: </span>
+                      <span className={cn("font-medium", (metrics?.cagr ?? 0) >= 0 ? "text-emerald-500" : "text-rose-500")}>
+                        {(metrics?.cagr ?? 0) >= 0 ? '+' : ''}{(metrics?.cagr ?? 0).toFixed(2)}%
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">Volatility: </span>
+                      <span className="font-medium">{(metrics?.volatility ?? 0).toFixed(1)}%</span>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">Sharpe: </span>
+                      <span className={cn(
+                        "font-medium",
+                        (metrics?.sharpeRatio ?? 0) >= 1 ? "text-emerald-500" : (metrics?.sharpeRatio ?? 0) >= 0.5 ? "text-amber-500" : "text-rose-500"
+                      )}>
+                        {(metrics?.sharpeRatio ?? 0).toFixed(2)}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">Max DD: </span>
+                      <span className="font-medium text-rose-500">{(metrics?.maxDrawdown ?? 0).toFixed(1)}%</span>
+                    </div>
+                  </div>
+                  
                   <div className="grid gap-6 lg:grid-cols-2">
                     {/* Performance Summary */}
                     <PerformanceSummaryTable
