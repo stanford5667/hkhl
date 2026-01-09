@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Skeleton } from '@/components/ui/skeleton';
 import { MarketIntelTab } from '@/components/companies/MarketIntelTab';
 import { CandlestickChart } from '@/components/charts/CandlestickChart';
+import { AssetBacktestPanel } from '@/components/equity/AssetBacktestPanel';
 import { MetricInfoIcon } from '@/components/shared/MetricInfoIcon';
 import { cn } from '@/lib/utils';
 import {
@@ -26,8 +27,23 @@ import {
   Plus,
   LineChart,
   BarChart3,
+  Activity,
 } from 'lucide-react';
 import { useWatchlist } from '@/hooks/useWatchlist';
+
+interface TickerDetails {
+  ticker: string;
+  name: string;
+  description: string;
+  sector: string;
+  industry: string;
+  marketCap: number | null;
+  type: string;
+  primaryExchange: string;
+  currencyName: string;
+  logoUrl: string | null;
+  homepageUrl: string | null;
+}
 
 interface StockQuote {
   price: number;
@@ -50,6 +66,7 @@ interface StockQuote {
   exchange?: string;
   description?: string;
   website?: string;
+  logoUrl?: string;
 }
 
 export default function TickerDetail() {
@@ -64,6 +81,7 @@ export default function TickerDetail() {
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
+  const [tickerValid, setTickerValid] = useState(true);
   
   const { addToWatchlist, isInWatchlist } = useWatchlist('stock');
   const inWatchlist = isInWatchlist('stock', ticker);
@@ -80,23 +98,32 @@ export default function TickerDetail() {
     if (!ticker) return;
     
     setIsLoading(true);
+    setTickerValid(true);
+    
     try {
-      // Get quote data from Finnhub via cache service
-      const { getCachedFullQuote } = await import('@/services/quoteCacheService');
-      const data = await getCachedFullQuote(ticker);
-      
-      // Also try to get ticker details from Polygon for additional info
-      let details: any = null;
+      // First, try to get ticker details from Polygon (works for any valid ticker)
+      let details: TickerDetails | null = null;
       try {
-        const { data: detailsData } = await supabase.functions.invoke('polygon-ticker-details', {
+        const { data: detailsData, error } = await supabase.functions.invoke('polygon-ticker-details', {
           body: { ticker }
         });
-        if (detailsData?.success) {
-          details = detailsData.data;
+        
+        if (error) {
+          console.error('Polygon details error:', error);
+        } else if (detailsData?.ok && detailsData.details) {
+          details = detailsData.details;
+        } else if (detailsData?.error === 'No data found for ticker') {
+          setTickerValid(false);
+          setIsLoading(false);
+          return;
         }
       } catch (e) {
         console.log('Could not fetch ticker details:', e);
       }
+      
+      // Get quote data from Finnhub via cache service
+      const { getCachedFullQuote } = await import('@/services/quoteCacheService');
+      const data = await getCachedFullQuote(ticker);
       
       if (data) {
         setQuote({
@@ -107,36 +134,37 @@ export default function TickerDetail() {
           high: data.high,
           low: data.low,
           volume: '-',
-          marketCap: data.marketCap || (details?.market_cap ? `$${(details.market_cap / 1e9).toFixed(2)}B` : '-'),
+          marketCap: data.marketCap || (details?.marketCap ? `$${(details.marketCap / 1e9).toFixed(2)}B` : '-'),
           companyName: data.companyName || details?.name || ticker,
-          industry: details?.sic_description || undefined,
-          sector: details?.type || undefined,
-          exchange: details?.primary_exchange || undefined,
+          industry: details?.industry || undefined,
+          sector: details?.sector || undefined,
+          exchange: details?.primaryExchange || undefined,
           description: details?.description || undefined,
-          website: details?.homepage_url || undefined,
-          week52High: details?.week52High,
-          week52Low: details?.week52Low,
+          website: details?.homepageUrl || undefined,
+          logoUrl: details?.logoUrl || undefined,
+        });
+      } else if (details) {
+        // Fallback to just ticker details if quote fails
+        setQuote({
+          price: 0,
+          change: 0,
+          changePercent: 0,
+          open: 0,
+          high: 0,
+          low: 0,
+          volume: '-',
+          marketCap: details.marketCap ? `$${(details.marketCap / 1e9).toFixed(2)}B` : '-',
+          companyName: details.name || ticker,
+          industry: details.industry,
+          sector: details.sector,
+          exchange: details.primaryExchange,
+          description: details.description,
+          website: details.homepageUrl || undefined,
+          logoUrl: details.logoUrl || undefined,
         });
       } else {
-        // Fallback to just ticker details if quote fails
-        if (details) {
-          setQuote({
-            price: 0,
-            change: 0,
-            changePercent: 0,
-            open: 0,
-            high: 0,
-            low: 0,
-            volume: '-',
-            marketCap: details.market_cap ? `$${(details.market_cap / 1e9).toFixed(2)}B` : '-',
-            companyName: details.name || ticker,
-            industry: details.sic_description,
-            sector: details.type,
-            exchange: details.primary_exchange,
-            description: details.description,
-            website: details.homepage_url,
-          });
-        }
+        // No data at all - ticker might be invalid
+        setTickerValid(false);
       }
     } catch (e) {
       console.error('Quote error:', e);
@@ -220,6 +248,38 @@ export default function TickerDetail() {
     );
   }
 
+  if (!isLoading && !tickerValid) {
+    return (
+      <div className="p-6 space-y-4">
+        <Button variant="ghost" size="sm" onClick={() => navigate(-1)} className="gap-2">
+          <ArrowLeft className="h-4 w-4" />
+          Back
+        </Button>
+        <Card className="max-w-md mx-auto">
+          <CardContent className="p-8 text-center space-y-4">
+            <div className="w-16 h-16 mx-auto rounded-full bg-muted flex items-center justify-center">
+              <LineChart className="h-8 w-8 text-muted-foreground" />
+            </div>
+            <div>
+              <h2 className="text-xl font-semibold">Ticker Not Found</h2>
+              <p className="text-muted-foreground mt-1">
+                "{ticker}" is not a valid ticker symbol on Polygon.io
+              </p>
+            </div>
+            <div className="flex gap-2 justify-center">
+              <Button variant="outline" onClick={() => navigate('/screener')}>
+                Go to Screener
+              </Button>
+              <Button onClick={() => navigate(-1)}>
+                Go Back
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   const isPositive = (quote?.change || 0) >= 0;
 
   return (
@@ -239,7 +299,18 @@ export default function TickerDetail() {
             ) : (
               <>
                 <div className="flex items-center gap-3">
-                  <LineChart className="h-6 w-6 text-emerald-400" />
+                  {quote?.logoUrl ? (
+                    <img 
+                      src={`${quote.logoUrl}?apiKey=${import.meta.env.VITE_POLYGON_API_KEY || ''}`}
+                      alt={quote.companyName}
+                      className="h-8 w-8 rounded object-contain bg-white p-0.5"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).style.display = 'none';
+                      }}
+                    />
+                  ) : (
+                    <LineChart className="h-6 w-6 text-emerald-400" />
+                  )}
                   <h1 className="text-2xl font-bold">{quote?.companyName || ticker}</h1>
                   <Badge variant="secondary" className="text-base font-mono">
                     {ticker}
@@ -249,10 +320,15 @@ export default function TickerDetail() {
                   )}
                 </div>
                 <div className="flex items-center gap-4 mt-2 text-muted-foreground">
-                  {quote?.industry && (
+                  {quote?.sector && (
                     <span className="flex items-center gap-1">
                       <Building2 className="h-4 w-4" />
-                      {quote.industry}
+                      {quote.sector}
+                    </span>
+                  )}
+                  {quote?.industry && quote.industry !== quote.sector && (
+                    <span className="text-muted-foreground/70">
+                      • {quote.industry}
                     </span>
                   )}
                   {quote?.website && (
@@ -263,7 +339,7 @@ export default function TickerDetail() {
                       className="flex items-center gap-1 hover:text-primary transition-colors"
                     >
                       <Globe className="h-4 w-4" />
-                      {quote.website.replace(/^https?:\/\//, '')}
+                      {quote.website.replace(/^https?:\/\//, '').replace(/\/$/, '')}
                       <ExternalLink className="h-3 w-3" />
                     </a>
                   )}
@@ -336,7 +412,7 @@ export default function TickerDetail() {
               </Button>
             </div>
           ) : (
-            <p className="text-muted-foreground">Price data unavailable</p>
+            <p className="text-muted-foreground">Price data unavailable - historical data may still be available below</p>
           )}
           
           {/* Key Stats Row */}
@@ -386,6 +462,10 @@ export default function TickerDetail() {
             <LayoutDashboard className="h-5 w-5" />
             Overview
           </TabsTrigger>
+          <TabsTrigger value="backtest" className="gap-2 text-base px-5 py-3">
+            <Activity className="h-5 w-5" />
+            Backtest
+          </TabsTrigger>
           <TabsTrigger value="news" className="gap-2 text-base px-5 py-3">
             <Newspaper className="h-5 w-5" />
             News & Intel
@@ -424,6 +504,10 @@ export default function TickerDetail() {
                   <p className="text-foreground font-medium mt-1">{quote?.exchange || '—'}</p>
                 </div>
                 <div>
+                  <p className="text-xs text-muted-foreground uppercase">Sector</p>
+                  <p className="text-foreground font-medium mt-1">{quote?.sector || '—'}</p>
+                </div>
+                <div>
                   <p className="text-xs text-muted-foreground uppercase">Industry</p>
                   <p className="text-foreground font-medium mt-1">{quote?.industry || '—'}</p>
                 </div>
@@ -446,6 +530,10 @@ export default function TickerDetail() {
               </div>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="backtest">
+          <AssetBacktestPanel ticker={ticker} companyName={quote?.companyName || ticker} />
         </TabsContent>
 
         <TabsContent value="news">
