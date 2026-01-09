@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Skeleton } from '@/components/ui/skeleton';
 import { MarketIntelTab } from '@/components/companies/MarketIntelTab';
 import { CandlestickChart } from '@/components/charts/CandlestickChart';
+import { MetricInfoIcon } from '@/components/shared/MetricInfoIcon';
 import { cn } from '@/lib/utils';
 import {
   ArrowLeft,
@@ -354,7 +355,10 @@ export default function TickerDetail() {
                 <p className="text-lg font-medium tabular-nums">{formatCurrency(quote.low)}</p>
               </div>
               <div>
-                <p className="text-xs text-muted-foreground uppercase">Market Cap</p>
+                <div className="flex items-center gap-1">
+                  <p className="text-xs text-muted-foreground uppercase">Market Cap</p>
+                  <MetricInfoIcon termKey="marketCap" iconSize={10} />
+                </div>
                 <p className="text-lg font-medium">{quote.marketCap}</p>
               </div>
             </div>
