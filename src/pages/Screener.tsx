@@ -26,6 +26,8 @@ import {
   SheetTitle,
   SheetTrigger,
 } from '@/components/ui/sheet';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   Select,
   SelectContent,
@@ -45,7 +47,7 @@ import {
   getQuickScreensByCategory,
   generateExplanation,
 } from '@/services/finvizStyleScreenerService';
-import type { ScreenerCriteria, ScreenerResult, Sector } from '@/types/screener';
+import type { ScreenerCriteria, ScreenerResult, Sector, Exchange, Index, RSIFilter, SMAFilter, HighLow52W } from '@/types/screener';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 
@@ -239,6 +241,35 @@ function SavedScreensList({
   );
 }
 
+// Filter options constants
+const EXCHANGES: Exchange[] = ['NYSE', 'NASDAQ', 'AMEX'];
+const INDICES: { value: Index; label: string }[] = [
+  { value: 'sp500', label: 'S&P 500' },
+  { value: 'djia', label: 'Dow Jones' },
+  { value: 'nasdaq100', label: 'NASDAQ 100' },
+  { value: 'russell2000', label: 'Russell 2000' },
+];
+const RSI_FILTERS: { value: RSIFilter; label: string }[] = [
+  { value: 'oversold_30', label: 'Oversold (<30)' },
+  { value: 'oversold_40', label: 'Oversold (<40)' },
+  { value: 'overbought_60', label: 'Overbought (>60)' },
+  { value: 'overbought_70', label: 'Overbought (>70)' },
+  { value: 'not_oversold', label: 'Not Oversold (>30)' },
+  { value: 'not_overbought', label: 'Not Overbought (<70)' },
+];
+const SMA_FILTERS: { value: SMAFilter; label: string }[] = [
+  { value: 'price_above', label: 'Price Above SMA' },
+  { value: 'price_below', label: 'Price Below SMA' },
+  { value: 'cross_above', label: 'Price Crossed Above' },
+  { value: 'cross_below', label: 'Price Crossed Below' },
+];
+const HIGHLOWS: { value: HighLow52W; label: string }[] = [
+  { value: 'new_high', label: 'New 52-Week High' },
+  { value: 'new_low', label: 'New 52-Week Low' },
+  { value: 'near_high', label: 'Near 52-Week High (5%)' },
+  { value: 'near_low', label: 'Near 52-Week Low (5%)' },
+];
+
 // =====================
 // Advanced Filters Sheet
 // =====================
@@ -251,6 +282,7 @@ function AdvancedFiltersSheet({
 }) {
   const [localCriteria, setLocalCriteria] = useState<ScreenerCriteria>(criteria);
   const [selectedSectors, setSelectedSectors] = useState<Sector[]>(criteria.sector || []);
+  const [selectedExchanges, setSelectedExchanges] = useState<Exchange[]>(criteria.exchange || []);
 
   const handleSectorToggle = (sector: Sector) => {
     setSelectedSectors(prev =>
@@ -258,137 +290,364 @@ function AdvancedFiltersSheet({
     );
   };
 
-  const handleApply = () => {
-    onApply({ ...localCriteria, sector: selectedSectors.length > 0 ? selectedSectors : undefined });
+  const handleExchangeToggle = (exchange: Exchange) => {
+    setSelectedExchanges(prev =>
+      prev.includes(exchange) ? prev.filter(e => e !== exchange) : [...prev, exchange]
+    );
   };
+
+  const handleApply = () => {
+    onApply({
+      ...localCriteria,
+      sector: selectedSectors.length > 0 ? selectedSectors : undefined,
+      exchange: selectedExchanges.length > 0 ? selectedExchanges : undefined,
+    });
+  };
+
+  const handleClear = () => {
+    setLocalCriteria({});
+    setSelectedSectors([]);
+    setSelectedExchanges([]);
+  };
+
+  const FilterSection = ({ title, children }: { title: string; children: React.ReactNode }) => (
+    <div className="space-y-2">
+      <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{title}</Label>
+      {children}
+    </div>
+  );
+
+  const NumberRangeInput = ({ 
+    label, 
+    minKey, 
+    maxKey, 
+    minPlaceholder = "Min", 
+    maxPlaceholder = "Max",
+    suffix = ""
+  }: { 
+    label: string; 
+    minKey: keyof ScreenerCriteria; 
+    maxKey: keyof ScreenerCriteria;
+    minPlaceholder?: string;
+    maxPlaceholder?: string;
+    suffix?: string;
+  }) => (
+    <div>
+      <Label className="text-sm font-medium">{label}</Label>
+      <div className="grid grid-cols-2 gap-2 mt-1.5">
+        <Input
+          type="number"
+          placeholder={minPlaceholder}
+          className="h-8 text-sm"
+          value={(localCriteria[minKey] as number) ?? ''}
+          onChange={(e) => setLocalCriteria(f => ({ ...f, [minKey]: e.target.value ? Number(e.target.value) : undefined }))}
+        />
+        <Input
+          type="number"
+          placeholder={maxPlaceholder}
+          className="h-8 text-sm"
+          value={(localCriteria[maxKey] as number) ?? ''}
+          onChange={(e) => setLocalCriteria(f => ({ ...f, [maxKey]: e.target.value ? Number(e.target.value) : undefined }))}
+        />
+      </div>
+    </div>
+  );
 
   return (
     <Sheet>
       <SheetTrigger asChild>
         <Button variant="outline" size="sm">
           <Filter className="h-4 w-4 mr-2" />
-          Filters
+          Advanced Filters
         </Button>
       </SheetTrigger>
-      <SheetContent className="w-[400px]">
-        <SheetHeader>
+      <SheetContent className="w-[520px] sm:max-w-[520px] p-0">
+        <SheetHeader className="p-4 pb-0">
           <SheetTitle>Advanced Filters</SheetTitle>
-          <SheetDescription>Refine your stock screen</SheetDescription>
+          <SheetDescription>67+ Finviz-style filter criteria</SheetDescription>
         </SheetHeader>
 
-        <div className="mt-6 space-y-6">
-          {/* Market Cap */}
-          <div>
-            <Label className="text-sm font-medium">Market Cap</Label>
-            <Select
-              value={
-                localCriteria.minMarketCap === 200_000_000_000 ? 'mega' :
-                localCriteria.minMarketCap === 10_000_000_000 ? 'large' :
-                localCriteria.minMarketCap === 2_000_000_000 ? 'mid' :
-                localCriteria.maxMarketCap === 2_000_000_000 ? 'small' :
-                localCriteria.maxMarketCap === 300_000_000 ? 'micro' : 'all'
-              }
-              onValueChange={(value) => {
-                const tier = MARKET_CAP_TIERS[value as keyof typeof MARKET_CAP_TIERS];
-                if (tier) {
-                  setLocalCriteria(f => ({ ...f, minMarketCap: tier.min, maxMarketCap: tier.max }));
-                } else {
-                  setLocalCriteria(f => ({ ...f, minMarketCap: undefined, maxMarketCap: undefined }));
-                }
-              }}
-            >
-              <SelectTrigger className="mt-2">
-                <SelectValue placeholder="Any market cap" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Any market cap</SelectItem>
-                {Object.entries(MARKET_CAP_TIERS).map(([key, tier]) => (
-                  <SelectItem key={key} value={key}>{tier.label}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+        <Tabs defaultValue="descriptive" className="mt-2">
+          <TabsList className="w-full justify-start px-4 h-9">
+            <TabsTrigger value="descriptive" className="text-xs">Descriptive</TabsTrigger>
+            <TabsTrigger value="fundamental" className="text-xs">Fundamental</TabsTrigger>
+            <TabsTrigger value="technical" className="text-xs">Technical</TabsTrigger>
+          </TabsList>
 
-          {/* Price Range */}
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label className="text-sm font-medium">Min Price</Label>
-              <Input
-                type="number"
-                placeholder="$0"
-                className="mt-2"
-                value={localCriteria.minPrice || ''}
-                onChange={(e) => setLocalCriteria(f => ({ ...f, minPrice: e.target.value ? Number(e.target.value) : undefined }))}
-              />
-            </div>
-            <div>
-              <Label className="text-sm font-medium">Max Price</Label>
-              <Input
-                type="number"
-                placeholder="No limit"
-                className="mt-2"
-                value={localCriteria.maxPrice || ''}
-                onChange={(e) => setLocalCriteria(f => ({ ...f, maxPrice: e.target.value ? Number(e.target.value) : undefined }))}
-              />
-            </div>
-          </div>
+          {/* Descriptive Tab */}
+          <TabsContent value="descriptive" className="m-0">
+            <ScrollArea className="h-[calc(100vh-220px)] px-4">
+              <div className="space-y-5 py-4">
+                <FilterSection title="Exchange">
+                  <div className="flex flex-wrap gap-2">
+                    {EXCHANGES.map((ex) => (
+                      <Button
+                        key={ex}
+                        variant={selectedExchanges.includes(ex) ? "default" : "outline"}
+                        size="sm"
+                        className="h-7 text-xs"
+                        onClick={() => handleExchangeToggle(ex)}
+                      >
+                        {ex}
+                      </Button>
+                    ))}
+                  </div>
+                </FilterSection>
 
-          {/* Change % */}
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label className="text-sm font-medium">Min Change %</Label>
-              <Input
-                type="number"
-                placeholder="-100"
-                className="mt-2"
-                value={localCriteria.minPerfToday ?? ''}
-                onChange={(e) => setLocalCriteria(f => ({ ...f, minPerfToday: e.target.value ? Number(e.target.value) : undefined }))}
-              />
-            </div>
-            <div>
-              <Label className="text-sm font-medium">Max Change %</Label>
-              <Input
-                type="number"
-                placeholder="100"
-                className="mt-2"
-                value={localCriteria.maxPerfToday ?? ''}
-                onChange={(e) => setLocalCriteria(f => ({ ...f, maxPerfToday: e.target.value ? Number(e.target.value) : undefined }))}
-              />
-            </div>
-          </div>
+                <FilterSection title="Index">
+                  <Select
+                    value={localCriteria.index?.[0] || ''}
+                    onValueChange={(value) => setLocalCriteria(f => ({ ...f, index: value ? [value as Index] : undefined }))}
+                  >
+                    <SelectTrigger className="h-8 text-sm">
+                      <SelectValue placeholder="Any index" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">Any index</SelectItem>
+                      {INDICES.map((idx) => (
+                        <SelectItem key={idx.value} value={idx.value}>{idx.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </FilterSection>
 
-          {/* Relative Volume */}
-          <div>
-            <Label className="text-sm font-medium">Min Relative Volume</Label>
-            <Input
-              type="number"
-              placeholder="e.g., 2 for 2x volume"
-              className="mt-2"
-              value={localCriteria.minRelativeVolume || ''}
-              onChange={(e) => setLocalCriteria(f => ({ ...f, minRelativeVolume: e.target.value ? Number(e.target.value) : undefined }))}
-            />
-          </div>
+                <FilterSection title="Market Cap">
+                  <Select
+                    value={localCriteria.marketCap || ''}
+                    onValueChange={(value) => {
+                      if (value) {
+                        const tier = MARKET_CAP_TIERS[value as keyof typeof MARKET_CAP_TIERS];
+                        setLocalCriteria(f => ({ ...f, marketCap: value as any, minMarketCap: tier?.min, maxMarketCap: tier?.max }));
+                      } else {
+                        setLocalCriteria(f => ({ ...f, marketCap: undefined, minMarketCap: undefined, maxMarketCap: undefined }));
+                      }
+                    }}
+                  >
+                    <SelectTrigger className="h-8 text-sm">
+                      <SelectValue placeholder="Any market cap" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">Any market cap</SelectItem>
+                      {Object.entries(MARKET_CAP_TIERS).map(([key, tier]) => (
+                        <SelectItem key={key} value={key}>{tier.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </FilterSection>
 
-          {/* Sectors */}
-          <div>
-            <Label className="text-sm font-medium mb-3 block">Sectors</Label>
-            <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto">
-              {SECTORS.map((sector) => (
-                <div key={sector} className="flex items-center space-x-2">
-                  <Checkbox
-                    id={sector}
-                    checked={selectedSectors.includes(sector)}
-                    onCheckedChange={() => handleSectorToggle(sector)}
-                  />
-                  <label htmlFor={sector} className="text-sm cursor-pointer truncate">
-                    {sector}
-                  </label>
-                </div>
-              ))}
-            </div>
-          </div>
+                <FilterSection title="Sectors">
+                  <div className="grid grid-cols-2 gap-1.5 max-h-40 overflow-y-auto">
+                    {SECTORS.map((sector) => (
+                      <div key={sector} className="flex items-center space-x-2">
+                        <Checkbox
+                          id={`sector-${sector}`}
+                          checked={selectedSectors.includes(sector)}
+                          onCheckedChange={() => handleSectorToggle(sector)}
+                          className="h-3.5 w-3.5"
+                        />
+                        <label htmlFor={`sector-${sector}`} className="text-xs cursor-pointer truncate">
+                          {sector}
+                        </label>
+                      </div>
+                    ))}
+                  </div>
+                </FilterSection>
 
-          <Button onClick={handleApply} className="w-full">
+                <NumberRangeInput label="Price ($)" minKey="minPrice" maxKey="maxPrice" minPlaceholder="$0" maxPlaceholder="No max" />
+                <NumberRangeInput label="Volume" minKey="minVolume" maxKey="maxVolume" minPlaceholder="0" maxPlaceholder="No max" />
+                <NumberRangeInput label="Avg Volume" minKey="minAvgVolume" maxKey="maxAvgVolume" />
+                <NumberRangeInput label="Relative Volume" minKey="minRelativeVolume" maxKey="maxRelativeVolume" minPlaceholder="1x" maxPlaceholder="No max" />
+                <NumberRangeInput label="Float Short (%)" minKey="minFloatShort" maxKey="maxFloatShort" />
+              </div>
+            </ScrollArea>
+          </TabsContent>
+
+          {/* Fundamental Tab */}
+          <TabsContent value="fundamental" className="m-0">
+            <ScrollArea className="h-[calc(100vh-220px)] px-4">
+              <div className="space-y-5 py-4">
+                <FilterSection title="Valuation">
+                  <div className="space-y-3">
+                    <NumberRangeInput label="P/E Ratio" minKey="minPE" maxKey="maxPE" />
+                    <NumberRangeInput label="Forward P/E" minKey="minForwardPE" maxKey="maxForwardPE" />
+                    <NumberRangeInput label="PEG Ratio" minKey="minPEG" maxKey="maxPEG" />
+                    <NumberRangeInput label="P/S Ratio" minKey="minPS" maxKey="maxPS" />
+                    <NumberRangeInput label="P/B Ratio" minKey="minPB" maxKey="maxPB" />
+                    <NumberRangeInput label="EV/EBITDA" minKey="minEVEBITDA" maxKey="maxEVEBITDA" />
+                  </div>
+                </FilterSection>
+
+                <FilterSection title="Dividends">
+                  <NumberRangeInput label="Dividend Yield (%)" minKey="minDividendYield" maxKey="maxDividendYield" />
+                  <NumberRangeInput label="Payout Ratio (%)" minKey="minPayoutRatio" maxKey="maxPayoutRatio" />
+                </FilterSection>
+
+                <FilterSection title="Profitability">
+                  <div className="space-y-3">
+                    <NumberRangeInput label="ROE (%)" minKey="minROE" maxKey="maxROE" />
+                    <NumberRangeInput label="ROA (%)" minKey="minROA" maxKey="maxROA" />
+                    <NumberRangeInput label="ROI (%)" minKey="minROI" maxKey="maxROI" />
+                    <NumberRangeInput label="Gross Margin (%)" minKey="minGrossMargin" maxKey="maxGrossMargin" />
+                    <NumberRangeInput label="Operating Margin (%)" minKey="minOperatingMargin" maxKey="maxOperatingMargin" />
+                    <NumberRangeInput label="Net Margin (%)" minKey="minNetMargin" maxKey="maxNetMargin" />
+                  </div>
+                </FilterSection>
+
+                <FilterSection title="Growth">
+                  <div className="space-y-3">
+                    <NumberRangeInput label="EPS Growth This Year (%)" minKey="minEPSGrowthThisYear" maxKey="maxEPSGrowthThisYear" />
+                    <NumberRangeInput label="EPS Growth Next Year (%)" minKey="minEPSGrowthNextYear" maxKey="maxEPSGrowthNextYear" />
+                    <NumberRangeInput label="Sales Growth QoQ (%)" minKey="minSalesGrowthQoQ" maxKey="maxSalesGrowthQoQ" />
+                  </div>
+                </FilterSection>
+
+                <FilterSection title="Financial Health">
+                  <div className="space-y-3">
+                    <NumberRangeInput label="Current Ratio" minKey="minCurrentRatio" maxKey="maxCurrentRatio" />
+                    <NumberRangeInput label="Quick Ratio" minKey="minQuickRatio" maxKey="maxQuickRatio" />
+                    <NumberRangeInput label="Debt/Equity" minKey="minDebtEquity" maxKey="maxDebtEquity" />
+                  </div>
+                </FilterSection>
+
+                <FilterSection title="Ownership">
+                  <div className="space-y-3">
+                    <NumberRangeInput label="Insider Ownership (%)" minKey="minInsiderOwnership" maxKey="maxInsiderOwnership" />
+                    <NumberRangeInput label="Institutional Ownership (%)" minKey="minInstitutionalOwnership" maxKey="maxInstitutionalOwnership" />
+                  </div>
+                </FilterSection>
+              </div>
+            </ScrollArea>
+          </TabsContent>
+
+          {/* Technical Tab */}
+          <TabsContent value="technical" className="m-0">
+            <ScrollArea className="h-[calc(100vh-220px)] px-4">
+              <div className="space-y-5 py-4">
+                <FilterSection title="Performance">
+                  <div className="space-y-3">
+                    <NumberRangeInput label="Today (%)" minKey="minPerfToday" maxKey="maxPerfToday" />
+                    <NumberRangeInput label="Week (%)" minKey="minPerfWeek" maxKey="maxPerfWeek" />
+                    <NumberRangeInput label="Month (%)" minKey="minPerfMonth" maxKey="maxPerfMonth" />
+                    <NumberRangeInput label="Quarter (%)" minKey="minPerfQuarter" maxKey="maxPerfQuarter" />
+                    <NumberRangeInput label="Year (%)" minKey="minPerfYear" maxKey="maxPerfYear" />
+                    <NumberRangeInput label="YTD (%)" minKey="minPerfYTD" maxKey="maxPerfYTD" />
+                  </div>
+                </FilterSection>
+
+                <FilterSection title="52-Week Range">
+                  <Select
+                    value={localCriteria.highLow52W || ''}
+                    onValueChange={(value) => setLocalCriteria(f => ({ ...f, highLow52W: value ? value as HighLow52W : undefined }))}
+                  >
+                    <SelectTrigger className="h-8 text-sm">
+                      <SelectValue placeholder="Any" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">Any</SelectItem>
+                      {HIGHLOWS.map((hl) => (
+                        <SelectItem key={hl.value} value={hl.value}>{hl.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </FilterSection>
+
+                <FilterSection title="RSI (14)">
+                  <Select
+                    value={localCriteria.rsiFilter || ''}
+                    onValueChange={(value) => setLocalCriteria(f => ({ ...f, rsiFilter: value ? value as RSIFilter : undefined }))}
+                  >
+                    <SelectTrigger className="h-8 text-sm">
+                      <SelectValue placeholder="Any RSI" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">Any RSI</SelectItem>
+                      {RSI_FILTERS.map((rsi) => (
+                        <SelectItem key={rsi.value} value={rsi.value}>{rsi.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </FilterSection>
+
+                <FilterSection title="Moving Averages">
+                  <div className="space-y-3">
+                    <div>
+                      <Label className="text-sm font-medium">SMA 20</Label>
+                      <Select
+                        value={localCriteria.sma20 || ''}
+                        onValueChange={(value) => setLocalCriteria(f => ({ ...f, sma20: value ? value as SMAFilter : undefined }))}
+                      >
+                        <SelectTrigger className="h-8 text-sm mt-1">
+                          <SelectValue placeholder="Any" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="">Any</SelectItem>
+                          {SMA_FILTERS.map((sma) => (
+                            <SelectItem key={sma.value} value={sma.value}>{sma.label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label className="text-sm font-medium">SMA 50</Label>
+                      <Select
+                        value={localCriteria.sma50 || ''}
+                        onValueChange={(value) => setLocalCriteria(f => ({ ...f, sma50: value ? value as SMAFilter : undefined }))}
+                      >
+                        <SelectTrigger className="h-8 text-sm mt-1">
+                          <SelectValue placeholder="Any" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="">Any</SelectItem>
+                          {SMA_FILTERS.map((sma) => (
+                            <SelectItem key={sma.value} value={sma.value}>{sma.label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label className="text-sm font-medium">SMA 200</Label>
+                      <Select
+                        value={localCriteria.sma200 || ''}
+                        onValueChange={(value) => setLocalCriteria(f => ({ ...f, sma200: value ? value as SMAFilter : undefined }))}
+                      >
+                        <SelectTrigger className="h-8 text-sm mt-1">
+                          <SelectValue placeholder="Any" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="">Any</SelectItem>
+                          {SMA_FILTERS.map((sma) => (
+                            <SelectItem key={sma.value} value={sma.value}>{sma.label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                </FilterSection>
+
+                <FilterSection title="Volatility">
+                  <div className="space-y-3">
+                    <NumberRangeInput label="Beta" minKey="minBeta" maxKey="maxBeta" />
+                    <NumberRangeInput label="Volatility (%)" minKey="minVolatility" maxKey="maxVolatility" />
+                    <NumberRangeInput label="ATR" minKey="minATR" maxKey="maxATR" />
+                  </div>
+                </FilterSection>
+
+                <FilterSection title="Gaps">
+                  <div className="space-y-3">
+                    <NumberRangeInput label="Gap Up (%)" minKey="minGapUp" maxKey="maxGapUp" />
+                    <NumberRangeInput label="Gap Down (%)" minKey="minGapDown" maxKey="maxGapDown" />
+                  </div>
+                </FilterSection>
+              </div>
+            </ScrollArea>
+          </TabsContent>
+        </Tabs>
+
+        <div className="absolute bottom-0 left-0 right-0 p-4 bg-background border-t flex gap-2">
+          <Button variant="outline" onClick={handleClear} className="flex-1">
+            Clear All
+          </Button>
+          <Button onClick={handleApply} className="flex-1">
             Apply Filters
           </Button>
         </div>
