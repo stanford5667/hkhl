@@ -2,6 +2,7 @@ import { ReactNode, useState, useEffect } from "react";
 import { useLocation, Navigate, useNavigate } from "react-router-dom";
 import { Sidebar } from "./Sidebar";
 import { TopBar } from "./TopBar";
+import { TickerStream } from "@/components/ui/TickerStream";
 import { useAuth } from "@/contexts/AuthContext";
 import { Loader2 } from "lucide-react";
 import { UniversalCreateMenu } from "@/components/shared/UniversalCreateMenu";
@@ -73,6 +74,7 @@ export function Layout({ children }: LayoutProps) {
     <div className="flex min-h-screen w-full bg-background">
       <Sidebar />
       <div className="flex flex-col flex-1 min-w-0">
+        <TickerStream />
         <TopBar />
         <main className="flex-1 overflow-auto custom-scrollbar">
           {children}

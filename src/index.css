@@ -356,8 +356,30 @@
   }
 
   /* Ticker badge */
-  .badge-ticker {
-    @apply bg-primary/20 text-primary border border-primary/30 font-mono text-xs px-2 py-0.5 rounded;
+  .ticker-badge {
+    @apply bg-primary/20 text-primary border border-primary/30 font-mono text-xs px-2 py-0.5 rounded font-semibold;
+  }
+
+  /* Ticker stream animation */
+  .ticker-scroll {
+    animation: ticker-scroll 30s linear infinite;
+  }
+
+  .ticker-scroll:hover {
+    animation-play-state: paused;
+  }
+
+  @keyframes ticker-scroll {
+    0% {
+      transform: translateX(0);
+    }
+    100% {
+      transform: translateX(-50%);
+    }
+  }
+
+  .bg-surface-1 {
+    background: hsl(var(--surface-1));
   }
 
   /* Surface hierarchy cards */
