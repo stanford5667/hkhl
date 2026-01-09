@@ -10,6 +10,7 @@ import {
   LineChart, Coins, ChevronRight, AlertCircle, Calendar, ExternalLink
 } from 'lucide-react';
 import { usePortfolioTotals, useAlerts, useDealPipeline, usePortfolioAssets, useAssetAllocation, useEvents, useEconomicIndicators, useCovenants, useMATransactions, usePEFunds } from '@/hooks/useMarketIntel';
+import { LiveMacroContent } from '@/components/markets/LiveMacroContent';
 
 export default function MarketIntel() {
   const [activeTab, setActiveTab] = useState('overview');
@@ -176,7 +177,7 @@ export default function MarketIntel() {
         </TabsContent>
 
         <TabsContent value="macro" className="mt-6">
-          <MacroContent />
+          <LiveMacroContent />
         </TabsContent>
 
         <TabsContent value="deals" className="mt-6">
