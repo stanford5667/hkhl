@@ -65,68 +65,6 @@ export default function MarketIntel() {
         </div>
       </div>
 
-      {/* Quick Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-        <StatCard 
-          label="Portfolio Value" 
-          value={formatCurrency(totalValue)} 
-          change={returnPct} 
-          icon={<DollarSign className="h-4 w-4" />} 
-        />
-        <StatCard 
-          label="Avg MOIC" 
-          value={`${avgMoic.toFixed(1)}x`} 
-          subtitle={`${companyCount} holdings`}
-          icon={<TrendingUp className="h-4 w-4" />} 
-        />
-        <StatCard 
-          label="Avg IRR" 
-          value={`${(totals?.avgIrr || 0).toFixed(1)}%`} 
-          icon={<Activity className="h-4 w-4" />} 
-        />
-        <StatCard 
-          label="Active Deals" 
-          value={activeDeals.toString()} 
-          subtitle="In pipeline"
-          icon={<Target className="h-4 w-4" />} 
-        />
-        <StatCard 
-          label="Unread Alerts" 
-          value={unreadAlerts.toString()} 
-          subtitle="Pending review"
-          icon={<Bell className="h-4 w-4" />} 
-          color="text-yellow-400" 
-        />
-        <StatCard 
-          label="Critical" 
-          value={criticalAlerts.toString()} 
-          subtitle="Need attention"
-          icon={<AlertTriangle className="h-4 w-4" />} 
-          color="text-rose-400" 
-        />
-      </div>
-
-      {/* News Redirect Notice */}
-      <Card className="bg-gradient-to-r from-amber-950/30 to-slate-900/50 border-amber-500/20">
-        <CardContent className="p-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-amber-500/20">
-              <Zap className="h-5 w-5 text-amber-400" />
-            </div>
-            <div>
-              <p className="font-medium text-white">Looking for news signals?</p>
-              <p className="text-sm text-slate-400">We've moved news to a dedicated Intelligence Feed with AI-powered analysis.</p>
-            </div>
-          </div>
-          <Button asChild variant="outline" className="border-amber-500/30 text-amber-400 hover:bg-amber-500/10">
-            <a href="/news" className="flex items-center gap-2">
-              <span>Visit Intelligence Feed</span>
-              <ChevronRight className="h-4 w-4" />
-            </a>
-          </Button>
-        </CardContent>
-      </Card>
-
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="flex flex-wrap h-auto gap-1 bg-secondary/50 p-1">
