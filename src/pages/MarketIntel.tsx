@@ -83,25 +83,9 @@ export default function MarketIntel() {
             <Banknote className="h-4 w-4 mr-1.5" />
             Currencies
           </TabsTrigger>
-          <TabsTrigger value="deals" className="text-sm">
-            <Briefcase className="h-4 w-4 mr-1.5" />
-            Deals
-          </TabsTrigger>
-          <TabsTrigger value="landscape" className="text-sm">
-            <Building2 className="h-4 w-4 mr-1.5" />
-            PE Landscape
-          </TabsTrigger>
-          <TabsTrigger value="strategies" className="text-sm">
-            <Target className="h-4 w-4 mr-1.5" />
-            Strategies
-          </TabsTrigger>
           <TabsTrigger value="funds" className="text-sm">
             <Landmark className="h-4 w-4 mr-1.5" />
             Funds
-          </TabsTrigger>
-          <TabsTrigger value="lpgp" className="text-sm">
-            <Users className="h-4 w-4 mr-1.5" />
-            LP/GP
           </TabsTrigger>
           <TabsTrigger value="research" className="text-sm">
             <Sparkles className="h-4 w-4 mr-1.5" />
@@ -122,24 +106,8 @@ export default function MarketIntel() {
           <LiveMacroContent />
         </TabsContent>
 
-        <TabsContent value="deals" className="mt-6">
-          <DealsContent />
-        </TabsContent>
-
-        <TabsContent value="landscape" className="mt-6">
-          <LandscapeContent />
-        </TabsContent>
-
-        <TabsContent value="strategies" className="mt-6">
-          <StrategiesContent />
-        </TabsContent>
-
         <TabsContent value="funds" className="mt-6">
           <FundsContent />
-        </TabsContent>
-
-        <TabsContent value="lpgp" className="mt-6">
-          <LPGPContent />
         </TabsContent>
 
         <TabsContent value="research" className="mt-6">
