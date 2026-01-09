@@ -87,10 +87,6 @@ export default function MarketIntel() {
             <Landmark className="h-4 w-4 mr-1.5" />
             Funds
           </TabsTrigger>
-          <TabsTrigger value="research" className="text-sm">
-            <Sparkles className="h-4 w-4 mr-1.5" />
-            Research
-          </TabsTrigger>
         </TabsList>
 
 
@@ -110,9 +106,6 @@ export default function MarketIntel() {
           <FundsContent />
         </TabsContent>
 
-        <TabsContent value="research" className="mt-6">
-          <ResearchContent />
-        </TabsContent>
       </Tabs>
     </div>
   );
