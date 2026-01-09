@@ -39,6 +39,7 @@ import {
   Save,
   FolderOpen,
   Trash2,
+  LineChart,
 } from 'lucide-react';
 import {
   Dialog,
@@ -438,11 +439,12 @@ export default function PortfolioVisualizer() {
   // NEW: Data fetch progress tracking from hybrid service
   const [dataProgress, setDataProgress] = useState<FetchProgress>({ status: 'idle', current: 0, total: 0 });
 
-  // Results tab - default to 'educational' for educational content
-  const [resultsTab, setResultsTab] = useState('educational');
+  // Results tab - default to 'performance' for charts
+  const [resultsTab, setResultsTab] = useState('performance');
   
   // Tab visibility state
   const [visibleTabs, setVisibleTabs] = useState({
+    'performance': true,
     'ai-insights': true,
     'educational': true,
     'metrics': true,
@@ -1704,8 +1706,9 @@ export default function PortfolioVisualizer() {
         )}
 
         <Tabs value={resultsTab} onValueChange={setResultsTab}>
-          {(() => {
+{(() => {
             const visibleTabCount = [
+              visibleTabs['performance'],
               portfolioMode === 'ai' && aiAdvice && visibleTabs['ai-insights'],
               visibleTabs['educational'],
               visibleTabs['understand'],
@@ -1718,13 +1721,20 @@ export default function PortfolioVisualizer() {
             return (
               <TabsList className={cn(
                 "grid w-full max-w-5xl mx-auto mb-6",
-                visibleTabCount >= 7 ? "grid-cols-7" :
+                visibleTabCount >= 8 ? "grid-cols-8" :
+                visibleTabCount === 7 ? "grid-cols-7" :
                 visibleTabCount === 6 ? "grid-cols-6" :
                 visibleTabCount === 5 ? "grid-cols-5" :
                 visibleTabCount === 4 ? "grid-cols-4" :
                 visibleTabCount === 3 ? "grid-cols-3" :
                 visibleTabCount === 2 ? "grid-cols-2" : "grid-cols-1"
               )}>
+                {visibleTabs['performance'] && (
+                  <TabsTrigger value="performance" className="gap-2">
+                    <LineChart className="h-4 w-4" />
+                    <span className="hidden sm:inline">Performance</span>
+                  </TabsTrigger>
+                )}
                 {portfolioMode === 'ai' && aiAdvice && visibleTabs['ai-insights'] && (
                   <TabsTrigger value="ai-insights" className="gap-2">
                     <Brain className="h-4 w-4" />
@@ -1783,45 +1793,56 @@ export default function PortfolioVisualizer() {
             </TabsContent>
           )}
 
-          {/* Portfolio Growth & Performance Charts - Always visible above tabs */}
-          {calcMetrics && calcPortfolioValues.length > 0 && (
-            <div className="space-y-6 mb-8">
-              {/* Growth Chart */}
-              <PortfolioGrowthChart
-                dates={calcDates}
-                portfolioValues={calcPortfolioValues}
-                initialCapital={investorProfile.investableCapital}
-              />
-              
-              <div className="grid gap-6 lg:grid-cols-2">
-                {/* Performance Summary */}
-                <PerformanceSummaryTable
-                  startBalance={investorProfile.investableCapital}
-                  endBalance={calcPortfolioValues[calcPortfolioValues.length - 1] ?? investorProfile.investableCapital}
-                  cagr={calcMetrics.cagr ?? 0}
-                  volatility={calcMetrics.volatility ?? 0}
-                  sharpeRatio={calcMetrics.sharpeRatio ?? 0}
-                  sortinoRatio={calcMetrics.sortinoRatio ?? 0}
-                  maxDrawdown={calcMetrics.maxDrawdown ?? 0}
-                  bestYear={unifiedAdvancedMetrics?.bestYear}
-                  worstYear={unifiedAdvancedMetrics?.worstYear}
-                  beta={calcMetrics.beta}
-                  alpha={calcMetrics.alpha}
-                />
-                
-                {/* Drawdown Chart */}
-                <DrawdownChart
-                  dates={calcDates}
-                  portfolioValues={calcPortfolioValues}
-                />
-              </div>
-              
-              {/* Annual Returns */}
-              <AnnualReturnsChart
-                dates={calcDates}
-                portfolioReturns={calcPortfolioReturns}
-              />
-            </div>
+          {/* Performance Tab - Charts and Metrics */}
+          {visibleTabs['performance'] && (
+            <TabsContent value="performance">
+              {calcMetrics && calcPortfolioValues.length > 0 ? (
+                <div className="space-y-6">
+                  {/* Growth Chart */}
+                  <PortfolioGrowthChart
+                    dates={calcDates}
+                    portfolioValues={calcPortfolioValues}
+                    initialCapital={investorProfile.investableCapital}
+                  />
+                  
+                  <div className="grid gap-6 lg:grid-cols-2">
+                    {/* Performance Summary */}
+                    <PerformanceSummaryTable
+                      startBalance={investorProfile.investableCapital}
+                      endBalance={calcPortfolioValues[calcPortfolioValues.length - 1] ?? investorProfile.investableCapital}
+                      cagr={calcMetrics.cagr ?? 0}
+                      volatility={calcMetrics.volatility ?? 0}
+                      sharpeRatio={calcMetrics.sharpeRatio ?? 0}
+                      sortinoRatio={calcMetrics.sortinoRatio ?? 0}
+                      maxDrawdown={calcMetrics.maxDrawdown ?? 0}
+                      bestYear={unifiedAdvancedMetrics?.bestYear}
+                      worstYear={unifiedAdvancedMetrics?.worstYear}
+                      beta={calcMetrics.beta}
+                      alpha={calcMetrics.alpha}
+                    />
+                    
+                    {/* Drawdown Chart */}
+                    <DrawdownChart
+                      dates={calcDates}
+                      portfolioValues={calcPortfolioValues}
+                    />
+                  </div>
+                  
+                  {/* Annual Returns */}
+                  <AnnualReturnsChart
+                    dates={calcDates}
+                    portfolioReturns={calcPortfolioReturns}
+                  />
+                </div>
+              ) : (
+                <Card>
+                  <CardContent className="py-12 text-center text-muted-foreground">
+                    <LineChart className="h-8 w-8 mx-auto mb-3 opacity-50" />
+                    <p>Performance charts will appear after analysis</p>
+                  </CardContent>
+                </Card>
+              )}
+            </TabsContent>
           )}
 
           {/* Educational Dashboard Tab */}
