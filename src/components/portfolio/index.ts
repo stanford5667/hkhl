@@ -2,6 +2,7 @@
 export { UnifiedAddPositionDialog } from './UnifiedAddPositionDialog';
 export { ManualPositionForm } from './ManualPositionForm';
 export { BrokerageConnectionPanel } from './BrokerageConnectionPanel';
+export { PlaidBrokerageConnectionPanel } from './PlaidBrokerageConnectionPanel';
 export { CSVImportPanel } from './CSVImportPanel';
 export { PortfolioSwitcher } from './PortfolioSwitcher';
 export { CreatePortfolioDialog } from './CreatePortfolioDialog';

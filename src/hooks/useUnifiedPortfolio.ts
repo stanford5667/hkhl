@@ -10,12 +10,20 @@ import {
   unifiedToAllocation,
   calculateSummary,
 } from '@/services/unifiedPortfolioService';
+import {
+  useRealtimePositions,
+  usePortfolioRealtimeInit,
+  calculateLiveMetrics,
+  type LiveMetrics,
+  type RealtimePosition,
+} from '@/services/portfolioRealtimeService';
 import type { PortfolioAllocation } from '@/types/portfolio';
 import type { PositionFormData } from '@/types/positions';
 
 interface UseUnifiedPortfolioOptions {
   portfolioId?: string | null;
   autoFetch?: boolean;
+  enableRealtime?: boolean;
 }
 
 interface UseUnifiedPortfolioReturn {
@@ -25,10 +33,12 @@ interface UseUnifiedPortfolioReturn {
   allocations: PortfolioAllocation[];
   tickers: string[];
   tickerWeights: Record<string, number>;
+  liveMetrics: LiveMetrics | null;
   
   // State
   isLoading: boolean;
   error: string | null;
+  isRealtimeConnected: boolean;
   
   // Actions
   addPosition: (data: PositionFormData, source?: 'manual' | 'csv' | 'visualizer') => Promise<UnifiedPosition>;
@@ -42,12 +52,15 @@ interface UseUnifiedPortfolioReturn {
 
 // Main unified hook
 export function useUnifiedPortfolio(options: UseUnifiedPortfolioOptions = {}): UseUnifiedPortfolioReturn {
-  const { portfolioId, autoFetch = true } = options;
+  const { portfolioId, autoFetch = true, enableRealtime = false } = options;
   const { user } = useAuth();
   
   const [positions, setPositions] = useState<UnifiedPosition[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  
+  // Initialize realtime subscription
+  usePortfolioRealtimeInit(enableRealtime ? user?.id : undefined);
   
   // Service instance
   const service = useMemo(() => {
@@ -66,6 +79,56 @@ export function useUnifiedPortfolio(options: UseUnifiedPortfolioOptions = {}): U
     }
     return result;
   }, [positions]);
+  
+  // Live metrics calculation
+  const liveMetrics = useMemo(() => {
+    if (positions.length === 0) return null;
+    // Convert UnifiedPosition to RealtimePosition format
+    const realtimePositions: RealtimePosition[] = positions.map(p => ({
+      id: p.id,
+      user_id: '', // Not available in UnifiedPosition
+      portfolio_id: p.portfolioId || null,
+      connection_id: p.connectionId || null,
+      symbol: p.symbol,
+      name: p.name || null,
+      quantity: p.quantity,
+      cost_basis: p.costBasis || null,
+      cost_per_share: p.costPerShare || null,
+      current_price: p.currentPrice || null,
+      current_value: p.currentValue || null,
+      unrealized_gain: p.unrealizedGain || null,
+      unrealized_gain_percent: p.unrealizedGainPercent || null,
+      asset_type: p.assetType || null,
+      source: p.source,
+      purchase_date: p.purchaseDate || null,
+      last_price_update: null,
+      created_at: p.createdAt,
+      updated_at: p.updatedAt,
+    }));
+    return calculateLiveMetrics(realtimePositions);
+  }, [positions]);
+  
+  // Realtime position updates
+  const { isConnected: isRealtimeConnected } = useRealtimePositions(
+    enableRealtime ? {
+      portfolioId,
+      onInsert: (position) => {
+        setPositions(prev => {
+          // Avoid duplicates
+          if (prev.some(p => p.id === position.id)) return prev;
+          return [...prev, mapRealtimeToUnified(position)];
+        });
+      },
+      onUpdate: (position) => {
+        setPositions(prev => 
+          prev.map(p => p.id === position.id ? mapRealtimeToUnified(position) : p)
+        );
+      },
+      onDelete: (position) => {
+        setPositions(prev => prev.filter(p => p.id !== position.id));
+      },
+    } : {}
+  );
   
   // Fetch positions
   const fetchPositions = useCallback(async () => {
@@ -209,8 +272,10 @@ export function useUnifiedPortfolio(options: UseUnifiedPortfolioOptions = {}): U
     allocations,
     tickers,
     tickerWeights,
+    liveMetrics,
     isLoading,
     error,
+    isRealtimeConnected,
     addPosition,
     addPositions,
     updatePosition,
@@ -218,6 +283,32 @@ export function useUnifiedPortfolio(options: UseUnifiedPortfolioOptions = {}): U
     clearPositions,
     syncFromAllocations,
     refetch: fetchPositions,
+  };
+}
+
+// Helper to convert RealtimePosition to UnifiedPosition
+function mapRealtimeToUnified(rt: RealtimePosition): UnifiedPosition {
+  return {
+    id: rt.id,
+    portfolioId: rt.portfolio_id || null,
+    connectionId: rt.connection_id || null,
+    symbol: rt.symbol,
+    name: rt.name || null,
+    quantity: rt.quantity,
+    costBasis: rt.cost_basis || null,
+    costPerShare: rt.cost_per_share || null,
+    currentPrice: rt.current_price || null,
+    currentValue: rt.current_value || null,
+    unrealizedGain: rt.unrealized_gain || null,
+    unrealizedGainPercent: rt.unrealized_gain_percent || null,
+    assetType: rt.asset_type || 'stock',
+    assetClass: null,
+    sector: null,
+    source: rt.source as 'manual' | 'brokerage' | 'csv' | 'visualizer',
+    purchaseDate: rt.purchase_date || null,
+    createdAt: rt.created_at,
+    updatedAt: rt.updated_at,
+    weight: null,
   };
 }
 
