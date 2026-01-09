@@ -885,89 +885,119 @@ export function PortfolioAnalysisTabs({
           {/* Holdings Tab */}
           <TabsContent value="holdings" className="mt-0">
             <ErrorBoundary variant="default">
-              <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
-                {/* Allocation Pie Chart */}
-                <div className="lg:col-span-1">
-                  <div className="h-[180px]">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <PieChart>
-                        <Pie
-                          data={allocations.map((a, i) => ({
-                            name: a.symbol,
-                            value: (a.weight > 1 ? a.weight / 100 : a.weight) * investableCapital,
-                            weight: a.weight > 1 ? a.weight : a.weight * 100,
-                            color: PIE_COLORS[i % PIE_COLORS.length],
-                          }))}
-                          cx="50%"
-                          cy="50%"
-                          innerRadius={40}
-                          outerRadius={65}
-                          paddingAngle={2}
-                          dataKey="value"
-                        >
-                          {allocations.map((_, i) => (
-                            <Cell key={`cell-${i}`} fill={PIE_COLORS[i % PIE_COLORS.length]} />
-                          ))}
-                        </Pie>
-                        <RechartsTooltip
-                          content={({ active, payload }) => {
-                            if (active && payload?.[0]) {
-                              const data = payload[0].payload;
-                              return (
-                                <div className="bg-popover border border-border rounded-lg p-2 shadow-lg">
-                                  <p className="font-medium text-sm">{data.name}</p>
-                                  <p className="text-xs text-muted-foreground">
-                                    ${data.value.toLocaleString(undefined, { maximumFractionDigits: 0 })} ({data.weight.toFixed(1)}%)
+              <div className="space-y-6">
+                {/* Asset Allocation + Top Holdings Row */}
+                <div className="grid lg:grid-cols-2 gap-6">
+                  {/* Asset Allocation */}
+                  <Card className="bg-muted/30 border-border/50">
+                    <CardContent className="p-6">
+                      <h3 className="text-base font-semibold mb-4 flex items-center gap-2">
+                        <BarChart3 className="h-5 w-5 text-primary" />
+                        Asset Allocation
+                      </h3>
+                      <div className="flex gap-6">
+                        {/* Pie Chart */}
+                        <div className="w-[140px] h-[140px] flex-shrink-0">
+                          <ResponsiveContainer width="100%" height="100%">
+                            <PieChart>
+                              <Pie
+                                data={allocations.map((a, i) => ({
+                                  name: a.symbol,
+                                  value: (a.weight > 1 ? a.weight / 100 : a.weight) * investableCapital,
+                                  weight: a.weight > 1 ? a.weight : a.weight * 100,
+                                  color: PIE_COLORS[i % PIE_COLORS.length],
+                                }))}
+                                cx="50%"
+                                cy="50%"
+                                innerRadius={35}
+                                outerRadius={55}
+                                paddingAngle={2}
+                                dataKey="value"
+                              >
+                                {allocations.map((_, i) => (
+                                  <Cell key={`cell-${i}`} fill={PIE_COLORS[i % PIE_COLORS.length]} />
+                                ))}
+                              </Pie>
+                              <RechartsTooltip
+                                content={({ active, payload }) => {
+                                  if (active && payload?.[0]) {
+                                    const data = payload[0].payload;
+                                    return (
+                                      <div className="bg-popover border border-border rounded-lg p-2 shadow-lg">
+                                        <p className="font-medium text-sm">{data.name}</p>
+                                        <p className="text-xs text-muted-foreground">
+                                          ${data.value.toLocaleString(undefined, { maximumFractionDigits: 0 })} ({data.weight.toFixed(1)}%)
+                                        </p>
+                                      </div>
+                                    );
+                                  }
+                                  return null;
+                                }}
+                              />
+                            </PieChart>
+                          </ResponsiveContainer>
+                        </div>
+                        {/* Allocation List */}
+                        <div className="flex-1 space-y-2">
+                          {allocations.slice(0, 5).map((alloc, i) => {
+                            const weight = alloc.weight > 1 ? alloc.weight : alloc.weight * 100;
+                            const value = (alloc.weight > 1 ? alloc.weight / 100 : alloc.weight) * investableCapital;
+                            const quote = liveQuotes.get(alloc.symbol.toUpperCase());
+                            const changePercent = quote?.changePercent ?? 0;
+                            return (
+                              <div key={i} className="flex items-center gap-3 p-2 rounded-lg bg-secondary/30 hover:bg-secondary/50 transition-colors">
+                                <div 
+                                  className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+                                  style={{ backgroundColor: `${PIE_COLORS[i % PIE_COLORS.length]}20` }}
+                                >
+                                  <span 
+                                    className="font-mono font-bold text-xs"
+                                    style={{ color: PIE_COLORS[i % PIE_COLORS.length] }}
+                                  >
+                                    {alloc.symbol.slice(0, 2)}
+                                  </span>
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <p className="font-semibold text-sm">
+                                    ${value.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                                  </p>
+                                  <p className="text-xs text-muted-foreground truncate">{alloc.name || alloc.symbol}</p>
+                                </div>
+                                <div className="text-right">
+                                  <p className="font-medium text-sm">{weight.toFixed(1)}%</p>
+                                  <p className={cn("text-xs", changePercent >= 0 ? 'text-emerald-500' : 'text-rose-500')}>
+                                    {changePercent >= 0 ? '+' : ''}{changePercent.toFixed(1)}%
                                   </p>
                                 </div>
-                              );
-                            }
-                            return null;
-                          }}
-                        />
-                      </PieChart>
-                    </ResponsiveContainer>
-                  </div>
-                  {/* Legend */}
-                  <div className="space-y-1 mt-2">
-                    {allocations.map((alloc, i) => (
-                      <div key={i} className="flex items-center justify-between text-xs p-1.5 rounded hover:bg-muted/50">
-                        <div className="flex items-center gap-2">
-                          <div 
-                            className="w-2.5 h-2.5 rounded-full" 
-                            style={{ backgroundColor: PIE_COLORS[i % PIE_COLORS.length] }} 
-                          />
-                          <span className="font-medium">{alloc.symbol}</span>
+                              </div>
+                            );
+                          })}
+                          {allocations.length > 5 && (
+                            <p className="text-xs text-muted-foreground text-center pt-1">
+                              +{allocations.length - 5} more holdings
+                            </p>
+                          )}
                         </div>
-                        <span className="text-muted-foreground tabular-nums">
-                          {(alloc.weight > 1 ? alloc.weight : alloc.weight * 100).toFixed(1)}%
-                        </span>
                       </div>
-                    ))}
-                  </div>
-                </div>
+                    </CardContent>
+                  </Card>
 
-                {/* Holdings Table */}
-                <div className="lg:col-span-3">
-                  {quotesLoading ? (
-                    <div className="space-y-2">
-                      {allocations.map((_, i) => (
-                        <Skeleton key={i} className="h-14 w-full" />
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="overflow-x-auto">
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>Asset</TableHead>
-                            <TableHead className="text-right">Price</TableHead>
-                            <TableHead className="text-right">Return</TableHead>
-                            <TableHead className="text-right">Value</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {allocations.map((alloc, i) => {
+                  {/* Top Holdings */}
+                  <Card className="bg-muted/30 border-border/50">
+                    <CardContent className="p-6">
+                      <h3 className="text-base font-semibold mb-4 flex items-center gap-2">
+                        <TrendingUp className="h-5 w-5 text-primary" />
+                        Top Holdings
+                      </h3>
+                      <div className="space-y-2">
+                        {[...allocations]
+                          .sort((a, b) => {
+                            const weightA = a.weight > 1 ? a.weight : a.weight * 100;
+                            const weightB = b.weight > 1 ? b.weight : b.weight * 100;
+                            return weightB - weightA;
+                          })
+                          .slice(0, 5)
+                          .map((alloc, i) => {
                             const quote = liveQuotes.get(alloc.symbol.toUpperCase());
                             const weight = alloc.weight > 1 ? alloc.weight : alloc.weight * 100;
                             const value = (alloc.weight > 1 ? alloc.weight / 100 : alloc.weight) * investableCapital;
@@ -976,74 +1006,149 @@ export function PortfolioAnalysisTabs({
                             const isUp = changePercent >= 0;
                             
                             return (
-                              <TableRow key={i} className="hover:bg-muted/30">
-                                <TableCell>
-                                  <div className="flex items-center gap-3">
-                                    <div 
-                                      className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg flex items-center justify-center flex-shrink-0"
-                                      style={{ backgroundColor: `${PIE_COLORS[i % PIE_COLORS.length]}20` }}
-                                    >
-                                      <span 
-                                        className="font-mono font-bold text-xs sm:text-sm"
-                                        style={{ color: PIE_COLORS[i % PIE_COLORS.length] }}
-                                      >
-                                        {alloc.symbol.slice(0, 3)}
-                                      </span>
-                                    </div>
-                                    <div className="min-w-0">
-                                      <p className="font-medium text-sm">{alloc.symbol}</p>
-                                      {alloc.name && (
-                                        <p className="text-xs text-muted-foreground line-clamp-1">{alloc.name}</p>
-                                      )}
-                                      <p className="text-xs text-muted-foreground sm:hidden">{weight.toFixed(1)}% weight</p>
-                                    </div>
+                              <div key={i} className="flex items-center justify-between p-3 rounded-lg bg-secondary/30 hover:bg-secondary/50 transition-colors group cursor-pointer">
+                                <div className="flex-1 min-w-0">
+                                  <p className="font-medium group-hover:text-primary transition-colors truncate">
+                                    ${alloc.symbol}
+                                  </p>
+                                  <p className="text-xs text-muted-foreground truncate">
+                                    {alloc.name || 'Equity'} • {weight.toFixed(1)}%
+                                  </p>
+                                </div>
+                                <div className="flex items-center gap-4 text-sm">
+                                  <div className="text-right">
+                                    <p className="font-medium tabular-nums">
+                                      ${value.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                                    </p>
+                                    <p className="text-xs text-muted-foreground">Value</p>
                                   </div>
-                                </TableCell>
-                                <TableCell className="text-right">
-                                  <span className="font-medium tabular-nums">
-                                    {price > 0 ? `$${price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '—'}
-                                  </span>
-                                </TableCell>
-                                <TableCell className="text-right">
-                                  {price > 0 ? (
-                                    <div className={cn(
-                                      "flex items-center justify-end gap-1 font-medium tabular-nums",
-                                      isUp ? "text-emerald-500" : "text-rose-500"
-                                    )}>
-                                      {isUp ? <ArrowUpRight className="h-3.5 w-3.5" /> : <ArrowDownRight className="h-3.5 w-3.5" />}
-                                      {changePercent >= 0 ? '+' : ''}{changePercent.toFixed(2)}%
+                                  <div className="text-right">
+                                    <p className={cn("font-medium tabular-nums", isUp ? 'text-emerald-500' : 'text-rose-500')}>
+                                      {isUp ? '+' : ''}{changePercent.toFixed(1)}%
+                                    </p>
+                                    <p className="text-xs text-muted-foreground">Today</p>
+                                  </div>
+                                  {price > 0 && (
+                                    <div className="text-right hidden md:block">
+                                      <p className="font-medium tabular-nums">${price.toFixed(2)}</p>
+                                      <p className="text-xs text-muted-foreground">Price</p>
                                     </div>
-                                  ) : (
-                                    <span className="text-muted-foreground">—</span>
                                   )}
-                                </TableCell>
-                                <TableCell className="text-right">
-                                  <span className="font-bold tabular-nums">
-                                    ${value.toLocaleString(undefined, { maximumFractionDigits: 0 })}
-                                  </span>
-                                </TableCell>
-                              </TableRow>
+                                </div>
+                              </div>
                             );
                           })}
-                        </TableBody>
-                      </Table>
-                    </div>
-                  )}
-                  
-                  {/* Summary Row */}
-                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-3 mt-3 rounded-lg bg-muted/30 border border-border/50 gap-2">
-                    <div className="flex items-center gap-2">
-                      <Target className="h-4 w-4 text-primary" />
-                      <span className="text-sm font-medium">Total Portfolio</span>
-                    </div>
-                    <div className="flex items-center gap-4 sm:gap-6">
-                      <span className="text-sm text-muted-foreground">{allocations.length} holdings</span>
-                      <span className="font-bold tabular-nums">
-                        ${investableCapital.toLocaleString(undefined, { maximumFractionDigits: 0 })}
-                      </span>
-                    </div>
-                  </div>
+                      </div>
+                    </CardContent>
+                  </Card>
                 </div>
+
+                {/* Full Holdings Table */}
+                <Card className="bg-muted/30 border-border/50">
+                  <CardContent className="p-6">
+                    <h3 className="text-base font-semibold mb-4 flex items-center gap-2">
+                      <Settings className="h-5 w-5 text-primary" />
+                      All Holdings
+                    </h3>
+                    {quotesLoading ? (
+                      <div className="space-y-2">
+                        {allocations.map((_, i) => (
+                          <Skeleton key={i} className="h-14 w-full" />
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="overflow-x-auto">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Asset</TableHead>
+                              <TableHead className="text-right">Weight</TableHead>
+                              <TableHead className="text-right">Price</TableHead>
+                              <TableHead className="text-right">Return</TableHead>
+                              <TableHead className="text-right">Value</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {allocations.map((alloc, i) => {
+                              const quote = liveQuotes.get(alloc.symbol.toUpperCase());
+                              const weight = alloc.weight > 1 ? alloc.weight : alloc.weight * 100;
+                              const value = (alloc.weight > 1 ? alloc.weight / 100 : alloc.weight) * investableCapital;
+                              const price = quote?.price ?? 0;
+                              const changePercent = quote?.changePercent ?? 0;
+                              const isUp = changePercent >= 0;
+                              
+                              return (
+                                <TableRow key={i} className="hover:bg-muted/30">
+                                  <TableCell>
+                                    <div className="flex items-center gap-3">
+                                      <div 
+                                        className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg flex items-center justify-center flex-shrink-0"
+                                        style={{ backgroundColor: `${PIE_COLORS[i % PIE_COLORS.length]}20` }}
+                                      >
+                                        <span 
+                                          className="font-mono font-bold text-xs sm:text-sm"
+                                          style={{ color: PIE_COLORS[i % PIE_COLORS.length] }}
+                                        >
+                                          {alloc.symbol.slice(0, 3)}
+                                        </span>
+                                      </div>
+                                      <div className="min-w-0">
+                                        <p className="font-medium text-sm">{alloc.symbol}</p>
+                                        {alloc.name && (
+                                          <p className="text-xs text-muted-foreground line-clamp-1">{alloc.name}</p>
+                                        )}
+                                      </div>
+                                    </div>
+                                  </TableCell>
+                                  <TableCell className="text-right">
+                                    <span className="font-medium tabular-nums">{weight.toFixed(1)}%</span>
+                                  </TableCell>
+                                  <TableCell className="text-right">
+                                    <span className="font-medium tabular-nums">
+                                      {price > 0 ? `$${price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '—'}
+                                    </span>
+                                  </TableCell>
+                                  <TableCell className="text-right">
+                                    {price > 0 ? (
+                                      <div className={cn(
+                                        "flex items-center justify-end gap-1 font-medium tabular-nums",
+                                        isUp ? "text-emerald-500" : "text-rose-500"
+                                      )}>
+                                        {isUp ? <ArrowUpRight className="h-3.5 w-3.5" /> : <ArrowDownRight className="h-3.5 w-3.5" />}
+                                        {changePercent >= 0 ? '+' : ''}{changePercent.toFixed(2)}%
+                                      </div>
+                                    ) : (
+                                      <span className="text-muted-foreground">—</span>
+                                    )}
+                                  </TableCell>
+                                  <TableCell className="text-right">
+                                    <span className="font-bold tabular-nums">
+                                      ${value.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                                    </span>
+                                  </TableCell>
+                                </TableRow>
+                              );
+                            })}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    )}
+                    
+                    {/* Summary Row */}
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-3 mt-3 rounded-lg bg-secondary/30 border border-border/50 gap-2">
+                      <div className="flex items-center gap-2">
+                        <Target className="h-4 w-4 text-primary" />
+                        <span className="text-sm font-medium">Total Portfolio</span>
+                      </div>
+                      <div className="flex items-center gap-4 sm:gap-6">
+                        <span className="text-sm text-muted-foreground">{allocations.length} holdings</span>
+                        <span className="font-bold tabular-nums">
+                          ${investableCapital.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                        </span>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
               </div>
             </ErrorBoundary>
           </TabsContent>
