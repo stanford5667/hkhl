@@ -4,71 +4,16 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { MarketIntelTab } from '@/components/companies/MarketIntelTab';
-import { CandlestickChart } from '@/components/charts/CandlestickChart';
-import { AssetBacktestPanel } from '@/components/equity/AssetBacktestPanel';
-import { MetricInfoIcon } from '@/components/shared/MetricInfoIcon';
-import { cn } from '@/lib/utils';
-import {
-  ArrowLeft,
-  Building2,
-  Globe,
-  ExternalLink,
-  TrendingUp,
-  TrendingDown,
-  Newspaper,
-  LayoutDashboard,
-  RefreshCw,
-  Star,
-  Plus,
-  LineChart,
-  BarChart3,
-  Activity,
-} from 'lucide-react';
-import { useWatchlist } from '@/hooks/useWatchlist';
+import { ArrowLeft, LineChart } from 'lucide-react';
 
-interface TickerDetails {
-  ticker: string;
-  name: string;
-  description: string;
-  sector: string;
-  industry: string;
-  marketCap: number | null;
-  type: string;
-  primaryExchange: string;
-  currencyName: string;
-  logoUrl: string | null;
-  homepageUrl: string | null;
-}
-
-interface StockQuote {
-  price: number;
-  change: number;
-  changePercent: number;
-  open: number;
-  high: number;
-  low: number;
-  volume: string;
-  marketCap: string;
-  companyName: string;
-  pe?: number;
-  eps?: number;
-  week52High?: number;
-  week52Low?: number;
-  avgVolume?: string;
-  dividendYield?: number;
-  industry?: string;
-  sector?: string;
-  exchange?: string;
-  description?: string;
-  website?: string;
-  logoUrl?: string;
-}
-
+/**
+ * TickerDetail - Lightweight redirect page for /stock/:ticker
+ * 
+ * This page finds or creates a company record for the ticker and redirects
+ * to the unified CompanyDetail page, ensuring a consistent UI across all assets.
+ */
 export default function TickerDetail() {
   const { ticker: paramTicker } = useParams<{ ticker: string }>();
   const [searchParams] = useSearchParams();
@@ -77,39 +22,52 @@ export default function TickerDetail() {
   
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [quote, setQuote] = useState<StockQuote | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const [activeTab, setActiveTab] = useState('overview');
   const [tickerValid, setTickerValid] = useState(true);
-  
-  const { addToWatchlist, isInWatchlist } = useWatchlist('stock');
-  const inWatchlist = isInWatchlist('stock', ticker);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleAddToWatchlist = () => {
-    addToWatchlist({
-      itemType: 'stock',
-      itemId: ticker,
-      itemName: quote?.companyName || ticker,
-    });
-  };
+  const resolveAndRedirect = useCallback(async () => {
+    if (!ticker) {
+      setIsLoading(false);
+      return;
+    }
 
-  const fetchQuote = useCallback(async () => {
-    if (!ticker) return;
-    
     setIsLoading(true);
     setTickerValid(true);
-    
+    setError(null);
+
     try {
-      // First, try to get ticker details from Polygon (works for any valid ticker)
-      let details: TickerDetails | null = null;
+      // First check if we already have a company for this ticker
+      const { data: existingCompany } = await supabase
+        .from('companies')
+        .select('id')
+        .eq('ticker_symbol', ticker)
+        .eq('user_id', user?.id || '')
+        .maybeSingle();
+
+      if (existingCompany) {
+        navigate(`/portfolio/${existingCompany.id}`, { replace: true });
+        return;
+      }
+
+      // Validate ticker exists on Polygon
+      let details: {
+        name: string;
+        description?: string;
+        sector?: string;
+        industry?: string;
+        primaryExchange?: string;
+        homepageUrl?: string;
+        marketCap?: number;
+      } | null = null;
+
       try {
-        const { data: detailsData, error } = await supabase.functions.invoke('polygon-ticker-details', {
+        const { data: detailsData, error: detailsError } = await supabase.functions.invoke('polygon-ticker-details', {
           body: { ticker }
         });
-        
-        if (error) {
-          console.error('Polygon details error:', error);
+
+        if (detailsError) {
+          console.error('Polygon details error:', detailsError);
         } else if (detailsData?.ok && detailsData.details) {
           details = detailsData.details;
         } else if (detailsData?.error === 'No data found for ticker') {
@@ -120,122 +78,51 @@ export default function TickerDetail() {
       } catch (e) {
         console.log('Could not fetch ticker details:', e);
       }
-      
-      // Get quote data from Finnhub via cache service
-      const { getCachedFullQuote } = await import('@/services/quoteCacheService');
-      const data = await getCachedFullQuote(ticker);
-      
-      if (data) {
-        setQuote({
-          price: data.price,
-          change: data.change,
-          changePercent: data.changePercent,
-          open: data.open,
-          high: data.high,
-          low: data.low,
-          volume: '-',
-          marketCap: data.marketCap || (details?.marketCap ? `$${(details.marketCap / 1e9).toFixed(2)}B` : '-'),
-          companyName: data.companyName || details?.name || ticker,
-          industry: details?.industry || undefined,
-          sector: details?.sector || undefined,
-          exchange: details?.primaryExchange || undefined,
-          description: details?.description || undefined,
-          website: details?.homepageUrl || undefined,
-          logoUrl: details?.logoUrl || undefined,
-        });
-      } else if (details) {
-        // Fallback to just ticker details if quote fails
-        setQuote({
-          price: 0,
-          change: 0,
-          changePercent: 0,
-          open: 0,
-          high: 0,
-          low: 0,
-          volume: '-',
-          marketCap: details.marketCap ? `$${(details.marketCap / 1e9).toFixed(2)}B` : '-',
-          companyName: details.name || ticker,
-          industry: details.industry,
-          sector: details.sector,
-          exchange: details.primaryExchange,
-          description: details.description,
-          website: details.homepageUrl || undefined,
-          logoUrl: details.logoUrl || undefined,
-        });
-      } else {
-        // No data at all - ticker might be invalid
-        setTickerValid(false);
+
+      // If no user, we can't create a company - just show the data
+      if (!user) {
+        setError('Please sign in to view stock details');
+        setIsLoading(false);
+        return;
       }
-    } catch (e) {
-      console.error('Quote error:', e);
-      toast.error('Failed to load stock data');
-    } finally {
-      setIsLoading(false);
-    }
-  }, [ticker]);
 
-  useEffect(() => {
-    if (ticker) {
-      fetchQuote();
-    }
-  }, [ticker, fetchQuote]);
-
-  const handleRefresh = async () => {
-    setIsRefreshing(true);
-    await fetchQuote();
-    setIsRefreshing(false);
-    toast.success('Data refreshed');
-  };
-
-  const handleAddToPortfolio = async () => {
-    if (!user) {
-      toast.error('Please sign in to add to portfolio');
-      return;
-    }
-
-    try {
-      const { data: newCompany, error } = await supabase
+      // Create a new company entry for this ticker
+      const { data: newCompany, error: createError } = await supabase
         .from('companies')
         .insert({
           user_id: user.id,
-          name: quote?.companyName || ticker,
+          name: details?.name || ticker,
           ticker_symbol: ticker,
-          industry: quote?.industry || null,
+          industry: details?.industry || null,
           company_type: 'portfolio',
           asset_class: 'public_equity',
-          current_price: quote?.price || null,
-          price_updated_at: new Date().toISOString(),
-          exchange: quote?.exchange || null,
-          website: quote?.website || null,
-          description: quote?.description || null,
+          exchange: details?.primaryExchange || null,
+          website: details?.homepageUrl || null,
+          description: details?.description || null,
         })
         .select('id')
         .single();
 
-      if (error) throw error;
+      if (createError) {
+        console.error('Error creating company:', createError);
+        setError('Failed to load stock details');
+        setIsLoading(false);
+        return;
+      }
 
-      toast.success(`Added ${ticker} to your portfolio`);
-      navigate(`/portfolio/${newCompany.id}`);
+      navigate(`/portfolio/${newCompany.id}`, { replace: true });
     } catch (e) {
-      console.error('Error adding to portfolio:', e);
-      toast.error('Failed to add to portfolio');
+      console.error('Error resolving ticker:', e);
+      setError('Failed to load stock details');
+      setIsLoading(false);
     }
-  };
+  }, [ticker, user, navigate]);
 
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    }).format(value);
-  };
-
-  const formatPercent = (value: number | undefined) => {
-    if (value === undefined) return '—';
-    const sign = value >= 0 ? '+' : '';
-    return `${sign}${value.toFixed(2)}%`;
-  };
+  useEffect(() => {
+    if (ticker && user !== undefined) {
+      resolveAndRedirect();
+    }
+  }, [ticker, user, resolveAndRedirect]);
 
   if (!ticker) {
     return (
@@ -263,7 +150,7 @@ export default function TickerDetail() {
             <div>
               <h2 className="text-xl font-semibold">Ticker Not Found</h2>
               <p className="text-muted-foreground mt-1">
-                "{ticker}" is not a valid ticker symbol on Polygon.io
+                "{ticker}" is not a valid ticker symbol
               </p>
             </div>
             <div className="flex gap-2 justify-center">
@@ -280,270 +167,45 @@ export default function TickerDetail() {
     );
   }
 
-  const isPositive = (quote?.change || 0) >= 0;
+  if (error) {
+    return (
+      <div className="p-6 space-y-4">
+        <Button variant="ghost" size="sm" onClick={() => navigate(-1)} className="gap-2">
+          <ArrowLeft className="h-4 w-4" />
+          Back
+        </Button>
+        <Card className="max-w-md mx-auto">
+          <CardContent className="p-8 text-center space-y-4">
+            <div className="w-16 h-16 mx-auto rounded-full bg-muted flex items-center justify-center">
+              <LineChart className="h-8 w-8 text-muted-foreground" />
+            </div>
+            <div>
+              <h2 className="text-xl font-semibold">Error</h2>
+              <p className="text-muted-foreground mt-1">{error}</p>
+            </div>
+            <Button onClick={() => navigate(-1)}>Go Back</Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
+  // Loading state while redirecting
   return (
     <div className="p-6 space-y-6 animate-fade-in">
-      {/* Header */}
-      <div className="flex items-start justify-between">
-        <div className="flex items-start gap-4">
-          <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-          <div>
-            {isLoading ? (
-              <div className="space-y-2">
-                <Skeleton className="h-8 w-48" />
-                <Skeleton className="h-4 w-32" />
-              </div>
-            ) : (
-              <>
-                <div className="flex items-center gap-3">
-                  {quote?.logoUrl ? (
-                    <img 
-                      src={`${quote.logoUrl}?apiKey=${import.meta.env.VITE_POLYGON_API_KEY || ''}`}
-                      alt={quote.companyName}
-                      className="h-8 w-8 rounded object-contain bg-white p-0.5"
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).style.display = 'none';
-                      }}
-                    />
-                  ) : (
-                    <LineChart className="h-6 w-6 text-emerald-400" />
-                  )}
-                  <h1 className="text-2xl font-bold">{quote?.companyName || ticker}</h1>
-                  <Badge variant="secondary" className="text-base font-mono">
-                    {ticker}
-                  </Badge>
-                  {quote?.exchange && (
-                    <Badge variant="outline">{quote.exchange}</Badge>
-                  )}
-                </div>
-                <div className="flex items-center gap-4 mt-2 text-muted-foreground">
-                  {quote?.sector && (
-                    <span className="flex items-center gap-1">
-                      <Building2 className="h-4 w-4" />
-                      {quote.sector}
-                    </span>
-                  )}
-                  {quote?.industry && quote.industry !== quote.sector && (
-                    <span className="text-muted-foreground/70">
-                      • {quote.industry}
-                    </span>
-                  )}
-                  {quote?.website && (
-                    <a
-                      href={quote.website}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-1 hover:text-primary transition-colors"
-                    >
-                      <Globe className="h-4 w-4" />
-                      {quote.website.replace(/^https?:\/\//, '').replace(/\/$/, '')}
-                      <ExternalLink className="h-3 w-3" />
-                    </a>
-                  )}
-                </div>
-              </>
-            )}
-          </div>
-        </div>
-        
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleAddToWatchlist}
-            disabled={inWatchlist}
-          >
-            <Star className={cn('h-4 w-4 mr-2', inWatchlist && 'fill-amber-500 text-amber-500')} />
-            {inWatchlist ? 'Watching' : 'Watch'}
-          </Button>
-          <Button size="sm" onClick={handleAddToPortfolio}>
-            <Plus className="h-4 w-4 mr-2" />
-            Add to Portfolio
-          </Button>
+      <div className="flex items-start gap-4">
+        <Skeleton className="h-10 w-10 rounded" />
+        <div className="space-y-2">
+          <Skeleton className="h-8 w-48" />
+          <Skeleton className="h-4 w-32" />
         </div>
       </div>
-
-      {/* Price Card */}
-      <Card className="bg-card border-border">
-        <CardContent className="p-6">
-          {isLoading ? (
-            <div className="space-y-4">
-              <Skeleton className="h-12 w-32" />
-              <Skeleton className="h-6 w-24" />
-            </div>
-          ) : quote && quote.price > 0 ? (
-            <div className="flex items-start justify-between">
-              <div>
-                <div className="flex items-baseline gap-4">
-                  <span className="text-4xl font-bold tabular-nums">
-                    {formatCurrency(quote.price)}
-                  </span>
-                  <div className={cn(
-                    "flex items-center gap-1 text-lg font-medium",
-                    isPositive ? "text-emerald-400" : "text-rose-400"
-                  )}>
-                    {isPositive ? (
-                      <TrendingUp className="h-5 w-5" />
-                    ) : (
-                      <TrendingDown className="h-5 w-5" />
-                    )}
-                    <span className="tabular-nums">
-                      {isPositive ? '+' : ''}{formatCurrency(quote.change)}
-                    </span>
-                    <span className="tabular-nums">
-                      ({formatPercent(quote.changePercent)})
-                    </span>
-                  </div>
-                </div>
-                <p className="text-muted-foreground mt-1">Market value as of today</p>
-              </div>
-              
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleRefresh}
-                disabled={isRefreshing}
-              >
-                <RefreshCw className={cn('h-4 w-4 mr-2', isRefreshing && 'animate-spin')} />
-                Refresh
-              </Button>
-            </div>
-          ) : (
-            <p className="text-muted-foreground">Price data unavailable - historical data may still be available below</p>
-          )}
-          
-          {/* Key Stats Row */}
-          {quote && quote.price > 0 && (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6 pt-6 border-t border-border">
-              <div>
-                <p className="text-xs text-muted-foreground uppercase">Open</p>
-                <p className="text-lg font-medium tabular-nums">{formatCurrency(quote.open)}</p>
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground uppercase">High</p>
-                <p className="text-lg font-medium tabular-nums">{formatCurrency(quote.high)}</p>
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground uppercase">Low</p>
-                <p className="text-lg font-medium tabular-nums">{formatCurrency(quote.low)}</p>
-              </div>
-              <div>
-                <div className="flex items-center gap-1">
-                  <p className="text-xs text-muted-foreground uppercase">Market Cap</p>
-                  <MetricInfoIcon termKey="marketCap" iconSize={10} />
-                </div>
-                <p className="text-lg font-medium">{quote.marketCap}</p>
-              </div>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Chart */}
-      <Card className="bg-card border-border">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <BarChart3 className="h-5 w-5 text-primary" />
-            Price Chart
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <CandlestickChart symbol={ticker} height={400} />
-        </CardContent>
-      </Card>
-
-      {/* Tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="bg-secondary h-12">
-          <TabsTrigger value="overview" className="gap-2 text-base px-5 py-3">
-            <LayoutDashboard className="h-5 w-5" />
-            Overview
-          </TabsTrigger>
-          <TabsTrigger value="backtest" className="gap-2 text-base px-5 py-3">
-            <Activity className="h-5 w-5" />
-            Backtest
-          </TabsTrigger>
-          <TabsTrigger value="news" className="gap-2 text-base px-5 py-3">
-            <Newspaper className="h-5 w-5" />
-            News & Intel
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="overview" className="space-y-6">
-          {/* About Section */}
-          {quote?.description && (
-            <Card className="bg-card border-border">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Building2 className="h-5 w-5 text-primary" />
-                  About {quote.companyName}
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-foreground leading-relaxed">{quote.description}</p>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Company Info */}
-          <Card className="bg-card border-border">
-            <CardHeader>
-              <CardTitle>Company Information</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-                <div>
-                  <p className="text-xs text-muted-foreground uppercase">Ticker</p>
-                  <p className="text-foreground font-medium mt-1">{ticker}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground uppercase">Exchange</p>
-                  <p className="text-foreground font-medium mt-1">{quote?.exchange || '—'}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground uppercase">Sector</p>
-                  <p className="text-foreground font-medium mt-1">{quote?.sector || '—'}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground uppercase">Industry</p>
-                  <p className="text-foreground font-medium mt-1">{quote?.industry || '—'}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground uppercase">Website</p>
-                  {quote?.website ? (
-                    <a 
-                      href={quote.website} 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="text-primary hover:underline font-medium mt-1 flex items-center gap-1"
-                    >
-                      Visit
-                      <ExternalLink className="h-3 w-3" />
-                    </a>
-                  ) : (
-                    <p className="text-foreground font-medium mt-1">—</p>
-                  )}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="backtest">
-          <AssetBacktestPanel ticker={ticker} companyName={quote?.companyName || ticker} />
-        </TabsContent>
-
-        <TabsContent value="news">
-          <MarketIntelTab 
-            companyId="" 
-            companyName={quote?.companyName || ticker} 
-            industry={quote?.industry || null}
-          />
-        </TabsContent>
-      </Tabs>
+      <div className="flex items-center justify-center py-12">
+        <div className="text-center space-y-3">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto" />
+          <p className="text-muted-foreground">Loading {ticker}...</p>
+        </div>
+      </div>
     </div>
   );
 }
