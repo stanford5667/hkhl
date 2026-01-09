@@ -91,6 +91,10 @@ import { AdvancedMetricsDashboardSkeleton, CalculationProgress } from '@/compone
 import { VerificationPanelSkeleton } from '@/components/shared/VerificationPanelSkeleton';
 import { supabase } from '@/integrations/supabase/client';
 import { useActivePortfolio } from '@/hooks/useActivePortfolio';
+import { PortfolioGrowthChart } from '@/components/portfolio/PortfolioGrowthChart';
+import { AnnualReturnsChart } from '@/components/portfolio/AnnualReturnsChart';
+import { PerformanceSummaryTable } from '@/components/portfolio/PerformanceSummaryTable';
+import { DrawdownChart } from '@/components/portfolio/DrawdownChart';
 
 // NEW: Integrated services and hooks
 import { marketDataService, FetchProgress, TickerData } from '@/services/hybridMarketDataService';
@@ -1769,6 +1773,47 @@ export default function PortfolioVisualizer() {
                 />
               </ErrorBoundary>
             </TabsContent>
+          )}
+
+          {/* Portfolio Growth & Performance Charts - Always visible above tabs */}
+          {calcMetrics && calcPortfolioValues.length > 0 && (
+            <div className="space-y-6 mb-8">
+              {/* Growth Chart */}
+              <PortfolioGrowthChart
+                dates={calcDates}
+                portfolioValues={calcPortfolioValues}
+                initialCapital={investorProfile.investableCapital}
+              />
+              
+              <div className="grid gap-6 lg:grid-cols-2">
+                {/* Performance Summary */}
+                <PerformanceSummaryTable
+                  startBalance={investorProfile.investableCapital}
+                  endBalance={calcPortfolioValues[calcPortfolioValues.length - 1] ?? investorProfile.investableCapital}
+                  cagr={calcMetrics.cagr ?? 0}
+                  volatility={calcMetrics.volatility ?? 0}
+                  sharpeRatio={calcMetrics.sharpeRatio ?? 0}
+                  sortinoRatio={calcMetrics.sortinoRatio ?? 0}
+                  maxDrawdown={calcMetrics.maxDrawdown ?? 0}
+                  bestYear={unifiedAdvancedMetrics?.bestYear}
+                  worstYear={unifiedAdvancedMetrics?.worstYear}
+                  beta={calcMetrics.beta}
+                  alpha={calcMetrics.alpha}
+                />
+                
+                {/* Drawdown Chart */}
+                <DrawdownChart
+                  dates={calcDates}
+                  portfolioValues={calcPortfolioValues}
+                />
+              </div>
+              
+              {/* Annual Returns */}
+              <AnnualReturnsChart
+                dates={calcDates}
+                portfolioReturns={calcPortfolioReturns}
+              />
+            </div>
           )}
 
           {/* Educational Dashboard Tab */}
