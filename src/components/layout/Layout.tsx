@@ -65,10 +65,10 @@ export function Layout({ children }: LayoutProps) {
     return <>{children}</>;
   }
 
-  // TESTING MODE: Skip auth redirect
-  // if (!user) {
-  //   return <Navigate to="/auth" replace />;
-  // }
+  // Redirect to auth if not logged in
+  if (!user) {
+    return <Navigate to="/auth" replace />;
+  }
 
   return (
     <div className="flex min-h-screen w-full bg-background">
