@@ -1488,9 +1488,10 @@ export default function Portfolio() {
         <motion.div variants={itemVariants}>
           <PortfolioAnalysisTabs
             allocations={portfolioAllocations}
-            investableCapital={portfolioStats.totalValue || 100000}
-            portfolioName={activePortfolio?.name}
+            investableCapital={investableCapital || 100000}
             investmentHorizon={allocInvestmentHorizon || 5}
+            portfolioName={activePortfolio?.name}
+            backtestMetrics={backtestMetrics}
           />
         </motion.div>
       )}

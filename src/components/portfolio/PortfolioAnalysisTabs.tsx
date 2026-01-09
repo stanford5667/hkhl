@@ -55,9 +55,21 @@ const PIE_COLORS = [
 interface PortfolioAnalysisTabsProps {
   allocations: { symbol: string; weight: number; name?: string }[];
   investableCapital?: number;
+  investmentHorizon?: number; // Years for backtest calculation
   portfolioName?: string;
   className?: string;
-  investmentHorizon?: number; // Investment horizon in years
+  // Precomputed metrics from parent (optional - if provided, won't recalculate)
+  backtestMetrics?: {
+    currentValue: number;
+    totalReturn: number;
+    totalReturnPercent: number;
+    todayChange: number;
+    todayChangePercent: number;
+    cagr: number;
+    maxDrawdown: number;
+    sharpeRatio: number;
+    volatility: number;
+  } | null;
 }
 
 // Metric item component
@@ -106,9 +118,10 @@ function getSleepScore(volatility: number): { score: number; label: string; emoj
 export function PortfolioAnalysisTabs({ 
   allocations, 
   investableCapital = 100000,
+  investmentHorizon = 5,
   portfolioName,
   className,
-  investmentHorizon = 5,
+  backtestMetrics: parentBacktestMetrics,
 }: PortfolioAnalysisTabsProps) {
   const [activeTab, setActiveTab] = useState('overview');
   const [liveQuotes, setLiveQuotes] = useState<Map<string, { price: number; change: number; changePercent: number }>>(new Map());
@@ -173,10 +186,20 @@ export function PortfolioAnalysisTabs({
     investableCapital,
     startDate,
     endDate,
-    enabled: allocations.length > 0,
+    enabled: allocations.length > 0 && !parentBacktestMetrics, // Skip if parent provided metrics
     includeAIAnalysis: true,
     generateTraces: true,
   });
+
+  // Use parent metrics if provided, otherwise use calculated
+  const effectiveMetrics = parentBacktestMetrics ? {
+    ...metrics,
+    cagr: parentBacktestMetrics.cagr,
+    volatility: parentBacktestMetrics.volatility,
+    sharpeRatio: parentBacktestMetrics.sharpeRatio,
+    maxDrawdown: parentBacktestMetrics.maxDrawdown,
+    totalReturn: parentBacktestMetrics.totalReturnPercent,
+  } : metrics;
 
   if (allocations.length === 0) {
     return (
@@ -418,7 +441,11 @@ export function PortfolioAnalysisTabs({
                 allocations={allocations}
                 investableCapital={investableCapital}
                 liveQuotes={liveQuotes}
-                metrics={metrics}
+                metrics={effectiveMetrics || metrics}
+                backtestPortfolioValue={parentBacktestMetrics?.currentValue}
+                backtestTodayChange={parentBacktestMetrics?.todayChange}
+                backtestTodayChangePercent={parentBacktestMetrics?.todayChangePercent}
+                investmentHorizon={investmentHorizon}
               />
             </ErrorBoundary>
           </TabsContent>

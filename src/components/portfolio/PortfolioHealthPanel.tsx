@@ -51,6 +51,11 @@ interface PortfolioHealthPanelProps {
   liveQuotes: Map<string, QuoteData>;
   metrics?: PortfolioMetricsData | null;
   className?: string;
+  // Backtest-derived values (use these instead of calculating from scratch)
+  backtestPortfolioValue?: number;
+  backtestTodayChange?: number;
+  backtestTodayChangePercent?: number;
+  investmentHorizon?: number;
 }
 
 // Stat Card Component (matching Market Intel style)
@@ -172,34 +177,64 @@ export function PortfolioHealthPanel({
   liveQuotes,
   metrics,
   className,
+  backtestPortfolioValue,
+  backtestTodayChange,
+  backtestTodayChangePercent,
+  investmentHorizon = 5,
 }: PortfolioHealthPanelProps) {
-  // Calculate portfolio stats
+  // Calculate portfolio stats - use backtest values when available
   const stats = useMemo(() => {
-    let totalValue = 0;
+    let totalValue = backtestPortfolioValue || 0;
     let todayChange = 0;
+    let todayChangePercent = 0;
     let gainersCount = 0;
     let losersCount = 0;
     let atRiskCount = 0;
 
-    allocations.forEach(alloc => {
-      const quote = liveQuotes.get(alloc.symbol.toUpperCase());
-      const weight = alloc.weight > 1 ? alloc.weight / 100 : alloc.weight;
-      const value = weight * investableCapital;
+    // If we have backtest values, use them for portfolio-level stats
+    if (backtestPortfolioValue) {
+      // Calculate today's change based on weighted average of quote percentages
+      let weightedChangePercent = 0;
+      let totalWeight = 0;
       
-      totalValue += value;
+      allocations.forEach(alloc => {
+        const quote = liveQuotes.get(alloc.symbol.toUpperCase());
+        const weight = alloc.weight > 1 ? alloc.weight / 100 : alloc.weight;
+        
+        if (quote) {
+          weightedChangePercent += weight * quote.changePercent;
+          totalWeight += weight;
+          
+          if (quote.changePercent > 0) gainersCount++;
+          else if (quote.changePercent < 0) losersCount++;
+          if (quote.changePercent < -3) atRiskCount++;
+        }
+      });
       
-      if (quote) {
-        const dayChange = (quote.changePercent / 100) * value;
-        todayChange += dayChange;
+      todayChangePercent = backtestTodayChangePercent ?? (totalWeight > 0 ? weightedChangePercent / totalWeight : 0);
+      // Calculate dollar change based on backtest portfolio value
+      todayChange = backtestTodayChange ?? (backtestPortfolioValue * todayChangePercent / 100);
+    } else {
+      // Fallback: calculate from scratch using investableCapital
+      allocations.forEach(alloc => {
+        const quote = liveQuotes.get(alloc.symbol.toUpperCase());
+        const weight = alloc.weight > 1 ? alloc.weight / 100 : alloc.weight;
+        const value = weight * investableCapital;
         
-        if (quote.changePercent > 0) gainersCount++;
-        else if (quote.changePercent < 0) losersCount++;
+        totalValue += value;
         
-        if (quote.changePercent < -3) atRiskCount++;
-      }
-    });
-
-    const todayChangePercent = totalValue > 0 ? (todayChange / totalValue) * 100 : 0;
+        if (quote) {
+          const dayChange = (quote.changePercent / 100) * value;
+          todayChange += dayChange;
+          
+          if (quote.changePercent > 0) gainersCount++;
+          else if (quote.changePercent < 0) losersCount++;
+          if (quote.changePercent < -3) atRiskCount++;
+        }
+      });
+      
+      todayChangePercent = totalValue > 0 ? (todayChange / totalValue) * 100 : 0;
+    }
 
     return {
       totalValue,
@@ -210,7 +245,7 @@ export function PortfolioHealthPanel({
       atRiskCount,
       holdingsCount: allocations.length,
     };
-  }, [allocations, investableCapital, liveQuotes]);
+  }, [allocations, investableCapital, liveQuotes, backtestPortfolioValue, backtestTodayChange, backtestTodayChangePercent]);
 
   // Calculate overall portfolio health
   const overallHealth = useMemo(() => {
