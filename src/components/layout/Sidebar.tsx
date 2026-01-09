@@ -148,7 +148,7 @@ export function Sidebar() {
   const allNavigation = useMemo<NavItem[]>(() => {
     const items: NavItem[] = [
       { 
-        label: "Portfolio", 
+        label: "Portfolio Tracker", 
         subtitle: "Overview & Holdings",
         href: "/", 
         icon: Briefcase 
