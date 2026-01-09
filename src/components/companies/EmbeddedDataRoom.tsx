@@ -9,18 +9,30 @@ import {
   Loader2,
   FolderOpen,
   ChevronRight,
+  FileText,
 } from "lucide-react";
 import { FolderSidebar, FolderNode } from "@/components/dataroom/FolderSidebar";
 import { DocumentTable, DocumentItem } from "@/components/dataroom/DocumentTable";
 import { InlineUploadZone } from "@/components/dataroom/InlineUploadZone";
 import { DocumentPreview } from "@/components/dataroom/DocumentPreview";
 import { DataRoomChecklist } from "@/components/dataroom/DataRoomChecklist";
+import { SECFilingsPanel } from "@/components/dataroom/SECFilingsPanel";
 import { useDocuments, DocumentRecord } from "@/hooks/useDocuments";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { formatDistanceToNow } from "date-fns";
 
 const folderStructure: FolderNode[] = [
+  {
+    id: "sec-filings",
+    name: "SEC Filings",
+    children: [
+      { id: "10-k", name: "10-K Annual Reports" },
+      { id: "10-q", name: "10-Q Quarterly" },
+      { id: "8-k", name: "8-K Current Reports" },
+      { id: "proxy", name: "Proxy Statements" },
+    ],
+  },
   {
     id: "financial",
     name: "Financial",
@@ -93,9 +105,10 @@ interface ModelRecord {
 interface EmbeddedDataRoomProps {
   companyId: string;
   companyName: string;
+  tickerSymbol?: string | null;
 }
 
-export function EmbeddedDataRoom({ companyId, companyName }: EmbeddedDataRoomProps) {
+export function EmbeddedDataRoom({ companyId, companyName, tickerSymbol }: EmbeddedDataRoomProps) {
   const navigate = useNavigate();
   const { user } = useAuth();
   const {
@@ -415,36 +428,43 @@ export function EmbeddedDataRoom({ companyId, companyName }: EmbeddedDataRoomPro
 
         {/* Content Area */}
         <div className="flex-1 overflow-y-auto p-3 space-y-3">
-          {/* Upload zone */}
-          <InlineUploadZone
-            companyId={companyId}
-            folder={selectedFolderId === "historical" ? "Financial" : "General"}
-            subfolder={selectedFolderId === "historical" ? "Historical" : undefined}
-            onUploadComplete={refreshData}
-          />
-
-          {/* Document Table */}
-          {loading ? (
-            <div className="flex items-center justify-center py-12">
-              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-            </div>
+          {/* Show SEC Filings Panel when SEC Filings folder is selected */}
+          {selectedFolderId === "sec-filings" || selectedFolderId === "10-k" || selectedFolderId === "10-q" || selectedFolderId === "8-k" || selectedFolderId === "proxy" ? (
+            <SECFilingsPanel ticker={tickerSymbol || null} companyName={companyName} />
           ) : (
             <>
-              <DocumentTable
-                documents={displayItems}
-                selectedDocuments={selectedDocuments}
-                onToggleSelect={handleToggleSelect}
-                onSelectAll={handleSelectAll}
-                onView={handleView}
-                onDownload={handleDownload}
-                onDelete={handleDelete}
-                onRename={handleRename}
-                onMoveToFolder={handleMoveToFolder}
+              {/* Upload zone */}
+              <InlineUploadZone
+                companyId={companyId}
+                folder={selectedFolderId === "historical" ? "Financial" : "General"}
+                subfolder={selectedFolderId === "historical" ? "Historical" : undefined}
+                onUploadComplete={refreshData}
               />
-              {displayItems.length > 0 && (
-                <p className="text-xs text-muted-foreground">
-                  {displayItems.length} item{displayItems.length !== 1 ? "s" : ""}
-                </p>
+
+              {/* Document Table */}
+              {loading ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                </div>
+              ) : (
+                <>
+                  <DocumentTable
+                    documents={displayItems}
+                    selectedDocuments={selectedDocuments}
+                    onToggleSelect={handleToggleSelect}
+                    onSelectAll={handleSelectAll}
+                    onView={handleView}
+                    onDownload={handleDownload}
+                    onDelete={handleDelete}
+                    onRename={handleRename}
+                    onMoveToFolder={handleMoveToFolder}
+                  />
+                  {displayItems.length > 0 && (
+                    <p className="text-xs text-muted-foreground">
+                      {displayItems.length} item{displayItems.length !== 1 ? "s" : ""}
+                    </p>
+                  )}
+                </>
               )}
             </>
           )}

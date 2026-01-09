@@ -415,7 +415,7 @@ export default function CompanyDetail() {
 
         {/* Data Room Tab */}
         <TabsContent value="dataroom">
-          <EmbeddedDataRoom companyId={company.id} companyName={company.name} />
+          <EmbeddedDataRoom companyId={company.id} companyName={company.name} tickerSymbol={company.ticker_symbol} />
         </TabsContent>
 
         {/* Overview Tab */}
