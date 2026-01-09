@@ -33,7 +33,7 @@ const COMMODITIES = [
   { symbol: "C:LHUSD", name: "Lean Hogs", unit: "lb", category: "agriculture" },
 ];
 
-// Major currency pairs
+// Major currency pairs - reduced to essential pairs for free tier
 const FOREX_PAIRS = [
   // Major pairs
   { symbol: "C:EURUSD", name: "EUR/USD", base: "EUR", quote: "USD", category: "major" },
@@ -47,17 +47,6 @@ const FOREX_PAIRS = [
   { symbol: "C:EURGBP", name: "EUR/GBP", base: "EUR", quote: "GBP", category: "cross" },
   { symbol: "C:EURJPY", name: "EUR/JPY", base: "EUR", quote: "JPY", category: "cross" },
   { symbol: "C:GBPJPY", name: "GBP/JPY", base: "GBP", quote: "JPY", category: "cross" },
-  { symbol: "C:EURCHF", name: "EUR/CHF", base: "EUR", quote: "CHF", category: "cross" },
-  { symbol: "C:AUDJPY", name: "AUD/JPY", base: "AUD", quote: "JPY", category: "cross" },
-  // Emerging markets
-  { symbol: "C:USDMXN", name: "USD/MXN", base: "USD", quote: "MXN", category: "emerging" },
-  { symbol: "C:USDBRL", name: "USD/BRL", base: "USD", quote: "BRL", category: "emerging" },
-  { symbol: "C:USDZAR", name: "USD/ZAR", base: "USD", quote: "ZAR", category: "emerging" },
-  { symbol: "C:USDTRY", name: "USD/TRY", base: "USD", quote: "TRY", category: "emerging" },
-  { symbol: "C:USDINR", name: "USD/INR", base: "USD", quote: "INR", category: "emerging" },
-  { symbol: "C:USDCNY", name: "USD/CNY", base: "USD", quote: "CNY", category: "emerging" },
-  { symbol: "C:USDSGD", name: "USD/SGD", base: "USD", quote: "SGD", category: "emerging" },
-  { symbol: "C:USDHKD", name: "USD/HKD", base: "USD", quote: "HKD", category: "emerging" },
 ];
 
 interface TickerSnapshot {
@@ -84,45 +73,17 @@ function json(data: unknown, status = 200) {
   });
 }
 
-// Fetch snapshot for a single forex/commodity ticker
-async function fetchTickerSnapshot(
-  symbol: string, 
-  apiKey: string
-): Promise<{ ticker: string; lastTrade?: { p: number; t: number }; prevDay?: { c: number; h: number; l: number; o: number } } | null> {
-  try {
-    // Use the forex/currencies snapshot endpoint
-    const url = `${BASE_URL}/v2/snapshot/locale/global/markets/forex/tickers/${encodeURIComponent(symbol)}?apiKey=${apiKey}`;
-    
-    const res = await fetch(url);
-    if (!res.ok) {
-      console.warn(`[Snapshot] ${symbol} returned ${res.status}`);
-      return null;
-    }
-    
-    const data = await res.json();
-    return data.ticker || null;
-  } catch (err) {
-    console.error(`[Snapshot] Error fetching ${symbol}:`, err);
-    return null;
-  }
-}
-
-// Fetch latest aggregate bar for a ticker
-async function fetchLatestBar(
+// Fetch previous day bar for a single ticker using prev endpoint
+async function fetchPrevDayBar(
   symbol: string, 
   apiKey: string
 ): Promise<{ c: number; h: number; l: number; o: number; v: number; t: number } | null> {
   try {
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
-    const fromDate = yesterday.toISOString().split('T')[0];
-    const toDate = new Date().toISOString().split('T')[0];
-    
-    const url = `${BASE_URL}/v2/aggs/ticker/${encodeURIComponent(symbol)}/range/1/day/${fromDate}/${toDate}?adjusted=true&sort=desc&limit=2&apiKey=${apiKey}`;
+    const url = `${BASE_URL}/v2/aggs/ticker/${encodeURIComponent(symbol)}/prev?adjusted=true&apiKey=${apiKey}`;
     
     const res = await fetch(url);
     if (!res.ok) {
-      console.warn(`[Aggs] ${symbol} returned ${res.status}`);
+      console.warn(`[Prev] ${symbol} returned ${res.status}`);
       return null;
     }
     
@@ -132,110 +93,89 @@ async function fetchLatestBar(
     }
     return null;
   } catch (err) {
-    console.error(`[Aggs] Error fetching ${symbol}:`, err);
+    console.error(`[Prev] Error fetching ${symbol}:`, err);
     return null;
   }
 }
 
-// Get previous close for calculating change
-async function fetchPreviousClose(
+// Fetch previous 2 days to calculate change
+async function fetchRecentBars(
   symbol: string, 
   apiKey: string
-): Promise<number | null> {
+): Promise<{ current: { c: number; h: number; l: number; o: number; t: number }; previous: { c: number } } | null> {
   try {
-    const url = `${BASE_URL}/v2/aggs/ticker/${encodeURIComponent(symbol)}/prev?adjusted=true&apiKey=${apiKey}`;
+    const today = new Date();
+    const weekAgo = new Date();
+    weekAgo.setDate(today.getDate() - 7);
+    
+    const fromDate = weekAgo.toISOString().split('T')[0];
+    const toDate = today.toISOString().split('T')[0];
+    
+    const url = `${BASE_URL}/v2/aggs/ticker/${encodeURIComponent(symbol)}/range/1/day/${fromDate}/${toDate}?adjusted=true&sort=desc&limit=3&apiKey=${apiKey}`;
     
     const res = await fetch(url);
-    if (!res.ok) return null;
+    if (!res.ok) {
+      console.warn(`[Bars] ${symbol} returned ${res.status}`);
+      return null;
+    }
     
     const data = await res.json();
-    if (data.results && data.results.length > 0) {
-      return data.results[0].c;
+    if (data.results && data.results.length >= 2) {
+      return {
+        current: data.results[0],
+        previous: { c: data.results[1].c }
+      };
+    } else if (data.results && data.results.length === 1) {
+      // Only one bar, use same as previous
+      return {
+        current: data.results[0],
+        previous: { c: data.results[0].o }
+      };
     }
     return null;
-  } catch {
+  } catch (err) {
+    console.error(`[Bars] Error fetching ${symbol}:`, err);
     return null;
   }
 }
 
-// Fetch all commodities data
+// Fetch all commodities data using efficient prev endpoint
 async function fetchCommodities(apiKey: string): Promise<TickerSnapshot[]> {
   const results: TickerSnapshot[] = [];
   
-  // Fetch in parallel with rate limiting
-  const batchSize = 5;
-  for (let i = 0; i < COMMODITIES.length; i += batchSize) {
-    const batch = COMMODITIES.slice(i, i + batchSize);
+  // Process all at once with a single batch
+  const allPromises = COMMODITIES.map(async (commodity) => {
+    const bars = await fetchRecentBars(commodity.symbol, apiKey);
     
-    const batchResults = await Promise.all(
-      batch.map(async (commodity) => {
-        // Try snapshot first
-        const snapshot = await fetchTickerSnapshot(commodity.symbol, apiKey);
-        
-        let price = 0;
-        let prevClose = 0;
-        let high = 0;
-        let low = 0;
-        let open = 0;
-        let timestamp = new Date().toISOString();
-        
-        if (snapshot?.lastTrade?.p) {
-          price = snapshot.lastTrade.p;
-          timestamp = new Date(snapshot.lastTrade.t).toISOString();
-          
-          if (snapshot.prevDay) {
-            prevClose = snapshot.prevDay.c;
-            high = snapshot.prevDay.h;
-            low = snapshot.prevDay.l;
-            open = snapshot.prevDay.o;
-          }
-        } else {
-          // Fallback to aggs
-          const bar = await fetchLatestBar(commodity.symbol, apiKey);
-          if (bar) {
-            price = bar.c;
-            high = bar.h;
-            low = bar.l;
-            open = bar.o;
-            timestamp = new Date(bar.t).toISOString();
-          }
-          
-          // Get previous close separately
-          const prev = await fetchPreviousClose(commodity.symbol, apiKey);
-          if (prev) prevClose = prev;
-        }
-        
-        if (price === 0) return null;
-        
-        const change = prevClose > 0 ? price - prevClose : 0;
-        const changePercent = prevClose > 0 ? (change / prevClose) * 100 : 0;
-        
-        return {
-          symbol: commodity.symbol,
-          name: commodity.name,
-          price,
-          change: Math.round(change * 10000) / 10000,
-          changePercent: Math.round(changePercent * 100) / 100,
-          high,
-          low,
-          open,
-          prevClose,
-          timestamp,
-          unit: commodity.unit,
-          category: commodity.category,
-        };
-      })
-    );
+    if (!bars) return null;
     
-    for (const result of batchResults) {
-      if (result !== null) {
-        results.push(result);
-      }
-    }
+    const { current, previous } = bars;
+    const price = current.c;
+    const prevClose = previous.c;
+    const change = price - prevClose;
+    const changePercent = prevClose > 0 ? (change / prevClose) * 100 : 0;
     
-    // Small delay between batches to avoid rate limits
-    if (i + batchSize < COMMODITIES.length) {
-      await new Promise(r => setTimeout(r, 200));
+    return {
+      symbol: commodity.symbol,
+      name: commodity.name,
+      price: Math.round(price * 10000) / 10000,
+      change: Math.round(change * 10000) / 10000,
+      changePercent: Math.round(changePercent * 100) / 100,
+      high: current.h,
+      low: current.l,
+      open: current.o,
+      prevClose,
+      timestamp: new Date(current.t).toISOString(),
+      unit: commodity.unit,
+      category: commodity.category,
+    };
+  });
+  
+  const batchResults = await Promise.all(allPromises);
+  
+  for (const result of batchResults) {
+    if (result !== null) {
+      results.push(result);
     }
   }
   
@@ -246,80 +186,44 @@ async function fetchCommodities(apiKey: string): Promise<TickerSnapshot[]> {
 async function fetchForex(apiKey: string): Promise<TickerSnapshot[]> {
   const results: TickerSnapshot[] = [];
   
-  const batchSize = 5;
-  for (let i = 0; i < FOREX_PAIRS.length; i += batchSize) {
-    const batch = FOREX_PAIRS.slice(i, i + batchSize);
+  const allPromises = FOREX_PAIRS.map(async (pair) => {
+    const bars = await fetchRecentBars(pair.symbol, apiKey);
     
-    const batchResults = await Promise.all(
-      batch.map(async (pair) => {
-        const snapshot = await fetchTickerSnapshot(pair.symbol, apiKey);
-        
-        let price = 0;
-        let prevClose = 0;
-        let high = 0;
-        let low = 0;
-        let open = 0;
-        let timestamp = new Date().toISOString();
-        
-        if (snapshot?.lastTrade?.p) {
-          price = snapshot.lastTrade.p;
-          timestamp = new Date(snapshot.lastTrade.t).toISOString();
-          
-          if (snapshot.prevDay) {
-            prevClose = snapshot.prevDay.c;
-            high = snapshot.prevDay.h;
-            low = snapshot.prevDay.l;
-            open = snapshot.prevDay.o;
-          }
-        } else {
-          const bar = await fetchLatestBar(pair.symbol, apiKey);
-          if (bar) {
-            price = bar.c;
-            high = bar.h;
-            low = bar.l;
-            open = bar.o;
-            timestamp = new Date(bar.t).toISOString();
-          }
-          
-          const prev = await fetchPreviousClose(pair.symbol, apiKey);
-          if (prev) prevClose = prev;
-        }
-        
-        if (price === 0) return null;
-        
-        const change = prevClose > 0 ? price - prevClose : 0;
-        const changePercent = prevClose > 0 ? (change / prevClose) * 100 : 0;
-        
-        // Determine decimal places based on pair
-        const isJpyPair = pair.quote === 'JPY' || pair.base === 'JPY';
-        const decimals = isJpyPair ? 3 : 5;
-        
-        return {
-          symbol: pair.symbol,
-          name: pair.name,
-          price: Math.round(price * Math.pow(10, decimals)) / Math.pow(10, decimals),
-          change: Math.round(change * Math.pow(10, decimals)) / Math.pow(10, decimals),
-          changePercent: Math.round(changePercent * 100) / 100,
-          high: Math.round(high * Math.pow(10, decimals)) / Math.pow(10, decimals),
-          low: Math.round(low * Math.pow(10, decimals)) / Math.pow(10, decimals),
-          open: Math.round(open * Math.pow(10, decimals)) / Math.pow(10, decimals),
-          prevClose: Math.round(prevClose * Math.pow(10, decimals)) / Math.pow(10, decimals),
-          timestamp,
-          category: pair.category,
-          base: pair.base,
-          quote: pair.quote,
-        };
-      })
-    );
+    if (!bars) return null;
     
-    for (const result of batchResults) {
-      if (result !== null) {
-        results.push(result);
-      }
-    }
+    const { current, previous } = bars;
+    const price = current.c;
+    const prevClose = previous.c;
+    const change = price - prevClose;
+    const changePercent = prevClose > 0 ? (change / prevClose) * 100 : 0;
     
-    if (i + batchSize < FOREX_PAIRS.length) {
-      await new Promise(r => setTimeout(r, 200));
+    // Determine decimal places based on pair
+    const isJpyPair = pair.quote === 'JPY' || pair.base === 'JPY';
+    const decimals = isJpyPair ? 3 : 5;
+    const multiplier = Math.pow(10, decimals);
+    
+    return {
+      symbol: pair.symbol,
+      name: pair.name,
+      price: Math.round(price * multiplier) / multiplier,
+      change: Math.round(change * multiplier) / multiplier,
+      changePercent: Math.round(changePercent * 100) / 100,
+      high: Math.round(current.h * multiplier) / multiplier,
+      low: Math.round(current.l * multiplier) / multiplier,
+      open: Math.round(current.o * multiplier) / multiplier,
+      prevClose: Math.round(prevClose * multiplier) / multiplier,
+      timestamp: new Date(current.t).toISOString(),
+      category: pair.category,
+      base: pair.base,
+      quote: pair.quote,
+    };
+  });
+  
+  const batchResults = await Promise.all(allPromises);
+  
+  for (const result of batchResults) {
+    if (result !== null) {
+      results.push(result);
     }
   }
   
@@ -335,7 +239,7 @@ serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     const { type = "both" } = body; // "commodities", "forex", or "both"
 
-    const POLYGON_API_KEY = Deno.env.get("VITE_POLYGON_API_KEY") || Deno.env.get("POLYGON_API_KEY");
+    const POLYGON_API_KEY = Deno.env.get("POLYGON_API_KEY") || Deno.env.get("VITE_POLYGON_API_KEY");
 
     if (!POLYGON_API_KEY) {
       return json({ ok: false, error: "Polygon API key not configured" }, 500);
