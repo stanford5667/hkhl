@@ -18,7 +18,8 @@ import { AISummaryCard } from '@/components/companies/AISummaryCard';
 import { PublicEquityDetailView } from '@/components/equity/PublicEquityDetailView';
 import { AssetBacktestPanel } from '@/components/equity/AssetBacktestPanel';
 import { QuantitativeStudiesPanel } from '@/components/equity/QuantitativeStudiesPanel';
-
+import { CompanyResearch } from '@/components/research/CompanyResearch';
+import { Search } from 'lucide-react';
 import { CompanySummaryCard } from '@/components/companies/CompanySummaryCard';
 import { CompanyContactsCard } from '@/components/companies/CompanyContactsCard';
 import { CompanyNotesSection } from '@/components/companies/CompanyNotesSection';
@@ -377,6 +378,12 @@ export default function CompanyDetail() {
                 Metrics
               </TabsTrigger>
             )}
+            {isPublicEquity && (
+              <TabsTrigger value="studies" className="gap-2 text-base px-5 py-3">
+                <FlaskConical className="h-5 w-5" />
+                Studies
+              </TabsTrigger>
+            )}
           </TabsList>
 
           {/* Row 2: News, Models */}
@@ -392,6 +399,12 @@ export default function CompanyDetail() {
                 <Badge variant="secondary" className="ml-1">{models.length}</Badge>
               )}
             </TabsTrigger>
+            {isPublicEquity && (
+              <TabsTrigger value="research" className="gap-2 text-base px-5 py-3">
+                <Search className="h-5 w-5" />
+                Research
+              </TabsTrigger>
+            )}
           </TabsList>
         </div>
 
@@ -718,6 +731,26 @@ export default function CompanyDetail() {
         {isPublicEquity && company.ticker_symbol && (
           <TabsContent value="backtest">
             <AssetBacktestPanel 
+              ticker={company.ticker_symbol}
+              companyName={company.name}
+            />
+          </TabsContent>
+        )}
+
+        {/* Studies Tab - Public Equity Only */}
+        {isPublicEquity && company.ticker_symbol && (
+          <TabsContent value="studies">
+            <QuantitativeStudiesPanel 
+              ticker={company.ticker_symbol}
+              companyName={company.name}
+            />
+          </TabsContent>
+        )}
+
+        {/* Research Tab - Public Equity Only */}
+        {isPublicEquity && company.ticker_symbol && (
+          <TabsContent value="research">
+            <CompanyResearch 
               ticker={company.ticker_symbol}
               companyName={company.name}
             />
