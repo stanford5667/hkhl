@@ -1,7 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 // ========== KILL SWITCH - SET TO FALSE TO DISABLE ALL API CALLS ==========
-const ENABLE_PERPLEXITY_API = false;
+const ENABLE_PERPLEXITY_API = true;
 // ==========================================================================
 
 const corsHeaders = {
