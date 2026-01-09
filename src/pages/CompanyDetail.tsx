@@ -16,6 +16,7 @@ import { CompanyTasksTab } from '@/components/companies/CompanyTasksTab';
 import { ProcessingBanner, ProcessingIndicator, AIAnalyzedBadge } from '@/components/companies/ProcessingBanner';
 import { AISummaryCard } from '@/components/companies/AISummaryCard';
 import { PublicEquityDetailView } from '@/components/equity/PublicEquityDetailView';
+import { AssetBacktestPanel } from '@/components/equity/AssetBacktestPanel';
 
 import { CompanySummaryCard } from '@/components/companies/CompanySummaryCard';
 import { CompanyContactsCard } from '@/components/companies/CompanyContactsCard';
@@ -41,6 +42,7 @@ import {
   CheckSquare,
   LineChart,
   Briefcase,
+  BarChart3,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { useCompanyTasks } from '@/hooks/useTasks';
@@ -320,6 +322,12 @@ export default function CompanyDetail() {
             <TabsTrigger value="transactions" className="gap-2 text-base px-5 py-3">
               <Briefcase className="h-5 w-5" />
               Transactions
+            </TabsTrigger>
+          )}
+          {isPublicEquity && (
+            <TabsTrigger value="backtest" className="gap-2 text-base px-5 py-3">
+              <BarChart3 className="h-5 w-5" />
+              Backtest
             </TabsTrigger>
           )}
           <TabsTrigger value="news" className="gap-2 text-base px-5 py-3">
@@ -657,6 +665,16 @@ export default function CompanyDetail() {
               company={company} 
               onUpdate={fetchData} 
               showOnlyTransactions={true}
+            />
+          </TabsContent>
+        )}
+
+        {/* Backtest Tab - Public Equity Only */}
+        {isPublicEquity && company.ticker_symbol && (
+          <TabsContent value="backtest">
+            <AssetBacktestPanel 
+              ticker={company.ticker_symbol}
+              companyName={company.name}
             />
           </TabsContent>
         )}
