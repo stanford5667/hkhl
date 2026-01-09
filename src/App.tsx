@@ -32,6 +32,7 @@ import Research from "./pages/Research";
 // import Backtest from "./pages/Backtest"; // Hidden
 import Watchlist from "./pages/Watchlist";
 import Screener from "./pages/Screener";
+import TickerDetail from "./pages/TickerDetail";
 import PortfolioVisualizer from "./pages/PortfolioVisualizer";
 import PredictionMarketsAI from "./pages/PredictionMarketsAI";
 import DiscoveryHub from "./pages/DiscoveryHub";
@@ -76,6 +77,7 @@ const App = () => (
                       {/* <Route path="/backtest" element={<Backtest />} /> Hidden */}
                       <Route path="/watchlist" element={<Watchlist />} />
                       <Route path="/screener" element={<Screener />} />
+                      <Route path="/stock/:ticker" element={<TickerDetail />} />
                       <Route path="/portfolio-visualizer" element={<PortfolioVisualizer />} />
                       <Route path="/prediction-ai" element={<PredictionMarketsAI />} />
                       <Route path="/discovery" element={<DiscoveryHub />} />

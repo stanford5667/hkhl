@@ -579,9 +579,9 @@ export default function Screener() {
 
   const { addToWatchlist, isInWatchlist } = useWatchlist('stock');
 
-  // Handle row click - navigate to research page
+  // Handle row click - navigate to ticker detail page
   const handleRowClick = (stock: ScreenerResult) => {
-    navigate(`/research?ticker=${stock.symbol}`);
+    navigate(`/stock/${stock.symbol}`);
   };
 
   // Load saved screens
