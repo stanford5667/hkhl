@@ -119,12 +119,11 @@ export default function CompanyDetail() {
     if (!id) return;
 
     // If this route was used for a synced position, ids may be prefixed with "synced-"
-    const lookupId = id.startsWith('synced-') ? id.replace(/^synced-/, '') : id;
+    const isSyncedPositionRoute = id.startsWith('synced-');
+    const lookupId = isSyncedPositionRoute ? id.replace(/^synced-/, '') : id;
 
-    // Company IDs are UUIDs. Anything else likely came from a synced position route.
-    const isValidUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(lookupId);
-
-    if (!isValidUUID) {
+    // If we KNOW it's a synced position route, resolve to ticker and redirect.
+    if (isSyncedPositionRoute) {
       const { data: positionData } = await supabase
         .from('synced_positions')
         .select('symbol')
@@ -141,6 +140,15 @@ export default function CompanyDetail() {
       return;
     }
 
+    // Company IDs are UUIDs; if this isn't a UUID, it's likely an invalid route.
+    const isValidUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(lookupId);
+
+    if (!isValidUUID) {
+      toast.error('Company not found');
+      navigate('/');
+      return;
+    }
+
     setLoading(true);
     try {
       // Fetch company
@@ -152,6 +160,18 @@ export default function CompanyDetail() {
 
       if (companyError) throw companyError;
       if (!companyData) {
+        // Fallback: sometimes a UUID may refer to a synced position id
+        const { data: positionData } = await supabase
+          .from('synced_positions')
+          .select('symbol')
+          .eq('id', lookupId)
+          .maybeSingle();
+
+        if (positionData?.symbol) {
+          navigate(`/stock/${positionData.symbol}`, { replace: true });
+          return;
+        }
+
         toast.error('Company not found');
         navigate('/');
         return;
