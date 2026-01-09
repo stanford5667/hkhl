@@ -13,7 +13,7 @@ import { usePortfolioTotals, useAlerts, useDealPipeline, usePortfolioAssets, use
 import { LiveMacroContent } from '@/components/markets/LiveMacroContent';
 
 export default function MarketIntel() {
-  const [activeTab, setActiveTab] = useState('overview');
+  const [activeTab, setActiveTab] = useState('macro');
   const { data: totals } = usePortfolioTotals();
   const { data: alerts } = useAlerts();
   const { data: deals } = useDealPipeline();
@@ -68,14 +68,6 @@ export default function MarketIntel() {
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="flex flex-wrap h-auto gap-1 bg-secondary/50 p-1">
-          <TabsTrigger value="overview" className="text-sm">
-            <PieChart className="h-4 w-4 mr-1.5" />
-            Overview
-          </TabsTrigger>
-          <TabsTrigger value="health" className="text-sm">
-            <Activity className="h-4 w-4 mr-1.5" />
-            Health
-          </TabsTrigger>
           <TabsTrigger value="macro" className="text-sm">
             <Globe className="h-4 w-4 mr-1.5" />
             Macro
@@ -106,13 +98,6 @@ export default function MarketIntel() {
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="overview" className="mt-6">
-          <OverviewContent />
-        </TabsContent>
-
-        <TabsContent value="health" className="mt-6">
-          <HealthContent />
-        </TabsContent>
 
         <TabsContent value="macro" className="mt-6">
           <LiveMacroContent />
