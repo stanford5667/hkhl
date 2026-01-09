@@ -118,6 +118,30 @@ export default function CompanyDetail() {
   const fetchData = async () => {
     if (!id) return;
 
+    // Check if this is a synced position (not a real company UUID)
+    // Synced positions have IDs like "synced-xxx" or other non-UUID formats
+    const isValidUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+    
+    if (!isValidUUID) {
+      // Try to extract ticker from synced_positions table
+      const { data: positionData } = await supabase
+        .from('synced_positions')
+        .select('symbol')
+        .eq('id', id)
+        .maybeSingle();
+      
+      if (positionData?.symbol) {
+        // Redirect to ticker detail page
+        navigate(`/stock/${positionData.symbol}`, { replace: true });
+        return;
+      }
+      
+      // If no position found, redirect home
+      toast.error('Position not found');
+      navigate('/');
+      return;
+    }
+
     setLoading(true);
     try {
       // Fetch company
@@ -130,7 +154,7 @@ export default function CompanyDetail() {
       if (companyError) throw companyError;
       if (!companyData) {
         toast.error('Company not found');
-        navigate('/companies');
+        navigate('/');
         return;
       }
       setCompany(companyData as CompanyDetail);
