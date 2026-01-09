@@ -1,14 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { useUnifiedData, type Company } from '@/contexts/UnifiedDataContext';
-import { 
-  calculatePortfolioPerformance, 
-  generateDemoHistory,
-  getPortfolioHistory,
-  type PortfolioPerformanceResult,
-  type PortfolioSnapshot,
-  type AssetClassData,
-  type PortfolioHolding,
-} from '@/services/portfolioPerformanceService';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
+import { getCachedQuotes } from '@/services/quoteCacheService';
 import { format, subDays, parseISO } from 'date-fns';
 
 export interface ChartDataPoint {
@@ -28,30 +21,27 @@ export interface PortfolioAllocationInput {
   name?: string;
 }
 
+export interface AssetClassData {
+  value: number;
+  costBasis: number;
+  todayChange: number;
+  holdings: number;
+}
+
 export interface PortfolioPerformanceData {
-  // Current values
   totalValue: number;
   totalCostBasis: number;
   todayChange: number;
   todayChangePercent: number;
   totalGainLoss: number;
   totalGainLossPercent: number;
-  
-  // By asset class
   byAssetClass: Record<string, AssetClassData>;
-  
-  // Chart data
   chartData: ChartDataPoint[];
-  
-  // Period return (e.g., 30-day return)
   periodReturn: number;
   periodReturnPercent: number;
-  
-  // State
   isLoading: boolean;
   hasHistory: boolean;
-  
-  // Actions
+  positionCount: number;
   refresh: () => Promise<void>;
   generateDemoHistory: () => void;
 }
@@ -62,142 +52,244 @@ interface UsePortfolioPerformanceOptions {
   allocations?: PortfolioAllocationInput[];
 }
 
-/**
- * Hook for portfolio performance data with live prices
- * @param options Configuration including days, portfolioId, and allocations
- */
+interface PositionData {
+  id: string;
+  symbol: string;
+  name: string | null;
+  quantity: number;
+  cost_basis: number | null;
+  cost_per_share: number | null;
+  current_price: number | null;
+  current_value: number | null;
+  asset_type: string;
+  last_price_update: string | null;
+}
+
+interface HistorySnapshot {
+  date: string;
+  totalValue: number;
+  byAssetClass: Record<string, number>;
+}
+
+const HISTORY_KEY_PREFIX = 'portfolio-perf-history';
+const MAX_HISTORY_DAYS = 365;
+
+function getHistoryKey(portfolioId?: string | null): string {
+  return portfolioId ? `${HISTORY_KEY_PREFIX}-${portfolioId}` : HISTORY_KEY_PREFIX;
+}
+
+function getStoredHistory(portfolioId?: string | null): HistorySnapshot[] {
+  try {
+    const key = getHistoryKey(portfolioId);
+    const stored = localStorage.getItem(key);
+    return stored ? JSON.parse(stored) : [];
+  } catch {
+    return [];
+  }
+}
+
+function storeSnapshot(snapshot: HistorySnapshot, portfolioId?: string | null) {
+  try {
+    const key = getHistoryKey(portfolioId);
+    let history = getStoredHistory(portfolioId);
+    const existingIndex = history.findIndex(h => h.date === snapshot.date);
+    
+    if (existingIndex >= 0) {
+      history[existingIndex] = snapshot;
+    } else {
+      history.push(snapshot);
+    }
+    
+    history.sort((a, b) => a.date.localeCompare(b.date));
+    if (history.length > MAX_HISTORY_DAYS) {
+      history = history.slice(-MAX_HISTORY_DAYS);
+    }
+    
+    localStorage.setItem(key, JSON.stringify(history));
+  } catch (e) {
+    console.warn('[usePortfolioPerformance] Failed to store snapshot:', e);
+  }
+}
+
+function mapAssetType(assetType: string): string {
+  switch (assetType) {
+    case 'stock':
+    case 'etf':
+      return 'public_equity';
+    case 'bond':
+      return 'credit';
+    case 'crypto':
+    case 'other':
+      return 'other';
+    case 'real_estate':
+      return 'real_estate';
+    case 'private':
+      return 'private_equity';
+    default:
+      return 'public_equity';
+  }
+}
+
 export function usePortfolioPerformance(
   optionsOrDays: number | UsePortfolioPerformanceOptions = 30
 ): PortfolioPerformanceData {
-  // Handle both legacy (number) and new (object) signatures
   const options: UsePortfolioPerformanceOptions = typeof optionsOrDays === 'number' 
     ? { days: optionsOrDays } 
     : optionsOrDays;
   
-  const { days = 30, portfolioId, allocations } = options;
+  const { days = 30, portfolioId } = options;
+  const { user } = useAuth();
   
-  const { companies, isLoading: dataLoading } = useUnifiedData();
-  const [performance, setPerformance] = useState<PortfolioPerformanceResult | null>(null);
+  const [positions, setPositions] = useState<PositionData[]>([]);
+  const [liveQuotes, setLiveQuotes] = useState<Map<string, { price: number; change: number; changePercent: number }>>(new Map());
   const [isLoading, setIsLoading] = useState(true);
+  const [history, setHistory] = useState<HistorySnapshot[]>([]);
 
-  // Convert companies to holdings format, filtering by portfolio allocations if provided
-  const holdings = useMemo(() => {
-    let filteredCompanies = companies;
-    
-    // If allocations are provided, filter to only matching tickers
-    if (allocations && allocations.length > 0) {
-      const allocationSymbols = new Set(allocations.map(a => a.symbol.toUpperCase()));
-      filteredCompanies = companies.filter(c => {
-        // Match by ticker symbol
-        if (c.ticker_symbol && allocationSymbols.has(c.ticker_symbol.toUpperCase())) {
-          return true;
-        }
-        return false;
-      });
-    }
-    
-    return filteredCompanies.map(c => ({
-      id: c.id,
-      name: c.name,
-      asset_class: c.asset_class,
-      ticker_symbol: c.ticker_symbol,
-      shares_owned: c.shares_owned,
-      cost_basis: c.cost_basis,
-      market_value: c.market_value,
-      current_price: c.current_price,
-      revenue_ltm: c.revenue_ltm,
-      ebitda_ltm: c.ebitda_ltm,
-      company_type: c.company_type,
-    }));
-  }, [companies, allocations]);
-
-  // Generate a cache key based on portfolio
-  const cacheKey = useMemo(() => {
-    if (portfolioId) return `portfolio-history-${portfolioId}`;
-    return 'portfolio-history';
-  }, [portfolioId]);
-
-  // Fetch performance data
-  const refresh = useCallback(async () => {
-    if (holdings.length === 0) {
-      setPerformance({
-        totalValue: 0,
-        totalCostBasis: 0,
-        todayChange: 0,
-        totalGainLoss: 0,
-        totalGainLossPercent: 0,
-        todayChangePercent: 0,
-        byAssetClass: {
-          public_equity: { value: 0, costBasis: 0, todayChange: 0, holdings: 0 },
-          private_equity: { value: 0, costBasis: 0, todayChange: 0, holdings: 0 },
-          real_estate: { value: 0, costBasis: 0, todayChange: 0, holdings: 0 },
-          credit: { value: 0, costBasis: 0, todayChange: 0, holdings: 0 },
-          other: { value: 0, costBasis: 0, todayChange: 0, holdings: 0 },
-        },
-        history: [],
-      });
+  // Fetch positions from synced_positions table
+  const fetchPositions = useCallback(async () => {
+    if (!user?.id) {
+      setPositions([]);
       setIsLoading(false);
       return;
     }
-
+    
     setIsLoading(true);
     try {
-      const result = await calculatePortfolioPerformance(holdings, cacheKey);
-      setPerformance(result);
-    } catch (e) {
-      console.error('[usePortfolioPerformance] Error calculating performance:', e);
-    } finally {
-      setIsLoading(false);
+      let query = supabase
+        .from('synced_positions')
+        .select('*')
+        .eq('user_id', user.id);
+      
+      if (portfolioId) {
+        query = query.eq('portfolio_id', portfolioId);
+      }
+      
+      const { data, error } = await query;
+      if (error) throw error;
+      
+      setPositions((data || []) as PositionData[]);
+    } catch (err) {
+      console.error('[usePortfolioPerformance] Error fetching positions:', err);
+      setPositions([]);
     }
-  }, [holdings, cacheKey]);
+  }, [user?.id, portfolioId]);
 
-  // Initial load
+  // Fetch live quotes for positions
+  const fetchQuotes = useCallback(async (symbols: string[]) => {
+    if (symbols.length === 0) return;
+    
+    try {
+      const quotes = await getCachedQuotes(symbols);
+      setLiveQuotes(quotes);
+    } catch (err) {
+      console.error('[usePortfolioPerformance] Error fetching quotes:', err);
+    }
+  }, []);
+
+  // Initial data load
   useEffect(() => {
-    if (!dataLoading) {
-      refresh();
-    }
-  }, [dataLoading, refresh]);
+    fetchPositions();
+    setHistory(getStoredHistory(portfolioId));
+  }, [fetchPositions, portfolioId]);
 
-  // Generate demo history
-  const handleGenerateDemoHistory = useCallback(() => {
-    if (!performance) return;
+  // Fetch quotes when positions change
+  useEffect(() => {
+    const symbols = positions
+      .filter(p => ['stock', 'etf'].includes(p.asset_type))
+      .map(p => p.symbol.toUpperCase());
     
-    const byAssetClass: Record<string, number> = {};
-    Object.entries(performance.byAssetClass).forEach(([key, data]) => {
-      byAssetClass[key] = data.value;
+    if (symbols.length > 0) {
+      fetchQuotes([...new Set(symbols)]);
+    }
+    setIsLoading(false);
+  }, [positions, fetchQuotes]);
+
+  // Calculate all metrics from positions + quotes
+  const metrics = useMemo(() => {
+    const byAssetClass: Record<string, AssetClassData> = {
+      public_equity: { value: 0, costBasis: 0, todayChange: 0, holdings: 0 },
+      private_equity: { value: 0, costBasis: 0, todayChange: 0, holdings: 0 },
+      real_estate: { value: 0, costBasis: 0, todayChange: 0, holdings: 0 },
+      credit: { value: 0, costBasis: 0, todayChange: 0, holdings: 0 },
+      other: { value: 0, costBasis: 0, todayChange: 0, holdings: 0 },
+    };
+
+    let totalValue = 0;
+    let totalCostBasis = 0;
+    let totalTodayChange = 0;
+
+    positions.forEach(pos => {
+      const assetClass = mapAssetType(pos.asset_type);
+      const quote = liveQuotes.get(pos.symbol.toUpperCase());
+      
+      const price = quote?.price ?? pos.current_price ?? 0;
+      const dailyChange = quote?.change ?? 0;
+      const value = pos.quantity * price;
+      const costBasis = pos.cost_basis ?? (pos.cost_per_share ? pos.cost_per_share * pos.quantity : 0);
+      const todayChange = pos.quantity * dailyChange;
+
+      byAssetClass[assetClass].value += value;
+      byAssetClass[assetClass].costBasis += costBasis;
+      byAssetClass[assetClass].todayChange += todayChange;
+      byAssetClass[assetClass].holdings += 1;
+
+      totalValue += value;
+      totalCostBasis += costBasis;
+      totalTodayChange += todayChange;
     });
-    
-    const demoHistory = generateDemoHistory(performance.totalValue, byAssetClass, cacheKey);
-    setPerformance(prev => prev ? { ...prev, history: demoHistory } : prev);
-  }, [performance, cacheKey]);
+
+    const totalGainLoss = totalValue - totalCostBasis;
+    const totalGainLossPercent = totalCostBasis > 0 ? (totalGainLoss / totalCostBasis) * 100 : 0;
+    const previousValue = totalValue - totalTodayChange;
+    const todayChangePercent = previousValue > 0 ? (totalTodayChange / previousValue) * 100 : 0;
+
+    return {
+      totalValue,
+      totalCostBasis,
+      todayChange: totalTodayChange,
+      todayChangePercent,
+      totalGainLoss,
+      totalGainLossPercent,
+      byAssetClass,
+    };
+  }, [positions, liveQuotes]);
+
+  // Store today's snapshot whenever metrics change
+  useEffect(() => {
+    if (metrics.totalValue > 0) {
+      const today = new Date().toISOString().split('T')[0];
+      const snapshot: HistorySnapshot = {
+        date: today,
+        totalValue: metrics.totalValue,
+        byAssetClass: Object.fromEntries(
+          Object.entries(metrics.byAssetClass).map(([k, v]) => [k, v.value])
+        ),
+      };
+      storeSnapshot(snapshot, portfolioId);
+      setHistory(getStoredHistory(portfolioId));
+    }
+  }, [metrics.totalValue, portfolioId]);
 
   // Build chart data from history
   const chartData = useMemo<ChartDataPoint[]>(() => {
-    if (!performance) return [];
-    
-    const history = performance.history;
     if (history.length === 0) {
-      // No history, just show today's value
+      // Show current state as single point
       const today = format(new Date(), 'MMM d');
       return [{
         date: today,
-        public_equity: performance.byAssetClass.public_equity?.value || 0,
-        private_equity: performance.byAssetClass.private_equity?.value || 0,
-        real_estate: performance.byAssetClass.real_estate?.value || 0,
-        credit: performance.byAssetClass.credit?.value || 0,
-        other: performance.byAssetClass.other?.value || 0,
-        total: performance.totalValue,
+        public_equity: metrics.byAssetClass.public_equity?.value || 0,
+        private_equity: metrics.byAssetClass.private_equity?.value || 0,
+        real_estate: metrics.byAssetClass.real_estate?.value || 0,
+        credit: metrics.byAssetClass.credit?.value || 0,
+        other: metrics.byAssetClass.other?.value || 0,
+        total: metrics.totalValue,
       }];
     }
 
-    // Filter to requested days
     const cutoffDate = subDays(new Date(), days);
-    const filteredHistory = history.filter(h => {
-      const date = parseISO(h.date);
-      return date >= cutoffDate;
-    });
+    const filtered = history.filter(h => parseISO(h.date) >= cutoffDate);
 
-    return filteredHistory.map(h => ({
+    return filtered.map(h => ({
       date: format(parseISO(h.date), 'MMM d'),
       public_equity: h.byAssetClass.public_equity || 0,
       private_equity: h.byAssetClass.private_equity || 0,
@@ -206,35 +298,73 @@ export function usePortfolioPerformance(
       other: h.byAssetClass.other || 0,
       total: h.totalValue,
     }));
-  }, [performance, days]);
+  }, [history, days, metrics]);
 
   // Calculate period return
   const { periodReturn, periodReturnPercent } = useMemo(() => {
-    if (!performance || chartData.length < 2) {
+    if (chartData.length < 2) {
       return { periodReturn: 0, periodReturnPercent: 0 };
     }
-
     const startValue = chartData[0].total;
     const endValue = chartData[chartData.length - 1].total;
     const periodReturn = endValue - startValue;
     const periodReturnPercent = startValue > 0 ? (periodReturn / startValue) * 100 : 0;
-
     return { periodReturn, periodReturnPercent };
-  }, [chartData, performance]);
+  }, [chartData]);
+
+  // Refresh action
+  const refresh = useCallback(async () => {
+    setIsLoading(true);
+    await fetchPositions();
+    const symbols = positions
+      .filter(p => ['stock', 'etf'].includes(p.asset_type))
+      .map(p => p.symbol.toUpperCase());
+    if (symbols.length > 0) {
+      await fetchQuotes([...new Set(symbols)]);
+    }
+    setIsLoading(false);
+  }, [fetchPositions, fetchQuotes, positions]);
+
+  // Generate demo history
+  const handleGenerateDemoHistory = useCallback(() => {
+    const today = new Date();
+    const demoHistory: HistorySnapshot[] = [];
+    
+    for (let i = 90; i >= 0; i--) {
+      const date = new Date(today);
+      date.setDate(date.getDate() - i);
+      const dateString = date.toISOString().split('T')[0];
+      
+      const progress = (90 - i) / 90;
+      const baseVariance = 0.15;
+      const variance = (1 - baseVariance) + (baseVariance * progress) + (Math.random() - 0.5) * 0.02;
+      
+      demoHistory.push({
+        date: dateString,
+        totalValue: metrics.totalValue * variance,
+        byAssetClass: {
+          public_equity: (metrics.byAssetClass.public_equity?.value || 0) * variance,
+          private_equity: (metrics.byAssetClass.private_equity?.value || 0) * (0.98 + Math.random() * 0.04),
+          real_estate: (metrics.byAssetClass.real_estate?.value || 0) * (0.99 + Math.random() * 0.02),
+          credit: (metrics.byAssetClass.credit?.value || 0) * (0.995 + Math.random() * 0.01),
+          other: (metrics.byAssetClass.other?.value || 0) * (0.98 + Math.random() * 0.04),
+        },
+      });
+    }
+    
+    const key = getHistoryKey(portfolioId);
+    localStorage.setItem(key, JSON.stringify(demoHistory));
+    setHistory(demoHistory);
+  }, [metrics, portfolioId]);
 
   return {
-    totalValue: performance?.totalValue || 0,
-    totalCostBasis: performance?.totalCostBasis || 0,
-    todayChange: performance?.todayChange || 0,
-    todayChangePercent: performance?.todayChangePercent || 0,
-    totalGainLoss: performance?.totalGainLoss || 0,
-    totalGainLossPercent: performance?.totalGainLossPercent || 0,
-    byAssetClass: performance?.byAssetClass || {},
+    ...metrics,
     chartData,
     periodReturn,
     periodReturnPercent,
-    isLoading: isLoading || dataLoading,
-    hasHistory: (performance?.history.length || 0) > 1,
+    isLoading,
+    hasHistory: history.length > 1,
+    positionCount: positions.length,
     refresh,
     generateDemoHistory: handleGenerateDemoHistory,
   };

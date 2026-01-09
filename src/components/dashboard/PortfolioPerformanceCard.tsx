@@ -12,7 +12,7 @@ import {
   RefreshCw,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { usePortfolioPerformance, PortfolioAllocationInput } from '@/hooks/usePortfolioPerformance';
+import { usePortfolioPerformance } from '@/hooks/usePortfolioPerformance';
 import {
   AreaChart,
   Area,
@@ -31,7 +31,6 @@ interface PortfolioPerformanceCardProps {
   className?: string;
   portfolioId?: string | null;
   portfolioName?: string;
-  allocations?: PortfolioAllocationInput[];
 }
 
 function formatCurrency(value: number): string {
@@ -68,7 +67,6 @@ export function PortfolioPerformanceCard({
   className,
   portfolioId,
   portfolioName,
-  allocations,
 }: PortfolioPerformanceCardProps) {
   const {
     totalValue,
@@ -83,9 +81,10 @@ export function PortfolioPerformanceCard({
     periodReturnPercent,
     isLoading,
     hasHistory,
+    positionCount,
     refresh,
     generateDemoHistory,
-  } = usePortfolioPerformance({ days, portfolioId, allocations });
+  } = usePortfolioPerformance({ days, portfolioId });
 
   const [isRefreshing, setIsRefreshing] = useState(false);
 
