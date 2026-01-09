@@ -165,6 +165,45 @@ export const financialTerms: Record<string, FinancialTerm> = {
     impact: "This is arguably the most important risk metric. If you can't stomach the max drawdown, you need to reduce risk - regardless of returns.",
     example: "During 2008, the S&P 500's max drawdown was about 55%. If you had $100,000, it would have dropped to $45,000 at the worst point.",
     learnMoreUrl: "https://www.investopedia.com/terms/m/maximum-drawdown-mdd.asp"
+  },
+  
+  portfolioValue: {
+    term: "Portfolio Value",
+    definition: "The total current market value of all investments in your portfolio. This is what your holdings would be worth if you sold everything today.",
+    impact: "Tracking portfolio value shows your wealth growth. Focus on long-term trends rather than daily fluctuations to avoid emotional decisions.",
+    example: "If you own 100 shares of a $50 stock and 200 shares of a $25 stock, your portfolio value is $10,000.",
+    learnMoreUrl: "https://www.investopedia.com/terms/p/portfolio.asp"
+  },
+  
+  moic: {
+    term: "MOIC (Multiple on Invested Capital)",
+    definition: "The ratio of current value to the amount you originally invested. A 2.0x MOIC means your investment has doubled.",
+    impact: "MOIC shows total return regardless of time. Use it alongside IRR to understand both magnitude and speed of returns.",
+    example: "If you invested $100,000 and it's now worth $250,000, your MOIC is 2.5x - you've made 2.5 times your money.",
+    learnMoreUrl: "https://www.investopedia.com/terms/m/multiplesapproach.asp"
+  },
+  
+  irr: {
+    term: "IRR (Internal Rate of Return)",
+    definition: "The annualized return rate that accounts for the timing of cash flows. It tells you your effective yearly return.",
+    impact: "IRR is crucial for comparing investments of different durations. A 50% return over 5 years (~8.5% IRR) is different from 50% in 1 year.",
+    example: "A 3x MOIC over 10 years = ~11.6% IRR, while the same 3x over 3 years = ~44% IRR. Timing matters!",
+    learnMoreUrl: "https://www.investopedia.com/terms/i/irr.asp"
+  },
+  
+  activeDeals: {
+    term: "Active Deals",
+    definition: "Investment opportunities currently in your pipeline that haven't been closed or passed on yet.",
+    impact: "Managing deal flow is essential. Too few deals limits opportunities; too many can dilute focus and due diligence quality.",
+    example: "If you're evaluating 10 potential investments and have passed on 3, you have 7 active deals in your pipeline."
+  },
+  
+  totalReturn: {
+    term: "Total Return",
+    definition: "The complete gain or loss on an investment including price appreciation, dividends, and interest over a period.",
+    impact: "Total return gives the full picture of performance. Focusing only on price gains can undervalue income-producing investments.",
+    example: "A stock that rose 5% and paid 3% in dividends had a total return of 8%, not just 5%.",
+    learnMoreUrl: "https://www.investopedia.com/terms/t/totalreturn.asp"
   }
 };
 

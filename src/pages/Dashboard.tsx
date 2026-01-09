@@ -128,21 +128,25 @@ export default function Dashboard() {
               value={formatCurrency(totalValue)} 
               change={returnPct} 
               icon={<DollarSign className="h-4 w-4" />}
+              termKey="portfolioValue"
             />
             <StatCard 
               label="Avg MOIC" 
               value={`${avgMoic.toFixed(1)}x`} 
               icon={<TrendingUp className="h-4 w-4" />}
+              termKey="moic"
             />
             <StatCard 
               label="Avg IRR" 
               value={`${(totals?.avgIrr || 0).toFixed(1)}%`} 
               icon={<Activity className="h-4 w-4" />}
+              termKey="irr"
             />
             <StatCard 
               label="Active Deals" 
               value={activeDeals.toString()} 
               icon={<Target className="h-4 w-4" />}
+              termKey="activeDeals"
             />
             <StatCard 
               label="Unread Alerts" 
