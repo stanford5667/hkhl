@@ -498,6 +498,7 @@ export default function Portfolio() {
   } = useActivePortfolio();
   
   // Live metrics calculated from saved portfolio allocations
+  // Now includes advanced metrics (CAGR, Sharpe, etc.) matching Portfolio Builder
   const {
     allocations: savedAllocations,
     investableCapital,
@@ -510,6 +511,14 @@ export default function Portfolio() {
     todayChangePercent: allocTodayChangePercent,
     positionCount: allocPositionCount,
     isLoading: allocLoading,
+    isLoadingAdvanced: allocAdvancedLoading,
+    // Advanced metrics from same calculation as Portfolio Builder
+    cagr: allocCagr,
+    sharpeRatio: allocSharpe,
+    maxDrawdown: allocMaxDD,
+    volatility: allocVolatility,
+    alpha: allocAlpha,
+    beta: allocBeta,
     refresh: refreshAllocMetrics,
   } = usePortfolioFromAllocations({
     portfolio: activePortfolio,
@@ -1101,8 +1110,8 @@ export default function Portfolio() {
         isSaving={isSaving}
       />
 
-      {/* Dynamic Stats Row - Using Allocation Metrics when available */}
-      <motion.div variants={containerVariants} className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+      {/* Dynamic Stats Row - Now includes Portfolio Builder metrics (CAGR, Sharpe, Max DD) */}
+      <motion.div variants={containerVariants} className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4">
         <StatCard
           title="Portfolio Value"
           displayValue={formatCurrency(
@@ -1128,16 +1137,42 @@ export default function Portfolio() {
             document.querySelector('[data-performance-chart]')?.scrollIntoView({ behavior: 'smooth' });
           }}
         />
+        {/* CAGR - Matches Portfolio Builder */}
         <StatCard
-          title="Total Gain/Loss"
-          displayValue={formatCurrency(
-            allocTotalValue > 0 ? allocGainLoss : (perfTotalGainLoss || portfolioStats.totalGainLoss), 
-            true
-          )}
-          icon={(allocTotalValue > 0 ? allocGainLoss : (perfTotalGainLoss || portfolioStats.totalGainLoss)) >= 0 ? TrendingUp : TrendingDown}
-          isLoading={allocLoading || perfLoading || isLoading}
-          change={allocTotalValue > 0 ? allocGainLossPercent : (perfTotalGainLossPercent || portfolioStats.totalGainLossPercent)}
-          changeLabel="all-time"
+          title="CAGR"
+          displayValue={allocCagr !== 0 ? `${allocCagr >= 0 ? '+' : ''}${allocCagr.toFixed(2)}%` : '—'}
+          icon={TrendingUp}
+          isLoading={allocAdvancedLoading}
+          change={allocCagr}
+          onClick={() => navigate('/backtester')}
+          subtitle="Annualized return"
+        />
+        {/* Sharpe Ratio - Matches Portfolio Builder */}
+        <StatCard
+          title="Sharpe Ratio"
+          displayValue={allocSharpe !== 0 ? allocSharpe.toFixed(2) : '—'}
+          icon={Activity}
+          isLoading={allocAdvancedLoading}
+          onClick={() => navigate('/backtester')}
+          subtitle={allocSharpe >= 1 ? 'Good' : allocSharpe >= 0.5 ? 'Moderate' : 'Low'}
+        />
+        {/* Volatility - Matches Portfolio Builder */}
+        <StatCard
+          title="Volatility"
+          displayValue={allocVolatility !== 0 ? `${allocVolatility.toFixed(2)}%` : '—'}
+          icon={Activity}
+          isLoading={allocAdvancedLoading}
+          onClick={() => navigate('/backtester')}
+          subtitle="Annualized"
+        />
+        {/* Max Drawdown - Matches Portfolio Builder */}
+        <StatCard
+          title="Max Drawdown"
+          displayValue={allocMaxDD !== 0 ? `${allocMaxDD.toFixed(2)}%` : '—'}
+          icon={TrendingDown}
+          isLoading={allocAdvancedLoading}
+          onClick={() => navigate('/backtester')}
+          subtitle="Peak to trough"
         />
         <StatCard
           title="Gainers"
@@ -1149,17 +1184,6 @@ export default function Portfolio() {
             setSortAsc(false);
           }}
           subtitle="Today's winners"
-        />
-        <StatCard
-          title="Losers"
-          value={portfolioStats.losersCount}
-          icon={ArrowDownRight}
-          isLoading={isLoading}
-          onClick={() => {
-            setSortBy('todayChange');
-            setSortAsc(true);
-          }}
-          subtitle="Today's laggards"
         />
         <StatCard
           title="Open Tasks"
