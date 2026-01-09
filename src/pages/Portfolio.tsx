@@ -1263,7 +1263,7 @@ export default function Portfolio() {
       }).map((_, i) => <Skeleton key={i} className="h-20 w-32 flex-shrink-0 rounded-lg" />) : indices.map(idx => {
         const isUp = idx.changePercent >= 0;
         const color = isUp ? '#10b981' : '#f43f5e';
-        return;
+        return null; // Indices display handled elsewhere
       })}
       </motion.div>
 

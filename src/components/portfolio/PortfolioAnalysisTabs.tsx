@@ -30,7 +30,12 @@ import {
   ArrowUpRight,
   ArrowDownRight,
   Heart,
+  LineChart,
 } from 'lucide-react';
+import { PortfolioGrowthChart } from './PortfolioGrowthChart';
+import { PerformanceSummaryTable } from './PerformanceSummaryTable';
+import { DrawdownChart } from './DrawdownChart';
+import { AnnualReturnsChart } from './AnnualReturnsChart';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip } from 'recharts';
 import { cn } from '@/lib/utils';
 import { usePortfolioCalculations, PortfolioMetrics } from '@/hooks/usePortfolioCalculations';
@@ -123,7 +128,7 @@ export function PortfolioAnalysisTabs({
   className,
   backtestMetrics: parentBacktestMetrics,
 }: PortfolioAnalysisTabsProps) {
-  const [activeTab, setActiveTab] = useState('overview');
+  const [activeTab, setActiveTab] = useState('performance');
   const [liveQuotes, setLiveQuotes] = useState<Map<string, { price: number; change: number; changePercent: number }>>(new Map());
   const [quotesLoading, setQuotesLoading] = useState(false);
 
@@ -181,6 +186,9 @@ export function PortfolioAnalysisTabs({
     isError,
     progress,
     recalculate,
+    portfolioValues,
+    portfolioReturns,
+    dates,
   } = usePortfolioCalculations({
     allocations: calcAllocations,
     investableCapital,
@@ -297,7 +305,11 @@ export function PortfolioAnalysisTabs({
       </CardHeader>
       <CardContent>
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-3 sm:grid-cols-6 h-auto gap-1 p-1 mb-4">
+          <TabsList className="grid w-full grid-cols-4 sm:grid-cols-7 h-auto gap-1 p-1 mb-4">
+            <TabsTrigger value="performance" className="gap-1.5 text-xs px-2 py-2 flex-col sm:flex-row">
+              <LineChart className="h-4 w-4 sm:h-3.5 sm:w-3.5" />
+              <span className="text-[10px] sm:text-xs">Performance</span>
+            </TabsTrigger>
             <TabsTrigger value="overview" className="gap-1.5 text-xs px-2 py-2 flex-col sm:flex-row">
               <GraduationCap className="h-4 w-4 sm:h-3.5 sm:w-3.5" />
               <span className="text-[10px] sm:text-xs">Overview</span>
@@ -323,6 +335,57 @@ export function PortfolioAnalysisTabs({
               <span className="text-[10px] sm:text-xs">Stress</span>
             </TabsTrigger>
           </TabsList>
+
+          {/* Performance Tab - Charts and Metrics */}
+          <TabsContent value="performance" className="mt-0">
+            <ErrorBoundary variant="default">
+              {portfolioValues && portfolioValues.length > 0 && dates && dates.length > 0 ? (
+                <div className="space-y-6">
+                  {/* Growth Chart */}
+                  <PortfolioGrowthChart
+                    dates={dates}
+                    portfolioValues={portfolioValues}
+                    initialCapital={investableCapital}
+                  />
+                  
+                  <div className="grid gap-6 lg:grid-cols-2">
+                    {/* Performance Summary */}
+                    <PerformanceSummaryTable
+                      startBalance={investableCapital}
+                      endBalance={portfolioValues[portfolioValues.length - 1] ?? investableCapital}
+                      cagr={metrics?.cagr ?? 0}
+                      volatility={metrics?.volatility ?? 0}
+                      sharpeRatio={metrics?.sharpeRatio ?? 0}
+                      sortinoRatio={metrics?.sortinoRatio ?? 0}
+                      maxDrawdown={metrics?.maxDrawdown ?? 0}
+                      beta={metrics?.beta}
+                      alpha={metrics?.alpha}
+                    />
+                    
+                    {/* Drawdown Chart */}
+                    <DrawdownChart
+                      dates={dates}
+                      portfolioValues={portfolioValues}
+                    />
+                  </div>
+                  
+                  {/* Annual Returns */}
+                  <AnnualReturnsChart
+                    dates={dates}
+                    portfolioReturns={portfolioReturns || []}
+                  />
+                </div>
+              ) : (
+                <Card>
+                  <CardContent className="py-12 text-center text-muted-foreground">
+                    <LineChart className="h-8 w-8 mx-auto mb-3 opacity-50" />
+                    <p>Loading performance data...</p>
+                    <p className="text-xs mt-1">Charts will appear once data is calculated</p>
+                  </CardContent>
+                </Card>
+              )}
+            </ErrorBoundary>
+          </TabsContent>
 
           {/* Overview Tab - Human-readable insights */}
           <TabsContent value="overview" className="mt-0">
