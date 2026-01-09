@@ -1,6 +1,7 @@
 import { cn } from "@/lib/utils";
 import { TrendingUp, TrendingDown } from "lucide-react";
 import React from "react";
+import { MetricInfoIcon } from "@/components/shared/MetricInfoIcon";
 
 interface StatCardProps {
   label: string;
@@ -9,6 +10,8 @@ interface StatCardProps {
   icon?: React.ReactNode;
   className?: string;
   variant?: "default" | "positive" | "negative" | "warning";
+  /** Key from financialTerms to show educational tooltip */
+  termKey?: string;
 }
 
 export function StatCard({ 
@@ -17,7 +20,8 @@ export function StatCard({
   change, 
   icon, 
   className,
-  variant = "default"
+  variant = "default",
+  termKey
 }: StatCardProps) {
   const variantStyles = {
     default: "border-border/50",
@@ -34,7 +38,10 @@ export function StatCard({
     )}>
       <div className="flex flex-col gap-2">
         <div className="flex items-center justify-between">
-          <span className="text-xs text-muted-foreground uppercase tracking-wider">{label}</span>
+          <div className="flex items-center gap-1">
+            <span className="text-xs text-muted-foreground uppercase tracking-wider">{label}</span>
+            {termKey && <MetricInfoIcon termKey={termKey} iconSize={12} />}
+          </div>
           {icon && <span className="text-muted-foreground">{icon}</span>}
         </div>
         
