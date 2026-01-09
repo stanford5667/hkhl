@@ -200,9 +200,12 @@ export function usePortfolioCalculations({
       
       setProgress({ status: 'fetching', current: 2, total: 3, message: 'Building return series...' });
       
-      // Step 3: Get portfolio returns for charting
+      // Step 3: Get portfolio returns for charting - NOW USING CORRECT DATE RANGE
       const { dates, returns: portfolioReturns, values: portfolioValues } = 
-        await marketDataService.getPortfolioReturns(tickers, weights);
+        await marketDataService.getPortfolioReturns(tickers, weights, {
+          startDate,
+          endDate
+        });
       
       setProgress({ status: 'complete', current: 3, total: 3 });
       
