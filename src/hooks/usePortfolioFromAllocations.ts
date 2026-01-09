@@ -116,6 +116,34 @@ export function getInvestorCapital(investorProfile: unknown): number {
 }
 
 /**
+ * Get investment horizon from investor profile (in years)
+ */
+export function getInvestmentHorizon(investorProfile: unknown): number {
+  if (!investorProfile) return 5; // Default 5 years
+  
+  try {
+    const profile = investorProfile as { investmentHorizon?: number };
+    return profile.investmentHorizon || 5;
+  } catch {
+    return 5;
+  }
+}
+
+/**
+ * Calculate start and end dates based on investment horizon
+ */
+export function getDateRangeFromHorizon(investmentHorizon: number): { startDate: string; endDate: string } {
+  const endDate = new Date();
+  const startDate = new Date();
+  startDate.setFullYear(startDate.getFullYear() - investmentHorizon);
+  
+  return {
+    startDate: startDate.toISOString().split('T')[0],
+    endDate: endDate.toISOString().split('T')[0],
+  };
+}
+
+/**
  * Calculate live portfolio metrics from allocations (without needing synced_positions)
  */
 export async function calculateMetricsFromAllocations(
@@ -204,7 +232,9 @@ export async function calculateMetricsFromAllocations(
  */
 async function fetchAdvancedMetrics(
   allocations: PortfolioAllocation[],
-  investableCapital: number
+  investableCapital: number,
+  startDate: string,
+  endDate: string
 ): Promise<AdvancedMetrics | null> {
   if (allocations.length === 0) return null;
   
@@ -217,6 +247,8 @@ async function fetchAdvancedMetrics(
       ? rawWeights.map(w => w / weightSum) 
       : rawWeights.map(w => w / 100);
     
+    console.log('[fetchAdvancedMetrics] Using date range:', startDate, 'to', endDate);
+    
     const { data, error } = await supabase.functions.invoke('ai-calculate-metrics', {
       body: {
         tickers,
@@ -226,6 +258,9 @@ async function fetchAdvancedMetrics(
         riskFreeRate: 0.05,
         includeAIAnalysis: false,
         generateTraces: false,
+        // Pass the same date range as Portfolio Builder
+        startDate,
+        endDate,
       }
     });
     
@@ -265,6 +300,9 @@ interface UsePortfolioFromAllocationsReturn {
   // Parsed data
   allocations: PortfolioAllocation[];
   investableCapital: number;
+  investmentHorizon: number; // Years
+  startDate: string;
+  endDate: string;
   
   // Live metrics
   metrics: PortfolioMetrics | null;
@@ -314,6 +352,16 @@ export function usePortfolioFromAllocations(
     return getInvestorCapital(portfolio.investor_profile);
   }, [portfolio?.investor_profile]);
   
+  // Get investment horizon and calculate date range (matching Portfolio Builder)
+  const investmentHorizon = useMemo(() => {
+    if (!portfolio?.investor_profile) return 5;
+    return getInvestmentHorizon(portfolio.investor_profile);
+  }, [portfolio?.investor_profile]);
+  
+  const { startDate, endDate } = useMemo(() => {
+    return getDateRangeFromHorizon(investmentHorizon);
+  }, [investmentHorizon]);
+  
   // Create stable key for allocations
   const allocationsKey = useMemo(() => {
     return allocations
@@ -352,13 +400,14 @@ export function usePortfolioFromAllocations(
   });
   
   // Fetch advanced metrics from same edge function as Portfolio Builder
+  // Now uses the same date range based on investmentHorizon
   const {
     data: advancedMetrics,
     isLoading: isLoadingAdvanced,
     refetch: refetchAdvanced,
   } = useQuery({
-    queryKey: ['portfolio-advanced-metrics', portfolio?.id, allocationsKey, investableCapital],
-    queryFn: () => fetchAdvancedMetrics(allocations, investableCapital),
+    queryKey: ['portfolio-advanced-metrics', portfolio?.id, allocationsKey, investableCapital, startDate, endDate],
+    queryFn: () => fetchAdvancedMetrics(allocations, investableCapital, startDate, endDate),
     enabled: enabled && allocations.length > 0,
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 30 * 60 * 1000, // 30 minutes cache
@@ -372,6 +421,9 @@ export function usePortfolioFromAllocations(
   return {
     allocations,
     investableCapital,
+    investmentHorizon,
+    startDate,
+    endDate,
     metrics: metrics || null,
     holdings: metrics?.holdings || [],
     totalValue: metrics?.totalValue || 0,

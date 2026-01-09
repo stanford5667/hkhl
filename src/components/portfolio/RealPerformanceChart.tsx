@@ -49,6 +49,8 @@ interface RealPerformanceChartProps {
   showMetrics?: boolean;
   // Optional: pass pre-calculated metrics to ensure consistency with Portfolio Builder
   preCalculatedMetrics?: PreCalculatedMetrics;
+  // Optional: investment horizon in years (defaults to 5)
+  investmentHorizon?: number;
 }
 
 function formatCurrency(value: number): string {
@@ -69,7 +71,18 @@ export function RealPerformanceChart({
   className,
   showMetrics = true,
   preCalculatedMetrics,
+  investmentHorizon = 5,
 }: RealPerformanceChartProps) {
+  // Calculate date range based on investment horizon (matching Portfolio Builder)
+  const { startDate, endDate } = useMemo(() => {
+    const end = new Date();
+    const start = subYears(end, investmentHorizon);
+    return {
+      startDate: format(start, 'yyyy-MM-dd'),
+      endDate: format(end, 'yyyy-MM-dd'),
+    };
+  }, [investmentHorizon]);
+
   // Convert allocations - weights come as percentages (0-100), need decimals (0-1)
   const calcAllocations = useMemo(() => {
     return allocations.map(a => ({
@@ -91,6 +104,8 @@ export function RealPerformanceChart({
   } = usePortfolioCalculations({
     allocations: calcAllocations,
     investableCapital,
+    startDate,
+    endDate,
     enabled: allocations.length > 0,
     includeAIAnalysis: false,
     generateTraces: false,

@@ -624,6 +624,7 @@ export default function Portfolio() {
   const {
     allocations: savedAllocations,
     investableCapital,
+    investmentHorizon: allocInvestmentHorizon, // NEW: Get investment horizon
     holdings: allocationHoldings,
     totalValue: allocTotalValue,
     totalCostBasis: allocCostBasis,
@@ -1440,6 +1441,7 @@ export default function Portfolio() {
             investableCapital={investableCapital || portfolioStats.totalValue || 100000}
             portfolioName={activePortfolio?.name}
             showMetrics={true}
+            investmentHorizon={allocInvestmentHorizon || 5}
             preCalculatedMetrics={allocAdvancedMetrics ? {
               cagr: allocCagr,
               volatility: allocVolatility,
@@ -1467,6 +1469,7 @@ export default function Portfolio() {
             allocations={portfolioAllocations}
             investableCapital={portfolioStats.totalValue || 100000}
             portfolioName={activePortfolio?.name}
+            investmentHorizon={allocInvestmentHorizon || 5}
           />
         </motion.div>
       )}
