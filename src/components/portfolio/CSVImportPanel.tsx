@@ -281,12 +281,12 @@ GOOGL,Alphabet Inc,25,4125.00`}
 
             <div className="space-y-2">
               <Label>Company Name</Label>
-              <Select value={mapping.name || ''} onValueChange={(v) => updateMapping('name', v)}>
+              <Select value={mapping.name || 'skip'} onValueChange={(v) => updateMapping('name', v === 'skip' ? '' : v)}>
                 <SelectTrigger>
                   <SelectValue placeholder="Optional" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">-- Skip --</SelectItem>
+                  <SelectItem value="skip">-- Skip --</SelectItem>
                   {headers.map((header, idx) => (
                     <SelectItem key={idx} value={String(idx)}>
                       {header}
@@ -298,12 +298,12 @@ GOOGL,Alphabet Inc,25,4125.00`}
 
             <div className="space-y-2">
               <Label>Cost Basis</Label>
-              <Select value={mapping.costBasis || ''} onValueChange={(v) => updateMapping('costBasis', v)}>
+              <Select value={mapping.costBasis || 'skip'} onValueChange={(v) => updateMapping('costBasis', v === 'skip' ? '' : v)}>
                 <SelectTrigger>
                   <SelectValue placeholder="Optional" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">-- Skip --</SelectItem>
+                  <SelectItem value="skip">-- Skip --</SelectItem>
                   {headers.map((header, idx) => (
                     <SelectItem key={idx} value={String(idx)}>
                       {header}
@@ -315,12 +315,12 @@ GOOGL,Alphabet Inc,25,4125.00`}
 
             <div className="space-y-2">
               <Label>Cost Per Share</Label>
-              <Select value={mapping.costPerShare || ''} onValueChange={(v) => updateMapping('costPerShare', v)}>
+              <Select value={mapping.costPerShare || 'skip'} onValueChange={(v) => updateMapping('costPerShare', v === 'skip' ? '' : v)}>
                 <SelectTrigger>
                   <SelectValue placeholder="Optional" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">-- Skip --</SelectItem>
+                  <SelectItem value="skip">-- Skip --</SelectItem>
                   {headers.map((header, idx) => (
                     <SelectItem key={idx} value={String(idx)}>
                       {header}
