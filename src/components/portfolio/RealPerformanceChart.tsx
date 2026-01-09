@@ -1,7 +1,7 @@
 // Real Portfolio Performance Chart - Uses actual calculation data
 // Displays real historical returns, not mock/demo data
 
-import { useMemo } from 'react';
+import { useMemo, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -51,6 +51,18 @@ interface RealPerformanceChartProps {
   preCalculatedMetrics?: PreCalculatedMetrics;
   // Optional: investment horizon in years (defaults to 5)
   investmentHorizon?: number;
+  // Optional: bubble up the same numbers used in this chart so parent stats match 1:1
+  onMetricsCalculated?: (metrics: {
+    currentValue: number;
+    totalReturn: number;
+    totalReturnPercent: number;
+    todayChange: number;
+    todayChangePercent: number;
+    cagr: number;
+    maxDrawdown: number;
+    sharpeRatio: number;
+    volatility: number;
+  }) => void;
 }
 
 function formatCurrency(value: number): string {
@@ -72,6 +84,7 @@ export function RealPerformanceChart({
   showMetrics = true,
   preCalculatedMetrics,
   investmentHorizon = 5,
+  onMetricsCalculated,
 }: RealPerformanceChartProps) {
   // Calculate date range based on investment horizon (matching Portfolio Builder)
   const { startDate, endDate } = useMemo(() => {
@@ -142,7 +155,7 @@ export function RealPerformanceChart({
         isPositive: returnPercent >= 0,
       };
     }
-    
+
     // Fallback to chart data calculation
     if (!chartData.length) {
       return { currentValue: investableCapital, totalReturn: 0, totalReturnPercent: 0, isPositive: true };
@@ -161,6 +174,32 @@ export function RealPerformanceChart({
     };
   }, [chartData, investableCapital, preCalculatedMetrics]);
 
+  const computedSummary = useMemo(() => {
+    const lastValue = chartData[chartData.length - 1]?.value ?? currentValue;
+    const prevValue = chartData[chartData.length - 2]?.value;
+
+    const todayChange = typeof prevValue === 'number' ? lastValue - prevValue : 0;
+    const todayChangePercent = typeof prevValue === 'number' && prevValue > 0
+      ? (todayChange / prevValue) * 100
+      : 0;
+
+    return {
+      currentValue: lastValue,
+      totalReturn,
+      totalReturnPercent,
+      todayChange,
+      todayChangePercent,
+      cagr: preCalculatedMetrics?.cagr ?? metrics?.cagr ?? 0,
+      maxDrawdown: preCalculatedMetrics?.maxDrawdown ?? metrics?.maxDrawdown ?? 0,
+      sharpeRatio: preCalculatedMetrics?.sharpeRatio ?? metrics?.sharpeRatio ?? 0,
+      volatility: preCalculatedMetrics?.volatility ?? metrics?.volatility ?? 0,
+    };
+  }, [chartData, currentValue, totalReturn, totalReturnPercent, preCalculatedMetrics, metrics]);
+
+  useEffect(() => {
+    if (!onMetricsCalculated) return;
+    onMetricsCalculated(computedSummary);
+  }, [onMetricsCalculated, computedSummary]);
   if (allocations.length === 0) {
     return (
       <Card className={className}>
