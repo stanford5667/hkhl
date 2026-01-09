@@ -22,6 +22,34 @@ interface SECFiling {
   content?: string;
 }
 
+// Get CIK from ticker using SEC mapping
+async function getCIKFromTicker(ticker: string): Promise<string | null> {
+  try {
+    const response = await fetch('https://www.sec.gov/files/company_tickers.json', {
+      headers: {
+        'User-Agent': 'AssetLabs Research Bot contact@assetlabs.com',
+        'Accept': 'application/json',
+      },
+    });
+    
+    if (!response.ok) return null;
+    
+    const data = await response.json();
+    const tickerUpper = ticker.toUpperCase();
+    
+    for (const key in data) {
+      if (data[key].ticker === tickerUpper) {
+        // Pad CIK to 10 digits
+        return String(data[key].cik_str).padStart(10, '0');
+      }
+    }
+    return null;
+  } catch (error) {
+    console.error('Error fetching CIK:', error);
+    return null;
+  }
+}
+
 // Fetch SEC filings list using SEC EDGAR API
 async function fetchSECFilingsList(
   ticker: string,
@@ -30,46 +58,68 @@ async function fetchSECFilingsList(
 ): Promise<SECFiling[]> {
   const filings: SECFiling[] = [];
   
-  for (const filingType of filingTypes) {
-    try {
-      const url = `https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&company=${ticker}&type=${encodeURIComponent(filingType)}&dateb=&owner=include&count=${limit}&output=atom`;
-      
-      const response = await fetch(url, {
-        headers: {
-          'User-Agent': 'AssetLabs Research Bot contact@assetlabs.com',
-          'Accept': 'application/atom+xml',
-        },
-      });
-      
-      if (!response.ok) continue;
-      
-      const text = await response.text();
-      const entries = text.match(/<entry>[\s\S]*?<\/entry>/g) || [];
-      
-      for (const entry of entries.slice(0, limit)) {
-        const titleMatch = entry.match(/<title[^>]*>([^<]+)<\/title>/);
-        const linkMatch = entry.match(/<link[^>]*href="([^"]+)"/);
-        const updatedMatch = entry.match(/<updated>([^<]+)<\/updated>/);
-        const summaryMatch = entry.match(/<summary[^>]*>([^<]*)<\/summary>/);
-        const accessionMatch = entry.match(/accession-number=(\d+-\d+-\d+)/);
-        
-        if (titleMatch && linkMatch) {
-          filings.push({
-            type: filingType,
-            title: titleMatch[1].replace(/&amp;/g, '&').trim(),
-            filedAt: updatedMatch?.[1] || new Date().toISOString(),
-            accessionNumber: accessionMatch?.[1] || '',
-            url: linkMatch[1],
-            description: summaryMatch?.[1]?.replace(/&amp;/g, '&').trim() || '',
-          });
-        }
-      }
-    } catch (error) {
-      console.error(`Error fetching ${filingType} filings:`, error);
-    }
+  // First get the CIK for this ticker
+  const cik = await getCIKFromTicker(ticker);
+  if (!cik) {
+    console.log(`Could not find CIK for ticker: ${ticker}`);
+    return [];
   }
   
-  return filings.slice(0, limit);
+  console.log(`Found CIK ${cik} for ticker ${ticker}`);
+  
+  try {
+    // Use SEC EDGAR submissions API (more reliable)
+    const url = `https://data.sec.gov/submissions/CIK${cik}.json`;
+    
+    const response = await fetch(url, {
+      headers: {
+        'User-Agent': 'AssetLabs Research Bot contact@assetlabs.com',
+        'Accept': 'application/json',
+      },
+    });
+    
+    if (!response.ok) {
+      console.error(`SEC API returned ${response.status}`);
+      return [];
+    }
+    
+    const data = await response.json();
+    const recentFilings = data.filings?.recent;
+    
+    if (!recentFilings) {
+      console.log('No recent filings found');
+      return [];
+    }
+    
+    const filingTypesSet = new Set(filingTypes.map(t => t.toUpperCase()));
+    
+    for (let i = 0; i < recentFilings.form?.length && filings.length < limit; i++) {
+      const form = recentFilings.form[i];
+      
+      // Match filing types (handle variations like 10-K, 10-K/A)
+      const matchesType = filingTypesSet.has(form) || 
+        [...filingTypesSet].some(t => form.startsWith(t));
+      
+      if (!matchesType) continue;
+      
+      const accessionNumber = recentFilings.accessionNumber[i];
+      const accessionForUrl = accessionNumber.replace(/-/g, '');
+      const primaryDoc = recentFilings.primaryDocument[i];
+      
+      filings.push({
+        type: form,
+        title: `${ticker} ${form} - ${recentFilings.primaryDocDescription?.[i] || form}`,
+        filedAt: recentFilings.filingDate[i],
+        accessionNumber: accessionNumber,
+        url: `https://www.sec.gov/Archives/edgar/data/${cik}/${accessionForUrl}/${primaryDoc}`,
+        description: recentFilings.primaryDocDescription?.[i] || `${form} filing`,
+      });
+    }
+  } catch (error) {
+    console.error('Error fetching SEC filings:', error);
+  }
+  
+  return filings;
 }
 
 // Get document URLs from filing page
