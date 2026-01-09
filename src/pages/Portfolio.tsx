@@ -1238,18 +1238,6 @@ export default function Portfolio() {
       }} totalValue={perfTotalValue || portfolioStats.totalValue} />
         </motion.div>}
 
-      {/* Real Portfolio Performance Chart - Uses actual calculation data */}
-      {portfolioAllocations && portfolioAllocations.length > 0 ? <motion.div variants={itemVariants}>
-          <RealPerformanceChart allocations={portfolioAllocations} investableCapital={investableCapital || portfolioStats.totalValue || 100000} portfolioName={activePortfolio?.name} showMetrics={true} investmentHorizon={allocInvestmentHorizon || 5} preCalculatedMetrics={allocAdvancedMetrics ? {
-        cagr: allocCagr,
-        volatility: allocVolatility,
-        sharpeRatio: allocSharpe,
-        maxDrawdown: allocMaxDD,
-        totalReturn: allocAdvancedMetrics.totalReturn
-      } : undefined} onMetricsCalculated={setBacktestMetrics} />
-        </motion.div> : <motion.div variants={itemVariants}>
-          <PortfolioPerformanceCard days={30} showAllocation portfolioId={activePortfolioId} portfolioName={activePortfolio?.name} />
-        </motion.div>}
 
       {/* Portfolio Analysis Tabs - Same tabs as Portfolio Builder */}
       {portfolioAllocations && portfolioAllocations.length > 0 && <motion.div variants={itemVariants}>
