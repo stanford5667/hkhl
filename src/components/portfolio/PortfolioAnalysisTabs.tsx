@@ -57,6 +57,7 @@ interface PortfolioAnalysisTabsProps {
   investableCapital?: number;
   portfolioName?: string;
   className?: string;
+  investmentHorizon?: number; // Investment horizon in years
 }
 
 // Metric item component
@@ -106,11 +107,23 @@ export function PortfolioAnalysisTabs({
   allocations, 
   investableCapital = 100000,
   portfolioName,
-  className 
+  className,
+  investmentHorizon = 5,
 }: PortfolioAnalysisTabsProps) {
   const [activeTab, setActiveTab] = useState('overview');
   const [liveQuotes, setLiveQuotes] = useState<Map<string, { price: number; change: number; changePercent: number }>>(new Map());
   const [quotesLoading, setQuotesLoading] = useState(false);
+
+  // Calculate date range based on investment horizon
+  const { startDate, endDate } = useMemo(() => {
+    const end = new Date();
+    const start = new Date();
+    start.setFullYear(start.getFullYear() - investmentHorizon);
+    return {
+      startDate: start.toISOString().split('T')[0],
+      endDate: end.toISOString().split('T')[0],
+    };
+  }, [investmentHorizon]);
 
   // Convert allocations to the format expected by usePortfolioCalculations
   const calcAllocations = useMemo(() => allocations.map(a => ({
@@ -158,6 +171,8 @@ export function PortfolioAnalysisTabs({
   } = usePortfolioCalculations({
     allocations: calcAllocations,
     investableCapital,
+    startDate,
+    endDate,
     enabled: allocations.length > 0,
     includeAIAnalysis: true,
     generateTraces: true,
