@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import {
   Select,
   SelectContent,
@@ -31,7 +32,8 @@ import {
   Layers,
   Mountain,
   Crosshair,
-  ArrowLeftRight
+  ArrowLeftRight,
+  FlaskConical
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
@@ -47,6 +49,7 @@ import {
   Cell,
   ReferenceLine
 } from 'recharts';
+import { StudiesValidationPanel } from '@/components/dev/StudiesValidationPanel';
 
 interface QuantitativeStudiesPanelProps {
   ticker: string;
@@ -458,6 +461,19 @@ export function QuantitativeStudiesPanel({ ticker, companyName }: QuantitativeSt
           </CardContent>
         </Card>
       )}
+
+      {/* Dev Tools: Studies Validation Panel */}
+      <Collapsible>
+        <CollapsibleTrigger asChild>
+          <Button variant="ghost" className="gap-2 text-muted-foreground hover:text-foreground w-full justify-start">
+            <FlaskConical className="h-4 w-4" />
+            Studies Validation (Dev Tools)
+          </Button>
+        </CollapsibleTrigger>
+        <CollapsibleContent className="mt-4">
+          <StudiesValidationPanel />
+        </CollapsibleContent>
+      </Collapsible>
     </div>
   );
 }
