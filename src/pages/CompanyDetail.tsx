@@ -374,29 +374,16 @@ export default function CompanyDetail() {
             {isPublicEquity && (
               <TabsTrigger value="backtest" className="gap-2 text-base px-5 py-3">
                 <BarChart3 className="h-5 w-5" />
-                Backtest
-              </TabsTrigger>
-            )}
-            {isPublicEquity && (
-              <TabsTrigger value="studies" className="gap-2 text-base px-5 py-3">
-                <FlaskConical className="h-5 w-5" />
-                Studies
+                Metrics
               </TabsTrigger>
             )}
           </TabsList>
 
-          {/* Row 2: News, Contacts, Models */}
+          {/* Row 2: News, Models */}
           <TabsList className="bg-secondary h-12 w-full justify-start">
             <TabsTrigger value="news" className="gap-2 text-base px-5 py-3">
               <Newspaper className="h-5 w-5" />
               {isPublicEquity ? 'News' : 'Industry Intel'}
-            </TabsTrigger>
-            <TabsTrigger value="contacts" className="gap-2 text-base px-5 py-3">
-              <Users className="h-5 w-5" />
-              Contacts
-              {contacts.length > 0 && (
-                <Badge variant="secondary" className="ml-1">{contacts.length}</Badge>
-              )}
             </TabsTrigger>
             <TabsTrigger value="models" className="gap-2 text-base px-5 py-3">
               <Brain className="h-5 w-5" />
@@ -737,71 +724,9 @@ export default function CompanyDetail() {
           </TabsContent>
         )}
 
-        {/* Studies Tab - Public Equity Only */}
-        {isPublicEquity && company.ticker_symbol && (
-          <TabsContent value="studies">
-            <QuantitativeStudiesPanel 
-              ticker={company.ticker_symbol}
-              companyName={company.name}
-            />
-          </TabsContent>
-        )}
-
         {/* Market Intel / News Tab */}
         <TabsContent value="news">
           <MarketIntelTab companyId={company.id} companyName={company.name} industry={company.industry} />
-        </TabsContent>
-
-        {/* Contacts Tab */}
-        <TabsContent value="contacts">
-          {contacts.length === 0 ? (
-            <Card className="glass-card">
-              <CardContent className="flex flex-col items-center justify-center py-12">
-                <Users className="h-12 w-12 text-muted-foreground/50 mb-3" />
-                <p className="text-muted-foreground">No contacts linked to this company</p>
-                <Button variant="outline" className="mt-4" onClick={() => navigate('/contacts')}>
-                  Add Contact
-                </Button>
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {contacts.map((contact) => (
-                <Card key={contact.id} className="glass-card">
-                  <CardContent className="p-4">
-                    <div className="flex items-start gap-3">
-                      <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center text-primary font-medium">
-                        {contact.first_name[0]}{contact.last_name[0]}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <h4 className="font-medium truncate">
-                          {contact.first_name} {contact.last_name}
-                        </h4>
-                        {contact.title && (
-                          <p className="text-sm text-muted-foreground truncate">{contact.title}</p>
-                        )}
-                        <div className="flex items-center gap-2 mt-2">
-                          {contact.email && (
-                            <a href={`mailto:${contact.email}`} className="text-muted-foreground hover:text-primary">
-                              <Mail className="h-4 w-4" />
-                            </a>
-                          )}
-                          {contact.phone && (
-                            <a href={`tel:${contact.phone}`} className="text-muted-foreground hover:text-primary">
-                              <Phone className="h-4 w-4" />
-                            </a>
-                          )}
-                          <Badge variant="outline" className="ml-auto text-xs capitalize">
-                            {contact.category}
-                          </Badge>
-                        </div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          )}
         </TabsContent>
 
         {/* Models Tab */}
