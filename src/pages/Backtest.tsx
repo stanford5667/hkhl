@@ -9,11 +9,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { toast } from 'sonner';
-import { Plus, X, Play, Loader2, LineChart, TrendingUp, TrendingDown, Activity, AlertTriangle, FolderOpen } from 'lucide-react';
+import { Plus, X, Play, Loader2, LineChart, TrendingUp, TrendingDown, Activity, AlertTriangle, FolderOpen, FlaskConical } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { LineChart as RechartsLineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { cn } from '@/lib/utils';
 import { usePortfolioForBacktest } from '@/hooks/useUnifiedPortfolio';
+import { StudiesValidationPanel } from '@/components/dev/StudiesValidationPanel';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 
 const POPULAR_TICKERS = ['SPY', 'QQQ', 'AAPL', 'MSFT', 'GOOGL', 'AMZN', 'NVDA', 'TSLA'];
 
@@ -690,6 +692,21 @@ export default function BacktestPage() {
             )}
           </Card>
         </div>
+      </div>
+      
+      {/* Dev Tools: Studies Validation Panel */}
+      <div className="mt-8 border-t pt-6">
+        <Collapsible>
+          <CollapsibleTrigger asChild>
+            <Button variant="ghost" className="gap-2 text-muted-foreground hover:text-foreground">
+              <FlaskConical className="h-4 w-4" />
+              Studies Validation (Dev Tools)
+            </Button>
+          </CollapsibleTrigger>
+          <CollapsibleContent className="mt-4">
+            <StudiesValidationPanel />
+          </CollapsibleContent>
+        </Collapsible>
       </div>
     </div>
   );
