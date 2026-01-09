@@ -88,6 +88,7 @@ import { WidgetConfigDialog } from '@/components/dashboard/WidgetConfigDialog';
 import { PortfolioPerformanceCard } from '@/components/dashboard/PortfolioPerformanceCard';
 import { PortfolioNews } from '@/components/dashboard/PortfolioNews';
 import { useActivePortfolio } from '@/hooks/useActivePortfolio';
+import { usePortfolioFromAllocations } from '@/hooks/usePortfolioFromAllocations';
 import { PortfolioSwitcher } from '@/components/portfolio/PortfolioSwitcher';
 import { CreatePortfolioDialog } from '@/components/portfolio/CreatePortfolioDialog';
 import { PortfolioMetricsPanel } from '@/components/portfolio/PortfolioMetricsPanel';
@@ -496,6 +497,25 @@ export default function Portfolio() {
     isDeleting,
   } = useActivePortfolio();
   
+  // Live metrics calculated from saved portfolio allocations
+  const {
+    allocations: savedAllocations,
+    investableCapital,
+    holdings: allocationHoldings,
+    totalValue: allocTotalValue,
+    totalCostBasis: allocCostBasis,
+    totalGainLoss: allocGainLoss,
+    totalGainLossPercent: allocGainLossPercent,
+    todayChange: allocTodayChange,
+    todayChangePercent: allocTodayChangePercent,
+    positionCount: allocPositionCount,
+    isLoading: allocLoading,
+    refresh: refreshAllocMetrics,
+  } = usePortfolioFromAllocations({
+    portfolio: activePortfolio,
+    enabled: !!activePortfolio,
+  });
+  
   // Synced positions from database
   const { positions: syncedPositions, isLoading: positionsLoading, refetch: refetchPositions } = usePositions(activePortfolioId || undefined);
   
@@ -583,12 +603,58 @@ export default function Portfolio() {
     return null;
   }, [activePortfolio]);
 
-  // Get all portfolio holdings - merge synced positions + companies + portfolio allocations
+  // Get all portfolio holdings - prioritize saved allocation data when available
   const allHoldings = useMemo(() => {
     const portfolioCompanies = companiesWithRelations.filter(c => c.company_type === 'portfolio');
-    const holdingsMap = new Map<string, CompanyWithRelations & { _portfolioWeight?: number; _syncedPosition?: boolean }>();
+    const holdingsMap = new Map<string, CompanyWithRelations & { _portfolioWeight?: number; _syncedPosition?: boolean; _fromAllocation?: boolean }>();
     
-    // First, add synced positions from database
+    // PRIORITY 1: If we have saved allocation holdings with live data, use them
+    if (allocationHoldings.length > 0) {
+      allocationHoldings.forEach(holding => {
+        const symbol = holding.symbol.toUpperCase();
+        holdingsMap.set(symbol, {
+          id: `alloc-${symbol}`,
+          name: holding.name || symbol,
+          ticker_symbol: symbol,
+          asset_class: holding.assetClass || 'public_equity',
+          company_type: 'portfolio' as const,
+          status: 'active',
+          shares_owned: holding.quantity,
+          cost_basis: holding.costBasis,
+          current_price: holding.currentPrice,
+          market_value: holding.currentValue,
+          industry: null,
+          description: null,
+          website: null,
+          exchange: null,
+          revenue_ltm: null,
+          ebitda_ltm: null,
+          pipeline_stage: null,
+          deal_lead: null,
+          user_id: '',
+          organization_id: null,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          created_by: null,
+          price_updated_at: null,
+          contacts: [],
+          tasks: [],
+          documents: [],
+          notes: [],
+          openTaskCount: 0,
+          overdueTaskCount: 0,
+          contactCount: 0,
+          documentCount: 0,
+          lastActivity: null,
+          _portfolioWeight: holding.weight,
+          _fromAllocation: true,
+        } as CompanyWithRelations & { _portfolioWeight?: number; _syncedPosition?: boolean; _fromAllocation?: boolean });
+      });
+      
+      return Array.from(holdingsMap.values());
+    }
+    
+    // FALLBACK: Use synced positions if no allocation holdings
     syncedPositions.forEach(pos => {
       const symbol = pos.symbol.toUpperCase();
       holdingsMap.set(symbol, {
@@ -631,15 +697,14 @@ export default function Portfolio() {
       } as CompanyWithRelations & { _portfolioWeight?: number; _syncedPosition?: boolean });
     });
     
-    // Then add portfolio allocations (if any)
-    if (portfolioAllocations && portfolioAllocations.length > 0) {
+    // Add portfolio allocations if no synced positions found
+    if (portfolioAllocations && portfolioAllocations.length > 0 && holdingsMap.size === 0) {
       portfolioAllocations.forEach(alloc => {
         const symbol = alloc.symbol.toUpperCase();
         const existingCompany = portfolioCompanies.find(
           c => c.ticker_symbol?.toUpperCase() === symbol
         );
         
-        // Only add if not already from synced positions
         if (!holdingsMap.has(symbol)) {
           if (existingCompany) {
             holdingsMap.set(symbol, { ...existingCompany, _portfolioWeight: alloc.weight });
@@ -681,10 +746,6 @@ export default function Portfolio() {
               _portfolioWeight: alloc.weight,
             } as CompanyWithRelations & { _portfolioWeight?: number });
           }
-        } else {
-          // Update weight on existing synced position
-          const existing = holdingsMap.get(symbol)!;
-          holdingsMap.set(symbol, { ...existing, _portfolioWeight: alloc.weight });
         }
       });
     }
@@ -698,7 +759,7 @@ export default function Portfolio() {
     });
     
     return Array.from(holdingsMap.values());
-  }, [companiesWithRelations, portfolioAllocations, syncedPositions]);
+  }, [companiesWithRelations, portfolioAllocations, syncedPositions, allocationHoldings]);
 
   // Filter companies by asset type
   const publicEquities = useMemo(() => 
@@ -741,7 +802,14 @@ export default function Portfolio() {
   // Manual refresh
   const handleRefresh = async () => {
     setIsRefreshing(true);
-    await Promise.all([refreshIndices(), fetchQuotes(), refetchAll(), refetchPositions(), refreshPerformance()]);
+    await Promise.all([
+      refreshIndices(), 
+      fetchQuotes(), 
+      refetchAll(), 
+      refetchPositions(), 
+      refreshPerformance(),
+      refreshAllocMetrics(),
+    ]);
     setIsRefreshing(false);
     toast.success('Data refreshed');
   };
@@ -1033,33 +1101,42 @@ export default function Portfolio() {
         isSaving={isSaving}
       />
 
-      {/* Dynamic Stats Row - Using Real Performance Data */}
+      {/* Dynamic Stats Row - Using Allocation Metrics when available */}
       <motion.div variants={containerVariants} className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
         <StatCard
           title="Portfolio Value"
-          displayValue={formatCurrency(perfTotalValue || portfolioStats.totalValue, true)}
+          displayValue={formatCurrency(
+            allocTotalValue > 0 ? allocTotalValue : (perfTotalValue || portfolioStats.totalValue), 
+            true
+          )}
           icon={Wallet}
           onClick={() => navigate('/backtester')}
-          isLoading={perfLoading || isLoading}
-          change={perfTotalGainLossPercent || portfolioStats.totalGainLossPercent}
-          subtitle={`${perfPositionCount || allHoldings.length} holdings`}
+          isLoading={allocLoading || perfLoading || isLoading}
+          change={allocTotalValue > 0 ? allocGainLossPercent : (perfTotalGainLossPercent || portfolioStats.totalGainLossPercent)}
+          subtitle={`${allocPositionCount > 0 ? allocPositionCount : (perfPositionCount || allHoldings.length)} holdings`}
         />
         <StatCard
           title="Today's P&L"
-          displayValue={formatCurrency(perfTodayChange || portfolioStats.todayChange, true)}
-          icon={(perfTodayChange || portfolioStats.todayChange) >= 0 ? TrendingUp : TrendingDown}
-          isLoading={perfLoading || isLoading}
-          change={perfTodayChangePercent || portfolioStats.todayChangePercent}
+          displayValue={formatCurrency(
+            allocTotalValue > 0 ? allocTodayChange : (perfTodayChange || portfolioStats.todayChange), 
+            true
+          )}
+          icon={(allocTotalValue > 0 ? allocTodayChange : (perfTodayChange || portfolioStats.todayChange)) >= 0 ? TrendingUp : TrendingDown}
+          isLoading={allocLoading || perfLoading || isLoading}
+          change={allocTotalValue > 0 ? allocTodayChangePercent : (perfTodayChangePercent || portfolioStats.todayChangePercent)}
           onClick={() => {
             document.querySelector('[data-performance-chart]')?.scrollIntoView({ behavior: 'smooth' });
           }}
         />
         <StatCard
           title="Total Gain/Loss"
-          displayValue={formatCurrency(perfTotalGainLoss || portfolioStats.totalGainLoss, true)}
-          icon={(perfTotalGainLoss || portfolioStats.totalGainLoss) >= 0 ? TrendingUp : TrendingDown}
-          isLoading={perfLoading || isLoading}
-          change={perfTotalGainLossPercent || portfolioStats.totalGainLossPercent}
+          displayValue={formatCurrency(
+            allocTotalValue > 0 ? allocGainLoss : (perfTotalGainLoss || portfolioStats.totalGainLoss), 
+            true
+          )}
+          icon={(allocTotalValue > 0 ? allocGainLoss : (perfTotalGainLoss || portfolioStats.totalGainLoss)) >= 0 ? TrendingUp : TrendingDown}
+          isLoading={allocLoading || perfLoading || isLoading}
+          change={allocTotalValue > 0 ? allocGainLossPercent : (perfTotalGainLossPercent || portfolioStats.totalGainLossPercent)}
           changeLabel="all-time"
         />
         <StatCard
