@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   CommandDialog as CommandDialogPrimitive,
@@ -23,11 +23,22 @@ import {
   Search,
   TrendingUp,
   Sparkles,
+  Loader2,
 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { Badge } from "@/components/ui/badge";
 
 interface CommandDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+}
+
+interface PolygonTickerResult {
+  ticker: string;
+  name: string;
+  market: string;
+  type: string;
+  primaryExchange?: string;
 }
 
 // Mock recent searches for recognition > recall
@@ -53,6 +64,8 @@ const recentDocuments = [
 export function CommandDialog({ open, onOpenChange }: CommandDialogProps) {
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
+  const [tickerResults, setTickerResults] = useState<PolygonTickerResult[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
 
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
@@ -68,29 +81,101 @@ export function CommandDialog({ open, onOpenChange }: CommandDialogProps) {
 
   // Reset search when closing
   useEffect(() => {
-    if (!open) setSearch("");
+    if (!open) {
+      setSearch("");
+      setTickerResults([]);
+    }
   }, [open]);
 
-  const runCommand = (command: () => void) => {
+  // Debounced Polygon ticker search
+  useEffect(() => {
+    if (search.length < 1) {
+      setTickerResults([]);
+      return;
+    }
+
+    const timeout = setTimeout(async () => {
+      setIsSearching(true);
+      try {
+        const { data, error } = await supabase.functions.invoke('polygon-ticker-search', {
+          body: { query: search, limit: 10 }
+        });
+
+        if (!error && data?.ok && data.results) {
+          setTickerResults(data.results);
+        } else {
+          setTickerResults([]);
+        }
+      } catch (err) {
+        console.error('Ticker search error:', err);
+        setTickerResults([]);
+      } finally {
+        setIsSearching(false);
+      }
+    }, 300);
+
+    return () => clearTimeout(timeout);
+  }, [search]);
+
+  const runCommand = useCallback((command: () => void) => {
     onOpenChange(false);
     command();
-  };
+  }, [onOpenChange]);
+
+  const handleTickerSelect = useCallback((ticker: string) => {
+    runCommand(() => navigate(`/stock/${ticker}`));
+  }, [navigate, runCommand]);
 
   return (
     <CommandDialogPrimitive open={open} onOpenChange={onOpenChange}>
       <div className="bg-slate-900 border-slate-800 rounded-xl overflow-hidden">
         <CommandInput 
-          placeholder="Search companies, contacts, documents..." 
+          placeholder="Search stocks, companies, documents..." 
           value={search}
           onValueChange={setSearch}
           className="border-b border-slate-800"
         />
         <CommandList className="max-h-[400px]">
           <CommandEmpty className="py-6 text-center">
-            <Search className="h-10 w-10 text-slate-600 mx-auto mb-3" />
-            <p className="text-slate-400">No results found.</p>
-            <p className="text-sm text-slate-500 mt-1">Try searching for companies, contacts, or documents</p>
+            {isSearching ? (
+              <div className="flex flex-col items-center">
+                <Loader2 className="h-10 w-10 text-slate-600 mx-auto mb-3 animate-spin" />
+                <p className="text-slate-400">Searching...</p>
+              </div>
+            ) : (
+              <>
+                <Search className="h-10 w-10 text-slate-600 mx-auto mb-3" />
+                <p className="text-slate-400">No results found.</p>
+                <p className="text-sm text-slate-500 mt-1">Try searching for stocks, companies, or documents</p>
+              </>
+            )}
           </CommandEmpty>
+
+          {/* Polygon Ticker Results */}
+          {tickerResults.length > 0 && (
+            <>
+              <CommandGroup heading="Stocks & ETFs">
+                {tickerResults.map((result) => (
+                  <CommandItem 
+                    key={result.ticker}
+                    value={`${result.ticker} ${result.name}`}
+                    onSelect={() => handleTickerSelect(result.ticker)}
+                    className="text-slate-300 hover:bg-slate-800"
+                  >
+                    <TrendingUp className="mr-2 h-4 w-4 text-emerald-400" />
+                    <span className="font-semibold mr-2">{result.ticker}</span>
+                    <span className="text-slate-400 truncate flex-1">{result.name}</span>
+                    {result.primaryExchange && (
+                      <Badge variant="outline" className="ml-2 text-[10px] px-1.5">
+                        {result.primaryExchange}
+                      </Badge>
+                    )}
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+              <CommandSeparator className="bg-slate-800" />
+            </>
+          )}
           
           {/* Recent Searches - Recognition > Recall */}
           {!search && recentSearches.length > 0 && (
@@ -123,6 +208,14 @@ export function CommandDialog({ open, onOpenChange }: CommandDialogProps) {
               <Plus className="mr-2 h-4 w-4 text-emerald-400" />
               <span>Add Asset</span>
               <span className="ml-auto text-xs text-slate-500">Takes 2 min</span>
+            </CommandItem>
+            <CommandItem 
+              onSelect={() => runCommand(() => navigate("/screener"))}
+              className="text-slate-300 hover:bg-slate-800"
+            >
+              <Search className="mr-2 h-4 w-4 text-blue-400" />
+              <span>Open Screener</span>
+              <span className="ml-auto text-xs text-slate-500">Find stocks</span>
             </CommandItem>
             <CommandItem 
               onSelect={() => runCommand(() => navigate("/documents?upload=true"))}
@@ -159,6 +252,14 @@ export function CommandDialog({ open, onOpenChange }: CommandDialogProps) {
               <Building2 className="mr-2 h-4 w-4 text-slate-500" />
               <span>Portfolio</span>
               <span className="ml-auto text-xs text-slate-500">Your Assets</span>
+            </CommandItem>
+            <CommandItem 
+              onSelect={() => runCommand(() => navigate("/screener"))}
+              className="text-slate-300 hover:bg-slate-800"
+            >
+              <TrendingUp className="mr-2 h-4 w-4 text-slate-500" />
+              <span>Screener</span>
+              <span className="ml-auto text-xs text-slate-500">Find Stocks</span>
             </CommandItem>
             <CommandItem 
               onSelect={() => runCommand(() => navigate("/contacts"))}
