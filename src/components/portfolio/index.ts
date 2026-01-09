@@ -10,3 +10,7 @@ export { PortfolioMetricsPanel } from './PortfolioMetricsPanel';
 export { RealPerformanceChart } from './RealPerformanceChart';
 export { PortfolioAnalysisTabs } from './PortfolioAnalysisTabs';
 export { EnhancedPortfolioBuilder } from './EnhancedPortfolioBuilder';
+export { PortfolioGrowthChart } from './PortfolioGrowthChart';
+export { AnnualReturnsChart } from './AnnualReturnsChart';
+export { PerformanceSummaryTable } from './PerformanceSummaryTable';
+export { DrawdownChart } from './DrawdownChart';
