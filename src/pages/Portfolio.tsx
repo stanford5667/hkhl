@@ -175,20 +175,7 @@ type SortOption = 'value' | 'performance' | 'name' | 'type' | 'todayChange';
 type ViewMode = 'cards' | 'table' | 'treemap';
 type AssetFilter = 'all' | AssetClass;
 
-// Generate synthetic sparkline data
-function generateSparkline(basePrice: number, changePercent: number): { v: number }[] {
-  const points = 12;
-  const data: { v: number }[] = [];
-  const startPrice = basePrice / (1 + changePercent / 100);
-  
-  for (let i = 0; i < points; i++) {
-    const progress = i / (points - 1);
-    const noise = (Math.random() - 0.5) * basePrice * 0.005;
-    const v = startPrice + (basePrice - startPrice) * progress + noise;
-    data.push({ v });
-  }
-  return data;
-}
+// Sparkline data would require real intraday API data - removed synthetic generation
 
 function getGreeting(): string {
   const hour = new Date().getHours();
@@ -759,7 +746,7 @@ export default function Portfolio() {
     toast.success('Data refreshed');
   };
 
-  // Map market indices with sparklines
+  // Map market indices - real data only, no synthetic sparklines
   const indices = useMemo<MarketIndex[]>(() => {
     return MARKET_INDICES_SYMBOLS.map((idx) => {
       const apiIndex = marketIndicesData?.find(
@@ -774,7 +761,8 @@ export default function Portfolio() {
         price,
         change,
         changePercent,
-        sparklineData: price > 0 ? generateSparkline(price, changePercent) : [],
+        // No synthetic sparklines - would require real intraday data
+        sparklineData: [],
       };
     });
   }, [marketIndicesData]);
