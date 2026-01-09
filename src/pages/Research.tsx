@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -29,8 +30,11 @@ interface ResearchData {
 }
 
 export default function ResearchPage() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tickerFromUrl = searchParams.get('ticker')?.toUpperCase();
+  
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedTicker, setSelectedTicker] = useState<string | null>(null);
+  const [selectedTicker, setSelectedTicker] = useState<string | null>(tickerFromUrl || null);
   const [activeTab, setActiveTab] = useState('overview');
   const [research, setResearch] = useState<Record<string, ResearchData>>({});
   const [isLoading, setIsLoading] = useState(false);
@@ -38,6 +42,15 @@ export default function ResearchPage() {
     const saved = localStorage.getItem('recentAssetSearches');
     return saved ? JSON.parse(saved) : [];
   });
+
+  // Sync URL param to state
+  useEffect(() => {
+    if (tickerFromUrl && tickerFromUrl !== selectedTicker) {
+      setSelectedTicker(tickerFromUrl);
+      setActiveTab('overview');
+      setResearch({});
+    }
+  }, [tickerFromUrl]);
 
   const handleSearch = (ticker: string) => {
     const normalized = ticker.toUpperCase().trim();
