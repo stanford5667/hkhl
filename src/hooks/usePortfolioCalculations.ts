@@ -100,6 +100,8 @@ export interface PortfolioCalculationResult {
 interface UsePortfolioCalculationsOptions {
   allocations: PortfolioAllocation[];
   investableCapital: number;
+  startDate?: string; // NEW: Pass custom date range
+  endDate?: string;   // NEW: Pass custom date range  
   benchmarkTicker?: string;
   riskFreeRate?: number;
   enabled?: boolean;
@@ -110,6 +112,8 @@ interface UsePortfolioCalculationsOptions {
 export function usePortfolioCalculations({
   allocations,
   investableCapital,
+  startDate,  // NEW
+  endDate,    // NEW
   benchmarkTicker = 'SPY',
   riskFreeRate = 0.05,
   enabled = true,
@@ -145,7 +149,7 @@ export function usePortfolioCalculations({
     error,
     refetch
   } = useQuery({
-    queryKey: ['portfolio-calculations', allocationsKey, investableCapital, benchmarkTicker],
+    queryKey: ['portfolio-calculations', allocationsKey, investableCapital, benchmarkTicker, startDate, endDate],
     queryFn: async (): Promise<PortfolioCalculationResult> => {
       if (allocations.length === 0) {
         return {
@@ -171,11 +175,13 @@ export function usePortfolioCalculations({
       
       setProgress({ status: 'fetching', current: 0, total: 3, message: 'Loading market data...' });
       
-      // Step 1: Call AI calculation engine
+      // Step 1: Call AI calculation engine - NOW WITH DATE RANGE
       const { data, error } = await supabase.functions.invoke('ai-calculate-metrics', {
         body: {
           tickers,
           weights,
+          startDate,  // NOW PASSED!
+          endDate,    // NOW PASSED!
           benchmarkTicker,
           investableCapital,
           riskFreeRate,

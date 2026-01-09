@@ -500,6 +500,17 @@ export default function PortfolioVisualizer() {
     }));
   }, [allocations]);
 
+  // Calculate date range based on investment horizon
+  const { backtestStartDate, backtestEndDate } = useMemo(() => {
+    const end = new Date();
+    const start = new Date();
+    start.setFullYear(start.getFullYear() - (investorProfile.investmentHorizon || 5));
+    return {
+      backtestStartDate: start.toISOString().split('T')[0],
+      backtestEndDate: end.toISOString().split('T')[0]
+    };
+  }, [investorProfile.investmentHorizon]);
+
   const {
     metrics: calcMetrics,
     traces: calcTraces,
@@ -516,6 +527,8 @@ export default function PortfolioVisualizer() {
   } = usePortfolioCalculations({
     allocations: calcAllocations,
     investableCapital: investorProfile.investableCapital,
+    startDate: backtestStartDate,  // NOW PASSED!
+    endDate: backtestEndDate,      // NOW PASSED!
     enabled: currentFlow === 'results' && allocations.length > 0,
     includeAIAnalysis: portfolioMode === 'ai',
     generateTraces: true
