@@ -1579,14 +1579,20 @@ export default function Portfolio() {
                   <div 
                     key={h.id} 
                     className="flex items-center justify-between p-3 rounded-lg bg-secondary/30 hover:bg-secondary/50 transition-colors group cursor-pointer"
-                    onClick={() => h.id.startsWith('virtual-') ? null : navigate(`/companies/${h.id}`)}
+                    onClick={() => {
+                      if (h.ticker_symbol) {
+                        navigate(`/stock/${h.ticker_symbol}`);
+                      } else if (!h.id.startsWith('virtual-')) {
+                        navigate(`/companies/${h.id}`);
+                      }
+                    }}
                   >
                     <div className="flex-1 min-w-0">
                       <p className="font-medium group-hover:text-primary transition-colors truncate">
-                        {h.name}
+                        {h.ticker_symbol ? `$${h.ticker_symbol}` : h.name}
                       </p>
                       <p className="text-xs text-muted-foreground">
-                        {h.asset_class ? ASSET_CLASS_CONFIG[h.asset_class as AssetClass]?.shortLabel : ''} • {h.industry || h.ticker_symbol || 'N/A'}
+                        {h.asset_class ? ASSET_CLASS_CONFIG[h.asset_class as AssetClass]?.shortLabel : ''} • {h.industry || h.name || 'N/A'}
                       </p>
                     </div>
                     <div className="flex items-center gap-4 text-sm">
@@ -2098,9 +2104,19 @@ function HoldingsTable({
                       <Icon className="h-3.5 w-3.5" />
                     </div>
                     <div>
-                      <span className="font-medium text-foreground">
-                        {holding.ticker_symbol || holding.name}
-                      </span>
+                      {holding.ticker_symbol ? (
+                        <Link 
+                          to={`/stock/${holding.ticker_symbol}`}
+                          className="font-medium text-foreground hover:text-primary transition-colors"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          ${holding.ticker_symbol}
+                        </Link>
+                      ) : (
+                        <span className="font-medium text-foreground">
+                          {holding.name}
+                        </span>
+                      )}
                       {holding.ticker_symbol && (
                         <p className="text-xs text-muted-foreground">{holding.name}</p>
                       )}

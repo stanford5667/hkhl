@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -328,7 +329,13 @@ export function ResearchOneSheet({ articleUri, articleTitle, onClose }: Research
                     >
                       <div className="flex items-center justify-between mb-2">
                         <div className="flex items-center gap-2">
-                          <span className="font-mono font-bold">${asset.ticker}</span>
+                          <Link 
+                            to={`/stock/${asset.ticker}`}
+                            className="font-mono font-bold hover:text-primary transition-colors"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            ${asset.ticker}
+                          </Link>
                           <Badge variant="outline" className={getSentimentColor(asset.direction)}>
                             {asset.direction === 'long' && <TrendingUp className="h-3 w-3 mr-1" />}
                             {asset.direction === 'short' && <TrendingDown className="h-3 w-3 mr-1" />}
@@ -359,7 +366,12 @@ export function ResearchOneSheet({ articleUri, articleTitle, onClose }: Research
                   <div className="space-y-2">
                     {intelligence.trade_ideas.filter(t => !t.isLookThrough).map((idea, i) => (
                       <div key={i} className="flex items-center gap-2 p-2 rounded-lg bg-muted/30">
-                        <span className="font-mono text-sm">${idea.ticker}</span>
+                        <Link 
+                          to={`/stock/${idea.ticker}`}
+                          className="font-mono text-sm hover:text-primary transition-colors"
+                        >
+                          ${idea.ticker}
+                        </Link>
                         <Badge variant="outline" className={cn("text-xs", getSentimentColor(idea.direction))}>
                           {idea.direction}
                         </Badge>

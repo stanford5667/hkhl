@@ -250,13 +250,17 @@ function MarketsTicker({
     <div className="bg-muted/50 rounded-lg p-3 overflow-hidden">
       <div className="flex gap-6 overflow-x-auto scrollbar-hide">
         {tickerItems.map((item, index) => (
-          <div key={index} className="flex items-center gap-2 flex-shrink-0">
-            <span className="font-semibold text-sm">{item.symbol}</span>
+          <Link 
+            key={index} 
+            to={`/stock/${item.symbol}`}
+            className="flex items-center gap-2 flex-shrink-0 hover:bg-muted rounded px-2 py-1 transition-colors"
+          >
+            <span className="font-semibold text-sm hover:text-primary">${item.symbol}</span>
             <span className="text-sm text-muted-foreground">{formatCurrency(item.price)}</span>
             <span className={`text-xs ${item.change >= 0 ? 'text-green-600' : 'text-red-600'}`}>
               {formatPercent(item.change)}
             </span>
-          </div>
+          </Link>
         ))}
       </div>
     </div>
@@ -606,13 +610,18 @@ function TopMoversCard({
   return (
     <div className="space-y-2">
       {movers.map(mover => (
-        <Link
+        <div
           key={mover.id}
-          to={`/assets/${mover.id}`}
           className="flex items-center justify-between p-2 rounded-lg hover:bg-muted/50 transition-colors"
         >
           <div className="flex items-center gap-2">
-            <span className="font-semibold text-sm">{mover.ticker_symbol || mover.name}</span>
+            <Link 
+              to={`/stock/${mover.ticker_symbol}`}
+              className="font-semibold text-sm hover:text-primary transition-colors"
+              onClick={(e) => e.stopPropagation()}
+            >
+              ${mover.ticker_symbol || mover.name}
+            </Link>
             <span className="text-xs text-muted-foreground truncate max-w-[100px]">
               {mover.name}
             </span>
@@ -620,7 +629,7 @@ function TopMoversCard({
           <div className={`text-sm font-medium ${mover.changePercent >= 0 ? 'text-green-600' : 'text-red-600'}`}>
             {mover.changePercent >= 0 ? '+' : ''}{mover.changePercent.toFixed(2)}%
           </div>
-        </Link>
+        </div>
       ))}
     </div>
   );

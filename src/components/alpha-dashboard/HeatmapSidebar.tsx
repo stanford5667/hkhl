@@ -1,3 +1,4 @@
+import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { TrendingUp, TrendingDown, Activity, Flame } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -18,8 +19,18 @@ interface HeatmapSidebarProps {
 }
 
 export function HeatmapSidebar({ tickers, onTickerClick, className }: HeatmapSidebarProps) {
+  const navigate = useNavigate();
+  
   // Sort by volume spike (hottest first)
   const sortedTickers = [...tickers].sort((a, b) => b.volume_spike - a.volume_spike);
+
+  const handleTickerClick = (ticker: string) => {
+    if (onTickerClick) {
+      onTickerClick(ticker);
+    } else {
+      navigate(`/stock/${ticker}`);
+    }
+  };
 
   const getHeatLevel = (spike: number) => {
     if (spike >= 200) return 'extreme';
@@ -82,7 +93,7 @@ export function HeatmapSidebar({ tickers, onTickerClick, className }: HeatmapSid
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -20 }}
                   transition={{ delay: index * 0.05, duration: 0.2 }}
-                  onClick={() => onTickerClick?.(ticker.ticker)}
+                  onClick={() => handleTickerClick(ticker.ticker)}
                   className={cn(
                     "w-full p-2 rounded-lg border transition-all duration-200",
                     "hover:scale-105 active:scale-95",
@@ -91,8 +102,8 @@ export function HeatmapSidebar({ tickers, onTickerClick, className }: HeatmapSid
                   )}
                 >
                   {/* Ticker symbol */}
-                  <div className="font-mono font-bold text-xs mb-1">
-                    {ticker.ticker}
+                  <div className="font-mono font-bold text-xs mb-1 hover:text-primary transition-colors">
+                    ${ticker.ticker}
                   </div>
                   
                   {/* Volume spike indicator */}

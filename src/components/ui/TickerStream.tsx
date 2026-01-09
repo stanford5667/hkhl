@@ -1,4 +1,5 @@
 import { useEffect, useState, useMemo } from 'react';
+import { Link } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { TrendingUp, TrendingDown, Loader2 } from 'lucide-react';
 import { useBatchQuotes } from '@/hooks/useMarketDataQuery';
@@ -68,11 +69,12 @@ export function TickerStream({ className }: { className?: string }) {
     )}>
       <div className="ticker-scroll flex items-center gap-6 py-2 px-4">
         {displayTickers.map((ticker, i) => (
-          <div 
+          <Link 
             key={`${ticker.symbol}-${i}`}
-            className="flex items-center gap-2 shrink-0"
+            to={`/stock/${ticker.symbol}`}
+            className="flex items-center gap-2 shrink-0 hover:bg-muted/50 rounded px-2 py-1 transition-colors"
           >
-            <span className="ticker-badge text-xs">{ticker.symbol}</span>
+            <span className="ticker-badge text-xs hover:text-primary">{ticker.symbol}</span>
             <span className="font-mono text-sm text-foreground">
               ${ticker.price.toFixed(2)}
             </span>
@@ -87,7 +89,7 @@ export function TickerStream({ className }: { className?: string }) {
               )}
               {ticker.change >= 0 ? '+' : ''}{ticker.change.toFixed(2)}%
             </span>
-          </div>
+          </Link>
         ))}
       </div>
       {isFetching && (

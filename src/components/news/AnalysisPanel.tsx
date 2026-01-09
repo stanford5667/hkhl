@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { Sparkles, ExternalLink, TrendingUp, TrendingDown, Minus, Search, Tag, BarChart3 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -144,18 +145,19 @@ export function AnalysisPanel({ article }: AnalysisPanelProps) {
                 </div>
                 <div className="grid grid-cols-2 gap-2">
                   {tickers.slice(0, 6).map((ticker, i) => (
-                    <div 
+                    <Link 
                       key={i}
-                      className="p-2 rounded bg-slate-900/80 border border-slate-700 flex items-center justify-between"
+                      to={`/stock/${ticker}`}
+                      className="p-2 rounded bg-slate-900/80 border border-slate-700 flex items-center justify-between hover:bg-slate-800/80 transition-colors"
                     >
-                      <span className="text-sm font-mono font-medium text-blue-400">${ticker}</span>
+                      <span className="text-sm font-mono font-medium text-blue-400 hover:text-blue-300">${ticker}</span>
                       <span className={cn(
                         "text-xs font-mono",
                         i % 2 === 0 ? "text-emerald-400" : "text-rose-400"
                       )}>
                         {i % 2 === 0 ? '+' : '-'}{(Math.random() * 3 + 0.5).toFixed(1)}%
                       </span>
-                    </div>
+                    </Link>
                   ))}
                 </div>
               </div>

@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ConfidenceRadial } from "./ConfidenceRadial";
 import { SourcesModal } from "./SourcesModal";
+import { TickerBadge } from "@/components/ui/TickerBadge";
 import { 
   TrendingUp, 
   TrendingDown, 
@@ -80,12 +81,10 @@ export function AlphaFeedCard({ insight, index }: AlphaFeedCardProps) {
                 <div className="flex items-center justify-between gap-3">
                   <div className="flex items-center gap-2 flex-wrap">
                     {/* Ticker */}
-                    <Badge 
-                      variant="outline" 
-                      className="font-mono font-bold text-sm px-2 py-0.5 bg-[#252525] border-border/50"
-                    >
-                      ${insight.primary_ticker}
-                    </Badge>
+                    <TickerBadge 
+                      ticker={insight.primary_ticker}
+                      className="font-mono font-bold text-sm px-2 py-0.5 bg-[#252525] border-border/50 hover:bg-primary/20"
+                    />
                     
                     {/* Direction tag */}
                     <Badge 
