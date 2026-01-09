@@ -310,6 +310,10 @@ export function PortfolioAnalysisTabs({
               <LineChart className="h-4 w-4 sm:h-3.5 sm:w-3.5" />
               <span className="text-[10px] sm:text-xs">Performance</span>
             </TabsTrigger>
+            <TabsTrigger value="metrics" className="gap-1.5 text-xs px-2 py-2 flex-col sm:flex-row">
+              <BarChart3 className="h-4 w-4 sm:h-3.5 sm:w-3.5" />
+              <span className="text-[10px] sm:text-xs">Metrics</span>
+            </TabsTrigger>
             <TabsTrigger value="overview" className="gap-1.5 text-xs px-2 py-2 flex-col sm:flex-row">
               <GraduationCap className="h-4 w-4 sm:h-3.5 sm:w-3.5" />
               <span className="text-[10px] sm:text-xs">Overview</span>
@@ -317,10 +321,6 @@ export function PortfolioAnalysisTabs({
             <TabsTrigger value="health" className="gap-1.5 text-xs px-2 py-2 flex-col sm:flex-row">
               <Heart className="h-4 w-4 sm:h-3.5 sm:w-3.5" />
               <span className="text-[10px] sm:text-xs">Health</span>
-            </TabsTrigger>
-            <TabsTrigger value="metrics" className="gap-1.5 text-xs px-2 py-2 flex-col sm:flex-row">
-              <BarChart3 className="h-4 w-4 sm:h-3.5 sm:w-3.5" />
-              <span className="text-[10px] sm:text-xs">Metrics</span>
             </TabsTrigger>
             <TabsTrigger value="holdings" className="gap-1.5 text-xs px-2 py-2 flex-col sm:flex-row">
               <Settings className="h-4 w-4 sm:h-3.5 sm:w-3.5" />
