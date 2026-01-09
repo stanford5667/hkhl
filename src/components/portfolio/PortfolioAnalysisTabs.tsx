@@ -36,6 +36,7 @@ import { PortfolioGrowthChart } from './PortfolioGrowthChart';
 import { PerformanceSummaryTable } from './PerformanceSummaryTable';
 import { DrawdownChart } from './DrawdownChart';
 import { AnnualReturnsChart } from './AnnualReturnsChart';
+import { UnifiedPerformanceChart } from './UnifiedPerformanceChart';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip } from 'recharts';
 import { cn } from '@/lib/utils';
 import { usePortfolioCalculations, PortfolioMetrics } from '@/hooks/usePortfolioCalculations';
@@ -339,16 +340,15 @@ export function PortfolioAnalysisTabs({
           {/* Performance Tab - Charts and Metrics */}
           <TabsContent value="performance" className="mt-0">
             <ErrorBoundary variant="default">
-              {portfolioValues && portfolioValues.length > 0 && dates && dates.length > 0 ? (
-                <div className="space-y-6">
-                  {/* Growth Chart */}
-                  <PortfolioGrowthChart
-                    dates={dates}
-                    portfolioValues={portfolioValues}
-                    initialCapital={investableCapital}
-                  />
-                  
-                  {/* Quick Stats Row */}
+              <div className="space-y-6">
+                {/* Unified Performance Chart with type switching and time frame controls */}
+                <UnifiedPerformanceChart
+                  allocations={allocations}
+                  investableCapital={investableCapital}
+                />
+                
+                {/* Quick Stats Row */}
+                {metrics && (
                   <div className="flex gap-4 text-sm flex-wrap px-1">
                     <div>
                       <span className="text-muted-foreground">CAGR: </span>
@@ -374,7 +374,9 @@ export function PortfolioAnalysisTabs({
                       <span className="font-medium text-rose-500">{(metrics?.maxDrawdown ?? 0).toFixed(1)}%</span>
                     </div>
                   </div>
-                  
+                )}
+                
+                {portfolioValues && portfolioValues.length > 0 && dates && dates.length > 0 && (
                   <div className="grid gap-6 lg:grid-cols-2">
                     {/* Performance Summary */}
                     <PerformanceSummaryTable
@@ -395,22 +397,8 @@ export function PortfolioAnalysisTabs({
                       portfolioValues={portfolioValues}
                     />
                   </div>
-                  
-                  {/* Annual Returns */}
-                  <AnnualReturnsChart
-                    dates={dates}
-                    portfolioReturns={portfolioReturns || []}
-                  />
-                </div>
-              ) : (
-                <Card>
-                  <CardContent className="py-12 text-center text-muted-foreground">
-                    <LineChart className="h-8 w-8 mx-auto mb-3 opacity-50" />
-                    <p>Loading performance data...</p>
-                    <p className="text-xs mt-1">Charts will appear once data is calculated</p>
-                  </CardContent>
-                </Card>
-              )}
+                )}
+              </div>
             </ErrorBoundary>
           </TabsContent>
 
