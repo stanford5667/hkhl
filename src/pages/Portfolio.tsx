@@ -1260,81 +1260,16 @@ export default function Portfolio() {
         {/* Asset Allocation */}
         <Card>
           <CardContent className="p-6">
-            <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-              <BarChart3 className="h-5 w-5 text-primary" />
-              Asset Allocation
-            </h3>
-            <div className="space-y-4">
-              {allocationByClass.length > 0 ? allocationByClass.map(a => {
-              const IconComponent = a.Icon;
-              return <div key={a.asset_type} className="flex items-center gap-4 p-3 rounded-lg bg-secondary/30 hover:bg-secondary/50 transition-colors">
-                      <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{
-                  backgroundColor: `${a.color}30`
-                }}>
-                        <IconComponent className="h-5 w-5" style={{
-                    color: a.color
-                  }} />
-                      </div>
-                      <div className="flex-1">
-                        <p className="font-semibold">{formatCurrency(a.current_value, true)}</p>
-                        <p className="text-sm text-muted-foreground">{a.label}</p>
-                      </div>
-                      <div className="text-right">
-                        <p className="font-medium">{a.allocation_pct.toFixed(1)}%</p>
-                        <p className={cn("text-sm", a.gain_pct >= 0 ? 'text-emerald-400' : 'text-rose-400')}>
-                          {a.gain_pct >= 0 ? '+' : ''}{a.gain_pct.toFixed(1)}%
-                        </p>
-                      </div>
-                    </div>;
-            }) : <p className="text-muted-foreground text-center py-8">No holdings yet</p>}
-            </div>
+            
+            
           </CardContent>
         </Card>
 
         {/* Top Holdings */}
         <Card>
           <CardContent className="p-6">
-            <h3 className="text-lg font-semibold mb-4">Top Holdings</h3>
-            <div className="space-y-3">
-              {topHoldings.length > 0 ? topHoldings.map(h => <div key={h.id} className="flex items-center justify-between p-3 rounded-lg bg-secondary/30 hover:bg-secondary/50 transition-colors group cursor-pointer" onClick={() => {
-              if (h.ticker_symbol) {
-                navigate(`/stock/${h.ticker_symbol}`);
-              } else if (!h.id.startsWith('virtual-')) {
-                navigate(`/companies/${h.id}`);
-              }
-            }}>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium group-hover:text-primary transition-colors truncate">
-                        {h.ticker_symbol ? `$${h.ticker_symbol}` : h.name}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {h.asset_class ? ASSET_CLASS_CONFIG[h.asset_class as AssetClass]?.shortLabel : ''} • {h.industry || h.name || 'N/A'}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-4 text-sm">
-                      <div className="text-right hidden sm:block">
-                        <p className="font-medium">{formatCurrency(h.value, true)}</p>
-                        <p className="text-xs text-muted-foreground">Value</p>
-                      </div>
-                      <div className="text-right hidden md:block">
-                        <p className={cn("font-medium", h.irr >= 0 ? 'text-emerald-400' : 'text-rose-400')}>
-                          {h.irr.toFixed(1)}%
-                        </p>
-                        <p className="text-xs text-muted-foreground">IRR</p>
-                      </div>
-                      <div className="text-right hidden md:block">
-                        <p className="font-medium">{h.moic.toFixed(1)}x</p>
-                        <p className="text-xs text-muted-foreground">MOIC</p>
-                      </div>
-                      <div className="text-right">
-                        <p className={cn("font-medium", h.healthScore >= 70 ? 'text-emerald-400' : h.healthScore >= 50 ? 'text-yellow-400' : 'text-rose-400')}>
-                          {h.healthScore}
-                        </p>
-                        <p className="text-xs text-muted-foreground">Health</p>
-                      </div>
-                    </div>
-                  </div>) : <p className="text-muted-foreground text-center py-8">No holdings yet</p>}
-            </div>
+            
+            
           </CardContent>
         </Card>
       </div>
