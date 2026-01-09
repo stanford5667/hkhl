@@ -343,63 +343,70 @@ export default function CompanyDetail() {
 
       {/* Tabs */}
       <Tabs defaultValue="overview" className="space-y-6">
-        <TabsList className="bg-secondary h-12 flex-wrap">
-          <TabsTrigger value="overview" className="gap-2 text-base px-5 py-3">
-            <LayoutDashboard className="h-5 w-5" />
-            Overview
-          </TabsTrigger>
-          <TabsTrigger value="tasks" className="gap-2 text-base px-5 py-3">
-            <CheckSquare className="h-5 w-5" />
-            Tasks
-          </TabsTrigger>
-          <TabsTrigger value="dataroom" className="gap-2 text-base px-5 py-3">
-            <FolderOpen className="h-5 w-5" />
-            Data Room
-            {documents.length > 0 && (
-              <Badge variant="secondary" className="ml-1">{documents.length}</Badge>
-            )}
-          </TabsTrigger>
-          <TabsTrigger value="notes" className="gap-2 text-base px-5 py-3">
-            <StickyNote className="h-5 w-5" />
-            Notes
-          </TabsTrigger>
-          {isPublicEquity && (
-            <TabsTrigger value="transactions" className="gap-2 text-base px-5 py-3">
-              <Briefcase className="h-5 w-5" />
-              Transactions
+        <div className="space-y-2">
+          {/* Row 1: Core tabs */}
+          <TabsList className="bg-secondary h-12 w-full justify-start">
+            <TabsTrigger value="overview" className="gap-2 text-base px-5 py-3">
+              <LayoutDashboard className="h-5 w-5" />
+              Overview
             </TabsTrigger>
-          )}
-          {isPublicEquity && (
-            <TabsTrigger value="backtest" className="gap-2 text-base px-5 py-3">
-              <BarChart3 className="h-5 w-5" />
-              Backtest
+            <TabsTrigger value="tasks" className="gap-2 text-base px-5 py-3">
+              <CheckSquare className="h-5 w-5" />
+              Tasks
             </TabsTrigger>
-          )}
-          {isPublicEquity && (
-            <TabsTrigger value="studies" className="gap-2 text-base px-5 py-3">
-              <FlaskConical className="h-5 w-5" />
-              Studies
+            <TabsTrigger value="dataroom" className="gap-2 text-base px-5 py-3">
+              <FolderOpen className="h-5 w-5" />
+              Data Room
+              {documents.length > 0 && (
+                <Badge variant="secondary" className="ml-1">{documents.length}</Badge>
+              )}
             </TabsTrigger>
-          )}
-          <TabsTrigger value="news" className="gap-2 text-base px-5 py-3">
-            <Newspaper className="h-5 w-5" />
-            {isPublicEquity ? 'News' : 'Industry Intel'}
-          </TabsTrigger>
-          <TabsTrigger value="contacts" className="gap-2 text-base px-5 py-3">
-            <Users className="h-5 w-5" />
-            Contacts
-            {contacts.length > 0 && (
-              <Badge variant="secondary" className="ml-1">{contacts.length}</Badge>
+            <TabsTrigger value="notes" className="gap-2 text-base px-5 py-3">
+              <StickyNote className="h-5 w-5" />
+              Notes
+            </TabsTrigger>
+            {isPublicEquity && (
+              <TabsTrigger value="transactions" className="gap-2 text-base px-5 py-3">
+                <Briefcase className="h-5 w-5" />
+                Transactions
+              </TabsTrigger>
             )}
-          </TabsTrigger>
-          <TabsTrigger value="models" className="gap-2 text-base px-5 py-3">
-            <Brain className="h-5 w-5" />
-            Models
-            {models.length > 0 && (
-              <Badge variant="secondary" className="ml-1">{models.length}</Badge>
+            {isPublicEquity && (
+              <TabsTrigger value="backtest" className="gap-2 text-base px-5 py-3">
+                <BarChart3 className="h-5 w-5" />
+                Backtest
+              </TabsTrigger>
             )}
-          </TabsTrigger>
-        </TabsList>
+            {isPublicEquity && (
+              <TabsTrigger value="studies" className="gap-2 text-base px-5 py-3">
+                <FlaskConical className="h-5 w-5" />
+                Studies
+              </TabsTrigger>
+            )}
+          </TabsList>
+
+          {/* Row 2: News, Contacts, Models */}
+          <TabsList className="bg-secondary h-12 w-full justify-start">
+            <TabsTrigger value="news" className="gap-2 text-base px-5 py-3">
+              <Newspaper className="h-5 w-5" />
+              {isPublicEquity ? 'News' : 'Industry Intel'}
+            </TabsTrigger>
+            <TabsTrigger value="contacts" className="gap-2 text-base px-5 py-3">
+              <Users className="h-5 w-5" />
+              Contacts
+              {contacts.length > 0 && (
+                <Badge variant="secondary" className="ml-1">{contacts.length}</Badge>
+              )}
+            </TabsTrigger>
+            <TabsTrigger value="models" className="gap-2 text-base px-5 py-3">
+              <Brain className="h-5 w-5" />
+              Models
+              {models.length > 0 && (
+                <Badge variant="secondary" className="ml-1">{models.length}</Badge>
+              )}
+            </TabsTrigger>
+          </TabsList>
+        </div>
 
         {/* Tasks Tab */}
         <TabsContent value="tasks">
