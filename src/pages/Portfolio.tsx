@@ -998,7 +998,7 @@ export default function Portfolio() {
             Portfolio
           </h1>
           <p className="text-muted-foreground mt-1">
-            {activePortfolio?.name || 'My Portfolio'} • {allHoldings.length} Holdings
+            {activePortfolio?.name || 'My Portfolio'} • {perfPositionCount > 0 ? perfPositionCount : allHoldings.length} Holdings
           </p>
         </div>
 

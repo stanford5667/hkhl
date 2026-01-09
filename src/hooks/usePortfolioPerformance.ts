@@ -160,13 +160,17 @@ export function usePortfolioPerformance(
         .select('*')
         .eq('user_id', user.id);
       
+      // If portfolioId is specified, filter by it
+      // Otherwise, get ALL positions for this user (including those without portfolio_id)
       if (portfolioId) {
         query = query.eq('portfolio_id', portfolioId);
       }
+      // If no portfolioId filter, we get all user positions
       
       const { data, error } = await query;
       if (error) throw error;
       
+      console.log('[usePortfolioPerformance] Fetched positions:', data?.length, 'portfolioId:', portfolioId);
       setPositions((data || []) as PositionData[]);
     } catch (err) {
       console.error('[usePortfolioPerformance] Error fetching positions:', err);
