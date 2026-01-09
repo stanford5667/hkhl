@@ -491,6 +491,69 @@ export function PublicEquityDetailView({ company, onUpdate, showOnlyTransactions
         </Button>
       </div>
 
+      {/* Price Card - Hero Section */}
+      <Card className="bg-card border-border">
+        <CardContent className="p-6">
+          {isLoadingQuote ? (
+            <div className="space-y-4">
+              <Skeleton className="h-12 w-32" />
+              <Skeleton className="h-6 w-24" />
+            </div>
+          ) : quote && quote.price > 0 ? (
+            <div className="flex items-start justify-between">
+              <div>
+                <div className="flex items-baseline gap-4">
+                  <span className="text-4xl font-bold tabular-nums">
+                    {formatCurrency(currentPrice)}
+                  </span>
+                  <div className={cn(
+                    "flex items-center gap-1 text-lg font-medium",
+                    isPositive ? "text-emerald-400" : "text-rose-400"
+                  )}>
+                    {isPositive ? (
+                      <TrendingUp className="h-5 w-5" />
+                    ) : (
+                      <TrendingDown className="h-5 w-5" />
+                    )}
+                    <span className="tabular-nums">
+                      {isPositive ? '+' : ''}{formatCurrency(quote.change)}
+                    </span>
+                    <span className="tabular-nums">
+                      ({formatPercent(quote.changePercent)})
+                    </span>
+                  </div>
+                </div>
+                <p className="text-muted-foreground mt-1">Market value as of today</p>
+              </div>
+            </div>
+          ) : (
+            <p className="text-muted-foreground">Price data unavailable</p>
+          )}
+          
+          {/* Day Stats Row */}
+          {quote && quote.price > 0 && (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6 pt-6 border-t border-border">
+              <div>
+                <p className="text-xs text-muted-foreground uppercase">Open</p>
+                <p className="text-lg font-medium tabular-nums">{formatCurrency(quote.open)}</p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground uppercase">High</p>
+                <p className="text-lg font-medium tabular-nums">{formatCurrency(quote.high)}</p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground uppercase">Low</p>
+                <p className="text-lg font-medium tabular-nums">{formatCurrency(quote.low)}</p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground uppercase">Market Cap</p>
+                <p className="text-lg font-medium">{quote.marketCap}</p>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
       {/* Price Chart - Hero Section with Candlestick */}
       <Card className="bg-card border-border overflow-hidden">
         <CardHeader className="pb-2">
