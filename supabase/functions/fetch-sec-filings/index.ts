@@ -5,8 +5,10 @@ const corsHeaders = {
 
 interface SECFilingRequest {
   ticker: string;
-  filingTypes?: string[]; // ['10-K', '10-Q', '8-K', 'DEF 14A']
+  filingTypes?: string[];
   limit?: number;
+  fetchContent?: boolean;
+  filingUrl?: string; // For fetching a single filing's content
 }
 
 interface SECFiling {
@@ -20,31 +22,6 @@ interface SECFiling {
   content?: string;
 }
 
-// Get CIK from ticker using SEC EDGAR
-async function getCIKFromTicker(ticker: string): Promise<string | null> {
-  try {
-    const response = await fetch(
-      `https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&company=${ticker}&type=&dateb=&owner=include&count=1&search_text=&output=atom`,
-      {
-        headers: {
-          'User-Agent': 'AssetLabs Research Bot contact@assetlabs.com',
-          'Accept': 'application/atom+xml',
-        },
-      }
-    );
-    
-    if (!response.ok) return null;
-    
-    const text = await response.text();
-    // Extract CIK from the response
-    const cikMatch = text.match(/CIK=(\d+)/);
-    return cikMatch?.[1] || null;
-  } catch (error) {
-    console.error('Error getting CIK:', error);
-    return null;
-  }
-}
-
 // Fetch SEC filings list using SEC EDGAR API
 async function fetchSECFilingsList(
   ticker: string,
@@ -53,7 +30,6 @@ async function fetchSECFilingsList(
 ): Promise<SECFiling[]> {
   const filings: SECFiling[] = [];
   
-  // Try getting filings from SEC EDGAR RSS feed
   for (const filingType of filingTypes) {
     try {
       const url = `https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&company=${ticker}&type=${encodeURIComponent(filingType)}&dateb=&owner=include&count=${limit}&output=atom`;
@@ -68,8 +44,6 @@ async function fetchSECFilingsList(
       if (!response.ok) continue;
       
       const text = await response.text();
-      
-      // Parse the Atom feed
       const entries = text.match(/<entry>[\s\S]*?<\/entry>/g) || [];
       
       for (const entry of entries.slice(0, limit)) {
@@ -98,9 +72,45 @@ async function fetchSECFilingsList(
   return filings.slice(0, limit);
 }
 
-// Use Firecrawl to scrape filing content
+// Get document URLs from filing page
+async function getDocumentUrls(filingPageUrl: string): Promise<{ htmlUrl: string; txtUrl: string } | null> {
+  try {
+    const response = await fetch(filingPageUrl, {
+      headers: {
+        'User-Agent': 'AssetLabs Research Bot contact@assetlabs.com',
+        'Accept': 'text/html',
+      },
+    });
+    
+    if (!response.ok) return null;
+    
+    const html = await response.text();
+    
+    // Look for the primary document link (usually .htm)
+    const htmMatch = html.match(/href="([^"]+\.htm)"[^>]*>.*?(10-K|10-Q|8-K|DEF\s*14A)/i) ||
+                     html.match(/href="([^"]+\.htm)"/i);
+    
+    // Look for full submission text file
+    const txtMatch = html.match(/href="([^"]+\.txt)"/i);
+    
+    // Build absolute URLs
+    const baseUrl = filingPageUrl.replace(/\/[^/]*$/, '/');
+    
+    return {
+      htmlUrl: htmMatch ? (htmMatch[1].startsWith('http') ? htmMatch[1] : `https://www.sec.gov${htmMatch[1].startsWith('/') ? '' : '/'}${htmMatch[1]}`) : '',
+      txtUrl: txtMatch ? (txtMatch[1].startsWith('http') ? txtMatch[1] : `${baseUrl}${txtMatch[1]}`) : '',
+    };
+  } catch (error) {
+    console.error('Error getting document URLs:', error);
+    return null;
+  }
+}
+
+// Use Firecrawl to scrape filing content as markdown
 async function scrapeFilingContent(apiKey: string, url: string): Promise<string> {
   try {
+    console.log(`Scraping content from: ${url}`);
+    
     const response = await fetch('https://api.firecrawl.dev/v1/scrape', {
       method: 'POST',
       headers: {
@@ -111,11 +121,13 @@ async function scrapeFilingContent(apiKey: string, url: string): Promise<string>
         url,
         formats: ['markdown'],
         onlyMainContent: true,
-        waitFor: 2000,
+        waitFor: 3000,
       }),
     });
     
     if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`Firecrawl scrape failed: ${response.status}`, errorText);
       throw new Error(`Firecrawl scrape failed: ${response.status}`);
     }
     
@@ -125,56 +137,6 @@ async function scrapeFilingContent(apiKey: string, url: string): Promise<string>
     console.error('Error scraping filing:', error);
     return '';
   }
-}
-
-// Search for SEC filings using Firecrawl
-async function searchSECFilings(
-  apiKey: string,
-  ticker: string,
-  filingTypes: string[],
-  limit: number
-): Promise<SECFiling[]> {
-  const filings: SECFiling[] = [];
-  
-  for (const filingType of filingTypes) {
-    try {
-      const query = `site:sec.gov ${ticker} ${filingType} filing`;
-      
-      const response = await fetch('https://api.firecrawl.dev/v1/search', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${apiKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          query,
-          limit: Math.ceil(limit / filingTypes.length),
-        }),
-      });
-      
-      if (!response.ok) continue;
-      
-      const data = await response.json();
-      
-      for (const result of (data.data || [])) {
-        // Parse accession number from URL
-        const accessionMatch = result.url?.match(/(\d{10}-\d{2}-\d{6})/);
-        
-        filings.push({
-          type: filingType,
-          title: result.title || `${ticker} ${filingType}`,
-          filedAt: new Date().toISOString(),
-          accessionNumber: accessionMatch?.[1] || '',
-          url: result.url,
-          description: result.description || '',
-        });
-      }
-    } catch (error) {
-      console.error(`Error searching ${filingType}:`, error);
-    }
-  }
-  
-  return filings.slice(0, limit);
 }
 
 // Generate mock SEC filings for demo
@@ -207,6 +169,7 @@ function generateMockFilings(ticker: string, filingTypes: string[], limit: numbe
           accessionNumber: `0001234567-${year.toString().slice(2)}-${String(count + 1).padStart(6, '0')}`,
           url: `https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=${ticker}&type=${filingType}`,
           description: descriptions[filingType] || `Official ${filingType} filing`,
+          content: `# ${ticker} ${filingType} ${year}\n\n## Business Overview\n\nThis is sample content for demonstration purposes. The actual SEC filing would contain detailed financial information, risk factors, management discussion and analysis, and audited financial statements.\n\n## Financial Highlights\n\n- Revenue: $X.X billion\n- Net Income: $X.X million\n- EPS: $X.XX\n\n## Risk Factors\n\n1. Market competition\n2. Regulatory changes\n3. Economic conditions\n\n*This is mock data for demonstration.*`,
         });
         count++;
       }
@@ -222,7 +185,47 @@ Deno.serve(async (req) => {
   }
   
   try {
-    const { ticker, filingTypes = ['10-K', '10-Q', '8-K'], limit = 10 }: SECFilingRequest = await req.json();
+    const { 
+      ticker, 
+      filingTypes = ['10-K', '10-Q', '8-K'], 
+      limit = 10,
+      fetchContent = false,
+      filingUrl,
+    }: SECFilingRequest = await req.json();
+    
+    const apiKey = Deno.env.get('FIRECRAWL_API_KEY');
+    
+    // If fetching content for a single filing
+    if (filingUrl) {
+      console.log(`Fetching content for filing: ${filingUrl}`);
+      
+      if (!apiKey) {
+        return new Response(
+          JSON.stringify({ 
+            success: false, 
+            error: 'Firecrawl API key not configured. Please connect Firecrawl in Settings → Connectors.' 
+          }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      
+      // Try to get the actual document URL from the filing page
+      const documentUrls = await getDocumentUrls(filingUrl);
+      const scrapeUrl = documentUrls?.htmlUrl || filingUrl;
+      
+      console.log(`Scraping document at: ${scrapeUrl}`);
+      const content = await scrapeFilingContent(apiKey, scrapeUrl);
+      
+      return new Response(
+        JSON.stringify({
+          success: true,
+          content,
+          scrapeUrl,
+          scrapedAt: new Date().toISOString(),
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
     
     if (!ticker) {
       return new Response(
@@ -231,7 +234,6 @@ Deno.serve(async (req) => {
       );
     }
     
-    const apiKey = Deno.env.get('FIRECRAWL_API_KEY');
     const tickerUpper = ticker.toUpperCase();
     
     let filings: SECFiling[];
@@ -242,35 +244,34 @@ Deno.serve(async (req) => {
     filings = await fetchSECFilingsList(tickerUpper, filingTypes, limit);
     source = 'sec_edgar';
     
-    // If no results from SEC EDGAR, try Firecrawl search
-    if (filings.length === 0 && apiKey) {
-      console.log('No SEC EDGAR results, trying Firecrawl search...');
-      filings = await searchSECFilings(apiKey, tickerUpper, filingTypes, limit);
-      source = 'firecrawl';
-    }
-    
-    // If still no results, use mock data
+    // If no results, use mock data
     if (filings.length === 0) {
-      console.log('No results from APIs, using mock data');
+      console.log('No results from SEC EDGAR, using mock data');
       filings = generateMockFilings(tickerUpper, filingTypes, limit);
       source = 'mock';
     }
     
-    // If Firecrawl available, scrape content for top filings
-    if (apiKey && filings.length > 0) {
+    // If fetchContent is true and Firecrawl is available, scrape content for filings
+    if (fetchContent && apiKey && filings.length > 0) {
+      console.log('Fetching content for filings...');
       const filingsWithContent = await Promise.all(
-        filings.slice(0, 3).map(async (filing) => {
-          if (filing.url && !filing.url.includes('browse-edgar')) {
-            const content = await scrapeFilingContent(apiKey, filing.url);
-            return { ...filing, content: content.slice(0, 5000) }; // Limit content size
+        filings.slice(0, 5).map(async (filing) => {
+          if (filing.url) {
+            // Get document URLs from filing page
+            const documentUrls = await getDocumentUrls(filing.url);
+            const scrapeUrl = documentUrls?.htmlUrl || filing.url;
+            
+            if (scrapeUrl && !scrapeUrl.includes('browse-edgar?action=getcompany')) {
+              const content = await scrapeFilingContent(apiKey, scrapeUrl);
+              return { ...filing, content, documentUrl: scrapeUrl };
+            }
           }
           return filing;
         })
       );
       
-      // Merge content back
       filings = filings.map((f, i) => 
-        i < 3 && filingsWithContent[i]?.content 
+        i < 5 && filingsWithContent[i]?.content 
           ? filingsWithContent[i] 
           : f
       );

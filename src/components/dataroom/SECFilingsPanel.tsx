@@ -2,26 +2,21 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Checkbox } from '@/components/ui/checkbox';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import {
   FileText,
   Download,
-  ExternalLink,
   Loader2,
   RefreshCw,
   Calendar,
   FileSearch,
-  ChevronDown,
-  ChevronUp,
+  X,
+  Eye,
+  ArrowLeft,
 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from '@/components/ui/collapsible';
 
 interface SECFiling {
   type: string;
@@ -31,6 +26,7 @@ interface SECFiling {
   url: string;
   description: string;
   content?: string;
+  documentUrl?: string;
 }
 
 interface SECFilingsPanelProps {
@@ -49,9 +45,9 @@ const filingTypeColors: Record<string, string> = {
 export function SECFilingsPanel({ ticker, companyName }: SECFilingsPanelProps) {
   const [filings, setFilings] = useState<SECFiling[]>([]);
   const [loading, setLoading] = useState(false);
+  const [loadingContent, setLoadingContent] = useState<string | null>(null);
   const [hasSearched, setHasSearched] = useState(false);
-  const [selectedFilings, setSelectedFilings] = useState<Set<string>>(new Set());
-  const [expandedFilings, setExpandedFilings] = useState<Set<string>>(new Set());
+  const [selectedFiling, setSelectedFiling] = useState<SECFiling | null>(null);
   const [source, setSource] = useState<string>('');
 
   const fetchFilings = async () => {
@@ -89,24 +85,41 @@ export function SECFilingsPanel({ ticker, companyName }: SECFilingsPanelProps) {
     }
   };
 
-  const toggleFiling = (accessionNumber: string) => {
-    const newSelected = new Set(selectedFilings);
-    if (newSelected.has(accessionNumber)) {
-      newSelected.delete(accessionNumber);
-    } else {
-      newSelected.add(accessionNumber);
+  const fetchFilingContent = async (filing: SECFiling) => {
+    // If content already loaded, just display it
+    if (filing.content) {
+      setSelectedFiling(filing);
+      return;
     }
-    setSelectedFilings(newSelected);
-  };
 
-  const toggleExpand = (accessionNumber: string) => {
-    const newExpanded = new Set(expandedFilings);
-    if (newExpanded.has(accessionNumber)) {
-      newExpanded.delete(accessionNumber);
-    } else {
-      newExpanded.add(accessionNumber);
+    setLoadingContent(filing.accessionNumber);
+
+    try {
+      const { data, error } = await supabase.functions.invoke('fetch-sec-filings', {
+        body: {
+          filingUrl: filing.url,
+        },
+      });
+
+      if (error) throw error;
+
+      if (data.success && data.content) {
+        const updatedFiling = { ...filing, content: data.content };
+        // Update the filing in the list
+        setFilings(prev => prev.map(f => 
+          f.accessionNumber === filing.accessionNumber ? updatedFiling : f
+        ));
+        setSelectedFiling(updatedFiling);
+        toast.success('Filing content loaded');
+      } else {
+        throw new Error(data.error || 'Failed to load content');
+      }
+    } catch (error) {
+      console.error('Error fetching filing content:', error);
+      toast.error('Failed to load filing content. Make sure Firecrawl is connected.');
+    } finally {
+      setLoadingContent(null);
     }
-    setExpandedFilings(newExpanded);
   };
 
   const formatDate = (dateString: string) => {
@@ -134,6 +147,94 @@ export function SECFilingsPanel({ ticker, companyName }: SECFilingsPanelProps) {
     );
   }
 
+  // Document viewer mode
+  if (selectedFiling) {
+    return (
+      <Card className="glass-card h-full flex flex-col">
+        <CardHeader className="pb-3 flex-shrink-0">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => setSelectedFiling(null)}
+              >
+                <ArrowLeft className="h-4 w-4 mr-1" />
+                Back
+              </Button>
+              <Badge
+                variant="outline"
+                className={getFilingTypeColor(selectedFiling.type)}
+              >
+                {selectedFiling.type}
+              </Badge>
+              <span className="font-medium text-sm truncate max-w-[300px]">
+                {selectedFiling.title}
+              </span>
+            </div>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => setSelectedFiling(null)}
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+          <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1 ml-12">
+            <Calendar className="h-3 w-3" />
+            {formatDate(selectedFiling.filedAt)}
+            {selectedFiling.accessionNumber && (
+              <span className="font-mono">#{selectedFiling.accessionNumber}</span>
+            )}
+          </div>
+        </CardHeader>
+        <CardContent className="flex-1 overflow-hidden p-0">
+          <ScrollArea className="h-[calc(100vh-280px)]">
+            <div className="p-6">
+              {selectedFiling.content ? (
+                <div className="prose prose-sm prose-invert max-w-none">
+                  <div className="whitespace-pre-wrap font-sans text-sm leading-relaxed text-foreground">
+                    {selectedFiling.content.split('\n').map((line, i) => {
+                      // Basic markdown-like rendering
+                      if (line.startsWith('# ')) {
+                        return <h1 key={i} className="text-2xl font-bold mt-6 mb-4 text-foreground">{line.slice(2)}</h1>;
+                      }
+                      if (line.startsWith('## ')) {
+                        return <h2 key={i} className="text-xl font-semibold mt-5 mb-3 text-foreground">{line.slice(3)}</h2>;
+                      }
+                      if (line.startsWith('### ')) {
+                        return <h3 key={i} className="text-lg font-medium mt-4 mb-2 text-foreground">{line.slice(4)}</h3>;
+                      }
+                      if (line.startsWith('- ') || line.startsWith('* ')) {
+                        return <li key={i} className="ml-4 text-muted-foreground">{line.slice(2)}</li>;
+                      }
+                      if (line.match(/^\d+\.\s/)) {
+                        return <li key={i} className="ml-4 list-decimal text-muted-foreground">{line.replace(/^\d+\.\s/, '')}</li>;
+                      }
+                      if (line.startsWith('**') && line.endsWith('**')) {
+                        return <p key={i} className="font-semibold my-2 text-foreground">{line.slice(2, -2)}</p>;
+                      }
+                      if (line.trim() === '') {
+                        return <br key={i} />;
+                      }
+                      return <p key={i} className="my-1 text-muted-foreground">{line}</p>;
+                    })}
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center py-12">
+                  <Loader2 className="h-8 w-8 animate-spin mx-auto text-muted-foreground" />
+                  <p className="text-muted-foreground mt-2">Loading content...</p>
+                </div>
+              )}
+            </div>
+          </ScrollArea>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // List view
   return (
     <Card className="glass-card">
       <CardHeader className="pb-3">
@@ -195,104 +296,51 @@ export function SECFilingsPanel({ ticker, companyName }: SECFilingsPanelProps) {
             <p className="text-muted-foreground">No SEC filings found for {ticker}</p>
           </div>
         ) : (
-          <div className="space-y-2 max-h-[400px] overflow-y-auto pr-1">
+          <div className="space-y-2 max-h-[500px] overflow-y-auto pr-1">
             {filings.map((filing) => (
-              <Collapsible
+              <div
                 key={filing.accessionNumber || filing.title}
-                open={expandedFilings.has(filing.accessionNumber)}
-                onOpenChange={() => toggleExpand(filing.accessionNumber)}
+                className="border border-border rounded-lg hover:border-primary/50 transition-colors p-3"
               >
-                <div className="border border-border rounded-lg hover:border-primary/50 transition-colors">
-                  <div className="flex items-center gap-3 p-3">
-                    <Checkbox
-                      checked={selectedFilings.has(filing.accessionNumber)}
-                      onCheckedChange={() => toggleFiling(filing.accessionNumber)}
-                    />
-                    <Badge
-                      variant="outline"
-                      className={getFilingTypeColor(filing.type)}
-                    >
-                      {filing.type}
-                    </Badge>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium text-sm truncate">{filing.title}</p>
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                        <Calendar className="h-3 w-3" />
-                        {formatDate(filing.filedAt)}
-                        {filing.accessionNumber && (
-                          <span className="font-mono">#{filing.accessionNumber}</span>
-                        )}
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      {filing.url && (
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          className="h-7 w-7"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            window.open(filing.url, '_blank');
-                          }}
-                        >
-                          <ExternalLink className="h-3.5 w-3.5" />
-                        </Button>
+                <div className="flex items-center gap-3">
+                  <Badge
+                    variant="outline"
+                    className={getFilingTypeColor(filing.type)}
+                  >
+                    {filing.type}
+                  </Badge>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-sm truncate">{filing.title}</p>
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <Calendar className="h-3 w-3" />
+                      {formatDate(filing.filedAt)}
+                      {filing.accessionNumber && (
+                        <span className="font-mono">#{filing.accessionNumber}</span>
                       )}
-                      <CollapsibleTrigger asChild>
-                        <Button size="icon" variant="ghost" className="h-7 w-7">
-                          {expandedFilings.has(filing.accessionNumber) ? (
-                            <ChevronUp className="h-3.5 w-3.5" />
-                          ) : (
-                            <ChevronDown className="h-3.5 w-3.5" />
-                          )}
-                        </Button>
-                      </CollapsibleTrigger>
                     </div>
                   </div>
-                  <CollapsibleContent>
-                    <div className="px-3 pb-3 pt-0 border-t border-border mt-0">
-                      <div className="pt-3 space-y-2">
-                        {filing.description && (
-                          <p className="text-sm text-muted-foreground">
-                            {filing.description}
-                          </p>
-                        )}
-                        {filing.content && (
-                          <div className="bg-muted/50 rounded p-3 max-h-48 overflow-y-auto">
-                            <p className="text-xs text-muted-foreground whitespace-pre-wrap font-mono">
-                              {filing.content.slice(0, 1000)}
-                              {filing.content.length > 1000 && '...'}
-                            </p>
-                          </div>
-                        )}
-                        <div className="flex gap-2">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => window.open(filing.url, '_blank')}
-                          >
-                            <ExternalLink className="h-3.5 w-3.5 mr-1" />
-                            View on SEC
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                  </CollapsibleContent>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="gap-1"
+                    onClick={() => fetchFilingContent(filing)}
+                    disabled={loadingContent === filing.accessionNumber}
+                  >
+                    {loadingContent === filing.accessionNumber ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <Eye className="h-3.5 w-3.5" />
+                    )}
+                    {filing.content ? 'View' : 'Load & View'}
+                  </Button>
                 </div>
-              </Collapsible>
+                {filing.description && (
+                  <p className="text-xs text-muted-foreground mt-2 line-clamp-2">
+                    {filing.description}
+                  </p>
+                )}
+              </div>
             ))}
-          </div>
-        )}
-
-        {selectedFilings.size > 0 && (
-          <div className="flex items-center justify-between pt-3 border-t border-border">
-            <span className="text-sm text-muted-foreground">
-              {selectedFilings.size} filing(s) selected
-            </span>
-            <Button size="sm" variant="outline">
-              <Download className="h-4 w-4 mr-2" />
-              Download Selected
-            </Button>
           </div>
         )}
       </CardContent>
