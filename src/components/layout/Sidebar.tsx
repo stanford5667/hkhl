@@ -290,11 +290,9 @@ export function Sidebar() {
       {/* Logo */}
       <div className="flex items-center justify-between h-14 px-3 border-b border-slate-800">
         <Link to="/" className="flex items-center gap-2">
-          <div className="relative w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center">
-            <Sparkles className="h-4 w-4 text-white" />
-          </div>
+          <img src="/favicon.png" alt="Asset Labs AI" className="w-8 h-8 rounded-lg" />
           {!collapsed && (
-            <span className="font-bold text-white text-sm">Asset Labs</span>
+            <span className="font-bold text-white text-sm">Asset Labs AI</span>
           )}
         </Link>
         {!collapsed && (

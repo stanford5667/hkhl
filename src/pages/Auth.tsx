@@ -100,9 +100,9 @@ export default function Auth() {
   };
 
   const features = [
-    { icon: TrendingUp, title: "Deal Pipeline", description: "Track and manage deals from sourcing to close" },
-    { icon: Shield, title: "Secure Data Room", description: "Enterprise-grade document security and sharing" },
-    { icon: Zap, title: "AI-Powered Insights", description: "Intelligent analysis and recommendations" },
+    { icon: TrendingUp, title: "Portfolio Analytics", description: "Real-time performance tracking and insights" },
+    { icon: Shield, title: "Market Intelligence", description: "AI-powered research and news analysis" },
+    { icon: Zap, title: "Smart Automation", description: "Automated screening and portfolio optimization" },
   ];
 
   return (
@@ -111,13 +111,11 @@ export default function Auth() {
       <div className="hidden lg:flex lg:w-1/2 flex-col justify-between p-12 bg-card border-r border-border">
         <div>
           <div className="flex items-center gap-3 mb-4">
-            <div className="h-10 w-10 rounded-xl bg-primary flex items-center justify-center">
-              <span className="text-xl font-bold text-primary-foreground">D</span>
-            </div>
-            <span className="text-2xl font-bold text-foreground tracking-tight">DealFlow AI</span>
+            <img src="/favicon.png" alt="Asset Labs AI" className="h-10 w-10 rounded-xl" />
+            <span className="text-2xl font-bold text-foreground tracking-tight">Asset Labs AI</span>
           </div>
           <p className="text-muted-foreground text-lg">
-            The intelligent platform for private equity deal management
+            AI-powered portfolio analytics and corporate finance platform
           </p>
         </div>
 
@@ -136,7 +134,7 @@ export default function Auth() {
         </div>
 
         <p className="text-sm text-muted-foreground">
-          © 2024 DealFlow AI. All rights reserved.
+          © 2025 Asset Labs AI. All rights reserved.
         </p>
       </div>
 
@@ -145,10 +143,8 @@ export default function Auth() {
         <div className="w-full max-w-md space-y-8 animate-fade-up">
           {/* Mobile logo */}
           <div className="lg:hidden flex items-center gap-3 justify-center mb-8">
-            <div className="h-10 w-10 rounded-xl bg-primary flex items-center justify-center">
-              <span className="text-xl font-bold text-primary-foreground">D</span>
-            </div>
-            <span className="text-2xl font-bold text-foreground tracking-tight">DealFlow AI</span>
+            <img src="/favicon.png" alt="Asset Labs AI" className="h-10 w-10 rounded-xl" />
+            <span className="text-2xl font-bold text-foreground tracking-tight">Asset Labs AI</span>
           </div>
 
           <div className="text-center">
@@ -157,8 +153,8 @@ export default function Auth() {
             </h1>
             <p className="mt-2 text-muted-foreground">
               {mode === "signin" 
-                ? "Sign in to access your deals and portfolio" 
-                : "Get started with DealFlow AI today"}
+                ? "Sign in to access your portfolio and insights" 
+                : "Get started with Asset Labs AI today"}
             </p>
           </div>
 
