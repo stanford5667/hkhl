@@ -1,4 +1,5 @@
 import React, { useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { BarChart3, X } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -12,6 +13,8 @@ interface TickerHeatmapProps {
 }
 
 export function TickerHeatmap({ articles, onTickerClick, selectedTicker }: TickerHeatmapProps) {
+  const navigate = useNavigate();
+  
   const tickerData = useMemo(() => {
     const tickerMap = new Map<string, { count: number; sentiment: number[] }>();
     
@@ -99,7 +102,15 @@ export function TickerHeatmap({ articles, onTickerClick, selectedTicker }: Ticke
                   opacity: intensity + 0.3
                 }}
               >
-                <div className="text-xs font-mono font-bold text-white">${item.ticker}</div>
+                <div 
+                  className="text-xs font-mono font-bold text-white hover:text-cyan-300 cursor-pointer"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    navigate(`/stock/${item.ticker}`);
+                  }}
+                >
+                  ${item.ticker}
+                </div>
                 <div className="text-[10px] text-white/60">{item.count} signals</div>
                 {/* Activity bar */}
                 <div className="mt-1 h-1 bg-slate-800 rounded-full overflow-hidden">
