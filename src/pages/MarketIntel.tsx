@@ -4,6 +4,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { 
   Activity, PieChart, Briefcase, Zap, Globe, Target, Building2, BookOpen, 
   Landmark, Users, Sparkles, Bell, RefreshCw, DollarSign, TrendingUp, TrendingDown,
@@ -17,6 +24,15 @@ import { useCommodities, useForex, groupCommoditiesByCategory, groupForexByCateg
 
 export default function MarketIntel() {
   const [activeTab, setActiveTab] = useState('macro');
+  const [showUpgradeDialog, setShowUpgradeDialog] = useState(false);
+
+  const handleTabChange = (value: string) => {
+    if (value === 'commodities' || value === 'currencies') {
+      setShowUpgradeDialog(true);
+    } else {
+      setActiveTab(value);
+    }
+  };
   const { data: totals } = usePortfolioTotals();
   const { data: alerts } = useAlerts();
   const { data: deals } = useDealPipeline();
@@ -68,8 +84,31 @@ export default function MarketIntel() {
         </div>
       </div>
 
+      {/* Upgrade Dialog */}
+      <Dialog open={showUpgradeDialog} onOpenChange={setShowUpgradeDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Zap className="h-5 w-5 text-primary" />
+              Premium Feature
+            </DialogTitle>
+            <DialogDescription className="text-base pt-2">
+              Upgrade to access real-time data across all markets
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-end gap-2 pt-4">
+            <Button variant="outline" onClick={() => setShowUpgradeDialog(false)}>
+              Maybe Later
+            </Button>
+            <Button onClick={() => setShowUpgradeDialog(false)}>
+              Upgrade Now
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* Tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+      <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
         <TabsList className="flex flex-wrap h-auto gap-1 bg-secondary/50 p-1">
           <TabsTrigger value="macro" className="text-sm">
             <Globe className="h-4 w-4 mr-1.5" />
