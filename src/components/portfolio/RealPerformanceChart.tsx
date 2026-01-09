@@ -312,8 +312,7 @@ export function RealPerformanceChart({
           </CardDescription>
         )}
       </CardHeader>
-      
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-4 pt-2">
         {/* Performance Chart */}
         {chartData.length > 1 ? (
           <div className="h-48">
