@@ -506,9 +506,17 @@ export default function PortfolioVisualizer() {
 
   // Calculate date range based on investment horizon
   const { backtestStartDate, backtestEndDate } = useMemo(() => {
+    const horizon = investorProfile.investmentHorizon || 5;
     const end = new Date();
     const start = new Date();
-    start.setFullYear(start.getFullYear() - (investorProfile.investmentHorizon || 5));
+    start.setFullYear(start.getFullYear() - horizon);
+    
+    console.log('[PortfolioVisualizer] Date range calculated:', {
+      horizon,
+      startDate: start.toISOString().split('T')[0],
+      endDate: end.toISOString().split('T')[0]
+    });
+    
     return {
       backtestStartDate: start.toISOString().split('T')[0],
       backtestEndDate: end.toISOString().split('T')[0]
