@@ -1,11 +1,12 @@
 import { cn } from "@/lib/utils";
-import { LucideIcon, TrendingUp, TrendingDown } from "lucide-react";
+import { TrendingUp, TrendingDown } from "lucide-react";
+import React from "react";
 
 interface StatCardProps {
   label: string;
   value: string | number;
   change?: number;
-  icon?: LucideIcon;
+  icon?: React.ReactNode;
   className?: string;
   variant?: "default" | "positive" | "negative" | "warning";
 }
@@ -14,7 +15,7 @@ export function StatCard({
   label, 
   value, 
   change, 
-  icon: Icon, 
+  icon, 
   className,
   variant = "default"
 }: StatCardProps) {
@@ -34,7 +35,7 @@ export function StatCard({
       <div className="flex flex-col gap-2">
         <div className="flex items-center justify-between">
           <span className="text-xs text-muted-foreground uppercase tracking-wider">{label}</span>
-          {Icon && <Icon className="h-4 w-4 text-muted-foreground" />}
+          {icon && <span className="text-muted-foreground">{icon}</span>}
         </div>
         
         <span className="metric-medium text-foreground">{value}</span>
