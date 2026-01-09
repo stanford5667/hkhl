@@ -74,7 +74,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Treemap, AreaChart, Area, XAxis, YAxis, BarChart, Bar } from 'recharts';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip, Treemap, AreaChart, Area, XAxis, YAxis, BarChart, Bar } from 'recharts';
 import { AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { AddAssetWizard } from '@/components/companies/AddAssetWizard';
@@ -94,6 +94,9 @@ import { CreatePortfolioDialog } from '@/components/portfolio/CreatePortfolioDia
 import { PortfolioMetricsPanel } from '@/components/portfolio/PortfolioMetricsPanel';
 import { RealPerformanceChart } from '@/components/portfolio/RealPerformanceChart';
 import { PortfolioAnalysisTabs } from '@/components/portfolio/PortfolioAnalysisTabs';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { HelpCircle, Info, BookOpen, Lightbulb, Calculator, ExternalLink } from 'lucide-react';
+import { financialTerms } from '@/data/financialTerms';
 
 // Animation variants
 const containerVariants = {
@@ -185,7 +188,7 @@ function getGreeting(): string {
   return 'Good evening';
 }
 
-// Stat Card Component
+// Stat Card with Interactive Tooltips, Popover Cards & Data Sources
 function StatCard({
   title,
   value,
@@ -198,6 +201,8 @@ function StatCard({
   change,
   changeLabel,
   subtitle,
+  termKey,
+  dataSource,
 }: {
   title: string;
   value?: number;
@@ -210,7 +215,14 @@ function StatCard({
   change?: number;
   changeLabel?: string;
   subtitle?: string;
+  /** Key from financialTerms for tooltips */
+  termKey?: string;
+  /** Data source for professional standards */
+  dataSource?: string;
 }) {
+  const [showPopover, setShowPopover] = useState(false);
+  const term = termKey ? financialTerms[termKey] : null;
+  
   if (isLoading) {
     return (
       <Card className="cursor-pointer hover:shadow-md transition-shadow">
@@ -224,15 +236,35 @@ function StatCard({
 
   const isPositive = change !== undefined && change >= 0;
 
-  return (
+  const cardContent = (
     <motion.div variants={itemVariants}>
       <Card
-        className="cursor-pointer hover:shadow-md transition-all hover:scale-[1.02] group bg-gradient-to-br from-card to-secondary/20"
+        className="cursor-pointer hover:shadow-md transition-all hover:scale-[1.02] group bg-gradient-to-br from-card to-secondary/20 relative"
         onClick={onClick}
       >
-        <CardContent className="p-4">
+        <CardContent className="p-4 pb-6">
           <div className="flex items-center justify-between mb-1">
-            <span className="text-xs text-muted-foreground">{title}</span>
+            <div className="flex items-center gap-1">
+              <span className="text-xs text-muted-foreground">{title}</span>
+              {term && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button 
+                      className="text-muted-foreground hover:text-primary transition-colors"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setShowPopover(true);
+                      }}
+                    >
+                      <HelpCircle className="h-3 w-3" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="max-w-xs">
+                    <p className="text-xs">{term.definition}</p>
+                  </TooltipContent>
+                </Tooltip>
+              )}
+            </div>
             <Icon className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
           </div>
           <p className="text-xl font-bold">
@@ -257,10 +289,99 @@ function StatCard({
           {subtitle && !alert && (
             <p className="text-xs text-muted-foreground">{subtitle}</p>
           )}
+          
+          {/* Data Source Footer */}
+          {dataSource && (
+            <div className="absolute bottom-1 right-2">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button 
+                    className="text-muted-foreground/50 hover:text-muted-foreground transition-colors"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <Info className="h-2.5 w-2.5" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" className="text-xs">
+                  <p>Data Source: {dataSource}</p>
+                </TooltipContent>
+              </Tooltip>
+            </div>
+          )}
         </CardContent>
       </Card>
     </motion.div>
   );
+
+  // Wrap with dialog for detailed impact info
+  if (term) {
+    return (
+      <>
+        {cardContent}
+        <Dialog open={showPopover} onOpenChange={setShowPopover}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <BookOpen className="h-5 w-5 text-primary" />
+                {term.term}
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 py-2">
+              <div>
+                <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1.5">
+                  What is this?
+                </h4>
+                <p className="text-sm text-foreground/90">{term.definition}</p>
+              </div>
+              
+              <div className="p-3 rounded-lg bg-primary/5 border border-primary/20">
+                <h4 className="text-xs font-medium text-primary uppercase tracking-wide mb-1.5 flex items-center gap-1">
+                  <Lightbulb className="h-3 w-3" />
+                  Impact on Your Portfolio
+                </h4>
+                <p className="text-sm text-foreground/90">{term.impact}</p>
+              </div>
+              
+              {term.example && (
+                <div>
+                  <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1.5 flex items-center gap-1">
+                    <Calculator className="h-3 w-3" />
+                    Real-World Example
+                  </h4>
+                  <div className="text-sm text-foreground/80 bg-muted/50 rounded-md p-2.5 border border-border/50">
+                    {term.example}
+                  </div>
+                </div>
+              )}
+              
+              {term.learnMoreUrl && (
+                <a
+                  href={term.learnMoreUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:text-primary/80 transition-colors"
+                >
+                  <span>Learn more</span>
+                  <ExternalLink className="h-3.5 w-3.5" />
+                </a>
+              )}
+              
+              {dataSource && (
+                <div className="pt-2 border-t border-border">
+                  <p className="text-xs text-muted-foreground flex items-center gap-1">
+                    <Info className="h-3 w-3" />
+                    Data Source: {dataSource}
+                  </p>
+                </div>
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
+      </>
+    );
+  }
+
+  return cardContent;
 }
 
 // Quick Action Button
@@ -1124,6 +1245,8 @@ export default function Portfolio() {
           isLoading={allocLoading || perfLoading || isLoading}
           change={allocTotalValue > 0 ? allocGainLossPercent : (perfTotalGainLossPercent || portfolioStats.totalGainLossPercent)}
           subtitle={`${allocPositionCount > 0 ? allocPositionCount : (perfPositionCount || allHoldings.length)} holdings`}
+          termKey="portfolioValue"
+          dataSource="Polygon.io"
         />
         <StatCard
           title="Today's P&L"
@@ -1137,6 +1260,8 @@ export default function Portfolio() {
           onClick={() => {
             document.querySelector('[data-performance-chart]')?.scrollIntoView({ behavior: 'smooth' });
           }}
+          termKey="totalReturn"
+          dataSource="Polygon.io"
         />
         {/* CAGR - Matches Portfolio Builder */}
         <StatCard
@@ -1147,6 +1272,8 @@ export default function Portfolio() {
           change={allocCagr}
           onClick={() => navigate('/backtester')}
           subtitle="Annualized return"
+          termKey="cagr"
+          dataSource="Polygon.io"
         />
         {/* Sharpe Ratio - Matches Portfolio Builder */}
         <StatCard
@@ -1156,6 +1283,8 @@ export default function Portfolio() {
           isLoading={allocAdvancedLoading}
           onClick={() => navigate('/backtester')}
           subtitle={allocSharpe >= 1 ? 'Good' : allocSharpe >= 0.5 ? 'Moderate' : 'Low'}
+          termKey="sharpeRatio"
+          dataSource="Polygon.io"
         />
         {/* Volatility - Matches Portfolio Builder */}
         <StatCard
@@ -1165,6 +1294,8 @@ export default function Portfolio() {
           isLoading={allocAdvancedLoading}
           onClick={() => navigate('/backtester')}
           subtitle="Annualized"
+          termKey="volatility"
+          dataSource="Polygon.io"
         />
         {/* Max Drawdown - Matches Portfolio Builder */}
         <StatCard
@@ -1174,6 +1305,8 @@ export default function Portfolio() {
           isLoading={allocAdvancedLoading}
           onClick={() => navigate('/backtester')}
           subtitle="Peak to trough"
+          termKey="maxDrawdown"
+          dataSource="Polygon.io"
         />
         <StatCard
           title="Gainers"
@@ -1185,6 +1318,7 @@ export default function Portfolio() {
             setSortAsc(false);
           }}
           subtitle="Today's winners"
+          dataSource="Polygon.io"
         />
         <StatCard
           title="Open Tasks"
@@ -1620,7 +1754,7 @@ export default function Portfolio() {
                     </defs>
                     <XAxis hide />
                     <YAxis domain={['dataMin', 'dataMax']} hide />
-                    <Tooltip
+                    <RechartsTooltip
                       contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: '8px' }}
                       formatter={(value: number) => [formatPrice(value), 'Price']}
                     />
