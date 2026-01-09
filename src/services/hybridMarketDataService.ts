@@ -78,12 +78,12 @@ class HybridMarketDataService {
       forceRefresh = false,
       onProgress
     } = options;
-    
+
     const results = new Map<string, TickerData>();
     const tickersToFetch: string[] = [];
-    
+
     onProgress?.({ status: 'fetching', current: 0, total: tickers.length, message: 'Checking cache...' });
-    
+
     // Step 1: Check memory cache
     for (const ticker of tickers) {
       if (!forceRefresh) {
@@ -95,69 +95,75 @@ class HybridMarketDataService {
       }
       tickersToFetch.push(ticker);
     }
-    
+
     if (tickersToFetch.length === 0) {
       onProgress?.({ status: 'complete', current: tickers.length, total: tickers.length, message: 'All from cache' });
       return results;
     }
-    
-    // Step 2: Batch fetch from Supabase
+
+    // Step 2: Batch fetch from database
     onProgress?.({ status: 'fetching', current: results.size, total: tickers.length, message: 'Loading from database...' });
-    
+
     const supabaseData = await this.fetchFromSupabase(tickersToFetch, startDate, endDate);
-    
+
     const stillMissing: string[] = [];
-    
+
     for (const ticker of tickersToFetch) {
       const data = supabaseData.get(ticker);
-      if (data && data.bars.length >= 20) {
-        results.set(ticker, data);
-        this.saveToMemoryCache(ticker, data, startDate, endDate);
+
+      const hasEnoughBars = !!data && data.bars.length >= 20;
+      const coversRequestedRange = hasEnoughBars
+        ? this.coversDateRange(data!.bars[0].date, data!.bars[data!.bars.length - 1].date, startDate, endDate)
+        : false;
+
+      if (hasEnoughBars && coversRequestedRange) {
+        results.set(ticker, data!);
+        this.saveToMemoryCache(ticker, data!, startDate, endDate);
       } else {
         stillMissing.push(ticker);
       }
     }
-    
+
     // Step 3: Fetch missing from API (if any)
     if (stillMissing.length > 0) {
-      onProgress?.({ 
-        status: 'fetching', 
-        current: results.size, 
-        total: tickers.length, 
-        message: `Fetching ${stillMissing.length} tickers from API...` 
+      onProgress?.({
+        status: 'fetching',
+        current: results.size,
+        total: tickers.length,
+        message: `Fetching ${stillMissing.length} tickers from API...`
       });
-      
+
       for (let i = 0; i < stillMissing.length; i++) {
         const ticker = stillMissing[i];
-        onProgress?.({ 
-          status: 'fetching', 
-          current: results.size + i, 
-          total: tickers.length, 
-          currentTicker: ticker 
+        onProgress?.({
+          status: 'fetching',
+          current: results.size + i,
+          total: tickers.length,
+          currentTicker: ticker
         });
-        
+
         try {
           const apiData = await this.fetchFromAPI(ticker, startDate, endDate);
           if (apiData) {
             results.set(ticker, apiData);
             this.saveToMemoryCache(ticker, apiData, startDate, endDate);
-            
-            // Trigger background sync to store in Supabase
+
+            // Trigger background sync to store in database
             this.triggerBackgroundSync(ticker, startDate, endDate);
           }
         } catch (error) {
           console.error(`[HybridData] Failed to fetch ${ticker}:`, error);
         }
-        
+
         // Rate limit
         if (i < stillMissing.length - 1) {
           await this.sleep(200);
         }
       }
     }
-    
+
     onProgress?.({ status: 'complete', current: tickers.length, total: tickers.length });
-    
+
     return results;
   }
   
@@ -183,7 +189,7 @@ class HybridMarketDataService {
     const weightSum = weights.reduce((s, w) => s + w, 0);
     const normalizedWeights = weightSum > 1.5 ? weights.map(w => w / weightSum) : weights;
     
-    // Try Supabase function first (most efficient)
+    // Try database function first (most efficient)
     try {
       const { data, error } = await supabase.rpc('get_portfolio_returns', {
         p_tickers: tickers,
@@ -191,21 +197,31 @@ class HybridMarketDataService {
         p_start_date: startDate,
         p_end_date: endDate
       });
-      
+
       if (!error && data && data.length > 0) {
         const dates = data.map((d: { bar_date: string }) => d.bar_date);
         const returns = data.map((d: { portfolio_return: number }) => d.portfolio_return);
-        
-        // Build value series
-        let value = 100000;
-        const values = [value];
-        for (const r of returns) {
-          value *= (1 + r);
-          values.push(value);
+
+        // If the DB only has a partial history (common early on), fall back to API-backed path.
+        const coversRequestedRange = this.coversDateRange(
+          dates[0],
+          dates[dates.length - 1],
+          startDate,
+          endDate
+        );
+
+        if (coversRequestedRange) {
+          // Build value series
+          let value = 100000;
+          const values = [value];
+          for (const r of returns) {
+            value *= (1 + r);
+            values.push(value);
+          }
+
+          onProgress?.({ status: 'complete', current: 1, total: 1 });
+          return { dates, returns, values };
         }
-        
-        onProgress?.({ status: 'complete', current: 1, total: 1 });
-        return { dates, returns, values };
       }
     } catch (e) {
       console.log('[HybridData] Supabase RPC failed, falling back to manual calculation');
@@ -440,7 +456,31 @@ class HybridMarketDataService {
       expiry: Date.now() + MEMORY_CACHE_TTL
     });
   }
-  
+
+  private coversDateRange(
+    actualStart: string,
+    actualEnd: string,
+    requestedStart: string,
+    requestedEnd: string
+  ): boolean {
+    // Allow small gaps due to weekends/holidays/timezone shifts.
+    const slackDays = 7;
+
+    const aStart = new Date(actualStart + 'T00:00:00Z').getTime();
+    const aEnd = new Date(actualEnd + 'T00:00:00Z').getTime();
+    const rStart = new Date(requestedStart + 'T00:00:00Z').getTime();
+    const rEnd = new Date(requestedEnd + 'T00:00:00Z').getTime();
+
+    const slackMs = slackDays * 24 * 60 * 60 * 1000;
+
+    // actual should start on/before requested start (+slack)
+    const startsOk = aStart <= rStart + slackMs;
+    // actual should end on/after requested end (-slack)
+    const endsOk = aEnd >= rEnd - slackMs;
+
+    return startsOk && endsOk;
+  }
+
   private async fetchFromSupabase(
     tickers: string[],
     startDate: string,
