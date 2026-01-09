@@ -1832,7 +1832,14 @@ function HoldingsTable({
               <TableRow
                 key={holding.id}
                 className="cursor-pointer"
-                onClick={() => navigate(`/portfolio/${holding.id}`)}
+                onClick={() => {
+                  // For synced positions (id starts with 'synced-'), navigate to stock detail page
+                  if (holding.id.startsWith('synced-') && holding.ticker_symbol) {
+                    navigate(`/stock/${holding.ticker_symbol}`);
+                  } else {
+                    navigate(`/portfolio/${holding.id}`);
+                  }
+                }}
               >
                 <TableCell>
                   <div className="flex items-center gap-3">
