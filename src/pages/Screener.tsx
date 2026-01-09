@@ -395,15 +395,15 @@ function AdvancedFiltersSheet({
                 </FilterSection>
 
                 <FilterSection title="Index">
-                  <Select
-                    value={localCriteria.index?.[0] || ''}
-                    onValueChange={(value) => setLocalCriteria(f => ({ ...f, index: value ? [value as Index] : undefined }))}
+                <Select
+                    value={localCriteria.index?.[0] || 'any'}
+                    onValueChange={(value) => setLocalCriteria(f => ({ ...f, index: value === 'any' ? undefined : [value as Index] }))}
                   >
                     <SelectTrigger className="h-8 text-sm">
                       <SelectValue placeholder="Any index" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">Any index</SelectItem>
+                      <SelectItem value="any">Any index</SelectItem>
                       {INDICES.map((idx) => (
                         <SelectItem key={idx.value} value={idx.value}>{idx.label}</SelectItem>
                       ))}
@@ -412,10 +412,10 @@ function AdvancedFiltersSheet({
                 </FilterSection>
 
                 <FilterSection title="Market Cap">
-                  <Select
-                    value={localCriteria.marketCap || ''}
+                <Select
+                    value={localCriteria.marketCap || 'any'}
                     onValueChange={(value) => {
-                      if (value) {
+                      if (value && value !== 'any') {
                         const tier = MARKET_CAP_TIERS[value as keyof typeof MARKET_CAP_TIERS];
                         setLocalCriteria(f => ({ ...f, marketCap: value as any, minMarketCap: tier?.min, maxMarketCap: tier?.max }));
                       } else {
@@ -427,7 +427,7 @@ function AdvancedFiltersSheet({
                       <SelectValue placeholder="Any market cap" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">Any market cap</SelectItem>
+                      <SelectItem value="any">Any market cap</SelectItem>
                       {Object.entries(MARKET_CAP_TIERS).map(([key, tier]) => (
                         <SelectItem key={key} value={key}>{tier.label}</SelectItem>
                       ))}
@@ -535,15 +535,15 @@ function AdvancedFiltersSheet({
                 </FilterSection>
 
                 <FilterSection title="52-Week Range">
-                  <Select
-                    value={localCriteria.highLow52W || ''}
-                    onValueChange={(value) => setLocalCriteria(f => ({ ...f, highLow52W: value ? value as HighLow52W : undefined }))}
+                <Select
+                    value={localCriteria.highLow52W || 'any'}
+                    onValueChange={(value) => setLocalCriteria(f => ({ ...f, highLow52W: value === 'any' ? undefined : value as HighLow52W }))}
                   >
                     <SelectTrigger className="h-8 text-sm">
                       <SelectValue placeholder="Any" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">Any</SelectItem>
+                      <SelectItem value="any">Any</SelectItem>
                       {HIGHLOWS.map((hl) => (
                         <SelectItem key={hl.value} value={hl.value}>{hl.label}</SelectItem>
                       ))}
@@ -552,15 +552,15 @@ function AdvancedFiltersSheet({
                 </FilterSection>
 
                 <FilterSection title="RSI (14)">
-                  <Select
-                    value={localCriteria.rsiFilter || ''}
-                    onValueChange={(value) => setLocalCriteria(f => ({ ...f, rsiFilter: value ? value as RSIFilter : undefined }))}
+                <Select
+                    value={localCriteria.rsiFilter || 'any'}
+                    onValueChange={(value) => setLocalCriteria(f => ({ ...f, rsiFilter: value === 'any' ? undefined : value as RSIFilter }))}
                   >
                     <SelectTrigger className="h-8 text-sm">
                       <SelectValue placeholder="Any RSI" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">Any RSI</SelectItem>
+                      <SelectItem value="any">Any RSI</SelectItem>
                       {RSI_FILTERS.map((rsi) => (
                         <SelectItem key={rsi.value} value={rsi.value}>{rsi.label}</SelectItem>
                       ))}
@@ -573,14 +573,14 @@ function AdvancedFiltersSheet({
                     <div>
                       <Label className="text-sm font-medium">SMA 20</Label>
                       <Select
-                        value={localCriteria.sma20 || ''}
-                        onValueChange={(value) => setLocalCriteria(f => ({ ...f, sma20: value ? value as SMAFilter : undefined }))}
+                        value={localCriteria.sma20 || 'any'}
+                        onValueChange={(value) => setLocalCriteria(f => ({ ...f, sma20: value === 'any' ? undefined : value as SMAFilter }))}
                       >
                         <SelectTrigger className="h-8 text-sm mt-1">
                           <SelectValue placeholder="Any" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="">Any</SelectItem>
+                          <SelectItem value="any">Any</SelectItem>
                           {SMA_FILTERS.map((sma) => (
                             <SelectItem key={sma.value} value={sma.value}>{sma.label}</SelectItem>
                           ))}
@@ -590,14 +590,14 @@ function AdvancedFiltersSheet({
                     <div>
                       <Label className="text-sm font-medium">SMA 50</Label>
                       <Select
-                        value={localCriteria.sma50 || ''}
-                        onValueChange={(value) => setLocalCriteria(f => ({ ...f, sma50: value ? value as SMAFilter : undefined }))}
+                        value={localCriteria.sma50 || 'any'}
+                        onValueChange={(value) => setLocalCriteria(f => ({ ...f, sma50: value === 'any' ? undefined : value as SMAFilter }))}
                       >
                         <SelectTrigger className="h-8 text-sm mt-1">
                           <SelectValue placeholder="Any" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="">Any</SelectItem>
+                          <SelectItem value="any">Any</SelectItem>
                           {SMA_FILTERS.map((sma) => (
                             <SelectItem key={sma.value} value={sma.value}>{sma.label}</SelectItem>
                           ))}
@@ -607,14 +607,14 @@ function AdvancedFiltersSheet({
                     <div>
                       <Label className="text-sm font-medium">SMA 200</Label>
                       <Select
-                        value={localCriteria.sma200 || ''}
-                        onValueChange={(value) => setLocalCriteria(f => ({ ...f, sma200: value ? value as SMAFilter : undefined }))}
+                        value={localCriteria.sma200 || 'any'}
+                        onValueChange={(value) => setLocalCriteria(f => ({ ...f, sma200: value === 'any' ? undefined : value as SMAFilter }))}
                       >
                         <SelectTrigger className="h-8 text-sm mt-1">
                           <SelectValue placeholder="Any" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="">Any</SelectItem>
+                          <SelectItem value="any">Any</SelectItem>
                           {SMA_FILTERS.map((sma) => (
                             <SelectItem key={sma.value} value={sma.value}>{sma.label}</SelectItem>
                           ))}
