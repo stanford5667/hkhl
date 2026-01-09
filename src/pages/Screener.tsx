@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { 
   Search, Sparkles, Star, X, Trash2, Save, Loader2, 
   TrendingUp, TrendingDown, RefreshCw, Filter, ChevronDown 
@@ -35,6 +36,8 @@ import {
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { useWatchlist } from '@/hooks/useWatchlist';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 import {
   screenStocksFromPolygon,
   parseNaturalLanguageQuery,
@@ -390,6 +393,7 @@ function ResultsTable({
   sortBy,
   sortDirection,
   onSort,
+  onRowClick,
 }: {
   results: ScreenerResult[];
   isLoading: boolean;
@@ -398,6 +402,7 @@ function ResultsTable({
   sortBy: string;
   sortDirection: 'asc' | 'desc';
   onSort: (column: string) => void;
+  onRowClick: (stock: ScreenerResult) => void;
 }) {
   const SortableHeader = ({ column, children }: { column: string; children: React.ReactNode }) => (
     <TableHead 
@@ -480,7 +485,11 @@ function ResultsTable({
             const isUp = stock.changePercent >= 0;
             
             return (
-              <TableRow key={stock.symbol} className="group">
+              <TableRow 
+                key={stock.symbol} 
+                className="group cursor-pointer hover:bg-muted/50"
+                onClick={() => onRowClick(stock)}
+              >
                 <TableCell>
                   <div>
                     <div className="flex items-center gap-2">
@@ -537,7 +546,10 @@ function ResultsTable({
                         ? 'text-amber-500'
                         : 'opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-amber-500'
                     )}
-                    onClick={() => onAddToWatchlist(stock.symbol, stock.name)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onAddToWatchlist(stock.symbol, stock.name);
+                    }}
                     disabled={inWatchlist}
                   >
                     <Star className={cn('h-4 w-4', inWatchlist && 'fill-amber-500')} />
@@ -556,6 +568,8 @@ function ResultsTable({
 // Main Component
 // =====================
 export default function Screener() {
+  const navigate = useNavigate();
+  const { user } = useAuth();
   const [query, setQuery] = useState('');
   const [filters, setFilters] = useState<ScreenerFilters>({});
   const [isLoading, setIsLoading] = useState(false);
@@ -565,8 +579,62 @@ export default function Screener() {
   const [savedScreens, setSavedScreens] = useState<SavedScreen[]>([]);
   const [sortBy, setSortBy] = useState<string>('volume');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
+  const [navigatingTicker, setNavigatingTicker] = useState<string | null>(null);
 
   const { addToWatchlist, isInWatchlist } = useWatchlist('stock');
+
+  // Handle row click - find or create company and navigate to detail
+  const handleRowClick = async (stock: ScreenerResult) => {
+    if (!user) {
+      toast.error('Please sign in to view company details');
+      return;
+    }
+
+    setNavigatingTicker(stock.symbol);
+
+    try {
+      // Check if company already exists for this user with this ticker
+      const { data: existingCompany, error: fetchError } = await supabase
+        .from('companies')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('ticker_symbol', stock.symbol)
+        .maybeSingle();
+
+      if (fetchError) throw fetchError;
+
+      if (existingCompany) {
+        // Navigate to existing company
+        navigate(`/portfolio/${existingCompany.id}`);
+      } else {
+        // Create new company record
+        const { data: newCompany, error: createError } = await supabase
+          .from('companies')
+          .insert({
+            user_id: user.id,
+            name: stock.name,
+            ticker_symbol: stock.symbol,
+            industry: stock.sector,
+            company_type: 'portfolio',
+            asset_class: 'public_equity',
+            current_price: stock.price,
+            price_updated_at: new Date().toISOString(),
+          })
+          .select('id')
+          .single();
+
+        if (createError) throw createError;
+
+        toast.success(`Added ${stock.symbol} to your portfolio`);
+        navigate(`/portfolio/${newCompany.id}`);
+      }
+    } catch (err) {
+      console.error('Error navigating to company:', err);
+      toast.error('Failed to open company details');
+    } finally {
+      setNavigatingTicker(null);
+    }
+  };
 
   // Load saved screens
   useEffect(() => {
@@ -786,6 +854,7 @@ export default function Screener() {
             sortBy={sortBy}
             sortDirection={sortDirection}
             onSort={handleSort}
+            onRowClick={handleRowClick}
           />
         </div>
 
