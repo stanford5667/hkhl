@@ -37,17 +37,15 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { useWatchlist } from '@/hooks/useWatchlist';
 import {
-  screenStocksFromPolygon,
+  executeScreen,
   parseNaturalLanguageQuery,
   formatMarketCap,
   formatVolume,
-  formatChange,
   QUICK_SCREENS,
-  MARKET_CAP_TIERS,
-  SECTORS,
-  type ScreenerFilters,
-  type ScreenerResult,
-} from '@/services/polygonScreenerService';
+  getQuickScreensByCategory,
+  generateExplanation,
+} from '@/services/finvizStyleScreenerService';
+import type { ScreenerCriteria, ScreenerResult, Sector } from '@/types/screener';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 
@@ -61,43 +59,62 @@ const EXAMPLE_QUERIES = [
 
 const STORAGE_KEY = 'saved-screens';
 
+// Market cap tiers for the filter dropdown
+const MARKET_CAP_TIERS: Record<string, { label: string; min?: number; max?: number }> = {
+  mega: { label: 'Mega Cap ($200B+)', min: 200_000_000_000 },
+  large: { label: 'Large Cap ($10-200B)', min: 10_000_000_000, max: 200_000_000_000 },
+  mid: { label: 'Mid Cap ($2-10B)', min: 2_000_000_000, max: 10_000_000_000 },
+  small: { label: 'Small Cap ($300M-2B)', min: 300_000_000, max: 2_000_000_000 },
+  micro: { label: 'Micro Cap ($50-300M)', min: 50_000_000, max: 300_000_000 },
+};
+
+// Sectors list
+const SECTORS: Sector[] = [
+  'Technology', 'Healthcare', 'Financial Services', 'Consumer Cyclical',
+  'Communication Services', 'Industrials', 'Consumer Defensive',
+  'Energy', 'Basic Materials', 'Real Estate', 'Utilities'
+];
+
 interface SavedScreen {
   id: string;
   name: string;
   query: string;
-  filters: ScreenerFilters;
+  criteria: ScreenerCriteria;
   savedAt: string;
 }
 
 // =====================
 // Applied Filters Card
 // =====================
-function AppliedFiltersCard({ filters }: { filters: ScreenerFilters }) {
+function AppliedFiltersCard({ criteria }: { criteria: ScreenerCriteria }) {
   const filterItems: { label: string; value: string }[] = [];
 
-  if (filters.minMarketCap) {
-    filterItems.push({ label: 'Min Market Cap', value: formatMarketCap(filters.minMarketCap) });
+  if (criteria.marketCap) {
+    filterItems.push({ label: 'Market Cap', value: criteria.marketCap.toUpperCase() });
   }
-  if (filters.maxMarketCap) {
-    filterItems.push({ label: 'Max Market Cap', value: formatMarketCap(filters.maxMarketCap) });
+  if (criteria.minMarketCap) {
+    filterItems.push({ label: 'Min Market Cap', value: formatMarketCap(criteria.minMarketCap) });
   }
-  if (filters.minPrice !== undefined) {
-    filterItems.push({ label: 'Min Price', value: `$${filters.minPrice}` });
+  if (criteria.maxMarketCap) {
+    filterItems.push({ label: 'Max Market Cap', value: formatMarketCap(criteria.maxMarketCap) });
   }
-  if (filters.maxPrice !== undefined) {
-    filterItems.push({ label: 'Max Price', value: `$${filters.maxPrice}` });
+  if (criteria.minPrice !== undefined) {
+    filterItems.push({ label: 'Min Price', value: `$${criteria.minPrice}` });
   }
-  if (filters.sectors && filters.sectors.length > 0) {
-    filterItems.push({ label: 'Sectors', value: filters.sectors.join(', ') });
+  if (criteria.maxPrice !== undefined) {
+    filterItems.push({ label: 'Max Price', value: `$${criteria.maxPrice}` });
   }
-  if (filters.minChange1D !== undefined) {
-    filterItems.push({ label: 'Min Change', value: `${filters.minChange1D}%+` });
+  if (criteria.sector && criteria.sector.length > 0) {
+    filterItems.push({ label: 'Sectors', value: criteria.sector.join(', ') });
   }
-  if (filters.maxChange1D !== undefined) {
-    filterItems.push({ label: 'Max Change', value: `${filters.maxChange1D}%` });
+  if (criteria.minPerfToday !== undefined) {
+    filterItems.push({ label: 'Min Change', value: `${criteria.minPerfToday}%+` });
   }
-  if (filters.minRelativeVolume) {
-    filterItems.push({ label: 'Relative Volume', value: `${filters.minRelativeVolume}x+` });
+  if (criteria.maxPerfToday !== undefined) {
+    filterItems.push({ label: 'Max Change', value: `${criteria.maxPerfToday}%` });
+  }
+  if (criteria.minRelativeVolume) {
+    filterItems.push({ label: 'Relative Volume', value: `${criteria.minRelativeVolume}x+` });
   }
 
   if (filterItems.length === 0) {
@@ -133,12 +150,12 @@ function AppliedFiltersCard({ filters }: { filters: ScreenerFilters }) {
 // =====================
 // Quick Screens
 // =====================
-function QuickScreensCard({ onSelect }: { onSelect: (filters: ScreenerFilters, name: string) => void }) {
+function QuickScreensCard({ onSelect }: { onSelect: (criteria: ScreenerCriteria, name: string) => void }) {
   const categories = {
-    'Performance': ['topGainers', 'topLosers', 'mostActive', 'unusualVolume'],
-    'Market Cap': ['megaCap', 'smallCapMomentum'],
-    'Sectors': ['techStocks', 'healthcareStocks', 'financials', 'energy'],
-    'Price': ['under10', 'over100'],
+    'Market Movers': ['top_gainers', 'top_losers', 'most_active', 'unusual_volume'],
+    'Technical': ['new_52w_high', 'oversold_rsi', 'golden_cross', 'above_200_sma'],
+    'Fundamental': ['high_dividend', 'value_stocks', 'high_growth', 'high_roe'],
+    'Market Cap': ['mega_cap', 'large_cap', 'mid_cap', 'small_cap'],
   };
 
   return (
@@ -160,7 +177,7 @@ function QuickScreensCard({ onSelect }: { onSelect: (filters: ScreenerFilters, n
                     variant="ghost"
                     size="sm"
                     className="w-full justify-start text-left h-auto py-1.5 px-2"
-                    onClick={() => onSelect(screen.filters, screen.name)}
+                    onClick={() => onSelect(screen.criteria, screen.name)}
                   >
                     <span className="truncate">{screen.name}</span>
                   </Button>
@@ -183,7 +200,7 @@ function SavedScreensList({
   onDelete,
 }: {
   screens: SavedScreen[];
-  onSelect: (filters: ScreenerFilters, query: string) => void;
+  onSelect: (criteria: ScreenerCriteria, query: string) => void;
   onDelete: (id: string) => void;
 }) {
   if (screens.length === 0) return null;
@@ -198,7 +215,7 @@ function SavedScreensList({
           <div
             key={screen.id}
             className="flex items-center justify-between group p-2 -mx-2 rounded-md hover:bg-muted/50 cursor-pointer"
-            onClick={() => onSelect(screen.filters, screen.query)}
+            onClick={() => onSelect(screen.criteria, screen.query)}
           >
             <div className="min-w-0">
               <p className="text-sm font-medium truncate">{screen.name}</p>
@@ -226,23 +243,23 @@ function SavedScreensList({
 // Advanced Filters Sheet
 // =====================
 function AdvancedFiltersSheet({
-  filters,
+  criteria,
   onApply,
 }: {
-  filters: ScreenerFilters;
-  onApply: (filters: ScreenerFilters) => void;
+  criteria: ScreenerCriteria;
+  onApply: (criteria: ScreenerCriteria) => void;
 }) {
-  const [localFilters, setLocalFilters] = useState<ScreenerFilters>(filters);
-  const [selectedSectors, setSelectedSectors] = useState<string[]>(filters.sectors || []);
+  const [localCriteria, setLocalCriteria] = useState<ScreenerCriteria>(criteria);
+  const [selectedSectors, setSelectedSectors] = useState<Sector[]>(criteria.sector || []);
 
-  const handleSectorToggle = (sector: string) => {
+  const handleSectorToggle = (sector: Sector) => {
     setSelectedSectors(prev =>
       prev.includes(sector) ? prev.filter(s => s !== sector) : [...prev, sector]
     );
   };
 
   const handleApply = () => {
-    onApply({ ...localFilters, sectors: selectedSectors.length > 0 ? selectedSectors : undefined });
+    onApply({ ...localCriteria, sector: selectedSectors.length > 0 ? selectedSectors : undefined });
   };
 
   return (
@@ -265,18 +282,18 @@ function AdvancedFiltersSheet({
             <Label className="text-sm font-medium">Market Cap</Label>
             <Select
               value={
-                localFilters.minMarketCap === 200_000_000_000 ? 'mega' :
-                localFilters.minMarketCap === 10_000_000_000 ? 'large' :
-                localFilters.minMarketCap === 2_000_000_000 ? 'mid' :
-                localFilters.maxMarketCap === 2_000_000_000 ? 'small' :
-                localFilters.maxMarketCap === 300_000_000 ? 'micro' : 'all'
+                localCriteria.minMarketCap === 200_000_000_000 ? 'mega' :
+                localCriteria.minMarketCap === 10_000_000_000 ? 'large' :
+                localCriteria.minMarketCap === 2_000_000_000 ? 'mid' :
+                localCriteria.maxMarketCap === 2_000_000_000 ? 'small' :
+                localCriteria.maxMarketCap === 300_000_000 ? 'micro' : 'all'
               }
               onValueChange={(value) => {
                 const tier = MARKET_CAP_TIERS[value as keyof typeof MARKET_CAP_TIERS];
                 if (tier) {
-                  setLocalFilters(f => ({ ...f, minMarketCap: tier.min, maxMarketCap: tier.max }));
+                  setLocalCriteria(f => ({ ...f, minMarketCap: tier.min, maxMarketCap: tier.max }));
                 } else {
-                  setLocalFilters(f => ({ ...f, minMarketCap: undefined, maxMarketCap: undefined }));
+                  setLocalCriteria(f => ({ ...f, minMarketCap: undefined, maxMarketCap: undefined }));
                 }
               }}
             >
@@ -300,8 +317,8 @@ function AdvancedFiltersSheet({
                 type="number"
                 placeholder="$0"
                 className="mt-2"
-                value={localFilters.minPrice || ''}
-                onChange={(e) => setLocalFilters(f => ({ ...f, minPrice: e.target.value ? Number(e.target.value) : undefined }))}
+                value={localCriteria.minPrice || ''}
+                onChange={(e) => setLocalCriteria(f => ({ ...f, minPrice: e.target.value ? Number(e.target.value) : undefined }))}
               />
             </div>
             <div>
@@ -310,8 +327,8 @@ function AdvancedFiltersSheet({
                 type="number"
                 placeholder="No limit"
                 className="mt-2"
-                value={localFilters.maxPrice || ''}
-                onChange={(e) => setLocalFilters(f => ({ ...f, maxPrice: e.target.value ? Number(e.target.value) : undefined }))}
+                value={localCriteria.maxPrice || ''}
+                onChange={(e) => setLocalCriteria(f => ({ ...f, maxPrice: e.target.value ? Number(e.target.value) : undefined }))}
               />
             </div>
           </div>
@@ -324,8 +341,8 @@ function AdvancedFiltersSheet({
                 type="number"
                 placeholder="-100"
                 className="mt-2"
-                value={localFilters.minChange1D ?? ''}
-                onChange={(e) => setLocalFilters(f => ({ ...f, minChange1D: e.target.value ? Number(e.target.value) : undefined }))}
+                value={localCriteria.minPerfToday ?? ''}
+                onChange={(e) => setLocalCriteria(f => ({ ...f, minPerfToday: e.target.value ? Number(e.target.value) : undefined }))}
               />
             </div>
             <div>
@@ -334,8 +351,8 @@ function AdvancedFiltersSheet({
                 type="number"
                 placeholder="100"
                 className="mt-2"
-                value={localFilters.maxChange1D ?? ''}
-                onChange={(e) => setLocalFilters(f => ({ ...f, maxChange1D: e.target.value ? Number(e.target.value) : undefined }))}
+                value={localCriteria.maxPerfToday ?? ''}
+                onChange={(e) => setLocalCriteria(f => ({ ...f, maxPerfToday: e.target.value ? Number(e.target.value) : undefined }))}
               />
             </div>
           </div>
@@ -347,8 +364,8 @@ function AdvancedFiltersSheet({
               type="number"
               placeholder="e.g., 2 for 2x volume"
               className="mt-2"
-              value={localFilters.minRelativeVolume || ''}
-              onChange={(e) => setLocalFilters(f => ({ ...f, minRelativeVolume: e.target.value ? Number(e.target.value) : undefined }))}
+              value={localCriteria.minRelativeVolume || ''}
+              onChange={(e) => setLocalCriteria(f => ({ ...f, minRelativeVolume: e.target.value ? Number(e.target.value) : undefined }))}
             />
           </div>
 
@@ -479,12 +496,12 @@ function ResultsTable({
         </TableHeader>
         <TableBody>
           {results.map((stock) => {
-            const inWatchlist = isInWatchlist(stock.symbol);
+            const inWatchlist = isInWatchlist(stock.ticker);
             const isUp = stock.changePercent >= 0;
             
             return (
               <TableRow 
-                key={stock.symbol} 
+                key={stock.ticker} 
                 className="group cursor-pointer hover:bg-muted/50"
                 onClick={() => onRowClick(stock)}
               >
@@ -492,11 +509,11 @@ function ResultsTable({
                   <div>
                     <div className="flex items-center gap-2">
                       <Badge variant="outline" className="font-mono text-xs">
-                        {stock.symbol}
+                        {stock.ticker}
                       </Badge>
                     </div>
                     <p className="text-xs text-muted-foreground mt-0.5 truncate max-w-[200px]">
-                      {stock.name}
+                      {stock.company}
                     </p>
                   </div>
                 </TableCell>
@@ -517,7 +534,7 @@ function ResultsTable({
                   )}>
                     {isUp ? <TrendingUp className="h-3.5 w-3.5" /> : <TrendingDown className="h-3.5 w-3.5" />}
                     <span className="font-medium tabular-nums">
-                      {formatChange(stock.changePercent)}
+                      {isUp ? '+' : ''}{stock.changePercent.toFixed(2)}%
                     </span>
                   </div>
                 </TableCell>
@@ -546,7 +563,7 @@ function ResultsTable({
                     )}
                     onClick={(e) => {
                       e.stopPropagation();
-                      onAddToWatchlist(stock.symbol, stock.name);
+                      onAddToWatchlist(stock.ticker, stock.company);
                     }}
                     disabled={inWatchlist}
                   >
@@ -568,7 +585,7 @@ function ResultsTable({
 export default function Screener() {
   const navigate = useNavigate();
   const [query, setQuery] = useState('');
-  const [filters, setFilters] = useState<ScreenerFilters>({});
+  const [criteria, setCriteria] = useState<ScreenerCriteria>({});
   const [isLoading, setIsLoading] = useState(false);
   const [results, setResults] = useState<ScreenerResult[]>([]);
   const [totalCount, setTotalCount] = useState(0);
@@ -581,7 +598,7 @@ export default function Screener() {
 
   // Handle row click - navigate to ticker detail page
   const handleRowClick = (stock: ScreenerResult) => {
-    navigate(`/stock/${stock.symbol}`);
+    navigate(`/stock/${stock.ticker}`);
   };
 
   // Load saved screens
@@ -596,29 +613,22 @@ export default function Screener() {
     }
   }, []);
 
-  const runScreen = async (screenFilters: ScreenerFilters, screenQuery?: string) => {
+  const runScreen = async (screenCriteria: ScreenerCriteria, screenQuery?: string) => {
     setIsLoading(true);
     if (screenQuery) setQuery(screenQuery);
-    setFilters(screenFilters);
+    setCriteria(screenCriteria);
 
     try {
-      const response = await screenStocksFromPolygon({
-        ...screenFilters,
-        sortBy: sortBy as 'volume' | 'change' | 'price' | 'marketCap',
-        sortDirection,
+      const response = await executeScreen({
+        ...screenCriteria,
+        sortBy: sortBy as 'volume' | 'change' | 'price' | 'marketCap' | 'ticker',
+        sortOrder: sortDirection,
         limit: 100,
       });
 
-      if (response.ok) {
-        setResults(response.results);
-        setTotalCount(response.count);
-        setExplanation(`Found ${response.count.toLocaleString()} stocks matching your criteria`);
-      } else {
-        toast.error(response.error || 'Failed to screen stocks');
-        if (response.fallback) {
-          toast.info('Polygon Snapshot API requires a paid plan for full market coverage');
-        }
-      }
+      setResults(response.results);
+      setTotalCount(response.totalCount);
+      setExplanation(generateExplanation(screenCriteria, response.totalCount));
     } catch (err) {
       console.error('Screen error:', err);
       toast.error('Failed to run screen');
@@ -629,8 +639,8 @@ export default function Screener() {
 
   const handleSearch = () => {
     if (!query.trim()) return;
-    const parsedFilters = parseNaturalLanguageQuery(query);
-    runScreen(parsedFilters, query);
+    const parsedCriteria = parseNaturalLanguageQuery(query);
+    runScreen(parsedCriteria, query);
   };
 
   const handleSort = (column: string) => {
@@ -678,7 +688,7 @@ export default function Screener() {
       id: Date.now().toString(),
       name,
       query,
-      filters,
+      criteria,
       savedAt: new Date().toISOString(),
     };
 
@@ -746,7 +756,7 @@ export default function Screener() {
                 <Button onClick={handleSearch} disabled={!query.trim() || isLoading} className="h-12 px-6">
                   {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Screen'}
                 </Button>
-                <AdvancedFiltersSheet filters={filters} onApply={(f) => runScreen(f, query || 'Advanced filters')} />
+                <AdvancedFiltersSheet criteria={criteria} onApply={(c) => runScreen(c, query || 'Advanced filters')} />
                 {query.trim() && results.length > 0 && (
                   <Button variant="outline" onClick={handleSaveScreen} className="h-12">
                     <Save className="h-4 w-4 mr-2" />
@@ -764,8 +774,8 @@ export default function Screener() {
                     className="cursor-pointer hover:bg-secondary/80 transition-colors"
                     onClick={() => {
                       setQuery(example);
-                      const parsedFilters = parseNaturalLanguageQuery(example);
-                      runScreen(parsedFilters, example);
+                      const parsedCriteria = parseNaturalLanguageQuery(example);
+                      runScreen(parsedCriteria, example);
                     }}
                   >
                     {example}
@@ -783,7 +793,7 @@ export default function Screener() {
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => runScreen(filters, query)}
+                  onClick={() => runScreen(criteria, query)}
                   disabled={isLoading}
                 >
                   <RefreshCw className={cn("h-4 w-4 mr-2", isLoading && "animate-spin")} />
@@ -808,7 +818,7 @@ export default function Screener() {
 
         {/* Sidebar */}
         <div className="w-72 space-y-4 flex-shrink-0">
-          <AppliedFiltersCard filters={filters} />
+          <AppliedFiltersCard criteria={criteria} />
           <SavedScreensList
             screens={savedScreens}
             onSelect={(f, q) => runScreen(f, q)}
