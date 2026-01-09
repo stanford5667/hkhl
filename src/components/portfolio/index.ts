@@ -8,3 +8,4 @@ export { CreatePortfolioDialog } from './CreatePortfolioDialog';
 export { PortfolioMetricsPanel } from './PortfolioMetricsPanel';
 export { RealPerformanceChart } from './RealPerformanceChart';
 export { PortfolioAnalysisTabs } from './PortfolioAnalysisTabs';
+export { EnhancedPortfolioBuilder } from './EnhancedPortfolioBuilder';
