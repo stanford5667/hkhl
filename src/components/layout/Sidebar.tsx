@@ -174,12 +174,6 @@ export function Sidebar() {
         children: organizationChildren,
       },
       { 
-        label: "Documents", 
-        subtitle: "Data Room",
-        href: "/documents", 
-        icon: Folder 
-      },
-      { 
         label: "Models", 
         subtitle: "Financial Models",
         href: "/models", 
