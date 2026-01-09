@@ -377,35 +377,6 @@ export function RealPerformanceChart({
           </div>
         )}
 
-        {/* Quick Stats Row - Use preCalculatedMetrics if provided for consistency */}
-        {showMetrics && (preCalculatedMetrics || metrics) && (
-          <div className="flex gap-4 text-sm flex-wrap">
-            <div>
-              <span className="text-muted-foreground">CAGR: </span>
-              <span className={cn("font-medium", (preCalculatedMetrics?.cagr ?? metrics?.cagr ?? 0) >= 0 ? "text-emerald-500" : "text-rose-500")}>
-                {formatPercent(preCalculatedMetrics?.cagr ?? metrics?.cagr ?? 0)}
-              </span>
-            </div>
-            <div>
-              <span className="text-muted-foreground">Volatility: </span>
-              <span className="font-medium">{(preCalculatedMetrics?.volatility ?? metrics?.volatility ?? 0).toFixed(1)}%</span>
-            </div>
-            <div>
-              <span className="text-muted-foreground">Sharpe: </span>
-              <span className={cn(
-                "font-medium",
-                (preCalculatedMetrics?.sharpeRatio ?? metrics?.sharpeRatio ?? 0) >= 1 ? "text-emerald-500" : (preCalculatedMetrics?.sharpeRatio ?? metrics?.sharpeRatio ?? 0) >= 0.5 ? "text-amber-500" : "text-rose-500"
-              )}>
-                {(preCalculatedMetrics?.sharpeRatio ?? metrics?.sharpeRatio ?? 0).toFixed(2)}
-              </span>
-            </div>
-            <div>
-              <span className="text-muted-foreground">Max DD: </span>
-              <span className="font-medium text-rose-500">{(preCalculatedMetrics?.maxDrawdown ?? metrics?.maxDrawdown ?? 0).toFixed(1)}%</span>
-            </div>
-          </div>
-        )}
-
         {/* Period Summary */}
         <div className="flex items-center justify-between text-xs text-muted-foreground">
           <span>Started: {formatCurrency(investableCapital)}</span>
