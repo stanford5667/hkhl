@@ -14,6 +14,8 @@ import { AuthGateDialog } from "@/components/auth/AuthGateDialog";
 import { useRequireAuth } from "@/hooks/useRequireAuth";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { WelcomeModal } from "@/components/onboarding/WelcomeModal";
+import { FeatureSpotlight } from "@/components/onboarding/FeatureSpotlight";
+import { QuickStartBanner } from "@/components/onboarding/QuickStartBanner";
 import { useOnboarding } from "@/hooks/useOnboarding";
 
 interface LayoutProps {
@@ -28,7 +30,15 @@ export function Layout({ children }: LayoutProps) {
   const isMobile = useIsMobile();
   
   // Onboarding state
-  const { shouldShowWelcome, completeWelcome } = useOnboarding();
+  const { 
+    shouldShowWelcome, 
+    shouldShowSpotlight,
+    shouldShowBanner,
+    hasCompletedAssessment,
+    completeWelcome, 
+    dismissSpotlight,
+    dismissBanner
+  } = useOnboarding();
   const [welcomeOpen, setWelcomeOpen] = useState(false);
   
   // Show welcome modal on first visit
@@ -107,6 +117,13 @@ export function Layout({ children }: LayoutProps) {
         </div>
         <TopBar />
         
+        {/* Quick Start Banner for new users */}
+        <QuickStartBanner 
+          show={shouldShowBanner} 
+          onDismiss={dismissBanner}
+          hasCompletedAssessment={hasCompletedAssessment}
+        />
+        
         <main className="flex-1 overflow-auto custom-scrollbar pb-16 md:pb-0">
           {children}
         </main>
@@ -120,6 +137,13 @@ export function Layout({ children }: LayoutProps) {
         open={welcomeOpen}
         onOpenChange={setWelcomeOpen}
         onComplete={completeWelcome}
+      />
+      
+      {/* Feature Spotlight for guiding users to golden moment */}
+      <FeatureSpotlight 
+        show={shouldShowSpotlight}
+        onDismiss={dismissSpotlight}
+        hasCompletedAssessment={hasCompletedAssessment}
       />
       
       {/* Global dialogs */}

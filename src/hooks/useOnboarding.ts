@@ -1,12 +1,13 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 
 const ONBOARDING_KEY = 'asset-labs-onboarding';
-const SPOTLIGHT_DISMISSED_KEY = 'asset-labs-spotlight-dismissed';
 
 interface OnboardingState {
   welcomeCompleted: boolean;
   spotlightDismissed: boolean;
+  bannerDismissed: boolean;
   lastVisit: string | null;
   visitCount: number;
 }
@@ -14,6 +15,7 @@ interface OnboardingState {
 const defaultState: OnboardingState = {
   welcomeCompleted: false,
   spotlightDismissed: false,
+  bannerDismissed: false,
   lastVisit: null,
   visitCount: 0,
 };
@@ -22,6 +24,7 @@ export function useOnboarding() {
   const { user } = useAuth();
   const [state, setState] = useState<OnboardingState>(defaultState);
   const [isLoaded, setIsLoaded] = useState(false);
+  const [hasCompletedAssessment, setHasCompletedAssessment] = useState(false);
 
   // Load state from localStorage
   useEffect(() => {
@@ -31,12 +34,40 @@ export function useOnboarding() {
         const parsed = JSON.parse(stored);
         setState(parsed);
       } catch (e) {
-        // Invalid JSON, reset
         localStorage.removeItem(ONBOARDING_KEY);
       }
     }
     setIsLoaded(true);
   }, []);
+
+  // Check if user has completed the assessment (golden moment)
+  useEffect(() => {
+    const checkAssessmentStatus = async () => {
+      if (!user) {
+        setHasCompletedAssessment(false);
+        return;
+      }
+      
+      try {
+        const { data, error } = await supabase
+          .from('investment_plans')
+          .select('id')
+          .eq('user_id', user.id)
+          .eq('status', 'complete')
+          .limit(1);
+        
+        if (!error && data && data.length > 0) {
+          setHasCompletedAssessment(true);
+        } else {
+          setHasCompletedAssessment(false);
+        }
+      } catch (e) {
+        console.error('Error checking assessment status:', e);
+      }
+    };
+
+    checkAssessmentStatus();
+  }, [user]);
 
   // Update visit count on mount
   useEffect(() => {
@@ -64,29 +95,45 @@ export function useOnboarding() {
     localStorage.setItem(ONBOARDING_KEY, JSON.stringify(newState));
   }, [state]);
 
+  const dismissBanner = useCallback(() => {
+    const newState = { ...state, bannerDismissed: true };
+    setState(newState);
+    localStorage.setItem(ONBOARDING_KEY, JSON.stringify(newState));
+  }, [state]);
+
   const resetOnboarding = useCallback(() => {
     setState(defaultState);
     localStorage.removeItem(ONBOARDING_KEY);
   }, []);
 
-  // Determine if we should show welcome modal
-  // Show if: first visit OR user is logged in and hasn't completed welcome
+  // Show welcome modal on first visit
   const shouldShowWelcome = isLoaded && !state.welcomeCompleted && state.visitCount <= 1;
 
   // Show spotlight if welcome completed but spotlight not dismissed
-  // and user has visited less than 5 times
+  // and user hasn't completed assessment and has visited less than 10 times
   const shouldShowSpotlight = isLoaded && 
     state.welcomeCompleted && 
     !state.spotlightDismissed && 
-    state.visitCount < 5;
+    !hasCompletedAssessment &&
+    state.visitCount < 10;
+
+  // Show banner if welcome completed but banner not dismissed
+  // and user hasn't completed assessment
+  const shouldShowBanner = isLoaded && 
+    state.welcomeCompleted && 
+    !state.bannerDismissed &&
+    state.visitCount < 15;
 
   return {
     isLoaded,
     state,
+    hasCompletedAssessment,
     shouldShowWelcome,
     shouldShowSpotlight,
+    shouldShowBanner,
     completeWelcome,
     dismissSpotlight,
+    dismissBanner,
     resetOnboarding,
   };
 }
