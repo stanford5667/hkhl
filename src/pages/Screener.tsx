@@ -50,6 +50,8 @@ import {
 import type { ScreenerCriteria, ScreenerResult, Sector, Exchange, Index, RSIFilter, SMAFilter, HighLow52W } from '@/types/screener';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { useRequireAuth } from '@/hooks/useRequireAuth';
+import { AuthGateDialog } from '@/components/auth/AuthGateDialog';
 
 const EXAMPLE_QUERIES = [
   'Large cap tech gainers',
@@ -939,6 +941,7 @@ function ResultsTable({
 // =====================
 export default function Screener() {
   const navigate = useNavigate();
+  const { requireAuth, showAuthDialog, closeAuthDialog } = useRequireAuth();
   const [query, setQuery] = useState('');
   const [criteria, setCriteria] = useState<ScreenerCriteria>({});
   const [isLoading, setIsLoading] = useState(false);
@@ -1036,21 +1039,23 @@ export default function Screener() {
   const handleSaveScreen = () => {
     if (!query.trim()) return;
 
-    const name = prompt('Enter a name for this screen:');
-    if (!name) return;
+    requireAuth(() => {
+      const name = prompt('Enter a name for this screen:');
+      if (!name) return;
 
-    const newScreen: SavedScreen = {
-      id: Date.now().toString(),
-      name,
-      query,
-      criteria,
-      savedAt: new Date().toISOString(),
-    };
+      const newScreen: SavedScreen = {
+        id: Date.now().toString(),
+        name,
+        query,
+        criteria,
+        savedAt: new Date().toISOString(),
+      };
 
-    const updated = [newScreen, ...savedScreens.slice(0, 9)]; // Keep max 10
-    setSavedScreens(updated);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
-    toast.success('Screen saved');
+      const updated = [newScreen, ...savedScreens.slice(0, 9)]; // Keep max 10
+      setSavedScreens(updated);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+      toast.success('Screen saved');
+    });
   };
 
   const handleDeleteScreen = (id: string) => {
@@ -1185,6 +1190,14 @@ export default function Screener() {
           }} />
         </div>
       </div>
+      
+      {/* Auth gate dialog for save actions */}
+      <AuthGateDialog 
+        open={showAuthDialog} 
+        onOpenChange={closeAuthDialog}
+        title="Sign in to Save"
+        description="Create a free account to save your screens and access them later."
+      />
     </div>
   );
 }

@@ -54,6 +54,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useAuth } from '@/contexts/AuthContext';
+import { useRequireAuth } from '@/hooks/useRequireAuth';
+import { AuthGateDialog } from '@/components/auth/AuthGateDialog';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   DropdownMenu,
@@ -367,6 +369,7 @@ function IPSSummaryCard({ policy }: { policy: InvestorPolicyStatement }) {
 export default function PortfolioVisualizer() {
   // Auth and query client
   const { user } = useAuth();
+  const { requireAuth, showAuthDialog, closeAuthDialog } = useRequireAuth();
   const queryClient = useQueryClient();
   
   // Onboarding state
@@ -1507,15 +1510,24 @@ export default function PortfolioVisualizer() {
                 </DropdownMenuContent>
               </DropdownMenu>
               
-              {/* Save Portfolio Button */}
-              {user && (
-                <Dialog open={saveDialogOpen} onOpenChange={setSaveDialogOpen}>
-                  <DialogTrigger asChild>
-                    <Button variant="outline" size="sm">
-                      <Save className="h-4 w-4 mr-2" />
-                      Save
-                    </Button>
-                  </DialogTrigger>
+              {/* Save Portfolio Button - available to all, requires auth to save */}
+              <Dialog open={saveDialogOpen} onOpenChange={setSaveDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={(e) => {
+                      if (!user) {
+                        e.preventDefault();
+                        requireAuth(() => setSaveDialogOpen(true));
+                      }
+                    }}
+                  >
+                    <Save className="h-4 w-4 mr-2" />
+                    Save
+                  </Button>
+                </DialogTrigger>
+                {user && (
                   <DialogContent>
                     <DialogHeader>
                       <DialogTitle>Save Portfolio</DialogTitle>
@@ -1560,8 +1572,8 @@ export default function PortfolioVisualizer() {
                       </Button>
                     </DialogFooter>
                   </DialogContent>
-                </Dialog>
-              )}
+                )}
+              </Dialog>
 
               {/* Load Portfolio Button */}
               {user && savedPortfolios.length > 0 && (
@@ -2266,6 +2278,14 @@ export default function PortfolioVisualizer() {
           </div>
         )}
       </div>
+      
+      {/* Auth gate dialog for save actions */}
+      <AuthGateDialog 
+        open={showAuthDialog} 
+        onOpenChange={closeAuthDialog}
+        title="Sign in to Save"
+        description="Create a free account to save your portfolios and access them from anywhere."
+      />
     </div>
   );
 }

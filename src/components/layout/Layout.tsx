@@ -54,37 +54,31 @@ export function Layout({ children }: LayoutProps) {
   // Use the search shortcut hook
   useSearchShortcut(() => setSearchOpen(true));
 
-  // Create handlers - now wrapped with requireAuth
+  // Create handlers - no auth required for navigation
   const handleCreateCompany = () => {
-    requireAuth(() => navigate('/companies?create=true'));
+    navigate('/companies?create=true');
   };
 
   const handleCreateContact = (companyId?: string) => {
-    requireAuth(() => {
-      const params = companyId ? `?create=true&companyId=${companyId}` : '?create=true';
-      navigate(`/contacts${params}`);
-    });
+    const params = companyId ? `?create=true&companyId=${companyId}` : '?create=true';
+    navigate(`/contacts${params}`);
   };
 
   const handleCreateTask = (companyId?: string, contactId?: string) => {
-    requireAuth(() => {
-      const params = new URLSearchParams();
-      params.set('create', 'true');
-      if (companyId) params.set('companyId', companyId);
-      if (contactId) params.set('contactId', contactId);
-      navigate(`/tasks?${params.toString()}`);
-    });
+    const params = new URLSearchParams();
+    params.set('create', 'true');
+    if (companyId) params.set('companyId', companyId);
+    if (contactId) params.set('contactId', contactId);
+    navigate(`/tasks?${params.toString()}`);
   };
 
   const handleUploadDocument = (companyId?: string) => {
-    requireAuth(() => {
-      if (companyId) {
-        navigate(`/portfolio/${companyId}?tab=dataroom&upload=true`);
-      } else {
-        toast.info('Select a company first to upload documents');
-        navigate('/portfolio');
-      }
-    });
+    if (companyId) {
+      navigate(`/portfolio/${companyId}?tab=dataroom&upload=true`);
+    } else {
+      toast.info('Select a company first to upload documents');
+      navigate('/portfolio');
+    }
   };
 
   // Show loading spinner while checking auth
