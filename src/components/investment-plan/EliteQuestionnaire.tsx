@@ -592,50 +592,57 @@ export function EliteQuestionnaire({ onComplete, onCancel, userId }: EliteQuesti
         
         if (session?.user) {
           // User is logged in, check for existing report
-          const { data: lead } = await supabase
-            .from('leads')
+          const { data: existingPlan } = await supabase
+            .from('investment_plans')
             .select('*')
-            .eq('email', session.user.email)
+            .eq('user_id', session.user.id)
             .order('created_at', { ascending: false })
             .limit(1)
             .single();
           
-          if (lead?.investment_plan || lead?.plan_preview) {
+          if (existingPlan?.plan_content || existingPlan?.responses) {
             // User has a previous report, show it
             const { data: profile } = await supabase
               .from('profiles')
-              .select('first_name, last_name')
-              .eq('id', session.user.id)
+              .select('full_name')
+              .eq('user_id', session.user.id)
               .single();
             
             setEmail(session.user.email || '');
             
+            // Parse responses if stored as JSON
+            const savedResponses = existingPlan?.responses as Record<string, any> || {};
+            
             // Reconstruct the plan from saved data
             const savedPlan = {
-              userName: profile?.first_name || lead?.name || 'Investor',
+              userName: profile?.full_name || existingPlan?.name || 'Investor',
               email: session.user.email,
-              generatedAt: lead?.plan_generated_at || lead?.created_at,
+              generatedAt: existingPlan?.updated_at || existingPlan?.created_at,
               riskProfile: {
-                score: lead?.risk_score || 50,
-                label: lead?.risk_profile || 'Moderate',
-                description: getRiskDescription(lead?.risk_score || 50),
+                score: existingPlan?.risk_score || 50,
+                label: existingPlan?.risk_profile || 'Moderate',
+                description: getRiskDescription(existingPlan?.risk_score || 50),
               },
-              allocation: (lead?.plan_preview as any)?.allocation || buildAllocation(lead?.risk_score || 50, [], 'passive', 50000),
-              recommendations: (lead?.plan_preview as any)?.recommendations || buildRecommendations(lead?.risk_score || 50, [], 'passive', 50000),
-              keyMetrics: (lead?.plan_preview as any)?.keyMetrics || {
-                expectedReturn: `${(3 + (lead?.risk_score || 50) * 0.07).toFixed(1)}%`,
-                volatility: `${(4 + (lead?.risk_score || 50) * 0.18).toFixed(1)}%`,
-                maxDrawdown: `-${(8 + (lead?.risk_score || 50) * 0.35).toFixed(0)}%`,
-                sharpRatio: (0.3 + (lead?.risk_score || 50) * 0.008).toFixed(2),
+              investorType: {
+                code: existingPlan?.investor_type || 'GAPD',
+                name: existingPlan?.investor_type_name || 'The Steward',
+              },
+              allocation: savedResponses?.allocation || buildAllocation(existingPlan?.risk_score || 50, [], 'passive', 50000),
+              recommendations: savedResponses?.recommendations || buildRecommendations(existingPlan?.risk_score || 50, [], 'passive', 50000),
+              keyMetrics: savedResponses?.keyMetrics || {
+                expectedReturn: `${(3 + (existingPlan?.risk_score || 50) * 0.07).toFixed(1)}%`,
+                volatility: `${(4 + (existingPlan?.risk_score || 50) * 0.18).toFixed(1)}%`,
+                maxDrawdown: `-${(8 + (existingPlan?.risk_score || 50) * 0.35).toFixed(0)}%`,
+                sharpRatio: (0.3 + (existingPlan?.risk_score || 50) * 0.008).toFixed(2),
                 timeHorizon: '10 years',
               },
-              narrative: (lead?.plan_preview as any)?.narrative || '',
-              actionPlan: (lead?.plan_preview as any)?.actionPlan || [],
-              investmentAmount: (lead?.plan_preview as any)?.investmentAmount || 50000,
+              narrative: savedResponses?.narrative || '',
+              actionPlan: savedResponses?.actionPlan || [],
+              investmentAmount: savedResponses?.investmentAmount || 50000,
             };
             
-            if (lead?.investment_plan) {
-              setRawPolicy(lead.investment_plan);
+            if (existingPlan?.plan_content) {
+              setRawPolicy(existingPlan.plan_content);
             }
             
             setGeneratedPlan(savedPlan);
@@ -650,12 +657,12 @@ export function EliteQuestionnaire({ onComplete, onCancel, userId }: EliteQuesti
             // User is logged in but no report, go to questionnaire
             const { data: profile } = await supabase
               .from('profiles')
-              .select('first_name, last_name')
-              .eq('id', session.user.id)
+              .select('full_name')
+              .eq('user_id', session.user.id)
               .single();
             
             setEmail(session.user.email || '');
-            setResponses(prev => ({ ...prev, name: profile?.first_name || '' }));
+            setResponses(prev => ({ ...prev, name: profile?.full_name?.split(' ')[0] || '' }));
             setShowWelcome(false);
             setPhase('questionnaire');
           }
@@ -909,7 +916,7 @@ ${plan.allocation.map((a: any) => `| ${a.name} | ${a.value}% |`).join('\n')}
 - **Investment Horizon:** ${plan.keyMetrics.timeHorizon}
 
 ## Investment Philosophy
-${plan.narrative.philosophy}
+${plan.narrative.executive}
 
 ## Implementation Guide
 ${plan.narrative.implementationGuide}
@@ -967,23 +974,30 @@ ${a.description}`).join('\n\n')}
         setRawPolicy(apiResponse.plan);
       }
       
-      // Auto-save: Update the lead with plan_preview for future restoration
-      await supabase
-        .from('leads')
-        .update({ 
-          plan_preview: {
-            allocation: plan.allocation,
-            recommendations: plan.recommendations,
-            keyMetrics: plan.keyMetrics,
-            narrative: plan.narrative,
-            actionPlan: plan.actionPlan,
-            investmentAmount: plan.investmentAmount,
-          },
-          plan_generated_at: new Date().toISOString(),
-        })
-        .eq('email', email)
-        .order('created_at', { ascending: false })
-        .limit(1);
+      // Auto-save: Save to investment_plans table for future restoration
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        await supabase
+          .from('investment_plans')
+          .upsert({
+            user_id: session.user.id,
+            name: userName || 'My Investment Plan',
+            responses: {
+              allocation: plan.allocation,
+              recommendations: plan.recommendations,
+              keyMetrics: plan.keyMetrics,
+              narrative: plan.narrative,
+              actionPlan: plan.actionPlan,
+              investmentAmount: plan.investmentAmount,
+            },
+            risk_score: plan.riskProfile.score,
+            risk_profile: plan.riskProfile.label,
+            investor_type: (plan as any).investorType?.code || '',
+            investor_type_name: (plan as any).investorType?.name || '',
+            plan_content: apiResponse?.plan || '',
+            status: 'complete',
+          });
+      }
       
       setGeneratedPlan(plan);
       setPhase('results');
@@ -1227,51 +1241,61 @@ ${a.description}`).join('\n\n')}
           
           // Check if user has an existing report
           try {
-            const { data: lead } = await supabase
-              .from('leads')
-              .select('*')
-              .eq('email', userData.email)
-              .order('created_at', { ascending: false })
-              .limit(1)
-              .single();
-            
-            if (lead?.investment_plan || lead?.plan_preview) {
-              // User has a previous report, show it
-              const savedPlan = {
-                userName: userData.firstName || lead?.name || 'Investor',
-                email: userData.email,
-                generatedAt: lead?.plan_generated_at || lead?.created_at,
-                riskProfile: {
-                  score: lead?.risk_score || 50,
-                  label: lead?.risk_profile || 'Moderate',
-                  description: getRiskDescription(lead?.risk_score || 50),
-                },
-                allocation: (lead?.plan_preview as any)?.allocation || buildAllocation(lead?.risk_score || 50, [], 'passive', 50000),
-                recommendations: (lead?.plan_preview as any)?.recommendations || buildRecommendations(lead?.risk_score || 50, [], 'passive', 50000),
-                keyMetrics: (lead?.plan_preview as any)?.keyMetrics || {
-                  expectedReturn: `${(3 + (lead?.risk_score || 50) * 0.07).toFixed(1)}%`,
-                  volatility: `${(4 + (lead?.risk_score || 50) * 0.18).toFixed(1)}%`,
-                  maxDrawdown: `-${(8 + (lead?.risk_score || 50) * 0.35).toFixed(0)}%`,
-                  sharpRatio: (0.3 + (lead?.risk_score || 50) * 0.008).toFixed(2),
-                  timeHorizon: '10 years',
-                },
-                narrative: (lead?.plan_preview as any)?.narrative || '',
-                actionPlan: (lead?.plan_preview as any)?.actionPlan || [],
-                investmentAmount: (lead?.plan_preview as any)?.investmentAmount || 50000,
-              };
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session?.user) {
+              const { data: existingPlan } = await supabase
+                .from('investment_plans')
+                .select('*')
+                .eq('user_id', session.user.id)
+                .order('created_at', { ascending: false })
+                .limit(1)
+                .single();
               
-              if (lead?.investment_plan) {
-                setRawPolicy(lead.investment_plan);
+              if (existingPlan?.plan_content || existingPlan?.responses) {
+                // Parse responses if stored as JSON
+                const savedResponses = existingPlan?.responses as Record<string, any> || {};
+                
+                // User has a previous report, show it
+                const savedPlan = {
+                  userName: userData.firstName || existingPlan?.name || 'Investor',
+                  email: userData.email,
+                  generatedAt: existingPlan?.updated_at || existingPlan?.created_at,
+                  riskProfile: {
+                    score: existingPlan?.risk_score || 50,
+                    label: existingPlan?.risk_profile || 'Moderate',
+                    description: getRiskDescription(existingPlan?.risk_score || 50),
+                  },
+                  investorType: {
+                    code: existingPlan?.investor_type || 'GAPD',
+                    name: existingPlan?.investor_type_name || 'The Steward',
+                  },
+                  allocation: savedResponses?.allocation || buildAllocation(existingPlan?.risk_score || 50, [], 'passive', 50000),
+                  recommendations: savedResponses?.recommendations || buildRecommendations(existingPlan?.risk_score || 50, [], 'passive', 50000),
+                  keyMetrics: savedResponses?.keyMetrics || {
+                    expectedReturn: `${(3 + (existingPlan?.risk_score || 50) * 0.07).toFixed(1)}%`,
+                    volatility: `${(4 + (existingPlan?.risk_score || 50) * 0.18).toFixed(1)}%`,
+                    maxDrawdown: `-${(8 + (existingPlan?.risk_score || 50) * 0.35).toFixed(0)}%`,
+                    sharpRatio: (0.3 + (existingPlan?.risk_score || 50) * 0.008).toFixed(2),
+                    timeHorizon: '10 years',
+                  },
+                  narrative: savedResponses?.narrative || '',
+                  actionPlan: savedResponses?.actionPlan || [],
+                  investmentAmount: savedResponses?.investmentAmount || 50000,
+                };
+                
+                if (existingPlan?.plan_content) {
+                  setRawPolicy(existingPlan.plan_content);
+                }
+                
+                setGeneratedPlan(savedPlan);
+                setPhase('results');
+                
+                toast({
+                  title: 'Welcome back!',
+                  description: `Your investment report has been restored.`,
+                });
+                return;
               }
-              
-              setGeneratedPlan(savedPlan);
-              setPhase('results');
-              
-              toast({
-                title: 'Welcome back!',
-                description: `Your investment report has been restored.`,
-              });
-              return;
             }
           } catch (error) {
             // No existing report found, continue to questionnaire
