@@ -109,10 +109,14 @@ serve(async (req) => {
       throw new Error('Tickers and weights must have same length');
     }
     
+    // Normalize weights to ensure they sum to 1 (handles floating-point precision issues)
     const totalWeight = weights.reduce((a, b) => a + b, 0);
-    if (Math.abs(totalWeight - 1) > 0.01) {
-      throw new Error(`Weights must sum to 1, got ${totalWeight.toFixed(4)}`);
-    }
+    const normalizedWeights = totalWeight > 0 
+      ? weights.map(w => w / totalWeight) 
+      : weights;
+    
+    // Use normalized weights for calculations
+    const weightsToUse = normalizedWeights;
     
     // Check cache first
     const portfolioHash = generatePortfolioHash(tickers, weights);
@@ -231,7 +235,7 @@ serve(async (req) => {
         const tickerBars = tickerData.get(tickers[i])!;
         const bar = tickerBars.find(b => b.date === date);
         if (bar) {
-          weightedReturn += bar.return * weights[i];
+          weightedReturn += bar.return * weightsToUse[i];
         }
       }
       
@@ -282,7 +286,7 @@ serve(async (req) => {
       riskFreeRate,
       investableCapital,
       tickers,
-      weights
+      weightsToUse
     );
     
     console.log('[AICalculate] Metrics calculated:', {
@@ -302,7 +306,7 @@ serve(async (req) => {
     let aiAnalysis: any = null;
     if (includeAIAnalysis) {
       console.log('[AICalculate] Getting AI analysis...');
-      aiAnalysis = await getAIAnalysis(metrics, tickers, weights, investableCapital);
+      aiAnalysis = await getAIAnalysis(metrics, tickers, weightsToUse, investableCapital);
       console.log('[AICalculate] AI analysis complete:', aiAnalysis ? 'success' : 'skipped');
     }
     
@@ -313,7 +317,7 @@ serve(async (req) => {
       .upsert({
         portfolio_hash: portfolioHash,
         tickers,
-        weights,
+        weights: weightsToUse,
         start_date: startDate,
         end_date: endDate,
         benchmark_ticker: benchmarkTicker,
