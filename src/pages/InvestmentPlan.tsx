@@ -266,6 +266,7 @@ export default function InvestmentPlanPage() {
   const [viewPlanOpen, setViewPlanOpen] = useState(false);
   const [deletePlanId, setDeletePlanId] = useState<string | null>(null);
   const [showQuestionnaire, setShowQuestionnaire] = useState(false);
+  const [forceNewAssessment, setForceNewAssessment] = useState(false);
   const [pendingResult, setPendingResult] = useState<{
     responses: Record<string, any>;
     riskScore: number;
@@ -431,8 +432,12 @@ export default function InvestmentPlanPage() {
       <div className="fixed inset-0 z-50 bg-background">
         <EliteQuestionnaire
           onComplete={handleQuestionnaireComplete}
-          onCancel={() => setShowQuestionnaire(false)}
+          onCancel={() => {
+            setShowQuestionnaire(false);
+            setForceNewAssessment(false);
+          }}
           userId={user?.id}
+          forceNew={forceNewAssessment}
         />
       </div>
     );
@@ -453,7 +458,10 @@ export default function InvestmentPlanPage() {
         </div>
 
         <Button 
-          onClick={() => setShowQuestionnaire(true)}
+          onClick={() => {
+            setForceNewAssessment(true);
+            setShowQuestionnaire(true);
+          }}
           className="gap-2 shadow-lg shadow-primary/25 w-full sm:w-auto"
           size="lg"
         >
@@ -507,7 +515,10 @@ export default function InvestmentPlanPage() {
                         </Badge>
                       ))}
                     </div>
-                    <Button onClick={() => setShowQuestionnaire(true)} size="lg" className="gap-2 shadow-lg shadow-primary/25">
+                    <Button onClick={() => {
+                      setForceNewAssessment(true);
+                      setShowQuestionnaire(true);
+                    }} size="lg" className="gap-2 shadow-lg shadow-primary/25">
                       <Brain className="h-5 w-5" />
                       Take the 5-Minute Assessment
                       <ArrowRight className="h-4 w-4" />
@@ -640,7 +651,10 @@ export default function InvestmentPlanPage() {
               {/* Add New Plan Card */}
               <Card 
                 className="bg-secondary/10 border-dashed border-2 border-muted-foreground/20 hover:border-primary/50 hover:bg-secondary/20 transition-all cursor-pointer"
-                onClick={() => setShowQuestionnaire(true)}
+                onClick={() => {
+                  setForceNewAssessment(true);
+                  setShowQuestionnaire(true);
+                }}
               >
                 <CardContent className="p-6 h-full flex flex-col items-center justify-center text-center">
                   <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-3">
