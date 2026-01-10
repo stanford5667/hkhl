@@ -1495,6 +1495,51 @@ export type Database = {
           },
         ]
       }
+      investment_plans: {
+        Row: {
+          created_at: string | null
+          id: string
+          investor_type: string | null
+          investor_type_name: string | null
+          name: string
+          plan_content: string | null
+          responses: Json | null
+          risk_profile: string | null
+          risk_score: number | null
+          status: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          investor_type?: string | null
+          investor_type_name?: string | null
+          name?: string
+          plan_content?: string | null
+          responses?: Json | null
+          risk_profile?: string | null
+          risk_score?: number | null
+          status?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          investor_type?: string | null
+          investor_type_name?: string | null
+          name?: string
+          plan_content?: string | null
+          responses?: Json | null
+          risk_profile?: string | null
+          risk_score?: number | null
+          status?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       kol_accounts: {
         Row: {
           accuracy_score: number | null
