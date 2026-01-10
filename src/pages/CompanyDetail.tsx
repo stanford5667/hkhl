@@ -350,6 +350,12 @@ export default function CompanyDetail() {
             <LayoutDashboard className="h-5 w-5" />
             Overview
           </TabsTrigger>
+          {isPublicEquity && (
+            <TabsTrigger value="studies" className="gap-2 text-base px-5 py-3">
+              <FlaskConical className="h-5 w-5" />
+              Studies
+            </TabsTrigger>
+          )}
           <TabsTrigger value="notes-tasks" className="gap-2 text-base px-5 py-3">
             <CheckSquare className="h-5 w-5" />
             Notes & Tasks
@@ -358,12 +364,6 @@ export default function CompanyDetail() {
             <TabsTrigger value="backtest" className="gap-2 text-base px-5 py-3">
               <BarChart3 className="h-5 w-5" />
               Metrics
-            </TabsTrigger>
-          )}
-          {isPublicEquity && (
-            <TabsTrigger value="studies" className="gap-2 text-base px-5 py-3">
-              <FlaskConical className="h-5 w-5" />
-              Studies
             </TabsTrigger>
           )}
           <TabsTrigger value="news" className="gap-2 text-base px-5 py-3">
