@@ -1,5 +1,5 @@
-import { ReactNode, useState, useEffect } from "react";
-import { useLocation, Navigate, useNavigate } from "react-router-dom";
+import { ReactNode, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { Sidebar } from "./Sidebar";
 import { TopBar } from "./TopBar";
 import { TickerStream } from "@/components/ui/TickerStream";
@@ -9,13 +9,16 @@ import { Loader2 } from "lucide-react";
 import { UniversalCreateMenu } from "@/components/shared/UniversalCreateMenu";
 import { EnhancedGlobalSearch, useSearchShortcut } from "@/components/shared/EnhancedGlobalSearch";
 import { toast } from "sonner";
+import { AuthGateDialog } from "@/components/auth/AuthGateDialog";
+import { useRequireAuth } from "@/hooks/useRequireAuth";
 
 interface LayoutProps {
   children: ReactNode;
 }
 
 export function Layout({ children }: LayoutProps) {
-  const { user, loading } = useAuth();
+  const { loading } = useAuth();
+  const { requireAuth, showAuthDialog, closeAuthDialog } = useRequireAuth();
   const location = useLocation();
   const navigate = useNavigate();
   
@@ -25,31 +28,37 @@ export function Layout({ children }: LayoutProps) {
   // Use the search shortcut hook
   useSearchShortcut(() => setSearchOpen(true));
 
-  // Create handlers
+  // Create handlers - now wrapped with requireAuth
   const handleCreateCompany = () => {
-    navigate('/companies?create=true');
+    requireAuth(() => navigate('/companies?create=true'));
   };
 
   const handleCreateContact = (companyId?: string) => {
-    const params = companyId ? `?create=true&companyId=${companyId}` : '?create=true';
-    navigate(`/contacts${params}`);
+    requireAuth(() => {
+      const params = companyId ? `?create=true&companyId=${companyId}` : '?create=true';
+      navigate(`/contacts${params}`);
+    });
   };
 
   const handleCreateTask = (companyId?: string, contactId?: string) => {
-    const params = new URLSearchParams();
-    params.set('create', 'true');
-    if (companyId) params.set('companyId', companyId);
-    if (contactId) params.set('contactId', contactId);
-    navigate(`/tasks?${params.toString()}`);
+    requireAuth(() => {
+      const params = new URLSearchParams();
+      params.set('create', 'true');
+      if (companyId) params.set('companyId', companyId);
+      if (contactId) params.set('contactId', contactId);
+      navigate(`/tasks?${params.toString()}`);
+    });
   };
 
   const handleUploadDocument = (companyId?: string) => {
-    if (companyId) {
-      navigate(`/portfolio/${companyId}?tab=dataroom&upload=true`);
-    } else {
-      toast.info('Select a company first to upload documents');
-      navigate('/portfolio');
-    }
+    requireAuth(() => {
+      if (companyId) {
+        navigate(`/portfolio/${companyId}?tab=dataroom&upload=true`);
+      } else {
+        toast.info('Select a company first to upload documents');
+        navigate('/portfolio');
+      }
+    });
   };
 
   // Show loading spinner while checking auth
@@ -66,10 +75,7 @@ export function Layout({ children }: LayoutProps) {
     return <>{children}</>;
   }
 
-  // Redirect to auth if not logged in
-  if (!user) {
-    return <Navigate to="/auth" replace />;
-  }
+  // Allow browsing without authentication - removed redirect
 
   return (
     <div className="flex min-h-screen w-full bg-background">
@@ -96,6 +102,12 @@ export function Layout({ children }: LayoutProps) {
         onOpenChange={setSearchOpen}
       />
       <FloatingHelpWidget />
+      
+      {/* Auth gate dialog */}
+      <AuthGateDialog 
+        open={showAuthDialog} 
+        onOpenChange={closeAuthDialog}
+      />
     </div>
   );
 }
