@@ -117,7 +117,7 @@ export function AuthStep({ progress, onComplete }: AuthStepProps) {
   };
 
   return (
-    <div className="min-h-screen bg-background text-foreground overflow-hidden flex items-center justify-center px-4 sm:px-6">
+    <div className="min-h-[100dvh] bg-background text-foreground overflow-x-hidden overflow-y-auto flex items-start justify-center px-4 sm:px-6 py-6 pb-[calc(env(safe-area-inset-bottom)+6rem)]">
       {/* Background */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden">
         <div className="absolute top-1/4 left-1/4 w-[300px] sm:w-[600px] h-[300px] sm:h-[600px] bg-primary/10 rounded-full blur-[100px] sm:blur-[150px] animate-pulse" />
@@ -141,7 +141,7 @@ export function AuthStep({ progress, onComplete }: AuthStepProps) {
         </div>
 
         {/* Card */}
-        <div className="bg-card border border-border rounded-2xl p-6 sm:p-8 shadow-xl">
+        <div className="bg-card border border-border rounded-2xl p-6 sm:p-8 shadow-xl max-h-[calc(100dvh-10rem)] overflow-y-auto">
           {/* Header */}
           <div className="text-center mb-6">
             <div className="w-12 h-12 mx-auto mb-4 rounded-xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center">

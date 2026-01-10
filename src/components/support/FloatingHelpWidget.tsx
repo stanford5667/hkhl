@@ -183,7 +183,7 @@ export function FloatingHelpWidget() {
   return (
     <>
       {/* Floating Button */}
-      <div className="fixed bottom-6 right-6 z-50">
+      <div className="fixed right-6 z-50 bottom-[calc(env(safe-area-inset-bottom)+6rem)] md:bottom-6">
         <Popover open={isOpen} onOpenChange={setIsOpen}>
           <PopoverTrigger asChild>
             <Button
@@ -205,7 +205,7 @@ export function FloatingHelpWidget() {
           <PopoverContent 
             side="top" 
             align="end" 
-            className="w-80 p-0 bg-background/95 backdrop-blur-lg border-border shadow-2xl"
+            className="w-80 max-w-[calc(100vw-2rem)] p-0 bg-background/95 backdrop-blur-lg border-border shadow-2xl"
             sideOffset={16}
           >
             <AnimatePresence mode="wait">

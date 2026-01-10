@@ -1485,7 +1485,7 @@ ${a.description}`).join('\n\n')}
       </AnimatePresence>
 
       {/* Footer navigation */}
-      <footer className="fixed bottom-0 left-0 right-0 glass-nav safe-area-pb pb-[calc(env(safe-area-inset-bottom)+0.75rem)]">
+      <footer className="fixed bottom-16 md:bottom-0 left-0 right-0 glass-nav safe-area-pb pb-[calc(env(safe-area-inset-bottom)+0.75rem)]">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 py-3 sm:py-4">
           <div className="flex items-center justify-between gap-3">
             <Button
