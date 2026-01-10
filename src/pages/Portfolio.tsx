@@ -1142,30 +1142,6 @@ export default function Portfolio() {
       {/* Create Portfolio Dialog */}
       <CreatePortfolioDialog open={showCreatePortfolioDialog} onOpenChange={setShowCreatePortfolioDialog} onSave={handleCreatePortfolio} isSaving={isSaving} />
 
-      {/* Dynamic Stats Row - Now includes Portfolio Builder metrics (CAGR, Sharpe, Max DD) */}
-      <motion.div variants={containerVariants} className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4 auto-rows-fr">
-        <StatCard title="Portfolio Value" displayValue={formatCurrency(backtestMetrics?.currentValue ?? (allocTotalValue > 0 ? allocTotalValue : perfTotalValue || portfolioStats.totalValue), true)} icon={Wallet} onClick={() => navigate('/backtester')} isLoading={allocLoading || perfLoading || isLoading} change={backtestMetrics?.totalReturnPercent ?? (allocTotalValue > 0 ? allocGainLossPercent : perfTotalGainLossPercent || portfolioStats.totalGainLossPercent)} subtitle={`${allocPositionCount > 0 ? allocPositionCount : perfPositionCount || allHoldings.length} holdings`} termKey="portfolioValue" dataSource="Polygon.io" />
-        <StatCard title="Today's P&L" displayValue={formatCurrency(
-      // Hybrid: Use live change % applied to backtest value (not original capital)
-      backtestMetrics?.currentValue && allocTodayChangePercent ? backtestMetrics.currentValue * (allocTodayChangePercent / 100) : allocTotalValue > 0 ? allocTodayChange : perfTodayChange || portfolioStats.todayChange, true)} icon={allocTodayChangePercent >= 0 ? TrendingUp : TrendingDown} isLoading={allocLoading || perfLoading || isLoading} change={allocTodayChangePercent || perfTodayChangePercent || portfolioStats.todayChangePercent} onClick={() => {
-        document.querySelector('[data-performance-chart]')?.scrollIntoView({
-          behavior: 'smooth'
-        });
-      }} termKey="totalReturn" dataSource="Polygon.io" />
-        {/* CAGR - Matches Portfolio Builder */}
-        <StatCard title="CAGR" displayValue={allocCagr !== 0 ? `${allocCagr >= 0 ? '+' : ''}${allocCagr.toFixed(2)}%` : '—'} icon={TrendingUp} isLoading={allocAdvancedLoading} change={allocCagr} onClick={() => navigate('/backtester')} subtitle="Annualized return" termKey="cagr" dataSource="Polygon.io" />
-        {/* Sharpe Ratio - Matches Portfolio Builder */}
-        <StatCard title="Sharpe Ratio" displayValue={allocSharpe !== 0 ? allocSharpe.toFixed(2) : '—'} icon={Activity} isLoading={allocAdvancedLoading} onClick={() => navigate('/backtester')} subtitle={allocSharpe >= 1 ? 'Good' : allocSharpe >= 0.5 ? 'Moderate' : 'Low'} termKey="sharpeRatio" dataSource="Polygon.io" />
-        {/* Volatility - Matches Portfolio Builder */}
-        <StatCard title="Volatility" displayValue={allocVolatility !== 0 ? `${allocVolatility.toFixed(2)}%` : '—'} icon={Activity} isLoading={allocAdvancedLoading} onClick={() => navigate('/backtester')} subtitle="Annualized" termKey="volatility" dataSource="Polygon.io" />
-        {/* Max Drawdown - Matches Portfolio Builder */}
-        <StatCard title="Max Drawdown" displayValue={allocMaxDD !== 0 ? `${allocMaxDD.toFixed(2)}%` : '—'} icon={TrendingDown} isLoading={allocAdvancedLoading} onClick={() => navigate('/backtester')} subtitle="Peak to trough" termKey="maxDrawdown" dataSource="Polygon.io" />
-        <StatCard title="Gainers" value={portfolioStats.gainersCount} icon={ArrowUpRight} isLoading={isLoading} onClick={() => {
-        setSortBy('todayChange');
-        setSortAsc(false);
-      }} subtitle="Today's winners" dataSource="Polygon.io" />
-        <StatCard title="Open Tasks" value={stats.openTasks} icon={CheckSquare} alert={stats.overdueTasks > 0} alertCount={stats.overdueTasks} onClick={() => navigate('/tasks')} isLoading={isLoading} subtitle={stats.overdueTasks > 0 ? `${stats.overdueTasks} overdue` : 'All on track'} />
-      </motion.div>
 
       {/* CTA Banner - Market Intel Style */}
       <Card className="bg-gradient-to-r from-primary/10 to-secondary/30 border-primary/20">
