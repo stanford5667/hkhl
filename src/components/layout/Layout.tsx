@@ -14,7 +14,7 @@ import { AuthGateDialog } from "@/components/auth/AuthGateDialog";
 import { useRequireAuth } from "@/hooks/useRequireAuth";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { WelcomeModal } from "@/components/onboarding/WelcomeModal";
-import { FeatureSpotlight } from "@/components/onboarding/FeatureSpotlight";
+
 import { QuickStartBanner } from "@/components/onboarding/QuickStartBanner";
 import { useOnboarding } from "@/hooks/useOnboarding";
 
@@ -141,12 +141,6 @@ export function Layout({ children }: LayoutProps) {
         onComplete={completeWelcome}
       />
       
-      {/* Feature Spotlight for guiding users to golden moment */}
-      <FeatureSpotlight 
-        show={shouldShowSpotlight}
-        onDismiss={dismissSpotlight}
-        hasCompletedAssessment={hasCompletedAssessment}
-      />
       
       {/* Global dialogs */}
       <UniversalCreateMenu
