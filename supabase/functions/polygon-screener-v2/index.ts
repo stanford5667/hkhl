@@ -48,6 +48,20 @@ const MARKET_CAP_RANGES: Record<string, { min: number; max: number }> = {
   nano: { min: 0, max: 50e6 }
 };
 
+// Safe JSON parsing helper
+async function safeJsonParse(response: Response): Promise<{ data: any; error: string | null }> {
+  try {
+    const text = await response.text();
+    if (!text || text.trim() === '') {
+      return { data: null, error: 'Empty response from API' };
+    }
+    const data = JSON.parse(text);
+    return { data, error: null };
+  } catch (e) {
+    return { data: null, error: e instanceof Error ? e.message : 'JSON parse error' };
+  }
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -84,24 +98,25 @@ serve(async (req) => {
     // Fetch tickers from Polygon
     const tickersUrl = `https://api.polygon.io/v3/reference/tickers?${params}`;
     const tickersRes = await fetch(tickersUrl);
-    const tickersData = await tickersRes.json();
+    
+    const { data: tickersData, error: tickersParseError } = await safeJsonParse(tickersRes);
 
-    if (!tickersRes.ok) {
+    if (tickersParseError || !tickersRes.ok) {
+      console.error('Tickers API error:', tickersParseError, 'Status:', tickersRes.status);
       return new Response(
         JSON.stringify({
           criteria,
           results: [],
           totalCount: 0,
-          explanation: `Ticker universe fetch failed (${tickersRes.status})`,
+          explanation: `Ticker universe fetch failed: ${tickersParseError || `HTTP ${tickersRes.status}`}`,
           source: 'polygon',
           timestamp: new Date().toISOString(),
-          upstream: tickersData,
         }),
         { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    if (!tickersData.results?.length) {
+    if (!tickersData?.results?.length) {
       return new Response(
         JSON.stringify({
           criteria,
@@ -188,24 +203,25 @@ serve(async (req) => {
 
     const snapshotsUrl = `https://api.polygon.io/v2/snapshot/locale/us/markets/stocks/tickers?tickers=${tickers.join(',')}&apiKey=${POLYGON_API_KEY}`;
     const snapshotsRes = await fetch(snapshotsUrl);
-    const snapshotsData = await snapshotsRes.json();
+    
+    const { data: snapshotsData, error: snapshotsParseError } = await safeJsonParse(snapshotsRes);
 
-    if (!snapshotsRes.ok) {
+    if (snapshotsParseError || !snapshotsRes.ok) {
+      console.error('Snapshots API error:', snapshotsParseError, 'Status:', snapshotsRes.status);
       return new Response(
         JSON.stringify({
           criteria,
           results: [],
           totalCount: 0,
-          explanation: `Snapshot fetch failed (${snapshotsRes.status})`,
+          explanation: `Snapshot fetch failed: ${snapshotsParseError || `HTTP ${snapshotsRes.status}`}`,
           source: 'polygon',
           timestamp: new Date().toISOString(),
-          upstream: snapshotsData,
         }),
         { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    if (!snapshotsData.tickers?.length) {
+    if (!snapshotsData?.tickers?.length) {
       return new Response(
         JSON.stringify({
           criteria,
