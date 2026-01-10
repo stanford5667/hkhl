@@ -383,30 +383,67 @@ export function MarketDataDetail({ item, open, onOpenChange }: MarketDataDetailP
       const startDate = new Date();
       startDate.setDate(startDate.getDate() - (period?.days || 365));
 
-      const { data, error } = await supabase.functions.invoke('polygon-aggs', {
-        body: {
-          ticker: item.symbol,
-          startDate: startDate.toISOString().split('T')[0],
-          endDate: endDate.toISOString().split('T')[0],
-          timespan: 'day',
-        },
-      });
+      // Use different endpoints for economic/rate data vs market data
+      if (item.type === 'economic' || item.type === 'rate') {
+        // Use FRED historical data endpoint for economic indicators
+        const periodMap: Record<string, string> = {
+          '1M': '1m',
+          '3M': '3m',
+          '6M': '6m',
+          '1Y': '1y',
+          '2Y': '2y',
+          '5Y': '5y',
+        };
 
-      if (error) throw error;
+        const { data, error } = await supabase.functions.invoke('fetch-economic-history', {
+          body: {
+            seriesId: item.symbol,
+            period: periodMap[timePeriod] || '1y',
+          },
+        });
 
-      if (data?.results && data.results.length > 0) {
-        const formatted = data.results.map((bar: any) => ({
-          date: new Date(bar.t).toISOString().split('T')[0],
-          close: bar.c,
-          open: bar.o,
-          high: bar.h,
-          low: bar.l,
-          volume: bar.v,
-        }));
-        setHistoricalData(formatted);
+        if (error) throw error;
+
+        if (data?.success && data.data && data.data.length > 0) {
+          const formatted = data.data.map((point: { date: string; value: number }) => ({
+            date: point.date,
+            close: point.value,
+            open: point.value,
+            high: point.value,
+            low: point.value,
+          }));
+          setHistoricalData(formatted);
+        } else {
+          setHistoricalData([]);
+          console.log('No historical data returned for', item.symbol);
+        }
       } else {
-        setHistoricalData([]);
-        console.log('No historical data returned for', item.symbol);
+        // Use Polygon for market data (commodities, forex, etc.)
+        const { data, error } = await supabase.functions.invoke('polygon-aggs', {
+          body: {
+            ticker: item.symbol,
+            startDate: startDate.toISOString().split('T')[0],
+            endDate: endDate.toISOString().split('T')[0],
+            timespan: 'day',
+          },
+        });
+
+        if (error) throw error;
+
+        if (data?.results && data.results.length > 0) {
+          const formatted = data.results.map((bar: any) => ({
+            date: new Date(bar.t).toISOString().split('T')[0],
+            close: bar.c,
+            open: bar.o,
+            high: bar.h,
+            low: bar.l,
+            volume: bar.v,
+          }));
+          setHistoricalData(formatted);
+        } else {
+          setHistoricalData([]);
+          console.log('No historical data returned for', item.symbol);
+        }
       }
     } catch (err) {
       console.error('Error fetching historical data:', err);
