@@ -1105,6 +1105,54 @@ export default function Portfolio() {
         <Skeleton className="h-96" />
       </div>;
   }
+
+  // Empty state when user has no portfolios
+  if (!portfoliosLoading && portfolios.length === 0) {
+    return (
+      <motion.div 
+        className="p-6 min-h-[80vh] flex items-center justify-center"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+      >
+        <Card className="max-w-lg w-full bg-gradient-to-br from-card to-secondary/20 border-primary/20">
+          <CardContent className="p-8 text-center space-y-6">
+            <div className="mx-auto w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
+              <Wallet className="h-8 w-8 text-primary" />
+            </div>
+            <div className="space-y-2">
+              <h2 className="text-2xl font-bold">Build Your First Portfolio</h2>
+              <p className="text-muted-foreground">
+                Create a personalized investment portfolio using our AI-powered Portfolio Builder. 
+                Answer a few questions and get an optimized allocation tailored to your goals.
+              </p>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-3 justify-center">
+              <Button onClick={() => navigate('/backtester')} size="lg" className="gap-2">
+                <Zap className="h-5 w-5" />
+                Open Portfolio Builder
+              </Button>
+              <Button 
+                variant="outline" 
+                size="lg" 
+                onClick={() => setShowCreatePortfolioDialog(true)}
+                className="gap-2"
+              >
+                <Plus className="h-5 w-5" />
+                Create Empty Portfolio
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+        
+        <CreatePortfolioDialog 
+          open={showCreatePortfolioDialog} 
+          onOpenChange={setShowCreatePortfolioDialog} 
+          onSave={handleCreatePortfolio} 
+          isSaving={isSaving} 
+        />
+      </motion.div>
+    );
+  }
   return <motion.div className="p-6 space-y-6 animate-fade-up" variants={containerVariants} initial="hidden" animate="visible">
       <FinnhubApiBanner />
       <MarketDataPausedBanner />
