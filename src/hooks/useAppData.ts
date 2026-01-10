@@ -105,6 +105,8 @@ export function useAppCompanies(filters?: {
       return (data || []) as AppCompany[];
     },
     enabled: !!user,
+    staleTime: 5 * 60 * 1000, // 5 minutes - prevent refetching
+    gcTime: 10 * 60 * 1000, // 10 minutes - keep in cache
   });
 
   const createMutation = useMutation({
@@ -245,6 +247,8 @@ export function useAppContacts(filters?: {
       return (data || []) as AppContact[];
     },
     enabled: !!user,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes
   });
 
   const createMutation = useMutation({
@@ -376,6 +380,8 @@ export function useAppTasks(filters?: {
       return (data || []) as unknown as AppTask[];
     },
     enabled: !!user,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes
   });
 
   const createMutation = useMutation({

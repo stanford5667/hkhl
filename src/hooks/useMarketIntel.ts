@@ -1,11 +1,12 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 
-// Default query options - NO automatic fetching
-const noAutoFetchOptions = {
-  staleTime: Infinity,
+// Default query options - optimized for performance
+// Data is fetched on mount but cached for 10 minutes to prevent redundant requests
+const optimizedOptions = {
+  staleTime: 10 * 60 * 1000, // 10 minutes - data stays fresh
+  gcTime: 30 * 60 * 1000, // 30 minutes - keep in cache
   refetchOnWindowFocus: false,
-  refetchOnMount: false,
   refetchOnReconnect: false,
 };
 
@@ -18,9 +19,9 @@ export function usePortfolioAssets() {
         .select('*')
         .order('current_value', { ascending: false });
       if (error) throw error;
-      return data;
+      return data || [];
     },
-    ...noAutoFetchOptions,
+    ...optimizedOptions,
   });
 }
 
@@ -44,7 +45,7 @@ export function useAssetAllocation() {
         gain_pct: v.cost > 0 ? ((v.value - v.cost) / v.cost) * 100 : 0,
       }));
     },
-    ...noAutoFetchOptions,
+    ...optimizedOptions,
   });
 }
 
@@ -61,7 +62,7 @@ export function usePortfolioTotals() {
         avgMoic: data?.length ? data.reduce((s, a) => s + (a.moic || 0), 0) / data.length : 0,
       };
     },
-    ...noAutoFetchOptions,
+    ...optimizedOptions,
   });
 }
 
@@ -71,9 +72,9 @@ export function useCovenants() {
     queryFn: async () => {
       const { data, error } = await supabase.from('portfolio_covenants').select('*, portfolio_assets(name)').order('is_warning', { ascending: false });
       if (error) throw error;
-      return data;
+      return data || [];
     },
-    ...noAutoFetchOptions,
+    ...optimizedOptions,
   });
 }
 
@@ -83,9 +84,9 @@ export function useAlerts() {
     queryFn: async () => {
       const { data, error } = await supabase.from('alerts').select('*, portfolio_assets(name)').order('created_at', { ascending: false });
       if (error) throw error;
-      return data;
+      return data || [];
     },
-    ...noAutoFetchOptions,
+    ...optimizedOptions,
   });
 }
 
@@ -95,9 +96,9 @@ export function useEvents() {
     queryFn: async () => {
       const { data, error } = await supabase.from('events').select('*').gte('event_date', new Date().toISOString().split('T')[0]).order('event_date').limit(5);
       if (error) throw error;
-      return data;
+      return data || [];
     },
-    ...noAutoFetchOptions,
+    ...optimizedOptions,
   });
 }
 
@@ -107,9 +108,9 @@ export function useEconomicIndicators() {
     queryFn: async () => {
       const { data, error } = await supabase.from('economic_indicators').select('*');
       if (error) throw error;
-      return data;
+      return data || [];
     },
-    ...noAutoFetchOptions,
+    ...optimizedOptions,
   });
 }
 
@@ -119,9 +120,9 @@ export function usePEFunds() {
     queryFn: async () => {
       const { data, error } = await supabase.from('pe_funds').select('*').order('current_size', { ascending: false });
       if (error) throw error;
-      return data;
+      return data || [];
     },
-    ...noAutoFetchOptions,
+    ...optimizedOptions,
   });
 }
 
@@ -131,9 +132,9 @@ export function useDealPipeline() {
     queryFn: async () => {
       const { data, error } = await supabase.from('deal_pipeline').select('*');
       if (error) throw error;
-      return data;
+      return data || [];
     },
-    ...noAutoFetchOptions,
+    ...optimizedOptions,
   });
 }
 
@@ -143,8 +144,8 @@ export function useMATransactions() {
     queryFn: async () => {
       const { data, error } = await supabase.from('ma_transactions').select('*').order('transaction_date', { ascending: false });
       if (error) throw error;
-      return data;
+      return data || [];
     },
-    ...noAutoFetchOptions,
+    ...optimizedOptions,
   });
 }
