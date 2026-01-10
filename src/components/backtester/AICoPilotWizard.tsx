@@ -297,9 +297,9 @@ export function AICoPilotWizard({ onComplete, onBack }: AICoPilotWizardProps) {
                 />
               </div>
 
-              <div className="text-center p-4 rounded-xl bg-muted/50">
+              <div className="text-center p-4 rounded-xl bg-card border border-border">
                 <p className="text-sm text-muted-foreground">Starting capital</p>
-                <p className="text-3xl font-bold text-primary">{formatCurrency(capital)}</p>
+                <p className="text-3xl font-bold text-emerald-500">{formatCurrency(capital)}</p>
               </div>
             </div>
           )}
