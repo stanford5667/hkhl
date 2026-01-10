@@ -165,14 +165,6 @@ export function Sidebar() {
         href: "/news", 
         icon: Newspaper 
       },
-      // Organization group with children
-      { 
-        label: "Organization", 
-        subtitle: "Team & Workflow",
-        href: "#organization", 
-        icon: Building2,
-        children: organizationChildren,
-      },
       { 
         label: "Models", 
         subtitle: "Financial Models",
