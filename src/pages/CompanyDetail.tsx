@@ -18,9 +18,9 @@ import { AISummaryCard } from '@/components/companies/AISummaryCard';
 import { PublicEquityDetailView } from '@/components/equity/PublicEquityDetailView';
 import { AssetBacktestPanel } from '@/components/equity/AssetBacktestPanel';
 import { QuantitativeStudiesPanel } from '@/components/equity/QuantitativeStudiesPanel';
-import { CompanyResearch } from '@/components/research/CompanyResearch';
+import { SECFilingsPanel } from '@/components/research/SECFilingsPanel';
 import { AnalystSocialPanel } from '@/components/research/AnalystSocialPanel';
-import { Search, MessageCircle } from 'lucide-react';
+import { MessageCircle } from 'lucide-react';
 import { CompanySummaryCard } from '@/components/companies/CompanySummaryCard';
 import { CompanyContactsCard } from '@/components/companies/CompanyContactsCard';
 import { CompanyNotesSection } from '@/components/companies/CompanyNotesSection';
@@ -389,9 +389,9 @@ export default function CompanyDetail() {
             </TabsTrigger>
             {/* Models tab hidden */}
             {isPublicEquity && (
-              <TabsTrigger value="research" className="gap-2 text-base px-5 py-3">
-                <Search className="h-5 w-5" />
-                Research
+              <TabsTrigger value="sec" className="gap-2 text-base px-5 py-3">
+                <FileText className="h-5 w-5" />
+                SEC Filings
               </TabsTrigger>
             )}
             {isPublicEquity && (
@@ -732,10 +732,10 @@ export default function CompanyDetail() {
           </TabsContent>
         )}
 
-        {/* Research Tab - Public Equity Only */}
+        {/* SEC Filings Tab - Public Equity Only */}
         {isPublicEquity && company.ticker_symbol && (
-          <TabsContent value="research">
-            <CompanyResearch 
+          <TabsContent value="sec">
+            <SECFilingsPanel 
               ticker={company.ticker_symbol}
               companyName={company.name}
             />
