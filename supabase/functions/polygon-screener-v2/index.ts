@@ -48,17 +48,46 @@ const MARKET_CAP_RANGES: Record<string, { min: number; max: number }> = {
   nano: { min: 0, max: 50e6 }
 };
 
+// Exchange codes used by Polygon (MIC codes)
+const EXCHANGE_MAP: Record<string, string> = {
+  NYSE: 'XNYS',
+  NASDAQ: 'XNAS',
+  AMEX: 'XASE',
+};
+
 // Safe JSON parsing helper
-async function safeJsonParse(response: Response): Promise<{ data: any; error: string | null }> {
+async function safeJsonParse(
+  response: Response
+): Promise<{ data: any; error: string | null; rawText: string; contentType: string | null }> {
+  const contentType = response.headers.get('content-type');
+  const rawText = await response.text();
+
+  if (!rawText || rawText.trim() === '') {
+    return { data: null, error: 'Empty response from API', rawText: '', contentType };
+  }
+
+  // If the server clearly didn't return JSON, don't attempt JSON.parse.
+  if (contentType && !contentType.toLowerCase().includes('application/json')) {
+    const snippet = rawText.slice(0, 220);
+    return {
+      data: null,
+      error: `Non-JSON response (content-type: ${contentType}). Snippet: ${snippet}`,
+      rawText,
+      contentType,
+    };
+  }
+
   try {
-    const text = await response.text();
-    if (!text || text.trim() === '') {
-      return { data: null, error: 'Empty response from API' };
-    }
-    const data = JSON.parse(text);
-    return { data, error: null };
+    const data = JSON.parse(rawText);
+    return { data, error: null, rawText, contentType };
   } catch (e) {
-    return { data: null, error: e instanceof Error ? e.message : 'JSON parse error' };
+    const snippet = rawText.slice(0, 220);
+    return {
+      data: null,
+      error: `${e instanceof Error ? e.message : 'JSON parse error'}; Snippet: ${snippet}`,
+      rawText,
+      contentType,
+    };
   }
 }
 
@@ -70,7 +99,7 @@ serve(async (req) => {
   try {
     const { criteria }: { criteria: ScreenerCriteria } = await req.json();
     const POLYGON_API_KEY = Deno.env.get('POLYGON_API_KEY');
-    
+
     if (!POLYGON_API_KEY) {
       throw new Error('POLYGON_API_KEY not configured');
     }
@@ -90,19 +119,21 @@ serve(async (req) => {
       apiKey: POLYGON_API_KEY,
     });
 
-    // Add exchange filter
+    // Add exchange filter (UI uses NYSE/NASDAQ/AMEX; Polygon expects MIC codes)
     if (criteria.exchange?.length) {
-      params.set('exchange', criteria.exchange[0]);
+      const mic = EXCHANGE_MAP[criteria.exchange[0]];
+      if (mic) params.set('exchange', mic);
     }
 
     // Fetch tickers from Polygon
     const tickersUrl = `https://api.polygon.io/v3/reference/tickers?${params}`;
     const tickersRes = await fetch(tickersUrl);
-    
-    const { data: tickersData, error: tickersParseError } = await safeJsonParse(tickersRes);
+
+    const { data: tickersData, error: tickersParseError, rawText: tickersRaw } = await safeJsonParse(tickersRes);
 
     if (tickersParseError || !tickersRes.ok) {
-      console.error('Tickers API error:', tickersParseError, 'Status:', tickersRes.status);
+      const bodySnippet = (tickersRaw || '').slice(0, 220);
+      console.error('Tickers API error:', tickersParseError, 'Status:', tickersRes.status, 'URL:', tickersUrl, 'Body snippet:', bodySnippet);
       return new Response(
         JSON.stringify({
           criteria,
