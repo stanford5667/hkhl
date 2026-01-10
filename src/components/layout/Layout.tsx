@@ -1,4 +1,4 @@
-import { ReactNode, useState } from "react";
+import { ReactNode, useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Sidebar } from "./Sidebar";
 import { TopBar } from "./TopBar";
@@ -13,6 +13,10 @@ import { toast } from "sonner";
 import { AuthGateDialog } from "@/components/auth/AuthGateDialog";
 import { useRequireAuth } from "@/hooks/useRequireAuth";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { WelcomeModal } from "@/components/onboarding/WelcomeModal";
+import { FeatureSpotlight } from "@/components/onboarding/FeatureSpotlight";
+import { QuickStartBanner } from "@/components/onboarding/QuickStartBanner";
+import { useOnboarding } from "@/hooks/useOnboarding";
 
 interface LayoutProps {
   children: ReactNode;
@@ -24,6 +28,32 @@ export function Layout({ children }: LayoutProps) {
   const location = useLocation();
   const navigate = useNavigate();
   const isMobile = useIsMobile();
+  
+  // Onboarding state
+  const { 
+    shouldShowWelcome, 
+    shouldShowSpotlight, 
+    completeWelcome, 
+    dismissSpotlight 
+  } = useOnboarding();
+  const [welcomeOpen, setWelcomeOpen] = useState(false);
+  
+  // Check localStorage for banner dismissal
+  const [bannerDismissed, setBannerDismissed] = useState(() => {
+    return localStorage.getItem('asset-labs-banner-dismissed') === 'true';
+  });
+  
+  const handleBannerDismiss = () => {
+    setBannerDismissed(true);
+    localStorage.setItem('asset-labs-banner-dismissed', 'true');
+  };
+  
+  // Show welcome modal on first visit
+  useEffect(() => {
+    if (shouldShowWelcome) {
+      setWelcomeOpen(true);
+    }
+  }, [shouldShowWelcome]);
   
   const [createMenuOpen, setCreateMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
@@ -93,6 +123,15 @@ export function Layout({ children }: LayoutProps) {
           <TickerStream />
         </div>
         <TopBar />
+        
+        {/* Quick Start Banner for new users */}
+        {!bannerDismissed && !welcomeOpen && (
+          <QuickStartBanner 
+            show={true} 
+            onDismiss={handleBannerDismiss} 
+          />
+        )}
+        
         <main className="flex-1 overflow-auto custom-scrollbar pb-16 md:pb-0">
           {children}
         </main>
@@ -100,6 +139,19 @@ export function Layout({ children }: LayoutProps) {
       
       {/* Mobile bottom navigation */}
       {isMobile && <MobileNav />}
+      
+      {/* Welcome Modal for first-time users */}
+      <WelcomeModal 
+        open={welcomeOpen || shouldShowWelcome}
+        onOpenChange={setWelcomeOpen}
+        onComplete={completeWelcome}
+      />
+      
+      {/* Feature Spotlight */}
+      <FeatureSpotlight 
+        show={shouldShowSpotlight}
+        onDismiss={dismissSpotlight}
+      />
       
       {/* Global dialogs */}
       <UniversalCreateMenu
