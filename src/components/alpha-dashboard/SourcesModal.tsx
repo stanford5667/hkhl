@@ -1,7 +1,8 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ExternalLink, Newspaper, Globe, FileText, Clock } from "lucide-react";
+import { ExternalLink, Newspaper, Globe, FileText, Clock, Crown } from "lucide-react";
+import { PremiumBadge } from "@/components/ui/PremiumBadge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { format } from "date-fns";
 
@@ -47,9 +48,11 @@ export function SourcesModal({ open, onOpenChange, sources, thesis }: SourcesMod
         <ScrollArea className="max-h-[400px] pr-4">
           <div className="space-y-3">
             {sources.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
-                <Newspaper className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                <p>No source data available</p>
+              <div className="text-center py-8 flex flex-col items-center gap-2">
+                <Crown className="h-8 w-8 text-amber-500/50" />
+                <p className="font-medium">Premium Feature</p>
+                <p className="text-sm text-muted-foreground">Source data requires premium</p>
+                <PremiumBadge variant="inline" />
               </div>
             ) : (
               sources.map((source, index) => (

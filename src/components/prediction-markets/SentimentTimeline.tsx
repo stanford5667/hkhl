@@ -5,8 +5,9 @@ import {
   Tooltip, ResponsiveContainer, ReferenceLine, Scatter, ComposedChart, Area
 } from 'recharts';
 import { format, parseISO, startOfHour, subHours } from 'date-fns';
-import { TrendingUp } from 'lucide-react';
+import { TrendingUp, Crown } from 'lucide-react';
 import { NewsArticle } from './NewsIntelligenceDashboard';
+import { PremiumBadge } from '@/components/ui/PremiumBadge';
 
 interface SentimentTimelineProps {
   articles: NewsArticle[];
@@ -106,8 +107,11 @@ export function SentimentTimeline({ articles, onArticleSelect }: SentimentTimeli
       <CardContent>
         <div className="h-[300px]">
           {chartData.length === 0 ? (
-            <div className="flex items-center justify-center h-full text-muted-foreground">
-              No sentiment data available
+            <div className="flex flex-col items-center justify-center h-full gap-2">
+              <Crown className="h-10 w-10 text-amber-500/50" />
+              <p className="font-medium">Premium Feature</p>
+              <p className="text-sm text-muted-foreground">Sentiment data requires premium</p>
+              <PremiumBadge variant="inline" />
             </div>
           ) : (
             <ResponsiveContainer width="100%" height="100%">

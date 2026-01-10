@@ -20,8 +20,9 @@ import {
   Legend,
   ReferenceLine,
 } from 'recharts';
-import { TrendingUp, TrendingDown } from 'lucide-react';
+import { TrendingUp, TrendingDown, Crown } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { PremiumBadge } from '@/components/ui/PremiumBadge';
 
 interface PortfolioGrowthChartProps {
   dates: string[];
@@ -97,8 +98,11 @@ export function PortfolioGrowthChart({
           <CardTitle className="text-lg font-semibold">Portfolio Growth</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="h-[300px] flex items-center justify-center text-muted-foreground">
-            No data available
+          <div className="h-[300px] flex flex-col items-center justify-center gap-2">
+            <Crown className="h-10 w-10 text-amber-500/50" />
+            <p className="font-medium">Premium Feature</p>
+            <p className="text-sm text-muted-foreground">Growth charts require premium</p>
+            <PremiumBadge variant="inline" />
           </div>
         </CardContent>
       </Card>
