@@ -186,12 +186,6 @@ export function Sidebar() {
         icon: BarChart3 
       },
       // Backtester hidden
-      {
-        label: "Watchlist", 
-        subtitle: "Tracked Stocks",
-        href: "/watchlist", 
-        icon: Star 
-      },
       { 
         label: "Screener", 
         subtitle: "AI Stock Screener",
