@@ -85,7 +85,7 @@ export function ChooseYourPath({ onSelectManual, onSelectAIChat, onSelectQuestio
             onKeyDown={(e) => e.key === 'Enter' && handleSelect('manual', onSelectManual)}
             tabIndex={0}
             role="button"
-            aria-label="Manual"
+            aria-label="Manual Builder"
           >
             {/* Gradient Top Bar */}
             <div className="absolute top-0 left-0 right-0 h-1 sm:h-1.5 bg-gradient-to-r from-blue-500 via-cyan-500 to-blue-500" />
@@ -110,7 +110,7 @@ export function ChooseYourPath({ onSelectManual, onSelectAIChat, onSelectQuestio
                 </div>
                 
                 <div className="flex-1 sm:flex-none">
-                  <h2 className="text-base sm:text-xl font-bold mb-1 sm:mb-2">Manual</h2>
+                  <h2 className="text-base sm:text-xl font-bold mb-1 sm:mb-2">Manual Builder</h2>
                   <p className="text-xs sm:text-sm text-muted-foreground mb-3 sm:mb-5">
                     Enter tickers & weights directly
                   </p>
