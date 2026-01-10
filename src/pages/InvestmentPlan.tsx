@@ -408,19 +408,20 @@ export default function InvestmentPlanPage() {
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-3">
             <Brain className="h-7 w-7 text-primary" />
-            Investment Plan
+            Investor DNA Assessment
           </h1>
           <p className="text-muted-foreground mt-1">
-            Personalized investment strategies powered by AI
+            Discover your investor personality type • Like Myers-Briggs for finance
           </p>
         </div>
 
         <Button 
           onClick={() => setShowQuestionnaire(true)}
-          className="gap-2"
+          className="gap-2 shadow-lg shadow-primary/25"
+          size="lg"
         >
-          <Plus className="h-4 w-4" />
-          Create New Plan
+          <Sparkles className="h-4 w-4" />
+          Take the Assessment
         </Button>
       </div>
 
@@ -448,21 +449,58 @@ export default function InvestmentPlanPage() {
               ))}
             </div>
           ) : plans.length === 0 ? (
-            <Card className="bg-gradient-to-br from-primary/5 to-purple-500/5 border-primary/20">
-              <CardContent className="p-12 text-center">
-                <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-primary/10 flex items-center justify-center">
-                  <Sparkles className="h-8 w-8 text-primary" />
+            <Card className="bg-gradient-to-br from-primary/5 via-purple-500/5 to-pink-500/5 border-primary/20 overflow-hidden">
+              <CardContent className="p-8 sm:p-12">
+                <div className="grid md:grid-cols-2 gap-8 items-center">
+                  {/* Left side - Content */}
+                  <div className="text-center md:text-left">
+                    <Badge variant="secondary" className="mb-4 bg-primary/10 text-primary border-primary/20">
+                      16 Personality Types
+                    </Badge>
+                    <h3 className="text-2xl sm:text-3xl font-bold mb-3">
+                      Discover Your Investor DNA
+                    </h3>
+                    <p className="text-muted-foreground mb-6 leading-relaxed">
+                      Just like Myers-Briggs reveals your personality, our 5-minute assessment uncovers your unique investing style across 4 dimensions. Get personalized strategies matched to how you think, feel, and make decisions.
+                    </p>
+                    <div className="flex flex-wrap gap-2 mb-6 justify-center md:justify-start">
+                      {['Guardian vs Pioneer', 'Analytical vs Intuitive', 'Patient vs Active', 'Diversifier vs Concentrator'].map((dim) => (
+                        <Badge key={dim} variant="outline" className="text-xs bg-background/50">
+                          {dim}
+                        </Badge>
+                      ))}
+                    </div>
+                    <Button onClick={() => setShowQuestionnaire(true)} size="lg" className="gap-2 shadow-lg shadow-primary/25">
+                      <Brain className="h-5 w-5" />
+                      Take the 5-Minute Assessment
+                      <ArrowRight className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  
+                  {/* Right side - Visual */}
+                  <div className="hidden md:block relative">
+                    <div className="grid grid-cols-2 gap-3">
+                      {[
+                        { name: 'The Strategist', code: 'GAPC', color: 'from-emerald-500/20 to-blue-500/20' },
+                        { name: 'The Pioneer', code: 'PAPC', color: 'from-purple-500/20 to-pink-500/20' },
+                        { name: 'The Guardian', code: 'GIAD', color: 'from-amber-500/20 to-orange-500/20' },
+                        { name: 'The Maverick', code: 'PIAC', color: 'from-cyan-500/20 to-blue-500/20' },
+                      ].map((type) => (
+                        <div 
+                          key={type.code}
+                          className={cn(
+                            "p-4 rounded-xl border border-border/50 bg-gradient-to-br",
+                            type.color
+                          )}
+                        >
+                          <div className="font-mono text-xs text-muted-foreground mb-1">{type.code}</div>
+                          <div className="font-semibold text-sm">{type.name}</div>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="absolute inset-0 pointer-events-none bg-gradient-to-t from-background/80 via-transparent to-transparent" />
+                  </div>
                 </div>
-                <h3 className="text-xl font-semibold mb-2">Create Your First Investment Plan</h3>
-                <p className="text-muted-foreground max-w-md mx-auto mb-6">
-                  Answer a few questions about your goals, risk tolerance, and preferences. 
-                  Our AI will generate a personalized investment strategy just for you.
-                </p>
-                <Button onClick={() => setShowQuestionnaire(true)} size="lg" className="gap-2">
-                  <Brain className="h-5 w-5" />
-                  Start Questionnaire
-                  <ArrowRight className="h-4 w-4" />
-                </Button>
               </CardContent>
             </Card>
           ) : (
