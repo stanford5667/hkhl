@@ -483,9 +483,11 @@ interface EliteQuestionnaireProps {
   }) => void;
   onCancel?: () => void;
   userId?: string;
+  /** When true, skip loading previous assessment and start fresh */
+  forceNew?: boolean;
 }
 
-export function EliteQuestionnaire({ onComplete, onCancel, userId }: EliteQuestionnaireProps) {
+export function EliteQuestionnaire({ onComplete, onCancel, userId, forceNew = false }: EliteQuestionnaireProps) {
   const { toast } = useToast();
   const [showWelcome, setShowWelcome] = useState(true);
   const [currentPageIndex, setCurrentPageIndex] = useState(0);
@@ -535,6 +537,22 @@ export function EliteQuestionnaire({ onComplete, onCancel, userId }: EliteQuesti
         const { data: { session } } = await supabase.auth.getSession();
         
         if (session?.user) {
+          // If forceNew is true, skip loading previous report and go straight to questionnaire
+          if (forceNew) {
+            const { data: profile } = await supabase
+              .from('profiles')
+              .select('full_name')
+              .eq('user_id', session.user.id)
+              .single();
+            
+            setEmail(session.user.email || '');
+            setResponses(prev => ({ ...prev, name: profile?.full_name?.split(' ')[0] || '' }));
+            setShowWelcome(false);
+            setPhase('questionnaire');
+            setIsCheckingSession(false);
+            return;
+          }
+          
           // User is logged in, check for existing report
           const { data: existingPlan } = await supabase
             .from('investment_plans')
