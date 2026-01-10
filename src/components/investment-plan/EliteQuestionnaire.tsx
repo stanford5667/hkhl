@@ -2054,11 +2054,12 @@ function QuestionRenderer({ question, value, onChange }: { question: any; value:
                     {scenario.traits.map((trait: string, i: number) => (
                       <Badge 
                         key={i} 
+                        variant={isSelected ? "default" : "secondary"}
                         className={cn(
-                          "text-xs",
+                          "text-xs font-medium",
                           isSelected 
-                            ? "bg-primary/20 text-primary border-primary/30" 
-                            : "bg-muted text-muted-foreground border-border"
+                            ? "bg-primary/30 text-primary-foreground border-primary/50" 
+                            : "bg-secondary text-secondary-foreground border-secondary/50"
                         )}
                       >
                         {trait}
