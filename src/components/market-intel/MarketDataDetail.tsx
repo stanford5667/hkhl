@@ -73,7 +73,7 @@ import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 
 // Data types
-export type MarketDataType = 'commodity' | 'forex' | 'economic' | 'index';
+export type MarketDataType = 'commodity' | 'forex' | 'economic' | 'index' | 'rate' | 'fund';
 
 export interface MarketDataItem {
   symbol: string;
@@ -333,6 +333,16 @@ const AVAILABLE_STUDIES: Record<MarketDataType, { id: string; name: string; icon
     { id: 'seasonality', name: 'Seasonality', icon: Calendar, description: 'Monthly/weekly patterns' },
     { id: 'volatility_analysis', name: 'Volatility', icon: Zap, description: 'VIX correlation and vol metrics' },
     { id: 'drawdown_analysis', name: 'Drawdown Analysis', icon: TrendingDown, description: 'Drawdown metrics and recovery' },
+  ],
+  rate: [
+    { id: 'trend_analysis', name: 'Trend Analysis', icon: TrendingUp, description: 'Rate trend direction' },
+    { id: 'volatility_analysis', name: 'Volatility', icon: Zap, description: 'Rate volatility metrics' },
+    { id: 'mean_reversion', name: 'Mean Reversion', icon: ArrowLeftRight, description: 'Historical rate levels' },
+  ],
+  fund: [
+    { id: 'performance_analysis', name: 'Performance Analysis', icon: TrendingUp, description: 'IRR and MOIC analysis' },
+    { id: 'volatility_analysis', name: 'Volatility', icon: Zap, description: 'Return volatility' },
+    { id: 'drawdown_analysis', name: 'Drawdown Analysis', icon: TrendingDown, description: 'Fund drawdown metrics' },
   ],
 };
 
