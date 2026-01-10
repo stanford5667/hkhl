@@ -337,17 +337,17 @@ export default function WelcomeOnboarding({ onComplete }: OnboardingProps) {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-50 bg-background/95 backdrop-blur-sm flex items-center justify-center p-4"
+          className="fixed inset-0 z-50 bg-background/95 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4"
         >
           <motion.div
             initial={{ scale: 0.95, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.95, opacity: 0 }}
             transition={{ duration: 0.3 }}
-            className="w-full max-w-2xl bg-background border rounded-2xl shadow-2xl overflow-hidden"
+            className="w-full max-w-2xl max-h-[calc(100vh-1rem)] sm:max-h-[calc(100vh-2rem)] bg-background border rounded-2xl shadow-2xl overflow-hidden flex flex-col"
           >
             {/* Skip button */}
-            <div className="absolute top-4 right-4 z-10">
+            <div className="absolute top-2 right-2 sm:top-4 sm:right-4 z-10">
               <Button
                 variant="ghost"
                 size="sm"
@@ -359,8 +359,8 @@ export default function WelcomeOnboarding({ onComplete }: OnboardingProps) {
               </Button>
             </div>
             
-            {/* Content */}
-            <div className="p-8 pt-12">
+            {/* Content - scrollable */}
+            <div className="flex-1 overflow-y-auto p-4 sm:p-8 pt-10 sm:pt-12">
               <AnimatePresence mode="wait">
                 <motion.div
                   key={currentScreen}
@@ -368,33 +368,33 @@ export default function WelcomeOnboarding({ onComplete }: OnboardingProps) {
                   animate={{ x: 0, opacity: 1 }}
                   exit={{ x: -20, opacity: 0 }}
                   transition={{ duration: 0.3 }}
-                  className="space-y-6"
+                  className="space-y-4 sm:space-y-6"
                 >
                   {/* Title */}
-                  <h1 className="text-2xl md:text-3xl font-bold text-center">
+                  <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-center">
                     {currentScreenData.title}
                   </h1>
                   
                   {/* Screen Content */}
-                  <div className="min-h-[320px] flex flex-col justify-center">
+                  <div className="min-h-0 flex flex-col justify-center">
                     {currentScreenData.content}
                   </div>
                 </motion.div>
               </AnimatePresence>
             </div>
             
-            {/* Footer */}
-            <div className="px-8 pb-8 pt-4 border-t bg-muted/30">
-              <div className="flex items-center justify-between">
+            {/* Footer - fixed at bottom */}
+            <div className="shrink-0 px-4 sm:px-8 py-4 sm:pb-6 border-t bg-muted/30">
+              <div className="flex items-center justify-between gap-4">
                 {/* Progress Dots */}
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1.5 sm:gap-2">
                   {Array.from({ length: totalScreens }).map((_, index) => (
                     <button
                       key={index}
                       onClick={() => goToScreen(index)}
                       className={`transition-all duration-300 rounded-full ${
                         index === currentScreen
-                          ? 'w-6 h-2 bg-primary'
+                          ? 'w-5 sm:w-6 h-2 bg-primary'
                           : index < currentScreen
                           ? 'w-2 h-2 bg-primary/50 hover:bg-primary/70'
                           : 'w-2 h-2 bg-muted-foreground/30 hover:bg-muted-foreground/50'
@@ -407,7 +407,7 @@ export default function WelcomeOnboarding({ onComplete }: OnboardingProps) {
                 {/* Continue Button */}
                 <Button
                   onClick={handleNext}
-                  className="gap-2 px-6"
+                  className="gap-2 px-4 sm:px-6"
                   size="lg"
                 >
                   {currentScreenData.buttonText || 'Continue'}
