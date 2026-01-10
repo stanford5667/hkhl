@@ -272,7 +272,7 @@ export default function WelcomeOnboarding({ onComplete }: OnboardingProps) {
       content: (
         <div className="space-y-6">
           <p className="text-center text-muted-foreground max-w-md mx-auto">
-            Take 5 minutes with our Quick Advisor, or dive right in if you know what you want
+            Take 5 minutes with our AI Quick Advisor, or dive right in if you know what you want
           </p>
           
           <div className="grid gap-4 max-w-lg mx-auto">

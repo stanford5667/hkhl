@@ -1,4 +1,4 @@
-// Choose Your Path - Manual vs Quick Advisor vs AI Deep Advisor landing experience
+// Choose Your Path - Manual vs AI Quick Advisor vs AI Deep Advisor landing experience
 import { useEffect, useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -168,7 +168,7 @@ export function ChooseYourPath({ onSelectManual, onSelectAIChat, onSelectQuestio
             onKeyDown={(e) => e.key === 'Enter' && handleSelect('ai-chat', onSelectAIChat)}
             tabIndex={0}
             role="button"
-            aria-label="Quick AI Advisor"
+            aria-label="AI Quick Advisor"
           >
             {/* Gradient Top Bar */}
             <div className="absolute top-0 left-0 right-0 h-1.5 sm:h-2 bg-gradient-to-r from-emerald-500 via-teal-400 to-emerald-500" />
@@ -203,7 +203,7 @@ export function ChooseYourPath({ onSelectManual, onSelectAIChat, onSelectQuestio
                 
                 <div className="flex-1 sm:flex-none">
                   <div className="flex items-center gap-1.5 sm:gap-2 mb-1 sm:mb-2 flex-wrap">
-                    <h2 className="text-base sm:text-xl font-bold">Quick Advisor</h2>
+                    <h2 className="text-base sm:text-xl font-bold">AI Quick Advisor</h2>
                     <Badge className="bg-gradient-to-r from-emerald-500 to-teal-500 text-white border-0 text-[9px] sm:text-xs px-1.5">
                       ✨ Best
                     </Badge>
