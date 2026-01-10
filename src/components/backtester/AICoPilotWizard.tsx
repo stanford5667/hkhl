@@ -253,7 +253,7 @@ export function AICoPilotWizard({ onComplete, onBack }: AICoPilotWizardProps) {
                 </p>
               </div>
 
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-3 gap-2 sm:gap-3">
                 {PRESET_CAPITALS.map(amount => (
                   <button
                     key={amount}
@@ -262,13 +262,13 @@ export function AICoPilotWizard({ onComplete, onBack }: AICoPilotWizardProps) {
                       setCustomCapital('');
                     }}
                     className={cn(
-                      "p-4 rounded-xl border-2 transition-all text-center",
+                      "p-2 sm:p-4 rounded-xl border-2 transition-all text-center",
                       capital === amount && !customCapital
                         ? "border-primary bg-primary/5"
                         : "border-border hover:border-primary/50"
                     )}
                   >
-                    <span className="text-lg font-bold">{formatCurrency(amount)}</span>
+                    <span className="text-sm sm:text-lg font-bold whitespace-nowrap">{formatCurrency(amount)}</span>
                   </button>
                 ))}
               </div>
