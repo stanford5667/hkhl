@@ -1126,21 +1126,10 @@ export default function Portfolio() {
                 Answer a few questions and get an optimized allocation tailored to your goals.
               </p>
             </div>
-            <div className="flex flex-col sm:flex-row gap-3 justify-center">
-              <Button onClick={() => navigate('/backtester')} size="lg" className="gap-2">
-                <Zap className="h-5 w-5" />
-                Open Portfolio Builder
-              </Button>
-              <Button 
-                variant="outline" 
-                size="lg" 
-                onClick={() => setShowCreatePortfolioDialog(true)}
-                className="gap-2"
-              >
-                <Plus className="h-5 w-5" />
-                Create Empty Portfolio
-              </Button>
-            </div>
+            <Button onClick={() => navigate('/backtester')} size="lg" className="gap-2">
+              <Zap className="h-5 w-5" />
+              Open Portfolio Builder
+            </Button>
           </CardContent>
         </Card>
         
