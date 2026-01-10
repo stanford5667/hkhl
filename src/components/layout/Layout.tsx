@@ -1,4 +1,4 @@
-import { ReactNode, useState, useEffect } from "react";
+import { ReactNode, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Sidebar } from "./Sidebar";
 import { TopBar } from "./TopBar";
@@ -13,11 +13,8 @@ import { toast } from "sonner";
 import { AuthGateDialog } from "@/components/auth/AuthGateDialog";
 import { useRequireAuth } from "@/hooks/useRequireAuth";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { WelcomeModal } from "@/components/onboarding/WelcomeModal";
-
 import { QuickStartBanner } from "@/components/onboarding/QuickStartBanner";
 import { useOnboarding } from "@/hooks/useOnboarding";
-
 interface LayoutProps {
   children: ReactNode;
 }
@@ -29,33 +26,12 @@ export function Layout({ children }: LayoutProps) {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   
-  // Onboarding state
+  // Onboarding state (we only use the banner; all modals/popups are disabled)
   const { 
-    shouldShowWelcome, 
-    shouldShowSpotlight,
     shouldShowBanner,
     hasCompletedAssessment,
-    completeWelcome, 
-    dismissSpotlight,
-    dismissBanner
+    dismissBanner,
   } = useOnboarding();
-  const [welcomeOpen, setWelcomeOpen] = useState(false);
-  
-  // Show welcome modal on first visit (but not on investment-plan page)
-  useEffect(() => {
-    if (shouldShowWelcome && location.pathname !== '/investment-plan') {
-      setWelcomeOpen(true);
-    }
-  }, [shouldShowWelcome, location.pathname]);
-  
-  // Close welcome modal if user navigates to investment-plan
-  useEffect(() => {
-    if (location.pathname === '/investment-plan' && welcomeOpen) {
-      setWelcomeOpen(false);
-      completeWelcome();
-    }
-  }, [location.pathname, welcomeOpen, completeWelcome]);
-  
   const [createMenuOpen, setCreateMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
 
@@ -120,12 +96,13 @@ export function Layout({ children }: LayoutProps) {
         <TopBar />
         
         {/* Quick Start Banner for new users */}
-        <QuickStartBanner 
-          show={shouldShowBanner} 
-          onDismiss={dismissBanner}
-          hasCompletedAssessment={hasCompletedAssessment}
-        />
-        
+        {!isMobile && (
+          <QuickStartBanner
+            show={shouldShowBanner}
+            onDismiss={dismissBanner}
+            hasCompletedAssessment={hasCompletedAssessment}
+          />
+        )}
         <main className="flex-1 overflow-auto custom-scrollbar pb-16 md:pb-0">
           {children}
         </main>
@@ -133,13 +110,6 @@ export function Layout({ children }: LayoutProps) {
       
       {/* Mobile bottom navigation */}
       {isMobile && <MobileNav />}
-      
-      {/* Welcome Modal for first-time users */}
-      <WelcomeModal 
-        open={welcomeOpen}
-        onOpenChange={setWelcomeOpen}
-        onComplete={completeWelcome}
-      />
       
       
       {/* Global dialogs */}

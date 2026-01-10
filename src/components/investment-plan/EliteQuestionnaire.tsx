@@ -1328,7 +1328,7 @@ ${a.description}`).join('\n\n')}
 
   // QUESTIONNAIRE PHASE - Multi-question pages with improved styling
   return (
-    <div className="min-h-screen bg-background text-foreground overflow-x-hidden">
+    <div className="min-h-[100dvh] bg-background text-foreground overflow-x-hidden">
       {/* Ambient background */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden">
         <PulseGrid className="opacity-20" />
@@ -1375,7 +1375,7 @@ ${a.description}`).join('\n\n')}
       </header>
 
       {/* Main content - scrollable for multi-question pages */}
-      <main className="relative pt-16 sm:pt-24 pb-24 sm:pb-28 px-4 sm:px-6 min-h-screen">
+      <main className="relative pt-16 sm:pt-24 pb-28 sm:pb-32 px-4 sm:px-6 min-h-[100dvh]">
         <div className="max-w-2xl mx-auto w-full">
           <AnimatePresence mode="wait">
             <motion.div
@@ -1485,7 +1485,7 @@ ${a.description}`).join('\n\n')}
       </AnimatePresence>
 
       {/* Footer navigation */}
-      <footer className="fixed bottom-0 left-0 right-0 glass-nav safe-area-pb">
+      <footer className="fixed bottom-0 left-0 right-0 glass-nav safe-area-pb pb-[calc(env(safe-area-inset-bottom)+0.75rem)]">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 py-3 sm:py-4">
           <div className="flex items-center justify-between gap-3">
             <Button
