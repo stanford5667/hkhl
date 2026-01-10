@@ -61,6 +61,8 @@ import {
   ArrowRight,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useRequireAuth } from '@/hooks/useRequireAuth';
+import { AuthGateDialog } from '@/components/auth/AuthGateDialog';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -256,6 +258,7 @@ interface InvestmentPlan {
 
 export default function InvestmentPlanPage() {
   const { user } = useAuth();
+  const { requireAuth, showAuthDialog, closeAuthDialog } = useRequireAuth();
   const [activeTab, setActiveTab] = useState('plans');
   const [plans, setPlans] = useState<InvestmentPlan[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -263,6 +266,15 @@ export default function InvestmentPlanPage() {
   const [viewPlanOpen, setViewPlanOpen] = useState(false);
   const [deletePlanId, setDeletePlanId] = useState<string | null>(null);
   const [showQuestionnaire, setShowQuestionnaire] = useState(false);
+  const [pendingResult, setPendingResult] = useState<{
+    responses: Record<string, any>;
+    riskScore: number;
+    riskProfile: string;
+    investorType: string;
+    investorTypeName: string;
+    planContent: string;
+    userName: string;
+  } | null>(null);
 
   // Fetch user's investment plans
   useEffect(() => {
@@ -316,7 +328,7 @@ export default function InvestmentPlanPage() {
     setDeletePlanId(null);
   };
 
-  const handleQuestionnaireComplete = async (result: {
+  const saveQuestionnaireResult = async (result: {
     responses: Record<string, any>;
     riskScore: number;
     riskProfile: string;
@@ -325,16 +337,11 @@ export default function InvestmentPlanPage() {
     planContent: string;
     userName: string;
   }) => {
-    if (!user) {
-      toast.error('Please sign in to save your plan');
-      return;
-    }
-
     try {
       const { data, error } = await supabase
         .from('investment_plans')
         .insert({
-          user_id: user.id,
+          user_id: user!.id,
           name: `${result.userName || 'My'}'s Investment Plan`,
           responses: result.responses,
           risk_score: result.riskScore,
@@ -358,12 +365,42 @@ export default function InvestmentPlanPage() {
       setShowQuestionnaire(false);
       setSelectedPlan(newPlan);
       setViewPlanOpen(true);
+      setPendingResult(null);
       toast.success('Investment plan saved!');
     } catch (err) {
       console.error('Error saving plan:', err);
       toast.error('Failed to save plan');
     }
   };
+
+  const handleQuestionnaireComplete = async (result: {
+    responses: Record<string, any>;
+    riskScore: number;
+    riskProfile: string;
+    investorType: string;
+    investorTypeName: string;
+    planContent: string;
+    userName: string;
+  }) => {
+    if (!user) {
+      // Store the result and prompt for auth
+      setPendingResult(result);
+      requireAuth(() => {
+        // This callback will be executed after successful auth
+        // We need to save from the effect below
+      });
+      return;
+    }
+
+    await saveQuestionnaireResult(result);
+  };
+
+  // Save pending result after auth
+  useEffect(() => {
+    if (user && pendingResult) {
+      saveQuestionnaireResult(pendingResult);
+    }
+  }, [user, pendingResult]);
 
   const downloadPlan = (plan: InvestmentPlan) => {
     const content = `# ${plan.name}\n\nGenerated: ${format(new Date(plan.created_at), 'MMMM d, yyyy')}\n\nRisk Profile: ${plan.risk_profile} (Score: ${plan.risk_score}/100)\nInvestor Type: ${plan.investor_type_name}\n\n---\n\n${plan.plan_content}`;
@@ -825,6 +862,14 @@ export default function InvestmentPlanPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      
+      {/* Auth gate dialog for save actions */}
+      <AuthGateDialog 
+        open={showAuthDialog} 
+        onOpenChange={closeAuthDialog}
+        title="Sign in to Save Your Plan"
+        description="Create a free account to save your investment plan and access it from anywhere."
+      />
     </div>
   );
 }
