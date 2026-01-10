@@ -223,9 +223,9 @@ function MarketsTicker({
 
   if (isLoading) {
     return (
-      <div className="flex gap-4 overflow-x-auto pb-2">
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
         {[1, 2, 3, 4, 5].map((i) => (
-          <Skeleton key={i} className="h-12 w-32 flex-shrink-0" />
+          <Skeleton key={i} className="h-12 rounded-lg" />
         ))}
       </div>
     );
@@ -248,15 +248,15 @@ function MarketsTicker({
 
   return (
     <div className="bg-muted/50 rounded-lg p-3 overflow-hidden">
-      <div className="flex gap-6 overflow-x-auto scrollbar-hide">
-        {tickerItems.map((item, index) => (
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
+        {tickerItems.slice(0, 6).map((item, index) => (
           <Link 
             key={index} 
             to={`/stock/${item.symbol}`}
-            className="flex items-center gap-2 flex-shrink-0 hover:bg-muted rounded px-2 py-1 transition-colors"
+            className="flex flex-col items-center gap-1 hover:bg-muted rounded px-2 py-2 transition-colors text-center"
           >
-            <span className="font-semibold text-sm hover:text-primary">${item.symbol}</span>
-            <span className="text-sm text-muted-foreground">{formatCurrency(item.price)}</span>
+            <span className="font-semibold text-xs sm:text-sm hover:text-primary truncate w-full">${item.symbol}</span>
+            <span className="text-xs text-muted-foreground">{formatCurrency(item.price)}</span>
             <span className={`text-xs ${item.change >= 0 ? 'text-green-600' : 'text-red-600'}`}>
               {formatPercent(item.change)}
             </span>

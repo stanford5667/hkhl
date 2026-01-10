@@ -1249,17 +1249,17 @@ function ScreenerTab() {
         />
       </div>
 
-      {/* Sidebar - collapses to horizontal scroll on mobile */}
+      {/* Sidebar - wraps on mobile */}
       <div className="lg:w-72 lg:space-y-4 lg:flex-shrink-0">
-        {/* Mobile: horizontal scroll of quick screens */}
+        {/* Mobile: wrapping grid of quick screens */}
         <div className="lg:hidden">
-          <div className="flex gap-2 overflow-x-auto pb-2 -mx-4 px-4 hide-scrollbar-mobile">
+          <div className="flex flex-wrap gap-2">
             {Object.entries(QUICK_SCREENS).slice(0, 8).map(([key, screen]) => (
               <Button
                 key={key}
                 variant="outline"
                 size="sm"
-                className="whitespace-nowrap flex-shrink-0 text-xs h-8"
+                className="text-xs h-8"
                 onClick={() => {
                   setQuery(screen.name);
                   runScreen(screen.criteria, screen.name);

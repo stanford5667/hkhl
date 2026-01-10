@@ -1258,10 +1258,10 @@ export default function Portfolio() {
         </motion.div>}
 
       {/* Market Indices Row */}
-      <motion.div variants={itemVariants} className="flex gap-3 overflow-x-auto pb-1">
+      <motion.div variants={itemVariants} className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {indicesLoading ? Array.from({
         length: 4
-      }).map((_, i) => <Skeleton key={i} className="h-20 w-32 flex-shrink-0 rounded-lg" />) : indices.map(idx => {
+      }).map((_, i) => <Skeleton key={i} className="h-20 rounded-lg" />) : indices.map(idx => {
         const isUp = idx.changePercent >= 0;
         const color = isUp ? '#10b981' : '#f43f5e';
         return null; // Indices display handled elsewhere
