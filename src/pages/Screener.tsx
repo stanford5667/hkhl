@@ -1074,55 +1074,57 @@ export default function Screener() {
   };
 
   return (
-    <div className="p-6">
-      <div className="flex gap-6">
+    <div className="p-4 sm:p-6 pb-20 md:pb-6">
+      <div className="flex flex-col lg:flex-row gap-4 lg:gap-6">
         {/* Main Content */}
-        <div className="flex-1 space-y-6">
+        <div className="flex-1 space-y-4 sm:space-y-6 min-w-0">
           {/* Header */}
           <div>
-            <h1 className="text-2xl font-bold flex items-center gap-2">
-              <Sparkles className="h-6 w-6 text-primary" />
+            <h1 className="text-xl sm:text-2xl font-bold flex items-center gap-2">
+              <Sparkles className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
               AI Stock Screener
             </h1>
-            <p className="text-muted-foreground mt-1">
+            <p className="text-muted-foreground text-sm sm:text-base mt-1">
               Search 10,000+ stocks with natural language
             </p>
           </div>
 
           {/* Search Section */}
           <Card className="bg-card border-border/50">
-            <CardContent className="p-4 space-y-4">
-              <div className="flex gap-2">
+            <CardContent className="p-3 sm:p-4 space-y-3 sm:space-y-4">
+              <div className="flex flex-col sm:flex-row gap-2">
                 <div className="relative flex-1">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground" />
                   <Input
-                    placeholder="e.g., 'Large cap tech gainers' or 'Under $20 high volume'"
+                    placeholder="e.g., 'Large cap tech gainers'"
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                    className="pl-10 h-12 text-base"
+                    className="pl-9 sm:pl-10 h-10 sm:h-12 text-sm sm:text-base"
                   />
                   {query && (
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="absolute right-2 top-1/2 -translate-y-1/2 h-7 w-7"
+                      className="absolute right-2 top-1/2 -translate-y-1/2 h-6 w-6 sm:h-7 sm:w-7"
                       onClick={() => setQuery('')}
                     >
-                      <X className="h-4 w-4" />
+                      <X className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                     </Button>
                   )}
                 </div>
-                <Button onClick={handleSearch} disabled={!query.trim() || isLoading} className="h-12 px-6">
-                  {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Screen'}
-                </Button>
-                <AdvancedFiltersSheet criteria={criteria} onApply={(c) => runScreen(c, query || 'Advanced filters')} />
-                {query.trim() && results.length > 0 && (
-                  <Button variant="outline" onClick={handleSaveScreen} className="h-12">
-                    <Save className="h-4 w-4 mr-2" />
-                    Save
+                <div className="flex gap-2">
+                  <Button onClick={handleSearch} disabled={!query.trim() || isLoading} className="h-10 sm:h-12 px-4 sm:px-6 flex-1 sm:flex-initial">
+                    {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Screen'}
                   </Button>
-                )}
+                  <AdvancedFiltersSheet criteria={criteria} onApply={(c) => runScreen(c, query || 'Advanced filters')} />
+                  {query.trim() && results.length > 0 && (
+                    <Button variant="outline" onClick={handleSaveScreen} className="h-10 sm:h-12 px-3">
+                      <Save className="h-4 w-4 sm:mr-2" />
+                      <span className="hidden sm:inline">Save</span>
+                    </Button>
+                  )}
+                </div>
               </div>
 
               {/* Example Badges */}
@@ -1147,14 +1149,15 @@ export default function Screener() {
 
           {/* Explanation / Stats */}
           {(explanation || totalCount > 0) && (
-            <div className="bg-muted/50 border border-border/50 rounded-lg px-4 py-3 flex items-center justify-between">
-              <p className="text-sm">{explanation}</p>
+            <div className="bg-muted/50 border border-border/50 rounded-lg px-3 sm:px-4 py-2 sm:py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <p className="text-xs sm:text-sm">{explanation}</p>
               {results.length > 0 && (
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={() => runScreen(criteria, query)}
                   disabled={isLoading}
+                  className="self-end sm:self-auto"
                 >
                   <RefreshCw className={cn("h-4 w-4 mr-2", isLoading && "animate-spin")} />
                   Refresh
@@ -1177,17 +1180,39 @@ export default function Screener() {
         </div>
 
         {/* Sidebar */}
-        <div className="w-72 space-y-4 flex-shrink-0">
-          <AppliedFiltersCard criteria={criteria} />
-          <SavedScreensList
-            screens={savedScreens}
-            onSelect={(f, q) => runScreen(f, q)}
-            onDelete={handleDeleteScreen}
-          />
-          <QuickScreensCard onSelect={(f, name) => {
-            setQuery(name);
-            runScreen(f, name);
-          }} />
+        <div className="lg:w-72 lg:space-y-4 lg:flex-shrink-0">
+          {/* Mobile: wrapping quick screens */}
+          <div className="lg:hidden mb-4">
+            <div className="flex flex-wrap gap-2">
+              {Object.entries(QUICK_SCREENS).slice(0, 6).map(([key, screen]) => (
+                <Button
+                  key={key}
+                  variant="outline"
+                  size="sm"
+                  className="text-xs h-8"
+                  onClick={() => {
+                    setQuery(screen.name);
+                    runScreen(screen.criteria, screen.name);
+                  }}
+                >
+                  {screen.name}
+                </Button>
+              ))}
+            </div>
+          </div>
+          {/* Desktop: full sidebar */}
+          <div className="hidden lg:block space-y-4">
+            <AppliedFiltersCard criteria={criteria} />
+            <SavedScreensList
+              screens={savedScreens}
+              onSelect={(f, q) => runScreen(f, q)}
+              onDelete={handleDeleteScreen}
+            />
+            <QuickScreensCard onSelect={(f, name) => {
+              setQuery(name);
+              runScreen(f, name);
+            }} />
+          </div>
         </div>
       </div>
       

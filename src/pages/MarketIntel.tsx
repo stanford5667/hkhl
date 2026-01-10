@@ -113,22 +113,22 @@ export default function MarketIntel() {
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-        <TabsList className="flex w-full h-auto gap-1 bg-secondary/50 p-1 overflow-x-auto">
-          <TabsTrigger value="macro" className="text-xs sm:text-sm flex-1 min-w-0">
+        <TabsList className="grid w-full grid-cols-4 h-auto gap-1 bg-secondary/50 p-1">
+          <TabsTrigger value="macro" className="text-xs sm:text-sm min-w-0 px-2">
             <Globe className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-1.5 shrink-0" />
-            <span className="truncate">Macro</span>
+            <span className="truncate hidden sm:inline">Macro</span>
           </TabsTrigger>
-          <TabsTrigger value="commodities" className="text-xs sm:text-sm flex-1 min-w-0">
+          <TabsTrigger value="commodities" className="text-xs sm:text-sm min-w-0 px-2">
             <Gem className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-1.5 shrink-0" />
-            <span className="truncate">Commodities</span>
+            <span className="truncate hidden sm:inline">Commodities</span>
           </TabsTrigger>
-          <TabsTrigger value="currencies" className="text-xs sm:text-sm flex-1 min-w-0">
+          <TabsTrigger value="currencies" className="text-xs sm:text-sm min-w-0 px-2">
             <Banknote className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-1.5 shrink-0" />
-            <span className="truncate">Currencies</span>
+            <span className="truncate hidden sm:inline">Currencies</span>
           </TabsTrigger>
-          <TabsTrigger value="funds" className="text-xs sm:text-sm flex-1 min-w-0">
+          <TabsTrigger value="funds" className="text-xs sm:text-sm min-w-0 px-2">
             <Landmark className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-1.5 shrink-0" />
-            <span className="truncate">Funds</span>
+            <span className="truncate hidden sm:inline">Funds</span>
           </TabsTrigger>
         </TabsList>
 
