@@ -387,13 +387,7 @@ export default function CompanyDetail() {
               <Newspaper className="h-5 w-5" />
               {isPublicEquity ? 'News' : 'Industry Intel'}
             </TabsTrigger>
-            <TabsTrigger value="models" className="gap-2 text-base px-5 py-3">
-              <Brain className="h-5 w-5" />
-              Models
-              {models.length > 0 && (
-                <Badge variant="secondary" className="ml-1">{models.length}</Badge>
-              )}
-            </TabsTrigger>
+            {/* Models tab hidden */}
             {isPublicEquity && (
               <TabsTrigger value="research" className="gap-2 text-base px-5 py-3">
                 <Search className="h-5 w-5" />
@@ -763,47 +757,7 @@ export default function CompanyDetail() {
           <MarketIntelTab companyId={company.id} companyName={company.name} industry={company.industry} />
         </TabsContent>
 
-        {/* Models Tab */}
-        <TabsContent value="models">
-          {models.length === 0 ? (
-            <Card className="glass-card">
-              <CardContent className="flex flex-col items-center justify-center py-12">
-                <Brain className="h-12 w-12 text-muted-foreground/50 mb-3" />
-                <p className="text-muted-foreground">No models created</p>
-                <Button variant="outline" className="mt-4" onClick={() => navigate(`/models/new?company=${company.id}`)}>
-                  Create Model
-                </Button>
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {models.map((model) => (
-                <Card
-                  key={model.id}
-                  className="glass-card hover:border-primary/30 transition-colors cursor-pointer"
-                  onClick={() => navigate(`/models/view/${model.id}`)}
-                >
-                  <CardContent className="p-4">
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <h4 className="font-medium">{model.name}</h4>
-                        <p className="text-sm text-muted-foreground capitalize">
-                          {model.model_type.replace('-', ' ')}
-                        </p>
-                      </div>
-                      <Badge variant={model.status === 'complete' ? 'default' : 'outline'}>
-                        {model.status || 'Draft'}
-                      </Badge>
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-2">
-                      Created {format(new Date(model.created_at), 'MMM d, yyyy')}
-                    </p>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          )}
-        </TabsContent>
+        {/* Models Tab - Hidden */}
       </Tabs>
 
       {/* Edit Dialog */}
