@@ -153,6 +153,31 @@ function limitToPolygonPlanDates(startDate: string, endDate: string): { start: s
   };
 }
 
+// Fetch with retry and exponential backoff for rate limiting
+async function fetchWithRetry(
+  url: string,
+  maxRetries = 3,
+  baseDelay = 1000
+): Promise<{ ok: boolean; status: number; text: string }> {
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    const res = await fetch(url);
+    const text = await res.text();
+
+    // If rate limited (429), wait and retry with exponential backoff
+    if (res.status === 429 && attempt < maxRetries) {
+      const delay = baseDelay * Math.pow(2, attempt) + Math.random() * 500;
+      console.log(`[polygon-aggs] Rate limited (429), retry ${attempt + 1}/${maxRetries} after ${delay.toFixed(0)}ms`);
+      await sleep(delay);
+      continue;
+    }
+
+    return { ok: res.ok, status: res.status, text };
+  }
+
+  // Should not reach here, but safety return
+  return { ok: false, status: 429, text: "Max retries exceeded" };
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -220,18 +245,12 @@ serve(async (req) => {
     }
 
     // Fetch from Polygon API
-    // Prefer VITE_POLYGON_API_KEY if present (often the actively-maintained key),
-    // but allow POLYGON_API_KEY for backwards compatibility.
     const POLYGON_API_KEY =
       Deno.env.get("VITE_POLYGON_API_KEY") || Deno.env.get("POLYGON_API_KEY");
 
     if (!POLYGON_API_KEY) {
       return json({ ok: false, error: "Polygon API key not configured" }, 500);
     }
-
-    console.log(
-      `[polygon-aggs] Using API key from ${Deno.env.get("VITE_POLYGON_API_KEY") ? "VITE_POLYGON_API_KEY" : "POLYGON_API_KEY"}`
-    );
 
     console.log(`[polygon-aggs] Fetching ${ticker} ${timespan} ${startDate}..${endDate} from Polygon API`);
 
@@ -243,14 +262,25 @@ serve(async (req) => {
     )}/${encodeURIComponent(endDate)}?adjusted=true&sort=asc&limit=50000&apiKey=${POLYGON_API_KEY}`;
 
     while (url) {
-      const res = await fetch(url);
-      const text = await res.text();
+      const { ok, status, text } = await fetchWithRetry(url);
 
-      if (!res.ok) {
-        console.error(`[polygon-aggs] Polygon API error ${res.status}: ${text}`);
+      if (!ok) {
+        console.error(`[polygon-aggs] Polygon API error ${status}: ${text}`);
+        
+        // For 429 after retries, return a friendly message instead of error
+        if (status === 429) {
+          console.log(`[polygon-aggs] Rate limit exceeded after retries for ${ticker}`);
+          return json({
+            ok: false,
+            error: "Rate limit exceeded - please try again in a moment",
+            status: 429,
+            rateLimited: true,
+          }, 429);
+        }
+        
         return json(
-          { ok: false, error: "Polygon API error", status: res.status, details: text },
-          res.status
+          { ok: false, error: "Polygon API error", status, details: text },
+          status
         );
       }
 
@@ -266,14 +296,14 @@ serve(async (req) => {
       }
 
       url = data.next_url ? `${data.next_url}&apiKey=${POLYGON_API_KEY}` : null;
-      if (url) await sleep(200);
+      // Add longer delay between paginated requests to avoid rate limits
+      if (url) await sleep(500);
     }
 
     console.log(`[polygon-aggs] Got ${allResults.length} bars for ${ticker} from API`);
 
     // Cache the results for future use
     if (supabase && allResults.length > 0) {
-      // Don't await - let it run in background
       saveToCache(supabase, ticker, allResults).catch((err) => {
         console.error("[polygon-aggs] Background cache save failed:", err);
       });
