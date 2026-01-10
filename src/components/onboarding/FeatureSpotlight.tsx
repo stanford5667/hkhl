@@ -2,7 +2,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { X, ChevronRight, Brain, Sparkles } from 'lucide-react';
-import { cn } from '@/lib/utils';
 import { useNavigate, useLocation } from 'react-router-dom';
 
 interface FeatureSpotlightProps {
@@ -27,7 +26,7 @@ export function FeatureSpotlight({ show, onDismiss, hasCompletedAssessment = fal
         initial={{ opacity: 0, y: 20, scale: 0.95 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         exit={{ opacity: 0, y: 20, scale: 0.95 }}
-        className="fixed bottom-20 right-4 md:bottom-6 md:right-6 z-50 max-w-sm"
+        className="fixed bottom-20 right-2 left-2 sm:left-auto sm:right-6 sm:bottom-6 z-50 sm:max-w-xs"
       >
         <div className="relative bg-background/95 backdrop-blur-xl border border-border rounded-xl shadow-2xl overflow-hidden">
           {/* Gradient accent */}
@@ -43,34 +42,34 @@ export function FeatureSpotlight({ show, onDismiss, hasCompletedAssessment = fal
             <X className="h-3 w-3" />
           </Button>
 
-          {/* Content */}
-          <div className="relative p-4">
-            <div className="flex items-start gap-3">
-              <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-primary to-purple-600 flex items-center justify-center shrink-0">
-                <Brain className="w-5 h-5 text-white" />
+          {/* Content - more compact on mobile */}
+          <div className="relative p-3 sm:p-4">
+            <div className="flex items-start gap-2 sm:gap-3">
+              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-gradient-to-br from-primary to-purple-600 flex items-center justify-center shrink-0">
+                <Brain className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
               </div>
               
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-1">
-                  <h3 className="font-semibold text-sm">Complete Your Setup</h3>
-                  <Badge className="bg-amber-500/10 text-amber-500 border-0 text-[10px] px-1.5">
-                    <Sparkles className="w-2.5 h-2.5 mr-0.5" />
-                    5 min
+              <div className="flex-1 min-w-0 pr-4">
+                <div className="flex items-center gap-1.5 sm:gap-2 mb-0.5 sm:mb-1">
+                  <h3 className="font-semibold text-xs sm:text-sm">Complete Setup</h3>
+                  <Badge className="bg-amber-500/10 text-amber-500 border-0 text-[9px] sm:text-[10px] px-1 sm:px-1.5">
+                    <Sparkles className="w-2 h-2 sm:w-2.5 sm:h-2.5 mr-0.5" />
+                    5m
                   </Badge>
                 </div>
-                <p className="text-xs text-muted-foreground mb-3">
-                  Take the Investor DNA assessment to unlock personalized recommendations
+                <p className="text-[10px] sm:text-xs text-muted-foreground mb-2 sm:mb-3 line-clamp-2">
+                  Take the Investor DNA quiz for personalized tips
                 </p>
                 
                 <Button 
                   size="sm" 
-                  className="w-full gap-1.5 h-8"
+                  className="w-full gap-1 h-7 sm:h-8 text-xs"
                   onClick={() => {
                     navigate('/investment-plan');
                     onDismiss();
                   }}
                 >
-                  Start Assessment
+                  Start
                   <ChevronRight className="w-3 h-3" />
                 </Button>
               </div>
