@@ -142,11 +142,11 @@ export default function MarketIntel() {
         </TabsContent>
 
         <TabsContent value="macro" className="mt-6">
-          <LiveMacroContent />
+          <LiveMacroContent onItemClick={handleItemClick} />
         </TabsContent>
 
         <TabsContent value="funds" className="mt-6">
-          <FundsContent />
+          <FundsContent onItemClick={handleItemClick} />
         </TabsContent>
 
       </Tabs>
@@ -934,10 +934,22 @@ function StrategiesContent() {
   );
 }
 
-function FundsContent() {
+function FundsContent({ onItemClick }: { onItemClick: (item: MarketDataItem) => void }) {
   const { data: funds } = usePEFunds();
   const closed = funds?.filter((f: any) => f.status === 'closed') || [];
   const raising = funds?.filter((f: any) => f.status === 'fundraising') || [];
+
+  const handleFundClick = (fund: any) => {
+    onItemClick({
+      symbol: fund.id,
+      name: fund.fund_name,
+      price: fund.current_size || 0,
+      change: fund.prior_fund_irr || 0,
+      changePercent: fund.prior_fund_moic ? (fund.prior_fund_moic - 1) * 100 : 0,
+      type: 'fund',
+      category: fund.fund_type,
+    });
+  };
 
   return (
     <div className="space-y-6">
@@ -946,7 +958,11 @@ function FundsContent() {
           <h3 className="text-lg font-medium mb-4">Recently Closed Funds</h3>
           <div className="space-y-3">
             {closed.map((f: any) => (
-              <div key={f.id} className="flex items-center justify-between p-3 bg-background/50 rounded-lg">
+              <div 
+                key={f.id} 
+                className="flex items-center justify-between p-3 bg-background/50 rounded-lg cursor-pointer hover:bg-primary/5 transition-colors"
+                onClick={() => handleFundClick(f)}
+              >
                 <div><div className="font-medium">{f.fund_name}</div><div className="text-xs text-muted-foreground">{f.manager_name} • {f.fund_type}</div></div>
                 <div className="flex gap-6 items-center">
                   <div className="text-right"><div>${(f.current_size / 1000).toFixed(1)}B</div><div className="text-xs text-muted-foreground">Size</div></div>
@@ -964,7 +980,11 @@ function FundsContent() {
             {raising.map((f: any) => {
               const pct = (f.current_size / f.target_size) * 100;
               return (
-                <div key={f.id} className="py-2 border-b border-border last:border-0">
+                <div 
+                  key={f.id} 
+                  className="py-2 border-b border-border last:border-0 cursor-pointer hover:bg-primary/5 rounded px-2 -mx-2 transition-colors"
+                  onClick={() => handleFundClick(f)}
+                >
                   <div className="flex justify-between mb-1"><span className="text-sm">{f.fund_name}</span><span className="text-xs text-muted-foreground">${f.current_size / 1000}B / ${f.target_size / 1000}B</span></div>
                   <div className="w-full bg-muted rounded-full h-1.5"><div className="bg-primary h-1.5 rounded-full" style={{ width: `${pct}%` }} /></div>
                 </div>
@@ -985,7 +1005,19 @@ function FundsContent() {
             <div key={c.cat}>
               <h4 className="text-sm text-muted-foreground mb-3">{c.cat}</h4>
               {c.funds.map((f) => (
-                <div key={f.n} className="flex justify-between py-2 border-b border-border last:border-0">
+                <div 
+                  key={f.n} 
+                  className="flex justify-between py-2 border-b border-border last:border-0 cursor-pointer hover:bg-primary/5 rounded px-2 -mx-2 transition-colors"
+                  onClick={() => onItemClick({
+                    symbol: f.n.replace(/\s/g, '-'),
+                    name: f.n,
+                    price: f.irr,
+                    change: f.irr,
+                    changePercent: (f.m - 1) * 100,
+                    type: 'fund',
+                    category: c.cat,
+                  })}
+                >
                   <div className="flex gap-2"><span>{f.r}</span><span className="text-sm">{f.n}</span></div>
                   <span className="text-emerald-400">{f.irr}% / {f.m}x</span>
                 </div>

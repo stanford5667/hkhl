@@ -38,7 +38,30 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 
-export function LiveMacroContent() {
+interface MacroDataItem {
+  symbol: string;
+  name: string;
+  price: number;
+  change: number;
+  changePercent: number;
+  type: 'economic' | 'index' | 'rate' | 'commodity' | 'forex' | 'fund';
+  category?: string;
+  description?: string;
+  high?: number;
+  low?: number;
+  open?: number;
+  prevClose?: number;
+  timestamp?: string;
+  unit?: string;
+  base?: string;
+  quote?: string;
+}
+
+interface LiveMacroContentProps {
+  onItemClick?: (item: MacroDataItem) => void;
+}
+
+export function LiveMacroContent({ onItemClick }: LiveMacroContentProps) {
   const { 
     byCategory, 
     useMockData, 
@@ -170,6 +193,7 @@ export function LiveMacroContent() {
           isLoading={isLoading}
           insight={yieldCurve?.inverted ? "⚠️ Yield curve inverted - recession signal" : "💡 Consider refinancing floating debt"}
           insightType={yieldCurve?.inverted ? 'warning' : 'info'}
+          onItemClick={onItemClick}
         />
 
         {/* Economic */}
@@ -178,6 +202,7 @@ export function LiveMacroContent() {
           icon={<BarChart3 className="h-5 w-5 text-emerald-400" />}
           indicators={economic}
           isLoading={isLoading}
+          onItemClick={onItemClick}
         />
 
         {/* Markets */}
@@ -186,6 +211,7 @@ export function LiveMacroContent() {
           icon={<LineChart className="h-5 w-5 text-purple-400" />}
           indicators={markets}
           isLoading={isLoading}
+          onItemClick={onItemClick}
         />
       </div>
 
@@ -266,9 +292,19 @@ export function LiveMacroContent() {
                   <div 
                     key={s.name} 
                     className={cn(
-                      "p-2 rounded-lg text-center",
-                      s.ytd >= 0 ? "bg-emerald-500/10" : "bg-rose-500/10"
+                      "p-2 rounded-lg text-center cursor-pointer transition-all hover:ring-1 hover:ring-primary/50",
+                      s.ytd >= 0 ? "bg-emerald-500/10 hover:bg-emerald-500/20" : "bg-rose-500/10 hover:bg-rose-500/20"
                     )}
+                    onClick={() => onItemClick?.({
+                      symbol: s.symbol || s.name.toUpperCase().replace(/\s/g, ''),
+                      name: s.name,
+                      price: s.ytd,
+                      change: s.ytd,
+                      changePercent: s.ytd,
+                      type: 'index',
+                      category: 'sector',
+                      description: `${s.name} sector YTD performance`
+                    })}
                   >
                     <div className="text-xs text-muted-foreground truncate">{s.name}</div>
                     <div className={cn(
@@ -379,9 +415,25 @@ interface IndicatorCardProps {
   isLoading: boolean;
   insight?: string;
   insightType?: 'info' | 'warning';
+  onItemClick?: (item: MacroDataItem) => void;
 }
 
-function IndicatorCard({ title, icon, indicators, isLoading, insight, insightType = 'info' }: IndicatorCardProps) {
+function IndicatorCard({ title, icon, indicators, isLoading, insight, insightType = 'info', onItemClick }: IndicatorCardProps) {
+  const handleClick = (indicator: EconomicIndicator) => {
+    if (onItemClick) {
+      onItemClick({
+        symbol: indicator.id,
+        name: indicator.indicator_name,
+        price: parseFloat(String(indicator.current_value)) || 0,
+        change: indicator.change_value || 0,
+        changePercent: 0,
+        type: indicator.category === 'rates' ? 'rate' : 'economic',
+        category: indicator.category,
+        description: indicator.description,
+      });
+    }
+  };
+
   return (
     <Card className="bg-secondary/50 border-border">
       <CardContent className="p-6">
@@ -405,7 +457,10 @@ function IndicatorCard({ title, icon, indicators, isLoading, insight, insightTyp
                 <TooltipProvider key={indicator.id}>
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <div className="flex justify-between items-center py-2 border-b border-border last:border-0 hover:bg-card/50 rounded px-2 -mx-2 cursor-help">
+                      <div 
+                        className="flex justify-between items-center py-2 border-b border-border last:border-0 hover:bg-primary/5 rounded px-2 -mx-2 cursor-pointer transition-colors"
+                        onClick={() => handleClick(indicator)}
+                      >
                         <span className="text-muted-foreground text-sm">{indicator.indicator_name}</span>
                         <div className="flex items-center gap-2">
                           <span className="font-medium font-mono">{indicator.current_value}</span>
