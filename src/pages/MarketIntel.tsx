@@ -59,26 +59,26 @@ export default function MarketIntel() {
   };
 
   return (
-    <div className="p-6 space-y-6 animate-fade-up">
+    <div className="p-4 sm:p-6 space-y-4 sm:space-y-6 animate-fade-up">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
         <div>
-          <h1 className="text-2xl font-bold flex items-center gap-3">
-            <BarChart3 className="h-7 w-7 text-primary" />
+          <h1 className="text-xl sm:text-2xl font-bold flex items-center gap-2 sm:gap-3">
+            <BarChart3 className="h-5 w-5 sm:h-7 sm:w-7 text-primary" />
             Market Intelligence
           </h1>
-          <p className="text-muted-foreground mt-1">
+          <p className="text-muted-foreground text-sm sm:text-base mt-1">
             Portfolio Command Center & PE Industry Research
           </p>
         </div>
 
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm">
-            <RefreshCw className="h-4 w-4 mr-2" />
+          <Button variant="outline" size="sm" className="h-8 text-xs sm:text-sm">
+            <RefreshCw className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
             Refresh
           </Button>
-          <Button variant="outline" size="sm" className="relative">
-            <Bell className="h-4 w-4" />
+          <Button variant="outline" size="sm" className="relative h-8 w-8 p-0">
+            <Bell className="h-3 w-3 sm:h-4 sm:w-4" />
             {unreadAlerts > 0 && (
               <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-destructive text-[10px] font-medium flex items-center justify-center text-destructive-foreground">
                 {unreadAlerts}
@@ -113,22 +113,22 @@ export default function MarketIntel() {
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-        <TabsList className="flex flex-wrap h-auto gap-1 bg-secondary/50 p-1">
-          <TabsTrigger value="macro" className="text-sm">
-            <Globe className="h-4 w-4 mr-1.5" />
-            Macro
+        <TabsList className="flex w-full h-auto gap-1 bg-secondary/50 p-1 overflow-x-auto">
+          <TabsTrigger value="macro" className="text-xs sm:text-sm flex-1 min-w-0">
+            <Globe className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-1.5 shrink-0" />
+            <span className="truncate">Macro</span>
           </TabsTrigger>
-          <TabsTrigger value="commodities" className="text-sm">
-            <Gem className="h-4 w-4 mr-1.5" />
-            Commodities
+          <TabsTrigger value="commodities" className="text-xs sm:text-sm flex-1 min-w-0">
+            <Gem className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-1.5 shrink-0" />
+            <span className="truncate">Commodities</span>
           </TabsTrigger>
-          <TabsTrigger value="currencies" className="text-sm">
-            <Banknote className="h-4 w-4 mr-1.5" />
-            Currencies
+          <TabsTrigger value="currencies" className="text-xs sm:text-sm flex-1 min-w-0">
+            <Banknote className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-1.5 shrink-0" />
+            <span className="truncate">Currencies</span>
           </TabsTrigger>
-          <TabsTrigger value="funds" className="text-sm">
-            <Landmark className="h-4 w-4 mr-1.5" />
-            Funds
+          <TabsTrigger value="funds" className="text-xs sm:text-sm flex-1 min-w-0">
+            <Landmark className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-1.5 shrink-0" />
+            <span className="truncate">Funds</span>
           </TabsTrigger>
         </TabsList>
 

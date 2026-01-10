@@ -82,20 +82,20 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="p-6 space-y-6 animate-fade-in">
+    <div className="p-4 sm:p-6 space-y-4 sm:space-y-6 animate-fade-in">
       {/* Header with Streak */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-0">
         <div>
-          <div className="text-sm text-muted-foreground">{currentDate}</div>
+          <div className="text-xs sm:text-sm text-muted-foreground">{currentDate}</div>
           {currentOrganization && (
             <div className="text-xs text-muted-foreground/70 mt-0.5">
               {currentOrganization.name}
             </div>
           )}
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3">
           {stats.overdueTasks > 0 && (
-            <Badge variant="destructive" className="flex items-center gap-1">
+            <Badge variant="destructive" className="flex items-center gap-1 text-xs">
               <AlertTriangle className="h-3 w-3" />
               {stats.overdueTasks} overdue
             </Badge>
@@ -114,7 +114,7 @@ export default function Dashboard() {
 
       {/* Portfolio Quick Stats */}
       <motion.div 
-        className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 stagger-children"
+        className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-4 stagger-children"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4 }}
@@ -163,11 +163,11 @@ export default function Dashboard() {
       </motion.div>
 
       {/* Main Content Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
         {/* Left Column - Primary Content */}
-        <div className="lg:col-span-2 space-y-6">
+        <div className="lg:col-span-2 space-y-4 sm:space-y-6">
           {/* Asset Allocation + Top Holdings Row */}
-          <div className="grid md:grid-cols-2 gap-6">
+          <div className="grid sm:grid-cols-2 gap-4 sm:gap-6">
             {/* Asset Allocation */}
             <Card variant="surface" className="card-glow">
               <CardContent className="p-6">
@@ -245,7 +245,7 @@ export default function Dashboard() {
         </div>
 
         {/* Right Column - Secondary */}
-        <div className="space-y-6">
+        <div className="space-y-4 sm:space-y-6">
           {/* Alerts Card */}
           <Card variant="surface" className="card-glow">
             <CardContent className="p-6">

@@ -127,16 +127,16 @@ export function ComprehensiveInvestmentResults({
     <div className="min-h-screen bg-gradient-to-b from-background via-background to-muted/20">
       {/* Header */}
       <header className="sticky top-0 z-40 bg-background/80 backdrop-blur-xl border-b border-border">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-purple-600 flex items-center justify-center shadow-lg shadow-primary/25">
-                <Sparkles className="w-5 h-5 text-white" />
+        <div className="max-w-5xl mx-auto px-3 sm:px-6 py-3 sm:py-4">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-br from-primary to-purple-600 flex items-center justify-center shadow-lg shadow-primary/25 shrink-0">
+                <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
               </div>
-              <div>
-                <h1 className="font-bold text-lg">{userName}'s Investor Profile</h1>
-                <span className="text-muted-foreground text-sm">
-                  Generated {new Date().toLocaleDateString()}
+              <div className="min-w-0">
+                <h1 className="font-bold text-sm sm:text-lg truncate">{userName}'s Profile</h1>
+                <span className="text-muted-foreground text-xs sm:text-sm">
+                  {new Date().toLocaleDateString()}
                 </span>
               </div>
             </div>
@@ -168,7 +168,7 @@ export function ComprehensiveInvestmentResults({
         </div>
       </header>
 
-      <main className="max-w-5xl mx-auto px-4 sm:px-6 py-8 space-y-8">
+      <main className="max-w-5xl mx-auto px-3 sm:px-6 py-6 sm:py-8 space-y-6 sm:space-y-8 pb-20 sm:pb-8">
         
         {/* Hero Section - Investor Type Card */}
         <motion.div
@@ -184,22 +184,22 @@ export function ComprehensiveInvestmentResults({
               </Badge>
               
               {/* Type Name */}
-              <h2 className="text-4xl sm:text-5xl font-bold mb-2 bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text">
+              <h2 className="text-2xl sm:text-4xl md:text-5xl font-bold mb-2 bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text">
                 {investorType.name}
               </h2>
               
               {/* Type Code */}
-              <div className="text-xl font-mono text-muted-foreground mb-4">
+              <div className="text-base sm:text-xl font-mono text-muted-foreground mb-3 sm:mb-4">
                 {typeCode}
               </div>
               
               {/* Tagline */}
-              <p className="text-lg text-muted-foreground max-w-2xl mb-6">
+              <p className="text-sm sm:text-lg text-muted-foreground max-w-2xl mb-4 sm:mb-6">
                 {investorType.tagline}
               </p>
               
               {/* Trait Badges */}
-              <div className="flex flex-wrap gap-2 mb-8">
+              <div className="flex flex-wrap gap-1.5 sm:gap-2 mb-6 sm:mb-8">
                 {traits.map((trait, i) => (
                   <motion.div
                     key={trait}
@@ -209,7 +209,7 @@ export function ComprehensiveInvestmentResults({
                   >
                     <Badge 
                       variant="outline" 
-                      className="bg-background/50 border-border/50 text-foreground px-3 py-1"
+                      className="bg-background/50 border-border/50 text-foreground px-2 sm:px-3 py-0.5 sm:py-1 text-xs"
                     >
                       {trait}
                     </Badge>

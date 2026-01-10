@@ -2,6 +2,7 @@ import { ReactNode, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Sidebar } from "./Sidebar";
 import { TopBar } from "./TopBar";
+import { MobileNav } from "./MobileNav";
 import { TickerStream } from "@/components/ui/TickerStream";
 import { FloatingHelpWidget } from "@/components/support/FloatingHelpWidget";
 import { useAuth } from "@/contexts/AuthContext";
@@ -11,6 +12,7 @@ import { EnhancedGlobalSearch, useSearchShortcut } from "@/components/shared/Enh
 import { toast } from "sonner";
 import { AuthGateDialog } from "@/components/auth/AuthGateDialog";
 import { useRequireAuth } from "@/hooks/useRequireAuth";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface LayoutProps {
   children: ReactNode;
@@ -21,6 +23,7 @@ export function Layout({ children }: LayoutProps) {
   const { requireAuth, showAuthDialog, closeAuthDialog } = useRequireAuth();
   const location = useLocation();
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
   
   const [createMenuOpen, setCreateMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
@@ -79,14 +82,24 @@ export function Layout({ children }: LayoutProps) {
 
   return (
     <div className="flex min-h-screen w-full bg-background">
-      <Sidebar />
+      {/* Desktop Sidebar - hidden on mobile */}
+      <div className="hidden md:block">
+        <Sidebar />
+      </div>
+      
       <div className="flex flex-col flex-1 min-w-0">
-        <TickerStream />
+        {/* Ticker stream - hidden on mobile */}
+        <div className="hidden sm:block">
+          <TickerStream />
+        </div>
         <TopBar />
-        <main className="flex-1 overflow-auto custom-scrollbar">
+        <main className="flex-1 overflow-auto custom-scrollbar pb-16 md:pb-0">
           {children}
         </main>
       </div>
+      
+      {/* Mobile bottom navigation */}
+      {isMobile && <MobileNav />}
       
       {/* Global dialogs */}
       <UniversalCreateMenu
