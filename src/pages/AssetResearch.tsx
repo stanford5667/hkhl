@@ -1033,6 +1033,7 @@ function ScreenerTab() {
     navigate(`/stock/${stock.ticker}`);
   };
 
+  // Load saved screens from localStorage
   useEffect(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
@@ -1042,6 +1043,15 @@ function ScreenerTab() {
     } catch {
       // Ignore
     }
+  }, []);
+
+  // Auto-load "Most Active" screen on mount for better UX
+  useEffect(() => {
+    if (results.length === 0 && !isLoading) {
+      const mostActiveScreen = QUICK_SCREENS.most_active;
+      runScreen(mostActiveScreen.criteria, 'Most Active');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const runScreen = async (screenCriteria: ScreenerCriteria, screenQuery?: string) => {
