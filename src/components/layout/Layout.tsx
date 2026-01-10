@@ -41,12 +41,20 @@ export function Layout({ children }: LayoutProps) {
   } = useOnboarding();
   const [welcomeOpen, setWelcomeOpen] = useState(false);
   
-  // Show welcome modal on first visit
+  // Show welcome modal on first visit (but not on investment-plan page)
   useEffect(() => {
-    if (shouldShowWelcome) {
+    if (shouldShowWelcome && location.pathname !== '/investment-plan') {
       setWelcomeOpen(true);
     }
-  }, [shouldShowWelcome]);
+  }, [shouldShowWelcome, location.pathname]);
+  
+  // Close welcome modal if user navigates to investment-plan
+  useEffect(() => {
+    if (location.pathname === '/investment-plan' && welcomeOpen) {
+      setWelcomeOpen(false);
+      completeWelcome();
+    }
+  }, [location.pathname, welcomeOpen, completeWelcome]);
   
   const [createMenuOpen, setCreateMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
