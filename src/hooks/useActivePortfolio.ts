@@ -45,10 +45,11 @@ export function useActivePortfolio(): UseActivePortfolioReturn {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   
-  // Local state for active portfolio ID
+  // Local state for active portfolio ID - scoped to user
   const [activePortfolioId, setActivePortfolioIdState] = useState<string | null>(() => {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem(ACTIVE_PORTFOLIO_KEY);
+    if (typeof window !== 'undefined' && user?.id) {
+      // Use user-scoped key to prevent data leakage between users
+      return localStorage.getItem(`${ACTIVE_PORTFOLIO_KEY}-${user.id}`);
     }
     return null;
   });
@@ -72,15 +73,28 @@ export function useActivePortfolio(): UseActivePortfolioReturn {
   // Get active portfolio from list
   const activePortfolio = portfolios.find(p => p.id === activePortfolioId) || null;
 
-  // Set active portfolio and persist to localStorage
+  // Set active portfolio and persist to localStorage (user-scoped)
   const setActivePortfolio = useCallback((id: string | null) => {
     setActivePortfolioIdState(id);
-    if (id) {
-      localStorage.setItem(ACTIVE_PORTFOLIO_KEY, id);
-    } else {
-      localStorage.removeItem(ACTIVE_PORTFOLIO_KEY);
+    if (user?.id) {
+      if (id) {
+        localStorage.setItem(`${ACTIVE_PORTFOLIO_KEY}-${user.id}`, id);
+      } else {
+        localStorage.removeItem(`${ACTIVE_PORTFOLIO_KEY}-${user.id}`);
+      }
     }
-  }, []);
+  }, [user?.id]);
+
+  // Reset active portfolio when user changes
+  useEffect(() => {
+    if (user?.id) {
+      const storedId = localStorage.getItem(`${ACTIVE_PORTFOLIO_KEY}-${user.id}`);
+      setActivePortfolioIdState(storedId);
+    } else {
+      // No user, clear the active portfolio
+      setActivePortfolioIdState(null);
+    }
+  }, [user?.id]);
 
   // Clear invalid active portfolio ID when portfolios load
   useEffect(() => {
