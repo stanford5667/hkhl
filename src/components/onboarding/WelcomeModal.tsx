@@ -60,9 +60,9 @@ export function WelcomeModal({ open, onOpenChange, onComplete }: WelcomeModalPro
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg p-0 overflow-hidden bg-background border-border gap-0">
+      <DialogContent className="sm:max-w-md p-0 overflow-hidden bg-background border-border gap-0">
         {/* Progress indicator */}
-        <div className="px-6 pt-4">
+        <div className="px-4 sm:px-6 pt-4">
           <Progress value={((step + 1) / STEPS.length) * 100} className="h-1" />
         </div>
 
@@ -73,35 +73,35 @@ export function WelcomeModal({ open, onOpenChange, onComplete }: WelcomeModalPro
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -20 }}
-              className="p-6"
+              className="p-4 sm:p-6"
             >
               {/* Hero */}
-              <div className="text-center mb-6">
-                <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-primary to-purple-600 flex items-center justify-center shadow-lg shadow-primary/25">
-                  <Sparkles className="w-8 h-8 text-white" />
+              <div className="text-center mb-4 sm:mb-6">
+                <div className="w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-3 sm:mb-4 rounded-xl sm:rounded-2xl bg-gradient-to-br from-primary to-purple-600 flex items-center justify-center shadow-lg shadow-primary/25">
+                  <Sparkles className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
                 </div>
-                <h2 className="text-2xl font-bold mb-2">Welcome to Asset Labs</h2>
-                <p className="text-muted-foreground">
-                  Build smarter portfolios with AI-powered analytics
+                <h2 className="text-xl sm:text-2xl font-bold mb-1 sm:mb-2">Welcome to Asset Labs</h2>
+                <p className="text-sm text-muted-foreground">
+                  Build smarter portfolios with AI
                 </p>
               </div>
 
-              {/* Value props */}
-              <div className="space-y-3 mb-6">
+              {/* Value props - compact on mobile */}
+              <div className="space-y-2 sm:space-y-3 mb-4 sm:mb-6">
                 {[
-                  { icon: Brain, text: 'Discover your unique investor personality', color: 'text-purple-500' },
-                  { icon: Target, text: 'Get personalized portfolio recommendations', color: 'text-emerald-500' },
-                  { icon: Zap, text: 'Analyze assets with AI in seconds', color: 'text-amber-500' },
+                  { icon: Brain, text: 'Discover your investor personality', color: 'text-purple-500' },
+                  { icon: Target, text: 'Get personalized recommendations', color: 'text-emerald-500' },
+                  { icon: Zap, text: 'Analyze assets with AI', color: 'text-amber-500' },
                 ].map((item, i) => (
                   <motion.div
                     key={i}
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.1 * i }}
-                    className="flex items-center gap-3 p-3 rounded-lg bg-secondary/30"
+                    className="flex items-center gap-2 sm:gap-3 p-2 sm:p-3 rounded-lg bg-secondary/30"
                   >
-                    <item.icon className={cn("w-5 h-5", item.color)} />
-                    <span className="text-sm">{item.text}</span>
+                    <item.icon className={cn("w-4 h-4 sm:w-5 sm:h-5 shrink-0", item.color)} />
+                    <span className="text-xs sm:text-sm">{item.text}</span>
                   </motion.div>
                 ))}
               </div>
@@ -115,7 +115,7 @@ export function WelcomeModal({ open, onOpenChange, onComplete }: WelcomeModalPro
                 variant="ghost"
                 size="sm"
                 onClick={handleSkip}
-                className="w-full mt-2 text-muted-foreground"
+                className="w-full mt-2 text-muted-foreground text-xs sm:text-sm"
               >
                 I'll explore on my own
               </Button>
@@ -128,22 +128,22 @@ export function WelcomeModal({ open, onOpenChange, onComplete }: WelcomeModalPro
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -20 }}
-              className="p-6"
+              className="p-4 sm:p-6"
             >
               {/* Golden moment CTA */}
-              <div className="text-center mb-6">
-                <Badge className="mb-3 bg-primary/10 text-primary border-primary/20">
+              <div className="text-center mb-4 sm:mb-6">
+                <Badge className="mb-2 sm:mb-3 bg-primary/10 text-primary border-primary/20 text-xs">
                   <Clock className="w-3 h-3 mr-1" />
-                  Takes only 5 minutes
+                  5 min
                 </Badge>
-                <h2 className="text-2xl font-bold mb-2">Discover Your Investor DNA</h2>
-                <p className="text-muted-foreground text-sm">
-                  Our quick assessment reveals your unique investing style and unlocks personalized recommendations
+                <h2 className="text-xl sm:text-2xl font-bold mb-1 sm:mb-2">Discover Your Investor DNA</h2>
+                <p className="text-muted-foreground text-xs sm:text-sm px-2">
+                  Quick assessment reveals your investing style & unlocks personalized tips
                 </p>
               </div>
 
-              {/* Preview cards */}
-              <div className="grid grid-cols-2 gap-2 mb-6">
+              {/* Preview cards - 2x2 grid, smaller on mobile */}
+              <div className="grid grid-cols-2 gap-1.5 sm:gap-2 mb-4 sm:mb-6">
                 {[
                   { code: 'GAPC', name: 'Strategist', color: 'from-emerald-500/20 to-blue-500/20' },
                   { code: 'PAPC', name: 'Pioneer', color: 'from-purple-500/20 to-pink-500/20' },
@@ -153,27 +153,27 @@ export function WelcomeModal({ open, onOpenChange, onComplete }: WelcomeModalPro
                   <div
                     key={type.code}
                     className={cn(
-                      "p-3 rounded-lg border border-border/50 bg-gradient-to-br text-center",
+                      "p-2 sm:p-3 rounded-lg border border-border/50 bg-gradient-to-br text-center",
                       type.color
                     )}
                   >
-                    <div className="font-mono text-xs text-muted-foreground">{type.code}</div>
-                    <div className="font-medium text-sm">{type.name}</div>
+                    <div className="font-mono text-[10px] sm:text-xs text-muted-foreground">{type.code}</div>
+                    <div className="font-medium text-xs sm:text-sm">{type.name}</div>
                   </div>
                 ))}
               </div>
 
-              {/* Benefits */}
-              <div className="bg-secondary/30 rounded-lg p-4 mb-6">
-                <h4 className="font-medium text-sm mb-2">What you'll get:</h4>
-                <ul className="space-y-1.5">
+              {/* Benefits - compact */}
+              <div className="bg-secondary/30 rounded-lg p-3 sm:p-4 mb-4 sm:mb-6">
+                <h4 className="font-medium text-xs sm:text-sm mb-1.5 sm:mb-2">What you'll get:</h4>
+                <ul className="space-y-1">
                   {[
-                    'Your 4-letter investor personality code',
-                    'Personalized investment strategy',
-                    'AI-generated portfolio recommendations',
+                    '4-letter investor code',
+                    'Personalized strategy',
+                    'AI portfolio tips',
                   ].map((item, i) => (
-                    <li key={i} className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <ChevronRight className="w-3 h-3 text-primary" />
+                    <li key={i} className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm text-muted-foreground">
+                      <ChevronRight className="w-3 h-3 text-primary shrink-0" />
                       {item}
                     </li>
                   ))}
@@ -190,7 +190,7 @@ export function WelcomeModal({ open, onOpenChange, onComplete }: WelcomeModalPro
                 variant="ghost"
                 size="sm"
                 onClick={handleSkip}
-                className="w-full mt-2 text-muted-foreground"
+                className="w-full mt-2 text-muted-foreground text-xs sm:text-sm"
               >
                 Skip for now
               </Button>

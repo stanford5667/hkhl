@@ -24,8 +24,8 @@ interface AuthGateDialogProps {
 export function AuthGateDialog({ 
   open, 
   onOpenChange,
-  title = "Sign up to continue",
-  description = "Create a free account to unlock this feature and start building your portfolio."
+  title = "Sign up to save",
+  description = "Create a free account to save your progress."
 }: AuthGateDialogProps) {
   const [mode, setMode] = useState<'signin' | 'signup'>('signup');
   const [email, setEmail] = useState('');
@@ -63,51 +63,52 @@ export function AuthGateDialog({
   };
 
   const features = [
-    { icon: TrendingUp, text: "Track your portfolio performance" },
-    { icon: Sparkles, text: "AI-powered investment insights" },
-    { icon: Shield, text: "Secure & private data storage" },
+    { icon: TrendingUp, text: "Track portfolio" },
+    { icon: Sparkles, text: "AI insights" },
+    { icon: Shield, text: "Secure storage" },
   ];
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-sm">
         <DialogHeader>
-          <div className="mx-auto w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-2">
-            <Lock className="h-6 w-6 text-primary" />
+          <div className="mx-auto w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-primary/10 flex items-center justify-center mb-1 sm:mb-2">
+            <Lock className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
           </div>
-          <DialogTitle className="text-center">{title}</DialogTitle>
-          <DialogDescription className="text-center">
+          <DialogTitle className="text-center text-base sm:text-lg">{title}</DialogTitle>
+          <DialogDescription className="text-center text-xs sm:text-sm">
             {description}
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4">
-          {/* Features list */}
-          <div className="space-y-2 py-2">
+        <div className="space-y-3 sm:space-y-4">
+          {/* Features list - horizontal on mobile */}
+          <div className="flex justify-center gap-3 sm:gap-4 py-1 sm:py-2">
             {features.map((feature, i) => (
-              <div key={i} className="flex items-center gap-2 text-sm text-muted-foreground">
+              <div key={i} className="flex flex-col items-center gap-1 text-center">
                 <feature.icon className="h-4 w-4 text-primary" />
-                <span>{feature.text}</span>
+                <span className="text-[10px] sm:text-xs text-muted-foreground">{feature.text}</span>
               </div>
             ))}
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4">
             {mode === 'signup' && (
-              <div className="space-y-2">
-                <Label htmlFor="fullName">Full Name</Label>
+              <div className="space-y-1.5 sm:space-y-2">
+                <Label htmlFor="fullName" className="text-xs sm:text-sm">Name</Label>
                 <Input
                   id="fullName"
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
                   placeholder="John Doe"
                   required
+                  className="h-9 sm:h-10 text-sm"
                 />
               </div>
             )}
             
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+            <div className="space-y-1.5 sm:space-y-2">
+              <Label htmlFor="email" className="text-xs sm:text-sm">Email</Label>
               <Input
                 id="email"
                 type="email"
@@ -115,11 +116,12 @@ export function AuthGateDialog({
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@example.com"
                 required
+                className="h-9 sm:h-10 text-sm"
               />
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+            <div className="space-y-1.5 sm:space-y-2">
+              <Label htmlFor="password" className="text-xs sm:text-sm">Password</Label>
               <Input
                 id="password"
                 type="password"
@@ -128,24 +130,25 @@ export function AuthGateDialog({
                 placeholder="••••••••"
                 required
                 minLength={6}
+                className="h-9 sm:h-10 text-sm"
               />
             </div>
 
-            <Button type="submit" className="w-full" disabled={isLoading}>
+            <Button type="submit" className="w-full h-9 sm:h-10 text-sm" disabled={isLoading}>
               {isLoading ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : mode === 'signup' ? (
-                "Create Free Account"
+                "Create Account"
               ) : (
                 "Sign In"
               )}
             </Button>
           </form>
 
-          <div className="text-center text-sm text-muted-foreground">
+          <div className="text-center text-xs sm:text-sm text-muted-foreground">
             {mode === 'signup' ? (
               <>
-                Already have an account?{" "}
+                Have an account?{" "}
                 <button
                   type="button"
                   onClick={() => setMode('signin')}
@@ -156,13 +159,13 @@ export function AuthGateDialog({
               </>
             ) : (
               <>
-                Don't have an account?{" "}
+                No account?{" "}
                 <button
                   type="button"
                   onClick={() => setMode('signup')}
                   className="text-primary hover:underline"
                 >
-                  Sign up free
+                  Sign up
                 </button>
               </>
             )}
