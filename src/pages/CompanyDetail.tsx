@@ -19,7 +19,8 @@ import { PublicEquityDetailView } from '@/components/equity/PublicEquityDetailVi
 import { AssetBacktestPanel } from '@/components/equity/AssetBacktestPanel';
 import { QuantitativeStudiesPanel } from '@/components/equity/QuantitativeStudiesPanel';
 import { CompanyResearch } from '@/components/research/CompanyResearch';
-import { Search } from 'lucide-react';
+import { AnalystSocialPanel } from '@/components/research/AnalystSocialPanel';
+import { Search, MessageCircle } from 'lucide-react';
 import { CompanySummaryCard } from '@/components/companies/CompanySummaryCard';
 import { CompanyContactsCard } from '@/components/companies/CompanyContactsCard';
 import { CompanyNotesSection } from '@/components/companies/CompanyNotesSection';
@@ -399,6 +400,12 @@ export default function CompanyDetail() {
                 Research
               </TabsTrigger>
             )}
+            {isPublicEquity && (
+              <TabsTrigger value="analyst-social" className="gap-2 text-base px-5 py-3">
+                <MessageCircle className="h-5 w-5" />
+                Analyst & Social
+              </TabsTrigger>
+            )}
           </TabsList>
         </div>
 
@@ -735,6 +742,16 @@ export default function CompanyDetail() {
         {isPublicEquity && company.ticker_symbol && (
           <TabsContent value="research">
             <CompanyResearch 
+              ticker={company.ticker_symbol}
+              companyName={company.name}
+            />
+          </TabsContent>
+        )}
+
+        {/* Analyst & Social Tab - Public Equity Only */}
+        {isPublicEquity && company.ticker_symbol && (
+          <TabsContent value="analyst-social">
+            <AnalystSocialPanel 
               ticker={company.ticker_symbol}
               companyName={company.name}
             />
