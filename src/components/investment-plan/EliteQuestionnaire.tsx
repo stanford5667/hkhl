@@ -1371,7 +1371,7 @@ ${a.description}`).join('\n\n')}
       <div className="fixed inset-0 pointer-events-none overflow-hidden">
         <PulseGrid className="opacity-20" />
         <div className="absolute top-0 left-1/4 w-[300px] sm:w-[500px] h-[300px] sm:h-[500px] bg-primary/10 rounded-full blur-[80px] sm:blur-[120px]" />
-        <div className="absolute bottom-0 right-1/4 w-[250px] sm:w-[400px] h-[250px] sm:h-[400px] bg-secondary/10 rounded-full blur-[60px] sm:blur-[100px]" />
+        <div className="absolute bottom-0 right-1/4 w-[250px] sm:w-[400px] h-[250px] sm:h-[400px] bg-accent/10 rounded-full blur-[60px] sm:blur-[100px]" />
       </div>
 
       {/* Header */}
@@ -1438,7 +1438,7 @@ ${a.description}`).join('\n\n')}
                     </div>
                     <div className="flex-1 min-w-0">
                       <h1 className="text-lg sm:text-xl font-semibold truncate">{currentPage.title}</h1>
-                      <p className="text-white/40 text-xs sm:text-sm truncate">{sectionMeta?.description}</p>
+                      <p className="text-muted-foreground text-xs sm:text-sm truncate">{sectionMeta?.description}</p>
                     </div>
                   </div>
                 );
@@ -1461,23 +1461,23 @@ ${a.description}`).join('\n\n')}
                       {/* Question number badge for multi-question pages */}
                       {currentPageQuestions.length > 1 && (
                         <div className="flex items-center gap-2">
-                          <span className="text-xs text-white/30 font-mono">
+                          <span className="text-xs text-muted-foreground/60 font-mono">
                             {idx + 1} of {currentPageQuestions.length}
                           </span>
                           {questionValue !== undefined && questionValue !== '' && 
                            !(Array.isArray(questionValue) && questionValue.length === 0) && (
-                            <Check className="w-3.5 h-3.5 text-emerald-400" />
+                            <Check className="w-3.5 h-3.5 text-success" />
                           )}
                         </div>
                       )}
                       
                       {/* Question text */}
                       <div>
-                        <h2 className="text-lg sm:text-xl md:text-2xl font-semibold tracking-tight mb-1.5 sm:mb-2 leading-tight">
+                        <h2 className="text-lg sm:text-xl md:text-2xl font-semibold tracking-tight mb-1.5 sm:mb-2 leading-tight text-foreground">
                           {question.question}
                         </h2>
                         {question.subtitle && (
-                          <p className="text-white/50 text-xs sm:text-sm leading-relaxed">
+                          <p className="text-muted-foreground text-xs sm:text-sm leading-relaxed">
                             {question.subtitle}
                           </p>
                         )}
@@ -1563,7 +1563,7 @@ function QuestionRenderer({ question, value, onChange }: { question: any; value:
             value={value || ''}
             onChange={(e) => onChange(e.target.value)}
             placeholder={question.placeholder}
-            className="bg-white/5 border-white/10 text-white placeholder:text-white/30 min-h-[100px] sm:min-h-[120px] text-base sm:text-lg"
+            className="bg-muted/50 border-border text-foreground placeholder:text-muted-foreground min-h-[100px] sm:min-h-[120px] text-base sm:text-lg"
           />
         );
       }
@@ -1572,7 +1572,7 @@ function QuestionRenderer({ question, value, onChange }: { question: any; value:
           value={value || ''}
           onChange={(e) => onChange(e.target.value)}
           placeholder={question.placeholder}
-          className="bg-white/5 border-white/10 text-white placeholder:text-white/30 h-12 sm:h-14 text-base sm:text-lg"
+          className="bg-muted/50 border-border text-foreground placeholder:text-muted-foreground h-12 sm:h-14 text-base sm:text-lg"
           autoFocus
         />
       );
@@ -1587,8 +1587,8 @@ function QuestionRenderer({ question, value, onChange }: { question: any; value:
               className={cn(
                 "relative p-3.5 sm:p-5 rounded-xl sm:rounded-2xl border-2 text-left transition-all",
                 value === opt.value
-                  ? "border-emerald-500/50 bg-emerald-500/10 ring-1 ring-emerald-500/30"
-                  : "border-white/10 bg-white/5 hover:border-white/20 hover:bg-white/[0.07]"
+                  ? "border-success/50 bg-success/10 ring-1 ring-success/30"
+                  : "border-border bg-muted/50 hover:border-border/80 hover:bg-muted/70"
               )}
               whileHover={{ scale: 1.01 }}
               whileTap={{ scale: 0.99 }}
@@ -1596,20 +1596,20 @@ function QuestionRenderer({ question, value, onChange }: { question: any; value:
               <div className="flex items-start gap-3 sm:gap-4">
                 <div className={cn(
                   "w-10 h-10 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl flex items-center justify-center shrink-0",
-                  value === opt.value ? "bg-emerald-500/20" : "bg-white/10"
+                  value === opt.value ? "bg-success/20" : "bg-muted"
                 )}>
                   <opt.icon className={cn(
                     "w-5 h-5 sm:w-6 sm:h-6",
-                    value === opt.value ? "text-emerald-400" : "text-white/50"
+                    value === opt.value ? "text-success" : "text-muted-foreground"
                   )} />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="font-semibold text-sm sm:text-base mb-0.5 sm:mb-1">{opt.label}</div>
-                  <div className="text-xs sm:text-sm text-white/50 leading-relaxed">{opt.description}</div>
+                  <div className="font-semibold text-sm sm:text-base mb-0.5 sm:mb-1 text-foreground">{opt.label}</div>
+                  <div className="text-xs sm:text-sm text-muted-foreground leading-relaxed">{opt.description}</div>
                 </div>
                 {value === opt.value && (
                   <div className="shrink-0">
-                    <Check className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-400" />
+                    <Check className="w-4 h-4 sm:w-5 sm:h-5 text-success" />
                   </div>
                 )}
               </div>
@@ -1622,19 +1622,19 @@ function QuestionRenderer({ question, value, onChange }: { question: any; value:
       const timelineValue = value || 10;
       const timelineLabel = timelineValue < 3 ? 'Short-term' : timelineValue < 10 ? 'Medium-term' : 'Long-term';
       return (
-        <div className="bg-white/5 border border-white/10 rounded-xl sm:rounded-2xl p-4 sm:p-6 space-y-4 sm:space-y-6">
+        <div className="bg-muted/50 border border-border rounded-xl sm:rounded-2xl p-4 sm:p-6 space-y-4 sm:space-y-6">
           <div className="flex items-center justify-between">
             <div>
-              <div className="text-xs sm:text-sm text-white/40 mb-1">Your timeline</div>
-              <div className="text-2xl sm:text-4xl font-bold bg-gradient-to-r from-blue-400 to-emerald-400 bg-clip-text text-transparent">
+              <div className="text-xs sm:text-sm text-muted-foreground mb-1">Your timeline</div>
+              <div className="text-2xl sm:text-4xl font-bold bg-gradient-to-r from-primary to-success bg-clip-text text-transparent">
                 {timelineValue} {timelineValue === 1 ? 'year' : 'years'}
               </div>
             </div>
             <Badge className={cn(
               "text-[10px] sm:text-xs",
-              timelineValue < 3 ? "bg-amber-500/20 text-amber-400 border-amber-500/30" :
-              timelineValue < 10 ? "bg-blue-500/20 text-blue-400 border-blue-500/30" :
-              "bg-emerald-500/20 text-emerald-400 border-emerald-500/30"
+              timelineValue < 3 ? "bg-warning/20 text-warning border-warning/30" :
+              timelineValue < 10 ? "bg-primary/20 text-primary border-primary/30" :
+              "bg-success/20 text-success border-success/30"
             )}>
               {timelineLabel}
             </Badge>
@@ -1647,7 +1647,7 @@ function QuestionRenderer({ question, value, onChange }: { question: any; value:
             step={1}
             className="w-full"
           />
-          <div className="flex justify-between text-[10px] sm:text-xs text-white/40">
+          <div className="flex justify-between text-[10px] sm:text-xs text-muted-foreground">
             <span>1 year</span>
             <span>15 years</span>
             <span>30 years</span>
@@ -1660,20 +1660,20 @@ function QuestionRenderer({ question, value, onChange }: { question: any; value:
       const amountIndex = amounts.findIndex(a => a === value) >= 0 ? amounts.findIndex(a => a === value) : 2;
       const portfolioLabel = amountIndex < 2 ? 'Starter' : amountIndex < 4 ? 'Growth' : amountIndex < 6 ? 'Wealth' : 'Premium';
       return (
-        <div className="bg-white/5 border border-white/10 rounded-xl sm:rounded-2xl p-4 sm:p-6 space-y-4 sm:space-y-6">
+        <div className="bg-muted/50 border border-border rounded-xl sm:rounded-2xl p-4 sm:p-6 space-y-4 sm:space-y-6">
           <div className="flex items-center justify-between">
             <div>
-              <div className="text-xs sm:text-sm text-white/40 mb-1">Investable amount</div>
-              <div className="text-2xl sm:text-4xl font-bold bg-gradient-to-r from-emerald-400 to-blue-400 bg-clip-text text-transparent">
+              <div className="text-xs sm:text-sm text-muted-foreground mb-1">Investable amount</div>
+              <div className="text-2xl sm:text-4xl font-bold bg-gradient-to-r from-success to-primary bg-clip-text text-transparent">
                 ${(amounts[amountIndex] || 50000).toLocaleString()}
               </div>
             </div>
             <Badge className={cn(
               "text-[10px] sm:text-xs",
-              amountIndex < 2 ? "bg-blue-500/20 text-blue-400 border-blue-500/30" :
-              amountIndex < 4 ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/30" :
-              amountIndex < 6 ? "bg-purple-500/20 text-purple-400 border-purple-500/30" :
-              "bg-amber-500/20 text-amber-400 border-amber-500/30"
+              amountIndex < 2 ? "bg-primary/20 text-primary border-primary/30" :
+              amountIndex < 4 ? "bg-success/20 text-success border-success/30" :
+              amountIndex < 6 ? "bg-accent/20 text-accent-foreground border-accent/30" :
+              "bg-warning/20 text-warning border-warning/30"
             )}>
               {portfolioLabel}
             </Badge>
@@ -1686,7 +1686,7 @@ function QuestionRenderer({ question, value, onChange }: { question: any; value:
             step={1}
             className="w-full"
           />
-          <div className="flex justify-between text-[10px] sm:text-xs text-white/40">
+          <div className="flex justify-between text-[10px] sm:text-xs text-muted-foreground">
             <span>$10K</span>
             <span>$500K</span>
             <span>$5M+</span>
@@ -1698,17 +1698,17 @@ function QuestionRenderer({ question, value, onChange }: { question: any; value:
       return (
         <div className="space-y-4 sm:space-y-5">
           {/* Chart visualization with labels */}
-          <div className="bg-white/5 border border-white/10 rounded-xl sm:rounded-2xl p-4 sm:p-5">
+          <div className="bg-muted/50 border border-border rounded-xl sm:rounded-2xl p-4 sm:p-5">
             <div className="flex items-center justify-between mb-2 sm:mb-3">
-              <span className="text-[10px] sm:text-xs text-white/40">Simulated portfolio drop</span>
-              <Badge className="bg-rose-500/20 text-rose-400 border-rose-500/30 text-[10px] sm:text-xs">-25%</Badge>
+              <span className="text-[10px] sm:text-xs text-muted-foreground">Simulated portfolio drop</span>
+              <Badge className="bg-destructive/20 text-destructive border-destructive/30 text-[10px] sm:text-xs">-25%</Badge>
             </div>
             <div className="h-20 sm:h-28 flex items-end gap-1">
               {[100, 95, 88, 75, 78, 82, 77, 75].map((h, i) => (
                 <motion.div
                   key={i}
                   className="flex-1 rounded-t"
-                  style={{ backgroundColor: h >= 85 ? '#22c55e' : h >= 80 ? '#eab308' : '#ef4444' }}
+                  style={{ backgroundColor: h >= 85 ? 'hsl(var(--success))' : h >= 80 ? 'hsl(var(--warning))' : 'hsl(var(--destructive))' }}
                   initial={{ height: 0 }}
                   animate={{ height: `${h}%` }}
                   transition={{ delay: i * 0.1, duration: 0.5 }}
@@ -1716,7 +1716,7 @@ function QuestionRenderer({ question, value, onChange }: { question: any; value:
               ))}
             </div>
           </div>
-          <p className="text-xs sm:text-sm text-white/50 text-center">How would you react?</p>
+          <p className="text-xs sm:text-sm text-muted-foreground text-center">How would you react?</p>
           <div className="grid grid-cols-2 gap-2 sm:gap-3">
             {question.options.map((opt: any) => (
               <motion.button
@@ -1725,12 +1725,12 @@ function QuestionRenderer({ question, value, onChange }: { question: any; value:
                 className={cn(
                   "p-3 sm:p-4 rounded-lg sm:rounded-xl border-2 text-center transition-all",
                   value === opt.value
-                    ? "border-emerald-500/50 bg-emerald-500/10 ring-1 ring-emerald-500/30"
-                    : "border-white/10 hover:border-white/20"
+                    ? "border-success/50 bg-success/10 ring-1 ring-success/30"
+                    : "border-border hover:border-border/80"
                 )}
                 whileTap={{ scale: 0.98 }}
               >
-                <div className="font-medium text-sm sm:text-base">{opt.label}</div>
+                <div className="font-medium text-sm sm:text-base text-foreground">{opt.label}</div>
               </motion.button>
             ))}
           </div>
@@ -1741,15 +1741,15 @@ function QuestionRenderer({ question, value, onChange }: { question: any; value:
       const riskValue = value || 20;
       const riskLabel = riskValue <= 15 ? 'Conservative' : riskValue <= 25 ? 'Moderate' : riskValue <= 35 ? 'Growth' : 'Aggressive';
       return (
-        <div className="bg-white/5 border border-white/10 rounded-xl sm:rounded-2xl p-4 sm:p-6 space-y-4 sm:space-y-6">
+        <div className="bg-muted/50 border border-border rounded-xl sm:rounded-2xl p-4 sm:p-6 space-y-4 sm:space-y-6">
           <div className="relative h-28 sm:h-40 flex items-center justify-center">
             {/* Dial visualization */}
             <svg className="w-48 sm:w-64 h-24 sm:h-32" viewBox="0 0 200 100">
               <defs>
                 <linearGradient id="dialGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                  <stop offset="0%" stopColor="#22c55e" />
-                  <stop offset="50%" stopColor="#eab308" />
-                  <stop offset="100%" stopColor="#ef4444" />
+                  <stop offset="0%" stopColor="hsl(var(--success))" />
+                  <stop offset="50%" stopColor="hsl(var(--warning))" />
+                  <stop offset="100%" stopColor="hsl(var(--destructive))" />
                 </linearGradient>
               </defs>
               <path
@@ -1763,7 +1763,7 @@ function QuestionRenderer({ question, value, onChange }: { question: any; value:
                 cx="100"
                 cy="90"
                 r="8"
-                fill="white"
+                fill="hsl(var(--foreground))"
                 initial={false}
                 animate={{
                   cx: 20 + ((riskValue - 5) / 45) * 160,
@@ -1773,18 +1773,18 @@ function QuestionRenderer({ question, value, onChange }: { question: any; value:
               />
             </svg>
             <div className="absolute bottom-0 text-center">
-              <div className="text-2xl sm:text-4xl font-bold">{riskValue}%</div>
-              <div className="text-white/40 text-[10px] sm:text-xs">max annual loss you can tolerate</div>
+              <div className="text-2xl sm:text-4xl font-bold text-foreground">{riskValue}%</div>
+              <div className="text-muted-foreground text-[10px] sm:text-xs">max annual loss you can tolerate</div>
             </div>
           </div>
           <div className="flex items-center justify-between">
-            <span className="text-xs sm:text-sm text-white/40">Risk tolerance</span>
+            <span className="text-xs sm:text-sm text-muted-foreground">Risk tolerance</span>
             <Badge className={cn(
               "text-[10px] sm:text-xs",
-              riskValue <= 15 ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/30" :
-              riskValue <= 25 ? "bg-blue-500/20 text-blue-400 border-blue-500/30" :
-              riskValue <= 35 ? "bg-amber-500/20 text-amber-400 border-amber-500/30" :
-              "bg-rose-500/20 text-rose-400 border-rose-500/30"
+              riskValue <= 15 ? "bg-success/20 text-success border-success/30" :
+              riskValue <= 25 ? "bg-primary/20 text-primary border-primary/30" :
+              riskValue <= 35 ? "bg-warning/20 text-warning border-warning/30" :
+              "bg-destructive/20 text-destructive border-destructive/30"
             )}>
               {riskLabel}
             </Badge>
@@ -1811,26 +1811,26 @@ function QuestionRenderer({ question, value, onChange }: { question: any; value:
               className={cn(
                 "w-full p-4 rounded-xl border-2 text-left transition-all flex items-center gap-4",
                 value === opt.value
-                  ? "border-emerald-500/50 bg-emerald-500/10 ring-1 ring-emerald-500/30"
-                  : "border-white/10 hover:border-white/20 hover:bg-white/[0.03]"
+                  ? "border-success/50 bg-success/10 ring-1 ring-success/30"
+                  : "border-border hover:border-border/80 hover:bg-muted/30"
               )}
               whileTap={{ scale: 0.99 }}
             >
               {opt.icon && (
                 <div className={cn(
                   "w-10 h-10 rounded-lg flex items-center justify-center shrink-0",
-                  value === opt.value ? "bg-emerald-500/20" : "bg-white/10"
+                  value === opt.value ? "bg-success/20" : "bg-muted"
                 )}>
-                  <opt.icon className={cn("w-5 h-5", value === opt.value ? "text-emerald-400" : "text-white/50")} />
+                  <opt.icon className={cn("w-5 h-5", value === opt.value ? "text-success" : "text-muted-foreground")} />
                 </div>
               )}
               <div className="flex-1 min-w-0">
-                <div className="font-medium">{opt.label}</div>
+                <div className="font-medium text-foreground">{opt.label}</div>
                 {(opt.description || opt.insight) && (
-                  <div className="text-sm text-white/50 mt-0.5">{opt.description || opt.insight}</div>
+                  <div className="text-sm text-muted-foreground mt-0.5">{opt.description || opt.insight}</div>
                 )}
               </div>
-              {value === opt.value && <Check className="w-5 h-5 text-emerald-400 shrink-0" />}
+              {value === opt.value && <Check className="w-5 h-5 text-success shrink-0" />}
             </motion.button>
           ))}
         </div>
@@ -1840,20 +1840,20 @@ function QuestionRenderer({ question, value, onChange }: { question: any; value:
       const months = value || 3;
       const fundStatus = months < 3 ? 'At risk' : months < 6 ? 'Building' : months >= 12 ? 'Excellent' : 'On track';
       return (
-        <div className="bg-white/5 border border-white/10 rounded-2xl p-6 space-y-6">
+        <div className="bg-muted/50 border border-border rounded-2xl p-6 space-y-6">
           <div className="flex items-center justify-between">
             <div>
-              <div className="text-sm text-white/40 mb-1">Emergency fund</div>
-              <div className="text-4xl font-bold">
-                {months} <span className="text-xl font-normal text-white/50">months</span>
+              <div className="text-sm text-muted-foreground mb-1">Emergency fund</div>
+              <div className="text-4xl font-bold text-foreground">
+                {months} <span className="text-xl font-normal text-muted-foreground">months</span>
               </div>
             </div>
             <Badge className={cn(
               "text-xs",
-              months < 3 ? "bg-rose-500/20 text-rose-400 border-rose-500/30" :
-              months < 6 ? "bg-amber-500/20 text-amber-400 border-amber-500/30" :
-              months >= 12 ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/30" :
-              "bg-blue-500/20 text-blue-400 border-blue-500/30"
+              months < 3 ? "bg-destructive/20 text-destructive border-destructive/30" :
+              months < 6 ? "bg-warning/20 text-warning border-warning/30" :
+              months >= 12 ? "bg-success/20 text-success border-success/30" :
+              "bg-primary/20 text-primary border-primary/30"
             )}>
               {fundStatus}
             </Badge>
@@ -1866,9 +1866,9 @@ function QuestionRenderer({ question, value, onChange }: { question: any; value:
             step={1}
             className="w-full"
           />
-          <div className="flex justify-between text-xs text-white/40">
+          <div className="flex justify-between text-xs text-muted-foreground">
             <span>0</span>
-            <span className="text-emerald-400/60">6+ recommended</span>
+            <span className="text-success/60">6+ recommended</span>
             <span>24+</span>
           </div>
         </div>
@@ -1899,27 +1899,27 @@ function QuestionRenderer({ question, value, onChange }: { question: any; value:
                   className={cn(
                     "p-4 rounded-xl border-2 text-center transition-all relative",
                     isSelected
-                      ? "border-emerald-500/50 bg-emerald-500/10 ring-1 ring-emerald-500/30"
-                      : "border-white/10 hover:border-white/20"
+                      ? "border-success/50 bg-success/10 ring-1 ring-success/30"
+                      : "border-border hover:border-border/80"
                   )}
                   whileTap={{ scale: 0.97 }}
                 >
                   {isSelected && (
                     <div className="absolute top-2 right-2">
-                      <Check className="w-4 h-4 text-emerald-400" />
+                      <Check className="w-4 h-4 text-success" />
                     </div>
                   )}
                   <opt.icon className={cn(
                     "w-6 h-6 mx-auto mb-2",
-                    isSelected ? "text-emerald-400" : "text-white/40"
+                    isSelected ? "text-success" : "text-muted-foreground"
                   )} />
-                  <div className="text-sm font-medium">{opt.label}</div>
+                  <div className="text-sm font-medium text-foreground">{opt.label}</div>
                 </motion.button>
               );
             })}
           </div>
           {selected.length > 0 && selected[0] !== 'none' && (
-            <p className="text-xs text-white/40 text-center">{selected.length} selected</p>
+            <p className="text-xs text-muted-foreground text-center">{selected.length} selected</p>
           )}
         </div>
       );
@@ -1934,17 +1934,17 @@ function QuestionRenderer({ question, value, onChange }: { question: any; value:
               className={cn(
                 "w-full p-4 rounded-xl border-2 text-left transition-all",
                 value === opt.value
-                  ? "border-emerald-500/50 bg-emerald-500/10 ring-1 ring-emerald-500/30"
-                  : "border-white/10 hover:border-white/20 hover:bg-white/[0.03]"
+                  ? "border-success/50 bg-success/10 ring-1 ring-success/30"
+                  : "border-border hover:border-border/80 hover:bg-muted/30"
               )}
               whileTap={{ scale: 0.99 }}
             >
               <div className="flex items-center justify-between mb-1">
-                <div className="font-semibold">{opt.label}</div>
-                {value === opt.value && <Check className="w-5 h-5 text-emerald-400" />}
+                <div className="font-semibold text-foreground">{opt.label}</div>
+                {value === opt.value && <Check className="w-5 h-5 text-success" />}
               </div>
-              <div className="text-sm text-white/50 mb-2">{opt.description}</div>
-              <div className="text-xs text-white/40 italic border-l-2 border-white/20 pl-2">"{opt.philosophy}"</div>
+              <div className="text-sm text-muted-foreground mb-2">{opt.description}</div>
+              <div className="text-xs text-muted-foreground/70 italic border-l-2 border-border pl-2">"{opt.philosophy}"</div>
             </motion.button>
           ))}
         </div>
@@ -1961,12 +1961,12 @@ function QuestionRenderer({ question, value, onChange }: { question: any; value:
       ];
       const involvement = value !== undefined ? value : 1;
       return (
-        <div className="bg-white/5 border border-white/10 rounded-2xl p-6 space-y-6">
+        <div className="bg-muted/50 border border-border rounded-2xl p-6 space-y-6">
           <div className="text-center space-y-2">
-            <div className="text-2xl font-semibold bg-gradient-to-r from-blue-400 to-emerald-400 bg-clip-text text-transparent">
+            <div className="text-2xl font-semibold bg-gradient-to-r from-primary to-success bg-clip-text text-transparent">
               {involvementLabels[involvement]}
             </div>
-            <p className="text-sm text-white/50">
+            <p className="text-sm text-muted-foreground">
               {involvementDescriptions[involvement]}
             </p>
           </div>
@@ -1978,7 +1978,7 @@ function QuestionRenderer({ question, value, onChange }: { question: any; value:
             step={1}
             className="w-full"
           />
-          <div className="flex justify-between text-xs text-white/40">
+          <div className="flex justify-between text-xs text-muted-foreground">
             <span>🧘 Hands-off</span>
             <span>⚡ Hands-on</span>
           </div>
@@ -2009,8 +2009,8 @@ function QuestionRenderer({ question, value, onChange }: { question: any; value:
                 className={cn(
                   "relative p-6 sm:p-8 rounded-2xl border-2 text-left transition-all",
                   isSelected
-                    ? "border-blue-500/50 bg-blue-500/10 ring-1 ring-blue-500/30"
-                    : "border-white/10 bg-slate-800/50 hover:border-white/20 hover:bg-slate-800/70"
+                    ? "border-primary/50 bg-primary/10 ring-1 ring-primary/30"
+                    : "border-border bg-card hover:border-border/80 hover:bg-card/80"
                 )}
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
@@ -2018,8 +2018,8 @@ function QuestionRenderer({ question, value, onChange }: { question: any; value:
                 {/* Selected checkmark */}
                 {isSelected && (
                   <div className="absolute top-4 right-4">
-                    <div className="w-6 h-6 rounded-full bg-blue-500 flex items-center justify-center">
-                      <Check className="w-4 h-4 text-white" />
+                    <div className="w-6 h-6 rounded-full bg-primary flex items-center justify-center">
+                      <Check className="w-4 h-4 text-primary-foreground" />
                     </div>
                   </div>
                 )}
@@ -2027,24 +2027,24 @@ function QuestionRenderer({ question, value, onChange }: { question: any; value:
                 {/* Icon */}
                 <div className={cn(
                   "w-12 h-12 sm:w-14 sm:h-14 rounded-xl flex items-center justify-center mb-4",
-                  isSelected ? "bg-blue-500/20" : "bg-white/10"
+                  isSelected ? "bg-primary/20" : "bg-muted"
                 )}>
                   <Icon className={cn(
                     "w-6 h-6 sm:w-7 sm:h-7",
-                    isSelected ? "text-blue-400" : "text-white/60"
+                    isSelected ? "text-primary" : "text-muted-foreground"
                   )} />
                 </div>
                 
                 {/* Label */}
                 <h3 className={cn(
                   "font-bold text-lg sm:text-xl mb-2",
-                  isSelected ? "text-white" : "text-white/90"
+                  isSelected ? "text-foreground" : "text-foreground/90"
                 )}>
                   {scenario?.label}
                 </h3>
                 
                 {/* Description */}
-                <p className="text-sm sm:text-base text-white/60 mb-4 leading-relaxed">
+                <p className="text-sm sm:text-base text-muted-foreground mb-4 leading-relaxed">
                   {scenario?.description}
                 </p>
                 
@@ -2057,8 +2057,8 @@ function QuestionRenderer({ question, value, onChange }: { question: any; value:
                         className={cn(
                           "text-xs",
                           isSelected 
-                            ? "bg-blue-500/20 text-blue-300 border-blue-500/30" 
-                            : "bg-white/10 text-white/50 border-white/10"
+                            ? "bg-primary/20 text-primary border-primary/30" 
+                            : "bg-muted text-muted-foreground border-border"
                         )}
                       >
                         {trait}
