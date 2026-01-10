@@ -31,12 +31,17 @@ export function useTeamMembers() {
   const { user } = useAuth();
 
   const fetchTeamMembers = useCallback(async () => {
-    if (!user) return;
+    if (!user) {
+      setTeamMembers([]);
+      setIsLoading(false);
+      return;
+    }
     
     try {
       const { data, error } = await supabase
         .from('team_members')
         .select('*')
+        .eq('user_id', user.id)
         .eq('is_active', true)
         .order('name');
       

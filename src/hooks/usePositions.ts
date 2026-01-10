@@ -12,7 +12,11 @@ export function usePositions(portfolioId?: string) {
   const [error, setError] = useState<string | null>(null);
 
   const fetchPositions = useCallback(async () => {
-    if (!user?.id) return;
+    if (!user?.id) {
+      setPositions([]);
+      setIsLoading(false);
+      return;
+    }
     
     setIsLoading(true);
     setError(null);
@@ -155,7 +159,11 @@ export function useBrokerageConnections() {
   const [isLoading, setIsLoading] = useState(true);
 
   const fetchConnections = useCallback(async () => {
-    if (!user?.id) return;
+    if (!user?.id) {
+      setConnections([]);
+      setIsLoading(false);
+      return;
+    }
     
     setIsLoading(true);
     
