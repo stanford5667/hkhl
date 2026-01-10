@@ -148,7 +148,7 @@ export function ChooseYourPath({ onSelectManual, onSelectAIChat, onSelectQuestio
           </Card>
         </motion.div>
 
-        {/* AI Chat Advisor Card (Highlighted) */}
+        {/* Quick Advisor Card (Highlighted) */}
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
@@ -168,7 +168,7 @@ export function ChooseYourPath({ onSelectManual, onSelectAIChat, onSelectQuestio
             onKeyDown={(e) => e.key === 'Enter' && handleSelect('ai-chat', onSelectAIChat)}
             tabIndex={0}
             role="button"
-            aria-label="AI Chat Advisor"
+            aria-label="Quick AI Advisor"
           >
             {/* Gradient Top Bar */}
             <div className="absolute top-0 left-0 right-0 h-1.5 sm:h-2 bg-gradient-to-r from-emerald-500 via-teal-400 to-emerald-500" />
@@ -196,20 +196,20 @@ export function ChooseYourPath({ onSelectManual, onSelectAIChat, onSelectQuestio
               <div className="flex items-start gap-3 sm:block">
                 <div className="p-2.5 sm:p-4 rounded-xl sm:rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-500 w-fit sm:mb-5 group-hover:scale-110 transition-transform shadow-lg shrink-0">
                   <div className="relative">
-                    <MessageSquare className="h-5 w-5 sm:h-7 sm:w-7 text-white" />
+                    <Zap className="h-5 w-5 sm:h-7 sm:w-7 text-white" />
                     <Sparkles className="h-2.5 w-2.5 sm:h-3.5 sm:w-3.5 text-yellow-300 absolute -top-1 -right-1" />
                   </div>
                 </div>
                 
                 <div className="flex-1 sm:flex-none">
                   <div className="flex items-center gap-1.5 sm:gap-2 mb-1 sm:mb-2 flex-wrap">
-                    <h2 className="text-base sm:text-xl font-bold">AI Advisor</h2>
+                    <h2 className="text-base sm:text-xl font-bold">Quick Advisor</h2>
                     <Badge className="bg-gradient-to-r from-emerald-500 to-teal-500 text-white border-0 text-[9px] sm:text-xs px-1.5">
                       ✨ Best
                     </Badge>
                   </div>
                   <p className="text-xs sm:text-sm text-muted-foreground mb-3 sm:mb-5">
-                    Chat with AI about your goals
+                    Fast AI chat about your goals
                   </p>
                 </div>
               </div>
@@ -226,7 +226,7 @@ export function ChooseYourPath({ onSelectManual, onSelectAIChat, onSelectQuestio
                 </div>
                 <div className="flex items-center gap-3 text-sm">
                   <Lightbulb className="h-4 w-4 text-emerald-500 flex-shrink-0" />
-                  <span>Personalized recommendations</span>
+                  <span>Quick recommendations</span>
                 </div>
               </div>
               
@@ -235,7 +235,7 @@ export function ChooseYourPath({ onSelectManual, onSelectAIChat, onSelectQuestio
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-1.5 text-[10px] sm:text-xs text-muted-foreground">
                     <Clock className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
-                    <span>~5-10 min</span>
+                    <span>~5 min</span>
                     <span className="hidden sm:inline ml-2 px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-500 text-[10px]">Beginner</span>
                   </div>
                   <ChevronRight className="h-4 w-4 sm:h-5 sm:w-5 text-emerald-500 group-hover:translate-x-1 transition-transform" />
@@ -245,7 +245,7 @@ export function ChooseYourPath({ onSelectManual, onSelectAIChat, onSelectQuestio
           </Card>
         </motion.div>
 
-        {/* Guided Questionnaire Card */}
+        {/* AI Deep Advisor Card */}
         <motion.div
           initial={{ opacity: 0, x: 30 }}
           animate={{ opacity: 1, x: 0 }}
@@ -264,7 +264,7 @@ export function ChooseYourPath({ onSelectManual, onSelectAIChat, onSelectQuestio
             onKeyDown={(e) => e.key === 'Enter' && handleSelect('questionnaire', onSelectQuestionnaire)}
             tabIndex={0}
             role="button"
-            aria-label="Guided Questionnaire"
+            aria-label="AI Deep Advisor"
           >
             {/* Gradient Top Bar */}
             <div className="absolute top-0 left-0 right-0 h-1 sm:h-1.5 bg-gradient-to-r from-purple-500 via-violet-500 to-purple-500" />
@@ -285,13 +285,21 @@ export function ChooseYourPath({ onSelectManual, onSelectAIChat, onSelectQuestio
               {/* Icon + Title Row on Mobile */}
               <div className="flex items-start gap-3 sm:block">
                 <div className="p-2.5 sm:p-4 rounded-xl sm:rounded-2xl bg-gradient-to-br from-purple-500 to-violet-500 w-fit sm:mb-5 group-hover:scale-110 transition-transform shadow-lg shrink-0">
-                  <ClipboardList className="h-5 w-5 sm:h-7 sm:w-7 text-white" />
+                  <div className="relative">
+                    <Brain className="h-5 w-5 sm:h-7 sm:w-7 text-white" />
+                    <Sparkles className="h-2.5 w-2.5 sm:h-3.5 sm:w-3.5 text-yellow-300 absolute -top-1 -right-1" />
+                  </div>
                 </div>
                 
                 <div className="flex-1 sm:flex-none">
-                  <h2 className="text-base sm:text-xl font-bold mb-1 sm:mb-2">Questionnaire</h2>
+                  <div className="flex items-center gap-1.5 sm:gap-2 mb-1 sm:mb-2 flex-wrap">
+                    <h2 className="text-base sm:text-xl font-bold">AI Deep Advisor</h2>
+                    <Badge className="bg-purple-500/20 text-purple-500 border-purple-500/30 text-[9px] sm:text-xs px-1.5">
+                      Thorough
+                    </Badge>
+                  </div>
                   <p className="text-xs sm:text-sm text-muted-foreground mb-3 sm:mb-5">
-                    Build a full investment policy
+                    Full investment policy via questionnaire
                   </p>
                 </div>
               </div>
@@ -300,7 +308,7 @@ export function ChooseYourPath({ onSelectManual, onSelectAIChat, onSelectQuestio
               <div className="hidden sm:block space-y-3 mb-6 flex-1">
                 <div className="flex items-center gap-3 text-sm">
                   <Shield className="h-4 w-4 text-purple-500 flex-shrink-0" />
-                  <span>Risk assessment</span>
+                  <span>Comprehensive risk assessment</span>
                 </div>
                 <div className="flex items-center gap-3 text-sm">
                   <Target className="h-4 w-4 text-purple-500 flex-shrink-0" />
@@ -308,7 +316,7 @@ export function ChooseYourPath({ onSelectManual, onSelectAIChat, onSelectQuestio
                 </div>
                 <div className="flex items-center gap-3 text-sm">
                   <ClipboardList className="h-4 w-4 text-purple-500 flex-shrink-0" />
-                  <span>IPS document</span>
+                  <span>IPS document generated</span>
                 </div>
               </div>
               
@@ -318,7 +326,7 @@ export function ChooseYourPath({ onSelectManual, onSelectAIChat, onSelectQuestio
                   <div className="flex items-center gap-1.5 text-[10px] sm:text-xs text-muted-foreground">
                     <Clock className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
                     <span>~10-15 min</span>
-                    <span className="hidden sm:inline ml-2 px-1.5 py-0.5 rounded bg-purple-500/10 text-purple-500 text-[10px]">Thorough</span>
+                    <span className="hidden sm:inline ml-2 px-1.5 py-0.5 rounded bg-purple-500/10 text-purple-500 text-[10px]">In-depth</span>
                   </div>
                   <ChevronRight className="h-4 w-4 sm:h-5 sm:w-5 text-purple-500 group-hover:translate-x-1 transition-transform" />
                 </div>
