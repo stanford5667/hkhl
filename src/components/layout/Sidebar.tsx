@@ -160,12 +160,12 @@ export function Sidebar() {
         href: "/", 
         icon: Briefcase 
       },
-      { 
-        label: "News", 
-        subtitle: "Intelligence Feed",
-        href: "/news", 
-        icon: Newspaper 
-      },
+      // { 
+      //   label: "News", 
+      //   subtitle: "Intelligence Feed",
+      //   href: "/news", 
+      //   icon: Newspaper 
+      // },
       { 
         label: "Models", 
         subtitle: "Financial Models",
