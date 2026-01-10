@@ -3,6 +3,7 @@ import { useLocation, Navigate, useNavigate } from "react-router-dom";
 import { Sidebar } from "./Sidebar";
 import { TopBar } from "./TopBar";
 import { TickerStream } from "@/components/ui/TickerStream";
+import { FloatingHelpWidget } from "@/components/support/FloatingHelpWidget";
 import { useAuth } from "@/contexts/AuthContext";
 import { Loader2 } from "lucide-react";
 import { UniversalCreateMenu } from "@/components/shared/UniversalCreateMenu";
@@ -94,6 +95,7 @@ export function Layout({ children }: LayoutProps) {
         open={searchOpen}
         onOpenChange={setSearchOpen}
       />
+      <FloatingHelpWidget />
     </div>
   );
 }

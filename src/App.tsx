@@ -39,6 +39,7 @@ import PredictionMarketsAI from "./pages/PredictionMarketsAI";
 import DiscoveryHub from "./pages/DiscoveryHub";
 import NewsIntelligence from "./pages/NewsIntelligence";
 import InvestmentPlan from "./pages/InvestmentPlan";
+import SupportCenter from "./pages/SupportCenter";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -85,6 +86,7 @@ const App = () => (
                       <Route path="/prediction-ai" element={<PredictionMarketsAI />} />
                       <Route path="/discovery" element={<DiscoveryHub />} />
                       <Route path="/investment-plan" element={<InvestmentPlan />} />
+                      <Route path="/support" element={<SupportCenter />} />
                       {/* Redirects from old routes */}
                       <Route path="/portfolio" element={<Navigate to="/" replace />} />
                       <Route path="/companies" element={<Navigate to="/" replace />} />

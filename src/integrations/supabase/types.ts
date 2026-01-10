@@ -1367,6 +1367,36 @@ export type Database = {
           },
         ]
       }
+      feedback: {
+        Row: {
+          created_at: string | null
+          email: string | null
+          feedback_type: string
+          id: string
+          message: string
+          status: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          email?: string | null
+          feedback_type?: string
+          id?: string
+          message: string
+          status?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          email?: string | null
+          feedback_type?: string
+          id?: string
+          message?: string
+          status?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       generated_alerts: {
         Row: {
           actioned_at: string | null
@@ -2763,6 +2793,51 @@ export type Database = {
           },
         ]
       }
+      support_tickets: {
+        Row: {
+          assigned_to: string | null
+          category: string
+          created_at: string | null
+          description: string
+          id: string
+          priority: string
+          resolution: string | null
+          resolved_at: string | null
+          status: string
+          subject: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          assigned_to?: string | null
+          category?: string
+          created_at?: string | null
+          description: string
+          id?: string
+          priority?: string
+          resolution?: string | null
+          resolved_at?: string | null
+          status?: string
+          subject: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          assigned_to?: string | null
+          category?: string
+          created_at?: string | null
+          description?: string
+          id?: string
+          priority?: string
+          resolution?: string | null
+          resolved_at?: string | null
+          status?: string
+          subject?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       synced_positions: {
         Row: {
           asset_type: string | null
@@ -3156,6 +3231,44 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: []
+      }
+      ticket_messages: {
+        Row: {
+          attachments: string[] | null
+          created_at: string | null
+          id: string
+          is_staff: boolean
+          message: string
+          ticket_id: string
+          user_id: string | null
+        }
+        Insert: {
+          attachments?: string[] | null
+          created_at?: string | null
+          id?: string
+          is_staff?: boolean
+          message: string
+          ticket_id: string
+          user_id?: string | null
+        }
+        Update: {
+          attachments?: string[] | null
+          created_at?: string | null
+          id?: string
+          is_staff?: boolean
+          message?: string
+          ticket_id?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ticket_messages_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "support_tickets"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       trade_idea_feedback: {
         Row: {
