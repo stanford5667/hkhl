@@ -221,32 +221,32 @@ function TickerSearchTab() {
   const popularTickers = ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'NVDA', 'TSLA', 'META', 'BRK.B'];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Search Card */}
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Search className="h-5 w-5" />
+        <CardHeader className="p-4 sm:p-6 pb-2 sm:pb-4">
+          <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+            <Search className="h-4 w-4 sm:h-5 sm:w-5" />
             Search by Ticker Symbol
           </CardTitle>
-          <CardDescription>
-            Enter a stock ticker to get company details, financials, and market data
+          <CardDescription className="text-xs sm:text-sm">
+            Enter a stock ticker to get company details and market data
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <form onSubmit={handleSearch} className="flex gap-2">
+        <CardContent className="space-y-3 sm:space-y-4 p-4 sm:p-6 pt-0 sm:pt-0">
+          <form onSubmit={handleSearch} className="flex flex-col sm:flex-row gap-2">
             <Input
-              placeholder="Enter ticker (e.g., AAPL, MSFT, GOOGL)"
+              placeholder="Enter ticker (e.g., AAPL)"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value.toUpperCase())}
-              className="flex-1 text-lg"
+              className="flex-1 text-base sm:text-lg h-10 sm:h-11"
             />
-            <Button type="submit" disabled={isSearching || !searchQuery.trim()}>
+            <Button type="submit" disabled={isSearching || !searchQuery.trim()} className="h-10 sm:h-11">
               {isSearching ? 'Searching...' : 'Search'}
             </Button>
           </form>
 
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-1.5 sm:gap-2">
             <span className="text-sm text-muted-foreground">Popular:</span>
             {popularTickers.map(ticker => (
               <Badge 
@@ -316,56 +316,56 @@ function TickerSearchTab() {
       {/* Results */}
       {tickerDetails && !isSearching && (
         <Card className="border-primary/30">
-          <CardHeader>
-            <div className="flex items-start justify-between">
-              <div className="space-y-1">
-                <div className="flex items-center gap-3">
-                  <Badge variant="default" className="text-lg px-3 py-1">
+          <CardHeader className="p-4 sm:p-6">
+            <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+              <div className="space-y-1 min-w-0">
+                <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
+                  <Badge variant="default" className="text-sm sm:text-lg px-2 sm:px-3 py-0.5 sm:py-1">
                     {tickerDetails.ticker}
                   </Badge>
-                  <CardTitle className="text-2xl">{tickerDetails.name}</CardTitle>
+                  <CardTitle className="text-lg sm:text-2xl truncate">{tickerDetails.name}</CardTitle>
                 </div>
                 {tickerDetails.primaryExchange && (
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-xs sm:text-sm text-muted-foreground">
                     Listed on {tickerDetails.primaryExchange}
                   </p>
                 )}
               </div>
-              <Button onClick={viewFullDetails} className="gap-2">
+              <Button onClick={viewFullDetails} className="gap-2 w-full sm:w-auto shrink-0">
                 View Full Profile
                 <ArrowRight className="h-4 w-4" />
               </Button>
             </div>
           </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div className="bg-muted/50 rounded-lg p-4">
-                <div className="flex items-center gap-2 text-muted-foreground mb-1">
-                  <DollarSign className="h-4 w-4" />
-                  <span className="text-sm">Market Cap</span>
+          <CardContent className="space-y-4 sm:space-y-6 p-4 sm:p-6 pt-0 sm:pt-0">
+            <div className="grid grid-cols-2 gap-2 sm:gap-4">
+              <div className="bg-muted/50 rounded-lg p-3 sm:p-4">
+                <div className="flex items-center gap-1.5 sm:gap-2 text-muted-foreground mb-1">
+                  <DollarSign className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                  <span className="text-xs sm:text-sm">Market Cap</span>
                 </div>
-                <p className="text-xl font-semibold">{formatMktCap(tickerDetails.marketCap)}</p>
+                <p className="text-base sm:text-xl font-semibold">{formatMktCap(tickerDetails.marketCap)}</p>
               </div>
-              <div className="bg-muted/50 rounded-lg p-4">
-                <div className="flex items-center gap-2 text-muted-foreground mb-1">
-                  <Building2 className="h-4 w-4" />
-                  <span className="text-sm">Sector</span>
+              <div className="bg-muted/50 rounded-lg p-3 sm:p-4">
+                <div className="flex items-center gap-1.5 sm:gap-2 text-muted-foreground mb-1">
+                  <Building2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                  <span className="text-xs sm:text-sm">Sector</span>
                 </div>
-                <p className="text-xl font-semibold">{tickerDetails.sector || 'N/A'}</p>
+                <p className="text-base sm:text-xl font-semibold truncate">{tickerDetails.sector || 'N/A'}</p>
               </div>
-              <div className="bg-muted/50 rounded-lg p-4">
-                <div className="flex items-center gap-2 text-muted-foreground mb-1">
-                  <BarChart3 className="h-4 w-4" />
-                  <span className="text-sm">Industry</span>
+              <div className="bg-muted/50 rounded-lg p-3 sm:p-4">
+                <div className="flex items-center gap-1.5 sm:gap-2 text-muted-foreground mb-1">
+                  <BarChart3 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                  <span className="text-xs sm:text-sm">Industry</span>
                 </div>
-                <p className="text-xl font-semibold truncate">{tickerDetails.industry || 'N/A'}</p>
+                <p className="text-base sm:text-xl font-semibold truncate">{tickerDetails.industry || 'N/A'}</p>
               </div>
-              <div className="bg-muted/50 rounded-lg p-4">
-                <div className="flex items-center gap-2 text-muted-foreground mb-1">
-                  <LineChart className="h-4 w-4" />
-                  <span className="text-sm">Exchange</span>
+              <div className="bg-muted/50 rounded-lg p-3 sm:p-4">
+                <div className="flex items-center gap-1.5 sm:gap-2 text-muted-foreground mb-1">
+                  <LineChart className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                  <span className="text-xs sm:text-sm">Exchange</span>
                 </div>
-                <p className="text-xl font-semibold">{tickerDetails.primaryExchange || 'N/A'}</p>
+                <p className="text-base sm:text-xl font-semibold">{tickerDetails.primaryExchange || 'N/A'}</p>
               </div>
             </div>
 
@@ -396,18 +396,18 @@ function TickerSearchTab() {
             )}
 
             <Card className="bg-gradient-to-r from-primary/10 to-secondary/30 border-primary/20">
-              <CardContent className="py-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <TrendingUp className="h-6 w-6 text-primary" />
+              <CardContent className="py-3 sm:py-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="flex items-center gap-2 sm:gap-3">
+                    <TrendingUp className="h-5 w-5 sm:h-6 sm:w-6 text-primary shrink-0" />
                     <div>
-                      <p className="font-medium">Want deeper analysis?</p>
-                      <p className="text-sm text-muted-foreground">
-                        View price charts, fundamentals, and AI-powered insights
+                      <p className="font-medium text-sm sm:text-base">Want deeper analysis?</p>
+                      <p className="text-xs sm:text-sm text-muted-foreground">
+                        View charts, fundamentals, and AI insights
                       </p>
                     </div>
                   </div>
-                  <Button onClick={viewFullDetails} variant="default">
+                  <Button onClick={viewFullDetails} variant="default" className="w-full sm:w-auto">
                     Open Full Profile
                   </Button>
                 </div>
@@ -647,15 +647,15 @@ function AdvancedFiltersSheet({
   return (
     <Sheet>
       <SheetTrigger asChild>
-        <Button variant="outline" size="sm">
-          <Filter className="h-4 w-4 mr-2" />
-          Advanced Filters
+        <Button variant="outline" size="sm" className="h-10 sm:h-12 px-3">
+          <Filter className="h-4 w-4 sm:mr-2" />
+          <span className="hidden sm:inline">Filters</span>
         </Button>
       </SheetTrigger>
-      <SheetContent className="w-[520px] sm:max-w-[520px] p-0">
+      <SheetContent className="w-full sm:w-[520px] sm:max-w-[520px] p-0">
         <SheetHeader className="p-4 pb-0">
-          <SheetTitle>Advanced Filters</SheetTitle>
-          <SheetDescription>Filter stocks by various criteria</SheetDescription>
+          <SheetTitle className="text-base sm:text-lg">Advanced Filters</SheetTitle>
+          <SheetDescription className="text-xs sm:text-sm">Filter stocks by various criteria</SheetDescription>
         </SheetHeader>
 
         <ScrollArea className="h-[calc(100vh-180px)] px-4 py-4">
@@ -852,102 +852,163 @@ function ResultsTable({
     );
   }
 
+  // Mobile card view
+  const MobileResultCard = ({ stock }: { stock: ScreenerResult }) => {
+    const inWatchlist = isInWatchlist(stock.ticker);
+    const isUp = stock.changePercent >= 0;
+    
+    return (
+      <div 
+        className="bg-card border border-border/50 rounded-lg p-3 cursor-pointer hover:bg-muted/30 transition-colors"
+        onClick={() => onRowClick(stock)}
+      >
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2">
+              <Badge variant="outline" className="font-mono text-xs shrink-0">
+                {stock.ticker}
+              </Badge>
+              <span className="text-xs text-muted-foreground truncate">{stock.sector}</span>
+            </div>
+            <p className="text-sm font-medium mt-1 truncate">{stock.company}</p>
+          </div>
+          <Button
+            variant="ghost"
+            size="icon"
+            className={cn(
+              'h-7 w-7 shrink-0',
+              inWatchlist ? 'text-amber-500' : 'text-muted-foreground'
+            )}
+            onClick={(e) => {
+              e.stopPropagation();
+              onAddToWatchlist(stock.ticker, stock.company);
+            }}
+            disabled={inWatchlist}
+          >
+            <Star className={cn('h-4 w-4', inWatchlist && 'fill-amber-500')} />
+          </Button>
+        </div>
+        <div className="flex items-center justify-between mt-2 pt-2 border-t border-border/50">
+          <span className="font-semibold tabular-nums">${stock.price.toFixed(2)}</span>
+          <div className={cn(
+            "flex items-center gap-1 text-sm font-medium",
+            isUp ? "text-emerald-500" : "text-rose-500"
+          )}>
+            {isUp ? <TrendingUp className="h-3.5 w-3.5" /> : <TrendingDown className="h-3.5 w-3.5" />}
+            <span className="tabular-nums">{isUp ? '+' : ''}{stock.changePercent.toFixed(2)}%</span>
+          </div>
+          <span className="text-xs text-muted-foreground tabular-nums">{formatMarketCap(stock.marketCap)}</span>
+        </div>
+      </div>
+    );
+  };
+
   return (
-    <Card className="bg-card border-border/50">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Stock</TableHead>
-            <TableHead>Sector</TableHead>
-            <SortableHeader column="price">Price</SortableHeader>
-            <SortableHeader column="change">Change</SortableHeader>
-            <SortableHeader column="volume">Volume</SortableHeader>
-            <SortableHeader column="marketCap">Market Cap</SortableHeader>
-            <TableHead className="w-12"></TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {results.map((stock) => {
-            const inWatchlist = isInWatchlist(stock.ticker);
-            const isUp = stock.changePercent >= 0;
-            
-            return (
-              <TableRow 
-                key={stock.ticker} 
-                className="group cursor-pointer hover:bg-muted/50"
-                onClick={() => onRowClick(stock)}
-              >
-                <TableCell>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <Badge variant="outline" className="font-mono text-xs">
-                        {stock.ticker}
-                      </Badge>
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-0.5 truncate max-w-[200px]">
-                      {stock.company}
-                    </p>
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <Badge variant="secondary" className="text-xs font-normal">
-                    {stock.sector}
-                  </Badge>
-                </TableCell>
-                <TableCell className="text-right">
-                  <span className="font-medium tabular-nums">
-                    ${stock.price.toFixed(2)}
-                  </span>
-                </TableCell>
-                <TableCell className="text-right">
-                  <div className={cn(
-                    "flex items-center justify-end gap-1",
-                    isUp ? "text-emerald-500" : "text-rose-500"
-                  )}>
-                    {isUp ? <TrendingUp className="h-3.5 w-3.5" /> : <TrendingDown className="h-3.5 w-3.5" />}
-                    <span className="font-medium tabular-nums">
-                      {isUp ? '+' : ''}{stock.changePercent.toFixed(2)}%
-                    </span>
-                  </div>
-                </TableCell>
-                <TableCell className="text-right">
-                  <div>
-                    <span className="font-medium tabular-nums">{formatVolume(stock.volume)}</span>
-                    {stock.relativeVolume && stock.relativeVolume > 1.5 && (
-                      <p className="text-xs text-amber-500">
-                        {stock.relativeVolume.toFixed(1)}x avg
+    <>
+      {/* Desktop Table */}
+      <Card className="bg-card border-border/50 hidden md:block">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Stock</TableHead>
+              <TableHead>Sector</TableHead>
+              <SortableHeader column="price">Price</SortableHeader>
+              <SortableHeader column="change">Change</SortableHeader>
+              <SortableHeader column="volume">Volume</SortableHeader>
+              <SortableHeader column="marketCap">Mkt Cap</SortableHeader>
+              <TableHead className="w-12"></TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {results.map((stock) => {
+              const inWatchlist = isInWatchlist(stock.ticker);
+              const isUp = stock.changePercent >= 0;
+              
+              return (
+                <TableRow 
+                  key={stock.ticker} 
+                  className="group cursor-pointer hover:bg-muted/50"
+                  onClick={() => onRowClick(stock)}
+                >
+                  <TableCell>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <Badge variant="outline" className="font-mono text-xs">
+                          {stock.ticker}
+                        </Badge>
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-0.5 truncate max-w-[200px]">
+                        {stock.company}
                       </p>
-                    )}
-                  </div>
-                </TableCell>
-                <TableCell className="text-right text-muted-foreground tabular-nums">
-                  {formatMarketCap(stock.marketCap)}
-                </TableCell>
-                <TableCell>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className={cn(
-                      'h-8 w-8',
-                      inWatchlist
-                        ? 'text-amber-500'
-                        : 'opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-amber-500'
-                    )}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onAddToWatchlist(stock.ticker, stock.company);
-                    }}
-                    disabled={inWatchlist}
-                  >
-                    <Star className={cn('h-4 w-4', inWatchlist && 'fill-amber-500')} />
-                  </Button>
-                </TableCell>
-              </TableRow>
-            );
-          })}
-        </TableBody>
-      </Table>
-    </Card>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="secondary" className="text-xs font-normal">
+                      {stock.sector}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <span className="font-medium tabular-nums">
+                      ${stock.price.toFixed(2)}
+                    </span>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <div className={cn(
+                      "flex items-center justify-end gap-1",
+                      isUp ? "text-emerald-500" : "text-rose-500"
+                    )}>
+                      {isUp ? <TrendingUp className="h-3.5 w-3.5" /> : <TrendingDown className="h-3.5 w-3.5" />}
+                      <span className="font-medium tabular-nums">
+                        {isUp ? '+' : ''}{stock.changePercent.toFixed(2)}%
+                      </span>
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <div>
+                      <span className="font-medium tabular-nums">{formatVolume(stock.volume)}</span>
+                      {stock.relativeVolume && stock.relativeVolume > 1.5 && (
+                        <p className="text-xs text-amber-500">
+                          {stock.relativeVolume.toFixed(1)}x avg
+                        </p>
+                      )}
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-right text-muted-foreground tabular-nums">
+                    {formatMarketCap(stock.marketCap)}
+                  </TableCell>
+                  <TableCell>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className={cn(
+                        'h-8 w-8',
+                        inWatchlist
+                          ? 'text-amber-500'
+                          : 'opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-amber-500'
+                      )}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onAddToWatchlist(stock.ticker, stock.company);
+                      }}
+                      disabled={inWatchlist}
+                    >
+                      <Star className={cn('h-4 w-4', inWatchlist && 'fill-amber-500')} />
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              );
+            })}
+          </TableBody>
+        </Table>
+      </Card>
+      
+      {/* Mobile Card List */}
+      <div className="md:hidden space-y-2">
+        {results.map((stock) => (
+          <MobileResultCard key={stock.ticker} stock={stock} />
+        ))}
+      </div>
+    </>
   );
 }
 
@@ -1083,43 +1144,45 @@ function ScreenerTab() {
   };
 
   return (
-    <div className="flex gap-6">
+    <div className="flex flex-col lg:flex-row gap-4 lg:gap-6">
       {/* Main Content */}
-      <div className="flex-1 space-y-6">
+      <div className="flex-1 space-y-4 sm:space-y-6 min-w-0">
         {/* Search Section */}
         <Card className="bg-card border-border/50">
-          <CardContent className="p-4 space-y-4">
-            <div className="flex gap-2">
+          <CardContent className="p-3 sm:p-4 space-y-3 sm:space-y-4">
+            <div className="flex flex-col sm:flex-row gap-2">
               <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground" />
                 <Input
-                  placeholder="e.g., 'Large cap tech gainers' or 'Under $20 high volume'"
+                  placeholder="e.g., 'Large cap tech gainers'"
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                  className="pl-10 h-12 text-base"
+                  className="pl-9 sm:pl-10 h-10 sm:h-12 text-sm sm:text-base"
                 />
                 {query && (
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="absolute right-2 top-1/2 -translate-y-1/2 h-7 w-7"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 h-6 w-6 sm:h-7 sm:w-7"
                     onClick={() => setQuery('')}
                   >
-                    <X className="h-4 w-4" />
+                    <X className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                   </Button>
                 )}
               </div>
-              <Button onClick={handleSearch} disabled={!query.trim() || isLoading} className="h-12 px-6">
-                {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Screen'}
-              </Button>
-              <AdvancedFiltersSheet criteria={criteria} onApply={(c) => runScreen(c, query || 'Advanced filters')} />
-              {query.trim() && results.length > 0 && (
-                <Button variant="outline" onClick={handleSaveScreen} className="h-12">
-                  <Save className="h-4 w-4 mr-2" />
-                  Save
+              <div className="flex gap-2">
+                <Button onClick={handleSearch} disabled={!query.trim() || isLoading} className="h-10 sm:h-12 px-4 sm:px-6 flex-1 sm:flex-initial">
+                  {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Screen'}
                 </Button>
-              )}
+                <AdvancedFiltersSheet criteria={criteria} onApply={(c) => runScreen(c, query || 'Advanced filters')} />
+                {query.trim() && results.length > 0 && (
+                  <Button variant="outline" onClick={handleSaveScreen} className="h-10 sm:h-12 px-3">
+                    <Save className="h-4 w-4 sm:mr-2" />
+                    <span className="hidden sm:inline">Save</span>
+                  </Button>
+                )}
+              </div>
             </div>
 
             {/* Example Badges */}
@@ -1144,14 +1207,15 @@ function ScreenerTab() {
 
         {/* Explanation / Stats */}
         {(explanation || totalCount > 0) && (
-          <div className="bg-muted/50 border border-border/50 rounded-lg px-4 py-3 flex items-center justify-between">
-            <p className="text-sm">{explanation}</p>
+          <div className="bg-muted/50 border border-border/50 rounded-lg px-3 sm:px-4 py-2 sm:py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <p className="text-xs sm:text-sm">{explanation}</p>
             {results.length > 0 && (
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => runScreen(criteria, query)}
                 disabled={isLoading}
+                className="self-end sm:self-auto"
               >
                 <RefreshCw className={cn("h-4 w-4 mr-2", isLoading && "animate-spin")} />
                 Refresh
@@ -1173,18 +1237,40 @@ function ScreenerTab() {
         />
       </div>
 
-      {/* Sidebar */}
-      <div className="w-72 space-y-4 flex-shrink-0">
-        <AppliedFiltersCard criteria={criteria} />
-        <SavedScreensList
-          screens={savedScreens}
-          onSelect={(f, q) => runScreen(f, q)}
-          onDelete={handleDeleteScreen}
-        />
-        <QuickScreensCard onSelect={(f, name) => {
-          setQuery(name);
-          runScreen(f, name);
-        }} />
+      {/* Sidebar - collapses to horizontal scroll on mobile */}
+      <div className="lg:w-72 lg:space-y-4 lg:flex-shrink-0">
+        {/* Mobile: horizontal scroll of quick screens */}
+        <div className="lg:hidden">
+          <div className="flex gap-2 overflow-x-auto pb-2 -mx-4 px-4 hide-scrollbar-mobile">
+            {Object.entries(QUICK_SCREENS).slice(0, 8).map(([key, screen]) => (
+              <Button
+                key={key}
+                variant="outline"
+                size="sm"
+                className="whitespace-nowrap flex-shrink-0 text-xs h-8"
+                onClick={() => {
+                  setQuery(screen.name);
+                  runScreen(screen.criteria, screen.name);
+                }}
+              >
+                {screen.name}
+              </Button>
+            ))}
+          </div>
+        </div>
+        {/* Desktop: full sidebar */}
+        <div className="hidden lg:block space-y-4">
+          <AppliedFiltersCard criteria={criteria} />
+          <SavedScreensList
+            screens={savedScreens}
+            onSelect={(f, q) => runScreen(f, q)}
+            onDelete={handleDeleteScreen}
+          />
+          <QuickScreensCard onSelect={(f, name) => {
+            setQuery(name);
+            runScreen(f, name);
+          }} />
+        </div>
       </div>
     </div>
   );
@@ -1195,36 +1281,36 @@ function ScreenerTab() {
 // =====================
 export default function AssetResearch() {
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-4 sm:p-6 space-y-4 sm:space-y-6 pb-20 md:pb-6">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold flex items-center gap-2">
-          <Search className="h-6 w-6 text-primary" />
+        <h1 className="text-xl sm:text-2xl font-bold flex items-center gap-2">
+          <Search className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
           Asset Research
         </h1>
-        <p className="text-muted-foreground mt-1">
-          Search individual tickers or screen 10,000+ stocks with natural language
+        <p className="text-muted-foreground text-sm sm:text-base mt-1">
+          Search tickers or screen stocks with natural language
         </p>
       </div>
 
       {/* Tabs */}
       <Tabs defaultValue="screener" className="w-full">
-        <TabsList className="grid w-full max-w-md grid-cols-2">
-          <TabsTrigger value="screener" className="gap-2">
-            <Sparkles className="h-4 w-4" />
-            Stock Screener
+        <TabsList className="grid w-full max-w-md grid-cols-2 h-10">
+          <TabsTrigger value="screener" className="gap-1.5 text-xs sm:text-sm">
+            <Sparkles className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+            <span className="hidden xs:inline">Stock</span> Screener
           </TabsTrigger>
-          <TabsTrigger value="ticker" className="gap-2">
-            <Search className="h-4 w-4" />
-            Ticker Lookup
+          <TabsTrigger value="ticker" className="gap-1.5 text-xs sm:text-sm">
+            <Search className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+            <span className="hidden xs:inline">Ticker</span> Lookup
           </TabsTrigger>
         </TabsList>
         
-        <TabsContent value="screener" className="mt-6">
+        <TabsContent value="screener" className="mt-4 sm:mt-6">
           <ScreenerTab />
         </TabsContent>
         
-        <TabsContent value="ticker" className="mt-6">
+        <TabsContent value="ticker" className="mt-4 sm:mt-6">
           <div className="max-w-4xl">
             <TickerSearchTab />
           </div>
