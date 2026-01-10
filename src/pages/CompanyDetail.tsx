@@ -23,7 +23,7 @@ import { AnalystSocialPanel } from '@/components/research/AnalystSocialPanel';
 import { MessageCircle } from 'lucide-react';
 import { CompanySummaryCard } from '@/components/companies/CompanySummaryCard';
 import { CompanyContactsCard } from '@/components/companies/CompanyContactsCard';
-import { CompanyNotesSection } from '@/components/companies/CompanyNotesSection';
+import { NotesTasksTab } from '@/components/companies/NotesTasksTab';
 import { DataExtractionPanel } from '@/components/companies/DataExtractionPanel';
 import { ExtractedFieldsDisplay } from '@/components/companies/ExtractedFieldsDisplay';
 import {
@@ -352,21 +352,11 @@ export default function CompanyDetail() {
               <LayoutDashboard className="h-5 w-5" />
               Overview
             </TabsTrigger>
-            <TabsTrigger value="tasks" className="gap-2 text-base px-5 py-3">
+            <TabsTrigger value="notes-tasks" className="gap-2 text-base px-5 py-3">
               <CheckSquare className="h-5 w-5" />
-              Tasks
+              Notes & Tasks
             </TabsTrigger>
-            <TabsTrigger value="dataroom" className="gap-2 text-base px-5 py-3">
-              <FolderOpen className="h-5 w-5" />
-              Data Room
-              {documents.length > 0 && (
-                <Badge variant="secondary" className="ml-1">{documents.length}</Badge>
-              )}
-            </TabsTrigger>
-            <TabsTrigger value="notes" className="gap-2 text-base px-5 py-3">
-              <StickyNote className="h-5 w-5" />
-              Notes
-            </TabsTrigger>
+            {/* Data Room tab hidden */}
             {isPublicEquity && (
               <TabsTrigger value="backtest" className="gap-2 text-base px-5 py-3">
                 <BarChart3 className="h-5 w-5" />
@@ -403,15 +393,12 @@ export default function CompanyDetail() {
           </TabsList>
         </div>
 
-        {/* Tasks Tab */}
-        <TabsContent value="tasks">
-          <CompanyTasksTab companyId={company.id} companyName={company.name} />
+        {/* Notes & Tasks Tab */}
+        <TabsContent value="notes-tasks">
+          <NotesTasksTab companyId={company.id} companyName={company.name} />
         </TabsContent>
 
-        {/* Data Room Tab */}
-        <TabsContent value="dataroom">
-          <EmbeddedDataRoom companyId={company.id} companyName={company.name} tickerSymbol={company.ticker_symbol} />
-        </TabsContent>
+        {/* Data Room Tab - Hidden */}
 
         {/* Overview Tab */}
         <TabsContent value="overview" className="space-y-6">
@@ -706,10 +693,7 @@ export default function CompanyDetail() {
           )}
         </TabsContent>
 
-        {/* Notes Tab */}
-        <TabsContent value="notes">
-          <CompanyNotesSection companyId={company.id} />
-        </TabsContent>
+        {/* Notes Tab - Moved to combined Notes & Tasks */}
 
 
         {/* Backtest Tab - Public Equity Only */}
