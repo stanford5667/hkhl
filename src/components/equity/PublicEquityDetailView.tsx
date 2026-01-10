@@ -17,8 +17,9 @@ import { format } from 'date-fns';
 import {
   TrendingUp, TrendingDown, RefreshCw, Plus, Minus, Star, StarOff,
   Edit2, Check, X, DollarSign, BarChart3, Newspaper, StickyNote,
-  ArrowUpRight, ArrowDownRight, Wallet, Clock, Calendar
+  ArrowUpRight, ArrowDownRight, Wallet, Clock, Calendar, Crown
 } from 'lucide-react';
+import { PremiumBadge } from '@/components/ui/PremiumBadge';
 import { CompanyNotesSection } from '@/components/companies/CompanyNotesSection';
 import { CandlestickChart } from '@/components/charts/CandlestickChart';
 
@@ -527,7 +528,11 @@ export function PublicEquityDetailView({ company, onUpdate, showOnlyTransactions
               </div>
             </div>
           ) : (
-            <p className="text-muted-foreground">Price data unavailable</p>
+            <div className="flex flex-col items-center gap-2 py-4">
+              <Crown className="h-8 w-8 text-amber-500/50" />
+              <p className="font-medium">Premium Feature</p>
+              <PremiumBadge variant="inline" />
+            </div>
           )}
           
           {/* Day Stats Row */}
@@ -572,8 +577,11 @@ export function PublicEquityDetailView({ company, onUpdate, showOnlyTransactions
               defaultRange="3M"
             />
           ) : (
-            <div className="h-80 flex items-center justify-center text-muted-foreground">
-              No ticker symbol available for chart
+            <div className="h-80 flex flex-col items-center justify-center gap-2">
+              <Crown className="h-10 w-10 text-amber-500/50" />
+              <p className="font-medium">Premium Feature</p>
+              <p className="text-sm text-muted-foreground">Chart data requires premium access</p>
+              <PremiumBadge variant="inline" />
             </div>
           )}
         </CardContent>

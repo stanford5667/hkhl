@@ -6,8 +6,10 @@ import {
   Clock,
   AlertCircle,
   Zap,
-  BarChart3
+  BarChart3,
+  Crown
 } from 'lucide-react';
+import { PremiumBadge } from '@/components/ui/PremiumBadge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -219,11 +221,13 @@ export function IndustryNews({ companyId, companyName, industry }: IndustryNewsP
           ))}
         </div>
       ) : !error && !isLoading && (
-        <Card className="p-8 text-center">
-          <Newspaper className="h-12 w-12 text-muted-foreground mx-auto mb-4 opacity-50" />
-          <p className="text-muted-foreground">No news available. Click Refresh to fetch latest intelligence.</p>
-          <Button variant="outline" size="sm" className="mt-4" onClick={refresh}>
-            Fetch Intel
+        <Card className="p-8 flex flex-col items-center justify-center gap-3">
+          <Crown className="h-12 w-12 text-amber-500/50" />
+          <p className="font-medium text-lg">Premium Feature</p>
+          <p className="text-sm text-muted-foreground text-center">Industry news requires premium access</p>
+          <PremiumBadge />
+          <Button variant="outline" size="sm" className="mt-2" onClick={refresh}>
+            Try Refresh
           </Button>
         </Card>
       )}

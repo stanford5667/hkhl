@@ -20,6 +20,8 @@ import {
   formatRelativeTime,
 } from '@/hooks/useCompanyResearch';
 import { toast } from 'sonner';
+import { PremiumBadge } from '@/components/ui/PremiumBadge';
+import { Crown } from 'lucide-react';
 
 interface AnalystSocialPanelProps {
   ticker: string;
@@ -110,8 +112,13 @@ export function AnalystSocialPanel({ ticker, companyName }: AnalystSocialPanelPr
             </>
           ) : (
             <Card className="glass-card">
-              <CardContent className="p-6 text-center text-muted-foreground">
-                No analyst data available for {ticker}
+              <CardContent className="p-6 flex flex-col items-center justify-center gap-3">
+                <Crown className="h-10 w-10 text-amber-500/50" />
+                <p className="font-medium">Premium Feature</p>
+                <p className="text-sm text-muted-foreground text-center">
+                  Analyst reports for {ticker} require premium access
+                </p>
+                <PremiumBadge />
               </CardContent>
             </Card>
           )}
@@ -175,8 +182,13 @@ export function AnalystSocialPanel({ ticker, companyName }: AnalystSocialPanelPr
             </>
           ) : (
             <Card className="glass-card">
-              <CardContent className="p-6 text-center text-muted-foreground">
-                No social sentiment data available for {ticker}
+              <CardContent className="p-6 flex flex-col items-center justify-center gap-3">
+                <Crown className="h-10 w-10 text-amber-500/50" />
+                <p className="font-medium">Premium Feature</p>
+                <p className="text-sm text-muted-foreground text-center">
+                  Social sentiment for {ticker} requires premium access
+                </p>
+                <PremiumBadge />
               </CardContent>
             </Card>
           )}

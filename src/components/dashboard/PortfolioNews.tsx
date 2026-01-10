@@ -1,6 +1,7 @@
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Newspaper, ExternalLink, TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import { Newspaper, ExternalLink, TrendingUp, TrendingDown, Minus, Crown } from 'lucide-react';
+import { PremiumBadge } from '@/components/ui/PremiumBadge';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -110,9 +111,11 @@ export function PortfolioNews() {
           ))}
           
           {(!news || news.length === 0) && (
-            <div className="text-center py-8 text-muted-foreground">
-              <Newspaper className="h-8 w-8 mx-auto mb-2 opacity-50" />
-              <p className="text-sm">No portfolio news available</p>
+            <div className="text-center py-8 flex flex-col items-center gap-2">
+              <Crown className="h-8 w-8 text-amber-500/50" />
+              <p className="text-sm font-medium">Premium Feature</p>
+              <p className="text-xs text-muted-foreground">Real-time news requires premium</p>
+              <PremiumBadge variant="inline" />
             </div>
           )}
         </div>

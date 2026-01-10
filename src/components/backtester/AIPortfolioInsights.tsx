@@ -19,9 +19,11 @@ import {
   Info,
   Droplets,
   CheckCircle2,
-  XCircle
+  XCircle,
+  Crown
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { PremiumBadge } from '@/components/ui/PremiumBadge';
 
 export interface AIPortfolioAdvice {
   portfolioName: string;
@@ -368,9 +370,11 @@ export function AIPortfolioInsights({ advice, investableCapital }: AIPortfolioIn
             </Card>
           ) : (
             <Card>
-              <CardContent className="py-12 text-center text-muted-foreground">
-                <Droplets className="h-8 w-8 mx-auto mb-3 opacity-50" />
-                <p>Liquidity analysis not available</p>
+              <CardContent className="py-12 flex flex-col items-center justify-center gap-2">
+                <Crown className="h-8 w-8 text-amber-500/50" />
+                <p className="font-medium">Premium Feature</p>
+                <p className="text-sm text-muted-foreground">Liquidity analysis requires premium</p>
+                <PremiumBadge variant="inline" />
               </CardContent>
             </Card>
           )}

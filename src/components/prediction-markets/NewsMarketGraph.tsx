@@ -3,9 +3,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Network, ZoomIn, ZoomOut, Maximize2 } from 'lucide-react';
+import { Network, ZoomIn, ZoomOut, Maximize2, Crown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { NewsArticle } from './NewsIntelligenceDashboard';
+import { PremiumBadge } from '@/components/ui/PremiumBadge';
 
 interface NewsMarketGraphProps {
   articles: NewsArticle[];
@@ -150,8 +151,11 @@ export function NewsMarketGraph({ articles, onArticleSelect }: NewsMarketGraphPr
       <CardContent>
         <div className="relative h-[300px] bg-muted/30 rounded-lg overflow-hidden">
           {nodes.length === 0 ? (
-            <div className="flex items-center justify-center h-full text-muted-foreground">
-              No correlation data available
+            <div className="flex flex-col items-center justify-center h-full gap-2">
+              <Crown className="h-10 w-10 text-amber-500/50" />
+              <p className="font-medium">Premium Feature</p>
+              <p className="text-sm text-muted-foreground">Correlation data requires premium</p>
+              <PremiumBadge variant="inline" />
             </div>
           ) : (
             <svg 

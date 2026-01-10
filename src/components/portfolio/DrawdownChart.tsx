@@ -16,8 +16,9 @@ import {
   ResponsiveContainer,
   ReferenceLine,
 } from 'recharts';
-import { AlertTriangle } from 'lucide-react';
+import { AlertTriangle, Crown } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { PremiumBadge } from '@/components/ui/PremiumBadge';
 
 interface DrawdownChartProps {
   dates: string[];
@@ -106,8 +107,10 @@ export function DrawdownChart({
           <CardTitle className="text-lg font-semibold">Drawdown Analysis</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="h-[200px] flex items-center justify-center text-muted-foreground">
-            No data available
+          <div className="h-[200px] flex flex-col items-center justify-center gap-2">
+            <Crown className="h-8 w-8 text-amber-500/50" />
+            <p className="text-sm text-muted-foreground">Premium Feature</p>
+            <PremiumBadge variant="inline" />
           </div>
         </CardContent>
       </Card>

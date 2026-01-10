@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { BarChart3, X } from 'lucide-react';
+import { BarChart3, X, Crown } from 'lucide-react';
+import { PremiumBadge } from '@/components/ui/PremiumBadge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -52,8 +53,10 @@ export function TickerHeatmap({ articles, onTickerClick, selectedTicker }: Ticke
             Ticker Heatmap
           </CardTitle>
         </CardHeader>
-        <CardContent className="flex items-center justify-center h-24">
-          <p className="text-xs text-slate-500">No ticker data available</p>
+        <CardContent className="flex flex-col items-center justify-center h-24 gap-1">
+          <Crown className="h-5 w-5 text-amber-500/50" />
+          <p className="text-xs font-medium">Premium Feature</p>
+          <PremiumBadge variant="inline" />
         </CardContent>
       </Card>
     );

@@ -67,7 +67,9 @@ import {
   CheckCircle2,
   XCircle,
   Clock,
+  Crown,
 } from 'lucide-react';
+import { PremiumBadge } from '@/components/ui/PremiumBadge';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -794,12 +796,13 @@ export function MarketDataDetail({ item, open, onOpenChange }: MarketDataDetailP
                   </AreaChart>
                 </ResponsiveContainer>
               ) : (
-                <div className="h-[400px] flex items-center justify-center text-muted-foreground">
-                  <div className="text-center">
-                    <BarChart3 className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                    <p>No historical data available for this symbol.</p>
-                    <p className="text-sm mt-1">This may be due to symbol format or data availability.</p>
-                  </div>
+                <div className="h-[400px] flex flex-col items-center justify-center gap-3">
+                  <Crown className="h-12 w-12 text-amber-500/50" />
+                  <p className="font-medium text-lg">Premium Feature</p>
+                  <p className="text-sm text-muted-foreground text-center">
+                    Historical data requires premium access
+                  </p>
+                  <PremiumBadge />
                 </div>
               )}
             </Card>
