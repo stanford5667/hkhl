@@ -60,7 +60,7 @@ export function ChooseYourPath({ onSelectManual, onSelectAIChat, onSelectQuestio
         </p>
         <Badge className="bg-primary/10 text-primary border-primary/20 px-4 py-2 text-sm">
           <BarChart3 className="h-4 w-4 mr-2 inline-block" />
-          📊 Powered by Real Market Data from Polygon.io
+          📊 Real Market Data Analysis
         </Badge>
       </motion.div>
 
@@ -340,15 +340,14 @@ export function ChooseYourPath({ onSelectManual, onSelectAIChat, onSelectQuestio
       >
         <div className="flex items-center gap-2">
           <CheckCircle2 className="h-4 w-4 text-emerald-500" />
-          <span>All analysis uses real market data</span>
+          <span>Real market data analysis</span>
         </div>
         <div className="flex items-center gap-2">
           <Lock className="h-4 w-4 text-emerald-500" />
-          <span>Your data is never shared</span>
+          <span>Your data stays private</span>
         </div>
-        <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-muted/50">
-          <span className="font-medium">Polygon.io</span>
-          <span>•</span>
+        <div className="flex items-center gap-2">
+          <TrendingUp className="h-4 w-4 text-emerald-500" />
           <span>Institutional-grade analysis</span>
         </div>
       </motion.div>

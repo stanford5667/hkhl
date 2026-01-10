@@ -168,7 +168,7 @@ const DEFAULT_PROFILE: InvestorProfile = {
 // Data Source Badge Component
 function DataSourceBadge({ status, className }: { status: 'live' | 'cached' | 'warning' | 'error'; className?: string }) {
   const configs = {
-    live: { color: 'bg-emerald-500', text: 'Live Polygon Data', icon: CircleDot },
+    live: { color: 'bg-emerald-500', text: 'Live Data', icon: CircleDot },
     cached: { color: 'bg-blue-500', text: 'Cached Data', icon: Database },
     warning: { color: 'bg-amber-500', text: 'Data Warnings', icon: AlertTriangle },
     error: { color: 'bg-rose-500', text: 'Data Issues', icon: AlertTriangle },
@@ -197,7 +197,7 @@ function DataSourceBadge({ status, className }: { status: 'live' | 'cached' | 'w
           </Badge>
         </TooltipTrigger>
         <TooltipContent>
-          <p>All market data fetched from Polygon.io API</p>
+          <p>Real-time market data analysis</p>
         </TooltipContent>
       </Tooltip>
     </TooltipProvider>
@@ -1269,35 +1269,6 @@ export default function PortfolioVisualizer() {
           onSelectAIChat={() => setCurrentFlow('ai-wizard')}
           onSelectQuestionnaire={() => setCurrentFlow('questionnaire')}
         />
-        
-        {/* Saved Portfolios Section */}
-        {user && savedPortfolios.length > 0 && (
-          <div className="max-w-6xl mx-auto px-6 pb-12">
-            <Card>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-lg bg-primary/10">
-                      <FolderOpen className="h-5 w-5 text-primary" />
-                    </div>
-                    <div>
-                      <CardTitle>Saved Portfolios</CardTitle>
-                      <CardDescription>Continue where you left off</CardDescription>
-                    </div>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <SavedPortfoliosPanel
-                  portfolios={savedPortfolios}
-                  onLoad={loadPortfolio}
-                  onDelete={(id) => deleteSharedPortfolio(id)}
-                  isDeleting={isDeletingShared}
-                />
-              </CardContent>
-            </Card>
-          </div>
-        )}
       </div>
     );
   }
