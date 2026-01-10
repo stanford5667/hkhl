@@ -58,6 +58,7 @@ import {
   EyeOff,
   Newspaper,
   Building2,
+  Search,
 } from "lucide-react";
 
 interface NavItem {
@@ -176,6 +177,12 @@ export function Sidebar() {
         subtitle: "Research & Insights",
         href: "/market-intel", 
         icon: BarChart3 
+      },
+      { 
+        label: "Asset Research", 
+        subtitle: "Company Details",
+        href: "/asset-research", 
+        icon: Search 
       },
       // Backtester hidden
       { 
