@@ -180,16 +180,9 @@ export function Sidebar() {
       },
       { 
         label: "Asset Research", 
-        subtitle: "Company Details",
+        subtitle: "Screener & Lookup",
         href: "/asset-research", 
         icon: Search 
-      },
-      // Backtester hidden
-      { 
-        label: "Screener", 
-        subtitle: "AI Stock Screener",
-        href: "/screener", 
-        icon: SparklesIcon 
       },
       // { 
       //   label: "Discovery", 
