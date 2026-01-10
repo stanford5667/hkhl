@@ -1375,7 +1375,7 @@ ${a.description}`).join('\n\n')}
       </header>
 
       {/* Main content - scrollable for multi-question pages */}
-      <main className="relative pt-16 sm:pt-24 pb-28 sm:pb-32 px-4 sm:px-6 min-h-[100dvh]">
+      <main className="relative pt-16 sm:pt-24 pb-40 sm:pb-32 px-4 sm:px-6 min-h-[100dvh]">
         <div className="max-w-2xl mx-auto w-full">
           <AnimatePresence mode="wait">
             <motion.div
