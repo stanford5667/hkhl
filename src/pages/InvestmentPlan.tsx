@@ -245,13 +245,13 @@ interface InvestmentPlan {
   created_at: string;
   updated_at: string;
   name: string;
-  responses: Record<string, any>;
-  risk_score: number;
-  risk_profile: string;
-  investor_type: string;
-  investor_type_name: string;
-  plan_content: string;
-  status: 'draft' | 'complete';
+  responses: Record<string, any> | null;
+  risk_score: number | null;
+  risk_profile: string | null;
+  investor_type: string | null;
+  investor_type_name: string | null;
+  plan_content: string | null;
+  status: string | null;
 }
 
 export default function InvestmentPlanPage() {
@@ -285,7 +285,11 @@ export default function InvestmentPlanPage() {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setPlans(data || []);
+      // Cast the data to our interface type
+      setPlans((data || []).map(item => ({
+        ...item,
+        responses: item.responses as Record<string, any> | null,
+      })) as InvestmentPlan[]);
     } catch (err) {
       console.error('Error fetching plans:', err);
       toast.error('Failed to load investment plans');
@@ -345,9 +349,14 @@ export default function InvestmentPlanPage() {
 
       if (error) throw error;
 
-      setPlans(prev => [data, ...prev]);
+      const newPlan: InvestmentPlan = {
+        ...data,
+        responses: data.responses as Record<string, any> | null,
+      };
+      
+      setPlans(prev => [newPlan, ...prev]);
       setShowQuestionnaire(false);
-      setSelectedPlan(data);
+      setSelectedPlan(newPlan);
       setViewPlanOpen(true);
       toast.success('Investment plan saved!');
     } catch (err) {

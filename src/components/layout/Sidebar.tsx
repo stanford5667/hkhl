@@ -59,6 +59,7 @@ import {
   Newspaper,
   Building2,
   Search,
+  ClipboardList,
 } from "lucide-react";
 
 interface NavItem {
@@ -153,6 +154,12 @@ export function Sidebar() {
         subtitle: "Build & Analyze",
         href: "/portfolio-visualizer", 
         icon: PieChart 
+      },
+      { 
+        label: "Investment Plan", 
+        subtitle: "AI Strategy",
+        href: "/investment-plan", 
+        icon: ClipboardList 
       },
       { 
         label: "Portfolio Tracker", 
