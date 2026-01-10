@@ -156,8 +156,8 @@ function limitToPolygonPlanDates(startDate: string, endDate: string): { start: s
 // Fetch with retry and exponential backoff for rate limiting
 async function fetchWithRetry(
   url: string,
-  maxRetries = 3,
-  baseDelay = 1000
+  maxRetries = 5,
+  baseDelay = 2000
 ): Promise<{ ok: boolean; status: number; text: string }> {
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     const res = await fetch(url);
@@ -165,7 +165,8 @@ async function fetchWithRetry(
 
     // If rate limited (429), wait and retry with exponential backoff
     if (res.status === 429 && attempt < maxRetries) {
-      const delay = baseDelay * Math.pow(2, attempt) + Math.random() * 500;
+      // Longer delays: 2s, 4s, 8s, 16s, 32s + jitter
+      const delay = baseDelay * Math.pow(2, attempt) + Math.random() * 1000;
       console.log(`[polygon-aggs] Rate limited (429), retry ${attempt + 1}/${maxRetries} after ${delay.toFixed(0)}ms`);
       await sleep(delay);
       continue;
@@ -297,7 +298,7 @@ serve(async (req) => {
 
       url = data.next_url ? `${data.next_url}&apiKey=${POLYGON_API_KEY}` : null;
       // Add longer delay between paginated requests to avoid rate limits
-      if (url) await sleep(500);
+      if (url) await sleep(1500);
     }
 
     console.log(`[polygon-aggs] Got ${allResults.length} bars for ${ticker} from API`);
