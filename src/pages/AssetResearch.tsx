@@ -191,23 +191,25 @@ function TickerSearchTab() {
   };
 
   const viewFullDetails = async () => {
-    if (!tickerDetails || !user) {
-      toast.error('Please sign in to view full details');
-      return;
+    if (!tickerDetails) return;
+
+    // If user is logged in, check for existing portfolio entry
+    if (user) {
+      const { data: existingCompany } = await supabase
+        .from('companies')
+        .select('id')
+        .eq('ticker_symbol', tickerDetails.ticker)
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (existingCompany) {
+        navigate(`/portfolio/${existingCompany.id}`);
+        return;
+      }
     }
 
-    const { data: existingCompany } = await supabase
-      .from('companies')
-      .select('id')
-      .eq('ticker_symbol', tickerDetails.ticker)
-      .eq('user_id', user.id)
-      .maybeSingle();
-
-    if (existingCompany) {
-      navigate(`/portfolio/${existingCompany.id}`);
-    } else {
-      navigate(`/stock/${tickerDetails.ticker}`);
-    }
+    // Navigate to public stock view (works for both auth'd and unauth'd users)
+    navigate(`/stock/${tickerDetails.ticker}`);
   };
 
   const formatMktCap = (value: number | undefined) => {
