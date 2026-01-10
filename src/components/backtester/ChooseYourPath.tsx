@@ -1,4 +1,4 @@
-// Choose Your Path - Manual vs AI Chat vs IPS Questionnaire landing experience
+// Choose Your Path - Manual vs Quick Advisor vs AI Deep Advisor landing experience
 import { useEffect, useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
