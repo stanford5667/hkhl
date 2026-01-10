@@ -1080,7 +1080,7 @@ export default function Screener() {
               AI Stock Screener
             </h1>
             <p className="text-muted-foreground mt-1">
-              Search 10,000+ stocks with natural language powered by Polygon.io
+              Search 10,000+ stocks with natural language
             </p>
           </div>
 
