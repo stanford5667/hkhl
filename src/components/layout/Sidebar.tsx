@@ -60,6 +60,7 @@ import {
   Building2,
   Search,
   ClipboardList,
+  Headphones,
 } from "lucide-react";
 
 interface NavItem {
@@ -190,6 +191,12 @@ export function Sidebar() {
         subtitle: "Screener & Lookup",
         href: "/asset-research", 
         icon: Search 
+      },
+      { 
+        label: "Support", 
+        subtitle: "Help & Tickets",
+        href: "/support", 
+        icon: Headphones 
       },
       // { 
       //   label: "Discovery", 
