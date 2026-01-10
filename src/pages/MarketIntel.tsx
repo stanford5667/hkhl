@@ -21,10 +21,18 @@ import {
 import { usePortfolioTotals, useAlerts, useDealPipeline, usePortfolioAssets, useAssetAllocation, useEvents, useEconomicIndicators, useCovenants, useMATransactions, usePEFunds } from '@/hooks/useMarketIntel';
 import { LiveMacroContent } from '@/components/markets/LiveMacroContent';
 import { useCommodities, useForex, groupCommoditiesByCategory, groupForexByCategory, type CommodityData, type ForexData } from '@/hooks/useForexCommodities';
+import { MarketDataDetail, type MarketDataItem } from '@/components/market-intel/MarketDataDetail';
 
 export default function MarketIntel() {
   const [activeTab, setActiveTab] = useState('macro');
   const [showUpgradeDialog, setShowUpgradeDialog] = useState(false);
+  const [selectedItem, setSelectedItem] = useState<MarketDataItem | null>(null);
+  const [detailOpen, setDetailOpen] = useState(false);
+
+  const handleItemClick = (item: MarketDataItem) => {
+    setSelectedItem(item);
+    setDetailOpen(true);
+  };
 
   const handleTabChange = (value: string) => {
     if (value === 'commodities' || value === 'currencies') {
@@ -130,11 +138,11 @@ export default function MarketIntel() {
 
 
         <TabsContent value="commodities" className="mt-6">
-          <CommoditiesContent />
+          <CommoditiesContent onItemClick={handleItemClick} />
         </TabsContent>
 
         <TabsContent value="currencies" className="mt-6">
-          <CurrenciesContent />
+          <CurrenciesContent onItemClick={handleItemClick} />
         </TabsContent>
 
         <TabsContent value="macro" className="mt-6">
@@ -146,6 +154,13 @@ export default function MarketIntel() {
         </TabsContent>
 
       </Tabs>
+
+      {/* Market Data Detail Sheet */}
+      <MarketDataDetail 
+        item={selectedItem} 
+        open={detailOpen} 
+        onOpenChange={setDetailOpen} 
+      />
     </div>
   );
 }
@@ -1112,11 +1127,14 @@ function ResearchContent() {
 }
 
 // Commodity price display card
-function CommodityPriceCard({ commodity }: { commodity: CommodityData }) {
+function CommodityPriceCard({ commodity, onClick }: { commodity: CommodityData; onClick?: () => void }) {
   const isUp = commodity.change >= 0;
   
   return (
-    <div className="flex items-center justify-between p-3 rounded-lg bg-background/50 border border-border/50 hover:border-border transition-colors">
+    <div 
+      className="flex items-center justify-between p-3 rounded-lg bg-background/50 border border-border/50 hover:border-primary/50 hover:bg-primary/5 transition-colors cursor-pointer group"
+      onClick={onClick}
+    >
       <div className="flex items-center gap-3">
         <div className={`p-2 rounded-lg ${
           commodity.category === 'metals' ? 'bg-yellow-500/10' :
@@ -1136,29 +1154,50 @@ function CommodityPriceCard({ commodity }: { commodity: CommodityData }) {
           )}
         </div>
         <div>
-          <div className="font-medium text-sm">{commodity.name}</div>
+          <div className="font-medium text-sm group-hover:text-primary transition-colors">{commodity.name}</div>
           <div className="text-xs text-muted-foreground">
             {commodity.unit && `per ${commodity.unit}`}
           </div>
         </div>
       </div>
-      <div className="text-right">
-        <div className="font-bold tabular-nums">
-          ${commodity.price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+      <div className="flex items-center gap-2">
+        <div className="text-right">
+          <div className="font-bold tabular-nums">
+            ${commodity.price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+          </div>
+          <div className={`flex items-center justify-end gap-1 text-xs ${isUp ? 'text-emerald-400' : 'text-rose-400'}`}>
+            {isUp ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
+            <span className="tabular-nums">{isUp ? '+' : ''}{commodity.change.toFixed(2)}</span>
+            <span className="tabular-nums">({isUp ? '+' : ''}{commodity.changePercent.toFixed(2)}%)</span>
+          </div>
         </div>
-        <div className={`flex items-center justify-end gap-1 text-xs ${isUp ? 'text-emerald-400' : 'text-rose-400'}`}>
-          {isUp ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
-          <span className="tabular-nums">{isUp ? '+' : ''}{commodity.change.toFixed(2)}</span>
-          <span className="tabular-nums">({isUp ? '+' : ''}{commodity.changePercent.toFixed(2)}%)</span>
-        </div>
+        <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
       </div>
     </div>
   );
 }
 
-function CommoditiesContent() {
+function CommoditiesContent({ onItemClick }: { onItemClick: (item: MarketDataItem) => void }) {
   const { data, isLoading, error, lastUpdated, refetch } = useCommodities();
   const grouped = groupCommoditiesByCategory(data);
+
+  const handleCommodityClick = (commodity: CommodityData) => {
+    onItemClick({
+      symbol: commodity.symbol,
+      name: commodity.name,
+      price: commodity.price,
+      change: commodity.change,
+      changePercent: commodity.changePercent,
+      high: commodity.high,
+      low: commodity.low,
+      open: commodity.open,
+      prevClose: commodity.prevClose,
+      timestamp: commodity.timestamp,
+      category: commodity.category,
+      unit: commodity.unit,
+      type: 'commodity',
+    });
+  };
   
   if (isLoading && data.length === 0) {
     return (
@@ -1228,7 +1267,11 @@ function CommoditiesContent() {
           <div className="space-y-2">
             {grouped.metals.length > 0 ? (
               grouped.metals.map((commodity) => (
-                <CommodityPriceCard key={commodity.symbol} commodity={commodity} />
+                <CommodityPriceCard 
+                  key={commodity.symbol} 
+                  commodity={commodity} 
+                  onClick={() => handleCommodityClick(commodity)}
+                />
               ))
             ) : (
               <p className="text-sm text-muted-foreground py-4 text-center">No data available</p>
@@ -1245,7 +1288,11 @@ function CommoditiesContent() {
           <div className="space-y-2">
             {grouped.energy.length > 0 ? (
               grouped.energy.map((commodity) => (
-                <CommodityPriceCard key={commodity.symbol} commodity={commodity} />
+                <CommodityPriceCard 
+                  key={commodity.symbol} 
+                  commodity={commodity} 
+                  onClick={() => handleCommodityClick(commodity)}
+                />
               ))
             ) : (
               <p className="text-sm text-muted-foreground py-4 text-center">No data available</p>
@@ -1262,7 +1309,11 @@ function CommoditiesContent() {
           <div className="space-y-2 max-h-[500px] overflow-y-auto">
             {grouped.agriculture.length > 0 ? (
               grouped.agriculture.map((commodity) => (
-                <CommodityPriceCard key={commodity.symbol} commodity={commodity} />
+                <CommodityPriceCard 
+                  key={commodity.symbol} 
+                  commodity={commodity} 
+                  onClick={() => handleCommodityClick(commodity)}
+                />
               ))
             ) : (
               <p className="text-sm text-muted-foreground py-4 text-center">No data available</p>
@@ -1300,11 +1351,14 @@ function CommoditiesContent() {
 }
 
 // Currency pair display card
-function ForexPriceCard({ forex }: { forex: ForexData }) {
+function ForexPriceCard({ forex, onClick }: { forex: ForexData; onClick?: () => void }) {
   const isUp = forex.change >= 0;
   
   return (
-    <div className="flex items-center justify-between p-3 rounded-lg bg-background/50 border border-border/50 hover:border-border transition-colors">
+    <div 
+      className="flex items-center justify-between p-3 rounded-lg bg-background/50 border border-border/50 hover:border-primary/50 hover:bg-primary/5 transition-colors cursor-pointer group"
+      onClick={onClick}
+    >
       <div className="flex items-center gap-3">
         <div className={`p-2 rounded-lg ${
           forex.category === 'major' ? 'bg-blue-500/10' :
@@ -1318,28 +1372,50 @@ function ForexPriceCard({ forex }: { forex: ForexData }) {
           }`} />
         </div>
         <div>
-          <div className="font-medium text-sm">{forex.name}</div>
+          <div className="font-medium text-sm group-hover:text-primary transition-colors">{forex.name}</div>
           <div className="text-xs text-muted-foreground">
             {forex.base}/{forex.quote}
           </div>
         </div>
       </div>
-      <div className="text-right">
-        <div className="font-bold tabular-nums text-base">
-          {forex.price.toFixed(forex.quote === 'JPY' ? 3 : 5)}
+      <div className="flex items-center gap-2">
+        <div className="text-right">
+          <div className="font-bold tabular-nums text-base">
+            {forex.price.toFixed(forex.quote === 'JPY' ? 3 : 5)}
+          </div>
+          <div className={`flex items-center justify-end gap-1 text-xs ${isUp ? 'text-emerald-400' : 'text-rose-400'}`}>
+            {isUp ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
+            <span className="tabular-nums">{isUp ? '+' : ''}{forex.changePercent.toFixed(2)}%</span>
+          </div>
         </div>
-        <div className={`flex items-center justify-end gap-1 text-xs ${isUp ? 'text-emerald-400' : 'text-rose-400'}`}>
-          {isUp ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
-          <span className="tabular-nums">{isUp ? '+' : ''}{forex.changePercent.toFixed(2)}%</span>
-        </div>
+        <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
       </div>
     </div>
   );
 }
 
-function CurrenciesContent() {
+function CurrenciesContent({ onItemClick }: { onItemClick: (item: MarketDataItem) => void }) {
   const { data, isLoading, error, lastUpdated, refetch } = useForex();
   const grouped = groupForexByCategory(data);
+
+  const handleForexClick = (forex: ForexData) => {
+    onItemClick({
+      symbol: forex.symbol,
+      name: forex.name,
+      price: forex.price,
+      change: forex.change,
+      changePercent: forex.changePercent,
+      high: forex.high,
+      low: forex.low,
+      open: forex.open,
+      prevClose: forex.prevClose,
+      timestamp: forex.timestamp,
+      category: forex.category,
+      base: forex.base,
+      quote: forex.quote,
+      type: 'forex',
+    });
+  };
   
   if (isLoading && data.length === 0) {
     return (
@@ -1409,7 +1485,11 @@ function CurrenciesContent() {
           <div className="space-y-2">
             {grouped.major.length > 0 ? (
               grouped.major.map((forex) => (
-                <ForexPriceCard key={forex.symbol} forex={forex} />
+                <ForexPriceCard 
+                  key={forex.symbol} 
+                  forex={forex} 
+                  onClick={() => handleForexClick(forex)}
+                />
               ))
             ) : (
               <p className="text-sm text-muted-foreground py-4 text-center">No data available</p>
@@ -1426,7 +1506,11 @@ function CurrenciesContent() {
           <div className="space-y-2">
             {grouped.cross.length > 0 ? (
               grouped.cross.map((forex) => (
-                <ForexPriceCard key={forex.symbol} forex={forex} />
+                <ForexPriceCard 
+                  key={forex.symbol} 
+                  forex={forex} 
+                  onClick={() => handleForexClick(forex)}
+                />
               ))
             ) : (
               <p className="text-sm text-muted-foreground py-4 text-center">No data available</p>
@@ -1443,7 +1527,11 @@ function CurrenciesContent() {
           <div className="space-y-2 max-h-[500px] overflow-y-auto">
             {grouped.emerging.length > 0 ? (
               grouped.emerging.map((forex) => (
-                <ForexPriceCard key={forex.symbol} forex={forex} />
+                <ForexPriceCard 
+                  key={forex.symbol} 
+                  forex={forex} 
+                  onClick={() => handleForexClick(forex)}
+                />
               ))
             ) : (
               <p className="text-sm text-muted-foreground py-4 text-center">No data available</p>
