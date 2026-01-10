@@ -63,7 +63,7 @@ export function PortfolioSwitcher({
   const [selectedPortfolio, setSelectedPortfolio] = useState<SavedPortfolio | null>(null);
   const [newName, setNewName] = useState('');
 
-  const activePortfolio = portfolios.find(p => p.id === activePortfolioId);
+  const activePortfolio = portfolios.find(p => p.id === activePortfolioId) || portfolios[0];
 
   const handleDeleteClick = (portfolio: SavedPortfolio) => {
     setSelectedPortfolio(portfolio);
@@ -125,27 +125,13 @@ export function PortfolioSwitcher({
             <div className="flex items-center gap-2 truncate">
               <Briefcase className="h-4 w-4 shrink-0" />
               <span className="truncate">
-                {activePortfolio?.name || 'All Holdings'}
+                {activePortfolio?.name || 'Select Portfolio'}
               </span>
             </div>
             <ChevronDown className="h-4 w-4 shrink-0 ml-2 opacity-50" />
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start" className="w-[280px]">
-          {/* All Holdings option */}
-          <DropdownMenuItem
-            onClick={() => onSelect(null)}
-            className="flex items-center justify-between"
-          >
-            <div className="flex items-center gap-2">
-              <FolderOpen className="h-4 w-4" />
-              <span>All Holdings</span>
-            </div>
-            {!activePortfolioId && <Check className="h-4 w-4" />}
-          </DropdownMenuItem>
-          
-          {portfolios.length > 0 && <DropdownMenuSeparator />}
-          
           {/* Saved portfolios */}
           {portfolios.map((portfolio) => (
             <DropdownMenuItem
