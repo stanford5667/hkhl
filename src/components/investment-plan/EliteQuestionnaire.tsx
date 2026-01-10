@@ -455,70 +455,14 @@ const QUESTIONS = [
 ];
 
 // ============================================
-// PAGE GROUPINGS - Reduces clicks by 50%
+// PAGE GROUPINGS - One question per page
 // ============================================
-const PAGES = [
-  {
-    id: 'personality-1',
-    section: 'personality',
-    title: 'Your Investor DNA',
-    questions: ['personality-journey', 'personality-dinner-party'],
-  },
-  {
-    id: 'personality-2',
-    section: 'personality',
-    title: 'Risk & Decision Style',
-    questions: ['personality-regret', 'personality-restaurant'],
-  },
-  {
-    id: 'personality-3',
-    section: 'personality',
-    title: 'Time & Focus',
-    questions: ['personality-gardening', 'personality-winner'],
-  },
-  {
-    id: 'personality-4',
-    section: 'personality',
-    title: 'Your Portfolio Philosophy',
-    questions: ['personality-buffet', 'personality-wisdom'],
-  },
-  {
-    id: 'goals',
-    section: 'goals',
-    title: 'Your Investment Goals',
-    questions: ['goal-primary', 'goal-timeline', 'goal-amount'],
-  },
-  {
-    id: 'risk-behavior',
-    section: 'risk',
-    title: 'Risk Assessment',
-    questions: ['risk-scenario', 'risk-tolerance'],
-  },
-  {
-    id: 'risk-experience',
-    section: 'risk',
-    title: 'Your Experience',
-    questions: ['risk-experience'],
-  },
-  {
-    id: 'financial',
-    section: 'financial',
-    title: 'Financial Situation',
-    questions: ['income-stability', 'emergency-fund', 'existing-assets'],
-  },
-  {
-    id: 'preferences',
-    section: 'preferences',
-    title: 'Investment Preferences',
-    questions: ['pref-style', 'pref-assets', 'pref-involvement'],
-  },
-  {
-    id: 'vision',
-    section: 'vision',
-    title: 'Your Vision',
-    questions: ['vision-success'],
-  },
-];
+const PAGES = QUESTIONS.filter(q => q.id !== 'name').map(q => ({
+  id: q.id,
+  section: q.section,
+  title: SECTION_META[q.section]?.title || q.section,
+  questions: [q.id],
+}));
 
 // Helper to get question by ID
 const getQuestionById = (id: string) => QUESTIONS.find(q => q.id === id);
