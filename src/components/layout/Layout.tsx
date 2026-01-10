@@ -14,8 +14,6 @@ import { AuthGateDialog } from "@/components/auth/AuthGateDialog";
 import { useRequireAuth } from "@/hooks/useRequireAuth";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { WelcomeModal } from "@/components/onboarding/WelcomeModal";
-import { FeatureSpotlight } from "@/components/onboarding/FeatureSpotlight";
-import { QuickStartBanner } from "@/components/onboarding/QuickStartBanner";
 import { useOnboarding } from "@/hooks/useOnboarding";
 
 interface LayoutProps {
@@ -30,23 +28,8 @@ export function Layout({ children }: LayoutProps) {
   const isMobile = useIsMobile();
   
   // Onboarding state
-  const { 
-    shouldShowWelcome, 
-    shouldShowSpotlight, 
-    completeWelcome, 
-    dismissSpotlight 
-  } = useOnboarding();
+  const { shouldShowWelcome, completeWelcome } = useOnboarding();
   const [welcomeOpen, setWelcomeOpen] = useState(false);
-  
-  // Check localStorage for banner dismissal
-  const [bannerDismissed, setBannerDismissed] = useState(() => {
-    return localStorage.getItem('asset-labs-banner-dismissed') === 'true';
-  });
-  
-  const handleBannerDismiss = () => {
-    setBannerDismissed(true);
-    localStorage.setItem('asset-labs-banner-dismissed', 'true');
-  };
   
   // Show welcome modal on first visit
   useEffect(() => {
@@ -124,14 +107,6 @@ export function Layout({ children }: LayoutProps) {
         </div>
         <TopBar />
         
-        {/* Quick Start Banner for new users */}
-        {!bannerDismissed && !welcomeOpen && (
-          <QuickStartBanner 
-            show={true} 
-            onDismiss={handleBannerDismiss} 
-          />
-        )}
-        
         <main className="flex-1 overflow-auto custom-scrollbar pb-16 md:pb-0">
           {children}
         </main>
@@ -142,15 +117,9 @@ export function Layout({ children }: LayoutProps) {
       
       {/* Welcome Modal for first-time users */}
       <WelcomeModal 
-        open={welcomeOpen || shouldShowWelcome}
+        open={welcomeOpen}
         onOpenChange={setWelcomeOpen}
         onComplete={completeWelcome}
-      />
-      
-      {/* Feature Spotlight */}
-      <FeatureSpotlight 
-        show={shouldShowSpotlight}
-        onDismiss={dismissSpotlight}
       />
       
       {/* Global dialogs */}
