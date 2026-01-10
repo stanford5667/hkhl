@@ -56,7 +56,7 @@ export function TopBar() {
 
   return (
     <>
-      <header className="sticky top-0 z-40 flex items-center h-14 px-4 bg-slate-950/80 backdrop-blur-xl border-b border-slate-800">
+      <header className="sticky top-0 z-40 flex items-center h-12 sm:h-14 px-3 sm:px-4 bg-slate-950/80 backdrop-blur-xl border-b border-slate-800">
         {/* Left: Breadcrumbs */}
         <div className="flex items-center gap-2 min-w-0 flex-1">
           {pageMeta.parent ? (
@@ -72,34 +72,34 @@ export function TopBar() {
             </nav>
           ) : (
             <div className="flex flex-col">
-              <h1 className="text-white font-semibold text-sm">{pageMeta.title}</h1>
+              <h1 className="text-white font-semibold text-xs sm:text-sm truncate max-w-[120px] sm:max-w-none">{pageMeta.title}</h1>
               <p className="text-slate-500 text-xs hidden sm:block">{pageMeta.subtitle}</p>
             </div>
           )}
         </div>
 
-        {/* Center: Search */}
-        <div className="flex-1 max-w-md mx-4">
+        {/* Center: Search - compact on mobile */}
+        <div className="flex-1 max-w-md mx-2 sm:mx-4">
           <button
             onClick={() => setCommandOpen(true)}
-            className="flex items-center gap-2 w-full px-3 py-1.5 text-sm text-slate-500 bg-slate-900 border border-slate-800 rounded-lg hover:bg-slate-800 hover:border-slate-700 hover:text-slate-400 transition-all duration-200"
+            className="flex items-center gap-2 w-full px-2 sm:px-3 py-1.5 text-sm text-slate-500 bg-slate-900 border border-slate-800 rounded-lg hover:bg-slate-800 hover:border-slate-700 hover:text-slate-400 transition-all duration-200"
           >
             <Search className="h-4 w-4" />
             <span className="flex-1 text-left hidden sm:block">Search...</span>
-            <kbd className="hidden sm:inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[10px] font-medium text-slate-500 bg-slate-800 rounded">
+            <kbd className="hidden md:inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[10px] font-medium text-slate-500 bg-slate-800 rounded">
               <Command className="h-2.5 w-2.5" />K
             </kbd>
           </button>
         </div>
 
         {/* Right: Actions */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1 sm:gap-2">
           {/* Quick Add Dropdown */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button 
                 size="sm" 
-                className="h-8 gap-1 bg-emerald-600 hover:bg-emerald-500 text-white"
+                className="h-7 sm:h-8 gap-1 bg-emerald-600 hover:bg-emerald-500 text-white px-2 sm:px-3"
               >
                 <Plus className="h-4 w-4" />
                 <span className="hidden sm:inline">Add</span>
@@ -130,11 +130,11 @@ export function TopBar() {
               <Button 
                 variant="ghost" 
                 size="icon" 
-                className="relative h-8 w-8 text-slate-400 hover:text-white hover:bg-slate-800"
+                className="relative h-7 w-7 sm:h-8 sm:w-8 text-slate-400 hover:text-white hover:bg-slate-800"
               >
                 <Bell className="h-4 w-4" />
                 {notificationCount > 0 && (
-                  <span className="absolute -top-0.5 -right-0.5 flex items-center justify-center min-w-[16px] h-4 px-1 text-[10px] font-bold rounded-full bg-rose-500 text-white">
+                  <span className="absolute -top-0.5 -right-0.5 flex items-center justify-center min-w-[14px] sm:min-w-[16px] h-3.5 sm:h-4 px-1 text-[9px] sm:text-[10px] font-bold rounded-full bg-rose-500 text-white">
                     {notificationCount > 9 ? "9+" : notificationCount}
                   </span>
                 )}

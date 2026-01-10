@@ -402,26 +402,26 @@ export default function InvestmentPlanPage() {
   }
 
   return (
-    <div className="p-6 space-y-6 animate-fade-up">
+    <div className="p-4 sm:p-6 space-y-4 sm:space-y-6 animate-fade-up">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
         <div>
-          <h1 className="text-2xl font-bold flex items-center gap-3">
-            <Brain className="h-7 w-7 text-primary" />
+          <h1 className="text-xl sm:text-2xl font-bold flex items-center gap-2 sm:gap-3">
+            <Brain className="h-5 w-5 sm:h-7 sm:w-7 text-primary" />
             Investor DNA Assessment
           </h1>
-          <p className="text-muted-foreground mt-1">
-            Discover your investor personality type • Like Myers-Briggs for finance
+          <p className="text-muted-foreground text-sm sm:text-base mt-1">
+            Discover your investor personality type
           </p>
         </div>
 
         <Button 
           onClick={() => setShowQuestionnaire(true)}
-          className="gap-2 shadow-lg shadow-primary/25"
+          className="gap-2 shadow-lg shadow-primary/25 w-full sm:w-auto"
           size="lg"
         >
           <Sparkles className="h-4 w-4" />
-          Take the Assessment
+          Take Assessment
         </Button>
       </div>
 
@@ -441,7 +441,7 @@ export default function InvestmentPlanPage() {
         {/* My Plans Tab */}
         <TabsContent value="plans" className="mt-6">
           {isLoading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
               {[1, 2, 3].map(i => (
                 <Card key={i} className="bg-secondary/30 animate-pulse">
                   <CardContent className="p-6 h-48" />
@@ -450,14 +450,14 @@ export default function InvestmentPlanPage() {
             </div>
           ) : plans.length === 0 ? (
             <Card className="bg-gradient-to-br from-primary/5 via-purple-500/5 to-pink-500/5 border-primary/20 overflow-hidden">
-              <CardContent className="p-8 sm:p-12">
-                <div className="grid md:grid-cols-2 gap-8 items-center">
+              <CardContent className="p-6 sm:p-8 md:p-12">
+                <div className="grid md:grid-cols-2 gap-6 sm:gap-8 items-center">
                   {/* Left side - Content */}
                   <div className="text-center md:text-left">
-                    <Badge variant="secondary" className="mb-4 bg-primary/10 text-primary border-primary/20">
+                    <Badge variant="secondary" className="mb-3 sm:mb-4 bg-primary/10 text-primary border-primary/20 text-xs">
                       16 Personality Types
                     </Badge>
-                    <h3 className="text-2xl sm:text-3xl font-bold mb-3">
+                    <h3 className="text-xl sm:text-2xl md:text-3xl font-bold mb-2 sm:mb-3">
                       Discover Your Investor DNA
                     </h3>
                     <p className="text-muted-foreground mb-6 leading-relaxed">
