@@ -16,7 +16,7 @@ import {
   Landmark, Users, Sparkles, Bell, RefreshCw, DollarSign, TrendingUp, TrendingDown,
   BarChart3, Shield, AlertTriangle, ArrowUpRight, ArrowDownRight, Home, 
   LineChart, Coins, ChevronRight, AlertCircle, Calendar, ExternalLink,
-  Gem, Fuel, Wheat, Banknote
+  Gem, Fuel, Wheat, Banknote, Crown
 } from 'lucide-react';
 import { usePortfolioTotals, useAlerts, useDealPipeline, usePortfolioAssets, useAssetAllocation, useEvents, useEconomicIndicators, useCovenants, useMATransactions, usePEFunds } from '@/hooks/useMarketIntel';
 import { LiveMacroContent } from '@/components/markets/LiveMacroContent';
@@ -1302,7 +1302,10 @@ function CommoditiesContent({ onItemClick }: { onItemClick: (item: MarketDataIte
                 />
               ))
             ) : (
-              <p className="text-sm text-muted-foreground py-4 text-center">No data available</p>
+              <div className="flex flex-col items-center justify-center py-4 gap-2 text-amber-500/70">
+                <Crown className="h-5 w-5" />
+                <p className="text-xs font-medium">Premium Feature</p>
+              </div>
             )}
           </div>
         </Card>
@@ -1323,7 +1326,10 @@ function CommoditiesContent({ onItemClick }: { onItemClick: (item: MarketDataIte
                 />
               ))
             ) : (
-              <p className="text-sm text-muted-foreground py-4 text-center">No data available</p>
+              <div className="flex flex-col items-center justify-center py-4 gap-2 text-amber-500/70">
+                <Crown className="h-5 w-5" />
+                <p className="text-xs font-medium">Premium Feature</p>
+              </div>
             )}
           </div>
         </Card>
@@ -1344,7 +1350,10 @@ function CommoditiesContent({ onItemClick }: { onItemClick: (item: MarketDataIte
                 />
               ))
             ) : (
-              <p className="text-sm text-muted-foreground py-4 text-center">No data available</p>
+              <div className="flex flex-col items-center justify-center py-4 gap-2 text-amber-500/70">
+                <Crown className="h-5 w-5" />
+                <p className="text-xs font-medium">Premium Feature</p>
+              </div>
             )}
           </div>
         </Card>
@@ -1362,12 +1371,19 @@ function CommoditiesContent({ onItemClick }: { onItemClick: (item: MarketDataIte
           return (
             <Card key={item.label} className="bg-secondary/50 border-border p-4">
               <div className="text-xs text-muted-foreground mb-1">{item.label}</div>
-              <div className="text-xl font-bold tabular-nums">
-                {item.value ? `$${item.value.price.toLocaleString(undefined, { maximumFractionDigits: 2 })}` : '--'}
-              </div>
-              {item.value && (
-                <div className={`text-sm ${isUp ? 'text-emerald-400' : 'text-rose-400'}`}>
-                  {isUp ? '+' : ''}{item.value.changePercent.toFixed(2)}%
+              {item.value ? (
+                <>
+                  <div className="text-xl font-bold tabular-nums">
+                    ${item.value.price.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                  </div>
+                  <div className={`text-sm ${isUp ? 'text-emerald-400' : 'text-rose-400'}`}>
+                    {isUp ? '+' : ''}{item.value.changePercent.toFixed(2)}%
+                  </div>
+                </>
+              ) : (
+                <div className="flex items-center gap-1.5 text-amber-500/70 mt-1">
+                  <Crown className="h-4 w-4" />
+                  <span className="text-xs font-medium">Premium</span>
                 </div>
               )}
             </Card>
@@ -1520,7 +1536,10 @@ function CurrenciesContent({ onItemClick }: { onItemClick: (item: MarketDataItem
                 />
               ))
             ) : (
-              <p className="text-sm text-muted-foreground py-4 text-center">No data available</p>
+              <div className="flex flex-col items-center justify-center py-4 gap-2 text-amber-500/70">
+                <Crown className="h-5 w-5" />
+                <p className="text-xs font-medium">Premium Feature</p>
+              </div>
             )}
           </div>
         </Card>
@@ -1541,7 +1560,10 @@ function CurrenciesContent({ onItemClick }: { onItemClick: (item: MarketDataItem
                 />
               ))
             ) : (
-              <p className="text-sm text-muted-foreground py-4 text-center">No data available</p>
+              <div className="flex flex-col items-center justify-center py-4 gap-2 text-amber-500/70">
+                <Crown className="h-5 w-5" />
+                <p className="text-xs font-medium">Premium Feature</p>
+              </div>
             )}
           </div>
         </Card>
@@ -1562,7 +1584,10 @@ function CurrenciesContent({ onItemClick }: { onItemClick: (item: MarketDataItem
                 />
               ))
             ) : (
-              <p className="text-sm text-muted-foreground py-4 text-center">No data available</p>
+              <div className="flex flex-col items-center justify-center py-4 gap-2 text-amber-500/70">
+                <Crown className="h-5 w-5" />
+                <p className="text-xs font-medium">Premium Feature</p>
+              </div>
             )}
           </div>
         </Card>
@@ -1581,12 +1606,19 @@ function CurrenciesContent({ onItemClick }: { onItemClick: (item: MarketDataItem
           return (
             <Card key={item.label} className="bg-secondary/50 border-border p-4">
               <div className="text-xs text-muted-foreground mb-1">{item.label}</div>
-              <div className="text-xl font-bold tabular-nums">
-                {item.value ? item.value.price.toFixed(decimals) : '--'}
-              </div>
-              {item.value && (
-                <div className={`text-sm ${isUp ? 'text-emerald-400' : 'text-rose-400'}`}>
-                  {isUp ? '+' : ''}{item.value.changePercent.toFixed(2)}%
+              {item.value ? (
+                <>
+                  <div className="text-xl font-bold tabular-nums">
+                    {item.value.price.toFixed(decimals)}
+                  </div>
+                  <div className={`text-sm ${isUp ? 'text-emerald-400' : 'text-rose-400'}`}>
+                    {isUp ? '+' : ''}{item.value.changePercent.toFixed(2)}%
+                  </div>
+                </>
+              ) : (
+                <div className="flex items-center gap-1.5 text-amber-500/70 mt-1">
+                  <Crown className="h-4 w-4" />
+                  <span className="text-xs font-medium">Premium</span>
                 </div>
               )}
             </Card>
