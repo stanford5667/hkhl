@@ -345,53 +345,44 @@ export default function CompanyDetail() {
 
       {/* Tabs */}
       <Tabs defaultValue="overview" className="space-y-6">
-        <div className="space-y-2">
-          {/* Row 1: Core tabs */}
-          <TabsList className="bg-secondary h-12 w-full justify-start">
-            <TabsTrigger value="overview" className="gap-2 text-base px-5 py-3">
-              <LayoutDashboard className="h-5 w-5" />
-              Overview
+        <TabsList className="bg-secondary h-12 w-full justify-start flex-wrap">
+          <TabsTrigger value="overview" className="gap-2 text-base px-5 py-3">
+            <LayoutDashboard className="h-5 w-5" />
+            Overview
+          </TabsTrigger>
+          <TabsTrigger value="notes-tasks" className="gap-2 text-base px-5 py-3">
+            <CheckSquare className="h-5 w-5" />
+            Notes & Tasks
+          </TabsTrigger>
+          {isPublicEquity && (
+            <TabsTrigger value="backtest" className="gap-2 text-base px-5 py-3">
+              <BarChart3 className="h-5 w-5" />
+              Metrics
             </TabsTrigger>
-            <TabsTrigger value="notes-tasks" className="gap-2 text-base px-5 py-3">
-              <CheckSquare className="h-5 w-5" />
-              Notes & Tasks
+          )}
+          {isPublicEquity && (
+            <TabsTrigger value="studies" className="gap-2 text-base px-5 py-3">
+              <FlaskConical className="h-5 w-5" />
+              Studies
             </TabsTrigger>
-            {/* Data Room tab hidden */}
-            {isPublicEquity && (
-              <TabsTrigger value="backtest" className="gap-2 text-base px-5 py-3">
-                <BarChart3 className="h-5 w-5" />
-                Metrics
-              </TabsTrigger>
-            )}
-            {isPublicEquity && (
-              <TabsTrigger value="studies" className="gap-2 text-base px-5 py-3">
-                <FlaskConical className="h-5 w-5" />
-                Studies
-              </TabsTrigger>
-            )}
-          </TabsList>
-
-          {/* Row 2: News, Models */}
-          <TabsList className="bg-secondary h-12 w-full justify-start">
-            <TabsTrigger value="news" className="gap-2 text-base px-5 py-3">
-              <Newspaper className="h-5 w-5" />
-              {isPublicEquity ? 'News' : 'Industry Intel'}
+          )}
+          <TabsTrigger value="news" className="gap-2 text-base px-5 py-3">
+            <Newspaper className="h-5 w-5" />
+            {isPublicEquity ? 'News' : 'Industry Intel'}
+          </TabsTrigger>
+          {isPublicEquity && (
+            <TabsTrigger value="sec" className="gap-2 text-base px-5 py-3">
+              <FileText className="h-5 w-5" />
+              SEC Filings
             </TabsTrigger>
-            {/* Models tab hidden */}
-            {isPublicEquity && (
-              <TabsTrigger value="sec" className="gap-2 text-base px-5 py-3">
-                <FileText className="h-5 w-5" />
-                SEC Filings
-              </TabsTrigger>
-            )}
-            {isPublicEquity && (
-              <TabsTrigger value="analyst-social" className="gap-2 text-base px-5 py-3">
-                <MessageCircle className="h-5 w-5" />
-                Analyst & Social
-              </TabsTrigger>
-            )}
-          </TabsList>
-        </div>
+          )}
+          {isPublicEquity && (
+            <TabsTrigger value="analyst-social" className="gap-2 text-base px-5 py-3">
+              <MessageCircle className="h-5 w-5" />
+              Analyst & Social
+            </TabsTrigger>
+          )}
+        </TabsList>
 
         {/* Notes & Tasks Tab */}
         <TabsContent value="notes-tasks">
