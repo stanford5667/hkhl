@@ -2,7 +2,7 @@
 // "Choose Your Path" experience: Manual vs AI Co-Pilot vs IPS Questionnaire modes
 
 import { useState, useCallback, useMemo, useEffect } from 'react';
-import WelcomeOnboarding, { useWelcomeOnboarding } from '@/components/backtester/WelcomeOnboarding';
+// WelcomeOnboarding removed - users go directly to ChooseYourPath
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -371,9 +371,6 @@ export default function PortfolioVisualizer() {
   const { user } = useAuth();
   const { requireAuth, showAuthDialog, closeAuthDialog } = useRequireAuth();
   const queryClient = useQueryClient();
-  
-  // Onboarding state
-  const { showOnboarding, completeOnboarding } = useWelcomeOnboarding();
   
   // Shared portfolio management hook
   const {
@@ -1258,11 +1255,6 @@ export default function PortfolioVisualizer() {
   };
 
   // Render based on current flow
-  
-  // Show onboarding for first-time users
-  if (showOnboarding) {
-    return <WelcomeOnboarding onComplete={completeOnboarding} />;
-  }
   
   if (currentFlow === 'choose-path') {
     return (
