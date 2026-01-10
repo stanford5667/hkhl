@@ -35,11 +35,7 @@ export default function MarketIntel() {
   };
 
   const handleTabChange = (value: string) => {
-    if (value === 'commodities' || value === 'currencies') {
-      setShowUpgradeDialog(true);
-    } else {
-      setActiveTab(value);
-    }
+    setActiveTab(value);
   };
   const { data: totals } = usePortfolioTotals();
   const { data: alerts } = useAlerts();
