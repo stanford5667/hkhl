@@ -75,18 +75,18 @@ function MetricCard({ label, value, description, icon: Icon, trend, benchmark }:
     <TooltipProvider>
       <Tooltip>
         <TooltipTrigger asChild>
-          <div className="p-4 rounded-lg bg-muted/30 border border-border/50 cursor-help hover:bg-muted/50 transition-colors group">
+          <div className="p-4 rounded-lg bg-secondary/50 border border-border cursor-help hover:bg-secondary/70 transition-colors group">
             <div className="flex items-center gap-2 mb-2">
               <Icon className={cn(
                 "h-4 w-4",
-                trend === 'good' ? 'text-emerald-500' : trend === 'bad' ? 'text-rose-500' : 'text-muted-foreground'
+                trend === 'good' ? 'text-emerald-400' : trend === 'bad' ? 'text-rose-400' : 'text-muted-foreground'
               )} />
-              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">{label}</span>
+              <span className="text-xs font-medium text-muted-foreground">{label}</span>
               <Info className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity ml-auto" />
             </div>
             <div className={cn(
-              "text-2xl font-bold tabular-nums",
-              trend === 'good' ? 'text-emerald-500' : trend === 'bad' ? 'text-rose-500' : 'text-foreground'
+              "text-2xl font-bold tabular-nums font-mono",
+              trend === 'good' ? 'text-emerald-400' : trend === 'bad' ? 'text-rose-400' : 'text-foreground'
             )}>
               {value}
             </div>
@@ -94,7 +94,8 @@ function MetricCard({ label, value, description, icon: Icon, trend, benchmark }:
           </div>
         </TooltipTrigger>
         <TooltipContent side="top" className="max-w-xs">
-          <p>{description}</p>
+          <p className="font-medium">{label}</p>
+          <p className="text-xs text-muted-foreground">{description}</p>
         </TooltipContent>
       </Tooltip>
     </TooltipProvider>
@@ -109,11 +110,11 @@ function CompactMetric({ label, value, isPositive, suffix = '%' }: {
 }) {
   const positive = isPositive ?? value >= 0;
   return (
-    <div className="text-center p-3 rounded-lg bg-muted/30 border border-border/50">
+    <div className="text-center p-3 rounded-lg bg-secondary/50 border border-border">
       <p className="text-xs text-muted-foreground mb-1">{label}</p>
       <p className={cn(
-        "text-lg font-bold tabular-nums",
-        positive ? "text-emerald-500" : "text-rose-500"
+        "text-lg font-bold tabular-nums font-mono",
+        positive ? "text-emerald-400" : "text-rose-400"
       )}>
         {value >= 0 ? '+' : ''}{value.toFixed(2)}{suffix}
       </p>
@@ -369,64 +370,62 @@ export function AssetBacktestPanel({ ticker, companyName }: AssetBacktestPanelPr
       </div>
 
       {/* Primary Performance Metrics */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-sm flex items-center gap-2">
-            <TrendingUp className="h-4 w-4 text-emerald-500" />
+      <Card className="bg-secondary/50 border-border">
+        <CardContent className="p-6">
+          <h3 className="text-lg font-medium mb-4 flex items-center gap-2">
+            <TrendingUp className="h-5 w-5 text-emerald-400" />
             Performance Summary
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
+          </h3>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="p-4 rounded-xl bg-gradient-to-br from-emerald-500/10 to-emerald-500/5 border border-emerald-500/20">
+            <div className="p-4 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
               <div className="flex items-center gap-2 mb-2">
-                <Percent className="h-4 w-4 text-emerald-500" />
+                <Percent className="h-4 w-4 text-emerald-400" />
                 <span className="text-xs font-medium text-muted-foreground">Total Return</span>
               </div>
               <p className={cn(
-                "text-3xl font-bold tabular-nums",
-                metrics.totalReturn >= 0 ? "text-emerald-500" : "text-rose-500"
+                "text-3xl font-bold tabular-nums font-mono",
+                metrics.totalReturn >= 0 ? "text-emerald-400" : "text-rose-400"
               )}>
                 {metrics.totalReturn >= 0 ? '+' : ''}{metrics.totalReturn.toFixed(1)}%
               </p>
               <p className="text-xs text-muted-foreground mt-1">{period} cumulative</p>
             </div>
             
-            <div className="p-4 rounded-xl bg-gradient-to-br from-blue-500/10 to-blue-500/5 border border-blue-500/20">
+            <div className="p-4 rounded-lg bg-blue-500/10 border border-blue-500/20">
               <div className="flex items-center gap-2 mb-2">
-                <Calendar className="h-4 w-4 text-blue-500" />
+                <Calendar className="h-4 w-4 text-blue-400" />
                 <span className="text-xs font-medium text-muted-foreground">CAGR</span>
               </div>
               <p className={cn(
-                "text-3xl font-bold tabular-nums",
-                metrics.cagr >= 0 ? "text-blue-500" : "text-rose-500"
+                "text-3xl font-bold tabular-nums font-mono",
+                metrics.cagr >= 0 ? "text-blue-400" : "text-rose-400"
               )}>
                 {metrics.cagr >= 0 ? '+' : ''}{metrics.cagr.toFixed(1)}%
               </p>
               <p className="text-xs text-muted-foreground mt-1">Annualized</p>
             </div>
             
-            <div className="p-4 rounded-xl bg-gradient-to-br from-purple-500/10 to-purple-500/5 border border-purple-500/20">
+            <div className="p-4 rounded-lg bg-purple-500/10 border border-purple-500/20">
               <div className="flex items-center gap-2 mb-2">
-                <Activity className="h-4 w-4 text-purple-500" />
+                <Activity className="h-4 w-4 text-purple-400" />
                 <span className="text-xs font-medium text-muted-foreground">Sharpe Ratio</span>
               </div>
               <p className={cn(
-                "text-3xl font-bold tabular-nums",
-                metrics.sharpeRatio >= 1 ? "text-emerald-500" : 
-                metrics.sharpeRatio >= 0.5 ? "text-purple-500" : "text-rose-500"
+                "text-3xl font-bold tabular-nums font-mono",
+                metrics.sharpeRatio >= 1 ? "text-emerald-400" : 
+                metrics.sharpeRatio >= 0.5 ? "text-purple-400" : "text-rose-400"
               )}>
                 {metrics.sharpeRatio.toFixed(2)}
               </p>
               <p className="text-xs text-muted-foreground mt-1">Risk-adjusted</p>
             </div>
             
-            <div className="p-4 rounded-xl bg-gradient-to-br from-amber-500/10 to-amber-500/5 border border-amber-500/20">
+            <div className="p-4 rounded-lg bg-amber-500/10 border border-amber-500/20">
               <div className="flex items-center gap-2 mb-2">
-                <TrendingDown className="h-4 w-4 text-amber-500" />
+                <TrendingDown className="h-4 w-4 text-amber-400" />
                 <span className="text-xs font-medium text-muted-foreground">Max Drawdown</span>
               </div>
-              <p className="text-3xl font-bold tabular-nums text-rose-500">
+              <p className="text-3xl font-bold tabular-nums font-mono text-rose-400">
                 -{metrics.maxDrawdown.toFixed(1)}%
               </p>
               <p className="text-xs text-muted-foreground mt-1">Peak to trough</p>
@@ -439,11 +438,11 @@ export function AssetBacktestPanel({ ticker, companyName }: AssetBacktestPanelPr
             <CompactMetric label="Volatility" value={metrics.volatility} isPositive={metrics.volatility < 25} />
             <CompactMetric label="Best Month" value={metrics.bestMonth} isPositive={true} />
             <CompactMetric label="Worst Month" value={metrics.worstMonth} isPositive={false} />
-            <div className="text-center p-3 rounded-lg bg-muted/30 border border-border/50">
+            <div className="text-center p-3 rounded-lg bg-secondary/50 border border-border">
               <p className="text-xs text-muted-foreground mb-1">Positive Months</p>
               <p className={cn(
-                "text-lg font-bold tabular-nums",
-                metrics.positiveMonths >= 55 ? "text-emerald-500" : "text-foreground"
+                "text-lg font-bold tabular-nums font-mono",
+                metrics.positiveMonths >= 55 ? "text-emerald-400" : "text-foreground"
               )}>
                 {metrics.positiveMonths.toFixed(0)}%
               </p>
@@ -453,14 +452,12 @@ export function AssetBacktestPanel({ ticker, companyName }: AssetBacktestPanelPr
       </Card>
 
       {/* Benchmark Comparison */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-sm flex items-center gap-2">
-            <Target className="h-4 w-4 text-blue-500" />
+      <Card className="bg-secondary/50 border-border">
+        <CardContent className="p-6">
+          <h3 className="text-lg font-medium mb-4 flex items-center gap-2">
+            <Target className="h-5 w-5 text-blue-400" />
             Benchmark Comparison (S&P 500)
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
+          </h3>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <MetricCard
               label="Alpha"
@@ -499,14 +496,12 @@ export function AssetBacktestPanel({ ticker, companyName }: AssetBacktestPanelPr
       </Card>
 
       {/* Tail Risk */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-sm flex items-center gap-2">
-            <AlertTriangle className="h-4 w-4 text-rose-500" />
+      <Card className="bg-secondary/50 border-border">
+        <CardContent className="p-6">
+          <h3 className="text-lg font-medium mb-4 flex items-center gap-2">
+            <AlertTriangle className="h-5 w-5 text-rose-400" />
             Tail Risk Analysis
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
+          </h3>
           <div className="grid grid-cols-2 gap-4">
             <MetricCard
               label="VaR (95%)"
