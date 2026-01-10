@@ -208,7 +208,8 @@ serve(async (req) => {
       case 'mean_reversion': result = studyMeanReversion(bars, params); break;
       case 'range_analysis': result = studyRangeAnalysis(bars); break;
       case 'high_low_analysis': result = studyHighLowAnalysis(bars, params); break;
-      case 'trend_strength': result = studyTrendStrength(bars, params); break;
+      case 'trend_strength': 
+      case 'trend_analysis': result = studyTrendStrength(bars, params); break;
       case 'price_targets': result = studyPriceTargets(bars); break;
       default: return new Response(JSON.stringify({ error: `Unknown study type: ${studyType}` }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
