@@ -232,26 +232,32 @@ export function ManualPortfolioForm({ onComplete, onBack }: ManualPortfolioFormP
 
         {/* Allocations */}
         <Card>
-          <CardHeader className="pb-3 flex flex-row items-center justify-between">
-            <div>
-              <CardTitle className="text-sm">Asset Weights</CardTitle>
-              <CardDescription>
-                Assign target weights (must sum to 100%)
-              </CardDescription>
-            </div>
-            <div className="flex items-center gap-3">
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={equalizeWeights} 
-                disabled={allocations.length === 0}
-              >
-                <Scale className="h-4 w-4 mr-2" />
-                Equal Weight
-              </Button>
-              <Badge variant={isValidAllocation ? 'default' : 'destructive'}>
-                {totalWeight.toFixed(1)}% / 100%
-              </Badge>
+          <CardHeader className="pb-3 space-y-3">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <div className="min-w-0">
+                <CardTitle className="text-sm">Asset Weights</CardTitle>
+                <CardDescription className="text-xs sm:text-sm">
+                  Assign target weights (must sum to 100%)
+                </CardDescription>
+              </div>
+              <div className="flex items-center gap-2 sm:gap-3 flex-wrap sm:flex-nowrap">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={equalizeWeights} 
+                  disabled={allocations.length === 0}
+                  className="text-xs sm:text-sm"
+                >
+                  <Scale className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                  Equal Weight
+                </Button>
+                <Badge 
+                  variant={isValidAllocation ? 'default' : 'destructive'}
+                  className="whitespace-nowrap text-xs sm:text-sm"
+                >
+                  {totalWeight.toFixed(1)}% / 100%
+                </Badge>
+              </div>
             </div>
           </CardHeader>
           <CardContent>
@@ -271,26 +277,26 @@ export function ManualPortfolioForm({ onComplete, onBack }: ManualPortfolioFormP
                     exit={{ opacity: 0, height: 0 }}
                     className="p-4 rounded-lg border border-border bg-muted/30"
                   >
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="flex items-center gap-3">
-                        <Badge variant="outline" className="font-mono text-base">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3">
+                      <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
+                        <Badge variant="outline" className="font-mono text-sm sm:text-base">
                           {allocation.symbol}
                         </Badge>
                         <Badge variant="secondary" className="text-xs">
                           {allocation.assetClass}
                         </Badge>
                       </div>
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-2 sm:gap-3">
                         <Input
                           type="number"
                           value={allocation.weight}
                           onChange={(e) => updateWeight(allocation.symbol, parseFloat(e.target.value) || 0)}
-                          className="w-20 text-right"
+                          className="w-16 sm:w-20 text-right text-sm"
                           min={0}
                           max={100}
                           step={0.5}
                         />
-                        <span className="text-lg font-bold">%</span>
+                        <span className="text-base sm:text-lg font-bold">%</span>
                         <Button
                           variant="ghost"
                           size="icon"
