@@ -32,7 +32,7 @@ import Research from "./pages/Research";
 import AssetResearch from "./pages/AssetResearch";
 // import Backtest from "./pages/Backtest"; // Hidden
 import Watchlist from "./pages/Watchlist";
-import Screener from "./pages/Screener";
+// Screener is now combined into AssetResearch
 import TickerDetail from "./pages/TickerDetail";
 import PortfolioVisualizer from "./pages/PortfolioVisualizer";
 import PredictionMarketsAI from "./pages/PredictionMarketsAI";
@@ -78,7 +78,7 @@ const App = () => (
                       <Route path="/asset-research" element={<AssetResearch />} />
                       {/* <Route path="/backtest" element={<Backtest />} /> Hidden */}
                       <Route path="/watchlist" element={<Watchlist />} />
-                      <Route path="/screener" element={<Screener />} />
+                      <Route path="/screener" element={<Navigate to="/asset-research" replace />} />
                       <Route path="/stock/:ticker" element={<TickerDetail />} />
                       <Route path="/portfolio-visualizer" element={<PortfolioVisualizer />} />
                       <Route path="/prediction-ai" element={<PredictionMarketsAI />} />
