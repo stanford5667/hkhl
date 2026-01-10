@@ -65,11 +65,15 @@ serve(async (req) => {
     const offset = criteria.offset || 0;
 
     // Build Polygon tickers endpoint query
+    // NOTE: Polygon's /v3/reference/tickers does not provide a native "sector" filter.
+    // We request a broad universe (sorted by market cap) and then apply our own filters.
     const params = new URLSearchParams({
       market: 'stocks',
       active: 'true',
-      limit: '250',
-      apiKey: POLYGON_API_KEY
+      sort: 'market_cap',
+      order: 'desc',
+      limit: '1000',
+      apiKey: POLYGON_API_KEY,
     });
 
     // Add exchange filter
@@ -82,38 +86,145 @@ serve(async (req) => {
     const tickersRes = await fetch(tickersUrl);
     const tickersData = await tickersRes.json();
 
-    if (!tickersData.results?.length) {
-      return new Response(JSON.stringify({
-        criteria,
-        results: [],
-        totalCount: 0,
-        explanation: 'No stocks found matching criteria',
-        source: 'polygon',
-        timestamp: new Date().toISOString()
-      }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    if (!tickersRes.ok) {
+      return new Response(
+        JSON.stringify({
+          criteria,
+          results: [],
+          totalCount: 0,
+          explanation: `Ticker universe fetch failed (${tickersRes.status})`,
+          source: 'polygon',
+          timestamp: new Date().toISOString(),
+          upstream: tickersData,
+        }),
+        { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
-    // Get snapshots for all tickers (batch)
-    const tickers = tickersData.results.map((t: any) => t.ticker).slice(0, 100);
+    if (!tickersData.results?.length) {
+      return new Response(
+        JSON.stringify({
+          criteria,
+          results: [],
+          totalCount: 0,
+          explanation: 'No stocks found matching criteria',
+          source: 'polygon',
+          timestamp: new Date().toISOString(),
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Pre-filter the ticker universe BEFORE snapshots (improves relevance + avoids sampling bias)
+    const sectorKeywordMap: Record<string, string[]> = {
+      Technology: ['tech', 'software', 'semiconductor', 'computer', 'electronic', 'it'],
+      Healthcare: ['health', 'medical', 'pharma', 'pharmaceutical', 'biotech', 'biotechnology'],
+      'Financial Services': ['bank', 'financial', 'insurance', 'capital markets', 'brokerage'],
+      'Consumer Cyclical': ['retail', 'auto', 'automotive', 'travel', 'leisure', 'apparel', 'restaurant'],
+      'Consumer Defensive': ['food', 'beverage', 'household', 'personal products', 'tobacco'],
+      'Communication Services': ['telecom', 'communications', 'media', 'entertainment'],
+      Industrials: ['industrial', 'aerospace', 'defense', 'machinery', 'transportation', 'airline', 'logistics'],
+      Energy: ['energy', 'oil', 'gas', 'petroleum', 'pipeline'],
+      'Basic Materials': ['materials', 'chemical', 'mining', 'metals', 'paper', 'forest'],
+      'Real Estate': ['real estate', 'reit', 'property'],
+      Utilities: ['utility', 'utilities', 'electric', 'water', 'gas utility'],
+    };
+
+    const normalize = (v?: string | null) => (v ?? '').toLowerCase();
+    const sectorMatches = (ticker: any, desiredSectors: string[]) => {
+      if (!desiredSectors.length) return true;
+      const sicDesc = normalize(ticker?.sic_description);
+      // Polygon doesn't give a clean "sector" field in this endpoint; use SIC description heuristics.
+      return desiredSectors.some((sectorName) => {
+        const needles = sectorKeywordMap[sectorName] || [sectorName.toLowerCase()];
+        return needles.some((needle) => sicDesc.includes(needle));
+      });
+    };
+
+    const industryMatches = (ticker: any, desiredIndustries: string[]) => {
+      if (!desiredIndustries.length) return true;
+      const sicDesc = normalize(ticker?.sic_description);
+      return desiredIndustries.some((i) => sicDesc.includes(i.toLowerCase()));
+    };
+
+    let candidateTickers = tickersData.results as any[];
+
+    // Market cap filters using Polygon's market_cap (available at ticker-level)
+    if (criteria.marketCap && MARKET_CAP_RANGES[criteria.marketCap]) {
+      const range = MARKET_CAP_RANGES[criteria.marketCap];
+      candidateTickers = candidateTickers.filter((t) => (t.market_cap ?? 0) >= range.min && (t.market_cap ?? 0) < range.max);
+    }
+    if (criteria.minMarketCap) {
+      candidateTickers = candidateTickers.filter((t) => (t.market_cap ?? 0) >= criteria.minMarketCap!);
+    }
+    if (criteria.maxMarketCap) {
+      candidateTickers = candidateTickers.filter((t) => (t.market_cap ?? 0) <= criteria.maxMarketCap!);
+    }
+
+    // Sector / Industry filters (heuristic)
+    if (criteria.sector?.length) {
+      candidateTickers = candidateTickers.filter((t) => sectorMatches(t, criteria.sector!));
+    }
+    if (criteria.industry?.length) {
+      candidateTickers = candidateTickers.filter((t) => industryMatches(t, criteria.industry!));
+    }
+
+    // Snapshot endpoint only supports up to 100 tickers per request.
+    const tickers = candidateTickers.map((t: any) => t.ticker).filter(Boolean).slice(0, 100);
+
+    if (!tickers.length) {
+      return new Response(
+        JSON.stringify({
+          criteria,
+          results: [],
+          totalCount: 0,
+          explanation: 'No stocks found matching criteria (after applying sector/market cap filters)',
+          source: 'polygon',
+          timestamp: new Date().toISOString(),
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     const snapshotsUrl = `https://api.polygon.io/v2/snapshot/locale/us/markets/stocks/tickers?tickers=${tickers.join(',')}&apiKey=${POLYGON_API_KEY}`;
     const snapshotsRes = await fetch(snapshotsUrl);
     const snapshotsData = await snapshotsRes.json();
 
-    if (!snapshotsData.tickers?.length) {
-      return new Response(JSON.stringify({
-        criteria,
-        results: [],
-        totalCount: 0,
-        explanation: 'No snapshot data available',
-        source: 'polygon',
-        timestamp: new Date().toISOString()
-      }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    if (!snapshotsRes.ok) {
+      return new Response(
+        JSON.stringify({
+          criteria,
+          results: [],
+          totalCount: 0,
+          explanation: `Snapshot fetch failed (${snapshotsRes.status})`,
+          source: 'polygon',
+          timestamp: new Date().toISOString(),
+          upstream: snapshotsData,
+        }),
+        { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
+
+    if (!snapshotsData.tickers?.length) {
+      return new Response(
+        JSON.stringify({
+          criteria,
+          results: [],
+          totalCount: 0,
+          explanation: 'No snapshot data available',
+          source: 'polygon',
+          timestamp: new Date().toISOString(),
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const tickerBySymbol = new Map<string, any>(candidateTickers.map((t: any) => [t.ticker, t]));
 
     // Map and filter results
     let results = snapshotsData.tickers
       .map((snapshot: any) => {
-        const ticker = tickersData.results.find((t: any) => t.ticker === snapshot.ticker);
+        const ticker = tickerBySymbol.get(snapshot.ticker);
         const day = snapshot.day || {};
         const prevDay = snapshot.prevDay || {};
         const min = snapshot.min || {};
