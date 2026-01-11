@@ -109,12 +109,14 @@ serve(async (req) => {
 
     // Build Polygon tickers endpoint query
     // NOTE: Polygon's /v3/reference/tickers does not provide a native "sector" filter.
-    // We request a broad universe (sorted by market cap) and then apply our own filters.
+    // We request a broad universe and then apply our own filters.
+    // IMPORTANT: Polygon does NOT support sort=market_cap on this endpoint (will 400).
     const params = new URLSearchParams({
       market: 'stocks',
       active: 'true',
-      sort: 'market_cap',
-      order: 'desc',
+      // Use a stable, supported sort (or omit sorting entirely) and sort client-side later.
+      sort: 'ticker',
+      order: 'asc',
       limit: '1000',
       apiKey: POLYGON_API_KEY,
     });
@@ -195,6 +197,8 @@ serve(async (req) => {
 
     let candidateTickers = tickersData.results as any[];
 
+    // Client-side sort by market cap (descending). Polygon endpoint can't sort by market_cap.
+    candidateTickers.sort((a: any, b: any) => (b.market_cap ?? 0) - (a.market_cap ?? 0));
     // Market cap filters using Polygon's market_cap (available at ticker-level)
     if (criteria.marketCap && MARKET_CAP_RANGES[criteria.marketCap]) {
       const range = MARKET_CAP_RANGES[criteria.marketCap];
