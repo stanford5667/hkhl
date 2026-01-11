@@ -396,32 +396,36 @@ export default function PublicStockView() {
 
       {/* Full Tabbed Interface */}
       <Tabs defaultValue="overview" className="space-y-6">
-        <TabsList className="bg-secondary h-12 w-full justify-start flex-wrap">
-          <TabsTrigger value="overview" className="gap-2 text-base px-5 py-3">
-            <LayoutDashboard className="h-5 w-5" />
-            Overview
-          </TabsTrigger>
-          <TabsTrigger value="studies" className="gap-2 text-base px-5 py-3">
-            <FlaskConical className="h-5 w-5" />
-            Studies
-          </TabsTrigger>
-          <TabsTrigger value="backtest" className="gap-2 text-base px-5 py-3">
-            <BarChart3 className="h-5 w-5" />
-            Metrics
-          </TabsTrigger>
-          <TabsTrigger value="news" className="gap-2 text-base px-5 py-3">
-            <Newspaper className="h-5 w-5" />
-            News
-          </TabsTrigger>
-          <TabsTrigger value="sec" className="gap-2 text-base px-5 py-3">
-            <FileText className="h-5 w-5" />
-            SEC Filings
-          </TabsTrigger>
-          <TabsTrigger value="analyst-social" className="gap-2 text-base px-5 py-3">
-            <MessageCircle className="h-5 w-5" />
-            Analyst & Social
-          </TabsTrigger>
-        </TabsList>
+        <div className="overflow-x-auto -mx-6 px-6 scrollbar-hide">
+          <TabsList className="bg-secondary h-auto min-h-12 w-max min-w-full justify-start gap-1 p-1">
+            <TabsTrigger value="overview" className="gap-1.5 text-sm md:text-base px-3 md:px-5 py-2.5 md:py-3 whitespace-nowrap">
+              <LayoutDashboard className="h-4 w-4 md:h-5 md:w-5" />
+              Overview
+            </TabsTrigger>
+            <TabsTrigger value="studies" className="gap-1.5 text-sm md:text-base px-3 md:px-5 py-2.5 md:py-3 whitespace-nowrap">
+              <FlaskConical className="h-4 w-4 md:h-5 md:w-5" />
+              Studies
+            </TabsTrigger>
+            <TabsTrigger value="backtest" className="gap-1.5 text-sm md:text-base px-3 md:px-5 py-2.5 md:py-3 whitespace-nowrap">
+              <BarChart3 className="h-4 w-4 md:h-5 md:w-5" />
+              Metrics
+            </TabsTrigger>
+            <TabsTrigger value="news" className="gap-1.5 text-sm md:text-base px-3 md:px-5 py-2.5 md:py-3 whitespace-nowrap">
+              <Newspaper className="h-4 w-4 md:h-5 md:w-5" />
+              News
+            </TabsTrigger>
+            <TabsTrigger value="sec" className="gap-1.5 text-sm md:text-base px-3 md:px-5 py-2.5 md:py-3 whitespace-nowrap">
+              <FileText className="h-4 w-4 md:h-5 md:w-5" />
+              <span className="hidden sm:inline">SEC Filings</span>
+              <span className="sm:hidden">SEC</span>
+            </TabsTrigger>
+            <TabsTrigger value="analyst-social" className="gap-1.5 text-sm md:text-base px-3 md:px-5 py-2.5 md:py-3 whitespace-nowrap">
+              <MessageCircle className="h-4 w-4 md:h-5 md:w-5" />
+              <span className="hidden sm:inline">Analyst & Social</span>
+              <span className="sm:hidden">Social</span>
+            </TabsTrigger>
+          </TabsList>
+        </div>
 
         {/* Overview Tab */}
         <TabsContent value="overview" className="space-y-6">
