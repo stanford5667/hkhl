@@ -571,3 +571,12 @@
     scrollbar-width: none;
   }
 }
+
+/* Utility class to hide scrollbars while keeping scrollability */
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
