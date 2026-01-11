@@ -182,33 +182,51 @@ serve(async (req) => {
     const sectorMatches = (ticker: any, desiredSectors: string[]) => {
       if (!desiredSectors.length) return true;
       const sicDesc = normalize(ticker?.sic_description);
+      const name = normalize(ticker?.name);
+
       // Polygon doesn't give a clean "sector" field in this endpoint; use SIC description heuristics.
+      // Fallback to company name keywords when SIC data is missing.
       return desiredSectors.some((sectorName) => {
         const needles = sectorKeywordMap[sectorName] || [sectorName.toLowerCase()];
-        return needles.some((needle) => sicDesc.includes(needle));
+        if (sicDesc) return needles.some((needle) => sicDesc.includes(needle));
+        if (name) return needles.some((needle) => name.includes(needle));
+        return true; // don't over-filter if we have no text fields
       });
     };
 
     const industryMatches = (ticker: any, desiredIndustries: string[]) => {
       if (!desiredIndustries.length) return true;
       const sicDesc = normalize(ticker?.sic_description);
-      return desiredIndustries.some((i) => sicDesc.includes(i.toLowerCase()));
+      const name = normalize(ticker?.name);
+      if (sicDesc) return desiredIndustries.some((i) => sicDesc.includes(i.toLowerCase()));
+      if (name) return desiredIndustries.some((i) => name.includes(i.toLowerCase()));
+      return true;
     };
 
     let candidateTickers = tickersData.results as any[];
 
-    // Client-side sort by market cap (descending). Polygon endpoint can't sort by market_cap.
-    candidateTickers.sort((a: any, b: any) => (b.market_cap ?? 0) - (a.market_cap ?? 0));
-    // Market cap filters using Polygon's market_cap (available at ticker-level)
-    if (criteria.marketCap && MARKET_CAP_RANGES[criteria.marketCap]) {
-      const range = MARKET_CAP_RANGES[criteria.marketCap];
-      candidateTickers = candidateTickers.filter((t) => (t.market_cap ?? 0) >= range.min && (t.market_cap ?? 0) < range.max);
+    const hasMarketCapData = candidateTickers.some(
+      (t: any) => typeof t?.market_cap === 'number' && t.market_cap > 0
+    );
+
+    // Client-side sort by market cap (descending) when available.
+    // Polygon's tickers endpoint may not include market_cap for all plans/fields.
+    if (hasMarketCapData) {
+      candidateTickers.sort((a: any, b: any) => (b.market_cap ?? 0) - (a.market_cap ?? 0));
     }
-    if (criteria.minMarketCap) {
-      candidateTickers = candidateTickers.filter((t) => (t.market_cap ?? 0) >= criteria.minMarketCap!);
-    }
-    if (criteria.maxMarketCap) {
-      candidateTickers = candidateTickers.filter((t) => (t.market_cap ?? 0) <= criteria.maxMarketCap!);
+
+    // Market cap filters (only if market cap data is present).
+    if (hasMarketCapData) {
+      if (criteria.marketCap && MARKET_CAP_RANGES[criteria.marketCap]) {
+        const range = MARKET_CAP_RANGES[criteria.marketCap];
+        candidateTickers = candidateTickers.filter((t) => (t.market_cap ?? 0) >= range.min && (t.market_cap ?? 0) < range.max);
+      }
+      if (criteria.minMarketCap) {
+        candidateTickers = candidateTickers.filter((t) => (t.market_cap ?? 0) >= criteria.minMarketCap!);
+      }
+      if (criteria.maxMarketCap) {
+        candidateTickers = candidateTickers.filter((t) => (t.market_cap ?? 0) <= criteria.maxMarketCap!);
+      }
     }
 
     // Sector / Industry filters (heuristic)
@@ -298,12 +316,12 @@ serve(async (req) => {
           price,
           change,
           changePercent,
-          volume,
-          avgVolume,
-          relativeVolume,
-          marketCap: ticker?.market_cap || 0,
-          sharesOutstanding: ticker?.share_class_shares_outstanding || 0,
-          float: 0,
+           volume,
+           avgVolume,
+           relativeVolume,
+           marketCap: typeof ticker?.market_cap === 'number' ? ticker.market_cap : null,
+           sharesOutstanding: typeof ticker?.share_class_shares_outstanding === 'number' ? ticker.share_class_shares_outstanding : 0,
+           float: 0,
           floatShort: 0,
           pe: null,
           forwardPE: null,
@@ -338,15 +356,22 @@ serve(async (req) => {
       .filter((stock: any) => stock.price > 0);
 
     // Apply filters
-    if (criteria.marketCap && MARKET_CAP_RANGES[criteria.marketCap]) {
-      const range = MARKET_CAP_RANGES[criteria.marketCap];
-      results = results.filter((s: any) => s.marketCap >= range.min && s.marketCap < range.max);
-    }
-    if (criteria.minMarketCap) {
-      results = results.filter((s: any) => s.marketCap >= criteria.minMarketCap!);
-    }
-    if (criteria.maxMarketCap) {
-      results = results.filter((s: any) => s.marketCap <= criteria.maxMarketCap!);
+    const hasResultMarketCap = results.some(
+      (s: any) => typeof s.marketCap === 'number' && s.marketCap > 0
+    );
+
+    // Market cap filters only when market cap is available.
+    if (hasResultMarketCap) {
+      if (criteria.marketCap && MARKET_CAP_RANGES[criteria.marketCap]) {
+        const range = MARKET_CAP_RANGES[criteria.marketCap];
+        results = results.filter((s: any) => s.marketCap >= range.min && s.marketCap < range.max);
+      }
+      if (criteria.minMarketCap) {
+        results = results.filter((s: any) => s.marketCap >= criteria.minMarketCap!);
+      }
+      if (criteria.maxMarketCap) {
+        results = results.filter((s: any) => s.marketCap <= criteria.maxMarketCap!);
+      }
     }
     if (criteria.minPrice) {
       results = results.filter((s: any) => s.price >= criteria.minPrice!);
