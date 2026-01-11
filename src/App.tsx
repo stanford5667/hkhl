@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react';
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -11,102 +12,117 @@ import { OnboardingFlow } from "@/components/onboarding/OnboardingFlow";
 import { Layout } from "@/components/layout/Layout";
 import { DevModeToggle } from "@/components/dev/DevModeToggle";
 import { DevModeSyncWrapper } from "@/components/dev/DevModeSyncWrapper";
-import Pipeline from "./pages/Pipeline";
-import Models from "./pages/Models";
-import NewModel from "./pages/NewModel";
-import ModelEditor from "./pages/ModelEditor";
-import Portfolio from "./pages/Portfolio";
-import DataRoom from "./pages/DataRoom";
-import CompanyDetail from "./pages/CompanyDetail";
 import { CompanyRedirect } from "./components/shared/CompanyRedirect";
-import Contacts from "./pages/Contacts";
-import MarketIntel from "./pages/MarketIntel";
-import DealMatching from "./pages/DealMatching";
-import Auth from "./pages/Auth";
-import Settings from "./pages/Settings";
-import OrganizationSettings from "./pages/OrganizationSettings";
-import CashFlowBuildupPage from "./pages/CashFlowBuildupPage";
-import ModelViewerPage from "./pages/ModelViewerPage";
-import Tasks from "./pages/Tasks";
-import Research from "./pages/Research";
-import AssetResearch from "./pages/AssetResearch";
-// import Backtest from "./pages/Backtest"; // Hidden
-import Watchlist from "./pages/Watchlist";
-// Screener is now combined into AssetResearch
-import TickerDetail from "./pages/TickerDetail";
-import PortfolioVisualizer from "./pages/PortfolioVisualizer";
-import PredictionMarketsAI from "./pages/PredictionMarketsAI";
-import DiscoveryHub from "./pages/DiscoveryHub";
-import NewsIntelligence from "./pages/NewsIntelligence";
-import InvestmentPlan from "./pages/InvestmentPlan";
-import SupportCenter from "./pages/SupportCenter";
-import NotFound from "./pages/NotFound";
+import { PageLoader } from "@/components/shared/PageLoader";
+import { ErrorBoundary } from "@/components/shared/ErrorBoundary";
 
-const queryClient = new QueryClient();
+// Lazy load all pages for code splitting
+const Pipeline = lazy(() => import('./pages/Pipeline'));
+const Models = lazy(() => import('./pages/Models'));
+const NewModel = lazy(() => import('./pages/NewModel'));
+const ModelEditor = lazy(() => import('./pages/ModelEditor'));
+const Portfolio = lazy(() => import('./pages/Portfolio'));
+const DataRoom = lazy(() => import('./pages/DataRoom'));
+const CompanyDetail = lazy(() => import('./pages/CompanyDetail'));
+const Contacts = lazy(() => import('./pages/Contacts'));
+const MarketIntel = lazy(() => import('./pages/MarketIntel'));
+const DealMatching = lazy(() => import('./pages/DealMatching'));
+const Auth = lazy(() => import('./pages/Auth'));
+const Settings = lazy(() => import('./pages/Settings'));
+const OrganizationSettings = lazy(() => import('./pages/OrganizationSettings'));
+const CashFlowBuildupPage = lazy(() => import('./pages/CashFlowBuildupPage'));
+const ModelViewerPage = lazy(() => import('./pages/ModelViewerPage'));
+const Tasks = lazy(() => import('./pages/Tasks'));
+const Research = lazy(() => import('./pages/Research'));
+const AssetResearch = lazy(() => import('./pages/AssetResearch'));
+const Watchlist = lazy(() => import('./pages/Watchlist'));
+const TickerDetail = lazy(() => import('./pages/TickerDetail'));
+const PortfolioVisualizer = lazy(() => import('./pages/PortfolioVisualizer'));
+const PredictionMarketsAI = lazy(() => import('./pages/PredictionMarketsAI'));
+const DiscoveryHub = lazy(() => import('./pages/DiscoveryHub'));
+const NewsIntelligence = lazy(() => import('./pages/NewsIntelligence'));
+const InvestmentPlan = lazy(() => import('./pages/InvestmentPlan'));
+const SupportCenter = lazy(() => import('./pages/SupportCenter'));
+const NotFound = lazy(() => import('./pages/NotFound'));
+
+// Optimized QueryClient with caching defaults
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 5 * 60 * 1000, // 5 minutes default
+      gcTime: 30 * 60 * 1000, // Keep unused data for 30 min
+      retry: 1, // Only retry once on failure
+      refetchOnWindowFocus: false, // Don't refetch when tab gets focus
+    },
+  },
+});
 
 const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <AuthProvider>
-          <OrganizationProvider>
-            <UnifiedDataProvider>
-              <DevModeProvider>
-                <DevModeSyncWrapper />
-                <OnboardingFlow>
-                  <Layout>
-                    <Routes>
-                      <Route path="/" element={<Portfolio />} />
-                      <Route path="/news" element={<NewsIntelligence />} />
-                      <Route path="/auth" element={<Auth />} />
-                      <Route path="/pipeline" element={<Pipeline />} />
-                      <Route path="/assets" element={<Portfolio />} />
-                      <Route path="/portfolio/:id" element={<CompanyDetail />} />
-                      <Route path="/contacts" element={<Contacts />} />
-                      <Route path="/tasks" element={<Tasks />} />
-                      <Route path="/documents" element={<DataRoom />} />
-                      <Route path="/models" element={<Models />} />
-                      <Route path="/models/new" element={<NewModel />} />
-                      <Route path="/models/:modelId/edit" element={<ModelEditor />} />
-                      <Route path="/models/cash-flow-buildup" element={<CashFlowBuildupPage />} />
-                      <Route path="/models/view/:modelId" element={<ModelViewerPage />} />
-                      <Route path="/market-intel" element={<MarketIntel />} />
-                      <Route path="/deal-matching" element={<DealMatching />} />
-                      <Route path="/settings" element={<Settings />} />
-                      <Route path="/settings/organization" element={<OrganizationSettings />} />
-                      <Route path="/research" element={<Research />} />
-                      <Route path="/asset-research" element={<AssetResearch />} />
-                      {/* <Route path="/backtest" element={<Backtest />} /> Hidden */}
-                      <Route path="/watchlist" element={<Watchlist />} />
-                      <Route path="/screener" element={<Navigate to="/asset-research" replace />} />
-                      <Route path="/stock/:ticker" element={<TickerDetail />} />
-                      <Route path="/portfolio-visualizer" element={<PortfolioVisualizer />} />
-                      <Route path="/prediction-ai" element={<PredictionMarketsAI />} />
-                      <Route path="/discovery" element={<DiscoveryHub />} />
-                      <Route path="/investment-plan" element={<InvestmentPlan />} />
-                      <Route path="/support" element={<SupportCenter />} />
-                      {/* Redirects from old routes */}
-                      <Route path="/portfolio" element={<Navigate to="/" replace />} />
-                      <Route path="/companies" element={<Navigate to="/" replace />} />
-                      <Route path="/companies/:id" element={<CompanyRedirect />} />
-                      <Route path="/markets" element={<Navigate to="/" replace />} />
-                      <Route path="/holdings" element={<Navigate to="/" replace />} />
-                      <Route path="/backtester" element={<Navigate to="/portfolio-visualizer" replace />} />
-                      {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-                      <Route path="*" element={<NotFound />} />
-                    </Routes>
-                  </Layout>
-                  <DevModeToggle />
-                </OnboardingFlow>
-              </DevModeProvider>
-            </UnifiedDataProvider>
-          </OrganizationProvider>
-        </AuthProvider>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
+  <ErrorBoundary>
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <AuthProvider>
+            <OrganizationProvider>
+              <UnifiedDataProvider>
+                <DevModeProvider>
+                  <DevModeSyncWrapper />
+                  <OnboardingFlow>
+                    <Layout>
+                      <Suspense fallback={<PageLoader />}>
+                        <Routes>
+                          <Route path="/" element={<Portfolio />} />
+                          <Route path="/news" element={<NewsIntelligence />} />
+                          <Route path="/auth" element={<Auth />} />
+                          <Route path="/pipeline" element={<Pipeline />} />
+                          <Route path="/assets" element={<Portfolio />} />
+                          <Route path="/portfolio/:id" element={<CompanyDetail />} />
+                          <Route path="/contacts" element={<Contacts />} />
+                          <Route path="/tasks" element={<Tasks />} />
+                          <Route path="/documents" element={<DataRoom />} />
+                          <Route path="/models" element={<Models />} />
+                          <Route path="/models/new" element={<NewModel />} />
+                          <Route path="/models/:modelId/edit" element={<ModelEditor />} />
+                          <Route path="/models/cash-flow-buildup" element={<CashFlowBuildupPage />} />
+                          <Route path="/models/view/:modelId" element={<ModelViewerPage />} />
+                          <Route path="/market-intel" element={<MarketIntel />} />
+                          <Route path="/deal-matching" element={<DealMatching />} />
+                          <Route path="/settings" element={<Settings />} />
+                          <Route path="/settings/organization" element={<OrganizationSettings />} />
+                          <Route path="/research" element={<Research />} />
+                          <Route path="/asset-research" element={<AssetResearch />} />
+                          <Route path="/watchlist" element={<Watchlist />} />
+                          <Route path="/screener" element={<Navigate to="/asset-research" replace />} />
+                          <Route path="/stock/:ticker" element={<TickerDetail />} />
+                          <Route path="/portfolio-visualizer" element={<PortfolioVisualizer />} />
+                          <Route path="/prediction-ai" element={<PredictionMarketsAI />} />
+                          <Route path="/discovery" element={<DiscoveryHub />} />
+                          <Route path="/investment-plan" element={<InvestmentPlan />} />
+                          <Route path="/support" element={<SupportCenter />} />
+                          {/* Redirects from old routes */}
+                          <Route path="/portfolio" element={<Navigate to="/" replace />} />
+                          <Route path="/companies" element={<Navigate to="/" replace />} />
+                          <Route path="/companies/:id" element={<CompanyRedirect />} />
+                          <Route path="/markets" element={<Navigate to="/" replace />} />
+                          <Route path="/holdings" element={<Navigate to="/" replace />} />
+                          <Route path="/backtester" element={<Navigate to="/portfolio-visualizer" replace />} />
+                          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                          <Route path="*" element={<NotFound />} />
+                        </Routes>
+                      </Suspense>
+                    </Layout>
+                    <DevModeToggle />
+                  </OnboardingFlow>
+                </DevModeProvider>
+              </UnifiedDataProvider>
+            </OrganizationProvider>
+          </AuthProvider>
+        </BrowserRouter>
+      </TooltipProvider>
+    </QueryClientProvider>
+  </ErrorBoundary>
 );
 
 export default App;
