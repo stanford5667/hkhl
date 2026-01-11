@@ -2,7 +2,8 @@ import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   Search, Sparkles, Star, X, Trash2, Save, Loader2, 
-  TrendingUp, TrendingDown, RefreshCw, Filter, ChevronDown 
+  TrendingUp, TrendingDown, RefreshCw, Filter, ChevronDown,
+  Brain, Lightbulb, Target, AlertTriangle
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -37,6 +38,11 @@ import {
 } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible';
 import { useWatchlist } from '@/hooks/useWatchlist';
 import {
   executeScreen,
@@ -47,11 +53,14 @@ import {
   getQuickScreensByCategory,
   generateExplanation,
 } from '@/services/finvizStyleScreenerService';
+import { AIInsightsPanel, QuickInsightsBadges } from '@/components/screener';
+import type { AIScreenerInsight } from '@/components/screener';
 import type { ScreenerCriteria, ScreenerResult, Sector, Exchange, Index, RSIFilter, SMAFilter, HighLow52W } from '@/types/screener';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { useRequireAuth } from '@/hooks/useRequireAuth';
 import { AuthGateDialog } from '@/components/auth/AuthGateDialog';
+import { supabase } from '@/integrations/supabase/client';
 
 const EXAMPLE_QUERIES = [
   'Large cap tech gainers',
@@ -177,13 +186,6 @@ function QuickScreensCard({ onSelect }: { onSelect: (criteria: ScreenerCriteria,
     'Fundamental': ['high_dividend', 'value_stocks', 'high_growth', 'high_roe'],
     'Market Cap': ['mega_cap', 'large_cap', 'mid_cap', 'small_cap'],
   };
-
-  // Additional backtest quick filters (inline since QUICK_SCREENS may not have these)
-  const backtestFilters = [
-    { name: 'High Sharpe (>1)', criteria: { minSharpe: 1 } },
-    { name: 'Positive Alpha', criteria: { minAlpha: 0 } },
-    { name: 'Low Drawdown (<20%)', criteria: { maxMaxDrawdown: 20 } },
-  ];
 
   return (
     <Card className="bg-card border-border/50">
@@ -381,9 +383,9 @@ function AdvancedFiltersSheet({
   return (
     <Sheet>
       <SheetTrigger asChild>
-        <Button variant="outline" size="sm">
+        <Button variant="outline" size="sm" className="h-12">
           <Filter className="h-4 w-4 mr-2" />
-          Advanced Filters
+          Filters
         </Button>
       </SheetTrigger>
       <SheetContent className="w-[520px] sm:max-w-[520px] p-0">
@@ -481,7 +483,6 @@ function AdvancedFiltersSheet({
 
                 <NumberRangeInput label="Price ($)" minKey="minPrice" maxKey="maxPrice" minPlaceholder="$0" maxPlaceholder="No max" />
                 <NumberRangeInput label="Volume" minKey="minVolume" maxKey="maxVolume" minPlaceholder="0" maxPlaceholder="No max" />
-                <NumberRangeInput label="Avg Volume" minKey="minAvgVolume" maxKey="maxAvgVolume" />
                 <NumberRangeInput label="Relative Volume" minKey="minRelativeVolume" maxKey="maxRelativeVolume" minPlaceholder="1x" maxPlaceholder="No max" />
                 <NumberRangeInput label="Float Short (%)" minKey="minFloatShort" maxKey="maxFloatShort" />
               </div>
@@ -514,7 +515,6 @@ function AdvancedFiltersSheet({
                     <NumberRangeInput label="ROA (%)" minKey="minROA" maxKey="maxROA" />
                     <NumberRangeInput label="ROI (%)" minKey="minROI" maxKey="maxROI" />
                     <NumberRangeInput label="Gross Margin (%)" minKey="minGrossMargin" maxKey="maxGrossMargin" />
-                    <NumberRangeInput label="Operating Margin (%)" minKey="minOperatingMargin" maxKey="maxOperatingMargin" />
                     <NumberRangeInput label="Net Margin (%)" minKey="minNetMargin" maxKey="maxNetMargin" />
                   </div>
                 </FilterSection>
@@ -522,23 +522,13 @@ function AdvancedFiltersSheet({
                 <FilterSection title="Growth">
                   <div className="space-y-3">
                     <NumberRangeInput label="EPS Growth This Year (%)" minKey="minEPSGrowthThisYear" maxKey="maxEPSGrowthThisYear" />
-                    <NumberRangeInput label="EPS Growth Next Year (%)" minKey="minEPSGrowthNextYear" maxKey="maxEPSGrowthNextYear" />
                     <NumberRangeInput label="Sales Growth QoQ (%)" minKey="minSalesGrowthQoQ" maxKey="maxSalesGrowthQoQ" />
                   </div>
                 </FilterSection>
 
                 <FilterSection title="Financial Health">
                   <div className="space-y-3">
-                    <NumberRangeInput label="Current Ratio" minKey="minCurrentRatio" maxKey="maxCurrentRatio" />
-                    <NumberRangeInput label="Quick Ratio" minKey="minQuickRatio" maxKey="maxQuickRatio" />
                     <NumberRangeInput label="Debt/Equity" minKey="minDebtEquity" maxKey="maxDebtEquity" />
-                  </div>
-                </FilterSection>
-
-                <FilterSection title="Ownership">
-                  <div className="space-y-3">
-                    <NumberRangeInput label="Insider Ownership (%)" minKey="minInsiderOwnership" maxKey="maxInsiderOwnership" />
-                    <NumberRangeInput label="Institutional Ownership (%)" minKey="minInstitutionalOwnership" maxKey="maxInstitutionalOwnership" />
                   </div>
                 </FilterSection>
               </div>
@@ -555,8 +545,6 @@ function AdvancedFiltersSheet({
                     <NumberRangeInput label="Week (%)" minKey="minPerfWeek" maxKey="maxPerfWeek" />
                     <NumberRangeInput label="Month (%)" minKey="minPerfMonth" maxKey="maxPerfMonth" />
                     <NumberRangeInput label="Quarter (%)" minKey="minPerfQuarter" maxKey="maxPerfQuarter" />
-                    <NumberRangeInput label="Year (%)" minKey="minPerfYear" maxKey="maxPerfYear" />
-                    <NumberRangeInput label="YTD (%)" minKey="minPerfYTD" maxKey="maxPerfYTD" />
                   </div>
                 </FilterSection>
 
@@ -597,40 +585,6 @@ function AdvancedFiltersSheet({
                 <FilterSection title="Moving Averages">
                   <div className="space-y-3">
                     <div>
-                      <Label className="text-sm font-medium">SMA 20</Label>
-                      <Select
-                        value={localCriteria.sma20 || 'any'}
-                        onValueChange={(value) => setLocalCriteria(f => ({ ...f, sma20: value === 'any' ? undefined : value as SMAFilter }))}
-                      >
-                        <SelectTrigger className="h-8 text-sm mt-1">
-                          <SelectValue placeholder="Any" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="any">Any</SelectItem>
-                          {SMA_FILTERS.map((sma) => (
-                            <SelectItem key={sma.value} value={sma.value}>{sma.label}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div>
-                      <Label className="text-sm font-medium">SMA 50</Label>
-                      <Select
-                        value={localCriteria.sma50 || 'any'}
-                        onValueChange={(value) => setLocalCriteria(f => ({ ...f, sma50: value === 'any' ? undefined : value as SMAFilter }))}
-                      >
-                        <SelectTrigger className="h-8 text-sm mt-1">
-                          <SelectValue placeholder="Any" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="any">Any</SelectItem>
-                          {SMA_FILTERS.map((sma) => (
-                            <SelectItem key={sma.value} value={sma.value}>{sma.label}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div>
                       <Label className="text-sm font-medium">SMA 200</Label>
                       <Select
                         value={localCriteria.sma200 || 'any'}
@@ -653,8 +607,6 @@ function AdvancedFiltersSheet({
                 <FilterSection title="Volatility">
                   <div className="space-y-3">
                     <NumberRangeInput label="Beta" minKey="minBeta" maxKey="maxBeta" />
-                    <NumberRangeInput label="Volatility (%)" minKey="minVolatility" maxKey="maxVolatility" />
-                    <NumberRangeInput label="ATR" minKey="minATR" maxKey="maxATR" />
                   </div>
                 </FilterSection>
 
@@ -725,14 +677,6 @@ function AdvancedFiltersSheet({
                       onClick={() => setLocalCriteria(f => ({ ...f, maxMaxDrawdown: 20 }))}
                     >
                       Low Drawdown
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="h-7 text-xs"
-                      onClick={() => setLocalCriteria(f => ({ ...f, minSortino: 1.5 }))}
-                    >
-                      Sortino &gt; 1.5
                     </Button>
                   </div>
                 </div>
@@ -838,12 +782,12 @@ function ResultsTable({
   }
 
   return (
-    <Card className="bg-card border-border/50">
+    <Card className="bg-card border-border/50 overflow-x-auto">
       <Table>
         <TableHeader>
           <TableRow>
             <TableHead>Stock</TableHead>
-            <TableHead>Sector</TableHead>
+            <TableHead className="hidden sm:table-cell">Sector</TableHead>
             <SortableHeader column="price">Price</SortableHeader>
             <SortableHeader column="change">Change</SortableHeader>
             <SortableHeader column="volume">Volume</SortableHeader>
@@ -874,7 +818,7 @@ function ResultsTable({
                     </p>
                   </div>
                 </TableCell>
-                <TableCell>
+                <TableCell className="hidden sm:table-cell">
                   <Badge variant="secondary" className="text-xs font-normal">
                     {stock.sector}
                   </Badge>
@@ -951,12 +895,107 @@ export default function Screener() {
   const [savedScreens, setSavedScreens] = useState<SavedScreen[]>([]);
   const [sortBy, setSortBy] = useState<string>('volume');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
+  
+  // AI Insights state
+  const [aiInsights, setAiInsights] = useState<AIScreenerInsight | null>(null);
+  const [isLoadingInsights, setIsLoadingInsights] = useState(false);
 
   const { addToWatchlist, isInWatchlist } = useWatchlist('stock');
 
   // Handle row click - navigate to ticker detail page
   const handleRowClick = (stock: ScreenerResult) => {
     navigate(`/stock/${stock.ticker}`);
+  };
+
+  // Fetch AI insights for results
+  const fetchAIInsights = async (screenResults: ScreenerResult[], screenCriteria: ScreenerCriteria) => {
+    if (screenResults.length === 0) {
+      setAiInsights(null);
+      return;
+    }
+
+    setIsLoadingInsights(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('ai-screener-insights', {
+        body: { criteria: screenCriteria, results: screenResults.slice(0, 20) }
+      });
+
+      if (error) throw error;
+      setAiInsights(data);
+    } catch (err) {
+      console.error('AI insights error:', err);
+      // Generate fallback insights locally
+      setAiInsights(generateLocalInsights(screenResults, screenCriteria));
+    } finally {
+      setIsLoadingInsights(false);
+    }
+  };
+
+  // Generate local fallback insights
+  const generateLocalInsights = (screenResults: ScreenerResult[], screenCriteria: ScreenerCriteria): AIScreenerInsight => {
+    const sectorCounts: Record<string, { count: number; totalChange: number }> = {};
+    screenResults.forEach(r => {
+      const sector = r.sector || 'Unknown';
+      if (!sectorCounts[sector]) {
+        sectorCounts[sector] = { count: 0, totalChange: 0 };
+      }
+      sectorCounts[sector].count++;
+      sectorCounts[sector].totalChange += r.changePercent;
+    });
+
+    const sectorBreakdown = Object.entries(sectorCounts)
+      .map(([sector, data]) => ({
+        sector,
+        count: data.count,
+        avgChange: data.count > 0 ? data.totalChange / data.count : 0
+      }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 5);
+
+    const avgChange = screenResults.reduce((sum, r) => sum + r.changePercent, 0) / screenResults.length;
+    const gainers = screenResults.filter(r => r.changePercent > 0).length;
+
+    const keyFindings: string[] = [];
+    if (avgChange > 2) {
+      keyFindings.push(`🚀 Strong bullish momentum with average gain of ${avgChange.toFixed(1)}%`);
+    } else if (avgChange < -2) {
+      keyFindings.push(`📉 Bearish pressure with average decline of ${Math.abs(avgChange).toFixed(1)}%`);
+    }
+    keyFindings.push(`${gainers} of ${screenResults.length} stocks (${Math.round((gainers/screenResults.length)*100)}%) are gaining today`);
+
+    const highVolume = screenResults.filter(r => r.relativeVolume > 2);
+    if (highVolume.length > 0) {
+      keyFindings.push(`📊 ${highVolume.length} stocks showing unusual volume activity`);
+    }
+
+    const topOpportunities = screenResults
+      .slice(0, 5)
+      .map(r => ({
+        ticker: r.ticker,
+        reason: [
+          r.changePercent > 3 ? `+${r.changePercent.toFixed(1)}% today` : '',
+          r.relativeVolume > 2 ? `${r.relativeVolume.toFixed(1)}x volume` : '',
+        ].filter(Boolean).join(', ') || 'matches criteria'
+      }));
+
+    const riskFactors: string[] = [];
+    if (screenCriteria.marketCap === 'small' || screenCriteria.marketCap === 'micro') {
+      riskFactors.push('⚠️ Small/micro caps carry higher volatility and liquidity risk');
+    }
+    if (screenCriteria.minPerfToday && screenCriteria.minPerfToday > 5) {
+      riskFactors.push('⚠️ High gainers may face profit-taking pressure');
+    }
+
+    return {
+      summary: `Found ${screenResults.length} stocks matching your criteria${screenCriteria.sector?.length ? ` in ${screenCriteria.sector.join(', ')}` : ''}.`,
+      keyFindings,
+      sectorBreakdown,
+      topOpportunities,
+      riskFactors,
+      marketContext: screenCriteria.sector?.length 
+        ? `Screening within ${screenCriteria.sector.join(', ')} sector.`
+        : 'Broad market screen across all sectors.'
+    };
   };
 
   // Load saved screens
@@ -987,6 +1026,9 @@ export default function Screener() {
       setResults(response.results);
       setTotalCount(response.totalCount);
       setExplanation(generateExplanation(screenCriteria, response.totalCount));
+      
+      // Fetch AI insights for the results
+      fetchAIInsights(response.results, screenCriteria);
     } catch (err) {
       console.error('Screen error:', err);
       toast.error('Failed to run screen');
@@ -1075,51 +1117,51 @@ export default function Screener() {
 
   return (
     <div className="p-4 sm:p-6 pb-20 md:pb-6">
-      <div className="flex flex-col lg:flex-row gap-4 lg:gap-6">
+      <div className="flex flex-col lg:flex-row gap-6">
         {/* Main Content */}
-        <div className="flex-1 space-y-4 sm:space-y-6 min-w-0">
+        <div className="flex-1 space-y-6">
           {/* Header */}
           <div>
             <h1 className="text-xl sm:text-2xl font-bold flex items-center gap-2">
               <Sparkles className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
               AI Stock Screener
             </h1>
-            <p className="text-muted-foreground text-sm sm:text-base mt-1">
+            <p className="text-muted-foreground mt-1 text-sm">
               Search 10,000+ stocks with natural language
             </p>
           </div>
 
           {/* Search Section */}
           <Card className="bg-card border-border/50">
-            <CardContent className="p-3 sm:p-4 space-y-3 sm:space-y-4">
+            <CardContent className="p-3 sm:p-4 space-y-4">
               <div className="flex flex-col sm:flex-row gap-2">
                 <div className="relative flex-1">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground" />
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                   <Input
-                    placeholder="e.g., 'Large cap tech gainers'"
+                    placeholder="e.g., 'Large cap tech gainers' or 'Under $20 high volume'"
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                    className="pl-9 sm:pl-10 h-10 sm:h-12 text-sm sm:text-base"
+                    className="pl-10 h-12 text-base"
                   />
                   {query && (
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="absolute right-2 top-1/2 -translate-y-1/2 h-6 w-6 sm:h-7 sm:w-7"
+                      className="absolute right-2 top-1/2 -translate-y-1/2 h-7 w-7"
                       onClick={() => setQuery('')}
                     >
-                      <X className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                      <X className="h-4 w-4" />
                     </Button>
                   )}
                 </div>
                 <div className="flex gap-2">
-                  <Button onClick={handleSearch} disabled={!query.trim() || isLoading} className="h-10 sm:h-12 px-4 sm:px-6 flex-1 sm:flex-initial">
+                  <Button onClick={handleSearch} disabled={!query.trim() || isLoading} className="h-12 px-4 sm:px-6 flex-1 sm:flex-none">
                     {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Screen'}
                   </Button>
                   <AdvancedFiltersSheet criteria={criteria} onApply={(c) => runScreen(c, query || 'Advanced filters')} />
                   {query.trim() && results.length > 0 && (
-                    <Button variant="outline" onClick={handleSaveScreen} className="h-10 sm:h-12 px-3">
+                    <Button variant="outline" onClick={handleSaveScreen} className="h-12">
                       <Save className="h-4 w-4 sm:mr-2" />
                       <span className="hidden sm:inline">Save</span>
                     </Button>
@@ -1133,7 +1175,7 @@ export default function Screener() {
                   <Badge
                     key={example}
                     variant="secondary"
-                    className="cursor-pointer hover:bg-secondary/80 transition-colors"
+                    className="cursor-pointer hover:bg-secondary/80 transition-colors text-xs"
                     onClick={() => {
                       setQuery(example);
                       const parsedCriteria = parseNaturalLanguageQuery(example);
@@ -1149,22 +1191,53 @@ export default function Screener() {
 
           {/* Explanation / Stats */}
           {(explanation || totalCount > 0) && (
-            <div className="bg-muted/50 border border-border/50 rounded-lg px-3 sm:px-4 py-2 sm:py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-              <p className="text-xs sm:text-sm">{explanation}</p>
-              {results.length > 0 && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => runScreen(criteria, query)}
-                  disabled={isLoading}
-                  className="self-end sm:self-auto"
-                >
-                  <RefreshCw className={cn("h-4 w-4 mr-2", isLoading && "animate-spin")} />
-                  Refresh
-                </Button>
-              )}
+            <div className="bg-muted/50 border border-border/50 rounded-lg px-4 py-3">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
+                <p className="text-sm">{explanation}</p>
+                {results.length > 0 && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => runScreen(criteria, query)}
+                    disabled={isLoading}
+                  >
+                    <RefreshCw className={cn("h-4 w-4 mr-2", isLoading && "animate-spin")} />
+                    Refresh
+                  </Button>
+                )}
+              </div>
+              {results.length > 0 && <QuickInsightsBadges results={results} />}
             </div>
           )}
+
+          {/* Quick Screens for Mobile */}
+          <div className="lg:hidden">
+            <Collapsible>
+              <CollapsibleTrigger asChild>
+                <Button variant="outline" className="w-full justify-between">
+                  Quick Screens
+                  <ChevronDown className="h-4 w-4" />
+                </Button>
+              </CollapsibleTrigger>
+              <CollapsibleContent className="mt-2">
+                <div className="flex flex-wrap gap-2">
+                  {Object.entries(QUICK_SCREENS).slice(0, 12).map(([key, screen]) => (
+                    <Badge
+                      key={key}
+                      variant="outline"
+                      className="cursor-pointer hover:bg-secondary/80 transition-colors"
+                      onClick={() => {
+                        setQuery(screen.name);
+                        runScreen(screen.criteria, screen.name);
+                      }}
+                    >
+                      {screen.name}
+                    </Badge>
+                  ))}
+                </div>
+              </CollapsibleContent>
+            </Collapsible>
+          </div>
 
           {/* Results Table */}
           <ResultsTable
@@ -1179,40 +1252,27 @@ export default function Screener() {
           />
         </div>
 
-        {/* Sidebar */}
-        <div className="lg:w-72 lg:space-y-4 lg:flex-shrink-0">
-          {/* Mobile: wrapping quick screens */}
-          <div className="lg:hidden mb-4">
-            <div className="flex flex-wrap gap-2">
-              {Object.entries(QUICK_SCREENS).slice(0, 6).map(([key, screen]) => (
-                <Button
-                  key={key}
-                  variant="outline"
-                  size="sm"
-                  className="text-xs h-8"
-                  onClick={() => {
-                    setQuery(screen.name);
-                    runScreen(screen.criteria, screen.name);
-                  }}
-                >
-                  {screen.name}
-                </Button>
-              ))}
-            </div>
-          </div>
-          {/* Desktop: full sidebar */}
-          <div className="hidden lg:block space-y-4">
-            <AppliedFiltersCard criteria={criteria} />
-            <SavedScreensList
-              screens={savedScreens}
-              onSelect={(f, q) => runScreen(f, q)}
-              onDelete={handleDeleteScreen}
-            />
-            <QuickScreensCard onSelect={(f, name) => {
-              setQuery(name);
-              runScreen(f, name);
-            }} />
-          </div>
+        {/* Sidebar - Desktop only */}
+        <div className="hidden lg:block w-72 space-y-4 flex-shrink-0">
+          {/* AI Insights Panel */}
+          <AIInsightsPanel 
+            insights={aiInsights}
+            isLoading={isLoadingInsights}
+            results={results}
+            criteria={criteria}
+            onRefresh={() => fetchAIInsights(results, criteria)}
+          />
+          
+          <AppliedFiltersCard criteria={criteria} />
+          <SavedScreensList
+            screens={savedScreens}
+            onSelect={(f, q) => runScreen(f, q)}
+            onDelete={handleDeleteScreen}
+          />
+          <QuickScreensCard onSelect={(f, name) => {
+            setQuery(name);
+            runScreen(f, name);
+          }} />
         </div>
       </div>
       
