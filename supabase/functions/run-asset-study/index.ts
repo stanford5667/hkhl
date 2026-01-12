@@ -181,62 +181,6 @@ function studyTrendStrength(bars: PriceBar[], params?: Record<string, any>) {
 
 function studyPriceTargets(bars: PriceBar[]) { const closes = bars.map(b => b.close); const returns = closes.slice(1).map((c, i) => (c - closes[i]) / closes[i]); const avgReturn = returns.reduce((a, b) => a + b, 0) / returns.length; const stdDev = Math.sqrt(returns.reduce((sum, r) => sum + Math.pow(r - avgReturn, 2), 0) / returns.length); const currentPrice = closes[closes.length - 1]; const projections = { days30: { expected: currentPrice * Math.pow(1 + avgReturn, 30), bull: currentPrice * Math.pow(1 + avgReturn + stdDev, 30), bear: currentPrice * Math.pow(1 + avgReturn - stdDev, 30), best: currentPrice * Math.pow(1 + avgReturn + 2 * stdDev, 30), worst: currentPrice * Math.pow(1 + avgReturn - 2 * stdDev, 30) }, days90: { expected: currentPrice * Math.pow(1 + avgReturn, 90), bull: currentPrice * Math.pow(1 + avgReturn + stdDev, 90), bear: currentPrice * Math.pow(1 + avgReturn - stdDev, 90) }, days252: { expected: currentPrice * Math.pow(1 + avgReturn, 252), bull: currentPrice * Math.pow(1 + avgReturn + stdDev, 252), bear: currentPrice * Math.pow(1 + avgReturn - stdDev, 252) } }; const highs = bars.map(b => b.high); const lows = bars.map(b => b.low); const priceRange = Math.max(...highs) - Math.min(...lows); const bucketSize = priceRange / 50; const volumeProfile: Record<number, number> = {}; for (const bar of bars) { const bucket = Math.floor(bar.close / bucketSize) * bucketSize; volumeProfile[bucket] = (volumeProfile[bucket] || 0) + bar.volume; } const levels = Object.entries(volumeProfile).map(([price, vol]) => ({ price: parseFloat(price), volume: vol })).sort((a, b) => b.volume - a.volume).slice(0, 5).map(l => l.price); return { type: 'price_targets', currentPrice, dailyReturn: avgReturn * 100, dailyVol: stdDev * 100, projections, keyLevels: levels.sort((a, b) => a - b), nearestSupport: levels.filter(l => l < currentPrice).sort((a, b) => b - a)[0] || null, nearestResistance: levels.filter(l => l > currentPrice).sort((a, b) => a - b)[0] || null }; }
 
-function studyMACDAnalysis(bars: PriceBar[], params?: Record<string, any>) {
-  const fastPeriod = params?.fastPeriod || 12;
-  const slowPeriod = params?.slowPeriod || 26;
-  const signalPeriod = params?.signalPeriod || 9;
-  const closes = bars.map(b => b.close);
-  const fastEMA = calculateEMA(closes, fastPeriod);
-  const slowEMA = calculateEMA(closes, slowPeriod);
-  const macdLine: number[] = [];
-  for (let i = 0; i < closes.length; i++) {
-    if (isNaN(fastEMA[i]) || isNaN(slowEMA[i])) macdLine.push(NaN);
-    else macdLine.push(fastEMA[i] - slowEMA[i]);
-  }
-  const validMACD = macdLine.filter(x => !isNaN(x));
-  const signalLine = calculateEMA(validMACD, signalPeriod);
-  const currentMACD = validMACD[validMACD.length - 1] || 0;
-  const currentSignal = signalLine[signalLine.length - 1] || 0;
-  const histogram = currentMACD - currentSignal;
-  return { type: 'macd', params: { fastPeriod, slowPeriod, signalPeriod }, macd: currentMACD, signal: currentSignal, histogram, trend: histogram > 0 ? 'bullish' : 'bearish' };
-}
-
-function studyBollingerAnalysis(bars: PriceBar[], params?: Record<string, any>) {
-  const period = params?.period || 20;
-  const stdDevMultiplier = params?.stdDevMultiplier || 2;
-  const closes = bars.map(b => b.close);
-  const sma = calculateSMA(closes, period);
-  const curr = closes.length - 1;
-  const currentSMA = sma[curr];
-  const windowCloses = closes.slice(-period);
-  const stdDev = Math.sqrt(windowCloses.reduce((sum, c) => sum + Math.pow(c - currentSMA, 2), 0) / period);
-  const upperBand = currentSMA + stdDevMultiplier * stdDev;
-  const lowerBand = currentSMA - stdDevMultiplier * stdDev;
-  const currentPrice = closes[curr];
-  const percentB = (currentPrice - lowerBand) / (upperBand - lowerBand);
-  const bandwidth = ((upperBand - lowerBand) / currentSMA) * 100;
-  return { type: 'bollinger', params: { period, stdDevMultiplier }, upperBand, middleBand: currentSMA, lowerBand, currentPrice, percentB: percentB * 100, bandwidth, position: percentB > 1 ? 'above_upper' : percentB < 0 ? 'below_lower' : percentB > 0.8 ? 'near_upper' : percentB < 0.2 ? 'near_lower' : 'middle' };
-}
-
-function studyStochasticAnalysis(bars: PriceBar[], params?: Record<string, any>) {
-  const kPeriod = params?.kPeriod || 14;
-  const dPeriod = params?.dPeriod || 3;
-  const overbought = params?.overbought || 80;
-  const oversold = params?.oversold || 20;
-  const kValues: number[] = [];
-  for (let i = kPeriod - 1; i < bars.length; i++) {
-    const window = bars.slice(i - kPeriod + 1, i + 1);
-    const high = Math.max(...window.map(b => b.high));
-    const low = Math.min(...window.map(b => b.low));
-    const close = bars[i].close;
-    kValues.push(high !== low ? ((close - low) / (high - low)) * 100 : 50);
-  }
-  const dValues = calculateSMA(kValues, dPeriod);
-  const currentK = kValues[kValues.length - 1] || 50;
-  const currentD = dValues[dValues.length - 1] || 50;
-  return { type: 'stochastic', params: { kPeriod, dPeriod, overbought, oversold }, k: currentK, d: currentD, signal: currentK > overbought ? 'overbought' : currentK < oversold ? 'oversold' : 'neutral', crossover: currentK > currentD ? 'bullish' : 'bearish' };
-}
-
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
   try {
@@ -267,9 +211,6 @@ serve(async (req) => {
       case 'trend_strength': 
       case 'trend_analysis': result = studyTrendStrength(bars, params); break;
       case 'price_targets': result = studyPriceTargets(bars); break;
-      case 'macd_analysis': result = studyMACDAnalysis(bars, params); break;
-      case 'bollinger_analysis': result = studyBollingerAnalysis(bars, params); break;
-      case 'stochastic_analysis': result = studyStochasticAnalysis(bars, params); break;
       default: return new Response(JSON.stringify({ error: `Unknown study type: ${studyType}` }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
     return new Response(JSON.stringify({ success: true, result, barsAnalyzed: bars.length, useMockData, computationTimeMs: Date.now() - startTime, dateRange: { start: bars[0].date, end: bars[bars.length - 1].date } }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
