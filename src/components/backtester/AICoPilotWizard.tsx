@@ -124,6 +124,8 @@ export function AICoPilotWizard({ onComplete, onBack }: AICoPilotWizardProps) {
     const idx = WIZARD_STEPS.findIndex(s => s.id === currentStep);
     if (idx < WIZARD_STEPS.length - 1) {
       setCurrentStep(WIZARD_STEPS[idx + 1].id as WizardStep);
+      // Scroll to top on mobile when navigating to next step
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
 
@@ -131,6 +133,8 @@ export function AICoPilotWizard({ onComplete, onBack }: AICoPilotWizardProps) {
     const idx = WIZARD_STEPS.findIndex(s => s.id === currentStep);
     if (idx > 0) {
       setCurrentStep(WIZARD_STEPS[idx - 1].id as WizardStep);
+      // Scroll to top on mobile when navigating to previous step
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     } else {
       onBack();
     }
@@ -198,6 +202,8 @@ export function AICoPilotWizard({ onComplete, onBack }: AICoPilotWizardProps) {
   const handleStepClick = (idx: number) => {
     if (idx <= stepIndex) {
       setCurrentStep(WIZARD_STEPS[idx].id as WizardStep);
+      // Scroll to top on mobile when clicking a step
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
 
