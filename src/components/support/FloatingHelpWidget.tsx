@@ -42,7 +42,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 
 interface QuickAction {
   id: string;
@@ -56,6 +56,8 @@ interface QuickAction {
 export function FloatingHelpWidget() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const [isMobile, setIsMobile] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const [showFeedback, setShowFeedback] = useState(false);
   const [feedbackType, setFeedbackType] = useState<'bug' | 'feature' | 'general'>('general');
@@ -70,6 +72,29 @@ export function FloatingHelpWidget() {
       setFeedbackEmail(user.email);
     }
   }, [user]);
+
+  // Mobile detection (used to avoid blocking primary CTAs)
+  useEffect(() => {
+    const mql = window.matchMedia('(max-width: 767px)');
+    const update = () => setIsMobile(mql.matches);
+    update();
+
+    const mqlAny = mql as unknown as {
+      addEventListener?: (type: 'change', listener: () => void) => void;
+      removeEventListener?: (type: 'change', listener: () => void) => void;
+      addListener?: (listener: () => void) => void;
+      removeListener?: (listener: () => void) => void;
+    };
+
+    // Safari fallback
+    if (mqlAny.addEventListener) mqlAny.addEventListener('change', update);
+    else mqlAny.addListener?.(update);
+
+    return () => {
+      if (mqlAny.removeEventListener) mqlAny.removeEventListener('change', update);
+      else mqlAny.removeListener?.(update);
+    };
+  }, []);
 
   // Keyboard shortcut
   useEffect(() => {
@@ -180,10 +205,15 @@ export function FloatingHelpWidget() {
     }
   };
 
+  const shouldHideOnMobile =
+    isMobile && document.documentElement.classList.contains('questionnaire-overlay');
+
+  if (shouldHideOnMobile) return null;
+
   return (
     <>
       {/* Floating Button */}
-      <div className="fixed right-6 z-50 bottom-[calc(env(safe-area-inset-bottom)+10rem)] md:bottom-6">
+      <div className="fixed left-4 right-auto z-50 bottom-[calc(env(safe-area-inset-bottom)+6rem)] md:left-auto md:right-6 md:bottom-6">
         <Popover open={isOpen} onOpenChange={setIsOpen}>
           <PopoverTrigger asChild>
             <Button
@@ -202,12 +232,12 @@ export function FloatingHelpWidget() {
             </Button>
           </PopoverTrigger>
 
-          <PopoverContent 
-            side="top" 
-            align="end" 
-            className="w-80 max-w-[calc(100vw-2rem)] p-0 bg-background/95 backdrop-blur-lg border-border shadow-2xl"
-            sideOffset={16}
-          >
+            <PopoverContent 
+             side="top" 
+             align="start" 
+             className="w-80 max-w-[calc(100vw-2rem)] p-0 bg-background/95 backdrop-blur-lg border-border shadow-2xl"
+             sideOffset={16}
+           >
             <AnimatePresence mode="wait">
               {!showFeedback ? (
                 <motion.div

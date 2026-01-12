@@ -509,6 +509,17 @@ export function EliteQuestionnaire({ onComplete, onCancel, userId, forceNew = fa
   const [isCheckingSession, setIsCheckingSession] = useState(!userId);
   const [showScrollIndicator, setShowScrollIndicator] = useState(false);
   
+  // When the fullscreen questionnaire is active, hide global floating widgets on mobile
+  useEffect(() => {
+    const cls = 'questionnaire-overlay';
+    if (phase === 'questionnaire') {
+      document.documentElement.classList.add(cls);
+    } else {
+      document.documentElement.classList.remove(cls);
+    }
+    return () => document.documentElement.classList.remove(cls);
+  }, [phase]);
+
   // Check if page has scrollable content
   useEffect(() => {
     const checkScroll = () => {
