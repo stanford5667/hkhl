@@ -460,8 +460,10 @@ export default function InvestmentPlanPage() {
 
         <Button 
           onClick={() => {
-            setForceNewAssessment(true);
-            setShowQuestionnaire(true);
+            requireAuth(() => {
+              setForceNewAssessment(true);
+              setShowQuestionnaire(true);
+            });
           }}
           className="gap-2 shadow-lg shadow-primary/25 w-full sm:w-auto"
           size="lg"
@@ -517,8 +519,10 @@ export default function InvestmentPlanPage() {
                       ))}
                     </div>
                     <Button onClick={() => {
-                      setForceNewAssessment(true);
-                      setShowQuestionnaire(true);
+                      requireAuth(() => {
+                        setForceNewAssessment(true);
+                        setShowQuestionnaire(true);
+                      });
                     }} size="lg" className="gap-2 shadow-lg shadow-primary/25">
                       <Brain className="h-5 w-5" />
                       Take the 5-Minute Assessment
