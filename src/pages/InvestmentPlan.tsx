@@ -821,20 +821,22 @@ export default function InvestmentPlanPage() {
 
       {/* View Plan - Full Screen Results Component */}
       {viewPlanOpen && selectedPlan && (
-        <div className="fixed inset-0 z-[9999] bg-background">
-          <ComprehensiveInvestmentResults
-            responses={selectedPlan.responses || {}}
-            rawPolicy={selectedPlan.plan_content || ''}
-            userName={selectedPlan.name.replace("'s Investment Plan", '')}
-            riskScore={selectedPlan.risk_score || 50}
-            onExport={() => downloadPlan(selectedPlan)}
-            onStartNew={() => {
-              setViewPlanOpen(false);
-              setSelectedPlan(null);
-              setShowQuestionnaire(true);
-            }}
-            onSignOut={() => setViewPlanOpen(false)}
-          />
+        <div className="fixed inset-0 z-[9999] bg-background overflow-y-auto overscroll-contain -webkit-overflow-scrolling-touch">
+          <div className="min-h-screen pb-safe">
+            <ComprehensiveInvestmentResults
+              responses={selectedPlan.responses || {}}
+              rawPolicy={selectedPlan.plan_content || ''}
+              userName={selectedPlan.name.replace("'s Investment Plan", '')}
+              riskScore={selectedPlan.risk_score || 50}
+              onExport={() => downloadPlan(selectedPlan)}
+              onStartNew={() => {
+                setViewPlanOpen(false);
+                setSelectedPlan(null);
+                setShowQuestionnaire(true);
+              }}
+              onSignOut={() => setViewPlanOpen(false)}
+            />
+          </div>
           {/* Back button overlay */}
           <Button
             variant="ghost"
