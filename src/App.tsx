@@ -1,4 +1,4 @@
-import { lazy, Suspense } from 'react';
+import { lazy, Suspense, useState, useCallback } from 'react';
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -8,6 +8,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { OrganizationProvider } from "@/contexts/OrganizationContext";
 import { UnifiedDataProvider } from "@/contexts/UnifiedDataContext";
 import { DevModeProvider } from "@/contexts/DevModeContext";
+import { UsageProvider } from "@/contexts/UsageContext";
 import { OnboardingFlow } from "@/components/onboarding/OnboardingFlow";
 import { Layout } from "@/components/layout/Layout";
 import { DevModeToggle } from "@/components/dev/DevModeToggle";
@@ -15,6 +16,7 @@ import { DevModeSyncWrapper } from "@/components/dev/DevModeSyncWrapper";
 import { CompanyRedirect } from "./components/shared/CompanyRedirect";
 import { PageLoader } from "@/components/shared/PageLoader";
 import { ErrorBoundary } from "@/components/shared/ErrorBoundary";
+import { UpgradeModal } from "@/components/premium/UpgradeModal";
 
 // Lazy load all pages for code splitting
 const Pipeline = lazy(() => import('./pages/Pipeline'));
@@ -57,72 +59,87 @@ const queryClient = new QueryClient({
   },
 });
 
-const App = () => (
-  <ErrorBoundary>
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <AuthProvider>
-            <OrganizationProvider>
-              <UnifiedDataProvider>
-                <DevModeProvider>
-                  <DevModeSyncWrapper />
-                  <OnboardingFlow>
-                    <Layout>
-                      <Suspense fallback={<PageLoader />}>
-                        <Routes>
-                          <Route path="/" element={<Portfolio />} />
-                          <Route path="/news" element={<NewsIntelligence />} />
-                          <Route path="/auth" element={<Auth />} />
-                          <Route path="/pipeline" element={<Pipeline />} />
-                          <Route path="/assets" element={<Portfolio />} />
-                          <Route path="/portfolio/:id" element={<CompanyDetail />} />
-                          <Route path="/contacts" element={<Contacts />} />
-                          <Route path="/tasks" element={<Tasks />} />
-                          <Route path="/documents" element={<DataRoom />} />
-                          <Route path="/models" element={<Models />} />
-                          <Route path="/models/new" element={<NewModel />} />
-                          <Route path="/models/:modelId/edit" element={<ModelEditor />} />
-                          <Route path="/models/cash-flow-buildup" element={<CashFlowBuildupPage />} />
-                          <Route path="/models/view/:modelId" element={<ModelViewerPage />} />
-                          <Route path="/market-intel" element={<MarketIntel />} />
-                          <Route path="/deal-matching" element={<DealMatching />} />
-                          <Route path="/settings" element={<Settings />} />
-                          <Route path="/settings/organization" element={<OrganizationSettings />} />
-                          <Route path="/research" element={<Research />} />
-                          <Route path="/asset-research" element={<AssetResearch />} />
-                          <Route path="/watchlist" element={<Watchlist />} />
-                          <Route path="/screener" element={<Navigate to="/asset-research" replace />} />
-                          <Route path="/stock/:ticker" element={<TickerDetail />} />
-                          <Route path="/portfolio-visualizer" element={<PortfolioVisualizer />} />
-                          <Route path="/prediction-ai" element={<PredictionMarketsAI />} />
-                          <Route path="/discovery" element={<DiscoveryHub />} />
-                          <Route path="/investment-plan" element={<InvestmentPlan />} />
-                          <Route path="/support" element={<SupportCenter />} />
-                          {/* Redirects from old routes */}
-                          <Route path="/portfolio" element={<Navigate to="/" replace />} />
-                          <Route path="/companies" element={<Navigate to="/" replace />} />
-                          <Route path="/companies/:id" element={<CompanyRedirect />} />
-                          <Route path="/markets" element={<Navigate to="/" replace />} />
-                          <Route path="/holdings" element={<Navigate to="/" replace />} />
-                          <Route path="/backtester" element={<Navigate to="/portfolio-visualizer" replace />} />
-                          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-                          <Route path="*" element={<NotFound />} />
-                        </Routes>
-                      </Suspense>
-                    </Layout>
-                    <DevModeToggle />
-                  </OnboardingFlow>
-                </DevModeProvider>
-              </UnifiedDataProvider>
-            </OrganizationProvider>
-          </AuthProvider>
-        </BrowserRouter>
-      </TooltipProvider>
-    </QueryClientProvider>
-  </ErrorBoundary>
-);
+const App = () => {
+  const [upgradeFeature, setUpgradeFeature] = useState<string | null>(null);
+  
+  const handleUpgradeRequest = useCallback((feature: string) => {
+    setUpgradeFeature(feature);
+  }, []);
+
+  return (
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <AuthProvider>
+              <OrganizationProvider>
+                <UnifiedDataProvider>
+                  <DevModeProvider>
+                    <UsageProvider onUpgradeRequest={handleUpgradeRequest}>
+                      <DevModeSyncWrapper />
+                      <OnboardingFlow>
+                        <Layout>
+                          <Suspense fallback={<PageLoader />}>
+                            <Routes>
+                              <Route path="/" element={<Portfolio />} />
+                              <Route path="/news" element={<NewsIntelligence />} />
+                              <Route path="/auth" element={<Auth />} />
+                              <Route path="/pipeline" element={<Pipeline />} />
+                              <Route path="/assets" element={<Portfolio />} />
+                              <Route path="/portfolio/:id" element={<CompanyDetail />} />
+                              <Route path="/contacts" element={<Contacts />} />
+                              <Route path="/tasks" element={<Tasks />} />
+                              <Route path="/documents" element={<DataRoom />} />
+                              <Route path="/models" element={<Models />} />
+                              <Route path="/models/new" element={<NewModel />} />
+                              <Route path="/models/:modelId/edit" element={<ModelEditor />} />
+                              <Route path="/models/cash-flow-buildup" element={<CashFlowBuildupPage />} />
+                              <Route path="/models/view/:modelId" element={<ModelViewerPage />} />
+                              <Route path="/market-intel" element={<MarketIntel />} />
+                              <Route path="/deal-matching" element={<DealMatching />} />
+                              <Route path="/settings" element={<Settings />} />
+                              <Route path="/settings/organization" element={<OrganizationSettings />} />
+                              <Route path="/research" element={<Research />} />
+                              <Route path="/asset-research" element={<AssetResearch />} />
+                              <Route path="/watchlist" element={<Watchlist />} />
+                              <Route path="/screener" element={<Navigate to="/asset-research" replace />} />
+                              <Route path="/stock/:ticker" element={<TickerDetail />} />
+                              <Route path="/portfolio-visualizer" element={<PortfolioVisualizer />} />
+                              <Route path="/prediction-ai" element={<PredictionMarketsAI />} />
+                              <Route path="/discovery" element={<DiscoveryHub />} />
+                              <Route path="/investment-plan" element={<InvestmentPlan />} />
+                              <Route path="/support" element={<SupportCenter />} />
+                              {/* Redirects from old routes */}
+                              <Route path="/portfolio" element={<Navigate to="/" replace />} />
+                              <Route path="/companies" element={<Navigate to="/" replace />} />
+                              <Route path="/companies/:id" element={<CompanyRedirect />} />
+                              <Route path="/markets" element={<Navigate to="/" replace />} />
+                              <Route path="/holdings" element={<Navigate to="/" replace />} />
+                              <Route path="/backtester" element={<Navigate to="/portfolio-visualizer" replace />} />
+                              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                              <Route path="*" element={<NotFound />} />
+                            </Routes>
+                          </Suspense>
+                        </Layout>
+                        <DevModeToggle />
+                      </OnboardingFlow>
+                      <UpgradeModal 
+                        isOpen={!!upgradeFeature}
+                        feature={upgradeFeature || ''}
+                        onClose={() => setUpgradeFeature(null)}
+                      />
+                    </UsageProvider>
+                  </DevModeProvider>
+                </UnifiedDataProvider>
+              </OrganizationProvider>
+            </AuthProvider>
+          </BrowserRouter>
+        </TooltipProvider>
+      </QueryClientProvider>
+    </ErrorBoundary>
+  );
+};
 
 export default App;

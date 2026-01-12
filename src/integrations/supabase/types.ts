@@ -2752,6 +2752,48 @@ export type Database = {
         }
         Relationships: []
       }
+      subscriptions: {
+        Row: {
+          cancel_at_period_end: boolean | null
+          created_at: string | null
+          current_period_end: string | null
+          current_period_start: string | null
+          id: string
+          plan: string
+          status: string
+          stripe_customer_id: string | null
+          stripe_subscription_id: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          cancel_at_period_end?: boolean | null
+          created_at?: string | null
+          current_period_end?: string | null
+          current_period_start?: string | null
+          id?: string
+          plan: string
+          status?: string
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          cancel_at_period_end?: boolean | null
+          created_at?: string | null
+          current_period_end?: string | null
+          current_period_start?: string | null
+          id?: string
+          plan?: string
+          status?: string
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       subtasks: {
         Row: {
           completed: boolean | null
@@ -3508,6 +3550,39 @@ export type Database = {
         }
         Relationships: []
       }
+      user_usage: {
+        Row: {
+          ai_analyses_today: number | null
+          alerts_today: number | null
+          id: string
+          last_reset_at: string | null
+          portfolio_count: number | null
+          saved_screens: number | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          ai_analyses_today?: number | null
+          alerts_today?: number | null
+          id?: string
+          last_reset_at?: string | null
+          portfolio_count?: number | null
+          saved_screens?: number | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          ai_analyses_today?: number | null
+          alerts_today?: number | null
+          id?: string
+          last_reset_at?: string | null
+          portfolio_count?: number | null
+          saved_screens?: number | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_watchlist: {
         Row: {
           added_at: string | null
@@ -3741,8 +3816,13 @@ export type Database = {
         }
         Returns: boolean
       }
+      increment_usage: {
+        Args: { p_field: string; p_user_id: string }
+        Returns: number
+      }
       is_org_admin: { Args: { org_id: string }; Returns: boolean }
       is_org_member: { Args: { org_id: string }; Returns: boolean }
+      reset_daily_usage: { Args: never; Returns: undefined }
       search_markets_semantic: {
         Args: {
           match_count?: number
