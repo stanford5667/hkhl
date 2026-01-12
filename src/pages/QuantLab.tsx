@@ -1,13 +1,14 @@
 /**
  * QUANT LAB - "Canva for Quants"
  * 
- * A beginner-friendly quantitative analysis tool that makes
- * professional-grade studies accessible to everyone.
+ * An INTERACTIVE LEARNING experience that makes
+ * professional-grade quantitative analysis accessible to everyone.
  * 
  * Features:
  * - Visual parameter controls (sliders, toggles)
- * - Plain-English explanations
- * - Real-time preview
+ * - Plain-English explanations with educational tooltips
+ * - Tutorial system for beginners
+ * - XP, achievements, and progress tracking
  * - Study templates for beginners
  * - No coding required
  */
@@ -46,12 +47,19 @@ import {
   Calendar, Zap, Layers, Volume2, Crosshair, LineChart,
   Gauge, ArrowLeftRight, Mountain, ArrowUpDown, Settings2,
   Sparkles, HelpCircle, Lightbulb, Target, Shield, Loader2,
-  CheckCircle2, X, RotateCcw
+  CheckCircle2, X, RotateCcw, GraduationCap, Trophy, Brain
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+
+// Interactive Learning Components
+import { LearningProvider, useLearning } from '@/components/quant-lab/LearningContext';
+import { TutorialOverlay } from '@/components/quant-lab/TutorialOverlay';
+import { ProgressHeader } from '@/components/quant-lab/ProgressHeader';
+import { StudyExplainer } from '@/components/quant-lab/StudyExplainer';
+import { ResultInterpreter } from '@/components/quant-lab/ResultInterpreter';
 
 // ===========================================
 // STUDY DEFINITIONS WITH BEGINNER-FRIENDLY EXPLANATIONS
@@ -1131,8 +1139,78 @@ export default function QuantLab() {
   };
 
   return (
+    <LearningProvider>
+      <QuantLabContent 
+        ticker={ticker}
+        setTicker={setTicker}
+        selectedTicker={selectedTicker}
+        setSelectedTicker={setSelectedTicker}
+        period={period}
+        setPeriod={setPeriod}
+        selectedStudies={selectedStudies}
+        setSelectedStudies={setSelectedStudies}
+        studyParams={studyParams}
+        setStudyParams={setStudyParams}
+        results={results}
+        setResults={setResults}
+        isRunning={isRunning}
+        setIsRunning={setIsRunning}
+        runningStudy={runningStudy}
+        setRunningStudy={setRunningStudy}
+        showHelp={showHelp}
+        setShowHelp={setShowHelp}
+        activeCategory={activeCategory}
+        setActiveCategory={setActiveCategory}
+        isSaving={isSaving}
+        setIsSaving={setIsSaving}
+        initStudyParams={initStudyParams}
+        addStudy={addStudy}
+        removeStudy={removeStudy}
+        updateParam={updateParam}
+        resetParams={resetParams}
+        loadTemplate={loadTemplate}
+        handleSetTicker={handleSetTicker}
+        runStudy={runStudy}
+        runAllStudies={runAllStudies}
+        saveStudyResult={saveStudyResult}
+        getStudy={getStudy}
+        formatValue={formatValue}
+        getSentimentStyle={getSentimentStyle}
+        getDisplayMetrics={getDisplayMetrics}
+      />
+    </LearningProvider>
+  );
+}
+
+// Separate component to use learning context
+function QuantLabContent(props: any) {
+  const {
+    ticker, setTicker, selectedTicker, setSelectedTicker, period, setPeriod,
+    selectedStudies, setSelectedStudies, studyParams, results, setResults,
+    isRunning, runningStudy, showHelp, setShowHelp, activeCategory, setActiveCategory,
+    isSaving, initStudyParams, addStudy, removeStudy, loadTemplate, handleSetTicker,
+    runStudy, runAllStudies, saveStudyResult, getStudy, formatValue, getSentimentStyle, getDisplayMetrics
+  } = props;
+
+  const { progress, learningMode, markStudyCompleted, checkAndUnlockAchievements, addXp } = useLearning();
+
+  // Enhanced run study that tracks learning
+  const handleRunStudy = async (studyId: string) => {
+    await runStudy(studyId);
+    markStudyCompleted(studyId);
+    checkAndUnlockAchievements({ studyId });
+    addXp(15);
+  };
+
+  return (
     <div className="min-h-screen bg-background">
+      {/* Tutorial Overlay for new users */}
+      <TutorialOverlay />
+      
       <div className="p-4 sm:p-6 space-y-6 pb-20 md:pb-6 max-w-7xl mx-auto">
+        {/* Progress Header with XP & Achievements */}
+        <ProgressHeader />
+
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
@@ -1141,21 +1219,23 @@ export default function QuantLab() {
                 <FlaskConical className="h-6 w-6 sm:h-7 sm:w-7 text-white" />
               </div>
               Quant Lab
+              {learningMode && (
+                <Badge className="bg-gradient-to-r from-purple-500 to-primary text-white border-0 gap-1">
+                  <GraduationCap className="h-3 w-3" />
+                  Learning Mode
+                </Badge>
+              )}
             </h1>
             <p className="text-muted-foreground mt-1 text-sm sm:text-base">
-              Professional stock analysis made simple — no coding required
+              Interactive learning experience for stock analysis — no coding required
             </p>
           </div>
 
           <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setShowHelp(!showHelp)}
-            >
-              <HelpCircle className="h-4 w-4 mr-1" />
-              {showHelp ? 'Hide' : 'Show'} Tips
-            </Button>
+            <Badge variant="outline" className="gap-1">
+              <Trophy className="h-3 w-3 text-amber-500" />
+              {progress.xp} XP
+            </Badge>
           </div>
         </div>
 
@@ -1596,3 +1676,5 @@ export default function QuantLab() {
     </div>
   );
 }
+
+export default QuantLab;
