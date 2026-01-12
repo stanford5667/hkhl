@@ -149,6 +149,37 @@ export function ComprehensiveInvestmentResults({
   // Get investor archetype
   const archetype = useMemo(() => getArchetype(riskScore || 50), [riskScore]);
   
+  // Calculate 4-dimension scores for the investor DNA visualization
+  const investorDimensions = useMemo(() => {
+    const score = riskScore || 50;
+    // Derive dimensions from responses and risk score
+    const timeline = responses['goal-timeline'] || 10;
+    const involvement = responses['pref-involvement'] || 50;
+    const diversification = responses['pref-diversification'] || 50;
+    
+    return {
+      // Guardian (0) vs Pioneer (100) - based on risk score
+      risk: score,
+      // Analytical (0) vs Intuitive (100) - based on investment style preference
+      decision: responses['pref-style'] === 'active' ? 70 : responses['pref-style'] === 'value' ? 30 : 50,
+      // Patient (0) vs Active (100) - based on timeline and involvement
+      time: Math.min(100, Math.max(0, 100 - (timeline * 5) + (involvement * 0.3))),
+      // Diversifier (0) vs Concentrator (100) - based on diversification preference
+      focus: 100 - (diversification || 50),
+    };
+  }, [riskScore, responses]);
+
+  // Generate investor type code from dimensions
+  const investorTypeCode = useMemo(() => {
+    const { risk, decision, time, focus } = investorDimensions;
+    return (
+      (risk < 50 ? 'G' : 'P') +
+      (decision < 50 ? 'A' : 'I') +
+      (time < 50 ? 'P' : 'A') +
+      (focus < 50 ? 'D' : 'C')
+    );
+  }, [investorDimensions]);
+
   // Parse allocation based on risk score
   const allocation = useMemo(() => {
     const score = riskScore || 50;
@@ -383,6 +414,114 @@ export function ComprehensiveInvestmentResults({
                   ))}
                 </div>
               </div>
+            </div>
+          </Card>
+        </motion.div>
+
+        {/* ════════════════════════════════════════════════════════════════════
+            INVESTOR DNA: 4-Dimension Sliders (Myers-Briggs Style)
+        ════════════════════════════════════════════════════════════════════ */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="mb-8"
+        >
+          <Card className="bg-white/5 border-white/10 p-6 sm:p-8">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <Badge className="mb-2 bg-gradient-to-r from-blue-500/20 to-purple-500/20 text-blue-300 border-0">
+                  Investor DNA
+                </Badge>
+                <h3 className="text-xl sm:text-2xl font-bold">Your Personality Code: <span className="text-blue-400 font-mono">{investorTypeCode}</span></h3>
+              </div>
+            </div>
+
+            <div className="grid sm:grid-cols-2 gap-6">
+              {[
+                { 
+                  left: 'Guardian', 
+                  right: 'Pioneer', 
+                  leftIcon: Shield, 
+                  rightIcon: Rocket,
+                  value: investorDimensions.risk,
+                  leftDesc: 'Capital preservation focus',
+                  rightDesc: 'Growth-seeking mindset',
+                  gradientFrom: '#3b82f6',
+                  gradientTo: '#f43f5e'
+                },
+                { 
+                  left: 'Analytical', 
+                  right: 'Intuitive', 
+                  leftIcon: Brain, 
+                  rightIcon: Heart,
+                  value: investorDimensions.decision,
+                  leftDesc: 'Data-driven decisions',
+                  rightDesc: 'Gut-feel investing',
+                  gradientFrom: '#10b981',
+                  gradientTo: '#8b5cf6'
+                },
+                { 
+                  left: 'Patient', 
+                  right: 'Active', 
+                  leftIcon: Clock, 
+                  rightIcon: Zap,
+                  value: investorDimensions.time,
+                  leftDesc: 'Long-term horizon',
+                  rightDesc: 'Tactical trading',
+                  gradientFrom: '#06b6d4',
+                  gradientTo: '#f59e0b'
+                },
+                { 
+                  left: 'Diversifier', 
+                  right: 'Concentrator', 
+                  leftIcon: Globe, 
+                  rightIcon: Target,
+                  value: investorDimensions.focus,
+                  leftDesc: 'Spread across assets',
+                  rightDesc: 'High-conviction bets',
+                  gradientFrom: '#14b8a6',
+                  gradientTo: '#f97316'
+                },
+              ].map((dimension, i) => (
+                <motion.div 
+                  key={i}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.3 + i * 0.1 }}
+                  className="bg-white/5 rounded-xl p-4"
+                >
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <dimension.leftIcon className="w-4 h-4 text-white/60" />
+                      <span className="text-sm font-medium">{dimension.left}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium">{dimension.right}</span>
+                      <dimension.rightIcon className="w-4 h-4 text-white/60" />
+                    </div>
+                  </div>
+                  
+                  {/* Slider Track */}
+                  <div className="relative h-3 bg-white/10 rounded-full overflow-hidden mb-2">
+                    <div 
+                      className="absolute inset-0 opacity-50"
+                      style={{ background: `linear-gradient(to right, ${dimension.gradientFrom}, ${dimension.gradientTo})` }}
+                    />
+                    <motion.div
+                      className="absolute top-1/2 -translate-y-1/2 w-5 h-5 bg-white rounded-full shadow-lg border-2 border-white/80"
+                      initial={{ left: '50%' }}
+                      animate={{ left: `calc(${dimension.value}% - 10px)` }}
+                      transition={{ delay: 0.5 + i * 0.1, type: 'spring', stiffness: 100 }}
+                    />
+                  </div>
+                  
+                  <div className="flex justify-between text-[10px] text-white/40">
+                    <span>{dimension.leftDesc}</span>
+                    <span>{dimension.rightDesc}</span>
+                  </div>
+                </motion.div>
+              ))}
             </div>
           </Card>
         </motion.div>
