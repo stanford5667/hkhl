@@ -489,7 +489,8 @@ interface EliteQuestionnaireProps {
 
 export function EliteQuestionnaire({ onComplete, onCancel, userId, forceNew = false }: EliteQuestionnaireProps) {
   const { toast } = useToast();
-  const [showWelcome, setShowWelcome] = useState(true);
+  // Disable the marketing "welcome" splash screen (it blocks the flow on mobile)
+  const [showWelcome, setShowWelcome] = useState(false);
   const [currentPageIndex, setCurrentPageIndex] = useState(0);
   const [responses, setResponses] = useState<Record<string, any>>({
     // Initialize slider defaults so users don't have to interact to continue
@@ -631,7 +632,7 @@ export function EliteQuestionnaire({ onComplete, onCancel, userId, forceNew = fa
         } else {
           // No session - explicitly reset to auth state
           setPhase('auth');
-          setShowWelcome(true);
+          setShowWelcome(false);
           setGeneratedPlan(null);
           setRawPolicy(undefined);
           setEmail('');
@@ -640,7 +641,7 @@ export function EliteQuestionnaire({ onComplete, onCancel, userId, forceNew = fa
         console.error('Error checking session:', error);
         // On error, default to auth state
         setPhase('auth');
-        setShowWelcome(true);
+        setShowWelcome(false);
       } finally {
         setIsCheckingSession(false);
       }
@@ -652,7 +653,7 @@ export function EliteQuestionnaire({ onComplete, onCancel, userId, forceNew = fa
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === 'SIGNED_OUT') {
         setPhase('auth');
-        setShowWelcome(true);
+        setShowWelcome(false);
         setGeneratedPlan(null);
         setRawPolicy(undefined);
         setEmail('');
