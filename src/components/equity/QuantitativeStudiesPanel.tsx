@@ -38,9 +38,12 @@ import {
   ArrowLeftRight,
   FlaskConical,
   Settings2,
-  ChevronDown
+  ChevronDown,
+  Save,
+  LogIn
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import {
@@ -234,9 +237,11 @@ const MATH_EXPLANATIONS: Record<string, { formula: string; explanation: string }
 };
 
 export function QuantitativeStudiesPanel({ ticker, companyName }: QuantitativeStudiesPanelProps) {
+  const { user } = useAuth();
   const [selectedStudy, setSelectedStudy] = useState<string | null>(null);
   const [period, setPeriod] = useState('3y');
   const [isRunning, setIsRunning] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [result, setResult] = useState<any>(null);
   const [barsAnalyzed, setBarsAnalyzed] = useState(0);
   const [usedMockData, setUsedMockData] = useState(false);
@@ -314,6 +319,42 @@ export function QuantitativeStudiesPanel({ ticker, companyName }: QuantitativeSt
       if (study) return study.name;
     }
     return selectedStudy;
+  };
+
+  const saveStudyResult = async () => {
+    if (!user) {
+      toast.error('Please sign in to save study results');
+      return;
+    }
+    if (!selectedStudy || !result) {
+      toast.error('No study results to save');
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      const { error } = await supabase
+        .from('saved_studies')
+        .insert({
+          user_id: user.id,
+          ticker,
+          study_type: selectedStudy,
+          study_name: getSelectedStudyName() || selectedStudy,
+          period,
+          params: currentParams,
+          result,
+          bars_analyzed: barsAnalyzed,
+          date_range: dateRange
+        });
+
+      if (error) throw error;
+      toast.success('Study saved successfully!');
+    } catch (error: any) {
+      console.error('Save error:', error);
+      toast.error(error.message || 'Failed to save study');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const renderResult = () => {
@@ -512,6 +553,37 @@ export function QuantitativeStudiesPanel({ ticker, companyName }: QuantitativeSt
                   <Badge variant="outline" className="font-mono text-xs">
                     {dateRange.start} → {dateRange.end}
                   </Badge>
+                )}
+                {/* Save Button - Only for logged in users */}
+                {result && !isRunning && (
+                  user ? (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={saveStudyResult}
+                      disabled={isSaving}
+                      className="gap-1.5"
+                    >
+                      {isSaving ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Save className="h-4 w-4" />
+                      )}
+                      Save
+                    </Button>
+                  ) : (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => toast.info('Sign in to save study results', { 
+                        action: { label: 'Sign In', onClick: () => window.location.href = '/login' }
+                      })}
+                      className="gap-1.5 text-muted-foreground"
+                    >
+                      <LogIn className="h-4 w-4" />
+                      Sign in to save
+                    </Button>
+                  )
                 )}
               </div>
             </CardTitle>

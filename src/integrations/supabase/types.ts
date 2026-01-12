@@ -2773,6 +2773,54 @@ export type Database = {
         }
         Relationships: []
       }
+      saved_studies: {
+        Row: {
+          bars_analyzed: number | null
+          created_at: string
+          date_range: Json | null
+          id: string
+          notes: string | null
+          params: Json | null
+          period: string
+          result: Json
+          study_name: string
+          study_type: string
+          ticker: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          bars_analyzed?: number | null
+          created_at?: string
+          date_range?: Json | null
+          id?: string
+          notes?: string | null
+          params?: Json | null
+          period: string
+          result: Json
+          study_name: string
+          study_type: string
+          ticker: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          bars_analyzed?: number | null
+          created_at?: string
+          date_range?: Json | null
+          id?: string
+          notes?: string | null
+          params?: Json | null
+          period?: string
+          result?: Json
+          study_name?: string
+          study_type?: string
+          ticker?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       stock_price_cache: {
         Row: {
           adjusted_close: number | null
