@@ -166,7 +166,7 @@ export function AdminSettingsTab() {
                 checked={Boolean(value)}
                 onCheckedChange={(checked) => {
                   const currentValue = featureFlagsSetting.setting_value as Record<string, unknown>;
-                  updateSetting(featureFlagsSetting, { ...currentValue, [key]: checked });
+                  updateSetting(featureFlagsSetting, { ...currentValue, [key]: checked } as Json);
                 }}
                 disabled={saving === featureFlagsSetting.id}
               />
