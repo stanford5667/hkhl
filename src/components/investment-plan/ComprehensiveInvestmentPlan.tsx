@@ -237,7 +237,7 @@ export function ComprehensiveInvestmentResults({
   const maxDrawdown = (-10 - riskScore * 0.25).toFixed(0);
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white">
+    <div className="min-h-screen bg-[#0a0a0a] text-white pb-24 sm:pb-32">
       {/* Header */}
       <header className="sticky top-0 z-50 bg-[#0a0a0a]/90 backdrop-blur-xl border-b border-white/10">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-4">
