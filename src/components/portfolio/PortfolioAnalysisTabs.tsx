@@ -771,7 +771,7 @@ export function PortfolioAnalysisTabs({
                     <div className="flex items-center gap-3">
                       <Database className="h-5 w-5 text-emerald-500" />
                       <div>
-                        <p className="font-medium text-sm">Data Source: Polygon.io</p>
+                        <p className="font-medium text-sm">Historical Market Data</p>
                         <p className="text-xs text-muted-foreground">
                           {dataInfo?.tradingDays || 0} trading days from {dataInfo?.startDate || 'N/A'} to {dataInfo?.endDate || 'N/A'}
                         </p>
@@ -785,7 +785,7 @@ export function PortfolioAnalysisTabs({
                     <div key={i} className="flex items-center justify-between p-3 rounded-lg bg-muted/30 border border-border/50">
                       <div className="flex items-center gap-3">
                         <Badge variant="outline" className="font-mono">{alloc.ticker}</Badge>
-                        <span className="text-sm text-muted-foreground">Polygon.io</span>
+                        <span className="text-sm text-muted-foreground">Verified</span>
                       </div>
                       <Badge variant="outline" className="border-emerald-500/50 text-emerald-600">
                         Valid
