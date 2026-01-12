@@ -183,7 +183,7 @@ export function FloatingHelpWidget() {
   return (
     <>
       {/* Floating Button */}
-      <div className="fixed right-6 z-50 bottom-[calc(env(safe-area-inset-bottom)+6rem)] md:bottom-6">
+      <div className="fixed right-6 z-50 bottom-[calc(env(safe-area-inset-bottom)+10rem)] md:bottom-6">
         <Popover open={isOpen} onOpenChange={setIsOpen}>
           <PopoverTrigger asChild>
             <Button
