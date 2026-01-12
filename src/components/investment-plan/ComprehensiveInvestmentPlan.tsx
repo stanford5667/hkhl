@@ -1,39 +1,126 @@
 /**
- * Comprehensive Investment Plan Results Component
- * A Myers-Briggs-style investor personality assessment
- * Premium, exciting design inspired by top fintech products
+ * ENHANCED INVESTMENT PLAN RESULTS
+ * 
+ * Beautiful visual rendering matching AssetLabs design with:
+ * - Myers-Briggs style investor archetypes
+ * - Animated donut charts
+ * - Tabbed navigation (Profile, Allocation, Holdings, Strategy, Actions)
+ * - Risk gauge visualization
+ * - Fund recommendations
+ * - Full policy renderer
+ * 
+ * Replace: src/components/investment-plan/ComprehensiveInvestmentPlan.tsx
  */
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Shield,
-  TrendingUp,
-  Target,
-  Sparkles,
-  Play,
-  ArrowRight,
-  Check,
+  Download, Share2, ArrowRight, PieChart, BarChart3, Target, Sparkles,
+  CheckCircle, Clock, AlertCircle, Shield, TrendingUp, Zap, Brain,
+  Compass, Flame, Anchor, Scale, Rocket, Eye, Heart, Lightbulb,
+  ChevronDown, ChevronUp, ExternalLink, Copy, Check, Play,
+  BookOpen, Calendar, DollarSign, Percent, LineChart, Building2,
+  Globe, Gem, Wallet, Lock, AlertTriangle, RefreshCw, LogOut,
   FileText,
-  RefreshCw,
-  LogOut,
-  Users,
-  AlertTriangle,
-  Clock,
-  DollarSign,
-  Brain,
-  Zap,
-  Layers,
-  Compass,
-  BarChart3,
-  ChevronRight,
-  Download,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
 import { cn } from '@/lib/utils';
-import { getInvestorType, getInvestorTypeCode, INVESTOR_TYPES } from '@/data/premiumQuestionnaire';
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// INVESTOR ARCHETYPES (Myers-Briggs Style)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+const INVESTOR_ARCHETYPES = {
+  'The Guardian': {
+    range: [0, 20],
+    icon: Shield,
+    color: 'blue',
+    tagline: 'Protector of Wealth',
+    description: 'You prioritize security above all else. Your investment philosophy centers on capital preservation and steady, predictable returns.',
+    traits: ['Risk-averse', 'Patient', 'Disciplined', 'Methodical'],
+    strengths: ['Emotional stability during downturns', 'Consistent saving habits', 'Long-term thinking'],
+    blindSpots: ['May miss growth opportunities', 'Inflation erosion risk', 'Over-concentration in "safe" assets'],
+    famousInvestor: 'Benjamin Graham',
+    spirit: '🛡️',
+  },
+  'The Sentinel': {
+    range: [20, 35],
+    icon: Anchor,
+    color: 'cyan',
+    tagline: 'Steady & Strategic',
+    description: 'You believe in measured progress. Security matters, but you understand that some growth is necessary to meet long-term goals.',
+    traits: ['Cautious optimist', 'Research-driven', 'Values stability', 'Systematic'],
+    strengths: ['Balanced decision-making', 'Thorough due diligence', 'Resistant to FOMO'],
+    blindSpots: ['Analysis paralysis', 'Slow to act on opportunities', 'May be too conservative for timeline'],
+    famousInvestor: 'John Bogle',
+    spirit: '⚓',
+  },
+  'The Architect': {
+    range: [35, 50],
+    icon: Compass,
+    color: 'emerald',
+    tagline: 'Builder of Balanced Portfolios',
+    description: 'You see investing as engineering the perfect system. Balance and diversification are your guiding principles.',
+    traits: ['Analytical', 'Systematic', 'Detail-oriented', 'Balanced'],
+    strengths: ['Excellent at diversification', 'Data-driven decisions', 'Consistent rebalancing'],
+    blindSpots: ['May over-complicate', 'Could miss concentrated bets', 'Tendency to over-optimize'],
+    famousInvestor: 'Ray Dalio',
+    spirit: '🏗️',
+  },
+  'The Navigator': {
+    range: [50, 65],
+    icon: Eye,
+    color: 'violet',
+    tagline: 'Adaptive & Opportunistic',
+    description: 'You blend strategy with flexibility. You have a plan but adapt when compelling opportunities arise.',
+    traits: ['Adaptable', 'Opportunistic', 'Forward-thinking', 'Curious'],
+    strengths: ['Spotting market trends', 'Tactical adjustments', 'Open to new ideas'],
+    blindSpots: ['May overtrade', 'Chasing performance', 'Information overload'],
+    famousInvestor: 'Peter Lynch',
+    spirit: '🧭',
+  },
+  'The Trailblazer': {
+    range: [65, 80],
+    icon: Rocket,
+    color: 'amber',
+    tagline: 'Growth-Focused Pioneer',
+    description: 'You believe in the power of growth and are willing to endure volatility for potentially superior returns.',
+    traits: ['Ambitious', 'Confident', 'Action-oriented', 'Visionary'],
+    strengths: ['High conviction investing', 'Early trend adoption', 'Strong risk tolerance'],
+    blindSpots: ['Overconfidence', 'Concentrated positions', 'May ignore warning signs'],
+    famousInvestor: 'Cathie Wood',
+    spirit: '🚀',
+  },
+  'The Maverick': {
+    range: [80, 100],
+    icon: Flame,
+    color: 'rose',
+    tagline: 'Bold & Unconventional',
+    description: 'You thrive on high-stakes opportunities. You understand that outsized returns require outsized risks.',
+    traits: ['Bold', 'Independent', 'Contrarian', 'High-energy'],
+    strengths: ['Exceptional upside capture', 'Thrives under pressure', 'Strong conviction'],
+    blindSpots: ['Excessive risk-taking', 'Emotional decisions', 'Portfolio concentration'],
+    famousInvestor: 'Michael Burry',
+    spirit: '🔥',
+  },
+};
+
+function getArchetype(riskScore: number) {
+  for (const [name, archetype] of Object.entries(INVESTOR_ARCHETYPES)) {
+    if (riskScore >= archetype.range[0] && riskScore < archetype.range[1]) {
+      return { name, ...archetype };
+    }
+  }
+  return { name: 'The Maverick', ...INVESTOR_ARCHETYPES['The Maverick'] };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// MAIN COMPONENT
+// ═══════════════════════════════════════════════════════════════════════════════
 
 interface ComprehensiveInvestmentResultsProps {
   responses: Record<string, any>;
@@ -43,113 +130,117 @@ interface ComprehensiveInvestmentResultsProps {
   onDemo?: () => void;
   onStartNew?: () => void;
   onSignOut?: () => void;
+  onExport?: () => void;
 }
 
-// Dimension icons and labels
-const DIMENSIONS = [
-  { 
-    key: 'risk', 
-    label: 'Risk Orientation',
-    leftLabel: 'Guardian',
-    rightLabel: 'Pioneer',
-    icon: Shield,
-    color: 'from-emerald-500 to-blue-500'
-  },
-  { 
-    key: 'decision', 
-    label: 'Decision Style',
-    leftLabel: 'Analytical',
-    rightLabel: 'Intuitive',
-    icon: Brain,
-    color: 'from-purple-500 to-pink-500'
-  },
-  { 
-    key: 'time', 
-    label: 'Time Preference',
-    leftLabel: 'Patient',
-    rightLabel: 'Active',
-    icon: Zap,
-    color: 'from-amber-500 to-orange-500'
-  },
-  { 
-    key: 'focus', 
-    label: 'Focus Style',
-    leftLabel: 'Diversifier',
-    rightLabel: 'Concentrator',
-    icon: Target,
-    color: 'from-cyan-500 to-blue-500'
-  },
-];
-
-export function ComprehensiveInvestmentResults({
+export function ComprehensiveInvestmentResults({ 
   responses,
-  rawPolicy,
+  rawPolicy, 
   userName,
   riskScore,
   onDemo,
   onStartNew,
   onSignOut,
+  onExport,
 }: ComprehensiveInvestmentResultsProps) {
   const [activeTab, setActiveTab] = useState('profile');
+  const [copied, setCopied] = useState(false);
+
+  // Get investor archetype
+  const archetype = useMemo(() => getArchetype(riskScore || 50), [riskScore]);
   
-  // Calculate investor dimensions
-  const dimensions = {
-    risk: responses.risk ?? riskScore ?? 50,
-    decision: responses.decision ?? 50,
-    time: responses.time ?? 50,
-    focus: responses.focus ?? 50,
-  };
-  
-  const typeCode = getInvestorTypeCode(dimensions);
-  const investorType = getInvestorType(typeCode);
-  
-  // Derive traits from type
-  const traits = getTraitsFromType(typeCode);
-  
-  // Generate allocation based on investor type
-  const allocation = investorType.suggestedAllocation;
-  
-  const getRiskLabel = (score: number) => {
-    if (score < 25) return 'Conservative';
-    if (score < 40) return 'Moderately Conservative';
-    if (score < 60) return 'Moderate';
-    if (score < 75) return 'Moderately Aggressive';
-    return 'Aggressive';
-  };
-  
-  const keyMetrics = {
-    riskScore: dimensions.risk,
-    timeHorizon: `${responses['goal-timeline'] || 10} yrs`,
-    portfolioTarget: `$${((responses['goal-amount'] || 50000) / 1000).toFixed(0)}K`,
+  // Parse allocation based on risk score
+  const allocation = useMemo(() => {
+    const score = riskScore || 50;
+    return [
+      { category: 'US Equities', percentage: Math.round(30 + score * 0.4), color: '#3b82f6' },
+      { category: 'International', percentage: Math.round(10 + score * 0.15), color: '#8b5cf6' },
+      { category: 'Fixed Income', percentage: Math.round(40 - score * 0.35), color: '#10b981' },
+      { category: 'Real Estate', percentage: 8, color: '#f59e0b' },
+      { category: 'Alternatives', percentage: Math.round(score * 0.08), color: '#ec4899' },
+      { category: 'Cash', percentage: Math.max(2, 12 - Math.round(score * 0.1)), color: '#6b7280' },
+    ].filter(a => a.percentage > 0);
+  }, [riskScore]);
+
+  // Generate fund recommendations based on allocation
+  const recommendations = useMemo(() => {
+    const score = riskScore || 50;
+    const recs = [
+      { ticker: 'VTI', name: 'Vanguard Total Stock Market', category: 'US Equities', expense: '0.03%', allocation: Math.round(25 + score * 0.3) },
+      { ticker: 'VXUS', name: 'Vanguard Total International', category: 'International', expense: '0.07%', allocation: Math.round(10 + score * 0.12) },
+      { ticker: 'BND', name: 'Vanguard Total Bond Market', category: 'Fixed Income', expense: '0.03%', allocation: Math.round(35 - score * 0.3) },
+      { ticker: 'VNQ', name: 'Vanguard Real Estate ETF', category: 'Real Estate', expense: '0.12%', allocation: 8 },
+    ];
+    
+    if (score > 50) {
+      recs.push({ ticker: 'QQQ', name: 'Invesco QQQ Trust', category: 'US Growth', expense: '0.20%', allocation: Math.round(score * 0.1) });
+    }
+    if (score > 70) {
+      recs.push({ ticker: 'ARKK', name: 'ARK Innovation ETF', category: 'Disruptive Tech', expense: '0.75%', allocation: Math.round((score - 70) * 0.15) });
+    }
+    if (score < 40) {
+      recs.push({ ticker: 'VTIP', name: 'Vanguard Short-Term TIPS', category: 'Inflation Protection', expense: '0.04%', allocation: Math.round((40 - score) * 0.2) });
+    }
+    
+    return recs;
+  }, [riskScore]);
+
+  // Action items
+  const actionItems = useMemo(() => [
+    { priority: 1, title: 'Open brokerage account', description: 'Choose a low-cost broker like Fidelity, Schwab, or Vanguard', timeframe: 'This week' },
+    { priority: 2, title: 'Fund your account', description: `Transfer your initial investment of $${((responses['goal-amount'] || 10000) / 1000).toFixed(0)}K`, timeframe: '1-2 weeks' },
+    { priority: 3, title: 'Purchase core holdings', description: 'Buy your primary ETF positions according to allocation', timeframe: '30 days' },
+    { priority: 4, title: 'Set up automatic investing', description: 'Schedule recurring contributions to maintain momentum', timeframe: '30 days' },
+    { priority: 5, title: 'Schedule quarterly review', description: 'Add calendar reminder to review and rebalance portfolio', timeframe: 'Ongoing' },
+  ], [responses]);
+
+  const handleCopyLink = () => {
+    navigator.clipboard.writeText(window.location.href);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   };
 
+  const riskLabel = riskScore < 30 ? 'Conservative' : riskScore < 50 ? 'Moderate' : riskScore < 70 ? 'Growth' : 'Aggressive';
+  const timeHorizon = responses['goal-timeline'] || 10;
+  const expectedReturn = (4 + riskScore * 0.06).toFixed(1);
+  const maxDrawdown = (-10 - riskScore * 0.25).toFixed(0);
+
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background via-background to-muted/20">
+    <div className="min-h-screen bg-[#0a0a0a] text-white">
       {/* Header */}
-      <header className="sticky top-0 z-40 bg-background/80 backdrop-blur-xl border-b border-border">
-        <div className="max-w-5xl mx-auto px-3 sm:px-6 py-3 sm:py-4">
-          <div className="flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-br from-primary to-purple-600 flex items-center justify-center shadow-lg shadow-primary/25 shrink-0">
-                <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+      <header className="sticky top-0 z-50 bg-[#0a0a0a]/90 backdrop-blur-xl border-b border-white/10">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-emerald-500 flex items-center justify-center">
+                <Zap className="w-5 h-5" />
               </div>
-              <div className="min-w-0">
-                <h1 className="font-bold text-sm sm:text-lg truncate">{userName}'s Profile</h1>
-                <span className="text-muted-foreground text-xs sm:text-sm">
-                  {new Date().toLocaleDateString()}
-                </span>
+              <div>
+                <h1 className="font-semibold">{userName}'s Investment Strategy</h1>
+                <p className="text-sm text-white/40">
+                  Generated {new Date().toLocaleDateString()}
+                </p>
               </div>
             </div>
-            <div className="flex gap-2">
-              {onSignOut && (
+            <div className="flex items-center gap-2">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={handleCopyLink}
+                className="border-white/10 text-white hover:bg-white/5 hidden sm:flex"
+              >
+                {copied ? <Check className="w-4 h-4 mr-2" /> : <Copy className="w-4 h-4 mr-2" />}
+                {copied ? 'Copied!' : 'Share'}
+              </Button>
+              {onExport && (
                 <Button 
-                  variant="ghost" 
+                  variant="outline" 
                   size="sm"
-                  onClick={onSignOut}
-                  className="gap-2 text-muted-foreground hover:text-foreground"
+                  onClick={onExport}
+                  className="border-white/10 text-white hover:bg-white/5"
                 >
-                  <LogOut className="h-4 w-4" />
-                  <span className="hidden sm:inline">Sign Out</span>
+                  <Download className="w-4 h-4 mr-2" />
+                  <span className="hidden sm:inline">Export</span>
                 </Button>
               )}
               {onStartNew && (
@@ -157,10 +248,20 @@ export function ComprehensiveInvestmentResults({
                   variant="outline" 
                   size="sm"
                   onClick={onStartNew}
-                  className="gap-2"
+                  className="border-white/10 text-white hover:bg-white/5"
                 >
-                  <RefreshCw className="h-4 w-4" />
-                  <span className="hidden sm:inline">New Assessment</span>
+                  <RefreshCw className="w-4 h-4 sm:mr-2" />
+                  <span className="hidden sm:inline">New</span>
+                </Button>
+              )}
+              {onDemo && (
+                <Button 
+                  size="sm"
+                  onClick={onDemo}
+                  className="bg-gradient-to-r from-blue-500 to-emerald-500"
+                >
+                  <Play className="w-4 h-4 mr-2" />
+                  <span className="hidden sm:inline">Demo Platform</span>
                 </Button>
               )}
             </div>
@@ -168,318 +269,649 @@ export function ComprehensiveInvestmentResults({
         </div>
       </header>
 
-      <main className="max-w-5xl mx-auto px-3 sm:px-6 py-6 sm:py-8 space-y-6 sm:space-y-8 pb-20 sm:pb-8">
-        
-        {/* Hero Section - Investor Type Card */}
+      <main className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
+        {/* ════════════════════════════════════════════════════════════════════
+            HERO: Investor Archetype Card
+        ════════════════════════════════════════════════════════════════════ */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
+          className="mb-8"
         >
-          <Card className="overflow-hidden border-border/50 bg-gradient-to-br from-card via-card to-muted/30 shadow-2xl">
-            <div className="p-6 sm:p-8">
-              {/* Badge */}
-              <Badge variant="secondary" className="mb-4 bg-primary/10 text-primary border-primary/20">
-                Your Investor Type
-              </Badge>
-              
-              {/* Type Name */}
-              <h2 className="text-2xl sm:text-4xl md:text-5xl font-bold mb-2 bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text">
-                {investorType.name}
-              </h2>
-              
-              {/* Type Code */}
-              <div className="text-base sm:text-xl font-mono text-muted-foreground mb-3 sm:mb-4">
-                {typeCode}
-              </div>
-              
-              {/* Tagline */}
-              <p className="text-sm sm:text-lg text-muted-foreground max-w-2xl mb-4 sm:mb-6">
-                {investorType.tagline}
-              </p>
-              
-              {/* Trait Badges */}
-              <div className="flex flex-wrap gap-1.5 sm:gap-2 mb-6 sm:mb-8">
-                {traits.map((trait, i) => (
-                  <motion.div
-                    key={trait}
-                    initial={{ opacity: 0, scale: 0.8 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ delay: 0.2 + i * 0.1 }}
-                  >
-                    <Badge 
-                      variant="outline" 
-                      className="bg-background/50 border-border/50 text-foreground px-2 sm:px-3 py-0.5 sm:py-1 text-xs"
-                    >
+          <Card className={cn(
+            "relative overflow-hidden border-0 p-6 sm:p-8",
+            archetype.color === 'blue' && "bg-gradient-to-br from-blue-500/20 to-blue-900/40",
+            archetype.color === 'cyan' && "bg-gradient-to-br from-cyan-500/20 to-cyan-900/40",
+            archetype.color === 'emerald' && "bg-gradient-to-br from-emerald-500/20 to-emerald-900/40",
+            archetype.color === 'violet' && "bg-gradient-to-br from-violet-500/20 to-violet-900/40",
+            archetype.color === 'amber' && "bg-gradient-to-br from-amber-500/20 to-amber-900/40",
+            archetype.color === 'rose' && "bg-gradient-to-br from-rose-500/20 to-rose-900/40",
+          )}>
+            {/* Background pattern */}
+            <div className="absolute inset-0 opacity-10">
+              <div className="absolute top-0 right-0 w-64 h-64 bg-white/20 rounded-full blur-3xl" />
+              <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/10 rounded-full blur-2xl" />
+            </div>
+
+            <div className="relative grid md:grid-cols-2 gap-8">
+              {/* Left: Archetype Info */}
+              <div>
+                <div className="flex items-center gap-4 mb-4">
+                  <div className={cn(
+                    "w-16 h-16 rounded-2xl flex items-center justify-center text-3xl",
+                    archetype.color === 'blue' && "bg-blue-500/30",
+                    archetype.color === 'cyan' && "bg-cyan-500/30",
+                    archetype.color === 'emerald' && "bg-emerald-500/30",
+                    archetype.color === 'violet' && "bg-violet-500/30",
+                    archetype.color === 'amber' && "bg-amber-500/30",
+                    archetype.color === 'rose' && "bg-rose-500/30",
+                  )}>
+                    {archetype.spirit}
+                  </div>
+                  <div>
+                    <Badge className="mb-1 bg-white/10 text-white/80 border-0">
+                      Your Investor Type
+                    </Badge>
+                    <h2 className="text-2xl sm:text-3xl font-bold">{archetype.name}</h2>
+                  </div>
+                </div>
+
+                <p className="text-lg sm:text-xl text-white/60 mb-4">{archetype.tagline}</p>
+                <p className="text-white/70 mb-6">{archetype.description}</p>
+
+                <div className="flex flex-wrap gap-2 mb-6">
+                  {archetype.traits.map((trait, i) => (
+                    <Badge key={i} variant="outline" className="border-white/20 text-white/70">
                       {trait}
                     </Badge>
-                  </motion.div>
-                ))}
+                  ))}
+                </div>
+
+                <div className="text-sm text-white/50">
+                  <span className="text-white/70">Famous investor with similar profile:</span>{' '}
+                  <span className="font-medium text-white/90">{archetype.famousInvestor}</span>
+                </div>
               </div>
-              
-              {/* Famous Match */}
-              {investorType.famousExamples && investorType.famousExamples.length > 0 && (
-                <div className="flex items-center gap-2 text-muted-foreground">
-                  <Users className="h-4 w-4" />
-                  <span className="text-sm">Famous match: </span>
-                  <span className="font-semibold text-foreground">{investorType.famousExamples[0]}</span>
-                </div>
-              )}
-            </div>
-            
-            {/* Dimension Sliders */}
-            <div className="border-t border-border/50 p-6 sm:p-8 bg-muted/30 space-y-6">
-              {DIMENSIONS.map((dim, i) => {
-                const value = dimensions[dim.key as keyof typeof dimensions];
-                const Icon = dim.icon;
-                
-                return (
-                  <motion.div
-                    key={dim.key}
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 0.3 + i * 0.1 }}
-                  >
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-2">
-                        <Icon className="h-4 w-4 text-muted-foreground" />
-                        <span className="font-medium">{value >= 50 ? dim.rightLabel : dim.leftLabel}</span>
-                      </div>
-                      <span className="text-muted-foreground font-mono text-sm">{Math.round(value)}/100</span>
+
+              {/* Right: Risk Score & Quick Stats */}
+              <div className="space-y-6">
+                {/* Risk Score Gauge */}
+                <div className="bg-white/5 rounded-2xl p-6">
+                  <div className="text-center mb-4">
+                    <div className="text-5xl sm:text-6xl font-bold bg-gradient-to-r from-blue-400 via-emerald-400 to-rose-400 bg-clip-text text-transparent">
+                      {riskScore}
                     </div>
-                    
-                    {/* Slider Track */}
-                    <div className="relative h-2 bg-muted rounded-full overflow-hidden">
-                      <motion.div
-                        className={cn("absolute inset-y-0 left-0 bg-gradient-to-r rounded-full", dim.color)}
-                        initial={{ width: 0 }}
-                        animate={{ width: `${value}%` }}
-                        transition={{ delay: 0.5 + i * 0.1, duration: 0.5, ease: "easeOut" }}
-                      />
-                      {/* Indicator dot */}
-                      <motion.div
-                        className="absolute top-1/2 -translate-y-1/2 w-3 h-3 bg-foreground rounded-full shadow-lg border-2 border-background"
-                        initial={{ left: 0 }}
-                        animate={{ left: `calc(${value}% - 6px)` }}
-                        transition={{ delay: 0.5 + i * 0.1, duration: 0.5, ease: "easeOut" }}
-                      />
+                    <div className="text-white/40">Risk Score</div>
+                  </div>
+                  
+                  {/* Gauge */}
+                  <div className="relative h-4 bg-white/10 rounded-full overflow-hidden mb-2">
+                    <div className="absolute inset-0 bg-gradient-to-r from-blue-500 via-emerald-500 via-amber-500 to-rose-500" />
+                    <motion.div
+                      className="absolute top-1/2 -translate-y-1/2 w-4 h-4 bg-white rounded-full shadow-lg border-2 border-white/50"
+                      initial={{ left: 0 }}
+                      animate={{ left: `calc(${riskScore}% - 8px)` }}
+                      transition={{ delay: 0.5, type: 'spring' }}
+                    />
+                  </div>
+                  <div className="flex justify-between text-xs text-white/40">
+                    <span>Conservative</span>
+                    <span>Moderate</span>
+                    <span>Aggressive</span>
+                  </div>
+                </div>
+
+                {/* Quick Stats Grid */}
+                <div className="grid grid-cols-2 gap-3">
+                  {[
+                    { label: 'Expected Return', value: `${expectedReturn}%`, icon: TrendingUp, color: 'emerald' },
+                    { label: 'Max Drawdown', value: `${maxDrawdown}%`, icon: AlertTriangle, color: 'rose' },
+                    { label: 'Time Horizon', value: `${timeHorizon} years`, icon: Clock, color: 'blue' },
+                    { label: 'Sharpe Ratio', value: (0.4 + riskScore * 0.005).toFixed(2), icon: BarChart3, color: 'violet' },
+                  ].map((stat, i) => (
+                    <div key={i} className="bg-white/5 rounded-xl p-4">
+                      <stat.icon className={cn(
+                        "w-4 h-4 mb-2",
+                        stat.color === 'emerald' && "text-emerald-400",
+                        stat.color === 'rose' && "text-rose-400",
+                        stat.color === 'blue' && "text-blue-400",
+                        stat.color === 'violet' && "text-violet-400",
+                      )} />
+                      <div className="text-lg font-bold">{stat.value}</div>
+                      <div className="text-xs text-white/40">{stat.label}</div>
                     </div>
-                    
-                    {/* Labels */}
-                    <div className="flex justify-between mt-1">
-                      <span className="text-xs text-muted-foreground">{dim.leftLabel}</span>
-                      <span className="text-xs text-muted-foreground">{dim.rightLabel}</span>
-                    </div>
-                  </motion.div>
-                );
-              })}
-            </div>
-            
-            {/* Bottom Stats */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 border-t border-border/50">
-              <div className="p-4 sm:p-6 border-r border-border/50">
-                <div className="flex items-center gap-2 text-muted-foreground mb-1">
-                  <TrendingUp className="h-4 w-4" />
-                  <span className="text-xs">Risk Score</span>
+                  ))}
                 </div>
-                <div className="text-2xl sm:text-3xl font-bold">{keyMetrics.riskScore}/100</div>
-              </div>
-              <div className="p-4 sm:p-6 sm:border-r border-border/50">
-                <div className="flex items-center gap-2 text-muted-foreground mb-1">
-                  <Clock className="h-4 w-4" />
-                  <span className="text-xs">Time Horizon</span>
-                </div>
-                <div className="text-2xl sm:text-3xl font-bold">{keyMetrics.timeHorizon}</div>
-              </div>
-              <div className="p-4 sm:p-6 col-span-2 sm:col-span-1 border-t sm:border-t-0 border-border/50">
-                <div className="flex items-center gap-2 text-muted-foreground mb-1">
-                  <DollarSign className="h-4 w-4" />
-                  <span className="text-xs">Portfolio Target</span>
-                </div>
-                <div className="text-2xl sm:text-3xl font-bold">{keyMetrics.portfolioTarget}</div>
               </div>
             </div>
           </Card>
         </motion.div>
 
-        {/* Strengths & Challenges */}
-        <div className="grid md:grid-cols-2 gap-6">
-          {/* Strengths */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4 }}
-          >
-            <Card className="p-6 border-border/50 h-full">
-              <div className="flex items-center gap-2 mb-4">
-                <div className="p-2 rounded-lg bg-emerald-500/10">
-                  <Check className="h-5 w-5 text-emerald-500" />
-                </div>
-                <h3 className="font-semibold text-lg">Your Investing Strengths</h3>
-              </div>
-              <ul className="space-y-3">
-                {investorType.strengths.map((strength, i) => (
-                  <motion.li
-                    key={i}
-                    initial={{ opacity: 0, x: -10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 0.5 + i * 0.1 }}
-                    className="flex items-start gap-3"
-                  >
-                    <Check className="h-4 w-4 text-emerald-500 mt-0.5 shrink-0" />
-                    <span className="text-muted-foreground">{strength}</span>
-                  </motion.li>
-                ))}
-              </ul>
-            </Card>
-          </motion.div>
+        {/* ════════════════════════════════════════════════════════════════════
+            TABS: Profile, Allocation, Holdings, Strategy, Actions
+        ════════════════════════════════════════════════════════════════════ */}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+          <TabsList className="bg-white/5 border border-white/10 p-1 w-full flex-wrap justify-start gap-1">
+            {[
+              { value: 'profile', label: 'Profile', icon: Brain },
+              { value: 'allocation', label: 'Allocation', icon: PieChart },
+              { value: 'holdings', label: 'Holdings', icon: Building2 },
+              { value: 'strategy', label: 'Strategy', icon: BookOpen },
+              { value: 'actions', label: 'Actions', icon: Rocket },
+            ].map(tab => (
+              <TabsTrigger
+                key={tab.value}
+                value={tab.value}
+                className="data-[state=active]:bg-white data-[state=active]:text-black gap-2 flex-1 sm:flex-none"
+              >
+                <tab.icon className="w-4 h-4" />
+                <span className="hidden sm:inline">{tab.label}</span>
+              </TabsTrigger>
+            ))}
+          </TabsList>
 
-          {/* Challenges */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.5 }}
-          >
-            <Card className="p-6 border-border/50 h-full">
-              <div className="flex items-center gap-2 mb-4">
-                <div className="p-2 rounded-lg bg-amber-500/10">
-                  <AlertTriangle className="h-5 w-5 text-amber-500" />
-                </div>
-                <h3 className="font-semibold text-lg">Areas to Watch</h3>
-              </div>
-              <ul className="space-y-3">
-                {investorType.challenges.map((challenge, i) => (
-                  <motion.li
-                    key={i}
-                    initial={{ opacity: 0, x: -10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 0.6 + i * 0.1 }}
-                    className="flex items-start gap-3"
-                  >
-                    <AlertTriangle className="h-4 w-4 text-amber-500 mt-0.5 shrink-0" />
-                    <span className="text-muted-foreground">{challenge}</span>
-                  </motion.li>
-                ))}
-              </ul>
-            </Card>
-          </motion.div>
-        </div>
+          {/* ═══════════════════════════════════════════════════════════════
+              TAB: Profile
+          ═══════════════════════════════════════════════════════════════ */}
+          <TabsContent value="profile" className="space-y-6">
+            <div className="grid md:grid-cols-2 gap-6">
+              {/* Strengths */}
+              <Card className="bg-white/5 border-white/10 p-6">
+                <h3 className="font-semibold text-lg mb-4 flex items-center gap-2">
+                  <CheckCircle className="w-5 h-5 text-emerald-400" />
+                  Your Investment Strengths
+                </h3>
+                <ul className="space-y-3">
+                  {archetype.strengths.map((strength, i) => (
+                    <motion.li 
+                      key={i} 
+                      className="flex items-start gap-3"
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.1 * i }}
+                    >
+                      <div className="w-6 h-6 rounded-full bg-emerald-500/20 flex items-center justify-center shrink-0 mt-0.5">
+                        <Check className="w-3 h-3 text-emerald-400" />
+                      </div>
+                      <span className="text-white/70">{strength}</span>
+                    </motion.li>
+                  ))}
+                </ul>
+              </Card>
 
-        {/* Allocation Preview */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.6 }}
-        >
-          <Card className="p-6 border-border/50">
-            <div className="flex items-center justify-between mb-6">
-              <div className="flex items-center gap-2">
-                <div className="p-2 rounded-lg bg-primary/10">
-                  <BarChart3 className="h-5 w-5 text-primary" />
-                </div>
-                <h3 className="font-semibold text-lg">Suggested Asset Allocation</h3>
-              </div>
-              <Badge variant="secondary" className="text-xs">
-                Based on your profile
-              </Badge>
+              {/* Blind Spots */}
+              <Card className="bg-white/5 border-white/10 p-6">
+                <h3 className="font-semibold text-lg mb-4 flex items-center gap-2">
+                  <AlertCircle className="w-5 h-5 text-amber-400" />
+                  Watch Out For
+                </h3>
+                <ul className="space-y-3">
+                  {archetype.blindSpots.map((spot, i) => (
+                    <motion.li 
+                      key={i} 
+                      className="flex items-start gap-3"
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.1 * i }}
+                    >
+                      <div className="w-6 h-6 rounded-full bg-amber-500/20 flex items-center justify-center shrink-0 mt-0.5">
+                        <AlertTriangle className="w-3 h-3 text-amber-400" />
+                      </div>
+                      <span className="text-white/70">{spot}</span>
+                    </motion.li>
+                  ))}
+                </ul>
+              </Card>
             </div>
-            
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-              {[
-                { label: 'Stocks', value: allocation.stocks, color: 'bg-blue-500' },
-                { label: 'Bonds', value: allocation.bonds, color: 'bg-emerald-500' },
-                { label: 'Alternatives', value: allocation.alternatives, color: 'bg-purple-500' },
-                { label: 'Cash', value: allocation.cash, color: 'bg-slate-400' },
-              ].map((item, i) => (
+
+            {/* Risk Profile Breakdown */}
+            <Card className="bg-white/5 border-white/10 p-6">
+              <h3 className="font-semibold text-lg mb-6 flex items-center gap-2">
+                <Scale className="w-5 h-5 text-blue-400" />
+                Your Risk Profile Breakdown
+              </h3>
+              <div className="grid sm:grid-cols-3 gap-6">
+                {[
+                  { label: 'Risk Tolerance', value: riskScore, description: 'Emotional ability to handle losses', color: 'blue' },
+                  { label: 'Risk Capacity', value: Math.min(100, riskScore + 10), description: 'Financial ability to take risk', color: 'emerald' },
+                  { label: 'Risk Required', value: Math.max(0, riskScore - 5), description: 'Risk needed to meet goals', color: 'violet' },
+                ].map((metric, i) => (
+                  <div key={i} className="text-center">
+                    <div className="relative w-24 h-24 mx-auto mb-3">
+                      <svg className="w-full h-full -rotate-90">
+                        <circle cx="48" cy="48" r="40" fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="8" />
+                        <motion.circle
+                          cx="48" cy="48" r="40" fill="none"
+                          stroke={metric.color === 'blue' ? '#3b82f6' : metric.color === 'emerald' ? '#10b981' : '#8b5cf6'}
+                          strokeWidth="8"
+                          strokeLinecap="round"
+                          strokeDasharray={`${metric.value * 2.51} 251`}
+                          initial={{ strokeDasharray: '0 251' }}
+                          animate={{ strokeDasharray: `${metric.value * 2.51} 251` }}
+                          transition={{ delay: 0.5 + i * 0.2, duration: 1 }}
+                        />
+                      </svg>
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <span className="text-xl font-bold">{metric.value}</span>
+                      </div>
+                    </div>
+                    <div className="font-medium">{metric.label}</div>
+                    <div className="text-xs text-white/40">{metric.description}</div>
+                  </div>
+                ))}
+              </div>
+            </Card>
+
+            {/* Behavioral Insights */}
+            <Card className="bg-white/5 border-white/10 p-6">
+              <h3 className="font-semibold text-lg mb-4 flex items-center gap-2">
+                <Lightbulb className="w-5 h-5 text-amber-400" />
+                Behavioral Insights for {archetype.name}
+              </h3>
+              <div className="space-y-4 text-white/70">
+                <p>
+                  As {archetype.name.toLowerCase()}, your investing decisions are driven by{' '}
+                  {riskScore < 40 ? 'a desire for security and predictability' : 
+                   riskScore < 60 ? 'a balance of growth potential and risk management' :
+                   'conviction in growth opportunities and tolerance for volatility'}.
+                </p>
+                <p>
+                  <strong className="text-white">Your ideal environment:</strong>{' '}
+                  {riskScore < 40 
+                    ? 'Stable, blue-chip investments with consistent dividends and low volatility.'
+                    : riskScore < 60
+                    ? 'Diversified portfolios with a mix of growth and stability, rebalanced regularly.'
+                    : 'High-conviction positions in growth sectors with active monitoring and tactical adjustments.'
+                  }
+                </p>
+                <p>
+                  <strong className="text-white">Under stress:</strong>{' '}
+                  {riskScore < 40
+                    ? 'You may become overly cautious and miss recovery opportunities. Trust your long-term plan.'
+                    : riskScore < 60
+                    ? 'You might second-guess your strategy. Remember: volatility is not loss.'
+                    : 'You may be tempted to double down or make emotional trades. Stick to position limits.'
+                  }
+                </p>
+              </div>
+            </Card>
+          </TabsContent>
+
+          {/* ═══════════════════════════════════════════════════════════════
+              TAB: Allocation
+          ═══════════════════════════════════════════════════════════════ */}
+          <TabsContent value="allocation" className="space-y-6">
+            <div className="grid md:grid-cols-3 gap-6">
+              {/* Donut Chart */}
+              <Card className="bg-white/5 border-white/10 p-6">
+                <h3 className="font-semibold mb-4">Target Allocation</h3>
+                <div className="relative aspect-square">
+                  <svg viewBox="0 0 100 100" className="w-full h-full -rotate-90">
+                    {allocation.reduce((acc: any[], item, i) => {
+                      const prevPercent = acc.reduce((sum, a) => sum + a.percentage, 0);
+                      const circumference = 2 * Math.PI * 40;
+                      const offset = (prevPercent / 100) * circumference;
+                      const length = (item.percentage / 100) * circumference;
+                      
+                      return [...acc, {
+                        ...item,
+                        element: (
+                          <motion.circle
+                            key={i}
+                            cx="50" cy="50" r="40"
+                            fill="none"
+                            stroke={item.color}
+                            strokeWidth="20"
+                            strokeDasharray={`${length} ${circumference - length}`}
+                            strokeDashoffset={-offset}
+                            initial={{ strokeDasharray: `0 ${circumference}` }}
+                            animate={{ strokeDasharray: `${length} ${circumference - length}` }}
+                            transition={{ delay: i * 0.1, duration: 0.5 }}
+                          />
+                        )
+                      }];
+                    }, []).map((item: any) => item.element)}
+                  </svg>
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="text-center">
+                      <div className="text-2xl font-bold">{allocation.length}</div>
+                      <div className="text-xs text-white/40">Asset Classes</div>
+                    </div>
+                  </div>
+                </div>
+              </Card>
+
+              {/* Allocation List */}
+              <Card className="bg-white/5 border-white/10 p-6 md:col-span-2">
+                <h3 className="font-semibold mb-4">Allocation Breakdown</h3>
+                <div className="space-y-4">
+                  {allocation.map((item, i) => (
+                    <div key={i}>
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <div className="w-3 h-3 rounded-full" style={{ backgroundColor: item.color }} />
+                          <span className="font-medium">{item.category}</span>
+                        </div>
+                        <span className="font-bold">{item.percentage}%</span>
+                      </div>
+                      <div className="h-2 bg-white/10 rounded-full overflow-hidden">
+                        <motion.div
+                          className="h-full rounded-full"
+                          style={{ backgroundColor: item.color }}
+                          initial={{ width: 0 }}
+                          animate={{ width: `${item.percentage}%` }}
+                          transition={{ delay: i * 0.1, duration: 0.5 }}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </Card>
+            </div>
+
+            {/* Allocation Rationale */}
+            <Card className="bg-white/5 border-white/10 p-6">
+              <h3 className="font-semibold mb-4 flex items-center gap-2">
+                <Brain className="w-5 h-5 text-violet-400" />
+                Why This Allocation?
+              </h3>
+              <div className="space-y-4 text-white/70">
+                <p>
+                  Based on your <strong className="text-white">{riskLabel}</strong> risk profile 
+                  and <strong className="text-white">{timeHorizon}-year</strong> time horizon, 
+                  this allocation targets{' '}
+                  {riskScore > 60 ? 'growth with acceptable volatility' : 
+                   riskScore > 40 ? 'a balance of growth and stability' : 
+                   'capital preservation with modest growth'}.
+                </p>
+                <ul className="list-disc pl-5 space-y-2">
+                  <li>
+                    <strong className="text-white">Equities ({allocation.filter(a => a.category.includes('Equit') || a.category.includes('International')).reduce((s, a) => s + a.percentage, 0)}%):</strong>{' '}
+                    {riskScore > 50 ? 'Higher allocation for growth potential' : 'Moderate allocation for balanced growth'}
+                  </li>
+                  <li>
+                    <strong className="text-white">Fixed Income ({allocation.find(a => a.category.includes('Fixed'))?.percentage || 0}%):</strong>{' '}
+                    {riskScore < 50 ? 'Significant allocation for stability and income' : 'Lower allocation given higher risk tolerance'}
+                  </li>
+                  <li>
+                    <strong className="text-white">Real Assets & Alternatives:</strong>{' '}
+                    Diversification across uncorrelated assets to reduce portfolio volatility
+                  </li>
+                </ul>
+              </div>
+            </Card>
+          </TabsContent>
+
+          {/* ═══════════════════════════════════════════════════════════════
+              TAB: Holdings
+          ═══════════════════════════════════════════════════════════════ */}
+          <TabsContent value="holdings" className="space-y-6">
+            <Card className="bg-white/5 border-white/10 p-6">
+              <h3 className="font-semibold mb-6 flex items-center gap-2">
+                <PieChart className="w-5 h-5 text-blue-400" />
+                Recommended ETF Portfolio
+              </h3>
+              <div className="grid sm:grid-cols-2 gap-4">
+                {recommendations.map((rec, i) => (
+                  <motion.div 
+                    key={i} 
+                    className="bg-white/5 rounded-xl p-4 border border-white/5"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: i * 0.1 }}
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="font-mono font-bold text-lg text-blue-400">{rec.ticker}</span>
+                      <Badge className="bg-white/10">{rec.allocation}%</Badge>
+                    </div>
+                    <div className="text-sm text-white/80 mb-1">{rec.name}</div>
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-white/40">{rec.category}</span>
+                      <span className="text-emerald-400">Expense: {rec.expense}</span>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            </Card>
+
+            <Card className="bg-gradient-to-r from-blue-500/10 to-emerald-500/10 border-white/10 p-6">
+              <div className="flex items-start gap-4">
+                <div className="p-3 rounded-xl bg-white/10">
+                  <Lightbulb className="w-6 h-6 text-amber-400" />
+                </div>
+                <div>
+                  <h4 className="font-semibold mb-2">Implementation Tip</h4>
+                  <p className="text-white/70 text-sm">
+                    Start with the core holdings (VTI, VXUS, BND) first. These provide broad market exposure 
+                    at minimal cost. Add specialty ETFs gradually as your portfolio grows beyond $50,000.
+                  </p>
+                </div>
+              </div>
+            </Card>
+          </TabsContent>
+
+          {/* ═══════════════════════════════════════════════════════════════
+              TAB: Strategy
+          ═══════════════════════════════════════════════════════════════ */}
+          <TabsContent value="strategy">
+            <Card className="bg-white/5 border-white/10 p-6 sm:p-8">
+              {rawPolicy ? (
+                <div className="prose prose-invert max-w-none">
+                  <PolicyRenderer content={rawPolicy} />
+                </div>
+              ) : (
+                <div className="text-center py-12">
+                  <BookOpen className="w-12 h-12 mx-auto mb-4 text-white/20" />
+                  <p className="text-white/60">Full strategy document loading...</p>
+                </div>
+              )}
+            </Card>
+          </TabsContent>
+
+          {/* ═══════════════════════════════════════════════════════════════
+              TAB: Actions
+          ═══════════════════════════════════════════════════════════════ */}
+          <TabsContent value="actions" className="space-y-6">
+            <div className="space-y-4">
+              {actionItems.map((action, i) => (
                 <motion.div
-                  key={item.label}
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ delay: 0.7 + i * 0.1 }}
-                  className="text-center p-4 bg-muted/50 rounded-xl"
+                  key={i}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: i * 0.1 }}
                 >
-                  <div className="text-3xl font-bold mb-1">{item.value}%</div>
-                  <div className="text-xs text-muted-foreground">{item.label}</div>
-                  <div className={cn("h-1 w-12 mx-auto mt-2 rounded-full", item.color)} />
+                  <Card className="bg-white/5 border-white/10 p-5">
+                    <div className="flex items-start gap-4">
+                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-emerald-500 flex items-center justify-center text-white font-bold shrink-0">
+                        {action.priority}
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex items-center justify-between mb-1">
+                          <h4 className="font-semibold">{action.title}</h4>
+                          <Badge variant="outline" className="border-white/20 text-white/60">
+                            {action.timeframe}
+                          </Badge>
+                        </div>
+                        <p className="text-white/60 text-sm">{action.description}</p>
+                      </div>
+                    </div>
+                  </Card>
                 </motion.div>
               ))}
             </div>
-          </Card>
-        </motion.div>
 
-        {/* Investment Policy Statement CTA */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.7 }}
-        >
-          <Card className="p-6 border-border/50 bg-gradient-to-r from-primary/5 to-purple-500/5">
-            <div className="flex items-center gap-3 mb-3">
-              <FileText className="h-6 w-6 text-primary" />
-              <h3 className="font-semibold text-lg">Complete Investment Policy Statement</h3>
-            </div>
-            <p className="text-muted-foreground mb-4">
-              Your comprehensive, personalized investment strategy document
-            </p>
-            <Button variant="outline" className="gap-2">
-              <Download className="h-4 w-4" />
-              Download Full Report
-            </Button>
-          </Card>
-        </motion.div>
-
-        {/* CTA */}
-        {onDemo && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.8 }}
-          >
-            <Card className="p-8 text-center bg-gradient-to-br from-primary/10 via-purple-500/10 to-pink-500/10 border-primary/20">
+            {/* CTA Card */}
+            <Card className="bg-gradient-to-r from-blue-500/20 to-emerald-500/20 border-white/20 p-8 text-center">
               <h3 className="text-2xl font-bold mb-3">Ready to Implement Your Strategy?</h3>
-              <p className="text-muted-foreground mb-6 max-w-lg mx-auto">
-                Use our platform to track your portfolio, backtest your strategy, and get AI-powered insights.
+              <p className="text-white/60 mb-6 max-w-lg mx-auto">
+                Use our platform to track your portfolio in real-time, receive rebalancing alerts, 
+                and get AI-powered insights on your investments.
               </p>
-              <Button size="lg" onClick={onDemo} className="gap-2 shadow-lg shadow-primary/25">
-                <Play className="w-5 h-5" />
+              <Button 
+                size="lg" 
+                onClick={onDemo}
+                className="bg-white text-black hover:bg-white/90 px-8"
+              >
+                <Play className="w-5 h-5 mr-2" />
                 Demo the Platform
-                <ArrowRight className="w-4 h-4" />
               </Button>
             </Card>
-          </motion.div>
-        )}
+          </TabsContent>
+        </Tabs>
       </main>
+
+      {/* Footer */}
+      <footer className="border-t border-white/10 py-8 mt-12">
+        <div className="max-w-6xl mx-auto px-6 text-center text-white/40 text-sm">
+          <p className="mb-2">
+            This is educational guidance, not financial advice. Consider consulting a licensed advisor.
+          </p>
+          <p>Powered by Your Platform</p>
+        </div>
+      </footer>
     </div>
   );
 }
 
-// Helper function to derive traits from type code
-function getTraitsFromType(code: string): string[] {
-  const traits: string[] = [];
-  
-  if (code[0] === 'P') {
-    traits.push('Aggressive');
-  } else {
-    traits.push('Conservative');
-  }
-  
-  if (code[1] === 'I') {
-    traits.push('Intuitive');
-  } else {
-    traits.push('Analytical');
-  }
-  
-  if (code[2] === 'A') {
-    traits.push('Active');
-  } else {
-    traits.push('Patient');
-  }
-  
-  if (code[3] === 'C') {
-    traits.push('Focused');
-  } else {
-    traits.push('Diversified');
-  }
-  
-  return traits;
+// ═══════════════════════════════════════════════════════════════════════════════
+// POLICY RENDERER - Converts markdown to beautiful components
+// ═══════════════════════════════════════════════════════════════════════════════
+
+function PolicyRenderer({ content }: { content: string }) {
+  const sections = content.split(/(?=^## )/gm);
+
+  return (
+    <div className="space-y-8">
+      {sections.map((section, i) => {
+        const lines = section.trim().split('\n');
+        const titleMatch = lines[0]?.match(/^##?\s+(.+)/);
+        const title = titleMatch?.[1] || '';
+        const body = lines.slice(1).join('\n');
+
+        if (!title && !body.trim()) return null;
+
+        return (
+          <section key={i} className="border-b border-white/10 pb-8 last:border-0">
+            {title && (
+              <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
+                {title.includes('OBJECTIVE') && <Target className="w-5 h-5 text-blue-400" />}
+                {title.includes('RISK') && <Shield className="w-5 h-5 text-amber-400" />}
+                {title.includes('ALLOCATION') && <PieChart className="w-5 h-5 text-emerald-400" />}
+                {title.includes('ETF') && <BarChart3 className="w-5 h-5 text-violet-400" />}
+                {title.includes('POSITION') && <Scale className="w-5 h-5 text-cyan-400" />}
+                {title.includes('MANAGEMENT') && <Calendar className="w-5 h-5 text-pink-400" />}
+                {title.includes('EMOTIONAL') && <Heart className="w-5 h-5 text-rose-400" />}
+                {title.includes('ACTION') && <Rocket className="w-5 h-5 text-orange-400" />}
+                {title.includes('REFERENCE') && <BookOpen className="w-5 h-5 text-white/60" />}
+                {title}
+              </h2>
+            )}
+            <div className="text-white/70 leading-relaxed">
+              <MarkdownContent content={body} />
+            </div>
+          </section>
+        );
+      })}
+    </div>
+  );
 }
+
+function MarkdownContent({ content }: { content: string }) {
+  const elements: JSX.Element[] = [];
+  let currentTable: string[][] = [];
+  let inTable = false;
+
+  const lines = content.split('\n');
+
+  lines.forEach((line, i) => {
+    // Table detection
+    if (line.includes('|') && line.trim().startsWith('|')) {
+      const cells = line.split('|').filter(c => c.trim()).map(c => c.trim());
+      if (cells.some(c => c.match(/^-+$/))) return;
+      currentTable.push(cells);
+      inTable = true;
+      return;
+    } else if (inTable && currentTable.length > 0) {
+      elements.push(
+        <div key={`table-${i}`} className="overflow-x-auto my-4">
+          <table className="w-full border-collapse">
+            <thead>
+              <tr className="bg-white/10">
+                {currentTable[0]?.map((cell, j) => (
+                  <th key={j} className="text-left p-3 border border-white/10 text-white font-semibold">
+                    {cell}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {currentTable.slice(1).map((row, ri) => (
+                <tr key={ri} className="hover:bg-white/5">
+                  {row.map((cell, ci) => (
+                    <td key={ci} className="p-3 border border-white/10 text-white/70">
+                      {cell}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      );
+      currentTable = [];
+      inTable = false;
+    }
+
+    // Headers
+    if (line.startsWith('### ')) {
+      elements.push(
+        <h3 key={i} className="text-lg font-semibold text-white mt-6 mb-3">
+          {line.replace('### ', '')}
+        </h3>
+      );
+      return;
+    }
+
+    // Bold
+    if (line.includes('**')) {
+      const parts = line.split(/\*\*(.+?)\*\*/g);
+      elements.push(
+        <p key={i} className="mb-2">
+          {parts.map((part, j) => 
+            j % 2 === 1 ? <strong key={j} className="text-white">{part}</strong> : part
+          )}
+        </p>
+      );
+      return;
+    }
+
+    // Bullet points
+    if (line.trim().startsWith('- ') || line.trim().startsWith('* ')) {
+      elements.push(
+        <li key={i} className="ml-4 mb-1 list-disc">
+          {line.replace(/^[\s]*[-*]\s/, '')}
+        </li>
+      );
+      return;
+    }
+
+    // Numbered lists
+    if (line.match(/^\d+\.\s/)) {
+      elements.push(
+        <li key={i} className="ml-4 mb-1 list-decimal">
+          {line.replace(/^\d+\.\s/, '')}
+        </li>
+      );
+      return;
+    }
+
+    // Regular paragraph
+    if (line.trim()) {
+      elements.push(<p key={i} className="mb-2">{line}</p>);
+    }
+  });
+
+  return <>{elements}</>;
+}
+
+export default ComprehensiveInvestmentResults;
