@@ -196,6 +196,12 @@ export function Sidebar() {
         icon: Search 
       },
       { 
+        label: "Quant Lab", 
+        subtitle: "Run Studies",
+        href: "/quant-lab", 
+        icon: FlaskConical 
+      },
+      { 
         label: "Support", 
         subtitle: "Help & Tickets",
         href: "/support", 
