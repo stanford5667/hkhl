@@ -241,6 +241,7 @@ function SimpleMarkdown({ content }: { content: string }) {
 
 // Import the questionnaire component
 import { EliteQuestionnaire } from '@/components/investment-plan/EliteQuestionnaire';
+import { ComprehensiveInvestmentResults } from '@/components/investment-plan/ComprehensiveInvestmentPlan';
 
 interface InvestmentPlan {
   id: string;
@@ -818,43 +819,36 @@ export default function InvestmentPlanPage() {
         </TabsContent>
       </Tabs>
 
-      {/* View Plan Dialog */}
-      <Dialog open={viewPlanOpen} onOpenChange={setViewPlanOpen}>
-        <DialogContent className="max-w-4xl max-h-[90vh] p-0">
-          {selectedPlan && (
-            <>
-              <DialogHeader className="p-6 pb-4 border-b border-border">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <DialogTitle className="text-xl">{selectedPlan.name}</DialogTitle>
-                    <DialogDescription className="flex items-center gap-3 mt-2">
-                      <span className="flex items-center gap-1">
-                        <Calendar className="h-4 w-4" />
-                        {format(new Date(selectedPlan.created_at), 'MMMM d, yyyy')}
-                      </span>
-                      <Badge className={cn("text-xs", getRiskColor(selectedPlan.risk_profile))}>
-                        {selectedPlan.risk_profile}
-                      </Badge>
-                      <span className="text-xs">
-                        Score: {selectedPlan.risk_score}/100
-                      </span>
-                    </DialogDescription>
-                  </div>
-                  <Button variant="outline" size="sm" onClick={() => downloadPlan(selectedPlan)}>
-                    <Download className="h-4 w-4 mr-2" />
-                    Download
-                  </Button>
-                </div>
-              </DialogHeader>
-              <ScrollArea className="h-[60vh]">
-                <div className="p-6">
-                  <SimpleMarkdown content={selectedPlan.plan_content} />
-                </div>
-              </ScrollArea>
-            </>
-          )}
-        </DialogContent>
-      </Dialog>
+      {/* View Plan - Full Screen Results Component */}
+      {viewPlanOpen && selectedPlan && (
+        <div className="fixed inset-0 z-[9999] bg-background">
+          <ComprehensiveInvestmentResults
+            responses={selectedPlan.responses || {}}
+            rawPolicy={selectedPlan.plan_content || ''}
+            userName={selectedPlan.name.replace("'s Investment Plan", '')}
+            riskScore={selectedPlan.risk_score || 50}
+            onExport={() => downloadPlan(selectedPlan)}
+            onStartNew={() => {
+              setViewPlanOpen(false);
+              setSelectedPlan(null);
+              setShowQuestionnaire(true);
+            }}
+            onSignOut={() => setViewPlanOpen(false)}
+          />
+          {/* Back button overlay */}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              setViewPlanOpen(false);
+              setSelectedPlan(null);
+            }}
+            className="fixed top-4 left-4 z-[10000] bg-background/80 backdrop-blur-sm border border-border hover:bg-secondary"
+          >
+            ← Back to Plans
+          </Button>
+        </div>
+      )}
 
       {/* Delete Confirmation */}
       <AlertDialog open={!!deletePlanId} onOpenChange={() => setDeletePlanId(null)}>
