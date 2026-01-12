@@ -1305,59 +1305,114 @@ export default function PortfolioVisualizer() {
     
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-6">
-        <Card className="w-full max-w-xl">
-          <CardContent className="py-8">
-            <div className="text-center mb-6">
-              <div className={cn(
-                "p-4 rounded-full w-fit mx-auto mb-4",
-                hasError ? "bg-destructive/10" : "bg-primary/10"
-              )}>
-                {hasError ? (
-                  <AlertTriangle className="h-8 w-8 text-destructive" />
-                ) : (
-                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                )}
-              </div>
-              <h2 className="text-xl font-bold mb-2">
-                {hasError ? 'Analysis Failed' : 'Analyzing Your Portfolio'}
-              </h2>
-              <p className="text-sm text-muted-foreground">
-                {hasError ? error : progress.message}
-              </p>
-            </div>
-            
-            {!hasError && <Progress value={progress.percent} className="h-2 mb-6" />}
-            
-            {/* Analysis Steps */}
-            <div className="space-y-2">
-              <AnimatePresence mode="popLayout">
-                {analysisSteps.map((step) => (
-                  <AnalysisStepItem key={step.id} step={step} />
-                ))}
-              </AnimatePresence>
-            </div>
-            
+        <Card className="w-full max-w-xl border-border/50 bg-card/50 backdrop-blur-sm">
+          <CardContent className="py-12">
             {hasError ? (
-              <div className="flex justify-center gap-3 mt-6">
-                <Button variant="outline" onClick={resetWizard}>
-                  Start Over
-                </Button>
-                {canRetry && (
-                  <Button 
-                    onClick={() => {
-                      setError(null);
-                      runAnalysis(investorProfile, allocations, portfolioMode || 'manual');
-                    }}
-                  >
-                    <RefreshCw className="h-4 w-4 mr-2" />
-                    Retry Analysis
+              <>
+                <div className="text-center mb-6">
+                  <div className="p-4 rounded-full w-fit mx-auto mb-4 bg-destructive/10">
+                    <AlertTriangle className="h-8 w-8 text-destructive" />
+                  </div>
+                  <h2 className="text-xl font-bold mb-2">Analysis Failed</h2>
+                  <p className="text-sm text-muted-foreground">{error}</p>
+                </div>
+                <div className="flex justify-center gap-3 mt-6">
+                  <Button variant="outline" onClick={resetWizard}>
+                    Start Over
                   </Button>
-                )}
-              </div>
+                  {canRetry && (
+                    <Button 
+                      onClick={() => {
+                        setError(null);
+                        runAnalysis(investorProfile, allocations, portfolioMode || 'manual');
+                      }}
+                    >
+                      <RefreshCw className="h-4 w-4 mr-2" />
+                      Retry Analysis
+                    </Button>
+                  )}
+                </div>
+              </>
             ) : (
-              <p className="text-center text-xs text-muted-foreground mt-4">
-                {progress.percent}% complete
-              </p>
+              <>
+                {/* Asset Labs AI Branded Loader */}
+                <div className="flex flex-col items-center gap-6">
+                  <motion.div
+                    className="relative"
+                    animate={{ scale: [1, 1.05, 1] }}
+                    transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+                  >
+                    {/* Glow effect */}
+                    <div className="absolute inset-0 bg-primary/30 blur-xl rounded-full" />
+                    
+                    {/* Logo container */}
+                    <div className="relative bg-gradient-to-br from-primary/20 to-primary/10 rounded-xl p-4 border border-primary/30">
+                      <svg viewBox="0 0 32 32" className="w-12 h-12" fill="none">
+                        <motion.path
+                          d="M16 4L28 28H4L16 4Z"
+                          stroke="hsl(var(--primary))"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          fill="none"
+                          initial={{ pathLength: 0 }}
+                          animate={{ pathLength: 1 }}
+                          transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+                        />
+                        <motion.path
+                          d="M10 20H22"
+                          stroke="hsl(var(--primary))"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          initial={{ pathLength: 0 }}
+                          animate={{ pathLength: 1 }}
+                          transition={{ duration: 1, delay: 0.5, repeat: Infinity, ease: "easeInOut" }}
+                        />
+                      </svg>
+                    </div>
+
+                    {/* Orbiting dot */}
+                    <motion.div
+                      className="absolute -inset-3"
+                      animate={{ rotate: 360 }}
+                      transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
+                    >
+                      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-2 h-2 rounded-full bg-primary" />
+                    </motion.div>
+                  </motion.div>
+
+                  <div className="text-center">
+                    <motion.h2 
+                      className="text-xl font-bold text-foreground"
+                      initial={{ opacity: 0.7 }}
+                      animate={{ opacity: [0.7, 1, 0.7] }}
+                      transition={{ duration: 2, repeat: Infinity }}
+                    >
+                      Asset Labs AI
+                    </motion.h2>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      {progress.message || 'Analyzing your portfolio...'}
+                    </p>
+                  </div>
+
+                  {/* Progress bar */}
+                  <div className="w-full max-w-xs">
+                    <Progress value={progress.percent} className="h-2" />
+                    <p className="text-xs text-muted-foreground text-center mt-2">
+                      {Math.round(progress.percent)}% complete
+                    </p>
+                  </div>
+                </div>
+
+                {/* Analysis Steps */}
+                <div className="space-y-2 mt-8">
+                  <AnimatePresence mode="popLayout">
+                    {analysisSteps.map((step) => (
+                      <AnalysisStepItem key={step.id} step={step} />
+                    ))}
+                  </AnimatePresence>
+                </div>
+              </>
             )}
           </CardContent>
         </Card>
@@ -1665,22 +1720,88 @@ export default function PortfolioVisualizer() {
 
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-6 py-8">
-        {/* IPS Summary for Questionnaire Path */}
-        {investorPolicy && (
-          <div className="mb-6">
-            <IPSSummaryCard policy={investorPolicy} />
+        {/* Full-page branded loading state - hide all results until loaded */}
+        {isCalcLoading && (
+          <div className="flex flex-col items-center justify-center min-h-[60vh] gap-6">
+            <motion.div
+              className="relative"
+              animate={{ scale: [1, 1.05, 1] }}
+              transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+            >
+              <div className="absolute inset-0 bg-primary/30 blur-xl rounded-full" />
+              <div className="relative bg-gradient-to-br from-primary/20 to-primary/10 rounded-xl p-4 border border-primary/30">
+                <svg viewBox="0 0 32 32" className="w-12 h-12" fill="none">
+                  <motion.path
+                    d="M16 4L28 28H4L16 4Z"
+                    stroke="hsl(var(--primary))"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    fill="none"
+                    initial={{ pathLength: 0 }}
+                    animate={{ pathLength: 1 }}
+                    transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+                  />
+                  <motion.path
+                    d="M10 20H22"
+                    stroke="hsl(var(--primary))"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    initial={{ pathLength: 0 }}
+                    animate={{ pathLength: 1 }}
+                    transition={{ duration: 1, delay: 0.5, repeat: Infinity, ease: "easeInOut" }}
+                  />
+                </svg>
+              </div>
+              <motion.div
+                className="absolute -inset-3"
+                animate={{ rotate: 360 }}
+                transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
+              >
+                <div className="absolute top-0 left-1/2 -translate-x-1/2 w-2 h-2 rounded-full bg-primary" />
+              </motion.div>
+            </motion.div>
+            <div className="text-center">
+              <motion.h2 
+                className="text-xl font-bold text-foreground"
+                initial={{ opacity: 0.7 }}
+                animate={{ opacity: [0.7, 1, 0.7] }}
+                transition={{ duration: 2, repeat: Infinity }}
+              >
+                Asset Labs AI
+              </motion.h2>
+              <p className="text-sm text-muted-foreground mt-1">
+                {calcProgress.message || 'Calculating portfolio metrics...'}
+              </p>
+            </div>
+            <div className="w-full max-w-xs">
+              <Progress value={calcProgress.total > 0 ? (calcProgress.current / calcProgress.total) * 100 : 0} className="h-2" />
+              <p className="text-xs text-muted-foreground text-center mt-2">
+                {calcProgress.total > 0 ? `${Math.round((calcProgress.current / calcProgress.total) * 100)}% complete` : 'Initializing...'}
+              </p>
+            </div>
           </div>
         )}
 
-        {/* Error Alert */}
-        {error && (
-          <Alert variant="destructive" className="mb-6">
-            <AlertTriangle className="h-4 w-4" />
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
-        )}
+        {/* Only show content when NOT loading */}
+        {!isCalcLoading && (
+          <>
+            {/* IPS Summary for Questionnaire Path */}
+            {investorPolicy && (
+              <div className="mb-6">
+                <IPSSummaryCard policy={investorPolicy} />
+              </div>
+            )}
 
-        <Tabs value={resultsTab} onValueChange={setResultsTab}>
+            {/* Error Alert */}
+            {error && (
+              <Alert variant="destructive" className="mb-6">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
+
+            <Tabs value={resultsTab} onValueChange={setResultsTab}>
 {(() => {
             const visibleTabCount = [
               visibleTabs['performance'],
@@ -2229,11 +2350,7 @@ export default function PortfolioVisualizer() {
 
         {/* Calculation Verification Panel - Collapsible at bottom */}
         <ErrorBoundary variant="inline">
-          {isCalcLoading && resultsTab !== 'data-quality' ? (
-            <div className="mt-8">
-              <VerificationPanelSkeleton />
-            </div>
-          ) : calcMetrics && calcDataInfo && resultsTab !== 'data-quality' ? (
+          {calcMetrics && calcDataInfo && resultsTab !== 'data-quality' ? (
             <div className="mt-8">
               <CalculationVerificationPanel
                 metrics={calcMetrics as unknown as Record<string, number>}
@@ -2268,6 +2385,8 @@ export default function PortfolioVisualizer() {
               onRefreshData={handleRefreshData}
             />
           </div>
+        )}
+          </>
         )}
       </div>
       
