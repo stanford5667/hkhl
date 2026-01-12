@@ -82,16 +82,22 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="p-4 sm:p-6 space-y-4 sm:space-y-6 animate-fade-in">
+    <div className="p-4 sm:p-6 space-y-4 sm:space-y-6 animate-fade-up">
       {/* Header with Streak */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-0">
-        <div>
-          <div className="text-xs sm:text-sm text-muted-foreground">{currentDate}</div>
-          {currentOrganization && (
-            <div className="text-xs text-muted-foreground/70 mt-0.5">
-              {currentOrganization.name}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
+        <div className="flex items-center gap-3">
+          <div className="p-2.5 rounded-xl bg-gradient-to-br from-primary/20 to-blue-500/10 border border-primary/30">
+            <Activity className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
+          </div>
+          <div>
+            <h1 className="text-xl sm:text-2xl font-bold text-foreground">{getGreeting()}</h1>
+            <div className="flex items-center gap-2">
+              <p className="text-muted-foreground text-sm sm:text-base mt-0.5">{currentDate}</p>
+              {currentOrganization && (
+                <span className="text-xs text-muted-foreground/70">• {currentOrganization.name}</span>
+              )}
             </div>
-          )}
+          </div>
         </div>
         <div className="flex items-center gap-2 sm:gap-3">
           {stats.overdueTasks > 0 && (
@@ -106,7 +112,7 @@ export default function Dashboard() {
 
       {/* Trigger Banner */}
       <TriggerBanner
-        greeting={getGreeting()}
+        greeting="Here's what's happening today"
         alertCount={alertCount}
         portfolioNews={stats.portfolio > 0 ? `${stats.portfolio} portfolio companies` : undefined}
         onReview={() => navigate('/companies')}

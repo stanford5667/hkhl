@@ -82,16 +82,16 @@ export default function QuantLab() {
   };
 
   return (
-    <div className="space-y-6 p-6">
+    <div className="p-4 sm:p-6 space-y-4 sm:space-y-6 animate-fade-up">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
         <div className="flex items-center gap-3">
           <div className="p-2.5 rounded-xl bg-gradient-to-br from-violet-500/20 to-purple-500/20 border border-violet-500/30">
-            <FlaskConical className="h-6 w-6 text-violet-400" />
+            <FlaskConical className="h-5 w-5 sm:h-6 sm:w-6 text-violet-400" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-foreground">Quant Lab</h1>
-            <p className="text-sm text-muted-foreground">
+            <h1 className="text-xl sm:text-2xl font-bold text-foreground">Quant Lab</h1>
+            <p className="text-muted-foreground text-sm sm:text-base mt-0.5">
               Run quantitative studies on any stock or ETF
             </p>
           </div>

@@ -140,101 +140,101 @@ export default function Contacts() {
   );
 
   return (
-    <div className="p-6 h-full animate-fade-in">
+    <div className="p-4 sm:p-6 space-y-4 sm:space-y-6 animate-fade-up">
       {/* Header */}
-      <div className="mb-6">
-        <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
+        <div className="flex items-center gap-3">
+          <div className="p-2.5 rounded-xl bg-gradient-to-br from-cyan-500/20 to-teal-500/10 border border-cyan-500/30">
+            <Users className="h-5 w-5 sm:h-6 sm:w-6 text-cyan-400" />
+          </div>
           <div>
-            <h1 className="h1 flex items-center gap-3">
-              <Users className="h-8 w-8 text-primary" />
-              Contacts
-            </h1>
-            <p className="text-muted-foreground mt-1">
+            <h1 className="text-xl sm:text-2xl font-bold text-foreground">Contacts</h1>
+            <p className="text-muted-foreground text-sm sm:text-base mt-0.5">
               {contacts.length} contacts · {contacts.filter((c) => c.category === 'team').length} team members
             </p>
           </div>
+        </div>
 
-          <div className="flex items-center gap-3">
-            {selectedContacts.length > 0 && (
-              <BulkActionBar
-                count={selectedContacts.length}
-                onAssignTask={() => {}}
-                onSendEmail={() => {}}
-                onAddToFlow={() => {}}
-                onClear={() => setSelectedContacts([])}
-              />
-            )}
+        <div className="flex items-center gap-3">
+          {selectedContacts.length > 0 && (
+            <BulkActionBar
+              count={selectedContacts.length}
+              onAssignTask={() => {}}
+              onSendEmail={() => {}}
+              onAddToFlow={() => {}}
+              onClear={() => setSelectedContacts([])}
+            />
+          )}
 
-            <Button onClick={() => setCreateDialogOpen(true)}>
-              <Plus className="h-4 w-4 mr-2" />
-              Add Contact
+          <Button onClick={() => setCreateDialogOpen(true)}>
+            <Plus className="h-4 w-4 mr-2" />
+            Add Contact
+          </Button>
+        </div>
+      </div>
+
+      {/* Toolbar */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          {/* Search */}
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search contacts..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10 w-64 bg-card border-border"
+            />
+          </div>
+
+          {/* Type Filter */}
+          <Select value={filterType} onValueChange={(v) => setFilterType(v as any)}>
+            <SelectTrigger className="w-44 bg-card border-border">
+              <SelectValue placeholder="All Contacts" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Contacts</SelectItem>
+              <SelectItem value="team">Team Members</SelectItem>
+              <SelectItem value="lender">Lenders</SelectItem>
+              <SelectItem value="executive">Executives</SelectItem>
+              <SelectItem value="board">Board</SelectItem>
+              <SelectItem value="legal">Legal</SelectItem>
+              <SelectItem value="vendor">Vendors</SelectItem>
+              <SelectItem value="other">Other</SelectItem>
+            </SelectContent>
+          </Select>
+
+          {/* Quick Filters */}
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" size="sm" className="h-8">
+              <Clock className="h-3.5 w-3.5 mr-1.5" />
+              Recent
+            </Button>
+            <Button variant="ghost" size="sm" className="h-8">
+              <Star className="h-3.5 w-3.5 mr-1.5" />
+              Favorites
+            </Button>
+            <Button variant="ghost" size="sm" className="h-8">
+              <AlertCircle className="h-3.5 w-3.5 mr-1.5" />
+              Needs Follow-up
             </Button>
           </div>
         </div>
 
-        {/* Toolbar */}
-        <div className="flex items-center justify-between mt-6">
-          <div className="flex items-center gap-4">
-            {/* Search */}
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search contacts..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10 w-64 bg-card border-border"
-              />
-            </div>
-
-            {/* Type Filter */}
-            <Select value={filterType} onValueChange={(v) => setFilterType(v as any)}>
-              <SelectTrigger className="w-44 bg-card border-border">
-                <SelectValue placeholder="All Contacts" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Contacts</SelectItem>
-                <SelectItem value="team">Team Members</SelectItem>
-                <SelectItem value="lender">Lenders</SelectItem>
-                <SelectItem value="executive">Executives</SelectItem>
-                <SelectItem value="board">Board</SelectItem>
-                <SelectItem value="legal">Legal</SelectItem>
-                <SelectItem value="vendor">Vendors</SelectItem>
-                <SelectItem value="other">Other</SelectItem>
-              </SelectContent>
-            </Select>
-
-            {/* Quick Filters */}
-            <div className="flex items-center gap-2">
-              <Button variant="ghost" size="sm" className="h-8">
-                <Clock className="h-3.5 w-3.5 mr-1.5" />
-                Recent
-              </Button>
-              <Button variant="ghost" size="sm" className="h-8">
-                <Star className="h-3.5 w-3.5 mr-1.5" />
-                Favorites
-              </Button>
-              <Button variant="ghost" size="sm" className="h-8">
-                <AlertCircle className="h-3.5 w-3.5 mr-1.5" />
-                Needs Follow-up
-              </Button>
-            </div>
-          </div>
-
-          {/* View Toggle */}
-          <ToggleGroup
-            type="single"
-            value={view}
-            onValueChange={(v) => v && setView(v as 'table' | 'board')}
-            className="bg-muted/50 p-1 rounded-lg"
-          >
-            <ToggleGroupItem value="table" aria-label="Table view" className="h-8 w-8 p-0">
-              <Table2 className="h-4 w-4" />
-            </ToggleGroupItem>
-            <ToggleGroupItem value="board" aria-label="Board view" className="h-8 w-8 p-0">
-              <LayoutGrid className="h-4 w-4" />
-            </ToggleGroupItem>
-          </ToggleGroup>
-        </div>
+        {/* View Toggle */}
+        <ToggleGroup
+          type="single"
+          value={view}
+          onValueChange={(v) => v && setView(v as 'table' | 'board')}
+          className="bg-muted/50 p-1 rounded-lg"
+        >
+          <ToggleGroupItem value="table" aria-label="Table view" className="h-8 w-8 p-0">
+            <Table2 className="h-4 w-4" />
+          </ToggleGroupItem>
+          <ToggleGroupItem value="board" aria-label="Board view" className="h-8 w-8 p-0">
+            <LayoutGrid className="h-4 w-4" />
+          </ToggleGroupItem>
+        </ToggleGroup>
       </div>
 
       {/* Main Content with Quick Preview */}

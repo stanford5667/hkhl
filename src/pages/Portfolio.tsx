@@ -1142,20 +1142,22 @@ export default function Portfolio() {
       </motion.div>
     );
   }
-  return <motion.div className="p-6 space-y-6 animate-fade-up" variants={containerVariants} initial="hidden" animate="visible">
+  return <motion.div className="p-4 sm:p-6 space-y-4 sm:space-y-6 animate-fade-up" variants={containerVariants} initial="hidden" animate="visible">
       <FinnhubApiBanner />
       <MarketDataPausedBanner />
 
-      {/* Header - Market Intel Style */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-3">
-            <Wallet className="h-7 w-7 text-primary" />
-            Portfolio
-          </h1>
-          <p className="text-muted-foreground mt-1">
-            {activePortfolio?.name || 'My Portfolio'} • {perfPositionCount > 0 ? perfPositionCount : allHoldings.length} Holdings
-          </p>
+      {/* Header - Unified Style */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
+        <div className="flex items-center gap-3">
+          <div className="p-2.5 rounded-xl bg-gradient-to-br from-emerald-500/20 to-teal-500/10 border border-emerald-500/30">
+            <Wallet className="h-5 w-5 sm:h-6 sm:w-6 text-emerald-400" />
+          </div>
+          <div>
+            <h1 className="text-xl sm:text-2xl font-bold text-foreground">Portfolio</h1>
+            <p className="text-muted-foreground text-sm sm:text-base mt-0.5">
+              {activePortfolio?.name || 'My Portfolio'} • {perfPositionCount > 0 ? perfPositionCount : allHoldings.length} Holdings
+            </p>
+          </div>
         </div>
 
         <div className="flex items-center gap-2 flex-wrap">
