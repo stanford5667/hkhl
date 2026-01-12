@@ -27,7 +27,10 @@ export function MobileNav() {
   return (
     <>
       {/* Bottom Navigation Bar */}
-      <nav className="fixed bottom-0 left-0 right-0 z-50 bg-slate-950/95 backdrop-blur-xl border-t border-slate-800 md:hidden safe-area-bottom">
+      <nav 
+        className="fixed bottom-0 left-0 right-0 bg-slate-950/95 backdrop-blur-xl border-t border-slate-800 md:hidden"
+        style={{ zIndex: 50, paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
+      >
         <div className="flex items-center justify-around h-16 px-2">
           {mobileNavItems.map((item) => {
             const isActive = item.href !== "#menu" && (

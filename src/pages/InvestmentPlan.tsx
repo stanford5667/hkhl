@@ -426,10 +426,10 @@ export default function InvestmentPlanPage() {
     }
   };
 
-  // Show questionnaire fullscreen
+  // Show questionnaire fullscreen - high z-index to cover everything including mobile nav
   if (showQuestionnaire) {
     return (
-      <div className="fixed inset-0 z-50 bg-background">
+      <div className="fixed inset-0 bg-background" style={{ zIndex: 9999 }}>
         <EliteQuestionnaire
           onComplete={handleQuestionnaireComplete}
           onCancel={() => {
