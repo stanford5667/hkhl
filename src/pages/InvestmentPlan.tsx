@@ -259,7 +259,7 @@ interface InvestmentPlan {
 
 export default function InvestmentPlanPage() {
   const { user } = useAuth();
-  const { requireAuth, showAuthDialog, closeAuthDialog } = useRequireAuth();
+  const { requireAuth, showAuthDialog, closeAuthDialog, consumePendingAction } = useRequireAuth();
   const [activeTab, setActiveTab] = useState('plans');
   const [plans, setPlans] = useState<InvestmentPlan[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -277,6 +277,18 @@ export default function InvestmentPlanPage() {
     planContent: string;
     userName: string;
   } | null>(null);
+
+  // Check for pending action after auth (e.g., user just signed up to take assessment)
+  useEffect(() => {
+    if (user) {
+      const pendingAction = consumePendingAction();
+      if (pendingAction === 'start-assessment') {
+        // User just authenticated, auto-start the assessment
+        setForceNewAssessment(true);
+        setShowQuestionnaire(true);
+      }
+    }
+  }, [user, consumePendingAction]);
 
   // Fetch user's investment plans
   useEffect(() => {
@@ -463,7 +475,7 @@ export default function InvestmentPlanPage() {
             requireAuth(() => {
               setForceNewAssessment(true);
               setShowQuestionnaire(true);
-            });
+            }, 'start-assessment');
           }}
           className="gap-2 shadow-lg shadow-primary/25 w-full sm:w-auto"
           size="lg"
@@ -522,7 +534,7 @@ export default function InvestmentPlanPage() {
                       requireAuth(() => {
                         setForceNewAssessment(true);
                         setShowQuestionnaire(true);
-                      });
+                      }, 'start-assessment');
                     }} size="lg" className="gap-2 shadow-lg shadow-primary/25">
                       <Brain className="h-5 w-5" />
                       Take the 5-Minute Assessment
