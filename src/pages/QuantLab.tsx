@@ -1090,6 +1090,46 @@ export default function QuantLab() {
   // Get study definition
   const getStudy = (id: string) => STUDY_DEFINITIONS.find(s => s.id === id);
 
+  // Helper to format result values nicely
+  const formatValue = (key: string, value: any): string => {
+    if (typeof value !== 'number') return String(value);
+    if (key.toLowerCase().includes('percent') || key.toLowerCase().includes('rate') || key.toLowerCase().includes('pct')) {
+      return `${value.toFixed(1)}%`;
+    }
+    if (key.toLowerCase().includes('score')) {
+      return value.toFixed(1);
+    }
+    if (Math.abs(value) < 1 && value !== 0) {
+      return value.toFixed(3);
+    }
+    return value.toFixed(1);
+  };
+
+  // Get sentiment color based on interpretation
+  const getSentimentStyle = (interpretation?: string) => {
+    if (!interpretation) return { bg: 'bg-muted/50', border: 'border-border', text: 'text-muted-foreground' };
+    if (interpretation.includes('🟢') || interpretation.toLowerCase().includes('bullish') || interpretation.toLowerCase().includes('strong')) {
+      return { bg: 'bg-emerald-500/10', border: 'border-emerald-500/30', text: 'text-emerald-600 dark:text-emerald-400' };
+    }
+    if (interpretation.includes('🔴') || interpretation.toLowerCase().includes('bearish') || interpretation.toLowerCase().includes('weak')) {
+      return { bg: 'bg-red-500/10', border: 'border-red-500/30', text: 'text-red-600 dark:text-red-400' };
+    }
+    if (interpretation.includes('🟡') || interpretation.toLowerCase().includes('neutral') || interpretation.toLowerCase().includes('mixed')) {
+      return { bg: 'bg-amber-500/10', border: 'border-amber-500/30', text: 'text-amber-600 dark:text-amber-400' };
+    }
+    return { bg: 'bg-muted/50', border: 'border-border', text: 'text-foreground' };
+  };
+
+  // Filter out internal/display keys from results
+  const getDisplayMetrics = (result: any) => {
+    const excludeKeys = ['type', 'studyName', 'params', 'interpretation', 'histogram', 'distribution', 'stats', 'recentGaps', 'recentDrawdowns', 'recentNewHighs', 'recentNewLows', 'components', 'barsAnalyzed', 'dateRange', 'usedMockData', 'dayStats', 'monthStats'];
+    return Object.entries(result).filter(([key, value]) => {
+      if (excludeKeys.includes(key)) return false;
+      if (typeof value === 'object') return false;
+      return true;
+    });
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <div className="p-4 sm:p-6 space-y-6 pb-20 md:pb-6 max-w-7xl mx-auto">
@@ -1119,82 +1159,50 @@ export default function QuantLab() {
           </div>
         </div>
 
-        {/* Getting Started Card */}
-        <AnimatePresence>
-          {showHelp && !selectedTicker && (
-            <motion.div
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-            >
-              <Card className="bg-gradient-to-br from-blue-500/10 via-purple-500/10 to-pink-500/10 border-primary/20">
-                <CardContent className="p-6">
-                  <div className="flex items-start gap-4">
-                    <div className="p-3 rounded-lg bg-primary/10">
-                      <Lightbulb className="h-6 w-6 text-primary" />
-                    </div>
-                    <div className="flex-1">
-                      <h3 className="font-semibold text-lg mb-2">Welcome to Quant Lab! 👋</h3>
-                      <p className="text-muted-foreground mb-4">
-                        Run professional-grade stock analysis with just a few clicks. Here's how:
-                      </p>
-                      <ol className="space-y-2 text-sm">
-                        <li className="flex items-center gap-2">
-                          <span className="w-6 h-6 rounded-full bg-primary/20 text-primary flex items-center justify-center text-xs font-bold">1</span>
-                          <span>Enter a stock ticker (like AAPL, MSFT, or TSLA)</span>
-                        </li>
-                        <li className="flex items-center gap-2">
-                          <span className="w-6 h-6 rounded-full bg-primary/20 text-primary flex items-center justify-center text-xs font-bold">2</span>
-                          <span>Pick studies from the categories or use a template</span>
-                        </li>
-                        <li className="flex items-center gap-2">
-                          <span className="w-6 h-6 rounded-full bg-primary/20 text-primary flex items-center justify-center text-xs font-bold">3</span>
-                          <span>Adjust parameters with the sliders (or use defaults)</span>
-                        </li>
-                        <li className="flex items-center gap-2">
-                          <span className="w-6 h-6 rounded-full bg-primary/20 text-primary flex items-center justify-center text-xs font-bold">4</span>
-                          <span>Click "Run Studies" to see your results!</span>
-                        </li>
-                      </ol>
-                    </div>
-                    <Button variant="ghost" size="icon" onClick={() => setShowHelp(false)}>
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* Ticker Input + Period Selection */}
-        <Card>
-          <CardContent className="p-4 sm:p-6">
+        {/* STEP 1: Stock Selection - Always visible, prominent */}
+        <Card className={cn(
+          "transition-all border-2",
+          !selectedTicker ? "border-primary shadow-lg shadow-primary/10" : "border-border"
+        )}>
+          <CardHeader className="pb-3">
+            <div className="flex items-center gap-3">
+              <div className={cn(
+                "w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold",
+                selectedTicker ? "bg-emerald-500 text-white" : "bg-primary text-primary-foreground"
+              )}>
+                {selectedTicker ? <CheckCircle2 className="h-5 w-5" /> : '1'}
+              </div>
+              <div>
+                <CardTitle className="text-lg">Choose a Stock</CardTitle>
+                <CardDescription>Enter any ticker symbol to analyze</CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="pt-0">
             <div className="flex flex-col sm:flex-row gap-4">
               <div className="flex-1">
-                <Label className="text-sm font-medium mb-2 block">Stock Ticker</Label>
                 <div className="flex gap-2">
                   <Input
-                    placeholder="Enter ticker (e.g., AAPL)"
+                    placeholder="Enter ticker (e.g., AAPL, MSFT, SPY)"
                     value={ticker}
                     onChange={(e) => setTicker(e.target.value.toUpperCase())}
                     onKeyDown={(e) => e.key === 'Enter' && handleSetTicker(ticker)}
-                    className="text-lg font-mono"
+                    className="text-lg font-mono h-12"
                   />
-                  <Button onClick={() => handleSetTicker(ticker)} disabled={!ticker}>
+                  <Button onClick={() => handleSetTicker(ticker)} disabled={!ticker} size="lg" className="px-6">
                     <Search className="h-4 w-4 mr-2" />
-                    Analyze
+                    Go
                   </Button>
                 </div>
                 
                 {/* Quick Tickers */}
                 <div className="flex flex-wrap gap-2 mt-3">
-                  <span className="text-xs text-muted-foreground">Popular:</span>
-                  {['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'NVDA', 'TSLA', 'SPY', 'QQQ'].map((t) => (
+                  <span className="text-xs text-muted-foreground self-center">Try:</span>
+                  {['AAPL', 'MSFT', 'GOOGL', 'NVDA', 'TSLA', 'SPY', 'QQQ'].map((t) => (
                     <Badge
                       key={t}
                       variant={selectedTicker === t ? 'default' : 'outline'}
-                      className="cursor-pointer hover:bg-secondary"
+                      className="cursor-pointer hover:bg-primary hover:text-primary-foreground transition-colors"
                       onClick={() => handleSetTicker(t)}
                     >
                       {t}
@@ -1204,9 +1212,9 @@ export default function QuantLab() {
               </div>
 
               <div className="w-full sm:w-48">
-                <Label className="text-sm font-medium mb-2 block">Time Period</Label>
+                <Label className="text-xs text-muted-foreground mb-1 block">Time Period</Label>
                 <Select value={period} onValueChange={setPeriod}>
-                  <SelectTrigger>
+                  <SelectTrigger className="h-12">
                     <SelectValue placeholder="Select period" />
                   </SelectTrigger>
                   <SelectContent>
@@ -1215,106 +1223,121 @@ export default function QuantLab() {
                     ))}
                   </SelectContent>
                 </Select>
-                <p className="text-xs text-muted-foreground mt-1">
-                  More data = more reliable results
-                </p>
               </div>
             </div>
 
             {selectedTicker && (
-              <div className="mt-4 p-3 bg-muted/50 rounded-lg flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <CheckCircle2 className="h-5 w-5 text-green-500" />
-                  <span className="font-semibold">{selectedTicker}</span>
-                  <span className="text-muted-foreground">ready for analysis</span>
+              <motion.div 
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="mt-4 p-4 bg-emerald-500/10 border border-emerald-500/30 rounded-lg flex items-center justify-between"
+              >
+                <div className="flex items-center gap-3">
+                  <CheckCircle2 className="h-6 w-6 text-emerald-500" />
+                  <div>
+                    <span className="text-2xl font-bold font-mono">{selectedTicker}</span>
+                    <span className="text-muted-foreground ml-2">• {PERIOD_OPTIONS.find(p => p.value === period)?.label}</span>
+                  </div>
                 </div>
-                <Button variant="ghost" size="sm" onClick={() => setSelectedTicker(null)}>
+                <Button variant="ghost" size="sm" onClick={() => { setSelectedTicker(null); setResults({}); }}>
                   Change
                 </Button>
-              </div>
+              </motion.div>
             )}
           </CardContent>
         </Card>
 
-        {/* Templates */}
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-lg flex items-center gap-2">
-              <Sparkles className="h-5 w-5 text-amber-500" />
-              Quick Templates
-            </CardTitle>
-            <CardDescription>
-              One-click analysis packages for common scenarios
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-              {STUDY_TEMPLATES.map((template) => (
-                <Button
-                  key={template.id}
-                  variant="outline"
-                  className="h-auto py-3 px-4 justify-start text-left"
-                  onClick={() => loadTemplate(template.id)}
-                >
-                  <div>
-                    <p className="font-medium">{template.name}</p>
-                    <p className="text-xs text-muted-foreground">{template.description}</p>
-                    <div className="flex gap-1 mt-2">
-                      {template.studies.slice(0, 3).map((s) => (
-                        <Badge key={s} variant="secondary" className="text-[10px]">
-                          {STUDY_DEFINITIONS.find(sd => sd.id === s)?.name.slice(0, 10)}...
-                        </Badge>
-                      ))}
+        {/* STEP 2: Pick Studies - Only show after ticker is selected */}
+        <AnimatePresence>
+          {selectedTicker && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              className="space-y-6"
+            >
+              <Card className={cn(
+                "transition-all border-2",
+                selectedStudies.length === 0 ? "border-primary shadow-lg shadow-primary/10" : "border-border"
+              )}>
+                <CardHeader className="pb-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className={cn(
+                        "w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold",
+                        selectedStudies.length > 0 ? "bg-emerald-500 text-white" : "bg-primary text-primary-foreground"
+                      )}>
+                        {selectedStudies.length > 0 ? <CheckCircle2 className="h-5 w-5" /> : '2'}
+                      </div>
+                      <div>
+                        <CardTitle className="text-lg">Pick Your Analysis</CardTitle>
+                        <CardDescription>Choose a template or individual studies</CardDescription>
+                      </div>
+                    </div>
+                    {selectedStudies.length > 0 && (
+                      <Badge variant="secondary" className="text-sm">
+                        {selectedStudies.length} selected
+                      </Badge>
+                    )}
+                  </div>
+                </CardHeader>
+                <CardContent className="pt-0 space-y-4">
+                  {/* Quick Templates */}
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
+                    {STUDY_TEMPLATES.map((template) => (
+                      <Button
+                        key={template.id}
+                        variant="outline"
+                        className="h-auto py-3 px-3 flex flex-col items-center text-center hover:border-primary hover:bg-primary/5"
+                        onClick={() => loadTemplate(template.id)}
+                      >
+                        <span className="text-lg mb-1">{template.name.split(' ')[0]}</span>
+                        <span className="text-xs font-medium">{template.name.split(' ').slice(1).join(' ')}</span>
+                        <span className="text-[10px] text-muted-foreground mt-1">{template.studies.length} studies</span>
+                      </Button>
+                    ))}
+                  </div>
+
+                  {/* Or pick individual */}
+                  <div className="relative">
+                    <div className="absolute inset-0 flex items-center">
+                      <span className="w-full border-t" />
+                    </div>
+                    <div className="relative flex justify-center text-xs uppercase">
+                      <span className="bg-card px-2 text-muted-foreground">or pick individual studies</span>
                     </div>
                   </div>
-                </Button>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
 
-        {/* Main Content Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Left Panel - Study Selection */}
-          <div className="lg:col-span-1 space-y-4">
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-lg">Select Studies</CardTitle>
-                <CardDescription>
-                  Click to add studies to your analysis
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="p-0">
-                <Tabs value={activeCategory} onValueChange={setActiveCategory}>
-                  <TabsList className="w-full flex-wrap h-auto gap-1 bg-muted/50 p-1 rounded-none border-b">
+                  {/* Category Tabs */}
+                  <Tabs value={activeCategory} onValueChange={setActiveCategory}>
+                    <TabsList className="w-full flex-wrap h-auto gap-1 bg-muted/50 p-1">
+                      {STUDY_CATEGORIES.map((cat) => (
+                        <TabsTrigger 
+                          key={cat.id} 
+                          value={cat.id} 
+                          className="gap-1.5 text-xs flex-1 min-w-[70px]"
+                        >
+                          <cat.icon className="h-3.5 w-3.5" />
+                          {cat.name}
+                        </TabsTrigger>
+                      ))}
+                    </TabsList>
+
                     {STUDY_CATEGORIES.map((cat) => (
-                      <TabsTrigger 
-                        key={cat.id} 
-                        value={cat.id} 
-                        className="gap-1.5 text-xs flex-1 min-w-[80px]"
-                      >
-                        <cat.icon className="h-3.5 w-3.5" />
-                        <span className="hidden sm:inline">{cat.name}</span>
-                      </TabsTrigger>
-                    ))}
-                  </TabsList>
-
-                  {STUDY_CATEGORIES.map((cat) => (
-                    <TabsContent key={cat.id} value={cat.id} className="mt-0 p-3">
-                      <div className="space-y-2">
-                        {STUDY_DEFINITIONS.filter(s => s.category === cat.id).map((study) => (
-                          <button
-                            key={study.id}
-                            onClick={() => addStudy(study.id)}
-                            disabled={selectedStudies.includes(study.id)}
-                            className={cn(
-                              "w-full p-3 rounded-lg border text-left transition-all",
-                              selectedStudies.includes(study.id)
-                                ? "border-primary bg-primary/5 opacity-50"
-                                : "border-border hover:border-primary/50 hover:bg-muted/50"
-                            )}
-                          >
-                            <div className="flex items-start gap-3">
+                      <TabsContent key={cat.id} value={cat.id} className="mt-3">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                          {STUDY_DEFINITIONS.filter(s => s.category === cat.id).map((study) => (
+                            <button
+                              key={study.id}
+                              onClick={() => addStudy(study.id)}
+                              disabled={selectedStudies.includes(study.id)}
+                              className={cn(
+                                "p-3 rounded-lg border text-left transition-all flex items-center gap-3",
+                                selectedStudies.includes(study.id)
+                                  ? "border-primary bg-primary/10 opacity-70"
+                                  : "border-border hover:border-primary/50 hover:bg-muted/50"
+                              )}
+                            >
                               <div className={cn(
                                 "p-2 rounded-lg shrink-0",
                                 selectedStudies.includes(study.id) ? "bg-primary/20" : "bg-muted"
@@ -1325,291 +1348,250 @@ export default function QuantLab() {
                                 )} />
                               </div>
                               <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-2">
-                                  <span className="font-medium text-sm">{study.name}</span>
-                                  <Badge variant="outline" className="text-[10px]">
-                                    {study.difficulty}
-                                  </Badge>
-                                </div>
-                                <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">
-                                  {study.description}
-                                </p>
+                                <span className="font-medium text-sm block">{study.name}</span>
+                                <span className="text-xs text-muted-foreground line-clamp-1">{study.description}</span>
                               </div>
                               {selectedStudies.includes(study.id) ? (
                                 <CheckCircle2 className="h-5 w-5 text-primary shrink-0" />
                               ) : (
                                 <Plus className="h-5 w-5 text-muted-foreground shrink-0" />
                               )}
-                            </div>
-                          </button>
-                        ))}
-                      </div>
-                    </TabsContent>
-                  ))}
-                </Tabs>
-              </CardContent>
-            </Card>
-          </div>
+                            </button>
+                          ))}
+                        </div>
+                      </TabsContent>
+                    ))}
+                  </Tabs>
+                </CardContent>
+              </Card>
 
-          {/* Right Panel - Selected Studies & Results */}
-          <div className="lg:col-span-2 space-y-4">
-            {/* Selected Studies */}
-            <Card>
-              <CardHeader className="pb-3">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <CardTitle className="text-lg">Your Analysis</CardTitle>
-                    <CardDescription>
-                      {selectedStudies.length} studies selected
-                    </CardDescription>
-                  </div>
-                  <Button
-                    onClick={runAllStudies}
-                    disabled={!selectedTicker || selectedStudies.length === 0 || isRunning}
-                    className="gap-2"
-                  >
-                    {isRunning ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <Play className="h-4 w-4" />
-                    )}
-                    Run All Studies
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent>
-                {selectedStudies.length === 0 ? (
-                  <div className="text-center py-8 text-muted-foreground">
-                    <FlaskConical className="h-12 w-12 mx-auto mb-3 opacity-30" />
-                    <p>No studies selected yet</p>
-                    <p className="text-sm">Click on studies in the left panel to add them</p>
-                  </div>
-                ) : (
-                  <Accordion type="multiple" defaultValue={selectedStudies} className="space-y-2">
-                    {selectedStudies.map((studyId) => {
-                      const study = getStudy(studyId);
-                      if (!study) return null;
-                      const result = results[studyId];
-                      const params = studyParams[studyId] || {};
-
-                      return (
-                        <AccordionItem
-                          key={studyId}
-                          value={studyId}
-                          className="border rounded-lg px-4"
-                        >
-                          <AccordionTrigger className="hover:no-underline py-3">
-                            <div className="flex items-center gap-3 flex-1">
-                              <div className={cn(
-                                "p-2 rounded-lg",
-                                result ? "bg-green-500/10" : "bg-muted"
-                              )}>
-                                <study.icon className={cn(
-                                  "h-4 w-4",
-                                  result ? "text-green-500" : "text-muted-foreground"
-                                )} />
-                              </div>
-                              <div className="text-left">
-                                <p className="font-medium text-sm">{study.name}</p>
-                                {result && (
-                                  <p className="text-xs text-muted-foreground">
-                                    {result.interpretation?.slice(0, 50)}...
-                                  </p>
-                                )}
-                              </div>
-                            </div>
-                            <div className="flex items-center gap-2 mr-2">
-                              {runningStudy === studyId && (
-                                <Loader2 className="h-4 w-4 animate-spin text-primary" />
-                              )}
-                              {result && <CheckCircle2 className="h-4 w-4 text-green-500" />}
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  removeStudy(studyId);
-                                }}
-                              >
-                                <Trash2 className="h-4 w-4 text-muted-foreground" />
-                              </Button>
-                            </div>
-                          </AccordionTrigger>
-                          <AccordionContent className="pt-0 pb-4">
-                            {/* Help Section */}
-                            {showHelp && (
-                              <div className="mb-4 p-3 bg-blue-500/5 rounded-lg border border-blue-500/10">
-                                <div className="flex items-start gap-2">
-                                  <Info className="h-4 w-4 text-blue-500 mt-0.5 shrink-0" />
-                                  <div className="text-sm">
-                                    <p className="font-medium text-blue-500">What this measures:</p>
-                                    <p className="text-muted-foreground">{study.whatItMeasures}</p>
-                                    <p className="font-medium text-blue-500 mt-2">Why it matters:</p>
-                                    <p className="text-muted-foreground">{study.whyItMatters}</p>
-                                  </div>
-                                </div>
-                              </div>
+              {/* STEP 3: Run & Results */}
+              {selectedStudies.length > 0 && (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                >
+                  <Card className="border-2 border-primary shadow-lg shadow-primary/10">
+                    <CardHeader className="pb-3">
+                      <div className="flex items-center justify-between flex-wrap gap-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-bold">
+                            3
+                          </div>
+                          <div>
+                            <CardTitle className="text-lg">Run Analysis</CardTitle>
+                            <CardDescription>
+                              {Object.keys(results).length === 0 
+                                ? `Ready to analyze ${selectedTicker} with ${selectedStudies.length} studies`
+                                : `${Object.keys(results).length}/${selectedStudies.length} studies complete`
+                              }
+                            </CardDescription>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => { setSelectedStudies([]); setResults({}); }}
+                          >
+                            <X className="h-4 w-4 mr-1" />
+                            Clear All
+                          </Button>
+                          <Button
+                            onClick={runAllStudies}
+                            disabled={isRunning}
+                            size="lg"
+                            className="gap-2 bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 shadow-lg"
+                          >
+                            {isRunning ? (
+                              <Loader2 className="h-5 w-5 animate-spin" />
+                            ) : (
+                              <Play className="h-5 w-5" />
                             )}
+                            Run All Studies
+                          </Button>
+                        </div>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      {/* Selected studies chips */}
+                      <div className="flex flex-wrap gap-2 mb-4">
+                        {selectedStudies.map((studyId) => {
+                          const study = getStudy(studyId);
+                          const hasResult = !!results[studyId];
+                          return (
+                            <Badge
+                              key={studyId}
+                              variant={hasResult ? 'default' : 'secondary'}
+                              className={cn(
+                                "gap-1 pr-1 cursor-pointer",
+                                hasResult && "bg-emerald-500 hover:bg-emerald-600"
+                              )}
+                            >
+                              {study?.name}
+                              {hasResult && <CheckCircle2 className="h-3 w-3" />}
+                              <button
+                                onClick={() => removeStudy(studyId)}
+                                className="ml-1 hover:bg-black/20 rounded p-0.5"
+                              >
+                                <X className="h-3 w-3" />
+                              </button>
+                            </Badge>
+                          );
+                        })}
+                      </div>
 
-                            {/* Parameters */}
-                            {study.params.length > 0 && (
-                              <div className="mb-4 space-y-4">
-                                <div className="flex items-center justify-between">
-                                  <Label className="text-sm font-medium flex items-center gap-2">
-                                    <Settings2 className="h-4 w-4" />
-                                    Parameters
-                                  </Label>
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => resetParams(studyId)}
-                                  >
-                                    <RotateCcw className="h-3 w-3 mr-1" />
-                                    Reset
-                                  </Button>
-                                </div>
-                                
-                                {study.params.map((param) => (
-                                  <div key={param.key} className="space-y-2">
-                                    <div className="flex items-center justify-between">
-                                      <Label className="text-sm flex items-center gap-2">
-                                        {param.label}
-                                        {param.beginner && showHelp && (
-                                          <Tooltip>
-                                            <TooltipTrigger>
-                                              <HelpCircle className="h-3 w-3 text-muted-foreground" />
-                                            </TooltipTrigger>
-                                            <TooltipContent className="max-w-xs">
-                                              {param.beginner}
-                                            </TooltipContent>
-                                          </Tooltip>
+                      {/* Results Grid */}
+                      {Object.keys(results).length > 0 && (
+                        <div className="space-y-4">
+                          <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                            <BarChart3 className="h-4 w-4" />
+                            Results
+                          </div>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {selectedStudies.map((studyId) => {
+                              const study = getStudy(studyId);
+                              const result = results[studyId];
+                              if (!study || !result) return null;
+                              
+                              const sentiment = getSentimentStyle(result.interpretation);
+                              const metrics = getDisplayMetrics(result);
+
+                              return (
+                                <motion.div
+                                  key={studyId}
+                                  initial={{ opacity: 0, scale: 0.95 }}
+                                  animate={{ opacity: 1, scale: 1 }}
+                                  className={cn(
+                                    "rounded-xl border-2 overflow-hidden",
+                                    sentiment.border
+                                  )}
+                                >
+                                  {/* Card Header */}
+                                  <div className={cn("p-4", sentiment.bg)}>
+                                    <div className="flex items-start justify-between">
+                                      <div className="flex items-center gap-3">
+                                        <div className={cn("p-2 rounded-lg bg-background/80")}>
+                                          <study.icon className={cn("h-5 w-5", sentiment.text)} />
+                                        </div>
+                                        <div>
+                                          <h4 className="font-semibold">{study.name}</h4>
+                                          <p className="text-xs text-muted-foreground">{study.description}</p>
+                                        </div>
+                                      </div>
+                                      <Button
+                                        size="sm"
+                                        variant="ghost"
+                                        onClick={() => saveStudyResult(studyId)}
+                                        disabled={isSaving === studyId}
+                                        className="gap-1 text-amber-600 hover:text-amber-700 hover:bg-amber-50"
+                                      >
+                                        {isSaving === studyId ? (
+                                          <Loader2 className="h-4 w-4 animate-spin" />
+                                        ) : (
+                                          <Save className="h-4 w-4" />
                                         )}
-                                      </Label>
-                                      <span className="text-sm font-mono">
-                                        {params[param.key] ?? param.default}
-                                      </span>
+                                        Save
+                                      </Button>
+                                    </div>
+                                  </div>
+
+                                  {/* Interpretation */}
+                                  <div className="p-4 border-b">
+                                    <p className={cn("text-sm font-medium", sentiment.text)}>
+                                      {result.interpretation || 'Analysis complete'}
+                                    </p>
+                                  </div>
+
+                                  {/* Key Metrics */}
+                                  <div className="p-4">
+                                    <div className="grid grid-cols-2 gap-3">
+                                      {metrics.slice(0, 4).map(([key, value]) => (
+                                        <div key={key} className="text-center p-2 bg-muted/50 rounded-lg">
+                                          <p className="text-xs text-muted-foreground capitalize mb-1">
+                                            {key.replace(/([A-Z])/g, ' $1').replace(/_/g, ' ').trim()}
+                                          </p>
+                                          <p className="text-lg font-bold font-mono">
+                                            {formatValue(key, value)}
+                                          </p>
+                                        </div>
+                                      ))}
                                     </div>
                                     
-                                    {param.type === 'slider' && (
-                                      <Slider
-                                        value={[params[param.key] ?? param.default]}
-                                        onValueChange={([v]) => updateParam(studyId, param.key, v)}
-                                        min={param.min}
-                                        max={param.max}
-                                        step={param.step}
-                                        className="w-full"
-                                      />
-                                    )}
-                                    
-                                    {param.type === 'select' && param.options && (
-                                      <Select
-                                        value={String(params[param.key] ?? param.default)}
-                                        onValueChange={(v) => updateParam(studyId, param.key, v)}
-                                      >
-                                        <SelectTrigger className="h-8">
-                                          <SelectValue />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                          {param.options.map((opt) => (
-                                            <SelectItem key={String(opt.value)} value={String(opt.value)}>
-                                              {opt.label}
-                                            </SelectItem>
-                                          ))}
-                                        </SelectContent>
-                                      </Select>
-                                    )}
-                                  </div>
-                                ))}
-                              </div>
-                            )}
-
-                            {/* Run Button */}
-                            <Button
-                              onClick={() => runStudy(studyId)}
-                              disabled={!selectedTicker || runningStudy === studyId}
-                              className="w-full mb-4"
-                              variant="outline"
-                            >
-                              {runningStudy === studyId ? (
-                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                              ) : (
-                                <Play className="h-4 w-4 mr-2" />
-                              )}
-                              Run This Study
-                            </Button>
-
-                            {/* Results */}
-                            {result && (
-                              <div className="space-y-4">
-                                {/* Interpretation */}
-                                <div className={cn(
-                                  "p-4 rounded-lg border",
-                                  result.interpretation?.includes('🟢') ? "bg-green-500/5 border-green-500/20" :
-                                  result.interpretation?.includes('🔴') ? "bg-red-500/5 border-red-500/20" :
-                                  result.interpretation?.includes('🟡') ? "bg-yellow-500/5 border-yellow-500/20" :
-                                  "bg-muted/50"
-                                )}>
-                                  <p className="text-sm font-medium">{result.interpretation}</p>
-                                </div>
-
-                                {/* Key Metrics */}
-                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                                  {Object.entries(result).slice(0, 8).map(([key, value]) => {
-                                    if (['type', 'studyName', 'params', 'interpretation', 'histogram', 'distribution', 'stats', 'recentGaps', 'recentDrawdowns', 'recentNewHighs', 'recentNewLows', 'components', 'barsAnalyzed', 'dateRange', 'usedMockData'].includes(key)) return null;
-                                    if (typeof value === 'object') return null;
-                                    
-                                    return (
-                                      <div key={key} className="p-2 bg-muted/50 rounded-lg text-center">
-                                        <p className="text-xs text-muted-foreground capitalize">
-                                          {key.replace(/([A-Z])/g, ' $1').trim()}
-                                        </p>
-                                        <p className="font-mono font-medium">
-                                          {typeof value === 'number' 
-                                            ? value.toFixed(value < 1 && value !== 0 ? 3 : 1)
-                                            : String(value)}
-                                        </p>
+                                    {/* More metrics if available */}
+                                    {metrics.length > 4 && (
+                                      <div className="mt-3 flex flex-wrap gap-2">
+                                        {metrics.slice(4, 8).map(([key, value]) => (
+                                          <Badge key={key} variant="outline" className="text-xs">
+                                            {key.replace(/([A-Z])/g, ' $1').trim()}: {formatValue(key, value)}
+                                          </Badge>
+                                        ))}
                                       </div>
-                                    );
-                                  })}
-                                </div>
-
-                                {/* Save Button */}
-                                <div className="flex items-center justify-between pt-2 border-t">
-                                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                                    <span>{result.barsAnalyzed} trading days analyzed</span>
-                                    <span>•</span>
-                                    <span>{result.dateRange?.start} to {result.dateRange?.end}</span>
-                                  </div>
-                                  <Button
-                                    size="sm"
-                                    onClick={() => saveStudyResult(studyId)}
-                                    disabled={isSaving === studyId}
-                                    className="gap-2 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white border-0 shadow-lg shadow-amber-500/20"
-                                  >
-                                    {isSaving === studyId ? (
-                                      <Loader2 className="h-4 w-4 animate-spin" />
-                                    ) : (
-                                      <Save className="h-4 w-4" />
                                     )}
-                                    Save to Library
-                                    <Badge variant="secondary" className="ml-1 bg-white/20 text-white text-[10px] px-1.5 py-0">
-                                      {user ? 'PRO' : 'FREE'}
-                                    </Badge>
-                                  </Button>
-                                </div>
-                              </div>
-                            )}
-                          </AccordionContent>
-                        </AccordionItem>
-                      );
-                    })}
-                  </Accordion>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-        </div>
+                                  </div>
+
+                                  {/* Footer */}
+                                  <div className="px-4 py-2 bg-muted/30 text-xs text-muted-foreground flex items-center justify-between">
+                                    <span>{result.barsAnalyzed} days analyzed</span>
+                                    <span>{result.dateRange?.start} → {result.dateRange?.end}</span>
+                                  </div>
+                                </motion.div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Empty state */}
+                      {Object.keys(results).length === 0 && !isRunning && (
+                        <div className="text-center py-8 text-muted-foreground">
+                          <Play className="h-12 w-12 mx-auto mb-3 opacity-30" />
+                          <p className="font-medium">Ready to analyze</p>
+                          <p className="text-sm">Click "Run All Studies" to see your results</p>
+                        </div>
+                      )}
+
+                      {/* Loading state */}
+                      {isRunning && (
+                        <div className="text-center py-8">
+                          <Loader2 className="h-12 w-12 mx-auto mb-3 animate-spin text-primary" />
+                          <p className="font-medium">Running analysis...</p>
+                          <p className="text-sm text-muted-foreground">
+                            {runningStudy && `Currently: ${getStudy(runningStudy)?.name}`}
+                          </p>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Help for new users */}
+        {!selectedTicker && showHelp && (
+          <Card className="bg-gradient-to-br from-blue-500/5 via-purple-500/5 to-pink-500/5 border-primary/10">
+            <CardContent className="p-6">
+              <div className="flex items-start gap-4">
+                <div className="p-3 rounded-lg bg-primary/10 shrink-0">
+                  <Lightbulb className="h-6 w-6 text-primary" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="font-semibold text-lg mb-2">Getting Started</h3>
+                  <p className="text-muted-foreground text-sm">
+                    Enter a stock ticker above to begin. You can type any symbol (like AAPL, TSLA, or SPY) 
+                    or click one of the popular options. Then pick from our pre-built analysis templates 
+                    or choose individual studies to run.
+                  </p>
+                </div>
+                <Button variant="ghost" size="icon" onClick={() => setShowHelp(false)}>
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
       </div>
     </div>
   );
