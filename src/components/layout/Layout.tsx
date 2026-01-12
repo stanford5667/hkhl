@@ -108,8 +108,8 @@ export function Layout({ children }: LayoutProps) {
         </main>
       </div>
       
-      {/* Mobile bottom navigation - hide on investment plan to avoid overlap */}
-      {isMobile && !location.pathname.includes('investment-plan') && <MobileNav />}
+      {/* Mobile bottom navigation */}
+      {isMobile && <MobileNav />}
       
       
       {/* Global dialogs */}
