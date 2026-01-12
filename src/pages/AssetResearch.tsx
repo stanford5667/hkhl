@@ -1,7 +1,8 @@
 import { useState, useCallback, useMemo, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Navigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useAdmin } from '@/hooks/useAdmin';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -1292,6 +1293,24 @@ function ScreenerTab() {
 // Main Component
 // =====================
 export default function AssetResearch() {
+  const { isAdmin, loading } = useAdmin();
+
+  // Show loading while checking admin status
+  if (loading) {
+    return (
+      <div className="p-4 sm:p-6 space-y-4 sm:space-y-6 pb-20 md:pb-6">
+        <Skeleton className="h-8 w-48" />
+        <Skeleton className="h-4 w-72" />
+        <Skeleton className="h-64 w-full" />
+      </div>
+    );
+  }
+
+  // Redirect non-admins to home
+  if (!isAdmin) {
+    return <Navigate to="/" replace />;
+  }
+
   return (
     <div className="p-4 sm:p-6 space-y-4 sm:space-y-6 pb-20 md:pb-6">
       {/* Header */}
