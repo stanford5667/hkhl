@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { useOrganization } from "@/contexts/OrganizationContext";
+import { useAdmin } from "@/hooks/useAdmin";
 import { OrganizationSwitcher } from "@/components/organization/OrganizationSwitcher";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -61,6 +62,7 @@ import {
   Search,
   ClipboardList,
   Headphones,
+  Shield,
 } from "lucide-react";
 
 interface NavItem {
@@ -97,6 +99,7 @@ export function Sidebar() {
   const location = useLocation();
   const { signOut } = useAuth();
   const { userProfile, currentOrganization, enabledAssetTypes } = useOrganization();
+  const { isAdmin } = useAdmin();
 
   // Persist hidden tabs to localStorage
   useEffect(() => {
@@ -426,6 +429,18 @@ export function Sidebar() {
             )}
           </PopoverContent>
         </Popover>
+
+        {/* Admin Portal - only for admins */}
+        {isAdmin && (
+          <NavLink 
+            item={{ 
+              label: "Admin", 
+              subtitle: "Admin Portal",
+              href: "/admin", 
+              icon: Shield 
+            }} 
+          />
+        )}
 
         {/* Settings */}
         <NavLink 
