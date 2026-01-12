@@ -26,19 +26,23 @@ export function useAdmin() {
 
     const checkAdminStatus = async () => {
       try {
+        // Check if user has admin role (user can have multiple roles)
         const { data, error } = await supabase
           .from('user_roles')
           .select('role')
-          .eq('user_id', user.id)
-          .maybeSingle();
+          .eq('user_id', user.id);
 
         if (error) {
           console.error('Error checking admin status:', error);
           setIsAdmin(false);
           setUserRole(null);
-        } else if (data) {
-          setUserRole(data.role as AppRole);
-          setIsAdmin(data.role === 'admin');
+        } else if (data && data.length > 0) {
+          const roles = data.map(r => r.role as AppRole);
+          // Check if admin is among the roles
+          const hasAdmin = roles.includes('admin');
+          setIsAdmin(hasAdmin);
+          // Set the highest privilege role
+          setUserRole(hasAdmin ? 'admin' : roles[0]);
         } else {
           setIsAdmin(false);
           setUserRole(null);
