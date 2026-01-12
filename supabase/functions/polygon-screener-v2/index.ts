@@ -280,7 +280,12 @@ serve(async (req) => {
 
     // Fetch quotes
     let snapshots = await fetchTickerQuotes(targetTickers, POLYGON_API_KEY);
-    
+
+    // Debug: log a sample payload shape (truncated) to understand plan/endpoint differences
+    if (snapshots?.length) {
+      console.log('Sample snapshot (truncated):', JSON.stringify(snapshots[0]).slice(0, 800));
+    }
+
     // If still no data, use simulated data so user sees something
     if (!snapshots.length) {
       console.log('Using simulated data as fallback');
@@ -333,13 +338,40 @@ serve(async (req) => {
     let results = snapshots.map((snapshot: any) => {
       const day = snapshot.day || {};
       const prevDay = snapshot.prevDay || {};
-      
-      const price = day.c || 0;
-      const prevClose = prevDay.c || price;
-      const change = snapshot.todaysChange ?? (price - prevClose);
-      const changePercent = snapshot.todaysChangePerc ?? (prevClose > 0 ? (change / prevClose) * 100 : 0);
-      const volume = day.v || 0;
-      const avgVolume = prevDay.v || volume;
+
+      // Polygon snapshot can omit `day` (and sometimes even `prevDay`) depending on plan / market state.
+      // Prefer: day close -> last trade -> prev close.
+      const prevClose =
+        typeof prevDay.c === 'number'
+          ? prevDay.c
+          : (typeof snapshot.prevDay?.c === 'number' ? snapshot.prevDay.c : 0);
+
+      const lastTradePrice = typeof snapshot.lastTrade?.p === 'number' ? snapshot.lastTrade.p : null;
+      const lastQuotePrice = typeof snapshot.lastQuote?.P === 'number' ? snapshot.lastQuote.P : (typeof snapshot.lastQuote?.p === 'number' ? snapshot.lastQuote.p : null);
+
+      const price =
+        typeof day.c === 'number'
+          ? day.c
+          : (lastTradePrice ?? lastQuotePrice ?? (typeof prevDay.c === 'number' ? prevDay.c : 0));
+
+      const change =
+        typeof snapshot.todaysChange === 'number'
+          ? snapshot.todaysChange
+          : (prevClose > 0 ? (price - prevClose) : 0);
+
+      const changePercent =
+        typeof snapshot.todaysChangePerc === 'number'
+          ? snapshot.todaysChangePerc
+          : (prevClose > 0 ? (change / prevClose) * 100 : 0);
+
+      const volume =
+        typeof day.v === 'number'
+          ? day.v
+          : (typeof snapshot.todaysVolume === 'number'
+              ? snapshot.todaysVolume
+              : (typeof prevDay.v === 'number' ? prevDay.v : 0));
+
+      const avgVolume = typeof prevDay.v === 'number' ? prevDay.v : volume;
       const relativeVolume = avgVolume > 0 ? volume / avgVolume : 1;
 
       // Find sector from our mapping
