@@ -16,9 +16,9 @@ import { Sidebar } from "./Sidebar";
 import { useAdmin } from "@/hooks/useAdmin";
 
 const mobileNavItems = [
-  { label: "Portfolio", href: "/", icon: Briefcase },
   { label: "Builder", href: "/portfolio-visualizer", icon: PieChart },
   { label: "Studies", href: "/quant-lab", icon: FlaskConical },
+  { label: "Intel", href: "/market-intel", icon: BarChart3 },
   { label: "Plan", href: "/investment-plan", icon: ClipboardList },
   { label: "More", href: "#menu", icon: Menu, isMenu: true },
 ];
