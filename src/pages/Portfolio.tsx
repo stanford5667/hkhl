@@ -17,7 +17,7 @@ import { useMarketIndices } from '@/hooks/useMarketData';
 import { useAlerts, useEvents, useEconomicIndicators } from '@/hooks/useMarketIntel';
 import { getCachedQuotes } from '@/services/quoteCacheService';
 import { supabase } from '@/integrations/supabase/client';
-import { usePositions } from '@/hooks/usePositions';
+import { useCachedPositions } from '@/hooks/useCachedPositions';
 import { usePortfolioPerformance } from '@/hooks/usePortfolioPerformance';
 import { UnifiedAddPositionDialog, EnhancedPortfolioBuilder } from '@/components/portfolio';
 import { usePortfolioForVisualizer } from '@/hooks/useUnifiedPortfolio';
@@ -559,12 +559,12 @@ export default function Portfolio() {
     enabled: !!activePortfolio
   });
 
-  // Synced positions from database
+  // Synced positions from database (using cached hook for deduplication)
   const {
     positions: syncedPositions,
     isLoading: positionsLoading,
     refetch: refetchPositions
-  } = usePositions(activePortfolioId || undefined);
+  } = useCachedPositions({ portfolioId: activePortfolioId || undefined });
 
   // Real portfolio performance from synced positions
   const {
