@@ -212,6 +212,44 @@ async function fetchTickerQuotes(tickers: string[], apiKey: string): Promise<any
   return results;
 }
 
+// Fetch market caps for tickers (needed for market cap filters)
+async function fetchMarketCapsForTickers(tickers: string[], apiKey: string): Promise<Record<string, number>> {
+  const out: Record<string, number> = {};
+
+  // Concurrency-limited fetch to respect rate limits
+  const concurrency = 5;
+  for (let i = 0; i < tickers.length; i += concurrency) {
+    const batch = tickers.slice(i, i + concurrency);
+
+    const batchResults = await Promise.all(
+      batch.map(async (ticker) => {
+        try {
+          const url = `https://api.polygon.io/v3/reference/tickers/${encodeURIComponent(ticker)}?apiKey=${apiKey}`;
+          const res = await fetch(url);
+          const { data, error } = await safeJsonParse(res);
+          if (error) return;
+
+          const mc = data?.results?.market_cap;
+          if (typeof mc === 'number' && Number.isFinite(mc)) {
+            out[ticker] = mc;
+          }
+        } catch {
+          // ignore
+        }
+      })
+    );
+
+    // avoid unused var lint (deno)
+    void batchResults;
+
+    if (i + concurrency < tickers.length) {
+      await new Promise((resolve) => setTimeout(resolve, 120));
+    }
+  }
+
+  return out;
+}
+
 // Generate mock/simulated data for tickers when API fails
 function generateSimulatedData(tickers: string[]): any[] {
   // Simulated market data based on typical values
@@ -404,7 +442,36 @@ serve(async (req) => {
         perfToday: changePercent,
         matchScore: 100
       };
-    }).filter((stock: any) => stock.price > 0);
+    });
+
+    // Filter out invalid price entries
+    results = results.filter((stock: any) => stock.price > 0);
+
+    console.log(`Mapped ${results.length}/${snapshots.length} snapshot rows into results`);
+    if (results.length) {
+      console.log('Result sample (truncated):', JSON.stringify(results[0]).slice(0, 600));
+    }
+
+    // If user requested market cap filtering, enrich results with market caps.
+    // Note: Some Polygon plans may restrict reference endpoints. If we can't fetch market caps,
+    // we skip market-cap filtering rather than returning an empty screen.
+    const needsMarketCap = Boolean(criteria.marketCap || criteria.minMarketCap || criteria.maxMarketCap);
+    let marketCapUnavailable = false;
+
+    if (needsMarketCap) {
+      const marketCaps = await fetchMarketCapsForTickers(
+        results.map((r: any) => r.ticker),
+        POLYGON_API_KEY
+      );
+
+      const fetchedCount = Object.keys(marketCaps).length;
+      console.log(`Market cap enrichment fetched ${fetchedCount}/${results.length}`);
+
+      results = results.map((r: any) => ({ ...r, marketCap: marketCaps[r.ticker] ?? null }));
+      if (fetchedCount === 0) {
+        marketCapUnavailable = true;
+      }
+    }
 
     // Apply filters
     if (criteria.minPrice) {
@@ -425,6 +492,21 @@ serve(async (req) => {
     if (criteria.maxPerfToday !== undefined) {
       results = results.filter((s: any) => s.changePercent <= criteria.maxPerfToday!);
     }
+
+    // Market cap filtering (requires market caps; if unavailable, do not zero-out results)
+    if (!marketCapUnavailable) {
+      if (criteria.marketCap && MARKET_CAP_RANGES[criteria.marketCap]) {
+        const range = MARKET_CAP_RANGES[criteria.marketCap];
+        results = results.filter((s: any) => typeof s.marketCap === 'number' && s.marketCap >= range.min && s.marketCap < range.max);
+      }
+      if (criteria.minMarketCap !== undefined) {
+        results = results.filter((s: any) => typeof s.marketCap === 'number' && s.marketCap >= criteria.minMarketCap!);
+      }
+      if (criteria.maxMarketCap !== undefined) {
+        results = results.filter((s: any) => typeof s.marketCap === 'number' && s.marketCap <= criteria.maxMarketCap!);
+      }
+    }
+
     if (criteria.highLow52W === 'new_high') {
       results = results.filter((s: any) => s.pctFrom52WkHigh >= -5);
     }
