@@ -7,7 +7,8 @@ import {
   Search, 
   Menu,
   ClipboardList,
-  Shield
+  Shield,
+  FlaskConical
 } from "lucide-react";
 import { useState } from "react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -17,8 +18,8 @@ import { useAdmin } from "@/hooks/useAdmin";
 const mobileNavItems = [
   { label: "Portfolio", href: "/", icon: Briefcase },
   { label: "Builder", href: "/portfolio-visualizer", icon: PieChart },
+  { label: "Studies", href: "/quant-lab", icon: FlaskConical },
   { label: "Plan", href: "/investment-plan", icon: ClipboardList },
-  { label: "Intel", href: "/market-intel", icon: BarChart3 },
   { label: "More", href: "#menu", icon: Menu, isMenu: true },
 ];
 
@@ -105,6 +106,7 @@ function MobileSidebarContent({ onNavigate }: { onNavigate: () => void }) {
   const navItems = [
     { label: "Portfolio Tracker", href: "/", icon: Briefcase },
     { label: "Portfolio Builder", href: "/portfolio-visualizer", icon: PieChart },
+    { label: "Quant Lab", href: "/quant-lab", icon: FlaskConical },
     { label: "Investment Plan", href: "/investment-plan", icon: ClipboardList },
     { label: "Market Intel", href: "/market-intel", icon: BarChart3 },
     { label: "Asset Research", href: "/asset-research", icon: Search },
