@@ -61,6 +61,7 @@ import { ProgressHeader } from '@/components/quant-lab/ProgressHeader';
 import { StudyExplainer } from '@/components/quant-lab/StudyExplainer';
 import { ResultInterpreter } from '@/components/quant-lab/ResultInterpreter';
 import { MetricDetailModal } from '@/components/quant-lab/MetricDetailModal';
+import { StudyAuditDashboard } from '@/components/quant-lab/StudyAuditDashboard';
 
 // ===========================================
 // STUDY DEFINITIONS WITH BEGINNER-FRIENDLY EXPLANATIONS
@@ -1701,6 +1702,21 @@ function QuantLabContent(props: any) {
             </CardContent>
           </Card>
         )}
+
+        {/* Study Accuracy Audit Dashboard */}
+        <Accordion type="single" collapsible className="w-full">
+          <AccordionItem value="audit" className="border rounded-lg">
+            <AccordionTrigger className="px-4 hover:no-underline">
+              <div className="flex items-center gap-2">
+                <Shield className="h-4 w-4 text-primary" />
+                <span className="font-medium">Developer Tools: Study Accuracy Audit</span>
+              </div>
+            </AccordionTrigger>
+            <AccordionContent className="px-4 pb-4">
+              <StudyAuditDashboard ticker={selectedTicker || 'AAPL'} />
+            </AccordionContent>
+          </AccordionItem>
+        </Accordion>
       </div>
       
       {/* Metric Detail Modal */}
