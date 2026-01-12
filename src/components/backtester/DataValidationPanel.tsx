@@ -211,7 +211,7 @@ export const DataValidationPanel: React.FC<DataValidationPanelProps> = ({
   const statusConfig = {
     valid: {
       icon: CheckCircle2,
-      text: 'All data verified from Polygon.io',
+      text: 'All historical data verified',
       bgClass: 'bg-emerald-500/10 border-emerald-500/30',
       textClass: 'text-emerald-600',
     },
@@ -574,7 +574,7 @@ export const DataValidationPanel: React.FC<DataValidationPanelProps> = ({
                                 <strong>Debug tips:</strong>
                                 <ul className="mt-1 space-y-0.5 list-disc list-inside">
                                   {selectedDataSource.bars === 0 && (
-                                    <li>No data returned - check if ticker is valid and within Polygon API date limits (max 5 years)</li>
+                                    <li>No data returned - check if ticker is valid and within date limits (max 5 years)</li>
                                   )}
                                   {selectedDataSource.bars > 0 && selectedDataSource.expectedBars && 
                                    selectedDataSource.bars < selectedDataSource.expectedBars * 0.8 && (

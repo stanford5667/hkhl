@@ -87,7 +87,7 @@ const METRIC_EXPLANATIONS: Record<string, { methodology: string; inputs: string[
 };
 
 /**
- * DataSourceBadge - Shows live/cached data status with Polygon API attribution
+ * DataSourceBadge - Shows live/cached data status
  */
 export function DataSourceBadge({ isLive = true, lastUpdated, className = '' }: DataSourceBadgeProps) {
   const formattedTime = lastUpdated 
@@ -112,7 +112,7 @@ export function DataSourceBadge({ isLive = true, lastUpdated, className = '' }: 
             
             <Database className="h-3.5 w-3.5 text-emerald-600" />
             <span className="text-xs font-medium text-emerald-700 dark:text-emerald-400">
-              Polygon API
+              Live Data
             </span>
           </Badge>
         </TooltipTrigger>
@@ -120,7 +120,7 @@ export function DataSourceBadge({ isLive = true, lastUpdated, className = '' }: 
           <div className="space-y-1">
             <p className="font-medium text-sm">Real Market Data</p>
             <p className="text-xs text-muted-foreground">
-              All calculations use real historical market data from Polygon.io. 
+              All calculations use real historical market data.
               {lastUpdated && ` Data refreshed ${formattedTime}.`}
             </p>
           </div>
@@ -145,7 +145,7 @@ export function DataAuditPanel({
   // Build ticker status from audit report or create default
   const tickerStatuses: TickerAuditInfo[] = auditReport?.tickerAudits || tickers.map(ticker => ({
     ticker,
-    dataSource: 'Polygon.io API',
+    dataSource: 'Historical Data',
     dateRange: dateRange || { start: 'N/A', end: 'N/A' },
     barCount: tradingDays,
     dataQuality: 'high' as const,

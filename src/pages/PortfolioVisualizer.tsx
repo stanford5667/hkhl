@@ -241,7 +241,7 @@ function MetricSourceTooltip({
                 </div>
               ))}
             </div>
-            <p className="text-xs text-muted-foreground">Data source: Polygon.io</p>
+            <p className="text-xs text-muted-foreground">Historical market data</p>
           </div>
         </TooltipContent>
       </Tooltip>
@@ -738,7 +738,7 @@ export default function PortfolioVisualizer() {
       
       return {
         ticker: diag.ticker,
-        source: diag.source === 'cache' ? 'Polygon API (cached)' : 'Polygon API',
+        source: diag.source === 'cache' ? 'Market Data (cached)' : 'Market Data',
         dateRange: { start: startDate, end: endDate },
         bars: diag.bars || 0,
         quality: (diag.dataQuality || 'medium') as 'high' | 'medium' | 'low',
@@ -846,7 +846,7 @@ export default function PortfolioVisualizer() {
     // Initialize analysis steps
     const tickers = allocs.map(a => a.symbol);
     const steps: AnalysisStep[] = [
-      { id: 'fetch', label: 'Fetching historical data from Polygon...', status: 'pending', tickers },
+      { id: 'fetch', label: 'Fetching historical market data...', status: 'pending', tickers },
       { id: 'validate', label: 'Validating data integrity...', status: 'pending' },
       { id: 'correlation', label: 'Building correlation matrix...', status: 'pending' },
       { id: 'optimize', label: 'Calculating optimal allocation...', status: 'pending' },
@@ -944,7 +944,7 @@ export default function PortfolioVisualizer() {
       
       // Step: Fetch data
       updateStep('fetch', { status: 'running', tickers: updatedTickers });
-      setProgress({ message: 'Fetching historical data from Polygon...', percent: 10 });
+      setProgress({ message: 'Fetching historical market data...', percent: 10 });
       
       const fetchResult = await polygonData.fetchAndCleanHistory(
         updatedTickers,
@@ -2226,7 +2226,7 @@ export default function PortfolioVisualizer() {
                           <p className="text-xs text-muted-foreground mb-1">Source</p>
                           <p className="text-sm font-medium flex items-center gap-2">
                             <span className="h-2 w-2 rounded-full bg-emerald-500" />
-                            Polygon.io API
+                            Historical Market Data
                           </p>
                         </div>
                       </div>
