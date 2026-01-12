@@ -148,6 +148,8 @@ export function InvestorPolicyQuestionnaire({
     } else {
       setShowSummary(true);
     }
+    // Scroll to top on mobile when navigating to next question
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [currentQuestionIndex, currentSectionIndex, currentSection]);
 
   const handlePrevious = useCallback(() => {
@@ -158,6 +160,8 @@ export function InvestorPolicyQuestionnaire({
       const prevSection = QUESTIONNAIRE_SECTIONS[currentSectionIndex - 1];
       setCurrentQuestionIndex(prevSection.questions.length - 1);
     }
+    // Scroll to top on mobile when navigating to previous question
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [currentQuestionIndex, currentSectionIndex]);
 
   const navigateToSection = useCallback((sectionIndex: number) => {
@@ -165,6 +169,8 @@ export function InvestorPolicyQuestionnaire({
       setCurrentSectionIndex(sectionIndex);
       setCurrentQuestionIndex(0);
       setShowSummary(false);
+      // Scroll to top on mobile when navigating to a section
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   }, [currentSectionIndex]);
 
