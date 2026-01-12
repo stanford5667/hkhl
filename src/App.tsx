@@ -45,6 +45,7 @@ const DiscoveryHub = lazy(() => import('./pages/DiscoveryHub'));
 const NewsIntelligence = lazy(() => import('./pages/NewsIntelligence'));
 const InvestmentPlan = lazy(() => import('./pages/InvestmentPlan'));
 const SupportCenter = lazy(() => import('./pages/SupportCenter'));
+const AdminPortal = lazy(() => import('./pages/AdminPortal'));
 const NotFound = lazy(() => import('./pages/NotFound'));
 
 // Optimized QueryClient with caching defaults
@@ -113,6 +114,7 @@ const App = () => {
                               {/* Backward-compatible short link */}
                               <Route path="/plan" element={<Navigate to="/investment-plan" replace />} />
                               <Route path="/support" element={<SupportCenter />} />
+                              <Route path="/admin" element={<AdminPortal />} />
                               {/* Redirects from old routes */}
                               <Route path="/portfolio" element={<Navigate to="/" replace />} />
                               <Route path="/companies" element={<Navigate to="/" replace />} />
