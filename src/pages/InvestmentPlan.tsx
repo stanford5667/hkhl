@@ -477,7 +477,7 @@ export default function InvestmentPlanPage() {
               setShowQuestionnaire(true);
             }, 'start-assessment');
           }}
-          className="gap-2 shadow-lg shadow-primary/25 w-full sm:w-auto"
+          className="hidden sm:flex gap-2 shadow-lg shadow-primary/25"
           size="lg"
         >
           <Sparkles className="h-4 w-4" />
