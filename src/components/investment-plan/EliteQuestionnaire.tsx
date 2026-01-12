@@ -1338,25 +1338,24 @@ ${a.description}`).join('\n\n')}
     );
   }
 
-  // QUESTIONNAIRE PHASE - Multi-question pages with improved styling
+  // QUESTIONNAIRE PHASE - Multi-question pages with unified styling
   // Using fixed inset-0 with high z-index for proper fullscreen overlay
   return (
     <div 
       className="fixed inset-0 bg-background text-foreground overflow-hidden flex flex-col"
       style={{ zIndex: 9999 }}
     >
-      {/* Ambient background */}
+      {/* Subtle ambient background */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden z-0">
-        <PulseGrid className="opacity-20" />
-        <div className="absolute top-0 left-1/4 w-[300px] sm:w-[500px] h-[300px] sm:h-[500px] bg-primary/10 rounded-full blur-[80px] sm:blur-[120px]" />
-        <div className="absolute bottom-0 right-1/4 w-[250px] sm:w-[400px] h-[250px] sm:h-[400px] bg-accent/10 rounded-full blur-[60px] sm:blur-[100px]" />
+        <div className="absolute top-0 left-1/4 w-[300px] sm:w-[500px] h-[300px] sm:h-[500px] bg-primary/5 rounded-full blur-[100px] sm:blur-[150px]" />
+        <div className="absolute bottom-0 right-1/4 w-[250px] sm:w-[400px] h-[250px] sm:h-[400px] bg-emerald-500/5 rounded-full blur-[80px] sm:blur-[120px]" />
       </div>
 
-      {/* Header */}
-      <header className="shrink-0 sticky top-0 z-50 glass-nav bg-background/95 backdrop-blur-xl border-b border-border/50">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 py-3 sm:py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 sm:gap-3">
+      {/* Header - Unified style */}
+      <header className="shrink-0 sticky top-0 z-50 bg-background/90 backdrop-blur-xl border-b border-border px-4 py-3">
+        <div className="max-w-3xl mx-auto">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
               {onCancel && (
                 <Button
                   variant="ghost"
@@ -1367,25 +1366,67 @@ ${a.description}`).join('\n\n')}
                   <X className="h-5 w-5" />
                 </Button>
               )}
-              <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-gradient-to-br from-primary to-secondary flex items-center justify-center">
-                <Zap className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-primary-foreground" />
-              </div>
-              <span className="font-semibold tracking-tight text-sm sm:text-base">AssetLabs</span>
-            </div>
-            
-            <div className="flex items-center gap-3 sm:gap-4">
-              <span className="text-xs sm:text-sm text-muted-foreground font-mono">
-                {currentPageIndex + 1}/{PAGES.length}
+              <span className="text-sm text-muted-foreground">
+                Question {currentPageIndex + 1} of {PAGES.length}
               </span>
-              <div className="w-16 sm:w-32 h-1 sm:h-1.5 bg-muted rounded-full overflow-hidden">
-                <motion.div
-                  className="h-full bg-gradient-to-r from-primary to-secondary"
-                  initial={{ width: 0 }}
-                  animate={{ width: `${progress}%` }}
-                  transition={{ duration: 0.3 }}
-                />
-              </div>
             </div>
+            {(() => {
+              const sectionMeta = SECTION_META[currentPage.section];
+              const SectionIcon = sectionMeta?.icon || Sparkles;
+              return (
+                <Badge 
+                  variant="secondary" 
+                  className="gap-1.5 text-xs bg-card border-border/50"
+                >
+                  <SectionIcon className="h-3 w-3" />
+                  <span className="hidden sm:inline">{sectionMeta?.title}</span>
+                </Badge>
+              );
+            })()}
+          </div>
+          
+          {/* Progress bar */}
+          <div className="h-2 bg-muted rounded-full overflow-hidden">
+            <motion.div
+              className="h-full bg-primary"
+              initial={{ width: 0 }}
+              animate={{ width: `${progress}%` }}
+              transition={{ duration: 0.3 }}
+            />
+          </div>
+          
+          {/* Section indicators - Horizontal scroll on mobile */}
+          <div className="flex items-center gap-1.5 mt-3 overflow-x-auto pb-1 scrollbar-hide">
+            {Object.entries(SECTION_META).slice(0, 6).map(([key, section], idx) => {
+              const sectionPages = PAGES.filter(p => p.section === key);
+              const firstPageIdx = PAGES.findIndex(p => p.section === key);
+              const lastPageIdx = firstPageIdx + sectionPages.length - 1;
+              const isComplete = currentPageIndex > lastPageIdx;
+              const isCurrent = currentPageIndex >= firstPageIdx && currentPageIndex <= lastPageIdx;
+              
+              return (
+                <button
+                  key={key}
+                  onClick={() => firstPageIdx <= currentPageIndex && setCurrentPageIndex(firstPageIdx)}
+                  disabled={firstPageIdx > currentPageIndex}
+                  className={cn(
+                    "flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs font-medium transition-all whitespace-nowrap shrink-0",
+                    isComplete && "bg-emerald-500/20 text-emerald-600 hover:bg-emerald-500/30 cursor-pointer",
+                    isCurrent && "bg-primary/20 text-primary",
+                    !isComplete && !isCurrent && "bg-muted/50 text-muted-foreground/50 cursor-not-allowed"
+                  )}
+                >
+                  {isComplete ? (
+                    <Check className="h-3 w-3" />
+                  ) : isCurrent ? (
+                    <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+                  ) : (
+                    <span className="w-2 h-2 rounded-full bg-current opacity-30" />
+                  )}
+                  <span className="hidden sm:inline">{section.title}</span>
+                </button>
+              );
+            })}
           </div>
         </div>
       </header>
