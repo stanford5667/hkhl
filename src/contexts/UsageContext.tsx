@@ -1,0 +1,180 @@
+import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
+import { useAuth } from './AuthContext';
+import { supabase } from '@/integrations/supabase/client';
+
+interface UsageLimits {
+  aiAnalyses: { used: number; limit: number };
+  portfolios: { used: number; limit: number };
+  savedScreens: { used: number; limit: number };
+  alertsPerDay: { used: number; limit: number };
+}
+
+interface UsageContextType {
+  usage: UsageLimits;
+  isPro: boolean;
+  isLoading: boolean;
+  canUse: (feature: keyof UsageLimits) => boolean;
+  trackUsage: (feature: keyof UsageLimits) => Promise<boolean>;
+  showUpgradeModal: (feature: string) => void;
+  refreshUsage: () => Promise<void>;
+}
+
+const FREE_LIMITS: UsageLimits = {
+  aiAnalyses: { used: 0, limit: 10 },
+  portfolios: { used: 0, limit: 3 },
+  savedScreens: { used: 0, limit: 5 },
+  alertsPerDay: { used: 0, limit: 3 },
+};
+
+const UsageContext = createContext<UsageContextType | null>(null);
+
+interface UsageProviderProps {
+  children: ReactNode;
+  onUpgradeRequest?: (feature: string) => void;
+}
+
+export function UsageProvider({ children, onUpgradeRequest }: UsageProviderProps) {
+  const { user } = useAuth();
+  const [usage, setUsage] = useState<UsageLimits>(FREE_LIMITS);
+  const [isPro, setIsPro] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const fetchUsage = useCallback(async () => {
+    if (!user) {
+      setUsage(FREE_LIMITS);
+      setIsLoading(false);
+      return;
+    }
+
+    try {
+      // Check subscription status
+      const { data: subscription } = await supabase
+        .from('subscriptions')
+        .select('status, plan')
+        .eq('user_id', user.id)
+        .eq('status', 'active')
+        .maybeSingle();
+
+      const userIsPro = !!subscription;
+      setIsPro(userIsPro);
+
+      // Get or create usage record
+      let { data: usageData } = await supabase
+        .from('user_usage')
+        .select('*')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (!usageData) {
+        // Create usage record
+        const { data: newUsage } = await supabase
+          .from('user_usage')
+          .insert({ user_id: user.id })
+          .select()
+          .single();
+        usageData = newUsage;
+      }
+
+      if (usageData) {
+        setUsage({
+          aiAnalyses: { 
+            used: usageData.ai_analyses_today || 0, 
+            limit: userIsPro ? Infinity : 10 
+          },
+          portfolios: { 
+            used: usageData.portfolio_count || 0, 
+            limit: userIsPro ? Infinity : 3 
+          },
+          savedScreens: { 
+            used: usageData.saved_screens || 0, 
+            limit: userIsPro ? Infinity : 5 
+          },
+          alertsPerDay: { 
+            used: usageData.alerts_today || 0, 
+            limit: userIsPro ? Infinity : 3 
+          },
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching usage:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [user]);
+
+  useEffect(() => {
+    fetchUsage();
+  }, [fetchUsage]);
+
+  const canUse = useCallback((feature: keyof UsageLimits): boolean => {
+    if (isPro) return true;
+    return usage[feature].used < usage[feature].limit;
+  }, [isPro, usage]);
+
+  const trackUsage = useCallback(async (feature: keyof UsageLimits): Promise<boolean> => {
+    if (!user) return false;
+    
+    if (!canUse(feature)) {
+      onUpgradeRequest?.(feature);
+      return false;
+    }
+
+    // Optimistically update
+    const newUsage = { ...usage };
+    newUsage[feature] = { 
+      ...newUsage[feature], 
+      used: newUsage[feature].used + 1 
+    };
+    setUsage(newUsage);
+
+    // Map feature to database column
+    const columnMap: Record<keyof UsageLimits, string> = {
+      aiAnalyses: 'ai_analyses_today',
+      portfolios: 'portfolio_count',
+      savedScreens: 'saved_screens',
+      alertsPerDay: 'alerts_today',
+    };
+
+    try {
+      await supabase
+        .from('user_usage')
+        .update({ 
+          [columnMap[feature]]: newUsage[feature].used,
+          updated_at: new Date().toISOString() 
+        })
+        .eq('user_id', user.id);
+    } catch (error) {
+      console.error('Error tracking usage:', error);
+    }
+
+    return true;
+  }, [user, usage, canUse, onUpgradeRequest]);
+
+  const showUpgradeModal = useCallback((feature: string) => {
+    onUpgradeRequest?.(feature);
+  }, [onUpgradeRequest]);
+
+  const refreshUsage = useCallback(async () => {
+    await fetchUsage();
+  }, [fetchUsage]);
+
+  return (
+    <UsageContext.Provider value={{ 
+      usage, 
+      isPro, 
+      isLoading, 
+      canUse, 
+      trackUsage, 
+      showUpgradeModal,
+      refreshUsage 
+    }}>
+      {children}
+    </UsageContext.Provider>
+  );
+}
+
+export const useUsage = () => {
+  const ctx = useContext(UsageContext);
+  if (!ctx) throw new Error('useUsage must be used within UsageProvider');
+  return ctx;
+};
