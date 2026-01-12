@@ -554,34 +554,39 @@ export function QuantitativeStudiesPanel({ ticker, companyName }: QuantitativeSt
                     {dateRange.start} → {dateRange.end}
                   </Badge>
                 )}
-                {/* Save Button - Only for logged in users */}
+                {/* Save Button - Premium Feature */}
                 {result && !isRunning && (
                   user ? (
                     <Button
-                      variant="outline"
                       size="sm"
                       onClick={saveStudyResult}
                       disabled={isSaving}
-                      className="gap-1.5"
+                      className="gap-2 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white border-0 shadow-lg shadow-amber-500/20"
                     >
                       {isSaving ? (
                         <Loader2 className="h-4 w-4 animate-spin" />
                       ) : (
                         <Save className="h-4 w-4" />
                       )}
-                      Save
+                      Save to Library
+                      <Badge variant="secondary" className="ml-1 bg-white/20 text-white text-[10px] px-1.5 py-0">
+                        PRO
+                      </Badge>
                     </Button>
                   ) : (
                     <Button
-                      variant="outline"
                       size="sm"
-                      onClick={() => toast.info('Sign in to save study results', { 
-                        action: { label: 'Sign In', onClick: () => window.location.href = '/login' }
+                      onClick={() => toast.info('Create a free account to save unlimited study results', { 
+                        description: 'Build your personal research library and track your analysis over time.',
+                        action: { label: 'Sign Up Free', onClick: () => window.location.href = '/login' }
                       })}
-                      className="gap-1.5 text-muted-foreground"
+                      className="gap-2 bg-gradient-to-r from-amber-500/80 to-orange-500/80 hover:from-amber-500 hover:to-orange-500 text-white border-0"
                     >
-                      <LogIn className="h-4 w-4" />
-                      Sign in to save
+                      <Save className="h-4 w-4" />
+                      Save Results
+                      <Badge variant="secondary" className="ml-1 bg-white/20 text-white text-[10px] px-1.5 py-0">
+                        FREE
+                      </Badge>
                     </Button>
                   )
                 )}
