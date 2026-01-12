@@ -110,6 +110,8 @@ const App = () => {
                               <Route path="/prediction-ai" element={<PredictionMarketsAI />} />
                               <Route path="/discovery" element={<DiscoveryHub />} />
                               <Route path="/investment-plan" element={<InvestmentPlan />} />
+                              {/* Backward-compatible short link */}
+                              <Route path="/plan" element={<Navigate to="/investment-plan" replace />} />
                               <Route path="/support" element={<SupportCenter />} />
                               {/* Redirects from old routes */}
                               <Route path="/portfolio" element={<Navigate to="/" replace />} />
