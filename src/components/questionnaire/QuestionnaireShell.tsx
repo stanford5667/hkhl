@@ -174,23 +174,23 @@ export function QuestionnaireShell({
         )}
 
         {/* Main Content */}
-        <main className="flex-1 flex flex-col">
+        <main className="flex-1 flex flex-col min-w-0">
           {/* Top Progress Bar - Sticky */}
-          <header className="sticky top-0 z-10 bg-background/90 backdrop-blur-xl border-b border-border px-4 py-3">
+          <header className="sticky top-0 z-10 bg-background/90 backdrop-blur-xl border-b border-border px-3 sm:px-4 py-2 sm:py-3">
             <div className="max-w-3xl mx-auto">
               {/* Mobile back + progress text */}
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-2">
+              <div className="flex items-center justify-between mb-1.5 sm:mb-2">
+                <div className="flex items-center gap-1.5 sm:gap-2">
                   <Button 
                     variant="ghost" 
                     size="icon" 
                     onClick={onBack} 
-                    className="lg:hidden h-8 w-8"
+                    className="lg:hidden h-7 w-7 sm:h-8 sm:w-8"
                   >
-                    <ChevronLeft className="h-5 w-5" />
+                    <ChevronLeft className="h-4 w-4 sm:h-5 sm:w-5" />
                   </Button>
                   {currentStepProgress && (
-                    <span className="text-sm text-muted-foreground">
+                    <span className="text-xs sm:text-sm text-muted-foreground">
                       {currentStepProgress}
                     </span>
                   )}
@@ -199,7 +199,7 @@ export function QuestionnaireShell({
                   <Badge 
                     variant="secondary" 
                     className={cn(
-                      "gap-1.5 text-xs",
+                      "gap-1 sm:gap-1.5 text-xs py-0.5 px-2",
                       colors.border,
                       "bg-card"
                     )}
@@ -214,12 +214,12 @@ export function QuestionnaireShell({
               <div className="relative">
                 <Progress 
                   value={progress} 
-                  className="h-2"
+                  className="h-1.5 sm:h-2"
                 />
               </div>
               
               {/* Step indicators - Horizontal scroll on mobile */}
-              <div className="flex items-center gap-1.5 mt-3 overflow-x-auto pb-1 scrollbar-hide">
+              <div className="flex items-center gap-1 sm:gap-1.5 mt-2 sm:mt-3 overflow-x-auto pb-1 scrollbar-hide -mx-1 px-1">
                 {steps.map((step, idx) => {
                   const isComplete = idx < currentStepIndex;
                   const isCurrent = idx === currentStepIndex;
@@ -230,7 +230,7 @@ export function QuestionnaireShell({
                       onClick={() => idx <= currentStepIndex && onStepClick?.(idx)}
                       disabled={idx > currentStepIndex}
                       className={cn(
-                        "flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs font-medium transition-all whitespace-nowrap shrink-0",
+                        "flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-full text-xs font-medium transition-all whitespace-nowrap shrink-0",
                         isComplete && "bg-emerald-500/20 text-emerald-600 hover:bg-emerald-500/30 cursor-pointer",
                         isCurrent && "bg-primary/20 text-primary",
                         !isComplete && !isCurrent && "bg-muted/50 text-muted-foreground/50 cursor-not-allowed"
@@ -239,9 +239,9 @@ export function QuestionnaireShell({
                       {isComplete ? (
                         <Check className="h-3 w-3" />
                       ) : isCurrent ? (
-                        <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+                        <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-primary animate-pulse" />
                       ) : (
-                        <span className="w-2 h-2 rounded-full bg-current opacity-30" />
+                        <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-current opacity-30" />
                       )}
                       <span className="hidden sm:inline">{step.title}</span>
                     </button>
@@ -252,7 +252,7 @@ export function QuestionnaireShell({
           </header>
 
           {/* Question Content Area */}
-          <div className="flex-1 flex items-center justify-center p-4 sm:p-6 lg:p-8">
+          <div className="flex-1 flex items-start sm:items-center justify-center p-3 sm:p-4 md:p-6 lg:p-8 overflow-y-auto">
             <div className="w-full max-w-2xl">
               <AnimatePresence mode="wait">
                 <motion.div

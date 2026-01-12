@@ -279,7 +279,7 @@ export function InvestorPolicyQuestionnaire({
           nextLabel="Generate Portfolio"
           isLastStep={true}
         >
-          <div className="space-y-6">
+          <div className="space-y-4 sm:space-y-6">
             {/* Risk Gauge */}
             <div className="flex justify-center">
               <RiskGauge score={riskScore} size="lg" />
@@ -296,7 +296,7 @@ export function InvestorPolicyQuestionnaire({
 
             {/* Section Summary */}
             <Card className="bg-card/50">
-              <CardContent className="py-4 space-y-3">
+              <CardContent className="py-3 sm:py-4 space-y-2 sm:space-y-3 px-3 sm:px-6">
                 {QUESTIONNAIRE_SECTIONS.map((section, idx) => {
                   const Icon = sectionIcons[section.id] || Target;
                   const answeredInSection = section.questions.filter(q => responses[q.id]).length;
@@ -305,18 +305,18 @@ export function InvestorPolicyQuestionnaire({
                   return (
                     <div 
                       key={section.id}
-                      className="flex items-center justify-between p-3 rounded-xl bg-muted/50"
+                      className="flex items-center justify-between p-2.5 sm:p-3 rounded-lg sm:rounded-xl bg-muted/50"
                     >
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-2 sm:gap-3 min-w-0">
                         <div className={cn(
-                          "w-8 h-8 rounded-full flex items-center justify-center",
+                          "w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center shrink-0",
                           isComplete ? "bg-emerald-500/20 text-emerald-500" : "bg-muted"
                         )}>
-                          {isComplete ? <Check className="h-4 w-4" /> : <Icon className="h-4 w-4" />}
+                          {isComplete ? <Check className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> : <Icon className="h-3.5 w-3.5 sm:h-4 sm:w-4" />}
                         </div>
-                        <span className="font-medium">{section.title}</span>
+                        <span className="font-medium text-sm sm:text-base truncate">{section.title}</span>
                       </div>
-                      <Badge variant={isComplete ? "default" : "secondary"}>
+                      <Badge variant={isComplete ? "default" : "secondary"} className="shrink-0 text-xs">
                         {answeredInSection}/{section.questions.length}
                       </Badge>
                     </div>
@@ -366,7 +366,7 @@ export function InvestorPolicyQuestionnaire({
             : 'Continue'
         }
       >
-        <div className="space-y-4">
+        <div className="space-y-3 sm:space-y-4">
           <QuestionInput
             question={currentQuestion}
             value={currentAnswer}
@@ -381,14 +381,14 @@ export function InvestorPolicyQuestionnaire({
                 animate={{ opacity: 1, height: 'auto' }}
                 exit={{ opacity: 0, height: 0 }}
               >
-                <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-4">
+                <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg sm:rounded-xl p-3 sm:p-4">
                   <div className="flex items-start gap-2">
-                    <AlertCircle className="h-4 w-4 text-amber-500 mt-0.5 shrink-0" />
-                    <div>
-                      <div className="text-xs font-medium text-amber-600 uppercase tracking-wide mb-1">
+                    <AlertCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-amber-500 mt-0.5 shrink-0" />
+                    <div className="min-w-0">
+                      <div className="text-[10px] sm:text-xs font-medium text-amber-600 uppercase tracking-wide mb-0.5 sm:mb-1">
                         Something to consider
                       </div>
-                      <p className="text-sm text-foreground/80">
+                      <p className="text-xs sm:text-sm text-foreground/80 leading-relaxed">
                         {inconsistencyWarning}
                       </p>
                     </div>
@@ -400,14 +400,14 @@ export function InvestorPolicyQuestionnaire({
 
           {/* Did You Know - For risk questions */}
           {currentQuestion.category === 'risk' && (
-            <div className="bg-blue-500/5 border border-blue-500/20 rounded-xl p-4">
+            <div className="bg-blue-500/5 border border-blue-500/20 rounded-lg sm:rounded-xl p-3 sm:p-4">
               <div className="flex items-start gap-2">
-                <Lightbulb className="h-4 w-4 text-blue-500 mt-0.5 shrink-0" />
-                <div>
-                  <div className="text-xs font-medium text-blue-600 uppercase tracking-wide mb-1">
+                <Lightbulb className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-blue-500 mt-0.5 shrink-0" />
+                <div className="min-w-0">
+                  <div className="text-[10px] sm:text-xs font-medium text-blue-600 uppercase tracking-wide mb-0.5 sm:mb-1">
                     Did you know?
                   </div>
-                  <p className="text-sm text-foreground/80">
+                  <p className="text-xs sm:text-sm text-foreground/80 leading-relaxed">
                     {didYouKnowInsights[Math.floor(Math.random() * didYouKnowInsights.length)]}
                   </p>
                 </div>
@@ -449,7 +449,7 @@ function QuestionInput({ question, value, onChange }: QuestionInputProps) {
     case 'multi-select':
       const selectedValues = (value as string[]) || [];
       return (
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-1.5 sm:gap-2">
           {question.options?.map((option) => {
             const isSelected = selectedValues.includes(option.value);
             return (
@@ -463,7 +463,7 @@ function QuestionInput({ question, value, onChange }: QuestionInputProps) {
                   }
                 }}
                 className={cn(
-                  "px-4 py-2 rounded-full border-2 transition-all",
+                  "px-3 sm:px-4 py-1.5 sm:py-2 rounded-full border-2 transition-all text-xs sm:text-sm",
                   isSelected
                     ? "border-primary bg-primary text-primary-foreground"
                     : "border-border hover:border-primary/50"
@@ -484,7 +484,7 @@ function QuestionInput({ question, value, onChange }: QuestionInputProps) {
       const currentOption = question.options?.find(o => parseInt(o.value) <= sliderValue);
       
       return (
-        <div className="space-y-6">
+        <div className="space-y-4 sm:space-y-6">
           <div className="px-2">
             <Slider
               value={[sliderValue]}
@@ -495,23 +495,23 @@ function QuestionInput({ question, value, onChange }: QuestionInputProps) {
               className="w-full"
             />
           </div>
-          <div className="flex justify-between text-sm text-muted-foreground px-1">
+          <div className="flex justify-between text-xs sm:text-sm text-muted-foreground px-1">
             <span>5%</span>
-            <span className="font-semibold text-foreground text-lg">
+            <span className="font-semibold text-foreground text-base sm:text-lg">
               {sliderValue}%
             </span>
             <span>40%+</span>
           </div>
           {currentOption && (
             <div className="text-center">
-              <Badge variant="secondary" className="text-sm">
-                {currentOption.label}: {currentOption.description}
+              <Badge variant="secondary" className="text-xs sm:text-sm max-w-full">
+                <span className="truncate">{currentOption.label}: {currentOption.description}</span>
               </Badge>
             </div>
           )}
           
           {/* Visual representation for slider */}
-          <div className="flex items-end justify-center gap-1 h-16">
+          <div className="flex items-end justify-center gap-0.5 sm:gap-1 h-12 sm:h-16">
             {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => {
               const threshold = i * 5;
               const isActive = sliderValue >= threshold;
@@ -520,7 +520,7 @@ function QuestionInput({ question, value, onChange }: QuestionInputProps) {
                 <motion.div
                   key={i}
                   className={cn(
-                    "w-6 rounded-t transition-colors",
+                    "w-4 sm:w-6 rounded-t transition-colors",
                     isActive
                       ? isLoss
                         ? "bg-rose-500"
@@ -533,12 +533,12 @@ function QuestionInput({ question, value, onChange }: QuestionInputProps) {
               );
             })}
           </div>
-          <div className="flex justify-center gap-4 text-xs text-muted-foreground">
+          <div className="flex justify-center gap-3 sm:gap-4 text-[10px] sm:text-xs text-muted-foreground">
             <span className="flex items-center gap-1">
-              <TrendingDown className="h-3 w-3 text-rose-500" /> Potential loss
+              <TrendingDown className="h-2.5 w-2.5 sm:h-3 sm:w-3 text-rose-500" /> Potential loss
             </span>
             <span className="flex items-center gap-1">
-              <TrendingUp className="h-3 w-3 text-emerald-500" /> Higher tolerance
+              <TrendingUp className="h-2.5 w-2.5 sm:h-3 sm:w-3 text-emerald-500" /> Higher tolerance
             </span>
           </div>
         </div>

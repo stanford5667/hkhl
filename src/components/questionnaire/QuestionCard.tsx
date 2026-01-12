@@ -65,35 +65,37 @@ export function QuestionCard({
 
   return (
     <Card className={cn(
-      "p-5 sm:p-8 shadow-lg border-border/50 bg-card/95 backdrop-blur-sm",
+      "p-4 sm:p-6 md:p-8 shadow-lg border-border/50 bg-card/95 backdrop-blur-sm max-w-full overflow-hidden",
       className
     )}>
       {/* Icon Header */}
       {icon && (
-        <div className="flex justify-center mb-6">
+        <div className="flex justify-center mb-4 sm:mb-6">
           <motion.div
             initial={{ scale: 0.8, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             transition={{ delay: 0.1 }}
             className={cn(
-              "inline-flex items-center justify-center w-14 h-14 sm:w-16 sm:h-16 rounded-2xl",
+              "inline-flex items-center justify-center w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 rounded-xl sm:rounded-2xl",
               "bg-gradient-to-br border border-border/50",
               iconGradient
             )}
           >
-            {icon}
+            {React.cloneElement(icon as React.ReactElement, { 
+              className: "h-5 w-5 sm:h-6 sm:w-6 md:h-7 md:w-7 text-primary" 
+            })}
           </motion.div>
         </div>
       )}
       
       {/* Question Title */}
-      <h3 className="text-xl sm:text-2xl font-semibold text-center leading-snug mb-2">
+      <h3 className="text-lg sm:text-xl md:text-2xl font-semibold text-center leading-tight sm:leading-snug mb-2 px-1">
         {question}
       </h3>
       
       {/* Subtitle */}
       {subtitle && (
-        <p className="text-sm sm:text-base text-muted-foreground text-center mb-6">
+        <p className="text-xs sm:text-sm md:text-base text-muted-foreground text-center mb-4 sm:mb-6 px-1">
           {subtitle}
         </p>
       )}
@@ -102,17 +104,17 @@ export function QuestionCard({
       {explanation && (
         <Collapsible open={showExplanation} onOpenChange={setShowExplanation}>
           <CollapsibleTrigger asChild>
-            <button className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors mb-6 mx-auto">
-              <Info className="h-4 w-4" />
+            <button className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm text-muted-foreground hover:text-foreground transition-colors mb-4 sm:mb-6 mx-auto">
+              <Info className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
               <span>Why we ask this</span>
               <ChevronDown className={cn(
-                "h-4 w-4 transition-transform",
+                "h-3.5 w-3.5 sm:h-4 sm:w-4 transition-transform",
                 showExplanation && "rotate-180"
               )} />
             </button>
           </CollapsibleTrigger>
           <CollapsibleContent>
-            <div className="bg-muted/50 rounded-xl p-4 mb-6 text-sm text-muted-foreground text-center">
+            <div className="bg-muted/50 rounded-lg sm:rounded-xl p-3 sm:p-4 mb-4 sm:mb-6 text-xs sm:text-sm text-muted-foreground text-center">
               {explanation}
             </div>
           </CollapsibleContent>
@@ -120,7 +122,7 @@ export function QuestionCard({
       )}
       
       {/* Form Content */}
-      <div className="mb-8">
+      <div className="mb-6 sm:mb-8">
         {children}
       </div>
       
