@@ -109,7 +109,7 @@ function MobileSidebarContent({ onNavigate }: { onNavigate: () => void }) {
     { label: "Quant Lab", href: "/quant-lab", icon: FlaskConical },
     { label: "Investment Plan", href: "/investment-plan", icon: ClipboardList },
     { label: "Market Intel", href: "/market-intel", icon: BarChart3 },
-    { label: "Asset Research", href: "/asset-research", icon: Search },
+    ...(isAdmin ? [{ label: "Asset Research", href: "/asset-research", icon: Search }] : []),
     ...(isAdmin ? [{ label: "Admin Portal", href: "/admin", icon: Shield }] : []),
   ];
 

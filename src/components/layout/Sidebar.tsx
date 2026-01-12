@@ -189,12 +189,13 @@ export function Sidebar() {
         href: "/market-intel", 
         icon: BarChart3 
       },
-      { 
+      // Asset Research is admin-only
+      ...(isAdmin ? [{ 
         label: "Asset Research", 
         subtitle: "Screener & Lookup",
         href: "/asset-research", 
         icon: Search 
-      },
+      }] : []),
       { 
         label: "Quant Lab", 
         subtitle: "Run Studies",
@@ -216,7 +217,7 @@ export function Sidebar() {
     ];
 
     return items;
-  }, [organizationChildren]);
+  }, [organizationChildren, isAdmin]);
 
   // Filter out hidden tabs for display
   const navigation = useMemo(() => 

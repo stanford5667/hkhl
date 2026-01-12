@@ -9,8 +9,10 @@ import {
   FlaskConical, Search, Play, Plus, X, Save,
   TrendingUp, TrendingDown, BarChart3, Activity,
   Calendar, Zap, Layers, Volume2, Crosshair, LineChart,
-  Gauge, ArrowLeftRight, Mountain, ArrowUpDown, Sparkles
+  Gauge, ArrowLeftRight, Mountain, ArrowUpDown, Sparkles, Crown, Lock
 } from 'lucide-react';
+import { PremiumBadge } from '@/components/ui/PremiumBadge';
+import { useUpgrade } from '@/hooks/useUpgrade';
 import { QuantitativeStudiesPanel } from '@/components/equity/QuantitativeStudiesPanel';
 import { cn } from '@/lib/utils';
 
@@ -46,6 +48,7 @@ export default function QuantLab() {
     const tickerParam = searchParams.get('ticker');
     return tickerParam?.toUpperCase() || 'SPY';
   });
+  const { promptUpgrade } = useUpgrade();
 
   // Update URL when ticker changes
   useEffect(() => {
@@ -194,23 +197,26 @@ export default function QuantLab() {
         })}
       </div>
 
-      {/* Popular Studies Quick Launch */}
-      <Card className="border-border/50 bg-card/50">
+      {/* Popular Studies Quick Launch - Premium Feature */}
+      <Card className="border-border/50 bg-card/50 relative overflow-hidden">
         <CardHeader className="pb-3">
-          <CardTitle className="text-base flex items-center gap-2">
-            <Sparkles className="h-4 w-4 text-amber-500" />
-            Popular Studies
-          </CardTitle>
-          <CardDescription>Quick access to frequently used analyses</CardDescription>
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Sparkles className="h-4 w-4 text-amber-500" />
+              Popular Studies
+            </CardTitle>
+            <PremiumBadge />
+          </div>
+          <CardDescription>Quick-launch preset study configurations</CardDescription>
         </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+        <CardContent className="relative">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 opacity-50 pointer-events-none">
             {POPULAR_STUDIES.map((study) => {
               const Icon = study.icon;
               return (
-                <button
+                <div
                   key={study.id}
-                  className="flex items-center gap-3 p-3 rounded-lg border border-border/50 bg-background/50 hover:border-primary/50 hover:bg-primary/5 transition-all text-left"
+                  className="flex items-center gap-3 p-3 rounded-lg border border-border/50 bg-background/50 text-left"
                 >
                   <div className="p-2 rounded-lg bg-primary/10">
                     <Icon className="h-4 w-4 text-primary" />
@@ -219,10 +225,24 @@ export default function QuantLab() {
                     <p className="text-sm font-medium text-foreground">{study.name}</p>
                     <p className="text-xs text-muted-foreground truncate">{study.description}</p>
                   </div>
-                  <Play className="h-4 w-4 text-muted-foreground" />
-                </button>
+                  <Lock className="h-4 w-4 text-amber-500" />
+                </div>
               );
             })}
+          </div>
+          {/* Premium Overlay */}
+          <div className="absolute inset-0 flex flex-col items-center justify-center bg-background/60 backdrop-blur-[2px]">
+            <div className="flex items-center gap-2 text-amber-500 mb-2">
+              <Crown className="h-5 w-5" />
+              <span className="font-semibold">Premium Feature</span>
+            </div>
+            <p className="text-sm text-muted-foreground text-center max-w-[250px] mb-3">
+              Quick-launch studies with preset configurations
+            </p>
+            <Button size="sm" onClick={() => promptUpgrade('Quick Study Presets')} className="gap-2">
+              <Crown className="h-4 w-4" />
+              Upgrade to Unlock
+            </Button>
           </div>
         </CardContent>
       </Card>
