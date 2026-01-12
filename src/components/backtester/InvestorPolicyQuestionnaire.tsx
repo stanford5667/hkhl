@@ -137,56 +137,6 @@ export function InvestorPolicyQuestionnaire({
     }));
   }, [currentQuestion]);
 
-  const handleNext = useCallback(() => {
-    if (!currentSection) return;
-    
-    if (currentQuestionIndex < currentSection.questions.length - 1) {
-      setCurrentQuestionIndex(prev => prev + 1);
-    } else if (currentSectionIndex < QUESTIONNAIRE_SECTIONS.length - 1) {
-      setCurrentSectionIndex(prev => prev + 1);
-      setCurrentQuestionIndex(0);
-    } else {
-      setShowSummary(true);
-    }
-    // Scroll to top on mobile when navigating to next question
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  }, [currentQuestionIndex, currentSectionIndex, currentSection]);
-
-  const handlePrevious = useCallback(() => {
-    if (currentQuestionIndex > 0) {
-      setCurrentQuestionIndex(prev => prev - 1);
-    } else if (currentSectionIndex > 0) {
-      setCurrentSectionIndex(prev => prev - 1);
-      const prevSection = QUESTIONNAIRE_SECTIONS[currentSectionIndex - 1];
-      setCurrentQuestionIndex(prevSection.questions.length - 1);
-    }
-    // Scroll to top on mobile when navigating to previous question
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  }, [currentQuestionIndex, currentSectionIndex]);
-
-  const navigateToSection = useCallback((sectionIndex: number) => {
-    if (sectionIndex <= currentSectionIndex) {
-      setCurrentSectionIndex(sectionIndex);
-      setCurrentQuestionIndex(0);
-      setShowSummary(false);
-      // Scroll to top on mobile when navigating to a section
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
-  }, [currentSectionIndex]);
-
-  // Keyboard navigation
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Enter' && currentAnswer !== undefined) {
-        e.preventDefault();
-        handleNext();
-      }
-    };
-    
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [currentAnswer, handleNext]);
-
   const buildPolicyStatement = useCallback((): InvestorPolicyStatement => {
     const getRiskScore = () => {
       const riskAnswer = responses['risk-scenario-drop']?.value;
@@ -239,6 +189,59 @@ export function InvestorPolicyQuestionnaire({
       investmentPhilosophy: responses['goal-success-vision']?.value as string || '',
     };
   }, [responses]);
+
+  const handleNext = useCallback(() => {
+    if (!currentSection) return;
+    
+    if (currentQuestionIndex < currentSection.questions.length - 1) {
+      setCurrentQuestionIndex(prev => prev + 1);
+    } else if (currentSectionIndex < QUESTIONNAIRE_SECTIONS.length - 1) {
+      setCurrentSectionIndex(prev => prev + 1);
+      setCurrentQuestionIndex(0);
+    } else {
+      // Automatically complete when reaching the end - no summary screen
+      const policy = buildPolicyStatement();
+      onComplete(policy);
+      return;
+    }
+    // Scroll to top on mobile when navigating to next question
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [currentQuestionIndex, currentSectionIndex, currentSection, buildPolicyStatement, onComplete]);
+
+  const handlePrevious = useCallback(() => {
+    if (currentQuestionIndex > 0) {
+      setCurrentQuestionIndex(prev => prev - 1);
+    } else if (currentSectionIndex > 0) {
+      setCurrentSectionIndex(prev => prev - 1);
+      const prevSection = QUESTIONNAIRE_SECTIONS[currentSectionIndex - 1];
+      setCurrentQuestionIndex(prevSection.questions.length - 1);
+    }
+    // Scroll to top on mobile when navigating to previous question
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [currentQuestionIndex, currentSectionIndex]);
+
+  const navigateToSection = useCallback((sectionIndex: number) => {
+    if (sectionIndex <= currentSectionIndex) {
+      setCurrentSectionIndex(sectionIndex);
+      setCurrentQuestionIndex(0);
+      setShowSummary(false);
+      // Scroll to top on mobile when navigating to a section
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }, [currentSectionIndex]);
+
+  // Keyboard navigation
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Enter' && currentAnswer !== undefined) {
+        e.preventDefault();
+        handleNext();
+      }
+    };
+    
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [currentAnswer, handleNext]);
 
   const handleComplete = useCallback(() => {
     const policy = buildPolicyStatement();
