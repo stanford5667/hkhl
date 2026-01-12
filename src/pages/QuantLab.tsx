@@ -171,7 +171,44 @@ export default function QuantLab() {
         </CardContent>
       </Card>
 
-      {/* Study Categories Preview */}
+      {/* Studies Panel for Selected Ticker - MOVED TO TOP (Primary usable feature) */}
+      {selectedTickers.length > 0 && activeTicker && (
+        <div className="space-y-4">
+          {/* Ticker tabs if multiple selected */}
+          {selectedTickers.length > 1 && (
+            <Tabs value={activeTicker} onValueChange={setActiveTicker}>
+              <TabsList className="bg-muted/50">
+                {selectedTickers.map((ticker) => (
+                  <TabsTrigger key={ticker} value={ticker} className="gap-1.5">
+                    {ticker}
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+            </Tabs>
+          )}
+          
+          {/* Studies Panel */}
+          <QuantitativeStudiesPanel 
+            ticker={activeTicker} 
+            companyName={activeTicker} 
+          />
+        </div>
+      )}
+
+      {selectedTickers.length === 0 && (
+        <Card className="border-dashed border-2 border-muted-foreground/20">
+          <CardContent className="flex flex-col items-center justify-center py-12 text-center">
+            <FlaskConical className="h-12 w-12 text-muted-foreground/50 mb-4" />
+            <h3 className="text-lg font-medium text-foreground mb-2">No Tickers Selected</h3>
+            <p className="text-sm text-muted-foreground max-w-md">
+              Add a ticker symbol above to start running quantitative studies. 
+              You can analyze multiple stocks and compare results.
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Study Categories Preview - Secondary */}
       <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
         {STUDY_CATEGORIES.map((cat) => {
           const Icon = cat.icon;
@@ -246,43 +283,6 @@ export default function QuantLab() {
           </div>
         </CardContent>
       </Card>
-
-      {/* Studies Panel for Selected Ticker */}
-      {selectedTickers.length > 0 && activeTicker && (
-        <div className="space-y-4">
-          {/* Ticker tabs if multiple selected */}
-          {selectedTickers.length > 1 && (
-            <Tabs value={activeTicker} onValueChange={setActiveTicker}>
-              <TabsList className="bg-muted/50">
-                {selectedTickers.map((ticker) => (
-                  <TabsTrigger key={ticker} value={ticker} className="gap-1.5">
-                    {ticker}
-                  </TabsTrigger>
-                ))}
-              </TabsList>
-            </Tabs>
-          )}
-          
-          {/* Studies Panel */}
-          <QuantitativeStudiesPanel 
-            ticker={activeTicker} 
-            companyName={activeTicker} 
-          />
-        </div>
-      )}
-
-      {selectedTickers.length === 0 && (
-        <Card className="border-dashed border-2 border-muted-foreground/20">
-          <CardContent className="flex flex-col items-center justify-center py-12 text-center">
-            <FlaskConical className="h-12 w-12 text-muted-foreground/50 mb-4" />
-            <h3 className="text-lg font-medium text-foreground mb-2">No Tickers Selected</h3>
-            <p className="text-sm text-muted-foreground max-w-md">
-              Add a ticker symbol above to start running quantitative studies. 
-              You can analyze multiple stocks and compare results.
-            </p>
-          </CardContent>
-        </Card>
-      )}
     </div>
   );
 }
