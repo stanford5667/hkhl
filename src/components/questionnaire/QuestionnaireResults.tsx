@@ -315,8 +315,18 @@ interface RiskGaugeProps {
 }
 
 export function RiskGauge({ score, size = 'md', showLabel = true }: RiskGaugeProps) {
-  const radius = size === 'sm' ? 40 : size === 'md' ? 60 : 80;
-  const strokeWidth = size === 'sm' ? 6 : size === 'md' ? 8 : 10;
+  // Responsive sizing - smaller on mobile
+  const getResponsiveRadius = () => {
+    if (size === 'sm') return { mobile: 35, desktop: 40 };
+    if (size === 'md') return { mobile: 50, desktop: 60 };
+    return { mobile: 60, desktop: 80 };
+  };
+  
+  const sizes = getResponsiveRadius();
+  const strokeWidth = size === 'sm' ? 5 : size === 'md' ? 7 : 9;
+  
+  // Use desktop sizes for calculations, CSS will handle responsive
+  const radius = sizes.desktop;
   const circumference = 2 * Math.PI * radius;
   const progress = (score / 100) * circumference;
   
@@ -335,10 +345,18 @@ export function RiskGauge({ score, size = 'md', showLabel = true }: RiskGaugePro
   };
 
   const svgSize = (radius + strokeWidth) * 2;
+  const mobileScale = sizes.mobile / sizes.desktop;
 
   return (
     <div className="flex flex-col items-center">
-      <div className="relative" style={{ width: svgSize, height: svgSize }}>
+      <div 
+        className="relative transform scale-[var(--mobile-scale)] sm:scale-100 origin-center" 
+        style={{ 
+          width: svgSize, 
+          height: svgSize,
+          '--mobile-scale': mobileScale 
+        } as React.CSSProperties}
+      >
         <svg
           width={svgSize}
           height={svgSize}
@@ -376,21 +394,21 @@ export function RiskGauge({ score, size = 'md', showLabel = true }: RiskGaugePro
             animate={{ opacity: 1 }}
             className={cn(
               "font-bold",
-              size === 'sm' && "text-xl",
-              size === 'md' && "text-3xl",
-              size === 'lg' && "text-4xl"
+              size === 'sm' && "text-lg sm:text-xl",
+              size === 'md' && "text-2xl sm:text-3xl",
+              size === 'lg' && "text-3xl sm:text-4xl"
             )}
           >
             {score}
           </motion.span>
           {showLabel && size !== 'sm' && (
-            <span className="text-xs text-muted-foreground">Risk Score</span>
+            <span className="text-[10px] sm:text-xs text-muted-foreground">Risk Score</span>
           )}
         </div>
       </div>
       {showLabel && (
         <Badge
-          className="mt-2"
+          className="mt-1.5 sm:mt-2 text-xs"
           style={{ backgroundColor: `${getColor()}20`, color: getColor() }}
         >
           {getLabel()}

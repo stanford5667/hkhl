@@ -47,8 +47,8 @@ export function OptionCard({
       whileTap={{ scale: 0.99 }}
       onClick={onClick}
       className={cn(
-        "w-full rounded-xl border-2 transition-all text-left flex items-center gap-3 sm:gap-4",
-        compact ? "p-3 sm:p-4" : "p-4 sm:p-5",
+        "w-full rounded-lg sm:rounded-xl border-2 transition-all text-left flex items-start gap-2.5 sm:gap-3",
+        compact ? "p-2.5 sm:p-3" : "p-3 sm:p-4",
         selected
           ? "border-primary bg-primary/5 shadow-md"
           : "border-border hover:border-primary/50 bg-card hover:bg-muted/30"
@@ -57,26 +57,26 @@ export function OptionCard({
       {/* Icon or Emoji */}
       {(icon || emoji) && (
         <div className={cn(
-          "flex items-center justify-center shrink-0",
-          compact ? "text-2xl" : "text-3xl",
-          icon && "w-10 h-10 rounded-lg bg-muted"
+          "flex items-center justify-center shrink-0 mt-0.5",
+          compact ? "text-lg sm:text-xl" : "text-xl sm:text-2xl",
+          icon && "w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-muted"
         )}>
           {emoji || icon}
         </div>
       )}
       
       {/* Label & Description */}
-      <div className="flex-1 min-w-0">
+      <div className="flex-1 min-w-0 overflow-hidden">
         <p className={cn(
-          "font-medium truncate",
-          compact ? "text-sm" : "text-base"
+          "font-medium leading-tight",
+          compact ? "text-sm" : "text-sm sm:text-base"
         )}>
           {label}
         </p>
         {description && (
           <p className={cn(
-            "text-muted-foreground truncate",
-            compact ? "text-xs" : "text-sm"
+            "text-muted-foreground leading-snug mt-0.5 line-clamp-2",
+            compact ? "text-xs" : "text-xs sm:text-sm"
           )}>
             {description}
           </p>
@@ -86,8 +86,8 @@ export function OptionCard({
       {/* Selection indicator */}
       {selected && (
         <CheckCircle2 className={cn(
-          "text-primary shrink-0",
-          compact ? "h-4 w-4" : "h-5 w-5"
+          "text-primary shrink-0 mt-0.5",
+          compact ? "h-4 w-4" : "h-4 w-4 sm:h-5 sm:w-5"
         )} />
       )}
     </motion.button>
