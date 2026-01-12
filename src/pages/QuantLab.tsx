@@ -60,6 +60,7 @@ import { TutorialOverlay } from '@/components/quant-lab/TutorialOverlay';
 import { ProgressHeader } from '@/components/quant-lab/ProgressHeader';
 import { StudyExplainer } from '@/components/quant-lab/StudyExplainer';
 import { ResultInterpreter } from '@/components/quant-lab/ResultInterpreter';
+import { MetricDetailModal } from '@/components/quant-lab/MetricDetailModal';
 
 // ===========================================
 // STUDY DEFINITIONS WITH BEGINNER-FRIENDLY EXPLANATIONS
@@ -1193,6 +1194,13 @@ function QuantLabContent(props: any) {
   } = props;
 
   const { progress, learningMode, markStudyCompleted, checkAndUnlockAchievements, addXp } = useLearning();
+  
+  // Metric detail modal state
+  const [selectedMetric, setSelectedMetric] = useState<{
+    key: string;
+    value: any;
+    studyName: string;
+  } | null>(null);
 
   // Enhanced run study that tracks learning
   const handleRunStudy = async (studyId: string) => {
@@ -1583,26 +1591,47 @@ function QuantLabContent(props: any) {
                                     </p>
                                   </div>
 
-                                  {/* Key Metrics */}
+                                  {/* Key Metrics - CLICKABLE */}
                                   <div className="p-4">
+                                    <div className="flex items-center gap-1 mb-2 text-xs text-muted-foreground">
+                                      <Info className="h-3 w-3" />
+                                      Click any metric to learn more
+                                    </div>
                                     <div className="grid grid-cols-2 gap-3">
                                       {metrics.slice(0, 4).map(([key, value]) => (
-                                        <div key={key} className="text-center p-2 bg-muted/50 rounded-lg">
-                                          <p className="text-xs text-muted-foreground capitalize mb-1">
+                                        <button
+                                          key={key}
+                                          onClick={() => setSelectedMetric({ 
+                                            key, 
+                                            value, 
+                                            studyName: study.name 
+                                          })}
+                                          className="text-center p-2 bg-muted/50 rounded-lg hover:bg-muted hover:ring-2 hover:ring-primary/30 transition-all cursor-pointer group"
+                                        >
+                                          <p className="text-xs text-muted-foreground capitalize mb-1 group-hover:text-primary transition-colors">
                                             {key.replace(/([A-Z])/g, ' $1').replace(/_/g, ' ').trim()}
                                           </p>
-                                          <p className="text-lg font-bold font-mono">
+                                          <p className="text-lg font-bold font-mono group-hover:text-primary transition-colors">
                                             {formatValue(key, value)}
                                           </p>
-                                        </div>
+                                        </button>
                                       ))}
                                     </div>
                                     
-                                    {/* More metrics if available */}
+                                    {/* More metrics if available - also clickable */}
                                     {metrics.length > 4 && (
                                       <div className="mt-3 flex flex-wrap gap-2">
                                         {metrics.slice(4, 8).map(([key, value]) => (
-                                          <Badge key={key} variant="outline" className="text-xs">
+                                          <Badge 
+                                            key={key} 
+                                            variant="outline" 
+                                            className="text-xs cursor-pointer hover:bg-primary/10 hover:border-primary transition-colors"
+                                            onClick={() => setSelectedMetric({ 
+                                              key, 
+                                              value, 
+                                              studyName: study.name 
+                                            })}
+                                          >
                                             {key.replace(/([A-Z])/g, ' $1').trim()}: {formatValue(key, value)}
                                           </Badge>
                                         ))}
@@ -1673,6 +1702,16 @@ function QuantLabContent(props: any) {
           </Card>
         )}
       </div>
+      
+      {/* Metric Detail Modal */}
+      <MetricDetailModal
+        isOpen={!!selectedMetric}
+        onClose={() => setSelectedMetric(null)}
+        metricKey={selectedMetric?.key || ''}
+        metricValue={selectedMetric?.value}
+        studyName={selectedMetric?.studyName || ''}
+        ticker={selectedTicker || ''}
+      />
     </div>
   );
 }
