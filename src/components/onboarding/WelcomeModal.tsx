@@ -60,7 +60,7 @@ export function WelcomeModal({ open, onOpenChange, onComplete }: WelcomeModalPro
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md p-0 overflow-hidden bg-background border-border gap-0">
+      <DialogContent className="sm:max-w-md p-0 overflow-hidden bg-background border-border gap-0 max-h-[90dvh] overflow-y-auto">
         {/* Progress indicator */}
         <div className="px-4 sm:px-6 pt-4">
           <Progress value={((step + 1) / STEPS.length) * 100} className="h-1" />
@@ -180,17 +180,21 @@ export function WelcomeModal({ open, onOpenChange, onComplete }: WelcomeModalPro
                 </ul>
               </div>
 
-              {/* CTA */}
-              <Button onClick={handleStartAssessment} className="w-full gap-2 shadow-lg shadow-primary/25" size="lg">
+              {/* CTA - larger touch targets on mobile */}
+              <Button 
+                onClick={handleStartAssessment} 
+                className="w-full gap-2 shadow-lg shadow-primary/25 h-12 sm:h-11 text-base" 
+                size="lg"
+              >
                 <Brain className="w-4 h-4" />
                 Start Assessment
                 <ArrowRight className="w-4 h-4" />
               </Button>
               <Button
                 variant="ghost"
-                size="sm"
+                size="lg"
                 onClick={handleSkip}
-                className="w-full mt-2 text-muted-foreground text-xs sm:text-sm"
+                className="w-full mt-2 text-muted-foreground text-xs sm:text-sm h-11 sm:h-10"
               >
                 Skip for now
               </Button>

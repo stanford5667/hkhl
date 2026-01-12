@@ -1327,17 +1327,18 @@ ${a.description}`).join('\n\n')}
   }
 
   // QUESTIONNAIRE PHASE - Multi-question pages with improved styling
+  // Using z-[60] to ensure this fullscreen overlay appears above the mobile nav (z-50)
   return (
-    <div className="min-h-[100dvh] bg-background text-foreground overflow-x-hidden">
+    <div className="min-h-[100dvh] bg-background text-foreground overflow-x-hidden relative z-[60]">
       {/* Ambient background */}
-      <div className="fixed inset-0 pointer-events-none overflow-hidden">
+      <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
         <PulseGrid className="opacity-20" />
         <div className="absolute top-0 left-1/4 w-[300px] sm:w-[500px] h-[300px] sm:h-[500px] bg-primary/10 rounded-full blur-[80px] sm:blur-[120px]" />
         <div className="absolute bottom-0 right-1/4 w-[250px] sm:w-[400px] h-[250px] sm:h-[400px] bg-accent/10 rounded-full blur-[60px] sm:blur-[100px]" />
       </div>
 
       {/* Header */}
-      <header className="fixed top-0 left-0 right-0 z-50 glass-nav">
+      <header className="fixed top-0 left-0 right-0 z-[70] glass-nav">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 py-3 sm:py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2 sm:gap-3">
@@ -1374,8 +1375,8 @@ ${a.description}`).join('\n\n')}
         </div>
       </header>
 
-      {/* Main content - scrollable for multi-question pages */}
-      <main className="relative pt-16 sm:pt-24 pb-40 sm:pb-32 px-4 sm:px-6 min-h-[100dvh]">
+      {/* Main content - scrollable with extra bottom padding for mobile */}
+      <main className="relative pt-16 sm:pt-24 pb-48 sm:pb-32 px-4 sm:px-6 min-h-[100dvh]">
         <div className="max-w-2xl mx-auto w-full">
           <AnimatePresence mode="wait">
             <motion.div
@@ -1484,15 +1485,15 @@ ${a.description}`).join('\n\n')}
         )}
       </AnimatePresence>
 
-      {/* Footer navigation */}
-      <footer className="fixed bottom-16 md:bottom-0 left-0 right-0 glass-nav safe-area-pb pb-[calc(env(safe-area-inset-bottom)+0.75rem)]">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 py-3 sm:py-4">
+      {/* Footer navigation - z-[70] to stay above mobile nav, bottom-0 since we're in fullscreen overlay */}
+      <footer className="fixed bottom-0 left-0 right-0 z-[70] glass-nav bg-background/95 backdrop-blur-xl border-t border-border">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 py-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
           <div className="flex items-center justify-between gap-3">
             <Button
               variant="ghost"
               onClick={handlePrevious}
               disabled={currentPageIndex === 0}
-              className="text-muted-foreground hover:text-foreground hover:bg-muted px-3 sm:px-4"
+              className="text-muted-foreground hover:text-foreground hover:bg-muted px-3 sm:px-4 h-12 sm:h-10"
             >
               <ChevronLeft className="w-4 h-4 mr-1 sm:mr-2" />
               <span className="hidden sm:inline">Back</span>
@@ -1501,10 +1502,10 @@ ${a.description}`).join('\n\n')}
             <Button
               onClick={handleNext}
               disabled={!isPageComplete}
-              className="bg-gradient-to-r from-primary to-secondary text-primary-foreground hover:opacity-90 px-4 sm:px-6 flex-1 sm:flex-none max-w-[200px] sm:max-w-none"
+              className="bg-gradient-to-r from-primary to-secondary text-primary-foreground hover:opacity-90 px-6 sm:px-8 flex-1 sm:flex-none max-w-[220px] sm:max-w-none h-12 sm:h-10 text-base sm:text-sm font-medium"
             >
               {currentPageIndex === PAGES.length - 1 ? 'Get My Strategy' : 'Continue'}
-              <ChevronRight className="w-4 h-4 ml-1 sm:ml-2" />
+              <ChevronRight className="w-4 h-4 ml-2" />
             </Button>
           </div>
         </div>
