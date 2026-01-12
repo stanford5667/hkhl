@@ -1201,6 +1201,7 @@ function QuantLabContent(props: any) {
     key: string;
     value: any;
     studyName: string;
+    studyResult: any;
   } | null>(null);
 
   // Enhanced run study that tracks learning
@@ -1605,7 +1606,8 @@ function QuantLabContent(props: any) {
                                           onClick={() => setSelectedMetric({ 
                                             key, 
                                             value, 
-                                            studyName: study.name 
+                                            studyName: study.name,
+                                            studyResult: result
                                           })}
                                           className="text-center p-2 bg-muted/50 rounded-lg hover:bg-muted hover:ring-2 hover:ring-primary/30 transition-all cursor-pointer group"
                                         >
@@ -1630,7 +1632,8 @@ function QuantLabContent(props: any) {
                                             onClick={() => setSelectedMetric({ 
                                               key, 
                                               value, 
-                                              studyName: study.name 
+                                              studyName: study.name,
+                                              studyResult: result
                                             })}
                                           >
                                             {key.replace(/([A-Z])/g, ' $1').trim()}: {formatValue(key, value)}
@@ -1727,6 +1730,7 @@ function QuantLabContent(props: any) {
         metricValue={selectedMetric?.value}
         studyName={selectedMetric?.studyName || ''}
         ticker={selectedTicker || ''}
+        studyResult={selectedMetric?.studyResult}
       />
     </div>
   );

@@ -6,9 +6,11 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { 
   Calculator, TrendingUp, TrendingDown, Minus, 
-  Lightbulb, BookOpen, Target, BarChart3, Info
+  Lightbulb, BookOpen, Target, BarChart3, Info,
+  ChevronRight, Database, ArrowRight
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -413,6 +415,178 @@ interface MetricDetailModalProps {
   metricValue: any;
   studyName: string;
   ticker: string;
+  studyResult?: any;
+}
+
+// Generate exact calculation trace from study result data
+function generateCalculationTrace(metricKey: string, metricValue: any, studyResult: any): {
+  steps: { label: string; value: string; formula?: string }[];
+  inputs: { name: string; value: string }[];
+} | null {
+  if (!studyResult) return null;
+  
+  const steps: { label: string; value: string; formula?: string }[] = [];
+  const inputs: { name: string; value: string }[] = [];
+  
+  // Add common inputs from study result
+  if (studyResult.barsAnalyzed) {
+    inputs.push({ name: 'Days Analyzed', value: studyResult.barsAnalyzed.toString() });
+  }
+  if (studyResult.dateRange) {
+    inputs.push({ name: 'Date Range', value: `${studyResult.dateRange.start} to ${studyResult.dateRange.end}` });
+  }
+
+  // Generate specific traces based on metric type and study data
+  switch (metricKey) {
+    case 'percentage':
+    case 'upDayPercent':
+      if (studyResult.up_days !== undefined && studyResult.total_days !== undefined) {
+        inputs.push({ name: 'Up Days', value: studyResult.up_days.toString() });
+        inputs.push({ name: 'Total Days', value: studyResult.total_days.toString() });
+        steps.push({ label: 'Count up days', value: studyResult.up_days.toString(), formula: 'Days where Close > Open' });
+        steps.push({ label: 'Divide by total', value: `${studyResult.up_days} ÷ ${studyResult.total_days}`, formula: 'Up Days ÷ Total Days' });
+        steps.push({ label: 'Multiply by 100', value: `${((studyResult.up_days / studyResult.total_days) * 100).toFixed(2)}%`, formula: 'Result × 100' });
+      }
+      break;
+      
+    case 'winRate':
+      if (studyResult.up_days !== undefined && studyResult.total_days !== undefined) {
+        inputs.push({ name: 'Days Up (vs prior close)', value: studyResult.up_days.toString() });
+        inputs.push({ name: 'Total Trading Days', value: studyResult.total_days.toString() });
+        steps.push({ label: 'Count winning days', value: studyResult.up_days.toString(), formula: 'Days where Close > Prior Close' });
+        steps.push({ label: 'Calculate win rate', value: `${studyResult.up_days} ÷ ${studyResult.total_days} × 100`, formula: '(Wins ÷ Total) × 100' });
+        steps.push({ label: 'Final result', value: `${typeof metricValue === 'number' ? metricValue.toFixed(2) : metricValue}%` });
+      }
+      break;
+      
+    case 'mean':
+    case 'avgReturn':
+      if (studyResult.count !== undefined) {
+        inputs.push({ name: 'Number of Returns', value: studyResult.count.toString() });
+        if (studyResult.stdDev) inputs.push({ name: 'Standard Deviation', value: `${studyResult.stdDev.toFixed(4)}%` });
+        steps.push({ label: 'Sum all daily returns', value: `Σ(daily returns)` });
+        steps.push({ label: 'Divide by count', value: `Sum ÷ ${studyResult.count}`, formula: 'Σ(returns) ÷ n' });
+        steps.push({ label: 'Mean daily return', value: `${typeof metricValue === 'number' ? metricValue.toFixed(4) : metricValue}%` });
+      }
+      break;
+      
+    case 'stdDev':
+    case 'volatility':
+      if (studyResult.count !== undefined && studyResult.mean !== undefined) {
+        inputs.push({ name: 'Mean Return', value: `${studyResult.mean.toFixed(4)}%` });
+        inputs.push({ name: 'Sample Size', value: studyResult.count.toString() });
+        steps.push({ label: 'Calculate mean', value: `μ = ${studyResult.mean.toFixed(4)}%` });
+        steps.push({ label: 'Calculate variance', value: `Σ(rᵢ - μ)² ÷ n`, formula: 'Sum of squared deviations ÷ n' });
+        steps.push({ label: 'Take square root', value: `√variance`, formula: '√(variance)' });
+        steps.push({ label: 'Standard deviation', value: `${typeof metricValue === 'number' ? metricValue.toFixed(4) : metricValue}%` });
+      }
+      break;
+      
+    case 'annualizedVol':
+      if (studyResult.stdDev !== undefined) {
+        inputs.push({ name: 'Daily Std Dev', value: `${studyResult.stdDev.toFixed(4)}%` });
+        inputs.push({ name: 'Trading Days/Year', value: '252' });
+        steps.push({ label: 'Daily volatility', value: `${studyResult.stdDev.toFixed(4)}%` });
+        steps.push({ label: 'Annualize', value: `${studyResult.stdDev.toFixed(4)} × √252`, formula: 'Daily Vol × √252' });
+        steps.push({ label: 'Annualized volatility', value: `${(studyResult.stdDev * Math.sqrt(252)).toFixed(2)}%` });
+      }
+      break;
+
+    case 'maxUpStreak':
+    case 'maxDownStreak':
+    case 'longestUpStreak':
+    case 'longestDownStreak':
+      if (studyResult.totalUpStreaks !== undefined || studyResult.totalDownStreaks !== undefined) {
+        inputs.push({ name: 'Total Up Streaks', value: (studyResult.totalUpStreaks || 0).toString() });
+        inputs.push({ name: 'Total Down Streaks', value: (studyResult.totalDownStreaks || 0).toString() });
+        steps.push({ label: 'Track consecutive days', value: 'Count same-direction days' });
+        steps.push({ label: 'Find maximum', value: `Max(all streaks)` });
+        steps.push({ label: `Longest ${metricKey.includes('Up') ? 'up' : 'down'} streak`, value: `${metricValue} days` });
+      }
+      break;
+
+    case 'avgUpStreak':
+    case 'avgDownStreak':
+      if (studyResult.totalUpStreaks !== undefined) {
+        const isUp = metricKey.includes('Up');
+        const total = isUp ? studyResult.totalUpStreaks : studyResult.totalDownStreaks;
+        inputs.push({ name: `Total ${isUp ? 'Up' : 'Down'} Streaks`, value: total?.toString() || '0' });
+        steps.push({ label: 'Sum all streak lengths', value: `Σ(streak lengths)` });
+        steps.push({ label: 'Divide by count', value: `Sum ÷ ${total}` });
+        steps.push({ label: 'Average streak', value: `${typeof metricValue === 'number' ? metricValue.toFixed(2) : metricValue} days` });
+      }
+      break;
+
+    case 'maxDrawdown':
+    case 'currentDrawdown':
+      if (studyResult.maxDrawdown !== undefined) {
+        inputs.push({ name: 'Peak Price', value: 'Highest close in period' });
+        inputs.push({ name: 'Trough Price', value: 'Lowest close after peak' });
+        steps.push({ label: 'Find peak price', value: 'Max(close prices)' });
+        steps.push({ label: 'Find subsequent trough', value: 'Min(close prices after peak)' });
+        steps.push({ label: 'Calculate decline', value: '(Peak - Trough) ÷ Peak × 100', formula: '(Peak - Trough) ÷ Peak × 100' });
+        steps.push({ label: 'Max drawdown', value: `${typeof metricValue === 'number' ? metricValue.toFixed(2) : metricValue}%` });
+      }
+      break;
+
+    case 'currentRsi':
+    case 'rsi':
+      if (studyResult.avgGain !== undefined || studyResult.currentRsi !== undefined) {
+        inputs.push({ name: 'RSI Period', value: studyResult.period?.toString() || '14' });
+        steps.push({ label: 'Calculate avg gains', value: 'Avg(gains over period)', formula: 'Avg of positive price changes' });
+        steps.push({ label: 'Calculate avg losses', value: 'Avg(losses over period)', formula: 'Avg of negative price changes' });
+        steps.push({ label: 'Calculate RS', value: 'Avg Gain ÷ Avg Loss', formula: 'Relative Strength = Gain/Loss' });
+        steps.push({ label: 'Calculate RSI', value: '100 - (100 ÷ (1 + RS))', formula: 'RSI = 100 - (100 ÷ (1 + RS))' });
+        steps.push({ label: 'Current RSI', value: `${typeof metricValue === 'number' ? metricValue.toFixed(2) : metricValue}` });
+      }
+      break;
+
+    case 'avgGapUp':
+    case 'avgGapDown':
+      if (studyResult.gapsUp || studyResult.gapsDown) {
+        const gapData = metricKey === 'avgGapUp' ? studyResult.gapsUp : studyResult.gapsDown;
+        if (gapData) {
+          inputs.push({ name: 'Gap Count', value: gapData.count?.toString() || '0' });
+          steps.push({ label: 'Identify gaps', value: `Days where Open ${metricKey === 'avgGapUp' ? '>' : '<'} Prior Close` });
+          steps.push({ label: 'Calculate each gap', value: '(Open - Prior Close) ÷ Prior Close × 100' });
+          steps.push({ label: 'Average all gaps', value: `Sum(gaps) ÷ ${gapData.count}` });
+          steps.push({ label: 'Average gap', value: `${typeof metricValue === 'number' ? metricValue.toFixed(2) : metricValue}%` });
+        }
+      }
+      break;
+
+    case 'gapFillRate':
+    case 'fillRate':
+      if (studyResult.gapsUp || studyResult.gapsDown) {
+        steps.push({ label: 'Count total gaps', value: 'Gaps > 0.5% threshold' });
+        steps.push({ label: 'Count filled gaps', value: 'Gaps where price returned to prior close' });
+        steps.push({ label: 'Calculate fill rate', value: 'Filled ÷ Total × 100' });
+        steps.push({ label: 'Gap fill rate', value: `${typeof metricValue === 'number' ? metricValue.toFixed(2) : metricValue}%` });
+      }
+      break;
+
+    default:
+      // Generic trace for any numeric value
+      if (typeof metricValue === 'number') {
+        steps.push({ label: 'Raw calculation', value: metricValue.toFixed(4) });
+        steps.push({ label: 'Formatted result', value: formatMetricForTrace(metricKey, metricValue) });
+      }
+      break;
+  }
+
+  return steps.length > 0 ? { steps, inputs } : null;
+}
+
+function formatMetricForTrace(key: string, value: number): string {
+  if (key.toLowerCase().includes('percent') || 
+      key.toLowerCase().includes('rate') ||
+      key.toLowerCase().includes('volatility') ||
+      key.toLowerCase().includes('drawdown')) {
+    return `${value.toFixed(2)}%`;
+  }
+  if (value > 1000000) return `${(value / 1000000).toFixed(2)}M`;
+  if (value > 1000) return `${(value / 1000).toFixed(2)}K`;
+  return value.toFixed(value < 10 ? 2 : 0);
 }
 
 export function MetricDetailModal({ 
@@ -421,9 +595,11 @@ export function MetricDetailModal({
   metricKey, 
   metricValue, 
   studyName,
-  ticker 
+  ticker,
+  studyResult
 }: MetricDetailModalProps) {
   const definition = METRIC_DEFINITIONS[metricKey] || getDefaultDefinition(metricKey);
+  const calculationTrace = generateCalculationTrace(metricKey, metricValue, studyResult);
   
   // Determine if the value is good, bad, or neutral
   const getValueSentiment = () => {
@@ -471,7 +647,7 @@ export function MetricDetailModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-lg max-h-[85vh] flex flex-col">
         <DialogHeader>
           <div className="flex items-center gap-3 mb-2">
             <div className={cn(
@@ -501,81 +677,137 @@ export function MetricDetailModal({
           </div>
         </DialogHeader>
 
-        {/* Current Value */}
-        <div className={cn(
-          "rounded-lg p-4 text-center",
-          sentiment === 'good' && "bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800",
-          sentiment === 'bad' && "bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800",
-          sentiment === 'neutral' && "bg-muted border"
-        )}>
-          <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Current Value</p>
-          <p className={cn(
-            "text-3xl font-bold font-mono",
-            sentiment === 'good' && "text-emerald-600",
-            sentiment === 'bad' && "text-red-600",
-            sentiment === 'neutral' && "text-foreground"
-          )}>
-            {formatDisplayValue()}
-          </p>
-          {(definition.goodRange || definition.badRange) && (
-            <div className="flex items-center justify-center gap-4 mt-2 text-xs">
-              {definition.goodRange && (
-                <span className="text-emerald-600 flex items-center gap-1">
-                  <TrendingUp className="h-3 w-3" />
-                  Good: {definition.goodRange}
-                </span>
+        <ScrollArea className="flex-1 -mx-6 px-6">
+          <div className="space-y-4 pb-2">
+            {/* Current Value */}
+            <div className={cn(
+              "rounded-lg p-4 text-center",
+              sentiment === 'good' && "bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800",
+              sentiment === 'bad' && "bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800",
+              sentiment === 'neutral' && "bg-muted border"
+            )}>
+              <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Current Value</p>
+              <p className={cn(
+                "text-3xl font-bold font-mono",
+                sentiment === 'good' && "text-emerald-600",
+                sentiment === 'bad' && "text-red-600",
+                sentiment === 'neutral' && "text-foreground"
+              )}>
+                {formatDisplayValue()}
+              </p>
+              {(definition.goodRange || definition.badRange) && (
+                <div className="flex items-center justify-center gap-4 mt-2 text-xs">
+                  {definition.goodRange && (
+                    <span className="text-emerald-600 flex items-center gap-1">
+                      <TrendingUp className="h-3 w-3" />
+                      Good: {definition.goodRange}
+                    </span>
+                  )}
+                  {definition.badRange && (
+                    <span className="text-red-600 flex items-center gap-1">
+                      <TrendingDown className="h-3 w-3" />
+                      Concerning: {definition.badRange}
+                    </span>
+                  )}
+                </div>
               )}
-              {definition.badRange && (
-                <span className="text-red-600 flex items-center gap-1">
-                  <TrendingDown className="h-3 w-3" />
-                  Concerning: {definition.badRange}
-                </span>
-              )}
             </div>
-          )}
-        </div>
 
-        <Separator />
+            {/* EXACT CALCULATION - The new section showing actual calculation steps */}
+            {calculationTrace && (
+              <>
+                <Separator />
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2 text-sm font-medium">
+                    <Database className="h-4 w-4 text-indigo-500" />
+                    Exact Calculation Used
+                  </div>
+                  
+                  {/* Input Values */}
+                  {calculationTrace.inputs.length > 0 && (
+                    <div className="bg-indigo-50 dark:bg-indigo-900/20 rounded-lg p-3 border border-indigo-200 dark:border-indigo-800">
+                      <p className="text-xs font-medium text-indigo-700 dark:text-indigo-300 mb-2">Data Inputs:</p>
+                      <div className="grid grid-cols-2 gap-2">
+                        {calculationTrace.inputs.map((input, idx) => (
+                          <div key={idx} className="flex justify-between text-xs">
+                            <span className="text-indigo-600 dark:text-indigo-400">{input.name}:</span>
+                            <span className="font-mono font-medium text-indigo-800 dark:text-indigo-200">{input.value}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Calculation Steps */}
+                  <div className="bg-muted/50 rounded-lg p-3 space-y-2">
+                    <p className="text-xs font-medium text-muted-foreground mb-2">Step-by-step calculation:</p>
+                    {calculationTrace.steps.map((step, idx) => (
+                      <div key={idx} className="flex items-start gap-2">
+                        <div className="flex items-center gap-1 min-w-[20px]">
+                          <span className="text-xs font-bold text-primary bg-primary/10 rounded-full w-5 h-5 flex items-center justify-center">
+                            {idx + 1}
+                          </span>
+                        </div>
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-xs text-muted-foreground">{step.label}</span>
+                            <ArrowRight className="h-3 w-3 text-muted-foreground/50" />
+                            <span className="text-sm font-mono font-medium text-foreground">{step.value}</span>
+                          </div>
+                          {step.formula && (
+                            <p className="text-[10px] text-muted-foreground/70 font-mono mt-0.5">{step.formula}</p>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </>
+            )}
 
-        {/* What It Is */}
-        <div className="space-y-3">
-          <div>
-            <div className="flex items-center gap-2 text-sm font-medium mb-1">
-              <BookOpen className="h-4 w-4 text-blue-500" />
-              What It Measures
+            <Separator />
+
+            {/* What It Is */}
+            <div className="space-y-3">
+              <div>
+                <div className="flex items-center gap-2 text-sm font-medium mb-1">
+                  <BookOpen className="h-4 w-4 text-blue-500" />
+                  What It Measures
+                </div>
+                <p className="text-sm text-muted-foreground">{definition.description}</p>
+              </div>
+
+              {/* Formula */}
+              <div>
+                <div className="flex items-center gap-2 text-sm font-medium mb-1">
+                  <Calculator className="h-4 w-4 text-purple-500" />
+                  General Formula
+                </div>
+                <div className="bg-muted/50 rounded-lg p-3 font-mono text-sm">
+                  {definition.formula}
+                </div>
+              </div>
+
+              {/* How to Interpret */}
+              <div>
+                <div className="flex items-center gap-2 text-sm font-medium mb-1">
+                  <Target className="h-4 w-4 text-amber-500" />
+                  How to Interpret
+                </div>
+                <p className="text-sm text-muted-foreground">{definition.interpretation}</p>
+              </div>
+
+              {/* Example */}
+              <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3 border border-blue-200 dark:border-blue-800">
+                <div className="flex items-center gap-2 text-sm font-medium text-blue-700 dark:text-blue-300 mb-1">
+                  <Lightbulb className="h-4 w-4" />
+                  Example
+                </div>
+                <p className="text-sm text-blue-600 dark:text-blue-400">{definition.example}</p>
+              </div>
             </div>
-            <p className="text-sm text-muted-foreground">{definition.description}</p>
           </div>
-
-          {/* Formula */}
-          <div>
-            <div className="flex items-center gap-2 text-sm font-medium mb-1">
-              <Calculator className="h-4 w-4 text-purple-500" />
-              How It's Calculated
-            </div>
-            <div className="bg-muted/50 rounded-lg p-3 font-mono text-sm">
-              {definition.formula}
-            </div>
-          </div>
-
-          {/* How to Interpret */}
-          <div>
-            <div className="flex items-center gap-2 text-sm font-medium mb-1">
-              <Target className="h-4 w-4 text-amber-500" />
-              How to Interpret
-            </div>
-            <p className="text-sm text-muted-foreground">{definition.interpretation}</p>
-          </div>
-
-          {/* Example */}
-          <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3 border border-blue-200 dark:border-blue-800">
-            <div className="flex items-center gap-2 text-sm font-medium text-blue-700 dark:text-blue-300 mb-1">
-              <Lightbulb className="h-4 w-4" />
-              Example
-            </div>
-            <p className="text-sm text-blue-600 dark:text-blue-400">{definition.example}</p>
-          </div>
-        </div>
+        </ScrollArea>
       </DialogContent>
     </Dialog>
   );
