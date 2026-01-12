@@ -460,14 +460,16 @@ export default function InvestmentPlanPage() {
     <div className="p-4 sm:p-6 space-y-4 sm:space-y-6 animate-fade-up">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
-        <div>
-          <h1 className="text-xl sm:text-2xl font-bold flex items-center gap-2 sm:gap-3">
-            <Brain className="h-5 w-5 sm:h-7 sm:w-7 text-primary" />
-            Investor DNA Assessment
-          </h1>
-          <p className="text-muted-foreground text-sm sm:text-base mt-1">
-            Discover your investor personality type
-          </p>
+        <div className="flex items-center gap-3">
+          <div className="p-2.5 rounded-xl bg-gradient-to-br from-purple-500/20 to-violet-500/10 border border-purple-500/30">
+            <Brain className="h-5 w-5 sm:h-6 sm:w-6 text-purple-400" />
+          </div>
+          <div>
+            <h1 className="text-xl sm:text-2xl font-bold text-foreground">Investor DNA Assessment</h1>
+            <p className="text-muted-foreground text-sm sm:text-base mt-0.5">
+              Discover your investor personality type
+            </p>
+          </div>
         </div>
 
         <Button 

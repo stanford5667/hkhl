@@ -182,10 +182,20 @@ export default function Watchlist() {
   };
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-4 sm:p-6 space-y-4 sm:space-y-6 animate-fade-up">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Watchlist</h1>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
+        <div className="flex items-center gap-3">
+          <div className="p-2.5 rounded-xl bg-gradient-to-br from-amber-500/20 to-yellow-500/10 border border-amber-500/30">
+            <Star className="h-5 w-5 sm:h-6 sm:w-6 text-amber-400" />
+          </div>
+          <div>
+            <h1 className="text-xl sm:text-2xl font-bold text-foreground">Watchlist</h1>
+            <p className="text-muted-foreground text-sm sm:text-base mt-0.5">
+              Track stocks and get price updates
+            </p>
+          </div>
+        </div>
         <AddStockDialog onAdd={handleAdd} isAdding={isAdding} />
       </div>
 

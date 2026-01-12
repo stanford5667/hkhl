@@ -48,7 +48,7 @@ export function TopBar() {
         parent: { label: pageMetadata[parentPath].title, href: parentPath }
       };
     }
-    return { title: "Asset Labs AI", subtitle: "Private Equity Intelligence" };
+    return { title: "Asset Labs AI", subtitle: "Portfolio Intelligence" };
   };
 
   const pageMeta = getPageMeta();

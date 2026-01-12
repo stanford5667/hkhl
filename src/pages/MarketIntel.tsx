@@ -62,14 +62,16 @@ export default function MarketIntel() {
     <div className="p-4 sm:p-6 space-y-4 sm:space-y-6 animate-fade-up">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
-        <div>
-          <h1 className="text-xl sm:text-2xl font-bold flex items-center gap-2 sm:gap-3">
-            <BarChart3 className="h-5 w-5 sm:h-7 sm:w-7 text-primary" />
-            Market Intelligence
-          </h1>
-          <p className="text-muted-foreground text-sm sm:text-base mt-1">
-            Portfolio Command Center & PE Industry Research
-          </p>
+        <div className="flex items-center gap-3">
+          <div className="p-2.5 rounded-xl bg-gradient-to-br from-primary/20 to-blue-500/10 border border-primary/30">
+            <BarChart3 className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
+          </div>
+          <div>
+            <h1 className="text-xl sm:text-2xl font-bold text-foreground">Market Intelligence</h1>
+            <p className="text-muted-foreground text-sm sm:text-base mt-0.5">
+              Economic indicators for portfolio analysis
+            </p>
+          </div>
         </div>
 
         <div className="flex items-center gap-2">
