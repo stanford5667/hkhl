@@ -6,11 +6,13 @@ import {
   BarChart3, 
   Search, 
   Menu,
-  ClipboardList
+  ClipboardList,
+  Shield
 } from "lucide-react";
 import { useState } from "react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Sidebar } from "./Sidebar";
+import { useAdmin } from "@/hooks/useAdmin";
 
 const mobileNavItems = [
   { label: "Portfolio", href: "/", icon: Briefcase },
@@ -98,6 +100,7 @@ export function MobileNav() {
 // Simplified sidebar content for mobile menu
 function MobileSidebarContent({ onNavigate }: { onNavigate: () => void }) {
   const location = useLocation();
+  const { isAdmin } = useAdmin();
   
   const navItems = [
     { label: "Portfolio Tracker", href: "/", icon: Briefcase },
@@ -105,6 +108,7 @@ function MobileSidebarContent({ onNavigate }: { onNavigate: () => void }) {
     { label: "Investment Plan", href: "/investment-plan", icon: ClipboardList },
     { label: "Market Intel", href: "/market-intel", icon: BarChart3 },
     { label: "Asset Research", href: "/asset-research", icon: Search },
+    ...(isAdmin ? [{ label: "Admin Portal", href: "/admin", icon: Shield }] : []),
   ];
 
   return (
