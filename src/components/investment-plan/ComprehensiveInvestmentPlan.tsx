@@ -237,10 +237,10 @@ export function ComprehensiveInvestmentResults({
   const maxDrawdown = (-10 - riskScore * 0.25).toFixed(0);
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white pb-24 sm:pb-32">
+    <div className="min-h-screen w-full bg-background text-foreground pb-24 sm:pb-32">
       {/* Header */}
-      <header className="sticky top-0 z-50 bg-[#0a0a0a]/90 backdrop-blur-xl border-b border-white/10">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-4">
+      <header className="sticky top-0 z-50 bg-background/90 backdrop-blur-xl border-b border-border">
+        <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-emerald-500 flex items-center justify-center">
@@ -300,7 +300,7 @@ export function ComprehensiveInvestmentResults({
         </div>
       </header>
 
-      <main className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
+      <main className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* ════════════════════════════════════════════════════════════════════
             HERO: Investor Archetype Card
         ════════════════════════════════════════════════════════════════════ */}
