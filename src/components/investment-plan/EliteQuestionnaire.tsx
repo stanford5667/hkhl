@@ -1339,18 +1339,21 @@ ${a.description}`).join('\n\n')}
   }
 
   // QUESTIONNAIRE PHASE - Multi-question pages with improved styling
-  // Using z-[60] to ensure this fullscreen overlay appears above the mobile nav (z-50)
+  // Using fixed inset-0 with high z-index for proper fullscreen overlay
   return (
-    <div className="min-h-[100dvh] bg-background text-foreground overflow-x-hidden relative z-[60]">
+    <div 
+      className="fixed inset-0 bg-background text-foreground overflow-hidden flex flex-col"
+      style={{ zIndex: 9999 }}
+    >
       {/* Ambient background */}
-      <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
+      <div className="absolute inset-0 pointer-events-none overflow-hidden z-0">
         <PulseGrid className="opacity-20" />
         <div className="absolute top-0 left-1/4 w-[300px] sm:w-[500px] h-[300px] sm:h-[500px] bg-primary/10 rounded-full blur-[80px] sm:blur-[120px]" />
         <div className="absolute bottom-0 right-1/4 w-[250px] sm:w-[400px] h-[250px] sm:h-[400px] bg-accent/10 rounded-full blur-[60px] sm:blur-[100px]" />
       </div>
 
       {/* Header */}
-      <header className="fixed top-0 left-0 right-0 z-[70] glass-nav">
+      <header className="shrink-0 sticky top-0 z-50 glass-nav bg-background/95 backdrop-blur-xl border-b border-border/50">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 py-3 sm:py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2 sm:gap-3">
@@ -1387,8 +1390,14 @@ ${a.description}`).join('\n\n')}
         </div>
       </header>
 
-      {/* Main content - scrollable with extra bottom padding for mobile */}
-      <main className="relative pt-16 sm:pt-24 pb-48 sm:pb-32 px-4 sm:px-6 min-h-[100dvh]">
+      {/* Main content - scrollable with proper padding for footer */}
+      <main 
+        className="flex-1 overflow-y-auto overflow-x-hidden px-4 sm:px-6 pt-4"
+        style={{ 
+          paddingBottom: 'calc(100px + env(safe-area-inset-bottom, 20px))',
+          WebkitOverflowScrolling: 'touch'
+        }}
+      >
         <div className="max-w-2xl mx-auto w-full">
           <AnimatePresence mode="wait">
             <motion.div
@@ -1497,27 +1506,32 @@ ${a.description}`).join('\n\n')}
         )}
       </AnimatePresence>
 
-      {/* Footer navigation - z-[70] to stay above mobile nav, bottom-0 since we're in fullscreen overlay */}
-      <footer className="fixed bottom-0 left-0 right-0 z-[70] glass-nav bg-background/95 backdrop-blur-xl border-t border-border">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 py-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+      {/* Footer navigation - sticky within flex container for proper mobile handling */}
+      <footer 
+        className="shrink-0 sticky bottom-0 z-50 bg-background/98 backdrop-blur-xl border-t border-border"
+        style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
+      >
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 py-3">
           <div className="flex items-center justify-between gap-3">
+            {/* Back Button - Large touch target */}
             <Button
               variant="ghost"
               onClick={handlePrevious}
               disabled={currentPageIndex === 0}
-              className="text-muted-foreground hover:text-foreground hover:bg-muted px-3 sm:px-4 h-12 sm:h-10"
+              className="text-muted-foreground hover:text-foreground hover:bg-muted min-h-[52px] min-w-[52px] px-4 rounded-xl"
             >
-              <ChevronLeft className="w-4 h-4 mr-1 sm:mr-2" />
-              <span className="hidden sm:inline">Back</span>
+              <ChevronLeft className="w-5 h-5" />
+              <span className="hidden sm:inline ml-1">Back</span>
             </Button>
 
+            {/* Continue Button - Prominent, easy to tap */}
             <Button
               onClick={handleNext}
               disabled={!isPageComplete}
-              className="bg-gradient-to-r from-primary to-secondary text-primary-foreground hover:opacity-90 px-6 sm:px-8 flex-1 sm:flex-none max-w-[220px] sm:max-w-none h-12 sm:h-10 text-base sm:text-sm font-medium"
+              className="bg-gradient-to-r from-primary to-secondary text-primary-foreground hover:opacity-90 flex-1 max-w-[260px] min-h-[52px] text-base font-semibold rounded-xl shadow-lg active:scale-[0.98] transition-transform"
             >
               {currentPageIndex === PAGES.length - 1 ? 'Get My Strategy' : 'Continue'}
-              <ChevronRight className="w-4 h-4 ml-2" />
+              <ChevronRight className="w-5 h-5 ml-2" />
             </Button>
           </div>
         </div>
