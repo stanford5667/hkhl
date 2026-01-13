@@ -87,7 +87,7 @@
 
   /* Light mode */
   .light {
-    --background: 0 0% 100%;
+    --background: 210 20% 98%;
     --foreground: 222 47% 11%;
 
     --card: 0 0% 100%;
@@ -127,13 +127,13 @@
     --chart-4: 350 84% 50%;
     --chart-5: 280 65% 50%;
 
-    --sidebar-background: 0 0% 98%;
-    --sidebar-foreground: 215 16% 47%;
+    --sidebar-background: 210 20% 96%;
+    --sidebar-foreground: 215 16% 35%;
     --sidebar-primary: 217 91% 50%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 215 25% 93%;
+    --sidebar-accent: 215 25% 90%;
     --sidebar-accent-foreground: 222 47% 11%;
-    --sidebar-border: 215 25% 90%;
+    --sidebar-border: 215 25% 88%;
     --sidebar-ring: 217 91% 50%;
 
     /* Custom tokens */
@@ -141,10 +141,10 @@
     --gradient-success: linear-gradient(135deg, hsl(160 84% 32%) 0%, hsl(160 84% 25%) 100%);
     --gradient-card: linear-gradient(180deg, hsl(0 0% 100%) 0%, hsl(215 25% 98%) 100%);
     --shadow-glow: 0 0 40px hsl(217 91% 50% / 0.1);
-    --shadow-card: 0 4px 24px hsl(222 47% 11% / 0.08);
+    --shadow-card: 0 4px 24px hsl(222 47% 11% / 0.06);
 
     /* Behavioral Design Tokens */
-    --surface-1: 0 0% 98%;
+    --surface-1: 210 20% 98%;
     --surface-2: 0 0% 100%;
     --surface-3: 215 25% 96%;
     --surface-4: 215 25% 93%;
@@ -231,12 +231,20 @@
 @layer components {
   /* Glass card effect */
   .glass-card {
-    @apply bg-card/50 backdrop-blur-xl border border-border/50 shadow-xl;
+    @apply bg-card/80 backdrop-blur-xl border border-border/50 shadow-lg;
+  }
+  
+  .light .glass-card {
+    @apply bg-card/90 shadow-md border-border/30;
   }
 
   /* Gradient text */
   .gradient-text {
     @apply bg-clip-text text-transparent bg-gradient-to-r from-primary to-blue-400;
+  }
+  
+  .light .gradient-text {
+    @apply from-primary to-blue-600;
   }
 
   /* Status indicators */
@@ -279,6 +287,10 @@
     @apply scale-[1.01] border-primary/30;
     box-shadow: 0 8px 32px hsl(222 47% 3% / 0.6);
   }
+  
+  .light .card-interactive:hover {
+    box-shadow: 0 8px 32px hsl(222 47% 11% / 0.1);
+  }
 
   .card-interactive:active {
     @apply scale-[0.99];
@@ -291,6 +303,10 @@
 
   .card-glow:hover {
     box-shadow: 0 0 40px hsl(217 91% 60% / 0.1);
+  }
+  
+  .light .card-glow:hover {
+    box-shadow: 0 0 40px hsl(217 91% 50% / 0.15);
   }
 
   /* Accent bar variants */
@@ -359,13 +375,25 @@
     @apply bg-emerald-500/30 border-emerald-500/50;
     animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
   }
+  
+  .light .heat-extreme {
+    @apply bg-emerald-500/20 border-emerald-500/40;
+  }
 
   .heat-high {
     @apply bg-emerald-500/20 border-emerald-500/40;
   }
+  
+  .light .heat-high {
+    @apply bg-emerald-500/15 border-emerald-500/30;
+  }
 
   .heat-medium {
     @apply bg-emerald-500/10 border-emerald-500/30;
+  }
+  
+  .light .heat-medium {
+    @apply bg-emerald-500/10 border-emerald-500/25;
   }
 
   /* Heat levels - negative */
@@ -373,13 +401,25 @@
     @apply bg-rose-500/30 border-rose-500/50;
     animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
   }
+  
+  .light .heat-extreme-negative {
+    @apply bg-rose-500/20 border-rose-500/40;
+  }
 
   .heat-high-negative {
     @apply bg-rose-500/20 border-rose-500/40;
   }
+  
+  .light .heat-high-negative {
+    @apply bg-rose-500/15 border-rose-500/30;
+  }
 
   .heat-medium-negative {
     @apply bg-rose-500/10 border-rose-500/30;
+  }
+  
+  .light .heat-medium-negative {
+    @apply bg-rose-500/10 border-rose-500/25;
   }
 
   /* Health indicator dots */
@@ -391,15 +431,27 @@
     @apply bg-success;
     box-shadow: 0 0 8px hsl(160 84% 39% / 0.5);
   }
+  
+  .light .health-dot-good {
+    box-shadow: 0 0 8px hsl(160 84% 32% / 0.4);
+  }
 
   .health-dot-warning {
     @apply bg-warning;
     box-shadow: 0 0 8px hsl(38 92% 50% / 0.5);
   }
+  
+  .light .health-dot-warning {
+    box-shadow: 0 0 8px hsl(38 92% 45% / 0.4);
+  }
 
   .health-dot-critical {
     @apply bg-destructive;
     box-shadow: 0 0 8px hsl(350 89% 60% / 0.5);
+  }
+  
+  .light .health-dot-critical {
+    box-shadow: 0 0 8px hsl(350 84% 50% / 0.4);
   }
 
   /* Skeleton loading */
@@ -410,6 +462,10 @@
   /* Second-order effect box */
   .second-order-box {
     @apply px-3 py-2 rounded-lg border border-amber-500/30 bg-amber-500/10;
+  }
+  
+  .light .second-order-box {
+    @apply border-amber-500/40 bg-amber-500/15;
   }
 
   /* Stat card */
@@ -425,9 +481,17 @@
   .badge-bullish {
     @apply bg-emerald-500/20 text-emerald-400 border border-emerald-500/30;
   }
+  
+  .light .badge-bullish {
+    @apply bg-emerald-500/15 text-emerald-600 border-emerald-500/40;
+  }
 
   .badge-bearish {
     @apply bg-rose-500/20 text-rose-400 border border-rose-500/30;
+  }
+  
+  .light .badge-bearish {
+    @apply bg-rose-500/15 text-rose-600 border-rose-500/40;
   }
 
   .badge-neutral {
@@ -438,10 +502,18 @@
   .badge-high-impact {
     @apply bg-amber-500/20 text-amber-400 border border-amber-500/30;
   }
+  
+  .light .badge-high-impact {
+    @apply bg-amber-500/15 text-amber-600 border-amber-500/40;
+  }
 
   /* Ticker badge */
   .ticker-badge {
     @apply bg-primary/20 text-primary border border-primary/30 font-mono text-xs px-2 py-0.5 rounded font-semibold;
+  }
+  
+  .light .ticker-badge {
+    @apply bg-primary/10 border-primary/25;
   }
 
   /* Ticker stream animation */
@@ -539,22 +611,42 @@
     transform: translateY(-2px);
     box-shadow: 0 8px 25px hsl(222 47% 3% / 0.4);
   }
+  
+  .light .hover-lift:hover {
+    box-shadow: 0 8px 25px hsl(222 47% 11% / 0.08);
+  }
 
   /* Glow utilities */
   .glow-emerald {
     box-shadow: 0 0 20px hsl(160 84% 39% / 0.3);
   }
+  
+  .light .glow-emerald {
+    box-shadow: 0 0 20px hsl(160 84% 32% / 0.25);
+  }
 
   .glow-rose {
     box-shadow: 0 0 20px hsl(350 89% 60% / 0.3);
+  }
+  
+  .light .glow-rose {
+    box-shadow: 0 0 20px hsl(350 84% 50% / 0.25);
   }
 
   .glow-amber {
     box-shadow: 0 0 20px hsl(38 92% 50% / 0.3);
   }
+  
+  .light .glow-amber {
+    box-shadow: 0 0 20px hsl(38 92% 45% / 0.25);
+  }
 
   .glow-primary {
     box-shadow: 0 0 20px hsl(217 91% 60% / 0.3);
+  }
+  
+  .light .glow-primary {
+    box-shadow: 0 0 20px hsl(217 91% 50% / 0.25);
   }
 }
 
