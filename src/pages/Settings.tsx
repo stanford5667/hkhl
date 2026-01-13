@@ -2,7 +2,8 @@ import { useState, useRef, useEffect } from "react";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Camera, Loader2, User, Wifi, WifiOff, Trash2, LogOut } from "lucide-react";
+import { Camera, Loader2, User, Wifi, WifiOff, Trash2, LogOut, Settings as SettingsIcon, Shield, Sparkles, Crown } from "lucide-react";
+import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -15,6 +16,7 @@ import { useDevMode } from "@/contexts/DevModeContext";
 import { supabase } from "@/integrations/supabase/client";
 import { clearAllCache } from "@/services/marketDataService";
 import { clearMarketDataCache } from "@/services/MarketDataManager";
+import { PageHeader, PAGE_ICON_PRESETS } from "@/components/layout/PageHeader";
 
 const profileSchema = z.object({
   fullName: z.string().trim().min(2, "Name must be at least 2 characters").max(100, "Name is too long"),
@@ -30,6 +32,19 @@ interface Profile {
   company: string | null;
   avatar_url: string | null;
 }
+
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: { staggerChildren: 0.1 }
+  }
+};
+
+const cardVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.4 } }
+};
 
 export default function Settings() {
   const { user, signOut } = useAuth();
@@ -191,159 +206,250 @@ export default function Settings() {
   };
 
   return (
-    <div className="p-6 lg:p-8 max-w-2xl mx-auto">
-      <div className="mb-8">
-        <h1 className="h1 mb-2">Settings</h1>
-        <p className="body">Manage your profile and account preferences</p>
+    <div className="min-h-screen">
+      {/* Hero Section with Gradient Background */}
+      <div className="relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-violet-500/5 to-transparent" />
+        <div className="absolute top-0 right-0 w-96 h-96 bg-primary/10 rounded-full blur-3xl opacity-30" />
+        <div className="absolute bottom-0 left-0 w-64 h-64 bg-violet-500/10 rounded-full blur-3xl opacity-20" />
+        
+        <div className="relative p-6 lg:p-8 max-w-4xl mx-auto">
+          <PageHeader
+            icon={SettingsIcon}
+            title="Account Settings"
+            subtitle="Manage your profile, preferences, and account security"
+            {...PAGE_ICON_PRESETS.violet}
+          />
+        </div>
       </div>
 
-      <Card className="glass-card">
-        <CardHeader>
-          <CardTitle>Profile Information</CardTitle>
-          <CardDescription>
-            Update your personal details and profile picture
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          {/* Avatar Section */}
-          <div className="flex items-center gap-6">
-            <div className="relative group">
-              <Avatar className="h-24 w-24 border-2 border-border">
-                <AvatarImage src={avatarUrl || undefined} alt="Profile" />
-                <AvatarFallback className="bg-primary/10 text-primary text-xl">
-                  {getInitials(profile?.full_name || null)}
-                </AvatarFallback>
-              </Avatar>
-              <button
-                type="button"
-                onClick={handleAvatarClick}
-                disabled={isUploading}
-                className="absolute inset-0 flex items-center justify-center bg-background/80 rounded-full opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+      <motion.div 
+        className="p-6 lg:p-8 max-w-4xl mx-auto space-y-6"
+        variants={containerVariants}
+        initial="hidden"
+        animate="visible"
+      >
+
+        {/* Profile Card */}
+        <motion.div variants={cardVariants}>
+          <Card className="glass-card overflow-hidden">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-primary/10 to-transparent rounded-bl-full" />
+            <CardHeader className="relative">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-gradient-to-br from-primary/20 to-violet-500/20 border border-primary/30">
+                  <User className="h-5 w-5 text-primary" />
+                </div>
+                <div>
+                  <CardTitle className="text-lg">Profile Information</CardTitle>
+                  <CardDescription>
+                    Update your personal details and profile picture
+                  </CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-6 relative">
+              {/* Avatar Section */}
+              <div className="flex items-center gap-6 p-4 rounded-xl bg-gradient-to-r from-secondary/50 to-transparent border border-border/50">
+                <div className="relative group">
+                  <div className="absolute -inset-1 bg-gradient-to-r from-primary/50 to-violet-500/50 rounded-full blur opacity-25 group-hover:opacity-50 transition-opacity" />
+                  <Avatar className="relative h-24 w-24 border-2 border-primary/30">
+                    <AvatarImage src={avatarUrl || undefined} alt="Profile" />
+                    <AvatarFallback className="bg-gradient-to-br from-primary/20 to-violet-500/20 text-primary text-xl font-semibold">
+                      {getInitials(profile?.full_name || null)}
+                    </AvatarFallback>
+                  </Avatar>
+                  <button
+                    type="button"
+                    onClick={handleAvatarClick}
+                    disabled={isUploading}
+                    className="absolute inset-0 flex items-center justify-center bg-background/80 rounded-full opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                  >
+                    {isUploading ? (
+                      <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                    ) : (
+                      <Camera className="h-6 w-6 text-foreground" />
+                    )}
+                  </button>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleAvatarChange}
+                    className="hidden"
+                  />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-foreground flex items-center gap-2">
+                    Profile Picture
+                    <Sparkles className="h-4 w-4 text-amber-400" />
+                  </h3>
+                  <p className="text-sm text-muted-foreground">
+                    Click to upload a new photo. Max 5MB.
+                  </p>
+                </div>
+              </div>
+
+              {/* Form Section */}
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="email" className="text-foreground font-medium">Email</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={user?.email || ""}
+                    disabled
+                    className="bg-secondary/50 border-border text-muted-foreground"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Email cannot be changed
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="fullName" className="text-foreground font-medium">Full Name</Label>
+                  <Input
+                    id="fullName"
+                    type="text"
+                    placeholder="John Smith"
+                    className="bg-secondary border-border text-foreground placeholder:text-muted-foreground focus:border-primary focus:ring-1 focus:ring-primary/50"
+                    {...form.register("fullName")}
+                  />
+                  {form.formState.errors.fullName && (
+                    <p className="text-sm text-destructive">
+                      {form.formState.errors.fullName.message}
+                    </p>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="company" className="text-foreground font-medium">Company</Label>
+                  <Input
+                    id="company"
+                    type="text"
+                    placeholder="Acme Capital"
+                    className="bg-secondary border-border text-foreground placeholder:text-muted-foreground focus:border-primary focus:ring-1 focus:ring-primary/50"
+                    {...form.register("company")}
+                  />
+                  {form.formState.errors.company && (
+                    <p className="text-sm text-destructive">
+                      {form.formState.errors.company.message}
+                    </p>
+                  )}
+                </div>
+
+                <div className="pt-4">
+                  <Button type="submit" disabled={isLoading} className="gap-2">
+                    {isLoading ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Saving...
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="h-4 w-4" />
+                        Save Changes
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </form>
+            </CardContent>
+          </Card>
+        </motion.div>
+
+        {/* Market Data Settings */}
+        <motion.div variants={cardVariants}>
+          <MarketDataSettings />
+        </motion.div>
+
+        {/* Premium Features Teaser */}
+        <motion.div variants={cardVariants}>
+          <Card className="glass-card overflow-hidden border-amber-500/20">
+            <div className="absolute inset-0 bg-gradient-to-r from-amber-500/5 via-transparent to-orange-500/5" />
+            <CardHeader className="relative">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-gradient-to-br from-amber-500/20 to-orange-500/20 border border-amber-500/30">
+                  <Crown className="h-5 w-5 text-amber-400" />
+                </div>
+                <div>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    Premium Features
+                    <span className="text-xs px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400 font-medium">
+                      Coming Soon
+                    </span>
+                  </CardTitle>
+                  <CardDescription>
+                    Unlock advanced analytics and exclusive insights
+                  </CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="relative">
+              <div className="grid sm:grid-cols-3 gap-4">
+                {[
+                  { label: "AI Portfolio Advisor", icon: "🤖" },
+                  { label: "Real-time Alerts", icon: "⚡" },
+                  { label: "Priority Support", icon: "🎯" },
+                ].map((feature) => (
+                  <div 
+                    key={feature.label}
+                    className="p-3 rounded-lg bg-secondary/50 border border-border/50 text-center"
+                  >
+                    <span className="text-2xl mb-2 block">{feature.icon}</span>
+                    <span className="text-sm font-medium text-muted-foreground">{feature.label}</span>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+
+        {/* Sign Out Section */}
+        <motion.div variants={cardVariants}>
+          <Card className="glass-card overflow-hidden border-rose-500/20">
+            <div className="absolute inset-0 bg-gradient-to-r from-rose-500/5 via-transparent to-transparent" />
+            <CardHeader className="relative">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-gradient-to-br from-rose-500/20 to-pink-500/20 border border-rose-500/30">
+                  <Shield className="h-5 w-5 text-rose-400" />
+                </div>
+                <div>
+                  <CardTitle className="text-lg">Account Security</CardTitle>
+                  <CardDescription>
+                    Manage your session and sign out securely
+                  </CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="relative">
+              <Button 
+                variant="destructive" 
+                onClick={async () => {
+                  try {
+                    await signOut();
+                    toast({
+                      title: "Signed out",
+                      description: "You have been logged out successfully.",
+                    });
+                    window.location.href = '/';
+                  } catch (error) {
+                    console.error('Sign out failed:', error);
+                    toast({
+                      title: "Sign out failed",
+                      description: "Please try again.",
+                      variant: "destructive",
+                    });
+                  }
+                }}
+                className="gap-2"
               >
-                {isUploading ? (
-                  <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                ) : (
-                  <Camera className="h-6 w-6 text-foreground" />
-                )}
-              </button>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                onChange={handleAvatarChange}
-                className="hidden"
-              />
-            </div>
-            <div>
-              <h3 className="font-medium text-foreground">Profile Picture</h3>
-              <p className="text-sm text-muted-foreground">
-                Click to upload a new photo. Max 5MB.
-              </p>
-            </div>
-          </div>
-
-          {/* Form Section */}
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="email" className="text-foreground">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                value={user?.email || ""}
-                disabled
-                className="bg-secondary/50 border-border text-muted-foreground"
-              />
-              <p className="text-xs text-muted-foreground">
-                Email cannot be changed
-              </p>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="fullName" className="text-foreground">Full Name</Label>
-              <Input
-                id="fullName"
-                type="text"
-                placeholder="John Smith"
-                className="bg-secondary border-border text-foreground placeholder:text-muted-foreground focus:border-primary focus:ring-1 focus:ring-primary/50"
-                {...form.register("fullName")}
-              />
-              {form.formState.errors.fullName && (
-                <p className="text-sm text-destructive">
-                  {form.formState.errors.fullName.message}
-                </p>
-              )}
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="company" className="text-foreground">Company</Label>
-              <Input
-                id="company"
-                type="text"
-                placeholder="Acme Capital"
-                className="bg-secondary border-border text-foreground placeholder:text-muted-foreground focus:border-primary focus:ring-1 focus:ring-primary/50"
-                {...form.register("company")}
-              />
-              {form.formState.errors.company && (
-                <p className="text-sm text-destructive">
-                  {form.formState.errors.company.message}
-                </p>
-              )}
-            </div>
-
-            <div className="pt-4">
-              <Button type="submit" disabled={isLoading}>
-                {isLoading ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Saving...
-                  </>
-                ) : (
-                  "Save Changes"
-                )}
+                <LogOut className="h-4 w-4" />
+                Sign Out
               </Button>
-            </div>
-          </form>
-        </CardContent>
-      </Card>
-
-      {/* Market Data Settings */}
-      <MarketDataSettings />
-
-      {/* Sign Out Section */}
-      <Card className="glass-card border-rose-500/20">
-        <CardHeader>
-          <CardTitle className="text-rose-400">Sign Out</CardTitle>
-          <CardDescription>
-            Sign out of your account on this device
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Button 
-            variant="destructive" 
-            onClick={async () => {
-              try {
-                await signOut();
-                toast({
-                  title: "Signed out",
-                  description: "You have been logged out successfully.",
-                });
-                window.location.href = '/';
-              } catch (error) {
-                console.error('Sign out failed:', error);
-                toast({
-                  title: "Sign out failed",
-                  description: "Please try again.",
-                  variant: "destructive",
-                });
-              }
-            }}
-            className="gap-2"
-          >
-            <LogOut className="h-4 w-4" />
-            Sign Out
-          </Button>
-        </CardContent>
-      </Card>
+            </CardContent>
+          </Card>
+        </motion.div>
+      </motion.div>
     </div>
   );
 }
@@ -362,29 +468,39 @@ function MarketDataSettings() {
   };
 
   return (
-    <Card className="glass-card">
-      <CardHeader>
-        <CardTitle>Market Data</CardTitle>
-        <CardDescription>
-          Control live market data fetching to manage API costs
-        </CardDescription>
+    <Card className="glass-card overflow-hidden">
+      <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-emerald-500/10 to-transparent rounded-bl-full" />
+      <CardHeader className="relative">
+        <div className="flex items-center gap-3">
+          <div className="p-2 rounded-lg bg-gradient-to-br from-emerald-500/20 to-teal-500/20 border border-emerald-500/30">
+            <Wifi className="h-5 w-5 text-emerald-400" />
+          </div>
+          <div>
+            <CardTitle className="text-lg">Market Data</CardTitle>
+            <CardDescription>
+              Control live market data fetching to manage API costs
+            </CardDescription>
+          </div>
+        </div>
       </CardHeader>
-      <CardContent className="space-y-6">
-        <div className="flex items-center justify-between">
+      <CardContent className="space-y-6 relative">
+        <div className="flex items-center justify-between p-4 rounded-xl bg-gradient-to-r from-secondary/50 to-transparent border border-border/50">
           <div className="space-y-0.5">
-            <Label htmlFor="market-data-toggle" className="text-foreground">
+            <Label htmlFor="market-data-toggle" className="text-foreground font-medium">
               Enable live market data
             </Label>
             <p className="text-sm text-muted-foreground">
               When disabled, the app shows cached data to reduce API costs
             </p>
           </div>
-          <div className="flex items-center gap-2">
-            {marketDataEnabled ? (
-              <Wifi className="h-4 w-4 text-emerald-400" />
-            ) : (
-              <WifiOff className="h-4 w-4 text-amber-400" />
-            )}
+          <div className="flex items-center gap-3">
+            <div className={`px-3 py-1 rounded-full text-xs font-medium ${
+              marketDataEnabled 
+                ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' 
+                : 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
+            }`}>
+              {marketDataEnabled ? 'Live' : 'Cached'}
+            </div>
             <Switch
               id="market-data-toggle"
               checked={marketDataEnabled}
@@ -393,10 +509,14 @@ function MarketDataSettings() {
           </div>
         </div>
 
-        <div className="flex items-center justify-between pt-4 border-t border-border">
-          <div className="space-y-0.5">
-            <p className="text-sm font-medium text-foreground">API calls this session</p>
-            <p className="text-2xl font-bold tabular-nums text-foreground">{apiCallCount}</p>
+        <div className="grid sm:grid-cols-2 gap-4">
+          <div className="p-4 rounded-xl bg-secondary/30 border border-border/50">
+            <p className="text-sm font-medium text-muted-foreground mb-1">API calls this session</p>
+            <p className="text-3xl font-bold tabular-nums text-foreground">{apiCallCount}</p>
+          </div>
+          <div className="p-4 rounded-xl bg-secondary/30 border border-border/50">
+            <p className="text-sm font-medium text-muted-foreground mb-1">Cache Status</p>
+            <p className="text-lg font-semibold text-emerald-400">Active</p>
           </div>
         </div>
 
