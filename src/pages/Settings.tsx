@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Camera, Loader2, User, Wifi, WifiOff, Trash2, LogOut, Settings as SettingsIcon, Shield, Sparkles, Crown } from "lucide-react";
+import { Camera, Loader2, User, Wifi, WifiOff, Trash2, LogOut, Settings as SettingsIcon, Shield, Sparkles, Crown, Palette } from "lucide-react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,6 +17,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { clearAllCache } from "@/services/marketDataService";
 import { clearMarketDataCache } from "@/services/MarketDataManager";
 import { PageHeader, PAGE_ICON_PRESETS } from "@/components/layout/PageHeader";
+import { ThemeToggle } from "@/components/theme/ThemeToggle";
 
 const profileSchema = z.object({
   fullName: z.string().trim().min(2, "Name must be at least 2 characters").max(100, "Name is too long"),
@@ -353,6 +354,37 @@ export default function Settings() {
                   </Button>
                 </div>
               </form>
+            </CardContent>
+          </Card>
+        </motion.div>
+
+        {/* Appearance Settings */}
+        <motion.div variants={cardVariants}>
+          <Card className="glass-card overflow-hidden">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-violet-500/10 to-transparent rounded-bl-full" />
+            <CardHeader className="relative">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-gradient-to-br from-violet-500/20 to-purple-500/20 border border-violet-500/30">
+                  <Palette className="h-5 w-5 text-violet-400" />
+                </div>
+                <div>
+                  <CardTitle className="text-lg">Appearance</CardTitle>
+                  <CardDescription>
+                    Customize the look and feel of the app
+                  </CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="relative">
+              <div className="flex items-center justify-between p-4 rounded-xl bg-secondary/50 border border-border/50">
+                <div>
+                  <h3 className="font-semibold text-foreground">Theme</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Switch between light and dark mode
+                  </p>
+                </div>
+                <ThemeToggle />
+              </div>
             </CardContent>
           </Card>
         </motion.div>

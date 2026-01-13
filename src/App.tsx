@@ -17,6 +17,7 @@ import { CompanyRedirect } from "./components/shared/CompanyRedirect";
 import { PageLoader } from "@/components/shared/PageLoader";
 import { ErrorBoundary } from "@/components/shared/ErrorBoundary";
 import { UpgradeModal } from "@/components/premium/UpgradeModal";
+import { ThemeProvider } from "@/components/theme/ThemeProvider";
 
 // Lazy load all pages for code splitting
 const Pipeline = lazy(() => import('./pages/Pipeline'));
@@ -70,11 +71,12 @@ const App = () => {
 
   return (
     <ErrorBoundary>
-      <QueryClientProvider client={queryClient}>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
+      <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
+        <QueryClientProvider client={queryClient}>
+          <TooltipProvider>
+            <Toaster />
+            <Sonner />
+            <BrowserRouter>
             <AuthProvider>
               <OrganizationProvider>
                 <UnifiedDataProvider>
@@ -144,7 +146,8 @@ const App = () => {
           </BrowserRouter>
         </TooltipProvider>
       </QueryClientProvider>
-    </ErrorBoundary>
+    </ThemeProvider>
+  </ErrorBoundary>
   );
 };
 
