@@ -1109,29 +1109,145 @@ export default function Portfolio() {
   // Empty state when user has no portfolios
   if (!portfoliosLoading && portfolios.length === 0) {
     return (
-      <motion.div 
-        className="p-6 min-h-[80vh] flex items-center justify-center"
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-      >
-        <Card className="max-w-lg w-full bg-gradient-to-br from-card to-secondary/20 border-primary/20">
-          <CardContent className="p-8 text-center space-y-6">
-            <div className="mx-auto w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
-              <Wallet className="h-8 w-8 text-primary" />
+      <div className="relative">
+        {/* Hero background gradient */}
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-background to-background" />
+        
+        <motion.div 
+          className="relative p-6 min-h-[85vh] flex flex-col"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+        >
+          {/* Header */}
+          <motion.div
+            className="flex items-center gap-3 mb-8"
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+          >
+            <div className="p-2.5 rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/20">
+              <Wallet className="h-6 w-6 text-primary" />
             </div>
-            <div className="space-y-2">
-              <h2 className="text-2xl font-bold">Build Your First Portfolio</h2>
-              <p className="text-muted-foreground">
-                Create a personalized investment portfolio using our AI-powered Portfolio Builder. 
-                Answer a few questions and get an optimized allocation tailored to your goals.
-              </p>
+            <div>
+              <h1 className="text-2xl font-bold text-foreground">Portfolio Tracker</h1>
+              <p className="text-sm text-muted-foreground">Track, analyze, and optimize your investments</p>
             </div>
-            <Button onClick={() => navigate('/backtester')} size="lg" className="gap-2">
-              <Zap className="h-5 w-5" />
-              Open Portfolio Builder
-            </Button>
-          </CardContent>
-        </Card>
+          </motion.div>
+
+          {/* Main content - centered empty state */}
+          <div className="flex-1 flex items-center justify-center">
+            <motion.div
+              className="relative w-full max-w-2xl"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+            >
+              {/* Decorative background elements */}
+              <div className="absolute -top-20 -left-20 w-40 h-40 bg-primary/10 rounded-full blur-3xl" />
+              <div className="absolute -bottom-20 -right-20 w-40 h-40 bg-primary/5 rounded-full blur-3xl" />
+              
+              {/* Main card */}
+              <Card className="relative bg-gradient-to-br from-card via-card to-primary/5 border-border/50 shadow-2xl overflow-hidden">
+                {/* Top accent gradient */}
+                <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-primary via-primary/80 to-primary/50" />
+                
+                <CardContent className="p-8 sm:p-12 text-center">
+                  {/* Icon with glow */}
+                  <motion.div
+                    className="relative inline-flex mb-8"
+                    initial={{ scale: 0.8, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={{ delay: 0.3, type: "spring" }}
+                  >
+                    <div className="absolute inset-0 bg-primary/20 rounded-2xl blur-xl animate-pulse" />
+                    <div className="relative w-20 h-20 rounded-2xl bg-gradient-to-br from-primary/30 to-primary/10 border border-primary/30 flex items-center justify-center">
+                      <LineChart className="h-10 w-10 text-primary" />
+                    </div>
+                    <motion.div
+                      className="absolute -top-2 -right-2 w-8 h-8 rounded-full bg-amber-500/20 border border-amber-500/30 flex items-center justify-center"
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      transition={{ delay: 0.5, type: "spring" }}
+                    >
+                      <Zap className="h-4 w-4 text-amber-400" />
+                    </motion.div>
+                  </motion.div>
+                  
+                  {/* Title */}
+                  <motion.h2
+                    className="text-2xl sm:text-3xl font-bold text-foreground mb-4"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.35 }}
+                  >
+                    Build Your First Portfolio
+                  </motion.h2>
+                  
+                  {/* Description */}
+                  <motion.p
+                    className="text-muted-foreground text-base sm:text-lg leading-relaxed max-w-md mx-auto mb-8"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.4 }}
+                  >
+                    Create a personalized investment portfolio using our AI-powered Portfolio Builder. 
+                    Answer a few questions and get an optimized allocation tailored to your goals.
+                  </motion.p>
+                  
+                  {/* Feature badges */}
+                  <motion.div
+                    className="flex flex-wrap justify-center gap-2 mb-8"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.45 }}
+                  >
+                    {[
+                      { icon: BarChart3, label: "AI Analysis" },
+                      { icon: TrendingUp, label: "Performance Tracking" },
+                      { icon: RefreshCw, label: "Auto Rebalancing" },
+                    ].map((feature, idx) => (
+                      <motion.div
+                        key={feature.label}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-secondary/50 border border-border text-sm text-muted-foreground"
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ delay: 0.5 + idx * 0.05 }}
+                      >
+                        <feature.icon className="h-3.5 w-3.5 text-primary" />
+                        <span>{feature.label}</span>
+                      </motion.div>
+                    ))}
+                  </motion.div>
+                  
+                  {/* CTA Button */}
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.55 }}
+                  >
+                    <Button 
+                      onClick={() => navigate('/portfolio-visualizer')} 
+                      size="lg" 
+                      className="gap-2 px-8 shadow-lg shadow-primary/25 hover:shadow-primary/40 transition-all group"
+                    >
+                      <Zap className="h-5 w-5" />
+                      Open Portfolio Builder
+                      <ChevronRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+                    </Button>
+                  </motion.div>
+                </CardContent>
+              </Card>
+              
+              {/* Bottom accent line */}
+              <motion.div
+                className="absolute -bottom-px left-1/2 -translate-x-1/2 w-32 h-px bg-gradient-to-r from-transparent via-primary/50 to-transparent"
+                initial={{ scaleX: 0 }}
+                animate={{ scaleX: 1 }}
+                transition={{ delay: 0.7 }}
+              />
+            </motion.div>
+          </div>
+        </motion.div>
         
         <CreatePortfolioDialog 
           open={showCreatePortfolioDialog} 
@@ -1139,7 +1255,7 @@ export default function Portfolio() {
           onSave={handleCreatePortfolio} 
           isSaving={isSaving} 
         />
-      </motion.div>
+      </div>
     );
   }
   return <motion.div className="p-4 sm:p-6 space-y-4 sm:space-y-6 animate-fade-up" variants={containerVariants} initial="hidden" animate="visible">
