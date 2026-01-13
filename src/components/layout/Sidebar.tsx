@@ -7,6 +7,7 @@ import { useOrganization } from "@/contexts/OrganizationContext";
 import { useAdmin } from "@/hooks/useAdmin";
 import { OrganizationSwitcher } from "@/components/organization/OrganizationSwitcher";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -24,23 +25,14 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
 import { Switch } from "@/components/ui/switch";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
-  LayoutDashboard,
-  Users,
-  Folder,
   Settings,
   ChevronLeft,
-  ChevronDown,
+  ChevronRight,
   LogOut,
   User,
-  Sparkles,
   CheckSquare,
   TrendingUp,
   Briefcase,
@@ -48,21 +40,16 @@ import {
   Calculator,
   BarChart3,
   FlaskConical,
-  Star,
-  Sparkles as SparklesIcon,
-  Activity,
-  Brain,
   PieChart,
-  Compass,
   SlidersHorizontal,
   Eye,
-  EyeOff,
   Newspaper,
-  Building2,
   Search,
   ClipboardList,
   Headphones,
   Shield,
+  Sparkles,
+  Zap,
 } from "lucide-react";
 
 interface NavItem {
@@ -72,22 +59,13 @@ interface NavItem {
   icon: React.ElementType;
   badge?: number;
   requiresAssetType?: string;
-  children?: NavItem[];
+  isPremium?: boolean;
 }
 
 const STORAGE_KEY = "sidebar-hidden-tabs";
-const ORG_EXPANDED_KEY = "sidebar-org-expanded";
 
 export function Sidebar() {
   const [collapsed, setCollapsed] = useState(false);
-  const [orgExpanded, setOrgExpanded] = useState(() => {
-    try {
-      const stored = localStorage.getItem(ORG_EXPANDED_KEY);
-      return stored ? JSON.parse(stored) : true;
-    } catch {
-      return true;
-    }
-  });
   const [hiddenTabs, setHiddenTabs] = useState<string[]>(() => {
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
@@ -106,11 +84,6 @@ export function Sidebar() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(hiddenTabs));
   }, [hiddenTabs]);
 
-  // Persist org expanded state
-  useEffect(() => {
-    localStorage.setItem(ORG_EXPANDED_KEY, JSON.stringify(orgExpanded));
-  }, [orgExpanded]);
-
   const toggleTab = (href: string) => {
     setHiddenTabs(prev => 
       prev.includes(href) 
@@ -119,37 +92,6 @@ export function Sidebar() {
     );
   };
 
-  // Organization sub-items
-  const organizationChildren: NavItem[] = useMemo(() => {
-    const children: NavItem[] = [
-      { 
-        label: "Contacts", 
-        subtitle: "Network",
-        href: "/contacts", 
-        icon: Users 
-      },
-      { 
-        label: "Tasks", 
-        subtitle: "To-Do",
-        href: "/tasks", 
-        icon: CheckSquare 
-      },
-    ];
-    
-    // Add Pipeline only if private_equity is enabled
-    if (enabledAssetTypes.includes('private_equity')) {
-      children.push({ 
-        label: "Pipeline", 
-        subtitle: "Deals in Progress",
-        href: "/pipeline", 
-        icon: Target,
-        requiresAssetType: 'private_equity',
-      });
-    }
-    
-    return children;
-  }, [enabledAssetTypes]);
-
   // Build navigation based on enabled asset types
   const allNavigation = useMemo<NavItem[]>(() => {
     const items: NavItem[] = [
@@ -157,7 +99,8 @@ export function Sidebar() {
         label: "Portfolio Builder", 
         subtitle: "Build & Analyze",
         href: "/portfolio-visualizer", 
-        icon: PieChart 
+        icon: PieChart,
+        isPremium: true,
       },
       { 
         label: "Investment Plan", 
@@ -167,21 +110,9 @@ export function Sidebar() {
       },
       { 
         label: "Portfolio Tracker", 
-        subtitle: "Overview & Holdings",
+        subtitle: "Holdings Overview",
         href: "/", 
         icon: Briefcase 
-      },
-      // { 
-      //   label: "News", 
-      //   subtitle: "Intelligence Feed",
-      //   href: "/news", 
-      //   icon: Newspaper 
-      // },
-      { 
-        label: "Models", 
-        subtitle: "Financial Models",
-        href: "/models", 
-        icon: Calculator 
       },
       { 
         label: "Market Intel", 
@@ -189,7 +120,12 @@ export function Sidebar() {
         href: "/market-intel", 
         icon: BarChart3 
       },
-      // Asset Research is admin-only
+      { 
+        label: "Models", 
+        subtitle: "Financial Models",
+        href: "/models", 
+        icon: Calculator 
+      },
       ...(isAdmin ? [{ 
         label: "Asset Research", 
         subtitle: "Screener & Lookup",
@@ -200,7 +136,8 @@ export function Sidebar() {
         label: "Quant Lab", 
         subtitle: "Run Studies",
         href: "/quant-lab", 
-        icon: FlaskConical 
+        icon: FlaskConical,
+        isPremium: true,
       },
       { 
         label: "Support", 
@@ -208,16 +145,10 @@ export function Sidebar() {
         href: "/support", 
         icon: Headphones 
       },
-      // { 
-      //   label: "Discovery", 
-      //   subtitle: "Market Terminal",
-      //   href: "/discovery", 
-      //   icon: Compass 
-      // },
     ];
 
     return items;
-  }, [organizationChildren, isAdmin]);
+  }, [isAdmin]);
 
   // Filter out hidden tabs for display
   const navigation = useMemo(() => 
@@ -225,46 +156,78 @@ export function Sidebar() {
     [allNavigation, hiddenTabs]
   );
 
-  const NavLink = ({ item }: { item: NavItem }) => {
+  const NavLink = ({ item, index }: { item: NavItem; index: number }) => {
     const isActive = location.pathname === item.href || 
       (item.href !== "/" && location.pathname.startsWith(item.href));
     const Icon = item.icon;
 
     const linkContent = (
-      <Link
-        to={item.href}
-        className={cn(
-          "group relative flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200",
-          isActive
-            ? "bg-slate-800 text-white"
-            : "text-slate-400 hover:bg-slate-800/50 hover:text-white",
-          collapsed && "justify-center px-2"
-        )}
+      <motion.div
+        initial={{ opacity: 0, x: -10 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ delay: index * 0.03, duration: 0.2 }}
       >
-        {/* Active indicator - emerald left border */}
-        {isActive && (
-          <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-emerald-500 rounded-r-full" />
-        )}
-        
-        <Icon className={cn(
-          "h-5 w-5 flex-shrink-0 transition-colors",
-          isActive ? "text-emerald-400" : "text-slate-500 group-hover:text-slate-300"
-        )} />
-        
-        {!collapsed && (
-          <span className="flex-1">{item.label}</span>
-        )}
-        
-        {/* Notification badge */}
-        {item.badge && item.badge > 0 && (
-          <span className={cn(
-            "flex items-center justify-center min-w-[18px] h-[18px] px-1 text-[10px] font-bold rounded-full bg-rose-500 text-white",
-            collapsed && "absolute -top-1 -right-1"
+        <Link
+          to={item.href}
+          className={cn(
+            "group relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-300",
+            isActive
+              ? "bg-gradient-to-r from-primary/20 to-primary/5 text-foreground shadow-sm"
+              : "text-muted-foreground hover:bg-accent/50 hover:text-foreground",
+            collapsed && "justify-center px-2"
+          )}
+        >
+          {/* Active indicator - gradient left border */}
+          <AnimatePresence>
+            {isActive && (
+              <motion.div 
+                initial={{ scaleY: 0, opacity: 0 }}
+                animate={{ scaleY: 1, opacity: 1 }}
+                exit={{ scaleY: 0, opacity: 0 }}
+                className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 bg-gradient-to-b from-primary to-primary/50 rounded-full"
+              />
+            )}
+          </AnimatePresence>
+          
+          <div className={cn(
+            "flex items-center justify-center w-8 h-8 rounded-lg transition-all duration-300",
+            isActive 
+              ? "bg-primary/20 text-primary" 
+              : "bg-transparent text-muted-foreground group-hover:bg-accent group-hover:text-foreground"
           )}>
-            {item.badge > 9 ? "9+" : item.badge}
-          </span>
-        )}
-      </Link>
+            <Icon className="h-4 w-4" />
+          </div>
+          
+          {!collapsed && (
+            <div className="flex-1 flex items-center justify-between">
+              <span className={cn(
+                "transition-colors",
+                isActive && "font-semibold"
+              )}>{item.label}</span>
+              {item.isPremium && (
+                <Sparkles className="h-3 w-3 text-amber-500/70" />
+              )}
+            </div>
+          )}
+          
+          {/* Notification badge */}
+          {item.badge && item.badge > 0 && (
+            <span className={cn(
+              "flex items-center justify-center min-w-[18px] h-[18px] px-1 text-[10px] font-bold rounded-full bg-destructive text-destructive-foreground",
+              collapsed && "absolute -top-1 -right-1"
+            )}>
+              {item.badge > 9 ? "9+" : item.badge}
+            </span>
+          )}
+          
+          {/* Hover glow effect */}
+          <div className={cn(
+            "absolute inset-0 rounded-xl opacity-0 transition-opacity duration-300",
+            "bg-gradient-to-r from-primary/5 to-transparent",
+            "group-hover:opacity-100"
+          )} />
+        </Link>
+      </motion.div>
     );
 
     if (collapsed) {
@@ -273,7 +236,7 @@ export function Sidebar() {
           <TooltipTrigger asChild>
             {linkContent}
           </TooltipTrigger>
-          <TooltipContent side="right" className="flex flex-col">
+          <TooltipContent side="right" className="flex flex-col bg-popover border-border">
             <span className="font-medium">{item.label}</span>
             <span className="text-xs text-muted-foreground">{item.subtitle}</span>
           </TooltipContent>
@@ -287,117 +250,110 @@ export function Sidebar() {
   return (
     <aside
       className={cn(
-        "flex flex-col h-screen bg-slate-950 border-r border-slate-800 transition-all duration-300",
-        collapsed ? "w-16" : "w-60"
+        "flex flex-col h-screen bg-sidebar-background border-r border-sidebar-border transition-all duration-300 relative",
+        collapsed ? "w-[68px]" : "w-64"
       )}
     >
+      {/* Subtle gradient overlay */}
+      <div className="absolute inset-0 bg-gradient-to-b from-primary/[0.02] to-transparent pointer-events-none" />
+      
       {/* Logo */}
-      <div className="flex items-center justify-between h-14 px-3 border-b border-slate-800">
-        <Link to="/" className="flex items-center gap-2">
-          <img src="/favicon.png" alt="Asset Labs AI" className="w-8 h-8 rounded-lg" />
+      <div className="relative flex items-center justify-between h-16 px-4 border-b border-sidebar-border">
+        <Link to="/" className="flex items-center gap-3 group">
+          <div className="relative">
+            <img 
+              src="/favicon.png" 
+              alt="Asset Labs AI" 
+              className="w-9 h-9 rounded-xl shadow-sm transition-transform duration-300 group-hover:scale-105" 
+            />
+            <div className="absolute inset-0 rounded-xl ring-1 ring-inset ring-white/10" />
+          </div>
           {!collapsed && (
-            <span className="font-bold text-white text-sm">Asset Labs AI</span>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="flex flex-col"
+            >
+              <span className="font-bold text-foreground text-sm tracking-tight">Asset Labs</span>
+              <span className="text-[10px] text-muted-foreground font-medium tracking-wider uppercase">AI Platform</span>
+            </motion.div>
           )}
         </Link>
-        {!collapsed && (
-          <Button variant="ghost" size="icon" onClick={() => setCollapsed(!collapsed)} className="h-7 w-7 text-slate-400">
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-        )}
+        
+        <Button 
+          variant="ghost" 
+          size="icon" 
+          onClick={() => setCollapsed(!collapsed)} 
+          className={cn(
+            "h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-accent transition-all",
+            collapsed && "absolute -right-3 top-1/2 -translate-y-1/2 bg-background border border-border shadow-sm z-10"
+          )}
+        >
+          {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+        </Button>
       </div>
 
       {/* Organization Switcher */}
-      <div className="border-b border-slate-800 py-2 px-2">
+      <div className="relative border-b border-sidebar-border py-3 px-3">
         {!collapsed ? (
           <OrganizationSwitcher />
         ) : (
           <Tooltip delayDuration={0}>
             <TooltipTrigger asChild>
               <div className="flex justify-center">
-                <Avatar className="h-8 w-8 rounded-lg cursor-pointer">
-                  <AvatarFallback className="rounded-lg bg-purple-600 text-white text-xs">
+                <Avatar className="h-9 w-9 rounded-xl cursor-pointer ring-2 ring-primary/20">
+                  <AvatarFallback className="rounded-xl bg-gradient-to-br from-primary/30 to-primary/10 text-primary text-xs font-semibold">
                     {currentOrganization?.name?.slice(0, 2).toUpperCase() || 'ORG'}
                   </AvatarFallback>
                 </Avatar>
               </div>
             </TooltipTrigger>
-            <TooltipContent side="right">{currentOrganization?.name || 'Organization'}</TooltipContent>
+            <TooltipContent side="right" className="bg-popover border-border">
+              {currentOrganization?.name || 'Organization'}
+            </TooltipContent>
           </Tooltip>
         )}
       </div>
 
       {/* Main Navigation */}
-      <nav className="flex-1 overflow-y-auto py-4 px-2 custom-scrollbar">
+      <nav className="relative flex-1 overflow-y-auto py-4 px-3 custom-scrollbar">
         <ul className="space-y-1">
-          {navigation.map((item) => (
+          {navigation.map((item, index) => (
             <li key={item.href}>
-              {item.children ? (
-                // Collapsible group for Organization
-                <Collapsible open={orgExpanded} onOpenChange={setOrgExpanded}>
-                  <CollapsibleTrigger asChild>
-                    <button
-                      className={cn(
-                        "w-full group relative flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200",
-                        "text-slate-400 hover:bg-slate-800/50 hover:text-white",
-                        collapsed && "justify-center px-2"
-                      )}
-                    >
-                      <item.icon className="h-5 w-5 flex-shrink-0 text-slate-500 group-hover:text-slate-300" />
-                      {!collapsed && (
-                        <>
-                          <span className="flex-1 text-left">{item.label}</span>
-                          <ChevronDown className={cn(
-                            "h-4 w-4 text-slate-500 transition-transform duration-200",
-                            orgExpanded && "rotate-180"
-                          )} />
-                        </>
-                      )}
-                    </button>
-                  </CollapsibleTrigger>
-                  <CollapsibleContent className="mt-1">
-                    <ul className={cn("space-y-1", !collapsed && "ml-4 border-l border-slate-800 pl-2")}>
-                      {item.children.map((child) => (
-                        <li key={child.href}>
-                          <NavLink item={child} />
-                        </li>
-                      ))}
-                    </ul>
-                  </CollapsibleContent>
-                </Collapsible>
-              ) : (
-                <NavLink item={item} />
-              )}
+              <NavLink item={item} index={index} />
             </li>
           ))}
         </ul>
       </nav>
 
       {/* Bottom Section */}
-      <div className="border-t border-slate-800 p-2 space-y-1">
+      <div className="relative border-t border-sidebar-border p-3 space-y-1">
         {/* Tab Visibility Control */}
         <Popover>
           <PopoverTrigger asChild>
             <button
               className={cn(
-                "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200",
-                "text-slate-400 hover:bg-slate-800/50 hover:text-white",
+                "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200",
+                "text-muted-foreground hover:bg-accent/50 hover:text-foreground",
                 collapsed && "justify-center px-2"
               )}
             >
-              <SlidersHorizontal className="h-5 w-5 flex-shrink-0 text-slate-500" />
-              {!collapsed && <span>Customize Tabs</span>}
+              <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-transparent">
+                <SlidersHorizontal className="h-4 w-4" />
+              </div>
+              {!collapsed && <span>Customize</span>}
             </button>
           </PopoverTrigger>
           <PopoverContent 
             side="right" 
             align="end" 
-            className="w-64 p-0 bg-slate-900 border-slate-800"
+            className="w-64 p-0 bg-popover border-border"
           >
-            <div className="p-3 border-b border-slate-800">
-              <h4 className="font-medium text-white text-sm">Show/Hide Tabs</h4>
-              <p className="text-xs text-slate-400 mt-1">Toggle visibility of navigation items</p>
+            <div className="p-3 border-b border-border">
+              <h4 className="font-semibold text-foreground text-sm">Customize Navigation</h4>
+              <p className="text-xs text-muted-foreground mt-1">Toggle visibility of menu items</p>
             </div>
-            <ScrollArea className="h-[300px]">
+            <ScrollArea className="h-[280px]">
               <div className="p-2 space-y-1">
                 {allNavigation.map((item) => {
                   const Icon = item.icon;
@@ -405,16 +361,16 @@ export function Sidebar() {
                   return (
                     <div
                       key={item.href}
-                      className="flex items-center justify-between px-2 py-2 rounded-lg hover:bg-slate-800/50"
+                      className="flex items-center justify-between px-3 py-2 rounded-lg hover:bg-accent/50 transition-colors"
                     >
-                      <div className="flex items-center gap-2">
-                        <Icon className="h-4 w-4 text-slate-500" />
-                        <span className="text-sm text-slate-300">{item.label}</span>
+                      <div className="flex items-center gap-2.5">
+                        <Icon className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-sm text-foreground">{item.label}</span>
                       </div>
                       <Switch
                         checked={isVisible}
                         onCheckedChange={() => toggleTab(item.href)}
-                        className="data-[state=checked]:bg-emerald-600"
+                        className="data-[state=checked]:bg-primary"
                       />
                     </div>
                   );
@@ -422,14 +378,14 @@ export function Sidebar() {
               </div>
             </ScrollArea>
             {hiddenTabs.length > 0 && (
-              <div className="p-2 border-t border-slate-800">
+              <div className="p-2 border-t border-border">
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={() => setHiddenTabs([])}
-                  className="w-full text-xs text-slate-400 hover:text-white"
+                  className="w-full text-xs text-muted-foreground hover:text-foreground"
                 >
-                  <Eye className="h-3 w-3 mr-1" />
+                  <Eye className="h-3 w-3 mr-1.5" />
                   Show All ({hiddenTabs.length} hidden)
                 </Button>
               </div>
@@ -445,7 +401,8 @@ export function Sidebar() {
               subtitle: "Admin Portal",
               href: "/admin", 
               icon: Shield 
-            }} 
+            }}
+            index={0}
           />
         )}
 
@@ -456,7 +413,8 @@ export function Sidebar() {
             subtitle: "Preferences",
             href: "/settings", 
             icon: Settings 
-          }} 
+          }}
+          index={1}
         />
 
         {/* User section with dropdown */}
@@ -464,74 +422,62 @@ export function Sidebar() {
           <DropdownMenuTrigger asChild>
             <button
               className={cn(
-                "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200",
-                "text-slate-400 hover:bg-slate-800/50 hover:text-white",
+                "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200",
+                "text-muted-foreground hover:bg-accent/50 hover:text-foreground group",
                 collapsed && "justify-center px-2"
               )}
             >
-              <Avatar className="h-8 w-8 border border-slate-700">
-                <AvatarImage src={userProfile?.avatar_url || undefined} />
-                <AvatarFallback className="bg-slate-800 text-emerald-400 text-xs font-medium">
-                  {userProfile?.full_name?.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() || 'U'}
-                </AvatarFallback>
-              </Avatar>
+              <div className="relative">
+                <Avatar className="h-9 w-9 ring-2 ring-border transition-all group-hover:ring-primary/30">
+                  <AvatarImage src={userProfile?.avatar_url || undefined} />
+                  <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/5 text-primary text-xs font-semibold">
+                    {userProfile?.full_name?.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() || 'U'}
+                  </AvatarFallback>
+                </Avatar>
+                {/* Online indicator */}
+                <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-success rounded-full border-2 border-sidebar-background" />
+              </div>
               {!collapsed && (
-                <>
-                  <div className="flex-1 text-left">
-                    <p className="text-white text-sm font-medium truncate">{userProfile?.full_name || 'User'}</p>
-                    <p className="text-xs text-slate-500 truncate">{currentOrganization?.plan || 'Free'} Plan</p>
-                  </div>
-                </>
+                <div className="flex-1 text-left min-w-0">
+                  <p className="text-foreground text-sm font-medium truncate">{userProfile?.full_name || 'User'}</p>
+                  <p className="text-xs text-muted-foreground truncate flex items-center gap-1">
+                    <Zap className="h-2.5 w-2.5 text-amber-500" />
+                    {currentOrganization?.plan || 'Free'} Plan
+                  </p>
+                </div>
               )}
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent 
             side={collapsed ? "right" : "top"} 
             align={collapsed ? "start" : "center"}
-            className="w-56 bg-slate-900 border-slate-800"
+            className="w-56 bg-popover border-border"
           >
-            <div className="px-3 py-2">
-              <p className="text-sm font-medium text-white">{userProfile?.full_name || 'User'}</p>
-              <p className="text-xs text-slate-400 truncate">{userProfile?.job_title || 'Team Member'}</p>
+            <div className="px-3 py-2.5">
+              <p className="text-sm font-semibold text-foreground">{userProfile?.full_name || 'User'}</p>
+              <p className="text-xs text-muted-foreground truncate">{userProfile?.job_title || 'Team Member'}</p>
             </div>
-            <DropdownMenuSeparator className="bg-slate-800" />
-            <DropdownMenuItem className="text-slate-300 hover:text-white hover:bg-slate-800 cursor-pointer">
+            <DropdownMenuSeparator className="bg-border" />
+            <DropdownMenuItem className="text-foreground hover:bg-accent cursor-pointer">
               <User className="mr-2 h-4 w-4" />
               Profile
             </DropdownMenuItem>
-            <DropdownMenuItem className="text-slate-300 hover:text-white hover:bg-slate-800 cursor-pointer">
-              <Settings className="mr-2 h-4 w-4" />
-              Settings
+            <DropdownMenuItem className="text-foreground hover:bg-accent cursor-pointer" asChild>
+              <Link to="/settings">
+                <Settings className="mr-2 h-4 w-4" />
+                Settings
+              </Link>
             </DropdownMenuItem>
-            <DropdownMenuSeparator className="bg-slate-800" />
+            <DropdownMenuSeparator className="bg-border" />
             <DropdownMenuItem 
-              onClick={async () => {
-                try {
-                  await signOut();
-                  window.location.href = '/';
-                } catch (error) {
-                  console.error('Sign out failed:', error);
-                }
-              }}
-              className="text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 cursor-pointer"
+              className="text-destructive hover:bg-destructive/10 cursor-pointer"
+              onClick={() => signOut()}
             >
               <LogOut className="mr-2 h-4 w-4" />
               Sign Out
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
-
-        {/* Collapse toggle for collapsed state */}
-        {collapsed && (
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setCollapsed(false)}
-            className="w-full h-8 text-slate-400 hover:text-white hover:bg-slate-800"
-          >
-            <ChevronLeft className="h-4 w-4 rotate-180" />
-          </Button>
-        )}
       </div>
     </aside>
   );
