@@ -1097,7 +1097,7 @@ export default function PortfolioVisualizer() {
         
         const backtesterCorrForBL: CorrelationMatrix = { symbols: corrMatrix.tickers, matrix: corrMatrix.matrix };
         
-        const blResult = blackLittermanOptimizer.analyzeUserWeights(
+        const blResult = await blackLittermanOptimizer.analyzeUserWeights(
           userWeights,
           backtesterCorrForBL,
           backtesterAssetData

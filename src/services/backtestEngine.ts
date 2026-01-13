@@ -204,7 +204,8 @@ export class BacktestEngine {
         );
 
         // Execute rebalance
-        const { turnover, taxPaid } = this.executeRebalance(optimalWeights.weights, new Date(date), activeTickers);
+        const resolvedWeights = await optimalWeights;
+        const { turnover, taxPaid } = this.executeRebalance(resolvedWeights.weights, new Date(date), activeTickers);
         totalTurnover += turnover;
         totalTaxPaid += taxPaid;
         
