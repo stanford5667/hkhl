@@ -10,6 +10,7 @@
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import DOMPurify from 'dompurify';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -195,7 +196,13 @@ function SimpleMarkdown({ content }: { content: string }) {
       // Code
       text = text.replace(/`(.+?)`/g, '<code class="bg-secondary/50 px-1 py-0.5 rounded text-primary text-sm">$1</code>');
       
-      return <span dangerouslySetInnerHTML={{ __html: text }} />;
+      // Sanitize HTML to prevent XSS attacks
+      const sanitizedHtml = DOMPurify.sanitize(text, {
+        ALLOWED_TAGS: ['strong', 'em', 'code', 'span'],
+        ALLOWED_ATTR: ['class']
+      });
+      
+      return <span dangerouslySetInnerHTML={{ __html: sanitizedHtml }} />;
     };
 
     lines.forEach((line, index) => {
