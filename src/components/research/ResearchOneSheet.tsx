@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
+import DOMPurify from "dompurify";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -117,7 +118,6 @@ export function ResearchOneSheet({ articleUri, articleTitle, onClose }: Research
     if (!text) return null;
     
     // Simple entity highlighting - companies and people patterns
-    const companyPattern = /\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*(?:\s+(?:Inc|Corp|Ltd|LLC|Co|Company|Group|Holdings))?\.?)\b/g;
     const tickerPattern = /\$([A-Z]{1,5})\b/g;
     
     let result = text;
@@ -128,13 +128,21 @@ export function ResearchOneSheet({ articleUri, articleTitle, onClose }: Research
     // Split into paragraphs for better rendering
     const paragraphs = result.split('\n\n');
     
-    return paragraphs.map((p, i) => (
-      <p 
-        key={i} 
-        className="mb-4 leading-relaxed"
-        dangerouslySetInnerHTML={{ __html: p }}
-      />
-    ));
+    return paragraphs.map((p, i) => {
+      // Sanitize HTML to prevent XSS attacks
+      const sanitizedHtml = DOMPurify.sanitize(p, {
+        ALLOWED_TAGS: ['span', 'strong', 'em', 'code', 'br'],
+        ALLOWED_ATTR: ['class']
+      });
+      
+      return (
+        <p 
+          key={i} 
+          className="mb-4 leading-relaxed"
+          dangerouslySetInnerHTML={{ __html: sanitizedHtml }}
+        />
+      );
+    });
   };
 
   const getSentimentColor = (direction: string) => {
