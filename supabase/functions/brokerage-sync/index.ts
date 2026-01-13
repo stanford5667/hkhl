@@ -1,6 +1,9 @@
 // Brokerage Sync Edge Function - Plaid Integration
+// Secured with JWT authentication and encrypted token storage
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { getAuthenticatedUser, unauthorizedResponse, forbiddenResponse } from "../_shared/auth.ts";
+import { encrypt, decrypt } from "../_shared/encryption.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -20,7 +23,6 @@ const PLAID_BASE_URL = {
 
 interface PlaidRequest {
   action: 'check-config' | 'create-link-token' | 'exchange-token' | 'sync-positions';
-  userId?: string;
   publicToken?: string;
   connectionId?: string;
   portfolioId?: string;
@@ -35,14 +37,10 @@ serve(async (req) => {
   }
 
   try {
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
-
     const body: PlaidRequest = await req.json();
     const { action } = body;
 
-    // Check if Plaid is configured
+    // Check config doesn't require auth
     if (action === 'check-config') {
       const configured = !!(PLAID_CLIENT_ID && PLAID_SECRET);
       return new Response(
@@ -50,6 +48,16 @@ serve(async (req) => {
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+
+    // All other actions require authentication
+    const { user, error: authError } = await getAuthenticatedUser(req);
+    if (authError || !user) {
+      return unauthorizedResponse(authError || 'Authentication required');
+    }
+
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     // Validate Plaid credentials
     if (!PLAID_CLIENT_ID || !PLAID_SECRET) {
@@ -61,21 +69,14 @@ serve(async (req) => {
 
     switch (action) {
       case 'create-link-token': {
-        const { userId } = body;
-        if (!userId) {
-          return new Response(
-            JSON.stringify({ error: 'userId required' }),
-            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-          );
-        }
-
+        // Use authenticated user's ID instead of trusting client input
         const response = await fetch(`${PLAID_BASE_URL}/link/token/create`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             client_id: PLAID_CLIENT_ID,
             secret: PLAID_SECRET,
-            user: { client_user_id: userId },
+            user: { client_user_id: user.id },
             client_name: 'Portfolio Manager',
             products: ['investments'],
             country_codes: ['US'],
@@ -100,11 +101,11 @@ serve(async (req) => {
       }
 
       case 'exchange-token': {
-        const { userId, publicToken, institutionId } = body;
+        const { publicToken, institutionId } = body;
         
-        if (!userId || !publicToken) {
+        if (!publicToken) {
           return new Response(
-            JSON.stringify({ error: 'userId and publicToken required' }),
+            JSON.stringify({ error: 'publicToken required' }),
             { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
           );
         }
@@ -151,18 +152,30 @@ serve(async (req) => {
           }
         }
 
-        // Store connection in database
-        // NOTE: In production, encrypt the access_token before storing!
+        // SECURITY: Encrypt the access token before storing
+        let encryptedToken: string | null = null;
+        try {
+          encryptedToken = await encrypt(exchangeData.access_token);
+        } catch (encryptError) {
+          console.error('Failed to encrypt token:', encryptError);
+          return new Response(
+            JSON.stringify({ error: 'Failed to securely store connection. Contact support.' }),
+            { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        // Store connection with encrypted token
         const { data: connection, error: insertError } = await supabase
           .from('brokerage_connections')
           .insert({
-            user_id: userId,
+            user_id: user.id, // Use authenticated user ID
             brokerage_name: institutionName,
-            access_token: exchangeData.access_token, // ENCRYPT THIS IN PRODUCTION!
+            access_token: encryptedToken, // Encrypted token
             connection_status: 'connected',
             metadata: {
               item_id: exchangeData.item_id,
               institution_id: institutionId,
+              encrypted: true, // Flag to indicate token is encrypted
             },
           })
           .select()
@@ -192,17 +205,38 @@ serve(async (req) => {
           );
         }
 
-        // Get connection with access token
+        // Get connection - SECURITY: Verify ownership
         const { data: connection, error: connError } = await supabase
           .from('brokerage_connections')
           .select('*')
           .eq('id', connectionId)
+          .eq('user_id', user.id) // Ensure user owns this connection
           .single();
 
         if (connError || !connection) {
+          // Don't reveal if connection exists but belongs to another user
           return new Response(
             JSON.stringify({ error: 'Connection not found' }),
             { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        // SECURITY: Decrypt the access token
+        let accessToken: string;
+        try {
+          const isEncrypted = connection.metadata?.encrypted === true;
+          if (isEncrypted) {
+            accessToken = await decrypt(connection.access_token);
+          } else {
+            // Legacy unencrypted token - use as-is but log warning
+            console.warn('Using unencrypted legacy token for connection:', connectionId);
+            accessToken = connection.access_token;
+          }
+        } catch (decryptError) {
+          console.error('Failed to decrypt token:', decryptError);
+          return new Response(
+            JSON.stringify({ error: 'Failed to access connection credentials' }),
+            { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
           );
         }
 
@@ -213,7 +247,7 @@ serve(async (req) => {
           body: JSON.stringify({
             client_id: PLAID_CLIENT_ID,
             secret: PLAID_SECRET,
-            access_token: connection.access_token,
+            access_token: accessToken,
           }),
         });
 
@@ -226,7 +260,8 @@ serve(async (req) => {
           await supabase
             .from('brokerage_connections')
             .update({ sync_error: errorMsg })
-            .eq('id', connectionId);
+            .eq('id', connectionId)
+            .eq('user_id', user.id); // Double-check ownership
 
           return new Response(
             JSON.stringify({ error: errorMsg }),
@@ -260,7 +295,7 @@ serve(async (req) => {
           const unrealizedGain = currentValue - costBasis;
 
           return {
-            user_id: connection.user_id,
+            user_id: user.id, // Use authenticated user ID
             portfolio_id: portfolioId || null,
             connection_id: connectionId,
             symbol: security?.ticker_symbol || security?.name?.substring(0, 10) || 'UNKNOWN',
@@ -278,11 +313,12 @@ serve(async (req) => {
           };
         });
 
-        // Delete existing positions from this connection
+        // Delete existing positions from this connection (only for this user)
         await supabase
           .from('synced_positions')
           .delete()
-          .eq('connection_id', connectionId);
+          .eq('connection_id', connectionId)
+          .eq('user_id', user.id);
 
         // Insert new positions
         if (positions.length > 0) {
@@ -306,7 +342,8 @@ serve(async (req) => {
             last_sync_at: new Date().toISOString(),
             sync_error: null,
           })
-          .eq('id', connectionId);
+          .eq('id', connectionId)
+          .eq('user_id', user.id);
 
         return new Response(
           JSON.stringify({ 

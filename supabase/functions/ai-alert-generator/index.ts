@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { getAuthenticatedUser, unauthorizedResponse, forbiddenResponse } from "../_shared/auth.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -10,7 +11,6 @@ interface AlertEvent {
   type: 'news_impact' | 'whale_movement' | 'arbitrage' | 'price_movement' | 'sentiment_shift' | 'resolution';
   market_id?: string;
   data: Record<string, unknown>;
-  user_id: string;
 }
 
 interface GeneratedAlert {
@@ -167,21 +167,18 @@ async function fetchEventContext(
   return context;
 }
 
-async function checkUserAlertConfig(
-  userId: string,
-  alertType: string
-): Promise<{ enabled: boolean; config: Record<string, unknown> }> {
-  // For now, return default enabled - in production this would check user_alerts table
-  // The user_alerts table has a different schema (config alerts, not generated alerts)
-  return { enabled: true, config: {} };
-}
-
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
+    // SECURITY: Require authentication for all operations
+    const { user, error: authError } = await getAuthenticatedUser(req);
+    if (authError || !user) {
+      return unauthorizedResponse(authError || 'Authentication required');
+    }
+
     const { event, generate_sample } = await req.json() as { 
       event?: AlertEvent; 
       generate_sample?: boolean;
@@ -274,30 +271,17 @@ serve(async (req) => {
       throw new Error("Event data required");
     }
 
-    // Check user's alert configuration
-    const alertConfig = await checkUserAlertConfig(event.user_id, event.type);
-    
-    if (!alertConfig.enabled) {
-      return new Response(
-        JSON.stringify({ 
-          success: false,
-          message: "Alert type disabled for this user" 
-        }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
     // Fetch context for the event
     const context = await fetchEventContext(supabase, event);
 
     // Generate alert with AI
     const generatedAlert = await generateAlertWithAI(event, context);
 
-    // Store the alert
+    // Store the alert - SECURITY: Use authenticated user's ID
     const { data: storedAlert, error: insertError } = await supabase
       .from('generated_alerts')
       .insert({
-        user_id: event.user_id,
+        user_id: user.id, // Use authenticated user ID, not client-provided
         alert_type: event.type,
         headline: generatedAlert.headline,
         summary: generatedAlert.summary,
