@@ -12,12 +12,16 @@ import {
   HelpCircle,
   Headphones,
   Mail,
-  Book
+  Book,
+  LogOut,
+  Settings
 } from "lucide-react";
 import { useState } from "react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Sidebar } from "./Sidebar";
 import { useAdmin } from "@/hooks/useAdmin";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 
 const mobileNavItems = [
   { label: "Builder", href: "/portfolio-visualizer", icon: PieChart },
@@ -188,6 +192,32 @@ function MobileSidebarContent({ onNavigate }: { onNavigate: () => void }) {
             </button>
           );
         })}
+      </div>
+
+      {/* Account Section */}
+      <div className="pt-4 mt-4 border-t border-slate-800">
+        <Link
+          to="/settings"
+          onClick={onNavigate}
+          className="flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium transition-colors text-slate-400 hover:bg-slate-800/50 hover:text-white"
+        >
+          <Settings className="h-5 w-5 text-slate-500" />
+          <span>Settings</span>
+        </Link>
+        <button
+          onClick={async () => {
+            try {
+              await supabase.auth.signOut();
+              window.location.href = '/';
+            } catch (error) {
+              console.error('Sign out failed:', error);
+            }
+          }}
+          className="w-full flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium transition-colors text-rose-400 hover:bg-rose-500/10 hover:text-rose-300"
+        >
+          <LogOut className="h-5 w-5" />
+          <span>Sign Out</span>
+        </button>
       </div>
     </div>
   );

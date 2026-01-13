@@ -1328,11 +1328,21 @@ ${a.description}`).join('\n\n')}
           toast({ title: 'Starting fresh!', description: 'Complete the questionnaire for a new investment report.' });
         }}
         onSignOut={async () => {
-          await supabase.auth.signOut();
-          toast({
-            title: 'Signed out',
-            description: 'You have been logged out successfully.',
-          });
+          try {
+            await supabase.auth.signOut();
+            toast({
+              title: 'Signed out',
+              description: 'You have been logged out successfully.',
+            });
+            window.location.href = '/';
+          } catch (error) {
+            console.error('Sign out failed:', error);
+            toast({
+              title: 'Sign out failed',
+              description: 'Please try again.',
+              variant: 'destructive',
+            });
+          }
         }}
       />
     );

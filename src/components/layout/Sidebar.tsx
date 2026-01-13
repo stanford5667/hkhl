@@ -505,7 +505,14 @@ export function Sidebar() {
             </DropdownMenuItem>
             <DropdownMenuSeparator className="bg-slate-800" />
             <DropdownMenuItem 
-              onClick={signOut}
+              onClick={async () => {
+                try {
+                  await signOut();
+                  window.location.href = '/';
+                } catch (error) {
+                  console.error('Sign out failed:', error);
+                }
+              }}
               className="text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 cursor-pointer"
             >
               <LogOut className="mr-2 h-4 w-4" />
