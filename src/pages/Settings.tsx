@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Camera, Loader2, User, Wifi, WifiOff, Trash2 } from "lucide-react";
+import { Camera, Loader2, User, Wifi, WifiOff, Trash2, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -32,7 +32,7 @@ interface Profile {
 }
 
 export default function Settings() {
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -308,6 +308,42 @@ export default function Settings() {
 
       {/* Market Data Settings */}
       <MarketDataSettings />
+
+      {/* Sign Out Section */}
+      <Card className="glass-card border-rose-500/20">
+        <CardHeader>
+          <CardTitle className="text-rose-400">Sign Out</CardTitle>
+          <CardDescription>
+            Sign out of your account on this device
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Button 
+            variant="destructive" 
+            onClick={async () => {
+              try {
+                await signOut();
+                toast({
+                  title: "Signed out",
+                  description: "You have been logged out successfully.",
+                });
+                window.location.href = '/';
+              } catch (error) {
+                console.error('Sign out failed:', error);
+                toast({
+                  title: "Sign out failed",
+                  description: "Please try again.",
+                  variant: "destructive",
+                });
+              }
+            }}
+            className="gap-2"
+          >
+            <LogOut className="h-4 w-4" />
+            Sign Out
+          </Button>
+        </CardContent>
+      </Card>
     </div>
   );
 }
