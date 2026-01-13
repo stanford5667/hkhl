@@ -205,15 +205,13 @@ export function FloatingHelpWidget() {
     }
   };
 
-  const shouldHideOnMobile =
-    isMobile && document.documentElement.classList.contains('questionnaire-overlay');
-
-  if (shouldHideOnMobile) return null;
+  // Hide completely on mobile - support is accessed via the "More" menu instead
+  if (isMobile) return null;
 
   return (
     <>
-      {/* Floating Button */}
-      <div className="fixed left-4 right-auto z-50 bottom-[calc(env(safe-area-inset-bottom)+6rem)] md:left-auto md:right-6 md:bottom-6">
+      {/* Floating Button - Desktop only */}
+      <div className="fixed right-6 bottom-6 z-50">
         <Popover open={isOpen} onOpenChange={setIsOpen}>
           <PopoverTrigger asChild>
             <Button

@@ -1,4 +1,4 @@
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { 
   Briefcase, 
@@ -8,7 +8,11 @@ import {
   Menu,
   ClipboardList,
   Shield,
-  FlaskConical
+  FlaskConical,
+  HelpCircle,
+  Headphones,
+  Mail,
+  Book
 } from "lucide-react";
 import { useState } from "react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -101,6 +105,7 @@ export function MobileNav() {
 // Simplified sidebar content for mobile menu
 function MobileSidebarContent({ onNavigate }: { onNavigate: () => void }) {
   const location = useLocation();
+  const navigate = useNavigate();
   const { isAdmin } = useAdmin();
   
   const navItems = [
@@ -111,6 +116,24 @@ function MobileSidebarContent({ onNavigate }: { onNavigate: () => void }) {
     { label: "Market Intel", href: "/market-intel", icon: BarChart3 },
     ...(isAdmin ? [{ label: "Asset Research", href: "/asset-research", icon: Search }] : []),
     ...(isAdmin ? [{ label: "Admin Portal", href: "/admin", icon: Shield }] : []),
+  ];
+
+  const supportItems = [
+    { 
+      label: "Support Center", 
+      icon: Headphones, 
+      action: () => { navigate('/support'); onNavigate(); }
+    },
+    { 
+      label: "Email Support", 
+      icon: Mail, 
+      action: () => { window.location.href = 'mailto:support@assetlabs.ai'; onNavigate(); }
+    },
+    { 
+      label: "Documentation", 
+      icon: Book, 
+      action: () => { window.open('https://docs.assetlabs.ai', '_blank'); onNavigate(); }
+    },
   ];
 
   return (
@@ -145,6 +168,27 @@ function MobileSidebarContent({ onNavigate }: { onNavigate: () => void }) {
           </Link>
         );
       })}
+
+      {/* Support Section */}
+      <div className="pt-4 mt-4 border-t border-slate-800">
+        <div className="flex items-center gap-2 px-3 mb-2">
+          <HelpCircle className="h-4 w-4 text-slate-500" />
+          <span className="text-xs font-medium text-slate-500 uppercase tracking-wider">Support</span>
+        </div>
+        {supportItems.map((item) => {
+          const Icon = item.icon;
+          return (
+            <button
+              key={item.label}
+              onClick={item.action}
+              className="w-full flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium transition-colors text-slate-400 hover:bg-slate-800/50 hover:text-white"
+            >
+              <Icon className="h-5 w-5 text-slate-500" />
+              <span>{item.label}</span>
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 }
