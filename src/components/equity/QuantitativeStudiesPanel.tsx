@@ -397,27 +397,31 @@ export function QuantitativeStudiesPanel({ ticker, companyName }: QuantitativeSt
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <BarChart3 className="h-5 w-5 text-primary" />
+        <CardHeader className="px-3 sm:px-6 py-3 sm:py-4">
+          <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+            <BarChart3 className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
             Quantitative Studies
           </CardTitle>
-          <CardDescription>
-            Run statistical analysis on {ticker} historical data using Polygon.io
+          <CardDescription className="text-xs sm:text-sm">
+            Run statistical analysis on {ticker} historical data
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-3 sm:space-y-4 px-3 sm:px-6">
           <Tabs value={activeCategory} onValueChange={setActiveCategory}>
-            <TabsList className="w-full flex-wrap h-auto gap-1 bg-muted/50 p-1">
-              {Object.entries(STUDY_CATEGORIES).map(([key, category]) => (
-                <TabsTrigger key={key} value={key} className="gap-1.5 text-xs">
-                  <category.icon className="h-3.5 w-3.5" />
-                  {category.name}
-                </TabsTrigger>
-              ))}
-            </TabsList>
+            {/* Horizontal scrollable tabs on mobile */}
+            <div className="overflow-x-auto -mx-1 px-1 scrollbar-hide">
+              <TabsList className="w-max sm:w-full flex gap-1 bg-muted/50 p-1">
+                {Object.entries(STUDY_CATEGORIES).map(([key, category]) => (
+                  <TabsTrigger key={key} value={key} className="gap-1 sm:gap-1.5 text-[10px] sm:text-xs px-2 sm:px-3 whitespace-nowrap">
+                    <category.icon className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+                    <span className="hidden sm:inline">{category.name}</span>
+                    <span className="sm:hidden">{category.name.split(' ')[0]}</span>
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+            </div>
 
             {Object.entries(STUDY_CATEGORIES).map(([key, category]) => (
               <TabsContent key={key} value={key} className="mt-4">

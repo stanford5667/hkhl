@@ -1221,32 +1221,34 @@ function QuantLabContent(props: any) {
         {/* Progress Header with XP & Achievements */}
         <ProgressHeader />
 
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-bold flex items-center gap-3">
-              <div className="p-2 sm:p-3 rounded-xl bg-gradient-to-br from-purple-500 to-indigo-600 shadow-lg shadow-purple-500/25">
-                <FlaskConical className="h-6 w-6 sm:h-7 sm:w-7 text-white" />
+        {/* Header - Compact on mobile */}
+        <div className="flex items-start sm:items-center justify-between gap-2 sm:gap-4">
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="p-1.5 sm:p-2 rounded-lg sm:rounded-xl bg-gradient-to-br from-purple-500 to-indigo-600 shadow-lg shadow-purple-500/25 shrink-0">
+                <FlaskConical className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
               </div>
-              Quant Lab
-              {learningMode && (
-                <Badge className="bg-gradient-to-r from-purple-500 to-primary text-white border-0 gap-1">
-                  <GraduationCap className="h-3 w-3" />
-                  Learning Mode
-                </Badge>
-              )}
-            </h1>
-            <p className="text-muted-foreground mt-1 text-sm sm:text-base">
-              Interactive learning experience for stock analysis — no coding required
-            </p>
+              <div>
+                <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold flex items-center gap-2">
+                  Quant Lab
+                  {learningMode && (
+                    <Badge className="bg-gradient-to-r from-purple-500 to-primary text-white border-0 gap-1 text-[10px] sm:text-xs px-1.5 py-0.5">
+                      <GraduationCap className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
+                      <span className="hidden sm:inline">Learning</span>
+                    </Badge>
+                  )}
+                </h1>
+                <p className="text-muted-foreground text-xs sm:text-sm hidden sm:block">
+                  Interactive stock analysis — no coding required
+                </p>
+              </div>
+            </div>
           </div>
 
-          <div className="flex items-center gap-2">
-            <Badge variant="outline" className="gap-1">
-              <Trophy className="h-3 w-3 text-amber-500" />
-              {progress.xp} XP
-            </Badge>
-          </div>
+          <Badge variant="outline" className="gap-1 shrink-0 text-xs">
+            <Trophy className="h-3 w-3 text-amber-500" />
+            {progress.xp} XP
+          </Badge>
         </div>
 
         {/* STEP 1: Stock Selection - Always visible, prominent */}
@@ -1254,58 +1256,34 @@ function QuantLabContent(props: any) {
           "transition-all border-2",
           !selectedTicker ? "border-primary shadow-lg shadow-primary/10" : "border-border"
         )}>
-          <CardHeader className="pb-3">
-            <div className="flex items-center gap-3">
+          <CardHeader className="pb-2 sm:pb-3 px-3 sm:px-6">
+            <div className="flex items-center gap-2 sm:gap-3">
               <div className={cn(
-                "w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold",
+                "w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-xs sm:text-sm font-bold shrink-0",
                 selectedTicker ? "bg-emerald-500 text-white" : "bg-primary text-primary-foreground"
               )}>
-                {selectedTicker ? <CheckCircle2 className="h-5 w-5" /> : '1'}
+                {selectedTicker ? <CheckCircle2 className="h-4 w-4 sm:h-5 sm:w-5" /> : '1'}
               </div>
-              <div>
-                <CardTitle className="text-lg">Choose a Stock</CardTitle>
-                <CardDescription>Enter any ticker symbol to analyze</CardDescription>
+              <div className="min-w-0">
+                <CardTitle className="text-base sm:text-lg">Choose a Stock</CardTitle>
+                <CardDescription className="text-xs sm:text-sm">Enter any ticker symbol to analyze</CardDescription>
               </div>
             </div>
           </CardHeader>
-          <CardContent className="pt-0">
-            <div className="flex flex-col sm:flex-row gap-4">
-              <div className="flex-1">
-                <div className="flex gap-2">
-                  <Input
-                    placeholder="Enter ticker (e.g., AAPL, MSFT, SPY)"
-                    value={ticker}
-                    onChange={(e) => setTicker(e.target.value.toUpperCase())}
-                    onKeyDown={(e) => e.key === 'Enter' && handleSetTicker(ticker)}
-                    className="text-lg font-mono h-12"
-                  />
-                  <Button onClick={() => handleSetTicker(ticker)} disabled={!ticker} size="lg" className="px-6">
-                    <Search className="h-4 w-4 mr-2" />
-                    Go
-                  </Button>
-                </div>
-                
-                {/* Quick Tickers */}
-                <div className="flex flex-wrap gap-2 mt-3">
-                  <span className="text-xs text-muted-foreground self-center">Try:</span>
-                  {['AAPL', 'MSFT', 'GOOGL', 'NVDA', 'TSLA', 'SPY', 'QQQ'].map((t) => (
-                    <Badge
-                      key={t}
-                      variant={selectedTicker === t ? 'default' : 'outline'}
-                      className="cursor-pointer hover:bg-primary hover:text-primary-foreground transition-colors"
-                      onClick={() => handleSetTicker(t)}
-                    >
-                      {t}
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-
-              <div className="w-full sm:w-48">
-                <Label className="text-xs text-muted-foreground mb-1 block">Time Period</Label>
+          <CardContent className="pt-0 px-3 sm:px-6">
+            <div className="flex flex-col gap-3 sm:gap-4">
+              {/* Mobile: Stack input and period selector */}
+              <div className="flex gap-2">
+                <Input
+                  placeholder="e.g., AAPL, SPY"
+                  value={ticker}
+                  onChange={(e) => setTicker(e.target.value.toUpperCase())}
+                  onKeyDown={(e) => e.key === 'Enter' && handleSetTicker(ticker)}
+                  className="text-base sm:text-lg font-mono h-10 sm:h-12 flex-1"
+                />
                 <Select value={period} onValueChange={setPeriod}>
-                  <SelectTrigger className="h-12">
-                    <SelectValue placeholder="Select period" />
+                  <SelectTrigger className="h-10 sm:h-12 w-20 sm:w-24 shrink-0">
+                    <SelectValue placeholder="Period" />
                   </SelectTrigger>
                   <SelectContent>
                     {PERIOD_OPTIONS.map((p) => (
@@ -1313,6 +1291,25 @@ function QuantLabContent(props: any) {
                     ))}
                   </SelectContent>
                 </Select>
+                <Button onClick={() => handleSetTicker(ticker)} disabled={!ticker} className="h-10 sm:h-12 px-3 sm:px-6 shrink-0">
+                  <Search className="h-4 w-4" />
+                  <span className="hidden sm:inline ml-2">Go</span>
+                </Button>
+              </div>
+              
+              {/* Quick Tickers - Scrollable on mobile */}
+              <div className="flex gap-1.5 sm:gap-2 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-hide">
+                <span className="text-xs text-muted-foreground self-center shrink-0">Try:</span>
+                {['AAPL', 'MSFT', 'GOOGL', 'NVDA', 'TSLA', 'SPY', 'QQQ'].map((t) => (
+                  <Badge
+                    key={t}
+                    variant={selectedTicker === t ? 'default' : 'outline'}
+                    className="cursor-pointer hover:bg-primary hover:text-primary-foreground transition-colors shrink-0 text-xs"
+                    onClick={() => handleSetTicker(t)}
+                  >
+                    {t}
+                  </Badge>
+                ))}
               </div>
             </div>
 
@@ -1320,16 +1317,16 @@ function QuantLabContent(props: any) {
               <motion.div 
                 initial={{ opacity: 0, y: -10 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="mt-4 p-4 bg-emerald-500/10 border border-emerald-500/30 rounded-lg flex items-center justify-between"
+                className="mt-3 sm:mt-4 p-3 sm:p-4 bg-emerald-500/10 border border-emerald-500/30 rounded-lg flex items-center justify-between gap-2"
               >
-                <div className="flex items-center gap-3">
-                  <CheckCircle2 className="h-6 w-6 text-emerald-500" />
-                  <div>
-                    <span className="text-2xl font-bold font-mono">{selectedTicker}</span>
-                    <span className="text-muted-foreground ml-2">• {PERIOD_OPTIONS.find(p => p.value === period)?.label}</span>
+                <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+                  <CheckCircle2 className="h-5 w-5 sm:h-6 sm:w-6 text-emerald-500 shrink-0" />
+                  <div className="flex items-center gap-1 sm:gap-2 flex-wrap">
+                    <span className="text-xl sm:text-2xl font-bold font-mono">{selectedTicker}</span>
+                    <span className="text-muted-foreground text-xs sm:text-sm">• {PERIOD_OPTIONS.find(p => p.value === period)?.label}</span>
                   </div>
                 </div>
-                <Button variant="ghost" size="sm" onClick={() => { setSelectedTicker(null); setResults({}); }}>
+                <Button variant="ghost" size="sm" onClick={() => { setSelectedTicker(null); setResults({}); }} className="shrink-0 text-xs sm:text-sm px-2 sm:px-3">
                   Change
                 </Button>
               </motion.div>
@@ -1371,19 +1368,19 @@ function QuantLabContent(props: any) {
                     )}
                   </div>
                 </CardHeader>
-                <CardContent className="pt-0 space-y-4">
-                  {/* Quick Templates */}
-                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
+                <CardContent className="pt-0 px-3 sm:px-6 space-y-3 sm:space-y-4">
+                  {/* Quick Templates - Horizontal scroll on mobile */}
+                  <div className="flex gap-2 overflow-x-auto pb-2 -mx-1 px-1 sm:grid sm:grid-cols-3 lg:grid-cols-6 sm:overflow-visible scrollbar-hide">
                     {STUDY_TEMPLATES.map((template) => (
                       <Button
                         key={template.id}
                         variant="outline"
-                        className="h-auto py-3 px-3 flex flex-col items-center text-center hover:border-primary hover:bg-primary/5"
+                        className="h-auto py-2 sm:py-3 px-3 flex flex-col items-center text-center hover:border-primary hover:bg-primary/5 shrink-0 min-w-[100px] sm:min-w-0"
                         onClick={() => loadTemplate(template.id)}
                       >
-                        <span className="text-lg mb-1">{template.name.split(' ')[0]}</span>
-                        <span className="text-xs font-medium">{template.name.split(' ').slice(1).join(' ')}</span>
-                        <span className="text-[10px] text-muted-foreground mt-1">{template.studies.length} studies</span>
+                        <span className="text-base sm:text-lg mb-0.5 sm:mb-1">{template.name.split(' ')[0]}</span>
+                        <span className="text-[10px] sm:text-xs font-medium whitespace-nowrap">{template.name.split(' ').slice(1).join(' ')}</span>
+                        <span className="text-[9px] sm:text-[10px] text-muted-foreground mt-0.5 sm:mt-1">{template.studies.length} studies</span>
                       </Button>
                     ))}
                   </div>
@@ -1393,25 +1390,28 @@ function QuantLabContent(props: any) {
                     <div className="absolute inset-0 flex items-center">
                       <span className="w-full border-t" />
                     </div>
-                    <div className="relative flex justify-center text-xs uppercase">
+                    <div className="relative flex justify-center text-[10px] sm:text-xs uppercase">
                       <span className="bg-card px-2 text-muted-foreground">or pick individual studies</span>
                     </div>
                   </div>
 
-                  {/* Category Tabs */}
+                  {/* Category Tabs - Horizontal scroll on mobile */}
                   <Tabs value={activeCategory} onValueChange={setActiveCategory}>
-                    <TabsList className="w-full flex-wrap h-auto gap-1 bg-muted/50 p-1">
-                      {STUDY_CATEGORIES.map((cat) => (
-                        <TabsTrigger 
-                          key={cat.id} 
-                          value={cat.id} 
-                          className="gap-1.5 text-xs flex-1 min-w-[70px]"
-                        >
-                          <cat.icon className="h-3.5 w-3.5" />
-                          {cat.name}
-                        </TabsTrigger>
-                      ))}
-                    </TabsList>
+                    <div className="overflow-x-auto -mx-1 px-1 scrollbar-hide">
+                      <TabsList className="w-max sm:w-full flex gap-1 bg-muted/50 p-1">
+                        {STUDY_CATEGORIES.map((cat) => (
+                          <TabsTrigger 
+                            key={cat.id} 
+                            value={cat.id} 
+                            className="gap-1 sm:gap-1.5 text-[10px] sm:text-xs px-2 sm:px-3 whitespace-nowrap"
+                          >
+                            <cat.icon className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+                            <span className="hidden xs:inline sm:inline">{cat.name}</span>
+                            <span className="xs:hidden sm:hidden">{cat.name.split(' ')[0]}</span>
+                          </TabsTrigger>
+                        ))}
+                      </TabsList>
+                    </div>
 
                     {STUDY_CATEGORIES.map((cat) => (
                       <TabsContent key={cat.id} value={cat.id} className="mt-3">
