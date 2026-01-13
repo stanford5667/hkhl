@@ -1,6 +1,7 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { getAuthenticatedUser, unauthorizedResponse } from "../_shared/auth.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -10,7 +11,6 @@ const corsHeaders = {
 interface AIRequest {
   type: 'chat' | 'analyze_market' | 'analyze_news' | 'trade_ideas' | 'opportunities' | 
         'calculate' | 'generate_alert' | 'generate_briefing' | 'feedback' | 'get_context' | 'update_preferences';
-  userId: string;
   payload: Record<string, unknown>;
 }
 
@@ -41,12 +41,21 @@ serve(async (req) => {
   }
 
   try {
+    // SECURITY: Require authentication
+    const { user, error: authError } = await getAuthenticatedUser(req);
+    if (authError || !user) {
+      return unauthorizedResponse(authError || 'Authentication required');
+    }
+
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase: AnySupabaseClient = createClient(supabaseUrl, supabaseKey);
 
     const request: AIRequest = await req.json();
-    const { type, userId, payload } = request;
+    const { type, payload } = request;
+
+    // SECURITY: Use authenticated user ID instead of client-provided userId
+    const userId = user.id;
 
     // Load user context
     const userContext = await loadUserContext(supabase, userId);

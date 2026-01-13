@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { getAuthenticatedUser, unauthorizedResponse } from "../_shared/auth.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -16,11 +17,11 @@ interface QuestionnaireProgress {
 }
 
 interface InvestorPolicyStatement {
-  goals?: any[];
-  riskProfile?: any;
-  liquidityNeeds?: any;
-  constraints?: any;
-  rebalancingRules?: any;
+  goals?: unknown[];
+  riskProfile?: unknown;
+  liquidityNeeds?: unknown;
+  constraints?: unknown;
+  rebalancingRules?: unknown;
   investmentPhilosophy?: string;
 }
 
@@ -108,9 +109,15 @@ serve(async (req) => {
   }
 
   try {
+    // SECURITY: Require authentication
+    const { user, error: authError } = await getAuthenticatedUser(req);
+    if (authError || !user) {
+      return unauthorizedResponse(authError || 'Authentication required');
+    }
+
     const { message, conversationHistory, currentProfile, questionnaireProgress } = await req.json() as ChatRequest;
     
-    console.log("[AI-Chat] Received request:", { 
+    console.log("[AI-Chat] Received request from user:", user.id, { 
       messageLength: message?.length, 
       historyLength: conversationHistory?.length,
       currentSection: questionnaireProgress?.section,

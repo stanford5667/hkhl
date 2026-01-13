@@ -156,6 +156,7 @@ export type Database = {
           is_read: boolean | null
           severity: string
           title: string
+          user_id: string | null
         }
         Insert: {
           asset_id?: string | null
@@ -165,6 +166,7 @@ export type Database = {
           is_read?: boolean | null
           severity: string
           title: string
+          user_id?: string | null
         }
         Update: {
           asset_id?: string | null
@@ -174,6 +176,7 @@ export type Database = {
           is_read?: boolean | null
           severity?: string
           title?: string
+          user_id?: string | null
         }
         Relationships: [
           {
@@ -1056,6 +1059,7 @@ export type Database = {
           revenue: number | null
           sector: string | null
           stage: string | null
+          user_id: string | null
         }
         Insert: {
           asking_multiple?: number | null
@@ -1067,6 +1071,7 @@ export type Database = {
           revenue?: number | null
           sector?: string | null
           stage?: string | null
+          user_id?: string | null
         }
         Update: {
           asking_multiple?: number | null
@@ -1078,6 +1083,7 @@ export type Database = {
           revenue?: number | null
           sector?: string | null
           stage?: string | null
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -1363,6 +1369,7 @@ export type Database = {
           event_type: string
           id: string
           title: string
+          user_id: string | null
         }
         Insert: {
           created_at?: string | null
@@ -1370,6 +1377,7 @@ export type Database = {
           event_type: string
           id?: string
           title: string
+          user_id?: string | null
         }
         Update: {
           created_at?: string | null
@@ -1377,6 +1385,7 @@ export type Database = {
           event_type?: string
           id?: string
           title?: string
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -1750,6 +1759,7 @@ export type Database = {
           sector: string | null
           target_name: string
           transaction_date: string | null
+          user_id: string | null
         }
         Insert: {
           acquirer_name?: string | null
@@ -1760,6 +1770,7 @@ export type Database = {
           sector?: string | null
           target_name: string
           transaction_date?: string | null
+          user_id?: string | null
         }
         Update: {
           acquirer_name?: string | null
@@ -1770,6 +1781,7 @@ export type Database = {
           sector?: string | null
           target_name?: string
           transaction_date?: string | null
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -2365,6 +2377,7 @@ export type Database = {
           prior_fund_moic: number | null
           status: string | null
           target_size: number | null
+          user_id: string | null
         }
         Insert: {
           created_at?: string | null
@@ -2377,6 +2390,7 @@ export type Database = {
           prior_fund_moic?: number | null
           status?: string | null
           target_size?: number | null
+          user_id?: string | null
         }
         Update: {
           created_at?: string | null
@@ -2389,6 +2403,7 @@ export type Database = {
           prior_fund_moic?: number | null
           status?: string | null
           target_size?: number | null
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -2407,6 +2422,7 @@ export type Database = {
           name: string
           revenue_growth: number | null
           sector: string | null
+          user_id: string | null
           vintage_year: number | null
         }
         Insert: {
@@ -2423,6 +2439,7 @@ export type Database = {
           name: string
           revenue_growth?: number | null
           sector?: string | null
+          user_id?: string | null
           vintage_year?: number | null
         }
         Update: {
@@ -2439,6 +2456,7 @@ export type Database = {
           name?: string
           revenue_growth?: number | null
           sector?: string | null
+          user_id?: string | null
           vintage_year?: number | null
         }
         Relationships: []
@@ -2452,6 +2470,7 @@ export type Database = {
           id: string
           is_warning: boolean | null
           limit_value: number
+          user_id: string | null
         }
         Insert: {
           asset_id?: string | null
@@ -2461,6 +2480,7 @@ export type Database = {
           id?: string
           is_warning?: boolean | null
           limit_value: number
+          user_id?: string | null
         }
         Update: {
           asset_id?: string | null
@@ -2470,6 +2490,7 @@ export type Database = {
           id?: string
           is_warning?: boolean | null
           limit_value?: number
+          user_id?: string | null
         }
         Relationships: [
           {
