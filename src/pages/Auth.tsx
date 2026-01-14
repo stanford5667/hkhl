@@ -30,7 +30,7 @@ type SignInFormData = z.infer<typeof signInSchema>;
 type SignUpFormData = z.infer<typeof signUpSchema>;
 
 export default function Auth() {
-  const [mode, setMode] = useState<"signin" | "signup" | "verification-pending">("signin");
+  const [mode, setMode] = useState<"signin" | "signup" | "verification-pending">("signup");
   const [pendingEmail, setPendingEmail] = useState<string>("");
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
