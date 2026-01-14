@@ -188,6 +188,51 @@ export type Database = {
           },
         ]
       }
+      api_usage_logs: {
+        Row: {
+          cost_estimate: number | null
+          created_at: string
+          endpoint: string | null
+          function_name: string
+          id: string
+          metadata: Json | null
+          method: string | null
+          response_time_ms: number | null
+          status_code: number | null
+          tokens_used: number | null
+          usage_date: string | null
+          user_id: string | null
+        }
+        Insert: {
+          cost_estimate?: number | null
+          created_at?: string
+          endpoint?: string | null
+          function_name: string
+          id?: string
+          metadata?: Json | null
+          method?: string | null
+          response_time_ms?: number | null
+          status_code?: number | null
+          tokens_used?: number | null
+          usage_date?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          cost_estimate?: number | null
+          created_at?: string
+          endpoint?: string | null
+          function_name?: string
+          id?: string
+          metadata?: Json | null
+          method?: string | null
+          response_time_ms?: number | null
+          status_code?: number | null
+          tokens_used?: number | null
+          usage_date?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       app_settings: {
         Row: {
           created_at: string
