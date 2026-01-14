@@ -1,5 +1,5 @@
 import { cn } from "@/lib/utils";
-import logoIcon from "@/assets/logo-icon-new.png";
+import logoIcon from "@/assets/logo-icon-bw.png";
 
 interface AssetLabsLogoProps {
   size?: "sm" | "md" | "lg";
