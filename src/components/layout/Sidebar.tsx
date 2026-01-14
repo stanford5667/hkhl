@@ -1,4 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
+import logoWithText from "@/assets/logo-with-text.png";
+import logoIcon from "@/assets/logo-icon.png";
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -261,22 +263,22 @@ export function Sidebar() {
       {/* Logo */}
       <div className="relative flex items-center justify-between h-16 px-4 border-b border-sidebar-border">
         <Link to="/" className="flex items-center gap-3 group">
-          <div className="relative">
+          {collapsed ? (
             <img 
-              src="/favicon.png" 
+              src={logoIcon} 
               alt="Asset Labs AI" 
-              className="w-9 h-9 rounded-xl shadow-sm transition-transform duration-300 group-hover:scale-105" 
+              className="w-9 h-9 object-contain transition-transform duration-300 group-hover:scale-105" 
             />
-            <div className="absolute inset-0 rounded-xl ring-1 ring-inset ring-white/10" />
-          </div>
-          {!collapsed && (
+          ) : (
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              className="flex flex-col"
             >
-              <span className="font-bold text-foreground text-sm tracking-tight">Asset Labs</span>
-              <span className="text-[10px] text-muted-foreground font-medium tracking-wider uppercase">AI Platform</span>
+              <img 
+                src={logoWithText} 
+                alt="Asset Labs AI" 
+                className="h-9 object-contain transition-transform duration-300 group-hover:scale-105" 
+              />
             </motion.div>
           )}
         </Link>
