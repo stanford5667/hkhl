@@ -37,6 +37,7 @@ serve(async (req) => {
       return val;
     };
 
+    // Extract ALL questionnaire parameters
     const riskScenario = getVal(profile.responses['risk-scenario'], 'hold');
     const incomeStability = getVal(profile.responses['income-stability'], 'stable');
     const emergencyFund = getVal(profile.responses['emergency-fund'], 6);
@@ -44,6 +45,25 @@ serve(async (req) => {
     const prefAssets = getVal(profile.responses['pref-assets'], []);
     const riskExperience = getVal(profile.responses['risk-experience'], 'watched');
     const riskTolerance = getVal(profile.responses['risk-tolerance'], 20);
+    
+    // Additional parameters for comprehensive strategy
+    const goalPrimary = getVal(profile.responses['goal-primary'], 'wealth-growth');
+    const goalTimeline = getVal(profile.responses['goal-timeline'], 10);
+    const goalAmount = getVal(profile.responses['goal-amount'], 50000);
+    const existingAssets = getVal(profile.responses['existing-assets'], []);
+    const prefInvolvement = getVal(profile.responses['pref-involvement'], 50);
+    const prefDiversification = getVal(profile.responses['pref-diversification'], 50);
+    const visionSuccess = getVal(profile.responses['vision-success'], '');
+    
+    // Personality dimension responses
+    const personalityJourney = getVal(profile.responses['personality-journey'], null);
+    const personalityDinnerParty = getVal(profile.responses['personality-dinner-party'], null);
+    const personalityRegret = getVal(profile.responses['personality-regret'], null);
+    const personalityRestaurant = getVal(profile.responses['personality-restaurant'], null);
+    const personalityGardening = getVal(profile.responses['personality-gardening'], null);
+    const personalityWinner = getVal(profile.responses['personality-winner'], null);
+    const personalityBuffet = getVal(profile.responses['personality-buffet'], null);
+    const personalityWisdom = getVal(profile.responses['personality-wisdom'], null);
 
     const systemPrompt = `You are a sophisticated financial advisor with expertise in behavioral finance and portfolio construction. Your role is to create deeply personalized, thoughtful investment strategies that feel like they were written by a caring advisor who truly understands the investor.
 
@@ -56,6 +76,34 @@ Your responses should be:
 
 CRITICAL: Do NOT recommend specific funds, ETFs, or securities. Focus on asset allocation percentages, investment philosophy, behavioral guidance, and implementation principles.`;
 
+    // Map goal primary to readable text
+    const goalPrimaryMap: Record<string, string> = {
+      'wealth-growth': 'Long-term wealth accumulation',
+      'retirement': 'Building a retirement nest egg',
+      'income': 'Generating passive income',
+      'preservation': 'Preserving existing wealth'
+    };
+    const goalPrimaryText = goalPrimaryMap[goalPrimary as string] || 'Wealth growth';
+
+    // Map income stability to readable text
+    const incomeStabilityMap: Record<string, string> = {
+      'very-stable': 'Very stable (secure employment)',
+      'stable': 'Mostly stable with some variability',
+      'variable': 'Variable (freelance/commission)',
+      'uncertain': 'Uncertain (entrepreneur/startup)'
+    };
+    const incomeStabilityText = incomeStabilityMap[incomeStability as string] || String(incomeStability);
+
+    // Map investment style to readable text
+    const prefStyleMap: Record<string, string> = {
+      'passive': 'Index/Passive investing',
+      'active': 'Active management',
+      'value': 'Value investing',
+      'growth': 'Growth investing',
+      'income': 'Income/dividend focused'
+    };
+    const prefStyleText = prefStyleMap[prefStyle as string] || String(prefStyle);
+
     const userPrompt = `Create a comprehensive, personalized investment strategy for ${profile.userName}.
 
 ## INVESTOR PROFILE DATA:
@@ -63,17 +111,36 @@ CRITICAL: Do NOT recommend specific funds, ETFs, or securities. Focus on asset a
 - Investor Archetype: ${profile.investorTypeName} (Code: ${profile.investorType})
 - Investment Horizon: ${profile.timeHorizon} years
 - Target Investment: $${profile.goalAmount?.toLocaleString() || '50,000'}
+- Primary Goal: ${goalPrimaryText}
+
+## FINANCIAL SITUATION:
+- Income Stability: ${incomeStabilityText}
+- Emergency Fund: ${emergencyFund} months of expenses
+- Current Holdings: ${Array.isArray(existingAssets) && existingAssets.length > 0 ? existingAssets.join(', ') : 'Starting fresh'}
 
 ## BEHAVIORAL INSIGHTS:
 - Market Downturn Response: ${riskScenario === 'buy-more' ? 'Would buy more (contrarian)' : riskScenario === 'hold' ? 'Would hold steady' : riskScenario === 'sell-some' ? 'Would sell some (cautious)' : 'Would exit entirely (risk-averse)'}
 - Past Experience with Volatility: ${riskExperience === 'bought' ? 'Has bought during dips before' : riskExperience === 'held' ? 'Has held through volatility' : riskExperience === 'watched' ? 'Has watched from sidelines' : 'No prior experience with major drops'}
 - Stated Loss Tolerance: Up to ${riskTolerance}% decline
-- Income Stability: ${incomeStability}
-- Emergency Fund: ${emergencyFund} months of expenses
 
-## PREFERENCES:
-- Investment Style: ${prefStyle}
+## INVESTMENT PREFERENCES:
+- Investment Style: ${prefStyleText}
 - Asset Class Interests: ${Array.isArray(prefAssets) && prefAssets.length > 0 ? prefAssets.join(', ') : 'No specific preferences'}
+- Desired Involvement Level: ${prefInvolvement < 30 ? 'Hands-off (set and forget)' : prefInvolvement < 70 ? 'Moderate involvement' : 'Very hands-on (active management)'}
+- Diversification Preference: ${prefDiversification < 30 ? 'Prefer concentration in best ideas' : prefDiversification < 70 ? 'Balanced diversification' : 'Maximum diversification'}
+
+## INVESTOR PERSONALITY (from behavioral questions):
+${personalityJourney ? `- Journey metaphor: ${personalityJourney}` : ''}
+${personalityDinnerParty ? `- Information processing: ${personalityDinnerParty}` : ''}
+${personalityRegret ? `- Core fear: ${personalityRegret === 'gains' ? 'Missing out on gains' : 'Losing money'}` : ''}
+${personalityRestaurant ? `- Decision style: ${personalityRestaurant}` : ''}
+${personalityGardening ? `- Management approach: ${personalityGardening}` : ''}
+${personalityWinner ? `- Profit taking: ${personalityWinner}` : ''}
+${personalityBuffet ? `- Allocation instinct: ${personalityBuffet}` : ''}
+${personalityWisdom ? `- Investment philosophy: ${personalityWisdom}` : ''}
+
+## VISION FOR SUCCESS:
+${visionSuccess ? `"${visionSuccess}"` : 'Financial independence and security'}
 
 ## TARGET ALLOCATION:
 ${profile.allocation?.map(a => `- ${a.category}: ${a.percentage}%`).join('\n') || 'To be determined based on profile'}
@@ -83,10 +150,10 @@ ${profile.allocation?.map(a => `- ${a.category}: ${a.percentage}%`).join('\n') |
 Write a comprehensive investment strategy document with these sections (use markdown formatting):
 
 ## Your Investment Philosophy
-Write 2-3 paragraphs explaining the core investment philosophy suited to their archetype. Make it personal - address them by name. Explain WHY this approach fits their personality, not just what it is.
+Write 2-3 paragraphs explaining the core investment philosophy suited to their archetype. Make it personal - address them by name. Explain WHY this approach fits their personality, not just what it is. Reference their stated primary goal of "${goalPrimaryText}".
 
 ## Portfolio Construction Strategy
-Explain the rationale behind their target allocation. Why these percentages make sense for their specific situation, timeline, and goals. Discuss how the allocation balances growth potential with their stated risk tolerance.
+Explain the rationale behind their target allocation. Why these percentages make sense for their specific situation, timeline, and goals. Discuss how the allocation balances growth potential with their stated risk tolerance of ${riskTolerance}%.
 
 ## Behavioral Guardrails
 Based on their archetype (${profile.investorTypeName}) and their stated downturn response, provide 3-4 specific behavioral rules they should follow. These should feel like wisdom from an experienced mentor who knows their tendencies.
@@ -100,11 +167,13 @@ Provide a phased approach to building their portfolio:
 2. Short-term setup (Month 1)
 3. Ongoing management (Quarterly/Annually)
 
+Their preferred involvement level is ${prefInvolvement < 30 ? 'minimal - they want this to be automated' : prefInvolvement < 70 ? 'moderate - they want some control' : 'high - they enjoy active management'}, so tailor recommendations accordingly.
+
 ## Risk Factors to Monitor
 List 3-4 specific risks this investor should watch for, given their profile. Be honest but constructive.
 
 ## Long-Term Perspective
-A closing section with motivational but realistic perspective on their ${profile.timeHorizon}-year journey. Include expected range of outcomes.
+A closing section with motivational but realistic perspective on their ${profile.timeHorizon}-year journey. ${visionSuccess ? `Connect to their stated vision: "${visionSuccess}"` : ''} Include expected range of outcomes.
 
 Remember: Be specific to THEIR situation. Reference their actual numbers and responses. This should feel like it was written just for them.`;
 
