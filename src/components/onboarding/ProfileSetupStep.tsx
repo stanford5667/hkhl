@@ -66,7 +66,7 @@ export function ProfileSetupStep({ onComplete }: ProfileSetupStepProps) {
           phone: phone.trim() || null,
           linkedin_url: linkedinUrl.trim() || null,
           avatar_url: avatarUrl || null,
-          onboarding_step: 'organization',
+          onboarding_step: 'membership',
         })
         .eq('user_id', user.id);
 
