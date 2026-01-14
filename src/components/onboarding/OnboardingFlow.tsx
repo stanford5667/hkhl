@@ -15,7 +15,9 @@ export function OnboardingFlow({ children }: OnboardingFlowProps) {
 
   useEffect(() => {
     if (userProfile) {
-      if (userProfile.onboarding_completed) {
+      // If onboarding is completed OR user has passed the profile step, they're done
+      // (we no longer require organization step)
+      if (userProfile.onboarding_completed || userProfile.onboarding_step === 'organization' || userProfile.onboarding_step === 'complete') {
         setCurrentStep('complete');
       }
     }
