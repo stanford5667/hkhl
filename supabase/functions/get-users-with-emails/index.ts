@@ -37,14 +37,14 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Check if user is admin
+    // Check if user is admin (user may have multiple roles)
     const { data: roleData, error: roleError } = await userClient
       .from('user_roles')
       .select('role')
-      .eq('user_id', user.id)
-      .single();
+      .eq('user_id', user.id);
 
-    if (roleError || roleData?.role !== 'admin') {
+    const isAdmin = roleData?.some(r => r.role === 'admin');
+    if (roleError || !isAdmin) {
       return new Response(JSON.stringify({ error: 'Forbidden: Admin access required' }), {
         status: 403,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
