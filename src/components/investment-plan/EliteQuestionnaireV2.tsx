@@ -37,6 +37,8 @@ import {
   TreePine,
   Eye,
   Layers,
+  DollarSign,
+  Info,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -68,11 +70,12 @@ interface Question {
   section: 'goals' | 'risk' | 'financial' | 'constraints' | 'personality';
   question: string;
   subtitle: string;
-  type: 'select' | 'scenario';
+  type: 'select' | 'scenario' | 'currency';
   options?: QuestionOption[];
   scenarioA?: QuestionOption;
   scenarioB?: QuestionOption;
   weight: 'high' | 'medium' | 'low';
+  placeholder?: string;
 }
 
 const QUESTIONS: Question[] = [
@@ -91,6 +94,36 @@ const QUESTIONS: Question[] = [
       { value: 'financial-independence', label: 'Financial Independence', description: 'FIRE or early retirement goals', icon: Zap, color: '#f59e0b' },
       { value: 'house-purchase', label: 'Major Purchase', description: 'Saving for a specific large expense', icon: Home, color: '#8b5cf6' },
     ],
+  },
+  {
+    id: 'investment-capital',
+    scoringKey: 'financial-investment-capital',
+    section: 'goals',
+    question: "How much are you investing?",
+    subtitle: "The amount you're putting to work in this portfolio.",
+    type: 'currency',
+    weight: 'high',
+    placeholder: '100,000',
+  },
+  {
+    id: 'liquid-net-worth',
+    scoringKey: 'financial-liquid-net-worth',
+    section: 'goals',
+    question: "What's your total liquid net worth?",
+    subtitle: "Cash + investments + easily accessible assets (excluding home equity).",
+    type: 'currency',
+    weight: 'high',
+    placeholder: '500,000',
+  },
+  {
+    id: 'goal-amount',
+    scoringKey: 'goal-amount',
+    section: 'goals',
+    question: "What's your target goal amount?",
+    subtitle: "The dollar amount you're aiming to reach with this portfolio.",
+    type: 'currency',
+    weight: 'high',
+    placeholder: '1,000,000',
   },
   {
     id: 'goal-timeline',
@@ -419,8 +452,14 @@ export function EliteQuestionnaireV2({ onComplete, onCancel, userName: initialUs
   // Check if current question is answered
   const isCurrentAnswered = useMemo(() => {
     if (showNameInput) return userName.trim().length > 0;
+    if (currentQuestion?.type === 'currency') {
+      const val = responses[currentQuestion?.id];
+      if (!val) return false;
+      const num = parseFloat(val.replace(/[^0-9.]/g, ''));
+      return !isNaN(num) && num > 0;
+    }
     return responses[currentQuestion?.id] !== undefined;
-  }, [showNameInput, userName, responses, currentQuestion?.id]);
+  }, [showNameInput, userName, responses, currentQuestion?.id, currentQuestion?.type]);
 
   // Handle option selection
   const handleSelect = useCallback((value: string) => {
@@ -529,7 +568,13 @@ export function EliteQuestionnaireV2({ onComplete, onCancel, userName: initialUs
       // Only include questions with scoringKey
       QUESTIONS.forEach(q => {
         if (responses[q.id] && q.scoringKey) {
-          scoringResponses[q.scoringKey] = { value: responses[q.id] };
+          // Parse currency values as numbers
+          if (q.type === 'currency') {
+            const numVal = parseFloat(responses[q.id].replace(/[^0-9.]/g, ''));
+            scoringResponses[q.scoringKey] = { value: numVal };
+          } else {
+            scoringResponses[q.scoringKey] = { value: responses[q.id] };
+          }
         }
       });
 
@@ -681,6 +726,102 @@ export function EliteQuestionnaireV2({ onComplete, onCancel, userName: initialUs
     );
   };
 
+  // Format currency input
+  const formatCurrency = (value: string): string => {
+    const num = value.replace(/[^0-9]/g, '');
+    if (!num) return '';
+    return new Intl.NumberFormat('en-US').format(parseInt(num));
+  };
+
+  // Calculate risk/reward insight based on capital, net worth, and goal
+  const getRiskRewardInsight = useMemo(() => {
+    const capital = parseFloat((responses['investment-capital'] || '0').replace(/[^0-9.]/g, ''));
+    const netWorth = parseFloat((responses['liquid-net-worth'] || '0').replace(/[^0-9.]/g, ''));
+    const goal = parseFloat((responses['goal-amount'] || '0').replace(/[^0-9.]/g, ''));
+    const timeline = responses['goal-timeline'];
+    
+    if (!capital || !goal || !timeline) return null;
+    
+    const growthNeeded = goal / capital;
+    const years = timeline === 'less-than-3' ? 2 : timeline === '3-7-years' ? 5 : timeline === '7-15-years' ? 10 : 20;
+    const requiredCAGR = (Math.pow(growthNeeded, 1 / years) - 1) * 100;
+    const portfolioRatio = netWorth > 0 ? (capital / netWorth) * 100 : 0;
+    
+    let riskLevel: 'low' | 'moderate' | 'high' | 'very-high' = 'moderate';
+    let message = '';
+    
+    if (requiredCAGR > 15) {
+      riskLevel = 'very-high';
+      message = `To grow from $${formatCurrency(capital.toString())} to $${formatCurrency(goal.toString())} in ${years} years, you'd need ~${requiredCAGR.toFixed(1)}% annual returns. This is aggressive—consider extending your timeline or adjusting your goal.`;
+    } else if (requiredCAGR > 10) {
+      riskLevel = 'high';
+      message = `Your goal requires ~${requiredCAGR.toFixed(1)}% annual returns. This is achievable with an aggressive equity-heavy portfolio, but expect significant volatility.`;
+    } else if (requiredCAGR > 6) {
+      riskLevel = 'moderate';
+      message = `Your goal requires ~${requiredCAGR.toFixed(1)}% annual returns. A balanced portfolio can historically achieve this with moderate risk.`;
+    } else {
+      riskLevel = 'low';
+      message = `Your goal requires only ~${requiredCAGR.toFixed(1)}% annual returns. This is conservative and achievable with a lower-risk approach.`;
+    }
+    
+    if (portfolioRatio > 80) {
+      message += ` Note: You're investing ${portfolioRatio.toFixed(0)}% of your liquid net worth—ensure you maintain adequate emergency reserves.`;
+    }
+    
+    return { riskLevel, message, requiredCAGR };
+  }, [responses]);
+
+  // Render currency input question
+  const renderCurrencyQuestion = (question: Question) => {
+    const currentValue = responses[question.id] || '';
+    
+    return (
+      <div className="space-y-6">
+        <div className="relative max-w-md">
+          <div className="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none">
+            <DollarSign className="w-6 h-6 text-white/50" />
+          </div>
+          <Input
+            type="text"
+            inputMode="numeric"
+            value={currentValue}
+            onChange={(e) => {
+              const formatted = formatCurrency(e.target.value);
+              setResponses(prev => ({ ...prev, [question.id]: formatted }));
+            }}
+            placeholder={question.placeholder || '0'}
+            className="h-16 text-2xl pl-12 bg-white/5 border-white/20 focus:border-blue-500 text-white placeholder:text-white/30"
+            autoFocus
+          />
+        </div>
+        
+        {/* Show risk/reward insight after goal amount is entered */}
+        {question.id === 'goal-amount' && getRiskRewardInsight && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className={cn(
+              "p-4 rounded-xl border flex gap-3",
+              getRiskRewardInsight.riskLevel === 'very-high' ? "bg-rose-500/10 border-rose-500/30" :
+              getRiskRewardInsight.riskLevel === 'high' ? "bg-amber-500/10 border-amber-500/30" :
+              getRiskRewardInsight.riskLevel === 'moderate' ? "bg-blue-500/10 border-blue-500/30" :
+              "bg-emerald-500/10 border-emerald-500/30"
+            )}
+          >
+            <Info className={cn(
+              "w-5 h-5 shrink-0 mt-0.5",
+              getRiskRewardInsight.riskLevel === 'very-high' ? "text-rose-400" :
+              getRiskRewardInsight.riskLevel === 'high' ? "text-amber-400" :
+              getRiskRewardInsight.riskLevel === 'moderate' ? "text-blue-400" :
+              "text-emerald-400"
+            )} />
+            <p className="text-sm text-white/80">{getRiskRewardInsight.message}</p>
+          </motion.div>
+        )}
+      </div>
+    );
+  };
+
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white overflow-hidden">
       {/* Background */}
@@ -793,6 +934,8 @@ export function EliteQuestionnaireV2({ onComplete, onCancel, userName: initialUs
               </div>
               {currentQuestion.type === 'scenario' 
                 ? renderScenarioQuestion(currentQuestion)
+                : currentQuestion.type === 'currency'
+                ? renderCurrencyQuestion(currentQuestion)
                 : renderSelectQuestion(currentQuestion)
               }
             </motion.div>
