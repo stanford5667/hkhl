@@ -13,7 +13,7 @@ const logStep = (step: string, details?: unknown) => {
 };
 
 // Pro Plan price ID
-const PRO_PRICE_ID = "price_1SpJ7t0ATyKK64GzVausjlQ2";
+const PRO_PRICE_ID = "price_1SpOMd0dzxuTW9dBHMT4NmFp";
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
