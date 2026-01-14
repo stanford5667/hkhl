@@ -2,13 +2,14 @@ import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Shield, Users, Database, Settings, BarChart3, Loader2 } from 'lucide-react';
+import { Shield, Users, Database, Settings, BarChart3, Loader2, Zap } from 'lucide-react';
 import { useAdmin } from '@/hooks/useAdmin';
 import { useAuth } from '@/contexts/AuthContext';
 import { AdminUsersTab } from '@/components/admin/AdminUsersTab';
 import { AdminContentTab } from '@/components/admin/AdminContentTab';
 import { AdminSettingsTab } from '@/components/admin/AdminSettingsTab';
 import { AdminAnalyticsTab } from '@/components/admin/AdminAnalyticsTab';
+import { AdminApiUsageTab } from '@/components/admin/AdminApiUsageTab';
 
 export default function AdminPortal() {
   const { user, loading: authLoading } = useAuth();
@@ -54,7 +55,7 @@ export default function AdminPortal() {
 
       {/* Main Tabs */}
       <Tabs defaultValue="users" className="w-full">
-        <TabsList className="grid w-full grid-cols-4 bg-muted/50">
+        <TabsList className="grid w-full grid-cols-5 bg-muted/50">
           <TabsTrigger value="users" className="flex items-center gap-2">
             <Users className="h-4 w-4" />
             <span className="hidden sm:inline">Users</span>
@@ -70,6 +71,10 @@ export default function AdminPortal() {
           <TabsTrigger value="analytics" className="flex items-center gap-2">
             <BarChart3 className="h-4 w-4" />
             <span className="hidden sm:inline">Analytics</span>
+          </TabsTrigger>
+          <TabsTrigger value="api-usage" className="flex items-center gap-2">
+            <Zap className="h-4 w-4" />
+            <span className="hidden sm:inline">API Usage</span>
           </TabsTrigger>
         </TabsList>
 
@@ -87,6 +92,10 @@ export default function AdminPortal() {
 
         <TabsContent value="analytics" className="mt-6">
           <AdminAnalyticsTab />
+        </TabsContent>
+
+        <TabsContent value="api-usage" className="mt-6">
+          <AdminApiUsageTab />
         </TabsContent>
       </Tabs>
     </div>
