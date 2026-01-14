@@ -233,8 +233,24 @@ export function ComprehensiveInvestmentResults({
   const expectedReturn = (4 + riskScore * 0.06).toFixed(1);
   const maxDrawdown = (-10 - riskScore * 0.25).toFixed(0);
 
-  // Generate AI strategy on mount
+  // Check if rawPolicy contains an AI-generated strategy (to avoid regeneration)
+  const hasExistingStrategy = useMemo(() => {
+    if (!rawPolicy || rawPolicy.length < 100) return false;
+    // AI-generated strategies contain specific section headers
+    return rawPolicy.includes('## Your Investment Philosophy') || 
+           rawPolicy.includes('## Portfolio Construction') ||
+           rawPolicy.includes('## Behavioral Guardrails');
+  }, [rawPolicy]);
+
+  // Generate AI strategy on mount ONLY if we don't have an existing strategy
   useEffect(() => {
+    // If we already have a saved AI strategy, use it directly
+    if (hasExistingStrategy) {
+      setAiStrategy(rawPolicy);
+      setIsLoadingStrategy(false);
+      return;
+    }
+
     const generateAIStrategy = async () => {
       setIsLoadingStrategy(true);
       try {
@@ -281,7 +297,7 @@ export function ComprehensiveInvestmentResults({
     };
 
     generateAIStrategy();
-  }, [riskScore, riskLabel, investorTypeCode, archetype.name, timeHorizon, goalAmount, allocation, responses, userName, rawPolicy, toast]);
+  }, [hasExistingStrategy, riskScore, riskLabel, investorTypeCode, archetype.name, timeHorizon, goalAmount, allocation, responses, userName, rawPolicy, toast]);
 
 
   return (
