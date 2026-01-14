@@ -40,8 +40,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signUp = async (email: string, password: string, fullName: string) => {
-    const redirectUrl = `${window.location.origin}/`;
-    
+    // IMPORTANT: Email verification links must point to a publicly accessible URL.
+    // The preview URL is access-protected, so verification opened from email would land on a Lovable login page.
+    const publishedUrl = "https://hkhl.lovable.app";
+
+    const redirectUrl = `${publishedUrl}/`;
+
     const { error } = await supabase.auth.signUp({
       email,
       password,
@@ -52,7 +56,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         },
       },
     });
-    
+
     return { error: error as Error | null };
   };
 
