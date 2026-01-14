@@ -846,8 +846,20 @@ export default function InvestmentPlanPage() {
 
       {/* View Plan - Full Screen Results Component */}
       {viewPlanOpen && selectedPlan && (
-        <div className="fixed inset-0 z-[9999] bg-background overflow-y-auto overscroll-contain -webkit-overflow-scrolling-touch">
-          <div className="min-h-screen pb-safe">
+        <div className="fixed inset-0 z-[9999] bg-background overflow-y-auto overflow-x-hidden">
+          <div className="relative min-h-full">
+            {/* Back button - positioned inside the scrollable container */}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                setViewPlanOpen(false);
+                setSelectedPlan(null);
+              }}
+              className="fixed top-4 left-4 z-[10000] bg-background/80 backdrop-blur-sm border border-border hover:bg-secondary"
+            >
+              ← Back to Plans
+            </Button>
             <ComprehensiveInvestmentResults
               responses={selectedPlan.responses || {}}
               rawPolicy={selectedPlan.plan_content || ''}
@@ -862,18 +874,6 @@ export default function InvestmentPlanPage() {
               onSignOut={() => setViewPlanOpen(false)}
             />
           </div>
-          {/* Back button overlay */}
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => {
-              setViewPlanOpen(false);
-              setSelectedPlan(null);
-            }}
-            className="fixed top-4 left-4 z-[10000] bg-background/80 backdrop-blur-sm border border-border hover:bg-secondary"
-          >
-            ← Back to Plans
-          </Button>
         </div>
       )}
 
