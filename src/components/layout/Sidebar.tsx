@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
-import logoIcon from "@/assets/logo-icon.svg";
+import { LogoMark } from "@/components/brand/LogoMark";
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -263,26 +263,23 @@ export function Sidebar() {
       <div className="relative flex items-center justify-between h-16 px-4 border-b border-sidebar-border">
         <Link to="/" className="flex items-center gap-3 group">
           {collapsed ? (
-            <img 
-              src={logoIcon} 
-              alt="Asset Labs" 
-              className="w-10 h-10 object-contain transition-transform duration-300 group-hover:scale-105" 
-            />
+            <span className="w-12 h-12 text-foreground transition-transform duration-300 group-hover:scale-105" aria-label="Asset Labs">
+              <LogoMark className="w-full h-full" />
+            </span>
           ) : (
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               className="flex items-center gap-2"
             >
-              <img 
-                src={logoIcon} 
-                alt="Asset Labs" 
-                className="w-10 h-10 object-contain transition-transform duration-300 group-hover:scale-105" 
-              />
+              <span className="w-12 h-12 text-foreground transition-transform duration-300 group-hover:scale-105" aria-label="Asset Labs">
+                <LogoMark className="w-full h-full" />
+              </span>
               <span className="font-bold text-foreground text-base tracking-tight">Asset Labs</span>
             </motion.div>
           )}
         </Link>
+
         
         <Button 
           variant="ghost" 
