@@ -5,6 +5,14 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+interface KeyMetrics {
+  expectedReturn?: string;
+  volatility?: string;
+  maxDrawdown?: string;
+  sharpRatio?: string;
+  timeHorizon?: string;
+}
+
 interface InvestorProfile {
   riskScore: number;
   riskLabel: string;
@@ -12,6 +20,7 @@ interface InvestorProfile {
   investorTypeName: string;
   timeHorizon: number;
   goalAmount: number;
+  keyMetrics?: KeyMetrics;
   allocation: Array<{ category: string; percentage: number }>;
   responses: Record<string, any>;
   userName: string;
@@ -29,6 +38,14 @@ serve(async (req) => {
     }
 
     const { profile }: { profile: InvestorProfile } = await req.json();
+
+    // Log the received profile data for debugging
+    console.log("Received profile:", {
+      goalAmount: profile.goalAmount,
+      keyMetrics: profile.keyMetrics,
+      investmentAmountFromResponses: profile.responses?.investmentAmount,
+      goalAmountFromResponses: profile.responses?.['goal-amount'],
+    });
 
     // Extract response values safely (handle {value: x} format)
     const getVal = (val: any, def: any = null) => {
@@ -49,7 +66,14 @@ serve(async (req) => {
     // Additional parameters for comprehensive strategy
     const goalPrimary = getVal(profile.responses['goal-primary'], 'wealth-growth');
     const goalTimeline = getVal(profile.responses['goal-timeline'], 10);
-    const goalAmount = getVal(profile.responses['goal-amount'], 50000);
+    // Get investment amount from multiple sources - prioritize investmentAmount from saved data
+    const savedInvestmentAmount = profile.responses?.investmentAmount;
+    const questionnaireAmount = getVal(profile.responses['goal-amount'], null);
+    const goalAmount = savedInvestmentAmount && typeof savedInvestmentAmount === 'number' && savedInvestmentAmount > 0 
+      ? savedInvestmentAmount 
+      : (questionnaireAmount && typeof questionnaireAmount === 'number' && questionnaireAmount > 0 
+        ? questionnaireAmount 
+        : (profile.goalAmount || 50000));
     const existingAssets = getVal(profile.responses['existing-assets'], []);
     const prefInvolvement = getVal(profile.responses['pref-involvement'], 50);
     const prefDiversification = getVal(profile.responses['pref-diversification'], 50);
@@ -104,14 +128,39 @@ CRITICAL: Do NOT recommend specific funds, ETFs, or securities. Focus on asset a
     };
     const prefStyleText = prefStyleMap[prefStyle as string] || String(prefStyle);
 
+    // Format investment amount nicely for the prompt
+    const formatAmount = (amount: number): string => {
+      if (amount >= 1000000) {
+        return `$${(amount / 1000000).toFixed(amount % 1000000 === 0 ? 0 : 1)} million`;
+      } else if (amount >= 1000) {
+        return `$${(amount / 1000).toFixed(0)},000`;
+      }
+      return `$${amount.toLocaleString()}`;
+    };
+    
+    const formattedInvestmentAmount = formatAmount(goalAmount);
+
+    // Get key metrics from profile or calculate defaults
+    const keyMetrics = profile.keyMetrics || {};
+    const targetReturn = keyMetrics.expectedReturn || `${(4 + profile.riskScore * 0.06).toFixed(1)}%`;
+    const targetVolatility = keyMetrics.volatility || `${(6 + profile.riskScore * 0.14).toFixed(1)}%`;
+    const targetMaxDrawdown = keyMetrics.maxDrawdown || `-${(10 + profile.riskScore * 0.25).toFixed(0)}%`;
+    const targetSharpe = keyMetrics.sharpRatio || '0.50';
+
     const userPrompt = `Create a comprehensive, personalized investment strategy for ${profile.userName}.
 
 ## INVESTOR PROFILE DATA:
 - Risk Score: ${profile.riskScore}/100 (${profile.riskLabel})
 - Investor Archetype: ${profile.investorTypeName} (Code: ${profile.investorType})
 - Investment Horizon: ${profile.timeHorizon} years
-- Target Investment: $${profile.goalAmount?.toLocaleString() || '50,000'}
+- Total Investment Capital: ${formattedInvestmentAmount}
 - Primary Goal: ${goalPrimaryText}
+
+## TARGET PERFORMANCE METRICS:
+- Goal Annual Return: ${targetReturn}
+- Goal Max Drawdown: ${targetMaxDrawdown}
+- Expected Volatility: ${targetVolatility}
+- Target Sharpe Ratio: ${targetSharpe}
 
 ## FINANCIAL SITUATION:
 - Income Stability: ${incomeStabilityText}
@@ -153,7 +202,15 @@ Write a comprehensive investment strategy document with these sections (use mark
 Write 2-3 paragraphs explaining the core investment philosophy suited to their archetype. Make it personal - address them by name. Explain WHY this approach fits their personality, not just what it is. Reference their stated primary goal of "${goalPrimaryText}".
 
 ## Portfolio Construction Strategy
-Explain the rationale behind their target allocation. Why these percentages make sense for their specific situation, timeline, and goals. Discuss how the allocation balances growth potential with their stated risk tolerance of ${riskTolerance}%.
+Explain the rationale behind their target allocation. Why these percentages make sense for their specific situation, timeline of ${profile.timeHorizon} years, and goal of ${formattedInvestmentAmount}. 
+
+Reference their target metrics:
+- Goal annual return of ${targetReturn} (realistic given their ${profile.riskLabel} risk profile)
+- Maximum drawdown tolerance of ${targetMaxDrawdown}
+- Expected volatility of ${targetVolatility}
+- Target Sharpe ratio of ${targetSharpe}
+
+Discuss how the allocation balances growth potential with their stated risk tolerance of ${riskTolerance}%. Compare these goals to historical S&P 500 benchmarks where relevant (historical ~10% annualized return, ~15% volatility, 30-50% drawdowns in crashes).
 
 ## What to Track: Your Monitoring Dashboard
 
