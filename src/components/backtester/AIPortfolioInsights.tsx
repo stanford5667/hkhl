@@ -23,7 +23,7 @@ import {
   Crown
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { PremiumBadge } from '@/components/ui/PremiumBadge';
+import { PremiumFeatureBlock } from '@/components/premium/PremiumFeatureBlock';
 
 export interface AIPortfolioAdvice {
   portfolioName: string;
@@ -370,11 +370,11 @@ export function AIPortfolioInsights({ advice, investableCapital }: AIPortfolioIn
             </Card>
           ) : (
             <Card>
-              <CardContent className="py-12 flex flex-col items-center justify-center gap-2">
-                <Crown className="h-8 w-8 text-amber-500/50" />
-                <p className="font-medium">Premium Feature</p>
-                <p className="text-sm text-muted-foreground">Liquidity analysis requires premium</p>
-                <PremiumBadge variant="inline" />
+              <CardContent className="py-8">
+                <PremiumFeatureBlock 
+                  size="lg"
+                  description="Liquidity analysis requires premium access"
+                />
               </CardContent>
             </Card>
           )}
