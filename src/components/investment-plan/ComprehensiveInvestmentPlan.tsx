@@ -443,12 +443,36 @@ export function ComprehensiveInvestmentResults({
                 {/* Quick Stats Grid */}
                 <div className="grid grid-cols-2 gap-3">
                   {[
-                    { label: 'Expected Return', value: `${expectedReturn}%`, icon: TrendingUp, color: 'emerald' },
-                    { label: 'Max Drawdown', value: `${maxDrawdown}%`, icon: AlertTriangle, color: 'rose' },
-                    { label: 'Time Horizon', value: `${timeHorizon} years`, icon: Clock, color: 'blue' },
-                    { label: 'Sharpe Ratio', value: (0.4 + riskScore * 0.005).toFixed(2), icon: BarChart3, color: 'violet' },
+                    { 
+                      label: 'Goal Return', 
+                      value: `${expectedReturn}%`, 
+                      icon: TrendingUp, 
+                      color: 'emerald',
+                      tooltip: 'Target annual return based on your risk profile and allocation'
+                    },
+                    { 
+                      label: 'Goal Max Drawdown', 
+                      value: `${maxDrawdown}%`, 
+                      icon: AlertTriangle, 
+                      color: 'rose',
+                      tooltip: 'Maximum portfolio decline you should be prepared for'
+                    },
+                    { 
+                      label: 'Time Horizon', 
+                      value: `${timeHorizon} years`, 
+                      icon: Clock, 
+                      color: 'blue',
+                      tooltip: 'Your investment timeframe for this strategy'
+                    },
+                    { 
+                      label: 'Goal Sharpe Ratio', 
+                      value: (0.4 + riskScore * 0.005).toFixed(2), 
+                      icon: BarChart3, 
+                      color: 'violet',
+                      tooltip: 'Target risk-adjusted return (higher is better)'
+                    },
                   ].map((stat, i) => (
-                    <div key={i} className="bg-white/5 rounded-xl p-4">
+                    <div key={i} className="bg-white/5 rounded-xl p-4 group relative">
                       <stat.icon className={cn(
                         "w-4 h-4 mb-2",
                         stat.color === 'emerald' && "text-emerald-400",
@@ -458,6 +482,10 @@ export function ComprehensiveInvestmentResults({
                       )} />
                       <div className="text-lg font-bold">{stat.value}</div>
                       <div className="text-xs text-white/40">{stat.label}</div>
+                      {/* Tooltip on hover */}
+                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-black/90 rounded-lg text-xs text-white/80 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10 max-w-[200px] text-center">
+                        {stat.tooltip}
+                      </div>
                     </div>
                   ))}
                 </div>
