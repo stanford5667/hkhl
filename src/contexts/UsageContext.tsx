@@ -47,15 +47,25 @@ export function UsageProvider({ children, onUpgradeRequest }: UsageProviderProps
     }
 
     try {
-      // Check subscription status
-      const { data: subscription } = await supabase
-        .from('subscriptions')
-        .select('status, plan')
-        .eq('user_id', user.id)
-        .eq('status', 'active')
-        .maybeSingle();
+      // Check subscription status via Stripe
+      let userIsPro = false;
+      try {
+        const { data: stripeData, error: stripeError } = await supabase.functions.invoke('check-subscription');
+        if (!stripeError && stripeData?.subscribed) {
+          userIsPro = stripeData.plan === 'pro';
+        }
+      } catch (e) {
+        console.error('Error checking Stripe subscription:', e);
+        // Fall back to database check
+        const { data: subscription } = await supabase
+          .from('subscriptions')
+          .select('status, plan')
+          .eq('user_id', user.id)
+          .eq('status', 'active')
+          .maybeSingle();
+        userIsPro = !!subscription;
+      }
 
-      const userIsPro = !!subscription;
       setIsPro(userIsPro);
 
       // Get or create usage record

@@ -1,8 +1,11 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Crown, Check, Zap, TrendingUp, Bell, Sparkles, X } from 'lucide-react';
+import { Crown, Check, Zap, TrendingUp, Bell, Sparkles, Loader2 } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { useState } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 interface UpgradeModalProps {
   isOpen: boolean;
@@ -48,11 +51,30 @@ const PRO_FEATURES = [
 
 export function UpgradeModal({ isOpen, feature, onClose, onUpgrade }: UpgradeModalProps) {
   const copy = FEATURE_COPY[feature] || FEATURE_COPY.default;
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleUpgrade = () => {
-    onUpgrade?.();
-    // For now, close the modal - integrate with Stripe later
-    onClose();
+  const handleUpgrade = async () => {
+    setIsLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('create-checkout');
+      
+      if (error) {
+        toast.error('Failed to start checkout');
+        console.error('Checkout error:', error);
+        return;
+      }
+      
+      if (data?.url) {
+        window.open(data.url, '_blank');
+        onUpgrade?.();
+        onClose();
+      }
+    } catch (err) {
+      toast.error('Something went wrong');
+      console.error('Checkout error:', err);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -115,11 +137,11 @@ export function UpgradeModal({ isOpen, feature, onClose, onUpgrade }: UpgradeMod
             className="text-center space-y-1"
           >
             <div className="flex items-baseline justify-center gap-1">
-              <span className="text-4xl font-bold">$19</span>
+              <span className="text-4xl font-bold">$50</span>
               <span className="text-muted-foreground">/month</span>
             </div>
             <p className="text-sm text-muted-foreground">
-              or $149/year (save 35%)
+              Full access to all Pro features
             </p>
           </motion.div>
 
@@ -131,14 +153,20 @@ export function UpgradeModal({ isOpen, feature, onClose, onUpgrade }: UpgradeMod
           >
             <Button 
               onClick={handleUpgrade}
+              disabled={isLoading}
               className="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-semibold h-12 shadow-lg shadow-orange-500/20"
             >
-              <Crown className="h-4 w-4 mr-2" />
-              Upgrade to Pro
+              {isLoading ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Crown className="h-4 w-4 mr-2" />
+              )}
+              {isLoading ? 'Starting checkout...' : 'Upgrade to Pro'}
             </Button>
             <Button 
               variant="ghost" 
               onClick={onClose}
+              disabled={isLoading}
               className="w-full text-muted-foreground"
             >
               Maybe later
