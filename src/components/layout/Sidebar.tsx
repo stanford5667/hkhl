@@ -1,5 +1,4 @@
 import { useState, useMemo, useEffect } from "react";
-import { LogoMark } from "@/components/brand/LogoMark";
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -262,24 +261,25 @@ export function Sidebar() {
       {/* Logo */}
       <div className="relative flex items-center justify-between h-16 px-4 border-b border-sidebar-border">
         <Link to="/" className="flex items-center gap-3 group">
-          {collapsed ? (
-            <span className="w-12 h-12 text-foreground transition-transform duration-300 group-hover:scale-105" aria-label="Asset Labs">
-              <LogoMark className="w-full h-full" />
-            </span>
-          ) : (
+          <div className="relative">
+            <img 
+              src="/favicon.png" 
+              alt="Asset Labs AI" 
+              className="w-9 h-9 rounded-xl shadow-sm transition-transform duration-300 group-hover:scale-105" 
+            />
+            <div className="absolute inset-0 rounded-xl ring-1 ring-inset ring-white/10" />
+          </div>
+          {!collapsed && (
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              className="flex items-center gap-2"
+              className="flex flex-col"
             >
-              <span className="w-12 h-12 text-foreground transition-transform duration-300 group-hover:scale-105" aria-label="Asset Labs">
-                <LogoMark className="w-full h-full" />
-              </span>
-              <span className="font-bold text-foreground text-base tracking-tight">Asset Labs</span>
+              <span className="font-bold text-foreground text-sm tracking-tight">Asset Labs</span>
+              <span className="text-[10px] text-muted-foreground font-medium tracking-wider uppercase">AI Platform</span>
             </motion.div>
           )}
         </Link>
-
         
         <Button 
           variant="ghost" 

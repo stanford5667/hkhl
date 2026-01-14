@@ -1,11 +1,10 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { LogoMark } from "@/components/brand/LogoMark";
 import { cn } from "@/lib/utils";
-import {
-  Briefcase,
-  PieChart,
-  BarChart3,
-  Search,
+import { 
+  Briefcase, 
+  PieChart, 
+  BarChart3, 
+  Search, 
   Menu,
   ClipboardList,
   Shield,
@@ -15,7 +14,7 @@ import {
   Mail,
   Book,
   LogOut,
-  Settings,
+  Settings
 } from "lucide-react";
 import { useState } from "react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -143,11 +142,9 @@ function MobileSidebarContent({ onNavigate }: { onNavigate: () => void }) {
 
   return (
     <div className="p-4 space-y-2">
-      <div className="flex items-center gap-3 mb-6 px-2">
-        <span className="w-12 h-12 text-foreground" aria-label="Asset Labs">
-          <LogoMark className="w-full h-full" />
-        </span>
-        <span className="font-bold text-foreground text-base">Asset Labs</span>
+      <div className="flex items-center gap-2 mb-6 px-2">
+        <img src="/favicon.png" alt="Asset Labs AI" className="w-8 h-8 rounded-lg" />
+        <span className="font-bold text-white">Asset Labs AI</span>
       </div>
       
       {navItems.map((item) => {
