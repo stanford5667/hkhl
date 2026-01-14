@@ -14,6 +14,7 @@ import { AppRole } from '@/hooks/useAdmin';
 
 interface UserWithProfile {
   id: string;
+  email: string | null;
   full_name: string | null;
   avatar_url: string | null;
   company: string | null;
@@ -37,18 +38,21 @@ export function AdminUsersTab() {
 
   const fetchUsers = async () => {
     try {
-      const [profilesRes, rolesRes] = await Promise.all([
+      const [profilesRes, rolesRes, emailsRes] = await Promise.all([
         supabase.from('profiles').select('*').order('created_at', { ascending: false }),
         supabase.from('user_roles').select('*'),
+        supabase.functions.invoke('get-users-with-emails'),
       ]);
 
       const profiles = profilesRes.data || [];
       const roles = rolesRes.data || [];
+      const emailMap: Record<string, string> = emailsRes.data?.emails || {};
 
       const usersWithRoles: UserWithProfile[] = profiles.map(profile => {
         const userRole = roles.find(r => r.user_id === profile.user_id);
         return {
           id: profile.user_id,
+          email: emailMap[profile.user_id] || null,
           full_name: profile.full_name,
           avatar_url: profile.avatar_url,
           company: profile.company,
@@ -88,7 +92,8 @@ export function AdminUsersTab() {
 
   const filteredUsers = users.filter(user =>
     user.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    user.company?.toLowerCase().includes(searchQuery.toLowerCase())
+    user.company?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    user.email?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   if (loading) {
@@ -115,11 +120,12 @@ export function AdminUsersTab() {
         </CardHeader>
         <CardContent>
           <Table>
-            <TableHeader><TableRow><TableHead>User</TableHead><TableHead>Company</TableHead><TableHead>Role</TableHead><TableHead>Joined</TableHead><TableHead className="text-right">Actions</TableHead></TableRow></TableHeader>
+            <TableHeader><TableRow><TableHead>User</TableHead><TableHead>Email</TableHead><TableHead>Company</TableHead><TableHead>Role</TableHead><TableHead>Joined</TableHead><TableHead className="text-right">Actions</TableHead></TableRow></TableHeader>
             <TableBody>
               {filteredUsers.map((user) => (
                 <TableRow key={user.id}>
                   <TableCell><div className="flex items-center gap-3"><Avatar className="h-8 w-8"><AvatarImage src={user.avatar_url || undefined} /><AvatarFallback>{user.full_name?.slice(0, 2).toUpperCase() || 'U'}</AvatarFallback></Avatar><p className="font-medium">{user.full_name || 'Unknown'}</p></div></TableCell>
+                  <TableCell className="text-muted-foreground">{user.email || '-'}</TableCell>
                   <TableCell>{user.company || '-'}</TableCell>
                   <TableCell><Badge variant={user.role === 'admin' ? 'default' : 'secondary'}>{user.role || 'No Role'}</Badge></TableCell>
                   <TableCell>{new Date(user.created_at).toLocaleDateString()}</TableCell>
@@ -133,7 +139,7 @@ export function AdminUsersTab() {
 
       <Dialog open={isRoleDialogOpen} onOpenChange={setIsRoleDialogOpen}>
         <DialogContent>
-          <DialogHeader><DialogTitle>Manage User Role</DialogTitle><DialogDescription>Change the role for {selectedUser?.full_name || 'this user'}</DialogDescription></DialogHeader>
+          <DialogHeader><DialogTitle>Manage User Role</DialogTitle><DialogDescription>Change the role for {selectedUser?.full_name || selectedUser?.email || 'this user'}</DialogDescription></DialogHeader>
           <div className="py-4">
             <Select value={newRole} onValueChange={(v) => setNewRole(v as AppRole)}>
               <SelectTrigger><SelectValue /></SelectTrigger>
