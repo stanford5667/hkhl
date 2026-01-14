@@ -553,45 +553,85 @@ export function ComprehensiveInvestmentResults({
                       value: formatInvestmentAmount(investmentCapital), 
                       icon: DollarSign, 
                       color: 'emerald',
-                      tooltip: 'Your current investment capital'
+                      tooltip: 'Your current investment capital',
+                      concept: {
+                        id: 'investment-capital',
+                        name: 'Investment Capital',
+                        category: 'term' as const,
+                        value: formatInvestmentAmount(investmentCapital),
+                      }
                     },
                     { 
                       label: 'Goal Return', 
                       value: `${expectedReturn}%`, 
                       icon: TrendingUp, 
                       color: 'blue',
-                      tooltip: 'Target annual return based on your risk profile and allocation'
+                      tooltip: 'Target annual return based on your risk profile and allocation',
+                      concept: {
+                        id: 'expected-return',
+                        name: 'Expected Annual Return',
+                        category: 'metric' as const,
+                        value: `${expectedReturn}%`,
+                      }
                     },
                     { 
                       label: 'Goal Max Drawdown', 
                       value: `${maxDrawdown}%`, 
                       icon: AlertTriangle, 
                       color: 'rose',
-                      tooltip: 'Maximum portfolio decline you should be prepared for'
+                      tooltip: 'Maximum portfolio decline you should be prepared for',
+                      concept: {
+                        id: 'max-drawdown',
+                        name: 'Maximum Drawdown',
+                        category: 'risk' as const,
+                        value: `${maxDrawdown}%`,
+                      }
                     },
                     { 
                       label: 'Time Horizon', 
                       value: `${timeHorizon} years`, 
                       icon: Clock, 
                       color: 'amber',
-                      tooltip: 'Your investment timeframe for this strategy'
+                      tooltip: 'Your investment timeframe for this strategy',
+                      concept: {
+                        id: 'time-horizon',
+                        name: 'Investment Time Horizon',
+                        category: 'term' as const,
+                        value: `${timeHorizon} years`,
+                      }
                     },
                     { 
                       label: 'Goal Volatility', 
                       value: `${expectedVolatility}%`, 
                       icon: LineChart, 
                       color: 'violet',
-                      tooltip: 'Expected annual portfolio volatility'
+                      tooltip: 'Expected annual portfolio volatility',
+                      concept: {
+                        id: 'volatility',
+                        name: 'Portfolio Volatility',
+                        category: 'risk' as const,
+                        value: `${expectedVolatility}%`,
+                      }
                     },
                     { 
                       label: 'Goal Sharpe', 
                       value: sharpeRatio, 
                       icon: BarChart3, 
                       color: 'cyan',
-                      tooltip: 'Target risk-adjusted return (higher is better)'
+                      tooltip: 'Target risk-adjusted return (higher is better)',
+                      concept: {
+                        id: 'sharpe-ratio',
+                        name: 'Sharpe Ratio',
+                        category: 'metric' as const,
+                        value: sharpeRatio,
+                      }
                     },
                   ].map((stat, i) => (
-                    <div key={i} className="bg-white/5 rounded-xl p-4 group relative">
+                    <button
+                      key={i}
+                      onClick={() => handleConceptClick(stat.concept)}
+                      className="bg-white/5 rounded-xl p-4 group relative hover:bg-white/10 transition-all cursor-pointer text-left border border-transparent hover:border-white/20"
+                    >
                       <stat.icon className={cn(
                         "w-4 h-4 mb-2",
                         stat.color === 'emerald' && "text-emerald-400",
@@ -603,11 +643,15 @@ export function ComprehensiveInvestmentResults({
                       )} />
                       <div className="text-lg font-bold">{stat.value}</div>
                       <div className="text-xs text-white/40">{stat.label}</div>
+                      {/* Click indicator */}
+                      <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Info className="w-3.5 h-3.5 text-white/40" />
+                      </div>
                       {/* Tooltip on hover */}
                       <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-black/90 rounded-lg text-xs text-white/80 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10 max-w-[200px] text-center">
-                        {stat.tooltip}
+                        {stat.tooltip} – Click to learn more
                       </div>
-                    </div>
+                    </button>
                   ))}
                 </div>
               </div>
@@ -1048,8 +1092,35 @@ export function ComprehensiveInvestmentResults({
               </Button>
             </Card>
           </motion.div>
+
+          {/* ═══════════════════════════════════════════════════════════════
+              SECTION 7: Compound Growth Projector
+          ═══════════════════════════════════════════════════════════════ */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.7 }}
+          >
+            <CompoundGrowthProjector
+              initialInvestment={investmentCapital}
+              expectedReturn={parseFloat(expectedReturn)}
+              volatility={parseFloat(expectedVolatility)}
+              maxDrawdown={Math.abs(parseFloat(maxDrawdown.replace('-', '')))}
+              targetGoal={targetGoalAmount || investmentCapital * 3}
+              timeHorizon={timeHorizon}
+              monthlyContribution={monthlyContribution}
+              onMonthlyContributionChange={setMonthlyContribution}
+            />
+          </motion.div>
         </div>
       </main>
+
+      {/* Investment Concept Detail Modal */}
+      <InvestmentConceptDetail
+        concept={selectedConcept}
+        open={conceptDetailOpen}
+        onOpenChange={setConceptDetailOpen}
+      />
 
       {/* Footer */}
       <footer className="border-t border-white/10 py-8 mt-12">
