@@ -77,13 +77,17 @@ serve(async (req) => {
     const goalAmountFromQ = getVal(profile.responses['goal-amount'], null);
     
     // Investment amount (what they have to invest now) - check all possible keys
-    const investmentAmount = savedInvestmentAmount && typeof savedInvestmentAmount === 'number' && savedInvestmentAmount > 0 
-      ? savedInvestmentAmount 
-      : (financialInvestmentCapital && typeof financialInvestmentCapital === 'number' && financialInvestmentCapital > 0 
-        ? financialInvestmentCapital
-        : (investmentCapitalFromQ && typeof investmentCapitalFromQ === 'number' && investmentCapitalFromQ > 0 
-          ? investmentCapitalFromQ 
-          : (profile.goalAmount || 50000)));
+    // IMPORTANT: allow legitimate small amounts like $1 (avoid "> 0" checks here)
+    const investmentAmount =
+      (savedInvestmentAmount !== undefined && savedInvestmentAmount !== null && typeof savedInvestmentAmount === 'number')
+        ? savedInvestmentAmount
+        : (financialInvestmentCapital !== undefined && financialInvestmentCapital !== null && typeof financialInvestmentCapital === 'number')
+          ? financialInvestmentCapital
+          : (investmentCapitalFromQ !== undefined && investmentCapitalFromQ !== null && typeof investmentCapitalFromQ === 'number')
+            ? investmentCapitalFromQ
+            : (profile.goalAmount !== undefined && profile.goalAmount !== null && typeof profile.goalAmount === 'number')
+              ? profile.goalAmount
+              : 50000; // Only use fallback if nothing is provided
     
     // Goal amount (their target/dream number they want to reach)
     const targetGoalAmount = goalAmountFromQ && typeof goalAmountFromQ === 'number' && goalAmountFromQ > 0

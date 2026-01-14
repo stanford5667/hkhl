@@ -227,27 +227,27 @@ export function ComprehensiveInvestmentResults({
   const investmentCapital = useMemo(() => {
     // First check for saved investmentAmount (from database)
     const savedAmount = responses?.investmentAmount;
-    if (savedAmount && typeof savedAmount === 'number' && savedAmount > 0) {
+    if (savedAmount !== undefined && savedAmount !== null && typeof savedAmount === 'number') {
       return savedAmount;
     }
     // Check for financial-investment-capital (scoringKey from questionnaire)
     const financialInvestmentCapital = getResponseValue(responses['financial-investment-capital'], null);
-    if (financialInvestmentCapital && typeof financialInvestmentCapital === 'number' && financialInvestmentCapital > 0) {
+    if (financialInvestmentCapital !== undefined && financialInvestmentCapital !== null && typeof financialInvestmentCapital === 'number') {
       return financialInvestmentCapital;
     }
     // Fallback to investment-capital (legacy key)
     const investmentCapitalVal = getResponseValue(responses['investment-capital'], null);
-    if (investmentCapitalVal && typeof investmentCapitalVal === 'number' && investmentCapitalVal > 0) {
+    if (investmentCapitalVal !== undefined && investmentCapitalVal !== null && typeof investmentCapitalVal === 'number') {
       return investmentCapitalVal;
     }
-    // Default fallback
+    // Default fallback - only if nothing is provided at all
     return 50000;
   }, [responses]);
   
   // Get target goal amount (the wealth goal they want to reach) - separate from investment capital
   const targetGoalAmount = useMemo(() => {
     const goalVal = getResponseValue(responses['goal-amount'], null);
-    if (goalVal && typeof goalVal === 'number' && goalVal > 0) {
+    if (goalVal !== undefined && goalVal !== null && typeof goalVal === 'number') {
       return goalVal;
     }
     return 0; // 0 means no target specified
