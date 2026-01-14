@@ -237,9 +237,9 @@ export function ComprehensiveInvestmentResults({
   const maxDrawdown = (-10 - riskScore * 0.25).toFixed(0);
 
   return (
-    <div className="min-h-screen w-full bg-background text-foreground pb-24 sm:pb-32">
+    <div className="min-h-screen w-full bg-background text-foreground pb-24 sm:pb-32 overflow-x-hidden">
       {/* Header */}
-      <header className="sticky top-0 z-50 bg-background/90 backdrop-blur-xl border-b border-border">
+      <header className="sticky top-0 z-40 bg-background/90 backdrop-blur-xl border-b border-border">
         <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -324,9 +324,9 @@ export function ComprehensiveInvestmentResults({
               <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/10 rounded-full blur-2xl" />
             </div>
 
-            <div className="relative grid md:grid-cols-2 gap-8">
+            <div className="relative grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
               {/* Left: Archetype Info */}
-              <div>
+              <div className="min-w-0">
                 <div className="flex items-center gap-4 mb-4">
                   <div className={cn(
                     "w-16 h-16 rounded-2xl flex items-center justify-center text-3xl",
@@ -365,9 +365,9 @@ export function ComprehensiveInvestmentResults({
               </div>
 
               {/* Right: Risk Score & Quick Stats */}
-              <div className="space-y-6">
+              <div className="space-y-6 min-w-0">
                 {/* Risk Score Gauge */}
-                <div className="bg-white/5 rounded-2xl p-6">
+                <div className="bg-white/5 rounded-2xl p-4 sm:p-6">
                   <div className="text-center mb-4">
                     <div className="text-5xl sm:text-6xl font-bold bg-gradient-to-r from-blue-400 via-emerald-400 to-rose-400 bg-clip-text text-transparent">
                       {riskScore}
