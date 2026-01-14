@@ -50,28 +50,38 @@ export function MembershipStep({ onComplete, onBack }: MembershipStepProps) {
     setIsLoading(true);
 
     try {
-      // Update the user's profile with their selected membership
-      const { error } = await supabase
-        .from('profiles')
-        .update({
-          membership_tier: plan,
-          onboarding_step: 'complete',
-          onboarding_completed: true,
-        })
-        .eq('user_id', user.id);
-
-      if (error) throw error;
-
       if (plan === 'pro') {
-        toast.success('Welcome to Pro! Enjoy all premium features.');
+        // Redirect to Stripe checkout for Pro plan
+        const { data, error } = await supabase.functions.invoke('create-checkout');
+        
+        if (error) throw error;
+        
+        if (data?.url) {
+          // Open Stripe checkout in the same tab
+          window.location.href = data.url;
+          return; // Don't complete onboarding yet - wait for payment success
+        } else {
+          throw new Error('No checkout URL returned');
+        }
       } else {
+        // Free plan - just update profile and complete
+        const { error } = await supabase
+          .from('profiles')
+          .update({
+            membership_tier: 'free',
+            onboarding_step: 'complete',
+            onboarding_completed: true,
+          })
+          .eq('user_id', user.id);
+
+        if (error) throw error;
+
         toast.success('Account created! Upgrade anytime to unlock more features.');
+        onComplete();
       }
-      
-      onComplete();
     } catch (error) {
-      console.error('Error saving membership:', error);
-      toast.error('Failed to save membership selection');
+      console.error('Error processing plan selection:', error);
+      toast.error('Failed to process your selection. Please try again.');
     } finally {
       setIsLoading(false);
     }
