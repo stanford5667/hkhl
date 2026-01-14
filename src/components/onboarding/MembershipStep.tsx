@@ -162,7 +162,7 @@ export function MembershipStep({ onComplete, onBack }: MembershipStepProps) {
 
             <div className="text-center mb-6 mt-2">
               <h3 className="text-xl font-bold text-white mb-1">Pro</h3>
-              <div className="text-3xl font-bold text-white">$29<span className="text-lg text-slate-400">/mo</span></div>
+              <div className="text-3xl font-bold text-white">$50<span className="text-lg text-slate-400">/mo</span></div>
               <p className="text-slate-400 text-sm">Billed monthly</p>
             </div>
             
@@ -186,7 +186,7 @@ export function MembershipStep({ onComplete, onBack }: MembershipStepProps) {
               {isLoading && selectedPlan === 'pro' ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
-                'Start Pro Trial'
+                'Get Pro'
               )}
             </Button>
           </div>
