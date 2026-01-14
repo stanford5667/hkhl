@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import {
   Dialog,
@@ -47,6 +47,20 @@ export function MobileAuthSheet({
   const [showVerificationPending, setShowVerificationPending] = useState(false);
   const { signIn, signUp } = useAuth();
   const isDesktop = useMediaQuery("(min-width: 768px)");
+
+  const fullNameInputRef = useRef<HTMLInputElement | null>(null);
+  const emailInputRef = useRef<HTMLInputElement | null>(null);
+
+  useEffect(() => {
+    if (!open || showVerificationPending) return;
+
+    const t = window.setTimeout(() => {
+      const el = mode === "signup" ? (fullNameInputRef.current ?? emailInputRef.current) : emailInputRef.current;
+      el?.focus();
+    }, 50);
+
+    return () => window.clearTimeout(t);
+  }, [open, mode, showVerificationPending]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -111,6 +125,7 @@ export function MobileAuthSheet({
           <div className="space-y-1.5">
             <Label htmlFor="fullName" className="text-sm font-medium">Full Name</Label>
             <Input
+              ref={fullNameInputRef}
               id="fullName"
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
@@ -125,6 +140,7 @@ export function MobileAuthSheet({
         <div className="space-y-1.5">
           <Label htmlFor="email" className="text-sm font-medium">Email</Label>
           <Input
+            ref={emailInputRef}
             id="email"
             type="email"
             value={email}
