@@ -51,179 +51,107 @@ interface InvestmentConstraints {
   internationalPreference: 'us-only' | 'mostly-us' | 'balanced' | 'global';
 }
 
-// Question weight configurations
+// Question weight configurations - MATCHED TO investorQuestionnaire.ts
 const QUESTION_WEIGHTS: Record<string, { category: string; weight: number }> = {
-  'risk-scenario-drop': { category: 'riskTolerance', weight: 25 },
-  'risk-past-losses': { category: 'riskTolerance', weight: 15 },
-  'risk-max-loss': { category: 'riskTolerance', weight: 20 },
-  'risk-gain-then-loss': { category: 'riskTolerance', weight: 15 },
-  'risk-emotional-vs-financial': { category: 'riskTolerance', weight: 10 },
-  'risk-regret': { category: 'riskTolerance', weight: 10 },
-  'risk-knowledge-level': { category: 'knowledge', weight: 5 },
-  'goal-timeline': { category: 'timeHorizon', weight: 40 },
+  // Goals Section
   'goal-purpose': { category: 'timeHorizon', weight: 20 },
-  'goal-target-specificity': { category: 'timeHorizon', weight: 15 },
+  'goal-timeline': { category: 'timeHorizon', weight: 40 },
   'goal-priority': { category: 'timeHorizon', weight: 15 },
-  'goal-other-assets': { category: 'financialCapacity', weight: 10 },
-  'finance-income-stability': { category: 'financialCapacity', weight: 25 },
-  'finance-emergency-fund': { category: 'financialCapacity', weight: 30 },
-  'finance-upcoming-expenses': { category: 'financialCapacity', weight: 20 },
-  'finance-tax-bracket': { category: 'financialCapacity', weight: 10 },
-  'finance-tax-accounts': { category: 'financialCapacity', weight: 15 },
-  'knowledge-bonds-rates': { category: 'knowledge', weight: 25 },
-  'knowledge-diversification-underperform': { category: 'knowledge', weight: 25 },
-  'knowledge-compound-growth': { category: 'knowledge', weight: 25 },
-  'knowledge-beating-market': { category: 'knowledge', weight: 15 },
-  'knowledge-rebalancing': { category: 'knowledge', weight: 10 },
+  
+  // Risk Section
+  'risk-scenario-drop': { category: 'riskTolerance', weight: 30 },
+  'risk-max-loss': { category: 'riskTolerance', weight: 25 },
+  'risk-knowledge-level': { category: 'knowledge', weight: 25 },
+  'risk-regret': { category: 'riskTolerance', weight: 20 },
+  
+  // Liquidity/Financial Section
+  'liquidity-income-stability': { category: 'financialCapacity', weight: 35 },
+  'liquidity-emergency-fund': { category: 'financialCapacity', weight: 40 },
+  
+  // Constraints Section
+  'constraints-ethical': { category: 'constraints', weight: 15 },
+  'constraints-international': { category: 'constraints', weight: 20 },
+  'constraints-volatility-preference': { category: 'riskTolerance', weight: 25 },
+  'constraints-crypto': { category: 'constraints', weight: 15 },
+  
+  // Knowledge Section
+  'knowledge-diversification': { category: 'knowledge', weight: 40 },
+  'knowledge-rebalancing': { category: 'knowledge', weight: 35 },
 };
 
-// Response score mappings
+// Response score mappings - MATCHED TO investorQuestionnaire.ts option values
 const RESPONSE_SCORES: Record<string, Record<string, number>> = {
+  // Goals Section
+  'goal-purpose': {
+    'retirement': 70,
+    'house-purchase': 35,
+    'wealth-building': 60,
+    'financial-independence': 80,
+  },
+  'goal-timeline': {
+    'less-than-3': 15,
+    '3-7-years': 40,
+    '7-15-years': 70,
+    'more-than-15': 95,
+  },
+  'goal-priority': {
+    'critical': 25,
+    'important': 50,
+    'nice-to-have': 80,
+  },
+  
+  // Risk Section
   'risk-scenario-drop': {
     'sell-all': 10,
     'sell-some': 30,
-    'panic-but-hold': 50,
-    'hold': 70,
-    'buy-more': 90,
+    'hold': 65,
+    'buy-more': 95,
   },
-  'risk-past-losses': {
-    'never-invested': 40,
-    'no-losses': 50,
-    'loss-devastating': 20,
-    'loss-uncomfortable': 50,
-    'loss-learning': 80,
-  },
-  'risk-gain-then-loss': {
-    'devastated': 15,
-    'frustrated': 35,
-    'understand': 65,
-    'opportunity': 90,
-  },
-  'risk-emotional-vs-financial': {
-    'both': 20,
-    'mostly-emotional': 40,
-    'mostly-financial': 50,
-    'neither': 90,
-  },
-  'risk-regret': {
-    'regret-missing-out': 75,
-    'regret-both-equally': 50,
-    'regret-losing-money': 25,
+  'risk-max-loss': {
+    '10': 20,
+    '20': 45,
+    '30': 70,
+    '40': 95,
   },
   'risk-knowledge-level': {
     'beginner': 25,
-    'intermediate': 50,
-    'advanced': 75,
-    'professional': 95,
+    'intermediate': 55,
+    'advanced': 85,
   },
-  'goal-timeline': {
-    'less-than-1': 10,
-    '1-3-years': 25,
-    '3-5-years': 45,
-    '5-10-years': 65,
-    '10-20-years': 85,
-    'more-than-20': 100,
+  'risk-regret': {
+    'missing-gains': 80,
+    'losing-money': 25,
+    'equal': 50,
   },
-  'goal-purpose': {
-    'house-purchase': 30,
-    'education': 40,
-    'retirement': 70,
-    'wealth-building': 60,
-    'income-generation': 50,
-    'financial-independence': 75,
-  },
-  'goal-target-specificity': {
-    'very-specific': 30,
-    'minimum-threshold': 50,
-    'approximate': 65,
-    'maximize': 85,
-  },
-  'goal-priority': {
-    'critical': 30,
-    'important': 55,
-    'nice-to-have': 80,
-  },
-  'goal-other-assets': {
-    'this-is-everything': 20,
-    'emergency-only': 40,
-    'some-savings': 60,
-    'significant-other': 85,
-  },
-  'finance-income-stability': {
-    'uncertain': 20,
+  
+  // Liquidity/Financial Section
+  'liquidity-income-stability': {
+    'very-stable': 90,
+    'mostly-stable': 65,
     'variable': 40,
-    'somewhat-stable': 60,
-    'very-stable': 85,
-    'multiple-sources': 95,
+    'uncertain': 15,
   },
-  'finance-emergency-fund': {
-    'none': 10,
-    '1-2-months': 30,
+  'liquidity-emergency-fund': {
+    'less-than-3': 25,
     '3-6-months': 60,
-    '6-12-months': 85,
-    'more-than-12': 100,
+    'more-than-6': 90,
   },
-  'finance-upcoming-expenses': {
-    'major-soon': 20,
-    'some-planned': 45,
-    'minor-only': 70,
-    'none-expected': 90,
-  },
-  'finance-tax-bracket': {
-    '10-12': 40,
-    '22-24': 55,
-    '32-35': 70,
-    '37': 85,
-    'not-sure': 50,
-  },
-  'finance-tax-accounts': {
-    'no-tax-advantaged': 30,
-    'some-tax-advantaged': 60,
-    'maxing-contributions': 90,
-    'already-maxed': 95,
-  },
-  'knowledge-bonds-rates': {
-    'correct-fall': 100,
-    'incorrect-rise': 25,
-    'incorrect-no-change': 25,
-    'unsure': 40,
-  },
-  'knowledge-diversification-underperform': {
-    'correct': 100,
-    'incorrect-worse': 30,
-    'incorrect-fees': 40,
-    'unsure': 40,
-  },
-  'knowledge-compound-growth': {
-    'correct': 100,
-    'underestimate': 50,
-    'overestimate': 40,
-    'unsure': 30,
-  },
-  'knowledge-beating-market': {
-    'correct-few': 100,
-    'half': 40,
-    'most-beat': 25,
-    'unsure': 40,
-  },
-  'knowledge-rebalancing': {
-    'correct': 100,
-    'timing': 50,
-    'maximize': 30,
-    'unsure': 40,
-  },
+  
+  // Constraints Section
   'constraints-volatility-preference': {
     'steady': 25,
-    'moderate': 50,
-    'growth': 75,
-    'aggressive': 95,
+    'moderate': 55,
+    'growth': 85,
   },
   'constraints-crypto': {
     'no-crypto': 0,
-    'small-allocation': 25,
-    'moderate-allocation': 50,
-    'crypto-enthusiast': 75,
-    'already-have': 10,
+    'small-allocation': 30,
+    'moderate-allocation': 60,
+  },
+  'constraints-international': {
+    'us-only': 25,
+    'mostly-us': 50,
+    'balanced': 80,
   },
   'constraints-esg-importance': {
     'not-important': 0,
@@ -231,17 +159,17 @@ const RESPONSE_SCORES: Record<string, Record<string, number>> = {
     'important': 66,
     'essential': 100,
   },
-  'constraints-alternatives': {
-    'stocks-bonds-only': 25,
-    'some-alternatives': 50,
-    'interested': 75,
-    'sophisticated': 95,
+  
+  // Knowledge Section
+  'knowledge-diversification': {
+    'correct': 100,
+    'incorrect-worse': 30,
+    'unsure': 45,
   },
-  'constraints-international': {
-    'us-only': 20,
-    'mostly-us': 45,
-    'balanced': 70,
-    'emerging': 90,
+  'knowledge-rebalancing': {
+    'correct': 100,
+    'timing': 50,
+    'unsure': 35,
   },
 };
 
@@ -258,20 +186,43 @@ function calculateCategoryScores(responses: Record<string, QuestionnaireResponse
     knowledge: { score: 0, weight: 0 },
   };
 
+  console.log('[Scoring] Processing responses:', Object.keys(responses));
+
   for (const [questionId, response] of Object.entries(responses)) {
     const config = QUESTION_WEIGHTS[questionId];
-    if (!config) continue;
+    if (!config) {
+      console.log(`[Scoring] No weight config for question: ${questionId}`);
+      continue;
+    }
+
+    // Skip constraint-category questions from scoring (they affect allocation, not scores)
+    if (config.category === 'constraints') {
+      continue;
+    }
 
     const scoreMap = RESPONSE_SCORES[questionId];
-    if (!scoreMap) continue;
+    if (!scoreMap) {
+      console.log(`[Scoring] No score map for question: ${questionId}`);
+      continue;
+    }
 
-    let score = 50;
+    let score = 50; // default
     const value = response.value;
     
     if (typeof value === 'string' && scoreMap[value] !== undefined) {
       score = scoreMap[value];
+      console.log(`[Scoring] ${questionId}: value="${value}" -> score=${score}`);
     } else if (typeof value === 'number') {
-      score = Math.min(100, Math.max(0, value * 2.5));
+      // Handle slider values (like risk-max-loss which might come as a number)
+      const stringValue = String(value);
+      if (scoreMap[stringValue] !== undefined) {
+        score = scoreMap[stringValue];
+      } else {
+        score = Math.min(100, Math.max(0, value * 2.5));
+      }
+      console.log(`[Scoring] ${questionId}: numeric value=${value} -> score=${score}`);
+    } else {
+      console.log(`[Scoring] ${questionId}: unhandled value type, using default 50`);
     }
 
     const category = config.category;
@@ -283,7 +234,9 @@ function calculateCategoryScores(responses: Record<string, QuestionnaireResponse
 
   const normalize = (cat: string) => {
     const data = categoryTotals[cat];
-    return data.weight > 0 ? Math.round(data.score / data.weight) : 50;
+    const result = data.weight > 0 ? Math.round(data.score / data.weight) : 50;
+    console.log(`[Scoring] Category ${cat}: totalScore=${data.score}, totalWeight=${data.weight}, normalized=${result}`);
+    return result;
   };
 
   return {
@@ -303,18 +256,18 @@ function getRiskProfile(score: number): RiskProfile {
 }
 
 function calculateESGScore(responses: Record<string, QuestionnaireResponse>): number {
-  const esgImportance = responses['constraints-esg-importance']?.value;
   const ethicalExclusions = responses['constraints-ethical']?.value;
   
-  let score = RESPONSE_SCORES['constraints-esg-importance']?.[esgImportance as string] ?? 0;
+  let score = 0;
   
-  if (Array.isArray(ethicalExclusions) && ethicalExclusions.length > 0) {
-    if (!ethicalExclusions.includes('none')) {
-      score += Math.min(30, ethicalExclusions.length * 10);
+  if (Array.isArray(ethicalExclusions)) {
+    if (!ethicalExclusions.includes('none') && ethicalExclusions.length > 0) {
+      // Each exclusion adds to ESG score
+      score = Math.min(100, ethicalExclusions.length * 20);
     }
   }
   
-  return Math.min(100, score);
+  return score;
 }
 
 function generateAllocation(
@@ -324,7 +277,6 @@ function generateAllocation(
   const profile = getRiskProfile(riskScore);
   const internationalPref = responses['constraints-international']?.value as string;
   const cryptoPref = responses['constraints-crypto']?.value as string;
-  const alternativesPref = responses['constraints-alternatives']?.value as string;
   const volatilityPref = responses['constraints-volatility-preference']?.value as string;
   
   const baseAllocations: Record<RiskProfile, AssetAllocation> = {
@@ -402,57 +354,40 @@ function generateAllocation(
     allocation.usStocks += intlReduction;
     allocation.internationalStocks -= intlReduction;
     allocation.emergingMarkets = Math.round(allocation.emergingMarkets * 0.5);
-    allocation.usStocks += allocation.emergingMarkets;
-    allocation.emergingMarkets = Math.round(allocation.emergingMarkets * 0.5);
-  } else if (internationalPref === 'emerging') {
-    const emBoost = Math.min(5, allocation.usStocks * 0.1);
-    allocation.emergingMarkets += Math.round(emBoost);
-    allocation.usStocks -= Math.round(emBoost);
+    allocation.usStocks += Math.round(allocation.emergingMarkets * 0.5);
+  } else if (internationalPref === 'balanced') {
+    // Add a bit more international exposure
+    const boost = Math.min(3, allocation.usStocks * 0.05);
+    allocation.internationalStocks += Math.round(boost);
+    allocation.usStocks -= Math.round(boost);
   }
   
   // Add crypto if desired
   if (cryptoPref === 'small-allocation') {
-    allocation.crypto = 2;
-    allocation.usStocks -= 2;
+    allocation.crypto = 3;
+    allocation.usStocks -= 3;
   } else if (cryptoPref === 'moderate-allocation') {
-    allocation.crypto = 5;
+    allocation.crypto = 7;
     allocation.usStocks -= 5;
-  } else if (cryptoPref === 'crypto-enthusiast') {
-    allocation.crypto = 10;
-    allocation.usStocks -= 7;
-    allocation.bonds -= 3;
-  }
-  
-  // Adjust for alternatives preference
-  if (alternativesPref === 'stocks-bonds-only') {
-    const altTotal = allocation.reits + allocation.commodities + allocation.gold;
-    allocation.usStocks += Math.round(altTotal * 0.6);
-    allocation.bonds += Math.round(altTotal * 0.4);
-    allocation.reits = 0;
-    allocation.commodities = 0;
-    allocation.gold = 0;
-  } else if (alternativesPref === 'sophisticated') {
-    allocation.commodities += 2;
-    allocation.gold += 2;
-    allocation.bonds -= 4;
+    allocation.bonds = Math.max(0, allocation.bonds - 2);
   }
   
   // Adjust for volatility preference
   if (volatilityPref === 'steady') {
     const shiftToBonds = 5;
     allocation.bonds += shiftToBonds;
-    allocation.usStocks -= shiftToBonds;
-  } else if (volatilityPref === 'aggressive') {
+    allocation.usStocks = Math.max(15, allocation.usStocks - shiftToBonds);
+  } else if (volatilityPref === 'growth') {
     const shiftToStocks = Math.min(5, allocation.bonds - 5);
     allocation.usStocks += shiftToStocks;
-    allocation.bonds -= shiftToStocks;
+    allocation.bonds = Math.max(0, allocation.bonds - shiftToStocks);
   }
   
   // Normalize to 100%
   const total = Object.values(allocation).reduce((a, b) => a + b, 0);
   if (total !== 100) {
     const diff = 100 - total;
-    allocation.usStocks += diff;
+    allocation.usStocks = Math.max(0, allocation.usStocks + diff);
   }
   
   return allocation;
@@ -464,45 +399,29 @@ function extractConstraints(responses: Record<string, QuestionnaireResponse>): I
     ? ethicalValues.filter(v => v !== 'none') 
     : [];
   
-  const esgValue = responses['constraints-esg-importance']?.value as string;
-  const esgPreference = esgValue === 'essential' ? 'required' 
-    : (esgValue === 'important' || esgValue === 'nice-to-have') ? 'preferred' 
+  // ESG preference based on how many sectors are excluded
+  const esgPreference = excludedSectors.length >= 3 ? 'required' 
+    : excludedSectors.length >= 1 ? 'preferred' 
     : 'none';
   
   const cryptoValue = responses['constraints-crypto']?.value as string;
   const cryptoAllowed = cryptoValue !== 'no-crypto';
-  const maxCrypto = cryptoValue === 'crypto-enthusiast' ? 15 
-    : cryptoValue === 'moderate-allocation' ? 10 
-    : cryptoValue === 'small-allocation' ? 3 : 0;
-  
-  const factorValues = responses['constraints-factor-investing']?.value;
-  const factorTilts = Array.isArray(factorValues) 
-    ? factorValues.filter(v => v !== 'no-preference') 
-    : [];
-  
-  const sectorValues = responses['constraints-sector-interests']?.value;
-  const sectorOverweights = Array.isArray(sectorValues) 
-    ? sectorValues.filter(v => v !== 'no-preference') 
-    : [];
-  
-  const concentrationValue = responses['constraints-single-stock-limit']?.value as string;
-  const maxPosition = concentrationValue === 'very-diversified' ? 3 
-    : concentrationValue === 'moderate' ? 5 
-    : concentrationValue === 'concentrated' ? 10 : 25;
+  const maxCrypto = cryptoValue === 'moderate-allocation' ? 10 
+    : cryptoValue === 'small-allocation' ? 5 : 0;
   
   const intlValue = responses['constraints-international']?.value as string;
   const intlPref = (intlValue === 'us-only' || intlValue === 'mostly-us' || intlValue === 'balanced') 
     ? intlValue as 'us-only' | 'mostly-us' | 'balanced' 
-    : 'global';
+    : 'balanced';
   
   return {
     excludedSectors,
     esgPreference,
     cryptoAllowed,
     maxCryptoAllocation: maxCrypto,
-    factorTilts,
-    sectorOverweights,
-    maxSinglePosition: maxPosition,
+    factorTilts: [],
+    sectorOverweights: [],
+    maxSinglePosition: 5, // Default 5% max single position
     internationalPreference: intlPref,
   };
 }
@@ -527,9 +446,9 @@ function generateInsights(
   };
   insights.push(`Your overall profile suggests a ${profileLabels[profile]} investment approach.`);
   
-  if (timeline && ['10-20-years', 'more-than-20'].includes(timeline)) {
+  if (timeline && ['7-15-years', 'more-than-15'].includes(timeline)) {
     insights.push('Your long time horizon allows for more aggressive strategies and recovery from market downturns.');
-  } else if (timeline && ['less-than-1', '1-3-years'].includes(timeline)) {
+  } else if (timeline && timeline === 'less-than-3') {
     insights.push('Your short time horizon requires prioritizing capital preservation over growth.');
   }
   
@@ -537,6 +456,8 @@ function generateInsights(
     insights.push('For retirement goals, we recommend a glide path that gradually reduces risk as you approach your target date.');
   } else if (purpose === 'financial-independence') {
     insights.push('FIRE goals often benefit from a higher savings rate combined with tax-efficient investing strategies.');
+  } else if (purpose === 'house-purchase') {
+    insights.push('For a house down payment, capital preservation is key. Consider more conservative allocations as you approach your target date.');
   }
   
   if (scores.knowledge > 75) {
@@ -564,30 +485,38 @@ function generateWarnings(
   
   const timeline = responses['goal-timeline']?.value as string;
   const riskScenario = responses['risk-scenario-drop']?.value as string;
-  const emergencyFund = responses['finance-emergency-fund']?.value as string;
+  const emergencyFund = responses['liquidity-emergency-fund']?.value as string;
   const volatilityPref = responses['constraints-volatility-preference']?.value as string;
   const cryptoPref = responses['constraints-crypto']?.value as string;
   
-  if (['less-than-1', '1-3-years'].includes(timeline) && ['buy-more', 'hold'].includes(riskScenario)) {
+  // Short timeline + aggressive risk behavior
+  if (timeline === 'less-than-3' && ['buy-more', 'hold'].includes(riskScenario)) {
     warnings.push('Your short timeline conflicts with your stated high risk tolerance. Short-term investors should prioritize stability.');
   }
   
-  if (emergencyFund === 'none') {
-    warnings.push('Without an emergency fund, you may be forced to sell investments at the worst time. Consider building 3-6 months of expenses first.');
+  // No emergency fund
+  if (emergencyFund === 'less-than-3') {
+    warnings.push('Without adequate emergency savings, you may be forced to sell investments at the worst time. Consider building 3-6 months of expenses first.');
   }
   
-  if (['crypto-enthusiast', 'moderate-allocation'].includes(cryptoPref) && ['less-than-1', '1-3-years', '3-5-years'].includes(timeline)) {
+  // Crypto with short timeline
+  if (cryptoPref === 'moderate-allocation' && timeline === 'less-than-3') {
     warnings.push('Cryptocurrency is highly volatile and may not suit your shorter time horizon. Consider reducing crypto exposure.');
   }
   
-  if (volatilityPref === 'aggressive' && scores.financialCapacity < 40) {
-    warnings.push('Your preference for aggressive investing may not align with your current financial situation. Consider a more moderate approach.');
+  // Growth preference but low financial capacity
+  if (volatilityPref === 'growth' && scores.financialCapacity < 40) {
+    warnings.push('Your preference for growth investing may not align with your current financial situation. Consider a more moderate approach.');
   }
   
   return warnings;
 }
 
 function scoreQuestionnaire(responses: Record<string, QuestionnaireResponse>): ScoringResult {
+  console.log('[Scoring] Starting questionnaire scoring');
+  console.log('[Scoring] All response keys:', Object.keys(responses));
+  console.log('[Scoring] Full responses:', JSON.stringify(responses, null, 2));
+  
   const categoryScores = calculateCategoryScores(responses);
   
   const overallRiskScore = Math.round(
@@ -596,6 +525,9 @@ function scoreQuestionnaire(responses: Record<string, QuestionnaireResponse>): S
     categoryScores.financialCapacity * 0.25 +
     categoryScores.knowledge * 0.10
   );
+  
+  console.log('[Scoring] Category scores:', categoryScores);
+  console.log('[Scoring] Overall risk score:', overallRiskScore);
   
   const riskProfile = getRiskProfile(overallRiskScore);
   const esgScore = calculateESGScore(responses);
@@ -643,6 +575,8 @@ serve(async (req) => {
 
   try {
     const { action, responses, result } = await req.json();
+
+    console.log('[Scoring] Received action:', action);
 
     let responseData;
 
