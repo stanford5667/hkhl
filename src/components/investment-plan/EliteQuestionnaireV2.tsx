@@ -3,9 +3,9 @@
  * 
  * REFACTORED VERSION with:
  * - All questions directly map to scoring engine inputs
- * - Removed irrelevant/unquantifiable questions
+ * - Myers-Briggs style investor DNA questions (4 dimensions)
  * - Proper value formats for backend scoring
- * - Streamlined flow (10 essential questions)
+ * - Streamlined flow (15 essential questions)
  */
 
 import { useState, useCallback, useMemo, useEffect } from 'react';
@@ -20,10 +20,8 @@ import {
   Target,
   Wallet,
   PieChart,
-  LineChart,
   Zap,
   Lock,
-  ArrowRight,
   Globe,
   Building2,
   Bitcoin,
@@ -31,22 +29,28 @@ import {
   BarChart3,
   Brain,
   AlertTriangle,
-  DollarSign,
   Clock,
-  Briefcase,
   Scale,
+  Mountain,
+  Compass,
+  Heart,
+  TreePine,
+  Eye,
+  Layers,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { Slider } from '@/components/ui/slider';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
+import { 
+  getInvestorTypeCode, 
+  getInvestorType,
+  InvestorDimensions,
+} from '@/data/premiumQuestionnaire';
 
 // ============================================
-// QUESTION DATA - DIRECTLY MAPS TO SCORING ENGINE
+// QUESTION DATA - MAPS TO SCORING ENGINE + INVESTOR DNA
 // ============================================
 
 interface QuestionOption {
@@ -55,23 +59,19 @@ interface QuestionOption {
   description?: string;
   icon?: any;
   color?: string;
+  dimensionScores?: Partial<InvestorDimensions>;
 }
 
 interface Question {
   id: string;
-  scoringKey: string; // Maps directly to scoring engine
-  section: 'goals' | 'risk' | 'financial' | 'constraints';
+  scoringKey?: string;
+  section: 'goals' | 'risk' | 'financial' | 'constraints' | 'personality';
   question: string;
   subtitle: string;
-  type: 'select' | 'slider' | 'multi-select';
+  type: 'select' | 'scenario';
   options?: QuestionOption[];
-  sliderConfig?: {
-    min: number;
-    max: number;
-    step: number;
-    labels: string[];
-    toScoringValue: (val: number) => string;
-  };
+  scenarioA?: QuestionOption;
+  scenarioB?: QuestionOption;
   weight: 'high' | 'medium' | 'low';
 }
 
@@ -86,34 +86,10 @@ const QUESTIONS: Question[] = [
     type: 'select',
     weight: 'high',
     options: [
-      { 
-        value: 'retirement', 
-        label: 'Retirement', 
-        description: 'Building a nest egg for later years',
-        icon: Target,
-        color: '#3b82f6'
-      },
-      { 
-        value: 'wealth-building', 
-        label: 'Wealth Building', 
-        description: 'Growing assets over time',
-        icon: TrendingUp,
-        color: '#10b981'
-      },
-      { 
-        value: 'financial-independence', 
-        label: 'Financial Independence', 
-        description: 'FIRE or early retirement goals',
-        icon: Zap,
-        color: '#f59e0b'
-      },
-      { 
-        value: 'house-purchase', 
-        label: 'Major Purchase', 
-        description: 'Saving for a specific large expense',
-        icon: Home,
-        color: '#8b5cf6'
-      },
+      { value: 'retirement', label: 'Retirement', description: 'Building a nest egg for later years', icon: Target, color: '#3b82f6' },
+      { value: 'wealth-building', label: 'Wealth Building', description: 'Growing assets over time', icon: TrendingUp, color: '#10b981' },
+      { value: 'financial-independence', label: 'Financial Independence', description: 'FIRE or early retirement goals', icon: Zap, color: '#f59e0b' },
+      { value: 'house-purchase', label: 'Major Purchase', description: 'Saving for a specific large expense', icon: Home, color: '#8b5cf6' },
     ],
   },
   {
@@ -125,34 +101,10 @@ const QUESTIONS: Question[] = [
     type: 'select',
     weight: 'high',
     options: [
-      { 
-        value: 'less-than-3', 
-        label: 'Less than 3 years', 
-        description: 'Short-term, stability is key',
-        icon: Clock,
-        color: '#ef4444'
-      },
-      { 
-        value: '3-7-years', 
-        label: '3-7 years', 
-        description: 'Medium-term, balanced approach',
-        icon: Clock,
-        color: '#f59e0b'
-      },
-      { 
-        value: '7-15-years', 
-        label: '7-15 years', 
-        description: 'Long-term, can weather volatility',
-        icon: Clock,
-        color: '#10b981'
-      },
-      { 
-        value: 'more-than-15', 
-        label: '15+ years', 
-        description: 'Very long-term, maximize growth',
-        icon: Clock,
-        color: '#3b82f6'
-      },
+      { value: 'less-than-3', label: 'Less than 3 years', description: 'Short-term, stability is key', icon: Clock, color: '#ef4444' },
+      { value: '3-7-years', label: '3-7 years', description: 'Medium-term, balanced approach', icon: Clock, color: '#f59e0b' },
+      { value: '7-15-years', label: '7-15 years', description: 'Long-term, can weather volatility', icon: Clock, color: '#10b981' },
+      { value: 'more-than-15', label: '15+ years', description: 'Very long-term, maximize growth', icon: Clock, color: '#3b82f6' },
     ],
   },
 
@@ -166,34 +118,10 @@ const QUESTIONS: Question[] = [
     type: 'select',
     weight: 'high',
     options: [
-      { 
-        value: 'sell-all', 
-        label: 'Sell everything immediately', 
-        description: 'Protect what\'s left',
-        icon: AlertTriangle,
-        color: '#ef4444'
-      },
-      { 
-        value: 'sell-some', 
-        label: 'Reduce my exposure', 
-        description: 'Cut losses partially',
-        icon: Shield,
-        color: '#f97316'
-      },
-      { 
-        value: 'hold', 
-        label: 'Hold and wait it out', 
-        description: 'Stay the course',
-        icon: Clock,
-        color: '#eab308'
-      },
-      { 
-        value: 'buy-more', 
-        label: 'Buy more at the discount', 
-        description: 'Opportunity in the dip',
-        icon: TrendingUp,
-        color: '#22c55e'
-      },
+      { value: 'sell-all', label: 'Sell everything immediately', description: 'Protect what\'s left', icon: AlertTriangle, color: '#ef4444' },
+      { value: 'sell-some', label: 'Reduce my exposure', description: 'Cut losses partially', icon: Shield, color: '#f97316' },
+      { value: 'hold', label: 'Hold and wait it out', description: 'Stay the course', icon: Clock, color: '#eab308' },
+      { value: 'buy-more', label: 'Buy more at the discount', description: 'Opportunity in the dip', icon: TrendingUp, color: '#22c55e' },
     ],
   },
   {
@@ -205,34 +133,10 @@ const QUESTIONS: Question[] = [
     type: 'select',
     weight: 'high',
     options: [
-      { 
-        value: '10', 
-        label: 'Up to 10%', 
-        description: 'Very conservative',
-        icon: Shield,
-        color: '#22c55e'
-      },
-      { 
-        value: '20', 
-        label: 'Up to 20%', 
-        description: 'Moderate risk',
-        icon: Scale,
-        color: '#eab308'
-      },
-      { 
-        value: '30', 
-        label: 'Up to 30%', 
-        description: 'Higher risk for higher reward',
-        icon: TrendingUp,
-        color: '#f97316'
-      },
-      { 
-        value: '40', 
-        label: 'Up to 40%', 
-        description: 'Aggressive, long-term focused',
-        icon: Zap,
-        color: '#ef4444'
-      },
+      { value: '10', label: 'Up to 10%', description: 'Very conservative', icon: Shield, color: '#22c55e' },
+      { value: '20', label: 'Up to 20%', description: 'Moderate risk', icon: Scale, color: '#eab308' },
+      { value: '30', label: 'Up to 30%', description: 'Higher risk for higher reward', icon: TrendingUp, color: '#f97316' },
+      { value: '40', label: 'Up to 40%', description: 'Aggressive, long-term focused', icon: Zap, color: '#ef4444' },
     ],
   },
   {
@@ -244,27 +148,9 @@ const QUESTIONS: Question[] = [
     type: 'select',
     weight: 'medium',
     options: [
-      { 
-        value: 'beginner', 
-        label: 'Beginner', 
-        description: 'New to investing or minimal experience',
-        icon: Sparkles,
-        color: '#3b82f6'
-      },
-      { 
-        value: 'intermediate', 
-        label: 'Intermediate', 
-        description: 'Understand basics, some experience',
-        icon: BarChart3,
-        color: '#10b981'
-      },
-      { 
-        value: 'advanced', 
-        label: 'Advanced', 
-        description: 'Deep understanding, active investor',
-        icon: Brain,
-        color: '#8b5cf6'
-      },
+      { value: 'beginner', label: 'Beginner', description: 'New to investing or minimal experience', icon: Sparkles, color: '#3b82f6' },
+      { value: 'intermediate', label: 'Intermediate', description: 'Understand basics, some experience', icon: BarChart3, color: '#10b981' },
+      { value: 'advanced', label: 'Advanced', description: 'Deep understanding, active investor', icon: Brain, color: '#8b5cf6' },
     ],
   },
 
@@ -278,34 +164,10 @@ const QUESTIONS: Question[] = [
     type: 'select',
     weight: 'high',
     options: [
-      { 
-        value: 'very-stable', 
-        label: 'Very Stable', 
-        description: 'Secure job, predictable income',
-        icon: Lock,
-        color: '#22c55e'
-      },
-      { 
-        value: 'mostly-stable', 
-        label: 'Mostly Stable', 
-        description: 'Good security with some variability',
-        icon: Shield,
-        color: '#10b981'
-      },
-      { 
-        value: 'variable', 
-        label: 'Variable', 
-        description: 'Commission, freelance, or seasonal',
-        icon: BarChart3,
-        color: '#f59e0b'
-      },
-      { 
-        value: 'uncertain', 
-        label: 'Uncertain', 
-        description: 'Startup, business owner, or unstable',
-        icon: AlertTriangle,
-        color: '#ef4444'
-      },
+      { value: 'very-stable', label: 'Very Stable', description: 'Secure job, predictable income', icon: Lock, color: '#22c55e' },
+      { value: 'mostly-stable', label: 'Mostly Stable', description: 'Good security with some variability', icon: Shield, color: '#10b981' },
+      { value: 'variable', label: 'Variable', description: 'Commission, freelance, or seasonal', icon: BarChart3, color: '#f59e0b' },
+      { value: 'uncertain', label: 'Uncertain', description: 'Startup, business owner, or unstable', icon: AlertTriangle, color: '#ef4444' },
     ],
   },
   {
@@ -317,27 +179,9 @@ const QUESTIONS: Question[] = [
     type: 'select',
     weight: 'high',
     options: [
-      { 
-        value: 'less-than-3', 
-        label: 'Less than 3 months', 
-        description: 'Limited safety net',
-        icon: AlertTriangle,
-        color: '#ef4444'
-      },
-      { 
-        value: '3-6-months', 
-        label: '3-6 months of expenses', 
-        description: 'Standard recommendation',
-        icon: Shield,
-        color: '#eab308'
-      },
-      { 
-        value: 'more-than-6', 
-        label: 'More than 6 months', 
-        description: 'Strong safety cushion',
-        icon: Lock,
-        color: '#22c55e'
-      },
+      { value: 'less-than-3', label: 'Less than 3 months', description: 'Limited safety net', icon: AlertTriangle, color: '#ef4444' },
+      { value: '3-6-months', label: '3-6 months of expenses', description: 'Standard recommendation', icon: Shield, color: '#eab308' },
+      { value: 'more-than-6', label: 'More than 6 months', description: 'Strong safety cushion', icon: Lock, color: '#22c55e' },
     ],
   },
 
@@ -351,27 +195,9 @@ const QUESTIONS: Question[] = [
     type: 'select',
     weight: 'medium',
     options: [
-      { 
-        value: 'steady', 
-        label: 'Steady & Predictable', 
-        description: 'Lower returns, smoother ride',
-        icon: Shield,
-        color: '#22c55e'
-      },
-      { 
-        value: 'moderate', 
-        label: 'Balanced', 
-        description: 'Some ups and downs for better returns',
-        icon: Scale,
-        color: '#3b82f6'
-      },
-      { 
-        value: 'growth', 
-        label: 'Maximum Growth', 
-        description: 'Accept volatility for best long-term gains',
-        icon: TrendingUp,
-        color: '#f59e0b'
-      },
+      { value: 'steady', label: 'Steady & Predictable', description: 'Lower returns, smoother ride', icon: Shield, color: '#22c55e' },
+      { value: 'moderate', label: 'Balanced', description: 'Some ups and downs for better returns', icon: Scale, color: '#3b82f6' },
+      { value: 'growth', label: 'Maximum Growth', description: 'Accept volatility for best long-term gains', icon: TrendingUp, color: '#f59e0b' },
     ],
   },
   {
@@ -383,27 +209,9 @@ const QUESTIONS: Question[] = [
     type: 'select',
     weight: 'medium',
     options: [
-      { 
-        value: 'us-only', 
-        label: 'US Only', 
-        description: 'Stick to domestic markets',
-        icon: Building2,
-        color: '#3b82f6'
-      },
-      { 
-        value: 'mostly-us', 
-        label: 'Mostly US', 
-        description: 'Some international exposure',
-        icon: Globe,
-        color: '#10b981'
-      },
-      { 
-        value: 'balanced', 
-        label: 'Global Balance', 
-        description: 'Significant international allocation',
-        icon: Globe,
-        color: '#8b5cf6'
-      },
+      { value: 'us-only', label: 'US Only', description: 'Stick to domestic markets', icon: Building2, color: '#3b82f6' },
+      { value: 'mostly-us', label: 'Mostly US', description: 'Some international exposure', icon: Globe, color: '#10b981' },
+      { value: 'balanced', label: 'Global Balance', description: 'Significant international allocation', icon: Globe, color: '#8b5cf6' },
     ],
   },
   {
@@ -415,28 +223,132 @@ const QUESTIONS: Question[] = [
     type: 'select',
     weight: 'low',
     options: [
-      { 
-        value: 'no-crypto', 
-        label: 'No Crypto', 
-        description: 'Prefer traditional assets only',
-        icon: Shield,
-        color: '#6b7280'
-      },
-      { 
-        value: 'small-allocation', 
-        label: 'Small Allocation (up to 5%)', 
-        description: 'Limited exposure as a hedge',
-        icon: Bitcoin,
-        color: '#f59e0b'
-      },
-      { 
-        value: 'moderate-allocation', 
-        label: 'Moderate Allocation (5-10%)', 
-        description: 'Meaningful crypto position',
-        icon: Bitcoin,
-        color: '#f97316'
-      },
+      { value: 'no-crypto', label: 'No Crypto', description: 'Prefer traditional assets only', icon: Shield, color: '#6b7280' },
+      { value: 'small-allocation', label: 'Small Allocation (up to 5%)', description: 'Limited exposure as a hedge', icon: Bitcoin, color: '#f59e0b' },
+      { value: 'moderate-allocation', label: 'Moderate Allocation (5-10%)', description: 'Meaningful crypto position', icon: Bitcoin, color: '#f97316' },
     ],
+  },
+
+  // ========== PERSONALITY / INVESTOR DNA SECTION ==========
+  {
+    id: 'personality-journey',
+    section: 'personality',
+    question: "If investing were a journey, which describes you better?",
+    subtitle: "This reveals whether you're a Guardian (cautious) or Pioneer (bold).",
+    type: 'scenario',
+    weight: 'high',
+    scenarioA: {
+      value: 'A',
+      label: 'The Mountain Climber',
+      description: 'Calculated ascent with safety ropes. Every step is planned. The view from the top is worth the careful journey.',
+      icon: Mountain,
+      color: '#3b82f6',
+      dimensionScores: { risk: -25 }
+    },
+    scenarioB: {
+      value: 'B',
+      label: 'The Explorer',
+      description: 'Uncharted territories excite you. Yes, there are risks, but the greatest discoveries come from bold moves.',
+      icon: Compass,
+      color: '#f59e0b',
+      dimensionScores: { risk: 25 }
+    }
+  },
+  {
+    id: 'personality-regret',
+    section: 'personality',
+    question: "Which regret would haunt you more?",
+    subtitle: "This reveals your core investment psychology - loss aversion vs opportunity cost.",
+    type: 'scenario',
+    weight: 'high',
+    scenarioA: {
+      value: 'A',
+      label: 'Missing out on 50% gains',
+      description: 'You played it safe while others made a fortune. The opportunity was right there.',
+      icon: TrendingUp,
+      color: '#10b981',
+      dimensionScores: { risk: 20, focus: 10 }
+    },
+    scenarioB: {
+      value: 'B',
+      label: 'Losing 30% of your savings',
+      description: 'You took a risk and it didn\'t work out. That money took years to save.',
+      icon: Shield,
+      color: '#ef4444',
+      dimensionScores: { risk: -20, focus: -10 }
+    }
+  },
+  {
+    id: 'personality-decision',
+    section: 'personality',
+    question: "How do you typically make important decisions?",
+    subtitle: "This determines if you're Analytical (data-driven) or Intuitive (gut-driven).",
+    type: 'scenario',
+    weight: 'high',
+    scenarioA: {
+      value: 'A',
+      label: 'Research Mode',
+      description: 'Gather data, compare options, create spreadsheets. Make decisions based on thorough analysis.',
+      icon: BarChart3,
+      color: '#3b82f6',
+      dimensionScores: { decision: -25 }
+    },
+    scenarioB: {
+      value: 'B',
+      label: 'Instinct Mode',
+      description: 'Trust your experience and intuition. The best decisions often come from pattern recognition, not spreadsheets.',
+      icon: Heart,
+      color: '#ec4899',
+      dimensionScores: { decision: 25 }
+    }
+  },
+  {
+    id: 'personality-gardening',
+    section: 'personality',
+    question: "Your approach to growing wealth is more like:",
+    subtitle: "This reveals if you're Patient (long-term) or Active (hands-on).",
+    type: 'scenario',
+    weight: 'high',
+    scenarioA: {
+      value: 'A',
+      label: 'Plant and let it grow',
+      description: 'Choose good investments, then trust the process. Check occasionally but don\'t over-tend.',
+      icon: TreePine,
+      color: '#10b981',
+      dimensionScores: { time: -25 }
+    },
+    scenarioB: {
+      value: 'B',
+      label: 'Active cultivation',
+      description: 'Regular attention, pruning, adjusting. Great portfolios require constant care and optimization.',
+      icon: Zap,
+      color: '#f59e0b',
+      dimensionScores: { time: 25 }
+    }
+  },
+  {
+    id: 'personality-diversification',
+    section: 'personality',
+    question: "Which investing wisdom resonates more with you?",
+    subtitle: "This determines if you're a Diversifier or Concentrator.",
+    type: 'scenario',
+    weight: 'high',
+    scenarioA: {
+      value: 'A',
+      label: '"Don\'t put all eggs in one basket"',
+      description: 'Classic wisdom. Diversification protects against the unexpected.',
+      icon: Layers,
+      color: '#8b5cf6',
+      dimensionScores: { focus: -25 }
+    },
+    scenarioB: {
+      value: 'B',
+      label: '"Put eggs in one basket, watch it closely"',
+      description: 'Mark Twain and Warren Buffett agree - concentration builds wealth faster.',
+      icon: Eye,
+      color: '#f97316',
+      dimensionScores: { focus: 25 }
+    }
   },
 ];
 
@@ -466,6 +378,12 @@ const SECTIONS = {
     icon: PieChart,
     color: 'from-purple-500 to-pink-500',
   },
+  personality: {
+    title: 'Investor DNA',
+    description: 'Discover your investing personality',
+    icon: Brain,
+    color: 'from-indigo-500 to-blue-500',
+  },
 };
 
 // ============================================
@@ -477,7 +395,10 @@ interface EliteQuestionnaireV2Props {
     responses: Record<string, { value: string | number | string[] }>;
     riskScore: number;
     riskProfile: string;
+    investorType: string;
+    investorTypeName: string;
     userName: string;
+    dimensions: InvestorDimensions;
   }) => void;
   onCancel?: () => void;
   userName?: string;
@@ -508,6 +429,31 @@ export function EliteQuestionnaireV2({ onComplete, onCancel, userName: initialUs
       [currentQuestion.id]: value,
     }));
   }, [currentQuestion?.id]);
+
+  // Calculate investor dimensions from personality questions
+  const calculateDimensions = useCallback((): InvestorDimensions => {
+    let risk = 50, decision = 50, time = 50, focus = 50;
+    
+    QUESTIONS.filter(q => q.section === 'personality' && q.type === 'scenario').forEach(q => {
+      const response = responses[q.id];
+      if (!response) return;
+      
+      const scenario = response === 'A' ? q.scenarioA : q.scenarioB;
+      if (scenario?.dimensionScores) {
+        if (scenario.dimensionScores.risk) risk += scenario.dimensionScores.risk;
+        if (scenario.dimensionScores.decision) decision += scenario.dimensionScores.decision;
+        if (scenario.dimensionScores.time) time += scenario.dimensionScores.time;
+        if (scenario.dimensionScores.focus) focus += scenario.dimensionScores.focus;
+      }
+    });
+    
+    return {
+      risk: Math.max(0, Math.min(100, risk)),
+      decision: Math.max(0, Math.min(100, decision)),
+      time: Math.max(0, Math.min(100, time)),
+      focus: Math.max(0, Math.min(100, focus)),
+    };
+  }, [responses]);
 
   // Calculate risk score from responses
   const calculateRiskScore = useCallback(() => {
@@ -580,23 +526,30 @@ export function EliteQuestionnaireV2({ onComplete, onCancel, userName: initialUs
       
       const scoringResponses: Record<string, { value: string | number | string[] }> = {};
       
+      // Only include questions with scoringKey
       QUESTIONS.forEach(q => {
-        if (responses[q.id]) {
+        if (responses[q.id] && q.scoringKey) {
           scoringResponses[q.scoringKey] = { value: responses[q.id] };
         }
       });
 
       const riskScore = calculateRiskScore();
       const riskProfile = getRiskProfile(riskScore);
+      const dimensions = calculateDimensions();
+      const typeCode = getInvestorTypeCode(dimensions);
+      const investorType = getInvestorType(typeCode);
 
       onComplete({
         responses: scoringResponses,
         riskScore,
         riskProfile,
+        investorType: typeCode,
+        investorTypeName: investorType.name,
         userName: userName || 'Investor',
+        dimensions,
       });
     }
-  }, [showNameInput, currentQuestionIndex, responses, calculateRiskScore, onComplete, userName]);
+  }, [showNameInput, currentQuestionIndex, responses, calculateRiskScore, calculateDimensions, onComplete, userName]);
 
   // Handle previous
   const handlePrevious = useCallback(() => {
@@ -622,6 +575,111 @@ export function EliteQuestionnaireV2({ onComplete, onCancel, userName: initialUs
   // ============================================
   // RENDER
   // ============================================
+
+  // Render scenario question (A/B choice)
+  const renderScenarioQuestion = (question: Question) => {
+    const selectedValue = responses[question.id];
+    
+    return (
+      <div className="grid md:grid-cols-2 gap-4">
+        {[question.scenarioA, question.scenarioB].map((scenario) => {
+          if (!scenario) return null;
+          const isSelected = selectedValue === scenario.value;
+          const Icon = scenario.icon;
+          
+          return (
+            <motion.button
+              key={scenario.value}
+              onClick={() => handleSelect(scenario.value)}
+              className={cn(
+                "relative flex flex-col items-center text-center p-6 rounded-xl border transition-all duration-200",
+                isSelected
+                  ? "bg-white/10 border-blue-500 shadow-lg shadow-blue-500/20"
+                  : "bg-white/5 border-white/10 hover:bg-white/8 hover:border-white/20"
+              )}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+            >
+              <div
+                className={cn(
+                  "w-16 h-16 rounded-2xl flex items-center justify-center mb-4 transition-colors",
+                  isSelected ? "bg-white/20" : "bg-white/5"
+                )}
+                style={{ backgroundColor: isSelected ? `${scenario.color}30` : undefined }}
+              >
+                {Icon && (
+                  <Icon 
+                    className="w-8 h-8" 
+                    style={{ color: isSelected ? scenario.color : 'rgba(255,255,255,0.5)' }}
+                  />
+                )}
+              </div>
+              <h3 className="font-semibold text-lg mb-2">{scenario.label}</h3>
+              <p className="text-sm text-white/60">{scenario.description}</p>
+              {isSelected && (
+                <div className="absolute top-3 right-3 w-6 h-6 rounded-full bg-blue-500 flex items-center justify-center">
+                  <Check className="w-4 h-4 text-white" />
+                </div>
+              )}
+            </motion.button>
+          );
+        })}
+      </div>
+    );
+  };
+
+  // Render select question
+  const renderSelectQuestion = (question: Question) => {
+    return (
+      <div className="grid gap-3">
+        {question.options?.map((option) => {
+          const isSelected = responses[question.id] === option.value;
+          const Icon = option.icon;
+          
+          return (
+            <motion.button
+              key={option.value}
+              onClick={() => handleSelect(option.value)}
+              className={cn(
+                "relative flex items-center gap-4 p-4 rounded-xl border text-left transition-all duration-200",
+                isSelected
+                  ? "bg-white/10 border-blue-500 shadow-lg shadow-blue-500/20"
+                  : "bg-white/5 border-white/10 hover:bg-white/8 hover:border-white/20"
+              )}
+              whileHover={{ scale: 1.01 }}
+              whileTap={{ scale: 0.99 }}
+            >
+              <div
+                className={cn(
+                  "w-12 h-12 rounded-xl flex items-center justify-center shrink-0 transition-colors",
+                  isSelected ? "bg-white/20" : "bg-white/5"
+                )}
+                style={{ backgroundColor: isSelected ? `${option.color}30` : undefined }}
+              >
+                {Icon && (
+                  <Icon 
+                    className="w-6 h-6" 
+                    style={{ color: isSelected ? option.color : 'rgba(255,255,255,0.5)' }}
+                  />
+                )}
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="font-semibold mb-0.5">{option.label}</div>
+                {option.description && (
+                  <div className="text-sm text-white/50">{option.description}</div>
+                )}
+              </div>
+              {isSelected && (
+                <div className="w-6 h-6 rounded-full bg-blue-500 flex items-center justify-center shrink-0">
+                  <Check className="w-4 h-4 text-white" />
+                </div>
+              )}
+            </motion.button>
+          );
+        })}
+      </div>
+    );
+  };
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white overflow-hidden">
@@ -653,7 +711,6 @@ export function EliteQuestionnaireV2({ onComplete, onCancel, userName: initialUs
             )}
           </div>
           
-          {/* Progress bar */}
           {!showNameInput && (
             <div className="space-y-2">
               <div className="flex justify-between text-xs text-white/50">
@@ -676,7 +733,6 @@ export function EliteQuestionnaireV2({ onComplete, onCancel, userName: initialUs
       {/* Main content */}
       <main className="relative z-10 max-w-3xl mx-auto px-6 py-12">
         <AnimatePresence mode="wait">
-          {/* Name Input */}
           {showNameInput ? (
             <motion.div
               key="name-input"
@@ -697,7 +753,6 @@ export function EliteQuestionnaireV2({ onComplete, onCancel, userName: initialUs
                   We'll personalize your investment strategy report.
                 </p>
               </div>
-
               <div className="max-w-sm mx-auto">
                 <Input
                   value={userName}
@@ -709,7 +764,6 @@ export function EliteQuestionnaireV2({ onComplete, onCancel, userName: initialUs
               </div>
             </motion.div>
           ) : (
-            /* Question */
             <motion.div
               key={currentQuestion.id}
               initial={{ opacity: 0, x: 50 }}
@@ -718,15 +772,17 @@ export function EliteQuestionnaireV2({ onComplete, onCancel, userName: initialUs
               transition={{ duration: 0.3 }}
               className="space-y-8"
             >
-              {/* Section indicator */}
               <div className="flex items-center gap-2">
                 <div className={`w-8 h-8 rounded-lg bg-gradient-to-br ${currentSection?.color} flex items-center justify-center`}>
                   {currentSection?.icon && <currentSection.icon className="w-4 h-4 text-white" />}
                 </div>
                 <span className="text-sm text-white/50">{currentSection?.title}</span>
+                {currentQuestion.section === 'personality' && (
+                  <Badge variant="outline" className="ml-2 border-indigo-500/30 text-indigo-300 text-xs">
+                    Investor DNA
+                  </Badge>
+                )}
               </div>
-
-              {/* Question */}
               <div>
                 <h2 className="text-2xl md:text-3xl font-bold mb-2">
                   {currentQuestion.question}
@@ -735,62 +791,10 @@ export function EliteQuestionnaireV2({ onComplete, onCancel, userName: initialUs
                   {currentQuestion.subtitle}
                 </p>
               </div>
-
-              {/* Options */}
-              <div className="grid gap-3">
-                {currentQuestion.options?.map((option) => {
-                  const isSelected = responses[currentQuestion.id] === option.value;
-                  const Icon = option.icon;
-                  
-                  return (
-                    <motion.button
-                      key={option.value}
-                      onClick={() => handleSelect(option.value)}
-                      className={cn(
-                        "relative flex items-center gap-4 p-4 rounded-xl border text-left transition-all duration-200",
-                        isSelected
-                          ? "bg-white/10 border-blue-500 shadow-lg shadow-blue-500/20"
-                          : "bg-white/5 border-white/10 hover:bg-white/8 hover:border-white/20"
-                      )}
-                      whileHover={{ scale: 1.01 }}
-                      whileTap={{ scale: 0.99 }}
-                    >
-                      {/* Icon */}
-                      <div
-                        className={cn(
-                          "w-12 h-12 rounded-xl flex items-center justify-center shrink-0 transition-colors",
-                          isSelected ? "bg-white/20" : "bg-white/5"
-                        )}
-                        style={{ 
-                          backgroundColor: isSelected ? `${option.color}30` : undefined 
-                        }}
-                      >
-                        {Icon && (
-                          <Icon 
-                            className="w-6 h-6" 
-                            style={{ color: isSelected ? option.color : 'rgba(255,255,255,0.5)' }}
-                          />
-                        )}
-                      </div>
-
-                      {/* Content */}
-                      <div className="flex-1 min-w-0">
-                        <div className="font-semibold mb-0.5">{option.label}</div>
-                        {option.description && (
-                          <div className="text-sm text-white/50">{option.description}</div>
-                        )}
-                      </div>
-
-                      {/* Checkmark */}
-                      {isSelected && (
-                        <div className="w-6 h-6 rounded-full bg-blue-500 flex items-center justify-center shrink-0">
-                          <Check className="w-4 h-4 text-white" />
-                        </div>
-                      )}
-                    </motion.button>
-                  );
-                })}
-              </div>
+              {currentQuestion.type === 'scenario' 
+                ? renderScenarioQuestion(currentQuestion)
+                : renderSelectQuestion(currentQuestion)
+              }
             </motion.div>
           )}
         </AnimatePresence>
@@ -836,7 +840,6 @@ export function EliteQuestionnaireV2({ onComplete, onCancel, userName: initialUs
           </Button>
         </div>
 
-        {/* Keyboard hint */}
         {isCurrentAnswered && (
           <motion.div
             initial={{ opacity: 0 }}
