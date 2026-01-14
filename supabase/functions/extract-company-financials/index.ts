@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { getAuthenticatedUser, unauthorizedResponse } from "../_shared/auth.ts";
 
 // ========== KILL SWITCH - SET TO FALSE TO DISABLE ALL API CALLS ==========
 const ENABLE_LOVABLE_AI = false;
@@ -12,6 +13,12 @@ const corsHeaders = {
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
+  }
+
+  // REQUIRED: Validate authentication before any processing
+  const { user, error: authError } = await getAuthenticatedUser(req);
+  if (authError || !user) {
+    return unauthorizedResponse(authError || 'Authentication required');
   }
 
   // KILL SWITCH - Return early if API is disabled
