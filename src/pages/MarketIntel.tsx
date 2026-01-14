@@ -18,6 +18,7 @@ import {
   LineChart, Coins, ChevronRight, AlertCircle, Calendar, ExternalLink,
   Gem, Fuel, Wheat, Banknote, Crown
 } from 'lucide-react';
+import { PremiumFeatureBlock, PremiumFeatureInline } from '@/components/premium/PremiumFeatureBlock';
 import { usePortfolioTotals, useAlerts, useDealPipeline, usePortfolioAssets, useAssetAllocation, useEvents, useEconomicIndicators, useCovenants, useMATransactions, usePEFunds } from '@/hooks/useMarketIntel';
 import { LiveMacroContent } from '@/components/markets/LiveMacroContent';
 import { useCommodities, useForex, groupCommoditiesByCategory, groupForexByCategory, type CommodityData, type ForexData } from '@/hooks/useForexCommodities';
@@ -1304,10 +1305,7 @@ function CommoditiesContent({ onItemClick }: { onItemClick: (item: MarketDataIte
                 />
               ))
             ) : (
-              <div className="flex flex-col items-center justify-center py-4 gap-2 text-amber-500/70">
-                <Crown className="h-5 w-5" />
-                <p className="text-xs font-medium">Premium Feature</p>
-              </div>
+              <PremiumFeatureBlock size="sm" />
             )}
           </div>
         </Card>
@@ -1328,10 +1326,7 @@ function CommoditiesContent({ onItemClick }: { onItemClick: (item: MarketDataIte
                 />
               ))
             ) : (
-              <div className="flex flex-col items-center justify-center py-4 gap-2 text-amber-500/70">
-                <Crown className="h-5 w-5" />
-                <p className="text-xs font-medium">Premium Feature</p>
-              </div>
+              <PremiumFeatureBlock size="sm" />
             )}
           </div>
         </Card>
@@ -1352,10 +1347,7 @@ function CommoditiesContent({ onItemClick }: { onItemClick: (item: MarketDataIte
                 />
               ))
             ) : (
-              <div className="flex flex-col items-center justify-center py-4 gap-2 text-amber-500/70">
-                <Crown className="h-5 w-5" />
-                <p className="text-xs font-medium">Premium Feature</p>
-              </div>
+              <PremiumFeatureBlock size="sm" />
             )}
           </div>
         </Card>
@@ -1383,10 +1375,7 @@ function CommoditiesContent({ onItemClick }: { onItemClick: (item: MarketDataIte
                   </div>
                 </>
               ) : (
-                <div className="flex items-center gap-1.5 text-amber-500/70 mt-1">
-                  <Crown className="h-4 w-4" />
-                  <span className="text-xs font-medium">Premium</span>
-                </div>
+                <PremiumFeatureInline />
               )}
             </Card>
           );
@@ -1538,10 +1527,7 @@ function CurrenciesContent({ onItemClick }: { onItemClick: (item: MarketDataItem
                 />
               ))
             ) : (
-              <div className="flex flex-col items-center justify-center py-4 gap-2 text-amber-500/70">
-                <Crown className="h-5 w-5" />
-                <p className="text-xs font-medium">Premium Feature</p>
-              </div>
+              <PremiumFeatureBlock size="sm" />
             )}
           </div>
         </Card>
@@ -1562,10 +1548,7 @@ function CurrenciesContent({ onItemClick }: { onItemClick: (item: MarketDataItem
                 />
               ))
             ) : (
-              <div className="flex flex-col items-center justify-center py-4 gap-2 text-amber-500/70">
-                <Crown className="h-5 w-5" />
-                <p className="text-xs font-medium">Premium Feature</p>
-              </div>
+              <PremiumFeatureBlock size="sm" />
             )}
           </div>
         </Card>
@@ -1586,10 +1569,7 @@ function CurrenciesContent({ onItemClick }: { onItemClick: (item: MarketDataItem
                 />
               ))
             ) : (
-              <div className="flex flex-col items-center justify-center py-4 gap-2 text-amber-500/70">
-                <Crown className="h-5 w-5" />
-                <p className="text-xs font-medium">Premium Feature</p>
-              </div>
+              <PremiumFeatureBlock size="sm" />
             )}
           </div>
         </Card>
@@ -1618,10 +1598,7 @@ function CurrenciesContent({ onItemClick }: { onItemClick: (item: MarketDataItem
                   </div>
                 </>
               ) : (
-                <div className="flex items-center gap-1.5 text-amber-500/70 mt-1">
-                  <Crown className="h-4 w-4" />
-                  <span className="text-xs font-medium">Premium</span>
-                </div>
+                <PremiumFeatureInline />
               )}
             </Card>
           );

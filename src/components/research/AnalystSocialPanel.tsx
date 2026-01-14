@@ -20,8 +20,7 @@ import {
   formatRelativeTime,
 } from '@/hooks/useCompanyResearch';
 import { toast } from 'sonner';
-import { PremiumBadge } from '@/components/ui/PremiumBadge';
-import { Crown } from 'lucide-react';
+import { PremiumFeatureBlock } from '@/components/premium/PremiumFeatureBlock';
 
 interface AnalystSocialPanelProps {
   ticker: string;
@@ -112,13 +111,11 @@ export function AnalystSocialPanel({ ticker, companyName }: AnalystSocialPanelPr
             </>
           ) : (
             <Card className="glass-card">
-              <CardContent className="p-6 flex flex-col items-center justify-center gap-3">
-                <Crown className="h-10 w-10 text-amber-500/50" />
-                <p className="font-medium">Premium Feature</p>
-                <p className="text-sm text-muted-foreground text-center">
-                  Analyst reports for {ticker} require premium access
-                </p>
-                <PremiumBadge />
+              <CardContent className="p-6">
+                <PremiumFeatureBlock 
+                  size="lg"
+                  description={`Analyst reports for ${ticker} require premium access`}
+                />
               </CardContent>
             </Card>
           )}
@@ -182,13 +179,11 @@ export function AnalystSocialPanel({ ticker, companyName }: AnalystSocialPanelPr
             </>
           ) : (
             <Card className="glass-card">
-              <CardContent className="p-6 flex flex-col items-center justify-center gap-3">
-                <Crown className="h-10 w-10 text-amber-500/50" />
-                <p className="font-medium">Premium Feature</p>
-                <p className="text-sm text-muted-foreground text-center">
-                  Social sentiment for {ticker} requires premium access
-                </p>
-                <PremiumBadge />
+              <CardContent className="p-6">
+                <PremiumFeatureBlock 
+                  size="lg"
+                  description={`Social sentiment for ${ticker} requires premium access`}
+                />
               </CardContent>
             </Card>
           )}

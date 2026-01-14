@@ -69,7 +69,7 @@ import {
   Clock,
   Crown,
 } from 'lucide-react';
-import { PremiumBadge } from '@/components/ui/PremiumBadge';
+import { PremiumFeatureBlock } from '@/components/premium/PremiumFeatureBlock';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -796,13 +796,11 @@ export function MarketDataDetail({ item, open, onOpenChange }: MarketDataDetailP
                   </AreaChart>
                 </ResponsiveContainer>
               ) : (
-                <div className="h-[400px] flex flex-col items-center justify-center gap-3">
-                  <Crown className="h-12 w-12 text-amber-500/50" />
-                  <p className="font-medium text-lg">Premium Feature</p>
-                  <p className="text-sm text-muted-foreground text-center">
-                    Historical data requires premium access
-                  </p>
-                  <PremiumBadge />
+                <div className="h-[400px] flex items-center justify-center">
+                  <PremiumFeatureBlock 
+                    size="lg"
+                    description="Historical data requires premium access"
+                  />
                 </div>
               )}
             </Card>
