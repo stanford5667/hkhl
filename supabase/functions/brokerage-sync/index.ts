@@ -221,16 +221,47 @@ serve(async (req) => {
           );
         }
 
-        // SECURITY: Decrypt the access token
+        // SECURITY: Decrypt the access token and auto-migrate legacy tokens
         let accessToken: string;
+        const isEncrypted = connection.metadata?.encrypted === true;
+        
         try {
-          const isEncrypted = connection.metadata?.encrypted === true;
           if (isEncrypted) {
             accessToken = await decrypt(connection.access_token);
           } else {
-            // Legacy unencrypted token - use as-is but log warning
-            console.warn('Using unencrypted legacy token for connection:', connectionId);
+            // Legacy unencrypted token - use it but immediately attempt migration
             accessToken = connection.access_token;
+            console.warn('Found unencrypted legacy token for connection:', connectionId, '- attempting auto-migration');
+            
+            // Auto-migrate: encrypt and update the token
+            try {
+              const encryptedToken = await encrypt(accessToken);
+              const updatedMetadata = {
+                ...(connection.metadata || {}),
+                encrypted: true,
+                migrated_at: new Date().toISOString(),
+                migration_source: 'auto_sync'
+              };
+              
+              const { error: migrationError } = await supabase
+                .from('brokerage_connections')
+                .update({
+                  access_token: encryptedToken,
+                  metadata: updatedMetadata
+                })
+                .eq('id', connectionId)
+                .eq('user_id', user.id);
+              
+              if (migrationError) {
+                console.error('Failed to migrate legacy token:', migrationError);
+                // Continue with unencrypted token for this request, but log the issue
+              } else {
+                console.log('Successfully migrated legacy token to encrypted storage for connection:', connectionId);
+              }
+            } catch (migrationEncryptError) {
+              // Log but don't fail the request - we can still use the plaintext token
+              console.error('Encryption failed during migration attempt:', migrationEncryptError);
+            }
           }
         } catch (decryptError) {
           console.error('Failed to decrypt token:', decryptError);
