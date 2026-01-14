@@ -101,7 +101,7 @@ export function AuthGateDialog({
     { icon: Shield, text: "Secure storage" },
   ];
 
-  const AuthForm = () => (
+  const authForm = (
     <div className="space-y-4 px-1">
       {/* Asset Labs Branding */}
       <div className="flex items-center justify-center py-2">
@@ -208,11 +208,8 @@ export function AuthGateDialog({
     </div>
   );
 
-  const VerificationContent = () => (
-    <EmailVerificationPending 
-      email={email} 
-      onBack={handleBackFromVerification}
-    />
+  const verificationContent = (
+    <EmailVerificationPending email={email} onBack={handleBackFromVerification} />
   );
 
   // Use Dialog for desktop, Drawer for mobile
@@ -221,7 +218,7 @@ export function AuthGateDialog({
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="sm:max-w-md">
           {showVerificationPending ? (
-            <VerificationContent />
+            verificationContent
           ) : (
             <>
               <DialogHeader className="text-center pb-2">
@@ -230,7 +227,7 @@ export function AuthGateDialog({
                   {description}
                 </DialogDescription>
               </DialogHeader>
-              <AuthForm />
+              {authForm}
             </>
           )}
         </DialogContent>
@@ -243,7 +240,7 @@ export function AuthGateDialog({
       <DrawerContent className="max-h-[90vh]">
         {showVerificationPending ? (
           <div className="px-4 pb-8 overflow-y-auto safe-area-bottom">
-            <VerificationContent />
+            {verificationContent}
           </div>
         ) : (
           <>
@@ -254,7 +251,7 @@ export function AuthGateDialog({
               </DrawerDescription>
             </DrawerHeader>
             <div className="px-4 pb-8 overflow-y-auto safe-area-bottom">
-              <AuthForm />
+              {authForm}
             </div>
           </>
         )}
