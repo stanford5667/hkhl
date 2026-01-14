@@ -223,20 +223,29 @@ export function ComprehensiveInvestmentResults({
     timeHorizon?: string;
   } | undefined;
 
-  // Get goal amount - check both investmentAmount (saved format) and goal-amount (questionnaire format)
-  const goalAmount = useMemo(() => {
+  // Get investment capital (the amount they're putting to work now)
+  const investmentCapital = useMemo(() => {
     // First check for saved investmentAmount (from database)
     const savedAmount = responses?.investmentAmount;
     if (savedAmount && typeof savedAmount === 'number' && savedAmount > 0) {
       return savedAmount;
     }
-    // Then check for questionnaire response
-    const questionnaireAmount = getResponseValue(responses['goal-amount'], null);
-    if (questionnaireAmount && typeof questionnaireAmount === 'number' && questionnaireAmount > 0) {
-      return questionnaireAmount;
+    // Then check for investment-capital questionnaire response
+    const investmentCapitalVal = getResponseValue(responses['investment-capital'], null);
+    if (investmentCapitalVal && typeof investmentCapitalVal === 'number' && investmentCapitalVal > 0) {
+      return investmentCapitalVal;
     }
     // Default fallback
     return 50000;
+  }, [responses]);
+  
+  // Get target goal amount (the wealth goal they want to reach) - separate from investment capital
+  const targetGoalAmount = useMemo(() => {
+    const goalVal = getResponseValue(responses['goal-amount'], null);
+    if (goalVal && typeof goalVal === 'number' && goalVal > 0) {
+      return goalVal;
+    }
+    return 0; // 0 means no target specified
   }, [responses]);
 
   // Format large amounts nicely
@@ -252,11 +261,11 @@ export function ComprehensiveInvestmentResults({
   // Action items - use helper for response values
   const actionItems = useMemo(() => [
     { priority: 1, title: 'Open brokerage account', description: 'Choose a low-cost broker like Fidelity, Schwab, or Vanguard', timeframe: 'This week' },
-    { priority: 2, title: 'Fund your account', description: `Transfer your initial investment of ${formatInvestmentAmount(goalAmount)}`, timeframe: '1-2 weeks' },
+    { priority: 2, title: 'Fund your account', description: `Transfer your initial investment of ${formatInvestmentAmount(investmentCapital)}`, timeframe: '1-2 weeks' },
     { priority: 3, title: 'Implement your allocation', description: 'Build your portfolio according to your target asset allocation', timeframe: '30 days' },
     { priority: 4, title: 'Set up automatic investing', description: 'Schedule recurring contributions to maintain momentum', timeframe: '30 days' },
     { priority: 5, title: 'Schedule quarterly review', description: 'Add calendar reminder to review and rebalance portfolio', timeframe: 'Ongoing' },
-  ], [goalAmount]);
+  ], [investmentCapital]);
 
   const handleCopyLink = () => {
     navigator.clipboard.writeText(window.location.href);
@@ -278,9 +287,11 @@ export function ComprehensiveInvestmentResults({
   // Check if rawPolicy contains an AI-generated strategy (to avoid regeneration)
   const hasExistingStrategy = useMemo(() => {
     if (!rawPolicy || rawPolicy.length < 100) return false;
-    // AI-generated strategies contain specific section headers
+    // AI-generated strategies contain specific section headers (check for both old and new formats)
     return rawPolicy.includes('## Your Investment Philosophy') || 
+           rawPolicy.includes('## Understanding Your Investment Approach') ||
            rawPolicy.includes('## Portfolio Construction') ||
+           rawPolicy.includes('## Suggested Portfolio Framework') ||
            rawPolicy.includes('## Behavioral Guardrails');
   }, [rawPolicy]);
 
@@ -298,7 +309,8 @@ export function ComprehensiveInvestmentResults({
       try {
         // Log what we're sending to help debug
         console.log('Generating AI strategy with:', { 
-          goalAmount, 
+          investmentCapital,
+          targetGoalAmount, 
           investmentAmount: responses?.investmentAmount,
           savedKeyMetrics 
         });
@@ -311,7 +323,7 @@ export function ComprehensiveInvestmentResults({
               investorType: investorTypeCode,
               investorTypeName: archetype.name,
               timeHorizon,
-              goalAmount,
+              goalAmount: investmentCapital, // This is the investment capital, not the target goal
               keyMetrics: savedKeyMetrics, // Pass saved metrics to edge function
               allocation: allocation.map(a => ({ category: a.category, percentage: a.percentage })),
               responses,
@@ -361,7 +373,7 @@ export function ComprehensiveInvestmentResults({
     };
 
     generateAIStrategy();
-  }, [hasExistingStrategy, riskScore, riskLabel, investorTypeCode, archetype.name, timeHorizon, goalAmount, allocation, responses, userName, rawPolicy, planId, toast]);
+  }, [hasExistingStrategy, riskScore, riskLabel, investorTypeCode, archetype.name, timeHorizon, investmentCapital, targetGoalAmount, allocation, responses, userName, rawPolicy, planId, toast]);
 
 
   return (
@@ -525,10 +537,10 @@ export function ComprehensiveInvestmentResults({
                   {[
                     { 
                       label: 'Investment', 
-                      value: formatInvestmentAmount(goalAmount), 
+                      value: formatInvestmentAmount(investmentCapital), 
                       icon: DollarSign, 
                       color: 'emerald',
-                      tooltip: 'Your target investment amount'
+                      tooltip: 'Your current investment capital'
                     },
                     { 
                       label: 'Goal Return', 
