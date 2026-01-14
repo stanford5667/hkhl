@@ -104,19 +104,21 @@ serve(async (req) => {
     const personalityBuffet = getVal(profile.responses['personality-buffet'], null);
     const personalityWisdom = getVal(profile.responses['personality-wisdom'], null);
 
-    const systemPrompt = `You are a knowledgeable financial educator creating a personalized investment education document. You provide general financial information and suggested frameworks - NOT personalized investment advice.
+    const systemPrompt = `You are a financial education assistant creating an investment education document. You provide general financial concepts and educational frameworks - NOT personalized investment advice.
 
 CRITICAL GUIDELINES:
-- This is an EDUCATIONAL DOCUMENT with SUGGESTED frameworks, not financial advice
-- Use language like "consider", "one approach might be", "a common strategy is", "you may want to explore"
-- NEVER use language like "I recommend", "you should invest", "this is your plan"
-- Do NOT start with flattery like "It's a privilege" or "I'm honored"
-- Get straight to the educational content
-- Explain concepts and tradeoffs, don't prescribe specific actions
-- Include disclaimers that this is educational information, not financial advice
-- Do NOT recommend specific funds, ETFs, or securities
-- Focus on asset allocation concepts, investment philosophy education, and behavioral frameworks
-- Be educational and informative, like a professor explaining concepts`;
+- This is EDUCATIONAL content with SUGGESTED frameworks, not investment advice
+- Use phrases like "consider exploring", "one approach is", "many investors find", "you might explore"
+- NEVER say "I recommend", "you should invest", "your plan", or give direct advice
+- Do NOT start with any greeting, flattery, or phrases like "It's a privilege" or "I'm honored" or "Dear" - jump straight into the content
+- Start directly with the first section header "## Understanding Your Investment Approach"
+- The "Current Investment Capital" shown is the amount they plan to invest NOW, not a goal
+- The "Target Wealth Goal" (if shown) is their aspirational target they want to grow toward over time
+- Make the distinction clear: investment capital = what they have now to invest; goal = what they want to achieve
+- Explain concepts and tradeoffs without prescribing specific actions
+- Do NOT recommend specific funds, ETFs, or securities by name
+- Focus on asset allocation education, behavioral concepts, and investment philosophy
+- Be educational and approachable, like a knowledgeable friend explaining concepts`;
 
     // Map goal primary to readable text
     const goalPrimaryMap: Record<string, string> = {
@@ -172,14 +174,19 @@ CRITICAL GUIDELINES:
 
     const userPrompt = `Create an educational investment framework document for ${profile.userName}.
 
-IMPORTANT: This is educational content, not investment advice. Use phrases like "consider", "one approach", "a common strategy" rather than "you should" or "I recommend".
+CRITICAL: Start directly with "## Understanding Your Investment Approach" - NO greeting, NO flattery, NO "Dear", NO "It's a privilege".
+
+IMPORTANT DISTINCTION:
+- "Current Investment Capital" (${formattedInvestmentAmount}) = The amount they have available to invest NOW
+- "Target Wealth Goal" (${formattedGoalAmount}) = What they WANT their wealth to grow to over time (this is an aspiration, not what they have)
+Make this distinction clear throughout the document.
 
 ## INVESTOR PROFILE DATA:
 - Risk Score: ${profile.riskScore}/100 (${profile.riskLabel})
 - Investor Archetype: ${profile.investorTypeName} (Code: ${profile.investorType})
 - Investment Horizon: ${profile.timeHorizon} years
-- Current Investment Capital: ${formattedInvestmentAmount}
-${targetGoalAmount > 0 ? `- Target Wealth Goal: ${formattedGoalAmount}` : ''}
+- Current Investment Capital: ${formattedInvestmentAmount} (amount available to invest now)
+${targetGoalAmount > 0 ? `- Target Wealth Goal: ${formattedGoalAmount} (aspirational target to grow toward)` : ''}
 ${liquidNetWorth > 0 ? `- Liquid Net Worth: ${formattedLiquidNetWorth}` : ''}
 - Primary Goal: ${goalPrimaryText}
 
@@ -225,11 +232,13 @@ ${profile.allocation?.map(a => `- ${a.category}: ${a.percentage}%`).join('\n') |
 
 Write an educational investment framework document with these sections (use markdown formatting):
 
+CRITICAL: Start the document immediately with "## Understanding Your Investment Approach" - do NOT include any greeting, salutation, or introductory flattery.
+
 ## Understanding Your Investment Approach
 Write 2-3 paragraphs explaining the investment philosophy concepts suited to their archetype. Make it educational - explain WHY this approach commonly fits this personality type. Reference their stated primary goal of "${goalPrimaryText}". Use phrases like "investors with your profile often find" rather than "you should".
 
 ## Suggested Portfolio Framework
-Explain the rationale behind the suggested allocation framework. Why these percentages are commonly used for their situation, timeline of ${profile.timeHorizon} years, and investment capital of ${formattedInvestmentAmount}.${targetGoalAmount > 0 ? ` Their target wealth goal is ${formattedGoalAmount}.` : ''}
+Explain the rationale behind the suggested allocation. With their current investment capital of ${formattedInvestmentAmount} and a ${profile.timeHorizon}-year timeline, explain why these percentages are commonly used.${targetGoalAmount > 0 ? ` Note: Their target wealth goal is ${formattedGoalAmount} - this is what they're working TOWARD, not what they currently have.` : ''}
 
 Reference their target metrics:
 - Goal annual return of ${targetReturn} (realistic given their ${profile.riskLabel} risk profile)

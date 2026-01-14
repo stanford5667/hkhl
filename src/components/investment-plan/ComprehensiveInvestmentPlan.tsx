@@ -285,20 +285,18 @@ export function ComprehensiveInvestmentResults({
   const sharpeRatio = savedKeyMetrics?.sharpRatio || Math.max(0, ((parseFloat(expectedReturn) - 4.5) / parseFloat(expectedVolatility))).toFixed(2);
 
   // Check if rawPolicy contains an AI-generated strategy (to avoid regeneration)
+  // A valid saved strategy is any non-empty content with substantial length
   const hasExistingStrategy = useMemo(() => {
-    if (!rawPolicy || rawPolicy.length < 100) return false;
-    // AI-generated strategies contain specific section headers (check for both old and new formats)
-    return rawPolicy.includes('## Your Investment Philosophy') || 
-           rawPolicy.includes('## Understanding Your Investment Approach') ||
-           rawPolicy.includes('## Portfolio Construction') ||
-           rawPolicy.includes('## Suggested Portfolio Framework') ||
-           rawPolicy.includes('## Behavioral Guardrails');
+    if (!rawPolicy || rawPolicy.trim().length < 200) return false;
+    // If there's substantial content, it's a saved strategy
+    return true;
   }, [rawPolicy]);
 
   // Generate AI strategy on mount ONLY if we don't have an existing strategy
   useEffect(() => {
-    // If we already have a saved AI strategy, use it directly
-    if (hasExistingStrategy) {
+    // If we already have a saved AI strategy, use it directly - don't regenerate!
+    if (hasExistingStrategy && rawPolicy) {
+      console.log('Using existing saved strategy, not regenerating');
       setAiStrategy(rawPolicy);
       setIsLoadingStrategy(false);
       return;
