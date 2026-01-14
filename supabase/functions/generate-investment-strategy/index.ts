@@ -68,26 +68,33 @@ serve(async (req) => {
     const goalTimeline = getVal(profile.responses['goal-timeline'], 10);
     
     // IMPORTANT: Distinguish between investment amount and goal amount
-    // investment-capital = the amount they're actually investing now
+    // financial-investment-capital = the amount they're actually investing now (scoringKey from questionnaire)
     // goal-amount = their target wealth goal they want to reach
     const savedInvestmentAmount = profile.responses?.investmentAmount;
+    // Check both the scoringKey (financial-investment-capital) and legacy key (investment-capital)
+    const financialInvestmentCapital = getVal(profile.responses['financial-investment-capital'], null);
     const investmentCapitalFromQ = getVal(profile.responses['investment-capital'], null);
     const goalAmountFromQ = getVal(profile.responses['goal-amount'], null);
     
-    // Investment amount (what they have to invest now)
+    // Investment amount (what they have to invest now) - check all possible keys
     const investmentAmount = savedInvestmentAmount && typeof savedInvestmentAmount === 'number' && savedInvestmentAmount > 0 
       ? savedInvestmentAmount 
-      : (investmentCapitalFromQ && typeof investmentCapitalFromQ === 'number' && investmentCapitalFromQ > 0 
-        ? investmentCapitalFromQ 
-        : (profile.goalAmount || 50000));
+      : (financialInvestmentCapital && typeof financialInvestmentCapital === 'number' && financialInvestmentCapital > 0 
+        ? financialInvestmentCapital
+        : (investmentCapitalFromQ && typeof investmentCapitalFromQ === 'number' && investmentCapitalFromQ > 0 
+          ? investmentCapitalFromQ 
+          : (profile.goalAmount || 50000)));
     
     // Goal amount (their target/dream number they want to reach)
     const targetGoalAmount = goalAmountFromQ && typeof goalAmountFromQ === 'number' && goalAmountFromQ > 0
       ? goalAmountFromQ
       : 0; // 0 means no specific target was set
       
-    // Liquid net worth
-    const liquidNetWorth = getVal(profile.responses['liquid-net-worth'], 0);
+    // Liquid net worth - check both scoringKey (financial-liquid-net-worth) and legacy key
+    const financialLiquidNetWorth = getVal(profile.responses['financial-liquid-net-worth'], null);
+    const liquidNetWorth = financialLiquidNetWorth && typeof financialLiquidNetWorth === 'number' 
+      ? financialLiquidNetWorth 
+      : getVal(profile.responses['liquid-net-worth'], 0);
     
     const existingAssets = getVal(profile.responses['existing-assets'], []);
     const prefInvolvement = getVal(profile.responses['pref-involvement'], 50);
