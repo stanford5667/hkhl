@@ -13,17 +13,18 @@ interface LogApiUsageParams {
   metadata?: Record<string, unknown>;
 }
 
-// Cost estimates per 1000 tokens for different APIs (approximate)
+// Cost estimates per 1000 tokens for different APIs (approximate equivalent market rates)
+// Note: Lovable AI is free, but we track equivalent market value for analytics
 export const API_COST_RATES: Record<string, number> = {
   'openai-gpt-4': 0.03,
   'openai-gpt-5': 0.05,
   'gemini-pro': 0.00025,
-  'gemini-2.5-flash': 0.0001,
-  'gemini-2.5-pro': 0.0005,
+  'gemini-2.5-flash': 0.00015, // Equivalent market rate for tracking
+  'gemini-2.5-pro': 0.00125, // Equivalent market rate for tracking
   'perplexity': 0.001,
   'finnhub': 0, // Free tier
   'polygon': 0.0001, // Estimated per request
-  'lovable-ai': 0, // Free via Lovable
+  'lovable-ai': 0.0002, // Equivalent market value (actually free via Lovable)
 };
 
 export function estimateCost(tokensUsed: number, apiType: string): number {
