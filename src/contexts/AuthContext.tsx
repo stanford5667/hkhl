@@ -10,6 +10,7 @@ interface AuthContextType {
   signUp: (email: string, password: string, fullName: string) => Promise<{ error: Error | null }>;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
+  resetPassword: (email: string) => Promise<{ error: Error | null }>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -84,6 +85,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const resetPassword = async (email: string) => {
+    const customDomain = "https://aiassetlabs.com";
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${customDomain}/auth?mode=reset`,
+    });
+    return { error: error as Error | null };
+  };
+
   return (
     <AuthContext.Provider value={{ 
       user, 
@@ -92,7 +101,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isAuthenticated: !!user,
       signUp, 
       signIn, 
-      signOut 
+      signOut,
+      resetPassword,
     }}>
       {children}
     </AuthContext.Provider>
