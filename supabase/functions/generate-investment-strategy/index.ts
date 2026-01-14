@@ -64,16 +64,31 @@ serve(async (req) => {
     const riskTolerance = getVal(profile.responses['risk-tolerance'], 20);
     
     // Additional parameters for comprehensive strategy
-    const goalPrimary = getVal(profile.responses['goal-primary'], 'wealth-growth');
+    const goalPrimary = getVal(profile.responses['goal-purpose'], 'wealth-growth');
     const goalTimeline = getVal(profile.responses['goal-timeline'], 10);
-    // Get investment amount from multiple sources - prioritize investmentAmount from saved data
+    
+    // IMPORTANT: Distinguish between investment amount and goal amount
+    // investment-capital = the amount they're actually investing now
+    // goal-amount = their target wealth goal they want to reach
     const savedInvestmentAmount = profile.responses?.investmentAmount;
-    const questionnaireAmount = getVal(profile.responses['goal-amount'], null);
-    const goalAmount = savedInvestmentAmount && typeof savedInvestmentAmount === 'number' && savedInvestmentAmount > 0 
+    const investmentCapitalFromQ = getVal(profile.responses['investment-capital'], null);
+    const goalAmountFromQ = getVal(profile.responses['goal-amount'], null);
+    
+    // Investment amount (what they have to invest now)
+    const investmentAmount = savedInvestmentAmount && typeof savedInvestmentAmount === 'number' && savedInvestmentAmount > 0 
       ? savedInvestmentAmount 
-      : (questionnaireAmount && typeof questionnaireAmount === 'number' && questionnaireAmount > 0 
-        ? questionnaireAmount 
+      : (investmentCapitalFromQ && typeof investmentCapitalFromQ === 'number' && investmentCapitalFromQ > 0 
+        ? investmentCapitalFromQ 
         : (profile.goalAmount || 50000));
+    
+    // Goal amount (their target/dream number they want to reach)
+    const targetGoalAmount = goalAmountFromQ && typeof goalAmountFromQ === 'number' && goalAmountFromQ > 0
+      ? goalAmountFromQ
+      : 0; // 0 means no specific target was set
+      
+    // Liquid net worth
+    const liquidNetWorth = getVal(profile.responses['liquid-net-worth'], 0);
+    
     const existingAssets = getVal(profile.responses['existing-assets'], []);
     const prefInvolvement = getVal(profile.responses['pref-involvement'], 50);
     const prefDiversification = getVal(profile.responses['pref-diversification'], 50);
@@ -89,21 +104,27 @@ serve(async (req) => {
     const personalityBuffet = getVal(profile.responses['personality-buffet'], null);
     const personalityWisdom = getVal(profile.responses['personality-wisdom'], null);
 
-    const systemPrompt = `You are a sophisticated financial advisor with expertise in behavioral finance and portfolio construction. Your role is to create deeply personalized, thoughtful investment strategies that feel like they were written by a caring advisor who truly understands the investor.
+    const systemPrompt = `You are a knowledgeable financial educator creating a personalized investment education document. You provide general financial information and suggested frameworks - NOT personalized investment advice.
 
-Your responses should be:
-- Warm yet professional - like advice from a trusted mentor
-- Specific to their actual situation, not generic
-- Psychologically insightful about their investor personality
-- Actionable with clear next steps
-- Honest about both opportunities and risks they should watch for
-
-CRITICAL: Do NOT recommend specific funds, ETFs, or securities. Focus on asset allocation percentages, investment philosophy, behavioral guidance, and implementation principles.`;
+CRITICAL GUIDELINES:
+- This is an EDUCATIONAL DOCUMENT with SUGGESTED frameworks, not financial advice
+- Use language like "consider", "one approach might be", "a common strategy is", "you may want to explore"
+- NEVER use language like "I recommend", "you should invest", "this is your plan"
+- Do NOT start with flattery like "It's a privilege" or "I'm honored"
+- Get straight to the educational content
+- Explain concepts and tradeoffs, don't prescribe specific actions
+- Include disclaimers that this is educational information, not financial advice
+- Do NOT recommend specific funds, ETFs, or securities
+- Focus on asset allocation concepts, investment philosophy education, and behavioral frameworks
+- Be educational and informative, like a professor explaining concepts`;
 
     // Map goal primary to readable text
     const goalPrimaryMap: Record<string, string> = {
       'wealth-growth': 'Long-term wealth accumulation',
+      'wealth-building': 'Building wealth over time',
       'retirement': 'Building a retirement nest egg',
+      'financial-independence': 'Achieving financial independence',
+      'house-purchase': 'Saving for a major purchase',
       'income': 'Generating passive income',
       'preservation': 'Preserving existing wealth'
     };
@@ -128,7 +149,7 @@ CRITICAL: Do NOT recommend specific funds, ETFs, or securities. Focus on asset a
     };
     const prefStyleText = prefStyleMap[prefStyle as string] || String(prefStyle);
 
-    // Format investment amount nicely for the prompt
+    // Format amounts nicely for the prompt
     const formatAmount = (amount: number): string => {
       if (amount >= 1000000) {
         return `$${(amount / 1000000).toFixed(amount % 1000000 === 0 ? 0 : 1)} million`;
@@ -138,7 +159,9 @@ CRITICAL: Do NOT recommend specific funds, ETFs, or securities. Focus on asset a
       return `$${amount.toLocaleString()}`;
     };
     
-    const formattedInvestmentAmount = formatAmount(goalAmount);
+    const formattedInvestmentAmount = formatAmount(investmentAmount);
+    const formattedGoalAmount = targetGoalAmount > 0 ? formatAmount(targetGoalAmount) : 'Not specified';
+    const formattedLiquidNetWorth = liquidNetWorth > 0 ? formatAmount(liquidNetWorth) : 'Not specified';
 
     // Get key metrics from profile or calculate defaults
     const keyMetrics = profile.keyMetrics || {};
@@ -147,19 +170,23 @@ CRITICAL: Do NOT recommend specific funds, ETFs, or securities. Focus on asset a
     const targetMaxDrawdown = keyMetrics.maxDrawdown || `-${(10 + profile.riskScore * 0.25).toFixed(0)}%`;
     const targetSharpe = keyMetrics.sharpRatio || '0.50';
 
-    const userPrompt = `Create a comprehensive, personalized investment strategy for ${profile.userName}.
+    const userPrompt = `Create an educational investment framework document for ${profile.userName}.
+
+IMPORTANT: This is educational content, not investment advice. Use phrases like "consider", "one approach", "a common strategy" rather than "you should" or "I recommend".
 
 ## INVESTOR PROFILE DATA:
 - Risk Score: ${profile.riskScore}/100 (${profile.riskLabel})
 - Investor Archetype: ${profile.investorTypeName} (Code: ${profile.investorType})
 - Investment Horizon: ${profile.timeHorizon} years
-- Total Investment Capital: ${formattedInvestmentAmount}
+- Current Investment Capital: ${formattedInvestmentAmount}
+${targetGoalAmount > 0 ? `- Target Wealth Goal: ${formattedGoalAmount}` : ''}
+${liquidNetWorth > 0 ? `- Liquid Net Worth: ${formattedLiquidNetWorth}` : ''}
 - Primary Goal: ${goalPrimaryText}
 
-## TARGET PERFORMANCE METRICS:
-- Goal Annual Return: ${targetReturn}
-- Goal Max Drawdown: ${targetMaxDrawdown}
-- Expected Volatility: ${targetVolatility}
+## TARGET PERFORMANCE METRICS (suggested based on profile):
+- Suggested Annual Return Target: ${targetReturn}
+- Suggested Max Drawdown Tolerance: ${targetMaxDrawdown}
+- Expected Volatility Range: ${targetVolatility}
 - Target Sharpe Ratio: ${targetSharpe}
 
 ## FINANCIAL SITUATION:
@@ -191,18 +218,18 @@ ${personalityWisdom ? `- Investment philosophy: ${personalityWisdom}` : ''}
 ## VISION FOR SUCCESS:
 ${visionSuccess ? `"${visionSuccess}"` : 'Financial independence and security'}
 
-## TARGET ALLOCATION:
+## SUGGESTED ALLOCATION FRAMEWORK:
 ${profile.allocation?.map(a => `- ${a.category}: ${a.percentage}%`).join('\n') || 'To be determined based on profile'}
 
 ---
 
-Write a comprehensive investment strategy document with these sections (use markdown formatting):
+Write an educational investment framework document with these sections (use markdown formatting):
 
-## Your Investment Philosophy
-Write 2-3 paragraphs explaining the core investment philosophy suited to their archetype. Make it personal - address them by name. Explain WHY this approach fits their personality, not just what it is. Reference their stated primary goal of "${goalPrimaryText}".
+## Understanding Your Investment Approach
+Write 2-3 paragraphs explaining the investment philosophy concepts suited to their archetype. Make it educational - explain WHY this approach commonly fits this personality type. Reference their stated primary goal of "${goalPrimaryText}". Use phrases like "investors with your profile often find" rather than "you should".
 
-## Portfolio Construction Strategy
-Explain the rationale behind their target allocation. Why these percentages make sense for their specific situation, timeline of ${profile.timeHorizon} years, and goal of ${formattedInvestmentAmount}. 
+## Suggested Portfolio Framework
+Explain the rationale behind the suggested allocation framework. Why these percentages are commonly used for their situation, timeline of ${profile.timeHorizon} years, and investment capital of ${formattedInvestmentAmount}.${targetGoalAmount > 0 ? ` Their target wealth goal is ${formattedGoalAmount}.` : ''}
 
 Reference their target metrics:
 - Goal annual return of ${targetReturn} (realistic given their ${profile.riskLabel} risk profile)
@@ -255,33 +282,36 @@ Teach them about important recurring dates:
 - **Every 6 weeks**: Federal Reserve FOMC meetings
 - **Quarterly**: GDP releases, earnings seasons (Jan, Apr, Jul, Oct)
 
-## Behavioral Guardrails
-Based on their archetype (${profile.investorTypeName}) and their stated downturn response, provide 3-4 specific behavioral rules they should follow. These should feel like wisdom from an experienced mentor who knows their tendencies.
+## Behavioral Considerations
+Based on their archetype (${profile.investorTypeName}) and their stated downturn response, explain 3-4 behavioral patterns they may want to be aware of. Frame these as "investors with this profile often benefit from..." rather than direct advice.
 
-## Market Volatility Playbook
-Given that they said they would "${riskScenario === 'buy-more' ? 'buy more' : riskScenario === 'hold' ? 'hold' : riskScenario === 'sell-some' ? 'sell some' : 'sell all'}" during a 20% market decline, provide tailored advice for handling volatility. Include specific thresholds and actions.
+## Volatility Framework
+Given that they said they would "${riskScenario === 'buy-more' ? 'buy more' : riskScenario === 'hold' ? 'hold' : riskScenario === 'sell-some' ? 'sell some' : 'sell all'}" during a 20% market decline, provide educational context about handling volatility. Explain what different approaches look like and their tradeoffs.
 
-## Implementation Roadmap
-Provide a phased approach to building their portfolio:
-1. Immediate actions (Week 1)
-2. Short-term setup (Month 1)
-3. Ongoing management (Quarterly/Annually)
+## Suggested Implementation Framework
+Provide a general phased approach that investors often use:
+1. Getting started considerations (Week 1)
+2. Initial setup concepts (Month 1)
+3. Ongoing review concepts (Quarterly/Annually)
 
-Their preferred involvement level is ${prefInvolvement < 30 ? 'minimal - they want this to be automated' : prefInvolvement < 70 ? 'moderate - they want some control' : 'high - they enjoy active management'}, so tailor recommendations accordingly.
+Their preferred involvement level is ${prefInvolvement < 30 ? 'minimal - they prefer hands-off approaches' : prefInvolvement < 70 ? 'moderate - they want some involvement' : 'high - they enjoy active engagement'}, so tailor the framework accordingly.
 
-## Risk Factors to Monitor
-List 3-4 specific risks this investor should watch for, given their profile. Be honest but constructive. Include both portfolio-specific risks and macroeconomic risks they should be aware of.
+## Risk Factors to Be Aware Of
+List 3-4 specific risks this type of investor profile typically considers. Be educational and informative. Include both portfolio-specific concepts and macroeconomic factors.
 
-## Learning as You Go
-Provide 2-3 educational resources or concepts they should learn about in their first year:
-- Suggested topics based on their portfolio (e.g., if they have bonds: duration risk, yield curves)
-- How to read and interpret the indicators mentioned above
-- Building pattern recognition over time
+## Learning Resources
+Provide 2-3 educational concepts they may want to learn about:
+- Topics relevant to their allocation (e.g., if bonds: duration risk, yield curves)
+- How to interpret the indicators mentioned above
+- Building financial literacy over time
 
 ## Long-Term Perspective
-A closing section with motivational but realistic perspective on their ${profile.timeHorizon}-year journey. ${visionSuccess ? `Connect to their stated vision: "${visionSuccess}"` : ''} Include expected range of outcomes.
+A closing section with perspective on long-term investing over their ${profile.timeHorizon}-year horizon. ${visionSuccess ? `Reference their stated vision: "${visionSuccess}"` : ''} Include historical context about market returns.
 
-Remember: Be specific to THEIR situation. Reference their actual numbers and responses. This should feel like it was written just for them. The tracking guidance should be tailored to their involvement level - more detail for hands-on investors, simpler for set-and-forget types.`;
+## Important Disclaimer
+End with: "**Disclaimer:** This document is for educational purposes only and does not constitute personalized investment advice. Past performance does not guarantee future results. Consider consulting with a qualified financial advisor before making investment decisions."
+
+Remember: This is EDUCATIONAL content. Use phrases like "consider", "one approach", "investors often", "you may want to explore" instead of "you should" or "I recommend". Reference their profile data to make it relevant, but frame everything as education, not advice.`;
 
     console.log("Calling Lovable AI for investment strategy generation...");
 
