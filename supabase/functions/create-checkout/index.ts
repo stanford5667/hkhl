@@ -62,6 +62,9 @@ serve(async (req) => {
         },
       ],
       mode: "subscription",
+      subscription_data: {
+        trial_period_days: 0, // No trial - charge immediately
+      },
       success_url: `${origin}/?subscription=success`,
       cancel_url: `${origin}/?subscription=cancelled`,
     });
