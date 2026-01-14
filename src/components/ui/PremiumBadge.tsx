@@ -1,4 +1,4 @@
-import { Crown, Lock } from "lucide-react";
+import { Crown, Lock, Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -7,6 +7,9 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
+import { useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 interface PremiumBadgeProps {
   className?: string;
@@ -14,7 +17,51 @@ interface PremiumBadgeProps {
   onUpgrade?: () => void;
 }
 
+async function handleStripeCheckout(setLoading: (v: boolean) => void) {
+  setLoading(true);
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    
+    if (!session) {
+      toast.error("Please sign in to upgrade", {
+        action: {
+          label: "Sign In",
+          onClick: () => window.location.href = "/auth",
+        },
+      });
+      return;
+    }
+
+    const { data, error } = await supabase.functions.invoke('create-checkout');
+    
+    if (error) {
+      toast.error('Failed to start checkout');
+      console.error('Checkout error:', error);
+      return;
+    }
+    
+    if (data?.url) {
+      window.open(data.url, '_blank');
+    }
+  } catch (err) {
+    toast.error('Something went wrong');
+    console.error('Checkout error:', err);
+  } finally {
+    setLoading(false);
+  }
+}
+
 export function PremiumBadge({ className, variant = 'badge', onUpgrade }: PremiumBadgeProps) {
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleUpgrade = () => {
+    if (onUpgrade) {
+      onUpgrade();
+    } else {
+      handleStripeCheckout(setIsLoading);
+    }
+  };
+
   if (variant === 'overlay') {
     return (
       <div className={cn(
@@ -28,12 +75,14 @@ export function PremiumBadge({ className, variant = 'badge', onUpgrade }: Premiu
         <p className="text-sm text-muted-foreground text-center max-w-[200px]">
           Upgrade to access real-time market data
         </p>
-        {onUpgrade && (
-          <Button size="sm" onClick={onUpgrade} className="gap-2">
+        <Button size="sm" onClick={handleUpgrade} disabled={isLoading} className="gap-2">
+          {isLoading ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
             <Crown className="h-4 w-4" />
-            Upgrade Now
-          </Button>
-        )}
+          )}
+          {isLoading ? 'Loading...' : 'Upgrade Now'}
+        </Button>
       </div>
     );
   }
@@ -42,16 +91,24 @@ export function PremiumBadge({ className, variant = 'badge', onUpgrade }: Premiu
     return (
       <Tooltip>
         <TooltipTrigger asChild>
-          <span className={cn(
-            "inline-flex items-center gap-1 text-xs text-amber-500 cursor-help",
-            className
-          )}>
-            <Lock className="h-3 w-3" />
+          <button
+            onClick={handleUpgrade}
+            disabled={isLoading}
+            className={cn(
+              "inline-flex items-center gap-1 text-xs text-amber-500 hover:text-amber-400 transition-colors cursor-pointer",
+              className
+            )}
+          >
+            {isLoading ? (
+              <Loader2 className="h-3 w-3 animate-spin" />
+            ) : (
+              <Lock className="h-3 w-3" />
+            )}
             Premium
-          </span>
+          </button>
         </TooltipTrigger>
         <TooltipContent>
-          <p>Upgrade to access this data</p>
+          <p>Click to upgrade</p>
         </TooltipContent>
       </Tooltip>
     );
@@ -60,13 +117,18 @@ export function PremiumBadge({ className, variant = 'badge', onUpgrade }: Premiu
   return (
     <Badge 
       variant="outline" 
+      onClick={handleUpgrade}
       className={cn(
-        "bg-gradient-to-r from-amber-500/10 to-orange-500/10 border-amber-500/30 text-amber-500 gap-1",
+        "bg-gradient-to-r from-amber-500/10 to-orange-500/10 border-amber-500/30 text-amber-500 gap-1 cursor-pointer hover:bg-amber-500/20 transition-colors",
         className
       )}
     >
-      <Crown className="h-3 w-3" />
-      Premium
+      {isLoading ? (
+        <Loader2 className="h-3 w-3 animate-spin" />
+      ) : (
+        <Crown className="h-3 w-3" />
+      )}
+      {isLoading ? 'Loading...' : 'Premium'}
     </Badge>
   );
 }
@@ -82,6 +144,16 @@ export function PremiumDataPlaceholder({
   onUpgrade,
   className 
 }: PremiumDataPlaceholderProps) {
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleUpgrade = () => {
+    if (onUpgrade) {
+      onUpgrade();
+    } else {
+      handleStripeCheckout(setIsLoading);
+    }
+  };
+
   return (
     <div className={cn(
       "flex items-center gap-2 text-muted-foreground",
@@ -91,11 +163,16 @@ export function PremiumDataPlaceholder({
       <Tooltip>
         <TooltipTrigger asChild>
           <button 
-            onClick={onUpgrade}
+            onClick={handleUpgrade}
+            disabled={isLoading}
             className="inline-flex items-center gap-1 text-xs text-amber-500 hover:text-amber-400 transition-colors"
           >
-            <Lock className="h-3 w-3" />
-            <span>Upgrade</span>
+            {isLoading ? (
+              <Loader2 className="h-3 w-3 animate-spin" />
+            ) : (
+              <Lock className="h-3 w-3" />
+            )}
+            <span>{isLoading ? 'Loading...' : 'Upgrade'}</span>
           </button>
         </TooltipTrigger>
         <TooltipContent>
