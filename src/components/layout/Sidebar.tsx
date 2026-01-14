@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
-import logoIcon from "@/assets/logo-icon-bw.png";
+import logoIcon from "@/assets/logo-icon.svg";
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -265,8 +265,8 @@ export function Sidebar() {
           {collapsed ? (
             <img 
               src={logoIcon} 
-              alt="Asset Labs AI" 
-              className="w-9 h-9 object-contain transition-transform duration-300 group-hover:scale-105" 
+              alt="Asset Labs" 
+              className="w-10 h-10 object-contain transition-transform duration-300 group-hover:scale-105" 
             />
           ) : (
             <motion.div
@@ -277,9 +277,9 @@ export function Sidebar() {
               <img 
                 src={logoIcon} 
                 alt="Asset Labs" 
-                className="w-9 h-9 object-contain transition-transform duration-300 group-hover:scale-105" 
+                className="w-10 h-10 object-contain transition-transform duration-300 group-hover:scale-105" 
               />
-              <span className="font-bold text-foreground text-sm tracking-tight">Asset Labs</span>
+              <span className="font-bold text-foreground text-base tracking-tight">Asset Labs</span>
             </motion.div>
           )}
         </Link>

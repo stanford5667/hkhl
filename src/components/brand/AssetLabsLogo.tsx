@@ -1,5 +1,5 @@
 import { cn } from "@/lib/utils";
-import logoIcon from "@/assets/logo-icon-bw.png";
+import logoIcon from "@/assets/logo-icon.svg";
 
 interface AssetLabsLogoProps {
   size?: "sm" | "md" | "lg";
@@ -13,15 +13,15 @@ export function AssetLabsLogo({
   className 
 }: AssetLabsLogoProps) {
   const iconSizes = {
-    sm: "w-7 h-7",
-    md: "w-9 h-9",
-    lg: "w-12 h-12"
+    sm: "w-10 h-10",
+    md: "w-12 h-12",
+    lg: "w-16 h-16"
   };
 
   const textSizes = {
-    sm: "text-sm",
-    md: "text-base",
-    lg: "text-lg"
+    sm: "text-base",
+    md: "text-lg",
+    lg: "text-xl"
   };
 
   return (

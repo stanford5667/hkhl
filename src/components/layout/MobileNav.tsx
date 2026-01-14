@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import logoIcon from "@/assets/logo-icon-bw.png";
+import logoIcon from "@/assets/logo-icon.svg";
 import { cn } from "@/lib/utils";
 import { 
   Briefcase, 
@@ -143,9 +143,9 @@ function MobileSidebarContent({ onNavigate }: { onNavigate: () => void }) {
 
   return (
     <div className="p-4 space-y-2">
-      <div className="flex items-center gap-2 mb-6 px-2">
-        <img src={logoIcon} alt="Asset Labs" className="w-8 h-8 object-contain" />
-        <span className="font-bold text-foreground">Asset Labs</span>
+      <div className="flex items-center gap-3 mb-6 px-2">
+        <img src={logoIcon} alt="Asset Labs" className="w-10 h-10 object-contain" />
+        <span className="font-bold text-foreground text-base">Asset Labs</span>
       </div>
       
       {navItems.map((item) => {
