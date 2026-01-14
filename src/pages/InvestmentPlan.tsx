@@ -280,6 +280,8 @@ export default function InvestmentPlanPage() {
     responses: Record<string, any>;
     riskScore: number;
     riskProfile: string;
+    investorType: string;
+    investorTypeName: string;
     userName: string;
   } | null>(null);
 
@@ -351,20 +353,11 @@ export default function InvestmentPlanPage() {
     responses: Record<string, any>;
     riskScore: number;
     riskProfile: string;
+    investorType: string;
+    investorTypeName: string;
     userName: string;
   }) => {
     try {
-      // Map risk profile to investor type for backwards compatibility
-      const riskProfileToInvestorType: Record<string, { type: string; name: string }> = {
-        'Conservative': { type: 'guardian', name: 'The Guardian' },
-        'Moderately Conservative': { type: 'steward', name: 'The Steward' },
-        'Moderate': { type: 'balanced', name: 'The Balanced Investor' },
-        'Moderately Aggressive': { type: 'growth-seeker', name: 'The Growth Seeker' },
-        'Aggressive': { type: 'opportunist', name: 'The Opportunist' },
-      };
-      
-      const investorInfo = riskProfileToInvestorType[result.riskProfile] || { type: 'balanced', name: 'The Balanced Investor' };
-      
       const { data, error } = await supabase
         .from('investment_plans')
         .insert({
@@ -373,8 +366,8 @@ export default function InvestmentPlanPage() {
           responses: result.responses,
           risk_score: result.riskScore,
           risk_profile: result.riskProfile,
-          investor_type: investorInfo.type,
-          investor_type_name: investorInfo.name,
+          investor_type: result.investorType,
+          investor_type_name: result.investorTypeName,
           plan_content: '', // AI-generated strategy will be created by ComprehensiveInvestmentResults
           status: 'complete',
         })
@@ -404,6 +397,8 @@ export default function InvestmentPlanPage() {
     responses: Record<string, any>;
     riskScore: number;
     riskProfile: string;
+    investorType: string;
+    investorTypeName: string;
     userName: string;
   }) => {
     if (!user) {
