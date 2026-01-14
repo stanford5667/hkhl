@@ -59,6 +59,13 @@ export type Database = {
             referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "activities_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations_public"
+            referencedColumns: ["id"]
+          },
         ]
       }
       admin_activity_log: {
@@ -758,6 +765,13 @@ export type Database = {
             referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "companies_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations_public"
+            referencedColumns: ["id"]
+          },
         ]
       }
       company_ai_summaries: {
@@ -1037,6 +1051,13 @@ export type Database = {
             referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "contacts_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations_public"
+            referencedColumns: ["id"]
+          },
         ]
       }
       data_sync_log: {
@@ -1205,6 +1226,13 @@ export type Database = {
             referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "deals_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations_public"
+            referencedColumns: ["id"]
+          },
         ]
       }
       document_comments: {
@@ -1319,6 +1347,13 @@ export type Database = {
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documents_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations_public"
             referencedColumns: ["id"]
           },
         ]
@@ -2304,6 +2339,13 @@ export type Database = {
             referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "organization_invites_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations_public"
+            referencedColumns: ["id"]
+          },
         ]
       }
       organization_members: {
@@ -2346,6 +2388,13 @@ export type Database = {
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "organization_members_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations_public"
             referencedColumns: ["id"]
           },
         ]
@@ -2679,6 +2728,13 @@ export type Database = {
             referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "profiles_current_organization_id_fkey"
+            columns: ["current_organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations_public"
+            referencedColumns: ["id"]
+          },
         ]
       }
       raw_signals: {
@@ -2884,6 +2940,33 @@ export type Database = {
           ticker?: string
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      security_rate_limits: {
+        Row: {
+          action_count: number | null
+          action_type: string
+          created_at: string | null
+          id: string
+          user_id: string | null
+          window_start: string | null
+        }
+        Insert: {
+          action_count?: number | null
+          action_type: string
+          created_at?: string | null
+          id?: string
+          user_id?: string | null
+          window_start?: string | null
+        }
+        Update: {
+          action_count?: number | null
+          action_type?: string
+          created_at?: string | null
+          id?: string
+          user_id?: string | null
+          window_start?: string | null
         }
         Relationships: []
       }
@@ -3130,6 +3213,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "synced_positions_connection_id_fkey"
+            columns: ["connection_id"]
+            isOneToOne: false
+            referencedRelation: "brokerage_connections_secure"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "synced_positions_portfolio_id_fkey"
             columns: ["portfolio_id"]
             isOneToOne: false
@@ -3302,6 +3392,13 @@ export type Database = {
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations_public"
             referencedColumns: ["id"]
           },
           {
@@ -3928,9 +4025,188 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      brokerage_connections_secure: {
+        Row: {
+          account_mask: string | null
+          account_name: string | null
+          brokerage_name: string | null
+          connection_status: string | null
+          created_at: string | null
+          id: string | null
+          last_sync_at: string | null
+          portfolio_id: string | null
+          sync_error: string | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          account_mask?: string | null
+          account_name?: string | null
+          brokerage_name?: string | null
+          connection_status?: string | null
+          created_at?: string | null
+          id?: string | null
+          last_sync_at?: string | null
+          portfolio_id?: string | null
+          sync_error?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          account_mask?: string | null
+          account_name?: string | null
+          brokerage_name?: string | null
+          connection_status?: string | null
+          created_at?: string | null
+          id?: string | null
+          last_sync_at?: string | null
+          portfolio_id?: string | null
+          sync_error?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "brokerage_connections_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "saved_portfolios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      current_user_context: {
+        Row: {
+          app_role: string | null
+          current_organization_id: string | null
+          full_name: string | null
+          onboarding_completed: boolean | null
+          organization_name: string | null
+          organization_role: string | null
+          user_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profiles_current_organization_id_fkey"
+            columns: ["current_organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "profiles_current_organization_id_fkey"
+            columns: ["current_organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      organizations_public: {
+        Row: {
+          allow_join_requests: boolean | null
+          created_at: string | null
+          id: string | null
+          is_public: boolean | null
+          logo_url: string | null
+          name: string | null
+          slug: string | null
+          type: string | null
+          website: string | null
+        }
+        Insert: {
+          allow_join_requests?: boolean | null
+          created_at?: string | null
+          id?: string | null
+          is_public?: boolean | null
+          logo_url?: string | null
+          name?: string | null
+          slug?: string | null
+          type?: string | null
+          website?: string | null
+        }
+        Update: {
+          allow_join_requests?: boolean | null
+          created_at?: string | null
+          id?: string | null
+          is_public?: boolean | null
+          logo_url?: string | null
+          name?: string | null
+          slug?: string | null
+          type?: string | null
+          website?: string | null
+        }
+        Relationships: []
+      }
+      profiles_secure: {
+        Row: {
+          avatar_url: string | null
+          company: string | null
+          created_at: string | null
+          current_organization_id: string | null
+          full_name: string | null
+          id: string | null
+          job_title: string | null
+          linkedin_url: string | null
+          onboarding_completed: boolean | null
+          onboarding_step: string | null
+          phone: string | null
+          preferences: Json | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          company?: string | null
+          created_at?: string | null
+          current_organization_id?: string | null
+          full_name?: string | null
+          id?: string | null
+          job_title?: string | null
+          linkedin_url?: string | null
+          onboarding_completed?: boolean | null
+          onboarding_step?: string | null
+          phone?: never
+          preferences?: Json | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          company?: string | null
+          created_at?: string | null
+          current_organization_id?: string | null
+          full_name?: string | null
+          id?: string | null
+          job_title?: string | null
+          linkedin_url?: string | null
+          onboarding_completed?: boolean | null
+          onboarding_step?: string | null
+          phone?: never
+          preferences?: Json | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profiles_current_organization_id_fkey"
+            columns: ["current_organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "profiles_current_organization_id_fkey"
+            columns: ["current_organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
+      can_view_profile: { Args: { profile_user_id: string }; Returns: boolean }
       find_similar_insights: {
         Args: { p_embedding: string; p_limit?: number; p_threshold?: number }
         Returns: {
