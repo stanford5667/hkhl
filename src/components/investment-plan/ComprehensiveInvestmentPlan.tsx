@@ -23,7 +23,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+// Tabs removed - now using unified scrollable view
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { cn } from '@/lib/utils';
@@ -156,7 +156,7 @@ export function ComprehensiveInvestmentResults({
   onSignOut,
   onExport,
 }: ComprehensiveInvestmentResultsProps) {
-  const [activeTab, setActiveTab] = useState('strategy');
+  // activeTab removed - now using unified scrollable view
   const [copied, setCopied] = useState(false);
   const [aiStrategy, setAiStrategy] = useState<string | null>(null);
   const [isLoadingStrategy, setIsLoadingStrategy] = useState(true);
@@ -619,31 +619,18 @@ export function ComprehensiveInvestmentResults({
         </motion.div>
 
         {/* ════════════════════════════════════════════════════════════════════
-            TABS: Strategy (combined with Profile), Allocation, Actions
+            UNIFIED VIEW: Strategy, Allocation & Actions (All in One)
         ════════════════════════════════════════════════════════════════════ */}
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="bg-white/5 border border-white/10 p-1 w-full flex-wrap justify-start gap-1">
-            {[
-              { value: 'strategy', label: 'Your Strategy', icon: Sparkles },
-              { value: 'allocation', label: 'Allocation', icon: PieChart },
-              { value: 'actions', label: 'Actions', icon: Rocket },
-            ].map(tab => (
-              <TabsTrigger
-                key={tab.value}
-                value={tab.value}
-                className="data-[state=active]:bg-white data-[state=active]:text-black gap-2 flex-1 sm:flex-none"
-              >
-                <tab.icon className="w-4 h-4" />
-                <span className="hidden sm:inline">{tab.label}</span>
-              </TabsTrigger>
-            ))}
-          </TabsList>
-
+        <div className="space-y-8">
+          
           {/* ═══════════════════════════════════════════════════════════════
-              TAB: Strategy (Combined with Profile insights)
+              SECTION 1: AI-Generated Strategy
           ═══════════════════════════════════════════════════════════════ */}
-          <TabsContent value="strategy" className="space-y-6">
-            {/* AI-Generated Strategy */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+          >
             <Card className="bg-white/5 border-white/10 p-6 sm:p-8">
               <div className="flex items-center gap-3 mb-6">
                 <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-emerald-500 flex items-center justify-center">
@@ -672,59 +659,186 @@ export function ComprehensiveInvestmentResults({
                 </div>
               )}
             </Card>
+          </motion.div>
 
-            {/* Profile Insights Section */}
-            <div className="grid md:grid-cols-2 gap-6">
-              {/* Strengths */}
-              <Card className="bg-white/5 border-white/10 p-6">
-                <h3 className="font-semibold text-lg mb-4 flex items-center gap-2">
-                  <CheckCircle className="w-5 h-5 text-emerald-400" />
-                  Your Investment Strengths
-                </h3>
-                <ul className="space-y-3">
-                  {archetype.strengths.map((strength, i) => (
-                    <motion.li 
-                      key={i} 
-                      className="flex items-start gap-3"
-                      initial={{ opacity: 0, x: -10 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: 0.1 * i }}
-                    >
-                      <div className="w-6 h-6 rounded-full bg-emerald-500/20 flex items-center justify-center shrink-0 mt-0.5">
-                        <Check className="w-3 h-3 text-emerald-400" />
+          {/* ═══════════════════════════════════════════════════════════════
+              SECTION 2: Profile Insights (Strengths & Blind Spots)
+          ═══════════════════════════════════════════════════════════════ */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="grid md:grid-cols-2 gap-6"
+          >
+            {/* Strengths */}
+            <Card className="bg-white/5 border-white/10 p-6">
+              <h3 className="font-semibold text-lg mb-4 flex items-center gap-2">
+                <CheckCircle className="w-5 h-5 text-emerald-400" />
+                Your Investment Strengths
+              </h3>
+              <ul className="space-y-3">
+                {archetype.strengths.map((strength, i) => (
+                  <motion.li 
+                    key={i} 
+                    className="flex items-start gap-3"
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.3 + 0.1 * i }}
+                  >
+                    <div className="w-6 h-6 rounded-full bg-emerald-500/20 flex items-center justify-center shrink-0 mt-0.5">
+                      <Check className="w-3 h-3 text-emerald-400" />
+                    </div>
+                    <span className="text-white/70">{strength}</span>
+                  </motion.li>
+                ))}
+              </ul>
+            </Card>
+
+            {/* Blind Spots */}
+            <Card className="bg-white/5 border-white/10 p-6">
+              <h3 className="font-semibold text-lg mb-4 flex items-center gap-2">
+                <AlertCircle className="w-5 h-5 text-amber-400" />
+                Watch Out For
+              </h3>
+              <ul className="space-y-3">
+                {archetype.blindSpots.map((spot, i) => (
+                  <motion.li 
+                    key={i} 
+                    className="flex items-start gap-3"
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.3 + 0.1 * i }}
+                  >
+                    <div className="w-6 h-6 rounded-full bg-amber-500/20 flex items-center justify-center shrink-0 mt-0.5">
+                      <AlertTriangle className="w-3 h-3 text-amber-400" />
+                    </div>
+                    <span className="text-white/70">{spot}</span>
+                  </motion.li>
+                ))}
+              </ul>
+            </Card>
+          </motion.div>
+
+          {/* ═══════════════════════════════════════════════════════════════
+              SECTION 3: Target Allocation
+          ═══════════════════════════════════════════════════════════════ */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+          >
+            <Card className="bg-white/5 border-white/10 p-6">
+              <h3 className="font-semibold text-lg mb-6 flex items-center gap-2">
+                <PieChart className="w-5 h-5 text-blue-400" />
+                Target Asset Allocation
+              </h3>
+              
+              <div className="grid md:grid-cols-3 gap-6">
+                {/* Donut Chart */}
+                <div className="flex justify-center items-center">
+                  <div className="relative w-48 h-48">
+                    <svg viewBox="0 0 100 100" className="w-full h-full -rotate-90">
+                      {allocation.reduce((acc: any[], item, i) => {
+                        const prevPercent = acc.reduce((sum, a) => sum + a.percentage, 0);
+                        const circumference = 2 * Math.PI * 40;
+                        const offset = (prevPercent / 100) * circumference;
+                        const length = (item.percentage / 100) * circumference;
+                        
+                        return [...acc, {
+                          ...item,
+                          element: (
+                            <motion.circle
+                              key={i}
+                              cx="50" cy="50" r="40"
+                              fill="none"
+                              stroke={item.color}
+                              strokeWidth="20"
+                              strokeDasharray={`${length} ${circumference - length}`}
+                              strokeDashoffset={-offset}
+                              initial={{ strokeDasharray: `0 ${circumference}` }}
+                              animate={{ strokeDasharray: `${length} ${circumference - length}` }}
+                              transition={{ delay: 0.4 + i * 0.1, duration: 0.5 }}
+                            />
+                          )
+                        }];
+                      }, []).map((item: any) => item.element)}
+                    </svg>
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <div className="text-center">
+                        <div className="text-2xl font-bold">{allocation.length}</div>
+                        <div className="text-xs text-white/40">Asset Classes</div>
                       </div>
-                      <span className="text-white/70">{strength}</span>
-                    </motion.li>
-                  ))}
-                </ul>
-              </Card>
+                    </div>
+                  </div>
+                </div>
 
-              {/* Blind Spots */}
-              <Card className="bg-white/5 border-white/10 p-6">
-                <h3 className="font-semibold text-lg mb-4 flex items-center gap-2">
-                  <AlertCircle className="w-5 h-5 text-amber-400" />
-                  Watch Out For
-                </h3>
-                <ul className="space-y-3">
-                  {archetype.blindSpots.map((spot, i) => (
-                    <motion.li 
-                      key={i} 
-                      className="flex items-start gap-3"
-                      initial={{ opacity: 0, x: -10 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: 0.1 * i }}
-                    >
-                      <div className="w-6 h-6 rounded-full bg-amber-500/20 flex items-center justify-center shrink-0 mt-0.5">
-                        <AlertTriangle className="w-3 h-3 text-amber-400" />
+                {/* Allocation List */}
+                <div className="md:col-span-2 space-y-4">
+                  {allocation.map((item, i) => (
+                    <div key={i}>
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <div className="w-3 h-3 rounded-full" style={{ backgroundColor: item.color }} />
+                          <span className="font-medium">{item.category}</span>
+                        </div>
+                        <span className="font-bold">{item.percentage}%</span>
                       </div>
-                      <span className="text-white/70">{spot}</span>
-                    </motion.li>
+                      <div className="h-2 bg-white/10 rounded-full overflow-hidden">
+                        <motion.div
+                          className="h-full rounded-full"
+                          style={{ backgroundColor: item.color }}
+                          initial={{ width: 0 }}
+                          animate={{ width: `${item.percentage}%` }}
+                          transition={{ delay: 0.4 + i * 0.1, duration: 0.5 }}
+                        />
+                      </div>
+                    </div>
                   ))}
-                </ul>
-              </Card>
-            </div>
+                </div>
+              </div>
 
-            {/* Risk Profile Breakdown */}
+              {/* Allocation Rationale */}
+              <div className="mt-6 pt-6 border-t border-white/10">
+                <h4 className="font-medium mb-3 flex items-center gap-2">
+                  <Brain className="w-4 h-4 text-violet-400" />
+                  Why This Allocation?
+                </h4>
+                <div className="space-y-3 text-white/70 text-sm">
+                  <p>
+                    Based on your <strong className="text-white">{riskLabel}</strong> risk profile 
+                    and <strong className="text-white">{timeHorizon}-year</strong> time horizon, 
+                    this allocation targets{' '}
+                    {riskScore > 60 ? 'growth with acceptable volatility' : 
+                     riskScore > 40 ? 'a balance of growth and stability' : 
+                     'capital preservation with modest growth'}.
+                  </p>
+                  <ul className="list-disc pl-5 space-y-1">
+                    <li>
+                      <strong className="text-white">Equities ({allocation.filter(a => a.category.includes('Equit') || a.category.includes('International')).reduce((s, a) => s + a.percentage, 0)}%):</strong>{' '}
+                      {riskScore > 50 ? 'Higher allocation for growth potential' : 'Moderate allocation for balanced growth'}
+                    </li>
+                    <li>
+                      <strong className="text-white">Fixed Income ({allocation.find(a => a.category.includes('Fixed'))?.percentage || 0}%):</strong>{' '}
+                      {riskScore < 50 ? 'Significant allocation for stability and income' : 'Lower allocation given higher risk tolerance'}
+                    </li>
+                    <li>
+                      <strong className="text-white">Real Assets & Alternatives:</strong>{' '}
+                      Diversification across uncorrelated assets to reduce portfolio volatility
+                    </li>
+                  </ul>
+                </div>
+              </div>
+            </Card>
+          </motion.div>
+
+          {/* ═══════════════════════════════════════════════════════════════
+              SECTION 4: Risk Profile Breakdown
+          ═══════════════════════════════════════════════════════════════ */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4 }}
+          >
             <Card className="bg-white/5 border-white/10 p-6">
               <h3 className="font-semibold text-lg mb-6 flex items-center gap-2">
                 <Scale className="w-5 h-5 text-blue-400" />
@@ -761,127 +875,30 @@ export function ComprehensiveInvestmentResults({
                 ))}
               </div>
             </Card>
-          </TabsContent>
+          </motion.div>
 
           {/* ═══════════════════════════════════════════════════════════════
-              TAB: Allocation
+              SECTION 5: Action Items
           ═══════════════════════════════════════════════════════════════ */}
-          <TabsContent value="allocation" className="space-y-6">
-            <div className="grid md:grid-cols-3 gap-6">
-              {/* Donut Chart */}
-              <Card className="bg-white/5 border-white/10 p-6">
-                <h3 className="font-semibold mb-4">Target Allocation</h3>
-                <div className="relative aspect-square">
-                  <svg viewBox="0 0 100 100" className="w-full h-full -rotate-90">
-                    {allocation.reduce((acc: any[], item, i) => {
-                      const prevPercent = acc.reduce((sum, a) => sum + a.percentage, 0);
-                      const circumference = 2 * Math.PI * 40;
-                      const offset = (prevPercent / 100) * circumference;
-                      const length = (item.percentage / 100) * circumference;
-                      
-                      return [...acc, {
-                        ...item,
-                        element: (
-                          <motion.circle
-                            key={i}
-                            cx="50" cy="50" r="40"
-                            fill="none"
-                            stroke={item.color}
-                            strokeWidth="20"
-                            strokeDasharray={`${length} ${circumference - length}`}
-                            strokeDashoffset={-offset}
-                            initial={{ strokeDasharray: `0 ${circumference}` }}
-                            animate={{ strokeDasharray: `${length} ${circumference - length}` }}
-                            transition={{ delay: i * 0.1, duration: 0.5 }}
-                          />
-                        )
-                      }];
-                    }, []).map((item: any) => item.element)}
-                  </svg>
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="text-center">
-                      <div className="text-2xl font-bold">{allocation.length}</div>
-                      <div className="text-xs text-white/40">Asset Classes</div>
-                    </div>
-                  </div>
-                </div>
-              </Card>
-
-              {/* Allocation List */}
-              <Card className="bg-white/5 border-white/10 p-6 md:col-span-2">
-                <h3 className="font-semibold mb-4">Allocation Breakdown</h3>
-                <div className="space-y-4">
-                  {allocation.map((item, i) => (
-                    <div key={i}>
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center gap-2">
-                          <div className="w-3 h-3 rounded-full" style={{ backgroundColor: item.color }} />
-                          <span className="font-medium">{item.category}</span>
-                        </div>
-                        <span className="font-bold">{item.percentage}%</span>
-                      </div>
-                      <div className="h-2 bg-white/10 rounded-full overflow-hidden">
-                        <motion.div
-                          className="h-full rounded-full"
-                          style={{ backgroundColor: item.color }}
-                          initial={{ width: 0 }}
-                          animate={{ width: `${item.percentage}%` }}
-                          transition={{ delay: i * 0.1, duration: 0.5 }}
-                        />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </Card>
-            </div>
-
-            {/* Allocation Rationale */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.5 }}
+          >
             <Card className="bg-white/5 border-white/10 p-6">
-              <h3 className="font-semibold mb-4 flex items-center gap-2">
-                <Brain className="w-5 h-5 text-violet-400" />
-                Why This Allocation?
+              <h3 className="font-semibold text-lg mb-6 flex items-center gap-2">
+                <Rocket className="w-5 h-5 text-emerald-400" />
+                Your Action Plan
               </h3>
-              <div className="space-y-4 text-white/70">
-                <p>
-                  Based on your <strong className="text-white">{riskLabel}</strong> risk profile 
-                  and <strong className="text-white">{timeHorizon}-year</strong> time horizon, 
-                  this allocation targets{' '}
-                  {riskScore > 60 ? 'growth with acceptable volatility' : 
-                   riskScore > 40 ? 'a balance of growth and stability' : 
-                   'capital preservation with modest growth'}.
-                </p>
-                <ul className="list-disc pl-5 space-y-2">
-                  <li>
-                    <strong className="text-white">Equities ({allocation.filter(a => a.category.includes('Equit') || a.category.includes('International')).reduce((s, a) => s + a.percentage, 0)}%):</strong>{' '}
-                    {riskScore > 50 ? 'Higher allocation for growth potential' : 'Moderate allocation for balanced growth'}
-                  </li>
-                  <li>
-                    <strong className="text-white">Fixed Income ({allocation.find(a => a.category.includes('Fixed'))?.percentage || 0}%):</strong>{' '}
-                    {riskScore < 50 ? 'Significant allocation for stability and income' : 'Lower allocation given higher risk tolerance'}
-                  </li>
-                  <li>
-                    <strong className="text-white">Real Assets & Alternatives:</strong>{' '}
-                    Diversification across uncorrelated assets to reduce portfolio volatility
-                  </li>
-                </ul>
-              </div>
-            </Card>
-          </TabsContent>
-
-
-          {/* ═══════════════════════════════════════════════════════════════
-              TAB: Actions
-          ═══════════════════════════════════════════════════════════════ */}
-          <TabsContent value="actions" className="space-y-6">
-            <div className="space-y-4">
-              {actionItems.map((action, i) => (
-                <motion.div
-                  key={i}
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: i * 0.1 }}
-                >
-                  <Card className="bg-white/5 border-white/10 p-5">
+              <div className="space-y-4">
+                {actionItems.map((action, i) => (
+                  <motion.div
+                    key={i}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.6 + i * 0.1 }}
+                    className="bg-white/5 rounded-lg p-4"
+                  >
                     <div className="flex items-start gap-4">
                       <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-emerald-500 flex items-center justify-center text-white font-bold shrink-0">
                         {action.priority}
@@ -896,12 +913,20 @@ export function ComprehensiveInvestmentResults({
                         <p className="text-white/60 text-sm">{action.description}</p>
                       </div>
                     </div>
-                  </Card>
-                </motion.div>
-              ))}
-            </div>
+                  </motion.div>
+                ))}
+              </div>
+            </Card>
+          </motion.div>
 
-            {/* CTA Card */}
+          {/* ═══════════════════════════════════════════════════════════════
+              SECTION 6: CTA Card
+          ═══════════════════════════════════════════════════════════════ */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.6 }}
+          >
             <Card className="bg-gradient-to-r from-blue-500/20 to-emerald-500/20 border-white/20 p-8 text-center">
               <h3 className="text-2xl font-bold mb-3">Ready to Implement Your Strategy?</h3>
               <p className="text-white/60 mb-6 max-w-lg mx-auto">
@@ -917,8 +942,8 @@ export function ComprehensiveInvestmentResults({
                 Demo the Platform
               </Button>
             </Card>
-          </TabsContent>
-        </Tabs>
+          </motion.div>
+        </div>
       </main>
 
       {/* Footer */}
