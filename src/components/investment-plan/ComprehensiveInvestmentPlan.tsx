@@ -1,18 +1,16 @@
 /**
  * ENHANCED INVESTMENT PLAN RESULTS
  * 
- * Beautiful visual rendering matching AssetLabs design with:
+ * Beautiful visual rendering with:
+ * - AI-generated personalized strategy (Lovable AI)
  * - Myers-Briggs style investor archetypes
  * - Animated donut charts
- * - Tabbed navigation (Profile, Allocation, Holdings, Strategy, Actions)
+ * - Combined Strategy & Profile tab (shown first)
  * - Risk gauge visualization
- * - Fund recommendations
  * - Full policy renderer
- * 
- * Replace: src/components/investment-plan/ComprehensiveInvestmentPlan.tsx
  */
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Download, Share2, ArrowRight, PieChart, BarChart3, Target, Sparkles,
@@ -21,7 +19,7 @@ import {
   ChevronDown, ChevronUp, ExternalLink, Copy, Check, Play,
   BookOpen, Calendar, DollarSign, Percent, LineChart, Building2,
   Globe, Gem, Wallet, Lock, AlertTriangle, RefreshCw, LogOut,
-  FileText,
+  FileText, Loader2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -29,6 +27,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { cn } from '@/lib/utils';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // INVESTOR ARCHETYPES (Myers-Briggs Style)
@@ -156,8 +156,11 @@ export function ComprehensiveInvestmentResults({
   onSignOut,
   onExport,
 }: ComprehensiveInvestmentResultsProps) {
-  const [activeTab, setActiveTab] = useState('profile');
+  const [activeTab, setActiveTab] = useState('strategy');
   const [copied, setCopied] = useState(false);
+  const [aiStrategy, setAiStrategy] = useState<string | null>(null);
+  const [isLoadingStrategy, setIsLoadingStrategy] = useState(true);
+  const { toast } = useToast();
 
   // Get investor archetype
   const archetype = useMemo(() => getArchetype(riskScore || 50), [riskScore]);
@@ -229,6 +232,57 @@ export function ComprehensiveInvestmentResults({
   const timeHorizon = getResponseValue(responses['goal-timeline'], 10);
   const expectedReturn = (4 + riskScore * 0.06).toFixed(1);
   const maxDrawdown = (-10 - riskScore * 0.25).toFixed(0);
+
+  // Generate AI strategy on mount
+  useEffect(() => {
+    const generateAIStrategy = async () => {
+      setIsLoadingStrategy(true);
+      try {
+        const { data, error } = await supabase.functions.invoke('generate-investment-strategy', {
+          body: {
+            profile: {
+              riskScore,
+              riskLabel,
+              investorType: investorTypeCode,
+              investorTypeName: archetype.name,
+              timeHorizon,
+              goalAmount,
+              allocation: allocation.map(a => ({ category: a.category, percentage: a.percentage })),
+              responses,
+              userName,
+            },
+          },
+        });
+
+        if (error) {
+          console.error('AI strategy error:', error);
+          // Fall back to rawPolicy if AI fails
+          if (rawPolicy) {
+            setAiStrategy(rawPolicy);
+          }
+          toast({
+            title: 'Using standard strategy',
+            description: 'AI personalization unavailable at this time.',
+            variant: 'default',
+          });
+        } else if (data?.strategy) {
+          setAiStrategy(data.strategy);
+        } else if (rawPolicy) {
+          setAiStrategy(rawPolicy);
+        }
+      } catch (err) {
+        console.error('Failed to generate AI strategy:', err);
+        if (rawPolicy) {
+          setAiStrategy(rawPolicy);
+        }
+      } finally {
+        setIsLoadingStrategy(false);
+      }
+    };
+
+    generateAIStrategy();
+  }, [riskScore, riskLabel, investorTypeCode, archetype.name, timeHorizon, goalAmount, allocation, responses, userName, rawPolicy, toast]);
+
 
   return (
     <div className="min-h-screen w-full bg-background text-foreground pb-24 sm:pb-32 overflow-x-hidden">
@@ -521,14 +575,13 @@ export function ComprehensiveInvestmentResults({
         </motion.div>
 
         {/* ════════════════════════════════════════════════════════════════════
-            TABS: Profile, Allocation, Strategy, Actions
+            TABS: Strategy (combined with Profile), Allocation, Actions
         ════════════════════════════════════════════════════════════════════ */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
           <TabsList className="bg-white/5 border border-white/10 p-1 w-full flex-wrap justify-start gap-1">
             {[
-              { value: 'profile', label: 'Profile', icon: Brain },
+              { value: 'strategy', label: 'Your Strategy', icon: Sparkles },
               { value: 'allocation', label: 'Allocation', icon: PieChart },
-              { value: 'strategy', label: 'Strategy', icon: BookOpen },
               { value: 'actions', label: 'Actions', icon: Rocket },
             ].map(tab => (
               <TabsTrigger
@@ -543,9 +596,40 @@ export function ComprehensiveInvestmentResults({
           </TabsList>
 
           {/* ═══════════════════════════════════════════════════════════════
-              TAB: Profile
+              TAB: Strategy (Combined with Profile insights)
           ═══════════════════════════════════════════════════════════════ */}
-          <TabsContent value="profile" className="space-y-6">
+          <TabsContent value="strategy" className="space-y-6">
+            {/* AI-Generated Strategy */}
+            <Card className="bg-white/5 border-white/10 p-6 sm:p-8">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-emerald-500 flex items-center justify-center">
+                  <Sparkles className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-lg">Your Personalized Investment Strategy</h3>
+                  <p className="text-sm text-white/50">AI-generated based on your unique profile</p>
+                </div>
+              </div>
+              
+              {isLoadingStrategy ? (
+                <div className="text-center py-16">
+                  <Loader2 className="w-10 h-10 mx-auto mb-4 text-blue-400 animate-spin" />
+                  <p className="text-white/60">Generating your personalized strategy...</p>
+                  <p className="text-sm text-white/40 mt-2">This takes about 10-15 seconds</p>
+                </div>
+              ) : aiStrategy ? (
+                <div className="prose prose-invert max-w-none">
+                  <PolicyRenderer content={aiStrategy} />
+                </div>
+              ) : (
+                <div className="text-center py-12">
+                  <BookOpen className="w-12 h-12 mx-auto mb-4 text-white/20" />
+                  <p className="text-white/60">Strategy document not available</p>
+                </div>
+              )}
+            </Card>
+
+            {/* Profile Insights Section */}
             <div className="grid md:grid-cols-2 gap-6">
               {/* Strengths */}
               <Card className="bg-white/5 border-white/10 p-6">
@@ -631,40 +715,6 @@ export function ComprehensiveInvestmentResults({
                     <div className="text-xs text-white/40">{metric.description}</div>
                   </div>
                 ))}
-              </div>
-            </Card>
-
-            {/* Behavioral Insights */}
-            <Card className="bg-white/5 border-white/10 p-6">
-              <h3 className="font-semibold text-lg mb-4 flex items-center gap-2">
-                <Lightbulb className="w-5 h-5 text-amber-400" />
-                Behavioral Insights for {archetype.name}
-              </h3>
-              <div className="space-y-4 text-white/70">
-                <p>
-                  As {archetype.name.toLowerCase()}, your investing decisions are driven by{' '}
-                  {riskScore < 40 ? 'a desire for security and predictability' : 
-                   riskScore < 60 ? 'a balance of growth potential and risk management' :
-                   'conviction in growth opportunities and tolerance for volatility'}.
-                </p>
-                <p>
-                  <strong className="text-white">Your ideal environment:</strong>{' '}
-                  {riskScore < 40 
-                    ? 'Stable, blue-chip investments with consistent dividends and low volatility.'
-                    : riskScore < 60
-                    ? 'Diversified portfolios with a mix of growth and stability, rebalanced regularly.'
-                    : 'High-conviction positions in growth sectors with active monitoring and tactical adjustments.'
-                  }
-                </p>
-                <p>
-                  <strong className="text-white">Under stress:</strong>{' '}
-                  {riskScore < 40
-                    ? 'You may become overly cautious and miss recovery opportunities. Trust your long-term plan.'
-                    : riskScore < 60
-                    ? 'You might second-guess your strategy. Remember: volatility is not loss.'
-                    : 'You may be tempted to double down or make emotional trades. Stick to position limits.'
-                  }
-                </p>
               </div>
             </Card>
           </TabsContent>
@@ -774,23 +824,6 @@ export function ComprehensiveInvestmentResults({
             </Card>
           </TabsContent>
 
-          {/* ═══════════════════════════════════════════════════════════════
-              TAB: Strategy
-          ═══════════════════════════════════════════════════════════════ */}
-          <TabsContent value="strategy">
-            <Card className="bg-white/5 border-white/10 p-6 sm:p-8">
-              {rawPolicy ? (
-                <div className="prose prose-invert max-w-none">
-                  <PolicyRenderer content={rawPolicy} />
-                </div>
-              ) : (
-                <div className="text-center py-12">
-                  <BookOpen className="w-12 h-12 mx-auto mb-4 text-white/20" />
-                  <p className="text-white/60">Full strategy document loading...</p>
-                </div>
-              )}
-            </Card>
-          </TabsContent>
 
           {/* ═══════════════════════════════════════════════════════════════
               TAB: Actions
