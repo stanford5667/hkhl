@@ -16,6 +16,10 @@ const signInSchema = z.object({
   password: z.string().min(6, "Password must be at least 6 characters"),
 });
 
+const forgotPasswordSchema = z.object({
+  email: z.string().trim().email("Please enter a valid email address"),
+});
+
 const signUpSchema = z.object({
   fullName: z.string().trim().min(2, "Name must be at least 2 characters").max(100, "Name is too long"),
   email: z.string().trim().email("Please enter a valid email address"),
@@ -28,14 +32,16 @@ const signUpSchema = z.object({
 
 type SignInFormData = z.infer<typeof signInSchema>;
 type SignUpFormData = z.infer<typeof signUpSchema>;
+type ForgotPasswordFormData = z.infer<typeof forgotPasswordSchema>;
 
 export default function Auth() {
-  const [mode, setMode] = useState<"signin" | "signup" | "verification-pending">("signup");
+  const [mode, setMode] = useState<"signin" | "signup" | "forgot-password" | "verification-pending">("signup");
   const [pendingEmail, setPendingEmail] = useState<string>("");
   const [isLoading, setIsLoading] = useState(false);
+  const [resetEmailSent, setResetEmailSent] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { user, signIn, signUp } = useAuth();
+  const { user, signIn, signUp, resetPassword } = useAuth();
 
   useEffect(() => {
     if (user) {
@@ -51,6 +57,11 @@ export default function Auth() {
   const signUpForm = useForm<SignUpFormData>({
     resolver: zodResolver(signUpSchema),
     defaultValues: { fullName: "", email: "", password: "", confirmPassword: "" },
+  });
+
+  const forgotPasswordForm = useForm<ForgotPasswordFormData>({
+    resolver: zodResolver(forgotPasswordSchema),
+    defaultValues: { email: "" },
   });
 
   const handleSignIn = async (data: SignInFormData) => {
@@ -97,6 +108,27 @@ export default function Auth() {
     // Show verification pending screen
     setPendingEmail(data.email);
     setMode("verification-pending");
+  };
+
+  const handleForgotPassword = async (data: ForgotPasswordFormData) => {
+    setIsLoading(true);
+    const { error } = await resetPassword(data.email);
+    setIsLoading(false);
+
+    if (error) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setResetEmailSent(true);
+    toast({
+      title: "Reset email sent",
+      description: "Check your email for a password reset link.",
+    });
   };
 
   const handleVerified = () => {
@@ -164,6 +196,76 @@ export default function Auth() {
                 setPendingEmail("");
               }}
             />
+          ) : mode === "forgot-password" ? (
+            <>
+              <div className="text-center">
+                <h1 className="text-3xl font-bold text-foreground">Reset your password</h1>
+                <p className="mt-2 text-muted-foreground">
+                  {resetEmailSent 
+                    ? "Check your email for a reset link" 
+                    : "Enter your email and we'll send you a reset link"}
+                </p>
+              </div>
+
+              {resetEmailSent ? (
+                <div className="text-center space-y-4">
+                  <div className="p-4 rounded-lg bg-primary/10 text-primary">
+                    We've sent a password reset link to your email address.
+                  </div>
+                  <Button 
+                    variant="outline" 
+                    className="w-full"
+                    onClick={() => {
+                      setMode("signin");
+                      setResetEmailSent(false);
+                      forgotPasswordForm.reset();
+                    }}
+                  >
+                    Back to sign in
+                  </Button>
+                </div>
+              ) : (
+                <form onSubmit={forgotPasswordForm.handleSubmit(handleForgotPassword)} className="space-y-6">
+                  <div className="space-y-2">
+                    <Label htmlFor="reset-email" className="text-foreground">Email</Label>
+                    <Input
+                      id="reset-email"
+                      type="email"
+                      placeholder="name@company.com"
+                      className="bg-secondary border-border text-foreground placeholder:text-muted-foreground focus:border-primary focus:ring-1 focus:ring-primary/50"
+                      {...forgotPasswordForm.register("email")}
+                    />
+                    {forgotPasswordForm.formState.errors.email && (
+                      <p className="text-sm text-destructive">{forgotPasswordForm.formState.errors.email.message}</p>
+                    )}
+                  </div>
+
+                  <Button type="submit" className="w-full" disabled={isLoading}>
+                    {isLoading ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Sending...
+                      </>
+                    ) : (
+                      "Send reset link"
+                    )}
+                  </Button>
+
+                  <div className="text-center">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setMode("signin");
+                        forgotPasswordForm.reset();
+                      }}
+                      className="text-sm text-primary hover:text-primary/80 transition-colors"
+                    >
+                      Back to sign in
+                    </button>
+                  </div>
+                </form>
+              )}
+            </>
           ) : (
             <>
               <div className="text-center">
@@ -194,7 +296,16 @@ export default function Auth() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="password" className="text-foreground">Password</Label>
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="password" className="text-foreground">Password</Label>
+                      <button
+                        type="button"
+                        onClick={() => setMode("forgot-password")}
+                        className="text-sm text-primary hover:text-primary/80 transition-colors"
+                      >
+                        Forgot password?
+                      </button>
+                    </div>
                     <Input
                       id="password"
                       type="password"
