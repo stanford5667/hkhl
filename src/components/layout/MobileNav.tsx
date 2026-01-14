@@ -1,4 +1,5 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
+import logoWithText from "@/assets/logo-with-text.png";
 import { cn } from "@/lib/utils";
 import { 
   Briefcase, 
@@ -143,8 +144,7 @@ function MobileSidebarContent({ onNavigate }: { onNavigate: () => void }) {
   return (
     <div className="p-4 space-y-2">
       <div className="flex items-center gap-2 mb-6 px-2">
-        <img src="/favicon.png" alt="Asset Labs AI" className="w-8 h-8 rounded-lg" />
-        <span className="font-bold text-white">Asset Labs AI</span>
+        <img src={logoWithText} alt="Asset Labs AI" className="h-8 object-contain" />
       </div>
       
       {navItems.map((item) => {
