@@ -40,12 +40,12 @@ export function OnboardingFlow({ children }: OnboardingFlowProps) {
     refreshProfile();
   };
 
-  // Not logged in - show children (will redirect to auth)
+  // Not logged in - allow viewing the app (auth gating happens on actions)
   if (!user) {
     return <>{children}</>;
   }
 
-  // Loading state
+  // Loading state - only show if user is logged in and we're checking their profile
   if (isLoading) {
     return (
       <div className="min-h-screen bg-slate-950 flex items-center justify-center">
