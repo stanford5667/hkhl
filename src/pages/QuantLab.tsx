@@ -62,6 +62,7 @@ import { StudyExplainer } from '@/components/quant-lab/StudyExplainer';
 import { ResultInterpreter } from '@/components/quant-lab/ResultInterpreter';
 import { MetricDetailModal } from '@/components/quant-lab/MetricDetailModal';
 import { StudyAuditDashboard } from '@/components/quant-lab/StudyAuditDashboard';
+import { MobileAuthSheet } from '@/components/auth/MobileAuthSheet';
 
 // ===========================================
 // STUDY DEFINITIONS WITH BEGINNER-FRIENDLY EXPLANATIONS
@@ -1195,6 +1196,10 @@ function QuantLabContent(props: any) {
   } = props;
 
   const { progress, learningMode, markStudyCompleted, checkAndUnlockAchievements, addXp } = useLearning();
+  const { user } = useAuth();
+  
+  // Auth state for prompting sign in/up
+  const [showAuthSheet, setShowAuthSheet] = useState(false);
   
   // Metric detail modal state
   const [selectedMetric, setSelectedMetric] = useState<{
@@ -1210,6 +1215,15 @@ function QuantLabContent(props: any) {
     markStudyCompleted(studyId);
     checkAndUnlockAchievements({ studyId });
     addXp(15);
+  };
+
+  // Run all studies with auth check
+  const handleRunAllStudies = () => {
+    if (!user) {
+      setShowAuthSheet(true);
+      return;
+    }
+    runAllStudies();
   };
 
   return (
@@ -1488,7 +1502,7 @@ function QuantLabContent(props: any) {
                             Clear All
                           </Button>
                           <Button
-                            onClick={runAllStudies}
+                            onClick={handleRunAllStudies}
                             disabled={isRunning}
                             size="lg"
                             className="gap-2 bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 shadow-lg"
@@ -1731,6 +1745,14 @@ function QuantLabContent(props: any) {
         studyName={selectedMetric?.studyName || ''}
         ticker={selectedTicker || ''}
         studyResult={selectedMetric?.studyResult}
+      />
+
+      {/* Auth Sheet for unauthenticated users */}
+      <MobileAuthSheet
+        open={showAuthSheet}
+        onOpenChange={setShowAuthSheet}
+        title="Sign in to run studies"
+        description="Create a free account to analyze stocks with our quant tools."
       />
     </div>
   );
