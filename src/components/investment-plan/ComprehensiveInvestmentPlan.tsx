@@ -230,7 +230,12 @@ export function ComprehensiveInvestmentResults({
     if (savedAmount && typeof savedAmount === 'number' && savedAmount > 0) {
       return savedAmount;
     }
-    // Then check for investment-capital questionnaire response
+    // Check for financial-investment-capital (scoringKey from questionnaire)
+    const financialInvestmentCapital = getResponseValue(responses['financial-investment-capital'], null);
+    if (financialInvestmentCapital && typeof financialInvestmentCapital === 'number' && financialInvestmentCapital > 0) {
+      return financialInvestmentCapital;
+    }
+    // Fallback to investment-capital (legacy key)
     const investmentCapitalVal = getResponseValue(responses['investment-capital'], null);
     if (investmentCapitalVal && typeof investmentCapitalVal === 'number' && investmentCapitalVal > 0) {
       return investmentCapitalVal;
