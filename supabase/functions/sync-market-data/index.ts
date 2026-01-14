@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { logApiUsage, startTimer, getElapsedMs } from "../_shared/api-usage-logger.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -33,6 +34,10 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  const apiStartTime = startTimer();
+  let syncMode = 'unknown';
+  let tickerCount = 0;
+
   const supabase = createClient(
     Deno.env.get("SUPABASE_URL")!,
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
@@ -50,6 +55,7 @@ serve(async (req) => {
 
   try {
     const { mode, tickers, startDate, endDate, forceRefresh }: SyncRequest = await req.json();
+    syncMode = mode;
     
     console.log(`[SyncMarketData] Starting ${mode} sync`, { tickers: tickers?.length, startDate, endDate });
     
@@ -105,7 +111,7 @@ serve(async (req) => {
       // Validate existing data without fetching
       return await validateExistingData(supabase, syncLog.id, corsHeaders);
     }
-    
+    tickerCount = tickersToSync.length;
     console.log(`[SyncMarketData] Syncing ${tickersToSync.length} tickers`);
     
     if (tickersToSync.length === 0) {
@@ -244,6 +250,23 @@ serve(async (req) => {
     
     console.log(`[SyncMarketData] Complete: ${tickersSucceeded} succeeded, ${tickersFailed} failed, ${totalBarsInserted} bars inserted`);
     
+    // Log API usage
+    await logApiUsage({
+      functionName: 'sync-market-data',
+      endpoint: '/sync-market-data',
+      method: 'POST',
+      statusCode: 200,
+      responseTimeMs: getElapsedMs(apiStartTime),
+      metadata: { 
+        mode: syncMode, 
+        tickerCount,
+        tickersSucceeded, 
+        tickersFailed, 
+        barsInserted: totalBarsInserted,
+        polygonApiCalls: tickersSucceeded // Each ticker = 1 API call
+      }
+    });
+
     return new Response(
       JSON.stringify({
         success: true,
@@ -264,6 +287,16 @@ serve(async (req) => {
     
   } catch (error: any) {
     console.error("[SyncMarketData] Fatal error:", error);
+    
+    await logApiUsage({
+      functionName: 'sync-market-data',
+      endpoint: '/sync-market-data',
+      method: 'POST',
+      statusCode: 500,
+      responseTimeMs: getElapsedMs(apiStartTime),
+      metadata: { mode: syncMode, tickerCount, error: error.message }
+    });
+
     return new Response(
       JSON.stringify({ error: error.message || 'Unknown error occurred' }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
