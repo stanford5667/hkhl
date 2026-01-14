@@ -119,6 +119,19 @@ function getArchetype(riskScore: number) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
+// HELPER: Extract value from response (handles both {value: x} and primitive x)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+function getResponseValue(value: any, defaultValue: any = null): any {
+  if (value === undefined || value === null) return defaultValue;
+  // Handle wrapped object format {value: x}
+  if (typeof value === 'object' && 'value' in value) {
+    return value.value ?? defaultValue;
+  }
+  return value;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
 // MAIN COMPONENT
 // ═══════════════════════════════════════════════════════════════════════════════
 
@@ -152,20 +165,21 @@ export function ComprehensiveInvestmentResults({
   // Calculate 4-dimension scores for the investor DNA visualization
   const investorDimensions = useMemo(() => {
     const score = riskScore || 50;
-    // Derive dimensions from responses and risk score
-    const timeline = responses['goal-timeline'] || 10;
-    const involvement = responses['pref-involvement'] || 50;
-    const diversification = responses['pref-diversification'] || 50;
+    // Derive dimensions from responses and risk score - use helper to handle {value: x} objects
+    const timeline = getResponseValue(responses['goal-timeline'], 10);
+    const involvement = getResponseValue(responses['pref-involvement'], 50);
+    const diversification = getResponseValue(responses['pref-diversification'], 50);
+    const prefStyle = getResponseValue(responses['pref-style'], 'balanced');
     
     return {
       // Guardian (0) vs Pioneer (100) - based on risk score
       risk: score,
       // Analytical (0) vs Intuitive (100) - based on investment style preference
-      decision: responses['pref-style'] === 'active' ? 70 : responses['pref-style'] === 'value' ? 30 : 50,
+      decision: prefStyle === 'active' ? 70 : prefStyle === 'value' ? 30 : 50,
       // Patient (0) vs Active (100) - based on timeline and involvement
-      time: Math.min(100, Math.max(0, 100 - (timeline * 5) + (involvement * 0.3))),
+      time: Math.min(100, Math.max(0, 100 - (Number(timeline) * 5) + (Number(involvement) * 0.3))),
       // Diversifier (0) vs Concentrator (100) - based on diversification preference
-      focus: 100 - (diversification || 50),
+      focus: 100 - (Number(diversification) || 50),
     };
   }, [riskScore, responses]);
 
@@ -193,37 +207,17 @@ export function ComprehensiveInvestmentResults({
     ].filter(a => a.percentage > 0);
   }, [riskScore]);
 
-  // Generate fund recommendations based on allocation
-  const recommendations = useMemo(() => {
-    const score = riskScore || 50;
-    const recs = [
-      { ticker: 'VTI', name: 'Vanguard Total Stock Market', category: 'US Equities', expense: '0.03%', allocation: Math.round(25 + score * 0.3) },
-      { ticker: 'VXUS', name: 'Vanguard Total International', category: 'International', expense: '0.07%', allocation: Math.round(10 + score * 0.12) },
-      { ticker: 'BND', name: 'Vanguard Total Bond Market', category: 'Fixed Income', expense: '0.03%', allocation: Math.round(35 - score * 0.3) },
-      { ticker: 'VNQ', name: 'Vanguard Real Estate ETF', category: 'Real Estate', expense: '0.12%', allocation: 8 },
-    ];
-    
-    if (score > 50) {
-      recs.push({ ticker: 'QQQ', name: 'Invesco QQQ Trust', category: 'US Growth', expense: '0.20%', allocation: Math.round(score * 0.1) });
-    }
-    if (score > 70) {
-      recs.push({ ticker: 'ARKK', name: 'ARK Innovation ETF', category: 'Disruptive Tech', expense: '0.75%', allocation: Math.round((score - 70) * 0.15) });
-    }
-    if (score < 40) {
-      recs.push({ ticker: 'VTIP', name: 'Vanguard Short-Term TIPS', category: 'Inflation Protection', expense: '0.04%', allocation: Math.round((40 - score) * 0.2) });
-    }
-    
-    return recs;
-  }, [riskScore]);
+  // NOTE: We no longer recommend specific securities/ETFs - focus on asset allocation only
 
-  // Action items
+  // Action items - use helper for response values
+  const goalAmount = getResponseValue(responses['goal-amount'], 10000);
   const actionItems = useMemo(() => [
     { priority: 1, title: 'Open brokerage account', description: 'Choose a low-cost broker like Fidelity, Schwab, or Vanguard', timeframe: 'This week' },
-    { priority: 2, title: 'Fund your account', description: `Transfer your initial investment of $${((responses['goal-amount'] || 10000) / 1000).toFixed(0)}K`, timeframe: '1-2 weeks' },
-    { priority: 3, title: 'Purchase core holdings', description: 'Buy your primary ETF positions according to allocation', timeframe: '30 days' },
+    { priority: 2, title: 'Fund your account', description: `Transfer your initial investment of $${(goalAmount / 1000).toFixed(0)}K`, timeframe: '1-2 weeks' },
+    { priority: 3, title: 'Implement your allocation', description: 'Build your portfolio according to your target asset allocation', timeframe: '30 days' },
     { priority: 4, title: 'Set up automatic investing', description: 'Schedule recurring contributions to maintain momentum', timeframe: '30 days' },
     { priority: 5, title: 'Schedule quarterly review', description: 'Add calendar reminder to review and rebalance portfolio', timeframe: 'Ongoing' },
-  ], [responses]);
+  ], [goalAmount]);
 
   const handleCopyLink = () => {
     navigator.clipboard.writeText(window.location.href);
@@ -232,7 +226,7 @@ export function ComprehensiveInvestmentResults({
   };
 
   const riskLabel = riskScore < 30 ? 'Conservative' : riskScore < 50 ? 'Moderate' : riskScore < 70 ? 'Growth' : 'Aggressive';
-  const timeHorizon = responses['goal-timeline'] || 10;
+  const timeHorizon = getResponseValue(responses['goal-timeline'], 10);
   const expectedReturn = (4 + riskScore * 0.06).toFixed(1);
   const maxDrawdown = (-10 - riskScore * 0.25).toFixed(0);
 
@@ -527,14 +521,13 @@ export function ComprehensiveInvestmentResults({
         </motion.div>
 
         {/* ════════════════════════════════════════════════════════════════════
-            TABS: Profile, Allocation, Holdings, Strategy, Actions
+            TABS: Profile, Allocation, Strategy, Actions
         ════════════════════════════════════════════════════════════════════ */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
           <TabsList className="bg-white/5 border border-white/10 p-1 w-full flex-wrap justify-start gap-1">
             {[
               { value: 'profile', label: 'Profile', icon: Brain },
               { value: 'allocation', label: 'Allocation', icon: PieChart },
-              { value: 'holdings', label: 'Holdings', icon: Building2 },
               { value: 'strategy', label: 'Strategy', icon: BookOpen },
               { value: 'actions', label: 'Actions', icon: Rocket },
             ].map(tab => (
@@ -777,54 +770,6 @@ export function ComprehensiveInvestmentResults({
                     Diversification across uncorrelated assets to reduce portfolio volatility
                   </li>
                 </ul>
-              </div>
-            </Card>
-          </TabsContent>
-
-          {/* ═══════════════════════════════════════════════════════════════
-              TAB: Holdings
-          ═══════════════════════════════════════════════════════════════ */}
-          <TabsContent value="holdings" className="space-y-6">
-            <Card className="bg-white/5 border-white/10 p-6">
-              <h3 className="font-semibold mb-6 flex items-center gap-2">
-                <PieChart className="w-5 h-5 text-blue-400" />
-                Recommended ETF Portfolio
-              </h3>
-              <div className="grid sm:grid-cols-2 gap-4">
-                {recommendations.map((rec, i) => (
-                  <motion.div 
-                    key={i} 
-                    className="bg-white/5 rounded-xl p-4 border border-white/5"
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: i * 0.1 }}
-                  >
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="font-mono font-bold text-lg text-blue-400">{rec.ticker}</span>
-                      <Badge className="bg-white/10">{rec.allocation}%</Badge>
-                    </div>
-                    <div className="text-sm text-white/80 mb-1">{rec.name}</div>
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="text-white/40">{rec.category}</span>
-                      <span className="text-emerald-400">Expense: {rec.expense}</span>
-                    </div>
-                  </motion.div>
-                ))}
-              </div>
-            </Card>
-
-            <Card className="bg-gradient-to-r from-blue-500/10 to-emerald-500/10 border-white/10 p-6">
-              <div className="flex items-start gap-4">
-                <div className="p-3 rounded-xl bg-white/10">
-                  <Lightbulb className="w-6 h-6 text-amber-400" />
-                </div>
-                <div>
-                  <h4 className="font-semibold mb-2">Implementation Tip</h4>
-                  <p className="text-white/70 text-sm">
-                    Start with the core holdings (VTI, VXUS, BND) first. These provide broad market exposure 
-                    at minimal cost. Add specialty ETFs gradually as your portfolio grows beyond $50,000.
-                  </p>
-                </div>
               </div>
             </Card>
           </TabsContent>
