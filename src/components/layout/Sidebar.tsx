@@ -1,6 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
-import logoWithText from "@/assets/logo-with-text.png";
-import logoIcon from "@/assets/logo-icon.png";
+import logoIcon from "@/assets/logo-icon-new.png";
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -273,12 +272,14 @@ export function Sidebar() {
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
+              className="flex items-center gap-2"
             >
               <img 
-                src={logoWithText} 
-                alt="Asset Labs AI" 
-                className="h-9 object-contain transition-transform duration-300 group-hover:scale-105" 
+                src={logoIcon} 
+                alt="Asset Labs" 
+                className="w-9 h-9 object-contain transition-transform duration-300 group-hover:scale-105" 
               />
+              <span className="font-bold text-foreground text-sm tracking-tight">Asset Labs</span>
             </motion.div>
           )}
         </Link>

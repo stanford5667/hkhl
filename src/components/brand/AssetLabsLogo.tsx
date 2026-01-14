@@ -1,6 +1,5 @@
 import { cn } from "@/lib/utils";
-import logoWithText from "@/assets/logo-with-text.png";
-import logoIcon from "@/assets/logo-icon.png";
+import logoIcon from "@/assets/logo-icon-new.png";
 
 interface AssetLabsLogoProps {
   size?: "sm" | "md" | "lg";
@@ -14,36 +13,29 @@ export function AssetLabsLogo({
   className 
 }: AssetLabsLogoProps) {
   const iconSizes = {
-    sm: "h-8",
-    md: "h-10",
-    lg: "h-14"
+    sm: "w-7 h-7",
+    md: "w-9 h-9",
+    lg: "w-12 h-12"
   };
 
-  const logoWithTextSizes = {
-    sm: "h-8",
-    md: "h-10",
-    lg: "h-14"
+  const textSizes = {
+    sm: "text-sm",
+    md: "text-base",
+    lg: "text-lg"
   };
-
-  if (showText) {
-    return (
-      <div className={cn("flex items-center", className)}>
-        <img 
-          src={logoWithText} 
-          alt="Asset Labs" 
-          className={cn("object-contain", logoWithTextSizes[size])}
-        />
-      </div>
-    );
-  }
 
   return (
-    <div className={cn("flex items-center", className)}>
+    <div className={cn("flex items-center gap-2", className)}>
       <img 
         src={logoIcon} 
         alt="Asset Labs" 
         className={cn("object-contain", iconSizes[size])}
       />
+      {showText && (
+        <span className={cn("font-bold text-foreground tracking-tight", textSizes[size])}>
+          Asset Labs
+        </span>
+      )}
     </div>
   );
 }
