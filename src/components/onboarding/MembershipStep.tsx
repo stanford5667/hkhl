@@ -57,9 +57,11 @@ export function MembershipStep({ onComplete, onBack }: MembershipStepProps) {
         if (error) throw error;
         
         if (data?.url) {
-          // Open Stripe checkout in the same tab
-          window.location.href = data.url;
-          return; // Don't complete onboarding yet - wait for payment success
+          // Open Stripe checkout in a new tab (iframe restrictions prevent same-tab redirect)
+          window.open(data.url, '_blank');
+          toast.info('Complete your payment in the new tab. Once done, you\'ll be upgraded automatically.');
+          setIsLoading(false);
+          return;
         } else {
           throw new Error('No checkout URL returned');
         }
