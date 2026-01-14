@@ -212,11 +212,45 @@ export function ComprehensiveInvestmentResults({
 
   // NOTE: We no longer recommend specific securities/ETFs - focus on asset allocation only
 
+  // Get saved key metrics from responses (calculated by EliteQuestionnaire)
+  const savedKeyMetrics = responses?.keyMetrics as {
+    expectedReturn?: string;
+    volatility?: string;
+    maxDrawdown?: string;
+    sharpRatio?: string;
+    timeHorizon?: string;
+  } | undefined;
+
+  // Get goal amount - check both investmentAmount (saved format) and goal-amount (questionnaire format)
+  const goalAmount = useMemo(() => {
+    // First check for saved investmentAmount (from database)
+    const savedAmount = responses?.investmentAmount;
+    if (savedAmount && typeof savedAmount === 'number' && savedAmount > 0) {
+      return savedAmount;
+    }
+    // Then check for questionnaire response
+    const questionnaireAmount = getResponseValue(responses['goal-amount'], null);
+    if (questionnaireAmount && typeof questionnaireAmount === 'number' && questionnaireAmount > 0) {
+      return questionnaireAmount;
+    }
+    // Default fallback
+    return 50000;
+  }, [responses]);
+
+  // Format large amounts nicely
+  const formatInvestmentAmount = (amount: number): string => {
+    if (amount >= 1000000) {
+      return `$${(amount / 1000000).toFixed(amount % 1000000 === 0 ? 0 : 1)}M`;
+    } else if (amount >= 1000) {
+      return `$${(amount / 1000).toFixed(amount % 1000 === 0 ? 0 : 0)}K`;
+    }
+    return `$${amount.toLocaleString()}`;
+  };
+
   // Action items - use helper for response values
-  const goalAmount = getResponseValue(responses['goal-amount'], 10000);
   const actionItems = useMemo(() => [
     { priority: 1, title: 'Open brokerage account', description: 'Choose a low-cost broker like Fidelity, Schwab, or Vanguard', timeframe: 'This week' },
-    { priority: 2, title: 'Fund your account', description: `Transfer your initial investment of $${(goalAmount / 1000).toFixed(0)}K`, timeframe: '1-2 weeks' },
+    { priority: 2, title: 'Fund your account', description: `Transfer your initial investment of ${formatInvestmentAmount(goalAmount)}`, timeframe: '1-2 weeks' },
     { priority: 3, title: 'Implement your allocation', description: 'Build your portfolio according to your target asset allocation', timeframe: '30 days' },
     { priority: 4, title: 'Set up automatic investing', description: 'Schedule recurring contributions to maintain momentum', timeframe: '30 days' },
     { priority: 5, title: 'Schedule quarterly review', description: 'Add calendar reminder to review and rebalance portfolio', timeframe: 'Ongoing' },
@@ -229,9 +263,15 @@ export function ComprehensiveInvestmentResults({
   };
 
   const riskLabel = riskScore < 30 ? 'Conservative' : riskScore < 50 ? 'Moderate' : riskScore < 70 ? 'Growth' : 'Aggressive';
-  const timeHorizon = getResponseValue(responses['goal-timeline'], 10);
-  const expectedReturn = (4 + riskScore * 0.06).toFixed(1);
-  const maxDrawdown = (-10 - riskScore * 0.25).toFixed(0);
+  const timeHorizon = savedKeyMetrics?.timeHorizon 
+    ? parseInt(savedKeyMetrics.timeHorizon) || getResponseValue(responses['goal-timeline'], 10)
+    : getResponseValue(responses['goal-timeline'], 10);
+  
+  // Use saved metrics from the questionnaire calculation - these are the accurate, formula-based values
+  const expectedReturn = savedKeyMetrics?.expectedReturn?.replace('%', '') || (4 + riskScore * 0.06).toFixed(1);
+  const maxDrawdown = savedKeyMetrics?.maxDrawdown?.replace('%', '') || `-${(10 + riskScore * 0.25).toFixed(0)}`;
+  const expectedVolatility = savedKeyMetrics?.volatility?.replace('%', '') || (6 + riskScore * 0.14).toFixed(1);
+  const sharpeRatio = savedKeyMetrics?.sharpRatio || Math.max(0, ((parseFloat(expectedReturn) - 4.5) / parseFloat(expectedVolatility))).toFixed(2);
 
   // Check if rawPolicy contains an AI-generated strategy (to avoid regeneration)
   const hasExistingStrategy = useMemo(() => {
@@ -254,6 +294,13 @@ export function ComprehensiveInvestmentResults({
     const generateAIStrategy = async () => {
       setIsLoadingStrategy(true);
       try {
+        // Log what we're sending to help debug
+        console.log('Generating AI strategy with:', { 
+          goalAmount, 
+          investmentAmount: responses?.investmentAmount,
+          savedKeyMetrics 
+        });
+        
         const { data, error } = await supabase.functions.invoke('generate-investment-strategy', {
           body: {
             profile: {
@@ -263,6 +310,7 @@ export function ComprehensiveInvestmentResults({
               investorTypeName: archetype.name,
               timeHorizon,
               goalAmount,
+              keyMetrics: savedKeyMetrics, // Pass saved metrics to edge function
               allocation: allocation.map(a => ({ category: a.category, percentage: a.percentage })),
               responses,
               userName,
@@ -460,10 +508,17 @@ export function ComprehensiveInvestmentResults({
                 <div className="grid grid-cols-2 gap-3">
                   {[
                     { 
+                      label: 'Investment', 
+                      value: formatInvestmentAmount(goalAmount), 
+                      icon: DollarSign, 
+                      color: 'emerald',
+                      tooltip: 'Your target investment amount'
+                    },
+                    { 
                       label: 'Goal Return', 
                       value: `${expectedReturn}%`, 
                       icon: TrendingUp, 
-                      color: 'emerald',
+                      color: 'blue',
                       tooltip: 'Target annual return based on your risk profile and allocation'
                     },
                     { 
@@ -477,14 +532,21 @@ export function ComprehensiveInvestmentResults({
                       label: 'Time Horizon', 
                       value: `${timeHorizon} years`, 
                       icon: Clock, 
-                      color: 'blue',
+                      color: 'amber',
                       tooltip: 'Your investment timeframe for this strategy'
                     },
                     { 
-                      label: 'Goal Sharpe Ratio', 
-                      value: (0.4 + riskScore * 0.005).toFixed(2), 
-                      icon: BarChart3, 
+                      label: 'Goal Volatility', 
+                      value: `${expectedVolatility}%`, 
+                      icon: LineChart, 
                       color: 'violet',
+                      tooltip: 'Expected annual portfolio volatility'
+                    },
+                    { 
+                      label: 'Goal Sharpe', 
+                      value: sharpeRatio, 
+                      icon: BarChart3, 
+                      color: 'cyan',
                       tooltip: 'Target risk-adjusted return (higher is better)'
                     },
                   ].map((stat, i) => (
@@ -492,9 +554,11 @@ export function ComprehensiveInvestmentResults({
                       <stat.icon className={cn(
                         "w-4 h-4 mb-2",
                         stat.color === 'emerald' && "text-emerald-400",
-                        stat.color === 'rose' && "text-rose-400",
                         stat.color === 'blue' && "text-blue-400",
+                        stat.color === 'rose' && "text-rose-400",
+                        stat.color === 'amber' && "text-amber-400",
                         stat.color === 'violet' && "text-violet-400",
+                        stat.color === 'cyan' && "text-cyan-400",
                       )} />
                       <div className="text-lg font-bold">{stat.value}</div>
                       <div className="text-xs text-white/40">{stat.label}</div>
