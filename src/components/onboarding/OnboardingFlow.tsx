@@ -23,6 +23,9 @@ export function OnboardingFlow({ children }: OnboardingFlowProps) {
       } else if (userProfile.onboarding_step === 'organization' || userProfile.onboarding_step === 'complete') {
         // Legacy users who were on organization step - skip to membership
         setCurrentStep('membership');
+      } else if (userProfile.full_name && userProfile.onboarding_step === 'profile') {
+        // User has set their name but hasn't selected membership yet
+        setCurrentStep('membership');
       }
     }
   }, [userProfile]);
