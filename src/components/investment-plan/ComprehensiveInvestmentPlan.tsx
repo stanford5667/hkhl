@@ -140,6 +140,7 @@ interface ComprehensiveInvestmentResultsProps {
   rawPolicy: string;
   userName: string;
   riskScore: number;
+  planId?: string; // Used to save generated strategy back to DB
   onDemo?: () => void;
   onStartNew?: () => void;
   onSignOut?: () => void;
@@ -151,6 +152,7 @@ export function ComprehensiveInvestmentResults({
   rawPolicy, 
   userName,
   riskScore,
+  planId,
   onDemo,
   onStartNew,
   onSignOut,
@@ -331,6 +333,20 @@ export function ComprehensiveInvestmentResults({
           });
         } else if (data?.strategy) {
           setAiStrategy(data.strategy);
+          
+          // Save the generated strategy to the database so it doesn't regenerate
+          if (planId) {
+            const { error: updateError } = await supabase
+              .from('investment_plans')
+              .update({ plan_content: data.strategy })
+              .eq('id', planId);
+            
+            if (updateError) {
+              console.error('Failed to save AI strategy to database:', updateError);
+            } else {
+              console.log('AI strategy saved to database successfully');
+            }
+          }
         } else if (rawPolicy) {
           setAiStrategy(rawPolicy);
         }
@@ -345,7 +361,7 @@ export function ComprehensiveInvestmentResults({
     };
 
     generateAIStrategy();
-  }, [hasExistingStrategy, riskScore, riskLabel, investorTypeCode, archetype.name, timeHorizon, goalAmount, allocation, responses, userName, rawPolicy, toast]);
+  }, [hasExistingStrategy, riskScore, riskLabel, investorTypeCode, archetype.name, timeHorizon, goalAmount, allocation, responses, userName, rawPolicy, planId, toast]);
 
 
   return (

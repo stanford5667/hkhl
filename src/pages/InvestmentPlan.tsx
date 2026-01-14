@@ -862,6 +862,7 @@ export default function InvestmentPlanPage() {
               rawPolicy={selectedPlan.plan_content || ''}
               userName={selectedPlan.name.replace("'s Investment Plan", '')}
               riskScore={selectedPlan.risk_score || 50}
+              planId={selectedPlan.id}
               onExport={() => downloadPlan(selectedPlan)}
               onStartNew={() => {
                 setViewPlanOpen(false);
