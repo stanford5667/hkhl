@@ -73,24 +73,45 @@ export function EmailVerificationPending({
     };
   }, [isPolling, checkVerification, onVerified]);
 
-  // Resend verification email
+  // Resend verification email via Loops
   const handleResendEmail = async () => {
     setIsResending(true);
     try {
-      const { error } = await supabase.auth.resend({
-        type: 'signup',
-        email,
-        options: {
-          emailRedirectTo: `${window.location.origin}/`,
+      // Send via Loops transactional email
+      const { data, error: fnError } = await supabase.functions.invoke('send-loops-email', {
+        body: {
+          email,
+          transactionalId: import.meta.env.VITE_LOOPS_VERIFICATION_TEMPLATE_ID || 'email_verification',
+          dataVariables: {
+            verification_link: `${window.location.origin}/auth?mode=verify&email=${encodeURIComponent(email)}`,
+            app_name: 'Asset Labs',
+          },
         },
       });
 
-      if (error) {
-        toast({
-          title: "Failed to resend email",
-          description: error.message,
-          variant: "destructive",
+      if (fnError) {
+        console.error('Loops email error:', fnError);
+        // Fallback to Supabase resend
+        const { error } = await supabase.auth.resend({
+          type: 'signup',
+          email,
+          options: {
+            emailRedirectTo: `${window.location.origin}/`,
+          },
         });
+
+        if (error) {
+          toast({
+            title: "Failed to resend email",
+            description: error.message,
+            variant: "destructive",
+          });
+        } else {
+          toast({
+            title: "Email sent!",
+            description: "Please check your inbox for the verification link.",
+          });
+        }
       } else {
         toast({
           title: "Email sent!",
@@ -98,6 +119,7 @@ export function EmailVerificationPending({
         });
       }
     } catch (err) {
+      console.error('Resend error:', err);
       toast({
         title: "Error",
         description: "Something went wrong. Please try again.",
