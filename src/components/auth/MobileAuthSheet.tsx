@@ -19,9 +19,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
-import { Loader2, Sparkles, Lock, TrendingUp, Shield, Crown } from "lucide-react";
+import { Loader2, Sparkles, TrendingUp, Shield } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { EmailVerificationPending } from "./EmailVerificationPending";
+import { AssetLabsLogo } from "@/components/brand/AssetLabsLogo";
 
 interface MobileAuthSheetProps {
   open: boolean;
@@ -90,14 +91,10 @@ export function MobileAuthSheet({
 
   const AuthForm = () => (
     <div className="space-y-4 px-1">
-      {/* Premium Branding */}
-      {showPremiumBranding && (
-        <div className="flex items-center justify-center gap-2 py-2">
-          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center shadow-lg shadow-orange-500/30">
-            <Crown className="h-6 w-6 text-white" />
-          </div>
-        </div>
-      )}
+      {/* Asset Labs Branding */}
+      <div className="flex items-center justify-center py-2">
+        <AssetLabsLogo size="lg" />
+      </div>
 
       {/* Features list - horizontal */}
       <div className="flex justify-center gap-4 py-2 border-y border-border/50">

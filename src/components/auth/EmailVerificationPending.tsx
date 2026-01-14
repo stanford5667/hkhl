@@ -1,6 +1,7 @@
 import { Mail, CheckCircle, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { AssetLabsLogo } from "@/components/brand/AssetLabsLogo";
 
 interface EmailVerificationPendingProps {
   email: string;
@@ -15,8 +16,10 @@ export function EmailVerificationPending({
 }: EmailVerificationPendingProps) {
   return (
     <div className={cn("flex flex-col items-center text-center space-y-4 py-6", className)}>
-      <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
-        <Mail className="h-8 w-8 text-primary" />
+      <AssetLabsLogo size="md" />
+      
+      <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center">
+        <Mail className="h-7 w-7 text-primary" />
       </div>
       
       <div className="space-y-2">
