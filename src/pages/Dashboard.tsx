@@ -23,6 +23,7 @@ import {
   usePortfolioTotals, useAlerts, useDealPipeline, usePortfolioAssets, 
   useAssetAllocation, useEvents, useEconomicIndicators 
 } from '@/hooks/useMarketIntel';
+import { AuthPromptCard } from '@/components/auth/AuthPromptCard';
 
 function formatCurrency(value: number): string {
   if (value >= 1e9) return `$${(value / 1e9).toFixed(1)}B`;
@@ -83,6 +84,14 @@ export default function Dashboard() {
 
   return (
     <div className="p-4 sm:p-6 space-y-4 sm:space-y-6 animate-fade-up">
+      {/* Auth Prompt Banner for unauthenticated users */}
+      {!user && (
+        <AuthPromptCard 
+          variant="banner"
+          title="Create Your Free Account"
+          description="Sign up to save portfolios, get personalized insights, and track your investments."
+        />
+      )}
       {/* Header with Streak */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
         <div className="flex items-center gap-3">

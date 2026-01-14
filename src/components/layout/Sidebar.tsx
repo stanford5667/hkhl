@@ -27,6 +27,7 @@ import {
 } from "@/components/ui/popover";
 import { Switch } from "@/components/ui/switch";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { AuthGateDialog } from "@/components/auth/AuthGateDialog";
 import {
   Settings,
   ChevronLeft,
@@ -417,68 +418,126 @@ export function Sidebar() {
           index={1}
         />
 
-        {/* User section with dropdown */}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <button
-              className={cn(
-                "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200",
-                "text-muted-foreground hover:bg-accent/50 hover:text-foreground group",
-                collapsed && "justify-center px-2"
-              )}
-            >
-              <div className="relative">
-                <Avatar className="h-9 w-9 ring-2 ring-border transition-all group-hover:ring-primary/30">
-                  <AvatarImage src={userProfile?.avatar_url || undefined} />
-                  <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/5 text-primary text-xs font-semibold">
-                    {userProfile?.full_name?.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() || 'U'}
-                  </AvatarFallback>
-                </Avatar>
-                {/* Online indicator */}
-                <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-success rounded-full border-2 border-sidebar-background" />
-              </div>
-              {!collapsed && (
-                <div className="flex-1 text-left min-w-0">
-                  <p className="text-foreground text-sm font-medium truncate">{userProfile?.full_name || 'User'}</p>
-                  <p className="text-xs text-muted-foreground truncate flex items-center gap-1">
-                    <Zap className="h-2.5 w-2.5 text-amber-500" />
-                    {currentOrganization?.plan || 'Free'} Plan
-                  </p>
+        {/* User section with dropdown - or Sign Up CTA if not authenticated */}
+        {userProfile ? (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                className={cn(
+                  "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200",
+                  "text-muted-foreground hover:bg-accent/50 hover:text-foreground group",
+                  collapsed && "justify-center px-2"
+                )}
+              >
+                <div className="relative">
+                  <Avatar className="h-9 w-9 ring-2 ring-border transition-all group-hover:ring-primary/30">
+                    <AvatarImage src={userProfile?.avatar_url || undefined} />
+                    <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/5 text-primary text-xs font-semibold">
+                      {userProfile?.full_name?.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() || 'U'}
+                    </AvatarFallback>
+                  </Avatar>
+                  {/* Online indicator */}
+                  <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-success rounded-full border-2 border-sidebar-background" />
                 </div>
-              )}
-            </button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent 
-            side={collapsed ? "right" : "top"} 
-            align={collapsed ? "start" : "center"}
-            className="w-56 bg-popover border-border"
-          >
-            <div className="px-3 py-2.5">
-              <p className="text-sm font-semibold text-foreground">{userProfile?.full_name || 'User'}</p>
-              <p className="text-xs text-muted-foreground truncate">{userProfile?.job_title || 'Team Member'}</p>
-            </div>
-            <DropdownMenuSeparator className="bg-border" />
-            <DropdownMenuItem className="text-foreground hover:bg-accent cursor-pointer">
-              <User className="mr-2 h-4 w-4" />
-              Profile
-            </DropdownMenuItem>
-            <DropdownMenuItem className="text-foreground hover:bg-accent cursor-pointer" asChild>
-              <Link to="/settings">
-                <Settings className="mr-2 h-4 w-4" />
-                Settings
-              </Link>
-            </DropdownMenuItem>
-            <DropdownMenuSeparator className="bg-border" />
-            <DropdownMenuItem 
-              className="text-destructive hover:bg-destructive/10 cursor-pointer"
-              onClick={() => signOut()}
+                {!collapsed && (
+                  <div className="flex-1 text-left min-w-0">
+                    <p className="text-foreground text-sm font-medium truncate">{userProfile?.full_name || 'User'}</p>
+                    <p className="text-xs text-muted-foreground truncate flex items-center gap-1">
+                      <Zap className="h-2.5 w-2.5 text-amber-500" />
+                      {currentOrganization?.plan || 'Free'} Plan
+                    </p>
+                  </div>
+                )}
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent 
+              side={collapsed ? "right" : "top"} 
+              align={collapsed ? "start" : "center"}
+              className="w-56 bg-popover border-border"
             >
-              <LogOut className="mr-2 h-4 w-4" />
-              Sign Out
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+              <div className="px-3 py-2.5">
+                <p className="text-sm font-semibold text-foreground">{userProfile?.full_name || 'User'}</p>
+                <p className="text-xs text-muted-foreground truncate">{userProfile?.job_title || 'Team Member'}</p>
+              </div>
+              <DropdownMenuSeparator className="bg-border" />
+              <DropdownMenuItem className="text-foreground hover:bg-accent cursor-pointer">
+                <User className="mr-2 h-4 w-4" />
+                Profile
+              </DropdownMenuItem>
+              <DropdownMenuItem className="text-foreground hover:bg-accent cursor-pointer" asChild>
+                <Link to="/settings">
+                  <Settings className="mr-2 h-4 w-4" />
+                  Settings
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator className="bg-border" />
+              <DropdownMenuItem 
+                className="text-destructive hover:bg-destructive/10 cursor-pointer"
+                onClick={() => signOut()}
+              >
+                <LogOut className="mr-2 h-4 w-4" />
+                Sign Out
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        ) : (
+          <SidebarAuthPrompt collapsed={collapsed} />
+        )}
       </div>
     </aside>
+  );
+}
+
+// Separate component for auth prompt in sidebar
+function SidebarAuthPrompt({ collapsed }: { collapsed: boolean }) {
+  const [showAuthDialog, setShowAuthDialog] = useState(false);
+
+  if (collapsed) {
+    return (
+      <>
+        <Tooltip delayDuration={0}>
+          <TooltipTrigger asChild>
+            <button
+              onClick={() => setShowAuthDialog(true)}
+              className="w-full flex justify-center px-2 py-2.5 rounded-xl bg-primary/20 hover:bg-primary/30 transition-colors"
+            >
+              <User className="h-5 w-5 text-primary" />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent side="right" className="bg-popover border-border">
+            <span className="font-medium">Sign Up / Log In</span>
+          </TooltipContent>
+        </Tooltip>
+        <AuthGateDialog
+          open={showAuthDialog}
+          onOpenChange={setShowAuthDialog}
+          title="Join Asset Labs AI"
+          description="Create a free account to save your portfolios and access all features."
+        />
+      </>
+    );
+  }
+
+  return (
+    <>
+      <button
+        onClick={() => setShowAuthDialog(true)}
+        className="w-full flex items-center gap-3 px-3 py-3 rounded-xl bg-gradient-to-r from-primary/20 to-primary/10 border border-primary/30 hover:from-primary/30 hover:to-primary/20 transition-all group"
+      >
+        <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-primary/30 group-hover:bg-primary/40 transition-colors">
+          <Sparkles className="h-4 w-4 text-primary" />
+        </div>
+        <div className="flex-1 text-left">
+          <p className="text-sm font-semibold text-foreground">Get Started Free</p>
+          <p className="text-xs text-muted-foreground">Sign up to save progress</p>
+        </div>
+      </button>
+      <AuthGateDialog
+        open={showAuthDialog}
+        onOpenChange={setShowAuthDialog}
+        title="Join Asset Labs AI"
+        description="Create a free account to save your portfolios and access all features."
+      />
+    </>
   );
 }
