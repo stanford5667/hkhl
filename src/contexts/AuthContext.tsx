@@ -40,11 +40,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signUp = async (email: string, password: string, fullName: string) => {
-    // IMPORTANT: Email verification links must point to a publicly accessible URL.
-    // The preview URL is access-protected, so verification opened from email would land on a Lovable login page.
-    const publishedUrl = "https://hkhl.lovable.app";
+    // Email verification links redirect to the custom domain
+    const customDomain = "https://aiassetlabs.com";
 
-    const redirectUrl = `${publishedUrl}/`;
+    const redirectUrl = `${customDomain}/`;
 
     const { error } = await supabase.auth.signUp({
       email,
