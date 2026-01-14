@@ -19,16 +19,17 @@ import {
   ChevronDown, ChevronUp, ExternalLink, Copy, Check, Play,
   BookOpen, Calendar, DollarSign, Percent, LineChart, Building2,
   Globe, Gem, Wallet, Lock, AlertTriangle, RefreshCw, LogOut,
-  FileText, Loader2,
+  FileText, Loader2, Info,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-// Tabs removed - now using unified scrollable view
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { InvestmentConceptDetail, ConceptItem } from './InvestmentConceptDetail';
+import { CompoundGrowthProjector } from './CompoundGrowthProjector';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // INVESTOR ARCHETYPES (Myers-Briggs Style)
@@ -162,7 +163,16 @@ export function ComprehensiveInvestmentResults({
   const [copied, setCopied] = useState(false);
   const [aiStrategy, setAiStrategy] = useState<string | null>(null);
   const [isLoadingStrategy, setIsLoadingStrategy] = useState(true);
+  const [selectedConcept, setSelectedConcept] = useState<ConceptItem | null>(null);
+  const [conceptDetailOpen, setConceptDetailOpen] = useState(false);
+  const [monthlyContribution, setMonthlyContribution] = useState(500);
   const { toast } = useToast();
+
+  // Handle concept click for detail modal
+  const handleConceptClick = (concept: ConceptItem) => {
+    setSelectedConcept(concept);
+    setConceptDetailOpen(true);
+  };
 
   // Get investor archetype
   const archetype = useMemo(() => getArchetype(riskScore || 50), [riskScore]);
