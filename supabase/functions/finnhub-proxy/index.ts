@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { logApiUsage, startTimer, getElapsedMs } from "../_shared/api-usage-logger.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -33,6 +34,10 @@ async function fetchFinnhub(path: string, token: string) {
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
+  const apiStartTime = startTimer();
+  let action = "unknown";
+  let apiCallCount = 0;
+
   try {
     const FINNHUB_API_KEY = Deno.env.get("VITE_FINNHUB_API_KEY") || Deno.env.get("FINNHUB_API_KEY");
     if (!FINNHUB_API_KEY) {
@@ -40,15 +45,35 @@ serve(async (req) => {
     }
 
     const body = await req.json().catch(() => ({}));
-    const action = (body.action as Action) || "quote";
+    action = (body.action as Action) || "quote";
 
     if (action === "quote") {
       const symbol = String(body.symbol || "").toUpperCase();
       if (!symbol) return json({ ok: false, error: "symbol is required" }, 400);
 
+      apiCallCount = 1;
       const data = await fetchFinnhub(`/quote?symbol=${encodeURIComponent(symbol)}`, FINNHUB_API_KEY);
       // Finnhub returns: c,d,dp,h,l,o,pc,t
-      if (!data || data.c === 0) return json({ ok: true, quote: null }, 200);
+      if (!data || data.c === 0) {
+        await logApiUsage({
+          functionName: 'finnhub-proxy',
+          endpoint: `/quote/${symbol}`,
+          method: 'GET',
+          statusCode: 200,
+          responseTimeMs: getElapsedMs(apiStartTime),
+          metadata: { action, symbol, apiCalls: apiCallCount }
+        });
+        return json({ ok: true, quote: null }, 200);
+      }
+
+      await logApiUsage({
+        functionName: 'finnhub-proxy',
+        endpoint: `/quote/${symbol}`,
+        method: 'GET',
+        statusCode: 200,
+        responseTimeMs: getElapsedMs(apiStartTime),
+        metadata: { action, symbol, apiCalls: apiCallCount }
+      });
 
       return json({
         ok: true,
@@ -76,10 +101,20 @@ serve(async (req) => {
       if (!symbol) return json({ ok: false, error: "symbol is required" }, 400);
       if (!from || !to) return json({ ok: false, error: "from and to are required" }, 400);
 
+      apiCallCount = 1;
       const data = await fetchFinnhub(
         `/stock/candle?symbol=${encodeURIComponent(symbol)}&resolution=${encodeURIComponent(resolution)}&from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`,
         FINNHUB_API_KEY
       );
+
+      await logApiUsage({
+        functionName: 'finnhub-proxy',
+        endpoint: `/candles/${symbol}`,
+        method: 'GET',
+        statusCode: 200,
+        responseTimeMs: getElapsedMs(apiStartTime),
+        metadata: { action, symbol, resolution, apiCalls: apiCallCount }
+      });
 
       return json({ ok: true, candles: data });
     }
@@ -88,7 +123,18 @@ serve(async (req) => {
       const symbol = String(body.symbol || "").toUpperCase();
       if (!symbol) return json({ ok: false, error: "symbol is required" }, 400);
 
+      apiCallCount = 1;
       const data = await fetchFinnhub(`/stock/profile2?symbol=${encodeURIComponent(symbol)}`, FINNHUB_API_KEY);
+      
+      await logApiUsage({
+        functionName: 'finnhub-proxy',
+        endpoint: `/profile/${symbol}`,
+        method: 'GET',
+        statusCode: 200,
+        responseTimeMs: getElapsedMs(apiStartTime),
+        metadata: { action, symbol, apiCalls: apiCallCount }
+      });
+
       if (!data || !data.name) return json({ ok: true, profile: null }, 200);
 
       return json({
@@ -107,11 +153,21 @@ serve(async (req) => {
       const q = String(body.query || "").trim();
       if (!q) return json({ ok: true, results: [] }, 200);
 
+      apiCallCount = 1;
       const data = await fetchFinnhub(`/search?q=${encodeURIComponent(q)}`, FINNHUB_API_KEY);
       const results = (data.result || []).slice(0, 10).map((r: any) => ({
         symbol: r.symbol,
         description: r.description,
       }));
+
+      await logApiUsage({
+        functionName: 'finnhub-proxy',
+        endpoint: `/search`,
+        method: 'GET',
+        statusCode: 200,
+        responseTimeMs: getElapsedMs(apiStartTime),
+        metadata: { action, query: q, resultsCount: results.length, apiCalls: apiCallCount }
+      });
 
       return json({ ok: true, results });
     }
@@ -131,6 +187,7 @@ serve(async (req) => {
         const chunkResults: Array<readonly [string, unknown | null]> = await Promise.all(
           chunk.map(async (symbol: string) => {
             try {
+              apiCallCount++;
               const data = await fetchFinnhub(`/quote?symbol=${encodeURIComponent(symbol)}`, FINNHUB_API_KEY);
               if (!data || data.c === 0) return [symbol, null] as const;
               return [
@@ -161,12 +218,31 @@ serve(async (req) => {
         if (i + 10 < unique.length) await sleep(200);
       }
 
+      await logApiUsage({
+        functionName: 'finnhub-proxy',
+        endpoint: `/batch`,
+        method: 'GET',
+        statusCode: 200,
+        responseTimeMs: getElapsedMs(apiStartTime),
+        metadata: { action, symbolCount: unique.length, quotesReturned: Object.keys(out).length, apiCalls: apiCallCount }
+      });
+
       return json({ ok: true, quotes: out });
     }
 
     return json({ ok: false, error: `Unknown action: ${action}` }, 400);
   } catch (error) {
     console.error("[finnhub-proxy] error", error);
+    
+    await logApiUsage({
+      functionName: 'finnhub-proxy',
+      endpoint: `/${action}`,
+      method: 'GET',
+      statusCode: 500,
+      responseTimeMs: getElapsedMs(apiStartTime),
+      metadata: { action, error: String(error), apiCalls: apiCallCount }
+    });
+
     return json({ ok: false, error: "Proxy failed" }, 200);
   }
 });

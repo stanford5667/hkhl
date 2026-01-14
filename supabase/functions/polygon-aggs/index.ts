@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+import { logApiUsage, startTimer, getElapsedMs } from "../_shared/api-usage-logger.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -182,10 +183,15 @@ async function fetchWithRetry(
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
+  const apiStartTime = startTimer();
+  let ticker = "unknown";
+  let fromCache = false;
+  let apiCallCount = 0;
+
   try {
     const body = await req.json().catch(() => ({}));
 
-    const ticker = String(body.ticker || "").toUpperCase().trim();
+    ticker = String(body.ticker || "").toUpperCase().trim();
     const requestedStartDate = String(body.startDate || "").trim();
     const requestedEndDate = String(body.endDate || "").trim();
     const timespan = String(body.timespan || "day").trim();
@@ -200,6 +206,16 @@ serve(async (req) => {
     // If the entire requested range is outside the plan's history, return empty results gracefully
     if (invalidRange) {
       console.log(`[polygon-aggs] Requested range entirely outside plan limits for ${ticker}, returning empty results`);
+      
+      await logApiUsage({
+        functionName: 'polygon-aggs',
+        endpoint: `/aggs/${ticker}`,
+        method: 'POST',
+        statusCode: 200,
+        responseTimeMs: getElapsedMs(apiStartTime),
+        metadata: { ticker, invalidRange: true, apiCalls: 0 }
+      });
+
       return json({ 
         ok: true, 
         ticker, 
@@ -237,7 +253,18 @@ serve(async (req) => {
         if (cacheRatio >= 0.8) {
           console.log(`[polygon-aggs] Cache hit for ${ticker}: ${cachedData.length} bars (${(cacheRatio * 100).toFixed(0)}% coverage)`);
           
+          fromCache = true;
           const results = cacheToPolygonFormat(cachedData);
+          
+          await logApiUsage({
+            functionName: 'polygon-aggs',
+            endpoint: `/aggs/${ticker}`,
+            method: 'POST',
+            statusCode: 200,
+            responseTimeMs: getElapsedMs(apiStartTime),
+            metadata: { ticker, fromCache: true, barsReturned: results.length, apiCalls: 0 }
+          });
+
           return json({ ok: true, ticker, results, fromCache: true, dateLimited: wasLimited }, 200);
         } else {
           console.log(`[polygon-aggs] Cache partial for ${ticker}: ${cachedData.length} bars (${(cacheRatio * 100).toFixed(0)}% coverage), fetching fresh data`);
@@ -263,6 +290,7 @@ serve(async (req) => {
     )}/${encodeURIComponent(endDate)}?adjusted=true&sort=asc&limit=50000&apiKey=${POLYGON_API_KEY}`;
 
     while (url) {
+      apiCallCount++;
       const { ok, status, text } = await fetchWithRetry(url);
 
       if (!ok) {
@@ -271,6 +299,16 @@ serve(async (req) => {
         // For 429 after retries, return a friendly message instead of error
         if (status === 429) {
           console.log(`[polygon-aggs] Rate limit exceeded after retries for ${ticker}`);
+          
+          await logApiUsage({
+            functionName: 'polygon-aggs',
+            endpoint: `/aggs/${ticker}`,
+            method: 'POST',
+            statusCode: 429,
+            responseTimeMs: getElapsedMs(apiStartTime),
+            metadata: { ticker, rateLimited: true, apiCalls: apiCallCount }
+          });
+
           return json({
             ok: false,
             error: "Rate limit exceeded - please try again in a moment",
@@ -279,6 +317,15 @@ serve(async (req) => {
           }, 429);
         }
         
+        await logApiUsage({
+          functionName: 'polygon-aggs',
+          endpoint: `/aggs/${ticker}`,
+          method: 'POST',
+          statusCode: status,
+          responseTimeMs: getElapsedMs(apiStartTime),
+          metadata: { ticker, error: text, apiCalls: apiCallCount }
+        });
+
         return json(
           { ok: false, error: "Polygon API error", status, details: text },
           status
@@ -310,10 +357,29 @@ serve(async (req) => {
       });
     }
 
+    await logApiUsage({
+      functionName: 'polygon-aggs',
+      endpoint: `/aggs/${ticker}`,
+      method: 'POST',
+      statusCode: 200,
+      responseTimeMs: getElapsedMs(apiStartTime),
+      metadata: { ticker, fromCache: false, barsReturned: allResults.length, apiCalls: apiCallCount }
+    });
+
     return json({ ok: true, ticker, results: allResults, fromCache: false, dateLimited: wasLimited }, 200);
   } catch (error) {
     console.error("[polygon-aggs] Error:", error);
     const message = error instanceof Error ? error.message : "Unknown error";
+    
+    await logApiUsage({
+      functionName: 'polygon-aggs',
+      endpoint: `/aggs/${ticker}`,
+      method: 'POST',
+      statusCode: 500,
+      responseTimeMs: getElapsedMs(apiStartTime),
+      metadata: { ticker, error: message, apiCalls: apiCallCount }
+    });
+
     return json({ ok: false, error: message }, 500);
   }
 });

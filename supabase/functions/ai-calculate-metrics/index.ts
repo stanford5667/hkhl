@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { logApiUsage, startTimer, getElapsedMs, estimateCost } from "../_shared/api-usage-logger.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -78,6 +79,10 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  const apiStartTime = startTimer();
+  let tickerCount = 0;
+  let fromCache = false;
+
   const supabase = createClient(
     Deno.env.get("SUPABASE_URL")!,
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
@@ -96,6 +101,8 @@ serve(async (req) => {
       includeAIAnalysis = true,
       generateTraces = false
     } = request;
+    
+    tickerCount = tickers?.length || 0;
     
     console.log(`[AICalculate] Calculating metrics for ${tickers.length} tickers:`, tickers);
     console.log(`[AICalculate] Date range: ${startDate} to ${endDate}`);
@@ -134,6 +141,17 @@ serve(async (req) => {
     
     if (cached && !generateTraces) {
       console.log('[AICalculate] Cache hit! Returning cached results');
+      fromCache = true;
+      
+      await logApiUsage({
+        functionName: 'ai-calculate-metrics',
+        endpoint: '/ai-calculate-metrics',
+        method: 'POST',
+        statusCode: 200,
+        responseTimeMs: getElapsedMs(apiStartTime),
+        metadata: { tickerCount, fromCache: true, includeAIAnalysis }
+      });
+
       return new Response(
         JSON.stringify({
           success: true,
@@ -338,6 +356,18 @@ serve(async (req) => {
     
     console.log('[AICalculate] Complete!');
     
+    // Log successful API usage
+    await logApiUsage({
+      functionName: 'ai-calculate-metrics',
+      endpoint: '/ai-calculate-metrics',
+      method: 'POST',
+      statusCode: 200,
+      responseTimeMs: getElapsedMs(apiStartTime),
+      tokensUsed: includeAIAnalysis ? 800 : 0,
+      costEstimate: includeAIAnalysis ? estimateCost(800, 'lovable-ai') : 0,
+      metadata: { tickerCount, fromCache: false, includeAIAnalysis, tradingDays: returns.length }
+    });
+    
     return new Response(
       JSON.stringify({
         success: true,
@@ -358,6 +388,16 @@ serve(async (req) => {
     
   } catch (error: any) {
     console.error("[AICalculate] Error:", error);
+    
+    await logApiUsage({
+      functionName: 'ai-calculate-metrics',
+      endpoint: '/ai-calculate-metrics',
+      method: 'POST',
+      statusCode: 500,
+      responseTimeMs: getElapsedMs(apiStartTime),
+      metadata: { tickerCount, error: error.message }
+    });
+
     return new Response(
       JSON.stringify({ 
         error: error.message || 'Unknown error occurred',

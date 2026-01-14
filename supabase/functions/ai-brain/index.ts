@@ -2,6 +2,7 @@ import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getAuthenticatedUser, unauthorizedResponse } from "../_shared/auth.ts";
+import { logApiUsage, startTimer, getElapsedMs, estimateCost } from "../_shared/api-usage-logger.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -40,6 +41,10 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  const apiStartTime = startTimer();
+  let requestType = 'unknown';
+  let userId: string | null = null;
+
   try {
     // SECURITY: Require authentication
     const { user, error: authError } = await getAuthenticatedUser(req);
@@ -53,9 +58,10 @@ serve(async (req) => {
 
     const request: AIRequest = await req.json();
     const { type, payload } = request;
+    requestType = type;
 
     // SECURITY: Use authenticated user ID instead of client-provided userId
-    const userId = user.id;
+    userId = user.id;
 
     // Load user context
     const userContext = await loadUserContext(supabase, userId);
@@ -100,12 +106,39 @@ serve(async (req) => {
         throw new Error(`Unknown request type: ${type}`);
     }
 
+    // Log API usage for AI-related requests
+    const aiTypes = ['chat', 'analyze_market', 'analyze_news', 'trade_ideas', 'generate_alert', 'generate_briefing'];
+    if (aiTypes.includes(type)) {
+      await logApiUsage({
+        userId,
+        functionName: 'ai-brain',
+        endpoint: `/ai-brain/${type}`,
+        method: 'POST',
+        statusCode: 200,
+        responseTimeMs: getElapsedMs(apiStartTime),
+        tokensUsed: 500, // Estimate - actual tokens vary
+        costEstimate: estimateCost(500, 'lovable-ai'),
+        metadata: { type, model: 'gemini-2.5-flash' }
+      });
+    }
+
     return new Response(JSON.stringify(response), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (error) {
     console.error('AI Brain error:', error);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    
+    await logApiUsage({
+      userId,
+      functionName: 'ai-brain',
+      endpoint: `/ai-brain/${requestType}`,
+      method: 'POST',
+      statusCode: 500,
+      responseTimeMs: getElapsedMs(apiStartTime),
+      metadata: { type: requestType, error: errorMessage }
+    });
+
     return new Response(JSON.stringify({ error: errorMessage }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
