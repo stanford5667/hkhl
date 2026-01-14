@@ -789,6 +789,10 @@ export function EliteQuestionnaire({ onComplete, onCancel, userId, forceNew = fa
     const interests = responses['pref-assets'] || [];
     const style = responses['pref-style'];
     const amount = responses['goal-amount'] || 50000;
+    const timeline = responses['goal-timeline'] || 10;
+    const riskTolerance = responses['risk-tolerance'] || 20;
+    const emergencyFund = responses['emergency-fund'] || 6;
+    const incomeStability = responses['income-stability'] || 'stable';
     
     // Calculate investor type from personality questions
     const { dimensions, typeCode, investorType } = calculateInvestorType();
@@ -796,6 +800,25 @@ export function EliteQuestionnaire({ onComplete, onCancel, userId, forceNew = fa
     // Build allocation based on risk and preferences
     const baseAllocation = buildAllocation(riskScore, interests, style, amount);
     const recommendations = buildRecommendations(riskScore, interests, style, amount);
+    
+    // Calculate more accurate key metrics based on multiple inputs
+    // Max drawdown: based on risk tolerance input, risk score, and portfolio composition
+    const baseMaxDrawdown = riskTolerance; // User's stated max loss tolerance (10-40%)
+    const riskAdjustment = (riskScore - 50) * 0.15; // Adjust based on overall risk profile
+    const calculatedMaxDrawdown = Math.max(10, Math.min(45, baseMaxDrawdown + riskAdjustment));
+    
+    // Expected return: based on risk profile, timeline, and style
+    const baseReturn = 4 + (riskScore * 0.06); // 4-10% range
+    const timelineBonus = timeline > 15 ? 0.5 : timeline > 10 ? 0.3 : 0;
+    const styleAdjustment = style === 'growth' ? 0.5 : style === 'value' ? 0.3 : style === 'income' ? -0.5 : 0;
+    const expectedReturn = baseReturn + timelineBonus + styleAdjustment;
+    
+    // Volatility: correlates with expected return and risk tolerance
+    const expectedVolatility = 6 + (riskScore * 0.14) + (riskTolerance * 0.1);
+    
+    // Sharpe ratio: calculated from return and volatility
+    const riskFreeRate = 4.5; // Current ~4.5% risk-free rate
+    const sharpeRatio = (expectedReturn - riskFreeRate) / expectedVolatility;
     
     return {
       userName,
@@ -814,15 +837,17 @@ export function EliteQuestionnaire({ onComplete, onCancel, userId, forceNew = fa
       allocation: baseAllocation,
       recommendations,
       keyMetrics: {
-        expectedReturn: `${(3 + riskScore * 0.07).toFixed(1)}%`,
-        volatility: `${(4 + riskScore * 0.18).toFixed(1)}%`,
-        maxDrawdown: `-${(8 + riskScore * 0.35).toFixed(0)}%`,
-        sharpRatio: (0.3 + riskScore * 0.008).toFixed(2),
-        timeHorizon: `${responses['goal-timeline'] || 10} years`,
+        expectedReturn: `${expectedReturn.toFixed(1)}%`,
+        volatility: `${expectedVolatility.toFixed(1)}%`,
+        maxDrawdown: `-${calculatedMaxDrawdown.toFixed(0)}%`,
+        sharpRatio: Math.max(0, sharpeRatio).toFixed(2),
+        timeHorizon: `${timeline} years`,
       },
       narrative: buildNarrative(riskScore, responses, userName),
       actionPlan: buildActionPlan(riskScore, responses),
       investmentAmount: amount,
+      // Include mapped responses for accurate scoring
+      mappedResponses: mapResponsesToScoringFormat(responses),
     };
   }, [responses, userName, email, calculateRiskProfile, calculateInvestorType]);
 
@@ -910,7 +935,7 @@ ${a.description}`).join('\n\n')}
 `;
         
         onComplete({
-          responses,
+          responses: plan.mappedResponses || responses, // Use mapped responses for scoring
           riskScore: plan.riskProfile.score,
           riskProfile: plan.riskProfile.label,
           investorType: typeCode,
@@ -2316,6 +2341,114 @@ function getRiskDescription(score: number): string {
   return 'You maximize growth potential with a long-term horizon.';
 }
 
+// Map EliteQuestionnaire responses to scoring engine format
+function mapResponsesToScoringFormat(responses: Record<string, any>): Record<string, { value: string | number | string[] }> {
+  const mapped: Record<string, { value: string | number | string[] }> = {};
+  
+  // Goals Section
+  if (responses['goal-primary']) {
+    // Map goal-primary to goal-purpose
+    const purposeMap: Record<string, string> = {
+      'wealth-growth': 'wealth-building',
+      'retirement': 'retirement',
+      'income': 'financial-independence',
+      'preservation': 'house-purchase',
+    };
+    mapped['goal-purpose'] = { value: purposeMap[responses['goal-primary']] || responses['goal-primary'] };
+  }
+  
+  if (responses['goal-timeline']) {
+    // Convert numeric timeline to category
+    const timeline = responses['goal-timeline'];
+    let timelineValue = 'more-than-15';
+    if (timeline < 3) timelineValue = 'less-than-3';
+    else if (timeline < 7) timelineValue = '3-7-years';
+    else if (timeline < 15) timelineValue = '7-15-years';
+    mapped['goal-timeline'] = { value: timelineValue };
+  }
+  
+  // Risk Section
+  if (responses['risk-scenario']) {
+    mapped['risk-scenario-drop'] = { value: responses['risk-scenario'] };
+  }
+  
+  if (responses['risk-tolerance']) {
+    // Convert slider value to category
+    const tolerance = responses['risk-tolerance'];
+    let toleranceValue = '20';
+    if (tolerance <= 10) toleranceValue = '10';
+    else if (tolerance <= 20) toleranceValue = '20';
+    else if (tolerance <= 30) toleranceValue = '30';
+    else toleranceValue = '40';
+    mapped['risk-max-loss'] = { value: toleranceValue };
+  }
+  
+  if (responses['risk-experience']) {
+    // Map experience to knowledge level
+    const expMap: Record<string, string> = {
+      'never': 'beginner',
+      'watched': 'beginner',
+      'held': 'intermediate',
+      'bought': 'advanced',
+    };
+    mapped['risk-knowledge-level'] = { value: expMap[responses['risk-experience']] || 'intermediate' };
+  }
+  
+  // Financial Section
+  if (responses['income-stability']) {
+    const stabilityMap: Record<string, string> = {
+      'very-stable': 'very-stable',
+      'stable': 'mostly-stable',
+      'variable': 'variable',
+      'uncertain': 'uncertain',
+    };
+    mapped['liquidity-income-stability'] = { value: stabilityMap[responses['income-stability']] || 'mostly-stable' };
+  }
+  
+  if (responses['emergency-fund']) {
+    const months = responses['emergency-fund'];
+    let fundValue = '3-6-months';
+    if (months < 3) fundValue = 'less-than-3';
+    else if (months > 6) fundValue = 'more-than-6';
+    mapped['liquidity-emergency-fund'] = { value: fundValue };
+  }
+  
+  // Constraints Section
+  if (responses['pref-assets']) {
+    // Map asset preferences to constraints
+    const assets = responses['pref-assets'] as string[];
+    if (assets.includes('crypto')) {
+      mapped['constraints-crypto'] = { value: 'small-allocation' };
+    } else {
+      mapped['constraints-crypto'] = { value: 'no-crypto' };
+    }
+  }
+  
+  // Map style to volatility preference
+  if (responses['pref-style']) {
+    const styleMap: Record<string, string> = {
+      'passive': 'moderate',
+      'active': 'growth',
+      'value': 'moderate',
+      'growth': 'growth',
+      'income': 'steady',
+    };
+    mapped['constraints-volatility-preference'] = { value: styleMap[responses['pref-style']] || 'moderate' };
+  }
+  
+  // International preference (default to balanced if they selected international stocks)
+  if (responses['pref-assets']) {
+    const assets = responses['pref-assets'] as string[];
+    if (assets.includes('intl-stocks')) {
+      mapped['constraints-international'] = { value: 'balanced' };
+    } else {
+      mapped['constraints-international'] = { value: 'mostly-us' };
+    }
+  }
+  
+  return mapped;
+}
+
 function buildAllocation(riskScore: number, interests: string[], style: string, amount: number) {
   // Base allocation adjusted by risk
   const equityBase = 30 + (riskScore * 0.5);
@@ -2422,28 +2555,17 @@ function buildAllocation(riskScore: number, interests: string[], style: string, 
 function buildRecommendations(riskScore: number, interests: string[], style: string, amount: number) {
   const recommendations: any[] = [];
   
-  // ETFs
+  // Core ETFs - broad market exposure only
   recommendations.push(
     { type: 'ETF', ticker: 'VTI', name: 'Vanguard Total Stock Market', category: 'US Equities', expense: '0.03%', allocation: 25, reason: 'Broad US market exposure at minimal cost' },
     { type: 'ETF', ticker: 'VXUS', name: 'Vanguard Total International', category: 'International', expense: '0.07%', allocation: 15, reason: 'Global diversification outside US' },
     { type: 'ETF', ticker: 'BND', name: 'Vanguard Total Bond', category: 'Fixed Income', expense: '0.03%', allocation: 20, reason: 'Investment-grade bond stability' },
   );
   
-  // Individual Stocks (for larger portfolios)
-  if (amount >= 100000 && riskScore > 40) {
-    recommendations.push(
-      { type: 'Stock', ticker: 'AAPL', name: 'Apple Inc.', category: 'Tech - Large Cap', reason: 'Quality tech leader with strong cash flows' },
-      { type: 'Stock', ticker: 'MSFT', name: 'Microsoft Corp.', category: 'Tech - Large Cap', reason: 'Cloud and enterprise software dominance' },
-      { type: 'Stock', ticker: 'JNJ', name: 'Johnson & Johnson', category: 'Healthcare', reason: 'Defensive dividend aristocrat' },
-      { type: 'Stock', ticker: 'JPM', name: 'JPMorgan Chase', category: 'Financials', reason: 'Leading bank with diverse revenue' },
-    );
-  }
-  
-  // REITs
+  // REITs (ETF only)
   if (interests.includes('real-estate') || riskScore > 45) {
     recommendations.push(
-      { type: 'REIT', ticker: 'VNQ', name: 'Vanguard Real Estate ETF', category: 'Real Estate', expense: '0.12%', reason: 'Diversified REIT exposure' },
-      { type: 'REIT', ticker: 'O', name: 'Realty Income Corp.', category: 'Real Estate', reason: 'Monthly dividend "aristocrat"' },
+      { type: 'REIT ETF', ticker: 'VNQ', name: 'Vanguard Real Estate ETF', category: 'Real Estate', expense: '0.12%', reason: 'Diversified REIT exposure' },
     );
   }
   
@@ -2458,16 +2580,16 @@ function buildRecommendations(riskScore: number, interests: string[], style: str
   // Alternatives
   if (interests.includes('alternatives') || interests.includes('commodities')) {
     recommendations.push(
-      { type: 'Commodity', ticker: 'GLD', name: 'SPDR Gold Trust', category: 'Commodities', expense: '0.40%', reason: 'Inflation hedge and safe haven' },
-      { type: 'Commodity', ticker: 'DBC', name: 'Invesco DB Commodity', category: 'Commodities', expense: '0.85%', reason: 'Broad commodity exposure' },
+      { type: 'Commodity ETF', ticker: 'GLD', name: 'SPDR Gold Trust', category: 'Commodities', expense: '0.40%', reason: 'Inflation hedge and safe haven' },
+      { type: 'Commodity ETF', ticker: 'DBC', name: 'Invesco DB Commodity', category: 'Commodities', expense: '0.85%', reason: 'Broad commodity exposure' },
     );
   }
   
-  // Crypto
+  // Crypto ETFs (for exposure without direct ownership)
   if (interests.includes('crypto') && riskScore > 50) {
     recommendations.push(
-      { type: 'Crypto', ticker: 'BTC', name: 'Bitcoin', category: 'Digital Assets', reason: 'Digital gold, store of value thesis' },
-      { type: 'Crypto', ticker: 'ETH', name: 'Ethereum', category: 'Digital Assets', reason: 'Smart contract platform leader' },
+      { type: 'Crypto ETF', ticker: 'IBIT', name: 'iShares Bitcoin Trust ETF', category: 'Digital Assets', expense: '0.25%', reason: 'Bitcoin exposure via regulated ETF' },
+      { type: 'Crypto ETF', ticker: 'ETHE', name: 'Grayscale Ethereum Trust', category: 'Digital Assets', expense: '2.50%', reason: 'Ethereum exposure via regulated fund' },
     );
   }
   
@@ -2529,8 +2651,8 @@ function buildActionPlan(riskScore: number, responses: any) {
     },
     {
       priority: 4,
-      title: 'Add Satellite Positions',
-      description: 'Once core is established, consider adding individual stocks, REITs, or alternative assets.',
+      title: 'Diversify with Sector ETFs',
+      description: 'Once core is established, consider adding sector ETFs (real estate, commodities) for additional diversification.',
       timeframe: '60-90 days',
     },
     {
