@@ -21,6 +21,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { Loader2, Sparkles, Lock, TrendingUp, Shield, Crown } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { EmailVerificationPending } from "./EmailVerificationPending";
 
 interface MobileAuthSheetProps {
   open: boolean;
@@ -42,6 +43,7 @@ export function MobileAuthSheet({
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [showVerificationPending, setShowVerificationPending] = useState(false);
   const { signIn, signUp } = useAuth();
   const isDesktop = useMediaQuery("(min-width: 768px)");
 
@@ -55,13 +57,16 @@ export function MobileAuthSheet({
         if (error) {
           toast.error(error.message);
         } else {
-          toast.success("Account created! Welcome aboard.");
-          onOpenChange(false);
+          setShowVerificationPending(true);
         }
       } else {
         const { error } = await signIn(email, password);
         if (error) {
-          toast.error(error.message);
+          if (error.message.includes('Email not confirmed')) {
+            toast.error("Please verify your email before signing in.");
+          } else {
+            toast.error(error.message);
+          }
         } else {
           toast.success("Welcome back!");
           onOpenChange(false);
@@ -70,6 +75,11 @@ export function MobileAuthSheet({
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleBackFromVerification = () => {
+    setShowVerificationPending(false);
+    setMode('signin');
   };
 
   const features = [
@@ -187,18 +197,31 @@ export function MobileAuthSheet({
     </div>
   );
 
+  const VerificationContent = () => (
+    <EmailVerificationPending 
+      email={email} 
+      onBack={handleBackFromVerification}
+    />
+  );
+
   // Use Dialog for desktop, Drawer for mobile
   if (isDesktop) {
     return (
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="sm:max-w-md">
-          <DialogHeader className="text-center pb-2">
-            <DialogTitle className="text-xl font-bold">{title}</DialogTitle>
-            <DialogDescription className="text-sm">
-              {description}
-            </DialogDescription>
-          </DialogHeader>
-          <AuthForm />
+          {showVerificationPending ? (
+            <VerificationContent />
+          ) : (
+            <>
+              <DialogHeader className="text-center pb-2">
+                <DialogTitle className="text-xl font-bold">{title}</DialogTitle>
+                <DialogDescription className="text-sm">
+                  {description}
+                </DialogDescription>
+              </DialogHeader>
+              <AuthForm />
+            </>
+          )}
         </DialogContent>
       </Dialog>
     );
@@ -207,15 +230,23 @@ export function MobileAuthSheet({
   return (
     <Drawer open={open} onOpenChange={onOpenChange}>
       <DrawerContent className="max-h-[90vh]">
-        <DrawerHeader className="text-center pb-2">
-          <DrawerTitle className="text-xl font-bold">{title}</DrawerTitle>
-          <DrawerDescription className="text-sm">
-            {description}
-          </DrawerDescription>
-        </DrawerHeader>
-        <div className="px-4 pb-8 overflow-y-auto safe-area-bottom">
-          <AuthForm />
-        </div>
+        {showVerificationPending ? (
+          <div className="px-4 pb-8 overflow-y-auto safe-area-bottom">
+            <VerificationContent />
+          </div>
+        ) : (
+          <>
+            <DrawerHeader className="text-center pb-2">
+              <DrawerTitle className="text-xl font-bold">{title}</DrawerTitle>
+              <DrawerDescription className="text-sm">
+                {description}
+              </DrawerDescription>
+            </DrawerHeader>
+            <div className="px-4 pb-8 overflow-y-auto safe-area-bottom">
+              <AuthForm />
+            </div>
+          </>
+        )}
       </DrawerContent>
     </Drawer>
   );
