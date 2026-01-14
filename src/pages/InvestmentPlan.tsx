@@ -246,9 +246,10 @@ function SimpleMarkdown({ content }: { content: string }) {
   return <div className="prose prose-invert prose-sm max-w-none">{parseMarkdown(content)}</div>;
 }
 
-// Import the questionnaire component
-import { EliteQuestionnaire } from '@/components/investment-plan/EliteQuestionnaire';
+// Import the questionnaire component - V2 streamlined version
+import { EliteQuestionnaireV2 } from '@/components/investment-plan/EliteQuestionnaireV2';
 import { ComprehensiveInvestmentResults } from '@/components/investment-plan/ComprehensiveInvestmentPlan';
+import { scoreQuestionnaire } from '@/services/questionnaireScoring';
 
 interface InvestmentPlan {
   id: string;
@@ -279,9 +280,6 @@ export default function InvestmentPlanPage() {
     responses: Record<string, any>;
     riskScore: number;
     riskProfile: string;
-    investorType: string;
-    investorTypeName: string;
-    planContent: string;
     userName: string;
   } | null>(null);
 
@@ -353,12 +351,20 @@ export default function InvestmentPlanPage() {
     responses: Record<string, any>;
     riskScore: number;
     riskProfile: string;
-    investorType: string;
-    investorTypeName: string;
-    planContent: string;
     userName: string;
   }) => {
     try {
+      // Map risk profile to investor type for backwards compatibility
+      const riskProfileToInvestorType: Record<string, { type: string; name: string }> = {
+        'Conservative': { type: 'guardian', name: 'The Guardian' },
+        'Moderately Conservative': { type: 'steward', name: 'The Steward' },
+        'Moderate': { type: 'balanced', name: 'The Balanced Investor' },
+        'Moderately Aggressive': { type: 'growth-seeker', name: 'The Growth Seeker' },
+        'Aggressive': { type: 'opportunist', name: 'The Opportunist' },
+      };
+      
+      const investorInfo = riskProfileToInvestorType[result.riskProfile] || { type: 'balanced', name: 'The Balanced Investor' };
+      
       const { data, error } = await supabase
         .from('investment_plans')
         .insert({
@@ -367,9 +373,9 @@ export default function InvestmentPlanPage() {
           responses: result.responses,
           risk_score: result.riskScore,
           risk_profile: result.riskProfile,
-          investor_type: result.investorType,
-          investor_type_name: result.investorTypeName,
-          plan_content: result.planContent,
+          investor_type: investorInfo.type,
+          investor_type_name: investorInfo.name,
+          plan_content: '', // AI-generated strategy will be created by ComprehensiveInvestmentResults
           status: 'complete',
         })
         .select()
@@ -398,9 +404,6 @@ export default function InvestmentPlanPage() {
     responses: Record<string, any>;
     riskScore: number;
     riskProfile: string;
-    investorType: string;
-    investorTypeName: string;
-    planContent: string;
     userName: string;
   }) => {
     if (!user) {
@@ -450,14 +453,13 @@ export default function InvestmentPlanPage() {
   if (showQuestionnaire) {
     return (
       <div className="fixed inset-0 bg-background" style={{ zIndex: 9999 }}>
-        <EliteQuestionnaire
+        <EliteQuestionnaireV2
           onComplete={handleQuestionnaireComplete}
           onCancel={() => {
             setShowQuestionnaire(false);
             setForceNewAssessment(false);
           }}
-          userId={user?.id}
-          forceNew={forceNewAssessment}
+          userName={user?.user_metadata?.name || user?.user_metadata?.full_name || undefined}
         />
       </div>
     );
