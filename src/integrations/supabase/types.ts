@@ -2681,6 +2681,7 @@ export type Database = {
           id: string
           job_title: string | null
           linkedin_url: string | null
+          membership_tier: string | null
           onboarding_completed: boolean | null
           onboarding_step: string | null
           phone: string | null
@@ -2697,6 +2698,7 @@ export type Database = {
           id?: string
           job_title?: string | null
           linkedin_url?: string | null
+          membership_tier?: string | null
           onboarding_completed?: boolean | null
           onboarding_step?: string | null
           phone?: string | null
@@ -2713,6 +2715,7 @@ export type Database = {
           id?: string
           job_title?: string | null
           linkedin_url?: string | null
+          membership_tier?: string | null
           onboarding_completed?: boolean | null
           onboarding_step?: string | null
           phone?: string | null

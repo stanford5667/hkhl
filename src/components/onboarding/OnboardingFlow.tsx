@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { ProfileSetupStep } from './ProfileSetupStep';
-import { supabase } from '@/integrations/supabase/client';
+import { MembershipStep } from './MembershipStep';
 
 interface OnboardingFlowProps {
   children: React.ReactNode;
@@ -11,29 +11,28 @@ interface OnboardingFlowProps {
 export function OnboardingFlow({ children }: OnboardingFlowProps) {
   const { user } = useAuth();
   const { userProfile, isLoading, refreshProfile } = useOrganization();
-  const [currentStep, setCurrentStep] = useState<'profile' | 'complete'>('profile');
+  const [currentStep, setCurrentStep] = useState<'profile' | 'membership' | 'complete'>('profile');
 
   useEffect(() => {
     if (userProfile) {
-      // If onboarding is completed OR user has passed the profile step, they're done
-      // (we no longer require organization step)
-      if (userProfile.onboarding_completed || userProfile.onboarding_step === 'organization' || userProfile.onboarding_step === 'complete') {
+      // Check onboarding status
+      if (userProfile.onboarding_completed) {
         setCurrentStep('complete');
+      } else if (userProfile.onboarding_step === 'membership') {
+        setCurrentStep('membership');
+      } else if (userProfile.onboarding_step === 'organization' || userProfile.onboarding_step === 'complete') {
+        // Legacy users who were on organization step - skip to membership
+        setCurrentStep('membership');
       }
     }
   }, [userProfile]);
 
-  const handleProfileComplete = async () => {
-    // Mark onboarding as complete after profile setup (skip organization step)
-    if (user) {
-      await supabase
-        .from('profiles')
-        .update({ 
-          onboarding_completed: true,
-          onboarding_step: 'complete'
-        })
-        .eq('id', user.id);
-    }
+  const handleProfileComplete = () => {
+    setCurrentStep('membership');
+    refreshProfile();
+  };
+
+  const handleMembershipComplete = () => {
     setCurrentStep('complete');
     refreshProfile();
   };
@@ -57,11 +56,28 @@ export function OnboardingFlow({ children }: OnboardingFlowProps) {
     return <>{children}</>;
   }
 
-  // Show profile setup only (organization is optional, can be done later)
+  // Show onboarding steps
   return (
     <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4">
-      <div className="w-full max-w-lg">
-        <ProfileSetupStep onComplete={handleProfileComplete} />
+      <div className="w-full max-w-4xl">
+        {/* Progress indicator */}
+        <div className="flex items-center justify-center gap-2 mb-8">
+          <div className={`h-2 w-16 rounded-full ${currentStep === 'profile' ? 'bg-purple-500' : 'bg-purple-500'}`} />
+          <div className={`h-2 w-16 rounded-full ${currentStep === 'membership' ? 'bg-purple-500' : 'bg-slate-700'}`} />
+        </div>
+
+        {currentStep === 'profile' && (
+          <div className="max-w-lg mx-auto">
+            <ProfileSetupStep onComplete={handleProfileComplete} />
+          </div>
+        )}
+
+        {currentStep === 'membership' && (
+          <MembershipStep 
+            onComplete={handleMembershipComplete}
+            onBack={() => setCurrentStep('profile')}
+          />
+        )}
       </div>
     </div>
   );
