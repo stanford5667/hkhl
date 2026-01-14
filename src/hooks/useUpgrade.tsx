@@ -4,6 +4,7 @@ import { toast } from "sonner";
 
 export function useUpgrade() {
   const [showUpgradeDialog, setShowUpgradeDialog] = useState(false);
+  const [showAuthSheet, setShowAuthSheet] = useState(false);
   const [upgradeFeature, setUpgradeFeature] = useState<string>("default");
   const [isLoading, setIsLoading] = useState(false);
 
@@ -13,12 +14,7 @@ export function useUpgrade() {
       const { data: { session } } = await supabase.auth.getSession();
       
       if (!session) {
-        toast.error("Please sign in to upgrade", {
-          action: {
-            label: "Sign In",
-            onClick: () => window.location.href = "/auth",
-          },
-        });
+        setShowAuthSheet(true);
         return;
       }
 
@@ -52,6 +48,8 @@ export function useUpgrade() {
     isLoading,
     showUpgradeDialog,
     setShowUpgradeDialog,
+    showAuthSheet,
+    setShowAuthSheet,
     upgradeFeature,
   };
 }

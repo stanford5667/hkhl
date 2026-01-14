@@ -1,9 +1,9 @@
 import { Crown, Loader2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { MobileAuthSheet } from "@/components/auth/MobileAuthSheet";
 
 interface PremiumFeatureBlockProps {
   title?: string;
@@ -19,6 +19,7 @@ export function PremiumFeatureBlock({
   size = 'md'
 }: PremiumFeatureBlockProps) {
   const [isLoading, setIsLoading] = useState(false);
+  const [showAuthSheet, setShowAuthSheet] = useState(false);
 
   const handleUpgrade = async () => {
     setIsLoading(true);
@@ -26,12 +27,7 @@ export function PremiumFeatureBlock({
       const { data: { session } } = await supabase.auth.getSession();
       
       if (!session) {
-        toast.error("Please sign in to upgrade", {
-          action: {
-            label: "Sign In",
-            onClick: () => window.location.href = "/auth",
-          },
-        });
+        setShowAuthSheet(true);
         return;
       }
 
@@ -59,40 +55,50 @@ export function PremiumFeatureBlock({
   const padding = size === 'sm' ? 'py-3 gap-1.5' : size === 'lg' ? 'py-8 gap-4' : 'py-4 gap-2';
 
   return (
-    <button
-      onClick={handleUpgrade}
-      disabled={isLoading}
-      className={cn(
-        "flex flex-col items-center justify-center w-full text-amber-500/70 hover:text-amber-500 transition-colors cursor-pointer group",
-        padding,
-        className
-      )}
-    >
-      {isLoading ? (
-        <Loader2 className={cn(iconSize, "animate-spin")} />
-      ) : (
-        <Crown className={cn(iconSize, "group-hover:scale-110 transition-transform")} />
-      )}
-      <p className={cn("font-medium", textSize)}>
-        {isLoading ? 'Loading...' : title}
-      </p>
-      {description && !isLoading && (
-        <p className={cn("text-muted-foreground text-center", size === 'sm' ? 'text-xs' : 'text-sm')}>
-          {description}
+    <>
+      <button
+        onClick={handleUpgrade}
+        disabled={isLoading}
+        className={cn(
+          "flex flex-col items-center justify-center w-full text-amber-500/70 hover:text-amber-500 transition-colors cursor-pointer group",
+          padding,
+          className
+        )}
+      >
+        {isLoading ? (
+          <Loader2 className={cn(iconSize, "animate-spin")} />
+        ) : (
+          <Crown className={cn(iconSize, "group-hover:scale-110 transition-transform")} />
+        )}
+        <p className={cn("font-medium", textSize)}>
+          {isLoading ? 'Loading...' : title}
         </p>
-      )}
-      {!isLoading && (
-        <span className="text-xs text-amber-500/50 group-hover:text-amber-500 mt-1">
-          Click to upgrade →
-        </span>
-      )}
-    </button>
+        {description && !isLoading && (
+          <p className={cn("text-muted-foreground text-center", size === 'sm' ? 'text-xs' : 'text-sm')}>
+            {description}
+          </p>
+        )}
+        {!isLoading && (
+          <span className="text-xs text-amber-500/50 group-hover:text-amber-500 mt-1">
+            Click to upgrade →
+          </span>
+        )}
+      </button>
+      
+      <MobileAuthSheet 
+        open={showAuthSheet} 
+        onOpenChange={setShowAuthSheet}
+        title="Sign up to access Pro"
+        description="Create a free account, then upgrade to unlock premium features."
+      />
+    </>
   );
 }
 
 // Compact inline version for tight spaces
 export function PremiumFeatureInline({ className }: { className?: string }) {
   const [isLoading, setIsLoading] = useState(false);
+  const [showAuthSheet, setShowAuthSheet] = useState(false);
 
   const handleUpgrade = async () => {
     setIsLoading(true);
@@ -100,12 +106,7 @@ export function PremiumFeatureInline({ className }: { className?: string }) {
       const { data: { session } } = await supabase.auth.getSession();
       
       if (!session) {
-        toast.error("Please sign in to upgrade", {
-          action: {
-            label: "Sign In",
-            onClick: () => window.location.href = "/auth",
-          },
-        });
+        setShowAuthSheet(true);
         return;
       }
 
@@ -127,22 +128,31 @@ export function PremiumFeatureInline({ className }: { className?: string }) {
   };
 
   return (
-    <button
-      onClick={handleUpgrade}
-      disabled={isLoading}
-      className={cn(
-        "flex items-center gap-1.5 text-amber-500/70 hover:text-amber-500 transition-colors cursor-pointer",
-        className
-      )}
-    >
-      {isLoading ? (
-        <Loader2 className="h-4 w-4 animate-spin" />
-      ) : (
-        <Crown className="h-4 w-4" />
-      )}
-      <span className="text-xs font-medium">
-        {isLoading ? 'Loading...' : 'Premium'}
-      </span>
-    </button>
+    <>
+      <button
+        onClick={handleUpgrade}
+        disabled={isLoading}
+        className={cn(
+          "flex items-center gap-1.5 text-amber-500/70 hover:text-amber-500 transition-colors cursor-pointer",
+          className
+        )}
+      >
+        {isLoading ? (
+          <Loader2 className="h-4 w-4 animate-spin" />
+        ) : (
+          <Crown className="h-4 w-4" />
+        )}
+        <span className="text-xs font-medium">
+          {isLoading ? 'Loading...' : 'Premium'}
+        </span>
+      </button>
+      
+      <MobileAuthSheet 
+        open={showAuthSheet} 
+        onOpenChange={setShowAuthSheet}
+        title="Sign up to access Pro"
+        description="Create a free account, then upgrade to unlock premium features."
+      />
+    </>
   );
 }

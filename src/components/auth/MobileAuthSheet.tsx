@@ -19,21 +19,24 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
-import { Loader2, Sparkles, Lock, TrendingUp, Shield } from "lucide-react";
+import { Loader2, Sparkles, Lock, TrendingUp, Shield, Crown } from "lucide-react";
+import { cn } from "@/lib/utils";
 
-interface AuthGateDialogProps {
+interface MobileAuthSheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   title?: string;
   description?: string;
+  showPremiumBranding?: boolean;
 }
 
-export function AuthGateDialog({ 
+export function MobileAuthSheet({ 
   open, 
   onOpenChange,
-  title = "Sign up to save",
-  description = "Create a free account to save your progress."
-}: AuthGateDialogProps) {
+  title = "Sign up to continue",
+  description = "Create a free account to unlock this feature.",
+  showPremiumBranding = true
+}: MobileAuthSheetProps) {
   const [mode, setMode] = useState<'signin' | 'signup'>('signup');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -77,10 +80,12 @@ export function AuthGateDialog({
 
   const AuthForm = () => (
     <div className="space-y-4 px-1">
-      {/* Header icon - only on mobile drawer */}
-      {!isDesktop && (
-        <div className="mx-auto w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-2">
-          <Lock className="h-6 w-6 text-primary" />
+      {/* Premium Branding */}
+      {showPremiumBranding && (
+        <div className="flex items-center justify-center gap-2 py-2">
+          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center shadow-lg shadow-orange-500/30">
+            <Crown className="h-6 w-6 text-white" />
+          </div>
         </div>
       )}
 
@@ -141,7 +146,7 @@ export function AuthGateDialog({
 
         <Button 
           type="submit" 
-          className="w-full h-12 text-base font-semibold" 
+          className="w-full h-12 text-base font-semibold bg-gradient-to-r from-primary to-primary/80" 
           disabled={isLoading}
         >
           {isLoading ? (
@@ -188,9 +193,6 @@ export function AuthGateDialog({
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader className="text-center pb-2">
-            <div className="mx-auto w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-2">
-              <Lock className="h-6 w-6 text-primary" />
-            </div>
             <DialogTitle className="text-xl font-bold">{title}</DialogTitle>
             <DialogDescription className="text-sm">
               {description}
