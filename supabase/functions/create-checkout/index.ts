@@ -50,7 +50,8 @@ serve(async (req) => {
       logStep("Existing customer found", { customerId });
     }
 
-    const origin = req.headers.get("origin") || "https://hkhl.lovable.app";
+    // Always use production URL for Stripe redirects (preview URLs won't work)
+    const productionUrl = "https://hkhl.lovable.app";
     
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
@@ -62,8 +63,8 @@ serve(async (req) => {
         },
       ],
       mode: "subscription",
-      success_url: `${origin}/?subscription=success`,
-      cancel_url: `${origin}/?subscription=cancelled`,
+      success_url: `${productionUrl}/?subscription=success`,
+      cancel_url: `${productionUrl}/?subscription=cancelled`,
     });
 
     logStep("Checkout session created", { sessionId: session.id });
