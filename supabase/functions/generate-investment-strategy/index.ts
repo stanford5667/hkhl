@@ -155,6 +155,49 @@ Write 2-3 paragraphs explaining the core investment philosophy suited to their a
 ## Portfolio Construction Strategy
 Explain the rationale behind their target allocation. Why these percentages make sense for their specific situation, timeline, and goals. Discuss how the allocation balances growth potential with their stated risk tolerance of ${riskTolerance}%.
 
+## What to Track: Your Monitoring Dashboard
+
+### Daily Check-ins (2-3 minutes)
+Explain what they should briefly glance at daily:
+- **Portfolio pulse**: Quick check if anything unusual happened (major single-day moves > 3%)
+- **Market headlines**: Brief scan of major financial news (Fed announcements, earnings surprises)
+- Why this matters: Early awareness prevents panic; you'll see context before others explain it
+
+### Weekly Reviews (15-20 minutes)
+What they should review weekly:
+- **Portfolio performance**: Compare against their benchmark (e.g., S&P 500 for US equities portion)
+- **Sector rotation**: Which sectors are leading/lagging (Technology, Healthcare, Financials, Energy)
+- **Currency movements**: USD strength/weakness affects international holdings
+- **Bond yields**: 10-year Treasury yield direction (rising yields = bond prices fall, affects rate-sensitive stocks)
+- Suggested day: Sunday evening or Monday morning
+
+### Monthly Deep Dives (1-2 hours)
+What they should analyze monthly:
+- **Economic indicators**:
+  - Inflation (CPI, PCE): Affects Fed policy and purchasing power
+  - Employment (jobs report, unemployment rate): Economic health indicator
+  - Consumer sentiment: Leading indicator of spending patterns
+  - PMI (Purchasing Managers Index): Manufacturing/services expansion or contraction
+- **Interest rate outlook**: Fed meeting outcomes and forward guidance
+- **Global markets**: International equity performance, emerging markets trends
+- **Commodity prices**: Oil, gold, copper (economic bellwethers)
+- **Portfolio rebalancing check**: Has any allocation drifted more than 5% from target?
+
+### Quarterly Strategy Sessions (2-3 hours)
+What they should do quarterly:
+- Full portfolio rebalancing if needed
+- Tax-loss harvesting review (especially Q4)
+- Review of any life changes affecting investment goals
+- Earnings season analysis for major holdings
+- Adjust target allocation if circumstances have changed
+
+### Key Economic Calendar Events to Watch
+Teach them about important recurring dates:
+- **First Friday of month**: Jobs report (Non-Farm Payrolls)
+- **Mid-month**: CPI inflation data
+- **Every 6 weeks**: Federal Reserve FOMC meetings
+- **Quarterly**: GDP releases, earnings seasons (Jan, Apr, Jul, Oct)
+
 ## Behavioral Guardrails
 Based on their archetype (${profile.investorTypeName}) and their stated downturn response, provide 3-4 specific behavioral rules they should follow. These should feel like wisdom from an experienced mentor who knows their tendencies.
 
@@ -170,12 +213,18 @@ Provide a phased approach to building their portfolio:
 Their preferred involvement level is ${prefInvolvement < 30 ? 'minimal - they want this to be automated' : prefInvolvement < 70 ? 'moderate - they want some control' : 'high - they enjoy active management'}, so tailor recommendations accordingly.
 
 ## Risk Factors to Monitor
-List 3-4 specific risks this investor should watch for, given their profile. Be honest but constructive.
+List 3-4 specific risks this investor should watch for, given their profile. Be honest but constructive. Include both portfolio-specific risks and macroeconomic risks they should be aware of.
+
+## Learning as You Go
+Provide 2-3 educational resources or concepts they should learn about in their first year:
+- Suggested topics based on their portfolio (e.g., if they have bonds: duration risk, yield curves)
+- How to read and interpret the indicators mentioned above
+- Building pattern recognition over time
 
 ## Long-Term Perspective
 A closing section with motivational but realistic perspective on their ${profile.timeHorizon}-year journey. ${visionSuccess ? `Connect to their stated vision: "${visionSuccess}"` : ''} Include expected range of outcomes.
 
-Remember: Be specific to THEIR situation. Reference their actual numbers and responses. This should feel like it was written just for them.`;
+Remember: Be specific to THEIR situation. Reference their actual numbers and responses. This should feel like it was written just for them. The tracking guidance should be tailored to their involvement level - more detail for hands-on investors, simpler for set-and-forget types.`;
 
     console.log("Calling Lovable AI for investment strategy generation...");
 
