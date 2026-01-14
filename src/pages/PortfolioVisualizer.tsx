@@ -1177,26 +1177,30 @@ export default function PortfolioVisualizer() {
     await runAnalysis(investorProfile, allocations, portfolioMode || 'manual');
   };
 
-  // Handle manual form completion
+  // Handle manual form completion - requires auth
   const handleManualComplete = (data: { capital: number; horizon: number; allocations: PortfolioAllocation[] }) => {
-    const profile: InvestorProfile = {
-      ...DEFAULT_PROFILE,
-      investableCapital: data.capital,
-      investmentHorizon: data.horizon,
-    };
-    setInvestorProfile(profile);
-    setAllocations(data.allocations);
-    setPortfolioMode('manual');
-    runAnalysis(profile, data.allocations, 'manual');
+    requireAuth(() => {
+      const profile: InvestorProfile = {
+        ...DEFAULT_PROFILE,
+        investableCapital: data.capital,
+        investmentHorizon: data.horizon,
+      };
+      setInvestorProfile(profile);
+      setAllocations(data.allocations);
+      setPortfolioMode('manual');
+      runAnalysis(profile, data.allocations, 'manual');
+    }, 'portfolio-analysis');
   };
 
-  // Handle AI wizard completion
+  // Handle AI wizard completion - requires auth
   const handleAIComplete = (profile: InvestorProfile) => {
-    setInvestorProfile(profile);
-    setPortfolioMode('ai');
-    const aiAllocations = generateAIPortfolio(profile);
-    setAllocations(aiAllocations);
-    runAnalysis(profile, aiAllocations, 'ai');
+    requireAuth(() => {
+      setInvestorProfile(profile);
+      setPortfolioMode('ai');
+      const aiAllocations = generateAIPortfolio(profile);
+      setAllocations(aiAllocations);
+      runAnalysis(profile, aiAllocations, 'ai');
+    }, 'portfolio-analysis');
   };
 
   // Update selected point when risk tolerance changes
@@ -1227,31 +1231,33 @@ export default function PortfolioVisualizer() {
     setAnalysisSteps([]);
   };
 
-  // Handle IPS questionnaire completion
+  // Handle IPS questionnaire completion - requires auth
   const handleQuestionnaireComplete = (policy: InvestorPolicyStatement) => {
-    // Store the IPS for display
-    setInvestorPolicy(policy);
-    
-    // Convert IPS to InvestorProfile for analysis
-    const profile: InvestorProfile = {
-      investableCapital: 100000, // Default, could add to questionnaire
-      liquidityConstraint: policy.liquidityNeeds.emergencyFundMonths >= 3 ? 'high' : 'locked',
-      assetUniverse: ['stocks', 'etfs', 'bonds'],
-      riskTolerance: policy.riskProfile.emotionalTolerance,
-      taxBracket: 'medium',
-      investmentHorizon: 10, // Could derive from goals
-    };
-    
-    // Add alternatives based on constraints
-    if (!policy.constraints.ethicalExclusions.includes('crypto')) {
-      profile.assetUniverse.push('crypto');
-    }
-    
-    setInvestorProfile(profile);
-    setPortfolioMode('ai');
-    const aiAllocations = generateAIPortfolio(profile);
-    setAllocations(aiAllocations);
-    runAnalysis(profile, aiAllocations, 'ai');
+    requireAuth(() => {
+      // Store the IPS for display
+      setInvestorPolicy(policy);
+      
+      // Convert IPS to InvestorProfile for analysis
+      const profile: InvestorProfile = {
+        investableCapital: 100000, // Default, could add to questionnaire
+        liquidityConstraint: policy.liquidityNeeds.emergencyFundMonths >= 3 ? 'high' : 'locked',
+        assetUniverse: ['stocks', 'etfs', 'bonds'],
+        riskTolerance: policy.riskProfile.emotionalTolerance,
+        taxBracket: 'medium',
+        investmentHorizon: 10, // Could derive from goals
+      };
+      
+      // Add alternatives based on constraints
+      if (!policy.constraints.ethicalExclusions.includes('crypto')) {
+        profile.assetUniverse.push('crypto');
+      }
+      
+      setInvestorProfile(profile);
+      setPortfolioMode('ai');
+      const aiAllocations = generateAIPortfolio(profile);
+      setAllocations(aiAllocations);
+      runAnalysis(profile, aiAllocations, 'ai');
+    }, 'portfolio-analysis');
   };
 
   // Render based on current flow
@@ -1264,6 +1270,12 @@ export default function PortfolioVisualizer() {
           onSelectAIChat={() => setCurrentFlow('ai-wizard')}
           onSelectQuestionnaire={() => setCurrentFlow('questionnaire')}
         />
+        <AuthGateDialog
+          open={showAuthDialog}
+          onOpenChange={closeAuthDialog}
+          title="Sign in to analyze portfolios"
+          description="Create a free account to run portfolio analysis and save your results."
+        />
       </div>
     );
   }
@@ -1274,6 +1286,12 @@ export default function PortfolioVisualizer() {
         <ManualPortfolioForm
           onComplete={handleManualComplete}
           onBack={() => setCurrentFlow('choose-path')}
+        />
+        <AuthGateDialog
+          open={showAuthDialog}
+          onOpenChange={closeAuthDialog}
+          title="Sign in to analyze portfolios"
+          description="Create a free account to run portfolio analysis and save your results."
         />
       </div>
     );
@@ -1286,16 +1304,30 @@ export default function PortfolioVisualizer() {
           onComplete={handleAIComplete}
           onBack={() => setCurrentFlow('choose-path')}
         />
+        <AuthGateDialog
+          open={showAuthDialog}
+          onOpenChange={closeAuthDialog}
+          title="Sign in to analyze portfolios"
+          description="Create a free account to run portfolio analysis and save your results."
+        />
       </div>
     );
   }
 
   if (currentFlow === 'questionnaire') {
     return (
-      <InvestorPolicyQuestionnaire
-        onComplete={handleQuestionnaireComplete}
-        onBack={() => setCurrentFlow('choose-path')}
-      />
+      <>
+        <InvestorPolicyQuestionnaire
+          onComplete={handleQuestionnaireComplete}
+          onBack={() => setCurrentFlow('choose-path')}
+        />
+        <AuthGateDialog
+          open={showAuthDialog}
+          onOpenChange={closeAuthDialog}
+          title="Sign in to analyze portfolios"
+          description="Create a free account to run portfolio analysis and save your results."
+        />
+      </>
     );
   }
 
