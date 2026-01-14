@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import logoIcon from "@/assets/logo-icon-new.png";
+import logoIcon from "@/assets/logo-icon-bw.png";
 import { cn } from "@/lib/utils";
 import { 
   Briefcase, 

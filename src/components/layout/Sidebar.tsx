@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
-import logoIcon from "@/assets/logo-icon-new.png";
+import logoIcon from "@/assets/logo-icon-bw.png";
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
