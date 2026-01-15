@@ -1,13 +1,10 @@
 /**
  * Mobile-First Portfolio Backtester
  * 
- * Redesigned with mobile-first principles:
- * - Single view, no excessive scrolling
- * - Bottom sheets for editing (mobile) / sidebar (desktop)
- * - Swipeable metrics
- * - Compact asset display
- * - Sticky action bar
- * - Responsive breakpoints for larger screens
+ * Three-tab layout:
+ * - Settings: Date range, capital, max drawdown
+ * - Portfolio: Ticker search and allocation (center)
+ * - Templates: Pre-built portfolio templates
  */
 
 import { useState, useCallback, useMemo } from 'react';
@@ -18,14 +15,6 @@ import { Badge } from '@/components/ui/badge';
 import { Slider } from '@/components/ui/slider';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from '@/components/ui/sheet';
 import {
   Select,
   SelectContent,
@@ -59,7 +48,6 @@ import {
   Activity,
   BarChart3,
   Scale,
-  AlertTriangle,
   Search,
   Settings2,
   Loader2,
@@ -67,11 +55,11 @@ import {
   ChevronRight,
   LayoutGrid,
   Layers,
-  ArrowUpRight,
-  ArrowDownRight,
   Calendar,
   Shield,
   Info,
+  DollarSign,
+  Wallet,
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
@@ -134,19 +122,19 @@ interface BacktestResult {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 const PERIODS = [
-  { value: '1Y', label: '1Y', years: 1 },
-  { value: '3Y', label: '3Y', years: 3 },
-  { value: '5Y', label: '5Y', years: 5 },
-  { value: '10Y', label: '10Y', years: 10 },
-  { value: 'MAX', label: 'Max', years: 30 },
+  { value: '1Y', label: '1 Year', years: 1 },
+  { value: '3Y', label: '3 Years', years: 3 },
+  { value: '5Y', label: '5 Years', years: 5 },
+  { value: '10Y', label: '10 Years', years: 10 },
+  { value: 'MAX', label: 'Max Available', years: 30 },
 ];
 
 const BENCHMARKS = [
-  { value: 'SPY', label: 'S&P 500' },
-  { value: 'QQQ', label: 'NASDAQ' },
-  { value: 'VTI', label: 'Total Mkt' },
-  { value: 'AGG', label: 'Bonds' },
-  { value: 'NONE', label: 'None' },
+  { value: 'SPY', label: 'S&P 500 (SPY)' },
+  { value: 'QQQ', label: 'NASDAQ 100 (QQQ)' },
+  { value: 'VTI', label: 'Total Market (VTI)' },
+  { value: 'AGG', label: 'Bonds (AGG)' },
+  { value: 'NONE', label: 'No Benchmark' },
 ];
 
 const POPULAR_ETFS = [
@@ -171,12 +159,14 @@ const COLORS = [
 ];
 
 const TEMPLATES = [
-  { name: '60/40', assets: [{ symbol: 'VTI', weight: 60 }, { symbol: 'BND', weight: 40 }] },
-  { name: 'Three-Fund', assets: [{ symbol: 'VTI', weight: 50 }, { symbol: 'VXUS', weight: 30 }, { symbol: 'BND', weight: 20 }] },
-  { name: 'All-Weather', assets: [{ symbol: 'VTI', weight: 30 }, { symbol: 'TLT', weight: 40 }, { symbol: 'IEF', weight: 15 }, { symbol: 'GLD', weight: 15 }] },
-  { name: 'Growth', assets: [{ symbol: 'VTI', weight: 40 }, { symbol: 'QQQ', weight: 30 }, { symbol: 'VGT', weight: 20 }, { symbol: 'BND', weight: 10 }] },
-  { name: 'Income', assets: [{ symbol: 'SCHD', weight: 40 }, { symbol: 'BND', weight: 40 }, { symbol: 'VNQ', weight: 20 }] },
-  { name: 'Global', assets: [{ symbol: 'VTI', weight: 40 }, { symbol: 'VXUS', weight: 30 }, { symbol: 'BND', weight: 20 }, { symbol: 'GLD', weight: 10 }] },
+  { name: '60/40 Classic', description: 'Traditional balanced portfolio', assets: [{ symbol: 'VTI', weight: 60 }, { symbol: 'BND', weight: 40 }] },
+  { name: 'Three-Fund', description: 'Bogleheads favorite', assets: [{ symbol: 'VTI', weight: 50 }, { symbol: 'VXUS', weight: 30 }, { symbol: 'BND', weight: 20 }] },
+  { name: 'All-Weather', description: 'Ray Dalio inspired', assets: [{ symbol: 'VTI', weight: 30 }, { symbol: 'TLT', weight: 40 }, { symbol: 'IEF', weight: 15 }, { symbol: 'GLD', weight: 15 }] },
+  { name: 'Growth Tilt', description: 'Tech-heavy growth', assets: [{ symbol: 'VTI', weight: 40 }, { symbol: 'QQQ', weight: 30 }, { symbol: 'VGT', weight: 20 }, { symbol: 'BND', weight: 10 }] },
+  { name: 'Income Focus', description: 'Dividend and bonds', assets: [{ symbol: 'SCHD', weight: 40 }, { symbol: 'BND', weight: 40 }, { symbol: 'VNQ', weight: 20 }] },
+  { name: 'Global Diversified', description: 'Worldwide exposure', assets: [{ symbol: 'VTI', weight: 40 }, { symbol: 'VXUS', weight: 30 }, { symbol: 'BND', weight: 20 }, { symbol: 'GLD', weight: 10 }] },
+  { name: 'Conservative', description: 'Low volatility focus', assets: [{ symbol: 'BND', weight: 50 }, { symbol: 'VTI', weight: 30 }, { symbol: 'GLD', weight: 10 }, { symbol: 'IEF', weight: 10 }] },
+  { name: 'Aggressive Growth', description: 'Max equity exposure', assets: [{ symbol: 'QQQ', weight: 40 }, { symbol: 'VTI', weight: 30 }, { symbol: 'VGT', weight: 20 }, { symbol: 'VXUS', weight: 10 }] },
 ];
 
 // Drawdown-based portfolio suggestions
@@ -286,10 +276,9 @@ export function MobileBacktester() {
   const [benchmark, setBenchmark] = useState('SPY');
   const [initialCapital, setInitialCapital] = useState(100000);
   
-  // UI state
-  const [activeView, setActiveView] = useState<'build' | 'results'>('build');
-  const [settingsOpen, setSettingsOpen] = useState(false);
-  const [templatesOpen, setTemplatesOpen] = useState(false);
+  // UI state - three tabs: settings, portfolio, templates
+  const [activeTab, setActiveTab] = useState<'settings' | 'portfolio' | 'templates'>('portfolio');
+  const [showResults, setShowResults] = useState(false);
   
   // Results state
   const [result, setResult] = useState<BacktestResult | null>(null);
@@ -315,6 +304,7 @@ export function MobileBacktester() {
       ...a,
       color: COLORS[i % COLORS.length],
     })));
+    setActiveTab('portfolio');
     toast.success(`Applied ${suggestedPortfolio.name}`);
   };
 
@@ -371,7 +361,7 @@ export function MobileBacktester() {
       ...a,
       color: COLORS[i % COLORS.length],
     })));
-    setTemplatesOpen(false);
+    setActiveTab('portfolio');
     toast.success(`Loaded ${template.name}`);
   };
 
@@ -383,7 +373,7 @@ export function MobileBacktester() {
     }
     
     setIsLoading(true);
-    setActiveView('results');
+    setShowResults(true);
     
     try {
       const endDate = new Date();
@@ -554,7 +544,7 @@ export function MobileBacktester() {
         monthlyReturns,
       });
       
-      toast.success('Done');
+      toast.success('Backtest complete');
     } catch (error) {
       console.error(error);
       toast.error('Backtest failed');
@@ -574,12 +564,296 @@ export function MobileBacktester() {
     }));
   }, [result]);
 
+  // ═══════════════════════════════════════════════════════════════════════════════
+  // RESULTS VIEW
+  // ═══════════════════════════════════════════════════════════════════════════════
+
+  if (showResults && result) {
+    return (
+      <div className="flex flex-col h-[100dvh] bg-background">
+        {/* Results Header */}
+        <header className="flex-shrink-0 px-4 py-3 border-b bg-background/95 backdrop-blur">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Button variant="ghost" size="sm" onClick={() => setShowResults(false)}>
+                ← Back
+              </Button>
+              <h1 className="font-semibold">Results</h1>
+            </div>
+            <Badge variant="secondary" className="font-mono">
+              {PERIODS.find(p => p.value === period)?.label}
+            </Badge>
+          </div>
+        </header>
+
+        {/* Results Content */}
+        <div className="flex-1 flex flex-col min-h-0 overflow-auto">
+          {/* Key metrics cards */}
+          <div className="flex-shrink-0 px-4 pt-4">
+            <div className="grid grid-cols-2 gap-3">
+              <Card className={cn(
+                "p-3",
+                result.metrics.totalReturn >= 0 
+                  ? "bg-emerald-500/10 border-emerald-500/30" 
+                  : "bg-destructive/10 border-destructive/30"
+              )}>
+                <div className="flex items-center gap-1.5 mb-0.5">
+                  {result.metrics.totalReturn >= 0 ? (
+                    <Activity className="h-4 w-4 text-emerald-500" />
+                  ) : (
+                    <TrendingDown className="h-4 w-4 text-destructive" />
+                  )}
+                  <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                    Total Return
+                  </span>
+                </div>
+                <p className={cn(
+                  "text-2xl font-bold font-mono",
+                  result.metrics.totalReturn >= 0 ? "text-emerald-500" : "text-destructive"
+                )}>
+                  {result.metrics.totalReturn >= 0 ? '+' : ''}{result.metrics.totalReturn.toFixed(1)}%
+                </p>
+              </Card>
+              
+              <Card className="p-3 bg-destructive/10 border-destructive/30">
+                <div className="flex items-center gap-1.5 mb-0.5">
+                  <TrendingDown className="h-4 w-4 text-destructive" />
+                  <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                    Max Drawdown
+                  </span>
+                </div>
+                <p className="text-2xl font-bold font-mono text-destructive">
+                  -{result.metrics.maxDrawdown.toFixed(1)}%
+                </p>
+              </Card>
+            </div>
+          </div>
+
+          {/* Scrollable metrics */}
+          <ScrollArea className="flex-shrink-0 w-full">
+            <div className="flex gap-2 px-4 py-3">
+              <MetricPill 
+                label="CAGR" 
+                value={result.metrics.cagr} 
+                suffix="%" 
+                trend={result.metrics.cagr >= 0 ? 'up' : 'down'}
+                icon={Calendar}
+              />
+              <MetricPill 
+                label="Sharpe" 
+                value={result.metrics.sharpeRatio} 
+                trend={result.metrics.sharpeRatio >= 1 ? 'up' : result.metrics.sharpeRatio >= 0.5 ? 'neutral' : 'down'}
+                icon={Activity}
+              />
+              <MetricPill 
+                label="Sortino" 
+                value={result.metrics.sortinoRatio}
+                trend={result.metrics.sortinoRatio >= 1.5 ? 'up' : 'neutral'}
+                icon={Shield}
+              />
+              <MetricPill 
+                label="Vol" 
+                value={result.metrics.volatility} 
+                suffix="%"
+                trend={result.metrics.volatility <= 15 ? 'up' : result.metrics.volatility <= 25 ? 'neutral' : 'down'}
+                icon={Activity}
+              />
+              <MetricPill 
+                label="Beta" 
+                value={result.metrics.beta}
+                trend="neutral"
+              />
+              <MetricPill 
+                label="Alpha" 
+                value={result.metrics.alpha} 
+                suffix="%"
+                trend={result.metrics.alpha > 0 ? 'up' : 'down'}
+              />
+            </div>
+            <ScrollBar orientation="horizontal" />
+          </ScrollArea>
+
+          {/* Chart */}
+          <div className="flex-1 min-h-[300px] px-4 pb-4">
+            <Card className="h-full">
+              <CardContent className="p-2 h-full">
+                <Tabs defaultValue="growth" className="h-full flex flex-col">
+                  <TabsList className="flex-shrink-0 h-8 w-full grid grid-cols-3">
+                    <TabsTrigger value="growth" className="text-xs">Growth</TabsTrigger>
+                    <TabsTrigger value="drawdown" className="text-xs">Drawdown</TabsTrigger>
+                    <TabsTrigger value="yearly" className="text-xs">Yearly</TabsTrigger>
+                  </TabsList>
+                  
+                  <TabsContent value="growth" className="flex-1 min-h-0 mt-2">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <AreaChart data={chartData}>
+                        <defs>
+                          <linearGradient id="portfolioGrad" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3}/>
+                            <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0}/>
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                        <XAxis 
+                          dataKey="date" 
+                          tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }}
+                          tickFormatter={(v) => new Date(v).getFullYear().toString()}
+                          interval="preserveStartEnd"
+                        />
+                        <YAxis 
+                          tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }}
+                          tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`}
+                          width={45}
+                        />
+                        <RechartsTooltip
+                          contentStyle={{
+                            backgroundColor: 'hsl(var(--popover))',
+                            border: '1px solid hsl(var(--border))',
+                            borderRadius: '8px',
+                            fontSize: 12,
+                          }}
+                          formatter={(value: number) => [`$${value.toLocaleString()}`, '']}
+                          labelFormatter={(label) => new Date(label).toLocaleDateString()}
+                        />
+                        <Area
+                          type="monotone"
+                          dataKey="benchmark"
+                          stroke="hsl(var(--muted-foreground))"
+                          strokeWidth={1}
+                          fill="none"
+                        />
+                        <Area
+                          type="monotone"
+                          dataKey="portfolio"
+                          stroke="hsl(var(--primary))"
+                          strokeWidth={2}
+                          fill="url(#portfolioGrad)"
+                        />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  </TabsContent>
+                  
+                  <TabsContent value="drawdown" className="flex-1 min-h-0 mt-2">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <AreaChart data={chartData}>
+                        <defs>
+                          <linearGradient id="ddGrad" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="hsl(var(--destructive))" stopOpacity={0.4}/>
+                            <stop offset="95%" stopColor="hsl(var(--destructive))" stopOpacity={0.1}/>
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                        <XAxis 
+                          dataKey="date" 
+                          tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }}
+                          tickFormatter={(v) => new Date(v).getFullYear().toString()}
+                          interval="preserveStartEnd"
+                        />
+                        <YAxis 
+                          tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }}
+                          tickFormatter={(v) => `${v.toFixed(0)}%`}
+                          domain={['auto', 0]}
+                          width={40}
+                        />
+                        <RechartsTooltip
+                          contentStyle={{
+                            backgroundColor: 'hsl(var(--popover))',
+                            border: '1px solid hsl(var(--border))',
+                            borderRadius: '8px',
+                            fontSize: 12,
+                          }}
+                          formatter={(value: number) => [`${value.toFixed(2)}%`, 'Drawdown']}
+                          labelFormatter={(label) => new Date(label).toLocaleDateString()}
+                        />
+                        <ReferenceLine y={-result.metrics.maxDrawdown} stroke="hsl(var(--destructive))" strokeDasharray="5 5" />
+                        <Area
+                          type="monotone"
+                          dataKey="drawdown"
+                          stroke="hsl(var(--destructive))"
+                          fill="url(#ddGrad)"
+                        />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  </TabsContent>
+                  
+                  <TabsContent value="yearly" className="flex-1 min-h-0 mt-2">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <ComposedChart data={result.yearlyReturns}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                        <XAxis 
+                          dataKey="year" 
+                          tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }}
+                        />
+                        <YAxis 
+                          tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }}
+                          tickFormatter={(v) => `${v.toFixed(0)}%`}
+                          width={40}
+                        />
+                        <RechartsTooltip
+                          contentStyle={{
+                            backgroundColor: 'hsl(var(--popover))',
+                            border: '1px solid hsl(var(--border))',
+                            borderRadius: '8px',
+                            fontSize: 12,
+                          }}
+                          formatter={(value: number, name: string) => [
+                            `${value.toFixed(1)}%`,
+                            name === 'return' ? 'Portfolio' : 'Benchmark'
+                          ]}
+                        />
+                        <ReferenceLine y={0} stroke="hsl(var(--border))" />
+                        <Bar 
+                          dataKey="return" 
+                          fill="hsl(var(--primary))" 
+                          radius={[4, 4, 0, 0]}
+                          name="return"
+                        />
+                        <Line 
+                          type="monotone" 
+                          dataKey="benchmark" 
+                          stroke="hsl(var(--muted-foreground))" 
+                          strokeWidth={2}
+                          dot={false}
+                          name="benchmark"
+                        />
+                      </ComposedChart>
+                    </ResponsiveContainer>
+                  </TabsContent>
+                </Tabs>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Final value */}
+          <div className="flex-shrink-0 px-4 pb-4">
+            <Card className="bg-gradient-to-r from-primary/10 to-primary/5 border-primary/30">
+              <CardContent className="p-3 flex items-center justify-between">
+                <div>
+                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Final Value</p>
+                  <p className="text-xl font-bold font-mono">
+                    ${result.portfolioValues[result.portfolioValues.length - 1].toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                  </p>
+                </div>
+                <div className="text-right text-sm text-muted-foreground">
+                  <p>from ${initialCapital.toLocaleString()}</p>
+                  <p>{PERIODS.find(p => p.value === period)?.label}</p>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════════
+  // MAIN BUILD VIEW
+  // ═══════════════════════════════════════════════════════════════════════════════
+
   return (
     <div className="flex flex-col h-[100dvh] bg-background">
-      {/* ═══════════════════════════════════════════════════════════════════════
-          HEADER - Compact, always visible
-      ═══════════════════════════════════════════════════════════════════════ */}
-      <header className="flex-shrink-0 px-4 py-3 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      {/* Header with Run button */}
+      <header className="flex-shrink-0 px-4 py-3 border-b bg-background/95 backdrop-blur">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <BarChart3 className="h-5 w-5 text-primary" />
@@ -587,82 +861,122 @@ export function MobileBacktester() {
           </div>
           
           <div className="flex items-center gap-2">
-            {/* Period selector - compact */}
-            <Select value={period} onValueChange={setPeriod}>
-              <SelectTrigger className="w-16 h-8 text-xs">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {PERIODS.map(p => (
-                  <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            {/* Weight indicator */}
+            <Badge variant={isValid ? 'secondary' : 'destructive'} className="font-mono text-xs">
+              {totalWeight.toFixed(0)}%
+            </Badge>
             
-            {/* Settings button */}
-            <Sheet open={settingsOpen} onOpenChange={setSettingsOpen}>
-              <SheetTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-8 w-8">
-                  <Settings2 className="h-4 w-4" />
-                </Button>
-              </SheetTrigger>
-              <SheetContent side="bottom" className="h-[50vh]">
-                <SheetHeader>
-                  <SheetTitle>Settings</SheetTitle>
-                </SheetHeader>
-                <div className="space-y-6 py-4">
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Benchmark</label>
-                    <Select value={benchmark} onValueChange={setBenchmark}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {BENCHMARKS.map(b => (
-                          <SelectItem key={b.value} value={b.value}>{b.label}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Initial Capital</label>
-                    <Input
-                      type="number"
-                      value={initialCapital}
-                      onChange={(e) => setInitialCapital(Number(e.target.value))}
-                      className="font-mono"
-                    />
-                  </div>
-                </div>
-              </SheetContent>
-            </Sheet>
+            {/* Run button in header */}
+            <Button 
+              onClick={runBacktest} 
+              disabled={isLoading || !isValid || assets.length === 0}
+              size="sm"
+              className="gap-1.5"
+            >
+              {isLoading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Play className="h-4 w-4" />
+              )}
+              Run
+            </Button>
           </div>
         </div>
       </header>
 
-      {/* ═══════════════════════════════════════════════════════════════════════
-          MAIN CONTENT - Swipeable tabs
-      ═══════════════════════════════════════════════════════════════════════ */}
-      <Tabs value={activeView} onValueChange={(v) => setActiveView(v as 'build' | 'results')} className="flex-1 flex flex-col min-h-0">
-        <TabsList className="flex-shrink-0 mx-4 mt-3 grid grid-cols-2 h-9">
-          <TabsTrigger value="build" className="text-xs gap-1.5">
-            <Layers className="h-3.5 w-3.5" />
+      {/* Three-tab navigation */}
+      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as typeof activeTab)} className="flex-1 flex flex-col min-h-0">
+        <TabsList className="flex-shrink-0 mx-4 mt-3 grid grid-cols-3 h-9">
+          <TabsTrigger value="settings" className="text-xs gap-1.5">
+            <Settings2 className="h-3.5 w-3.5" />
+            Settings
+          </TabsTrigger>
+          <TabsTrigger value="portfolio" className="text-xs gap-1.5">
+            <Wallet className="h-3.5 w-3.5" />
             Portfolio
           </TabsTrigger>
-          <TabsTrigger value="results" className="text-xs gap-1.5">
-            <BarChart3 className="h-3.5 w-3.5" />
-            Results
+          <TabsTrigger value="templates" className="text-xs gap-1.5">
+            <LayoutGrid className="h-3.5 w-3.5" />
+            Templates
           </TabsTrigger>
         </TabsList>
 
         {/* ═══════════════════════════════════════════════════════════════════
-            BUILD TAB
+            SETTINGS TAB
         ═══════════════════════════════════════════════════════════════════ */}
-        <TabsContent value="build" className="flex-1 flex flex-col min-h-0 mt-3">
-          <div className="flex-1 overflow-auto px-4 pb-4">
-            {/* Portfolio chips */}
-            <div className="space-y-3">
-              {/* Max Drawdown Target Dial */}
+        <TabsContent value="settings" className="flex-1 flex flex-col min-h-0 mt-3">
+          <ScrollArea className="flex-1">
+            <div className="px-4 pb-4 space-y-4">
+              {/* Date Range */}
+              <Card>
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Calendar className="h-4 w-4 text-primary" />
+                    <h3 className="font-medium text-sm">Date Range</h3>
+                  </div>
+                  <Select value={period} onValueChange={setPeriod}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {PERIODS.map(p => (
+                        <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </CardContent>
+              </Card>
+
+              {/* Initial Capital */}
+              <Card>
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <DollarSign className="h-4 w-4 text-primary" />
+                    <h3 className="font-medium text-sm">Initial Capital</h3>
+                  </div>
+                  <Input
+                    type="number"
+                    value={initialCapital}
+                    onChange={(e) => setInitialCapital(Number(e.target.value))}
+                    className="font-mono"
+                  />
+                  <div className="flex gap-2 mt-2">
+                    {[10000, 50000, 100000, 500000].map(val => (
+                      <Button
+                        key={val}
+                        variant={initialCapital === val ? 'default' : 'outline'}
+                        size="sm"
+                        className="flex-1 text-xs"
+                        onClick={() => setInitialCapital(val)}
+                      >
+                        ${val >= 1000 ? `${val / 1000}k` : val}
+                      </Button>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Benchmark */}
+              <Card>
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <BarChart3 className="h-4 w-4 text-primary" />
+                    <h3 className="font-medium text-sm">Benchmark</h3>
+                  </div>
+                  <Select value={benchmark} onValueChange={setBenchmark}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {BENCHMARKS.map(b => (
+                        <SelectItem key={b.value} value={b.value}>{b.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </CardContent>
+              </Card>
+
+              {/* Max Drawdown Target */}
               <Card className={cn(
                 "relative overflow-hidden border-2",
                 maxDrawdownTarget <= 10 && "border-emerald-500/30",
@@ -677,15 +991,12 @@ export function MobileBacktester() {
                 <CardContent className="relative p-4">
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-2">
-                      <Shield className={cn("h-5 w-5", getRiskColor(maxDrawdownTarget))} />
-                      <div>
-                        <h3 className="font-semibold text-sm">Max Drawdown Target</h3>
-                        <p className="text-xs text-muted-foreground">Set your risk tolerance</p>
-                      </div>
+                      <Shield className={cn("h-4 w-4", getRiskColor(maxDrawdownTarget))} />
+                      <h3 className="font-medium text-sm">Max Drawdown Target</h3>
                     </div>
-                    <div className={cn("text-2xl font-bold font-mono", getRiskColor(maxDrawdownTarget))}>
+                    <span className={cn("text-xl font-bold font-mono", getRiskColor(maxDrawdownTarget))}>
                       {maxDrawdownTarget}%
-                    </div>
+                    </span>
                   </div>
                   
                   <Slider
@@ -694,7 +1005,7 @@ export function MobileBacktester() {
                     min={5}
                     max={50}
                     step={5}
-                    className="mb-4"
+                    className="mb-3"
                   />
                   
                   <div className="flex justify-between text-[10px] text-muted-foreground mb-4">
@@ -715,7 +1026,6 @@ export function MobileBacktester() {
                           onClick={applySuggestedPortfolio}
                           className="h-7 text-xs gap-1"
                         >
-                          <Plus className="h-3 w-3" />
                           Apply
                         </Button>
                       </div>
@@ -730,454 +1040,158 @@ export function MobileBacktester() {
                   )}
                 </CardContent>
               </Card>
+            </div>
+          </ScrollArea>
+        </TabsContent>
 
-              {/* Quick templates */}
-              <div className="flex items-center gap-2">
-                <Sheet open={templatesOpen} onOpenChange={setTemplatesOpen}>
-                  <SheetTrigger asChild>
-                    <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs">
-                      <LayoutGrid className="h-3.5 w-3.5" />
-                      Templates
-                    </Button>
-                  </SheetTrigger>
-                  <SheetContent side="bottom" className="h-[60vh]">
-                    <SheetHeader>
-                      <SheetTitle>Portfolio Templates</SheetTitle>
-                      <SheetDescription>Load a preset allocation</SheetDescription>
-                    </SheetHeader>
-                    <ScrollArea className="h-[calc(100%-80px)] mt-4">
-                      <div className="space-y-2 pr-4">
-                        {TEMPLATES.map((t) => (
-                          <button
-                            key={t.name}
-                            onClick={() => loadTemplate(t)}
-                            className="w-full p-4 rounded-xl border bg-card text-left hover:bg-muted/50 transition-colors"
-                          >
-                            <div className="flex items-center justify-between mb-2">
-                              <span className="font-medium">{t.name}</span>
-                              <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                            </div>
-                            <div className="flex flex-wrap gap-1.5">
-                              {t.assets.map((a) => (
-                                <Badge key={a.symbol} variant="secondary" className="text-xs">
-                                  {a.symbol} {a.weight}%
-                                </Badge>
-                              ))}
-                            </div>
-                          </button>
-                        ))}
-                      </div>
-                    </ScrollArea>
-                  </SheetContent>
-                </Sheet>
-                
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="h-8 gap-1.5 text-xs"
-                  onClick={equalizeWeights}
-                  disabled={assets.length === 0}
-                >
-                  <Scale className="h-3.5 w-3.5" />
-                  Equal
-                </Button>
-                
-                <div className="ml-auto">
-                  <Badge variant={isValid ? 'default' : 'destructive'} className="font-mono">
-                    {totalWeight.toFixed(0)}%
-                  </Badge>
-                </div>
-              </div>
-
-              {/* Asset cards */}
-              <div className="space-y-2">
-                {assets.map((asset) => (
-                  <div 
-                    key={asset.symbol}
-                    className="flex items-center gap-3 p-3 rounded-xl border bg-card"
-                  >
-                    <div 
-                      className="w-3 h-3 rounded-full flex-shrink-0" 
-                      style={{ backgroundColor: asset.color }}
-                    />
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className="font-mono font-semibold">{asset.symbol}</span>
-                        <span className="text-xs text-muted-foreground truncate">
-                          {asset.name}
-                        </span>
-                      </div>
-                      <Slider
-                        value={[asset.weight]}
-                        onValueChange={([v]) => updateWeight(asset.symbol, v)}
-                        max={100}
-                        step={1}
-                        className="mt-2"
+        {/* ═══════════════════════════════════════════════════════════════════
+            PORTFOLIO TAB (CENTER - Ticker Search)
+        ═══════════════════════════════════════════════════════════════════ */}
+        <TabsContent value="portfolio" className="flex-1 flex flex-col min-h-0 mt-3">
+          <div className="flex-1 overflow-auto px-4 pb-4">
+            <div className="space-y-3">
+              {/* Add ticker search - prominently at top */}
+              <Card className="border-primary/30 bg-primary/5">
+                <CardContent className="p-3">
+                  <div className="flex gap-2">
+                    <div className="relative flex-1">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        value={newSymbol}
+                        onChange={(e) => setNewSymbol(e.target.value.toUpperCase())}
+                        onKeyDown={(e) => e.key === 'Enter' && addAsset(newSymbol)}
+                        placeholder="Enter ticker symbol..."
+                        className="pl-9 h-11 text-base"
                       />
                     </div>
-                    <div className="flex items-center gap-2">
-                      <span className="font-mono font-bold text-sm w-10 text-right">
-                        {asset.weight.toFixed(0)}%
-                      </span>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-7 w-7 text-muted-foreground hover:text-destructive"
-                        onClick={() => removeAsset(asset.symbol)}
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </div>
+                    <Button onClick={() => addAsset(newSymbol)} disabled={!newSymbol} className="h-11 px-4">
+                      <Plus className="h-5 w-5" />
+                    </Button>
                   </div>
-                ))}
-              </div>
-
-              {/* Add asset */}
-              <div className="flex gap-2">
-                <div className="relative flex-1">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    value={newSymbol}
-                    onChange={(e) => setNewSymbol(e.target.value.toUpperCase())}
-                    onKeyDown={(e) => e.key === 'Enter' && addAsset(newSymbol)}
-                    placeholder="Add ticker..."
-                    className="pl-9 h-10"
-                  />
-                </div>
-                <Button onClick={() => addAsset(newSymbol)} disabled={!newSymbol} className="h-10">
-                  <Plus className="h-4 w-4" />
-                </Button>
-              </div>
+                </CardContent>
+              </Card>
 
               {/* Quick add pills */}
               <ScrollArea className="w-full">
                 <div className="flex gap-1.5 pb-2">
-                  {POPULAR_ETFS.filter(e => !assets.find(a => a.symbol === e.symbol)).slice(0, 8).map((etf) => (
+                  {POPULAR_ETFS.filter(e => !assets.find(a => a.symbol === e.symbol)).slice(0, 10).map((etf) => (
                     <button
                       key={etf.symbol}
                       onClick={() => addAsset(etf.symbol)}
-                      className="flex-shrink-0 px-2.5 py-1 text-xs rounded-full border bg-card hover:bg-muted transition-colors"
+                      className="flex-shrink-0 px-2.5 py-1.5 text-xs rounded-full border bg-card hover:bg-muted/50 transition-colors"
                     >
-                      {etf.symbol}
+                      <span className="font-mono font-medium">{etf.symbol}</span>
+                      <span className="text-muted-foreground ml-1">{etf.name}</span>
                     </button>
                   ))}
                 </div>
                 <ScrollBar orientation="horizontal" />
               </ScrollArea>
 
-              {/* Validation warning */}
-              {!isValid && assets.length > 0 && (
-                <div className="flex items-center gap-2 p-3 rounded-xl bg-destructive/10 border border-destructive/30">
-                  <AlertTriangle className="h-4 w-4 text-destructive flex-shrink-0" />
-                  <span className="text-sm text-destructive">
-                    Weights must equal 100% ({totalWeight.toFixed(1)}% now)
-                  </span>
-                </div>
-              )}
+              {/* Toolbar */}
+              <div className="flex items-center justify-between">
+                <h3 className="font-medium text-sm text-muted-foreground">
+                  Your Portfolio ({assets.length} assets)
+                </h3>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="h-7 gap-1.5 text-xs"
+                  onClick={equalizeWeights}
+                  disabled={assets.length === 0}
+                >
+                  <Scale className="h-3 w-3" />
+                  Equal Weight
+                </Button>
+              </div>
+
+              {/* Asset cards */}
+              <div className="space-y-2">
+                {assets.length === 0 ? (
+                  <Card className="p-8 text-center">
+                    <Layers className="h-10 w-10 mx-auto mb-3 text-muted-foreground/30" />
+                    <p className="text-muted-foreground text-sm">
+                      No assets yet. Add tickers above or choose a template.
+                    </p>
+                  </Card>
+                ) : (
+                  assets.map((asset) => (
+                    <div 
+                      key={asset.symbol}
+                      className="flex items-center gap-3 p-3 rounded-xl border bg-card"
+                    >
+                      <div 
+                        className="w-3 h-3 rounded-full flex-shrink-0" 
+                        style={{ backgroundColor: asset.color }}
+                      />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono font-semibold">{asset.symbol}</span>
+                          <span className="text-xs text-muted-foreground truncate">
+                            {asset.name}
+                          </span>
+                        </div>
+                        <Slider
+                          value={[asset.weight]}
+                          onValueChange={([v]) => updateWeight(asset.symbol, v)}
+                          max={100}
+                          step={1}
+                          className="mt-2"
+                        />
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono font-bold text-sm w-10 text-right">
+                          {asset.weight.toFixed(0)}%
+                        </span>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                          onClick={() => removeAsset(asset.symbol)}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
             </div>
           </div>
         </TabsContent>
 
         {/* ═══════════════════════════════════════════════════════════════════
-            RESULTS TAB
+            TEMPLATES TAB
         ═══════════════════════════════════════════════════════════════════ */}
-        <TabsContent value="results" className="flex-1 flex flex-col min-h-0 mt-3">
-          {result ? (
-            <div className="flex-1 flex flex-col min-h-0">
-              {/* Hero metrics */}
-              <div className="flex-shrink-0 px-4 pb-3">
-                <div className="grid grid-cols-2 gap-2">
-                  <Card className={cn(
-                    "p-3",
-                    result.metrics.totalReturn >= 0 
-                      ? "bg-emerald-500/10 border-emerald-500/30" 
-                      : "bg-destructive/10 border-destructive/30"
-                  )}>
-                    <div className="flex items-center gap-1.5 mb-0.5">
-                      {result.metrics.totalReturn >= 0 ? (
-                        <ArrowUpRight className="h-4 w-4 text-emerald-500" />
-                      ) : (
-                        <ArrowDownRight className="h-4 w-4 text-destructive" />
-                      )}
-                      <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
-                        Total Return
-                      </span>
-                    </div>
-                    <p className={cn(
-                      "text-2xl font-bold font-mono",
-                      result.metrics.totalReturn >= 0 ? "text-emerald-500" : "text-destructive"
-                    )}>
-                      {result.metrics.totalReturn >= 0 ? '+' : ''}{result.metrics.totalReturn.toFixed(1)}%
-                    </p>
-                  </Card>
-                  
-                  <Card className="p-3 bg-destructive/10 border-destructive/30">
-                    <div className="flex items-center gap-1.5 mb-0.5">
-                      <TrendingDown className="h-4 w-4 text-destructive" />
-                      <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
-                        Max Drawdown
-                      </span>
-                    </div>
-                    <p className="text-2xl font-bold font-mono text-destructive">
-                      -{result.metrics.maxDrawdown.toFixed(1)}%
-                    </p>
-                  </Card>
-                </div>
-              </div>
-
-              {/* Scrollable metrics */}
-              <ScrollArea className="flex-shrink-0 w-full">
-                <div className="flex gap-2 px-4 pb-3">
-                  <MetricPill 
-                    label="CAGR" 
-                    value={result.metrics.cagr} 
-                    suffix="%" 
-                    trend={result.metrics.cagr >= 0 ? 'up' : 'down'}
-                    icon={Calendar}
-                  />
-                  <MetricPill 
-                    label="Sharpe" 
-                    value={result.metrics.sharpeRatio} 
-                    trend={result.metrics.sharpeRatio >= 1 ? 'up' : result.metrics.sharpeRatio >= 0.5 ? 'neutral' : 'down'}
-                    icon={Activity}
-                  />
-                  <MetricPill 
-                    label="Sortino" 
-                    value={result.metrics.sortinoRatio}
-                    trend={result.metrics.sortinoRatio >= 1.5 ? 'up' : 'neutral'}
-                    icon={Shield}
-                  />
-                  <MetricPill 
-                    label="Vol" 
-                    value={result.metrics.volatility} 
-                    suffix="%"
-                    trend={result.metrics.volatility <= 15 ? 'up' : result.metrics.volatility <= 25 ? 'neutral' : 'down'}
-                    icon={Activity}
-                  />
-                  <MetricPill 
-                    label="Beta" 
-                    value={result.metrics.beta}
-                    trend="neutral"
-                  />
-                  <MetricPill 
-                    label="Alpha" 
-                    value={result.metrics.alpha} 
-                    suffix="%"
-                    trend={result.metrics.alpha > 0 ? 'up' : 'down'}
-                  />
-                </div>
-                <ScrollBar orientation="horizontal" />
-              </ScrollArea>
-
-              {/* Chart */}
-              <div className="flex-1 min-h-0 px-4 pb-4">
-                <Card className="h-full">
-                  <CardContent className="p-2 h-full">
-                    <Tabs defaultValue="growth" className="h-full flex flex-col">
-                      <TabsList className="flex-shrink-0 h-8 w-full grid grid-cols-3">
-                        <TabsTrigger value="growth" className="text-xs">Growth</TabsTrigger>
-                        <TabsTrigger value="drawdown" className="text-xs">Drawdown</TabsTrigger>
-                        <TabsTrigger value="yearly" className="text-xs">Yearly</TabsTrigger>
-                      </TabsList>
-                      
-                      <TabsContent value="growth" className="flex-1 min-h-0 mt-2">
-                        <ResponsiveContainer width="100%" height="100%">
-                          <AreaChart data={chartData}>
-                            <defs>
-                              <linearGradient id="portfolioGrad" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3}/>
-                                <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0}/>
-                              </linearGradient>
-                            </defs>
-                            <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                            <XAxis 
-                              dataKey="date" 
-                              tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }}
-                              tickFormatter={(v) => new Date(v).getFullYear().toString()}
-                              interval="preserveStartEnd"
-                            />
-                            <YAxis 
-                              tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }}
-                              tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`}
-                              width={45}
-                            />
-                            <RechartsTooltip
-                              contentStyle={{
-                                backgroundColor: 'hsl(var(--popover))',
-                                border: '1px solid hsl(var(--border))',
-                                borderRadius: '8px',
-                                fontSize: 12,
-                              }}
-                              formatter={(value: number) => [`$${value.toLocaleString()}`, '']}
-                              labelFormatter={(label) => new Date(label).toLocaleDateString()}
-                            />
-                            <Area
-                              type="monotone"
-                              dataKey="benchmark"
-                              stroke="hsl(var(--muted-foreground))"
-                              strokeWidth={1}
-                              fill="none"
-                            />
-                            <Area
-                              type="monotone"
-                              dataKey="portfolio"
-                              stroke="hsl(var(--primary))"
-                              strokeWidth={2}
-                              fill="url(#portfolioGrad)"
-                            />
-                          </AreaChart>
-                        </ResponsiveContainer>
-                      </TabsContent>
-                      
-                      <TabsContent value="drawdown" className="flex-1 min-h-0 mt-2">
-                        <ResponsiveContainer width="100%" height="100%">
-                          <AreaChart data={chartData}>
-                            <defs>
-                              <linearGradient id="ddGrad" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="5%" stopColor="hsl(var(--destructive))" stopOpacity={0.4}/>
-                                <stop offset="95%" stopColor="hsl(var(--destructive))" stopOpacity={0.1}/>
-                              </linearGradient>
-                            </defs>
-                            <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                            <XAxis 
-                              dataKey="date" 
-                              tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }}
-                              tickFormatter={(v) => new Date(v).getFullYear().toString()}
-                              interval="preserveStartEnd"
-                            />
-                            <YAxis 
-                              tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }}
-                              tickFormatter={(v) => `${v.toFixed(0)}%`}
-                              domain={['auto', 0]}
-                              width={40}
-                            />
-                            <RechartsTooltip
-                              contentStyle={{
-                                backgroundColor: 'hsl(var(--popover))',
-                                border: '1px solid hsl(var(--border))',
-                                borderRadius: '8px',
-                                fontSize: 12,
-                              }}
-                              formatter={(value: number) => [`${value.toFixed(2)}%`, 'Drawdown']}
-                              labelFormatter={(label) => new Date(label).toLocaleDateString()}
-                            />
-                            <ReferenceLine y={-result.metrics.maxDrawdown} stroke="hsl(var(--destructive))" strokeDasharray="5 5" />
-                            <Area
-                              type="monotone"
-                              dataKey="drawdown"
-                              stroke="hsl(var(--destructive))"
-                              fill="url(#ddGrad)"
-                            />
-                          </AreaChart>
-                        </ResponsiveContainer>
-                      </TabsContent>
-                      
-                      <TabsContent value="yearly" className="flex-1 min-h-0 mt-2">
-                        <ResponsiveContainer width="100%" height="100%">
-                          <ComposedChart data={result.yearlyReturns}>
-                            <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                            <XAxis 
-                              dataKey="year" 
-                              tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }}
-                            />
-                            <YAxis 
-                              tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }}
-                              tickFormatter={(v) => `${v.toFixed(0)}%`}
-                              width={40}
-                            />
-                            <RechartsTooltip
-                              contentStyle={{
-                                backgroundColor: 'hsl(var(--popover))',
-                                border: '1px solid hsl(var(--border))',
-                                borderRadius: '8px',
-                                fontSize: 12,
-                              }}
-                              formatter={(value: number, name: string) => [
-                                `${value.toFixed(1)}%`,
-                                name === 'return' ? 'Portfolio' : 'Benchmark'
-                              ]}
-                            />
-                            <ReferenceLine y={0} stroke="hsl(var(--border))" />
-                            <Bar 
-                              dataKey="return" 
-                              fill="hsl(var(--primary))" 
-                              radius={[4, 4, 0, 0]}
-                              name="return"
-                            />
-                            <Line 
-                              type="monotone" 
-                              dataKey="benchmark" 
-                              stroke="hsl(var(--muted-foreground))" 
-                              strokeWidth={2}
-                              dot={false}
-                              name="benchmark"
-                            />
-                          </ComposedChart>
-                        </ResponsiveContainer>
-                      </TabsContent>
-                    </Tabs>
-                  </CardContent>
-                </Card>
-              </div>
-
-              {/* Final value */}
-              <div className="flex-shrink-0 px-4 pb-4">
-                <Card className="bg-gradient-to-r from-primary/10 to-primary/5 border-primary/30">
-                  <CardContent className="p-3 flex items-center justify-between">
+        <TabsContent value="templates" className="flex-1 flex flex-col min-h-0 mt-3">
+          <ScrollArea className="flex-1">
+            <div className="px-4 pb-4 space-y-2">
+              {TEMPLATES.map((template) => (
+                <button
+                  key={template.name}
+                  onClick={() => loadTemplate(template)}
+                  className="w-full p-4 rounded-xl border bg-card text-left hover:bg-muted/50 transition-colors"
+                >
+                  <div className="flex items-center justify-between mb-2">
                     <div>
-                      <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Final Value</p>
-                      <p className="text-xl font-bold font-mono">
-                        ${result.portfolioValues[result.portfolioValues.length - 1].toLocaleString(undefined, { maximumFractionDigits: 0 })}
-                      </p>
+                      <span className="font-medium">{template.name}</span>
+                      <p className="text-xs text-muted-foreground">{template.description}</p>
                     </div>
-                    <div className="text-right text-sm text-muted-foreground">
-                      <p>from ${initialCapital.toLocaleString()}</p>
-                      <p>{PERIODS.find(p => p.value === period)?.label} period</p>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
+                    <ChevronRight className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {template.assets.map((a) => (
+                      <Badge key={a.symbol} variant="secondary" className="text-xs font-mono">
+                        {a.symbol} {a.weight}%
+                      </Badge>
+                    ))}
+                  </div>
+                </button>
+              ))}
             </div>
-          ) : (
-            <div className="flex-1 flex items-center justify-center p-4">
-              <div className="text-center">
-                <BarChart3 className="h-12 w-12 mx-auto mb-3 text-muted-foreground/30" />
-                <p className="text-muted-foreground mb-4">
-                  Build your portfolio and run a backtest
-                </p>
-                <Button onClick={() => setActiveView('build')} variant="outline" size="sm">
-                  <Layers className="h-4 w-4 mr-2" />
-                  Build Portfolio
-                </Button>
-              </div>
-            </div>
-          )}
+          </ScrollArea>
         </TabsContent>
       </Tabs>
-
-      {/* ═══════════════════════════════════════════════════════════════════════
-          STICKY ACTION BAR
-      ═══════════════════════════════════════════════════════════════════════ */}
-      <div className="flex-shrink-0 px-4 py-3 border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <Button 
-          onClick={runBacktest} 
-          disabled={isLoading || !isValid || assets.length === 0}
-          className="w-full h-12 text-base gap-2"
-          size="lg"
-        >
-          {isLoading ? (
-            <>
-              <Loader2 className="h-5 w-5 animate-spin" />
-              Running...
-            </>
-          ) : (
-            <>
-              <Play className="h-5 w-5" />
-              Run Backtest
-            </>
-          )}
-        </Button>
-      </div>
     </div>
   );
 }
