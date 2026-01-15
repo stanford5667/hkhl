@@ -311,7 +311,7 @@ export function MobileBacktester() {
   const [initialCapital, setInitialCapital] = useState(100000);
   
   // UI state - three tabs: portfolio, templates, settings
-  const [activeTab, setActiveTab] = useState<'portfolio' | 'templates' | 'settings'>('portfolio');
+  const [activeTab, setActiveTab] = useState<'portfolio' | 'templates' | 'settings'>('settings');
   const [showResults, setShowResults] = useState(false);
   
   // Results state
@@ -1049,25 +1049,25 @@ export function MobileBacktester() {
         </div>
       </header>
 
-      {/* Main Two-Panel Layout */}
+      {/* Main Three-Panel Layout */}
       <div className="flex-1 flex min-h-0">
         {/* Vertical Side Tab Navigation */}
         <div className="w-12 flex-shrink-0 border-r border-border/50 flex flex-col py-3 bg-muted/20 gap-0.5">
           <button
-            onClick={() => setActiveTab('portfolio')}
+            onClick={() => setActiveTab('settings')}
             className={cn(
               "w-full py-2.5 flex items-center justify-center transition-all relative",
-              activeTab === 'portfolio'
+              activeTab === 'settings'
                 ? "text-primary"
                 : "text-muted-foreground hover:text-foreground"
             )}
-            title="Search Tickers"
+            title="Settings"
           >
-            {activeTab === 'portfolio' && (
+            {activeTab === 'settings' && (
               <div className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 bg-primary rounded-r" />
             )}
             <div className="flex flex-col items-center gap-0.5">
-              <Search className="h-4 w-4" />
+              <Activity className="h-4 w-4" />
             </div>
           </button>
           <button
@@ -1088,191 +1088,29 @@ export function MobileBacktester() {
             </div>
           </button>
           <button
-            onClick={() => setActiveTab('settings')}
+            onClick={() => setActiveTab('portfolio')}
             className={cn(
               "w-full py-2.5 flex items-center justify-center transition-all relative",
-              activeTab === 'settings'
+              activeTab === 'portfolio'
                 ? "text-primary"
                 : "text-muted-foreground hover:text-foreground"
             )}
-            title="Settings"
+            title="Search Tickers"
           >
-            {activeTab === 'settings' && (
+            {activeTab === 'portfolio' && (
               <div className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 bg-primary rounded-r" />
             )}
             <div className="flex flex-col items-center gap-0.5">
-              <Activity className="h-4 w-4" />
+              <Search className="h-4 w-4" />
             </div>
           </button>
         </div>
         
-        {/* Left Panel - Search/Templates/Settings */}
-        <div className="w-72 flex-shrink-0 border-r border-border/50 flex flex-col min-h-0 bg-card/50">
+        {/* Left Panel - Settings/Templates/Search */}
+        <div className="w-64 flex-shrink-0 border-r border-border/50 flex flex-col min-h-0 bg-card/50">
           <ScrollArea className="flex-1">
             <div className="p-3 space-y-3">
-              {/* Portfolio Tab Content */}
-              {activeTab === 'portfolio' && (
-                <>
-                  {/* Search Input */}
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      value={newSymbol}
-                      onChange={(e) => setNewSymbol(e.target.value.toUpperCase())}
-                      onKeyDown={(e) => e.key === 'Enter' && addAsset(newSymbol)}
-                      placeholder="Search ticker..."
-                      className="pl-9 h-9 text-sm bg-background"
-                    />
-                    <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
-                      <kbd className="px-1.5 py-0.5 text-[10px] font-mono bg-muted rounded border text-muted-foreground">K</kbd>
-                    </div>
-                  </div>
-                  
-                  {/* Quick Add */}
-                  <div>
-                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-2">QUICK ADD</p>
-                    <div className="flex flex-wrap gap-1.5">
-                      {POPULAR_ETFS.filter(e => !assets.find(a => a.symbol === e.symbol)).slice(0, 8).map((etf) => (
-                        <button
-                          key={etf.symbol}
-                          onClick={() => addAsset(etf.symbol)}
-                          className="px-2 py-1 text-xs font-mono rounded border bg-background hover:bg-muted/50 transition-colors"
-                        >
-                          {etf.symbol}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                  
-                  {/* Holdings Header */}
-                  <div className="flex items-center justify-between pt-2">
-                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
-                      HOLDINGS ({assets.length})
-                    </p>
-                    <div className="flex gap-1">
-                      <button
-                        onClick={equalizeWeights}
-                        disabled={assets.length === 0}
-                        className="text-[10px] text-primary hover:underline disabled:opacity-50"
-                      >
-                        Equal
-                      </button>
-                      <span className="text-muted-foreground">|</span>
-                      <button
-                        onClick={normalizeWeights}
-                        disabled={assets.length === 0 || totalWeight === 0}
-                        className="text-[10px] text-primary hover:underline disabled:opacity-50"
-                      >
-                        Normalize
-                      </button>
-                    </div>
-                  </div>
-                  
-                  {/* Holdings List */}
-                  {assets.length === 0 ? (
-                    <div className="text-center py-8 text-muted-foreground text-sm">
-                      Add tickers to build your portfolio
-                    </div>
-                  ) : (
-                    <div className="space-y-1.5">
-                      {assets.map((asset) => (
-                        <div
-                          key={asset.symbol}
-                          className="p-2.5 rounded-lg border bg-background hover:bg-muted/30 transition-colors cursor-pointer group"
-                          onClick={() => openAssetDetail(asset)}
-                        >
-                          <div className="flex items-center gap-2">
-                            {/* Color indicator */}
-                            <div 
-                              className="w-1 h-8 rounded-full flex-shrink-0"
-                              style={{ backgroundColor: asset.color }}
-                            />
-                            
-                            {/* Symbol info */}
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-1.5">
-                                <span className="font-mono font-semibold text-sm">{asset.symbol}</span>
-                                {asset.changePercent !== undefined && (
-                                  <span className={cn(
-                                    "text-[10px] font-mono",
-                                    asset.changePercent >= 0 ? "text-emerald-500" : "text-rose-500"
-                                  )}>
-                                    {asset.changePercent >= 0 ? '+' : ''}{asset.changePercent.toFixed(1)}%
-                                  </span>
-                                )}
-                              </div>
-                              <div className="text-[10px] text-muted-foreground truncate">
-                                {asset.name || 'Loading...'}
-                              </div>
-                            </div>
-                            
-                            {/* Weight controls */}
-                            <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
-                              <button
-                                onClick={() => updateWeight(asset.symbol, Math.max(0, asset.weight - 5))}
-                                className="w-6 h-6 rounded border bg-muted/50 hover:bg-muted flex items-center justify-center text-xs"
-                              >
-                                −
-                              </button>
-                              <span className="font-mono font-semibold text-sm w-10 text-center">
-                                {asset.weight.toFixed(0)}
-                              </span>
-                              <span className="text-muted-foreground text-xs">%</span>
-                              <button
-                                onClick={() => updateWeight(asset.symbol, Math.min(100, asset.weight + 5))}
-                                className="w-6 h-6 rounded border bg-muted/50 hover:bg-muted flex items-center justify-center text-xs"
-                              >
-                                +
-                              </button>
-                              <div className="w-16 ml-1">
-                                <Slider
-                                  value={[asset.weight]}
-                                  onValueChange={([v]) => updateWeight(asset.symbol, v)}
-                                  max={100}
-                                  step={1}
-                                  className="cursor-pointer"
-                                />
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </>
-              )}
-              
-              {/* Templates Tab Content */}
-              {activeTab === 'templates' && (
-                <div className="space-y-2">
-                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-2">PORTFOLIO TEMPLATES</p>
-                  {TEMPLATES.map((template) => (
-                    <button
-                      key={template.name}
-                      onClick={() => {
-                        loadTemplate(template);
-                        setActiveTab('portfolio');
-                      }}
-                      className="w-full p-3 rounded-lg border bg-background text-left hover:bg-muted/50 transition-colors"
-                    >
-                      <div className="flex items-center justify-between mb-1.5">
-                        <span className="font-medium text-sm">{template.name}</span>
-                        <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
-                      </div>
-                      <p className="text-[10px] text-muted-foreground mb-2">{template.description}</p>
-                      <div className="flex flex-wrap gap-1">
-                        {template.assets.map((a) => (
-                          <Badge key={a.symbol} variant="secondary" className="text-[10px] font-mono px-1.5 py-0">
-                            {a.symbol} {a.weight}%
-                          </Badge>
-                        ))}
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              )}
-              
-              {/* Settings Tab Content */}
+              {/* Settings Tab Content (Default) */}
               {activeTab === 'settings' && (
                 <div className="space-y-4">
                   {/* Time Period */}
@@ -1389,12 +1227,180 @@ export function MobileBacktester() {
                   </div>
                 </div>
               )}
+              
+              {/* Templates Tab Content */}
+              {activeTab === 'templates' && (
+                <div className="space-y-2">
+                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-2">PORTFOLIO TEMPLATES</p>
+                  {TEMPLATES.map((template) => (
+                    <button
+                      key={template.name}
+                      onClick={() => {
+                        loadTemplate(template);
+                      }}
+                      className="w-full p-3 rounded-lg border bg-background text-left hover:bg-muted/50 transition-colors"
+                    >
+                      <div className="flex items-center justify-between mb-1.5">
+                        <span className="font-medium text-sm">{template.name}</span>
+                        <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
+                      </div>
+                      <p className="text-[10px] text-muted-foreground mb-2">{template.description}</p>
+                      <div className="flex flex-wrap gap-1">
+                        {template.assets.map((a) => (
+                          <Badge key={a.symbol} variant="secondary" className="text-[10px] font-mono px-1.5 py-0">
+                            {a.symbol} {a.weight}%
+                          </Badge>
+                        ))}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+              
+              {/* Search/Portfolio Tab Content */}
+              {activeTab === 'portfolio' && (
+                <>
+                  {/* Search Input */}
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      value={newSymbol}
+                      onChange={(e) => setNewSymbol(e.target.value.toUpperCase())}
+                      onKeyDown={(e) => e.key === 'Enter' && addAsset(newSymbol)}
+                      placeholder="Search ticker..."
+                      className="pl-9 h-9 text-sm bg-background"
+                    />
+                    <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
+                      <kbd className="px-1.5 py-0.5 text-[10px] font-mono bg-muted rounded border text-muted-foreground">K</kbd>
+                    </div>
+                  </div>
+                  
+                  {/* Quick Add */}
+                  <div>
+                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-2">QUICK ADD</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {POPULAR_ETFS.filter(e => !assets.find(a => a.symbol === e.symbol)).slice(0, 8).map((etf) => (
+                        <button
+                          key={etf.symbol}
+                          onClick={() => addAsset(etf.symbol)}
+                          className="px-2 py-1 text-xs font-mono rounded border bg-background hover:bg-muted/50 transition-colors"
+                        >
+                          {etf.symbol}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+          </ScrollArea>
+        </div>
+        
+        {/* Middle Panel - Holdings with Sliders */}
+        <div className="flex-1 min-w-0 border-r border-border/50 flex flex-col min-h-0 bg-background">
+          <div className="p-3 border-b border-border/50">
+            <div className="flex items-center justify-between">
+              <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                HOLDINGS ({assets.length})
+              </p>
+              <div className="flex gap-1">
+                <button
+                  onClick={equalizeWeights}
+                  disabled={assets.length === 0}
+                  className="text-[10px] text-primary hover:underline disabled:opacity-50"
+                >
+                  Equal
+                </button>
+                <span className="text-muted-foreground">|</span>
+                <button
+                  onClick={normalizeWeights}
+                  disabled={assets.length === 0 || totalWeight === 0}
+                  className="text-[10px] text-primary hover:underline disabled:opacity-50"
+                >
+                  Normalize
+                </button>
+              </div>
+            </div>
+          </div>
+          
+          <ScrollArea className="flex-1">
+            <div className="p-3 space-y-1.5">
+              {assets.length === 0 ? (
+                <div className="text-center py-12 text-muted-foreground text-sm">
+                  <Search className="h-8 w-8 mx-auto mb-3 opacity-30" />
+                  <p>Add tickers to build your portfolio</p>
+                  <p className="text-xs mt-1">Use the Search tab on the left</p>
+                </div>
+              ) : (
+                assets.map((asset) => (
+                  <div
+                    key={asset.symbol}
+                    className="p-2.5 rounded-lg border bg-card hover:bg-muted/30 transition-colors cursor-pointer group"
+                    onClick={() => openAssetDetail(asset)}
+                  >
+                    <div className="flex items-center gap-2">
+                      {/* Color indicator */}
+                      <div 
+                        className="w-1 h-8 rounded-full flex-shrink-0"
+                        style={{ backgroundColor: asset.color }}
+                      />
+                      
+                      {/* Symbol info */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-1.5">
+                          <span className="font-mono font-semibold text-sm">{asset.symbol}</span>
+                          {asset.changePercent !== undefined && (
+                            <span className={cn(
+                              "text-[10px] font-mono",
+                              asset.changePercent >= 0 ? "text-emerald-500" : "text-rose-500"
+                            )}>
+                              {asset.changePercent >= 0 ? '+' : ''}{asset.changePercent.toFixed(1)}%
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-[10px] text-muted-foreground truncate">
+                          {asset.name || 'Loading...'}
+                        </div>
+                      </div>
+                      
+                      {/* Weight controls */}
+                      <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+                        <button
+                          onClick={() => updateWeight(asset.symbol, Math.max(0, asset.weight - 5))}
+                          className="w-6 h-6 rounded border bg-muted/50 hover:bg-muted flex items-center justify-center text-xs"
+                        >
+                          −
+                        </button>
+                        <span className="font-mono font-semibold text-sm w-10 text-center">
+                          {asset.weight.toFixed(0)}
+                        </span>
+                        <span className="text-muted-foreground text-xs">%</span>
+                        <button
+                          onClick={() => updateWeight(asset.symbol, Math.min(100, asset.weight + 5))}
+                          className="w-6 h-6 rounded border bg-muted/50 hover:bg-muted flex items-center justify-center text-xs"
+                        >
+                          +
+                        </button>
+                        <div className="w-16 ml-1">
+                          <Slider
+                            value={[asset.weight]}
+                            onValueChange={([v]) => updateWeight(asset.symbol, v)}
+                            max={100}
+                            step={1}
+                            className="cursor-pointer"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
           </ScrollArea>
         </div>
         
         {/* Right Panel - Visualization */}
-        <div className="flex-1 flex flex-col min-h-0 bg-background">
+        <div className="w-72 flex-shrink-0 flex flex-col min-h-0 bg-muted/10">
           {assets.length === 0 ? (
             /* Empty State */
             <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
@@ -1403,16 +1409,12 @@ export function MobileBacktester() {
               </div>
               <h3 className="text-lg font-semibold mb-2">Build Your Portfolio</h3>
               <p className="text-sm text-muted-foreground max-w-xs mb-6">
-                Add assets to your portfolio, adjust weights, then run a backtest to see historical performance.
+                Add assets to visualize your allocation.
               </p>
               <div className="flex items-center gap-4 text-xs text-muted-foreground">
                 <div className="flex items-center gap-1.5">
                   <kbd className="px-1.5 py-0.5 font-mono bg-muted rounded border">K</kbd>
                   <span>to search</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <kbd className="px-1.5 py-0.5 font-mono bg-muted rounded border">↵</kbd>
-                  <span>to run</span>
                 </div>
               </div>
             </div>
@@ -1435,7 +1437,7 @@ export function MobileBacktester() {
               
               {/* Pie Chart */}
               <div className="flex-1 flex items-center justify-center">
-                <div className="relative w-48 h-48">
+                <div className="relative w-40 h-40">
                   <svg viewBox="0 0 100 100" className="w-full h-full -rotate-90">
                     {(() => {
                       let cumulativePercent = 0;
@@ -1475,26 +1477,26 @@ export function MobileBacktester() {
               </div>
               
               {/* Legend */}
-              <div className="flex flex-wrap justify-center gap-x-4 gap-y-1 mt-4">
+              <div className="flex flex-wrap justify-center gap-x-3 gap-y-1 mt-4">
                 {assets.map((asset) => (
                   <div key={asset.symbol} className="flex items-center gap-1.5">
                     <div 
-                      className="w-2.5 h-2.5 rounded-full"
+                      className="w-2 h-2 rounded-full"
                       style={{ backgroundColor: asset.color }}
                     />
-                    <span className="text-xs font-mono">{asset.symbol}</span>
-                    <span className="text-xs text-muted-foreground">{asset.weight.toFixed(0)}%</span>
+                    <span className="text-[10px] font-mono">{asset.symbol}</span>
+                    <span className="text-[10px] text-muted-foreground">{asset.weight.toFixed(0)}%</span>
                   </div>
                 ))}
               </div>
               
               {/* Estimated Value */}
-              <div className="mt-6 p-4 rounded-xl bg-muted/30 text-center">
+              <div className="mt-4 p-3 rounded-xl bg-muted/30 text-center">
                 <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">STARTING VALUE</p>
-                <p className="text-2xl font-bold font-mono">
+                <p className="text-xl font-bold font-mono">
                   ${initialCapital.toLocaleString()}
                 </p>
-                <p className="text-xs text-muted-foreground mt-1">
+                <p className="text-[10px] text-muted-foreground mt-1">
                   {PERIODS.find(p => p.value === period)?.label} backtest
                 </p>
               </div>
