@@ -499,6 +499,7 @@ export function MobileBacktester() {
       
       // Fetch data for all assets
       const assetData: Record<string, { date: string; return: number }[]> = {};
+      const missingTickers: string[] = [];
       
       for (const asset of assets) {
         const { data, error } = await supabase
@@ -509,12 +510,25 @@ export function MobileBacktester() {
           .lte('bar_date', endStr)
           .order('bar_date', { ascending: true });
         
-        if (!error && data) {
+        if (!error && data && data.length >= 20) {
           assetData[asset.symbol] = data.map(d => ({
             date: d.bar_date,
             return: d.daily_return || 0,
           }));
+        } else {
+          missingTickers.push(asset.symbol);
         }
+      }
+      
+      // Check if we have enough tickers with data
+      if (Object.keys(assetData).length === 0) {
+        toast.error(`No historical data available for: ${assets.map(a => a.symbol).join(', ')}. Try major ETFs like SPY, QQQ, VTI.`);
+        setIsLoading(false);
+        return;
+      }
+      
+      if (missingTickers.length > 0) {
+        toast.warning(`Limited data for: ${missingTickers.join(', ')} - excluded from backtest`);
       }
       
       // Fetch benchmark
@@ -528,7 +542,7 @@ export function MobileBacktester() {
           .lte('bar_date', endStr)
           .order('bar_date', { ascending: true });
         
-        if (data) {
+        if (data && data.length >= 20) {
           benchmarkData = data.map(d => ({ date: d.bar_date, return: d.daily_return || 0 }));
         }
       }
@@ -537,12 +551,18 @@ export function MobileBacktester() {
       const allDateSets = Object.values(assetData).map(d => new Set(d.map(x => x.date)));
       if (benchmarkData.length > 0) allDateSets.push(new Set(benchmarkData.map(d => d.date)));
       
+      if (allDateSets.length === 0 || allDateSets[0].size === 0) {
+        toast.error('No overlapping data found. Try different tickers or a shorter time period.');
+        setIsLoading(false);
+        return;
+      }
+      
       const commonDates = [...allDateSets[0]].filter(date =>
         allDateSets.every(set => set.has(date))
       ).sort();
       
       if (commonDates.length < 20) {
-        toast.error('Insufficient data');
+        toast.error(`Only ${commonDates.length} days of overlapping data found. Need at least 20. Try a shorter period or different tickers.`);
         setIsLoading(false);
         return;
       }
