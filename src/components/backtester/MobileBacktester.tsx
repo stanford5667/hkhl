@@ -1049,6 +1049,37 @@ export function MobileBacktester() {
         </div>
       </header>
 
+      {/* Ticker Search - Always Visible at Top */}
+      <div className="px-4 py-3 border-b border-border/50 bg-card/50">
+        <div className="flex items-center gap-3">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              value={newSymbol}
+              onChange={(e) => setNewSymbol(e.target.value.toUpperCase())}
+              onKeyDown={(e) => e.key === 'Enter' && addAsset(newSymbol)}
+              placeholder="Search ticker..."
+              className="pl-9 h-9 text-sm bg-background"
+            />
+            <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
+              <kbd className="px-1.5 py-0.5 text-[10px] font-mono bg-muted rounded border text-muted-foreground">K</kbd>
+            </div>
+          </div>
+          {/* Quick Add Chips */}
+          <div className="flex gap-1.5 flex-shrink-0">
+            {POPULAR_ETFS.filter(e => !assets.find(a => a.symbol === e.symbol)).slice(0, 5).map((etf) => (
+              <button
+                key={etf.symbol}
+                onClick={() => addAsset(etf.symbol)}
+                className="px-2 py-1 text-xs font-mono rounded border bg-background hover:bg-muted/50 transition-colors"
+              >
+                {etf.symbol}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
       {/* Main Three-Panel Layout */}
       <div className="flex-1 flex min-h-0">
         {/* Vertical Side Tab Navigation */}
@@ -1085,23 +1116,6 @@ export function MobileBacktester() {
             )}
             <div className="flex flex-col items-center gap-0.5">
               <LayoutGrid className="h-4 w-4" />
-            </div>
-          </button>
-          <button
-            onClick={() => setActiveTab('portfolio')}
-            className={cn(
-              "w-full py-2.5 flex items-center justify-center transition-all relative",
-              activeTab === 'portfolio'
-                ? "text-primary"
-                : "text-muted-foreground hover:text-foreground"
-            )}
-            title="Search Tickers"
-          >
-            {activeTab === 'portfolio' && (
-              <div className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 bg-primary rounded-r" />
-            )}
-            <div className="flex flex-col items-center gap-0.5">
-              <Search className="h-4 w-4" />
             </div>
           </button>
         </div>
@@ -1257,41 +1271,6 @@ export function MobileBacktester() {
                 </div>
               )}
               
-              {/* Search/Portfolio Tab Content */}
-              {activeTab === 'portfolio' && (
-                <>
-                  {/* Search Input */}
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      value={newSymbol}
-                      onChange={(e) => setNewSymbol(e.target.value.toUpperCase())}
-                      onKeyDown={(e) => e.key === 'Enter' && addAsset(newSymbol)}
-                      placeholder="Search ticker..."
-                      className="pl-9 h-9 text-sm bg-background"
-                    />
-                    <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
-                      <kbd className="px-1.5 py-0.5 text-[10px] font-mono bg-muted rounded border text-muted-foreground">K</kbd>
-                    </div>
-                  </div>
-                  
-                  {/* Quick Add */}
-                  <div>
-                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-2">QUICK ADD</p>
-                    <div className="flex flex-wrap gap-1.5">
-                      {POPULAR_ETFS.filter(e => !assets.find(a => a.symbol === e.symbol)).slice(0, 8).map((etf) => (
-                        <button
-                          key={etf.symbol}
-                          onClick={() => addAsset(etf.symbol)}
-                          className="px-2 py-1 text-xs font-mono rounded border bg-background hover:bg-muted/50 transition-colors"
-                        >
-                          {etf.symbol}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </>
-              )}
             </div>
           </ScrollArea>
         </div>
@@ -1329,7 +1308,7 @@ export function MobileBacktester() {
                 <div className="text-center py-12 text-muted-foreground text-sm">
                   <Search className="h-8 w-8 mx-auto mb-3 opacity-30" />
                   <p>Add tickers to build your portfolio</p>
-                  <p className="text-xs mt-1">Use the Search tab on the left</p>
+                  <p className="text-xs mt-1">Use the search bar above</p>
                 </div>
               ) : (
                 assets.map((asset) => (
