@@ -48,6 +48,7 @@ const InvestmentPlan = lazy(() => import('./pages/InvestmentPlan'));
 const SupportCenter = lazy(() => import('./pages/SupportCenter'));
 const AdminPortal = lazy(() => import('./pages/AdminPortal'));
 const QuantLab = lazy(() => import('./pages/QuantLab'));
+const BacktesterPage = lazy(() => import('./pages/Backtester'));
 const Terms = lazy(() => import('./pages/Terms'));
 const Disclosures = lazy(() => import('./pages/Disclosures'));
 const Privacy = lazy(() => import('./pages/Privacy'));
@@ -122,6 +123,7 @@ const App = () => {
                               <Route path="/support" element={<SupportCenter />} />
                               <Route path="/admin" element={<AdminPortal />} />
                               <Route path="/quant-lab" element={<QuantLab />} />
+                              <Route path="/backtester" element={<BacktesterPage />} />
                               <Route path="/terms" element={<Terms />} />
                               <Route path="/disclosures" element={<Disclosures />} />
                               <Route path="/privacy" element={<Privacy />} />
@@ -131,7 +133,7 @@ const App = () => {
                               <Route path="/companies/:id" element={<CompanyRedirect />} />
                               <Route path="/markets" element={<Navigate to="/" replace />} />
                               <Route path="/holdings" element={<Navigate to="/" replace />} />
-                              <Route path="/backtester" element={<Navigate to="/portfolio-visualizer" replace />} />
+                              
                               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                               <Route path="*" element={<NotFound />} />
                             </Routes>
