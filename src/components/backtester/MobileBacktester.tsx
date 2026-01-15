@@ -389,6 +389,12 @@ export function MobileBacktester() {
     setAssets(assets.map(a => ({ ...a, weight: w })));
   };
 
+  // Normalize weights to 100%
+  const normalizeWeights = () => {
+    if (totalWeight === 0) return;
+    setAssets(assets.map(a => ({ ...a, weight: Math.round((a.weight / totalWeight) * 100 * 10) / 10 })));
+  };
+
   // Load template
   const loadTemplate = (template: typeof TEMPLATES[0]) => {
     setAssets(template.assets.map((a, i) => ({
@@ -998,390 +1004,440 @@ export function MobileBacktester() {
         </div>
       </header>
 
-      {/* Two-tab navigation */}
-      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as typeof activeTab)} className="flex-1 flex flex-col min-h-0">
-        <TabsList className="flex-shrink-0 mx-4 mt-3 grid grid-cols-2 h-9">
-          <TabsTrigger value="portfolio" className="text-xs gap-1.5">
-            <Wallet className="h-3.5 w-3.5" />
-            Portfolio
-          </TabsTrigger>
-          <TabsTrigger value="templates" className="text-xs gap-1.5">
-            <LayoutGrid className="h-3.5 w-3.5" />
-            Templates
-          </TabsTrigger>
-        </TabsList>
+      {/* Side Tab Layout */}
+      <div className="flex-1 flex min-h-0">
+        {/* Vertical Side Tab Navigation */}
+        <div className="w-12 flex-shrink-0 border-r border-border/50 flex flex-col py-3 bg-muted/30">
+          <button
+            onClick={() => setActiveTab('portfolio')}
+            className={cn(
+              "w-full aspect-square flex items-center justify-center transition-all relative group",
+              activeTab === 'portfolio'
+                ? "text-primary"
+                : "text-muted-foreground hover:text-foreground"
+            )}
+            title="Portfolio"
+          >
+            {activeTab === 'portfolio' && (
+              <div className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-6 bg-primary rounded-r" />
+            )}
+            <div className="flex flex-col items-center gap-0.5">
+              <Wallet className="h-5 w-5" />
+              <span className="text-[9px] font-medium">Build</span>
+            </div>
+          </button>
+          <button
+            onClick={() => setActiveTab('templates')}
+            className={cn(
+              "w-full aspect-square flex items-center justify-center transition-all relative group",
+              activeTab === 'templates'
+                ? "text-primary"
+                : "text-muted-foreground hover:text-foreground"
+            )}
+            title="Templates"
+          >
+            {activeTab === 'templates' && (
+              <div className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-6 bg-primary rounded-r" />
+            )}
+            <div className="flex flex-col items-center gap-0.5">
+              <LayoutGrid className="h-5 w-5" />
+              <span className="text-[9px] font-medium">Presets</span>
+            </div>
+          </button>
+        </div>
+        
+        {/* Tab Content Area */}
+        <div className="flex-1 flex flex-col min-h-0 min-w-0">
 
-        {/* ═══════════════════════════════════════════════════════════════════
-            PORTFOLIO TAB
-        ═══════════════════════════════════════════════════════════════════ */}
-        <TabsContent value="portfolio" className="flex-1 flex flex-col min-h-0 mt-3 overflow-hidden">
-          <div className="flex-1 flex flex-col overflow-auto px-4 pb-4">
-            <div className="space-y-3">
-              {/* Settings + Ticker Input in one card */}
-              <Card className="border-primary/30 bg-primary/5">
-                <CardContent className="p-3 space-y-3">
-                  {/* Settings row */}
-                  <div className="grid grid-cols-3 gap-3">
-                    {/* Date Range */}
-                    <div>
-                      <label className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1 block">Period</label>
-                      <Select value={period} onValueChange={setPeriod}>
-                        <SelectTrigger className="h-8 text-xs">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {PERIODS.map(p => (
-                            <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    
-                    {/* Capital */}
-                    <div>
-                      <label className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1 block">Capital</label>
-                      <div className="relative">
-                        <DollarSign className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground" />
-                        <Input
-                          type="number"
-                          value={initialCapital}
-                          onChange={(e) => setInitialCapital(Number(e.target.value))}
-                          className="h-8 text-xs pl-6 font-mono"
-                        />
-                      </div>
-                    </div>
-                    
-                    {/* Benchmark */}
-                    <div>
-                      <label className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1 block">Benchmark</label>
-                      <Select value={benchmark} onValueChange={setBenchmark}>
-                        <SelectTrigger className="h-8 text-xs">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {BENCHMARKS.map(b => (
-                            <SelectItem key={b.value} value={b.value}>{b.label}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                  
-                  {/* Divider */}
-                  <div className="border-t border-border/50" />
-                  
-                  {/* Ticker input */}
-                  <div className="flex gap-2">
-                    <div className="relative flex-1">
-                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        value={newSymbol}
-                        onChange={(e) => setNewSymbol(e.target.value.toUpperCase())}
-                        onKeyDown={(e) => e.key === 'Enter' && addAsset(newSymbol)}
-                        placeholder="Enter ticker symbol..."
-                        className="pl-9 h-11 text-base"
-                      />
-                    </div>
-                    <Button onClick={() => addAsset(newSymbol)} disabled={!newSymbol} className="h-11 px-4">
-                      <Plus className="h-5 w-5" />
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Quick add pills */}
-              <ScrollArea className="w-full">
-                <div className="flex gap-1.5 pb-2">
-                  {POPULAR_ETFS.filter(e => !assets.find(a => a.symbol === e.symbol)).slice(0, 10).map((etf) => (
-                    <button
-                      key={etf.symbol}
-                      onClick={() => addAsset(etf.symbol)}
-                      className="flex-shrink-0 px-2.5 py-1.5 text-xs rounded-full border bg-card hover:bg-muted/50 transition-colors"
-                    >
-                      <span className="font-mono font-medium">{etf.symbol}</span>
-                      <span className="text-muted-foreground ml-1">{etf.name}</span>
-                    </button>
-                  ))}
-                </div>
-                <ScrollBar orientation="horizontal" />
-              </ScrollArea>
-
-              {/* Sample defaults hint - prominent banner */}
-              {assets.length > 0 && assets.every(a => DEFAULT_POSITIONS.some(d => d.symbol === a.symbol)) && (
-                <div className="relative overflow-hidden rounded-xl border-2 border-dashed border-amber-400/60 bg-gradient-to-r from-amber-500/10 via-orange-500/10 to-amber-500/10 p-4">
-                  <div className="absolute -right-6 -top-6 h-20 w-20 rounded-full bg-amber-400/20 blur-2xl" />
-                  <div className="relative flex items-start gap-3">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-amber-500/20 flex-shrink-0">
-                      <Sparkles className="h-4 w-4 text-amber-500" />
-                    </div>
-                    <div className="space-y-1">
-                      <p className="font-semibold text-sm text-foreground">
-                        Sample Portfolio
-                      </p>
-                      <p className="text-xs text-muted-foreground leading-relaxed">
-                        These are example positions to get you started. <strong className="text-foreground">Tap any asset</strong> to edit, remove, or add your own tickers above.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* PROMINENT Weight Requirement Banner */}
-              <div className={cn(
-                "p-4 rounded-xl border-2 transition-all",
-                isValid 
-                  ? "border-emerald-500 bg-emerald-500/20" 
-                  : "border-amber-500 bg-amber-500/20 animate-pulse"
-              )}>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className={cn(
-                      "flex items-center justify-center h-14 w-14 rounded-full text-2xl font-black",
-                      isValid 
-                        ? "bg-emerald-500 text-white" 
-                        : "bg-amber-500 text-black"
-                    )}>
-                      {totalWeight.toFixed(0)}%
-                    </div>
-                    <div>
-                      <div className="text-lg font-bold">
-                        {isValid ? "✓ Ready!" : "Must equal 100%"}
-                      </div>
-                      <div className={cn(
-                        "text-sm",
-                        isValid ? "text-emerald-600" : "text-amber-600"
-                      )}>
-                        {isValid 
-                          ? "Portfolio allocation complete" 
-                          : totalWeight < 100 
-                            ? `Add ${(100 - totalWeight).toFixed(0)}% more to your assets`
-                            : `Remove ${(totalWeight - 100).toFixed(0)}% from your assets`
-                        }
-                      </div>
-                    </div>
-                  </div>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    className="h-9 gap-1.5"
-                    onClick={equalizeWeights}
-                    disabled={assets.length === 0}
-                  >
-                    <Scale className="h-4 w-4" />
-                    Auto 100%
-                  </Button>
-                </div>
-              </div>
-              
-              {/* Toolbar */}
-              <div className="flex items-center justify-between">
-                <h3 className="font-medium text-sm text-muted-foreground">
-                  Your Portfolio ({assets.length} asset{assets.length !== 1 ? 's' : ''})
-                </h3>
-              </div>
-
-              {/* Asset cards */}
-              <div className="space-y-2">
-                {assets.length === 0 ? (
-                  <Card className="p-8 text-center">
-                    <Layers className="h-10 w-10 mx-auto mb-3 text-muted-foreground/30" />
-                    <p className="text-muted-foreground text-sm">
-                      No assets yet. Add tickers above or choose a template.
-                    </p>
-                  </Card>
-                ) : (
-                  assets.map((asset) => (
-                    <div 
-                      key={asset.symbol}
-                      className="p-3 rounded-xl border bg-card hover:bg-muted/30 cursor-pointer transition-colors"
-                      onClick={() => openAssetDetail(asset)}
-                    >
-                      <div className="flex items-center gap-3">
-                        <div 
-                          className="w-3 h-3 rounded-full flex-shrink-0" 
-                          style={{ backgroundColor: asset.color }}
-                        />
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2">
-                            <span className="font-mono font-semibold">{asset.symbol}</span>
-                            <span className="text-xs text-muted-foreground truncate">
-                              {asset.name}
-                            </span>
-                          </div>
-                          
-                          {/* Stats row */}
-                          <div className="flex items-center gap-3 mt-1 text-xs">
-                            {asset.isLoadingStats ? (
-                              <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
-                            ) : asset.price !== undefined ? (
-                              <>
-                                <span className="font-mono text-muted-foreground">
-                                  ${asset.price.toFixed(2)}
-                                </span>
-                                <span className={cn(
-                                  "font-mono flex items-center gap-0.5",
-                                  (asset.changePercent || 0) >= 0 ? "text-emerald-500" : "text-destructive"
-                                )}>
-                                  {(asset.changePercent || 0) >= 0 ? (
-                                    <TrendingUp className="h-3 w-3" />
-                                  ) : (
-                                    <TrendingDown className="h-3 w-3" />
-                                  )}
-                                  {(asset.changePercent || 0) >= 0 ? '+' : ''}{asset.changePercent?.toFixed(2)}%
-                                </span>
-                                <ChevronRight className="h-3 w-3 text-muted-foreground ml-auto" />
-                              </>
-                            ) : (
-                              <span className="text-muted-foreground italic">Tap for details</span>
-                            )}
+          {/* ═══════════════════════════════════════════════════════════════════
+              PORTFOLIO TAB CONTENT
+          ═══════════════════════════════════════════════════════════════════ */}
+          {activeTab === 'portfolio' && (
+            <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+              <div className="flex-1 flex flex-col overflow-auto px-4 pb-4 pt-3">
+                <div className="space-y-3">
+                  {/* Settings + Ticker Input in one card */}
+                  <Card className="border-primary/30 bg-primary/5">
+                    <CardContent className="p-3 space-y-3">
+                      {/* Settings row */}
+                      <div className="grid grid-cols-3 gap-3">
+                        {/* Date Range */}
+                        <div>
+                          <label className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1 block">Period</label>
+                          <Select value={period} onValueChange={setPeriod}>
+                            <SelectTrigger className="h-8 text-xs">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {PERIODS.map(p => (
+                                <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        
+                        {/* Capital */}
+                        <div>
+                          <label className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1 block">Capital</label>
+                          <div className="relative">
+                            <DollarSign className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground" />
+                            <Input
+                              type="number"
+                              value={initialCapital}
+                              onChange={(e) => setInitialCapital(Number(e.target.value))}
+                              className="h-8 text-xs pl-6 font-mono"
+                            />
                           </div>
                         </div>
                         
-                        <div className="flex items-center gap-2">
-                          <span className="font-mono font-bold text-sm w-10 text-right">
-                            {asset.weight.toFixed(0)}%
-                          </span>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7 text-muted-foreground hover:text-destructive"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              removeAsset(asset.symbol);
-                            }}
-                          >
-                            <X className="h-4 w-4" />
-                          </Button>
+                        {/* Benchmark */}
+                        <div>
+                          <label className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1 block">Benchmark</label>
+                          <Select value={benchmark} onValueChange={setBenchmark}>
+                            <SelectTrigger className="h-8 text-xs">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {BENCHMARKS.map(b => (
+                                <SelectItem key={b.value} value={b.value}>{b.label}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                         </div>
                       </div>
                       
-                      <div onClick={(e) => e.stopPropagation()}>
-                        <Slider
-                          value={[asset.weight]}
-                          onValueChange={([v]) => updateWeight(asset.symbol, v)}
-                          max={100}
-                          step={1}
-                          className="mt-2"
-                        />
+                      {/* Divider */}
+                      <div className="border-t border-border/50" />
+                      
+                      {/* Ticker input */}
+                      <div className="flex gap-2">
+                        <div className="relative flex-1">
+                          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                          <Input
+                            value={newSymbol}
+                            onChange={(e) => setNewSymbol(e.target.value.toUpperCase())}
+                            onKeyDown={(e) => e.key === 'Enter' && addAsset(newSymbol)}
+                            placeholder="Enter ticker symbol..."
+                            className="pl-9 h-11 text-base"
+                          />
+                        </div>
+                        <Button onClick={() => addAsset(newSymbol)} disabled={!newSymbol} className="h-11 px-4">
+                          <Plus className="h-5 w-5" />
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Quick add pills */}
+                  <ScrollArea className="w-full">
+                    <div className="flex gap-1.5 pb-2">
+                      {POPULAR_ETFS.filter(e => !assets.find(a => a.symbol === e.symbol)).slice(0, 10).map((etf) => (
+                        <button
+                          key={etf.symbol}
+                          onClick={() => addAsset(etf.symbol)}
+                          className="flex-shrink-0 px-2.5 py-1.5 text-xs rounded-full border bg-card hover:bg-muted/50 transition-colors"
+                        >
+                          <span className="font-mono font-medium">{etf.symbol}</span>
+                          <span className="text-muted-foreground ml-1">{etf.name}</span>
+                        </button>
+                      ))}
+                    </div>
+                    <ScrollBar orientation="horizontal" />
+                  </ScrollArea>
+
+                  {/* Sample defaults hint - prominent banner */}
+                  {assets.length > 0 && assets.every(a => DEFAULT_POSITIONS.some(d => d.symbol === a.symbol)) && (
+                    <div className="relative overflow-hidden rounded-xl border-2 border-dashed border-amber-400/60 bg-gradient-to-r from-amber-500/10 via-orange-500/10 to-amber-500/10 p-4">
+                      <div className="absolute -right-6 -top-6 h-20 w-20 rounded-full bg-amber-400/20 blur-2xl" />
+                      <div className="relative flex items-start gap-3">
+                        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-amber-500/20 flex-shrink-0">
+                          <Sparkles className="h-4 w-4 text-amber-500" />
+                        </div>
+                        <div className="space-y-1">
+                          <p className="font-semibold text-sm text-foreground">
+                            Sample Portfolio
+                          </p>
+                          <p className="text-xs text-muted-foreground leading-relaxed">
+                            These are example positions to get you started. <strong className="text-foreground">Tap any asset</strong> to edit, remove, or add your own tickers above.
+                          </p>
+                        </div>
                       </div>
                     </div>
-                  ))
+                  )}
+
+                  {/* PROMINENT Weight Requirement Banner */}
+                  <div className={cn(
+                    "p-4 rounded-xl border-2 transition-all",
+                    isValid 
+                      ? "border-emerald-500 bg-emerald-500/20" 
+                      : "border-amber-500 bg-amber-500/20 animate-pulse"
+                  )}>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className={cn(
+                          "flex items-center justify-center h-14 w-14 rounded-full text-2xl font-black",
+                          isValid 
+                            ? "bg-emerald-500 text-white" 
+                            : "bg-amber-500 text-black"
+                        )}>
+                          {totalWeight.toFixed(0)}%
+                        </div>
+                        <div>
+                          <div className="text-lg font-bold">
+                            {isValid ? "✓ Ready!" : "Must equal 100%"}
+                          </div>
+                          <div className={cn(
+                            "text-sm",
+                            isValid ? "text-emerald-600" : "text-amber-600"
+                          )}>
+                            {isValid ? "Portfolio weights sum to 100%" : `Need ${totalWeight < 100 ? '+' : ''}${(100 - totalWeight).toFixed(0)}%`}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={equalizeWeights}
+                                disabled={assets.length === 0}
+                              >
+                                <Scale className="h-4 w-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Equalize weights</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={normalizeWeights}
+                                disabled={assets.length === 0 || totalWeight === 0}
+                              >
+                                <Percent className="h-4 w-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Normalize to 100%</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Asset list */}
+                  {assets.length === 0 ? (
+                    <Card className="border-dashed">
+                      <CardContent className="flex flex-col items-center justify-center py-8 text-center">
+                        <Layers className="h-10 w-10 text-muted-foreground/50 mb-3" />
+                        <p className="text-sm text-muted-foreground">
+                          Add tickers above to build your portfolio
+                        </p>
+                      </CardContent>
+                    </Card>
+                  ) : (
+                    <div className="space-y-2">
+                      {assets.map((asset) => (
+                        <button
+                          key={asset.symbol}
+                          onClick={() => openAssetDetail(asset)}
+                          className="w-full p-3 rounded-xl border bg-card text-left hover:bg-muted/50 transition-colors group"
+                        >
+                          <div className="flex items-center gap-3">
+                            {/* Color indicator */}
+                            <div 
+                              className="w-1.5 h-12 rounded-full flex-shrink-0"
+                              style={{ backgroundColor: asset.color }}
+                            />
+                            
+                            {/* Symbol and name */}
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2">
+                                <span className="font-mono font-semibold">{asset.symbol}</span>
+                                {asset.isLoadingStats && (
+                                  <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
+                                )}
+                              </div>
+                              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                <span className="truncate">{asset.name || 'Loading...'}</span>
+                                {asset.price && (
+                                  <>
+                                    <span>•</span>
+                                    <span className="font-mono">${asset.price.toFixed(2)}</span>
+                                    {asset.changePercent !== undefined && (
+                                      <span className={cn(
+                                        "font-mono",
+                                        asset.changePercent >= 0 ? "text-emerald-500" : "text-rose-500"
+                                      )}>
+                                        {asset.changePercent >= 0 ? '+' : ''}{asset.changePercent.toFixed(2)}%
+                                      </span>
+                                    )}
+                                  </>
+                                )}
+                              </div>
+                            </div>
+                            
+                            {/* Weight slider */}
+                            <div className="flex items-center gap-3 flex-shrink-0">
+                              <div className="w-24">
+                                <Slider
+                                  value={[asset.weight]}
+                                  onValueChange={([v]) => updateWeight(asset.symbol, v)}
+                                  max={100}
+                                  step={1}
+                                  className="cursor-pointer"
+                                  onClick={(e) => e.stopPropagation()}
+                                />
+                              </div>
+                              <span className="font-mono font-semibold w-12 text-right tabular-nums">
+                                {asset.weight.toFixed(0)}%
+                              </span>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  removeAsset(asset.symbol);
+                                }}
+                              >
+                                <X className="h-4 w-4 text-muted-foreground hover:text-destructive" />
+                              </Button>
+                            </div>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Run Backtest Button - Bottom of Portfolio */}
+                  {assets.length > 0 && (
+                    <div className="pt-4 pb-2">
+                      {isValid ? (
+                        <Button 
+                          onClick={runBacktest} 
+                          disabled={isLoading}
+                          size="lg"
+                          className={cn(
+                            "w-full gap-2 h-14 text-lg font-bold",
+                            "bg-gradient-to-r from-emerald-500 via-emerald-600 to-emerald-500",
+                            "shadow-[0_0_25px_rgba(16,185,129,0.5)]",
+                            "hover:shadow-[0_0_35px_rgba(16,185,129,0.7)]",
+                            "transition-all duration-300",
+                            !isLoading && "animate-pulse"
+                          )}
+                        >
+                          {isLoading ? (
+                            <Loader2 className="h-6 w-6 animate-spin" />
+                          ) : (
+                            <Play className="h-6 w-6 fill-current" />
+                          )}
+                          Run Backtest
+                        </Button>
+                      ) : (
+                        <div className="text-center p-4 rounded-xl border-2 border-dashed border-amber-500/50 bg-amber-500/10">
+                          <div className="text-amber-500 font-bold text-lg mb-1">
+                            ⚠️ Cannot Run Backtest
+                          </div>
+                          <div className="text-amber-600 text-sm">
+                            Adjust sliders until total equals exactly 100%
+                          </div>
+                          <div className="text-amber-500 font-mono text-2xl font-black mt-2">
+                            {totalWeight.toFixed(0)}% → 100%
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ═══════════════════════════════════════════════════════════════════
+              TEMPLATES TAB CONTENT
+          ═══════════════════════════════════════════════════════════════════ */}
+          {activeTab === 'templates' && (
+            <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+              <div className="flex-1 overflow-auto px-4 pb-4 pt-3 space-y-2">
+                {TEMPLATES.map((template) => (
+                  <button
+                    key={template.name}
+                    onClick={() => {
+                      loadTemplate(template);
+                      setActiveTab('portfolio');
+                    }}
+                    className="w-full p-4 rounded-xl border bg-card text-left hover:bg-muted/50 transition-colors"
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <div>
+                        <span className="font-medium">{template.name}</span>
+                        <p className="text-xs text-muted-foreground">{template.description}</p>
+                      </div>
+                      <ChevronRight className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                    </div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {template.assets.map((a) => (
+                        <Badge key={a.symbol} variant="secondary" className="text-xs font-mono">
+                          {a.symbol} {a.weight}%
+                        </Badge>
+                      ))}
+                    </div>
+                  </button>
+                ))}
+                
+                {/* Run Backtest Button - Bottom of Templates */}
+                {assets.length > 0 && (
+                  <div className="pt-4 pb-2">
+                    {isValid ? (
+                      <Button 
+                        onClick={runBacktest} 
+                        disabled={isLoading}
+                        size="lg"
+                        className={cn(
+                          "w-full gap-2 h-14 text-lg font-bold",
+                          "bg-gradient-to-r from-emerald-500 via-emerald-600 to-emerald-500",
+                          "shadow-[0_0_25px_rgba(16,185,129,0.5)]",
+                          "hover:shadow-[0_0_35px_rgba(16,185,129,0.7)]",
+                          "transition-all duration-300",
+                          !isLoading && "animate-pulse"
+                        )}
+                      >
+                        {isLoading ? (
+                          <Loader2 className="h-6 w-6 animate-spin" />
+                        ) : (
+                          <Play className="h-6 w-6 fill-current" />
+                        )}
+                        Run Backtest
+                      </Button>
+                    ) : (
+                      <div className="text-center p-4 rounded-xl border-2 border-dashed border-amber-500/50 bg-amber-500/10">
+                        <div className="text-amber-500 font-bold text-lg mb-1">
+                          ⚠️ Cannot Run Backtest
+                        </div>
+                        <div className="text-amber-600 text-sm">
+                          Portfolio must equal exactly 100%
+                        </div>
+                        <div className="text-amber-500 font-mono text-2xl font-black mt-2">
+                          {totalWeight.toFixed(0)}% → 100%
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 )}
               </div>
-              
-              {/* Run Backtest Button - Bottom of Portfolio */}
-              {assets.length > 0 && (
-                <div className="pt-4 pb-2">
-                  {isValid ? (
-                    <Button 
-                      onClick={runBacktest} 
-                      disabled={isLoading}
-                      size="lg"
-                      className={cn(
-                        "w-full gap-2 h-14 text-lg font-bold",
-                        "bg-gradient-to-r from-emerald-500 via-emerald-600 to-emerald-500",
-                        "shadow-[0_0_25px_rgba(16,185,129,0.5)]",
-                        "hover:shadow-[0_0_35px_rgba(16,185,129,0.7)]",
-                        "transition-all duration-300",
-                        !isLoading && "animate-pulse"
-                      )}
-                    >
-                      {isLoading ? (
-                        <Loader2 className="h-6 w-6 animate-spin" />
-                      ) : (
-                        <Play className="h-6 w-6 fill-current" />
-                      )}
-                      Run Backtest
-                    </Button>
-                  ) : (
-                    <div className="text-center p-4 rounded-xl border-2 border-dashed border-amber-500/50 bg-amber-500/10">
-                      <div className="text-amber-500 font-bold text-lg mb-1">
-                        ⚠️ Cannot Run Backtest
-                      </div>
-                      <div className="text-amber-600 text-sm">
-                        Adjust sliders until total equals exactly 100%
-                      </div>
-                      <div className="text-amber-500 font-mono text-2xl font-black mt-2">
-                        {totalWeight.toFixed(0)}% → 100%
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
             </div>
-          </div>
-        </TabsContent>
-
-        {/* ═══════════════════════════════════════════════════════════════════
-            TEMPLATES TAB
-        ═══════════════════════════════════════════════════════════════════ */}
-        <TabsContent value="templates" className="flex-1 flex flex-col min-h-0 mt-3 overflow-hidden">
-          <div className="flex-1 overflow-auto px-4 pb-4 space-y-2">
-              {TEMPLATES.map((template) => (
-                <button
-                  key={template.name}
-                  onClick={() => loadTemplate(template)}
-                  className="w-full p-4 rounded-xl border bg-card text-left hover:bg-muted/50 transition-colors"
-                >
-                  <div className="flex items-center justify-between mb-2">
-                    <div>
-                      <span className="font-medium">{template.name}</span>
-                      <p className="text-xs text-muted-foreground">{template.description}</p>
-                    </div>
-                    <ChevronRight className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                  </div>
-                  <div className="flex flex-wrap gap-1.5">
-                    {template.assets.map((a) => (
-                      <Badge key={a.symbol} variant="secondary" className="text-xs font-mono">
-                        {a.symbol} {a.weight}%
-                      </Badge>
-                    ))}
-                  </div>
-                </button>
-              ))}
-              
-              {/* Run Backtest Button - Bottom of Templates */}
-              {assets.length > 0 && (
-                <div className="pt-4 pb-2">
-                  {isValid ? (
-                    <Button 
-                      onClick={runBacktest} 
-                      disabled={isLoading}
-                      size="lg"
-                      className={cn(
-                        "w-full gap-2 h-14 text-lg font-bold",
-                        "bg-gradient-to-r from-emerald-500 via-emerald-600 to-emerald-500",
-                        "shadow-[0_0_25px_rgba(16,185,129,0.5)]",
-                        "hover:shadow-[0_0_35px_rgba(16,185,129,0.7)]",
-                        "transition-all duration-300",
-                        !isLoading && "animate-pulse"
-                      )}
-                    >
-                      {isLoading ? (
-                        <Loader2 className="h-6 w-6 animate-spin" />
-                      ) : (
-                        <Play className="h-6 w-6 fill-current" />
-                      )}
-                      Run Backtest
-                    </Button>
-                  ) : (
-                    <div className="text-center p-4 rounded-xl border-2 border-dashed border-amber-500/50 bg-amber-500/10">
-                      <div className="text-amber-500 font-bold text-lg mb-1">
-                        ⚠️ Cannot Run Backtest
-                      </div>
-                      <div className="text-amber-600 text-sm">
-                        Portfolio must equal exactly 100%
-                      </div>
-                      <div className="text-amber-500 font-mono text-2xl font-black mt-2">
-                        {totalWeight.toFixed(0)}% → 100%
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-        </TabsContent>
-      </Tabs>
+          )}
+        </div>
+      </div>
 
       {/* Asset Detail Popup - Styled like Market Intel */}
       <Sheet open={assetDetailOpen} onOpenChange={setAssetDetailOpen}>
