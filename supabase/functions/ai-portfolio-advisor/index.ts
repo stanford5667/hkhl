@@ -420,7 +420,7 @@ Provide your response as a JSON object with this exact structure:
     "vixLevel": ${marketContext.vixLevel},
     "volatilityRegime": "${marketContext.volatilityRegime}",
     "marketSentiment": "${marketContext.marketSentiment}",
-    "howMarketAffectedRecommendations": "Specific explanation of how current conditions shaped this portfolio"
+    "howMarketShapedExample": "Specific explanation of how current conditions shaped this illustrative portfolio"
   },
   "allocations": [
     {

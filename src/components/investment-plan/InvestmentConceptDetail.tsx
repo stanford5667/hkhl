@@ -69,8 +69,8 @@ const CONCEPT_EXPLANATIONS: Record<string, {
   // METRICS & PERFORMANCE
   // ═══════════════════════════════════════════════════════════════════════════════
   'expected-return': {
-    description: 'The expected return is the annualized percentage gain you can anticipate from your portfolio based on your asset allocation and historical performance of similar portfolios.',
-    whyItMatters: 'This helps you understand if your portfolio is positioned to meet your financial goals. A mismatch between expected returns and goals may require adjusting your timeline or risk tolerance.',
+    description: 'The expected return is the annualized percentage gain anticipated from a portfolio based on asset allocation and historical performance of similar portfolios.',
+    whyItMatters: 'This helps illustrate whether a portfolio allocation may be positioned to meet certain financial goals. A mismatch between expected returns and goals may require adjusting timeline or risk tolerance.',
     howToUse: 'Compare your expected return to your required return (what you need to reach your goal). If there\'s a gap, consider adjusting allocation or extending your timeline.',
     ranges: [
       { label: 'Conservative', range: '4-6%', meaning: 'Lower risk, preserves capital, may not outpace inflation significantly' },
@@ -85,9 +85,9 @@ const CONCEPT_EXPLANATIONS: Record<string, {
     ],
   },
   'max-drawdown': {
-    description: 'Maximum drawdown is the largest peak-to-trough decline in your portfolio value during a specific period. It measures the worst-case scenario you should be prepared to endure.',
-    whyItMatters: 'Understanding potential losses is crucial for emotional preparedness. If you can\'t stomach a 30% drop, you shouldn\'t be in an aggressive portfolio—even if you want the returns.',
-    howToUse: 'Ask yourself: "If my portfolio dropped this much, would I panic sell?" If yes, reduce risk. Your behavioral tolerance matters as much as your financial capacity.',
+    description: 'Maximum drawdown is the largest peak-to-trough decline in portfolio value during a specific period. It measures the worst-case scenario investors may experience historically.',
+    whyItMatters: 'Understanding potential losses is crucial for emotional preparedness. If an investor cannot tolerate a 30% drop, an aggressive portfolio may not be suitable—even if higher returns are desired.',
+    howToUse: 'Consider: "If a portfolio dropped this much, would panic selling occur?" If yes, reducing risk may be appropriate. Behavioral tolerance matters as much as financial capacity.',
     ranges: [
       { label: 'Conservative', range: '5-10%', meaning: 'Minimal volatility, mostly bonds and stable assets' },
       { label: 'Moderate', range: '10-20%', meaning: 'Balanced portfolio, expect this every 3-5 years' },
@@ -374,7 +374,7 @@ const CONCEPT_EXPLANATIONS: Record<string, {
     whyItMatters: 'Without an emergency fund, you might need to sell investments at the worst time—during a crisis when you lose your job AND the market crashes.',
     howToUse: 'Build this BEFORE investing in stocks. Keep in high-yield savings. Only use for true emergencies. Replenish immediately after use.',
     benchmarks: [
-      { name: 'Recommended Amount', value: '3-6 months expenses', description: 'Depends on job stability' },
+      { name: 'Common Amount', value: '3-6 months expenses', description: 'Depends on job stability' },
       { name: 'Where to Keep', value: 'High-yield savings', description: 'Safe and accessible' },
     ],
     relatedConcepts: ['Cash', 'Liquidity', 'Financial Security'],
@@ -395,9 +395,9 @@ const CONCEPT_EXPLANATIONS: Record<string, {
     relatedConcepts: ['Risk Capacity', 'Behavioral Finance', 'Max Drawdown'],
   },
   'risk-capacity': {
-    description: 'Risk capacity is your financial ability to take risk. It depends on your income stability, emergency fund, debt levels, and time horizon—objective factors, not feelings.',
-    whyItMatters: 'Someone with $10M and no debt has high capacity regardless of tolerance. A retiree living on savings has low capacity. Capacity sets the upper limit of risk you should take.',
-    howToUse: 'Calculate: Stable income + long timeline + low debt + large emergency fund = high capacity. Unstable income + short timeline + high debt = low capacity. Never exceed your capacity.',
+    description: 'Risk capacity is the financial ability to take risk. It depends on income stability, emergency fund, debt levels, and time horizon—objective factors, not feelings.',
+    whyItMatters: 'Someone with $10M and no debt has high capacity regardless of tolerance. A retiree living on savings has low capacity. Capacity sets the upper limit of risk that may be appropriate.',
+    howToUse: 'Calculate: Stable income + long timeline + low debt + large emergency fund = high capacity. Unstable income + short timeline + high debt = low capacity. Understanding capacity helps inform allocation decisions.',
     ranges: [
       { label: 'Low', range: '0-30', meaning: 'Limited buffer, needs capital preservation' },
       { label: 'Moderate', range: '30-60', meaning: 'Can absorb some losses without life impact' },

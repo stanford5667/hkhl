@@ -48,7 +48,7 @@ export interface InvestmentConstraints {
 }
 
 /**
- * Main scoring function - calculates all scores and generates recommendations
+ * Main scoring function - calculates all scores and generates illustrative examples
  * Calls the server-side scoring engine
  */
 export async function scoreQuestionnaire(responses: Record<string, QuestionnaireResponse>): Promise<ScoringResult> {

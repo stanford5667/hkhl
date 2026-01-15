@@ -114,7 +114,7 @@ export function PortfolioModeSelection({ selectedMode, onModeSelect }: Portfolio
           
           <div className="mt-4 pt-4 border-t border-border">
             <Badge variant="outline" className="bg-purple-500/10 text-purple-500 border-purple-500/30">
-              Recommended
+              Popular Choice
             </Badge>
           </div>
         </CardContent>

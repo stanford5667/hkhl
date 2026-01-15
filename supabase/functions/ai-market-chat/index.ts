@@ -364,13 +364,13 @@ function calculateKelly(args: { probability: number; market_price: number; bankr
   return {
     full_kelly: (kelly * 100).toFixed(2) + "%",
     quarter_kelly: (kelly * 25).toFixed(2) + "%",
-    recommended_fraction: (safeKelly * 100).toFixed(2) + "%",
+    calculated_fraction: (safeKelly * 100).toFixed(2) + "%",
     position_size: positionSize.toFixed(2),
     expected_value: (ev * 100).toFixed(2) + "%",
     edge: ((p - market_price) * 100).toFixed(2) + "%",
-    recommendation: kelly > 0 
-      ? `Bet $${positionSize.toFixed(0)} (${(safeKelly * 100).toFixed(1)}% of bankroll)`
-      : "Do not bet - no edge detected"
+    example_sizing: kelly > 0 
+      ? `Example: $${positionSize.toFixed(0)} (${(safeKelly * 100).toFixed(1)}% of bankroll)`
+      : "No edge detected based on inputs"
   };
 }
 
@@ -421,7 +421,7 @@ Format your responses with:
 - 📰 for news and information
 - 🐋 for whale activity
 - 💬 for sentiment
-- 💡 for your analysis and recommendations
+- 💡 for your educational analysis and insights
 - ⚠️ for risks and warnings
 
 Be conversational but informative. Help users understand markets deeply, not just surface-level data.`;

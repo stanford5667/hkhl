@@ -204,7 +204,7 @@ export default function WelcomeOnboarding({ onComplete }: OnboardingProps) {
           </div>
           
           <p className="text-center text-sm text-muted-foreground max-w-md mx-auto">
-            We'll use this information to recommend an investment strategy that matches your unique situation
+            We'll use this information to illustrate investment strategies that align with your preferences
           </p>
         </div>
       ),

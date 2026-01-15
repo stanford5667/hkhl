@@ -160,7 +160,7 @@ const QUESTIONS = [
     id: 'goal-amount',
     section: 'goals',
     question: "What's your investable amount?",
-    subtitle: "This helps us recommend appropriate diversification and investment vehicles.",
+    subtitle: "This helps illustrate appropriate diversification and investment vehicles.",
     type: 'amount-slider',
   },
   // Risk
@@ -884,7 +884,7 @@ export function EliteQuestionnaire({ onComplete, onCancel, userId, forceNew = fa
       if (onComplete) {
         // Generate a simple markdown plan content
         const planContent = `
-# ${userName || 'Your'}'s Personalized Investment Plan
+# ${userName || 'Your'}'s Illustrative Investment Plan
 *Generated on ${new Date().toLocaleDateString()}*
 
 ## Executive Summary
@@ -2187,7 +2187,7 @@ function EmailCaptureScreen({ email, setEmail, onSubmit, isSubmitting, userName,
           Your Strategy is Ready, {userName}
         </h1>
         <p className="text-white/50 mb-8">
-          Enter your email to unlock your personalized investment report with detailed recommendations across all asset classes.
+          Enter your email to unlock your illustrative investment report with educational examples across all asset classes.
         </p>
 
         {/* Preview stats */}
@@ -2270,7 +2270,7 @@ function GeneratingScreen({ step, userName }: { step: number; userName: string }
         />
 
         <h2 className="text-2xl font-bold mb-2">Building Your Strategy</h2>
-        <p className="text-white/50 mb-8">{userName}, we're crafting your personalized plan...</p>
+        <p className="text-white/50 mb-8">{userName}, we're crafting your illustrative plan...</p>
 
         <div className="space-y-3">
           {steps.map((s, i) => (

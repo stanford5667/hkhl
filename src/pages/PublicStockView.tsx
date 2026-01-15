@@ -590,7 +590,7 @@ export default function PublicStockView() {
               <div>
                 <h3 className="font-semibold text-lg">Track this stock in your portfolio</h3>
                 <p className="text-sm text-muted-foreground">
-                  Sign in to add stocks, track performance, and get personalized insights
+                  Sign in to add stocks, track performance, and access educational insights
                 </p>
               </div>
               <Button onClick={() => navigate('/auth', { state: { returnTo: `/stock/${ticker}` } })}>

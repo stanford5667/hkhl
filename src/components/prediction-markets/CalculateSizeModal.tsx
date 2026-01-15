@@ -250,7 +250,7 @@ export function CalculateSizeModal({
           <div className="space-y-4">
             <h4 className="font-medium flex items-center gap-2">
               <PieChart className="h-4 w-4 text-primary" />
-              Recommended Position
+              Calculated Position Example
             </h4>
 
             <Card className="border-primary/20 bg-primary/5">

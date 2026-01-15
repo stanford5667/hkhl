@@ -321,8 +321,8 @@ This is your worst-case historical experience.
     name: 'VaR (95%)',
     shortName: 'VaR 95',
     category: 'risk',
-    plainEnglish: "The worst daily loss you should expect 95% of the time. On 1 in 20 days, it could be worse.",
-    whyItMatters: "Sets expectations for bad days. If VaR is 2%, expect to lose more than 2% about once a month.",
+    plainEnglish: "The worst daily loss historically observed 95% of the time. On 1 in 20 days, it could be worse.",
+    whyItMatters: "Sets expectations for bad days. If VaR is 2%, losses exceeding 2% may occur about once a month.",
     formula: 'VaR₉₅ = 5th Percentile of Daily Returns',
     formulaExplained: `
 1. Sort all daily returns from worst to best
@@ -352,7 +352,7 @@ This is your worst-case historical experience.
     name: 'VaR (99%)',
     shortName: 'VaR 99',
     category: 'risk',
-    plainEnglish: "The worst daily loss you should expect 99% of the time. Extremely rare but important.",
+    plainEnglish: "The worst daily loss historically observed 99% of the time. Extremely rare but important.",
     whyItMatters: "This represents your really bad days - the kind that happen a few times a year.",
     formula: 'VaR₉₉ = 1st Percentile of Daily Returns',
     formulaExplained: `

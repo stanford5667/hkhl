@@ -251,7 +251,7 @@ export function DataSyncPanel() {
           </div>
           
           <div className="p-4 bg-muted rounded-lg">
-            <h4 className="font-medium mb-2">Recommended Sync Schedule</h4>
+            <h4 className="font-medium mb-2">Suggested Sync Schedule</h4>
             <p className="text-sm text-muted-foreground">
               For production use, set up cron jobs to run these syncs automatically:
               <br />• <strong>Markets (Polymarket/Kalshi):</strong> Every 5 minutes

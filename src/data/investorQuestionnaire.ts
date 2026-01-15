@@ -55,7 +55,7 @@ const goalsQuestions: QuestionnaireQuestion[] = [
       {
         value: 'less-than-3',
         label: 'Less than 3 years',
-        description: 'Short-term. Limited equity exposure recommended.'
+        description: 'Short-term. Investors often consider limited equity exposure.'
       },
       {
         value: '3-7-years',
