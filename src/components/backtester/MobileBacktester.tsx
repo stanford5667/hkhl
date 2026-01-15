@@ -977,15 +977,22 @@ export function MobileBacktester() {
             <Button 
               onClick={runBacktest} 
               disabled={isLoading || !isValid || assets.length === 0}
-              size="sm"
-              className="gap-1.5"
+              size="lg"
+              className={cn(
+                "gap-2 px-6 font-semibold text-base",
+                "bg-gradient-to-r from-primary via-primary to-primary/80",
+                "shadow-[0_0_20px_hsl(var(--primary)/0.5)]",
+                "hover:shadow-[0_0_30px_hsl(var(--primary)/0.7)]",
+                "transition-all duration-300",
+                !isLoading && isValid && assets.length > 0 && "animate-pulse"
+              )}
             >
               {isLoading ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
+                <Loader2 className="h-5 w-5 animate-spin" />
               ) : (
-                <Play className="h-4 w-4" />
+                <Play className="h-5 w-5 fill-current" />
               )}
-              Run
+              Run Backtest
             </Button>
           </div>
         </div>
