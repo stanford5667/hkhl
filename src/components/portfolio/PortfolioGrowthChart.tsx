@@ -267,6 +267,14 @@ export function PortfolioGrowthChart({
             </p>
           </div>
         </div>
+
+        {/* Disclaimer */}
+        <div className="mt-4 pt-3 border-t border-border">
+          <p className="text-[10px] text-muted-foreground flex items-center gap-1">
+            <span className="opacity-70">ℹ️</span>
+            <span>Past performance does not guarantee future results. Historical data is backward-looking.</span>
+          </p>
+        </div>
       </CardContent>
     </Card>
   );
