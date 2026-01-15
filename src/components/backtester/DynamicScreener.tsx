@@ -127,7 +127,7 @@ export function DynamicScreener({ onSelect, onComplete }: DynamicScreenerProps) 
   const [screenMode, setScreenMode] = useState<ScreenMode>('quick');
   const [minAssets, setMinAssets] = useState(2);
   const [maxAssets, setMaxAssets] = useState(5);
-  const [maxPortfolios, setMaxPortfolios] = useState(100);
+  const [maxPortfolios, setMaxPortfolios] = useState(10000);
   
   // UI state
   const [sortField, setSortField] = useState<SortField>('matchScore');
