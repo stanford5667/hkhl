@@ -1231,6 +1231,37 @@ export function MobileBacktester() {
                   ))
                 )}
               </div>
+              
+              {/* Run Backtest Button - Bottom of Portfolio */}
+              {assets.length > 0 && (
+                <div className="pt-4 pb-2">
+                  <Button 
+                    onClick={runBacktest} 
+                    disabled={isLoading || !isValid || assets.length === 0}
+                    size="lg"
+                    className={cn(
+                      "w-full gap-2 h-14 text-lg font-bold",
+                      "bg-gradient-to-r from-primary via-primary to-primary/80",
+                      "shadow-[0_0_25px_hsl(var(--primary)/0.5)]",
+                      "hover:shadow-[0_0_35px_hsl(var(--primary)/0.7)]",
+                      "transition-all duration-300",
+                      !isLoading && isValid && "animate-pulse"
+                    )}
+                  >
+                    {isLoading ? (
+                      <Loader2 className="h-6 w-6 animate-spin" />
+                    ) : (
+                      <Play className="h-6 w-6 fill-current" />
+                    )}
+                    Run Backtest
+                  </Button>
+                  {!isValid && (
+                    <p className="text-center text-xs text-amber-500 mt-2">
+                      Weights must equal 100% (currently {totalWeight.toFixed(0)}%)
+                    </p>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         </TabsContent>
@@ -1262,6 +1293,37 @@ export function MobileBacktester() {
                   </div>
                 </button>
               ))}
+              
+              {/* Run Backtest Button - Bottom of Templates */}
+              {assets.length > 0 && (
+                <div className="pt-4 pb-2">
+                  <Button 
+                    onClick={runBacktest} 
+                    disabled={isLoading || !isValid || assets.length === 0}
+                    size="lg"
+                    className={cn(
+                      "w-full gap-2 h-14 text-lg font-bold",
+                      "bg-gradient-to-r from-primary via-primary to-primary/80",
+                      "shadow-[0_0_25px_hsl(var(--primary)/0.5)]",
+                      "hover:shadow-[0_0_35px_hsl(var(--primary)/0.7)]",
+                      "transition-all duration-300",
+                      !isLoading && isValid && "animate-pulse"
+                    )}
+                  >
+                    {isLoading ? (
+                      <Loader2 className="h-6 w-6 animate-spin" />
+                    ) : (
+                      <Play className="h-6 w-6 fill-current" />
+                    )}
+                    Run Backtest
+                  </Button>
+                  {!isValid && (
+                    <p className="text-center text-xs text-amber-500 mt-2">
+                      Weights must equal 100% (currently {totalWeight.toFixed(0)}%)
+                    </p>
+                  )}
+                </div>
+              )}
             </div>
         </TabsContent>
       </Tabs>
