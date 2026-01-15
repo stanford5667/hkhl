@@ -654,6 +654,7 @@ export async function screenAllPortfolios(
   onProgress?.({ phase: 'generating', current: 0, total: 100, message: 'Generating portfolio combinations...' });
   
   const matchingPortfolios: GeneratedPortfolio[] = [];
+  const seenTickerSets = new Set<string>(); // Track unique ticker combinations
   let totalGenerated = 0;
   let portfolioId = 0;
   
@@ -665,6 +666,12 @@ export async function screenAllPortfolios(
   for (const allocations of generator) {
     if (totalGenerated >= maxToGenerate) break;
     totalGenerated++;
+    
+    // Create a unique key for this ticker combination (sorted tickers, ignoring weights)
+    const tickerKey = allocations.map(a => a.ticker).sort().join('|');
+    
+    // Skip if we've already found a matching portfolio with this ticker set
+    if (seenTickerSets.has(tickerKey)) continue;
     
     // Calculate exact metrics using aligned data
     const metrics = calculateExactPortfolioMetrics(allocations, tickerData);
@@ -678,6 +685,9 @@ export async function screenAllPortfolios(
     const meetsSortino = criteria.minSortino === undefined || metrics.sortino >= criteria.minSortino;
     
     if (meetsDrawdown && meetsVolatility && meetsSharpe && meetsCagr && meetsSortino) {
+      // Mark this ticker combo as seen so we don't add duplicates
+      seenTickerSets.add(tickerKey);
+      
       const portfolio: GeneratedPortfolio = {
         id: `gen-${portfolioId++}`,
         name: generatePortfolioName(allocations),
