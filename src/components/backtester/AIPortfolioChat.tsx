@@ -205,7 +205,7 @@ export const AIPortfolioChat: React.FC<AIPortfolioChatProps> = ({
     {
       id: '1',
       role: 'assistant',
-      content: "Hi! I'm your AI portfolio advisor. I'll help you build a personalized investment strategy through a friendly conversation. Let's start with the basics — what's your primary investment goal? Are you saving for retirement, building wealth, or something specific like a home purchase?",
+      content: "Hi! I'm your AI portfolio planner. I'll help you explore investment strategies through a friendly conversation. Let's start with the basics — what's your primary investment goal? Are you saving for retirement, building wealth, or something specific like a home purchase?",
       timestamp: new Date(),
       suggestedResponses: [
         "Retirement savings",
@@ -347,7 +347,7 @@ export const AIPortfolioChat: React.FC<AIPortfolioChatProps> = ({
         </Button>
         <div className="flex items-center gap-2">
           <BotAvatar />
-          <span className="font-semibold">Portfolio Advisor</span>
+          <span className="font-semibold">Portfolio Planner</span>
         </div>
         <Button variant="ghost" size="sm" onClick={handleStartOver} className="gap-2">
           <RotateCcw className="w-4 h-4" />

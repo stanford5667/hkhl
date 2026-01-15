@@ -270,7 +270,7 @@ const QUESTIONS = [
     id: 'pref-involvement',
     section: 'preferences',
     question: "How hands-on do you want to be?",
-    subtitle: "This affects whether we recommend self-managed or advisory solutions.",
+    subtitle: "This affects whether we recommend self-managed or guided solutions.",
     type: 'involvement-slider',
   },
   // Vision
@@ -929,7 +929,7 @@ ${plan.actionPlan.map((a: any, i: number) => `### ${i + 1}. ${a.title} (${a.time
 ${a.description}`).join('\n\n')}
 
 ---
-*This is educational guidance, not financial advice. Consider consulting a licensed advisor for personalized recommendations.*
+*This is educational guidance, not financial advice. Consider consulting a licensed professional for personalized recommendations.*
 
 *Powered by AssetLabs.ai*
 `;

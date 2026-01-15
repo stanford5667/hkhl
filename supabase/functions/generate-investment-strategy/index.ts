@@ -329,7 +329,7 @@ Provide 2-3 educational concepts they may want to learn about:
 A closing section with perspective on long-term investing over their ${profile.timeHorizon}-year horizon. ${visionSuccess ? `Reference their stated vision: "${visionSuccess}"` : ''} Include historical context about market returns.
 
 ## Important Disclaimer
-End with: "**Disclaimer:** This document is for educational purposes only and does not constitute personalized investment advice. Past performance does not guarantee future results. Consider consulting with a qualified financial advisor before making investment decisions."
+End with: "**Disclaimer:** This document is for educational purposes only and does not constitute personalized investment advice. Past performance does not guarantee future results. Consider consulting with a qualified financial professional before making investment decisions."
 
 Remember: This is EDUCATIONAL content. Use phrases like "consider", "one approach", "investors often", "you may want to explore" instead of "you should" or "I recommend". Reference their profile data to make it relevant, but frame everything as education, not advice.`;
 

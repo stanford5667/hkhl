@@ -1,4 +1,4 @@
-// Choose Your Path - Manual vs AI Quick Advisor vs AI Deep Advisor landing experience
+// Choose Your Path - Manual vs AI Quick Planner vs AI Deep Planner landing experience
 import { useEffect, useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -174,7 +174,7 @@ export function ChooseYourPath({ onSelectManual, onSelectAIChat, onSelectQuestio
             onKeyDown={(e) => e.key === 'Enter' && handleSelect('ai-chat', onSelectAIChat)}
             tabIndex={0}
             role="button"
-            aria-label="AI Quick Advisor"
+            aria-label="AI Quick Planner"
           >
             {/* Gradient Top Bar */}
             <div className="absolute top-0 left-0 right-0 h-1.5 sm:h-2 bg-gradient-to-r from-emerald-500 via-teal-400 to-emerald-500" />
@@ -209,7 +209,7 @@ export function ChooseYourPath({ onSelectManual, onSelectAIChat, onSelectQuestio
                 
                 <div className="flex-1 sm:flex-none">
                   <div className="flex items-center gap-1.5 sm:gap-2 mb-1 sm:mb-2 flex-wrap">
-                    <h2 className="text-base sm:text-xl font-bold">AI Quick Advisor</h2>
+                    <h2 className="text-base sm:text-xl font-bold">AI Quick Planner</h2>
                     <Badge className="bg-gradient-to-r from-emerald-500 to-teal-500 text-white border-0 text-[9px] sm:text-xs px-1.5">
                       ✨ Best
                     </Badge>
@@ -251,7 +251,7 @@ export function ChooseYourPath({ onSelectManual, onSelectAIChat, onSelectQuestio
           </Card>
         </motion.div>
 
-        {/* AI Deep Advisor Card */}
+        {/* AI Deep Planner Card */}
         <motion.div
           initial={{ opacity: 0, x: 30 }}
           animate={{ opacity: 1, x: 0 }}
@@ -270,7 +270,7 @@ export function ChooseYourPath({ onSelectManual, onSelectAIChat, onSelectQuestio
             onKeyDown={(e) => e.key === 'Enter' && handleSelect('questionnaire', onSelectQuestionnaire)}
             tabIndex={0}
             role="button"
-            aria-label="AI Deep Advisor"
+            aria-label="AI Deep Planner"
           >
             {/* Gradient Top Bar */}
             <div className="absolute top-0 left-0 right-0 h-1 sm:h-1.5 bg-gradient-to-r from-purple-500 via-violet-500 to-purple-500" />
@@ -299,7 +299,7 @@ export function ChooseYourPath({ onSelectManual, onSelectAIChat, onSelectQuestio
                 
                 <div className="flex-1 sm:flex-none">
                   <div className="flex items-center gap-1.5 sm:gap-2 mb-1 sm:mb-2 flex-wrap">
-                    <h2 className="text-base sm:text-xl font-bold">AI Deep Advisor</h2>
+                    <h2 className="text-base sm:text-xl font-bold">AI Deep Planner</h2>
                     <Badge className="bg-purple-500/20 text-purple-500 border-purple-500/30 text-[9px] sm:text-xs px-1.5">
                       Thorough
                     </Badge>
