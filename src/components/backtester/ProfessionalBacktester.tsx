@@ -53,6 +53,7 @@ import {
   calculateCAGR,
   annualizedVolatility,
   calculateVaR,
+  calculateCVaR,
   calculateBetaAlpha,
   arithmeticMean,
 } from '@/services/portfolioMetricsService';
@@ -468,9 +469,8 @@ export function ProfessionalBacktester() {
       const sharpeRatio = calculateSharpeRatio(dailyReturns, 0.05);
       const sortinoRatio = calculateSortinoRatio(dailyReturns, 0.05);
       const { maxDrawdownPercent, drawdownSeries } = calculateMaxDrawdown(portfolioValues);
-      const varResult = calculateVaR(dailyReturns);
-      const var95 = typeof varResult === 'number' ? varResult : varResult.var95;
-      const cvar95 = typeof varResult === 'number' ? varResult : varResult.cvar95;
+      const var95 = calculateVaR(dailyReturns, 0.95) * 100;
+      const cvar95 = calculateCVaR(dailyReturns, 0.95) * 100;
       const { beta, alpha } = calculateBetaAlpha(dailyReturns, benchmarkReturns);
       
       // Additional metrics
