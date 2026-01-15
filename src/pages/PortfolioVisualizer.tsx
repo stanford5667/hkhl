@@ -1580,7 +1580,7 @@ export default function PortfolioVisualizer() {
               ← Back
             </Button>
           </div>
-          <RiskScreener 
+          <DynamicScreener 
             onComplete={(data) => {
               setInvestorProfile(prev => ({
                 ...prev,
