@@ -76,7 +76,7 @@ import {
 import { InvestorPolicyStatement } from '@/types/investorPolicy';
 
 // Components
-import { ChooseYourPath } from '@/components/backtester/ChooseYourPath';
+import { DrawdownScreener } from '@/components/backtester/DrawdownScreener';
 import { AICoPilotWizard } from '@/components/backtester/AICoPilotWizard';
 import { ManualPortfolioForm } from '@/components/backtester/ManualPortfolioForm';
 import { EfficientFrontierSlider } from '@/components/backtester/EfficientFrontierSlider';
@@ -120,7 +120,7 @@ import { generateEfficientFrontier, findOptimalPortfolio } from '@/services/effi
 import { runAllStressTests, checkLiquidityRisks, StressTestResult, LiquidityRiskResult } from '@/services/stressTestService';
 import { fetchMultipleTickerDetails, TickerDetails } from '@/services/tickerDetailsService';
 
-type AppFlow = 'choose-path' | 'manual-form' | 'ai-wizard' | 'questionnaire' | 'analyzing' | 'results';
+type AppFlow = 'screener' | 'analyzing' | 'results';
 
 // Analysis steps for enhanced loading states
 interface AnalysisStep {
@@ -390,7 +390,7 @@ export default function PortfolioVisualizer() {
   const [portfolioDescription, setPortfolioDescription] = useState('');
   
   // Flow state
-  const [currentFlow, setCurrentFlow] = useState<AppFlow>('choose-path');
+  const [currentFlow, setCurrentFlow] = useState<AppFlow>('screener');
   const [portfolioMode, setPortfolioMode] = useState<PortfolioMode | null>(null);
   const [investorProfile, setInvestorProfile] = useState<InvestorProfile>(DEFAULT_PROFILE);
   const [allocations, setAllocations] = useState<PortfolioAllocation[]>([]);
@@ -1166,7 +1166,7 @@ export default function PortfolioVisualizer() {
         toast.error('Data fetch failed. Please try again.');
       } else {
         toast.error(errorMessage);
-        setCurrentFlow('choose-path');
+        setCurrentFlow('screener');
       }
     }
   };
@@ -1212,7 +1212,7 @@ export default function PortfolioVisualizer() {
 
   // Reset to start
   const resetWizard = () => {
-    setCurrentFlow('choose-path');
+    setCurrentFlow('screener');
     setPortfolioMode(null);
     setAllocations([]);
     setEfficientFrontier([]);
@@ -1231,61 +1231,13 @@ export default function PortfolioVisualizer() {
     setAnalysisSteps([]);
   };
 
-  // Handle IPS questionnaire completion - requires auth
-  const handleQuestionnaireComplete = (policy: InvestorPolicyStatement) => {
-    requireAuth(() => {
-      // Store the IPS for display
-      setInvestorPolicy(policy);
-      
-      // Convert IPS to InvestorProfile for analysis
-      const profile: InvestorProfile = {
-        investableCapital: 100000, // Default, could add to questionnaire
-        liquidityConstraint: policy.liquidityNeeds.emergencyFundMonths >= 3 ? 'high' : 'locked',
-        assetUniverse: ['stocks', 'etfs', 'bonds'],
-        riskTolerance: policy.riskProfile.emotionalTolerance,
-        taxBracket: 'medium',
-        investmentHorizon: 10, // Could derive from goals
-      };
-      
-      // Add alternatives based on constraints
-      if (!policy.constraints.ethicalExclusions.includes('crypto')) {
-        profile.assetUniverse.push('crypto');
-      }
-      
-      setInvestorProfile(profile);
-      setPortfolioMode('ai');
-      const aiAllocations = generateAIPortfolio(profile);
-      setAllocations(aiAllocations);
-      runAnalysis(profile, aiAllocations, 'ai');
-    }, 'portfolio-analysis');
-  };
-
   // Render based on current flow
   
-  if (currentFlow === 'choose-path') {
+  if (currentFlow === 'screener') {
     return (
       <div className="min-h-screen bg-background">
-        <ChooseYourPath
-          onSelectManual={() => setCurrentFlow('manual-form')}
-          onSelectAIChat={() => setCurrentFlow('ai-wizard')}
-          onSelectQuestionnaire={() => setCurrentFlow('questionnaire')}
-        />
-        <AuthGateDialog
-          open={showAuthDialog}
-          onOpenChange={closeAuthDialog}
-          title="Sign in to analyze portfolios"
-          description="Create a free account to run portfolio analysis and save your results."
-        />
-      </div>
-    );
-  }
-
-  if (currentFlow === 'manual-form') {
-    return (
-      <div className="min-h-screen bg-background">
-        <ManualPortfolioForm
+        <DrawdownScreener
           onComplete={handleManualComplete}
-          onBack={() => setCurrentFlow('choose-path')}
         />
         <AuthGateDialog
           open={showAuthDialog}
@@ -1294,40 +1246,6 @@ export default function PortfolioVisualizer() {
           description="Create a free account to run portfolio analysis and save your results."
         />
       </div>
-    );
-  }
-
-  if (currentFlow === 'ai-wizard') {
-    return (
-      <div className="min-h-screen bg-background">
-        <AICoPilotWizard
-          onComplete={handleAIComplete}
-          onBack={() => setCurrentFlow('choose-path')}
-        />
-        <AuthGateDialog
-          open={showAuthDialog}
-          onOpenChange={closeAuthDialog}
-          title="Sign in to analyze portfolios"
-          description="Create a free account to run portfolio analysis and save your results."
-        />
-      </div>
-    );
-  }
-
-  if (currentFlow === 'questionnaire') {
-    return (
-      <>
-        <InvestorPolicyQuestionnaire
-          onComplete={handleQuestionnaireComplete}
-          onBack={() => setCurrentFlow('choose-path')}
-        />
-        <AuthGateDialog
-          open={showAuthDialog}
-          onOpenChange={closeAuthDialog}
-          title="Sign in to analyze portfolios"
-          description="Create a free account to run portfolio analysis and save your results."
-        />
-      </>
     );
   }
 
