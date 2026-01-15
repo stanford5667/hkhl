@@ -223,17 +223,17 @@ export function RiskScreener({ onSelect, onComplete }: RiskScreenerProps) {
   const [portfolios, setPortfolios] = useState<BacktestedPortfolio[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedMetric, setSelectedMetric] = useState<RiskMetric>('maxDrawdown');
-  const [targetValue, setTargetValue] = useState(20);
+  const [targetValue, setTargetValue] = useState(30); // Higher default to show more results
   const [selectedPortfolio, setSelectedPortfolio] = useState<BacktestedPortfolio | null>(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [capital, setCapital] = useState(100000);
   const [horizon, setHorizon] = useState(5);
 
-  // Metric configs
+  // Metric configs - wider ranges to ensure portfolios show
   const metricConfigs = {
-    maxDrawdown: { label: 'Max Drawdown', min: 5, max: 50, step: 1, unit: '%', default: 20, invert: false },
-    volatility: { label: 'Volatility', min: 5, max: 30, step: 1, unit: '%', default: 15, invert: false },
-    sharpe: { label: 'Min Sharpe', min: 0, max: 2, step: 0.1, unit: '', default: 0.5, invert: true },
+    maxDrawdown: { label: 'Max Drawdown', min: 5, max: 60, step: 5, unit: '%', default: 30, invert: false },
+    volatility: { label: 'Volatility', min: 5, max: 40, step: 5, unit: '%', default: 20, invert: false },
+    sharpe: { label: 'Min Sharpe', min: 0, max: 3, step: 0.25, unit: '', default: 0.25, invert: true },
   };
 
   const config = metricConfigs[selectedMetric];
@@ -254,15 +254,23 @@ export function RiskScreener({ onSelect, onComplete }: RiskScreenerProps) {
     setIsLoading(true);
     
     try {
-      const endDate = new Date();
-      const startDate = new Date();
-      startDate.setFullYear(endDate.getFullYear() - 1);
-      
-      const startStr = startDate.toISOString().split('T')[0];
-      const endStr = endDate.toISOString().split('T')[0];
-      
       // Get all unique tickers
       const allTickers = [...new Set(PORTFOLIO_TEMPLATES.flatMap(p => p.allocations.map(a => a.symbol)))];
+      
+      // First, find the available date range (use max available data)
+      const { data: dateRange, error: dateError } = await supabase
+        .from('market_daily_bars')
+        .select('bar_date')
+        .in('ticker', allTickers)
+        .order('bar_date', { ascending: false })
+        .limit(1);
+      
+      const endStr = dateRange?.[0]?.bar_date || new Date().toISOString().split('T')[0];
+      
+      // Fetch ALL available data for these tickers (up to 5 years)
+      const fiveYearsAgo = new Date();
+      fiveYearsAgo.setFullYear(fiveYearsAgo.getFullYear() - 5);
+      const startStr = fiveYearsAgo.toISOString().split('T')[0];
       
       // Fetch data from database
       const { data, error } = await supabase
@@ -338,19 +346,24 @@ export function RiskScreener({ onSelect, onComplete }: RiskScreenerProps) {
         const sortino = calculateSortinoRatio(portfolioReturns, 0.05);
         const { maxDrawdownPercent } = calculateMaxDrawdown(portfolioValues);
         
+        const metrics = {
+          cagr: Math.round(cagr * 100) / 100,
+          maxDrawdown: Math.round(maxDrawdownPercent * 100) / 100,
+          volatility: Math.round(volatility * 100) / 100,
+          sharpe: Math.round(sharpe * 100) / 100,
+          sortino: Math.round(sortino * 100) / 100,
+        };
+        
+        console.log(`[RiskScreener] ${template.name}: ${commonDates.length} days, CAGR=${metrics.cagr}%, Vol=${metrics.volatility}%, DD=${metrics.maxDrawdown}%, Sharpe=${metrics.sharpe}`);
+        
         results.push({
           ...template,
-          metrics: {
-            cagr: Math.round(cagr * 100) / 100,
-            maxDrawdown: Math.round(maxDrawdownPercent * 100) / 100,
-            volatility: Math.round(volatility * 100) / 100,
-            sharpe: Math.round(sharpe * 100) / 100,
-            sortino: Math.round(sortino * 100) / 100,
-          },
+          metrics,
           matchScore: 0,
         });
       }
       
+      console.log(`[RiskScreener] Total portfolios calculated:`, results.length);
       setPortfolios(results);
       toast.success(`Loaded ${results.length} portfolios with real data`);
     } catch (error) {
@@ -376,30 +389,40 @@ export function RiskScreener({ onSelect, onComplete }: RiskScreenerProps) {
 
   // Filter and score portfolios
   const filteredPortfolios = useMemo(() => {
-    return portfolios
-      .map(p => {
-        let score = 100;
-        
-        if (selectedMetric === 'maxDrawdown') {
-          if (p.metrics.maxDrawdown <= targetValue) score += 20;
-          else score -= (p.metrics.maxDrawdown - targetValue) * 2;
-        } else if (selectedMetric === 'volatility') {
-          if (p.metrics.volatility <= targetValue) score += 20;
-          else score -= (p.metrics.volatility - targetValue) * 2;
-        } else if (selectedMetric === 'sharpe') {
-          if (p.metrics.sharpe >= targetValue) score += 20;
-          else score -= (targetValue - p.metrics.sharpe) * 30;
-        }
-        
-        return { ...p, matchScore: Math.max(0, Math.min(100, Math.round(score))) };
-      })
-      .filter(p => {
-        if (selectedMetric === 'maxDrawdown') return p.metrics.maxDrawdown <= targetValue + 15;
-        if (selectedMetric === 'volatility') return p.metrics.volatility <= targetValue + 10;
-        if (selectedMetric === 'sharpe') return p.metrics.sharpe >= targetValue - 0.5;
-        return true;
-      })
-      .sort((a, b) => b.matchScore - a.matchScore);
+    console.log(`[RiskScreener] Filtering ${portfolios.length} portfolios by ${selectedMetric}=${targetValue}`);
+    
+    const scored = portfolios.map(p => {
+      let score = 100;
+      
+      if (selectedMetric === 'maxDrawdown') {
+        // Lower drawdown = better
+        if (p.metrics.maxDrawdown <= targetValue) score += 30;
+        else score -= (p.metrics.maxDrawdown - targetValue) * 1.5;
+      } else if (selectedMetric === 'volatility') {
+        // Lower volatility = better
+        if (p.metrics.volatility <= targetValue) score += 30;
+        else score -= (p.metrics.volatility - targetValue) * 1.5;
+      } else if (selectedMetric === 'sharpe') {
+        // Higher sharpe = better
+        if (p.metrics.sharpe >= targetValue) score += 30;
+        else score -= (targetValue - p.metrics.sharpe) * 20;
+      }
+      
+      return { ...p, matchScore: Math.max(0, Math.min(100, Math.round(score))) };
+    });
+    
+    // More generous filtering - show portfolios within reasonable range
+    const filtered = scored.filter(p => {
+      if (selectedMetric === 'maxDrawdown') return p.metrics.maxDrawdown <= targetValue + 25;
+      if (selectedMetric === 'volatility') return p.metrics.volatility <= targetValue + 15;
+      if (selectedMetric === 'sharpe') return p.metrics.sharpe >= targetValue - 1;
+      return true;
+    });
+    
+    console.log(`[RiskScreener] After filter: ${filtered.length} portfolios match`);
+    filtered.forEach(p => console.log(`  - ${p.name}: DD=${p.metrics.maxDrawdown}%, Vol=${p.metrics.volatility}%, Sharpe=${p.metrics.sharpe}, Score=${p.matchScore}`));
+    
+    return filtered.sort((a, b) => b.matchScore - a.matchScore);
   }, [portfolios, selectedMetric, targetValue]);
 
   // Handlers
