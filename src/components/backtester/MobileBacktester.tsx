@@ -310,8 +310,8 @@ export function MobileBacktester() {
   const [benchmark, setBenchmark] = useState('SPY');
   const [initialCapital, setInitialCapital] = useState(100000);
   
-  // UI state - two tabs: portfolio, templates
-  const [activeTab, setActiveTab] = useState<'portfolio' | 'templates'>('portfolio');
+  // UI state - three tabs: portfolio, templates, settings
+  const [activeTab, setActiveTab] = useState<'portfolio' | 'templates' | 'settings'>('portfolio');
   const [showResults, setShowResults] = useState(false);
   
   // Results state
@@ -1007,11 +1007,11 @@ export function MobileBacktester() {
       {/* Side Tab Layout */}
       <div className="flex-1 flex min-h-0">
         {/* Vertical Side Tab Navigation */}
-        <div className="w-12 flex-shrink-0 border-r border-border/50 flex flex-col py-3 bg-muted/30">
+        <div className="w-14 flex-shrink-0 border-r border-border/50 flex flex-col py-3 bg-muted/30 gap-1">
           <button
             onClick={() => setActiveTab('portfolio')}
             className={cn(
-              "w-full aspect-square flex items-center justify-center transition-all relative group",
+              "w-full py-3 flex items-center justify-center transition-all relative group",
               activeTab === 'portfolio'
                 ? "text-primary"
                 : "text-muted-foreground hover:text-foreground"
@@ -1029,7 +1029,7 @@ export function MobileBacktester() {
           <button
             onClick={() => setActiveTab('templates')}
             className={cn(
-              "w-full aspect-square flex items-center justify-center transition-all relative group",
+              "w-full py-3 flex items-center justify-center transition-all relative group",
               activeTab === 'templates'
                 ? "text-primary"
                 : "text-muted-foreground hover:text-foreground"
@@ -1044,6 +1044,24 @@ export function MobileBacktester() {
               <span className="text-[9px] font-medium">Presets</span>
             </div>
           </button>
+          <button
+            onClick={() => setActiveTab('settings')}
+            className={cn(
+              "w-full py-3 flex items-center justify-center transition-all relative group",
+              activeTab === 'settings'
+                ? "text-primary"
+                : "text-muted-foreground hover:text-foreground"
+            )}
+            title="Settings"
+          >
+            {activeTab === 'settings' && (
+              <div className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-6 bg-primary rounded-r" />
+            )}
+            <div className="flex flex-col items-center gap-0.5">
+              <Activity className="h-5 w-5" />
+              <span className="text-[9px] font-medium">Config</span>
+            </div>
+          </button>
         </div>
         
         {/* Tab Content Area */}
@@ -1056,59 +1074,9 @@ export function MobileBacktester() {
             <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
               <div className="flex-1 flex flex-col overflow-auto px-4 pb-4 pt-3">
                 <div className="space-y-3">
-                  {/* Settings + Ticker Input in one card */}
+                  {/* Ticker Input card */}
                   <Card className="border-primary/30 bg-primary/5">
                     <CardContent className="p-3 space-y-3">
-                      {/* Settings row */}
-                      <div className="grid grid-cols-3 gap-3">
-                        {/* Date Range */}
-                        <div>
-                          <label className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1 block">Period</label>
-                          <Select value={period} onValueChange={setPeriod}>
-                            <SelectTrigger className="h-8 text-xs">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {PERIODS.map(p => (
-                                <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        
-                        {/* Capital */}
-                        <div>
-                          <label className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1 block">Capital</label>
-                          <div className="relative">
-                            <DollarSign className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground" />
-                            <Input
-                              type="number"
-                              value={initialCapital}
-                              onChange={(e) => setInitialCapital(Number(e.target.value))}
-                              className="h-8 text-xs pl-6 font-mono"
-                            />
-                          </div>
-                        </div>
-                        
-                        {/* Benchmark */}
-                        <div>
-                          <label className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1 block">Benchmark</label>
-                          <Select value={benchmark} onValueChange={setBenchmark}>
-                            <SelectTrigger className="h-8 text-xs">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {BENCHMARKS.map(b => (
-                                <SelectItem key={b.value} value={b.value}>{b.label}</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      </div>
-                      
-                      {/* Divider */}
-                      <div className="border-t border-border/50" />
-                      
                       {/* Ticker input */}
                       <div className="flex gap-2">
                         <div className="relative flex-1">
@@ -1429,6 +1397,206 @@ export function MobileBacktester() {
                         <div className="text-amber-500 font-mono text-2xl font-black mt-2">
                           {totalWeight.toFixed(0)}% → 100%
                         </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* ═══════════════════════════════════════════════════════════════════
+              SETTINGS TAB CONTENT
+          ═══════════════════════════════════════════════════════════════════ */}
+          {activeTab === 'settings' && (
+            <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+              <div className="flex-1 overflow-auto px-4 pb-4 pt-3 space-y-4">
+                {/* Time Period */}
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-sm flex items-center gap-2">
+                      <Calendar className="h-4 w-4 text-primary" />
+                      TIME PERIOD
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <Select value={period} onValueChange={setPeriod}>
+                      <SelectTrigger className="h-12 text-base">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {PERIODS.map(p => (
+                          <SelectItem key={p.value} value={p.value} className="text-base">
+                            {p.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <div className="flex flex-wrap gap-2">
+                      {PERIODS.map(p => (
+                        <Button
+                          key={p.value}
+                          variant={period === p.value ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => setPeriod(p.value)}
+                          className="text-xs"
+                        >
+                          {p.value}
+                        </Button>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Initial Capital */}
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-sm flex items-center gap-2">
+                      <DollarSign className="h-4 w-4 text-primary" />
+                      INITIAL CAPITAL
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <div className="relative">
+                      <DollarSign className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                      <Input
+                        type="number"
+                        value={initialCapital}
+                        onChange={(e) => setInitialCapital(Number(e.target.value))}
+                        className="h-12 text-lg pl-10 font-mono"
+                      />
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {[10000, 50000, 100000, 250000, 500000, 1000000].map(amount => (
+                        <Button
+                          key={amount}
+                          variant={initialCapital === amount ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => setInitialCapital(amount)}
+                          className="text-xs font-mono"
+                        >
+                          ${amount >= 1000000 ? `${amount / 1000000}M` : `${amount / 1000}K`}
+                        </Button>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Benchmark */}
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-sm flex items-center gap-2">
+                      <Scale className="h-4 w-4 text-primary" />
+                      BENCHMARK
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <Select value={benchmark} onValueChange={setBenchmark}>
+                      <SelectTrigger className="h-12 text-base">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {BENCHMARKS.map(b => (
+                          <SelectItem key={b.value} value={b.value} className="text-base">
+                            {b.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </CardContent>
+                </Card>
+
+                {/* Max Drawdown Target */}
+                <Card className={cn("border-2", `border-${getRiskColor(maxDrawdownTarget).replace('text-', '')}`)}>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-sm flex items-center gap-2">
+                      <Shield className="h-4 w-4 text-primary" />
+                      MAX DRAWDOWN TARGET
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className={cn(
+                      "text-center py-4 px-2 rounded-xl bg-gradient-to-b",
+                      getRiskGradient(maxDrawdownTarget)
+                    )}>
+                      <div className={cn("text-4xl font-black font-mono", getRiskColor(maxDrawdownTarget))}>
+                        {maxDrawdownTarget}%
+                      </div>
+                      <div className="text-xs text-muted-foreground mt-1">
+                        {suggestedPortfolio?.name || 'Risk Tolerance'}
+                      </div>
+                    </div>
+                    
+                    <Slider
+                      value={[maxDrawdownTarget]}
+                      onValueChange={([v]) => setMaxDrawdownTarget(v)}
+                      min={5}
+                      max={50}
+                      step={5}
+                      className="w-full"
+                    />
+                    
+                    <div className="flex justify-between text-xs text-muted-foreground">
+                      <span>Conservative (5%)</span>
+                      <span>Aggressive (50%)</span>
+                    </div>
+
+                    {suggestedPortfolio && (
+                      <Button 
+                        variant="outline" 
+                        onClick={applySuggestedPortfolio}
+                        className="w-full gap-2"
+                      >
+                        <Sparkles className="h-4 w-4" />
+                        Apply {suggestedPortfolio.name} Portfolio
+                      </Button>
+                    )}
+                  </CardContent>
+                </Card>
+
+                {/* Run Backtest Button - Bottom of Settings */}
+                {assets.length > 0 && (
+                  <div className="pt-4 pb-2">
+                    {isValid ? (
+                      <Button 
+                        onClick={runBacktest} 
+                        disabled={isLoading}
+                        size="lg"
+                        className={cn(
+                          "w-full gap-2 h-14 text-lg font-bold",
+                          "bg-gradient-to-r from-emerald-500 via-emerald-600 to-emerald-500",
+                          "shadow-[0_0_25px_rgba(16,185,129,0.5)]",
+                          "hover:shadow-[0_0_35px_rgba(16,185,129,0.7)]",
+                          "transition-all duration-300",
+                          !isLoading && "animate-pulse"
+                        )}
+                      >
+                        {isLoading ? (
+                          <Loader2 className="h-6 w-6 animate-spin" />
+                        ) : (
+                          <Play className="h-6 w-6 fill-current" />
+                        )}
+                        Run Backtest
+                      </Button>
+                    ) : (
+                      <div className="text-center p-4 rounded-xl border-2 border-dashed border-amber-500/50 bg-amber-500/10">
+                        <div className="text-amber-500 font-bold text-lg mb-1">
+                          ⚠️ Cannot Run Backtest
+                        </div>
+                        <div className="text-amber-600 text-sm">
+                          Portfolio must equal exactly 100%
+                        </div>
+                        <div className="text-amber-500 font-mono text-2xl font-black mt-2">
+                          {totalWeight.toFixed(0)}% → 100%
+                        </div>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setActiveTab('portfolio')}
+                          className="mt-3"
+                        >
+                          Go to Portfolio
+                        </Button>
                       </div>
                     )}
                   </div>
