@@ -503,15 +503,15 @@ function generateNarrative(
   };
   
   return {
-    executive: `${userName}, based on your ${profileLabel.toLowerCase()} risk profile (score: ${riskScore}/100) and ${timelineDescriptions[timeline] || 'long-term'} horizon, we've designed a portfolio focused on ${purposeDescriptions[purpose] || 'wealth building'}. Your allocation emphasizes ${stockAlloc >= 60 ? 'growth through equity exposure' : stockAlloc >= 40 ? 'balanced growth and stability' : 'capital preservation with modest growth'}.`,
+    executive: `${userName}, based on your ${profileLabel.toLowerCase()} risk profile (score: ${riskScore}/100) and ${timelineDescriptions[timeline] || 'long-term'} horizon, this illustrative portfolio focuses on ${purposeDescriptions[purpose] || 'wealth building'}. The allocation emphasizes ${stockAlloc >= 60 ? 'growth through equity exposure' : stockAlloc >= 40 ? 'balanced growth and stability' : 'capital preservation with modest growth'}.`,
     
-    riskAnalysis: `Your risk tolerance assessment indicates you ${riskScore > 60 ? 'can weather significant market volatility in pursuit of higher returns' : riskScore > 40 ? 'prefer a balanced approach between growth and stability' : 'prioritize capital preservation over aggressive growth'}. We've calibrated your equity exposure to ${stockAlloc}% to match this profile.`,
+    riskAnalysis: `Your risk tolerance assessment indicates investors with similar profiles ${riskScore > 60 ? 'can weather significant market volatility in pursuit of higher returns' : riskScore > 40 ? 'prefer a balanced approach between growth and stability' : 'prioritize capital preservation over aggressive growth'}. This example calibrates equity exposure to ${stockAlloc}% to match this profile.`,
     
-    allocationRationale: `The ${stockAlloc}% equity allocation reflects your ${timelineDescriptions[timeline]} investment horizon. ${timeline === 'more-than-15' || timeline === '7-15-years' ? 'With time on your side, you can afford to take more risk for potentially higher returns.' : 'Given your shorter timeline, we\'ve emphasized stability to protect against near-term volatility.'}`,
+    allocationRationale: `The ${stockAlloc}% equity allocation reflects your ${timelineDescriptions[timeline]} investment horizon. ${timeline === 'more-than-15' || timeline === '7-15-years' ? 'With time on your side, investors can often afford to take more risk for potentially higher returns.' : 'Given shorter timelines, emphasizing stability helps protect against near-term volatility.'}`,
     
-    implementation: `We recommend implementing this strategy using low-cost index ETFs. Start by establishing your core positions (VTI, BND) which provide broad market exposure. Then add satellite positions based on your allocation targets. Use dollar-cost averaging to reduce timing risk.`,
+    implementation: `Many investors implement this type of strategy using low-cost index ETFs. Consider establishing core positions (VTI, BND) which provide broad market exposure. Then add satellite positions based on allocation targets. Dollar-cost averaging is a common approach to reduce timing risk.`,
     
-    rebalancing: `Review your portfolio ${timeline === 'less-than-3' ? 'monthly' : 'quarterly'} and rebalance when any allocation drifts more than 5% from target. This disciplined approach captures value from market movements while maintaining your intended risk profile.`,
+    rebalancing: `Consider reviewing your portfolio ${timeline === 'less-than-3' ? 'monthly' : 'quarterly'} and rebalancing when any allocation drifts more than 5% from target. This disciplined approach captures value from market movements while maintaining the intended risk profile.`,
   };
 }
 

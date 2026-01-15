@@ -1190,8 +1190,8 @@ export default function Portfolio() {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.4 }}
                   >
-                    Create a personalized investment portfolio using our AI-powered Portfolio Builder. 
-                    Answer a few questions and get an optimized allocation tailored to your goals.
+                    Explore illustrative portfolio examples using our AI-powered Portfolio Builder. 
+                    Answer a few questions to see sample allocations aligned with your selected preferences.
                   </motion.p>
                   
                   {/* Feature badges */}

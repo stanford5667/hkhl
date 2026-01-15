@@ -24,6 +24,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { PremiumFeatureBlock } from '@/components/premium/PremiumFeatureBlock';
+import { AIDisclaimer, EducationalBadge } from '@/components/legal';
 
 export interface AIPortfolioAdvice {
   portfolioName: string;
@@ -98,9 +99,7 @@ export function AIPortfolioInsights({ advice, investableCapital }: AIPortfolioIn
                 {advice.strategyRationale || advice.strategy}
               </CardDescription>
             </div>
-            <Badge variant="outline" className="text-primary border-primary">
-              AI Generated
-            </Badge>
+            <EducationalBadge variant="ai" />
           </div>
         </CardHeader>
         <CardContent>
@@ -110,7 +109,7 @@ export function AIPortfolioInsights({ advice, investableCapital }: AIPortfolioIn
               <div className="text-lg font-bold text-emerald-500">
                 {advice.expectedAnnualReturn.toFixed(1)}%
               </div>
-              <div className="text-xs text-muted-foreground">Expected Return</div>
+              <div className="text-xs text-muted-foreground">Historical Avg Return</div>
             </div>
             <div className="text-center p-3 rounded-lg bg-card">
               <BarChart3 className="h-5 w-5 mx-auto text-amber-500 mb-1" />
@@ -474,6 +473,8 @@ export function AIPortfolioInsights({ advice, investableCapital }: AIPortfolioIn
           </Card>
         </TabsContent>
       </Tabs>
+      
+      <AIDisclaimer compact className="mt-4" />
     </div>
   );
 }

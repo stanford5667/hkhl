@@ -58,7 +58,7 @@ export function FeatureSpotlight({ show, onDismiss, hasCompletedAssessment = fal
                   </Badge>
                 </div>
                 <p className="text-[10px] sm:text-xs text-muted-foreground mb-2 sm:mb-3 line-clamp-2">
-                  Take the Investor DNA quiz for personalized tips
+                  Take the Investor DNA quiz for educational insights
                 </p>
                 
                 <Button 

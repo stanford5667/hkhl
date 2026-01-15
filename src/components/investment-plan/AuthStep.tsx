@@ -152,8 +152,8 @@ export function AuthStep({ progress, onComplete }: AuthStepProps) {
             </h2>
             <p className="text-sm text-muted-foreground mt-1">
               {mode === 'signup' 
-                ? 'Save your progress and unlock personalized insights' 
-                : 'Sign in to continue your investment journey'}
+                ? 'Save your progress and access educational insights' 
+                : 'Sign in to continue your learning journey'}
             </p>
           </div>
 

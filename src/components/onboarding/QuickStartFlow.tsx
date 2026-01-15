@@ -298,7 +298,7 @@ export function QuickStartFlow({ onComplete }: QuickStartFlowProps) {
                       <div className="flex-1">
                         <h4 className="font-medium">Get daily AI insights</h4>
                         <p className="text-sm text-muted-foreground">
-                          We'll send you a morning briefing with opportunities tailored to you
+                          Get a morning briefing with educational market insights
                         </p>
                       </div>
                       <Button 

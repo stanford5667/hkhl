@@ -489,7 +489,7 @@ Provide your response as a JSON object with this exact structure:
 CRITICAL: 
 - All weights must sum to 100
 - Reference the investor's SPECIFIC numbers: $${profile.investableCapital.toLocaleString()}, ${profile.investmentHorizon} years
-- Explain how current market conditions (SPY ${marketContext.spyPerformance30d > 0 ? '+' : ''}${marketContext.spyPerformance30d}%, VIX ${marketContext.vixLevel}) influenced your recommendations
+- Explain how current market conditions (SPY ${marketContext.spyPerformance30d > 0 ? '+' : ''}${marketContext.spyPerformance30d}%, VIX ${marketContext.vixLevel}) shaped this illustrative example
 ${profile.lovedSectors?.length ? `- OVERWEIGHT these preferred sectors: ${profile.lovedSectors.join(', ')}` : ''}
 ${profile.hatedSectors?.length ? `- EXCLUDE these sectors completely: ${profile.hatedSectors.join(', ')}` : ''}
 ${profile.ethicalExclusions?.length ? `- Confirm ethical exclusions are respected: ${profile.ethicalExclusions.join(', ')}` : ''}`;

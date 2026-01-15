@@ -89,7 +89,7 @@ export default function Dashboard() {
         <AuthPromptCard 
           variant="banner"
           title="Create Your Free Account"
-          description="Sign up to save portfolios, get personalized insights, and track your investments."
+          description="Sign up to save portfolios, access educational insights, and track your learning."
         />
       )}
       {/* Header with Streak */}

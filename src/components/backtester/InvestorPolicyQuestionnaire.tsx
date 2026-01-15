@@ -276,7 +276,7 @@ export function InvestorPolicyQuestionnaire({
           icon={<Sparkles className="h-7 w-7 text-emerald-500" />}
           iconGradient="from-emerald-500/20 to-teal-500/10"
           question="Your Investor Policy Statement is ready!"
-          subtitle="Review your profile before generating your personalized strategy"
+          subtitle="Review your profile before generating an illustrative strategy example"
           onNext={handleComplete}
           onBack={() => setShowSummary(false)}
           nextLabel="Generate Portfolio"

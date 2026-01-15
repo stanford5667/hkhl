@@ -98,7 +98,7 @@ export function QuickStartBanner({ show, onDismiss, hasCompletedAssessment = fal
                 </Badge>
               </div>
               <p className="text-[10px] sm:text-xs md:text-sm text-muted-foreground line-clamp-1">
-                Get personalized investment tips
+                Explore educational investment insights
               </p>
             </div>
           </div>

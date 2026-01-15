@@ -134,7 +134,7 @@ export default function WelcomeOnboarding({ onComplete }: OnboardingProps) {
           
           <div className="space-y-4 max-w-md mx-auto">
             <p className="text-lg text-muted-foreground">
-              We'll help you build an investment portfolio tailored to your goals
+              Explore portfolio strategies aligned with your investment preferences
             </p>
             
             <div className="flex items-center justify-center gap-2 text-sm">
