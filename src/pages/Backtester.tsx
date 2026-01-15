@@ -1,15 +1,11 @@
 /**
  * Portfolio Backtester Page
  * 
- * Mobile-first design with minimal scrolling
+ * Professional Terminal-style Backtester
  */
 
-import { MobileBacktester } from '@/components/backtester/MobileBacktester';
+import { ProfessionalBacktester } from '@/components/backtester/ProfessionalBacktester';
 
 export default function BacktesterPage() {
-  return (
-    <div className="h-full min-h-0 flex flex-col">
-      <MobileBacktester />
-    </div>
-  );
+  return <ProfessionalBacktester />;
 }
