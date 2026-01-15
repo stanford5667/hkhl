@@ -132,6 +132,7 @@ export function DynamicScreener({ onSelect, onComplete }: DynamicScreenerProps) 
   
   // Config
   const [screenMode, setScreenMode] = useState<ScreenMode>('quick');
+  const [lookbackYears, setLookbackYears] = useState(1);
   const [minAssets, setMinAssets] = useState(2);
   const [maxAssets, setMaxAssets] = useState(5);
   const [maxPortfolios, setMaxPortfolios] = useState(10000);
@@ -195,9 +196,9 @@ export function DynamicScreener({ onSelect, onComplete }: DynamicScreenerProps) 
       let result: ScreeningResult;
       
       if (screenMode === 'quick') {
-        result = await quickScreenPortfolios(criteria, setProgress);
+        result = await quickScreenPortfolios(criteria, lookbackYears, setProgress);
       } else {
-        result = await screenAllPortfolios(criteria, config, setProgress);
+        result = await screenAllPortfolios(criteria, config, lookbackYears, setProgress);
       }
       
       setPortfolios(result.portfolios);
@@ -215,7 +216,7 @@ export function DynamicScreener({ onSelect, onComplete }: DynamicScreenerProps) 
     } finally {
       setIsLoading(false);
     }
-  }, [maxDrawdown, maxVolatility, minSharpe, minCagr, screenMode, minAssets, maxAssets, maxPortfolios]);
+  }, [maxDrawdown, maxVolatility, minSharpe, minCagr, screenMode, minAssets, maxAssets, maxPortfolios, lookbackYears]);
 
   // ─────────────────────────────────────────────────────────────────────────────
   // Filtered and sorted portfolios
@@ -417,6 +418,29 @@ export function DynamicScreener({ onSelect, onComplete }: DynamicScreenerProps) 
         {/* Advanced config */}
         <Collapsible open={configOpen} onOpenChange={setConfigOpen}>
           <CollapsibleContent className="space-y-3 pt-3 border-t">
+            {/* Lookback period selector */}
+            <div className="space-y-1">
+              <Label className="text-xs">Lookback Period</Label>
+              <div className="grid grid-cols-4 gap-1">
+                {[
+                  { value: 1, label: '1Y' },
+                  { value: 3, label: '3Y' },
+                  { value: 5, label: '5Y' },
+                  { value: 10, label: '10Y' },
+                ].map(option => (
+                  <Button
+                    key={option.value}
+                    variant={lookbackYears === option.value ? 'default' : 'outline'}
+                    size="sm"
+                    className="h-7 text-xs"
+                    onClick={() => setLookbackYears(option.value)}
+                  >
+                    {option.label}
+                  </Button>
+                ))}
+              </div>
+            </div>
+            
             <div className="grid grid-cols-3 gap-3">
               <div>
                 <Label className="text-xs">Min Assets</Label>
@@ -487,8 +511,8 @@ export function DynamicScreener({ onSelect, onComplete }: DynamicScreenerProps) 
         )}
       </div>
 
-      {/* Filters & Stats */}
-      {portfolios.length > 0 && (
+      {/* Filters & Stats - only show when we have results */}
+      {filteredPortfolios.length > 0 && (
         <div className="flex-shrink-0 px-4 py-2 border-b bg-muted/30">
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-2 flex-1">
@@ -554,11 +578,21 @@ export function DynamicScreener({ onSelect, onComplete }: DynamicScreenerProps) 
       {/* Results */}
       <ScrollArea className="flex-1">
         <div className="p-4 space-y-2">
-          {!isLoading && portfolios.length === 0 && !progress && (
+          {!isLoading && portfolios.length === 0 && !progress && !lastResult && (
             <div className="text-center py-16 text-muted-foreground">
               <Database className="h-10 w-10 mx-auto mb-3 opacity-30" />
               <p>No portfolios screened yet</p>
               <p className="text-xs mt-1">Set your criteria and click "Screen Portfolios"</p>
+            </div>
+          )}
+          
+          {!isLoading && portfolios.length === 0 && lastResult && (
+            <div className="text-center py-16 text-muted-foreground">
+              <Filter className="h-10 w-10 mx-auto mb-3 opacity-30" />
+              <p>No portfolios matched your criteria</p>
+              <p className="text-xs mt-1">
+                Screened {lastResult.totalGenerated} combinations. Try relaxing your criteria (higher max drawdown, lower min Sharpe, etc.)
+              </p>
             </div>
           )}
           

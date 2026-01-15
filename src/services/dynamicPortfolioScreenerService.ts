@@ -604,6 +604,7 @@ export interface ScreeningProgress {
 export async function screenAllPortfolios(
   criteria: ScreeningCriteria,
   config: GenerationConfig,
+  lookbackYears: number = 1,
   onProgress?: (progress: ScreeningProgress) => void
 ): Promise<ScreeningResult> {
   const startTime = Date.now();
@@ -620,7 +621,7 @@ export async function screenAllPortfolios(
   onProgress?.({ phase: 'fetching', current: 50, total: 100, message: `Found ${validTickers.length} tickers with sufficient data` });
   
   // Phase 2: Fetch data for all tickers
-  const tickerData = await fetchTickerData(validTickers, 1);
+  const tickerData = await fetchTickerData(validTickers, lookbackYears);
   
   onProgress?.({ phase: 'calculating', current: 0, total: validTickers.length, message: 'Calculating individual ticker metrics...' });
   
@@ -750,6 +751,7 @@ function calculateMatchScore(
  */
 export async function quickScreenPortfolios(
   criteria: ScreeningCriteria,
+  lookbackYears: number = 1,
   onProgress?: (progress: ScreeningProgress) => void
 ): Promise<ScreeningResult> {
   const startTime = Date.now();
@@ -764,7 +766,7 @@ export async function quickScreenPortfolios(
   
   onProgress?.({ phase: 'fetching', current: 50, total: 100, message: `Fetching data for ${allTickers.length} tickers...` });
   
-  const tickerData = await fetchTickerData(allTickers, 1);
+  const tickerData = await fetchTickerData(allTickers, lookbackYears);
   
   onProgress?.({ phase: 'calculating', current: 0, total: templates.length, message: 'Calculating portfolio metrics...' });
   
