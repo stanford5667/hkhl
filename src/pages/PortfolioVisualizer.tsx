@@ -1235,7 +1235,7 @@ export default function PortfolioVisualizer() {
   
   if (currentFlow === 'screener') {
     return (
-      <div className="min-h-screen bg-background">
+      <>
         <MobileBacktester />
         <AuthGateDialog
           open={showAuthDialog}
@@ -1243,7 +1243,7 @@ export default function PortfolioVisualizer() {
           title="Sign in to analyze portfolios"
           description="Create a free account to run portfolio analysis and save your results."
         />
-      </div>
+      </>
     );
   }
 
