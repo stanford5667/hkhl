@@ -77,6 +77,7 @@ import { InvestorPolicyStatement } from '@/types/investorPolicy';
 
 // Components
 import { MobileBacktester } from '@/components/backtester/MobileBacktester';
+import { DrawdownScreener } from '@/components/backtester/DrawdownScreener';
 import { AICoPilotWizard } from '@/components/backtester/AICoPilotWizard';
 import { ManualPortfolioForm } from '@/components/backtester/ManualPortfolioForm';
 import { EfficientFrontierSlider } from '@/components/backtester/EfficientFrontierSlider';
@@ -120,7 +121,7 @@ import { generateEfficientFrontier, findOptimalPortfolio } from '@/services/effi
 import { runAllStressTests, checkLiquidityRisks, StressTestResult, LiquidityRiskResult } from '@/services/stressTestService';
 import { fetchMultipleTickerDetails, TickerDetails } from '@/services/tickerDetailsService';
 
-type AppFlow = 'screener' | 'analyzing' | 'results';
+type AppFlow = 'choose' | 'screener' | 'manual' | 'analyzing' | 'results';
 
 // Analysis steps for enhanced loading states
 interface AnalysisStep {
@@ -390,7 +391,7 @@ export default function PortfolioVisualizer() {
   const [portfolioDescription, setPortfolioDescription] = useState('');
   
   // Flow state
-  const [currentFlow, setCurrentFlow] = useState<AppFlow>('screener');
+  const [currentFlow, setCurrentFlow] = useState<AppFlow>('choose');
   const [portfolioMode, setPortfolioMode] = useState<PortfolioMode | null>(null);
   const [investorProfile, setInvestorProfile] = useState<InvestorProfile>(DEFAULT_PROFILE);
   const [allocations, setAllocations] = useState<PortfolioAllocation[]>([]);
@@ -1212,7 +1213,7 @@ export default function PortfolioVisualizer() {
 
   // Reset to start
   const resetWizard = () => {
-    setCurrentFlow('screener');
+    setCurrentFlow('choose');
     setPortfolioMode(null);
     setAllocations([]);
     setEfficientFrontier([]);
@@ -1233,10 +1234,154 @@ export default function PortfolioVisualizer() {
 
   // Render based on current flow
   
+  // Choose mode screen
+  if (currentFlow === 'choose') {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-6">
+        <div className="w-full max-w-2xl space-y-8">
+          <div className="text-center space-y-2">
+            <h1 className="text-3xl font-bold">Portfolio Builder</h1>
+            <p className="text-muted-foreground">Choose how you want to build your portfolio</p>
+          </div>
+          
+          <div className="grid md:grid-cols-2 gap-6">
+            {/* Screener Option */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 }}
+            >
+              <Card 
+                className="cursor-pointer hover:border-primary/50 transition-all hover:shadow-lg group h-full"
+                onClick={() => setCurrentFlow('screener')}
+              >
+                <CardHeader>
+                  <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center mb-4 group-hover:bg-primary/20 transition-colors">
+                    <Target className="h-6 w-6 text-primary" />
+                  </div>
+                  <CardTitle>Risk-Based Screener</CardTitle>
+                  <CardDescription>
+                    Find portfolios that match your risk tolerance based on maximum drawdown
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <ul className="text-sm text-muted-foreground space-y-2">
+                    <li className="flex items-center gap-2">
+                      <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+                      Set your drawdown tolerance
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+                      Get portfolio suggestions
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+                      Customize weights
+                    </li>
+                  </ul>
+                </CardContent>
+              </Card>
+            </motion.div>
+
+            {/* Manual Option */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+            >
+              <Card 
+                className="cursor-pointer hover:border-primary/50 transition-all hover:shadow-lg group h-full"
+                onClick={() => setCurrentFlow('manual')}
+              >
+                <CardHeader>
+                  <div className="h-12 w-12 rounded-xl bg-emerald-500/10 flex items-center justify-center mb-4 group-hover:bg-emerald-500/20 transition-colors">
+                    <Settings className="h-6 w-6 text-emerald-500" />
+                  </div>
+                  <CardTitle>Manual Builder</CardTitle>
+                  <CardDescription>
+                    Build your portfolio from scratch with full control over allocations
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <ul className="text-sm text-muted-foreground space-y-2">
+                    <li className="flex items-center gap-2">
+                      <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+                      Choose any tickers
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+                      Set custom weights
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+                      Use pre-built templates
+                    </li>
+                  </ul>
+                </CardContent>
+              </Card>
+            </motion.div>
+          </div>
+        </div>
+        
+        <AuthGateDialog
+          open={showAuthDialog}
+          onOpenChange={closeAuthDialog}
+          title="Sign in to analyze portfolios"
+          description="Create a free account to run portfolio analysis and save your results."
+        />
+      </div>
+    );
+  }
+
+  // Screener flow - risk-based portfolio screening
   if (currentFlow === 'screener') {
     return (
       <>
-        <MobileBacktester />
+        <div className="min-h-screen bg-background">
+          <div className="p-4">
+            <Button variant="ghost" size="sm" onClick={() => setCurrentFlow('choose')} className="mb-4">
+              ← Back
+            </Button>
+          </div>
+          <DrawdownScreener 
+            onComplete={(data) => {
+              setInvestorProfile(prev => ({
+                ...prev,
+                investableCapital: data.capital,
+                investmentHorizon: data.horizon,
+              }));
+              setAllocations(data.allocations);
+              setPortfolioMode('manual');
+              runAnalysis(
+                { ...investorProfile, investableCapital: data.capital, investmentHorizon: data.horizon },
+                data.allocations,
+                'manual'
+              );
+            }}
+          />
+        </div>
+        <AuthGateDialog
+          open={showAuthDialog}
+          onOpenChange={closeAuthDialog}
+          title="Sign in to analyze portfolios"
+          description="Create a free account to run portfolio analysis and save your results."
+        />
+      </>
+    );
+  }
+
+  // Manual flow - full control portfolio builder
+  if (currentFlow === 'manual') {
+    return (
+      <>
+        <div className="min-h-screen bg-background">
+          <div className="p-4">
+            <Button variant="ghost" size="sm" onClick={() => setCurrentFlow('choose')} className="mb-4">
+              ← Back
+            </Button>
+          </div>
+          <MobileBacktester />
+        </div>
         <AuthGateDialog
           open={showAuthDialog}
           onOpenChange={closeAuthDialog}

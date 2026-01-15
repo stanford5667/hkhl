@@ -14,8 +14,7 @@ import {
   Mail,
   Book,
   LogOut,
-  Settings,
-  Play
+  Settings
 } from "lucide-react";
 import { useState } from "react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -117,7 +116,7 @@ function MobileSidebarContent({ onNavigate }: { onNavigate: () => void }) {
     { label: "Portfolio Tracker", href: "/", icon: Briefcase },
     { label: "Portfolio Builder", href: "/portfolio-visualizer", icon: PieChart },
     { label: "Quant Lab", href: "/quant-lab", icon: FlaskConical },
-    { label: "Backtester", href: "/backtester", icon: Play },
+    
     { label: "Portfolio Explorer", href: "/investment-plan", icon: ClipboardList },
     { label: "Market Intel", href: "/market-intel", icon: BarChart3 },
     ...(isAdmin ? [{ label: "Asset Research", href: "/asset-research", icon: Search }] : []),
