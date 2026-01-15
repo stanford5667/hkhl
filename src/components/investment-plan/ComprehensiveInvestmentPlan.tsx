@@ -30,6 +30,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { InvestmentConceptDetail, ConceptItem } from './InvestmentConceptDetail';
 import { CompoundGrowthProjector } from './CompoundGrowthProjector';
+import { parseTextForClickableTerms } from './ClickableTerm';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // INVESTOR ARCHETYPES (Myers-Briggs Style)
@@ -818,7 +819,7 @@ export function ComprehensiveInvestmentResults({
                 </div>
               ) : aiStrategy ? (
                 <div className="prose prose-invert max-w-none">
-                  <PolicyRenderer content={aiStrategy} />
+                  <PolicyRenderer content={aiStrategy} onTermClick={handleConceptClick} />
                 </div>
               ) : (
                 <div className="text-center py-12">
@@ -1252,7 +1253,7 @@ export function ComprehensiveInvestmentResults({
 // POLICY RENDERER - Converts markdown to beautiful components
 // ═══════════════════════════════════════════════════════════════════════════════
 
-function PolicyRenderer({ content }: { content: string }) {
+function PolicyRenderer({ content, onTermClick }: { content: string; onTermClick: (concept: ConceptItem) => void }) {
   const sections = content.split(/(?=^## )/gm);
 
   return (
@@ -1282,7 +1283,7 @@ function PolicyRenderer({ content }: { content: string }) {
               </h2>
             )}
             <div className="text-white/70 leading-relaxed">
-              <MarkdownContent content={body} />
+              <MarkdownContent content={body} onTermClick={onTermClick} />
             </div>
           </section>
         );
@@ -1291,10 +1292,15 @@ function PolicyRenderer({ content }: { content: string }) {
   );
 }
 
-function MarkdownContent({ content }: { content: string }) {
+function MarkdownContent({ content, onTermClick }: { content: string; onTermClick: (concept: ConceptItem) => void }) {
   const elements: JSX.Element[] = [];
   let currentTable: string[][] = [];
   let inTable = false;
+
+  // Helper to render text with clickable terms
+  const renderWithClickableTerms = (text: string, key: string) => {
+    return parseTextForClickableTerms(text, onTermClick);
+  };
 
   const lines = content.split('\n');
 
@@ -1314,7 +1320,7 @@ function MarkdownContent({ content }: { content: string }) {
               <tr className="bg-white/10">
                 {currentTable[0]?.map((cell, j) => (
                   <th key={j} className="text-left p-3 border border-white/10 text-white font-semibold">
-                    {cell}
+                    {renderWithClickableTerms(cell, `th-${i}-${j}`)}
                   </th>
                 ))}
               </tr>
@@ -1324,7 +1330,7 @@ function MarkdownContent({ content }: { content: string }) {
                 <tr key={ri} className="hover:bg-white/5">
                   {row.map((cell, ci) => (
                     <td key={ci} className="p-3 border border-white/10 text-white/70">
-                      {cell}
+                      {renderWithClickableTerms(cell, `td-${i}-${ri}-${ci}`)}
                     </td>
                   ))}
                 </tr>
@@ -1341,19 +1347,21 @@ function MarkdownContent({ content }: { content: string }) {
     if (line.startsWith('### ')) {
       elements.push(
         <h3 key={i} className="text-lg font-semibold text-white mt-6 mb-3">
-          {line.replace('### ', '')}
+          {renderWithClickableTerms(line.replace('### ', ''), `h3-${i}`)}
         </h3>
       );
       return;
     }
 
-    // Bold
+    // Bold - handle with clickable terms
     if (line.includes('**')) {
       const parts = line.split(/\*\*(.+?)\*\*/g);
       elements.push(
         <p key={i} className="mb-2">
           {parts.map((part, j) => 
-            j % 2 === 1 ? <strong key={j} className="text-white">{part}</strong> : part
+            j % 2 === 1 
+              ? <strong key={j} className="text-white">{renderWithClickableTerms(part, `bold-${i}-${j}`)}</strong> 
+              : <span key={j}>{renderWithClickableTerms(part, `text-${i}-${j}`)}</span>
           )}
         </p>
       );
@@ -1364,7 +1372,7 @@ function MarkdownContent({ content }: { content: string }) {
     if (line.trim().startsWith('- ') || line.trim().startsWith('* ')) {
       elements.push(
         <li key={i} className="ml-4 mb-1 list-disc">
-          {line.replace(/^[\s]*[-*]\s/, '')}
+          {renderWithClickableTerms(line.replace(/^[\s]*[-*]\s/, ''), `li-${i}`)}
         </li>
       );
       return;
@@ -1374,7 +1382,7 @@ function MarkdownContent({ content }: { content: string }) {
     if (line.match(/^\d+\.\s/)) {
       elements.push(
         <li key={i} className="ml-4 mb-1 list-decimal">
-          {line.replace(/^\d+\.\s/, '')}
+          {renderWithClickableTerms(line.replace(/^\d+\.\s/, ''), `ol-${i}`)}
         </li>
       );
       return;
@@ -1382,7 +1390,7 @@ function MarkdownContent({ content }: { content: string }) {
 
     // Regular paragraph
     if (line.trim()) {
-      elements.push(<p key={i} className="mb-2">{line}</p>);
+      elements.push(<p key={i} className="mb-2">{renderWithClickableTerms(line, `p-${i}`)}</p>);
     }
   });
 
