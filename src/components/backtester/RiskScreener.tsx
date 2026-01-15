@@ -256,20 +256,13 @@ export function RiskScreener({ onSelect, onComplete }: RiskScreenerProps) {
       // Get all unique tickers
       const allTickers = [...new Set(PORTFOLIO_TEMPLATES.flatMap(p => p.allocations.map(a => a.symbol)))];
       
-      // First, find the available date range (use max available data)
-      const { data: dateRange, error: dateError } = await supabase
-        .from('market_daily_bars')
-        .select('bar_date')
-        .in('ticker', allTickers)
-        .order('bar_date', { ascending: false })
-        .limit(1);
-      
-      const endStr = dateRange?.[0]?.bar_date || new Date().toISOString().split('T')[0];
-      
-      // Fetch ALL available data for these tickers (up to 5 years)
-      const fiveYearsAgo = new Date();
-      fiveYearsAgo.setFullYear(fiveYearsAgo.getFullYear() - 5);
-      const startStr = fiveYearsAgo.toISOString().split('T')[0];
+      // Match MobileBacktester: use a fixed window ending today based on selected horizon
+      const endDate = new Date();
+      const startDate = new Date();
+      startDate.setFullYear(endDate.getFullYear() - horizon);
+
+      const startStr = startDate.toISOString().split('T')[0];
+      const endStr = endDate.toISOString().split('T')[0];
       
       // Fetch data from database
       const { data, error } = await supabase
@@ -342,9 +335,9 @@ export function RiskScreener({ onSelect, onComplete }: RiskScreenerProps) {
           portfolioValues.push(portfolioValues[portfolioValues.length - 1] * (1 + dayReturn));
         }
 
-        // Calculate actual metrics
-        const years = portfolioReturns.length / 252;
-        const cagr = calculateCAGR(100000, portfolioValues[portfolioValues.length - 1], years) * 100;
+        // Calculate actual metrics (match MobileBacktester)
+        const totalYears = commonDates.length / 252;
+        const cagr = calculateCAGR(100000, portfolioValues[portfolioValues.length - 1], totalYears) * 100;
         const volatility = annualizedVolatility(portfolioReturns) * 100;
         const sharpe = calculateSharpeRatio(portfolioReturns, 0.05);
         const sortino = calculateSortinoRatio(portfolioReturns, 0.05);
@@ -384,7 +377,7 @@ export function RiskScreener({ onSelect, onComplete }: RiskScreenerProps) {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [horizon]);
 
   // Load on mount
   useEffect(() => {
