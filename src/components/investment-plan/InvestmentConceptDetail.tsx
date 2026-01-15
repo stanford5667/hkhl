@@ -789,7 +789,7 @@ export function InvestmentConceptDetail({ concept, open, onOpenChange }: Investm
   const explanation = CONCEPT_EXPLANATIONS[concept.id] || {
     description: `${concept.name} is an important investment concept that helps guide your portfolio decisions.`,
     whyItMatters: 'Understanding this concept helps you make more informed investment decisions aligned with your goals.',
-    howToUse: 'Consult with a financial advisor to understand how this applies to your specific situation.',
+    howToUse: 'Consult with a financial professional to understand how this applies to your specific situation.',
   };
 
   const getIcon = () => {

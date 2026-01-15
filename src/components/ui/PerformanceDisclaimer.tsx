@@ -26,7 +26,7 @@ const disclaimerContent = {
   general: {
     compact: "For educational purposes only.",
     standard: "This information is for educational purposes only and does not constitute investment advice.",
-    detailed: "This information is provided for educational and informational purposes only and does not constitute personalized investment advice. Consider consulting with a qualified financial advisor before making investment decisions. Investing involves risk, including the possible loss of principal."
+    detailed: "This information is provided for educational and informational purposes only and does not constitute personalized investment advice. Consider consulting with a qualified financial professional before making investment decisions. Investing involves risk, including the possible loss of principal."
   }
 };
 

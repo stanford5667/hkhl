@@ -93,7 +93,7 @@ export function PortfolioModeSelection({ selectedMode, onModeSelect }: Portfolio
           
           <h3 className="text-xl font-bold mb-2">AI Suggestion</h3>
           <p className="text-muted-foreground text-sm mb-4">
-            Let our robo-advisor generate an optimal portfolio based on your 
+            Let our AI planner generate a suggested portfolio based on your 
             profile using Hierarchical Risk Parity (HRP).
           </p>
           

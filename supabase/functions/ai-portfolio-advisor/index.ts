@@ -371,7 +371,7 @@ You MUST reference these current market conditions in your rationale. For each a
 - Adjust risk positioning based on VIX level
 - Consider equity/bond split based on current yields and equity momentum`;
 
-    const systemPrompt = `You are an institutional-grade portfolio advisor with expertise in modern portfolio theory, factor investing, and risk management.
+    const systemPrompt = `You are an institutional-grade portfolio planner with expertise in modern portfolio theory, factor investing, and risk management.
 
 Your analysis should be grounded in:
 - Modern Portfolio Theory (Markowitz)

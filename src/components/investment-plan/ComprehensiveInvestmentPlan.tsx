@@ -1253,7 +1253,7 @@ export function ComprehensiveInvestmentResults({
                 the possible loss of principal. Actual investment outcomes may differ significantly from projections shown.
               </p>
               <p>
-                Consider consulting with a qualified financial advisor, tax professional, or legal counsel before 
+                Consider consulting with a qualified financial professional, tax professional, or legal counsel before 
                 making investment decisions.
               </p>
             </div>

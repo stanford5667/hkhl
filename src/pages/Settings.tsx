@@ -419,7 +419,7 @@ export default function Settings() {
             <CardContent className="relative">
               <div className="grid sm:grid-cols-3 gap-4">
                 {[
-                  { label: "AI Portfolio Advisor", icon: "🤖" },
+                  { label: "AI Portfolio Planner", icon: "🤖" },
                   { label: "Real-time Alerts", icon: "⚡" },
                   { label: "Priority Support", icon: "🎯" },
                 ].map((feature) => (

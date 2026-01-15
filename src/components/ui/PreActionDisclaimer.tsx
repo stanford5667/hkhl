@@ -22,7 +22,7 @@ const disclaimerContent = {
     points: [
       "This assessment provides educational guidance, not financial advice",
       "Results are based on general principles, not your complete financial situation",
-      "Consider consulting a qualified financial advisor for personalized advice"
+      "Consider consulting a qualified financial professional for personalized advice"
     ]
   },
   projection: {

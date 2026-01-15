@@ -855,7 +855,7 @@ export default function PortfolioVisualizer() {
     
     // Add AI step if AI mode
     if (mode === 'ai') {
-      steps.unshift({ id: 'ai', label: 'Consulting AI Portfolio Advisor...', status: 'pending' });
+      steps.unshift({ id: 'ai', label: 'Consulting AI Portfolio Planner...', status: 'pending' });
     }
     
     setAnalysisSteps(steps);
@@ -864,10 +864,10 @@ export default function PortfolioVisualizer() {
     try {
       let finalAllocations = allocs;
       
-      // For AI mode, call the AI advisor edge function
+      // For AI mode, call the AI planner edge function
       if (mode === 'ai') {
         updateStep('ai', { status: 'running' });
-        setProgress({ message: 'Consulting AI Portfolio Advisor...', percent: 5 });
+        setProgress({ message: 'Consulting AI Portfolio Planner...', percent: 5 });
         setIsLoadingAI(true);
         
         try {
@@ -886,18 +886,18 @@ export default function PortfolioVisualizer() {
             data?.error?.includes('Rate limit');
           
           if (isCreditsExhausted) {
-            console.warn('[AI Advisor] AI credits exhausted, using fallback');
+            console.warn('[AI Planner] AI credits exhausted, using fallback');
             toast.error('AI credits exhausted - using smart fallback portfolio', { duration: 5000 });
             finalAllocations = generateAIPortfolio(profile);
             updateStep('ai', { status: 'complete', description: 'Credits exhausted - fallback used' });
           } else if (isRateLimited) {
-            console.warn('[AI Advisor] Rate limited, using fallback');
+            console.warn('[AI Planner] Rate limited, using fallback');
             toast.error('AI rate limited - using smart fallback portfolio');
             finalAllocations = generateAIPortfolio(profile);
             updateStep('ai', { status: 'complete', description: 'Rate limited - fallback used' });
           } else if (fnError) {
-            console.error('[AI Advisor] Function error:', fnError);
-            toast.error('AI Advisor unavailable, using fallback suggestions');
+            console.error('[AI Planner] Function error:', fnError);
+            toast.error('AI Planner unavailable, using fallback suggestions');
             finalAllocations = generateAIPortfolio(profile);
             updateStep('ai', { status: 'complete', description: 'Used fallback suggestions' });
           } else if (data?.success && data.data) {
@@ -915,14 +915,14 @@ export default function PortfolioVisualizer() {
             toast.success(`AI generated: ${advice.portfolioName}`);
             updateStep('ai', { status: 'complete', description: advice.portfolioName });
           } else {
-            console.error('[AI Advisor] Response error:', data?.error);
-            toast.error(data?.error || 'AI Advisor failed, using fallback');
+            console.error('[AI Planner] Response error:', data?.error);
+            toast.error(data?.error || 'AI Planner failed, using fallback');
             finalAllocations = generateAIPortfolio(profile);
             updateStep('ai', { status: 'complete', description: 'Used fallback suggestions' });
           }
         } catch (aiError) {
-          console.error('[AI Advisor] Error:', aiError);
-          toast.error('AI Advisor unavailable, using fallback');
+          console.error('[AI Planner] Error:', aiError);
+          toast.error('AI Planner unavailable, using fallback');
           finalAllocations = generateAIPortfolio(profile);
           updateStep('ai', { status: 'error', description: 'Error - used fallback' });
         }
