@@ -49,14 +49,11 @@ import {
   BarChart3,
   Scale,
   Search,
-  Settings2,
   Loader2,
   X,
   ChevronRight,
   LayoutGrid,
   Layers,
-  Calendar,
-  Shield,
   Info,
   DollarSign,
   Wallet,
@@ -276,8 +273,8 @@ export function MobileBacktester() {
   const [benchmark, setBenchmark] = useState('SPY');
   const [initialCapital, setInitialCapital] = useState(100000);
   
-  // UI state - three tabs: settings, portfolio, templates
-  const [activeTab, setActiveTab] = useState<'settings' | 'portfolio' | 'templates'>('portfolio');
+  // UI state - two tabs: portfolio, templates
+  const [activeTab, setActiveTab] = useState<'portfolio' | 'templates'>('portfolio');
   const [showResults, setShowResults] = useState(false);
   
   // Results state
@@ -884,13 +881,9 @@ export function MobileBacktester() {
         </div>
       </header>
 
-      {/* Three-tab navigation */}
+      {/* Two-tab navigation */}
       <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as typeof activeTab)} className="flex-1 flex flex-col min-h-0">
-        <TabsList className="flex-shrink-0 mx-4 mt-3 grid grid-cols-3 h-9">
-          <TabsTrigger value="settings" className="text-xs gap-1.5">
-            <Settings2 className="h-3.5 w-3.5" />
-            Settings
-          </TabsTrigger>
+        <TabsList className="flex-shrink-0 mx-4 mt-3 grid grid-cols-2 h-9">
           <TabsTrigger value="portfolio" className="text-xs gap-1.5">
             <Wallet className="h-3.5 w-3.5" />
             Portfolio
@@ -902,153 +895,10 @@ export function MobileBacktester() {
         </TabsList>
 
         {/* ═══════════════════════════════════════════════════════════════════
-            SETTINGS TAB
+            PORTFOLIO TAB
         ═══════════════════════════════════════════════════════════════════ */}
-        <TabsContent value="settings" className="flex-1 flex flex-col min-h-0 mt-3">
-          <ScrollArea className="flex-1">
-            <div className="px-4 pb-4 space-y-4">
-              {/* Date Range */}
-              <Card>
-                <CardContent className="p-4">
-                  <div className="flex items-center gap-2 mb-3">
-                    <Calendar className="h-4 w-4 text-primary" />
-                    <h3 className="font-medium text-sm">Date Range</h3>
-                  </div>
-                  <Select value={period} onValueChange={setPeriod}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {PERIODS.map(p => (
-                        <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </CardContent>
-              </Card>
-
-              {/* Initial Capital */}
-              <Card>
-                <CardContent className="p-4">
-                  <div className="flex items-center gap-2 mb-3">
-                    <DollarSign className="h-4 w-4 text-primary" />
-                    <h3 className="font-medium text-sm">Initial Capital</h3>
-                  </div>
-                  <Input
-                    type="number"
-                    value={initialCapital}
-                    onChange={(e) => setInitialCapital(Number(e.target.value))}
-                    className="font-mono"
-                  />
-                  <div className="flex gap-2 mt-2">
-                    {[10000, 50000, 100000, 500000].map(val => (
-                      <Button
-                        key={val}
-                        variant={initialCapital === val ? 'default' : 'outline'}
-                        size="sm"
-                        className="flex-1 text-xs"
-                        onClick={() => setInitialCapital(val)}
-                      >
-                        ${val >= 1000 ? `${val / 1000}k` : val}
-                      </Button>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Benchmark */}
-              <Card>
-                <CardContent className="p-4">
-                  <div className="flex items-center gap-2 mb-3">
-                    <BarChart3 className="h-4 w-4 text-primary" />
-                    <h3 className="font-medium text-sm">Benchmark</h3>
-                  </div>
-                  <Select value={benchmark} onValueChange={setBenchmark}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {BENCHMARKS.map(b => (
-                        <SelectItem key={b.value} value={b.value}>{b.label}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </CardContent>
-              </Card>
-
-              {/* Max Drawdown Target */}
-              <Card className={cn(
-                "relative overflow-hidden border-2",
-                maxDrawdownTarget <= 10 && "border-emerald-500/30",
-                maxDrawdownTarget > 10 && maxDrawdownTarget <= 20 && "border-yellow-500/30",
-                maxDrawdownTarget > 20 && maxDrawdownTarget <= 30 && "border-orange-500/30",
-                maxDrawdownTarget > 30 && "border-destructive/30"
-              )}>
-                <div className={cn(
-                  "absolute inset-0 bg-gradient-to-r opacity-50",
-                  getRiskGradient(maxDrawdownTarget)
-                )} />
-                <CardContent className="relative p-4">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-2">
-                      <Shield className={cn("h-4 w-4", getRiskColor(maxDrawdownTarget))} />
-                      <h3 className="font-medium text-sm">Max Drawdown Target</h3>
-                    </div>
-                    <span className={cn("text-xl font-bold font-mono", getRiskColor(maxDrawdownTarget))}>
-                      {maxDrawdownTarget}%
-                    </span>
-                  </div>
-                  
-                  <Slider
-                    value={[maxDrawdownTarget]}
-                    onValueChange={([v]) => setMaxDrawdownTarget(v)}
-                    min={5}
-                    max={50}
-                    step={5}
-                    className="mb-3"
-                  />
-                  
-                  <div className="flex justify-between text-[10px] text-muted-foreground mb-4">
-                    <span>Conservative</span>
-                    <span>Moderate</span>
-                    <span>Aggressive</span>
-                  </div>
-                  
-                  {suggestedPortfolio && (
-                    <div className="rounded-lg bg-background/80 border p-3">
-                      <div className="flex items-center justify-between mb-2">
-                        <div>
-                          <p className="font-medium text-sm">{suggestedPortfolio.name}</p>
-                          <p className="text-xs text-muted-foreground">{suggestedPortfolio.description}</p>
-                        </div>
-                        <Button 
-                          size="sm" 
-                          onClick={applySuggestedPortfolio}
-                          className="h-7 text-xs gap-1"
-                        >
-                          Apply
-                        </Button>
-                      </div>
-                      <div className="flex flex-wrap gap-1">
-                        {suggestedPortfolio.assets.map((a) => (
-                          <Badge key={a.symbol} variant="secondary" className="text-xs font-mono">
-                            {a.symbol} {a.weight}%
-                          </Badge>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </div>
-          </ScrollArea>
-        </TabsContent>
-
-        {/* ═══════════════════════════════════════════════════════════════════
-            PORTFOLIO TAB (CENTER - Ticker Search)
-        ═══════════════════════════════════════════════════════════════════ */}
-        <TabsContent value="portfolio" className="flex-1 flex flex-col min-h-0 mt-3">
-          <div className="flex-1 overflow-auto px-4 pb-4">
+        <TabsContent value="portfolio" className="flex-1 flex flex-col min-h-0 mt-3 overflow-hidden">
+          <div className="flex-1 flex flex-col overflow-auto px-4 pb-4">
             <div className="space-y-3">
               {/* Settings + Ticker Input in one card */}
               <Card className="border-primary/30 bg-primary/5">
@@ -1214,9 +1064,8 @@ export function MobileBacktester() {
         {/* ═══════════════════════════════════════════════════════════════════
             TEMPLATES TAB
         ═══════════════════════════════════════════════════════════════════ */}
-        <TabsContent value="templates" className="flex-1 flex flex-col min-h-0 mt-3">
-          <ScrollArea className="flex-1">
-            <div className="px-4 pb-4 space-y-2">
+        <TabsContent value="templates" className="flex-1 flex flex-col min-h-0 mt-3 overflow-hidden">
+          <div className="flex-1 overflow-auto px-4 pb-4 space-y-2">
               {TEMPLATES.map((template) => (
                 <button
                   key={template.name}
@@ -1240,7 +1089,7 @@ export function MobileBacktester() {
                 </button>
               ))}
             </div>
-          </ScrollArea>
+          </div>
         </TabsContent>
       </Tabs>
     </div>
