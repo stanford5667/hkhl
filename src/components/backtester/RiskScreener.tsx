@@ -593,10 +593,10 @@ export function RiskScreener({ onSelect, onComplete }: RiskScreenerProps) {
 
       {/* Details Sheet */}
       <Sheet open={detailsOpen} onOpenChange={setDetailsOpen}>
-        <SheetContent side="bottom" className="h-[65vh]">
+        <SheetContent side="bottom" className="h-[85vh] max-h-[85vh] flex flex-col">
           {selectedPortfolio && (
-            <>
-              <SheetHeader className="pb-4">
+            <div className="flex flex-col h-full overflow-hidden">
+              <SheetHeader className="flex-shrink-0 pb-4">
                 <SheetTitle className="flex items-center gap-2">
                   {(() => {
                     const Icon = RISK_STYLES[selectedPortfolio.riskLevel].icon;
@@ -606,8 +606,8 @@ export function RiskScreener({ onSelect, onComplete }: RiskScreenerProps) {
                 </SheetTitle>
               </SheetHeader>
               
-              <ScrollArea className="h-[calc(100%-120px)]">
-                <div className="space-y-4 pr-4">
+              <div className="flex-1 overflow-y-auto min-h-0">
+                <div className="space-y-4 pr-2">
                   <p className="text-sm text-muted-foreground">{selectedPortfolio.description}</p>
                   
                   {/* Key metrics */}
@@ -634,6 +634,12 @@ export function RiskScreener({ onSelect, onComplete }: RiskScreenerProps) {
                     </Card>
                   </div>
                   
+                  {/* Sortino */}
+                  <Card className="p-3">
+                    <p className="text-[10px] text-muted-foreground uppercase">Sortino Ratio</p>
+                    <p className="text-lg font-bold font-mono">{selectedPortfolio.metrics.sortino.toFixed(2)}</p>
+                  </Card>
+                  
                   {/* Allocations */}
                   <div>
                     <h4 className="text-xs font-medium text-muted-foreground uppercase mb-2">Allocations</h4>
@@ -650,11 +656,11 @@ export function RiskScreener({ onSelect, onComplete }: RiskScreenerProps) {
                     </div>
                   </div>
                 </div>
-              </ScrollArea>
+              </div>
               
-              {/* Action button */}
+              {/* Action button - fixed at bottom */}
               {(onSelect || onComplete) && (
-                <div className="pt-4 border-t border-border mt-4 space-y-3">
+                <div className="flex-shrink-0 pt-4 border-t border-border mt-4 space-y-3">
                   {onComplete && (
                     <div className="grid grid-cols-2 gap-3">
                       <div>
@@ -683,7 +689,7 @@ export function RiskScreener({ onSelect, onComplete }: RiskScreenerProps) {
                   </Button>
                 </div>
               )}
-            </>
+            </div>
           )}
         </SheetContent>
       </Sheet>
