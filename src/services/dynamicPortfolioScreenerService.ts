@@ -6,6 +6,7 @@
  */
 
 import { supabase } from '@/integrations/supabase/client';
+import { polygonData, type AssetData } from '@/services/polygonDataHandler';
 import {
   calculateSharpeRatio,
   calculateSortinoRatio,
@@ -472,47 +473,46 @@ export function calculatePortfolioMetrics(
  */
 export function calculateExactPortfolioMetrics(
   allocations: PortfolioAllocation[],
-  tickerData: Record<string, { date: string; return: number }[]>
+  assetData: Map<string, AssetData>
 ): GeneratedPortfolio['metrics'] | null {
-  // Find common dates
-  const dateSets = allocations.map(a => new Set(
-    (tickerData[a.ticker] || []).map(d => d.date)
-  ));
-  
-  if (dateSets.some(s => s.size === 0)) return null;
-  
-  const commonDates = [...dateSets[0]].filter(date =>
-    dateSets.every(s => s.has(date))
-  ).sort();
-  
-  // Require a minimum amount of overlapping history between all assets.
-  // Some tickers have sparse coverage in the dataset; a lower threshold prevents the screener from returning zero results.
+  const assets = allocations
+    .map((a) => ({ alloc: a, data: assetData.get(a.ticker) }))
+    .filter((x): x is { alloc: PortfolioAllocation; data: AssetData } => Boolean(x.data));
+
+  if (assets.length !== allocations.length) return null;
+
+  // Match PortfolioVisualizer methodology:
+  // - use per-asset "returns" arrays (log returns) from polygonDataHandler
+  // - align series by the shortest available history
+  const minLength = Math.min(...assets.map((a) => a.data.returns.length));
+
+  // Need enough data to produce stable metrics
   const MIN_OVERLAP_DAYS = 20;
-  if (commonDates.length < MIN_OVERLAP_DAYS) return null;
-  // Calculate weighted portfolio returns
+  if (!Number.isFinite(minLength) || minLength < MIN_OVERLAP_DAYS) return null;
+
   const portfolioReturns: number[] = [];
   const portfolioValues: number[] = [100000];
-  
-  for (const date of commonDates) {
+
+  for (let i = 0; i < minLength; i++) {
     let dayReturn = 0;
-    for (const alloc of allocations) {
-      const dayData = tickerData[alloc.ticker]?.find(d => d.date === date);
-      if (dayData) {
-        dayReturn += (alloc.weight / 100) * dayData.return;
-      }
+    for (const { alloc, data } of assets) {
+      dayReturn += (alloc.weight / 100) * (data.returns[i] ?? 0);
     }
+
     portfolioReturns.push(dayReturn);
-    portfolioValues.push(portfolioValues[portfolioValues.length - 1] * (1 + dayReturn));
+
+    // Keep consistent with PortfolioVisualizer (it treats returns as simple returns)
+    const prev = portfolioValues[portfolioValues.length - 1];
+    portfolioValues.push(prev * (1 + dayReturn));
   }
-  
-  // Calculate exact metrics
-  const years = commonDates.length / 252;
+
+  const years = portfolioReturns.length / 252;
   const cagr = calculateCAGR(100000, portfolioValues[portfolioValues.length - 1], years) * 100;
   const volatility = annualizedVolatility(portfolioReturns) * 100;
   const sharpe = calculateSharpeRatio(portfolioReturns, 0.05);
   const sortino = calculateSortinoRatio(portfolioReturns, 0.05);
   const { maxDrawdownPercent } = calculateMaxDrawdown(portfolioValues);
-  
+
   return {
     cagr: Math.round(cagr * 100) / 100,
     volatility: Math.round(volatility * 100) / 100,
@@ -622,30 +622,82 @@ export async function screenAllPortfolios(
   
   onProgress?.({ phase: 'fetching', current: 50, total: 100, message: `Found ${validTickers.length} tickers with sufficient data` });
   
-  // Phase 2: Fetch data for all tickers
-  const tickerData = await fetchTickerData(validTickers, lookbackYears);
-  
+  // Phase 2: Fetch data for all tickers using the SAME pipeline as PortfolioVisualizer
+  const endDate = new Date();
+  const startDate = new Date();
+  startDate.setFullYear(endDate.getFullYear() - lookbackYears);
+
+  const startStr = startDate.toISOString().split('T')[0];
+  const endStr = endDate.toISOString().split('T')[0];
+
+  const fetchResult = await polygonData.fetchAndCleanHistory(
+    validTickers,
+    startStr,
+    endStr,
+    (msg, pct) => {
+      // Map to our progress model
+      onProgress?.({
+        phase: 'fetching',
+        current: Math.round(50 + pct * 0.5),
+        total: 100,
+        message: msg,
+      });
+    }
+  );
+
   onProgress?.({ phase: 'calculating', current: 0, total: validTickers.length, message: 'Calculating individual ticker metrics...' });
-  
+
   // Phase 3: Calculate individual ticker stats
   const tickerStats: TickerStats[] = [];
   const tickerStatsMap = new Map<string, TickerStats>();
-  
+
   for (let i = 0; i < validTickers.length; i++) {
     const ticker = validTickers[i];
-    const data = tickerData[ticker];
-    if (data && data.length >= 50) {
-      const stats = calculateTickerStats(ticker, data);
+    const asset = fetchResult.assetData.get(ticker);
+
+    if (asset && asset.returns.length >= 50) {
+      const dates = asset.bars.map((b) => new Date(b.timestamp).toISOString().split('T')[0]);
+      const values: number[] = [100000];
+      for (const r of asset.returns) {
+        values.push(values[values.length - 1] * (1 + r));
+      }
+
+      const years = asset.returns.length / 252;
+      const cagr = calculateCAGR(100000, values[values.length - 1], years) * 100;
+      const volatility = annualizedVolatility(asset.returns) * 100;
+      const sharpe = calculateSharpeRatio(asset.returns, 0.05);
+      const sortino = calculateSortinoRatio(asset.returns, 0.05);
+      const { maxDrawdownPercent } = calculateMaxDrawdown(values);
+
+      const meta = TICKER_METADATA[ticker] || { name: ticker, category: 'Unknown' };
+
+      const stats: TickerStats = {
+        ticker,
+        name: meta.name,
+        category: meta.category,
+        dataPoints: asset.returns.length,
+        dateRange: { start: dates[0] || '', end: dates[dates.length - 1] || '' },
+        metrics: {
+          cagr: Math.round(cagr * 100) / 100,
+          volatility: Math.round(volatility * 100) / 100,
+          sharpe: Math.round(sharpe * 100) / 100,
+          sortino: Math.round(sortino * 100) / 100,
+          maxDrawdown: Math.round(maxDrawdownPercent * 100) / 100,
+          avgDailyReturn: arithmeticMean(asset.returns),
+        },
+        dailyReturns: asset.returns,
+      };
+
       tickerStats.push(stats);
       tickerStatsMap.set(ticker, stats);
     }
-    
+
     if (i % 10 === 0) {
-      onProgress?.({ 
-        phase: 'calculating', 
-        current: i, 
-        total: validTickers.length, 
-        message: `Calculated ${i}/${validTickers.length} ticker metrics` 
+      onProgress?.({
+        phase: 'calculating',
+        current: i,
+        total: validTickers.length,
+        message: `Calculated ${i}/${validTickers.length} ticker metrics`,
       });
     }
   }
@@ -673,8 +725,8 @@ export async function screenAllPortfolios(
     // Skip if we've already found a matching portfolio with this ticker set
     if (seenTickerSets.has(tickerKey)) continue;
     
-    // Calculate exact metrics using aligned data
-    const metrics = calculateExactPortfolioMetrics(allocations, tickerData);
+    // Calculate metrics using the same return series alignment as PortfolioVisualizer
+    const metrics = calculateExactPortfolioMetrics(allocations, fetchResult.assetData);
     if (!metrics) continue;
     
     // Check if meets criteria
@@ -776,27 +828,75 @@ export async function quickScreenPortfolios(
   // Get all tickers used in templates
   const allTickers = [...new Set(templates.flatMap(t => t.allocations.map(a => a.ticker)))];
   
-  onProgress?.({ phase: 'fetching', current: 50, total: 100, message: `Fetching data for ${allTickers.length} tickers...` });
-  
-  const tickerData = await fetchTickerData(allTickers, lookbackYears);
-  
+  // Fetch data for the same date range logic as PortfolioVisualizer
+  const endDate = new Date();
+  const startDate = new Date();
+  startDate.setFullYear(endDate.getFullYear() - lookbackYears);
+
+  const startStr = startDate.toISOString().split('T')[0];
+  const endStr = endDate.toISOString().split('T')[0];
+
+  const fetchResult = await polygonData.fetchAndCleanHistory(
+    allTickers,
+    startStr,
+    endStr,
+    (msg, pct) => {
+      onProgress?.({
+        phase: 'fetching',
+        current: Math.round(50 + pct * 0.5),
+        total: 100,
+        message: msg,
+      });
+    }
+  );
+
   onProgress?.({ phase: 'calculating', current: 0, total: templates.length, message: 'Calculating portfolio metrics...' });
-  
+
   const results: GeneratedPortfolio[] = [];
   const tickerStats: TickerStats[] = [];
-  
+
   // Calculate stats for all tickers
   for (const ticker of allTickers) {
-    const data = tickerData[ticker];
-    if (data && data.length >= 50) {
-      tickerStats.push(calculateTickerStats(ticker, data));
+    const asset = fetchResult.assetData.get(ticker);
+    if (asset && asset.returns.length >= 50) {
+      const dates = asset.bars.map((b) => new Date(b.timestamp).toISOString().split('T')[0]);
+      const values: number[] = [100000];
+      for (const r of asset.returns) {
+        values.push(values[values.length - 1] * (1 + r));
+      }
+
+      const years = asset.returns.length / 252;
+      const cagr = calculateCAGR(100000, values[values.length - 1], years) * 100;
+      const volatility = annualizedVolatility(asset.returns) * 100;
+      const sharpe = calculateSharpeRatio(asset.returns, 0.05);
+      const sortino = calculateSortinoRatio(asset.returns, 0.05);
+      const { maxDrawdownPercent } = calculateMaxDrawdown(values);
+
+      const meta = TICKER_METADATA[ticker] || { name: ticker, category: 'Unknown' };
+
+      tickerStats.push({
+        ticker,
+        name: meta.name,
+        category: meta.category,
+        dataPoints: asset.returns.length,
+        dateRange: { start: dates[0] || '', end: dates[dates.length - 1] || '' },
+        metrics: {
+          cagr: Math.round(cagr * 100) / 100,
+          volatility: Math.round(volatility * 100) / 100,
+          sharpe: Math.round(sharpe * 100) / 100,
+          sortino: Math.round(sortino * 100) / 100,
+          maxDrawdown: Math.round(maxDrawdownPercent * 100) / 100,
+          avgDailyReturn: arithmeticMean(asset.returns),
+        },
+        dailyReturns: asset.returns,
+      });
     }
   }
   
   // Evaluate each template
   for (let i = 0; i < templates.length; i++) {
     const template = templates[i];
-    const metrics = calculateExactPortfolioMetrics(template.allocations, tickerData);
+    const metrics = calculateExactPortfolioMetrics(template.allocations, fetchResult.assetData);
     
     if (!metrics) continue;
     
