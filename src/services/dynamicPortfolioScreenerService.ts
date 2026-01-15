@@ -485,8 +485,10 @@ export function calculateExactPortfolioMetrics(
     dateSets.every(s => s.has(date))
   ).sort();
   
-  if (commonDates.length < 50) return null;
-  
+  // Require a minimum amount of overlapping history between all assets.
+  // Some tickers have sparse coverage in the dataset; a lower threshold prevents the screener from returning zero results.
+  const MIN_OVERLAP_DAYS = 20;
+  if (commonDates.length < MIN_OVERLAP_DAYS) return null;
   // Calculate weighted portfolio returns
   const portfolioReturns: number[] = [];
   const portfolioValues: number[] = [100000];
