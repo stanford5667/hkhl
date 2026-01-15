@@ -490,15 +490,11 @@ export function MobileBacktester() {
     
     try {
       const endDate = new Date();
-      const startDate = new Date();
-      const years = PERIODS.find(p => p.value === period)?.years || 5;
-      startDate.setFullYear(endDate.getFullYear() - years);
-      
-      const startStr = startDate.toISOString().split('T')[0];
       const endStr = endDate.toISOString().split('T')[0];
       
-      // Fetch data for all assets
+      // First, fetch ALL available data for each asset to find the common date range
       const assetData: Record<string, { date: string; return: number }[]> = {};
+      const assetDateRanges: Record<string, { min: string; max: string }> = {};
       const missingTickers: string[] = [];
       
       for (const asset of assets) {
@@ -506,7 +502,6 @@ export function MobileBacktester() {
           .from('market_daily_bars')
           .select('bar_date, daily_return')
           .eq('ticker', asset.symbol)
-          .gte('bar_date', startStr)
           .lte('bar_date', endStr)
           .order('bar_date', { ascending: true });
         
@@ -515,6 +510,10 @@ export function MobileBacktester() {
             date: d.bar_date,
             return: d.daily_return || 0,
           }));
+          assetDateRanges[asset.symbol] = {
+            min: data[0].bar_date,
+            max: data[data.length - 1].bar_date
+          };
         } else {
           missingTickers.push(asset.symbol);
         }
@@ -529,13 +528,32 @@ export function MobileBacktester() {
       
       // Filter assets to only those with data and renormalize weights
       const validSymbols = new Set(Object.keys(assetData));
-      const validAssets = assets.filter(a => validSymbols.has(a.symbol));
+      const validAssets = assets.filter(a => validSymbols.has(a.symbol)).map(a => ({ ...a }));
       
       if (missingTickers.length > 0) {
         toast.warning(`Limited data for: ${missingTickers.join(', ')} - excluded from backtest`);
-        // Renormalize weights for valid assets
-        const totalWeight = validAssets.reduce((sum, a) => sum + a.weight, 0);
-        validAssets.forEach(a => a.weight = (a.weight / totalWeight) * 100);
+      }
+      
+      // Renormalize weights for valid assets
+      const totalWeight = validAssets.reduce((sum, a) => sum + a.weight, 0);
+      validAssets.forEach(a => a.weight = (a.weight / totalWeight) * 100);
+      
+      // Calculate the effective date range based on user's period selection
+      const years = PERIODS.find(p => p.value === period)?.years || 5;
+      const requestedStartDate = new Date();
+      requestedStartDate.setFullYear(endDate.getFullYear() - years);
+      const requestedStartStr = requestedStartDate.toISOString().split('T')[0];
+      
+      // Find the latest start date among all valid assets (the limiting factor)
+      const latestAssetStart = Object.values(assetDateRanges).reduce((latest, range) => 
+        range.min > latest ? range.min : latest, '1900-01-01');
+      
+      // Use the later of: user's requested start OR the latest asset start date
+      const effectiveStartStr = requestedStartStr > latestAssetStart ? requestedStartStr : latestAssetStart;
+      
+      // Filter asset data to the effective date range
+      for (const symbol of Object.keys(assetData)) {
+        assetData[symbol] = assetData[symbol].filter(d => d.date >= effectiveStartStr);
       }
       
       // Fetch benchmark
@@ -545,7 +563,7 @@ export function MobileBacktester() {
           .from('market_daily_bars')
           .select('bar_date, daily_return')
           .eq('ticker', benchmark)
-          .gte('bar_date', startStr)
+          .gte('bar_date', effectiveStartStr)
           .lte('bar_date', endStr)
           .order('bar_date', { ascending: true });
         
@@ -559,7 +577,7 @@ export function MobileBacktester() {
       if (benchmarkData.length > 0) allDateSets.push(new Set(benchmarkData.map(d => d.date)));
       
       if (allDateSets.length === 0 || allDateSets[0].size === 0) {
-        toast.error('No overlapping data found. Try different tickers or a shorter time period.');
+        toast.error('No overlapping data found. Try different tickers.');
         setIsLoading(false);
         return;
       }
@@ -569,9 +587,18 @@ export function MobileBacktester() {
       ).sort();
       
       if (commonDates.length < 20) {
-        toast.error(`Only ${commonDates.length} days of overlapping data found. Need at least 20. Try a shorter period or different tickers.`);
+        const tickerInfo = Object.entries(assetDateRanges)
+          .map(([t, r]) => `${t}: ${r.min.slice(0, 7)}`)
+          .join(', ');
+        toast.error(`Only ${commonDates.length} days overlap. Data starts: ${tickerInfo}`);
         setIsLoading(false);
         return;
+      }
+      
+      // Notify user if date range was adjusted
+      if (effectiveStartStr > requestedStartStr) {
+        const actualYears = ((new Date(endStr).getTime() - new Date(effectiveStartStr).getTime()) / (365.25 * 24 * 60 * 60 * 1000)).toFixed(1);
+        toast.info(`Backtest adjusted to ${actualYears} years based on available data (from ${effectiveStartStr.slice(0, 7)})`);
       }
       
       // Index data
