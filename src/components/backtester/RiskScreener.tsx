@@ -81,7 +81,7 @@ interface BacktestedPortfolio extends PortfolioTemplate {
   matchScore: number;
 }
 
-type RiskMetric = 'maxDrawdown' | 'volatility' | 'sharpe';
+type RiskMetric = 'maxDrawdown' | 'volatility' | 'sharpe' | 'cagr';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // PORTFOLIO TEMPLATES
@@ -230,9 +230,10 @@ export function RiskScreener({ onSelect, onComplete }: RiskScreenerProps) {
 
   // Metric configs - wider ranges to ensure portfolios show
   const metricConfigs = {
+    cagr: { label: 'Performance', min: 0, max: 20, step: 1, unit: '%', default: 5, invert: true },
     maxDrawdown: { label: 'Max Drawdown', min: 5, max: 60, step: 5, unit: '%', default: 30, invert: false },
     volatility: { label: 'Volatility', min: 5, max: 40, step: 5, unit: '%', default: 20, invert: false },
-    sharpe: { label: 'Min Sharpe', min: 0, max: 3, step: 0.25, unit: '', default: 0.25, invert: true },
+    sharpe: { label: 'Sharpe', min: 0, max: 3, step: 0.25, unit: '', default: 0.25, invert: true },
   };
 
   const config = metricConfigs[selectedMetric];
@@ -416,7 +417,11 @@ export function RiskScreener({ onSelect, onComplete }: RiskScreenerProps) {
     const scored = portfolios.map(p => {
       let score = 100;
       
-      if (selectedMetric === 'maxDrawdown') {
+      if (selectedMetric === 'cagr') {
+        // Higher CAGR = better
+        if (p.metrics.cagr >= targetValue) score += 30;
+        else score -= (targetValue - p.metrics.cagr) * 3;
+      } else if (selectedMetric === 'maxDrawdown') {
         // Lower drawdown = better
         if (p.metrics.maxDrawdown <= targetValue) score += 30;
         else score -= (p.metrics.maxDrawdown - targetValue) * 1.5;
@@ -435,6 +440,7 @@ export function RiskScreener({ onSelect, onComplete }: RiskScreenerProps) {
     
     // More generous filtering - show portfolios within reasonable range
     const filtered = scored.filter(p => {
+      if (selectedMetric === 'cagr') return p.metrics.cagr >= targetValue - 10;
       if (selectedMetric === 'maxDrawdown') return p.metrics.maxDrawdown <= targetValue + 25;
       if (selectedMetric === 'volatility') return p.metrics.volatility <= targetValue + 15;
       if (selectedMetric === 'sharpe') return p.metrics.sharpe >= targetValue - 1;
