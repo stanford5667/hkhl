@@ -76,7 +76,7 @@ import {
 import { InvestorPolicyStatement } from '@/types/investorPolicy';
 
 // Components
-import { TraditionalBacktester } from '@/components/backtester/TraditionalBacktester';
+import { MobileBacktester } from '@/components/backtester/MobileBacktester';
 import { AICoPilotWizard } from '@/components/backtester/AICoPilotWizard';
 import { ManualPortfolioForm } from '@/components/backtester/ManualPortfolioForm';
 import { EfficientFrontierSlider } from '@/components/backtester/EfficientFrontierSlider';
@@ -1236,7 +1236,7 @@ export default function PortfolioVisualizer() {
   if (currentFlow === 'screener') {
     return (
       <div className="min-h-screen bg-background">
-        <TraditionalBacktester />
+        <MobileBacktester />
         <AuthGateDialog
           open={showAuthDialog}
           onOpenChange={closeAuthDialog}
