@@ -1098,6 +1098,14 @@ export function MobileBacktester() {
                 <ScrollBar orientation="horizontal" />
               </ScrollArea>
 
+              {/* Sample defaults hint */}
+              {assets.length > 0 && assets.every(a => DEFAULT_POSITIONS.some(d => d.symbol === a.symbol)) && (
+                <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-primary/5 border border-primary/10 text-xs text-muted-foreground">
+                  <Info className="h-3.5 w-3.5 text-primary/60 flex-shrink-0" />
+                  <span>These are <strong className="text-foreground">sample positions</strong> — customize them to match your portfolio</span>
+                </div>
+              )}
+
               {/* Toolbar */}
               <div className="flex items-center justify-between">
                 <h3 className="font-medium text-sm text-muted-foreground">
