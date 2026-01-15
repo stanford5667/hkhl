@@ -7,5 +7,9 @@
 import { MobileBacktester } from '@/components/backtester/MobileBacktester';
 
 export default function BacktesterPage() {
-  return <MobileBacktester />;
+  return (
+    <div className="h-full min-h-0 flex flex-col">
+      <MobileBacktester />
+    </div>
+  );
 }
