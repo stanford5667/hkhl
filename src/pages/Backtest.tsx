@@ -10,6 +10,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { toast } from 'sonner';
 import { Plus, X, Play, Loader2, LineChart, TrendingUp, TrendingDown, Activity, AlertTriangle, FolderOpen, FlaskConical, Info } from 'lucide-react';
+import { PreActionDisclaimer } from '@/components/ui/PreActionDisclaimer';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { LineChart as RechartsLineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { cn } from '@/lib/utils';
@@ -368,6 +369,9 @@ export default function BacktestPage() {
                 />
               </div>
             </div>
+
+            {/* Pre-Action Disclaimer */}
+            <PreActionDisclaimer variant="backtest" />
 
             {/* Run Buttons */}
             <div className="space-y-2">

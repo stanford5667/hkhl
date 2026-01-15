@@ -37,6 +37,7 @@ import {
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { format, subMonths } from 'date-fns';
+import { PreActionDisclaimer } from '@/components/ui/PreActionDisclaimer';
 
 interface Condition {
   type: string;
@@ -294,6 +295,10 @@ export function StrategyBacktester() {
                 </Select>
               </div>
             </div>
+            
+            {/* Pre-Action Disclaimer */}
+            <PreActionDisclaimer variant="backtest" compact className="mt-4" />
+            
             <Button 
               onClick={handleBacktest} 
               disabled={isBacktesting} 

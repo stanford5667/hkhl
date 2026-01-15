@@ -68,6 +68,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { format, formatDistanceToNow } from 'date-fns';
+import { PreActionDisclaimer } from '@/components/ui/PreActionDisclaimer';
 
 // Simple markdown renderer component
 function SimpleMarkdown({ content }: { content: string }) {
@@ -534,6 +535,7 @@ export default function InvestmentPlanPage() {
                         </Badge>
                       ))}
                     </div>
+                    <PreActionDisclaimer variant="investment-plan" className="mb-4" />
                     <Button onClick={() => {
                       setForceNewAssessment(true);
                       setShowQuestionnaire(true);
