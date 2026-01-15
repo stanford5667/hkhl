@@ -1259,88 +1259,95 @@ export function MobileBacktester() {
         </TabsContent>
       </Tabs>
 
-      {/* Asset Detail Popup */}
+      {/* Asset Detail Popup - Styled like Market Intel */}
       <Sheet open={assetDetailOpen} onOpenChange={setAssetDetailOpen}>
-        <SheetContent side="bottom" className="h-[85vh] rounded-t-2xl">
+        <SheetContent side="right" className="w-full sm:max-w-lg overflow-y-auto p-0">
           {selectedAsset && (
-            <>
-              <SheetHeader className="pb-4 border-b">
-                <div className="flex items-center gap-3">
+            <div className="flex flex-col h-full">
+              {/* Header - Fixed */}
+              <SheetHeader className="p-4 sm:p-6 pb-2 sm:pb-4 border-b border-border/50 shrink-0">
+                <div className="flex items-start gap-3">
                   <div 
-                    className="w-4 h-4 rounded-full" 
-                    style={{ backgroundColor: selectedAsset.color }}
-                  />
-                  <div>
-                    <SheetTitle className="flex items-center gap-2 font-mono text-xl">
-                      {selectedAsset.symbol}
-                      {selectedAsset.price !== undefined && (
-                        <span className="text-muted-foreground font-normal">
-                          ${selectedAsset.price.toFixed(2)}
-                        </span>
-                      )}
+                    className="p-3 rounded-xl bg-secondary shrink-0 flex items-center justify-center"
+                    style={{ backgroundColor: `${selectedAsset.color}20` }}
+                  >
+                    <div 
+                      className="w-6 h-6 rounded-full"
+                      style={{ backgroundColor: selectedAsset.color }}
+                    />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <SheetTitle className="text-lg sm:text-xl flex flex-wrap items-center gap-2">
+                      <span className="font-mono font-bold">{selectedAsset.symbol}</span>
+                      <Badge variant="outline" className="text-[10px] sm:text-xs shrink-0">
+                        ETF
+                      </Badge>
                     </SheetTitle>
-                    <SheetDescription className="text-left">
-                      {selectedAsset.name || 'Asset Details'}
+                    <SheetDescription className="mt-1 text-left">
+                      {selectedAsset.name || 'Exchange Traded Fund'}
                     </SheetDescription>
+                  </div>
+                </div>
+
+                {/* Current Price Banner */}
+                <div className="flex items-center gap-4 sm:gap-6 mt-4 p-4 rounded-xl bg-secondary/50">
+                  <div>
+                    <p className="text-xs sm:text-sm text-muted-foreground">Current Price</p>
+                    <p className="text-2xl sm:text-3xl font-bold tabular-nums font-mono">
+                      ${selectedAsset.price?.toFixed(2) || '—'}
+                    </p>
+                  </div>
+                  <div className={cn(
+                    "flex items-center gap-1.5 px-3 py-2 rounded-lg",
+                    (selectedAsset.changePercent || 0) >= 0 
+                      ? "bg-emerald-500/10 text-emerald-500" 
+                      : "bg-rose-500/10 text-rose-500"
+                  )}>
+                    {(selectedAsset.changePercent || 0) >= 0 ? (
+                      <TrendingUp className="h-5 w-5" />
+                    ) : (
+                      <TrendingDown className="h-5 w-5" />
+                    )}
+                    <div>
+                      <p className="font-bold tabular-nums font-mono text-sm">
+                        {(selectedAsset.change || 0) >= 0 ? '+' : ''}${selectedAsset.change?.toFixed(2) || '0.00'}
+                      </p>
+                      <p className="text-xs tabular-nums font-mono">
+                        ({(selectedAsset.changePercent || 0) >= 0 ? '+' : ''}{selectedAsset.changePercent?.toFixed(2) || '0.00'}%)
+                      </p>
+                    </div>
                   </div>
                 </div>
               </SheetHeader>
 
-              <ScrollArea className="flex-1 h-[calc(85vh-120px)]">
-                <div className="py-4 space-y-4">
-                  {/* Price Change Card */}
-                  <Card>
-                    <CardHeader className="pb-2">
-                      <CardTitle className="text-sm font-medium flex items-center gap-2">
-                        <Activity className="h-4 w-4" />
-                        Today's Performance
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="flex items-center gap-4">
-                        <div className={cn(
-                          "text-2xl font-bold font-mono flex items-center gap-1",
-                          (selectedAsset.changePercent || 0) >= 0 ? "text-emerald-500" : "text-destructive"
-                        )}>
-                          {(selectedAsset.changePercent || 0) >= 0 ? (
-                            <TrendingUp className="h-5 w-5" />
-                          ) : (
-                            <TrendingDown className="h-5 w-5" />
-                          )}
-                          {(selectedAsset.changePercent || 0) >= 0 ? '+' : ''}{selectedAsset.changePercent?.toFixed(2) || '0.00'}%
-                        </div>
-                        <div className="text-sm text-muted-foreground font-mono">
-                          {(selectedAsset.change || 0) >= 0 ? '+' : ''}${selectedAsset.change?.toFixed(2) || '0.00'}
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-
+              {/* Scrollable Content */}
+              <ScrollArea className="flex-1">
+                <div className="p-4 sm:p-6 space-y-4">
                   {/* Key Statistics */}
-                  <Card>
-                    <CardHeader className="pb-2">
-                      <CardTitle className="text-sm font-medium flex items-center gap-2">
-                        <BarChart3 className="h-4 w-4" />
+                  <Card className="border-border/50">
+                    <CardHeader className="pb-2 sm:pb-3 px-4 sm:px-6 pt-4 sm:pt-6">
+                      <CardTitle className="flex items-center gap-2 text-sm sm:text-base">
+                        <BarChart3 className="h-4 w-4 sm:h-5 sm:w-5 text-primary shrink-0" />
                         Key Statistics
                       </CardTitle>
                     </CardHeader>
-                    <CardContent>
+                    <CardContent className="px-4 sm:px-6 pb-4 sm:pb-6">
                       <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <p className="text-xs text-muted-foreground uppercase tracking-wider">52W High</p>
-                          <p className="font-mono font-semibold text-emerald-500">
+                        <div className="p-3 rounded-lg bg-secondary/30">
+                          <p className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wider">52W High</p>
+                          <p className="font-mono font-semibold text-emerald-500 text-sm sm:text-base">
                             ${selectedAsset.high52w?.toFixed(2) || 'N/A'}
                           </p>
                         </div>
-                        <div>
-                          <p className="text-xs text-muted-foreground uppercase tracking-wider">52W Low</p>
-                          <p className="font-mono font-semibold text-destructive">
+                        <div className="p-3 rounded-lg bg-secondary/30">
+                          <p className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wider">52W Low</p>
+                          <p className="font-mono font-semibold text-rose-500 text-sm sm:text-base">
                             ${selectedAsset.low52w?.toFixed(2) || 'N/A'}
                           </p>
                         </div>
-                        <div>
-                          <p className="text-xs text-muted-foreground uppercase tracking-wider">Volume</p>
-                          <p className="font-mono font-semibold">
+                        <div className="p-3 rounded-lg bg-secondary/30">
+                          <p className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wider">Volume</p>
+                          <p className="font-mono font-semibold text-sm sm:text-base">
                             {selectedAsset.volume 
                               ? (selectedAsset.volume >= 1000000 
                                   ? `${(selectedAsset.volume / 1000000).toFixed(1)}M` 
@@ -1348,9 +1355,9 @@ export function MobileBacktester() {
                               : 'N/A'}
                           </p>
                         </div>
-                        <div>
-                          <p className="text-xs text-muted-foreground uppercase tracking-wider">Weight</p>
-                          <p className="font-mono font-semibold text-primary">
+                        <div className="p-3 rounded-lg bg-primary/10">
+                          <p className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wider">Weight</p>
+                          <p className="font-mono font-semibold text-primary text-sm sm:text-base">
                             {selectedAsset.weight.toFixed(0)}%
                           </p>
                         </div>
@@ -1360,30 +1367,32 @@ export function MobileBacktester() {
 
                   {/* 52-Week Range Visual */}
                   {selectedAsset.high52w && selectedAsset.low52w && selectedAsset.price && (
-                    <Card>
-                      <CardHeader className="pb-2">
-                        <CardTitle className="text-sm font-medium flex items-center gap-2">
-                          <Scale className="h-4 w-4" />
+                    <Card className="border-border/50">
+                      <CardHeader className="pb-2 sm:pb-3 px-4 sm:px-6 pt-4 sm:pt-6">
+                        <CardTitle className="flex items-center gap-2 text-sm sm:text-base">
+                          <Scale className="h-4 w-4 sm:h-5 sm:w-5 text-amber-400 shrink-0" />
                           52-Week Range
                         </CardTitle>
                       </CardHeader>
-                      <CardContent>
-                        <div className="relative h-2 bg-muted rounded-full overflow-hidden">
+                      <CardContent className="px-4 sm:px-6 pb-4 sm:pb-6">
+                        <div className="relative h-3 bg-muted rounded-full overflow-hidden">
                           <div 
-                            className="absolute h-full bg-gradient-to-r from-destructive via-yellow-500 to-emerald-500"
+                            className="absolute h-full bg-gradient-to-r from-rose-500 via-amber-400 to-emerald-500"
                             style={{ width: '100%' }}
                           />
                           <div 
-                            className="absolute top-1/2 -translate-y-1/2 w-3 h-3 bg-primary rounded-full border-2 border-background shadow-lg"
+                            className="absolute top-1/2 w-4 h-4 bg-background rounded-full border-2 border-primary shadow-lg"
                             style={{ 
                               left: `${Math.min(100, Math.max(0, ((selectedAsset.price - selectedAsset.low52w) / (selectedAsset.high52w - selectedAsset.low52w)) * 100))}%`,
                               transform: 'translate(-50%, -50%)'
                             }}
                           />
                         </div>
-                        <div className="flex justify-between mt-2 text-xs text-muted-foreground font-mono">
+                        <div className="flex justify-between mt-3 text-xs text-muted-foreground font-mono">
                           <span>${selectedAsset.low52w.toFixed(2)}</span>
-                          <span className="font-semibold text-foreground">${selectedAsset.price.toFixed(2)}</span>
+                          <span className="font-semibold text-foreground bg-secondary px-2 py-0.5 rounded">
+                            ${selectedAsset.price.toFixed(2)}
+                          </span>
                           <span>${selectedAsset.high52w.toFixed(2)}</span>
                         </div>
                       </CardContent>
@@ -1391,15 +1400,15 @@ export function MobileBacktester() {
                   )}
 
                   {/* Portfolio Allocation */}
-                  <Card>
-                    <CardHeader className="pb-2">
-                      <CardTitle className="text-sm font-medium flex items-center gap-2">
-                        <Wallet className="h-4 w-4" />
+                  <Card className="border-border/50">
+                    <CardHeader className="pb-2 sm:pb-3 px-4 sm:px-6 pt-4 sm:pt-6">
+                      <CardTitle className="flex items-center gap-2 text-sm sm:text-base">
+                        <Wallet className="h-4 w-4 sm:h-5 sm:w-5 text-emerald-400 shrink-0" />
                         Portfolio Allocation
                       </CardTitle>
                     </CardHeader>
-                    <CardContent>
-                      <div className="space-y-3">
+                    <CardContent className="px-4 sm:px-6 pb-4 sm:pb-6">
+                      <div className="space-y-4">
                         <Slider
                           value={[selectedAsset.weight]}
                           onValueChange={([v]) => {
@@ -1408,13 +1417,14 @@ export function MobileBacktester() {
                           }}
                           max={100}
                           step={1}
+                          className="py-2"
                         />
                         <div className="flex justify-between text-sm">
-                          <span className="text-muted-foreground">Allocation</span>
-                          <span className="font-mono font-bold">{selectedAsset.weight.toFixed(0)}%</span>
+                          <span className="text-muted-foreground">Target Allocation</span>
+                          <span className="font-mono font-bold text-lg">{selectedAsset.weight.toFixed(0)}%</span>
                         </div>
                         {selectedAsset.price && (
-                          <div className="flex justify-between text-sm">
+                          <div className="flex justify-between text-sm p-3 rounded-lg bg-secondary/30">
                             <span className="text-muted-foreground">Estimated Value</span>
                             <span className="font-mono font-bold text-primary">
                               ${((initialCapital * selectedAsset.weight / 100)).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
@@ -1424,30 +1434,32 @@ export function MobileBacktester() {
                       </div>
                     </CardContent>
                   </Card>
-
-                  {/* Actions */}
-                  <div className="flex gap-2">
-                    <Button 
-                      variant="outline" 
-                      className="flex-1"
-                      onClick={() => {
-                        removeAsset(selectedAsset.symbol);
-                        setAssetDetailOpen(false);
-                      }}
-                    >
-                      <X className="h-4 w-4 mr-2" />
-                      Remove
-                    </Button>
-                    <Button 
-                      className="flex-1"
-                      onClick={() => setAssetDetailOpen(false)}
-                    >
-                      Done
-                    </Button>
-                  </div>
                 </div>
               </ScrollArea>
-            </>
+
+              {/* Fixed Footer Actions */}
+              <div className="p-4 sm:p-6 border-t border-border/50 shrink-0 bg-background">
+                <div className="flex gap-3">
+                  <Button 
+                    variant="outline" 
+                    className="flex-1"
+                    onClick={() => {
+                      removeAsset(selectedAsset.symbol);
+                      setAssetDetailOpen(false);
+                    }}
+                  >
+                    <X className="h-4 w-4 mr-2" />
+                    Remove Asset
+                  </Button>
+                  <Button 
+                    className="flex-1"
+                    onClick={() => setAssetDetailOpen(false)}
+                  >
+                    Done
+                  </Button>
+                </div>
+              </div>
+            </div>
           )}
         </SheetContent>
       </Sheet>
