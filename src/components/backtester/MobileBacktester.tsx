@@ -179,6 +179,19 @@ const TEMPLATES = [
   { name: 'Global', assets: [{ symbol: 'VTI', weight: 40 }, { symbol: 'VXUS', weight: 30 }, { symbol: 'BND', weight: 20 }, { symbol: 'GLD', weight: 10 }] },
 ];
 
+// Drawdown-based portfolio suggestions
+const DRAWDOWN_PORTFOLIOS: Record<number, { name: string; description: string; assets: { symbol: string; weight: number }[] }> = {
+  5: { name: 'Ultra Conservative', description: 'Treasury focused, minimal equity', assets: [{ symbol: 'BND', weight: 70 }, { symbol: 'IEF', weight: 20 }, { symbol: 'VTI', weight: 10 }] },
+  10: { name: 'Conservative', description: 'Bond heavy with some growth', assets: [{ symbol: 'BND', weight: 50 }, { symbol: 'VTI', weight: 30 }, { symbol: 'GLD', weight: 10 }, { symbol: 'IEF', weight: 10 }] },
+  15: { name: 'Moderate Conservative', description: 'Balanced with downside protection', assets: [{ symbol: 'VTI', weight: 40 }, { symbol: 'BND', weight: 40 }, { symbol: 'GLD', weight: 10 }, { symbol: 'VXUS', weight: 10 }] },
+  20: { name: 'Balanced', description: 'Classic 60/40 with diversification', assets: [{ symbol: 'VTI', weight: 50 }, { symbol: 'BND', weight: 30 }, { symbol: 'VXUS', weight: 15 }, { symbol: 'GLD', weight: 5 }] },
+  25: { name: 'Growth Tilt', description: 'Equity focused with some protection', assets: [{ symbol: 'VTI', weight: 55 }, { symbol: 'VXUS', weight: 20 }, { symbol: 'BND', weight: 15 }, { symbol: 'VNQ', weight: 10 }] },
+  30: { name: 'Growth', description: 'Higher equity, accept volatility', assets: [{ symbol: 'VTI', weight: 50 }, { symbol: 'QQQ', weight: 20 }, { symbol: 'VXUS', weight: 20 }, { symbol: 'BND', weight: 10 }] },
+  35: { name: 'Aggressive Growth', description: 'Max growth, significant swings ok', assets: [{ symbol: 'VTI', weight: 40 }, { symbol: 'QQQ', weight: 30 }, { symbol: 'VXUS', weight: 20 }, { symbol: 'VGT', weight: 10 }] },
+  40: { name: 'Very Aggressive', description: 'Tech heavy, high risk tolerance', assets: [{ symbol: 'QQQ', weight: 40 }, { symbol: 'VTI', weight: 30 }, { symbol: 'VGT', weight: 20 }, { symbol: 'VXUS', weight: 10 }] },
+  50: { name: 'Maximum Risk', description: 'Full equity, sector concentrated', assets: [{ symbol: 'QQQ', weight: 50 }, { symbol: 'VGT', weight: 30 }, { symbol: 'VTI', weight: 20 }] },
+};
+
 // ═══════════════════════════════════════════════════════════════════════════════
 // METRIC CARD COMPONENT
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -265,6 +278,9 @@ export function MobileBacktester() {
   ]);
   const [newSymbol, setNewSymbol] = useState('');
   
+  // Max drawdown dial state
+  const [maxDrawdownTarget, setMaxDrawdownTarget] = useState(20);
+  
   // Config state
   const [period, setPeriod] = useState('5Y');
   const [benchmark, setBenchmark] = useState('SPY');
@@ -282,6 +298,40 @@ export function MobileBacktester() {
   // Computed
   const totalWeight = useMemo(() => assets.reduce((sum, a) => sum + a.weight, 0), [assets]);
   const isValid = Math.abs(totalWeight - 100) < 0.1;
+
+  // Suggested portfolio based on drawdown target
+  const suggestedPortfolio = useMemo(() => {
+    const thresholds = [5, 10, 15, 20, 25, 30, 35, 40, 50];
+    const closest = thresholds.reduce((prev, curr) => 
+      Math.abs(curr - maxDrawdownTarget) < Math.abs(prev - maxDrawdownTarget) ? curr : prev
+    );
+    return DRAWDOWN_PORTFOLIOS[closest];
+  }, [maxDrawdownTarget]);
+
+  // Apply suggested portfolio
+  const applySuggestedPortfolio = () => {
+    if (!suggestedPortfolio) return;
+    setAssets(suggestedPortfolio.assets.map((a, i) => ({
+      ...a,
+      color: COLORS[i % COLORS.length],
+    })));
+    toast.success(`Applied ${suggestedPortfolio.name}`);
+  };
+
+  // Risk color based on drawdown target
+  const getRiskColor = (dd: number) => {
+    if (dd <= 10) return 'text-emerald-500';
+    if (dd <= 20) return 'text-yellow-500';
+    if (dd <= 30) return 'text-orange-500';
+    return 'text-destructive';
+  };
+
+  const getRiskGradient = (dd: number) => {
+    if (dd <= 10) return 'from-emerald-500/20 to-emerald-500/5';
+    if (dd <= 20) return 'from-yellow-500/20 to-yellow-500/5';
+    if (dd <= 30) return 'from-orange-500/20 to-orange-500/5';
+    return 'from-destructive/20 to-destructive/5';
+  };
 
   // Add asset
   const addAsset = (symbol: string) => {
@@ -612,6 +662,75 @@ export function MobileBacktester() {
           <div className="flex-1 overflow-auto px-4 pb-4">
             {/* Portfolio chips */}
             <div className="space-y-3">
+              {/* Max Drawdown Target Dial */}
+              <Card className={cn(
+                "relative overflow-hidden border-2",
+                maxDrawdownTarget <= 10 && "border-emerald-500/30",
+                maxDrawdownTarget > 10 && maxDrawdownTarget <= 20 && "border-yellow-500/30",
+                maxDrawdownTarget > 20 && maxDrawdownTarget <= 30 && "border-orange-500/30",
+                maxDrawdownTarget > 30 && "border-destructive/30"
+              )}>
+                <div className={cn(
+                  "absolute inset-0 bg-gradient-to-r opacity-50",
+                  getRiskGradient(maxDrawdownTarget)
+                )} />
+                <CardContent className="relative p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <Shield className={cn("h-5 w-5", getRiskColor(maxDrawdownTarget))} />
+                      <div>
+                        <h3 className="font-semibold text-sm">Max Drawdown Target</h3>
+                        <p className="text-xs text-muted-foreground">Set your risk tolerance</p>
+                      </div>
+                    </div>
+                    <div className={cn("text-2xl font-bold font-mono", getRiskColor(maxDrawdownTarget))}>
+                      {maxDrawdownTarget}%
+                    </div>
+                  </div>
+                  
+                  <Slider
+                    value={[maxDrawdownTarget]}
+                    onValueChange={([v]) => setMaxDrawdownTarget(v)}
+                    min={5}
+                    max={50}
+                    step={5}
+                    className="mb-4"
+                  />
+                  
+                  <div className="flex justify-between text-[10px] text-muted-foreground mb-4">
+                    <span>Conservative</span>
+                    <span>Moderate</span>
+                    <span>Aggressive</span>
+                  </div>
+                  
+                  {suggestedPortfolio && (
+                    <div className="rounded-lg bg-background/80 border p-3">
+                      <div className="flex items-center justify-between mb-2">
+                        <div>
+                          <p className="font-medium text-sm">{suggestedPortfolio.name}</p>
+                          <p className="text-xs text-muted-foreground">{suggestedPortfolio.description}</p>
+                        </div>
+                        <Button 
+                          size="sm" 
+                          onClick={applySuggestedPortfolio}
+                          className="h-7 text-xs gap-1"
+                        >
+                          <Plus className="h-3 w-3" />
+                          Apply
+                        </Button>
+                      </div>
+                      <div className="flex flex-wrap gap-1">
+                        {suggestedPortfolio.assets.map((a) => (
+                          <Badge key={a.symbol} variant="secondary" className="text-xs font-mono">
+                            {a.symbol} {a.weight}%
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
               {/* Quick templates */}
               <div className="flex items-center gap-2">
                 <Sheet open={templatesOpen} onOpenChange={setTemplatesOpen}>
