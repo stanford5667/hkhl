@@ -57,6 +57,8 @@ import {
   Info,
   DollarSign,
   Wallet,
+  Calendar,
+  Shield,
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
@@ -1089,7 +1091,6 @@ export function MobileBacktester() {
                 </button>
               ))}
             </div>
-          </div>
         </TabsContent>
       </Tabs>
     </div>
