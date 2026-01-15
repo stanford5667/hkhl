@@ -51,6 +51,8 @@ import {
   Shield,
   Sparkles,
   Zap,
+  Activity,
+  Lightbulb,
 } from "lucide-react";
 
 interface NavItem {
@@ -138,6 +140,26 @@ export function Sidebar() {
         subtitle: "Run Studies",
         href: "/quant-lab", 
         icon: FlaskConical,
+        isPremium: true,
+      },
+      { 
+        label: "Backtester Pro", 
+        subtitle: "Terminal Backtester",
+        href: "/backtester", 
+        icon: Activity,
+        isPremium: true,
+      },
+      { 
+        label: "News Intel", 
+        subtitle: "News & Sentiment",
+        href: "/news", 
+        icon: Newspaper,
+      },
+      { 
+        label: "Prediction AI", 
+        subtitle: "Market Predictions",
+        href: "/prediction-ai", 
+        icon: Lightbulb,
         isPremium: true,
       },
       { 
