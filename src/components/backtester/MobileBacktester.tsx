@@ -1126,74 +1126,58 @@ export function MobileBacktester() {
                 </div>
               )}
 
-              {/* Toolbar with integrated weight indicator */}
-              <div className="flex items-center justify-between gap-3">
-                <div className="flex items-center gap-3">
-                  {/* Circular Weight Gauge */}
-                  <div className="relative h-10 w-10 flex-shrink-0">
-                    <svg className="h-10 w-10 -rotate-90" viewBox="0 0 36 36">
-                      <circle
-                        className="text-secondary"
-                        strokeWidth="3"
-                        stroke="currentColor"
-                        fill="transparent"
-                        r="15"
-                        cx="18"
-                        cy="18"
-                      />
-                      <circle
-                        className={cn(
-                          "transition-all duration-500",
-                          isValid 
-                            ? "text-emerald-500" 
-                            : totalWeight > 100 
-                              ? "text-destructive" 
-                              : "text-amber-500"
-                        )}
-                        strokeWidth="3"
-                        strokeDasharray={`${Math.min(totalWeight, 100) * 0.94} 100`}
-                        strokeLinecap="round"
-                        stroke="currentColor"
-                        fill="transparent"
-                        r="15"
-                        cx="18"
-                        cy="18"
-                      />
-                    </svg>
-                    <span className={cn(
-                      "absolute inset-0 flex items-center justify-center text-[10px] font-bold",
-                      isValid ? "text-emerald-500" : totalWeight > 100 ? "text-destructive" : "text-amber-500"
+              {/* PROMINENT Weight Requirement Banner */}
+              <div className={cn(
+                "p-4 rounded-xl border-2 transition-all",
+                isValid 
+                  ? "border-emerald-500 bg-emerald-500/20" 
+                  : "border-amber-500 bg-amber-500/20 animate-pulse"
+              )}>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className={cn(
+                      "flex items-center justify-center h-14 w-14 rounded-full text-2xl font-black",
+                      isValid 
+                        ? "bg-emerald-500 text-white" 
+                        : "bg-amber-500 text-black"
                     )}>
                       {totalWeight.toFixed(0)}%
-                    </span>
+                    </div>
+                    <div>
+                      <div className="text-lg font-bold">
+                        {isValid ? "✓ Ready!" : "Must equal 100%"}
+                      </div>
+                      <div className={cn(
+                        "text-sm",
+                        isValid ? "text-emerald-600" : "text-amber-600"
+                      )}>
+                        {isValid 
+                          ? "Portfolio allocation complete" 
+                          : totalWeight < 100 
+                            ? `Add ${(100 - totalWeight).toFixed(0)}% more to your assets`
+                            : `Remove ${(totalWeight - 100).toFixed(0)}% from your assets`
+                        }
+                      </div>
+                    </div>
                   </div>
-                  <div className="flex flex-col">
-                    <span className="text-sm font-medium">
-                      {assets.length} asset{assets.length !== 1 ? 's' : ''}
-                    </span>
-                    <span className={cn(
-                      "text-[10px]",
-                      isValid ? "text-emerald-500" : "text-muted-foreground"
-                    )}>
-                      {isValid 
-                        ? "Ready to run" 
-                        : totalWeight < 100 
-                          ? `+${(100 - totalWeight).toFixed(0)}% needed`
-                          : `-${(totalWeight - 100).toFixed(0)}% over`
-                      }
-                    </span>
-                  </div>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="h-9 gap-1.5"
+                    onClick={equalizeWeights}
+                    disabled={assets.length === 0}
+                  >
+                    <Scale className="h-4 w-4" />
+                    Auto 100%
+                  </Button>
                 </div>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="h-7 gap-1.5 text-xs"
-                  onClick={equalizeWeights}
-                  disabled={assets.length === 0}
-                >
-                  <Scale className="h-3 w-3" />
-                  Equal Weight
-                </Button>
+              </div>
+              
+              {/* Toolbar */}
+              <div className="flex items-center justify-between">
+                <h3 className="font-medium text-sm text-muted-foreground">
+                  Your Portfolio ({assets.length} asset{assets.length !== 1 ? 's' : ''})
+                </h3>
               </div>
 
               {/* Asset cards */}
@@ -1288,30 +1272,39 @@ export function MobileBacktester() {
               {/* Run Backtest Button - Bottom of Portfolio */}
               {assets.length > 0 && (
                 <div className="pt-4 pb-2">
-                  <Button 
-                    onClick={runBacktest} 
-                    disabled={isLoading || !isValid || assets.length === 0}
-                    size="lg"
-                    className={cn(
-                      "w-full gap-2 h-14 text-lg font-bold",
-                      "bg-gradient-to-r from-primary via-primary to-primary/80",
-                      "shadow-[0_0_25px_hsl(var(--primary)/0.5)]",
-                      "hover:shadow-[0_0_35px_hsl(var(--primary)/0.7)]",
-                      "transition-all duration-300",
-                      !isLoading && isValid && "animate-pulse"
-                    )}
-                  >
-                    {isLoading ? (
-                      <Loader2 className="h-6 w-6 animate-spin" />
-                    ) : (
-                      <Play className="h-6 w-6 fill-current" />
-                    )}
-                    Run Backtest
-                  </Button>
-                  {!isValid && (
-                    <p className="text-center text-xs text-destructive mt-2 font-medium">
-                      ⚠️ Portfolio must equal exactly 100% — currently {totalWeight.toFixed(0)}% ({totalWeight < 100 ? `${(100 - totalWeight).toFixed(0)}% under` : `${(totalWeight - 100).toFixed(0)}% over`})
-                    </p>
+                  {isValid ? (
+                    <Button 
+                      onClick={runBacktest} 
+                      disabled={isLoading}
+                      size="lg"
+                      className={cn(
+                        "w-full gap-2 h-14 text-lg font-bold",
+                        "bg-gradient-to-r from-emerald-500 via-emerald-600 to-emerald-500",
+                        "shadow-[0_0_25px_rgba(16,185,129,0.5)]",
+                        "hover:shadow-[0_0_35px_rgba(16,185,129,0.7)]",
+                        "transition-all duration-300",
+                        !isLoading && "animate-pulse"
+                      )}
+                    >
+                      {isLoading ? (
+                        <Loader2 className="h-6 w-6 animate-spin" />
+                      ) : (
+                        <Play className="h-6 w-6 fill-current" />
+                      )}
+                      Run Backtest
+                    </Button>
+                  ) : (
+                    <div className="text-center p-4 rounded-xl border-2 border-dashed border-amber-500/50 bg-amber-500/10">
+                      <div className="text-amber-500 font-bold text-lg mb-1">
+                        ⚠️ Cannot Run Backtest
+                      </div>
+                      <div className="text-amber-600 text-sm">
+                        Adjust sliders until total equals exactly 100%
+                      </div>
+                      <div className="text-amber-500 font-mono text-2xl font-black mt-2">
+                        {totalWeight.toFixed(0)}% → 100%
+                      </div>
+                    </div>
                   )}
                 </div>
               )}
@@ -1350,30 +1343,39 @@ export function MobileBacktester() {
               {/* Run Backtest Button - Bottom of Templates */}
               {assets.length > 0 && (
                 <div className="pt-4 pb-2">
-                  <Button 
-                    onClick={runBacktest} 
-                    disabled={isLoading || !isValid || assets.length === 0}
-                    size="lg"
-                    className={cn(
-                      "w-full gap-2 h-14 text-lg font-bold",
-                      "bg-gradient-to-r from-primary via-primary to-primary/80",
-                      "shadow-[0_0_25px_hsl(var(--primary)/0.5)]",
-                      "hover:shadow-[0_0_35px_hsl(var(--primary)/0.7)]",
-                      "transition-all duration-300",
-                      !isLoading && isValid && "animate-pulse"
-                    )}
-                  >
-                    {isLoading ? (
-                      <Loader2 className="h-6 w-6 animate-spin" />
-                    ) : (
-                      <Play className="h-6 w-6 fill-current" />
-                    )}
-                    Run Backtest
-                  </Button>
-                  {!isValid && (
-                    <p className="text-center text-xs text-destructive mt-2 font-medium">
-                      ⚠️ Portfolio must equal exactly 100% — currently {totalWeight.toFixed(0)}% ({totalWeight < 100 ? `${(100 - totalWeight).toFixed(0)}% under` : `${(totalWeight - 100).toFixed(0)}% over`})
-                    </p>
+                  {isValid ? (
+                    <Button 
+                      onClick={runBacktest} 
+                      disabled={isLoading}
+                      size="lg"
+                      className={cn(
+                        "w-full gap-2 h-14 text-lg font-bold",
+                        "bg-gradient-to-r from-emerald-500 via-emerald-600 to-emerald-500",
+                        "shadow-[0_0_25px_rgba(16,185,129,0.5)]",
+                        "hover:shadow-[0_0_35px_rgba(16,185,129,0.7)]",
+                        "transition-all duration-300",
+                        !isLoading && "animate-pulse"
+                      )}
+                    >
+                      {isLoading ? (
+                        <Loader2 className="h-6 w-6 animate-spin" />
+                      ) : (
+                        <Play className="h-6 w-6 fill-current" />
+                      )}
+                      Run Backtest
+                    </Button>
+                  ) : (
+                    <div className="text-center p-4 rounded-xl border-2 border-dashed border-amber-500/50 bg-amber-500/10">
+                      <div className="text-amber-500 font-bold text-lg mb-1">
+                        ⚠️ Cannot Run Backtest
+                      </div>
+                      <div className="text-amber-600 text-sm">
+                        Portfolio must equal exactly 100%
+                      </div>
+                      <div className="text-amber-500 font-mono text-2xl font-black mt-2">
+                        {totalWeight.toFixed(0)}% → 100%
+                      </div>
+                    </div>
                   )}
                 </div>
               )}
