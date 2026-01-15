@@ -1038,7 +1038,7 @@ function generateCommonTemplates(): Omit<GeneratedPortfolio, 'metrics' | 'riskLe
       { ticker: 'AGG', weight: 20, name: 'Bonds' },
     ]},
     
-    // Single asset
+    // Single asset ETFs
     { id: 't16', name: 'S&P 500 Pure', description: 'Simple index exposure', allocations: [
       { ticker: 'SPY', weight: 100, name: 'S&P 500' },
     ]},
@@ -1047,6 +1047,70 @@ function generateCommonTemplates(): Omit<GeneratedPortfolio, 'metrics' | 'riskLe
     ]},
     { id: 't18', name: 'Bond Only', description: 'Fixed income only', allocations: [
       { ticker: 'AGG', weight: 100, name: 'Aggregate Bond' },
+    ]},
+    { id: 't18b', name: 'NASDAQ 100', description: 'Tech-heavy large cap', allocations: [
+      { ticker: 'QQQ', weight: 100, name: 'NASDAQ 100' },
+    ]},
+    
+    // Single stocks - High growth
+    { id: 's1', name: 'NVIDIA', description: 'AI & GPU leader', allocations: [
+      { ticker: 'NVDA', weight: 100, name: 'NVIDIA' },
+    ]},
+    { id: 's2', name: 'Tesla', description: 'Electric vehicles & energy', allocations: [
+      { ticker: 'TSLA', weight: 100, name: 'Tesla' },
+    ]},
+    { id: 's3', name: 'Apple', description: 'Consumer tech giant', allocations: [
+      { ticker: 'AAPL', weight: 100, name: 'Apple' },
+    ]},
+    { id: 's4', name: 'Microsoft', description: 'Enterprise software leader', allocations: [
+      { ticker: 'MSFT', weight: 100, name: 'Microsoft' },
+    ]},
+    { id: 's5', name: 'Amazon', description: 'E-commerce & cloud', allocations: [
+      { ticker: 'AMZN', weight: 100, name: 'Amazon' },
+    ]},
+    { id: 's6', name: 'Alphabet', description: 'Search & advertising', allocations: [
+      { ticker: 'GOOGL', weight: 100, name: 'Alphabet' },
+    ]},
+    { id: 's7', name: 'Meta', description: 'Social media & metaverse', allocations: [
+      { ticker: 'META', weight: 100, name: 'Meta' },
+    ]},
+    { id: 's8', name: 'AMD', description: 'Semiconductors', allocations: [
+      { ticker: 'AMD', weight: 100, name: 'AMD' },
+    ]},
+    
+    // Stock combinations - Tech focused
+    { id: 'sc1', name: 'Mag 7 Tech', description: 'Top tech giants', allocations: [
+      { ticker: 'AAPL', weight: 20, name: 'Apple' },
+      { ticker: 'MSFT', weight: 20, name: 'Microsoft' },
+      { ticker: 'GOOGL', weight: 15, name: 'Alphabet' },
+      { ticker: 'AMZN', weight: 15, name: 'Amazon' },
+      { ticker: 'NVDA', weight: 15, name: 'NVIDIA' },
+      { ticker: 'META', weight: 15, name: 'Meta' },
+    ]},
+    { id: 'sc2', name: 'AI Leaders', description: 'AI-focused portfolio', allocations: [
+      { ticker: 'NVDA', weight: 40, name: 'NVIDIA' },
+      { ticker: 'MSFT', weight: 30, name: 'Microsoft' },
+      { ticker: 'GOOGL', weight: 30, name: 'Alphabet' },
+    ]},
+    { id: 'sc3', name: 'Semiconductor Focus', description: 'Chip makers', allocations: [
+      { ticker: 'NVDA', weight: 50, name: 'NVIDIA' },
+      { ticker: 'AMD', weight: 30, name: 'AMD' },
+      { ticker: 'AMAT', weight: 20, name: 'Applied Materials' },
+    ]},
+    { id: 'sc4', name: 'FAANG+', description: 'Tech platform giants', allocations: [
+      { ticker: 'META', weight: 20, name: 'Meta' },
+      { ticker: 'AAPL', weight: 20, name: 'Apple' },
+      { ticker: 'AMZN', weight: 20, name: 'Amazon' },
+      { ticker: 'NVDA', weight: 20, name: 'NVIDIA' },
+      { ticker: 'GOOGL', weight: 20, name: 'Alphabet' },
+    ]},
+    { id: 'sc5', name: 'Growth Duo', description: 'NVDA + TSLA combo', allocations: [
+      { ticker: 'NVDA', weight: 60, name: 'NVIDIA' },
+      { ticker: 'TSLA', weight: 40, name: 'Tesla' },
+    ]},
+    { id: 'sc6', name: 'Tech Titans', description: 'MSFT + AAPL combo', allocations: [
+      { ticker: 'MSFT', weight: 50, name: 'Microsoft' },
+      { ticker: 'AAPL', weight: 50, name: 'Apple' },
     ]},
     
     // More combinations
