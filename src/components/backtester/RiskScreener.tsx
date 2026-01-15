@@ -269,21 +269,42 @@ export function RiskScreener({ onSelect, onComplete }: RiskScreenerProps) {
 
       await Promise.all(
         allTickers.map(async (ticker) => {
-          const { data, error } = await supabase
-            .from('market_daily_bars')
-            .select('bar_date, daily_return')
-            .eq('ticker', ticker)
-            .gte('bar_date', startStr)
-            .lte('bar_date', endStr)
-            .order('bar_date', { ascending: true });
+          const rows: { date: string; return: number }[] = [];
+          const pageSize = 1000;
+          let from = 0;
 
-          if (error) throw error;
+          // Paginate to avoid backend max-rows caps
+          // (some tickers have >1000 rows in the selected horizon)
+          while (true) {
+            const { data, error } = await supabase
+              .from('market_daily_bars')
+              .select('bar_date, daily_return')
+              .eq('ticker', ticker)
+              .gte('bar_date', startStr)
+              .lte('bar_date', endStr)
+              .order('bar_date', { ascending: true })
+              .range(from, from + pageSize - 1);
 
-          tickerData[ticker] = (data || []).map((d) => ({
-            date: d.bar_date,
-            return: d.daily_return || 0,
-          }));
+            if (error) throw error;
+
+            const page = (data || []).map((d) => ({
+              date: d.bar_date,
+              return: d.daily_return || 0,
+            }));
+
+            rows.push(...page);
+
+            if (page.length < pageSize) break;
+            from += pageSize;
+          }
+
+          tickerData[ticker] = rows;
         })
+      );
+
+      console.log(
+        '[RiskScreener] Loaded rows per ticker:',
+        Object.fromEntries(allTickers.map((t) => [t, tickerData[t]?.length || 0]))
       );
       
       // Calculate metrics for each portfolio
