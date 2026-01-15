@@ -265,6 +265,60 @@ const PORTFOLIO_TEMPLATES = [
 // MAIN COMPONENT
 // ═══════════════════════════════════════════════════════════════════════════════
 
+// Risk-based preset portfolios for drawdown screening
+const DRAWDOWN_PORTFOLIOS = [
+  {
+    maxDrawdown: 10,
+    name: 'Capital Preservation',
+    assets: [
+      { symbol: 'BND', weight: 60 },
+      { symbol: 'TLT', weight: 20 },
+      { symbol: 'VTI', weight: 15 },
+      { symbol: 'GLD', weight: 5 },
+    ],
+  },
+  {
+    maxDrawdown: 20,
+    name: 'Conservative',
+    assets: [
+      { symbol: 'VTI', weight: 40 },
+      { symbol: 'BND', weight: 40 },
+      { symbol: 'VXUS', weight: 10 },
+      { symbol: 'GLD', weight: 10 },
+    ],
+  },
+  {
+    maxDrawdown: 30,
+    name: 'Balanced Growth',
+    assets: [
+      { symbol: 'VTI', weight: 50 },
+      { symbol: 'VXUS', weight: 20 },
+      { symbol: 'BND', weight: 20 },
+      { symbol: 'VNQ', weight: 10 },
+    ],
+  },
+  {
+    maxDrawdown: 40,
+    name: 'Growth Focus',
+    assets: [
+      { symbol: 'VTI', weight: 50 },
+      { symbol: 'QQQ', weight: 25 },
+      { symbol: 'VXUS', weight: 15 },
+      { symbol: 'BND', weight: 10 },
+    ],
+  },
+  {
+    maxDrawdown: 50,
+    name: 'Maximum Growth',
+    assets: [
+      { symbol: 'VTI', weight: 40 },
+      { symbol: 'QQQ', weight: 35 },
+      { symbol: 'VGT', weight: 15 },
+      { symbol: 'VWO', weight: 10 },
+    ],
+  },
+];
+
 export function TraditionalBacktester() {
   // Portfolio state
   const [assets, setAssets] = useState<Asset[]>([
@@ -274,6 +328,9 @@ export function TraditionalBacktester() {
   const [newSymbol, setNewSymbol] = useState('');
   const [searchResults, setSearchResults] = useState<typeof POPULAR_ETFS>([]);
   const [showSearch, setShowSearch] = useState(false);
+  
+  // Max drawdown constraint
+  const [maxDrawdownTarget, setMaxDrawdownTarget] = useState(30);
   
   // Backtest configuration
   const [period, setPeriod] = useState('5Y');
@@ -295,6 +352,36 @@ export function TraditionalBacktester() {
     [assets]
   );
   const isValidAllocation = Math.abs(totalWeight - 100) < 0.1;
+
+  // Get suggested portfolio based on drawdown target
+  const suggestedPortfolio = useMemo(() => {
+    return DRAWDOWN_PORTFOLIOS.find(p => maxDrawdownTarget <= p.maxDrawdown) || DRAWDOWN_PORTFOLIOS[DRAWDOWN_PORTFOLIOS.length - 1];
+  }, [maxDrawdownTarget]);
+
+  // Apply suggested portfolio from drawdown dial
+  const applySuggestedPortfolio = () => {
+    const newAssets = suggestedPortfolio.assets.map((a, i) => ({
+      symbol: a.symbol,
+      weight: a.weight,
+      color: ASSET_COLORS[i % ASSET_COLORS.length],
+    }));
+    setAssets(newAssets);
+    toast.success(`Applied ${suggestedPortfolio.name} portfolio`);
+  };
+
+  // Get risk color based on drawdown
+  const getRiskColor = (drawdown: number) => {
+    if (drawdown <= 15) return 'text-emerald-500';
+    if (drawdown <= 25) return 'text-green-500';
+    if (drawdown <= 35) return 'text-yellow-500';
+    if (drawdown <= 45) return 'text-orange-500';
+    return 'text-red-500';
+  };
+
+  const getRiskGradient = (drawdown: number) => {
+    const percent = ((drawdown - 5) / 45) * 100;
+    return `linear-gradient(to right, hsl(var(--primary)) 0%, hsl(var(--primary)) ${percent}%, hsl(var(--muted)) ${percent}%, hsl(var(--muted)) 100%)`;
+  };
 
   // Search assets
   const handleSearch = (query: string) => {
@@ -677,6 +764,62 @@ export function TraditionalBacktester() {
               <CardDescription>Add tickers and set weights</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
+              {/* Max Drawdown Constraint Dial */}
+              <div className="p-4 rounded-xl border-2 border-primary/20 bg-gradient-to-br from-primary/5 to-primary/10">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <div className="p-2 rounded-lg bg-primary/10">
+                      <Shield className="h-4 w-4 text-primary" />
+                    </div>
+                    <div>
+                      <span className="text-sm font-semibold">Max Drawdown Target</span>
+                      <p className="text-xs text-muted-foreground">Set your risk tolerance</p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <span className={cn("text-2xl font-bold", getRiskColor(maxDrawdownTarget))}>
+                      {maxDrawdownTarget}%
+                    </span>
+                  </div>
+                </div>
+                
+                <div className="space-y-3">
+                  <div className="relative">
+                    <Slider
+                      value={[maxDrawdownTarget]}
+                      onValueChange={([v]) => setMaxDrawdownTarget(v)}
+                      min={5}
+                      max={50}
+                      step={1}
+                      className="w-full"
+                    />
+                    <div className="flex justify-between mt-1 text-[10px] text-muted-foreground">
+                      <span>5% (Safe)</span>
+                      <span>25%</span>
+                      <span>50% (Aggressive)</span>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center justify-between p-2 rounded-lg bg-background/50 border">
+                    <div>
+                      <span className="text-xs text-muted-foreground">Suggested:</span>
+                      <span className="ml-2 text-sm font-medium">{suggestedPortfolio.name}</span>
+                    </div>
+                    <Button 
+                      size="sm" 
+                      variant="secondary"
+                      onClick={applySuggestedPortfolio}
+                      className="h-7 text-xs gap-1"
+                    >
+                      <Sparkles className="h-3 w-3" />
+                      Apply
+                    </Button>
+                  </div>
+                </div>
+              </div>
+
+              <Separator />
+
               {/* Search Input */}
               <div className="relative">
                 <div className="flex gap-2">
