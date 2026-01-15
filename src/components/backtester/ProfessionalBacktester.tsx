@@ -136,8 +136,7 @@ const PERIODS = [
   { value: '1Y', label: '1Y', years: 1 },
   { value: '3Y', label: '3Y', years: 3 },
   { value: '5Y', label: '5Y', years: 5 },
-  { value: '10Y', label: '10Y', years: 10 },
-  { value: 'MAX', label: 'MAX', years: 30 },
+  { value: 'MAX', label: 'MAX', years: 5 },
 ];
 
 const BENCHMARKS = [
