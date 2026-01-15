@@ -871,45 +871,84 @@ export function ProfessionalBacktester() {
                 assets.map(asset => (
                   <div
                     key={asset.symbol}
-                    className="p-2 bg-[rgb(17,21,28)] rounded-lg border border-[rgb(33,38,45)] group"
+                    className="p-3 bg-[rgb(17,21,28)] rounded-lg border border-[rgb(33,38,45)] group hover:border-[rgb(48,54,61)] transition-colors"
                   >
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-2">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-2 flex-1">
                         <div
-                          className="w-2.5 h-2.5 rounded-full"
+                          className="w-3 h-3 rounded-full flex-shrink-0"
                           style={{ backgroundColor: asset.color }}
                         />
-                        <span className="font-mono font-semibold text-sm">{asset.symbol}</span>
+                        <Input
+                          value={asset.symbol}
+                          onChange={(e) => {
+                            const newSymbol = e.target.value.toUpperCase();
+                            setAssets(prev => prev.map(a => 
+                              a.symbol === asset.symbol 
+                                ? { ...a, symbol: newSymbol, name: undefined }
+                                : a
+                            ));
+                          }}
+                          onBlur={(e) => {
+                            const symbol = e.target.value.toUpperCase().trim();
+                            if (!symbol) {
+                              removeAsset(asset.symbol);
+                            }
+                          }}
+                          className={cn(
+                            "h-7 w-20 px-2 font-mono font-bold text-sm uppercase",
+                            "bg-transparent border-transparent",
+                            "hover:bg-[rgb(22,27,34)] hover:border-[rgb(48,54,61)]",
+                            "focus:bg-[rgb(13,17,23)] focus:border-[rgb(56,139,253)]",
+                            "transition-all cursor-text"
+                          )}
+                          placeholder="TICKER"
+                        />
                         {asset.name && (
-                          <span className="text-[10px] text-[rgb(87,96,106)]">{asset.name}</span>
+                          <span className="text-[10px] text-[rgb(87,96,106)] truncate max-w-[80px]">
+                            {asset.name}
+                          </span>
                         )}
                       </div>
                       <button
                         onClick={() => removeAsset(asset.symbol)}
-                        className="opacity-0 group-hover:opacity-100 p-1 hover:bg-[rgb(27,32,40)] rounded transition-all"
+                        className="opacity-0 group-hover:opacity-100 p-1.5 hover:bg-[rgb(248,81,73,0.15)] rounded transition-all"
+                        title="Remove asset"
                       >
-                        <X className="h-3 w-3 text-[rgb(139,148,158)]" />
+                        <X className="h-3.5 w-3.5 text-[rgb(248,81,73)]" />
                       </button>
                     </div>
                     
                     <div className="flex items-center gap-2">
                       <button
-                        onClick={() => updateWeight(asset.symbol, asset.weight - 5)}
-                        className="p-1 hover:bg-[rgb(27,32,40)] rounded"
+                        onClick={() => updateWeight(asset.symbol, Math.max(0, asset.weight - 5))}
+                        className="p-1.5 hover:bg-[rgb(27,32,40)] rounded transition-colors"
+                        title="-5%"
                       >
-                        <Minus className="h-3 w-3 text-[rgb(139,148,158)]" />
+                        <Minus className="h-3.5 w-3.5 text-[rgb(139,148,158)]" />
                       </button>
                       
                       <div className="flex-1 flex items-center gap-2">
-                        <Input
-                          type="number"
-                          value={asset.weight}
-                          onChange={(e) => updateWeight(asset.symbol, parseFloat(e.target.value) || 0)}
-                          className="h-7 w-14 text-center font-mono text-sm bg-[rgb(13,17,23)] border-[rgb(33,38,45)]"
-                        />
-                        <div className="flex-1 h-1.5 bg-[rgb(27,32,40)] rounded-full overflow-hidden">
+                        <div className="relative">
+                          <Input
+                            type="number"
+                            value={asset.weight}
+                            onChange={(e) => updateWeight(asset.symbol, parseFloat(e.target.value) || 0)}
+                            min={0}
+                            max={100}
+                            className="h-8 w-16 text-center font-mono text-sm bg-[rgb(13,17,23)] border-[rgb(33,38,45)] pr-5"
+                          />
+                          <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-[rgb(87,96,106)]">%</span>
+                        </div>
+                        <div className="flex-1 h-2 bg-[rgb(27,32,40)] rounded-full overflow-hidden cursor-pointer group/slider"
+                          onClick={(e) => {
+                            const rect = e.currentTarget.getBoundingClientRect();
+                            const percent = Math.round(((e.clientX - rect.left) / rect.width) * 100);
+                            updateWeight(asset.symbol, Math.max(0, Math.min(100, percent)));
+                          }}
+                        >
                           <div
-                            className="h-full rounded-full transition-all"
+                            className="h-full rounded-full transition-all group-hover/slider:opacity-90"
                             style={{ 
                               width: `${Math.min(100, asset.weight)}%`,
                               backgroundColor: asset.color,
@@ -919,10 +958,11 @@ export function ProfessionalBacktester() {
                       </div>
                       
                       <button
-                        onClick={() => updateWeight(asset.symbol, asset.weight + 5)}
-                        className="p-1 hover:bg-[rgb(27,32,40)] rounded"
+                        onClick={() => updateWeight(asset.symbol, Math.min(100, asset.weight + 5))}
+                        className="p-1.5 hover:bg-[rgb(27,32,40)] rounded transition-colors"
+                        title="+5%"
                       >
-                        <Plus className="h-3 w-3 text-[rgb(139,148,158)]" />
+                        <Plus className="h-3.5 w-3.5 text-[rgb(139,148,158)]" />
                       </button>
                     </div>
                   </div>
