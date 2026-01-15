@@ -134,7 +134,7 @@ export function DynamicScreener({ onSelect, onComplete }: DynamicScreenerProps) 
   
   // Config
   const [screenMode, setScreenMode] = useState<ScreenMode>('quick');
-  const [lookbackYears, setLookbackYears] = useState(1);
+  const [lookbackYears, setLookbackYears] = useState(5); // Match typical backtest period
   const [minAssets, setMinAssets] = useState(2);
   const [maxAssets, setMaxAssets] = useState(5);
   const [maxPortfolios, setMaxPortfolios] = useState(10000);
