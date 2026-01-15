@@ -23,7 +23,6 @@ import {
 import {
   TrendingUp,
   Shield,
-  Activity,
   Scale,
   Snowflake,
   Flame,
@@ -322,24 +321,29 @@ export function RiskScreener({ onSelect, onComplete }: RiskScreenerProps) {
           continue;
         }
         
-        // Calculate weighted portfolio returns
+        // Calculate weighted portfolio returns (align with MobileBacktester)
+        // daily_return at a given bar_date represents the return from the previous trading day ->
+        // treat the first common date as the starting point and begin compounding from the 2nd date.
         const portfolioReturns: number[] = [];
         const portfolioValues: number[] = [100000];
-        
-        for (const date of commonDates) {
+
+        for (let i = 1; i < commonDates.length; i++) {
+          const date = commonDates[i];
           let dayReturn = 0;
+
           for (const alloc of template.allocations) {
             const dayData = tickerData[alloc.symbol].find(d => d.date === date);
             if (dayData) {
               dayReturn += (alloc.weight / 100) * dayData.return;
             }
           }
+
           portfolioReturns.push(dayReturn);
           portfolioValues.push(portfolioValues[portfolioValues.length - 1] * (1 + dayReturn));
         }
-        
+
         // Calculate actual metrics
-        const years = commonDates.length / 252;
+        const years = portfolioReturns.length / 252;
         const cagr = calculateCAGR(100000, portfolioValues[portfolioValues.length - 1], years) * 100;
         const volatility = annualizedVolatility(portfolioReturns) * 100;
         const sharpe = calculateSharpeRatio(portfolioReturns, 0.05);
@@ -354,7 +358,7 @@ export function RiskScreener({ onSelect, onComplete }: RiskScreenerProps) {
           sortino: Math.round(sortino * 100) / 100,
         };
         
-        console.log(`[RiskScreener] ${template.name}: ${commonDates.length} days, CAGR=${metrics.cagr}%, Vol=${metrics.volatility}%, DD=${metrics.maxDrawdown}%, Sharpe=${metrics.sharpe}`);
+        console.log(`[RiskScreener] ${template.name}: ${portfolioReturns.length} returns (${commonDates[0]} → ${commonDates[commonDates.length - 1]}), CAGR=${metrics.cagr}%, Vol=${metrics.volatility}%, DD=${metrics.maxDrawdown}%, Sharpe=${metrics.sharpe}`);
         
         results.push({
           ...template,
