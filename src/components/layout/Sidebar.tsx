@@ -104,8 +104,8 @@ export function Sidebar() {
         isPremium: true,
       },
       { 
-        label: "Investment Plan", 
-        subtitle: "AI Strategy",
+        label: "Portfolio Explorer", 
+        subtitle: "Educational Tools",
         href: "/investment-plan", 
         icon: ClipboardList 
       },

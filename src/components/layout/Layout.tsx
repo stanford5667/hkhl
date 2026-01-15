@@ -15,6 +15,7 @@ import { useRequireAuth } from "@/hooks/useRequireAuth";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { QuickStartBanner } from "@/components/onboarding/QuickStartBanner";
 import { useOnboarding } from "@/hooks/useOnboarding";
+import { FooterDisclaimer } from "@/components/legal";
 interface LayoutProps {
   children: ReactNode;
 }
@@ -105,6 +106,7 @@ export function Layout({ children }: LayoutProps) {
         )}
         <main className="flex-1 overflow-auto custom-scrollbar pb-16 md:pb-0">
           {children}
+          <FooterDisclaimer />
         </main>
       </div>
       

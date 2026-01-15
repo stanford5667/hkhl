@@ -11,6 +11,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { toast } from 'sonner';
 import { Plus, X, Play, Loader2, LineChart, TrendingUp, TrendingDown, Activity, AlertTriangle, FolderOpen, FlaskConical, Info } from 'lucide-react';
 import { PreActionDisclaimer } from '@/components/ui/PreActionDisclaimer';
+import { SimulationDisclaimer, AcknowledgmentDialog, EducationalBadge } from '@/components/legal';
+import { useEducationalAcknowledgment } from '@/hooks/useEducationalAcknowledgment';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { LineChart as RechartsLineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { cn } from '@/lib/utils';
@@ -60,6 +62,7 @@ interface BacktestResults {
 export default function BacktestPage() {
   // Use unified portfolio hook to get real portfolio positions
   const { tickers: portfolioTickers, tickerWeights: portfolioWeights, allocations: portfolioAllocations } = usePortfolioForBacktest();
+  const { showDialog: showAcknowledgment, acknowledge } = useEducationalAcknowledgment();
   
   const [tickers, setTickers] = useState(['SPY']);
   const [tickerInput, setTickerInput] = useState('');
@@ -220,19 +223,26 @@ export default function BacktestPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background p-6">
-      <div className="max-w-7xl mx-auto space-y-6">
-        <div className="flex items-center gap-3">
-          <div className="p-2 rounded-lg bg-emerald-500/10">
-            <LineChart className="h-6 w-6 text-emerald-500" />
+    <>
+      <AcknowledgmentDialog open={showAcknowledgment} onAccept={acknowledge} />
+      <div className="min-h-screen bg-background p-6">
+        <div className="max-w-7xl mx-auto space-y-6">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-emerald-500/10">
+              <LineChart className="h-6 w-6 text-emerald-500" />
+            </div>
+            <div className="flex items-center gap-3">
+              <div>
+                <h1 className="text-2xl font-bold text-foreground">Historical Portfolio Simulator</h1>
+                <p className="text-muted-foreground text-sm">Explore how different allocations performed historically</p>
+              </div>
+              <EducationalBadge />
+            </div>
           </div>
-          <div>
-            <h1 className="text-2xl font-bold text-foreground">Portfolio Backtester</h1>
-            <p className="text-muted-foreground text-sm">Test investment strategies with historical data</p>
-          </div>
-        </div>
+          
+          <SimulationDisclaimer />
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Left Panel - Configuration */}
           <Card className="p-6 space-y-6 bg-card border-border">
             {/* Tickers */}
@@ -705,22 +715,23 @@ export default function BacktestPage() {
             )}
           </Card>
         </div>
-      </div>
       
-      {/* Dev Tools: Studies Validation Panel */}
-      <div className="mt-8 border-t pt-6">
-        <Collapsible>
-          <CollapsibleTrigger asChild>
-            <Button variant="ghost" className="gap-2 text-muted-foreground hover:text-foreground">
-              <FlaskConical className="h-4 w-4" />
-              Studies Validation (Dev Tools)
-            </Button>
-          </CollapsibleTrigger>
-          <CollapsibleContent className="mt-4">
-            <StudiesValidationPanel />
-          </CollapsibleContent>
-        </Collapsible>
+        {/* Dev Tools: Studies Validation Panel */}
+        <div className="mt-8 border-t pt-6">
+          <Collapsible>
+            <CollapsibleTrigger asChild>
+              <Button variant="ghost" className="gap-2 text-muted-foreground hover:text-foreground">
+                <FlaskConical className="h-4 w-4" />
+                Studies Validation (Dev Tools)
+              </Button>
+            </CollapsibleTrigger>
+            <CollapsibleContent className="mt-4">
+              <StudiesValidationPanel />
+            </CollapsibleContent>
+          </Collapsible>
+        </div>
+        </div>
       </div>
-    </div>
+    </>
   );
 }
