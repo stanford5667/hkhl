@@ -32,7 +32,8 @@ import {
   BarChart3,
   Percent,
   Clock,
-  Zap
+  Zap,
+  Info
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { format, subMonths } from 'date-fns';
@@ -529,6 +530,15 @@ export function StrategyBacktester() {
               <Play className="h-4 w-4 mr-2" />
               Go Live
             </Button>
+          </div>
+
+          {/* Backtest Disclaimer */}
+          <div className="flex items-start gap-2 p-3 rounded-lg bg-amber-500/10 border border-amber-500/20">
+            <Info className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
+            <p className="text-xs text-amber-200/90">
+              <strong>Important:</strong> Backtested results are hypothetical and based on historical data. 
+              Past performance does not guarantee future results. Actual trading may differ due to market conditions, slippage, and fees.
+            </p>
           </div>
         </>
       )}

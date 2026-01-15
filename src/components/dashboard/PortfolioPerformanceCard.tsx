@@ -10,6 +10,7 @@ import {
   ArrowDownRight,
   Sparkles,
   RefreshCw,
+  Info,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { usePortfolioPerformance } from '@/hooks/usePortfolioPerformance';
@@ -331,6 +332,12 @@ export function PortfolioPerformanceCard({
             </div>
           )}
         </div>
+
+        {/* Performance Disclaimer */}
+        <p className="text-[10px] text-muted-foreground mt-3 flex items-center gap-1">
+          <Info className="h-3 w-3 shrink-0" />
+          <span>Past performance does not guarantee future results.</span>
+        </p>
       </CardContent>
     </Card>
   );

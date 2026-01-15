@@ -570,6 +570,17 @@ export function CompoundGrowthProjector({
             })}
           </div>
         </div>
+
+        {/* Disclaimer */}
+        <div className="mt-6 pt-4 border-t border-white/10">
+          <div className="flex items-start gap-2 p-3 rounded-lg bg-amber-500/10 border border-amber-500/20">
+            <Info className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
+            <p className="text-xs text-amber-200/90">
+              <strong>Important:</strong> Forward-looking projections are based on historical averages and assumptions. 
+              Past performance does not guarantee future results. Actual outcomes may differ significantly from projections.
+            </p>
+          </div>
+        </div>
       </CardContent>
     </Card>
   );

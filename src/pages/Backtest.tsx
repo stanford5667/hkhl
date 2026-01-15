@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { toast } from 'sonner';
-import { Plus, X, Play, Loader2, LineChart, TrendingUp, TrendingDown, Activity, AlertTriangle, FolderOpen, FlaskConical } from 'lucide-react';
+import { Plus, X, Play, Loader2, LineChart, TrendingUp, TrendingDown, Activity, AlertTriangle, FolderOpen, FlaskConical, Info } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { LineChart as RechartsLineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { cn } from '@/lib/utils';
@@ -450,6 +450,15 @@ export default function BacktestPage() {
                     <p className="text-xs text-muted-foreground">Max Drawdown</p>
                     <p className="text-2xl font-bold text-rose-400">-{results.metrics.maxDrawdown}%</p>
                   </Card>
+                </div>
+
+                {/* Backtest Disclaimer */}
+                <div className="flex items-start gap-2 p-3 rounded-lg bg-amber-500/10 border border-amber-500/20">
+                  <Info className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
+                  <p className="text-xs text-amber-200/90">
+                    <strong>Important:</strong> Backtested results are hypothetical and do not represent actual trading. 
+                    Past performance does not guarantee future results. These results do not account for transaction costs, taxes, or slippage.
+                  </p>
                 </div>
 
                 {/* Data Quality Info */}

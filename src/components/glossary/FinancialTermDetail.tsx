@@ -757,6 +757,14 @@ export function FinancialTermDetail({
                   </div>
                 </Card>
               )}
+
+              {/* Historical Data Disclaimer */}
+              <div className="flex items-start gap-2 p-3 rounded-lg bg-amber-500/10 border border-amber-500/20">
+                <Info className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
+                <p className="text-xs text-amber-200/90">
+                  <strong>Note:</strong> Historical data reflects past market conditions. Past performance does not guarantee or predict future results.
+                </p>
+              </div>
             </TabsContent>
 
             {/* ══════════════════════════════════════════════════════════════════

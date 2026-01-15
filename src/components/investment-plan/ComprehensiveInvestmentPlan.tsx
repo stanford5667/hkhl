@@ -1236,13 +1236,30 @@ export function ComprehensiveInvestmentResults({
         onOpenChange={setConceptDetailOpen}
       />
 
-      {/* Footer */}
+      {/* Footer with Important Disclaimers */}
       <footer className="border-t border-white/10 py-8 mt-12">
-        <div className="max-w-6xl mx-auto px-6 text-center text-white/40 text-sm">
-          <p className="mb-2">
-            This is educational guidance, not financial advice. Consider consulting a licensed advisor.
-          </p>
-          <p>Powered by Your Platform</p>
+        <div className="max-w-6xl mx-auto px-6">
+          {/* Enhanced Disclaimer */}
+          <div className="flex items-start gap-3 p-4 rounded-lg bg-amber-500/10 border border-amber-500/20 mb-6">
+            <AlertTriangle className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" />
+            <div className="text-xs text-amber-200/90 space-y-2">
+              <p>
+                <strong>Important Disclosures:</strong> This content is for educational and informational purposes only 
+                and does not constitute personalized investment, tax, or legal advice. All projections and 
+                expected returns shown are based on historical averages and assumptions that may not reflect future market conditions.
+              </p>
+              <p>
+                <strong>Past performance does not guarantee future results.</strong> Investing involves risk, including 
+                the possible loss of principal. Actual investment outcomes may differ significantly from projections shown.
+              </p>
+              <p>
+                Consider consulting with a qualified financial advisor, tax professional, or legal counsel before 
+                making investment decisions.
+              </p>
+            </div>
+          </div>
+          
+          <p className="text-center text-white/40 text-sm">Powered by Your Platform</p>
         </div>
       </footer>
     </div>
