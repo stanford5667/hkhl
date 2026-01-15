@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
+import { PreActionDisclaimer } from '@/components/ui/PreActionDisclaimer';
 
 interface ChooseYourPathProps {
   onSelectManual: () => void;
@@ -62,6 +63,11 @@ export function ChooseYourPath({ onSelectManual, onSelectAIChat, onSelectQuestio
           <BarChart3 className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2 inline-block" />
           Real Market Data
         </Badge>
+        
+        {/* Pre-Action Disclaimer */}
+        <div className="mt-4 max-w-2xl">
+          <PreActionDisclaimer variant="analysis" compact />
+        </div>
       </motion.div>
 
       {/* Path Cards - Stack on mobile */}
