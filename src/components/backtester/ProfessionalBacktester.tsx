@@ -224,6 +224,7 @@ export function ProfessionalBacktester() {
   
   // UI state
   const [activeTab, setActiveTab] = useState('overview');
+  const [activeLeftTab, setActiveLeftTab] = useState<'portfolio' | 'templates'>('portfolio');
   const [showShortcuts, setShowShortcuts] = useState(false);
   
   // Refs
@@ -761,249 +762,305 @@ export function ProfessionalBacktester() {
       <div className="flex-1 flex min-h-0">
         
         {/* ─────────────────────────────────────────────────────────────────────────
-            LEFT PANEL - Portfolio Builder
+            LEFT PANEL - Portfolio Builder with Side Tabs
             ───────────────────────────────────────────────────────────────────────── */}
-        <div className="w-80 flex-shrink-0 border-r border-[rgb(33,38,45)] flex flex-col bg-[rgb(13,17,23)]">
+        <div className="w-80 flex-shrink-0 border-r border-[rgb(33,38,45)] flex bg-[rgb(13,17,23)]">
           
-          {/* Search */}
-          <div className="p-3 border-b border-[rgb(33,38,45)]">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[rgb(87,96,106)]" />
-              <Input
-                ref={searchInputRef}
-                value={searchQuery}
-                onChange={(e) => handleSearch(e.target.value)}
-                placeholder="Search ticker..."
-                className={cn(
-                  "h-9 pl-9 pr-16 bg-[rgb(17,21,28)] border-[rgb(33,38,45)]",
-                  "text-sm font-mono placeholder:text-[rgb(87,96,106)]",
-                  "focus:border-[rgb(56,139,253)] focus:ring-1 focus:ring-[rgb(56,139,253)]"
-                )}
-              />
-              <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
-                <Kbd>⌘</Kbd>
-                <Kbd>K</Kbd>
-              </div>
-            </div>
-            
-            {/* Search results dropdown */}
-            {searchResults.length > 0 && (
-              <div className="absolute mt-1 w-[calc(100%-24px)] bg-[rgb(17,21,28)] border border-[rgb(33,38,45)] rounded-lg shadow-xl z-50">
-                {searchResults.map((r, i) => (
-                  <button
-                    key={r.symbol}
-                    onClick={() => addAsset(r.symbol, r.name)}
-                    className={cn(
-                      "w-full px-3 py-2 flex items-center justify-between text-left",
-                      "hover:bg-[rgb(22,27,34)] transition-colors",
-                      i === 0 && "rounded-t-lg",
-                      i === searchResults.length - 1 && "rounded-b-lg"
-                    )}
-                  >
-                    <div>
-                      <span className="font-mono font-semibold text-sm">{r.symbol}</span>
-                      {r.name && <span className="text-[rgb(87,96,106)] text-xs ml-2">{r.name}</span>}
+          {/* Side Tab Navigation */}
+          <div className="w-10 flex-shrink-0 border-r border-[rgb(33,38,45)] flex flex-col py-2 bg-[rgb(10,13,18)]">
+            <button
+              onClick={() => setActiveLeftTab('portfolio')}
+              className={cn(
+                "w-full aspect-square flex items-center justify-center transition-all relative",
+                activeLeftTab === 'portfolio'
+                  ? "text-[rgb(56,139,253)]"
+                  : "text-[rgb(87,96,106)] hover:text-[rgb(139,148,158)]"
+              )}
+              title="Portfolio"
+            >
+              {activeLeftTab === 'portfolio' && (
+                <div className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-6 bg-[rgb(56,139,253)] rounded-r" />
+              )}
+              <Layers className="h-4 w-4" />
+            </button>
+            <button
+              onClick={() => setActiveLeftTab('templates')}
+              className={cn(
+                "w-full aspect-square flex items-center justify-center transition-all relative",
+                activeLeftTab === 'templates'
+                  ? "text-[rgb(56,139,253)]"
+                  : "text-[rgb(87,96,106)] hover:text-[rgb(139,148,158)]"
+              )}
+              title="Templates"
+            >
+              {activeLeftTab === 'templates' && (
+                <div className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-6 bg-[rgb(56,139,253)] rounded-r" />
+              )}
+              <BarChart3 className="h-4 w-4" />
+            </button>
+          </div>
+          
+          {/* Tab Content */}
+          <div className="flex-1 flex flex-col min-w-0">
+            {activeLeftTab === 'portfolio' ? (
+              <>
+                {/* Search */}
+                <div className="p-3 border-b border-[rgb(33,38,45)]">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[rgb(87,96,106)]" />
+                    <Input
+                      ref={searchInputRef}
+                      value={searchQuery}
+                      onChange={(e) => handleSearch(e.target.value)}
+                      placeholder="Search ticker..."
+                      className={cn(
+                        "h-9 pl-9 pr-16 bg-[rgb(17,21,28)] border-[rgb(33,38,45)]",
+                        "text-sm font-mono placeholder:text-[rgb(87,96,106)]",
+                        "focus:border-[rgb(56,139,253)] focus:ring-1 focus:ring-[rgb(56,139,253)]"
+                      )}
+                    />
+                    <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
+                      <Kbd>⌘</Kbd>
+                      <Kbd>K</Kbd>
                     </div>
-                    <Plus className="h-4 w-4 text-[rgb(87,96,106)]" />
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-          
-          {/* Quick add popular tickers */}
-          <div className="p-3 border-b border-[rgb(33,38,45)]">
-            <p className="text-[9px] uppercase tracking-wider text-[rgb(87,96,106)] mb-2">Quick Add</p>
-            <div className="flex flex-wrap gap-1">
-              {POPULAR_TICKERS.slice(0, 8).map(t => (
-                <button
-                  key={t.symbol}
-                  onClick={() => addAsset(t.symbol, t.name)}
-                  disabled={assets.some(a => a.symbol === t.symbol)}
-                  className={cn(
-                    "px-2 py-1 text-[10px] font-mono rounded border transition-colors",
-                    assets.some(a => a.symbol === t.symbol)
-                      ? "border-[rgb(33,38,45)] text-[rgb(87,96,106)] cursor-not-allowed"
-                      : "border-[rgb(33,38,45)] text-[rgb(139,148,158)] hover:border-[rgb(56,139,253)] hover:text-[rgb(56,139,253)]"
-                  )}
-                >
-                  {t.symbol}
-                </button>
-              ))}
-            </div>
-          </div>
-          
-          {/* Portfolio holdings */}
-          <ScrollArea className="flex-1">
-            <div className="p-3 space-y-2">
-              <div className="flex items-center justify-between mb-2">
-                <p className="text-[9px] uppercase tracking-wider text-[rgb(87,96,106)]">
-                  Holdings ({assets.length})
-                </p>
-                {assets.length > 1 && (
-                  <div className="flex gap-1">
-                    <button
-                      onClick={equalizeWeights}
-                      className="text-[9px] text-[rgb(56,139,253)] hover:underline"
-                    >
-                      Equal
-                    </button>
-                    <span className="text-[rgb(33,38,45)]">|</span>
-                    <button
-                      onClick={normalizeWeights}
-                      className="text-[9px] text-[rgb(56,139,253)] hover:underline"
-                    >
-                      Normalize
-                    </button>
                   </div>
-                )}
-              </div>
-              
-              {assets.length === 0 ? (
-                <div className="py-8 text-center">
-                  <div className="w-10 h-10 rounded-full bg-[rgb(17,21,28)] mx-auto mb-3 flex items-center justify-center">
-                    <Layers className="h-5 w-5 text-[rgb(87,96,106)]" />
-                  </div>
-                  <p className="text-xs text-[rgb(87,96,106)]">No assets added</p>
-                  <p className="text-[10px] text-[rgb(87,96,106)] mt-1">Search or pick from templates</p>
-                </div>
-              ) : (
-                assets.map(asset => (
-                  <div
-                    key={asset.symbol}
-                    className="p-3 bg-[rgb(17,21,28)] rounded-lg border border-[rgb(33,38,45)] group hover:border-[rgb(48,54,61)] transition-colors"
-                  >
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="flex items-center gap-2 flex-1">
-                        <div
-                          className="w-3 h-3 rounded-full flex-shrink-0"
-                          style={{ backgroundColor: asset.color }}
-                        />
-                        <Input
-                          value={asset.symbol}
-                          onChange={(e) => {
-                            const newSymbol = e.target.value.toUpperCase();
-                            setAssets(prev => prev.map(a => 
-                              a.symbol === asset.symbol 
-                                ? { ...a, symbol: newSymbol, name: undefined }
-                                : a
-                            ));
-                          }}
-                          onBlur={(e) => {
-                            const symbol = e.target.value.toUpperCase().trim();
-                            if (!symbol) {
-                              removeAsset(asset.symbol);
-                            }
-                          }}
+                  
+                  {/* Search results dropdown */}
+                  {searchResults.length > 0 && (
+                    <div className="absolute mt-1 w-[calc(100%-64px)] bg-[rgb(17,21,28)] border border-[rgb(33,38,45)] rounded-lg shadow-xl z-50">
+                      {searchResults.map((r, i) => (
+                        <button
+                          key={r.symbol}
+                          onClick={() => addAsset(r.symbol, r.name)}
                           className={cn(
-                            "h-7 w-20 px-2 font-mono font-bold text-sm uppercase",
-                            "bg-transparent border-transparent",
-                            "hover:bg-[rgb(22,27,34)] hover:border-[rgb(48,54,61)]",
-                            "focus:bg-[rgb(13,17,23)] focus:border-[rgb(56,139,253)]",
-                            "transition-all cursor-text"
+                            "w-full px-3 py-2 flex items-center justify-between text-left",
+                            "hover:bg-[rgb(22,27,34)] transition-colors",
+                            i === 0 && "rounded-t-lg",
+                            i === searchResults.length - 1 && "rounded-b-lg"
                           )}
-                          placeholder="TICKER"
-                        />
-                        {asset.name && (
-                          <span className="text-[10px] text-[rgb(87,96,106)] truncate max-w-[80px]">
-                            {asset.name}
-                          </span>
-                        )}
-                      </div>
+                        >
+                          <div>
+                            <span className="font-mono font-semibold text-sm">{r.symbol}</span>
+                            {r.name && <span className="text-[rgb(87,96,106)] text-xs ml-2">{r.name}</span>}
+                          </div>
+                          <Plus className="h-4 w-4 text-[rgb(87,96,106)]" />
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                
+                {/* Quick add popular tickers */}
+                <div className="p-3 border-b border-[rgb(33,38,45)]">
+                  <p className="text-[9px] uppercase tracking-wider text-[rgb(87,96,106)] mb-2">Quick Add</p>
+                  <div className="flex flex-wrap gap-1">
+                    {POPULAR_TICKERS.slice(0, 8).map(t => (
                       <button
-                        onClick={() => removeAsset(asset.symbol)}
-                        className="opacity-0 group-hover:opacity-100 p-1.5 hover:bg-[rgb(248,81,73,0.15)] rounded transition-all"
-                        title="Remove asset"
+                        key={t.symbol}
+                        onClick={() => addAsset(t.symbol, t.name)}
+                        disabled={assets.some(a => a.symbol === t.symbol)}
+                        className={cn(
+                          "px-2 py-1 text-[10px] font-mono rounded border transition-colors",
+                          assets.some(a => a.symbol === t.symbol)
+                            ? "border-[rgb(33,38,45)] text-[rgb(87,96,106)] cursor-not-allowed"
+                            : "border-[rgb(33,38,45)] text-[rgb(139,148,158)] hover:border-[rgb(56,139,253)] hover:text-[rgb(56,139,253)]"
+                        )}
                       >
-                        <X className="h-3.5 w-3.5 text-[rgb(248,81,73)]" />
+                        {t.symbol}
                       </button>
+                    ))}
+                  </div>
+                </div>
+                
+                {/* Portfolio holdings */}
+                <ScrollArea className="flex-1">
+                  <div className="p-3 space-y-2">
+                    <div className="flex items-center justify-between mb-2">
+                      <p className="text-[9px] uppercase tracking-wider text-[rgb(87,96,106)]">
+                        Holdings ({assets.length})
+                      </p>
+                      {assets.length > 1 && (
+                        <div className="flex gap-1">
+                          <button
+                            onClick={equalizeWeights}
+                            className="text-[9px] text-[rgb(56,139,253)] hover:underline"
+                          >
+                            Equal
+                          </button>
+                          <span className="text-[rgb(33,38,45)]">|</span>
+                          <button
+                            onClick={normalizeWeights}
+                            className="text-[9px] text-[rgb(56,139,253)] hover:underline"
+                          >
+                            Normalize
+                          </button>
+                        </div>
+                      )}
                     </div>
                     
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => updateWeight(asset.symbol, Math.max(0, asset.weight - 5))}
-                        className="p-1.5 hover:bg-[rgb(27,32,40)] rounded transition-colors"
-                        title="-5%"
-                      >
-                        <Minus className="h-3.5 w-3.5 text-[rgb(139,148,158)]" />
-                      </button>
-                      
-                      <div className="flex-1 flex items-center gap-2">
-                        <div className="relative">
-                          <Input
-                            type="number"
-                            value={asset.weight}
-                            onChange={(e) => updateWeight(asset.symbol, parseFloat(e.target.value) || 0)}
-                            min={0}
-                            max={100}
-                            className="h-8 w-16 text-center font-mono text-sm bg-[rgb(13,17,23)] border-[rgb(33,38,45)] pr-5"
-                          />
-                          <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-[rgb(87,96,106)]">%</span>
+                    {assets.length === 0 ? (
+                      <div className="py-8 text-center">
+                        <div className="w-10 h-10 rounded-full bg-[rgb(17,21,28)] mx-auto mb-3 flex items-center justify-center">
+                          <Layers className="h-5 w-5 text-[rgb(87,96,106)]" />
                         </div>
-                        <div className="flex-1 h-2 bg-[rgb(27,32,40)] rounded-full overflow-hidden cursor-pointer group/slider"
-                          onClick={(e) => {
-                            const rect = e.currentTarget.getBoundingClientRect();
-                            const percent = Math.round(((e.clientX - rect.left) / rect.width) * 100);
-                            updateWeight(asset.symbol, Math.max(0, Math.min(100, percent)));
-                          }}
-                        >
-                          <div
-                            className="h-full rounded-full transition-all group-hover/slider:opacity-90"
-                            style={{ 
-                              width: `${Math.min(100, asset.weight)}%`,
-                              backgroundColor: asset.color,
-                            }}
-                          />
-                        </div>
+                        <p className="text-xs text-[rgb(87,96,106)]">No assets added</p>
+                        <p className="text-[10px] text-[rgb(87,96,106)] mt-1">Search or pick from templates</p>
                       </div>
-                      
-                      <button
-                        onClick={() => updateWeight(asset.symbol, Math.min(100, asset.weight + 5))}
-                        className="p-1.5 hover:bg-[rgb(27,32,40)] rounded transition-colors"
-                        title="+5%"
-                      >
-                        <Plus className="h-3.5 w-3.5 text-[rgb(139,148,158)]" />
-                      </button>
-                    </div>
+                    ) : (
+                      assets.map(asset => (
+                        <div
+                          key={asset.symbol}
+                          className="p-3 bg-[rgb(17,21,28)] rounded-lg border border-[rgb(33,38,45)] group hover:border-[rgb(48,54,61)] transition-colors"
+                        >
+                          <div className="flex items-center justify-between mb-3">
+                            <div className="flex items-center gap-2 flex-1">
+                              <div
+                                className="w-3 h-3 rounded-full flex-shrink-0"
+                                style={{ backgroundColor: asset.color }}
+                              />
+                              <Input
+                                value={asset.symbol}
+                                onChange={(e) => {
+                                  const newSymbol = e.target.value.toUpperCase();
+                                  setAssets(prev => prev.map(a => 
+                                    a.symbol === asset.symbol 
+                                      ? { ...a, symbol: newSymbol, name: undefined }
+                                      : a
+                                  ));
+                                }}
+                                onBlur={(e) => {
+                                  const symbol = e.target.value.toUpperCase().trim();
+                                  if (!symbol) {
+                                    removeAsset(asset.symbol);
+                                  }
+                                }}
+                                className={cn(
+                                  "h-7 w-20 px-2 font-mono font-bold text-sm uppercase",
+                                  "bg-transparent border-transparent",
+                                  "hover:bg-[rgb(22,27,34)] hover:border-[rgb(48,54,61)]",
+                                  "focus:bg-[rgb(13,17,23)] focus:border-[rgb(56,139,253)]",
+                                  "transition-all cursor-text"
+                                )}
+                                placeholder="TICKER"
+                              />
+                              {asset.name && (
+                                <span className="text-[10px] text-[rgb(87,96,106)] truncate max-w-[80px]">
+                                  {asset.name}
+                                </span>
+                              )}
+                            </div>
+                            <button
+                              onClick={() => removeAsset(asset.symbol)}
+                              className="opacity-0 group-hover:opacity-100 p-1.5 hover:bg-[rgb(248,81,73,0.15)] rounded transition-all"
+                              title="Remove asset"
+                            >
+                              <X className="h-3.5 w-3.5 text-[rgb(248,81,73)]" />
+                            </button>
+                          </div>
+                          
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => updateWeight(asset.symbol, Math.max(0, asset.weight - 5))}
+                              className="p-1.5 hover:bg-[rgb(27,32,40)] rounded transition-colors"
+                              title="-5%"
+                            >
+                              <Minus className="h-3.5 w-3.5 text-[rgb(139,148,158)]" />
+                            </button>
+                            
+                            <div className="flex-1 flex items-center gap-2">
+                              <div className="relative">
+                                <Input
+                                  type="number"
+                                  value={asset.weight}
+                                  onChange={(e) => updateWeight(asset.symbol, parseFloat(e.target.value) || 0)}
+                                  min={0}
+                                  max={100}
+                                  className="h-8 w-16 text-center font-mono text-sm bg-[rgb(13,17,23)] border-[rgb(33,38,45)] pr-5"
+                                />
+                                <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-[rgb(87,96,106)]">%</span>
+                              </div>
+                              <div className="flex-1 h-2 bg-[rgb(27,32,40)] rounded-full overflow-hidden cursor-pointer group/slider"
+                                onClick={(e) => {
+                                  const rect = e.currentTarget.getBoundingClientRect();
+                                  const percent = Math.round(((e.clientX - rect.left) / rect.width) * 100);
+                                  updateWeight(asset.symbol, Math.max(0, Math.min(100, percent)));
+                                }}
+                              >
+                                <div
+                                  className="h-full rounded-full transition-all group-hover/slider:opacity-90"
+                                  style={{ 
+                                    width: `${Math.min(100, asset.weight)}%`,
+                                    backgroundColor: asset.color,
+                                  }}
+                                />
+                              </div>
+                            </div>
+                            
+                            <button
+                              onClick={() => updateWeight(asset.symbol, Math.min(100, asset.weight + 5))}
+                              className="p-1.5 hover:bg-[rgb(27,32,40)] rounded transition-colors"
+                              title="+5%"
+                            >
+                              <Plus className="h-3.5 w-3.5 text-[rgb(139,148,158)]" />
+                            </button>
+                          </div>
+                        </div>
+                      ))
+                    )}
                   </div>
-                ))
-              )}
-            </div>
-          </ScrollArea>
-          
-          {/* Allocation Chart */}
-          {assets.length > 0 && (
-            <div className="border-t border-[rgb(33,38,45)] p-3">
-              <p className="text-[9px] uppercase tracking-wider text-[rgb(87,96,106)] mb-2">Allocation</p>
-              <AllocationDonut 
-                data={assets.map(a => ({ symbol: a.symbol, weight: a.weight, color: a.color }))} 
-                className="h-32"
-              />
-            </div>
-          )}
-          
-          {/* Templates */}
-          <div className="border-t border-[rgb(33,38,45)] p-3">
-            <p className="text-[9px] uppercase tracking-wider text-[rgb(87,96,106)] mb-2">Templates</p>
-            <ScrollArea className="h-32">
-              <div className="space-y-1">
-                {TEMPLATES.map(t => (
-                  <button
-                    key={t.name}
-                    onClick={() => applyTemplate(t)}
-                    className="w-full p-2 text-left rounded hover:bg-[rgb(17,21,28)] transition-colors group"
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-medium">{t.name}</span>
-                      <span className="text-[9px] text-[rgb(87,96,106)] opacity-0 group-hover:opacity-100">
-                        Apply →
-                      </span>
-                    </div>
-                    <p className="text-[10px] text-[rgb(87,96,106)]">{t.description}</p>
-                  </button>
-                ))}
-              </div>
-            </ScrollArea>
+                </ScrollArea>
+                
+                {/* Allocation Chart */}
+                {assets.length > 0 && (
+                  <div className="border-t border-[rgb(33,38,45)] p-3">
+                    <p className="text-[9px] uppercase tracking-wider text-[rgb(87,96,106)] mb-2">Allocation</p>
+                    <AllocationDonut 
+                      data={assets.map(a => ({ symbol: a.symbol, weight: a.weight, color: a.color }))} 
+                      className="h-32"
+                    />
+                  </div>
+                )}
+              </>
+            ) : (
+              /* Templates Tab */
+              <ScrollArea className="flex-1">
+                <div className="p-3">
+                  <p className="text-[9px] uppercase tracking-wider text-[rgb(87,96,106)] mb-3">Portfolio Templates</p>
+                  <div className="space-y-2">
+                    {TEMPLATES.map(t => (
+                      <button
+                        key={t.name}
+                        onClick={() => {
+                          applyTemplate(t);
+                          setActiveLeftTab('portfolio');
+                        }}
+                        className="w-full p-3 text-left rounded-lg bg-[rgb(17,21,28)] border border-[rgb(33,38,45)] hover:border-[rgb(48,54,61)] transition-all group"
+                      >
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-sm font-medium">{t.name}</span>
+                          <span className="text-[10px] text-[rgb(56,139,253)] opacity-0 group-hover:opacity-100 transition-opacity">
+                            Apply →
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-[rgb(87,96,106)] mb-2">{t.description}</p>
+                        <div className="flex flex-wrap gap-1">
+                          {t.assets.slice(0, 4).map(a => (
+                            <span key={a.symbol} className="px-1.5 py-0.5 text-[9px] font-mono bg-[rgb(27,32,40)] rounded text-[rgb(139,148,158)]">
+                              {a.symbol} {a.weight}%
+                            </span>
+                          ))}
+                          {t.assets.length > 4 && (
+                            <span className="px-1.5 py-0.5 text-[9px] font-mono text-[rgb(87,96,106)]">
+                              +{t.assets.length - 4} more
+                            </span>
+                          )}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </ScrollArea>
+            )}
           </div>
         </div>
 
