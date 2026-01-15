@@ -518,10 +518,6 @@ export function DrawdownScreener({ onComplete }: DrawdownScreenerProps) {
                     {/* Slider */}
                     <div className="space-y-4">
                       <div className="relative pt-2 pb-8">
-                        <div className={cn(
-                          "absolute inset-x-0 top-1/2 -translate-y-1/2 h-2 rounded-full opacity-20 bg-gradient-to-r pointer-events-none",
-                          currentMetric.colorGradient
-                        )} />
                         
                         <Slider
                           value={[currentValue]}
