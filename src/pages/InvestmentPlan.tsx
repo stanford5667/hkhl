@@ -69,6 +69,8 @@ import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { format, formatDistanceToNow } from 'date-fns';
 import { PreActionDisclaimer } from '@/components/ui/PreActionDisclaimer';
+import { AcknowledgmentDialog, EducationalBadge, InlineDisclaimer } from '@/components/legal';
+import { useEducationalAcknowledgment } from '@/hooks/useEducationalAcknowledgment';
 
 // Simple markdown renderer component
 function SimpleMarkdown({ content }: { content: string }) {
@@ -269,6 +271,7 @@ interface InvestmentPlan {
 export default function InvestmentPlanPage() {
   const { user } = useAuth();
   const { requireAuth, showAuthDialog, closeAuthDialog, consumePendingAction } = useRequireAuth();
+  const { showDialog: showEducationalAcknowledgment, acknowledge } = useEducationalAcknowledgment();
   const [activeTab, setActiveTab] = useState('plans');
   const [plans, setPlans] = useState<InvestmentPlan[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -462,33 +465,40 @@ export default function InvestmentPlanPage() {
   }
 
   return (
-    <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
-        <div className="flex items-center gap-3">
-          <div className="p-2.5 rounded-xl bg-gradient-to-br from-purple-500/20 to-violet-500/10 border border-purple-500/30">
-            <Brain className="h-5 w-5 sm:h-6 sm:w-6 text-purple-400" />
+    <>
+      <AcknowledgmentDialog open={showEducationalAcknowledgment} onAccept={acknowledge} feature="the Portfolio Explorer" />
+      <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 rounded-xl bg-gradient-to-br from-purple-500/20 to-violet-500/10 border border-purple-500/30">
+              <Brain className="h-5 w-5 sm:h-6 sm:w-6 text-purple-400" />
+            </div>
+            <div className="flex items-center gap-3">
+              <div>
+                <h1 className="text-xl sm:text-2xl font-bold text-foreground">Portfolio Explorer</h1>
+                <p className="text-muted-foreground text-sm sm:text-base mt-0.5">
+                  Explore different portfolio strategies and learn about asset allocation
+                </p>
+              </div>
+              <EducationalBadge className="hidden sm:flex" />
+            </div>
           </div>
-          <div>
-            <h1 className="text-xl sm:text-2xl font-bold text-foreground">Investor DNA Assessment</h1>
-            <p className="text-muted-foreground text-sm sm:text-base mt-0.5">
-              Discover your investor personality type
-            </p>
-          </div>
-        </div>
 
-        <Button 
-          onClick={() => {
-            setForceNewAssessment(true);
-            setShowQuestionnaire(true);
-          }}
-          className="hidden sm:flex gap-2 shadow-lg shadow-primary/25"
-          size="lg"
-        >
-          <Sparkles className="h-4 w-4" />
-          Take Assessment
-        </Button>
-      </div>
+          <Button 
+            onClick={() => {
+              setForceNewAssessment(true);
+              setShowQuestionnaire(true);
+            }}
+            className="hidden sm:flex gap-2 shadow-lg shadow-primary/25"
+            size="lg"
+          >
+            <Sparkles className="h-4 w-4" />
+            Take Assessment
+          </Button>
+        </div>
+        
+        <InlineDisclaimer />
 
       {/* Main Content */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
@@ -901,6 +911,7 @@ export default function InvestmentPlanPage() {
         title="Sign in to Save Your Plan"
         description="Create a free account to save your investment plan and access it from anywhere."
       />
-    </div>
+      </div>
+    </>
   );
 }

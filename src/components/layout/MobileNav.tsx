@@ -27,7 +27,7 @@ const mobileNavItems = [
   { label: "Builder", href: "/portfolio-visualizer", icon: PieChart },
   { label: "Studies", href: "/quant-lab", icon: FlaskConical },
   { label: "Intel", href: "/market-intel", icon: BarChart3 },
-  { label: "Plan", href: "/investment-plan", icon: ClipboardList },
+  { label: "Explorer", href: "/investment-plan", icon: ClipboardList },
   { label: "More", href: "#menu", icon: Menu, isMenu: true },
 ];
 
@@ -116,7 +116,7 @@ function MobileSidebarContent({ onNavigate }: { onNavigate: () => void }) {
     { label: "Portfolio Tracker", href: "/", icon: Briefcase },
     { label: "Portfolio Builder", href: "/portfolio-visualizer", icon: PieChart },
     { label: "Quant Lab", href: "/quant-lab", icon: FlaskConical },
-    { label: "Investment Plan", href: "/investment-plan", icon: ClipboardList },
+    { label: "Portfolio Explorer", href: "/investment-plan", icon: ClipboardList },
     { label: "Market Intel", href: "/market-intel", icon: BarChart3 },
     ...(isAdmin ? [{ label: "Asset Research", href: "/asset-research", icon: Search }] : []),
     ...(isAdmin ? [{ label: "Admin Portal", href: "/admin", icon: Shield }] : []),
