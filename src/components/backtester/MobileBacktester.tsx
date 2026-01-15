@@ -527,8 +527,15 @@ export function MobileBacktester() {
         return;
       }
       
+      // Filter assets to only those with data and renormalize weights
+      const validSymbols = new Set(Object.keys(assetData));
+      const validAssets = assets.filter(a => validSymbols.has(a.symbol));
+      
       if (missingTickers.length > 0) {
         toast.warning(`Limited data for: ${missingTickers.join(', ')} - excluded from backtest`);
+        // Renormalize weights for valid assets
+        const totalWeight = validAssets.reduce((sum, a) => sum + a.weight, 0);
+        validAssets.forEach(a => a.weight = (a.weight / totalWeight) * 100);
       }
       
       // Fetch benchmark
@@ -587,7 +594,7 @@ export function MobileBacktester() {
         const date = commonDates[i];
         
         let portfolioReturn = 0;
-        for (const asset of assets) {
+        for (const asset of validAssets) {
           portfolioReturn += (indexed[asset.symbol]?.[date] || 0) * (asset.weight / 100);
         }
         
