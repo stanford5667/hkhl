@@ -1,5 +1,5 @@
 /**
- * Drawdown Screener - Suggest portfolios based on max drawdown tolerance
+ * Risk-Based Screener - Suggest portfolios based on multiple risk metrics
  * A visually stunning interface for screening portfolios by risk appetite
  */
 
@@ -13,6 +13,7 @@ import { Input } from '@/components/ui/input';
 import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import {
   TrendingDown,
   TrendingUp,
@@ -34,13 +35,37 @@ import {
   Trash2,
   Plus,
   ChevronDown,
+  Activity,
+  Gauge,
+  Award,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { PortfolioAllocation, AssetClass, ASSET_CLASS_ETFS } from '@/types/portfolio';
 import { POLYGON_CONFIG } from '@/config/apiConfig';
 
-// Preset portfolios based on drawdown tolerance
+// Screening metric types
+type ScreeningMetric = 'drawdown' | 'volatility' | 'maxGain' | 'sharpe';
+
+interface MetricConfig {
+  id: ScreeningMetric;
+  name: string;
+  shortName: string;
+  description: string;
+  icon: React.ElementType;
+  min: number;
+  max: number;
+  step: number;
+  unit: string;
+  defaultValue: number;
+  colorGradient: string;
+  labels: { value: number; label: string; icon: React.ElementType }[];
+  getLabel: (value: number) => { label: string; color: string };
+  getContext: (value: number) => string;
+  filterPresets: (value: number, preset: typeof PRESET_PORTFOLIOS[keyof typeof PRESET_PORTFOLIOS]) => boolean;
+}
+
+// Preset portfolios with expanded metrics
 const PRESET_PORTFOLIOS = {
   conservative: {
     name: 'Capital Preservation',
@@ -48,6 +73,8 @@ const PRESET_PORTFOLIOS = {
     maxDrawdown: 10,
     expectedReturn: 5,
     volatility: 6,
+    maxGain: 12,
+    sharpe: 0.6,
     icon: Snowflake,
     color: 'from-blue-500 to-cyan-500',
     bgColor: 'bg-blue-500/10',
@@ -66,6 +93,8 @@ const PRESET_PORTFOLIOS = {
     maxDrawdown: 20,
     expectedReturn: 7.5,
     volatility: 11,
+    maxGain: 25,
+    sharpe: 0.8,
     icon: Scale,
     color: 'from-emerald-500 to-teal-500',
     bgColor: 'bg-emerald-500/10',
@@ -84,6 +113,8 @@ const PRESET_PORTFOLIOS = {
     maxDrawdown: 30,
     expectedReturn: 9,
     volatility: 15,
+    maxGain: 40,
+    sharpe: 0.7,
     icon: TrendingUp,
     color: 'from-amber-500 to-orange-500',
     bgColor: 'bg-amber-500/10',
@@ -102,6 +133,8 @@ const PRESET_PORTFOLIOS = {
     maxDrawdown: 45,
     expectedReturn: 11,
     volatility: 20,
+    maxGain: 60,
+    sharpe: 0.65,
     icon: Flame,
     color: 'from-rose-500 to-pink-500',
     bgColor: 'bg-rose-500/10',
@@ -113,6 +146,139 @@ const PRESET_PORTFOLIOS = {
       { symbol: 'VGT', weight: 20, assetClass: 'stocks' as AssetClass, name: 'Tech Sector' },
       { symbol: 'VXUS', weight: 15, assetClass: 'stocks' as AssetClass, name: 'International Stocks' },
     ],
+  },
+};
+
+// Metric configurations
+const METRIC_CONFIGS: Record<ScreeningMetric, MetricConfig> = {
+  drawdown: {
+    id: 'drawdown',
+    name: 'Maximum Drawdown',
+    shortName: 'Max DD',
+    description: 'How much could your portfolio decline before you\'d panic sell?',
+    icon: TrendingDown,
+    min: 5,
+    max: 50,
+    step: 1,
+    unit: '%',
+    defaultValue: 20,
+    colorGradient: 'from-blue-500 via-emerald-500 via-amber-500 to-rose-500',
+    labels: [
+      { value: 5, label: 'Ultra Safe', icon: Shield },
+      { value: 20, label: 'Balanced', icon: Scale },
+      { value: 35, label: 'Growth', icon: TrendingUp },
+      { value: 50, label: 'Aggressive', icon: Flame },
+    ],
+    getLabel: (value) => {
+      if (value <= 10) return { label: 'Very Conservative', color: 'text-blue-500' };
+      if (value <= 20) return { label: 'Conservative', color: 'text-emerald-500' };
+      if (value <= 30) return { label: 'Moderate', color: 'text-amber-500' };
+      if (value <= 40) return { label: 'Aggressive', color: 'text-orange-500' };
+      return { label: 'Very Aggressive', color: 'text-rose-500' };
+    },
+    getContext: (value) => {
+      if (value <= 15) return `During 2008, even conservative portfolios saw 15-20% declines. A -${value}% tolerance means prioritizing capital preservation over growth.`;
+      if (value <= 25) return `A 60/40 portfolio historically sees drawdowns around -30% during major crashes. Your -${value}% tolerance balances growth with reasonable protection.`;
+      if (value <= 40) return `Equity-heavy portfolios can drop 40-50% in severe downturns. Your -${value}% tolerance prioritizes long-term growth over short-term stability.`;
+      return `With -${value}% tolerance, you're prepared for extreme scenarios like 2008 (-56% S&P). This allows maximum equity exposure for long-term compounding.`;
+    },
+    filterPresets: (value, preset) => preset.maxDrawdown <= value + 5,
+  },
+  volatility: {
+    id: 'volatility',
+    name: 'Standard Deviation',
+    shortName: 'Volatility',
+    description: 'How much price swing can you handle day-to-day?',
+    icon: Activity,
+    min: 3,
+    max: 25,
+    step: 1,
+    unit: '%',
+    defaultValue: 12,
+    colorGradient: 'from-cyan-500 via-blue-500 via-purple-500 to-pink-500',
+    labels: [
+      { value: 3, label: 'Stable', icon: Shield },
+      { value: 10, label: 'Normal', icon: Scale },
+      { value: 17, label: 'Volatile', icon: Activity },
+      { value: 25, label: 'Wild', icon: Zap },
+    ],
+    getLabel: (value) => {
+      if (value <= 8) return { label: 'Low Volatility', color: 'text-cyan-500' };
+      if (value <= 13) return { label: 'Moderate Volatility', color: 'text-blue-500' };
+      if (value <= 18) return { label: 'High Volatility', color: 'text-purple-500' };
+      return { label: 'Very High Volatility', color: 'text-pink-500' };
+    },
+    getContext: (value) => {
+      if (value <= 8) return `${value}% annual volatility means smooth sailing—expect daily moves of ~0.5% or less. Great for peace of mind but may limit upside.`;
+      if (value <= 13) return `${value}% volatility is typical for balanced portfolios. Expect occasional 2-3% daily swings during market stress.`;
+      if (value <= 18) return `${value}% volatility means meaningful price swings. A $100K portfolio might move $1,000+ in a single day during volatile periods.`;
+      return `${value}% volatility is S&P 500 territory or higher. Buckle up for wild rides, but historically higher returns over time.`;
+    },
+    filterPresets: (value, preset) => preset.volatility <= value + 3,
+  },
+  maxGain: {
+    id: 'maxGain',
+    name: 'Maximum Gain Target',
+    shortName: 'Max Gain',
+    description: 'What\'s your minimum upside expectation in a good year?',
+    icon: TrendingUp,
+    min: 5,
+    max: 80,
+    step: 5,
+    unit: '%',
+    defaultValue: 25,
+    colorGradient: 'from-emerald-500 via-green-500 via-lime-500 to-yellow-500',
+    labels: [
+      { value: 5, label: 'Modest', icon: Shield },
+      { value: 25, label: 'Good', icon: Target },
+      { value: 50, label: 'Strong', icon: TrendingUp },
+      { value: 80, label: 'Moon', icon: Flame },
+    ],
+    getLabel: (value) => {
+      if (value <= 15) return { label: 'Conservative Target', color: 'text-emerald-500' };
+      if (value <= 30) return { label: 'Moderate Target', color: 'text-green-500' };
+      if (value <= 50) return { label: 'Ambitious Target', color: 'text-lime-500' };
+      return { label: 'Aggressive Target', color: 'text-yellow-500' };
+    },
+    getContext: (value) => {
+      if (value <= 15) return `Targeting ${value}%+ max gain keeps you in conservative territory. This typically requires 40%+ bonds and defensive positions.`;
+      if (value <= 30) return `A ${value}%+ gain target is achievable with a balanced 60/40 or 70/30 portfolio in strong bull markets.`;
+      if (value <= 50) return `${value}%+ gains require significant equity exposure. In years like 2019 or 2021, even S&P 500 hit 25-30%.`;
+      return `${value}%+ gains need concentrated bets—tech, growth stocks, or leverage. High reward, but be ready for equally large drawdowns.`;
+    },
+    filterPresets: (value, preset) => preset.maxGain >= value - 10,
+  },
+  sharpe: {
+    id: 'sharpe',
+    name: 'Sharpe Ratio',
+    shortName: 'Sharpe',
+    description: 'Risk-adjusted return efficiency—higher is better',
+    icon: Award,
+    min: 0.2,
+    max: 1.5,
+    step: 0.1,
+    unit: '',
+    defaultValue: 0.7,
+    colorGradient: 'from-slate-500 via-zinc-500 via-amber-500 to-yellow-500',
+    labels: [
+      { value: 0.2, label: 'Poor', icon: AlertTriangle },
+      { value: 0.5, label: 'Fair', icon: Scale },
+      { value: 0.8, label: 'Good', icon: Target },
+      { value: 1.5, label: 'Excellent', icon: Award },
+    ],
+    getLabel: (value) => {
+      if (value < 0.4) return { label: 'Below Average', color: 'text-slate-500' };
+      if (value < 0.7) return { label: 'Average', color: 'text-zinc-500' };
+      if (value < 1.0) return { label: 'Good', color: 'text-amber-500' };
+      return { label: 'Excellent', color: 'text-yellow-500' };
+    },
+    getContext: (value) => {
+      if (value < 0.5) return `A Sharpe of ${value.toFixed(1)} is below average. You're not being well-compensated for the risk you're taking.`;
+      if (value < 0.7) return `${value.toFixed(1)} Sharpe is typical for broad market indices. Decent but room for optimization.`;
+      if (value < 1.0) return `${value.toFixed(1)} Sharpe indicates good risk-adjusted returns. Your portfolio is working efficiently.`;
+      return `${value.toFixed(1)} Sharpe is excellent—professional hedge fund territory. Hard to sustain long-term but worth targeting.`;
+    },
+    filterPresets: (value, preset) => preset.sharpe >= value - 0.2,
   },
 };
 
@@ -128,7 +294,13 @@ interface DrawdownScreenerProps {
 
 export function DrawdownScreener({ onComplete }: DrawdownScreenerProps) {
   // Screening state
-  const [maxDrawdownTolerance, setMaxDrawdownTolerance] = useState(20);
+  const [activeMetric, setActiveMetric] = useState<ScreeningMetric>('drawdown');
+  const [metricValues, setMetricValues] = useState<Record<ScreeningMetric, number>>({
+    drawdown: 20,
+    volatility: 12,
+    maxGain: 25,
+    sharpe: 0.7,
+  });
   const [selectedPreset, setSelectedPreset] = useState<PresetKey | null>(null);
   
   // Portfolio configuration state
@@ -138,22 +310,31 @@ export function DrawdownScreener({ onComplete }: DrawdownScreenerProps) {
   const [isCustomizing, setIsCustomizing] = useState(false);
   const [newSymbol, setNewSymbol] = useState('');
 
-  // Calculate which presets match the drawdown tolerance
+  // Get current metric config
+  const currentMetric = METRIC_CONFIGS[activeMetric];
+  const currentValue = metricValues[activeMetric];
+  const metricInfo = currentMetric.getLabel(currentValue);
+
+  // Update metric value
+  const updateMetricValue = (metric: ScreeningMetric, value: number) => {
+    setMetricValues(prev => ({ ...prev, [metric]: value }));
+  };
+
+  // Calculate which presets match the current metric criteria
   const matchingPresets = useMemo(() => {
     return (Object.entries(PRESET_PORTFOLIOS) as [PresetKey, typeof PRESET_PORTFOLIOS[PresetKey]][])
-      .filter(([_, preset]) => preset.maxDrawdown <= maxDrawdownTolerance + 5)
+      .filter(([_, preset]) => currentMetric.filterPresets(currentValue, preset))
       .sort((a, b) => b[1].expectedReturn - a[1].expectedReturn);
-  }, [maxDrawdownTolerance]);
+  }, [currentMetric, currentValue]);
 
-  // Get recommended preset based on tolerance
+  // Get recommended preset based on current metric
   const recommendedPreset = useMemo(() => {
     const presets = Object.entries(PRESET_PORTFOLIOS) as [PresetKey, typeof PRESET_PORTFOLIOS[PresetKey]][];
-    // Find the preset with highest return that's within tolerance
     const matching = presets
-      .filter(([_, p]) => p.maxDrawdown <= maxDrawdownTolerance + 5)
+      .filter(([_, p]) => currentMetric.filterPresets(currentValue, p))
       .sort((a, b) => b[1].expectedReturn - a[1].expectedReturn);
     return matching[0]?.[0] || 'conservative';
-  }, [maxDrawdownTolerance]);
+  }, [currentMetric, currentValue]);
 
   // Select a preset
   const selectPreset = (key: PresetKey) => {
@@ -232,16 +413,11 @@ export function DrawdownScreener({ onComplete }: DrawdownScreenerProps) {
     }
   };
 
-  // Get drawdown label
-  const getDrawdownLabel = (value: number) => {
-    if (value <= 10) return { label: 'Very Conservative', color: 'text-blue-500' };
-    if (value <= 20) return { label: 'Conservative', color: 'text-emerald-500' };
-    if (value <= 30) return { label: 'Moderate', color: 'text-amber-500' };
-    if (value <= 40) return { label: 'Aggressive', color: 'text-orange-500' };
-    return { label: 'Very Aggressive', color: 'text-rose-500' };
+  // Format display value for current metric
+  const formatMetricValue = (value: number) => {
+    if (activeMetric === 'sharpe') return value.toFixed(1);
+    return value.toString();
   };
-
-  const drawdownInfo = getDrawdownLabel(maxDrawdownTolerance);
 
   return (
     <div className="min-h-screen w-full">
@@ -261,126 +437,145 @@ export function DrawdownScreener({ onComplete }: DrawdownScreenerProps) {
             >
               <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-primary/20 to-primary/5 border border-primary/20 mb-4">
                 <Sparkles className="h-4 w-4 text-primary" />
-                <span className="text-sm font-medium text-primary">Portfolio Builder</span>
+                <span className="text-sm font-medium text-primary">Risk-Based Screener</span>
               </div>
             </motion.div>
             
             <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold bg-gradient-to-r from-foreground via-foreground to-foreground/70 bg-clip-text">
-              What's your risk tolerance?
+              Screen by Risk Metrics
             </h1>
             <p className="text-muted-foreground text-base sm:text-lg max-w-2xl mx-auto">
-              Tell us the maximum decline you could stomach, and we'll suggest a portfolio that historically stayed within that range
+              Choose a risk metric that matters to you, set your tolerance, and we'll suggest portfolios that fit
             </p>
           </div>
 
-          {/* Main Drawdown Screener */}
+          {/* Metric Selection Tabs */}
           <Card className="border-2 border-primary/20 bg-gradient-to-br from-card to-card/50 overflow-hidden relative">
             <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent pointer-events-none" />
             
-            <CardHeader className="relative pb-4">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                <div>
-                  <CardTitle className="text-lg sm:text-xl flex items-center gap-2">
-                    <TrendingDown className="h-5 w-5 text-rose-500" />
-                    Maximum Drawdown Tolerance
-                  </CardTitle>
-                  <CardDescription className="mt-1">
-                    How much could your portfolio decline before you'd panic sell?
-                  </CardDescription>
-                </div>
-                <div className="flex items-center gap-3">
-                  <Badge 
-                    variant="outline" 
-                    className={cn(
-                      "text-lg font-bold px-4 py-2",
-                      drawdownInfo.color
-                    )}
-                  >
-                    -{maxDrawdownTolerance}%
-                  </Badge>
-                  <Badge 
-                    variant="secondary"
-                    className={cn("text-sm", drawdownInfo.color)}
-                  >
-                    {drawdownInfo.label}
-                  </Badge>
-                </div>
-              </div>
-            </CardHeader>
+            <CardContent className="relative pt-6 space-y-6">
+              {/* Metric Tabs */}
+              <Tabs value={activeMetric} onValueChange={(v) => setActiveMetric(v as ScreeningMetric)}>
+                <TabsList className="grid grid-cols-2 sm:grid-cols-4 w-full h-auto gap-2 bg-transparent p-0">
+                  {(Object.values(METRIC_CONFIGS) as MetricConfig[]).map((metric) => {
+                    const Icon = metric.icon;
+                    const isActive = activeMetric === metric.id;
+                    return (
+                      <TabsTrigger
+                        key={metric.id}
+                        value={metric.id}
+                        className={cn(
+                          "flex flex-col items-center gap-1 p-3 rounded-lg border transition-all data-[state=active]:bg-primary/10 data-[state=active]:border-primary",
+                          "hover:bg-muted/50"
+                        )}
+                      >
+                        <Icon className={cn("h-5 w-5", isActive ? "text-primary" : "text-muted-foreground")} />
+                        <span className={cn("text-xs font-medium", isActive ? "text-primary" : "text-muted-foreground")}>
+                          {metric.shortName}
+                        </span>
+                      </TabsTrigger>
+                    );
+                  })}
+                </TabsList>
 
-            <CardContent className="relative space-y-6">
-              {/* Visual Drawdown Slider */}
-              <div className="space-y-4">
-                <div className="relative pt-2 pb-8">
-                  <div className="absolute inset-x-0 top-8 h-3 rounded-full bg-gradient-to-r from-blue-500 via-emerald-500 via-amber-500 to-rose-500 opacity-20" />
-                  
-                  <Slider
-                    value={[maxDrawdownTolerance]}
-                    onValueChange={([v]) => {
-                      setMaxDrawdownTolerance(v);
-                      // Auto-select best matching preset
-                      const presets = Object.entries(PRESET_PORTFOLIOS) as [PresetKey, typeof PRESET_PORTFOLIOS[PresetKey]][];
-                      const best = presets
-                        .filter(([_, p]) => p.maxDrawdown <= v + 5)
-                        .sort((a, b) => b[1].expectedReturn - a[1].expectedReturn)[0];
-                      if (best && !isCustomizing) {
-                        selectPreset(best[0]);
-                      }
-                    }}
-                    min={5}
-                    max={50}
-                    step={1}
-                    className="relative z-10"
-                  />
-                  
-                  {/* Scale labels */}
-                  <div className="flex justify-between text-xs text-muted-foreground mt-2">
-                    <span className="flex flex-col items-start">
-                      <Shield className="h-3 w-3 mb-1 text-blue-500" />
-                      <span>5%</span>
-                      <span className="text-[10px] hidden sm:block">Ultra Safe</span>
-                    </span>
-                    <span className="flex flex-col items-center">
-                      <Scale className="h-3 w-3 mb-1 text-emerald-500" />
-                      <span>20%</span>
-                      <span className="text-[10px] hidden sm:block">Balanced</span>
-                    </span>
-                    <span className="flex flex-col items-center">
-                      <TrendingUp className="h-3 w-3 mb-1 text-amber-500" />
-                      <span>35%</span>
-                      <span className="text-[10px] hidden sm:block">Growth</span>
-                    </span>
-                    <span className="flex flex-col items-end">
-                      <Flame className="h-3 w-3 mb-1 text-rose-500" />
-                      <span>50%</span>
-                      <span className="text-[10px] hidden sm:block">Aggressive</span>
-                    </span>
-                  </div>
-                </div>
-
-                {/* Context info */}
-                <div className="p-4 rounded-xl bg-muted/50 border border-border/50">
-                  <div className="flex items-start gap-3">
-                    <Info className="h-5 w-5 text-muted-foreground shrink-0 mt-0.5" />
-                    <div className="space-y-1">
-                      <p className="text-sm text-muted-foreground">
-                        {maxDrawdownTolerance <= 15 && (
-                          <>During 2008, even conservative portfolios saw 15-20% declines. A -{maxDrawdownTolerance}% tolerance means prioritizing capital preservation over growth.</>
-                        )}
-                        {maxDrawdownTolerance > 15 && maxDrawdownTolerance <= 25 && (
-                          <>A 60/40 portfolio historically sees drawdowns around -30% during major crashes. Your -{maxDrawdownTolerance}% tolerance balances growth with reasonable protection.</>
-                        )}
-                        {maxDrawdownTolerance > 25 && maxDrawdownTolerance <= 40 && (
-                          <>Equity-heavy portfolios can drop 40-50% in severe downturns. Your -{maxDrawdownTolerance}% tolerance prioritizes long-term growth over short-term stability.</>
-                        )}
-                        {maxDrawdownTolerance > 40 && (
-                          <>With -{maxDrawdownTolerance}% tolerance, you're prepared for extreme scenarios like 2008 (-56% S&P). This allows maximum equity exposure for long-term compounding.</>
-                        )}
-                      </p>
+                {/* Active Metric Content */}
+                <AnimatePresence mode="wait">
+                  <motion.div
+                    key={activeMetric}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    transition={{ duration: 0.2 }}
+                    className="mt-6"
+                  >
+                    {/* Metric Header */}
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          {(() => {
+                            const Icon = currentMetric.icon;
+                            return <Icon className="h-5 w-5 text-primary" />;
+                          })()}
+                          <CardTitle className="text-lg sm:text-xl">{currentMetric.name}</CardTitle>
+                        </div>
+                        <CardDescription className="mt-1">
+                          {currentMetric.description}
+                        </CardDescription>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <Badge 
+                          variant="outline" 
+                          className={cn("text-lg font-bold px-4 py-2", metricInfo.color)}
+                        >
+                          {activeMetric === 'drawdown' ? '-' : ''}{formatMetricValue(currentValue)}{currentMetric.unit}
+                        </Badge>
+                        <Badge variant="secondary" className={cn("text-sm", metricInfo.color)}>
+                          {metricInfo.label}
+                        </Badge>
+                      </div>
                     </div>
-                  </div>
-                </div>
-              </div>
+
+                    {/* Slider */}
+                    <div className="space-y-4">
+                      <div className="relative pt-2 pb-8">
+                        <div className={cn(
+                          "absolute inset-x-0 top-8 h-3 rounded-full opacity-20 bg-gradient-to-r",
+                          currentMetric.colorGradient
+                        )} />
+                        
+                        <Slider
+                          value={[currentValue]}
+                          onValueChange={([v]) => {
+                            updateMetricValue(activeMetric, v);
+                            // Auto-select best matching preset
+                            const presets = Object.entries(PRESET_PORTFOLIOS) as [PresetKey, typeof PRESET_PORTFOLIOS[PresetKey]][];
+                            const best = presets
+                              .filter(([_, p]) => currentMetric.filterPresets(v, p))
+                              .sort((a, b) => b[1].expectedReturn - a[1].expectedReturn)[0];
+                            if (best && !isCustomizing) {
+                              selectPreset(best[0]);
+                            }
+                          }}
+                          min={currentMetric.min}
+                          max={currentMetric.max}
+                          step={currentMetric.step}
+                          className="relative z-10"
+                        />
+                        
+                        {/* Scale labels */}
+                        <div className="flex justify-between text-xs text-muted-foreground mt-2">
+                          {currentMetric.labels.map((label, idx) => {
+                            const LabelIcon = label.icon;
+                            return (
+                              <span 
+                                key={label.value} 
+                                className={cn(
+                                  "flex flex-col",
+                                  idx === 0 ? "items-start" : idx === currentMetric.labels.length - 1 ? "items-end" : "items-center"
+                                )}
+                              >
+                                <LabelIcon className="h-3 w-3 mb-1 text-muted-foreground" />
+                                <span>{label.value}{currentMetric.unit}</span>
+                                <span className="text-[10px] hidden sm:block">{label.label}</span>
+                              </span>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      {/* Context info */}
+                      <div className="p-4 rounded-xl bg-muted/50 border border-border/50">
+                        <div className="flex items-start gap-3">
+                          <Info className="h-5 w-5 text-muted-foreground shrink-0 mt-0.5" />
+                          <p className="text-sm text-muted-foreground">
+                            {currentMetric.getContext(currentValue)}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </motion.div>
+                </AnimatePresence>
+              </Tabs>
             </CardContent>
           </Card>
 
@@ -392,7 +587,7 @@ export function DrawdownScreener({ onComplete }: DrawdownScreenerProps) {
                 Suggested Portfolios
               </h2>
               <Badge variant="outline" className="text-xs">
-                Based on -{maxDrawdownTolerance}% tolerance
+                Based on {currentMetric.shortName}: {activeMetric === 'drawdown' ? '-' : ''}{formatMetricValue(currentValue)}{currentMetric.unit}
               </Badge>
             </div>
 
@@ -401,7 +596,7 @@ export function DrawdownScreener({ onComplete }: DrawdownScreenerProps) {
                 const Icon = preset.icon;
                 const isSelected = selectedPreset === key;
                 const isRecommended = key === recommendedPreset;
-                const isWithinTolerance = preset.maxDrawdown <= maxDrawdownTolerance + 5;
+                const isWithinTolerance = currentMetric.filterPresets(currentValue, preset);
                 
                 return (
                   <motion.div
