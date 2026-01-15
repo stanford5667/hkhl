@@ -86,6 +86,7 @@ import {
 type SortField = 'matchScore' | 'cagr' | 'sharpe' | 'maxDrawdown' | 'volatility' | 'sortino';
 type SortDirection = 'asc' | 'desc';
 type ScreenMode = 'quick' | 'full';
+type MetricKey = 'maxDrawdown' | 'maxVolatility' | 'minSharpe' | 'minCagr';
 
 interface DynamicScreenerProps {
   onSelect?: (allocations: { symbol: string; weight: number }[]) => void;
@@ -124,7 +125,8 @@ export function DynamicScreener({ onSelect, onComplete }: DynamicScreenerProps) 
   const [progress, setProgress] = useState<ScreeningProgress | null>(null);
   const [lastResult, setLastResult] = useState<ScreeningResult | null>(null);
   
-  // Criteria
+  // Criteria (store values, but only ONE is active at a time)
+  const [activeMetric, setActiveMetric] = useState<MetricKey>('maxDrawdown');
   const [maxDrawdown, setMaxDrawdown] = useState(30);
   const [maxVolatility, setMaxVolatility] = useState(20);
   const [minSharpe, setMinSharpe] = useState(0.3);
@@ -178,12 +180,21 @@ export function DynamicScreener({ onSelect, onComplete }: DynamicScreenerProps) 
     setProgress(null);
     setPortfolios([]);
     
-    const criteria: ScreeningCriteria = {
-      maxDrawdown,
-      maxVolatility,
-      minSharpe,
-      minCagr,
-    };
+    const criteria: ScreeningCriteria = {};
+    switch (activeMetric) {
+      case 'maxDrawdown':
+        criteria.maxDrawdown = maxDrawdown;
+        break;
+      case 'maxVolatility':
+        criteria.maxVolatility = maxVolatility;
+        break;
+      case 'minSharpe':
+        criteria.minSharpe = minSharpe;
+        break;
+      case 'minCagr':
+        criteria.minCagr = minCagr;
+        break;
+    }
     
     const config: GenerationConfig = {
       minAssets,
@@ -216,7 +227,7 @@ export function DynamicScreener({ onSelect, onComplete }: DynamicScreenerProps) 
     } finally {
       setIsLoading(false);
     }
-  }, [maxDrawdown, maxVolatility, minSharpe, minCagr, screenMode, minAssets, maxAssets, maxPortfolios, lookbackYears]);
+  }, [activeMetric, maxDrawdown, maxVolatility, minSharpe, minCagr, screenMode, minAssets, maxAssets, maxPortfolios, lookbackYears]);
 
   // ─────────────────────────────────────────────────────────────────────────────
   // Filtered and sorted portfolios
@@ -359,60 +370,86 @@ export function DynamicScreener({ onSelect, onComplete }: DynamicScreenerProps) 
           </TabsList>
         </Tabs>
 
-        {/* Criteria sliders */}
-        <div className="grid grid-cols-2 gap-3">
+        {/* Screening metric (one at a time) */}
+        <div className="space-y-3">
           <div className="space-y-1">
-            <div className="flex justify-between text-xs">
-              <span className="text-muted-foreground">Max Drawdown</span>
-              <span className="font-mono font-bold">≤{maxDrawdown}%</span>
-            </div>
-            <Slider
-              value={[maxDrawdown]}
-              onValueChange={([v]) => setMaxDrawdown(v)}
-              min={5}
-              max={60}
-              step={5}
-            />
+            <Label className="text-xs">Screen Metric</Label>
+            <Select value={activeMetric} onValueChange={(v) => setActiveMetric(v as MetricKey)}>
+              <SelectTrigger className="h-8 text-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="maxDrawdown">Max Drawdown</SelectItem>
+                <SelectItem value="maxVolatility">Max Volatility</SelectItem>
+                <SelectItem value="minSharpe">Min Sharpe</SelectItem>
+                <SelectItem value="minCagr">Min CAGR</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
-          <div className="space-y-1">
-            <div className="flex justify-between text-xs">
-              <span className="text-muted-foreground">Max Volatility</span>
-              <span className="font-mono font-bold">≤{maxVolatility}%</span>
+
+          {activeMetric === 'maxDrawdown' && (
+            <div className="space-y-1">
+              <div className="flex justify-between text-xs">
+                <span className="text-muted-foreground">Max Drawdown</span>
+                <span className="font-mono font-bold">≤{maxDrawdown}%</span>
+              </div>
+              <Slider
+                value={[maxDrawdown]}
+                onValueChange={([v]) => setMaxDrawdown(v)}
+                min={5}
+                max={60}
+                step={5}
+              />
             </div>
-            <Slider
-              value={[maxVolatility]}
-              onValueChange={([v]) => setMaxVolatility(v)}
-              min={5}
-              max={40}
-              step={5}
-            />
-          </div>
-          <div className="space-y-1">
-            <div className="flex justify-between text-xs">
-              <span className="text-muted-foreground">Min Sharpe</span>
-              <span className="font-mono font-bold">≥{minSharpe.toFixed(1)}</span>
+          )}
+
+          {activeMetric === 'maxVolatility' && (
+            <div className="space-y-1">
+              <div className="flex justify-between text-xs">
+                <span className="text-muted-foreground">Max Volatility</span>
+                <span className="font-mono font-bold">≤{maxVolatility}%</span>
+              </div>
+              <Slider
+                value={[maxVolatility]}
+                onValueChange={([v]) => setMaxVolatility(v)}
+                min={5}
+                max={40}
+                step={5}
+              />
             </div>
-            <Slider
-              value={[minSharpe]}
-              onValueChange={([v]) => setMinSharpe(v)}
-              min={-0.5}
-              max={1.5}
-              step={0.1}
-            />
-          </div>
-          <div className="space-y-1">
-            <div className="flex justify-between text-xs">
-              <span className="text-muted-foreground">Min CAGR</span>
-              <span className="font-mono font-bold">≥{minCagr}%</span>
+          )}
+
+          {activeMetric === 'minSharpe' && (
+            <div className="space-y-1">
+              <div className="flex justify-between text-xs">
+                <span className="text-muted-foreground">Min Sharpe</span>
+                <span className="font-mono font-bold">≥{minSharpe.toFixed(1)}</span>
+              </div>
+              <Slider
+                value={[minSharpe]}
+                onValueChange={([v]) => setMinSharpe(v)}
+                min={-0.5}
+                max={1.5}
+                step={0.1}
+              />
             </div>
-            <Slider
-              value={[minCagr]}
-              onValueChange={([v]) => setMinCagr(v)}
-              min={-20}
-              max={20}
-              step={5}
-            />
-          </div>
+          )}
+
+          {activeMetric === 'minCagr' && (
+            <div className="space-y-1">
+              <div className="flex justify-between text-xs">
+                <span className="text-muted-foreground">Min CAGR</span>
+                <span className="font-mono font-bold">≥{minCagr}%</span>
+              </div>
+              <Slider
+                value={[minCagr]}
+                onValueChange={([v]) => setMinCagr(v)}
+                min={-20}
+                max={20}
+                step={5}
+              />
+            </div>
+          )}
         </div>
 
         {/* Advanced config */}
