@@ -1,29 +1,20 @@
-// Manual Portfolio Builder with Black-Litterman Analysis
+// Manual Portfolio Builder - Matching MobileBacktester visual format
 import { useState, useMemo } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Slider } from '@/components/ui/slider';
-import { Progress } from '@/components/ui/progress';
+import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { 
   Plus, 
-  Trash2, 
-  AlertTriangle, 
-  CheckCircle2,
+  X, 
   Scale,
-  TrendingUp,
-  TrendingDown,
-  Info
+  Search,
+  Layers,
 } from 'lucide-react';
 import { PortfolioAllocation, AssetClass, ASSET_CLASS_ETFS } from '@/types/portfolio';
 import { cn } from '@/lib/utils';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
 
 interface ManualPortfolioBuilderProps {
   allocations: PortfolioAllocation[];
@@ -36,6 +27,27 @@ interface ManualPortfolioBuilderProps {
     expectedReturn: number;
   };
 }
+
+const POPULAR_ETFS = [
+  { symbol: 'VTI', name: 'Total Stock Market' },
+  { symbol: 'VOO', name: 'S&P 500' },
+  { symbol: 'QQQ', name: 'NASDAQ 100' },
+  { symbol: 'VGT', name: 'Technology' },
+  { symbol: 'VXUS', name: 'International' },
+  { symbol: 'VWO', name: 'Emerging Mkts' },
+  { symbol: 'BND', name: 'Total Bond' },
+  { symbol: 'TLT', name: 'Long Treasury' },
+  { symbol: 'GLD', name: 'Gold' },
+  { symbol: 'VNQ', name: 'Real Estate' },
+  { symbol: 'SCHD', name: 'Dividend' },
+  { symbol: 'IEF', name: 'Med Treasury' },
+];
+
+const COLORS = [
+  'hsl(var(--chart-1))', 'hsl(var(--chart-2))', 'hsl(var(--chart-3))', 
+  'hsl(var(--chart-4))', 'hsl(var(--chart-5))',
+  '#06b6d4', '#ec4899', '#f97316', '#14b8a6', '#6366f1',
+];
 
 export function ManualPortfolioBuilder({ 
   allocations, 
@@ -50,24 +62,30 @@ export function ManualPortfolioBuilder({
     [allocations]
   );
   
-  const isValidAllocation = Math.abs(totalWeight - 100) < 0.1;
+  const isValid = Math.abs(totalWeight - 100) < 0.1;
 
-  const addAllocation = () => {
-    const symbol = newSymbol.toUpperCase().trim();
-    if (!symbol || allocations.find(a => a.symbol === symbol)) return;
+  // Get a color for an asset based on its index
+  const getColorForIndex = (index: number) => COLORS[index % COLORS.length];
+
+  const addAllocation = (symbol?: string) => {
+    const sym = (symbol || newSymbol).toUpperCase().trim();
+    if (!sym || allocations.find(a => a.symbol === sym)) return;
     
     // Determine asset class
     let assetClass: AssetClass = 'stocks';
     for (const [cls, etfs] of Object.entries(ASSET_CLASS_ETFS)) {
-      if (etfs.includes(symbol)) {
+      if (etfs.includes(sym)) {
         assetClass = cls as AssetClass;
         break;
       }
     }
     
+    // Get name from POPULAR_ETFS if available
+    const etfInfo = POPULAR_ETFS.find(e => e.symbol === sym);
+    
     onAllocationsChange([
       ...allocations,
-      { symbol, weight: 0, assetClass }
+      { symbol: sym, weight: 0, assetClass, name: etfInfo?.name }
     ]);
     setNewSymbol('');
   };
@@ -83,251 +101,139 @@ export function ManualPortfolioBuilder({
   };
 
   const equalizeWeights = () => {
+    if (allocations.length === 0) return;
     const equalWeight = 100 / allocations.length;
     onAllocationsChange(
       allocations.map(a => ({ ...a, weight: Math.round(equalWeight * 10) / 10 }))
     );
   };
 
-  // Quick add popular tickers
-  const quickAddTickers = useMemo(() => {
-    const suggestions: string[] = [];
-    for (const cls of assetUniverse) {
-      const etfs = ASSET_CLASS_ETFS[cls] || [];
-      suggestions.push(...etfs.slice(0, 2));
-    }
-    return suggestions.filter(t => !allocations.find(a => a.symbol === t)).slice(0, 6);
-  }, [assetUniverse, allocations]);
+  // Filter quick add tickers to those not already added
+  const availableQuickAdd = POPULAR_ETFS.filter(
+    e => !allocations.find(a => a.symbol === e.symbol)
+  ).slice(0, 10);
 
   return (
-    <div className="space-y-6">
-      {/* Add Ticker */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-sm">Add Assets</CardTitle>
-          <CardDescription>
-            Enter ticker symbols and assign weights. Your views will be analyzed using Black-Litterman.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
+    <div className="space-y-3">
+      {/* Add ticker search - prominently at top */}
+      <Card className="border-primary/30 bg-primary/5">
+        <CardContent className="p-3">
           <div className="flex gap-2">
-            <Input
-              value={newSymbol}
-              onChange={(e) => setNewSymbol(e.target.value.toUpperCase())}
-              onKeyDown={(e) => e.key === 'Enter' && addAllocation()}
-              placeholder="Enter ticker (e.g., AAPL)"
-              className="flex-1"
-              maxLength={10}
-            />
-            <Button onClick={addAllocation} disabled={!newSymbol.trim()}>
-              <Plus className="h-4 w-4 mr-2" />
-              Add
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                value={newSymbol}
+                onChange={(e) => setNewSymbol(e.target.value.toUpperCase())}
+                onKeyDown={(e) => e.key === 'Enter' && addAllocation()}
+                placeholder="Enter ticker symbol..."
+                className="pl-9 h-11 text-base"
+              />
+            </div>
+            <Button onClick={() => addAllocation()} disabled={!newSymbol} className="h-11 px-4">
+              <Plus className="h-5 w-5" />
             </Button>
           </div>
-          
-          {/* Quick Add */}
-          {quickAddTickers.length > 0 && (
-            <div className="flex flex-wrap gap-2">
-              <span className="text-xs text-muted-foreground">Quick add:</span>
-              {quickAddTickers.map(ticker => (
-                <button
-                  key={ticker}
-                  onClick={() => {
-                    setNewSymbol(ticker);
-                    setTimeout(() => addAllocation(), 0);
-                  }}
-                  className="px-2 py-1 text-xs rounded border border-border hover:bg-muted transition-colors"
-                >
-                  {ticker}
-                </button>
-              ))}
-            </div>
-          )}
         </CardContent>
       </Card>
 
-      {/* Allocation Summary */}
-      <Card>
-        <CardHeader className="pb-3 flex flex-row items-center justify-between">
-          <div>
-            <CardTitle className="text-sm">Portfolio Allocations</CardTitle>
-            <CardDescription>
-              Assign target weights (must sum to 100%)
-            </CardDescription>
+      {/* Quick add pills */}
+      {availableQuickAdd.length > 0 && (
+        <ScrollArea className="w-full">
+          <div className="flex gap-1.5 pb-2">
+            {availableQuickAdd.map((etf) => (
+              <button
+                key={etf.symbol}
+                onClick={() => addAllocation(etf.symbol)}
+                className="flex-shrink-0 px-2.5 py-1.5 text-xs rounded-full border bg-card hover:bg-muted/50 transition-colors"
+              >
+                <span className="font-mono font-medium">{etf.symbol}</span>
+                <span className="text-muted-foreground ml-1">{etf.name}</span>
+              </button>
+            ))}
           </div>
-          <div className="flex items-center gap-3">
-            <Button variant="outline" size="sm" onClick={equalizeWeights} disabled={allocations.length === 0}>
-              <Scale className="h-4 w-4 mr-2" />
-              Equal Weight
-            </Button>
-            <Badge variant={isValidAllocation ? 'default' : 'destructive'}>
-              {totalWeight.toFixed(1)}% / 100%
-            </Badge>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {allocations.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              <Scale className="h-8 w-8 mx-auto mb-3 opacity-50" />
-              <p>No assets added yet. Add tickers above to build your portfolio.</p>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {allocations.map((allocation) => {
-                const riskContrib = blackLittermanAnalysis?.riskContribution.get(allocation.symbol) || 0;
-                const isOverweight = riskContrib > allocation.weight * 1.5;
-                const isUnderweight = riskContrib < allocation.weight * 0.5 && riskContrib > 0;
-                
-                return (
-                  <div key={allocation.symbol} className="p-4 rounded-lg border border-border bg-muted/30">
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="flex items-center gap-3">
-                        <Badge variant="outline" className="font-mono">
-                          {allocation.symbol}
-                        </Badge>
-                        <Badge variant="secondary" className="text-xs">
-                          {allocation.assetClass}
-                        </Badge>
-                        {blackLittermanAnalysis && (
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger>
-                                {isOverweight && (
-                                  <Badge variant="destructive" className="text-xs gap-1">
-                                    <AlertTriangle className="h-3 w-3" />
-                                    High Risk
-                                  </Badge>
-                                )}
-                                {isUnderweight && (
-                                  <Badge variant="secondary" className="text-xs gap-1">
-                                    <Info className="h-3 w-3" />
-                                    Low Risk
-                                  </Badge>
-                                )}
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p>Risk contribution: {riskContrib.toFixed(1)}%</p>
-                                <p>Weight: {allocation.weight.toFixed(1)}%</p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <span className="text-lg font-bold">{allocation.weight.toFixed(1)}%</span>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 text-destructive hover:text-destructive"
-                          onClick={() => removeAllocation(allocation.symbol)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
-                    
-                    <Slider
-                      value={[allocation.weight]}
-                      onValueChange={([value]) => updateWeight(allocation.symbol, value)}
-                      max={100}
-                      step={0.5}
-                      className="w-full"
-                    />
-                    
-                    {/* Risk contribution bar */}
-                    {blackLittermanAnalysis && riskContrib > 0 && (
-                      <div className="mt-3">
-                        <div className="flex items-center justify-between text-xs text-muted-foreground mb-1">
-                          <span>Risk Contribution</span>
-                          <span className={cn(
-                            isOverweight ? 'text-rose-500' : isUnderweight ? 'text-muted-foreground' : 'text-emerald-500'
-                          )}>
-                            {riskContrib.toFixed(1)}%
-                          </span>
-                        </div>
-                        <Progress 
-                          value={Math.min(riskContrib, 100)} 
-                          className={cn(
-                            "h-1.5",
-                            isOverweight && "[&>div]:bg-rose-500",
-                            isUnderweight && "[&>div]:bg-muted-foreground"
-                          )}
-                        />
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          )}
-          
-          {/* Allocation warning */}
-          {!isValidAllocation && allocations.length > 0 && (
-            <div className="mt-4 p-3 rounded-lg bg-destructive/10 border border-destructive/30 flex items-center gap-3">
-              <AlertTriangle className="h-5 w-5 text-destructive" />
-              <div>
-                <p className="text-sm font-medium text-destructive">
-                  Allocations must sum to 100%
-                </p>
-                <p className="text-xs text-destructive/80">
-                  Current total: {totalWeight.toFixed(1)}%. 
-                  {totalWeight < 100 ? ` Add ${(100 - totalWeight).toFixed(1)}%` : ` Remove ${(totalWeight - 100).toFixed(1)}%`}
-                </p>
+          <ScrollBar orientation="horizontal" />
+        </ScrollArea>
+      )}
+
+      {/* Toolbar */}
+      <div className="flex items-center justify-between">
+        <h3 className="font-medium text-sm text-muted-foreground">
+          Your Portfolio ({allocations.length} assets)
+        </h3>
+        <div className="flex items-center gap-2">
+          <Badge variant={isValid ? 'secondary' : 'destructive'} className="font-mono text-xs">
+            {totalWeight.toFixed(0)}%
+          </Badge>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="h-7 gap-1.5 text-xs"
+            onClick={equalizeWeights}
+            disabled={allocations.length === 0}
+          >
+            <Scale className="h-3 w-3" />
+            Equal Weight
+          </Button>
+        </div>
+      </div>
+
+      {/* Asset cards */}
+      <div className="space-y-2">
+        {allocations.length === 0 ? (
+          <Card className="p-8 text-center">
+            <Layers className="h-10 w-10 mx-auto mb-3 text-muted-foreground/30" />
+            <p className="text-muted-foreground text-sm">
+              No assets yet. Add tickers above or choose a template.
+            </p>
+          </Card>
+        ) : (
+          allocations.map((allocation, index) => (
+            <div 
+              key={allocation.symbol}
+              className="flex items-center gap-3 p-3 rounded-xl border bg-card"
+            >
+              <div 
+                className="w-3 h-3 rounded-full flex-shrink-0" 
+                style={{ backgroundColor: getColorForIndex(index) }}
+              />
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className="font-mono font-semibold">{allocation.symbol}</span>
+                  <span className="text-xs text-muted-foreground truncate">
+                    {allocation.name || allocation.assetClass}
+                  </span>
+                </div>
+                <Slider
+                  value={[allocation.weight]}
+                  onValueChange={([v]) => updateWeight(allocation.symbol, v)}
+                  max={100}
+                  step={1}
+                  className="mt-2"
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="font-mono font-bold text-sm w-10 text-right">
+                  {allocation.weight.toFixed(0)}%
+                </span>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                  onClick={() => removeAllocation(allocation.symbol)}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
               </div>
             </div>
-          )}
-          
-          {isValidAllocation && allocations.length > 0 && (
-            <div className="mt-4 p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/30 flex items-center gap-3">
-              <CheckCircle2 className="h-5 w-5 text-emerald-500" />
-              <div>
-                <p className="text-sm font-medium text-emerald-500">
-                  Portfolio ready for analysis
-                </p>
-                <p className="text-xs text-emerald-500/80">
-                  Click "Analyze Portfolio" to run Black-Litterman optimization
-                </p>
-              </div>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-      
-      {/* Black-Litterman Summary */}
-      {blackLittermanAnalysis && (
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm flex items-center gap-2">
-              <Scale className="h-4 w-4 text-blue-500" />
-              Black-Litterman Analysis
-            </CardTitle>
-            <CardDescription>
-              Your manual weights treated as investor views with 100% confidence
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="p-4 rounded-lg bg-muted/50">
-                <p className="text-xs text-muted-foreground mb-1">Portfolio Risk</p>
-                <p className="text-2xl font-bold">
-                  {(blackLittermanAnalysis.totalRisk * 100).toFixed(1)}%
-                </p>
-                <p className="text-xs text-muted-foreground">Annualized volatility</p>
-              </div>
-              <div className="p-4 rounded-lg bg-muted/50">
-                <p className="text-xs text-muted-foreground mb-1">Expected Return</p>
-                <p className={cn(
-                  "text-2xl font-bold",
-                  blackLittermanAnalysis.expectedReturn >= 0 ? "text-emerald-500" : "text-rose-500"
-                )}>
-                  {blackLittermanAnalysis.expectedReturn >= 0 ? '+' : ''}
-                  {(blackLittermanAnalysis.expectedReturn * 100).toFixed(1)}%
-                </p>
-                <p className="text-xs text-muted-foreground">Implied from views</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+          ))
+        )}
+      </div>
+
+      {/* Validation message */}
+      {allocations.length > 0 && !isValid && (
+        <div className="text-xs text-destructive text-center">
+          Allocations must sum to 100% (currently {totalWeight.toFixed(1)}%)
+        </div>
       )}
     </div>
   );
