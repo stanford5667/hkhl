@@ -962,7 +962,7 @@ export function MobileBacktester() {
   // ═══════════════════════════════════════════════════════════════════════════════
 
   return (
-    <div className="flex flex-col h-[100dvh] bg-background">
+    <div className="flex flex-col h-full min-h-0 bg-background">
       {/* Header with Run button */}
       <header className="flex-shrink-0 px-4 py-3 border-b bg-background/95 backdrop-blur">
         <div className="flex items-center justify-between">
