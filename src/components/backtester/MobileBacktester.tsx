@@ -506,13 +506,15 @@ export function MobileBacktester() {
           .order('bar_date', { ascending: true });
         
         if (!error && data && data.length >= 20) {
-          assetData[asset.symbol] = data.map(d => ({
-            date: d.bar_date,
+          // Normalize date format to YYYY-MM-DD
+          const normalizedData = data.map(d => ({
+            date: typeof d.bar_date === 'string' ? d.bar_date.split('T')[0] : d.bar_date,
             return: d.daily_return || 0,
           }));
+          assetData[asset.symbol] = normalizedData;
           assetDateRanges[asset.symbol] = {
-            min: data[0].bar_date,
-            max: data[data.length - 1].bar_date
+            min: normalizedData[0].date,
+            max: normalizedData[normalizedData.length - 1].date
           };
         } else {
           missingTickers.push(asset.symbol);
@@ -568,7 +570,11 @@ export function MobileBacktester() {
           .order('bar_date', { ascending: true });
         
         if (data && data.length >= 20) {
-          benchmarkData = data.map(d => ({ date: d.bar_date, return: d.daily_return || 0 }));
+          // Normalize date format to YYYY-MM-DD
+          benchmarkData = data.map(d => ({ 
+            date: typeof d.bar_date === 'string' ? d.bar_date.split('T')[0] : d.bar_date, 
+            return: d.daily_return || 0 
+          }));
         }
       }
       
