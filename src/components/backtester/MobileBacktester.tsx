@@ -1126,60 +1126,64 @@ export function MobileBacktester() {
                 </div>
               )}
 
-              {/* Weight Progress Bar - Always visible */}
-              <div className={cn(
-                "p-3 rounded-xl border-2 transition-all",
-                isValid 
-                  ? "border-emerald-500/50 bg-emerald-500/10" 
-                  : "border-destructive/50 bg-destructive/10"
-              )}>
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs font-medium">
-                    Portfolio Allocation
-                  </span>
-                  <span className={cn(
-                    "text-sm font-bold font-mono",
-                    isValid ? "text-emerald-500" : "text-destructive"
-                  )}>
-                    {totalWeight.toFixed(0)}% / 100%
-                  </span>
+              {/* Toolbar with integrated weight indicator */}
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  {/* Circular Weight Gauge */}
+                  <div className="relative h-10 w-10 flex-shrink-0">
+                    <svg className="h-10 w-10 -rotate-90" viewBox="0 0 36 36">
+                      <circle
+                        className="text-secondary"
+                        strokeWidth="3"
+                        stroke="currentColor"
+                        fill="transparent"
+                        r="15"
+                        cx="18"
+                        cy="18"
+                      />
+                      <circle
+                        className={cn(
+                          "transition-all duration-500",
+                          isValid 
+                            ? "text-emerald-500" 
+                            : totalWeight > 100 
+                              ? "text-destructive" 
+                              : "text-amber-500"
+                        )}
+                        strokeWidth="3"
+                        strokeDasharray={`${Math.min(totalWeight, 100) * 0.94} 100`}
+                        strokeLinecap="round"
+                        stroke="currentColor"
+                        fill="transparent"
+                        r="15"
+                        cx="18"
+                        cy="18"
+                      />
+                    </svg>
+                    <span className={cn(
+                      "absolute inset-0 flex items-center justify-center text-[10px] font-bold",
+                      isValid ? "text-emerald-500" : totalWeight > 100 ? "text-destructive" : "text-amber-500"
+                    )}>
+                      {totalWeight.toFixed(0)}%
+                    </span>
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-sm font-medium">
+                      {assets.length} asset{assets.length !== 1 ? 's' : ''}
+                    </span>
+                    <span className={cn(
+                      "text-[10px]",
+                      isValid ? "text-emerald-500" : "text-muted-foreground"
+                    )}>
+                      {isValid 
+                        ? "Ready to run" 
+                        : totalWeight < 100 
+                          ? `+${(100 - totalWeight).toFixed(0)}% needed`
+                          : `-${(totalWeight - 100).toFixed(0)}% over`
+                      }
+                    </span>
+                  </div>
                 </div>
-                <div className="h-2 bg-secondary rounded-full overflow-hidden">
-                  <div 
-                    className={cn(
-                      "h-full transition-all duration-300 rounded-full",
-                      isValid 
-                        ? "bg-emerald-500" 
-                        : totalWeight > 100 
-                          ? "bg-destructive" 
-                          : "bg-amber-500"
-                    )}
-                    style={{ width: `${Math.min(totalWeight, 100)}%` }}
-                  />
-                </div>
-                {!isValid && (
-                  <p className={cn(
-                    "text-xs mt-2 font-medium",
-                    totalWeight > 100 ? "text-destructive" : "text-amber-500"
-                  )}>
-                    {totalWeight < 100 
-                      ? `Add ${(100 - totalWeight).toFixed(0)}% more weight to reach 100%`
-                      : `Remove ${(totalWeight - 100).toFixed(0)}% to reach exactly 100%`
-                    }
-                  </p>
-                )}
-                {isValid && (
-                  <p className="text-xs mt-2 text-emerald-500 font-medium">
-                    ✓ Ready to run backtest
-                  </p>
-                )}
-              </div>
-
-              {/* Toolbar */}
-              <div className="flex items-center justify-between">
-                <h3 className="font-medium text-sm text-muted-foreground">
-                  Your Portfolio ({assets.length} assets)
-                </h3>
                 <Button 
                   variant="outline" 
                   size="sm" 
