@@ -849,7 +849,7 @@ export default function PortfolioVisualizer() {
       { id: 'fetch', label: 'Fetching historical market data...', status: 'pending', tickers },
       { id: 'validate', label: 'Validating data integrity...', status: 'pending' },
       { id: 'correlation', label: 'Building correlation matrix...', status: 'pending' },
-      { id: 'optimize', label: 'Calculating optimal allocation...', status: 'pending' },
+      { id: 'optimize', label: 'Calculating sample allocation...', status: 'pending' },
       { id: 'stress', label: 'Running stress tests...', status: 'pending' },
     ];
     

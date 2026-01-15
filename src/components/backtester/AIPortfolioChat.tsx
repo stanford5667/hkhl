@@ -11,6 +11,7 @@ import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { supabase } from '@/integrations/supabase/client';
 import { InvestorPolicyStatement } from '@/types/investorPolicy';
 import { cn } from '@/lib/utils';
+import { CompactDisclaimer } from '@/components/legal';
 
 interface Message {
   id: string;
@@ -458,9 +459,9 @@ export const AIPortfolioChat: React.FC<AIPortfolioChatProps> = ({
                     <CardContent className="pt-6">
                       <div className="flex items-center gap-4">
                         <div className="flex-1">
-                          <h3 className="font-semibold mb-1">Ready to see your portfolio?</h3>
+                          <h3 className="font-semibold mb-1">Ready to see your example portfolio?</h3>
                           <p className="text-sm text-muted-foreground">
-                            Based on our conversation, I have enough information to generate personalized recommendations.
+                            Based on our conversation, I have enough information to generate an illustrative example.
                           </p>
                         </div>
                         <motion.div
@@ -484,6 +485,7 @@ export const AIPortfolioChat: React.FC<AIPortfolioChatProps> = ({
 
           {/* Input Area */}
           <div className="p-4 border-t bg-background/80 backdrop-blur-md">
+            <CompactDisclaimer className="mb-2 text-center" />
             <form onSubmit={handleSubmit} className="max-w-2xl mx-auto">
               <div className="flex gap-2">
                 <div className="flex-1 relative">

@@ -580,7 +580,7 @@ export function ComprehensiveInvestmentResults({
                       value: `${maxDrawdown}%`, 
                       icon: AlertTriangle, 
                       color: 'rose',
-                      tooltip: 'Maximum portfolio decline you should be prepared for',
+                      tooltip: 'Maximum portfolio decline investors may experience historically',
                       concept: {
                         id: 'max-drawdown',
                         name: 'Maximum Drawdown',

@@ -453,7 +453,7 @@ function generateInsights(
   }
   
   if (purpose === 'retirement') {
-    insights.push('For retirement goals, we recommend a glide path that gradually reduces risk as you approach your target date.');
+    insights.push('For retirement goals, investors often consider a glide path that gradually reduces risk as they approach their target date.');
   } else if (purpose === 'financial-independence') {
     insights.push('FIRE goals often benefit from a higher savings rate combined with tax-efficient investing strategies.');
   } else if (purpose === 'house-purchase') {
@@ -463,7 +463,7 @@ function generateInsights(
   if (scores.knowledge > 75) {
     insights.push('Your strong investment knowledge means you can handle more sophisticated strategies.');
   } else if (scores.knowledge < 40) {
-    insights.push('We\'ll start with simpler, well-diversified index funds while you build your investment knowledge.');
+    insights.push('Starting with simpler, well-diversified index funds is a common approach while building investment knowledge.');
   }
   
   if (Math.abs(scores.riskTolerance - scores.financialCapacity) > 25) {
@@ -565,7 +565,7 @@ function getScoringSummary(result: ScoringResult): string {
   const stockTotal = suggestedAllocation.usStocks + suggestedAllocation.internationalStocks + suggestedAllocation.emergingMarkets;
   const bondTotal = suggestedAllocation.bonds + suggestedAllocation.tips;
   
-  return `Based on your responses (risk score: ${overallRiskScore}/100), you're a ${riskProfile} investor ${profileDescriptions[riskProfile]}. We recommend approximately ${stockTotal}% in stocks, ${bondTotal}% in bonds, and the rest in alternative assets.`;
+  return `Based on your responses (risk score: ${overallRiskScore}/100), you're a ${riskProfile} investor ${profileDescriptions[riskProfile]}. This example shows approximately ${stockTotal}% in stocks, ${bondTotal}% in bonds, and the rest in alternative assets.`;
 }
 
 serve(async (req) => {

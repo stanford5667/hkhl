@@ -103,7 +103,7 @@ const SECTION_META: Record<string, { title: string; description: string; icon: a
   },
   preferences: {
     title: 'Investment Preferences',
-    description: 'Your philosophy and interests guide our recommendations',
+    description: 'Your philosophy and interests shape the example portfolio',
     icon: PieChart,
     color: 'from-pink-500 to-rose-500',
   },
@@ -270,7 +270,7 @@ const QUESTIONS = [
     id: 'pref-involvement',
     section: 'preferences',
     question: "How hands-on do you want to be?",
-    subtitle: "This affects whether we recommend self-managed or guided solutions.",
+    subtitle: "This helps illustrate self-managed vs guided approaches.",
     type: 'involvement-slider',
   },
   // Vision
@@ -865,10 +865,10 @@ export function EliteQuestionnaire({ onComplete, onCancel, userId, forceNew = fa
     // Simulate loading steps
     const steps = [
       'Analyzing your risk profile...',
-      'Calculating optimal allocation...',
+      'Calculating sample allocation...',
       'Selecting investment vehicles...',
-      'Building your personalized strategy...',
-      'Generating detailed report...',
+      'Building illustrative strategy...',
+      'Generating educational report...',
     ];
     
     for (let i = 0; i < steps.length; i++) {
@@ -929,7 +929,7 @@ ${plan.actionPlan.map((a: any, i: number) => `### ${i + 1}. ${a.title} (${a.time
 ${a.description}`).join('\n\n')}
 
 ---
-*This is educational guidance, not financial advice. Consider consulting a licensed professional for personalized recommendations.*
+*This is educational content for learning purposes only. Consult a qualified financial professional before making investment decisions.*
 
 *Powered by AssetLabs.ai*
 `;
@@ -1137,7 +1137,7 @@ ${a.description}`).join('\n\n')}
               transition={{ delay: 0.6 }}
               className="text-sm sm:text-lg text-white/60 text-center mb-6 sm:mb-10 max-w-md mx-auto leading-relaxed"
             >
-              Answer a few questions and receive a personalized portfolio strategy tailored to your goals.
+              Answer a few questions to explore illustrative portfolio strategies aligned with your goals.
             </motion.p>
 
             {/* Features */}
@@ -2603,13 +2603,13 @@ function buildNarrative(riskScore: number, responses: any, userName: string) {
   const amount = responses['goal-amount'] || 50000;
   
   return {
-    executive: `${userName}, based on your ${getRiskLabel(riskScore).toLowerCase()} risk profile and ${timeline}-year horizon, we've designed a diversified portfolio strategy targeting ${goal === 'income' ? 'income generation' : 'long-term wealth accumulation'}. Your $${amount.toLocaleString()} portfolio is allocated across ${buildAllocation(riskScore, [], style, amount).length} asset classes to optimize risk-adjusted returns.`,
+    executive: `${userName}, based on your ${getRiskLabel(riskScore).toLowerCase()} risk profile and ${timeline}-year horizon, this illustrative portfolio strategy focuses on ${goal === 'income' ? 'income generation' : 'long-term wealth accumulation'}. This $${amount.toLocaleString()} example is allocated across ${buildAllocation(riskScore, [], style, amount).length} asset classes to demonstrate risk-adjusted allocation concepts.`,
     
-    riskAnalysis: `Your risk score of ${riskScore}/100 places you in the ${getRiskLabel(riskScore)} category. This means you ${riskScore > 50 ? 'can tolerate higher volatility in pursuit of greater returns' : 'prefer stability and capital preservation over aggressive growth'}. We've calibrated your equity exposure to ${30 + Math.round(riskScore * 0.5)}% to align with this profile.`,
+    riskAnalysis: `Your risk score of ${riskScore}/100 places you in the ${getRiskLabel(riskScore)} category. This indicates investors with similar profiles typically ${riskScore > 50 ? 'can tolerate higher volatility in pursuit of greater returns' : 'prefer stability and capital preservation over aggressive growth'}. The equity exposure is set to ${30 + Math.round(riskScore * 0.5)}% to illustrate this profile.`,
     
-    allocationRationale: `The portfolio's ${riskScore > 50 ? 'growth-oriented' : 'balanced'} structure reflects your ${timeline > 10 ? 'long' : timeline > 5 ? 'medium' : 'shorter'}-term horizon. ${timeline > 10 ? 'With time on your side, we can afford to weather market volatility for potentially higher returns.' : 'We\'ve emphasized stability to protect against near-term fluctuations.'}`,
+    allocationRationale: `This portfolio's ${riskScore > 50 ? 'growth-oriented' : 'balanced'} structure reflects your ${timeline > 10 ? 'long' : timeline > 5 ? 'medium' : 'shorter'}-term horizon. ${timeline > 10 ? 'With time on your side, investors often consider weathering market volatility for potentially higher returns.' : 'Shorter timelines often emphasize stability to protect against near-term fluctuations.'}`,
     
-    implementationGuide: `We recommend ${style === 'passive' ? 'a systematic, buy-and-hold approach using low-cost index funds' : style === 'active' ? 'selective positions in individual securities alongside core index holdings' : 'a value-oriented selection methodology focused on quality at reasonable prices'}. Start by establishing core positions, then systematically add to them through dollar-cost averaging.`,
+    implementationGuide: `This example illustrates ${style === 'passive' ? 'a systematic, buy-and-hold approach using low-cost index funds' : style === 'active' ? 'selective positions in individual securities alongside core index holdings' : 'a value-oriented selection methodology focused on quality at reasonable prices'}. Many investors establish core positions first, then systematically add to them through dollar-cost averaging.`,
     
     rebalancing: `Review your portfolio ${timeline < 5 ? 'monthly' : 'quarterly'} and rebalance when any allocation drifts more than 5% from target. This disciplined approach captures value from market movements while maintaining your risk profile.`,
   };

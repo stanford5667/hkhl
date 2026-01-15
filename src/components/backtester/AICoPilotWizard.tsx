@@ -3,6 +3,7 @@
  * Uses unified questionnaire components for consistent UI
  */
 import { useState } from 'react';
+import { InlineDisclaimer } from '@/components/legal';
 import { 
   ArrowRight, 
   DollarSign,
