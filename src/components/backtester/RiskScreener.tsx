@@ -264,23 +264,27 @@ export function RiskScreener({ onSelect, onComplete }: RiskScreenerProps) {
       const startStr = startDate.toISOString().split('T')[0];
       const endStr = endDate.toISOString().split('T')[0];
       
-      // Fetch data from database
-      const { data, error } = await supabase
-        .from('market_daily_bars')
-        .select('ticker, bar_date, daily_return')
-        .in('ticker', allTickers)
-        .gte('bar_date', startStr)
-        .lte('bar_date', endStr)
-        .order('bar_date', { ascending: true });
-      
-      if (error) throw error;
-      
-      // Index by ticker
+      // Fetch data from database (per-ticker to avoid the 1000-row query limit)
       const tickerData: Record<string, { date: string; return: number }[]> = {};
-      for (const row of (data || [])) {
-        if (!tickerData[row.ticker]) tickerData[row.ticker] = [];
-        tickerData[row.ticker].push({ date: row.bar_date, return: row.daily_return || 0 });
-      }
+
+      await Promise.all(
+        allTickers.map(async (ticker) => {
+          const { data, error } = await supabase
+            .from('market_daily_bars')
+            .select('bar_date, daily_return')
+            .eq('ticker', ticker)
+            .gte('bar_date', startStr)
+            .lte('bar_date', endStr)
+            .order('bar_date', { ascending: true });
+
+          if (error) throw error;
+
+          tickerData[ticker] = (data || []).map((d) => ({
+            date: d.bar_date,
+            return: d.daily_return || 0,
+          }));
+        })
+      );
       
       // Calculate metrics for each portfolio
       const results: BacktestedPortfolio[] = [];
