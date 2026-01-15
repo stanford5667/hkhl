@@ -77,7 +77,7 @@ import { InvestorPolicyStatement } from '@/types/investorPolicy';
 
 // Components
 import { MobileBacktester } from '@/components/backtester/MobileBacktester';
-import { DrawdownScreener } from '@/components/backtester/DrawdownScreener';
+import { RiskScreener } from '@/components/backtester/RiskScreener';
 import { AICoPilotWizard } from '@/components/backtester/AICoPilotWizard';
 import { ManualPortfolioForm } from '@/components/backtester/ManualPortfolioForm';
 import { EfficientFrontierSlider } from '@/components/backtester/EfficientFrontierSlider';
@@ -1579,7 +1579,7 @@ export default function PortfolioVisualizer() {
               ← Back
             </Button>
           </div>
-          <DrawdownScreener 
+          <RiskScreener 
             onComplete={(data) => {
               setInvestorProfile(prev => ({
                 ...prev,
