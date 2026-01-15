@@ -12,6 +12,8 @@
  * - Sorts by match score, returns, risk metrics
  */
 
+import { AssetClass } from '@/types/portfolio';
+
 import { useState, useCallback, useMemo, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -50,6 +52,9 @@ import {
   Loader2,
   CheckCircle2,
   ChevronRight,
+  ChevronLeft,
+  ChevronsLeft,
+  ChevronsRight,
   Search,
   Filter,
   Zap,
@@ -87,9 +92,11 @@ interface DynamicScreenerProps {
   onComplete?: (data: { 
     capital: number; 
     horizon: number; 
-    allocations: { symbol: string; weight: number; assetClass?: string }[] 
+    allocations: { symbol: string; weight: number; assetClass: AssetClass }[] 
   }) => void;
 }
+
+const ITEMS_PER_PAGE = 50;
 
 const RISK_STYLES = {
   conservative: { color: 'text-blue-400', bg: 'bg-blue-500/10', border: 'border-blue-500/30', icon: Snowflake },
@@ -141,6 +148,9 @@ export function DynamicScreener({ onSelect, onComplete }: DynamicScreenerProps) 
   // Filters
   const [filterRiskLevel, setFilterRiskLevel] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
+  
+  // Pagination
+  const [currentPage, setCurrentPage] = useState(1);
 
   // ─────────────────────────────────────────────────────────────────────────────
   // Load available tickers on mount
@@ -265,6 +275,18 @@ export function DynamicScreener({ onSelect, onComplete }: DynamicScreenerProps) 
     return filtered;
   }, [portfolios, filterRiskLevel, searchQuery, sortField, sortDirection]);
 
+  // Pagination
+  const totalPages = Math.ceil(filteredPortfolios.length / ITEMS_PER_PAGE);
+  const paginatedPortfolios = useMemo(() => {
+    const start = (currentPage - 1) * ITEMS_PER_PAGE;
+    return filteredPortfolios.slice(start, start + ITEMS_PER_PAGE);
+  }, [filteredPortfolios, currentPage]);
+
+  // Reset page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filterRiskLevel, searchQuery, sortField, sortDirection, portfolios]);
+
   // ─────────────────────────────────────────────────────────────────────────────
   // Handlers
   // ─────────────────────────────────────────────────────────────────────────────
@@ -277,11 +299,12 @@ export function DynamicScreener({ onSelect, onComplete }: DynamicScreenerProps) 
   const handleUsePortfolio = () => {
     if (!selectedPortfolio) return;
     
-    const allocations = selectedPortfolio.allocations.map(a => ({ 
-      symbol: a.ticker, 
-      weight: a.weight,
-      assetClass: 'etfs' as const,
-    }));
+    const allocations: { symbol: string; weight: number; assetClass: AssetClass }[] = 
+      selectedPortfolio.allocations.map(a => ({ 
+        symbol: a.ticker, 
+        weight: a.weight,
+        assetClass: 'etfs' as AssetClass,
+      }));
     
     if (onComplete) {
       onComplete({ capital, horizon, allocations });
@@ -423,9 +446,9 @@ export function DynamicScreener({ onSelect, onComplete }: DynamicScreenerProps) 
                   type="number"
                   value={maxPortfolios}
                   onChange={(e) => setMaxPortfolios(Number(e.target.value))}
-                  min={10}
-                  max={500}
-                  step={10}
+                  min={100}
+                  max={50000}
+                  step={100}
                   className="h-8 text-xs"
                 />
               </div>
@@ -515,7 +538,9 @@ export function DynamicScreener({ onSelect, onComplete }: DynamicScreenerProps) 
             </div>
           </div>
           <div className="flex items-center justify-between mt-2 text-xs text-muted-foreground">
-            <span>Showing {filteredPortfolios.length} of {portfolios.length} portfolios</span>
+            <span>
+              Showing {((currentPage - 1) * ITEMS_PER_PAGE) + 1}-{Math.min(currentPage * ITEMS_PER_PAGE, filteredPortfolios.length)} of {filteredPortfolios.length}
+            </span>
             {lastResult && (
               <span className="flex items-center gap-1">
                 <Clock className="h-3 w-3" />
@@ -552,10 +577,10 @@ export function DynamicScreener({ onSelect, onComplete }: DynamicScreenerProps) 
             </div>
           )}
           
-          {filteredPortfolios.map((p, idx) => {
+          {paginatedPortfolios.map((p, idx) => {
             const style = RISK_STYLES[p.riskLevel];
             const Icon = style.icon;
-            const isTop = idx === 0;
+            const isTop = idx === 0 && currentPage === 1;
             
             return (
               <Card
@@ -645,6 +670,51 @@ export function DynamicScreener({ onSelect, onComplete }: DynamicScreenerProps) 
               </Card>
             );
           })}
+          
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-center gap-2 py-4 border-t mt-4">
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-8 w-8"
+                onClick={() => setCurrentPage(1)}
+                disabled={currentPage === 1}
+              >
+                <ChevronsLeft className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-8 w-8"
+                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <span className="text-sm px-3 font-mono">
+                {currentPage} / {totalPages}
+              </span>
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-8 w-8"
+                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                disabled={currentPage === totalPages}
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-8 w-8"
+                onClick={() => setCurrentPage(totalPages)}
+                disabled={currentPage === totalPages}
+              >
+                <ChevronsRight className="h-4 w-4" />
+              </Button>
+            </div>
+          )}
         </div>
       </ScrollArea>
 
