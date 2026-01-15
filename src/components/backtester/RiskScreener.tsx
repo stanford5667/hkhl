@@ -42,20 +42,83 @@ import {
   calculateCAGR,
   annualizedVolatility,
 } from '@/services/portfolioMetricsService';
-import { AssetClass, ASSET_CLASS_ETFS } from '@/types/portfolio';
+import { AssetClass } from '@/types/portfolio';
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// FULL TICKER UNIVERSE - All tickers with 4+ years of Polygon data
+// ═══════════════════════════════════════════════════════════════════════════════
+
+const TICKER_UNIVERSE = {
+  // Core US Equity
+  SPY: { name: 'S&P 500', category: 'US Large Cap' },
+  VOO: { name: 'S&P 500 (Vanguard)', category: 'US Large Cap' },
+  VTI: { name: 'Total US Market', category: 'US Total Market' },
+  QQQ: { name: 'NASDAQ 100', category: 'US Large Cap Growth' },
+  DIA: { name: 'Dow Jones', category: 'US Large Cap' },
+  IWM: { name: 'Russell 2000', category: 'US Small Cap' },
+  SPYG: { name: 'S&P 500 Growth', category: 'US Large Cap Growth' },
+  SPLV: { name: 'S&P 500 Low Vol', category: 'US Low Volatility' },
+  
+  // International Equity
+  EFA: { name: 'Developed Markets', category: 'International Developed' },
+  VWO: { name: 'Emerging Markets (Vanguard)', category: 'Emerging Markets' },
+  EEM: { name: 'Emerging Markets (iShares)', category: 'Emerging Markets' },
+  
+  // Sector ETFs
+  XLK: { name: 'Technology Select', category: 'Sector - Tech' },
+  XLF: { name: 'Financials Select', category: 'Sector - Financials' },
+  XLE: { name: 'Energy Select', category: 'Sector - Energy' },
+  XLV: { name: 'Healthcare Select', category: 'Sector - Healthcare' },
+  XLI: { name: 'Industrials Select', category: 'Sector - Industrials' },
+  XLP: { name: 'Consumer Staples', category: 'Sector - Staples' },
+  XLU: { name: 'Utilities Select', category: 'Sector - Utilities' },
+  XLY: { name: 'Consumer Discretionary', category: 'Sector - Discretionary' },
+  
+  // Dividend/Income
+  SCHD: { name: 'Schwab US Dividend', category: 'Dividend Growth' },
+  VIG: { name: 'Dividend Appreciation', category: 'Dividend Growth' },
+  VYM: { name: 'High Dividend Yield', category: 'High Dividend' },
+  DVY: { name: 'Dividend Select', category: 'Dividend Income' },
+  
+  // Fixed Income
+  AGG: { name: 'Aggregate Bond', category: 'US Bonds - Core' },
+  TLT: { name: 'Long Treasury 20Y+', category: 'US Treasury - Long' },
+  IEF: { name: 'Treasury 7-10Y', category: 'US Treasury - Intermediate' },
+  SHY: { name: 'Treasury 1-3Y', category: 'US Treasury - Short' },
+  HYG: { name: 'High Yield Corporate', category: 'Corporate - High Yield' },
+  
+  // Commodities
+  GLD: { name: 'Gold', category: 'Precious Metals' },
+  DBC: { name: 'Commodities Basket', category: 'Broad Commodities' },
+  
+  // Real Estate
+  VNQ: { name: 'Real Estate (Vanguard)', category: 'REITs' },
+  
+  // Crypto
+  BITO: { name: 'Bitcoin Strategy', category: 'Crypto' },
+  
+  // Individual Stocks (with 4+ years data)
+  GOOGL: { name: 'Alphabet', category: 'Tech - Mega Cap' },
+  AMZN: { name: 'Amazon', category: 'Tech - Mega Cap' },
+  META: { name: 'Meta Platforms', category: 'Tech - Mega Cap' },
+  INTC: { name: 'Intel', category: 'Tech - Semiconductors' },
+  AMAT: { name: 'Applied Materials', category: 'Tech - Semiconductors' },
+} as const;
 
 // Helper to determine asset class from ticker
 function getAssetClassFromTicker(ticker: string): AssetClass {
-  for (const [assetClass, tickers] of Object.entries(ASSET_CLASS_ETFS)) {
-    if (tickers.includes(ticker)) {
-      return assetClass as AssetClass;
-    }
-  }
-  // Default fallback based on common patterns
-  if (['TLT', 'AGG', 'BND', 'IEF', 'LQD', 'HYG'].includes(ticker)) return 'bonds';
-  if (['GLD', 'SLV', 'DBC', 'USO', 'UNG'].includes(ticker)) return 'commodities';
-  if (['VNQ', 'XLRE', 'IYR'].includes(ticker)) return 'real_estate';
-  return 'etfs'; // Default to etfs for most tickers
+  const bondTickers = ['TLT', 'AGG', 'BND', 'IEF', 'SHY', 'LQD', 'HYG'];
+  const commodityTickers = ['GLD', 'SLV', 'DBC', 'USO', 'UNG'];
+  const realEstateTickers = ['VNQ', 'XLRE', 'IYR'];
+  const cryptoTickers = ['BITO', 'GBTC', 'ETHE', 'IBIT'];
+  const stockTickers = ['GOOGL', 'AMZN', 'META', 'INTC', 'AMAT', 'AAPL', 'MSFT', 'NVDA'];
+  
+  if (bondTickers.includes(ticker)) return 'bonds';
+  if (commodityTickers.includes(ticker)) return 'commodities';
+  if (realEstateTickers.includes(ticker)) return 'real_estate';
+  if (cryptoTickers.includes(ticker)) return 'crypto';
+  if (stockTickers.includes(ticker)) return 'stocks';
+  return 'etfs';
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -84,19 +147,22 @@ interface BacktestedPortfolio extends PortfolioTemplate {
 type RiskMetric = 'maxDrawdown' | 'volatility' | 'sharpe' | 'cagr';
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// PORTFOLIO TEMPLATES
+// PORTFOLIO TEMPLATES - Expanded Universe (25+ Strategies)
 // ═══════════════════════════════════════════════════════════════════════════════
 
 const PORTFOLIO_TEMPLATES: PortfolioTemplate[] = [
+  // ─────────────────────────────────────────────────────────────────────────────
+  // CONSERVATIVE (6 portfolios)
+  // ─────────────────────────────────────────────────────────────────────────────
   {
     id: 'treasury-shield',
     name: 'Treasury Shield',
     description: 'Maximum safety with treasury focus',
     riskLevel: 'conservative',
     allocations: [
-      { symbol: 'TLT', weight: 60, name: 'Long Treasury' },
-      { symbol: 'AGG', weight: 30, name: 'Aggregate Bond' },
-      { symbol: 'GLD', weight: 10, name: 'Gold' },
+      { symbol: 'TLT', weight: 50, name: 'Long Treasury' },
+      { symbol: 'IEF', weight: 30, name: 'Intermediate Treasury' },
+      { symbol: 'SHY', weight: 20, name: 'Short Treasury' },
     ],
   },
   {
@@ -111,6 +177,58 @@ const PORTFOLIO_TEMPLATES: PortfolioTemplate[] = [
       { symbol: 'GLD', weight: 10, name: 'Gold' },
     ],
   },
+  {
+    id: 'income-fortress',
+    name: 'Income Fortress',
+    description: 'High yield with stability',
+    riskLevel: 'conservative',
+    allocations: [
+      { symbol: 'AGG', weight: 35, name: 'Aggregate Bond' },
+      { symbol: 'HYG', weight: 25, name: 'High Yield Corp' },
+      { symbol: 'SCHD', weight: 25, name: 'Dividend ETF' },
+      { symbol: 'SHY', weight: 15, name: 'Short Treasury' },
+    ],
+  },
+  {
+    id: 'low-volatility',
+    name: 'Low Volatility',
+    description: 'Smooth ride with low vol equities',
+    riskLevel: 'conservative',
+    allocations: [
+      { symbol: 'SPLV', weight: 40, name: 'S&P Low Vol' },
+      { symbol: 'AGG', weight: 35, name: 'Aggregate Bond' },
+      { symbol: 'XLU', weight: 15, name: 'Utilities' },
+      { symbol: 'GLD', weight: 10, name: 'Gold' },
+    ],
+  },
+  {
+    id: 'stable-income',
+    name: 'Stable Income',
+    description: 'Dividend focus with bond cushion',
+    riskLevel: 'conservative',
+    allocations: [
+      { symbol: 'VYM', weight: 35, name: 'High Dividend Yield' },
+      { symbol: 'IEF', weight: 30, name: 'Intermediate Treasury' },
+      { symbol: 'XLP', weight: 20, name: 'Consumer Staples' },
+      { symbol: 'SHY', weight: 15, name: 'Short Treasury' },
+    ],
+  },
+  {
+    id: 'defensive-blend',
+    name: 'Defensive Blend',
+    description: 'Defensive sectors with bonds',
+    riskLevel: 'conservative',
+    allocations: [
+      { symbol: 'XLV', weight: 25, name: 'Healthcare' },
+      { symbol: 'XLU', weight: 20, name: 'Utilities' },
+      { symbol: 'AGG', weight: 35, name: 'Aggregate Bond' },
+      { symbol: 'GLD', weight: 20, name: 'Gold' },
+    ],
+  },
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // MODERATE (8 portfolios)
+  // ─────────────────────────────────────────────────────────────────────────────
   {
     id: 'classic-60-40',
     name: 'Classic 60/40',
@@ -138,15 +256,82 @@ const PORTFOLIO_TEMPLATES: PortfolioTemplate[] = [
   {
     id: 'global-diversified',
     name: 'Global Diversified',
-    description: 'Worldwide exposure',
+    description: 'Worldwide exposure across regions',
     riskLevel: 'moderate',
     allocations: [
-      { symbol: 'VTI', weight: 35, name: 'US Stocks' },
-      { symbol: 'VWO', weight: 25, name: 'Emerging Markets' },
+      { symbol: 'VTI', weight: 30, name: 'US Stocks' },
+      { symbol: 'EFA', weight: 20, name: 'Developed Intl' },
+      { symbol: 'EEM', weight: 15, name: 'Emerging Markets' },
       { symbol: 'AGG', weight: 25, name: 'US Bonds' },
-      { symbol: 'GLD', weight: 15, name: 'Gold' },
+      { symbol: 'GLD', weight: 10, name: 'Gold' },
     ],
   },
+  {
+    id: 'real-assets',
+    name: 'Real Assets',
+    description: 'Inflation protection focus',
+    riskLevel: 'moderate',
+    allocations: [
+      { symbol: 'VNQ', weight: 30, name: 'Real Estate' },
+      { symbol: 'GLD', weight: 25, name: 'Gold' },
+      { symbol: 'DBC', weight: 20, name: 'Commodities' },
+      { symbol: 'SPY', weight: 25, name: 'S&P 500' },
+    ],
+  },
+  {
+    id: 'dividend-grower',
+    name: 'Dividend Grower',
+    description: 'Focus on dividend growth',
+    riskLevel: 'moderate',
+    allocations: [
+      { symbol: 'VIG', weight: 35, name: 'Dividend Appreciation' },
+      { symbol: 'SCHD', weight: 30, name: 'Schwab Dividend' },
+      { symbol: 'AGG', weight: 25, name: 'Aggregate Bond' },
+      { symbol: 'GLD', weight: 10, name: 'Gold' },
+    ],
+  },
+  {
+    id: 'sector-rotation',
+    name: 'Sector Rotation',
+    description: 'Balanced sector exposure',
+    riskLevel: 'moderate',
+    allocations: [
+      { symbol: 'XLK', weight: 25, name: 'Technology' },
+      { symbol: 'XLV', weight: 20, name: 'Healthcare' },
+      { symbol: 'XLF', weight: 20, name: 'Financials' },
+      { symbol: 'XLI', weight: 15, name: 'Industrials' },
+      { symbol: 'AGG', weight: 20, name: 'Aggregate Bond' },
+    ],
+  },
+  {
+    id: 'income-plus-growth',
+    name: 'Income + Growth',
+    description: 'Dividends with upside potential',
+    riskLevel: 'moderate',
+    allocations: [
+      { symbol: 'DVY', weight: 30, name: 'Dividend Select' },
+      { symbol: 'SPY', weight: 30, name: 'S&P 500' },
+      { symbol: 'HYG', weight: 20, name: 'High Yield' },
+      { symbol: 'IEF', weight: 20, name: 'Intermediate Treasury' },
+    ],
+  },
+  {
+    id: 'golden-butterfly',
+    name: 'Golden Butterfly',
+    description: 'Permanent portfolio variant',
+    riskLevel: 'moderate',
+    allocations: [
+      { symbol: 'SPY', weight: 20, name: 'S&P 500' },
+      { symbol: 'IWM', weight: 20, name: 'Small Cap' },
+      { symbol: 'TLT', weight: 20, name: 'Long Treasury' },
+      { symbol: 'SHY', weight: 20, name: 'Short Treasury' },
+      { symbol: 'GLD', weight: 20, name: 'Gold' },
+    ],
+  },
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // GROWTH (7 portfolios)
+  // ─────────────────────────────────────────────────────────────────────────────
   {
     id: 'growth-builder',
     name: 'Growth Builder',
@@ -165,12 +350,76 @@ const PORTFOLIO_TEMPLATES: PortfolioTemplate[] = [
     description: 'Technology-heavy growth',
     riskLevel: 'growth',
     allocations: [
-      { symbol: 'QQQ', weight: 45, name: 'NASDAQ 100' },
-      { symbol: 'SPY', weight: 30, name: 'S&P 500' },
-      { symbol: 'VTI', weight: 15, name: 'Total Market' },
+      { symbol: 'QQQ', weight: 40, name: 'NASDAQ 100' },
+      { symbol: 'XLK', weight: 25, name: 'Tech Select' },
+      { symbol: 'SPY', weight: 25, name: 'S&P 500' },
       { symbol: 'AGG', weight: 10, name: 'Aggregate Bond' },
     ],
   },
+  {
+    id: 'small-cap-tilt',
+    name: 'Small Cap Tilt',
+    description: 'Small cap premium focus',
+    riskLevel: 'growth',
+    allocations: [
+      { symbol: 'IWM', weight: 40, name: 'Russell 2000' },
+      { symbol: 'VTI', weight: 30, name: 'Total Market' },
+      { symbol: 'EFA', weight: 15, name: 'Developed Intl' },
+      { symbol: 'AGG', weight: 15, name: 'Aggregate Bond' },
+    ],
+  },
+  {
+    id: 'global-growth',
+    name: 'Global Growth',
+    description: 'Worldwide equity growth',
+    riskLevel: 'growth',
+    allocations: [
+      { symbol: 'VTI', weight: 35, name: 'US Total Market' },
+      { symbol: 'EFA', weight: 25, name: 'Developed Markets' },
+      { symbol: 'VWO', weight: 25, name: 'Emerging Markets' },
+      { symbol: 'GLD', weight: 15, name: 'Gold' },
+    ],
+  },
+  {
+    id: 'cyclical-growth',
+    name: 'Cyclical Growth',
+    description: 'Cyclical sector exposure',
+    riskLevel: 'growth',
+    allocations: [
+      { symbol: 'XLF', weight: 25, name: 'Financials' },
+      { symbol: 'XLI', weight: 25, name: 'Industrials' },
+      { symbol: 'XLY', weight: 25, name: 'Consumer Disc' },
+      { symbol: 'SPY', weight: 25, name: 'S&P 500' },
+    ],
+  },
+  {
+    id: 'quality-growth',
+    name: 'Quality Growth',
+    description: 'SPYG-focused with dividends',
+    riskLevel: 'growth',
+    allocations: [
+      { symbol: 'SPYG', weight: 40, name: 'S&P Growth' },
+      { symbol: 'VIG', weight: 30, name: 'Dividend Growth' },
+      { symbol: 'QQQ', weight: 20, name: 'NASDAQ 100' },
+      { symbol: 'IEF', weight: 10, name: 'Intermediate Treasury' },
+    ],
+  },
+  {
+    id: 'mega-cap-leaders',
+    name: 'Mega Cap Leaders',
+    description: 'Large cap tech + stability',
+    riskLevel: 'growth',
+    allocations: [
+      { symbol: 'QQQ', weight: 35, name: 'NASDAQ 100' },
+      { symbol: 'DIA', weight: 30, name: 'Dow Jones' },
+      { symbol: 'SPY', weight: 25, name: 'S&P 500' },
+      { symbol: 'GLD', weight: 10, name: 'Gold' },
+    ],
+  },
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // AGGRESSIVE (6 portfolios)
+  // ─────────────────────────────────────────────────────────────────────────────
   {
     id: 'max-growth',
     name: 'Max Growth',
@@ -179,20 +428,66 @@ const PORTFOLIO_TEMPLATES: PortfolioTemplate[] = [
     allocations: [
       { symbol: 'QQQ', weight: 40, name: 'NASDAQ 100' },
       { symbol: 'SPY', weight: 30, name: 'S&P 500' },
-      { symbol: 'VTI', weight: 20, name: 'Total Market' },
+      { symbol: 'IWM', weight: 20, name: 'Small Cap' },
       { symbol: 'VWO', weight: 10, name: 'Emerging Markets' },
     ],
   },
   {
-    id: 'real-assets',
-    name: 'Real Assets',
-    description: 'Inflation protection focus',
-    riskLevel: 'moderate',
+    id: 'pure-tech',
+    name: 'Pure Tech',
+    description: '100% technology exposure',
+    riskLevel: 'aggressive',
     allocations: [
-      { symbol: 'VNQ', weight: 30, name: 'Real Estate' },
-      { symbol: 'GLD', weight: 25, name: 'Gold' },
-      { symbol: 'DBC', weight: 20, name: 'Commodities' },
+      { symbol: 'QQQ', weight: 50, name: 'NASDAQ 100' },
+      { symbol: 'XLK', weight: 35, name: 'Tech Select' },
+      { symbol: 'AMAT', weight: 15, name: 'Applied Materials' },
+    ],
+  },
+  {
+    id: 'emerging-markets-heavy',
+    name: 'EM Heavy',
+    description: 'Emerging markets focus',
+    riskLevel: 'aggressive',
+    allocations: [
+      { symbol: 'EEM', weight: 40, name: 'Emerging Markets' },
+      { symbol: 'VWO', weight: 25, name: 'EM Vanguard' },
       { symbol: 'SPY', weight: 25, name: 'S&P 500' },
+      { symbol: 'GLD', weight: 10, name: 'Gold' },
+    ],
+  },
+  {
+    id: 'small-cap-aggressive',
+    name: 'Small Cap Aggro',
+    description: 'Small cap heavy allocation',
+    riskLevel: 'aggressive',
+    allocations: [
+      { symbol: 'IWM', weight: 50, name: 'Russell 2000' },
+      { symbol: 'VTI', weight: 30, name: 'Total Market' },
+      { symbol: 'XLF', weight: 20, name: 'Financials' },
+    ],
+  },
+  {
+    id: 'energy-commodities',
+    name: 'Energy & Commodities',
+    description: 'Resource-focused allocation',
+    riskLevel: 'aggressive',
+    allocations: [
+      { symbol: 'XLE', weight: 35, name: 'Energy' },
+      { symbol: 'DBC', weight: 30, name: 'Commodities' },
+      { symbol: 'GLD', weight: 20, name: 'Gold' },
+      { symbol: 'SPY', weight: 15, name: 'S&P 500' },
+    ],
+  },
+  {
+    id: 'crypto-tilt',
+    name: 'Crypto Tilt',
+    description: 'Bitcoin exposure with equity base',
+    riskLevel: 'aggressive',
+    allocations: [
+      { symbol: 'BITO', weight: 20, name: 'Bitcoin Strategy' },
+      { symbol: 'QQQ', weight: 35, name: 'NASDAQ 100' },
+      { symbol: 'SPY', weight: 30, name: 'S&P 500' },
+      { symbol: 'GLD', weight: 15, name: 'Gold' },
     ],
   },
 ];

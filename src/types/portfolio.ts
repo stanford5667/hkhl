@@ -98,21 +98,44 @@ export const JPMORGAN_DEFAULTS = {
   expectedSharpeImprovement: 0.25, // 25% improvement vs pure 60/40
 };
 
-// Asset class ETF mappings
+// Asset class ETF mappings - Expanded Universe
 export const ASSET_CLASS_ETFS: Record<AssetClass, string[]> = {
-  stocks: ['SPY', 'QQQ', 'IWM', 'VTI', 'VOO', 'SCHD'],
-  crypto: ['BITO', 'GBTC', 'ETHE'],
-  etfs: ['SPY', 'QQQ', 'IWM', 'DIA', 'VTI'],
-  bonds: ['BND', 'AGG', 'TLT', 'IEF', 'LQD', 'HYG'],
+  stocks: ['SPY', 'QQQ', 'IWM', 'VTI', 'VOO', 'DIA', 'SPYG', 'SPLV', 'GOOGL', 'AMZN', 'META', 'INTC', 'AMAT'],
+  crypto: ['BITO', 'GBTC', 'ETHE', 'IBIT'],
+  etfs: ['SPY', 'QQQ', 'IWM', 'DIA', 'VTI', 'VOO', 'EFA', 'VWO', 'EEM', 'SCHD', 'VIG', 'VYM', 'DVY'],
+  bonds: ['BND', 'AGG', 'TLT', 'IEF', 'SHY', 'LQD', 'HYG'],
   commodities: ['GLD', 'SLV', 'DBC', 'USO', 'UNG'],
   real_estate: ['VNQ', 'XLRE', 'IYR', 'SCHH'],
 };
 
+// Sector ETF mappings
+export const SECTOR_ETFS = {
+  technology: 'XLK',
+  financials: 'XLF',
+  healthcare: 'XLV',
+  energy: 'XLE',
+  industrials: 'XLI',
+  consumerStaples: 'XLP',
+  utilities: 'XLU',
+  consumerDiscretionary: 'XLY',
+} as const;
+
 // Liquidity scores for common assets (higher = more liquid)
 export const LIQUIDITY_SCORES: Record<string, number> = {
-  SPY: 100, QQQ: 99, IWM: 95, DIA: 94,
-  AAPL: 98, MSFT: 98, GOOGL: 97, AMZN: 97, NVDA: 96,
-  BND: 90, AGG: 90, TLT: 88,
-  GLD: 85, VNQ: 80,
+  // Core ETFs
+  SPY: 100, QQQ: 99, IWM: 95, DIA: 94, VTI: 98, VOO: 97,
+  // International
+  EFA: 92, VWO: 90, EEM: 89,
+  // Sectors
+  XLK: 88, XLF: 87, XLV: 86, XLE: 85, XLI: 84, XLP: 83, XLU: 82, XLY: 81,
+  // Dividend
+  SCHD: 85, VIG: 84, VYM: 83, DVY: 82,
+  // Bonds
+  AGG: 90, TLT: 88, IEF: 87, SHY: 86, HYG: 80, LQD: 79,
+  // Commodities & Real Assets
+  GLD: 85, DBC: 75, VNQ: 80,
+  // Crypto
   BITO: 60, GBTC: 55,
+  // Stocks
+  AAPL: 98, MSFT: 98, GOOGL: 97, AMZN: 97, NVDA: 96, META: 95,
 };
