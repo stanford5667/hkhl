@@ -70,6 +70,7 @@ import {
   ExternalLink,
   Building,
   Percent,
+  Sparkles,
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
@@ -1098,11 +1099,23 @@ export function MobileBacktester() {
                 <ScrollBar orientation="horizontal" />
               </ScrollArea>
 
-              {/* Sample defaults hint */}
+              {/* Sample defaults hint - prominent banner */}
               {assets.length > 0 && assets.every(a => DEFAULT_POSITIONS.some(d => d.symbol === a.symbol)) && (
-                <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-primary/5 border border-primary/10 text-xs text-muted-foreground">
-                  <Info className="h-3.5 w-3.5 text-primary/60 flex-shrink-0" />
-                  <span>These are <strong className="text-foreground">sample positions</strong> — customize them to match your portfolio</span>
+                <div className="relative overflow-hidden rounded-xl border-2 border-dashed border-amber-400/60 bg-gradient-to-r from-amber-500/10 via-orange-500/10 to-amber-500/10 p-4">
+                  <div className="absolute -right-6 -top-6 h-20 w-20 rounded-full bg-amber-400/20 blur-2xl" />
+                  <div className="relative flex items-start gap-3">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-amber-500/20 flex-shrink-0">
+                      <Sparkles className="h-4 w-4 text-amber-500" />
+                    </div>
+                    <div className="space-y-1">
+                      <p className="font-semibold text-sm text-foreground">
+                        Sample Portfolio
+                      </p>
+                      <p className="text-xs text-muted-foreground leading-relaxed">
+                        These are example positions to get you started. <strong className="text-foreground">Tap any asset</strong> to edit, remove, or add your own tickers above.
+                      </p>
+                    </div>
+                  </div>
                 </div>
               )}
 
