@@ -124,20 +124,19 @@ export function ManualPortfolioForm({ onComplete, onBack }: ManualPortfolioFormP
           </p>
         </div>
 
-        <div className="grid md:grid-cols-2 gap-6">
-          {/* Capital & Horizon */}
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm flex items-center gap-2">
-                <DollarSign className="h-4 w-4 text-blue-500" />
-                Portfolio Details
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
+        {/* Settings + Ticker Input in one card */}
+        <Card>
+          <CardContent className="p-4 space-y-4">
+            {/* Settings row */}
+            <div className="grid grid-cols-2 gap-4">
+              {/* Portfolio Total */}
               <div>
-                <Label className="text-sm mb-2 block">Portfolio Total</Label>
+                <Label className="text-xs mb-1.5 flex items-center gap-1.5">
+                  <DollarSign className="h-3.5 w-3.5 text-primary" />
+                  Portfolio Total
+                </Label>
                 <div className="relative">
-                  <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <DollarSign className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
                   <Input
                     type="text"
                     value={capital.toLocaleString()}
@@ -145,18 +144,19 @@ export function ManualPortfolioForm({ onComplete, onBack }: ManualPortfolioFormP
                       const value = e.target.value.replace(/[^0-9]/g, '');
                       setCapital(parseInt(value) || 0);
                     }}
-                    className="pl-10"
+                    className="pl-8 h-9 text-sm"
                   />
                 </div>
               </div>
 
+              {/* Time Horizon */}
               <div>
-                <Label className="text-sm mb-2 flex items-center justify-between">
-                  <span className="flex items-center gap-2">
-                    <Clock className="h-4 w-4 text-blue-500" />
+                <Label className="text-xs mb-1.5 flex items-center justify-between">
+                  <span className="flex items-center gap-1.5">
+                    <Clock className="h-3.5 w-3.5 text-primary" />
                     Time Horizon
                   </span>
-                  <Badge variant="outline">{horizon} years</Badge>
+                  <Badge variant="outline" className="text-xs h-5">{horizon}y</Badge>
                 </Label>
                 <Slider
                   value={[horizon]}
@@ -164,71 +164,61 @@ export function ManualPortfolioForm({ onComplete, onBack }: ManualPortfolioFormP
                   min={1}
                   max={POLYGON_CONFIG.MAX_HISTORY_YEARS}
                   step={1}
-                  className="mt-3"
+                  className="mt-2"
                 />
-                <div className="flex justify-between text-xs text-muted-foreground mt-1">
-                  <span>1 year</span>
-                  <span>{POLYGON_CONFIG.MAX_HISTORY_YEARS} years</span>
-                </div>
               </div>
-            </CardContent>
-          </Card>
+            </div>
 
-          {/* Add Assets */}
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm flex items-center gap-2">
-                <Plus className="h-4 w-4 text-blue-500" />
+            {/* Divider */}
+            <div className="border-t border-border" />
+
+            {/* Ticker input */}
+            <div>
+              <Label className="text-xs mb-1.5 flex items-center gap-1.5">
+                <Plus className="h-3.5 w-3.5 text-primary" />
                 Add Assets
-              </CardTitle>
-              <CardDescription>Enter ticker symbols for your portfolio</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
+              </Label>
               <div className="flex gap-2">
                 <Input
                   value={newSymbol}
                   onChange={(e) => setNewSymbol(e.target.value.toUpperCase())}
                   onKeyDown={(e) => e.key === 'Enter' && addAllocation()}
-                  placeholder="Enter ticker (e.g., AAPL)"
-                  className="flex-1"
+                  placeholder="Enter ticker symbol..."
+                  className="flex-1 h-10"
                   maxLength={10}
                 />
                 <Button 
                   onClick={addAllocation} 
                   disabled={!newSymbol.trim()} 
-                  size="icon"
+                  className="h-10 px-4"
                   aria-label="Add ticker"
                 >
                   <Plus className="h-4 w-4" />
                 </Button>
               </div>
+            </div>
 
-              {quickTickers.length > 0 && (
-                <div className="flex flex-wrap gap-1.5">
-                  <span className="text-xs text-muted-foreground mr-1">Quick add:</span>
-                  {quickTickers.map(ticker => (
-                    <button
-                      key={ticker}
-                      onClick={() => {
-                        setNewSymbol(ticker);
-                        setTimeout(() => {
-                          setAllocations(prev => [
-                            ...prev,
-                            { symbol: ticker, weight: 0, assetClass: 'stocks' as AssetClass }
-                          ]);
-                        }, 0);
-                        setNewSymbol('');
-                      }}
-                      className="px-2 py-0.5 text-xs rounded border border-border hover:bg-muted transition-colors"
-                    >
-                      {ticker}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
+            {/* Quick add pills */}
+            {quickTickers.length > 0 && (
+              <div className="flex flex-wrap gap-1.5">
+                {quickTickers.map(ticker => (
+                  <button
+                    key={ticker}
+                    onClick={() => {
+                      setAllocations(prev => [
+                        ...prev,
+                        { symbol: ticker, weight: 0, assetClass: 'stocks' as AssetClass }
+                      ]);
+                    }}
+                    className="px-2.5 py-1 text-xs rounded-full border bg-card hover:bg-muted/50 transition-colors font-mono"
+                  >
+                    {ticker}
+                  </button>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
         {/* Allocations */}
         <Card>
