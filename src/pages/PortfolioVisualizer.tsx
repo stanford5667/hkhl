@@ -1237,90 +1237,326 @@ export default function PortfolioVisualizer() {
   // Choose mode screen
   if (currentFlow === 'choose') {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-6">
-        <div className="w-full max-w-2xl space-y-8">
-          <div className="text-center space-y-2">
-            <h1 className="text-3xl font-bold">Portfolio Builder</h1>
-            <p className="text-muted-foreground">Choose how you want to build your portfolio</p>
-          </div>
+      <div className="min-h-screen bg-background flex items-center justify-center p-6 relative overflow-hidden">
+        {/* Ambient background effects */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          {/* Primary glow orb - larger and more prominent */}
+          <motion.div
+            className="absolute top-1/3 left-1/4 w-[600px] h-[600px] bg-primary/30 rounded-full blur-[180px]"
+            animate={{ 
+              scale: [1, 1.3, 1],
+              opacity: [0.2, 0.4, 0.2],
+              x: [-50, 50, -50],
+            }}
+            transition={{ duration: 12, repeat: Infinity, ease: "easeInOut" }}
+          />
+          {/* Secondary glow orb */}
+          <motion.div
+            className="absolute bottom-1/3 right-1/4 w-[500px] h-[500px] bg-emerald-500/25 rounded-full blur-[150px]"
+            animate={{ 
+              scale: [1.2, 1, 1.2],
+              opacity: [0.2, 0.35, 0.2],
+              x: [50, -50, 50],
+            }}
+            transition={{ duration: 10, repeat: Infinity, ease: "easeInOut", delay: 3 }}
+          />
+          {/* Center accent glow */}
+          <motion.div
+            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[400px] bg-gradient-to-r from-primary/10 via-purple-500/10 to-emerald-500/10 rounded-full blur-[120px]"
+            animate={{ 
+              opacity: [0.3, 0.5, 0.3],
+              rotate: [0, 5, 0],
+            }}
+            transition={{ duration: 15, repeat: Infinity, ease: "easeInOut" }}
+          />
+          {/* Grid overlay - more visible */}
+          <div 
+            className="absolute inset-0 opacity-[0.03]"
+            style={{
+              backgroundImage: `linear-gradient(hsl(var(--foreground)) 1px, transparent 1px), linear-gradient(90deg, hsl(var(--foreground)) 1px, transparent 1px)`,
+              backgroundSize: '48px 48px'
+            }}
+          />
+          {/* Radial gradient vignette */}
+          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-background/80" />
+          
+          {/* Floating particles */}
+          {[...Array(6)].map((_, i) => (
+            <motion.div
+              key={i}
+              className="absolute w-1 h-1 rounded-full bg-primary/40"
+              style={{
+                left: `${20 + i * 12}%`,
+                top: `${30 + (i % 3) * 20}%`,
+              }}
+              animate={{
+                y: [-20, 20, -20],
+                opacity: [0.2, 0.6, 0.2],
+              }}
+              transition={{
+                duration: 4 + i,
+                repeat: Infinity,
+                delay: i * 0.5,
+                ease: "easeInOut",
+              }}
+            />
+          ))}
+        </div>
+
+        <div className="w-full max-w-3xl space-y-12 relative z-10">
+          {/* Header with animated elements */}
+          <motion.div 
+            className="text-center space-y-4"
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+          >
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 mb-4">
+              <motion.div
+                className="w-2 h-2 rounded-full bg-primary"
+                animate={{ scale: [1, 1.3, 1] }}
+                transition={{ duration: 2, repeat: Infinity }}
+              />
+              <span className="text-sm font-medium text-primary">Institutional-Grade Analysis</span>
+            </div>
+            <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-br from-foreground via-foreground to-muted-foreground bg-clip-text text-transparent">
+              Portfolio Builder
+            </h1>
+            <p className="text-lg text-muted-foreground max-w-md mx-auto">
+              Choose your path to construct an optimized, risk-managed portfolio
+            </p>
+          </motion.div>
           
           <div className="grid md:grid-cols-2 gap-6">
-            {/* Screener Option */}
+            {/* Screener Option - Primary Card */}
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1 }}
+              transition={{ delay: 0.2, duration: 0.5 }}
+              whileHover={{ y: -4, transition: { duration: 0.2 } }}
+              className="relative group"
             >
+              {/* Glow effect behind card */}
+              <div className="absolute -inset-1 bg-gradient-to-br from-primary/60 via-primary/20 to-transparent rounded-2xl opacity-0 group-hover:opacity-100 blur-2xl transition-all duration-500" />
+              
               <Card 
-                className="cursor-pointer hover:border-primary/50 transition-all hover:shadow-lg group h-full"
+                className="cursor-pointer relative bg-gradient-to-br from-surface-2/95 via-surface-2/90 to-surface-1/80 backdrop-blur-sm border-white/10 hover:border-primary/50 transition-all duration-300 h-full overflow-hidden shadow-xl shadow-black/20"
                 onClick={() => setCurrentFlow('screener')}
               >
-                <CardHeader>
-                  <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center mb-4 group-hover:bg-primary/20 transition-colors">
-                    <Target className="h-6 w-6 text-primary" />
-                  </div>
-                  <CardTitle>Risk-Based Screener</CardTitle>
-                  <CardDescription>
-                    Find portfolios that match your risk tolerance based on maximum drawdown
+                {/* Top accent bar with animation */}
+                <motion.div 
+                  className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-primary via-primary to-primary/50"
+                  initial={{ scaleX: 0, originX: 0 }}
+                  animate={{ scaleX: 1 }}
+                  transition={{ delay: 0.3, duration: 0.6 }}
+                />
+                
+                {/* Shine effect on hover */}
+                <div className="absolute inset-0 bg-gradient-to-br from-white/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                
+                {/* Recommended badge */}
+                <div className="absolute top-4 right-4">
+                  <Badge className="bg-primary/20 text-primary border-primary/30 text-xs font-medium">
+                    <Zap className="h-3 w-3 mr-1" />
+                    Recommended
+                  </Badge>
+                </div>
+                
+                <CardHeader className="pb-4 pt-8">
+                  <motion.div 
+                    className="h-14 w-14 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/20 flex items-center justify-center mb-5 group-hover:scale-110 group-hover:shadow-lg group-hover:shadow-primary/25 transition-all duration-300"
+                    whileHover={{ rotate: [0, -10, 10, 0] }}
+                    transition={{ duration: 0.5 }}
+                  >
+                    <Target className="h-7 w-7 text-primary" />
+                  </motion.div>
+                  <CardTitle className="text-xl font-semibold text-foreground group-hover:text-primary transition-colors">
+                    Risk-Based Screener
+                  </CardTitle>
+                  <CardDescription className="text-sm leading-relaxed">
+                    Find portfolios that match your risk tolerance based on historical drawdown analysis
                   </CardDescription>
                 </CardHeader>
-                <CardContent>
-                  <ul className="text-sm text-muted-foreground space-y-2">
-                    <li className="flex items-center gap-2">
-                      <CheckCircle2 className="h-4 w-4 text-emerald-500" />
-                      Set your drawdown tolerance
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <CheckCircle2 className="h-4 w-4 text-emerald-500" />
-                      Get portfolio suggestions
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <CheckCircle2 className="h-4 w-4 text-emerald-500" />
-                      Customize weights
-                    </li>
+                <CardContent className="pt-0">
+                  <ul className="space-y-3">
+                    {[
+                      'Set your drawdown tolerance',
+                      'Get AI-matched portfolios',
+                      'Customize weights instantly'
+                    ].map((item, i) => (
+                      <motion.li 
+                        key={i}
+                        className="flex items-center gap-3 text-sm text-muted-foreground group-hover:text-foreground/80 transition-colors"
+                        initial={{ opacity: 0, x: -10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: 0.3 + i * 0.1 }}
+                      >
+                        <div className="h-5 w-5 rounded-full bg-emerald-500/10 flex items-center justify-center flex-shrink-0">
+                          <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
+                        </div>
+                        {item}
+                      </motion.li>
+                    ))}
                   </ul>
+                  
+                  {/* Bottom CTA hint */}
+                  <div className="mt-6 pt-4 border-t border-white/5">
+                    <div className="flex items-center justify-between text-xs text-muted-foreground">
+                      <span className="flex items-center gap-1.5">
+                        <Clock className="h-3.5 w-3.5" />
+                        ~2 min setup
+                      </span>
+                      <span className="flex items-center gap-1 text-primary opacity-0 group-hover:opacity-100 transition-opacity">
+                        Get started
+                        <motion.span
+                          animate={{ x: [0, 4, 0] }}
+                          transition={{ duration: 1.5, repeat: Infinity }}
+                        >
+                          →
+                        </motion.span>
+                      </span>
+                    </div>
+                  </div>
                 </CardContent>
               </Card>
             </motion.div>
 
-            {/* Manual Option */}
+            {/* Manual Option - Secondary Card */}
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
+              transition={{ delay: 0.35, duration: 0.5 }}
+              whileHover={{ y: -4, transition: { duration: 0.2 } }}
+              className="relative group"
             >
+              {/* Glow effect behind card */}
+              <div className="absolute -inset-1 bg-gradient-to-br from-emerald-500/60 via-emerald-500/20 to-transparent rounded-2xl opacity-0 group-hover:opacity-100 blur-2xl transition-all duration-500" />
+              
               <Card 
-                className="cursor-pointer hover:border-primary/50 transition-all hover:shadow-lg group h-full"
+                className="cursor-pointer relative bg-gradient-to-br from-surface-2/95 via-surface-2/90 to-surface-1/80 backdrop-blur-sm border-white/10 hover:border-emerald-500/50 transition-all duration-300 h-full overflow-hidden shadow-xl shadow-black/20"
                 onClick={() => setCurrentFlow('manual')}
               >
-                <CardHeader>
-                  <div className="h-12 w-12 rounded-xl bg-emerald-500/10 flex items-center justify-center mb-4 group-hover:bg-emerald-500/20 transition-colors">
-                    <Settings className="h-6 w-6 text-emerald-500" />
-                  </div>
-                  <CardTitle>Manual Builder</CardTitle>
-                  <CardDescription>
-                    Build your portfolio from scratch with full control over allocations
+                {/* Top accent bar with animation */}
+                <motion.div 
+                  className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-emerald-500 via-emerald-500 to-emerald-500/50"
+                  initial={{ scaleX: 0, originX: 0 }}
+                  animate={{ scaleX: 1 }}
+                  transition={{ delay: 0.4, duration: 0.6 }}
+                />
+                
+                {/* Shine effect on hover */}
+                <div className="absolute inset-0 bg-gradient-to-br from-white/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                
+                {/* Pro badge */}
+                <div className="absolute top-4 right-4">
+                  <Badge variant="outline" className="border-emerald-500/30 text-emerald-500 bg-emerald-500/10 text-xs font-medium">
+                    <Settings className="h-3 w-3 mr-1" />
+                    Full Control
+                  </Badge>
+                </div>
+                
+                <CardHeader className="pb-4 pt-8">
+                  <motion.div 
+                    className="h-14 w-14 rounded-2xl bg-gradient-to-br from-emerald-500/20 to-emerald-500/5 border border-emerald-500/20 flex items-center justify-center mb-5 group-hover:scale-110 group-hover:shadow-lg group-hover:shadow-emerald-500/25 transition-all duration-300"
+                    whileHover={{ rotate: [0, 10, -10, 0] }}
+                    transition={{ duration: 0.5 }}
+                  >
+                    <Settings className="h-7 w-7 text-emerald-500" />
+                  </motion.div>
+                  <CardTitle className="text-xl font-semibold text-foreground group-hover:text-emerald-500 transition-colors">
+                    Manual Builder
+                  </CardTitle>
+                  <CardDescription className="text-sm leading-relaxed">
+                    Build your portfolio from scratch with complete control over every allocation
                   </CardDescription>
                 </CardHeader>
-                <CardContent>
-                  <ul className="text-sm text-muted-foreground space-y-2">
-                    <li className="flex items-center gap-2">
-                      <CheckCircle2 className="h-4 w-4 text-emerald-500" />
-                      Choose any tickers
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <CheckCircle2 className="h-4 w-4 text-emerald-500" />
-                      Set custom weights
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <CheckCircle2 className="h-4 w-4 text-emerald-500" />
-                      Use pre-built templates
-                    </li>
+                <CardContent className="pt-0">
+                  <ul className="space-y-3">
+                    {[
+                      'Choose any tickers',
+                      'Set custom weights',
+                      'Use pre-built templates'
+                    ].map((item, i) => (
+                      <motion.li 
+                        key={i}
+                        className="flex items-center gap-3 text-sm text-muted-foreground group-hover:text-foreground/80 transition-colors"
+                        initial={{ opacity: 0, x: -10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: 0.4 + i * 0.1 }}
+                      >
+                        <div className="h-5 w-5 rounded-full bg-emerald-500/10 flex items-center justify-center flex-shrink-0">
+                          <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
+                        </div>
+                        {item}
+                      </motion.li>
+                    ))}
                   </ul>
+                  
+                  {/* Bottom CTA hint */}
+                  <div className="mt-6 pt-4 border-t border-white/5">
+                    <div className="flex items-center justify-between text-xs text-muted-foreground">
+                      <span className="flex items-center gap-1.5">
+                        <Activity className="h-3.5 w-3.5" />
+                        Advanced mode
+                      </span>
+                      <span className="flex items-center gap-1 text-emerald-500 opacity-0 group-hover:opacity-100 transition-opacity">
+                        Start building
+                        <motion.span
+                          animate={{ x: [0, 4, 0] }}
+                          transition={{ duration: 1.5, repeat: Infinity }}
+                        >
+                          →
+                        </motion.span>
+                      </span>
+                    </div>
+                  </div>
                 </CardContent>
               </Card>
             </motion.div>
           </div>
+          
+          {/* Bottom trust indicators - enhanced */}
+          <motion.div 
+            className="flex flex-col items-center gap-6"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.6 }}
+          >
+            {/* Separator line with glow */}
+            <div className="w-32 h-px bg-gradient-to-r from-transparent via-border to-transparent" />
+            
+            <div className="flex items-center justify-center flex-wrap gap-6 md:gap-10">
+              <motion.div 
+                className="flex items-center gap-2.5 px-4 py-2 rounded-full bg-emerald-500/5 border border-emerald-500/10"
+                whileHover={{ scale: 1.05, backgroundColor: 'rgba(16, 185, 129, 0.1)' }}
+              >
+                <div className="h-8 w-8 rounded-full bg-emerald-500/10 flex items-center justify-center">
+                  <Shield className="h-4 w-4 text-emerald-500" />
+                </div>
+                <span className="text-sm text-foreground/70">Bank-level security</span>
+              </motion.div>
+              
+              <motion.div 
+                className="flex items-center gap-2.5 px-4 py-2 rounded-full bg-primary/5 border border-primary/10"
+                whileHover={{ scale: 1.05, backgroundColor: 'rgba(59, 130, 246, 0.1)' }}
+              >
+                <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
+                  <Database className="h-4 w-4 text-primary" />
+                </div>
+                <span className="text-sm text-foreground/70">Real market data</span>
+              </motion.div>
+              
+              <motion.div 
+                className="flex items-center gap-2.5 px-4 py-2 rounded-full bg-purple-500/5 border border-purple-500/10"
+                whileHover={{ scale: 1.05, backgroundColor: 'rgba(168, 85, 247, 0.1)' }}
+              >
+                <div className="h-8 w-8 rounded-full bg-purple-500/10 flex items-center justify-center">
+                  <Brain className="h-4 w-4 text-purple-500" />
+                </div>
+                <span className="text-sm text-foreground/70">AI-powered insights</span>
+              </motion.div>
+            </div>
+          </motion.div>
         </div>
         
         <AuthGateDialog
