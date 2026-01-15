@@ -1050,9 +1050,60 @@ export function MobileBacktester() {
         <TabsContent value="portfolio" className="flex-1 flex flex-col min-h-0 mt-3">
           <div className="flex-1 overflow-auto px-4 pb-4">
             <div className="space-y-3">
-              {/* Add ticker search - prominently at top */}
+              {/* Settings + Ticker Input in one card */}
               <Card className="border-primary/30 bg-primary/5">
-                <CardContent className="p-3">
+                <CardContent className="p-3 space-y-3">
+                  {/* Settings row */}
+                  <div className="grid grid-cols-3 gap-3">
+                    {/* Date Range */}
+                    <div>
+                      <label className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1 block">Period</label>
+                      <Select value={period} onValueChange={setPeriod}>
+                        <SelectTrigger className="h-8 text-xs">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {PERIODS.map(p => (
+                            <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    
+                    {/* Capital */}
+                    <div>
+                      <label className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1 block">Capital</label>
+                      <div className="relative">
+                        <DollarSign className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground" />
+                        <Input
+                          type="number"
+                          value={initialCapital}
+                          onChange={(e) => setInitialCapital(Number(e.target.value))}
+                          className="h-8 text-xs pl-6 font-mono"
+                        />
+                      </div>
+                    </div>
+                    
+                    {/* Benchmark */}
+                    <div>
+                      <label className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1 block">Benchmark</label>
+                      <Select value={benchmark} onValueChange={setBenchmark}>
+                        <SelectTrigger className="h-8 text-xs">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {BENCHMARKS.map(b => (
+                            <SelectItem key={b.value} value={b.value}>{b.label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  
+                  {/* Divider */}
+                  <div className="border-t border-border/50" />
+                  
+                  {/* Ticker input */}
                   <div className="flex gap-2">
                     <div className="relative flex-1">
                       <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
