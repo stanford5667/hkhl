@@ -7,14 +7,21 @@
  * - Templates: Pre-built portfolio templates
  */
 
-import { useState, useCallback, useMemo } from 'react';
-import { Card, CardContent } from '@/components/ui/card';
+import { useState, useCallback, useMemo, useEffect } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Slider } from '@/components/ui/slider';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from '@/components/ui/sheet';
 import {
   Select,
   SelectContent,
@@ -45,6 +52,7 @@ import {
   Plus,
   Play,
   TrendingDown,
+  TrendingUp,
   Activity,
   BarChart3,
   Scale,
@@ -59,6 +67,9 @@ import {
   Wallet,
   Calendar,
   Shield,
+  ExternalLink,
+  Building,
+  Percent,
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
@@ -84,6 +95,19 @@ interface Asset {
   name?: string;
   weight: number;
   color: string;
+  // Live stats
+  price?: number;
+  change?: number;
+  changePercent?: number;
+  marketCap?: number;
+  volume?: number;
+  high52w?: number;
+  low52w?: number;
+  beta?: number;
+  peRatio?: number;
+  dividendYield?: number;
+  sector?: string;
+  isLoadingStats?: boolean;
 }
 
 interface BacktestResult {
@@ -260,12 +284,27 @@ function MetricPill({
 // ═══════════════════════════════════════════════════════════════════════════════
 
 export function MobileBacktester() {
+  // Default 10 positions
+  const DEFAULT_POSITIONS: Asset[] = [
+    { symbol: 'VTI', weight: 20, color: COLORS[0], name: 'Total Stock Market' },
+    { symbol: 'VOO', weight: 15, color: COLORS[1], name: 'S&P 500' },
+    { symbol: 'QQQ', weight: 10, color: COLORS[2], name: 'NASDAQ 100' },
+    { symbol: 'VGT', weight: 10, color: COLORS[3], name: 'Technology' },
+    { symbol: 'VXUS', weight: 10, color: COLORS[4], name: 'International' },
+    { symbol: 'VWO', weight: 5, color: COLORS[5], name: 'Emerging Markets' },
+    { symbol: 'BND', weight: 10, color: COLORS[6], name: 'Total Bond' },
+    { symbol: 'TLT', weight: 5, color: COLORS[7], name: 'Long Treasury' },
+    { symbol: 'GLD', weight: 10, color: COLORS[8], name: 'Gold' },
+    { symbol: 'VNQ', weight: 5, color: COLORS[9], name: 'Real Estate' },
+  ];
+
   // Portfolio state
-  const [assets, setAssets] = useState<Asset[]>([
-    { symbol: 'VTI', weight: 60, color: COLORS[0] },
-    { symbol: 'BND', weight: 40, color: COLORS[1] },
-  ]);
+  const [assets, setAssets] = useState<Asset[]>(DEFAULT_POSITIONS);
   const [newSymbol, setNewSymbol] = useState('');
+  
+  // Asset detail popup state
+  const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null);
+  const [assetDetailOpen, setAssetDetailOpen] = useState(false);
   
   // Max drawdown dial state
   const [maxDrawdownTarget, setMaxDrawdownTarget] = useState(20);
@@ -362,6 +401,79 @@ export function MobileBacktester() {
     })));
     setActiveTab('portfolio');
     toast.success(`Loaded ${template.name}`);
+  };
+
+  // Fetch asset stats (price, change, etc.)
+  const fetchAssetStats = useCallback(async (symbol: string) => {
+    try {
+      // Get latest price data
+      const { data: latestBar } = await supabase
+        .from('market_daily_bars')
+        .select('close, open, high, low, volume, bar_date')
+        .eq('ticker', symbol)
+        .order('bar_date', { ascending: false })
+        .limit(2);
+
+      if (latestBar && latestBar.length >= 2) {
+        const current = latestBar[0];
+        const previous = latestBar[1];
+        const change = current.close - previous.close;
+        const changePercent = (change / previous.close) * 100;
+
+        // Get 52-week high/low
+        const oneYearAgo = new Date();
+        oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
+        
+        const { data: yearData } = await supabase
+          .from('market_daily_bars')
+          .select('high, low')
+          .eq('ticker', symbol)
+          .gte('bar_date', oneYearAgo.toISOString().split('T')[0])
+          .order('bar_date', { ascending: false });
+
+        let high52w = current.high;
+        let low52w = current.low;
+        if (yearData) {
+          high52w = Math.max(...yearData.map(d => d.high));
+          low52w = Math.min(...yearData.map(d => d.low));
+        }
+
+        setAssets(prev => prev.map(a => 
+          a.symbol === symbol 
+            ? { 
+                ...a, 
+                price: current.close, 
+                change, 
+                changePercent,
+                volume: current.volume,
+                high52w,
+                low52w,
+                isLoadingStats: false
+              } 
+            : a
+        ));
+      }
+    } catch (error) {
+      console.error(`Failed to fetch stats for ${symbol}:`, error);
+    }
+  }, []);
+
+  // Fetch stats for all assets on mount and when assets change
+  useEffect(() => {
+    assets.forEach(asset => {
+      if (asset.price === undefined && !asset.isLoadingStats) {
+        setAssets(prev => prev.map(a => 
+          a.symbol === asset.symbol ? { ...a, isLoadingStats: true } : a
+        ));
+        fetchAssetStats(asset.symbol);
+      }
+    });
+  }, [assets.map(a => a.symbol).join(','), fetchAssetStats]);
+
+  // Open asset detail popup
+  const openAssetDetail = (asset: Asset) => {
+    setSelectedAsset(asset);
+    setAssetDetailOpen(true);
   };
 
   // Run backtest
@@ -1021,40 +1133,74 @@ export function MobileBacktester() {
                   assets.map((asset) => (
                     <div 
                       key={asset.symbol}
-                      className="flex items-center gap-3 p-3 rounded-xl border bg-card"
+                      className="p-3 rounded-xl border bg-card"
                     >
-                      <div 
-                        className="w-3 h-3 rounded-full flex-shrink-0" 
-                        style={{ backgroundColor: asset.color }}
-                      />
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span className="font-mono font-semibold">{asset.symbol}</span>
-                          <span className="text-xs text-muted-foreground truncate">
-                            {asset.name}
-                          </span>
-                        </div>
-                        <Slider
-                          value={[asset.weight]}
-                          onValueChange={([v]) => updateWeight(asset.symbol, v)}
-                          max={100}
-                          step={1}
-                          className="mt-2"
+                      <div className="flex items-center gap-3">
+                        <div 
+                          className="w-3 h-3 rounded-full flex-shrink-0" 
+                          style={{ backgroundColor: asset.color }}
                         />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="font-mono font-semibold">{asset.symbol}</span>
+                            <span className="text-xs text-muted-foreground truncate">
+                              {asset.name}
+                            </span>
+                          </div>
+                          
+                          {/* Stats row - clickable for details */}
+                          <button
+                            onClick={() => openAssetDetail(asset)}
+                            className="flex items-center gap-3 mt-1 text-xs hover:bg-muted/50 rounded px-1 py-0.5 -mx-1 transition-colors w-full"
+                          >
+                            {asset.isLoadingStats ? (
+                              <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
+                            ) : asset.price !== undefined ? (
+                              <>
+                                <span className="font-mono text-muted-foreground">
+                                  ${asset.price.toFixed(2)}
+                                </span>
+                                <span className={cn(
+                                  "font-mono flex items-center gap-0.5",
+                                  (asset.changePercent || 0) >= 0 ? "text-emerald-500" : "text-destructive"
+                                )}>
+                                  {(asset.changePercent || 0) >= 0 ? (
+                                    <TrendingUp className="h-3 w-3" />
+                                  ) : (
+                                    <TrendingDown className="h-3 w-3" />
+                                  )}
+                                  {(asset.changePercent || 0) >= 0 ? '+' : ''}{asset.changePercent?.toFixed(2)}%
+                                </span>
+                                <ChevronRight className="h-3 w-3 text-muted-foreground ml-auto" />
+                              </>
+                            ) : (
+                              <span className="text-muted-foreground italic">Click for details</span>
+                            )}
+                          </button>
+                        </div>
+                        
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono font-bold text-sm w-10 text-right">
+                            {asset.weight.toFixed(0)}%
+                          </span>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                            onClick={() => removeAsset(asset.symbol)}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <span className="font-mono font-bold text-sm w-10 text-right">
-                          {asset.weight.toFixed(0)}%
-                        </span>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7 text-muted-foreground hover:text-destructive"
-                          onClick={() => removeAsset(asset.symbol)}
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
-                      </div>
+                      
+                      <Slider
+                        value={[asset.weight]}
+                        onValueChange={([v]) => updateWeight(asset.symbol, v)}
+                        max={100}
+                        step={1}
+                        className="mt-2"
+                      />
                     </div>
                   ))
                 )}
@@ -1093,6 +1239,199 @@ export function MobileBacktester() {
             </div>
         </TabsContent>
       </Tabs>
+
+      {/* Asset Detail Popup */}
+      <Sheet open={assetDetailOpen} onOpenChange={setAssetDetailOpen}>
+        <SheetContent side="bottom" className="h-[85vh] rounded-t-2xl">
+          {selectedAsset && (
+            <>
+              <SheetHeader className="pb-4 border-b">
+                <div className="flex items-center gap-3">
+                  <div 
+                    className="w-4 h-4 rounded-full" 
+                    style={{ backgroundColor: selectedAsset.color }}
+                  />
+                  <div>
+                    <SheetTitle className="flex items-center gap-2 font-mono text-xl">
+                      {selectedAsset.symbol}
+                      {selectedAsset.price !== undefined && (
+                        <span className="text-muted-foreground font-normal">
+                          ${selectedAsset.price.toFixed(2)}
+                        </span>
+                      )}
+                    </SheetTitle>
+                    <SheetDescription className="text-left">
+                      {selectedAsset.name || 'Asset Details'}
+                    </SheetDescription>
+                  </div>
+                </div>
+              </SheetHeader>
+
+              <ScrollArea className="flex-1 h-[calc(85vh-120px)]">
+                <div className="py-4 space-y-4">
+                  {/* Price Change Card */}
+                  <Card>
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-sm font-medium flex items-center gap-2">
+                        <Activity className="h-4 w-4" />
+                        Today's Performance
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="flex items-center gap-4">
+                        <div className={cn(
+                          "text-2xl font-bold font-mono flex items-center gap-1",
+                          (selectedAsset.changePercent || 0) >= 0 ? "text-emerald-500" : "text-destructive"
+                        )}>
+                          {(selectedAsset.changePercent || 0) >= 0 ? (
+                            <TrendingUp className="h-5 w-5" />
+                          ) : (
+                            <TrendingDown className="h-5 w-5" />
+                          )}
+                          {(selectedAsset.changePercent || 0) >= 0 ? '+' : ''}{selectedAsset.changePercent?.toFixed(2) || '0.00'}%
+                        </div>
+                        <div className="text-sm text-muted-foreground font-mono">
+                          {(selectedAsset.change || 0) >= 0 ? '+' : ''}${selectedAsset.change?.toFixed(2) || '0.00'}
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Key Statistics */}
+                  <Card>
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-sm font-medium flex items-center gap-2">
+                        <BarChart3 className="h-4 w-4" />
+                        Key Statistics
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <p className="text-xs text-muted-foreground uppercase tracking-wider">52W High</p>
+                          <p className="font-mono font-semibold text-emerald-500">
+                            ${selectedAsset.high52w?.toFixed(2) || 'N/A'}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-muted-foreground uppercase tracking-wider">52W Low</p>
+                          <p className="font-mono font-semibold text-destructive">
+                            ${selectedAsset.low52w?.toFixed(2) || 'N/A'}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-muted-foreground uppercase tracking-wider">Volume</p>
+                          <p className="font-mono font-semibold">
+                            {selectedAsset.volume 
+                              ? (selectedAsset.volume >= 1000000 
+                                  ? `${(selectedAsset.volume / 1000000).toFixed(1)}M` 
+                                  : `${(selectedAsset.volume / 1000).toFixed(0)}K`)
+                              : 'N/A'}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-muted-foreground uppercase tracking-wider">Weight</p>
+                          <p className="font-mono font-semibold text-primary">
+                            {selectedAsset.weight.toFixed(0)}%
+                          </p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* 52-Week Range Visual */}
+                  {selectedAsset.high52w && selectedAsset.low52w && selectedAsset.price && (
+                    <Card>
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-sm font-medium flex items-center gap-2">
+                          <Scale className="h-4 w-4" />
+                          52-Week Range
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="relative h-2 bg-muted rounded-full overflow-hidden">
+                          <div 
+                            className="absolute h-full bg-gradient-to-r from-destructive via-yellow-500 to-emerald-500"
+                            style={{ width: '100%' }}
+                          />
+                          <div 
+                            className="absolute top-1/2 -translate-y-1/2 w-3 h-3 bg-primary rounded-full border-2 border-background shadow-lg"
+                            style={{ 
+                              left: `${Math.min(100, Math.max(0, ((selectedAsset.price - selectedAsset.low52w) / (selectedAsset.high52w - selectedAsset.low52w)) * 100))}%`,
+                              transform: 'translate(-50%, -50%)'
+                            }}
+                          />
+                        </div>
+                        <div className="flex justify-between mt-2 text-xs text-muted-foreground font-mono">
+                          <span>${selectedAsset.low52w.toFixed(2)}</span>
+                          <span className="font-semibold text-foreground">${selectedAsset.price.toFixed(2)}</span>
+                          <span>${selectedAsset.high52w.toFixed(2)}</span>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  {/* Portfolio Allocation */}
+                  <Card>
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-sm font-medium flex items-center gap-2">
+                        <Wallet className="h-4 w-4" />
+                        Portfolio Allocation
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-3">
+                        <Slider
+                          value={[selectedAsset.weight]}
+                          onValueChange={([v]) => {
+                            updateWeight(selectedAsset.symbol, v);
+                            setSelectedAsset(prev => prev ? { ...prev, weight: v } : null);
+                          }}
+                          max={100}
+                          step={1}
+                        />
+                        <div className="flex justify-between text-sm">
+                          <span className="text-muted-foreground">Allocation</span>
+                          <span className="font-mono font-bold">{selectedAsset.weight.toFixed(0)}%</span>
+                        </div>
+                        {selectedAsset.price && (
+                          <div className="flex justify-between text-sm">
+                            <span className="text-muted-foreground">Estimated Value</span>
+                            <span className="font-mono font-bold text-primary">
+                              ${((initialCapital * selectedAsset.weight / 100)).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Actions */}
+                  <div className="flex gap-2">
+                    <Button 
+                      variant="outline" 
+                      className="flex-1"
+                      onClick={() => {
+                        removeAsset(selectedAsset.symbol);
+                        setAssetDetailOpen(false);
+                      }}
+                    >
+                      <X className="h-4 w-4 mr-2" />
+                      Remove
+                    </Button>
+                    <Button 
+                      className="flex-1"
+                      onClick={() => setAssetDetailOpen(false)}
+                    >
+                      Done
+                    </Button>
+                  </div>
+                </div>
+              </ScrollArea>
+            </>
+          )}
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }
