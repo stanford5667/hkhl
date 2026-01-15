@@ -51,6 +51,7 @@ import {
   Shield,
   Sparkles,
   Zap,
+  Play,
 } from "lucide-react";
 
 interface NavItem {
@@ -139,6 +140,12 @@ export function Sidebar() {
         href: "/quant-lab", 
         icon: FlaskConical,
         isPremium: true,
+      },
+      { 
+        label: "Backtester", 
+        subtitle: "Test Strategies",
+        href: "/backtester", 
+        icon: Play,
       },
       { 
         label: "Support", 
