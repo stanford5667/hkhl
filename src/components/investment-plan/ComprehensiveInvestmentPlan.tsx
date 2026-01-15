@@ -689,7 +689,9 @@ export function ComprehensiveInvestmentResults({
                   leftDesc: 'Capital preservation focus',
                   rightDesc: 'Growth-seeking mindset',
                   gradientFrom: '#3b82f6',
-                  gradientTo: '#f43f5e'
+                  gradientTo: '#f43f5e',
+                  conceptId: 'guardian-pioneer',
+                  conceptName: 'Guardian vs Pioneer',
                 },
                 { 
                   left: 'Analytical', 
@@ -700,7 +702,9 @@ export function ComprehensiveInvestmentResults({
                   leftDesc: 'Data-driven decisions',
                   rightDesc: 'Gut-feel investing',
                   gradientFrom: '#10b981',
-                  gradientTo: '#8b5cf6'
+                  gradientTo: '#8b5cf6',
+                  conceptId: 'analytical-intuitive',
+                  conceptName: 'Analytical vs Intuitive',
                 },
                 { 
                   left: 'Patient', 
@@ -711,7 +715,9 @@ export function ComprehensiveInvestmentResults({
                   leftDesc: 'Long-term horizon',
                   rightDesc: 'Tactical trading',
                   gradientFrom: '#06b6d4',
-                  gradientTo: '#f59e0b'
+                  gradientTo: '#f59e0b',
+                  conceptId: 'patient-active',
+                  conceptName: 'Patient vs Active',
                 },
                 { 
                   left: 'Diversifier', 
@@ -722,15 +728,23 @@ export function ComprehensiveInvestmentResults({
                   leftDesc: 'Spread across assets',
                   rightDesc: 'High-conviction bets',
                   gradientFrom: '#14b8a6',
-                  gradientTo: '#f97316'
+                  gradientTo: '#f97316',
+                  conceptId: 'diversifier-concentrator',
+                  conceptName: 'Diversifier vs Concentrator',
                 },
               ].map((dimension, i) => (
-                <motion.div 
+                <motion.button 
                   key={i}
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: 0.3 + i * 0.1 }}
-                  className="bg-white/5 rounded-xl p-4"
+                  onClick={() => handleConceptClick({
+                    id: dimension.conceptId,
+                    name: dimension.conceptName,
+                    category: 'strategy',
+                    value: `${dimension.value}%`,
+                  })}
+                  className="bg-white/5 rounded-xl p-4 text-left group hover:bg-white/10 transition-all border border-transparent hover:border-white/20 relative"
                 >
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-2">
@@ -761,7 +775,12 @@ export function ComprehensiveInvestmentResults({
                     <span>{dimension.leftDesc}</span>
                     <span>{dimension.rightDesc}</span>
                   </div>
-                </motion.div>
+                  
+                  {/* Click indicator */}
+                  <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <Info className="w-3.5 h-3.5 text-white/40" />
+                  </div>
+                </motion.button>
               ))}
             </div>
           </Card>
@@ -923,26 +942,50 @@ export function ComprehensiveInvestmentResults({
 
                 {/* Allocation List */}
                 <div className="md:col-span-2 space-y-4">
-                  {allocation.map((item, i) => (
-                    <div key={i}>
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center gap-2">
-                          <div className="w-3 h-3 rounded-full" style={{ backgroundColor: item.color }} />
-                          <span className="font-medium">{item.category}</span>
+                  {allocation.map((item, i) => {
+                    // Map category names to concept IDs
+                    const conceptIdMap: Record<string, string> = {
+                      'US Equities': 'us-equities',
+                      'International': 'international-equities',
+                      'Fixed Income': 'fixed-income',
+                      'Real Estate': 'real-estate',
+                      'Alternatives': 'alternatives',
+                      'Cash': 'cash',
+                    };
+                    const conceptId = conceptIdMap[item.category] || item.category.toLowerCase().replace(/\s+/g, '-');
+                    
+                    return (
+                      <button
+                        key={i}
+                        onClick={() => handleConceptClick({
+                          id: conceptId,
+                          name: item.category,
+                          category: 'allocation',
+                          value: `${item.percentage}%`,
+                          color: item.color,
+                        })}
+                        className="w-full text-left group hover:bg-white/5 rounded-lg p-2 -m-2 transition-all"
+                      >
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center gap-2">
+                            <div className="w-3 h-3 rounded-full" style={{ backgroundColor: item.color }} />
+                            <span className="font-medium group-hover:text-blue-300 transition-colors">{item.category}</span>
+                            <Info className="w-3 h-3 text-white/0 group-hover:text-white/40 transition-all" />
+                          </div>
+                          <span className="font-bold">{item.percentage}%</span>
                         </div>
-                        <span className="font-bold">{item.percentage}%</span>
-                      </div>
-                      <div className="h-2 bg-white/10 rounded-full overflow-hidden">
-                        <motion.div
-                          className="h-full rounded-full"
-                          style={{ backgroundColor: item.color }}
-                          initial={{ width: 0 }}
-                          animate={{ width: `${item.percentage}%` }}
-                          transition={{ delay: 0.4 + i * 0.1, duration: 0.5 }}
-                        />
-                      </div>
-                    </div>
-                  ))}
+                        <div className="h-2 bg-white/10 rounded-full overflow-hidden">
+                          <motion.div
+                            className="h-full rounded-full"
+                            style={{ backgroundColor: item.color }}
+                            initial={{ width: 0 }}
+                            animate={{ width: `${item.percentage}%` }}
+                            transition={{ delay: 0.4 + i * 0.1, duration: 0.5 }}
+                          />
+                        </div>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 
@@ -995,11 +1038,20 @@ export function ComprehensiveInvestmentResults({
               </h3>
               <div className="grid sm:grid-cols-3 gap-6">
                 {[
-                  { label: 'Risk Tolerance', value: riskScore, description: 'Emotional ability to handle losses', color: 'blue' },
-                  { label: 'Risk Capacity', value: Math.min(100, riskScore + 10), description: 'Financial ability to take risk', color: 'emerald' },
-                  { label: 'Risk Required', value: Math.max(0, riskScore - 5), description: 'Risk needed to meet goals', color: 'violet' },
+                  { label: 'Risk Tolerance', value: riskScore, description: 'Emotional ability to handle losses', color: 'blue', conceptId: 'risk-tolerance' },
+                  { label: 'Risk Capacity', value: Math.min(100, riskScore + 10), description: 'Financial ability to take risk', color: 'emerald', conceptId: 'risk-capacity' },
+                  { label: 'Risk Required', value: Math.max(0, riskScore - 5), description: 'Risk needed to meet goals', color: 'violet', conceptId: 'risk-required' },
                 ].map((metric, i) => (
-                  <div key={i} className="text-center">
+                  <button
+                    key={i}
+                    onClick={() => handleConceptClick({
+                      id: metric.conceptId,
+                      name: metric.label,
+                      category: 'risk',
+                      value: metric.value,
+                    })}
+                    className="text-center group hover:bg-white/5 rounded-xl p-4 -m-4 transition-all relative"
+                  >
                     <div className="relative w-24 h-24 mx-auto mb-3">
                       <svg className="w-full h-full -rotate-90">
                         <circle cx="48" cy="48" r="40" fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="8" />
@@ -1018,9 +1070,13 @@ export function ComprehensiveInvestmentResults({
                         <span className="text-xl font-bold">{metric.value}</span>
                       </div>
                     </div>
-                    <div className="font-medium">{metric.label}</div>
+                    <div className="font-medium group-hover:text-blue-300 transition-colors">{metric.label}</div>
                     <div className="text-xs text-white/40">{metric.description}</div>
-                  </div>
+                    {/* Click indicator */}
+                    <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <Info className="w-3.5 h-3.5 text-white/40" />
+                    </div>
+                  </button>
                 ))}
               </div>
             </Card>
@@ -1069,12 +1125,69 @@ export function ComprehensiveInvestmentResults({
           </motion.div>
 
           {/* ═══════════════════════════════════════════════════════════════
-              SECTION 6: CTA Card
+              SECTION 6: Investment Glossary
           ═══════════════════════════════════════════════════════════════ */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.6 }}
+          >
+            <Card className="bg-white/5 border-white/10 p-6">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-500 to-pink-500 flex items-center justify-center">
+                  <BookOpen className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-lg">Investment Glossary</h3>
+                  <p className="text-sm text-white/50">Click any term to learn more</p>
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+                {[
+                  { id: 'expected-return', name: 'Expected Return', color: '#3b82f6' },
+                  { id: 'volatility', name: 'Volatility', color: '#8b5cf6' },
+                  { id: 'max-drawdown', name: 'Max Drawdown', color: '#ef4444' },
+                  { id: 'sharpe-ratio', name: 'Sharpe Ratio', color: '#06b6d4' },
+                  { id: 'asset-allocation', name: 'Asset Allocation', color: '#10b981' },
+                  { id: 'diversification', name: 'Diversification', color: '#14b8a6' },
+                  { id: 'rebalancing', name: 'Rebalancing', color: '#f59e0b' },
+                  { id: 'compound-growth', name: 'Compound Growth', color: '#22c55e' },
+                  { id: 'dollar-cost-averaging', name: 'Dollar-Cost Averaging', color: '#8b5cf6' },
+                  { id: 'risk-tolerance', name: 'Risk Tolerance', color: '#3b82f6' },
+                  { id: 'time-horizon', name: 'Time Horizon', color: '#f59e0b' },
+                  { id: 'monthly-contribution', name: 'Monthly Contribution', color: '#10b981' },
+                ].map((term) => (
+                  <button
+                    key={term.id}
+                    onClick={() => handleConceptClick({
+                      id: term.id,
+                      name: term.name,
+                      category: 'term',
+                    })}
+                    className="group flex items-center gap-2 p-3 rounded-lg bg-white/5 hover:bg-white/10 border border-transparent hover:border-white/20 transition-all text-left"
+                  >
+                    <div 
+                      className="w-2 h-2 rounded-full shrink-0" 
+                      style={{ backgroundColor: term.color }} 
+                    />
+                    <span className="text-sm font-medium truncate group-hover:text-blue-300 transition-colors">
+                      {term.name}
+                    </span>
+                    <Info className="w-3 h-3 text-white/0 group-hover:text-white/40 transition-all ml-auto shrink-0" />
+                  </button>
+                ))}
+              </div>
+            </Card>
+          </motion.div>
+
+          {/* ═══════════════════════════════════════════════════════════════
+              SECTION 7: CTA Card
+          ═══════════════════════════════════════════════════════════════ */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.65 }}
           >
             <Card className="bg-gradient-to-r from-blue-500/20 to-emerald-500/20 border-white/20 p-8 text-center">
               <h3 className="text-2xl font-bold mb-3">Ready to Implement Your Strategy?</h3>
@@ -1094,7 +1207,7 @@ export function ComprehensiveInvestmentResults({
           </motion.div>
 
           {/* ═══════════════════════════════════════════════════════════════
-              SECTION 7: Compound Growth Projector
+              SECTION 8: Compound Growth Projector
           ═══════════════════════════════════════════════════════════════ */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}

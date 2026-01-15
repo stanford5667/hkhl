@@ -218,6 +218,137 @@ const CONCEPT_EXPLANATIONS: Record<string, {
     ],
     relatedConcepts: ['Liquidity', 'Opportunity Cost', 'Emergency Fund'],
   },
+  // Investor DNA Dimensions
+  'guardian-pioneer': {
+    description: 'This dimension measures your position on the risk spectrum—from Guardian (capital preservation focus) to Pioneer (growth-seeking mindset). It reflects your psychological comfort with investment risk.',
+    whyItMatters: 'Your position on this spectrum directly determines your asset allocation. Guardians sleep better with bonds; Pioneers thrive on equity volatility. Neither is wrong—it\'s about self-awareness.',
+    howToUse: 'If you\'re on the Guardian side, prioritize stable dividend payers and bonds. Pioneers can embrace growth stocks and emerging markets. The key is matching portfolio to personality.',
+    ranges: [
+      { label: 'Guardian (0-25)', range: '0-25', meaning: 'Strong preference for capital preservation over growth' },
+      { label: 'Moderate (25-50)', range: '25-50', meaning: 'Lean toward stability but accept some risk for growth' },
+      { label: 'Balanced (50-75)', range: '50-75', meaning: 'Comfortable with volatility for growth potential' },
+      { label: 'Pioneer (75-100)', range: '75-100', meaning: 'Actively seeks growth, comfortable with high volatility' },
+    ],
+    relatedConcepts: ['Risk Tolerance', 'Asset Allocation', 'Volatility'],
+  },
+  'analytical-intuitive': {
+    description: 'This dimension reflects your decision-making style—from Analytical (data-driven, methodical) to Intuitive (gut-feel, pattern-recognition). It shapes how you evaluate investments.',
+    whyItMatters: 'Analytical investors excel at due diligence but may suffer analysis paralysis. Intuitive investors act quickly but risk emotional decisions. Understanding your style helps compensate for blind spots.',
+    howToUse: 'Analytical types: Set decision deadlines to avoid over-analysis. Build systematic rules. Intuitive types: Create checklists to validate gut feelings. Both: Review past decisions to improve.',
+    ranges: [
+      { label: 'Highly Analytical', range: '0-25', meaning: 'Decisions require extensive research and data' },
+      { label: 'Lean Analytical', range: '25-50', meaning: 'Data-focused with some intuitive validation' },
+      { label: 'Lean Intuitive', range: '50-75', meaning: 'Trust instincts but verify with data' },
+      { label: 'Highly Intuitive', range: '75-100', meaning: 'Pattern recognition drives decisions' },
+    ],
+    relatedConcepts: ['Investment Research', 'Decision Making', 'Behavioral Finance'],
+  },
+  'patient-active': {
+    description: 'This dimension measures your trading temperament—from Patient (buy-and-hold, long-term focus) to Active (tactical, frequent adjustments). It affects transaction costs and tax efficiency.',
+    whyItMatters: 'Patient investors benefit from compound growth and lower costs. Active investors can capture opportunities but face higher taxes and transaction costs. Studies show most active traders underperform.',
+    howToUse: 'Patient: Set it and forget it with index funds. Rebalance annually. Active: If you must trade, limit to 10% "play money" portfolio. Track your performance honestly against benchmarks.',
+    ranges: [
+      { label: 'Very Patient', range: '0-25', meaning: 'Multi-decade holder, ignores short-term noise' },
+      { label: 'Patient', range: '25-50', meaning: 'Annual rebalancing, rarely sells individual positions' },
+      { label: 'Tactical', range: '50-75', meaning: 'Adjusts quarterly, responds to market conditions' },
+      { label: 'Active', range: '75-100', meaning: 'Frequent trading, seeks short-term opportunities' },
+    ],
+    relatedConcepts: ['Transaction Costs', 'Tax Efficiency', 'Rebalancing'],
+  },
+  'diversifier-concentrator': {
+    description: 'This dimension shows your portfolio construction preference—from Diversifier (broad exposure, many positions) to Concentrator (high-conviction, focused bets). It affects your risk profile.',
+    whyItMatters: 'Diversifiers reduce individual stock risk but cap upside. Concentrators can achieve exceptional returns but face higher variance. Warren Buffett concentrates; Ray Dalio diversifies. Both are billionaires.',
+    howToUse: 'Diversifiers: Low-cost index funds are your friend. Own the market. Concentrators: If you concentrate, ensure deep research and accept potential 50%+ drawdowns on positions.',
+    ranges: [
+      { label: 'Strong Diversifier', range: '0-25', meaning: 'Broad index funds, 100+ positions' },
+      { label: 'Diversifier', range: '25-50', meaning: 'Multiple ETFs across asset classes' },
+      { label: 'Focused', range: '50-75', meaning: '15-30 high-conviction positions' },
+      { label: 'Concentrator', range: '75-100', meaning: '<10 positions, very high conviction' },
+    ],
+    relatedConcepts: ['Portfolio Construction', 'Position Sizing', 'Concentration Risk'],
+  },
+  // Risk Profile Breakdown
+  'risk-tolerance': {
+    description: 'Risk tolerance is your emotional and psychological ability to handle investment losses. It\'s how you feel when your portfolio drops 20%—can you sleep at night?',
+    whyItMatters: 'If your risk tolerance is lower than your portfolio\'s volatility, you\'ll panic sell at the worst times. The best portfolio is one you can stick with through crashes.',
+    howToUse: 'Be honest with yourself. If 2020\'s 35% drop made you sell, your tolerance is lower than you thought. Match your portfolio to your actual behavior, not aspirational behavior.',
+    ranges: [
+      { label: 'Low', range: '0-30', meaning: 'Significant anxiety during market drops' },
+      { label: 'Moderate', range: '30-60', meaning: 'Uncomfortable but can hold during corrections' },
+      { label: 'High', range: '60-100', meaning: 'Views drops as buying opportunities' },
+    ],
+    relatedConcepts: ['Risk Capacity', 'Behavioral Finance', 'Max Drawdown'],
+    benchmarks: [
+      { name: 'Average Investor', value: '45-55', description: 'Moderate tolerance' },
+      { name: '2008 Panic Sellers', value: '<30', description: 'Revealed low tolerance' },
+    ],
+  },
+  'risk-capacity': {
+    description: 'Risk capacity is your financial ability to take risk. It depends on your income stability, emergency fund, debt levels, and time horizon—objective factors, not feelings.',
+    whyItMatters: 'Someone with $10M and no debt has high capacity regardless of tolerance. A retiree living on savings has low capacity. Capacity sets the upper limit of risk you should take.',
+    howToUse: 'Calculate: Stable income + long timeline + low debt + large emergency fund = high capacity. Unstable income + short timeline + high debt = low capacity. Never exceed your capacity.',
+    ranges: [
+      { label: 'Low', range: '0-30', meaning: 'Limited buffer, needs capital preservation' },
+      { label: 'Moderate', range: '30-60', meaning: 'Can absorb some losses without life impact' },
+      { label: 'High', range: '60-100', meaning: 'Strong financial position, can weather any storm' },
+    ],
+    relatedConcepts: ['Risk Tolerance', 'Emergency Fund', 'Financial Stability'],
+  },
+  'risk-required': {
+    description: 'Risk required is the amount of risk you need to take to achieve your financial goals. If you need 10% returns to retire comfortably, your required risk is high.',
+    whyItMatters: 'Sometimes there\'s a gap: you might need high risk but have low tolerance. This forces hard choices: save more, work longer, or accept lower goals. Ignoring this gap leads to failure.',
+    howToUse: 'Calculate your required return: (Goal Amount / Current Savings)^(1/Years) - 1. If required risk exceeds your tolerance, adjust your goals or increase savings rate.',
+    ranges: [
+      { label: 'Low', range: '0-30', meaning: 'On track with conservative returns' },
+      { label: 'Moderate', range: '30-60', meaning: 'Needs balanced growth to meet goals' },
+      { label: 'High', range: '60-100', meaning: 'Needs aggressive growth, goals at risk' },
+    ],
+    relatedConcepts: ['Financial Goals', 'Expected Return', 'Savings Rate'],
+  },
+  // Additional glossary terms
+  'asset-allocation': {
+    description: 'Asset allocation is the strategic distribution of your portfolio across different asset classes (stocks, bonds, real estate, etc.). Studies show it determines over 90% of portfolio performance.',
+    whyItMatters: 'Your allocation decision is more important than which specific stocks you pick. A good allocation matched to your risk profile and timeline is the foundation of investing success.',
+    howToUse: 'Start with your risk score to determine equity/bond split. Then diversify within each category. Rebalance when allocations drift more than 5% from targets.',
+    relatedConcepts: ['Diversification', 'Rebalancing', 'Risk Profile'],
+    benchmarks: [
+      { name: 'Conservative (30/70)', value: '~5% return', description: '30% stocks, 70% bonds' },
+      { name: 'Moderate (60/40)', value: '~7% return', description: 'Classic balanced portfolio' },
+      { name: 'Aggressive (90/10)', value: '~9% return', description: '90% stocks, 10% bonds' },
+    ],
+  },
+  'diversification': {
+    description: 'Diversification means spreading investments across different assets so that poor performance in one area doesn\'t devastate your entire portfolio. It\'s the only "free lunch" in investing.',
+    whyItMatters: 'No one can predict which asset will perform best. Diversification ensures you capture returns wherever they occur while reducing the impact of any single failure.',
+    howToUse: 'Diversify across: asset classes (stocks, bonds, real estate), geographies (US, international), sectors (tech, healthcare, finance), and company sizes (large, small cap).',
+    relatedConcepts: ['Asset Allocation', 'Correlation', 'Portfolio Construction'],
+  },
+  'rebalancing': {
+    description: 'Rebalancing is the process of adjusting your portfolio back to your target allocation. As markets move, your allocations drift—rebalancing sells winners and buys losers to maintain your plan.',
+    whyItMatters: 'Without rebalancing, a portfolio naturally becomes riskier over time as stocks outpace bonds. Rebalancing enforces discipline and a systematic "sell high, buy low" approach.',
+    howToUse: 'Rebalance annually or when allocations drift 5%+ from targets. Use new contributions to rebalance tax-efficiently. Keep records for tax purposes.',
+    relatedConcepts: ['Asset Allocation', 'Tax Efficiency', 'Portfolio Drift'],
+  },
+  'compound-growth': {
+    description: 'Compound growth is earnings generating more earnings over time—interest on interest. Einstein allegedly called it the "eighth wonder of the world." It\'s why time in the market beats timing.',
+    whyItMatters: '$10,000 at 8% for 30 years becomes $100,627 without adding a penny. The same at 10% becomes $174,494. Small rate differences compound into huge wealth differences.',
+    howToUse: 'Start early—even small amounts. Stay invested—avoid breaks. Minimize fees—even 1% annually destroys compounding. Use the Rule of 72: 72 ÷ rate = years to double.',
+    benchmarks: [
+      { name: 'Rule of 72 at 8%', value: '9 years', description: 'Time to double your money' },
+      { name: 'Rule of 72 at 10%', value: '7.2 years', description: 'Time to double your money' },
+      { name: '$10K for 30 years @ 8%', value: '$100,627', description: 'Power of compounding' },
+    ],
+    relatedConcepts: ['Time Value of Money', 'Interest Rates', 'Patience'],
+  },
+  'dollar-cost-averaging': {
+    description: 'Dollar-cost averaging (DCA) is investing fixed amounts at regular intervals regardless of market conditions. You buy more shares when prices are low and fewer when high, lowering average cost.',
+    whyItMatters: 'DCA removes emotion from investing. You don\'t need to time the market—you\'re always investing. In volatile markets, you actually benefit from drops.',
+    howToUse: 'Set up automatic investments on each payday. Don\'t check prices—just keep contributing. Over time, your average purchase price will be lower than the market average.',
+    relatedConcepts: ['Monthly Contribution', 'Market Timing', 'Systematic Investing'],
+    benchmarks: [
+      { name: 'Lump Sum vs DCA', value: 'Lump sum wins 66%', description: 'But DCA reduces regret' },
+    ],
+  },
 };
 
 export function InvestmentConceptDetail({ concept, open, onOpenChange }: InvestmentConceptDetailProps) {
