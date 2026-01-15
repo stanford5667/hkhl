@@ -78,6 +78,7 @@ import { InvestorPolicyStatement } from '@/types/investorPolicy';
 // Components
 import { MobileBacktester } from '@/components/backtester/MobileBacktester';
 import { RiskScreener } from '@/components/backtester/RiskScreener';
+import { DynamicScreener } from '@/components/backtester/DynamicScreener';
 import { AICoPilotWizard } from '@/components/backtester/AICoPilotWizard';
 import { ManualPortfolioForm } from '@/components/backtester/ManualPortfolioForm';
 import { EfficientFrontierSlider } from '@/components/backtester/EfficientFrontierSlider';
