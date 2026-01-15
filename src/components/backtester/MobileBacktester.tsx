@@ -965,89 +965,132 @@ export function MobileBacktester() {
 
   return (
     <div className="flex flex-col h-full min-h-0 bg-background">
-      {/* Header with Run button */}
-      <header className="flex-shrink-0 px-4 py-3 border-b bg-background/95 backdrop-blur">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <BarChart3 className="h-5 w-5 text-primary" />
-            <h1 className="font-semibold">Backtester</h1>
+      {/* Header Bar - Portfolio Lab Style */}
+      <header className="flex-shrink-0 px-4 py-2.5 border-b bg-background/95 backdrop-blur">
+        <div className="flex items-center justify-between gap-4">
+          {/* Left: Title + Time Period */}
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
+                <BarChart3 className="h-4 w-4 text-primary" />
+              </div>
+              <h1 className="font-semibold text-lg">Portfolio Lab</h1>
+            </div>
+            
+            {/* Time Period Pills */}
+            <div className="flex items-center gap-1 bg-muted/50 rounded-lg p-1">
+              {PERIODS.filter(p => ['1Y', '3Y', '5Y', 'MAX'].includes(p.value)).map(p => (
+                <button
+                  key={p.value}
+                  onClick={() => setPeriod(p.value)}
+                  className={cn(
+                    "px-2.5 py-1 text-xs font-medium rounded-md transition-all",
+                    period === p.value
+                      ? "bg-primary text-primary-foreground shadow-sm"
+                      : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                  )}
+                >
+                  {p.value}
+                </button>
+              ))}
+            </div>
           </div>
           
-          <div className="flex items-center gap-2">
-            {/* Weight indicator */}
-            <Badge variant={isValid ? 'secondary' : 'destructive'} className="font-mono text-xs">
-              {totalWeight.toFixed(0)}%
-            </Badge>
+          {/* Right: Benchmark + Allocation + Run */}
+          <div className="flex items-center gap-3">
+            {/* Benchmark chips */}
+            <div className="hidden md:flex items-center gap-1 text-xs text-muted-foreground">
+              <span className="mr-1">vs</span>
+              {BENCHMARKS.filter(b => b.value !== 'NONE').map(b => (
+                <button
+                  key={b.value}
+                  onClick={() => setBenchmark(b.value)}
+                  className={cn(
+                    "px-2 py-1 rounded text-xs font-mono transition-all",
+                    benchmark === b.value
+                      ? "bg-muted text-foreground font-semibold"
+                      : "text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  {b.value}
+                </button>
+              ))}
+            </div>
             
-            {/* Run button in header */}
+            {/* Allocation indicator */}
+            <div className={cn(
+              "px-2.5 py-1 rounded-md text-xs font-mono font-bold",
+              isValid 
+                ? "bg-emerald-500/20 text-emerald-500" 
+                : "bg-amber-500/20 text-amber-500"
+            )}>
+              {totalWeight.toFixed(0)}%
+            </div>
+            
+            {/* Run button */}
             <Button 
               onClick={runBacktest} 
               disabled={isLoading || !isValid || assets.length === 0}
-              size="lg"
+              size="sm"
               className={cn(
-                "gap-2 px-6 font-semibold text-base",
-                "bg-gradient-to-r from-primary via-primary to-primary/80",
-                "shadow-[0_0_20px_hsl(var(--primary)/0.5)]",
-                "hover:shadow-[0_0_30px_hsl(var(--primary)/0.7)]",
-                "transition-all duration-300",
-                !isLoading && isValid && assets.length > 0 && "animate-pulse"
+                "gap-1.5 px-4 font-semibold",
+                "bg-emerald-500 hover:bg-emerald-600 text-white",
+                !isLoading && isValid && assets.length > 0 && "shadow-[0_0_15px_rgba(16,185,129,0.4)]"
               )}
             >
               {isLoading ? (
-                <Loader2 className="h-5 w-5 animate-spin" />
+                <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
-                <Play className="h-5 w-5 fill-current" />
+                <Play className="h-4 w-4 fill-current" />
               )}
-              Run Backtest
+              RUN
             </Button>
           </div>
         </div>
       </header>
 
-      {/* Side Tab Layout */}
+      {/* Main Two-Panel Layout */}
       <div className="flex-1 flex min-h-0">
         {/* Vertical Side Tab Navigation */}
-        <div className="w-14 flex-shrink-0 border-r border-border/50 flex flex-col py-3 bg-muted/30 gap-1">
+        <div className="w-12 flex-shrink-0 border-r border-border/50 flex flex-col py-3 bg-muted/20 gap-0.5">
           <button
             onClick={() => setActiveTab('portfolio')}
             className={cn(
-              "w-full py-3 flex items-center justify-center transition-all relative group",
+              "w-full py-2.5 flex items-center justify-center transition-all relative",
               activeTab === 'portfolio'
                 ? "text-primary"
                 : "text-muted-foreground hover:text-foreground"
             )}
-            title="Portfolio"
+            title="Search Tickers"
           >
             {activeTab === 'portfolio' && (
-              <div className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-6 bg-primary rounded-r" />
+              <div className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 bg-primary rounded-r" />
             )}
             <div className="flex flex-col items-center gap-0.5">
-              <Wallet className="h-5 w-5" />
-              <span className="text-[9px] font-medium">Build</span>
+              <Search className="h-4 w-4" />
             </div>
           </button>
           <button
             onClick={() => setActiveTab('templates')}
             className={cn(
-              "w-full py-3 flex items-center justify-center transition-all relative group",
+              "w-full py-2.5 flex items-center justify-center transition-all relative",
               activeTab === 'templates'
                 ? "text-primary"
                 : "text-muted-foreground hover:text-foreground"
             )}
-            title="Templates"
+            title="Presets"
           >
             {activeTab === 'templates' && (
-              <div className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-6 bg-primary rounded-r" />
+              <div className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 bg-primary rounded-r" />
             )}
             <div className="flex flex-col items-center gap-0.5">
-              <LayoutGrid className="h-5 w-5" />
-              <span className="text-[9px] font-medium">Presets</span>
+              <LayoutGrid className="h-4 w-4" />
             </div>
           </button>
           <button
             onClick={() => setActiveTab('settings')}
             className={cn(
-              "w-full py-3 flex items-center justify-center transition-all relative group",
+              "w-full py-2.5 flex items-center justify-center transition-all relative",
               activeTab === 'settings'
                 ? "text-primary"
                 : "text-muted-foreground hover:text-foreground"
@@ -1055,478 +1098,271 @@ export function MobileBacktester() {
             title="Settings"
           >
             {activeTab === 'settings' && (
-              <div className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-6 bg-primary rounded-r" />
+              <div className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 bg-primary rounded-r" />
             )}
             <div className="flex flex-col items-center gap-0.5">
-              <Activity className="h-5 w-5" />
-              <span className="text-[9px] font-medium">Config</span>
+              <Activity className="h-4 w-4" />
             </div>
           </button>
         </div>
         
-        {/* Tab Content Area */}
-        <div className="flex-1 flex flex-col min-h-0 min-w-0">
-
-          {/* ═══════════════════════════════════════════════════════════════════
-              PORTFOLIO TAB CONTENT
-          ═══════════════════════════════════════════════════════════════════ */}
-          {activeTab === 'portfolio' && (
-            <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
-              <div className="flex-1 flex flex-col overflow-auto px-4 pb-4 pt-3">
-                <div className="space-y-3">
-                  {/* Ticker Input card */}
-                  <Card className="border-primary/30 bg-primary/5">
-                    <CardContent className="p-3 space-y-3">
-                      {/* Ticker input */}
-                      <div className="flex gap-2">
-                        <div className="relative flex-1">
-                          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                          <Input
-                            value={newSymbol}
-                            onChange={(e) => setNewSymbol(e.target.value.toUpperCase())}
-                            onKeyDown={(e) => e.key === 'Enter' && addAsset(newSymbol)}
-                            placeholder="Enter ticker symbol..."
-                            className="pl-9 h-11 text-base"
-                          />
-                        </div>
-                        <Button onClick={() => addAsset(newSymbol)} disabled={!newSymbol} className="h-11 px-4">
-                          <Plus className="h-5 w-5" />
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  {/* Quick add pills */}
-                  <ScrollArea className="w-full">
-                    <div className="flex gap-1.5 pb-2">
-                      {POPULAR_ETFS.filter(e => !assets.find(a => a.symbol === e.symbol)).slice(0, 10).map((etf) => (
+        {/* Left Panel - Search/Templates/Settings */}
+        <div className="w-72 flex-shrink-0 border-r border-border/50 flex flex-col min-h-0 bg-card/50">
+          <ScrollArea className="flex-1">
+            <div className="p-3 space-y-3">
+              {/* Portfolio Tab Content */}
+              {activeTab === 'portfolio' && (
+                <>
+                  {/* Search Input */}
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      value={newSymbol}
+                      onChange={(e) => setNewSymbol(e.target.value.toUpperCase())}
+                      onKeyDown={(e) => e.key === 'Enter' && addAsset(newSymbol)}
+                      placeholder="Search ticker..."
+                      className="pl-9 h-9 text-sm bg-background"
+                    />
+                    <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
+                      <kbd className="px-1.5 py-0.5 text-[10px] font-mono bg-muted rounded border text-muted-foreground">K</kbd>
+                    </div>
+                  </div>
+                  
+                  {/* Quick Add */}
+                  <div>
+                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-2">QUICK ADD</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {POPULAR_ETFS.filter(e => !assets.find(a => a.symbol === e.symbol)).slice(0, 8).map((etf) => (
                         <button
                           key={etf.symbol}
                           onClick={() => addAsset(etf.symbol)}
-                          className="flex-shrink-0 px-2.5 py-1.5 text-xs rounded-full border bg-card hover:bg-muted/50 transition-colors"
+                          className="px-2 py-1 text-xs font-mono rounded border bg-background hover:bg-muted/50 transition-colors"
                         >
-                          <span className="font-mono font-medium">{etf.symbol}</span>
-                          <span className="text-muted-foreground ml-1">{etf.name}</span>
+                          {etf.symbol}
                         </button>
                       ))}
                     </div>
-                    <ScrollBar orientation="horizontal" />
-                  </ScrollArea>
-
-                  {/* Sample defaults hint - prominent banner */}
-                  {assets.length > 0 && assets.every(a => DEFAULT_POSITIONS.some(d => d.symbol === a.symbol)) && (
-                    <div className="relative overflow-hidden rounded-xl border-2 border-dashed border-amber-400/60 bg-gradient-to-r from-amber-500/10 via-orange-500/10 to-amber-500/10 p-4">
-                      <div className="absolute -right-6 -top-6 h-20 w-20 rounded-full bg-amber-400/20 blur-2xl" />
-                      <div className="relative flex items-start gap-3">
-                        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-amber-500/20 flex-shrink-0">
-                          <Sparkles className="h-4 w-4 text-amber-500" />
-                        </div>
-                        <div className="space-y-1">
-                          <p className="font-semibold text-sm text-foreground">
-                            Sample Portfolio
-                          </p>
-                          <p className="text-xs text-muted-foreground leading-relaxed">
-                            These are example positions to get you started. <strong className="text-foreground">Tap any asset</strong> to edit, remove, or add your own tickers above.
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* PROMINENT Weight Requirement Banner */}
-                  <div className={cn(
-                    "p-4 rounded-xl border-2 transition-all",
-                    isValid 
-                      ? "border-emerald-500 bg-emerald-500/20" 
-                      : "border-amber-500 bg-amber-500/20 animate-pulse"
-                  )}>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className={cn(
-                          "flex items-center justify-center h-14 w-14 rounded-full text-2xl font-black",
-                          isValid 
-                            ? "bg-emerald-500 text-white" 
-                            : "bg-amber-500 text-black"
-                        )}>
-                          {totalWeight.toFixed(0)}%
-                        </div>
-                        <div>
-                          <div className="text-lg font-bold">
-                            {isValid ? "✓ Ready!" : "Must equal 100%"}
-                          </div>
-                          <div className={cn(
-                            "text-sm",
-                            isValid ? "text-emerald-600" : "text-amber-600"
-                          )}>
-                            {isValid ? "Portfolio weights sum to 100%" : `Need ${totalWeight < 100 ? '+' : ''}${(100 - totalWeight).toFixed(0)}%`}
-                          </div>
-                        </div>
-                      </div>
-                      <div className="flex gap-2">
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={equalizeWeights}
-                                disabled={assets.length === 0}
-                              >
-                                <Scale className="h-4 w-4" />
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p>Equalize weights</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={normalizeWeights}
-                                disabled={assets.length === 0 || totalWeight === 0}
-                              >
-                                <Percent className="h-4 w-4" />
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p>Normalize to 100%</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                      </div>
+                  </div>
+                  
+                  {/* Holdings Header */}
+                  <div className="flex items-center justify-between pt-2">
+                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                      HOLDINGS ({assets.length})
+                    </p>
+                    <div className="flex gap-1">
+                      <button
+                        onClick={equalizeWeights}
+                        disabled={assets.length === 0}
+                        className="text-[10px] text-primary hover:underline disabled:opacity-50"
+                      >
+                        Equal
+                      </button>
+                      <span className="text-muted-foreground">|</span>
+                      <button
+                        onClick={normalizeWeights}
+                        disabled={assets.length === 0 || totalWeight === 0}
+                        className="text-[10px] text-primary hover:underline disabled:opacity-50"
+                      >
+                        Normalize
+                      </button>
                     </div>
                   </div>
-
-                  {/* Asset list */}
+                  
+                  {/* Holdings List */}
                   {assets.length === 0 ? (
-                    <Card className="border-dashed">
-                      <CardContent className="flex flex-col items-center justify-center py-8 text-center">
-                        <Layers className="h-10 w-10 text-muted-foreground/50 mb-3" />
-                        <p className="text-sm text-muted-foreground">
-                          Add tickers above to build your portfolio
-                        </p>
-                      </CardContent>
-                    </Card>
+                    <div className="text-center py-8 text-muted-foreground text-sm">
+                      Add tickers to build your portfolio
+                    </div>
                   ) : (
-                    <div className="space-y-2">
+                    <div className="space-y-1.5">
                       {assets.map((asset) => (
-                        <button
+                        <div
                           key={asset.symbol}
+                          className="p-2.5 rounded-lg border bg-background hover:bg-muted/30 transition-colors cursor-pointer group"
                           onClick={() => openAssetDetail(asset)}
-                          className="w-full p-3 rounded-xl border bg-card text-left hover:bg-muted/50 transition-colors group"
                         >
-                          <div className="flex items-center gap-3">
+                          <div className="flex items-center gap-2">
                             {/* Color indicator */}
                             <div 
-                              className="w-1.5 h-12 rounded-full flex-shrink-0"
+                              className="w-1 h-8 rounded-full flex-shrink-0"
                               style={{ backgroundColor: asset.color }}
                             />
                             
-                            {/* Symbol and name */}
+                            {/* Symbol info */}
                             <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2">
-                                <span className="font-mono font-semibold">{asset.symbol}</span>
-                                {asset.isLoadingStats && (
-                                  <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
+                              <div className="flex items-center gap-1.5">
+                                <span className="font-mono font-semibold text-sm">{asset.symbol}</span>
+                                {asset.changePercent !== undefined && (
+                                  <span className={cn(
+                                    "text-[10px] font-mono",
+                                    asset.changePercent >= 0 ? "text-emerald-500" : "text-rose-500"
+                                  )}>
+                                    {asset.changePercent >= 0 ? '+' : ''}{asset.changePercent.toFixed(1)}%
+                                  </span>
                                 )}
                               </div>
-                              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                                <span className="truncate">{asset.name || 'Loading...'}</span>
-                                {asset.price && (
-                                  <>
-                                    <span>•</span>
-                                    <span className="font-mono">${asset.price.toFixed(2)}</span>
-                                    {asset.changePercent !== undefined && (
-                                      <span className={cn(
-                                        "font-mono",
-                                        asset.changePercent >= 0 ? "text-emerald-500" : "text-rose-500"
-                                      )}>
-                                        {asset.changePercent >= 0 ? '+' : ''}{asset.changePercent.toFixed(2)}%
-                                      </span>
-                                    )}
-                                  </>
-                                )}
+                              <div className="text-[10px] text-muted-foreground truncate">
+                                {asset.name || 'Loading...'}
                               </div>
                             </div>
                             
-                            {/* Weight slider */}
-                            <div className="flex items-center gap-3 flex-shrink-0">
-                              <div className="w-24">
+                            {/* Weight controls */}
+                            <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+                              <button
+                                onClick={() => updateWeight(asset.symbol, Math.max(0, asset.weight - 5))}
+                                className="w-6 h-6 rounded border bg-muted/50 hover:bg-muted flex items-center justify-center text-xs"
+                              >
+                                −
+                              </button>
+                              <span className="font-mono font-semibold text-sm w-10 text-center">
+                                {asset.weight.toFixed(0)}
+                              </span>
+                              <span className="text-muted-foreground text-xs">%</span>
+                              <button
+                                onClick={() => updateWeight(asset.symbol, Math.min(100, asset.weight + 5))}
+                                className="w-6 h-6 rounded border bg-muted/50 hover:bg-muted flex items-center justify-center text-xs"
+                              >
+                                +
+                              </button>
+                              <div className="w-16 ml-1">
                                 <Slider
                                   value={[asset.weight]}
                                   onValueChange={([v]) => updateWeight(asset.symbol, v)}
                                   max={100}
                                   step={1}
                                   className="cursor-pointer"
-                                  onClick={(e) => e.stopPropagation()}
                                 />
                               </div>
-                              <span className="font-mono font-semibold w-12 text-right tabular-nums">
-                                {asset.weight.toFixed(0)}%
-                              </span>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  removeAsset(asset.symbol);
-                                }}
-                              >
-                                <X className="h-4 w-4 text-muted-foreground hover:text-destructive" />
-                              </Button>
                             </div>
                           </div>
-                        </button>
+                        </div>
                       ))}
                     </div>
                   )}
-
-                  {/* Run Backtest Button - Bottom of Portfolio */}
-                  {assets.length > 0 && (
-                    <div className="pt-4 pb-2">
-                      {isValid ? (
-                        <Button 
-                          onClick={runBacktest} 
-                          disabled={isLoading}
-                          size="lg"
-                          className={cn(
-                            "w-full gap-2 h-14 text-lg font-bold",
-                            "bg-gradient-to-r from-emerald-500 via-emerald-600 to-emerald-500",
-                            "shadow-[0_0_25px_rgba(16,185,129,0.5)]",
-                            "hover:shadow-[0_0_35px_rgba(16,185,129,0.7)]",
-                            "transition-all duration-300",
-                            !isLoading && "animate-pulse"
-                          )}
-                        >
-                          {isLoading ? (
-                            <Loader2 className="h-6 w-6 animate-spin" />
-                          ) : (
-                            <Play className="h-6 w-6 fill-current" />
-                          )}
-                          Run Backtest
-                        </Button>
-                      ) : (
-                        <div className="text-center p-4 rounded-xl border-2 border-dashed border-amber-500/50 bg-amber-500/10">
-                          <div className="text-amber-500 font-bold text-lg mb-1">
-                            ⚠️ Cannot Run Backtest
-                          </div>
-                          <div className="text-amber-600 text-sm">
-                            Adjust sliders until total equals exactly 100%
-                          </div>
-                          <div className="text-amber-500 font-mono text-2xl font-black mt-2">
-                            {totalWeight.toFixed(0)}% → 100%
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* ═══════════════════════════════════════════════════════════════════
-              TEMPLATES TAB CONTENT
-          ═══════════════════════════════════════════════════════════════════ */}
-          {activeTab === 'templates' && (
-            <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
-              <div className="flex-1 overflow-auto px-4 pb-4 pt-3 space-y-2">
-                {TEMPLATES.map((template) => (
-                  <button
-                    key={template.name}
-                    onClick={() => {
-                      loadTemplate(template);
-                      setActiveTab('portfolio');
-                    }}
-                    className="w-full p-4 rounded-xl border bg-card text-left hover:bg-muted/50 transition-colors"
-                  >
-                    <div className="flex items-center justify-between mb-2">
-                      <div>
-                        <span className="font-medium">{template.name}</span>
-                        <p className="text-xs text-muted-foreground">{template.description}</p>
+                </>
+              )}
+              
+              {/* Templates Tab Content */}
+              {activeTab === 'templates' && (
+                <div className="space-y-2">
+                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-2">PORTFOLIO TEMPLATES</p>
+                  {TEMPLATES.map((template) => (
+                    <button
+                      key={template.name}
+                      onClick={() => {
+                        loadTemplate(template);
+                        setActiveTab('portfolio');
+                      }}
+                      className="w-full p-3 rounded-lg border bg-background text-left hover:bg-muted/50 transition-colors"
+                    >
+                      <div className="flex items-center justify-between mb-1.5">
+                        <span className="font-medium text-sm">{template.name}</span>
+                        <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
                       </div>
-                      <ChevronRight className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                    </div>
-                    <div className="flex flex-wrap gap-1.5">
-                      {template.assets.map((a) => (
-                        <Badge key={a.symbol} variant="secondary" className="text-xs font-mono">
-                          {a.symbol} {a.weight}%
-                        </Badge>
-                      ))}
-                    </div>
-                  </button>
-                ))}
-                
-                {/* Run Backtest Button - Bottom of Templates */}
-                {assets.length > 0 && (
-                  <div className="pt-4 pb-2">
-                    {isValid ? (
-                      <Button 
-                        onClick={runBacktest} 
-                        disabled={isLoading}
-                        size="lg"
-                        className={cn(
-                          "w-full gap-2 h-14 text-lg font-bold",
-                          "bg-gradient-to-r from-emerald-500 via-emerald-600 to-emerald-500",
-                          "shadow-[0_0_25px_rgba(16,185,129,0.5)]",
-                          "hover:shadow-[0_0_35px_rgba(16,185,129,0.7)]",
-                          "transition-all duration-300",
-                          !isLoading && "animate-pulse"
-                        )}
-                      >
-                        {isLoading ? (
-                          <Loader2 className="h-6 w-6 animate-spin" />
-                        ) : (
-                          <Play className="h-6 w-6 fill-current" />
-                        )}
-                        Run Backtest
-                      </Button>
-                    ) : (
-                      <div className="text-center p-4 rounded-xl border-2 border-dashed border-amber-500/50 bg-amber-500/10">
-                        <div className="text-amber-500 font-bold text-lg mb-1">
-                          ⚠️ Cannot Run Backtest
-                        </div>
-                        <div className="text-amber-600 text-sm">
-                          Portfolio must equal exactly 100%
-                        </div>
-                        <div className="text-amber-500 font-mono text-2xl font-black mt-2">
-                          {totalWeight.toFixed(0)}% → 100%
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* ═══════════════════════════════════════════════════════════════════
-              SETTINGS TAB CONTENT
-          ═══════════════════════════════════════════════════════════════════ */}
-          {activeTab === 'settings' && (
-            <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
-              <div className="flex-1 overflow-auto px-4 pb-4 pt-3 space-y-4">
-                {/* Time Period */}
-                <Card>
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-sm flex items-center gap-2">
-                      <Calendar className="h-4 w-4 text-primary" />
-                      TIME PERIOD
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    <Select value={period} onValueChange={setPeriod}>
-                      <SelectTrigger className="h-12 text-base">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {PERIODS.map(p => (
-                          <SelectItem key={p.value} value={p.value} className="text-base">
-                            {p.label}
-                          </SelectItem>
+                      <p className="text-[10px] text-muted-foreground mb-2">{template.description}</p>
+                      <div className="flex flex-wrap gap-1">
+                        {template.assets.map((a) => (
+                          <Badge key={a.symbol} variant="secondary" className="text-[10px] font-mono px-1.5 py-0">
+                            {a.symbol} {a.weight}%
+                          </Badge>
                         ))}
-                      </SelectContent>
-                    </Select>
-                    <div className="flex flex-wrap gap-2">
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+              
+              {/* Settings Tab Content */}
+              {activeTab === 'settings' && (
+                <div className="space-y-4">
+                  {/* Time Period */}
+                  <div>
+                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-2 flex items-center gap-1.5">
+                      <Calendar className="h-3 w-3" />
+                      TIME PERIOD
+                    </p>
+                    <div className="flex flex-wrap gap-1.5">
                       {PERIODS.map(p => (
                         <Button
                           key={p.value}
                           variant={period === p.value ? "default" : "outline"}
                           size="sm"
                           onClick={() => setPeriod(p.value)}
-                          className="text-xs"
+                          className="text-xs h-7 px-2.5"
                         >
                           {p.value}
                         </Button>
                       ))}
                     </div>
-                  </CardContent>
-                </Card>
-
-                {/* Initial Capital */}
-                <Card>
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-sm flex items-center gap-2">
-                      <DollarSign className="h-4 w-4 text-primary" />
+                  </div>
+                  
+                  {/* Initial Capital */}
+                  <div>
+                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-2 flex items-center gap-1.5">
+                      <DollarSign className="h-3 w-3" />
                       INITIAL CAPITAL
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    <div className="relative">
-                      <DollarSign className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                    </p>
+                    <div className="relative mb-2">
+                      <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                       <Input
                         type="number"
                         value={initialCapital}
                         onChange={(e) => setInitialCapital(Number(e.target.value))}
-                        className="h-12 text-lg pl-10 font-mono"
+                        className="h-9 text-sm pl-8 font-mono bg-background"
                       />
                     </div>
-                    <div className="flex flex-wrap gap-2">
-                      {[10000, 50000, 100000, 250000, 500000, 1000000].map(amount => (
+                    <div className="flex flex-wrap gap-1.5">
+                      {[10000, 50000, 100000, 500000].map(amount => (
                         <Button
                           key={amount}
                           variant={initialCapital === amount ? "default" : "outline"}
                           size="sm"
                           onClick={() => setInitialCapital(amount)}
-                          className="text-xs font-mono"
+                          className="text-xs font-mono h-7 px-2"
                         >
                           ${amount >= 1000000 ? `${amount / 1000000}M` : `${amount / 1000}K`}
                         </Button>
                       ))}
                     </div>
-                  </CardContent>
-                </Card>
-
-                {/* Benchmark */}
-                <Card>
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-sm flex items-center gap-2">
-                      <Scale className="h-4 w-4 text-primary" />
+                  </div>
+                  
+                  {/* Benchmark */}
+                  <div>
+                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-2 flex items-center gap-1.5">
+                      <Scale className="h-3 w-3" />
                       BENCHMARK
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
+                    </p>
                     <Select value={benchmark} onValueChange={setBenchmark}>
-                      <SelectTrigger className="h-12 text-base">
+                      <SelectTrigger className="h-9 text-sm bg-background">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
                         {BENCHMARKS.map(b => (
-                          <SelectItem key={b.value} value={b.value} className="text-base">
+                          <SelectItem key={b.value} value={b.value} className="text-sm">
                             {b.label}
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
-                  </CardContent>
-                </Card>
-
-                {/* Max Drawdown Target */}
-                <Card className={cn("border-2", `border-${getRiskColor(maxDrawdownTarget).replace('text-', '')}`)}>
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-sm flex items-center gap-2">
-                      <Shield className="h-4 w-4 text-primary" />
-                      MAX DRAWDOWN TARGET
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
+                  </div>
+                  
+                  {/* Max Drawdown Target */}
+                  <div>
+                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-2 flex items-center gap-1.5">
+                      <Shield className="h-3 w-3" />
+                      RISK TOLERANCE
+                    </p>
                     <div className={cn(
-                      "text-center py-4 px-2 rounded-xl bg-gradient-to-b",
+                      "p-3 rounded-lg bg-gradient-to-b mb-3",
                       getRiskGradient(maxDrawdownTarget)
                     )}>
-                      <div className={cn("text-4xl font-black font-mono", getRiskColor(maxDrawdownTarget))}>
+                      <div className={cn("text-2xl font-black font-mono text-center", getRiskColor(maxDrawdownTarget))}>
                         {maxDrawdownTarget}%
                       </div>
-                      <div className="text-xs text-muted-foreground mt-1">
-                        {suggestedPortfolio?.name || 'Risk Tolerance'}
+                      <div className="text-[10px] text-muted-foreground text-center mt-0.5">
+                        {suggestedPortfolio?.name || 'Max Drawdown Target'}
                       </div>
                     </div>
-                    
                     <Slider
                       value={[maxDrawdownTarget]}
                       onValueChange={([v]) => setMaxDrawdownTarget(v)}
@@ -1535,72 +1371,132 @@ export function MobileBacktester() {
                       step={5}
                       className="w-full"
                     />
-                    
-                    <div className="flex justify-between text-xs text-muted-foreground">
-                      <span>Conservative (5%)</span>
-                      <span>Aggressive (50%)</span>
+                    <div className="flex justify-between text-[10px] text-muted-foreground mt-1">
+                      <span>Conservative</span>
+                      <span>Aggressive</span>
                     </div>
-
                     {suggestedPortfolio && (
                       <Button 
                         variant="outline" 
+                        size="sm"
                         onClick={applySuggestedPortfolio}
-                        className="w-full gap-2"
+                        className="w-full mt-3 gap-1.5 h-8 text-xs"
                       >
-                        <Sparkles className="h-4 w-4" />
-                        Apply {suggestedPortfolio.name} Portfolio
+                        <Sparkles className="h-3 w-3" />
+                        Apply {suggestedPortfolio.name}
                       </Button>
-                    )}
-                  </CardContent>
-                </Card>
-
-                {/* Run Backtest Button - Bottom of Settings */}
-                {assets.length > 0 && (
-                  <div className="pt-4 pb-2">
-                    {isValid ? (
-                      <Button 
-                        onClick={runBacktest} 
-                        disabled={isLoading}
-                        size="lg"
-                        className={cn(
-                          "w-full gap-2 h-14 text-lg font-bold",
-                          "bg-gradient-to-r from-emerald-500 via-emerald-600 to-emerald-500",
-                          "shadow-[0_0_25px_rgba(16,185,129,0.5)]",
-                          "hover:shadow-[0_0_35px_rgba(16,185,129,0.7)]",
-                          "transition-all duration-300",
-                          !isLoading && "animate-pulse"
-                        )}
-                      >
-                        {isLoading ? (
-                          <Loader2 className="h-6 w-6 animate-spin" />
-                        ) : (
-                          <Play className="h-6 w-6 fill-current" />
-                        )}
-                        Run Backtest
-                      </Button>
-                    ) : (
-                      <div className="text-center p-4 rounded-xl border-2 border-dashed border-amber-500/50 bg-amber-500/10">
-                        <div className="text-amber-500 font-bold text-lg mb-1">
-                          ⚠️ Cannot Run Backtest
-                        </div>
-                        <div className="text-amber-600 text-sm">
-                          Portfolio must equal exactly 100%
-                        </div>
-                        <div className="text-amber-500 font-mono text-2xl font-black mt-2">
-                          {totalWeight.toFixed(0)}% → 100%
-                        </div>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setActiveTab('portfolio')}
-                          className="mt-3"
-                        >
-                          Go to Portfolio
-                        </Button>
-                      </div>
                     )}
                   </div>
-                )}
+                </div>
+              )}
+            </div>
+          </ScrollArea>
+        </div>
+        
+        {/* Right Panel - Visualization */}
+        <div className="flex-1 flex flex-col min-h-0 bg-background">
+          {assets.length === 0 ? (
+            /* Empty State */
+            <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
+              <div className="mb-4">
+                <Activity className="h-12 w-12 text-muted-foreground/30 mx-auto" />
+              </div>
+              <h3 className="text-lg font-semibold mb-2">Build Your Portfolio</h3>
+              <p className="text-sm text-muted-foreground max-w-xs mb-6">
+                Add assets to your portfolio, adjust weights, then run a backtest to see historical performance.
+              </p>
+              <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                <div className="flex items-center gap-1.5">
+                  <kbd className="px-1.5 py-0.5 font-mono bg-muted rounded border">K</kbd>
+                  <span>to search</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <kbd className="px-1.5 py-0.5 font-mono bg-muted rounded border">↵</kbd>
+                  <span>to run</span>
+                </div>
+              </div>
+            </div>
+          ) : (
+            /* Portfolio Preview */
+            <div className="flex-1 flex flex-col p-4">
+              {/* Allocation Header */}
+              <div className="text-center mb-4">
+                <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">ALLOCATION</p>
+                <div className={cn(
+                  "inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm font-mono font-bold",
+                  isValid 
+                    ? "bg-emerald-500/20 text-emerald-500" 
+                    : "bg-amber-500/20 text-amber-500"
+                )}>
+                  {totalWeight.toFixed(0)}%
+                  {!isValid && <span className="text-xs font-normal">→ 100%</span>}
+                </div>
+              </div>
+              
+              {/* Pie Chart */}
+              <div className="flex-1 flex items-center justify-center">
+                <div className="relative w-48 h-48">
+                  <svg viewBox="0 0 100 100" className="w-full h-full -rotate-90">
+                    {(() => {
+                      let cumulativePercent = 0;
+                      return assets.map((asset, i) => {
+                        const percent = (asset.weight / Math.max(totalWeight, 1)) * 100;
+                        const startAngle = cumulativePercent * 3.6;
+                        const endAngle = (cumulativePercent + percent) * 3.6;
+                        cumulativePercent += percent;
+                        
+                        const largeArc = percent > 50 ? 1 : 0;
+                        const startX = 50 + 40 * Math.cos((startAngle - 90) * Math.PI / 180);
+                        const startY = 50 + 40 * Math.sin((startAngle - 90) * Math.PI / 180);
+                        const endX = 50 + 40 * Math.cos((endAngle - 90) * Math.PI / 180);
+                        const endY = 50 + 40 * Math.sin((endAngle - 90) * Math.PI / 180);
+                        
+                        if (percent === 0) return null;
+                        
+                        return (
+                          <path
+                            key={asset.symbol}
+                            d={`M 50 50 L ${startX} ${startY} A 40 40 0 ${largeArc} 1 ${endX} ${endY} Z`}
+                            fill={asset.color}
+                            className="transition-all duration-300"
+                          />
+                        );
+                      });
+                    })()}
+                    <circle cx="50" cy="50" r="25" fill="hsl(var(--background))" />
+                  </svg>
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="text-center">
+                      <div className="text-xl font-bold font-mono">{assets.length}</div>
+                      <div className="text-[10px] text-muted-foreground">Assets</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Legend */}
+              <div className="flex flex-wrap justify-center gap-x-4 gap-y-1 mt-4">
+                {assets.map((asset) => (
+                  <div key={asset.symbol} className="flex items-center gap-1.5">
+                    <div 
+                      className="w-2.5 h-2.5 rounded-full"
+                      style={{ backgroundColor: asset.color }}
+                    />
+                    <span className="text-xs font-mono">{asset.symbol}</span>
+                    <span className="text-xs text-muted-foreground">{asset.weight.toFixed(0)}%</span>
+                  </div>
+                ))}
+              </div>
+              
+              {/* Estimated Value */}
+              <div className="mt-6 p-4 rounded-xl bg-muted/30 text-center">
+                <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">STARTING VALUE</p>
+                <p className="text-2xl font-bold font-mono">
+                  ${initialCapital.toLocaleString()}
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {PERIODS.find(p => p.value === period)?.label} backtest
+                </p>
               </div>
             </div>
           )}
