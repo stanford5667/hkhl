@@ -284,18 +284,13 @@ function MetricPill({
 // ═══════════════════════════════════════════════════════════════════════════════
 
 export function MobileBacktester() {
-  // Default 10 positions
+  // Default 5 positions
   const DEFAULT_POSITIONS: Asset[] = [
-    { symbol: 'VTI', weight: 20, color: COLORS[0], name: 'Total Stock Market' },
-    { symbol: 'VOO', weight: 15, color: COLORS[1], name: 'S&P 500' },
-    { symbol: 'QQQ', weight: 10, color: COLORS[2], name: 'NASDAQ 100' },
-    { symbol: 'VGT', weight: 10, color: COLORS[3], name: 'Technology' },
-    { symbol: 'VXUS', weight: 10, color: COLORS[4], name: 'International' },
-    { symbol: 'VWO', weight: 5, color: COLORS[5], name: 'Emerging Markets' },
-    { symbol: 'BND', weight: 10, color: COLORS[6], name: 'Total Bond' },
-    { symbol: 'TLT', weight: 5, color: COLORS[7], name: 'Long Treasury' },
-    { symbol: 'GLD', weight: 10, color: COLORS[8], name: 'Gold' },
-    { symbol: 'VNQ', weight: 5, color: COLORS[9], name: 'Real Estate' },
+    { symbol: 'VTI', weight: 40, color: COLORS[0], name: 'Total Stock Market' },
+    { symbol: 'VXUS', weight: 20, color: COLORS[1], name: 'International' },
+    { symbol: 'BND', weight: 20, color: COLORS[2], name: 'Total Bond' },
+    { symbol: 'GLD', weight: 10, color: COLORS[3], name: 'Gold' },
+    { symbol: 'VNQ', weight: 10, color: COLORS[4], name: 'Real Estate' },
   ];
 
   // Portfolio state
@@ -1133,7 +1128,8 @@ export function MobileBacktester() {
                   assets.map((asset) => (
                     <div 
                       key={asset.symbol}
-                      className="p-3 rounded-xl border bg-card"
+                      className="p-3 rounded-xl border bg-card hover:bg-muted/30 cursor-pointer transition-colors"
+                      onClick={() => openAssetDetail(asset)}
                     >
                       <div className="flex items-center gap-3">
                         <div 
@@ -1148,11 +1144,8 @@ export function MobileBacktester() {
                             </span>
                           </div>
                           
-                          {/* Stats row - clickable for details */}
-                          <button
-                            onClick={() => openAssetDetail(asset)}
-                            className="flex items-center gap-3 mt-1 text-xs hover:bg-muted/50 rounded px-1 py-0.5 -mx-1 transition-colors w-full"
-                          >
+                          {/* Stats row */}
+                          <div className="flex items-center gap-3 mt-1 text-xs">
                             {asset.isLoadingStats ? (
                               <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
                             ) : asset.price !== undefined ? (
@@ -1174,9 +1167,9 @@ export function MobileBacktester() {
                                 <ChevronRight className="h-3 w-3 text-muted-foreground ml-auto" />
                               </>
                             ) : (
-                              <span className="text-muted-foreground italic">Click for details</span>
+                              <span className="text-muted-foreground italic">Tap for details</span>
                             )}
-                          </button>
+                          </div>
                         </div>
                         
                         <div className="flex items-center gap-2">
@@ -1187,20 +1180,25 @@ export function MobileBacktester() {
                             variant="ghost"
                             size="icon"
                             className="h-7 w-7 text-muted-foreground hover:text-destructive"
-                            onClick={() => removeAsset(asset.symbol)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              removeAsset(asset.symbol);
+                            }}
                           >
                             <X className="h-4 w-4" />
                           </Button>
                         </div>
                       </div>
                       
-                      <Slider
-                        value={[asset.weight]}
-                        onValueChange={([v]) => updateWeight(asset.symbol, v)}
-                        max={100}
-                        step={1}
-                        className="mt-2"
-                      />
+                      <div onClick={(e) => e.stopPropagation()}>
+                        <Slider
+                          value={[asset.weight]}
+                          onValueChange={([v]) => updateWeight(asset.symbol, v)}
+                          max={100}
+                          step={1}
+                          className="mt-2"
+                        />
+                      </div>
                     </div>
                   ))
                 )}
