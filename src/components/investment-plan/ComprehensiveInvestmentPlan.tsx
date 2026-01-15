@@ -806,15 +806,15 @@ export function ComprehensiveInvestmentResults({
                   <Sparkles className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-lg">Your Personalized Investment Strategy</h3>
-                  <p className="text-sm text-white/50">AI-generated based on your unique profile</p>
+                  <h3 className="font-semibold text-lg">Your Illustrative Investment Strategy</h3>
+                  <p className="text-sm text-white/50">AI-generated educational example based on your profile</p>
                 </div>
               </div>
               
               {isLoadingStrategy ? (
                 <div className="text-center py-16">
                   <Loader2 className="w-10 h-10 mx-auto mb-4 text-blue-400 animate-spin" />
-                  <p className="text-white/60">Generating your personalized strategy...</p>
+                  <p className="text-white/60">Generating your illustrative strategy...</p>
                   <p className="text-sm text-white/40 mt-2">This takes about 10-15 seconds</p>
                 </div>
               ) : aiStrategy ? (

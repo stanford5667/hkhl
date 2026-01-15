@@ -447,7 +447,7 @@ export default function DealMatching() {
             )}
           </CardTitle>
           <CardDescription>
-            Contacts from your database matching the recommended financing type
+            Contacts from your database matching the selected financing type
           </CardDescription>
         </CardHeader>
         <CardContent>

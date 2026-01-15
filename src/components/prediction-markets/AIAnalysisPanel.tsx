@@ -132,7 +132,7 @@ export function AIAnalysisPanel({ article }: AIAnalysisPanelProps) {
               <div>
                 <h4 className="font-medium text-sm flex items-center gap-2 mb-3">
                   <AlertCircle className="h-4 w-4 text-amber-500" />
-                  Recommended Actions
+                  Potential Considerations
                 </h4>
                 <div className="space-y-2">
                   {affectedMarkets.slice(0, 4).map((market: unknown, i: number) => {

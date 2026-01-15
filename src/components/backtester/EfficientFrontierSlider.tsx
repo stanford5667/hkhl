@@ -232,7 +232,7 @@ export function EfficientFrontierSlider({
         {/* Optimal Weights Preview */}
         {selectedPoint && selectedPoint.weights.size > 0 && (
           <div className="pt-4 border-t border-border">
-            <p className="text-xs text-muted-foreground mb-3">Optimal Allocation at this Risk Level</p>
+            <p className="text-xs text-muted-foreground mb-3">Sample Allocation at this Risk Level</p>
             <div className="flex flex-wrap gap-2">
               {Array.from(selectedPoint.weights.entries())
                 .filter(([_, weight]) => weight > 0.01)

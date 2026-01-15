@@ -30,7 +30,7 @@ const STEPS = [
   },
   {
     id: 'golden-path',
-    title: 'Your Personalized Journey',
+    title: 'Your Learning Journey',
     subtitle: 'Start with a 5-minute assessment',
   }
 ];
@@ -90,7 +90,7 @@ export function WelcomeModal({ open, onOpenChange, onComplete }: WelcomeModalPro
               <div className="space-y-2 sm:space-y-3 mb-4 sm:mb-6">
                 {[
                   { icon: Brain, text: 'Discover your investor personality', color: 'text-purple-500' },
-                  { icon: Target, text: 'Get personalized recommendations', color: 'text-emerald-500' },
+                  { icon: Target, text: 'Explore illustrative portfolio examples', color: 'text-emerald-500' },
                   { icon: Zap, text: 'Analyze assets with AI', color: 'text-amber-500' },
                 ].map((item, i) => (
                   <motion.div
@@ -138,7 +138,7 @@ export function WelcomeModal({ open, onOpenChange, onComplete }: WelcomeModalPro
                 </Badge>
                 <h2 className="text-xl sm:text-2xl font-bold mb-1 sm:mb-2">Discover Your Investor DNA</h2>
                 <p className="text-muted-foreground text-xs sm:text-sm px-2">
-                  Quick assessment reveals your investing style & unlocks personalized tips
+                  Quick assessment reveals your investing style & unlocks educational insights
                 </p>
               </div>
 
@@ -169,8 +169,8 @@ export function WelcomeModal({ open, onOpenChange, onComplete }: WelcomeModalPro
                 <ul className="space-y-1">
                   {[
                     '4-letter investor code',
-                    'Personalized strategy',
-                    'AI portfolio tips',
+                    'Illustrative strategy examples',
+                    'AI educational insights',
                   ].map((item, i) => (
                     <li key={i} className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm text-muted-foreground">
                       <ChevronRight className="w-3 h-3 text-primary shrink-0" />

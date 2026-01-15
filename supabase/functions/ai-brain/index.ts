@@ -522,7 +522,7 @@ async function handleCalculate(
       return {
         fullKelly: kellyFraction,
         quarterKelly: adjustedKelly,
-        recommendedSize: adjustedKelly,
+        calculatedSize: adjustedKelly,
         riskAdjustment: context.preferences.riskTolerance === 'conservative' ? 0.5 : 
                         context.preferences.riskTolerance === 'aggressive' ? 1.5 : 1.0,
       };

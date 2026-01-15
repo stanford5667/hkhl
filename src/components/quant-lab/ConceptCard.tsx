@@ -289,7 +289,7 @@ export const QUANT_CONCEPTS = {
     title: 'Drawdown',
     shortDescription: 'The peak-to-trough decline during a specific period. It shows the worst-case scenario - how much you would have lost if you bought at the peak.',
     fullExplanation: 'Drawdown measures from the highest high to the subsequent lowest low before a new high is made. A 30% drawdown means the stock dropped 30% from its peak. Recovery time is how long it takes to get back to the prior high.',
-    whyItMatters: 'This is the most important risk metric. If you can\'t stomach a 30% drawdown without panic selling, you shouldn\'t own that stock. The S&P 500 has had 50%+ drawdowns in 2000 and 2008. Know your tolerance.',
+    whyItMatters: 'This is the most important risk metric. Investors who cannot tolerate a 30% drawdown may find it difficult to hold through volatility. The S&P 500 has had 50%+ drawdowns in 2000 and 2008. Understanding your tolerance is critical.',
     example: {
       scenario: 'Your portfolio hit $100,000 then dropped to $70,000',
       bullishCase: 'Small drawdowns (under 15%) with quick recoveries - resilient stock',

@@ -510,7 +510,7 @@ export function CompoundGrowthProjector({
             <div>
               <p className="font-medium text-rose-300">What You Must Be Prepared For</p>
               <p className="text-sm text-white/60 mt-1">
-                Based on your risk profile, you should expect a maximum drop of <strong className="text-rose-300">{maxDrawdown}%</strong> at some point.
+                Based on historical data, portfolios with this risk profile have experienced maximum drops of <strong className="text-rose-300">{maxDrawdown}%</strong>.
               </p>
               <div className="grid grid-cols-2 gap-4 mt-3">
                 <div className="p-3 rounded-lg bg-black/20">

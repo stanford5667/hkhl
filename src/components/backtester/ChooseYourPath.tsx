@@ -154,7 +154,7 @@ export function ChooseYourPath({ onSelectManual, onSelectAIChat, onSelectQuestio
           </Card>
         </motion.div>
 
-        {/* Quick Advisor Card (Highlighted) */}
+        {/* Quick Explorer Card (Highlighted) */}
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
@@ -232,7 +232,7 @@ export function ChooseYourPath({ onSelectManual, onSelectAIChat, onSelectQuestio
                 </div>
                 <div className="flex items-center gap-3 text-sm">
                   <Lightbulb className="h-4 w-4 text-emerald-500 flex-shrink-0" />
-                  <span>Quick recommendations</span>
+                  <span>Quick educational examples</span>
                 </div>
               </div>
               
