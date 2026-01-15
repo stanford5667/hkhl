@@ -1,9 +1,10 @@
 /**
  * Risk-Based Screener - Suggest portfolios based on multiple risk metrics
  * A visually stunning interface for screening portfolios by risk appetite
+ * Now with real backtested data from the portfolio-screener edge function
  */
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -12,8 +13,7 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   TrendingDown,
   TrendingUp,
@@ -30,19 +30,41 @@ import {
   BarChart3,
   Flame,
   Snowflake,
-  CircleDot,
   AlertTriangle,
   Trash2,
   Plus,
-  ChevronDown,
   Activity,
   Gauge,
   Award,
+  Loader2,
+  RefreshCw,
+  History,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { PortfolioAllocation, AssetClass, ASSET_CLASS_ETFS } from '@/types/portfolio';
 import { POLYGON_CONFIG } from '@/config/apiConfig';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
+
+// Screened portfolio result from edge function
+interface ScreenedPortfolio {
+  id: string;
+  name: string;
+  description: string;
+  allocations: { symbol: string; weight: number; name: string }[];
+  metrics: {
+    annualizedReturn: number;
+    maxDrawdown: number;
+    volatility: number;
+    sharpe: number;
+    maxGain: number;
+    calmar: number;
+    sortino: number;
+  };
+  matchScore: number;
+  isBacktested: boolean;
+}
 
 // Screening metric types
 type ScreeningMetric = 'drawdown' | 'volatility' | 'maxGain' | 'sharpe';
@@ -293,6 +315,8 @@ interface DrawdownScreenerProps {
 }
 
 export function DrawdownScreener({ onComplete }: DrawdownScreenerProps) {
+  const { toast } = useToast();
+  
   // Screening state
   const [activeMetric, setActiveMetric] = useState<ScreeningMetric>('drawdown');
   const [metricValues, setMetricValues] = useState<Record<ScreeningMetric, number>>({
@@ -301,7 +325,13 @@ export function DrawdownScreener({ onComplete }: DrawdownScreenerProps) {
     maxGain: 25,
     sharpe: 0.7,
   });
-  const [selectedPreset, setSelectedPreset] = useState<PresetKey | null>(null);
+  const [selectedPortfolio, setSelectedPortfolio] = useState<ScreenedPortfolio | null>(null);
+  
+  // Backtested portfolios from edge function
+  const [screenedPortfolios, setScreenedPortfolios] = useState<ScreenedPortfolio[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [lastScreenTime, setLastScreenTime] = useState<Date | null>(null);
+  const [lookbackYears, setLookbackYears] = useState(5);
   
   // Portfolio configuration state
   const [capital, setCapital] = useState(100000);
@@ -320,30 +350,106 @@ export function DrawdownScreener({ onComplete }: DrawdownScreenerProps) {
     setMetricValues(prev => ({ ...prev, [metric]: value }));
   };
 
-  // Calculate which presets match the current metric criteria
-  const matchingPresets = useMemo(() => {
-    return (Object.entries(PRESET_PORTFOLIOS) as [PresetKey, typeof PRESET_PORTFOLIOS[PresetKey]][])
-      .filter(([_, preset]) => currentMetric.filterPresets(currentValue, preset))
-      .sort((a, b) => b[1].expectedReturn - a[1].expectedReturn);
-  }, [currentMetric, currentValue]);
+  // Screen portfolios from edge function
+  const screenPortfolios = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const criteria = {
+        maxDrawdown: metricValues.drawdown,
+        maxVolatility: metricValues.volatility,
+        minSharpe: metricValues.sharpe,
+        maxGain: metricValues.maxGain,
+        lookbackYears,
+      };
 
-  // Get recommended preset based on current metric
-  const recommendedPreset = useMemo(() => {
-    const presets = Object.entries(PRESET_PORTFOLIOS) as [PresetKey, typeof PRESET_PORTFOLIOS[PresetKey]][];
-    const matching = presets
-      .filter(([_, p]) => currentMetric.filterPresets(currentValue, p))
-      .sort((a, b) => b[1].expectedReturn - a[1].expectedReturn);
-    return matching[0]?.[0] || 'conservative';
-  }, [currentMetric, currentValue]);
+      const { data, error } = await supabase.functions.invoke('portfolio-screener', {
+        body: { criteria },
+      });
 
-  // Select a preset
-  const selectPreset = (key: PresetKey) => {
-    setSelectedPreset(key);
-    setAllocations(PRESET_PORTFOLIOS[key].allocations.map(a => ({
-      ...a,
-      assetClass: a.assetClass as AssetClass
+      if (error) throw error;
+
+      if (data?.results) {
+        setScreenedPortfolios(data.results);
+        setLastScreenTime(new Date());
+        toast({
+          title: 'Screening Complete',
+          description: `Found ${data.results.length} portfolios matching your criteria`,
+        });
+      }
+    } catch (error) {
+      console.error('Portfolio screening error:', error);
+      toast({
+        title: 'Screening Failed',
+        description: 'Could not screen portfolios. Using fallback data.',
+        variant: 'destructive',
+      });
+      // Use fallback static presets if edge function fails
+      setScreenedPortfolios(getFallbackPortfolios());
+    } finally {
+      setIsLoading(false);
+    }
+  }, [metricValues, lookbackYears, toast]);
+
+  // Initial load
+  useEffect(() => {
+    screenPortfolios();
+  }, []);
+
+  // Get fallback portfolios when edge function fails
+  const getFallbackPortfolios = (): ScreenedPortfolio[] => {
+    return (Object.entries(PRESET_PORTFOLIOS) as [PresetKey, typeof PRESET_PORTFOLIOS[PresetKey]][]).map(([key, preset]) => ({
+      id: key,
+      name: preset.name,
+      description: preset.description,
+      allocations: preset.allocations.map(a => ({ symbol: a.symbol, weight: a.weight, name: a.name || a.symbol })),
+      metrics: {
+        annualizedReturn: preset.expectedReturn,
+        maxDrawdown: preset.maxDrawdown,
+        volatility: preset.volatility,
+        sharpe: preset.sharpe,
+        maxGain: preset.maxGain,
+        calmar: preset.expectedReturn / preset.maxDrawdown,
+        sortino: preset.sharpe * 1.3,
+      },
+      matchScore: 80,
+      isBacktested: false,
+    }));
+  };
+
+  // Filter and sort portfolios based on current criteria
+  const filteredPortfolios = useMemo(() => {
+    return screenedPortfolios
+      .filter(p => {
+        if (activeMetric === 'drawdown') return p.metrics.maxDrawdown <= metricValues.drawdown + 10;
+        if (activeMetric === 'volatility') return p.metrics.volatility <= metricValues.volatility + 5;
+        if (activeMetric === 'sharpe') return p.metrics.sharpe >= metricValues.sharpe - 0.3;
+        if (activeMetric === 'maxGain') return p.metrics.maxGain >= metricValues.maxGain - 10;
+        return true;
+      })
+      .sort((a, b) => b.matchScore - a.matchScore);
+  }, [screenedPortfolios, activeMetric, metricValues]);
+
+  // Get best match portfolio
+  const bestMatch = useMemo(() => filteredPortfolios[0] || null, [filteredPortfolios]);
+
+  // Select a portfolio
+  const selectPortfolio = (portfolio: ScreenedPortfolio) => {
+    setSelectedPortfolio(portfolio);
+    setAllocations(portfolio.allocations.map(a => ({
+      symbol: a.symbol,
+      weight: a.weight,
+      name: a.name,
+      assetClass: getAssetClass(a.symbol),
     })));
     setIsCustomizing(false);
+  };
+
+  // Helper to determine asset class
+  const getAssetClass = (symbol: string): AssetClass => {
+    for (const [cls, etfs] of Object.entries(ASSET_CLASS_ETFS)) {
+      if (etfs.includes(symbol)) return cls as AssetClass;
+    }
+    return 'stocks';
   };
 
   // Total weight calculation
@@ -523,14 +629,6 @@ export function DrawdownScreener({ onComplete }: DrawdownScreenerProps) {
                           value={[currentValue]}
                           onValueChange={([v]) => {
                             updateMetricValue(activeMetric, v);
-                            // Auto-select best matching preset
-                            const presets = Object.entries(PRESET_PORTFOLIOS) as [PresetKey, typeof PRESET_PORTFOLIOS[PresetKey]][];
-                            const best = presets
-                              .filter(([_, p]) => currentMetric.filterPresets(v, p))
-                              .sort((a, b) => b[1].expectedReturn - a[1].expectedReturn)[0];
-                            if (best && !isCustomizing) {
-                              selectPreset(best[0]);
-                            }
                           }}
                           min={currentMetric.min}
                           max={currentMetric.max}
@@ -575,104 +673,173 @@ export function DrawdownScreener({ onComplete }: DrawdownScreenerProps) {
             </CardContent>
           </Card>
 
-          {/* Preset Portfolio Suggestions */}
+          {/* Backtested Portfolio Suggestions */}
           <div className="space-y-4">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between flex-wrap gap-3">
               <h2 className="text-lg sm:text-xl font-semibold flex items-center gap-2">
                 <Target className="h-5 w-5 text-primary" />
-                Suggested Portfolios
+                Backtested Portfolios
+                {lastScreenTime && (
+                  <Badge variant="outline" className="text-xs ml-2">
+                    <History className="h-3 w-3 mr-1" />
+                    {lookbackYears}yr history
+                  </Badge>
+                )}
               </h2>
-              <Badge variant="outline" className="text-xs">
-                Based on {currentMetric.shortName}: {activeMetric === 'drawdown' ? '-' : ''}{formatMetricValue(currentValue)}{currentMetric.unit}
-              </Badge>
+              <div className="flex items-center gap-2">
+                <Badge variant="outline" className="text-xs">
+                  {filteredPortfolios.length} matching
+                </Badge>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={screenPortfolios}
+                  disabled={isLoading}
+                >
+                  {isLoading ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <RefreshCw className="h-4 w-4" />
+                  )}
+                  <span className="ml-2 hidden sm:inline">Screen</span>
+                </Button>
+              </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              {(Object.entries(PRESET_PORTFOLIOS) as [PresetKey, typeof PRESET_PORTFOLIOS[PresetKey]][]).map(([key, preset]) => {
-                const Icon = preset.icon;
-                const isSelected = selectedPreset === key;
-                const isRecommended = key === recommendedPreset;
-                const isWithinTolerance = currentMetric.filterPresets(currentValue, preset);
-                
-                return (
-                  <motion.div
-                    key={key}
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                  >
-                    <Card 
-                      className={cn(
-                        "cursor-pointer transition-all duration-200 relative overflow-hidden h-full",
-                        isSelected && "ring-2 ring-primary border-primary",
-                        !isWithinTolerance && "opacity-50",
-                        preset.borderColor
-                      )}
-                      onClick={() => isWithinTolerance && selectPreset(key)}
+            {isLoading ? (
+              <div className="flex items-center justify-center py-12">
+                <div className="text-center space-y-3">
+                  <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
+                  <p className="text-sm text-muted-foreground">Analyzing historical performance...</p>
+                </div>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                {filteredPortfolios.map((portfolio, idx) => {
+                  const isSelected = selectedPortfolio?.id === portfolio.id;
+                  const isBestMatch = idx === 0 && portfolio.matchScore >= 80;
+                  
+                  // Determine icon and colors based on volatility/risk
+                  const Icon = portfolio.metrics.volatility < 8 ? Snowflake 
+                    : portfolio.metrics.volatility < 12 ? Scale 
+                    : portfolio.metrics.volatility < 16 ? TrendingUp 
+                    : Flame;
+                  const colorClass = portfolio.metrics.volatility < 8 ? 'from-blue-500 to-cyan-500'
+                    : portfolio.metrics.volatility < 12 ? 'from-emerald-500 to-teal-500'
+                    : portfolio.metrics.volatility < 16 ? 'from-amber-500 to-orange-500'
+                    : 'from-rose-500 to-pink-500';
+                  const textColor = portfolio.metrics.volatility < 8 ? 'text-blue-500'
+                    : portfolio.metrics.volatility < 12 ? 'text-emerald-500'
+                    : portfolio.metrics.volatility < 16 ? 'text-amber-500'
+                    : 'text-rose-500';
+                  
+                  return (
+                    <motion.div
+                      key={portfolio.id}
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
                     >
-                      {isRecommended && isWithinTolerance && (
-                        <div className="absolute top-0 right-0">
-                          <div className="bg-primary text-primary-foreground text-[10px] font-bold px-2 py-0.5 rounded-bl-lg">
-                            BEST FIT
+                      <Card 
+                        className={cn(
+                          "cursor-pointer transition-all duration-200 relative overflow-hidden h-full",
+                          isSelected && "ring-2 ring-primary border-primary",
+                        )}
+                        onClick={() => selectPortfolio(portfolio)}
+                      >
+                        {isBestMatch && (
+                          <div className="absolute top-0 right-0">
+                            <div className="bg-primary text-primary-foreground text-[10px] font-bold px-2 py-0.5 rounded-bl-lg">
+                              BEST FIT
+                            </div>
                           </div>
-                        </div>
-                      )}
-                      
-                      <div className={cn(
-                        "absolute inset-0 opacity-5 bg-gradient-to-br",
-                        preset.color
-                      )} />
-                      
-                      <CardContent className="p-4 relative space-y-3">
-                        <div className="flex items-center gap-2">
-                          <div className={cn(
-                            "p-2 rounded-lg bg-gradient-to-br",
-                            preset.color
-                          )}>
-                            <Icon className="h-4 w-4 text-white" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <h3 className="font-semibold text-sm truncate">{preset.name}</h3>
-                          </div>
-                          {isSelected && (
-                            <CheckCircle2 className="h-5 w-5 text-primary shrink-0" />
-                          )}
-                        </div>
+                        )}
                         
-                        <p className="text-xs text-muted-foreground line-clamp-2">
-                          {preset.description}
-                        </p>
+                        {portfolio.isBacktested && (
+                          <div className="absolute top-0 left-0">
+                            <div className="bg-emerald-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-br-lg">
+                              VERIFIED
+                            </div>
+                          </div>
+                        )}
                         
-                        <div className="grid grid-cols-3 gap-2 pt-2 border-t border-border/50">
-                          <div className="text-center">
-                            <p className={cn("text-sm font-bold", preset.textColor)}>
-                              {preset.expectedReturn}%
-                            </p>
-                            <p className="text-[10px] text-muted-foreground">Return</p>
+                        <div className={cn(
+                          "absolute inset-0 opacity-5 bg-gradient-to-br",
+                          colorClass
+                        )} />
+                        
+                        <CardContent className="p-4 relative space-y-3">
+                          <div className="flex items-center gap-2">
+                            <div className={cn(
+                              "p-2 rounded-lg bg-gradient-to-br",
+                              colorClass
+                            )}>
+                              <Icon className="h-4 w-4 text-white" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <h3 className="font-semibold text-sm truncate">{portfolio.name}</h3>
+                            </div>
+                            {isSelected && (
+                              <CheckCircle2 className="h-5 w-5 text-primary shrink-0" />
+                            )}
                           </div>
-                          <div className="text-center">
-                            <p className="text-sm font-bold text-rose-500">
-                              -{preset.maxDrawdown}%
-                            </p>
-                            <p className="text-[10px] text-muted-foreground">Max DD</p>
+                          
+                          <p className="text-xs text-muted-foreground line-clamp-2">
+                            {portfolio.description}
+                          </p>
+                          
+                          <div className="grid grid-cols-3 gap-2 pt-2 border-t border-border/50">
+                            <div className="text-center">
+                              <p className={cn("text-sm font-bold", textColor)}>
+                                {portfolio.metrics.annualizedReturn.toFixed(1)}%
+                              </p>
+                              <p className="text-[10px] text-muted-foreground">Return</p>
+                            </div>
+                            <div className="text-center">
+                              <p className="text-sm font-bold text-rose-500">
+                                -{portfolio.metrics.maxDrawdown.toFixed(1)}%
+                              </p>
+                              <p className="text-[10px] text-muted-foreground">Max DD</p>
+                            </div>
+                            <div className="text-center">
+                              <p className="text-sm font-bold text-muted-foreground">
+                                {portfolio.metrics.volatility.toFixed(1)}%
+                              </p>
+                              <p className="text-[10px] text-muted-foreground">Vol</p>
+                            </div>
                           </div>
-                          <div className="text-center">
-                            <p className="text-sm font-bold text-muted-foreground">
-                              {preset.volatility}%
-                            </p>
-                            <p className="text-[10px] text-muted-foreground">Vol</p>
+                          
+                          {/* Match score bar */}
+                          <div className="pt-2">
+                            <div className="flex items-center justify-between text-xs mb-1">
+                              <span className="text-muted-foreground">Match</span>
+                              <span className={cn("font-medium", portfolio.matchScore >= 80 ? "text-emerald-500" : portfolio.matchScore >= 60 ? "text-amber-500" : "text-muted-foreground")}>
+                                {portfolio.matchScore}%
+                              </span>
+                            </div>
+                            <Progress value={portfolio.matchScore} className="h-1.5" />
                           </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </motion.div>
-                );
-              })}
-            </div>
+                        </CardContent>
+                      </Card>
+                    </motion.div>
+                  );
+                })}
+              </div>
+            )}
+            
+            {!isLoading && filteredPortfolios.length === 0 && (
+              <div className="text-center py-12">
+                <p className="text-muted-foreground mb-4">No portfolios match your current criteria</p>
+                <Button variant="outline" onClick={screenPortfolios}>
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                  Try Different Criteria
+                </Button>
+              </div>
+            )}
           </div>
 
           {/* Portfolio Configuration */}
           <AnimatePresence mode="wait">
-            {selectedPreset && (
+            {selectedPortfolio && (
               <motion.div
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: 'auto' }}
@@ -801,11 +968,11 @@ export function DrawdownScreener({ onComplete }: DrawdownScreenerProps) {
                             <Scale className="h-3 w-3 mr-1" />
                             Equal
                           </Button>
-                          {selectedPreset && isCustomizing && (
+                          {selectedPortfolio && isCustomizing && (
                             <Button 
                               variant="ghost" 
                               size="sm"
-                              onClick={() => selectPreset(selectedPreset)}
+                              onClick={() => selectPortfolio(selectedPortfolio)}
                               className="text-xs"
                             >
                               Reset
@@ -935,22 +1102,23 @@ export function DrawdownScreener({ onComplete }: DrawdownScreenerProps) {
           </AnimatePresence>
 
           {/* Initial CTA if no preset selected */}
-          {!selectedPreset && (
+          {!selectedPortfolio && !isLoading && filteredPortfolios.length > 0 && (
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               className="text-center py-8"
             >
               <p className="text-muted-foreground mb-4">
-                Set your drawdown tolerance above and select a portfolio to get started
+                Set your risk tolerance above and select a portfolio to get started
               </p>
               <Button
                 variant="outline"
                 size="lg"
-                onClick={() => selectPreset(recommendedPreset)}
+                onClick={() => bestMatch && selectPortfolio(bestMatch)}
+                disabled={!bestMatch}
               >
                 <Sparkles className="h-4 w-4 mr-2" />
-                Use Recommended Portfolio
+                Use Best Match Portfolio
               </Button>
             </motion.div>
           )}
