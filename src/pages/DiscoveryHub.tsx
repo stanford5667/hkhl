@@ -48,6 +48,7 @@ import {
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { AlphaDashboard } from "@/components/alpha-dashboard";
+import { PageHeader, PAGE_ICON_PRESETS } from '@/components/layout/PageHeader';
 
 // Platform icons mapping
 const PlatformIcon = ({ platform }: { platform: string }) => {
@@ -244,28 +245,22 @@ export default function DiscoveryHub() {
   return (
     <div className="p-6 space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="p-2 rounded-lg bg-gradient-to-br from-cyan-500 to-blue-600">
-            <Compass className="h-6 w-6 text-white" />
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold">Market Discovery</h1>
-            <p className="text-muted-foreground">
-              AI-powered market intelligence & discovery hub
-            </p>
-          </div>
-        </div>
-        
-        <Button 
-          onClick={() => navigate('/prediction-ai')}
-          className="bg-gradient-to-r from-violet-500 to-purple-600 hover:from-violet-600 hover:to-purple-700"
-        >
-          <Brain className="h-4 w-4 mr-2" />
-          Full AI Suite
-          <ArrowRight className="h-4 w-4 ml-2" />
-        </Button>
-      </div>
+      <PageHeader
+        icon={Compass}
+        title="Market Discovery"
+        subtitle="AI-powered market intelligence & discovery hub"
+        {...PAGE_ICON_PRESETS.violet}
+        actions={
+          <Button 
+            onClick={() => navigate('/prediction-ai')}
+            className="bg-gradient-to-r from-violet-500 to-purple-600 hover:from-violet-600 hover:to-purple-700"
+          >
+            <Brain className="h-4 w-4 mr-2" />
+            Full AI Suite
+            <ArrowRight className="h-4 w-4 ml-2" />
+          </Button>
+        }
+      />
 
       {/* Main Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">

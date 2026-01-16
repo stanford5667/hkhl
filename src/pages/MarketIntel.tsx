@@ -38,6 +38,7 @@ import { SharesContent } from '@/components/market-intel/SharesContent';
 import { CryptoContent } from '@/components/market-intel/CryptoContent';
 import { EarningsContent } from '@/components/market-intel/EarningsContent';
 import { HolidaysContent } from '@/components/market-intel/HolidaysContent';
+import { PageHeader, PAGE_ICON_PRESETS } from '@/components/layout/PageHeader';
 
 export default function MarketIntel() {
   const [activeTab, setActiveTab] = useState('macro');
@@ -109,34 +110,28 @@ export default function MarketIntel() {
   return (
     <div className="p-4 sm:p-6 space-y-4 sm:space-y-6 animate-fade-up">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
-        <div className="flex items-center gap-3">
-          <div className="p-2.5 rounded-xl bg-gradient-to-br from-primary/20 to-blue-500/10 border border-primary/30">
-            <BarChart3 className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
+      <PageHeader
+        icon={BarChart3}
+        title="Market Intelligence"
+        subtitle="Economic indicators for portfolio analysis"
+        {...PAGE_ICON_PRESETS.primary}
+        actions={
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" className="h-8 text-xs sm:text-sm">
+              <RefreshCw className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+              Refresh
+            </Button>
+            <Button variant="outline" size="sm" className="relative h-8 w-8 p-0">
+              <Bell className="h-3 w-3 sm:h-4 sm:w-4" />
+              {unreadAlerts > 0 && (
+                <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-destructive text-[10px] font-medium flex items-center justify-center text-destructive-foreground">
+                  {unreadAlerts}
+                </span>
+              )}
+            </Button>
           </div>
-          <div>
-            <h1 className="text-xl sm:text-2xl font-bold text-foreground">Market Intelligence</h1>
-            <p className="text-muted-foreground text-sm sm:text-base mt-0.5">
-              Economic indicators for portfolio analysis
-            </p>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" className="h-8 text-xs sm:text-sm">
-            <RefreshCw className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-            Refresh
-          </Button>
-          <Button variant="outline" size="sm" className="relative h-8 w-8 p-0">
-            <Bell className="h-3 w-3 sm:h-4 sm:w-4" />
-            {unreadAlerts > 0 && (
-              <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-destructive text-[10px] font-medium flex items-center justify-center text-destructive-foreground">
-                {unreadAlerts}
-              </span>
-            )}
-          </Button>
-        </div>
-      </div>
+        }
+      />
 
 
       {/* Data Category Navigation */}
