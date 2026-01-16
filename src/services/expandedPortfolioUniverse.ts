@@ -57,6 +57,8 @@ export interface FilterCriteria {
   minSharpe?: number;
   minCagr?: number;
   minSortino?: number;
+  minTotalReturn?: number;
+  returnPeriod?: number;
   riskProfiles?: ('conservative' | 'moderate' | 'growth' | 'aggressive')[];
 }
 
