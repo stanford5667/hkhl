@@ -1252,9 +1252,16 @@ function QuantLabContent(props: any) {
           </div>
         </div>
         
-        {/* Selected Ticker Indicator - Always visible */}
+        {/* Selected Ticker Indicator - Always visible and clickable */}
         <div className="px-3 md:px-6 pb-3 flex items-center gap-3 flex-wrap">
-          <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-primary/10 to-primary/5 border-2 border-primary/30">
+          <button
+            onClick={() => selectedTicker && navigate(`/stock/${selectedTicker}`)}
+            disabled={!selectedTicker}
+            className={cn(
+              "flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-primary/10 to-primary/5 border-2 border-primary/30 transition-all duration-200",
+              selectedTicker && "hover:border-primary/50 hover:bg-primary/15 cursor-pointer active:scale-[0.98]"
+            )}
+          >
             <TrendingUp className="h-5 w-5 text-primary" />
             <span className="text-xs font-medium text-muted-foreground">Analyzing:</span>
             <span className="text-xl font-bold font-mono text-primary">${selectedTicker || 'Select Ticker'}</span>
@@ -1262,20 +1269,10 @@ function QuantLabContent(props: any) {
               <>
                 <span className="text-muted-foreground mx-1">•</span>
                 <InlinePrice ticker={selectedTicker} showStaleness={false} className="text-base font-semibold" />
+                <ExternalLink className="h-4 w-4 text-muted-foreground ml-1" />
               </>
             )}
-          </div>
-          {selectedTicker && (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-8 gap-1.5 text-xs text-muted-foreground hover:text-primary"
-              onClick={() => navigate(`/equity/${selectedTicker}`)}
-            >
-              <ExternalLink className="h-3.5 w-3.5" />
-              Company Details
-            </Button>
-          )}
+          </button>
           <div className="hidden md:flex items-center gap-2 text-xs text-muted-foreground ml-auto">
             <span className="px-2 py-1 bg-muted rounded">{period}</span>
             <span>•</span>
