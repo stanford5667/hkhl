@@ -778,10 +778,35 @@ function generateFedRateProbabilities(eventDate: string): RateProbability[] {
 // HISTORICAL IMPACT DATA
 // ═══════════════════════════════════════════════════════════════════════════════
 
-function generateHistoricalImpact(eventName: string): HistoricalImpact[] {
-  // This would come from a real database of historical releases
-  // Generating sample data for demonstration
-  const events = [];
+async function fetchHistoricalImpact(eventName: string): Promise<{ data: HistoricalImpact[]; useMockData: boolean; eventType?: string }> {
+  try {
+    const { data, error } = await supabase.functions.invoke('fetch-historical-market-reactions', {
+      body: { eventName, lookbackMonths: 6 }
+    });
+    
+    if (error) {
+      console.error('Error fetching historical reactions:', error);
+      return { data: generateFallbackHistoricalImpact(), useMockData: true };
+    }
+    
+    if (data?.success && data?.reactions?.length > 0) {
+      return { 
+        data: data.reactions, 
+        useMockData: data.useMockData || false,
+        eventType: data.eventType 
+      };
+    }
+    
+    return { data: generateFallbackHistoricalImpact(), useMockData: true };
+  } catch (error) {
+    console.error('Error in fetchHistoricalImpact:', error);
+    return { data: generateFallbackHistoricalImpact(), useMockData: true };
+  }
+}
+
+// Fallback for when API fails
+function generateFallbackHistoricalImpact(): HistoricalImpact[] {
+  const events: HistoricalImpact[] = [];
   const now = new Date();
   
   for (let i = 0; i < 6; i++) {
@@ -810,6 +835,8 @@ export function EventDetailSheet({ event, open, onOpenChange }: EventDetailSheet
   const [activeTab, setActiveTab] = useState('education');
   const [rateProbabilities, setRateProbabilities] = useState<RateProbability[]>([]);
   const [historicalImpact, setHistoricalImpact] = useState<HistoricalImpact[]>([]);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+  const [historyDataSource, setHistoryDataSource] = useState<'live' | 'mock'>('mock');
   
   // Get educational content
   const education = useMemo(() => {
@@ -834,8 +861,23 @@ export function EventDetailSheet({ event, open, onOpenChange }: EventDetailSheet
       setRateProbabilities(generateFedRateProbabilities(event.event_date));
     }
     
-    // Generate historical impact data
-    setHistoricalImpact(generateHistoricalImpact(event.event_name));
+    // Fetch historical impact data from API
+    const loadHistoricalData = async () => {
+      setIsLoadingHistory(true);
+      try {
+        const { data, useMockData } = await fetchHistoricalImpact(event.event_name);
+        setHistoricalImpact(data);
+        setHistoryDataSource(useMockData ? 'mock' : 'live');
+      } catch (error) {
+        console.error('Failed to load historical data:', error);
+        setHistoricalImpact(generateFallbackHistoricalImpact());
+        setHistoryDataSource('mock');
+      } finally {
+        setIsLoadingHistory(false);
+      }
+    };
+    
+    loadHistoricalData();
   }, [event, open, isFedEvent]);
   
   if (!event) return null;
@@ -1217,73 +1259,92 @@ export function EventDetailSheet({ event, open, onOpenChange }: EventDetailSheet
                   <CardTitle className="flex items-center gap-2">
                     <Activity className="h-5 w-5 text-primary" />
                     Historical Market Reaction
+                    {historyDataSource === 'live' && (
+                      <Badge variant="outline" className="text-[10px] bg-emerald-500/10 text-emerald-400 border-emerald-500/30">
+                        Live Data
+                      </Badge>
+                    )}
+                    {historyDataSource === 'mock' && (
+                      <Badge variant="outline" className="text-[10px] bg-amber-500/10 text-amber-400 border-amber-500/30">
+                        Estimated
+                      </Badge>
+                    )}
                   </CardTitle>
                   <CardDescription>
                     How markets have reacted to recent releases of this indicator
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  {/* Chart */}
-                  <div className="h-64 mb-6">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={historicalImpact}>
-                        <CartesianGrid strokeDasharray="3 3" opacity={0.1} />
-                        <XAxis 
-                          dataKey="date" 
-                          tick={{ fontSize: 10 }}
-                          tickFormatter={(val) => format(parseISO(val), 'MMM')}
-                        />
-                        <YAxis 
-                          tick={{ fontSize: 10 }}
-                          tickFormatter={(val) => `${val.toFixed(1)}%`}
-                        />
-                        <Tooltip 
-                          formatter={(value: number, name: string) => [`${value.toFixed(2)}%`, name]}
-                          labelFormatter={(label) => format(parseISO(label as string), 'MMM d, yyyy')}
-                          contentStyle={{
-                            backgroundColor: 'hsl(var(--card))',
-                            border: '1px solid hsl(var(--border))',
-                            borderRadius: '8px',
-                          }}
-                        />
-                        <Bar dataKey="spyChange" name="S&P 500" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </div>
+                  {isLoadingHistory ? (
+                    <div className="space-y-4">
+                      <Skeleton className="h-64 w-full" />
+                      <Skeleton className="h-32 w-full" />
+                    </div>
+                  ) : (
+                    <>
+                      {/* Chart */}
+                      <div className="h-64 mb-6">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <BarChart data={historicalImpact}>
+                            <CartesianGrid strokeDasharray="3 3" opacity={0.1} />
+                            <XAxis 
+                              dataKey="date" 
+                              tick={{ fontSize: 10 }}
+                              tickFormatter={(val) => format(parseISO(val), 'MMM')}
+                            />
+                            <YAxis 
+                              tick={{ fontSize: 10 }}
+                              tickFormatter={(val) => `${val.toFixed(1)}%`}
+                            />
+                            <Tooltip 
+                              formatter={(value: number, name: string) => [`${value.toFixed(2)}%`, name]}
+                              labelFormatter={(label) => format(parseISO(label as string), 'MMM d, yyyy')}
+                              contentStyle={{
+                                backgroundColor: 'hsl(var(--card))',
+                                border: '1px solid hsl(var(--border))',
+                                borderRadius: '8px',
+                              }}
+                            />
+                            <Bar dataKey="spyChange" name="S&P 500" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                          </BarChart>
+                        </ResponsiveContainer>
+                      </div>
                   
-                  {/* Historical Table */}
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-sm">
-                      <thead>
-                        <tr className="border-b">
-                          <th className="text-left py-2 px-2 text-xs text-muted-foreground">Date</th>
-                          <th className="text-right py-2 px-2 text-xs text-muted-foreground">Actual</th>
-                          <th className="text-right py-2 px-2 text-xs text-muted-foreground">Forecast</th>
-                          <th className="text-right py-2 px-2 text-xs text-muted-foreground">SPY</th>
-                          <th className="text-right py-2 px-2 text-xs text-muted-foreground">TLT</th>
-                          <th className="text-right py-2 px-2 text-xs text-muted-foreground">DXY</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {historicalImpact.map((row, i) => (
-                          <tr key={i} className="border-b border-border/50">
-                            <td className="py-2 px-2">{format(parseISO(row.date), 'MMM d')}</td>
-                            <td className="py-2 px-2 text-right font-mono">{row.actual}</td>
-                            <td className="py-2 px-2 text-right font-mono text-muted-foreground">{row.forecast}</td>
-                            <td className={cn("py-2 px-2 text-right font-mono", row.spyChange >= 0 ? "text-emerald-400" : "text-rose-400")}>
-                              {row.spyChange >= 0 ? '+' : ''}{row.spyChange.toFixed(2)}%
-                            </td>
-                            <td className={cn("py-2 px-2 text-right font-mono", row.tltChange >= 0 ? "text-emerald-400" : "text-rose-400")}>
-                              {row.tltChange >= 0 ? '+' : ''}{row.tltChange.toFixed(2)}%
-                            </td>
-                            <td className={cn("py-2 px-2 text-right font-mono", row.dxyChange >= 0 ? "text-emerald-400" : "text-rose-400")}>
-                              {row.dxyChange >= 0 ? '+' : ''}{row.dxyChange.toFixed(2)}%
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
+                      {/* Historical Table */}
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-sm">
+                          <thead>
+                            <tr className="border-b">
+                              <th className="text-left py-2 px-2 text-xs text-muted-foreground">Date</th>
+                              <th className="text-right py-2 px-2 text-xs text-muted-foreground">Actual</th>
+                              <th className="text-right py-2 px-2 text-xs text-muted-foreground">Forecast</th>
+                              <th className="text-right py-2 px-2 text-xs text-muted-foreground">SPY</th>
+                              <th className="text-right py-2 px-2 text-xs text-muted-foreground">TLT</th>
+                              <th className="text-right py-2 px-2 text-xs text-muted-foreground">DXY</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {historicalImpact.map((row, i) => (
+                              <tr key={i} className="border-b border-border/50">
+                                <td className="py-2 px-2">{format(parseISO(row.date), 'MMM d')}</td>
+                                <td className="py-2 px-2 text-right font-mono">{row.actual}</td>
+                                <td className="py-2 px-2 text-right font-mono text-muted-foreground">{row.forecast}</td>
+                                <td className={cn("py-2 px-2 text-right font-mono", row.spyChange >= 0 ? "text-emerald-400" : "text-rose-400")}>
+                                  {row.spyChange >= 0 ? '+' : ''}{row.spyChange.toFixed(2)}%
+                                </td>
+                                <td className={cn("py-2 px-2 text-right font-mono", row.tltChange >= 0 ? "text-emerald-400" : "text-rose-400")}>
+                                  {row.tltChange >= 0 ? '+' : ''}{row.tltChange.toFixed(2)}%
+                                </td>
+                                <td className={cn("py-2 px-2 text-right font-mono", row.dxyChange >= 0 ? "text-emerald-400" : "text-rose-400")}>
+                                  {row.dxyChange >= 0 ? '+' : ''}{row.dxyChange.toFixed(2)}%
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </>
+                  )}
                 </CardContent>
               </Card>
               
