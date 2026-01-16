@@ -46,6 +46,7 @@ import {
 } from '@/components/ui/tooltip';
 import { EventDetailSheet } from '@/components/market-intel/EventDetailSheet';
 import type { CalendarEvent } from '@/hooks/useEconomicCalendar';
+import type { MacroCategory } from '@/components/market-intel/MacroIndicatorCategories';
 
 interface MacroDataItem {
   symbol: string;
@@ -66,6 +67,23 @@ interface MacroDataItem {
   quote?: string;
 }
 
+// Mapping from MacroCategory to indicator keywords for filtering
+const macroCategoryKeywords: Record<MacroCategory, string[]> = {
+  gdp: ['gdp', 'growth', 'output', 'production'],
+  labour: ['employment', 'unemployment', 'jobs', 'labor', 'labour', 'payroll', 'wage', 'workforce'],
+  prices: ['cpi', 'ppi', 'inflation', 'price', 'pce', 'deflator'],
+  money: ['fed', 'rate', 'monetary', 'money supply', 'm2', 'fomc', 'funds', 'treasury', 'yield', 'sofr', 'prime'],
+  trade: ['trade', 'export', 'import', 'balance', 'tariff', 'deficit', 'surplus'],
+  government: ['government', 'fiscal', 'budget', 'debt', 'spending', 'federal'],
+  business: ['business', 'pmi', 'manufacturing', 'industrial', 'capacity', 'ism', 'orders'],
+  consumer: ['consumer', 'retail', 'spending', 'confidence', 'sentiment', 'personal'],
+  housing: ['housing', 'home', 'mortgage', 'construction', 'building', 'real estate'],
+  taxes: ['tax', 'revenue', 'fiscal'],
+  energy: ['energy', 'oil', 'gas', 'crude', 'petroleum', 'wti', 'brent'],
+  health: ['health', 'healthcare', 'medical'],
+  climate: ['climate', 'carbon', 'environmental', 'green'],
+};
+
 // Get event icon based on event type
 function getEventIcon(eventType: string) {
   const type = eventType?.toLowerCase() || '';
@@ -78,9 +96,10 @@ function getEventIcon(eventType: string) {
 interface LiveMacroContentProps {
   onItemClick?: (item: MacroDataItem) => void;
   onPerformanceUpdate?: (loadTimeMs: number, accuracy: number, issues: string[]) => void;
+  macroCategory?: MacroCategory | null;
 }
 
-export function LiveMacroContent({ onItemClick, onPerformanceUpdate }: LiveMacroContentProps) {
+export function LiveMacroContent({ onItemClick, onPerformanceUpdate, macroCategory }: LiveMacroContentProps) {
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const [eventDetailOpen, setEventDetailOpen] = useState(false);
   const [loadStartTime] = useState(() => performance.now());
@@ -148,15 +167,40 @@ export function LiveMacroContent({ onItemClick, onPerformanceUpdate }: LiveMacro
     setEventDetailOpen(true);
   };
   
-  const rates = byCategory?.rates || [];
-  const economic = byCategory?.economic || [];
-  const markets = byCategory?.markets || [];
+  // Filter function based on macro category
+  const filterByMacroCategory = (indicators: EconomicIndicator[]): EconomicIndicator[] => {
+    if (!macroCategory) return indicators;
+    
+    const keywords = macroCategoryKeywords[macroCategory] || [];
+    return indicators.filter(indicator => {
+      const nameMatch = keywords.some(kw => 
+        indicator.indicator_name?.toLowerCase().includes(kw) ||
+        indicator.id?.toLowerCase().includes(kw) ||
+        indicator.description?.toLowerCase().includes(kw)
+      );
+      return nameMatch;
+    });
+  };
   
-  // Calculate market health score
-  const allIndicators = [...rates, ...economic, ...markets];
+  const allRates = byCategory?.rates || [];
+  const allEconomic = byCategory?.economic || [];
+  const allMarkets = byCategory?.markets || [];
+  
+  // Apply filtering based on macro category
+  const rates = filterByMacroCategory(allRates);
+  const economic = filterByMacroCategory(allEconomic);
+  const markets = filterByMacroCategory(allMarkets);
+  
+  // Calculate market health score (always use all indicators)
+  const allIndicators = [...allRates, ...allEconomic, ...allMarkets];
   const healthScore = allIndicators.length > 0 
     ? calculateMarketHealthScore(allIndicators) 
     : { score: 50, label: 'Loading...', factors: [] };
+    
+  // Show category-specific heading when filtering
+  const categoryLabel = macroCategory 
+    ? macroCategoryKeywords[macroCategory]?.[0]?.charAt(0).toUpperCase() + macroCategoryKeywords[macroCategory]?.[0]?.slice(1) || macroCategory
+    : null;
 
   if (error) {
     return (
@@ -176,6 +220,10 @@ export function LiveMacroContent({ onItemClick, onPerformanceUpdate }: LiveMacro
     );
   }
 
+  // Check if any indicators match the filter
+  const totalFilteredCount = rates.length + economic.length + markets.length;
+  const hasNoResults = macroCategory && totalFilteredCount === 0 && !isLoading;
+
   return (
     <div className="space-y-6">
       {/* Header with data source indicator */}
@@ -183,7 +231,14 @@ export function LiveMacroContent({ onItemClick, onPerformanceUpdate }: LiveMacro
         <div className="flex items-center gap-3">
           <Globe className="h-5 w-5 text-primary" />
           <div>
-            <h3 className="font-semibold">Live Economic Data</h3>
+            <h3 className="font-semibold flex items-center gap-2">
+              Live Economic Data
+              {macroCategory && (
+                <Badge variant="secondary" className="bg-primary/20 text-primary">
+                  Filtered: {macroCategory.charAt(0).toUpperCase() + macroCategory.slice(1)}
+                </Badge>
+              )}
+            </h3>
             <p className="text-xs text-muted-foreground">
               {useMockData ? (
                 <span className="text-amber-400">Using demo data • Add FRED_API_KEY for live data</span>
@@ -194,6 +249,11 @@ export function LiveMacroContent({ onItemClick, onPerformanceUpdate }: LiveMacro
           </div>
         </div>
         <div className="flex items-center gap-2">
+          {macroCategory && (
+            <Badge variant="outline" className="text-xs">
+              {totalFilteredCount} indicator{totalFilteredCount !== 1 ? 's' : ''}
+            </Badge>
+          )}
           <Badge 
             variant={useMockData ? 'secondary' : 'default'}
             className={useMockData ? 'bg-amber-500/20 text-amber-400' : 'bg-emerald-500/20 text-emerald-400'}
@@ -211,6 +271,23 @@ export function LiveMacroContent({ onItemClick, onPerformanceUpdate }: LiveMacro
           </Button>
         </div>
       </div>
+
+      {/* No Results Message */}
+      {hasNoResults && (
+        <Card className="bg-secondary/30 border-border/50 p-8 text-center">
+          <div className="flex flex-col items-center gap-3">
+            <div className="p-3 rounded-full bg-muted/50">
+              <BarChart3 className="h-6 w-6 text-muted-foreground" />
+            </div>
+            <div>
+              <h4 className="font-medium">No indicators found for "{macroCategory}"</h4>
+              <p className="text-sm text-muted-foreground mt-1">
+                Try selecting "All Categories" to see all available economic indicators
+              </p>
+            </div>
+          </div>
+        </Card>
+      )}
 
       {/* Market Health Score */}
       <Card className="bg-gradient-to-br from-card to-secondary/20 border-primary/20">
@@ -255,37 +332,45 @@ export function LiveMacroContent({ onItemClick, onPerformanceUpdate }: LiveMacro
         </CardContent>
       </Card>
 
-      {/* Main Indicators Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {/* Rates & Credit */}
-        <IndicatorCard
-          title="Rates & Credit"
-          icon={<DollarSign className="h-5 w-5 text-blue-400" />}
-          indicators={rates}
-          isLoading={isLoading}
-          insight={yieldCurve?.inverted ? "⚠️ Yield curve inverted - recession signal" : "💡 Consider refinancing floating debt"}
-          insightType={yieldCurve?.inverted ? 'warning' : 'info'}
-          onItemClick={onItemClick}
-        />
+      {/* Main Indicators Grid - Only show if we have results */}
+      {!hasNoResults && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {/* Rates & Credit - Show if has indicators or no filter */}
+          {(rates.length > 0 || !macroCategory) && (
+            <IndicatorCard
+              title={macroCategory ? `Rates & Credit (${rates.length})` : "Rates & Credit"}
+              icon={<DollarSign className="h-5 w-5 text-blue-400" />}
+              indicators={rates}
+              isLoading={isLoading}
+              insight={!macroCategory && yieldCurve?.inverted ? "⚠️ Yield curve inverted - recession signal" : undefined}
+              insightType={yieldCurve?.inverted ? 'warning' : 'info'}
+              onItemClick={onItemClick}
+            />
+          )}
 
-        {/* Economic */}
-        <IndicatorCard
-          title="Economic"
-          icon={<BarChart3 className="h-5 w-5 text-emerald-400" />}
-          indicators={economic}
-          isLoading={isLoading}
-          onItemClick={onItemClick}
-        />
+          {/* Economic - Show if has indicators or no filter */}
+          {(economic.length > 0 || !macroCategory) && (
+            <IndicatorCard
+              title={macroCategory ? `Economic (${economic.length})` : "Economic"}
+              icon={<BarChart3 className="h-5 w-5 text-emerald-400" />}
+              indicators={economic}
+              isLoading={isLoading}
+              onItemClick={onItemClick}
+            />
+          )}
 
-        {/* Markets */}
-        <IndicatorCard
-          title="Markets"
-          icon={<LineChart className="h-5 w-5 text-purple-400" />}
-          indicators={markets}
-          isLoading={isLoading}
-          onItemClick={onItemClick}
-        />
-      </div>
+          {/* Markets - Show if has indicators or no filter */}
+          {(markets.length > 0 || !macroCategory) && (
+            <IndicatorCard
+              title={macroCategory ? `Markets (${markets.length})` : "Markets"}
+              icon={<LineChart className="h-5 w-5 text-purple-400" />}
+              indicators={markets}
+              isLoading={isLoading}
+              onItemClick={onItemClick}
+            />
+          )}
+        </div>
+      )}
 
       {/* Yield Curve & Sectors */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
