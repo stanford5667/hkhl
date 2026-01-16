@@ -388,16 +388,37 @@ serve(async (req) => {
     const endDate = new Date();
     const startDate = new Date();
     startDate.setFullYear(endDate.getFullYear() - 1);
+    const startDateStr = startDate.toISOString().split('T')[0];
 
-    // Fetch all available tickers efficiently
-    const { data: tickerRows } = await supabase
-      .from('market_daily_bars')
-      .select('ticker')
-      .gte('bar_date', startDate.toISOString().split('T')[0])
-      .limit(5000);
+    // ═══════════════════════════════════════════════════════════════════════════
+    // DISCOVER ALL AVAILABLE TICKERS USING PAGINATION
+    // ═══════════════════════════════════════════════════════════════════════════
+    const discoveredTickers = new Set<string>();
+    const PAGE_SIZE = 1000;
+    const TARGET_TICKERS = 200; // Target number of unique tickers
+    let offset = 0;
+    const maxIterations = 50;
+    
+    for (let i = 0; i < maxIterations && discoveredTickers.size < TARGET_TICKERS; i++) {
+      const { data: tickerRows, error: tickerError } = await supabase
+        .from('market_daily_bars')
+        .select('ticker')
+        .gte('bar_date', startDateStr)
+        .order('ticker', { ascending: true })
+        .range(offset, offset + PAGE_SIZE - 1);
 
-    const availableTickers = [...new Set((tickerRows || []).map(r => r.ticker))].sort();
-    console.log(`Found ${availableTickers.length} tickers`);
+      if (tickerError || !tickerRows || tickerRows.length === 0) break;
+
+      for (const row of tickerRows) {
+        if (row.ticker) discoveredTickers.add(row.ticker);
+      }
+
+      if (tickerRows.length < PAGE_SIZE) break;
+      offset += PAGE_SIZE;
+    }
+
+    const availableTickers = [...discoveredTickers].sort();
+    console.log(`Discovered ${availableTickers.length} unique tickers`);
 
     if (availableTickers.length === 0) {
       return new Response(JSON.stringify({
@@ -412,23 +433,42 @@ serve(async (req) => {
       });
     }
 
-    // Fetch returns for all tickers (chunked to avoid limits)
+    // ═══════════════════════════════════════════════════════════════════════════
+    // FETCH RETURNS FOR ALL TICKERS (CHUNKED + PAGINATED)
+    // ═══════════════════════════════════════════════════════════════════════════
     const tickerData: Record<string, { date: string; ret: number }[]> = {};
-    const chunkSize = 30;
+    const TICKER_CHUNK_SIZE = 20;
+    const DATA_PAGE_SIZE = 1000;
 
-    for (let i = 0; i < availableTickers.length; i += chunkSize) {
-      const chunk = availableTickers.slice(i, i + chunkSize);
-      const { data: rows } = await supabase
-        .from('market_daily_bars')
-        .select('ticker, bar_date, daily_return')
-        .in('ticker', chunk)
-        .gte('bar_date', startDate.toISOString().split('T')[0])
-        .order('bar_date', { ascending: true })
-        .limit(10000);
+    for (let i = 0; i < availableTickers.length; i += TICKER_CHUNK_SIZE) {
+      const tickerChunk = availableTickers.slice(i, i + TICKER_CHUNK_SIZE);
+      let dataOffset = 0;
+      let hasMore = true;
 
-      for (const row of rows || []) {
-        if (!tickerData[row.ticker]) tickerData[row.ticker] = [];
-        tickerData[row.ticker].push({ date: row.bar_date, ret: row.daily_return ?? 0 });
+      while (hasMore) {
+        const { data: rows, error: dataError } = await supabase
+          .from('market_daily_bars')
+          .select('ticker, bar_date, daily_return')
+          .in('ticker', tickerChunk)
+          .gte('bar_date', startDateStr)
+          .order('bar_date', { ascending: true })
+          .range(dataOffset, dataOffset + DATA_PAGE_SIZE - 1);
+
+        if (dataError || !rows || rows.length === 0) {
+          hasMore = false;
+          break;
+        }
+
+        for (const row of rows) {
+          if (!tickerData[row.ticker]) tickerData[row.ticker] = [];
+          tickerData[row.ticker].push({ date: row.bar_date, ret: row.daily_return ?? 0 });
+        }
+
+        if (rows.length < DATA_PAGE_SIZE) {
+          hasMore = false;
+        } else {
+          dataOffset += DATA_PAGE_SIZE;
+        }
       }
     }
 
