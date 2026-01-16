@@ -46,6 +46,7 @@ import {
   useEventTypes,
   type CreateEventAlertInput,
 } from '@/hooks/useEventAlerts';
+import { triggerTestNotification } from '@/hooks/useEventNotifications';
 import { cn } from '@/lib/utils';
 import { Checkbox } from '@/components/ui/checkbox';
 
@@ -145,15 +146,25 @@ export function EventAlertManager({ className }: EventAlertManagerProps) {
               </p>
             </div>
           </div>
-          
-          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-            <DialogTrigger asChild>
-              <Button size="sm" className="gap-1.5">
-                <Plus className="h-3.5 w-3.5" />
-                <span className="hidden sm:inline">Add Alert</span>
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-md">
+          <div className="flex items-center gap-2">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="gap-1.5"
+              onClick={triggerTestNotification}
+            >
+              <Bell className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Preview</span>
+            </Button>
+            
+            <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+              <DialogTrigger asChild>
+                <Button size="sm" className="gap-1.5">
+                  <Plus className="h-3.5 w-3.5" />
+                  <span className="hidden sm:inline">Add Alert</span>
+                </Button>
+              </DialogTrigger>
+            <DialogContent className="sm:max-w-lg">
               <DialogHeader>
                 <DialogTitle className="flex items-center gap-2">
                   <BellPlus className="h-5 w-5 text-primary" />
@@ -165,9 +176,46 @@ export function EventAlertManager({ className }: EventAlertManagerProps) {
               </DialogHeader>
               
               <div className="space-y-4 py-4">
+                {/* Alert Preview Box */}
+                <div className="p-4 rounded-lg bg-primary/5 border border-primary/20">
+                  <div className="flex items-start gap-3">
+                    <div className="p-2 rounded-lg bg-primary/10">
+                      <AlertCircle className="h-4 w-4 text-primary" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-sm font-medium text-foreground mb-1">
+                        You'll be notified when:
+                      </p>
+                      <ul className="text-xs text-muted-foreground space-y-1">
+                        <li className="flex items-center gap-1.5">
+                          <Calendar className="h-3 w-3 flex-shrink-0" />
+                          <span>
+                            <strong>{getEventTypeLabel(newAlert.event_type)}</strong> events are 
+                            <strong> {TIMING_OPTIONS.find(t => t.value === newAlert.alert_before_hours)?.label || '24 hours before'}</strong>
+                          </span>
+                        </li>
+                        {newAlert.importance && newAlert.importance.length > 0 && (
+                          <li className="flex items-center gap-1.5">
+                            <AlertCircle className="h-3 w-3 flex-shrink-0" />
+                            <span>
+                              Only <strong>{newAlert.importance.map(i => i.charAt(0).toUpperCase() + i.slice(1)).join(', ')}</strong> importance events
+                            </span>
+                          </li>
+                        )}
+                        {newAlert.alert_on_release && (
+                          <li className="flex items-center gap-1.5">
+                            <Clock className="h-3 w-3 flex-shrink-0" />
+                            <span>And immediately when actual data is released</span>
+                          </li>
+                        )}
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+
                 {/* Event Type */}
                 <div className="space-y-2">
-                  <Label>Event Type</Label>
+                  <Label>Event Category</Label>
                   <Select 
                     value={newAlert.event_type || 'all'} 
                     onValueChange={(v) => setNewAlert({ ...newAlert, event_type: v === 'all' ? null : v })}
@@ -183,11 +231,14 @@ export function EventAlertManager({ className }: EventAlertManagerProps) {
                       ))}
                     </SelectContent>
                   </Select>
+                  <p className="text-xs text-muted-foreground">
+                    Select "All Events" to get alerts for any economic release
+                  </p>
                 </div>
 
                 {/* Importance Filter */}
                 <div className="space-y-2">
-                  <Label>Importance Level</Label>
+                  <Label>Minimum Impact Level</Label>
                   <div className="flex gap-2">
                     {IMPORTANCE_OPTIONS.map(opt => (
                       <Button
@@ -195,7 +246,11 @@ export function EventAlertManager({ className }: EventAlertManagerProps) {
                         variant={newAlert.importance?.includes(opt.value) ? 'default' : 'outline'}
                         size="sm"
                         onClick={() => toggleImportance(opt.value)}
-                        className="flex-1"
+                        className={cn(
+                          "flex-1",
+                          newAlert.importance?.includes(opt.value) && opt.value === 'high' && 'bg-red-500 hover:bg-red-600',
+                          newAlert.importance?.includes(opt.value) && opt.value === 'medium' && 'bg-amber-500 hover:bg-amber-600',
+                        )}
                       >
                         {newAlert.importance?.includes(opt.value) && (
                           <Check className="h-3 w-3 mr-1" />
@@ -204,13 +259,16 @@ export function EventAlertManager({ className }: EventAlertManagerProps) {
                       </Button>
                     ))}
                   </div>
+                  <p className="text-xs text-muted-foreground">
+                    High = major market movers (FOMC, NFP, CPI)
+                  </p>
                 </div>
 
                 {/* Timing */}
                 <div className="space-y-2">
                   <Label className="flex items-center gap-1.5">
                     <Clock className="h-3.5 w-3.5" />
-                    Alert Timing
+                    How Far in Advance?
                   </Label>
                   <Select 
                     value={String(newAlert.alert_before_hours)} 
@@ -232,9 +290,9 @@ export function EventAlertManager({ className }: EventAlertManagerProps) {
                 {/* Alert on Release Toggle */}
                 <div className="flex items-center justify-between p-3 rounded-lg bg-secondary/50">
                   <div className="space-y-0.5">
-                    <Label className="text-sm font-medium">Alert on Data Release</Label>
+                    <Label className="text-sm font-medium">Also Alert When Data Drops</Label>
                     <p className="text-xs text-muted-foreground">
-                      Get notified when actual data is published
+                      Get a second notification when the actual number is released
                     </p>
                   </div>
                   <Switch
@@ -247,23 +305,28 @@ export function EventAlertManager({ className }: EventAlertManagerProps) {
 
                 {/* Notification Channels */}
                 <div className="space-y-2">
-                  <Label>Notification Channels</Label>
+                  <Label>How to Notify You</Label>
                   <div className="space-y-2">
                     <div className="flex items-center justify-between p-2 rounded-lg border border-border/50 bg-background/50">
                       <div className="flex items-center gap-2">
                         <Bell className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-sm">In-App Notifications</span>
+                        <div>
+                          <span className="text-sm">In-App Toast</span>
+                          <p className="text-[10px] text-muted-foreground">Pop-up notification in corner</p>
+                        </div>
                       </div>
                       <Switch
                         checked={newAlert.in_app}
                         onCheckedChange={(v) => setNewAlert({ ...newAlert, in_app: v })}
                       />
                     </div>
-                    <div className="flex items-center justify-between p-2 rounded-lg border border-border/50 bg-background/50">
+                    <div className="flex items-center justify-between p-2 rounded-lg border border-border/50 bg-background/50 opacity-60">
                       <div className="flex items-center gap-2">
                         <Mail className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-sm">Email</span>
-                        <Badge variant="outline" className="text-[10px] px-1.5">Coming Soon</Badge>
+                        <div>
+                          <span className="text-sm">Email</span>
+                          <Badge variant="outline" className="text-[10px] px-1.5 ml-2">Coming Soon</Badge>
+                        </div>
                       </div>
                       <Switch
                         checked={newAlert.email}
@@ -271,11 +334,13 @@ export function EventAlertManager({ className }: EventAlertManagerProps) {
                         disabled
                       />
                     </div>
-                    <div className="flex items-center justify-between p-2 rounded-lg border border-border/50 bg-background/50">
+                    <div className="flex items-center justify-between p-2 rounded-lg border border-border/50 bg-background/50 opacity-60">
                       <div className="flex items-center gap-2">
                         <Smartphone className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-sm">Push Notifications</span>
-                        <Badge variant="outline" className="text-[10px] px-1.5">Coming Soon</Badge>
+                        <div>
+                          <span className="text-sm">Push</span>
+                          <Badge variant="outline" className="text-[10px] px-1.5 ml-2">Coming Soon</Badge>
+                        </div>
                       </div>
                       <Switch
                         checked={newAlert.push}
@@ -300,6 +365,7 @@ export function EventAlertManager({ className }: EventAlertManagerProps) {
               </DialogFooter>
             </DialogContent>
           </Dialog>
+          </div>
         </div>
       </CardHeader>
 
