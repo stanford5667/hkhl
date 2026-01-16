@@ -23,7 +23,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+
 import {
   Select,
   SelectContent,
@@ -61,18 +61,16 @@ import {
   Database,
   Settings,
   Play,
-  Layers,
+  
   Clock,
   Sparkles,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import {
-  screenAllPortfolios,
   quickScreenPortfolios,
   fetchTickerCounts,
   ScreeningCriteria,
-  GenerationConfig,
   GeneratedPortfolio,
   TickerStats,
   ScreeningProgress,
@@ -133,7 +131,8 @@ export function DynamicScreener({ onSelect, onComplete }: DynamicScreenerProps) 
   const [minCagr, setMinCagr] = useState(-5);
   
   // Config
-  const [screenMode, setScreenMode] = useState<ScreenMode>('quick');
+  // Always use quick mode
+  const screenMode: ScreenMode = 'quick';
   const [lookbackYears, setLookbackYears] = useState(5); // Match typical backtest period
   const [minAssets, setMinAssets] = useState(2);
   const [maxAssets, setMaxAssets] = useState(5);
@@ -196,21 +195,12 @@ export function DynamicScreener({ onSelect, onComplete }: DynamicScreenerProps) 
         break;
     }
     
-    const config: GenerationConfig = {
-      minAssets,
-      maxAssets,
-      weightStep: 10,
-      maxPortfolios,
-    };
     
     try {
       let result: ScreeningResult;
       
-      if (screenMode === 'quick') {
-        result = await quickScreenPortfolios(criteria, lookbackYears, setProgress);
-      } else {
-        result = await screenAllPortfolios(criteria, config, lookbackYears, setProgress);
-      }
+      // Always use quick screening
+      result = await quickScreenPortfolios(criteria, lookbackYears, setProgress);
       
       setPortfolios(result.portfolios);
       setTickerStats(result.tickerStats);
@@ -356,19 +346,11 @@ export function DynamicScreener({ onSelect, onComplete }: DynamicScreenerProps) 
           </div>
         </div>
 
-        {/* Mode selector */}
-        <Tabs value={screenMode} onValueChange={(v) => setScreenMode(v as ScreenMode)}>
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="quick" className="text-xs">
-              <Zap className="h-3 w-3 mr-1" />
-              Quick (20 Templates)
-            </TabsTrigger>
-            <TabsTrigger value="full" className="text-xs">
-              <Layers className="h-3 w-3 mr-1" />
-              Full Generation
-            </TabsTrigger>
-          </TabsList>
-        </Tabs>
+        {/* Quick screening mode indicator */}
+        <div className="flex items-center gap-2 px-3 py-2 bg-muted/50 rounded-lg">
+          <Zap className="h-4 w-4 text-primary" />
+          <span className="text-xs text-muted-foreground">Quick Screening (20 Templates)</span>
+        </div>
 
         {/* Screening metric (one at a time) */}
         <div className="space-y-3">
