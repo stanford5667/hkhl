@@ -27,7 +27,7 @@ export interface Achievement {
 }
 
 export const ACHIEVEMENTS: Achievement[] = [
-  { id: 'first_study', name: 'First Analysis', description: 'Run your first quantitative study', icon: '🎯', requirement: 'Run 1 study', xp: 50 },
+  { id: 'first_study', name: 'First Analysis', description: 'Run your first quantitative study', icon: '🎯', requirement: 'Run 1 quant study', xp: 50 },
   { id: 'template_user', name: 'Template Master', description: 'Use a pre-built analysis template', icon: '📋', requirement: 'Use a template', xp: 25 },
   { id: 'five_studies', name: 'Getting Serious', description: 'Run 5 different studies', icon: '📊', requirement: 'Run 5 unique studies', xp: 100 },
   { id: 'full_analysis', name: 'Deep Diver', description: 'Run the Complete Analysis template', icon: '🔬', requirement: 'Run complete analysis', xp: 150 },
