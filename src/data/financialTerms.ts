@@ -212,6 +212,13 @@ export const financialTerms: Record<string, FinancialTerm> = {
     impact: "Use this to understand how 'wild' an investment might behave. A 15% standard deviation means returns typically fall within 15% of the average in a given year.",
     example: "If an investment averages 8% return with 12% standard deviation, most years you'd see returns between -4% and +20%.",
     learnMoreUrl: "https://www.investopedia.com/terms/s/standarddeviation.asp"
+  },
+
+  matchScore: {
+    term: "Match Score",
+    definition: "A percentage showing how well this portfolio fits your screening criteria. It combines all your filters into one easy-to-understand number.",
+    impact: "Higher match scores mean the portfolio closely aligns with what you're looking for. Use this to quickly identify portfolios that meet your needs.",
+    example: "If you set max drawdown 20%, min CAGR 8%, and a portfolio has 15% drawdown and 10% CAGR, it might score 95% because it beats both criteria."
   }
 };
 
