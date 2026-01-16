@@ -16,6 +16,7 @@ import { DevModeSyncWrapper } from "@/components/dev/DevModeSyncWrapper";
 import { CompanyRedirect } from "./components/shared/CompanyRedirect";
 import { PageLoader } from "@/components/shared/PageLoader";
 import { ErrorBoundary } from "@/components/shared/ErrorBoundary";
+import { ScrollToTop } from "@/components/ScrollToTop";
 import { UpgradeModal } from "@/components/premium/UpgradeModal";
 import { ThemeProvider } from "@/components/theme/ThemeProvider";
 import { FinancialGlossaryProvider } from "@/components/glossary";
@@ -81,7 +82,8 @@ const App = () => {
             <Toaster />
             <Sonner />
             <BrowserRouter>
-            <AuthProvider>
+              <ScrollToTop />
+              <AuthProvider>
               <OrganizationProvider>
                 <UnifiedDataProvider>
                   <DevModeProvider>
