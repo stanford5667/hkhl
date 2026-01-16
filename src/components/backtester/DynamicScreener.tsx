@@ -88,7 +88,7 @@ import {
 // TYPES
 // ═══════════════════════════════════════════════════════════════════════════════
 
-type SortField = 'cagr' | 'sharpe' | 'maxDrawdown' | 'volatility' | 'sortino' | 'stdDev';
+type SortField = 'cagr' | 'totalReturn' | 'sharpe' | 'maxDrawdown' | 'volatility' | 'sortino' | 'stdDev';
 type SortDirection = 'asc' | 'desc';
 type ScreenMode = 'quick' | 'full';
 type MetricKey = 'maxDrawdown' | 'maxVolatility' | 'minSharpe' | 'minCagr' | 'maxStdDev';
@@ -266,6 +266,10 @@ export function DynamicScreener({ onSelect, onComplete }: DynamicScreenerProps) 
         case 'cagr':
           aVal = a.metrics.cagr;
           bVal = b.metrics.cagr;
+          break;
+        case 'totalReturn':
+          aVal = a.metrics.totalReturn;
+          bVal = b.metrics.totalReturn;
           break;
         case 'sharpe':
           aVal = a.metrics.sharpe;
@@ -647,11 +651,12 @@ export function DynamicScreener({ onSelect, onComplete }: DynamicScreenerProps) 
             </div>
             <div className="flex items-center gap-1">
               <Select value={sortField} onValueChange={(v) => setSortField(v as SortField)}>
-                <SelectTrigger className="h-7 w-[110px] text-xs">
+                <SelectTrigger className="h-7 w-[120px] text-xs">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="cagr">Growth</SelectItem>
+                  <SelectItem value="totalReturn">Total Return</SelectItem>
+                  <SelectItem value="cagr">Annual Growth</SelectItem>
                   <SelectItem value="sharpe">Risk Score</SelectItem>
                   <SelectItem value="sortino">Safety</SelectItem>
                   <SelectItem value="maxDrawdown">Max Drop</SelectItem>
@@ -764,19 +769,22 @@ export function DynamicScreener({ onSelect, onComplete }: DynamicScreenerProps) 
                   </div>
                   
                   {/* Metrics row - tap any metric to learn more */}
-                  <div className="grid grid-cols-5 gap-1 text-center">
+                  {/* Return metrics first */}
+                  <div className="grid grid-cols-6 gap-1 text-center">
                     <MetricEducationalPopover
-                      label="Max Drop"
-                      value={`-${p.metrics.maxDrawdown}%`}
-                      termKey="drawdown"
-                      isHighlighted={p.metrics.maxDrawdown <= maxDrawdown}
+                      label="Total Return"
+                      value={`${p.metrics.totalReturn >= 0 ? '+' : ''}${p.metrics.totalReturn}%`}
+                      termKey="totalReturn"
+                      isPrimary
+                      isNegative={p.metrics.totalReturn < 0}
                     />
                     
                     <MetricEducationalPopover
-                      label="Volatility"
-                      value={`${p.metrics.volatility}%`}
-                      termKey="standardDeviation"
-                      isHighlighted={p.metrics.volatility <= maxVolatility}
+                      label="Annual"
+                      value={`${p.metrics.cagr >= 0 ? '+' : ''}${p.metrics.cagr}%`}
+                      termKey="cagr"
+                      isHighlighted={p.metrics.cagr >= minCagr}
+                      isNegative={p.metrics.cagr < 0}
                     />
                     
                     <MetricEducationalPopover
@@ -793,11 +801,17 @@ export function DynamicScreener({ onSelect, onComplete }: DynamicScreenerProps) 
                     />
                     
                     <MetricEducationalPopover
-                      label="Growth"
-                      value={`${p.metrics.cagr >= 0 ? '+' : ''}${p.metrics.cagr}%`}
-                      termKey="cagr"
-                      isHighlighted={p.metrics.cagr >= minCagr}
-                      isNegative={p.metrics.cagr < 0}
+                      label="Max Drop"
+                      value={`-${p.metrics.maxDrawdown}%`}
+                      termKey="drawdown"
+                      isHighlighted={p.metrics.maxDrawdown <= maxDrawdown}
+                    />
+                    
+                    <MetricEducationalPopover
+                      label="Volatility"
+                      value={`${p.metrics.volatility}%`}
+                      termKey="standardDeviation"
+                      isHighlighted={p.metrics.volatility <= maxVolatility}
                     />
                   </div>
                   
