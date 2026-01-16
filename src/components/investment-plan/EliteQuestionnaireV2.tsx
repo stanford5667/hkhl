@@ -1048,6 +1048,7 @@ export function EliteQuestionnaireV2({ onComplete, onCancel }: EliteQuestionnair
         onOpenChange={setShowAuthSheet}
         title="Create an account to generate your strategy"
         description="Sign up for free to receive your personalized investment plan."
+        onSuccess={handleAuthSuccess}
       />
     </div>
   );

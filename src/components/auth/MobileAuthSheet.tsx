@@ -30,6 +30,7 @@ interface MobileAuthSheetProps {
   title?: string;
   description?: string;
   showPremiumBranding?: boolean;
+  onSuccess?: () => void;
 }
 
 export function MobileAuthSheet({ 
@@ -37,7 +38,8 @@ export function MobileAuthSheet({
   onOpenChange,
   title = "Sign up to continue",
   description = "Create a free account to unlock this feature.",
-  showPremiumBranding = true
+  showPremiumBranding = true,
+  onSuccess
 }: MobileAuthSheetProps) {
   const [mode, setMode] = useState<'signin' | 'signup'>('signup');
   const [email, setEmail] = useState('');
@@ -72,7 +74,10 @@ export function MobileAuthSheet({
         if (error) {
           toast.error(error.message);
         } else {
-          setShowVerificationPending(true);
+          // With auto-confirm enabled, sign in should succeed immediately
+          toast.success("Account created!");
+          onOpenChange(false);
+          onSuccess?.();
         }
       } else {
         const { error } = await signIn(email, password);
@@ -85,6 +90,7 @@ export function MobileAuthSheet({
         } else {
           toast.success("Welcome back!");
           onOpenChange(false);
+          onSuccess?.();
         }
       }
     } finally {
