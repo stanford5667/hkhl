@@ -55,6 +55,7 @@ import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 import { QuickStudyButton } from '@/components/shared/QuickStudyButton';
+import { InlinePortfolioStudy } from './InlinePortfolioStudy';
 
 // Import expanded universe service
 import {
@@ -876,6 +877,25 @@ export function DynamicScreener({ onSelect, onComplete }: DynamicScreenerProps) 
                     ));
                   })()}
                 </div>
+                
+                {/* Inline Portfolio Studies */}
+                {(() => {
+                  const isExpanded = 'tickers' in selectedPortfolio;
+                  const tickersArr = isExpanded
+                    ? (selectedPortfolio as GeneratedPortfolioV2).tickers
+                    : (selectedPortfolio as GeneratedPortfolio).allocations.map(a => a.ticker);
+                  const weightsArr = isExpanded
+                    ? (selectedPortfolio as GeneratedPortfolioV2).weights
+                    : (selectedPortfolio as GeneratedPortfolio).allocations.map(a => a.weight);
+                  
+                  return (
+                    <InlinePortfolioStudy
+                      tickers={tickersArr}
+                      weights={weightsArr}
+                      portfolioName={selectedPortfolio.name}
+                    />
+                  );
+                })()}
               </div>
               
               {/* Settings */}
