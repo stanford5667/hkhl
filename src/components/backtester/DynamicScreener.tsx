@@ -89,7 +89,7 @@ interface DynamicScreenerProps {
   }) => void;
 }
 
-const ITEMS_PER_PAGE = 50;
+const ITEMS_PER_PAGE = 20;
 
 const RISK_STYLES = {
   conservative: { color: 'text-blue-400', bg: 'bg-blue-500/10', border: 'border-blue-500/30', icon: Snowflake },

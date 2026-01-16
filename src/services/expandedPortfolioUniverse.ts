@@ -718,7 +718,7 @@ export async function screenPortfoliosV2(
   availableTickers: number;
 }> {
   const startTime = Date.now();
-  const { page = 1, pageSize = 50, sortBy = 'sharpe', sortDirection = 'desc', limit = 15000 } = options;
+  const { page = 1, pageSize = 20, sortBy = 'sharpe', sortDirection = 'desc', limit = 100000 } = options;
 
   onProgress?.({ phase: 'init', current: 0, total: 100, message: 'Discovering available tickers...' });
 
