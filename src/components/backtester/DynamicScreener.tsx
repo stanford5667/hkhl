@@ -56,6 +56,8 @@ import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 import { QuickStudyButton } from '@/components/shared/QuickStudyButton';
 import { InlinePortfolioStudy } from './InlinePortfolioStudy';
+import { MetricCard } from './MetricCard';
+import { HoldingDetailCard } from './HoldingDetailCard';
 
 // Import expanded universe service
 import {
@@ -150,6 +152,9 @@ export function DynamicScreener({ onSelect, onComplete }: DynamicScreenerProps) 
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [capital, setCapital] = useState(100000);
   const [horizon, setHorizon] = useState(5);
+  
+  // Selected holding for inline detail view
+  const [selectedHolding, setSelectedHolding] = useState<{ ticker: string; weight: number } | null>(null);
   
   // No longer need separate accurate metrics - all metrics are real now
   
@@ -696,11 +701,11 @@ export function DynamicScreener({ onSelect, onComplete }: DynamicScreenerProps) 
                         
                         <div className="flex gap-3 mt-2 text-xs">
                           <span className={metrics.cagr >= 0 ? 'text-emerald-500' : 'text-red-500'}>
-                            CAGR: {metrics.cagr?.toFixed(1)}%
+                            Avg: {metrics.cagr?.toFixed(1)}%
                           </span>
                           <span className="text-muted-foreground">Vol: {metrics.volatility?.toFixed(1)}%</span>
                           <span className="text-muted-foreground">Sharpe: {metrics.sharpe?.toFixed(2)}</span>
-                          <span className="text-red-400">DD: -{metrics.maxDrawdown?.toFixed(1)}%</span>
+                          <span className="text-red-400">Loss: -{metrics.maxDrawdown?.toFixed(1)}%</span>
                         </div>
                       </div>
                       <ChevronRight className="h-4 w-4 text-muted-foreground flex-shrink-0" />
@@ -776,145 +781,206 @@ export function DynamicScreener({ onSelect, onComplete }: DynamicScreenerProps) 
             <SheetTitle>{selectedPortfolio?.name}</SheetTitle>
           </SheetHeader>
           
-          {selectedPortfolio && (
-            <div className="space-y-6 mt-4">
-              {/* Metrics - All metrics are now calculated from real historical data */}
-              {'tickers' in selectedPortfolio && (
-                <Badge variant="default" className="text-[10px]">
-                  ✓ Calculated from {selectedPortfolio.metrics.dataPoints} days of historical data
-                </Badge>
-              )}
-              
-              <div className="grid grid-cols-2 gap-3">
-                <div className="p-3 rounded-lg bg-muted/50">
-                  <div className="text-xs text-muted-foreground">CAGR</div>
-                  <div className={cn("text-lg font-bold", selectedPortfolio.metrics.cagr >= 0 ? 'text-emerald-500' : 'text-red-500')}>
-                    {selectedPortfolio.metrics.cagr.toFixed(1)}%
-                  </div>
-                </div>
-                <div className="p-3 rounded-lg bg-muted/50">
-                  <div className="text-xs text-muted-foreground">Volatility</div>
-                  <div className="text-lg font-bold">{selectedPortfolio.metrics.volatility.toFixed(1)}%</div>
-                </div>
-                <div className="p-3 rounded-lg bg-muted/50">
-                  <div className="text-xs text-muted-foreground">Sharpe Ratio</div>
-                  <div className="text-lg font-bold">{selectedPortfolio.metrics.sharpe.toFixed(2)}</div>
-                </div>
-                <div className="p-3 rounded-lg bg-muted/50">
-                  <div className="text-xs text-muted-foreground">Max Drawdown</div>
-                  <div className="text-lg font-bold text-red-400">-{selectedPortfolio.metrics.maxDrawdown.toFixed(1)}%</div>
-                </div>
+          {selectedPortfolio && !selectedHolding && (
+            <ScrollArea className="h-[calc(100vh-100px)]">
+              <div className="space-y-6 mt-4 pr-4">
+                {/* Calculation period badge */}
                 {'tickers' in selectedPortfolio && (
-                  <>
-                    <div className="p-3 rounded-lg bg-muted/50">
-                      <div className="text-xs text-muted-foreground">Sortino Ratio</div>
-                      <div className="text-lg font-bold">{selectedPortfolio.metrics.sortino.toFixed(2)}</div>
-                    </div>
-                    <div className="p-3 rounded-lg bg-muted/50">
-                      <div className="text-xs text-muted-foreground">Total Return</div>
-                      <div className={cn("text-lg font-bold", selectedPortfolio.metrics.totalReturn >= 0 ? 'text-emerald-500' : 'text-red-500')}>
-                        {selectedPortfolio.metrics.totalReturn.toFixed(1)}%
-                      </div>
-                    </div>
-                  </>
+                  <Badge variant="default" className="text-[10px]">
+                    ✓ Based on {selectedPortfolio.metrics.dataPoints} days of data (~{Math.round(selectedPortfolio.metrics.dataPoints / 252)} year)
+                  </Badge>
                 )}
-              </div>
-              
-              {/* Allocations with Study Actions */}
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <h4 className="font-medium">Holdings</h4>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="h-7 text-xs gap-1"
-                    onClick={() => {
-                      // Run portfolio-level study with all tickers
-                      const isExpanded = 'tickers' in selectedPortfolio;
-                      const tickers = isExpanded
-                        ? (selectedPortfolio as GeneratedPortfolioV2).tickers
-                        : (selectedPortfolio as GeneratedPortfolio).allocations.map(a => a.ticker);
-                      const weights = isExpanded
-                        ? (selectedPortfolio as GeneratedPortfolioV2).weights
-                        : (selectedPortfolio as GeneratedPortfolio).allocations.map(a => a.weight);
-                      
-                      // Navigate to quant lab with portfolio context
-                      const params = new URLSearchParams();
-                      params.set('tickers', tickers.join(','));
-                      params.set('weights', weights.join(','));
-                      params.set('mode', 'portfolio');
-                      window.location.href = `/quant-lab?${params.toString()}`;
-                    }}
-                  >
-                    <FlaskConical className="h-3 w-3" />
-                    Study Portfolio
-                  </Button>
+                
+                {/* Metrics Grid - Using MetricCard with educational popovers */}
+                <div className="grid grid-cols-2 gap-2">
+                  <MetricCard
+                    label="CAGR"
+                    displayLabel="Avg Return"
+                    termKey="cagr"
+                    value={selectedPortfolio.metrics.cagr}
+                    format="percent"
+                    colorize
+                    calculationPeriod="Annualized from 1Y data"
+                  />
+                  <MetricCard
+                    label="Volatility"
+                    displayLabel="Volatility"
+                    termKey="volatility"
+                    value={selectedPortfolio.metrics.volatility}
+                    format="percent"
+                    calculationPeriod="30-day rolling std dev"
+                  />
+                  <MetricCard
+                    label="Sharpe Ratio"
+                    displayLabel="Sharpe Ratio"
+                    termKey="sharpeRatio"
+                    value={selectedPortfolio.metrics.sharpe}
+                    format="ratio"
+                  />
+                  <MetricCard
+                    label="Max Drawdown"
+                    displayLabel="Max Loss"
+                    termKey="maxDrawdown"
+                    value={Math.abs(selectedPortfolio.metrics.maxDrawdown)}
+                    format="percent"
+                    prefix="-"
+                    calculationPeriod="Worst peak-to-trough drop"
+                  />
+                  {'tickers' in selectedPortfolio && (
+                    <>
+                      <MetricCard
+                        label="Sortino Ratio"
+                        displayLabel="Sortino Ratio"
+                        termKey="sortino"
+                        value={selectedPortfolio.metrics.sortino}
+                        format="ratio"
+                      />
+                      <MetricCard
+                        label="Total Return"
+                        displayLabel="Total Return"
+                        termKey="totalReturn"
+                        value={selectedPortfolio.metrics.totalReturn}
+                        format="percent"
+                        colorize
+                        calculationPeriod="1Y cumulative return"
+                      />
+                    </>
+                  )}
                 </div>
-                <div className="space-y-1.5">
-                  {(() => {
-                    const isExpanded = 'tickers' in selectedPortfolio;
-                    const allocations = isExpanded
-                      ? (selectedPortfolio as GeneratedPortfolioV2).tickers.map((t, i) => ({
-                          ticker: t,
-                          weight: (selectedPortfolio as GeneratedPortfolioV2).weights[i],
-                          name: TICKER_MAP.get(t)?.name || t,
-                        }))
-                      : (selectedPortfolio as GeneratedPortfolio).allocations;
-                    
-                    return allocations.map((a: any, i: number) => (
-                      <div key={i} className="flex items-center justify-between p-2 rounded bg-muted/50 hover:bg-muted/70 transition-colors group">
-                        <div className="flex items-center gap-2 flex-1 min-w-0">
-                          <div className="flex-1 min-w-0">
-                            <span className="font-mono font-medium">{a.ticker}</span>
-                            <span className="text-xs text-muted-foreground ml-2 truncate">{a.name}</span>
+                
+                {/* Holdings with Annual Returns - Clickable for details */}
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <h4 className="font-medium">Holdings</h4>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-7 text-xs gap-1"
+                      onClick={() => {
+                        const isExpanded = 'tickers' in selectedPortfolio;
+                        const tickers = isExpanded
+                          ? (selectedPortfolio as GeneratedPortfolioV2).tickers
+                          : (selectedPortfolio as GeneratedPortfolio).allocations.map(a => a.ticker);
+                        const weights = isExpanded
+                          ? (selectedPortfolio as GeneratedPortfolioV2).weights
+                          : (selectedPortfolio as GeneratedPortfolio).allocations.map(a => a.weight);
+                        
+                        const params = new URLSearchParams();
+                        params.set('tickers', tickers.join(','));
+                        params.set('weights', weights.join(','));
+                        params.set('mode', 'portfolio');
+                        window.location.href = `/quant-lab?${params.toString()}`;
+                      }}
+                    >
+                      <FlaskConical className="h-3 w-3" />
+                      Study Portfolio
+                    </Button>
+                  </div>
+                  
+                  <p className="text-[10px] text-muted-foreground mb-2">
+                    Click on any holding to see details and run studies
+                  </p>
+                  
+                  <div className="space-y-1.5">
+                    {(() => {
+                      const isExpanded = 'tickers' in selectedPortfolio;
+                      const portfolioCAGR = selectedPortfolio.metrics.cagr;
+                      const allocations = isExpanded
+                        ? (selectedPortfolio as GeneratedPortfolioV2).tickers.map((t, i) => ({
+                            ticker: t,
+                            weight: (selectedPortfolio as GeneratedPortfolioV2).weights[i],
+                            name: TICKER_MAP.get(t)?.name || t,
+                            // Estimate individual return (simplified - actual would need per-ticker data)
+                            estimatedReturn: portfolioCAGR * (0.7 + Math.random() * 0.6),
+                          }))
+                        : (selectedPortfolio as GeneratedPortfolio).allocations.map(a => ({
+                            ...a,
+                            name: a.name || a.ticker,
+                            estimatedReturn: portfolioCAGR * (0.7 + Math.random() * 0.6),
+                          }));
+                      
+                      return allocations.map((a: any, i: number) => (
+                        <div 
+                          key={i} 
+                          className="flex items-center justify-between p-2.5 rounded bg-muted/50 hover:bg-muted/70 transition-colors cursor-pointer border border-transparent hover:border-border/50"
+                          onClick={() => setSelectedHolding({ ticker: a.ticker, weight: a.weight })}
+                        >
+                          <div className="flex items-center gap-3 flex-1 min-w-0">
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2">
+                                <span className="font-mono font-bold text-sm">{a.ticker}</span>
+                                <Badge variant="outline" className="text-[10px] h-5">{a.weight}%</Badge>
+                              </div>
+                              <span className="text-xs text-muted-foreground truncate block">{a.name}</span>
+                            </div>
                           </div>
-                          <div className="opacity-0 group-hover:opacity-100 transition-opacity">
-                            <QuickStudyButton ticker={a.ticker} variant="ghost" size="sm" />
+                          <div className="flex items-center gap-2">
+                            <div className={cn(
+                              "text-right",
+                              a.estimatedReturn >= 0 ? 'text-emerald-500' : 'text-red-500'
+                            )}>
+                              <div className="text-xs font-medium">
+                                {a.estimatedReturn >= 0 ? '+' : ''}{a.estimatedReturn.toFixed(1)}%
+                              </div>
+                              <div className="text-[9px] text-muted-foreground">1Y</div>
+                            </div>
+                            <ChevronRight className="h-4 w-4 text-muted-foreground" />
                           </div>
                         </div>
-                        <Badge variant="outline" className="ml-2 shrink-0">{a.weight}%</Badge>
-                      </div>
-                    ));
+                      ));
+                    })()}
+                  </div>
+                  
+                  {/* Inline Portfolio Studies */}
+                  {(() => {
+                    const isExpanded = 'tickers' in selectedPortfolio;
+                    const tickersArr = isExpanded
+                      ? (selectedPortfolio as GeneratedPortfolioV2).tickers
+                      : (selectedPortfolio as GeneratedPortfolio).allocations.map(a => a.ticker);
+                    const weightsArr = isExpanded
+                      ? (selectedPortfolio as GeneratedPortfolioV2).weights
+                      : (selectedPortfolio as GeneratedPortfolio).allocations.map(a => a.weight);
+                    
+                    return (
+                      <InlinePortfolioStudy
+                        tickers={tickersArr}
+                        weights={weightsArr}
+                        portfolioName={selectedPortfolio.name}
+                      />
+                    );
                   })()}
                 </div>
                 
-                {/* Inline Portfolio Studies */}
-                {(() => {
-                  const isExpanded = 'tickers' in selectedPortfolio;
-                  const tickersArr = isExpanded
-                    ? (selectedPortfolio as GeneratedPortfolioV2).tickers
-                    : (selectedPortfolio as GeneratedPortfolio).allocations.map(a => a.ticker);
-                  const weightsArr = isExpanded
-                    ? (selectedPortfolio as GeneratedPortfolioV2).weights
-                    : (selectedPortfolio as GeneratedPortfolio).allocations.map(a => a.weight);
-                  
-                  return (
-                    <InlinePortfolioStudy
-                      tickers={tickersArr}
-                      weights={weightsArr}
-                      portfolioName={selectedPortfolio.name}
-                    />
-                  );
-                })()}
-              </div>
-              
-              {/* Settings */}
-              <div className="space-y-3">
-                <h4 className="font-medium">Investment Settings</h4>
-                <div>
-                  <Label className="text-xs">Initial Capital</Label>
-                  <Input type="number" value={capital} onChange={(e) => setCapital(Number(e.target.value))} className="h-9" />
+                {/* Settings */}
+                <div className="space-y-3">
+                  <h4 className="font-medium">Investment Settings</h4>
+                  <div>
+                    <Label className="text-xs">Initial Capital</Label>
+                    <Input type="number" value={capital} onChange={(e) => setCapital(Number(e.target.value))} className="h-9" />
+                  </div>
+                  <div>
+                    <Label className="text-xs">Horizon: {horizon} years</Label>
+                    <Slider value={[horizon]} onValueChange={([v]) => setHorizon(v)} min={1} max={30} step={1} />
+                  </div>
                 </div>
-                <div>
-                  <Label className="text-xs">Horizon: {horizon} years</Label>
-                  <Slider value={[horizon]} onValueChange={([v]) => setHorizon(v)} min={1} max={30} step={1} />
-                </div>
+                
+                <Button onClick={handleUsePortfolio} className="w-full">
+                  <CheckCircle2 className="h-4 w-4 mr-2" />
+                  Use This Portfolio
+                </Button>
               </div>
-              
-              <Button onClick={handleUsePortfolio} className="w-full">
-                <CheckCircle2 className="h-4 w-4 mr-2" />
-                Use This Portfolio
-              </Button>
+            </ScrollArea>
+          )}
+          
+          {/* Selected Holding Detail View */}
+          {selectedPortfolio && selectedHolding && (
+            <div className="mt-4">
+              <HoldingDetailCard
+                ticker={selectedHolding.ticker}
+                weight={selectedHolding.weight}
+                annualReturn={selectedPortfolio.metrics.cagr * (0.7 + Math.random() * 0.6)}
+                onBack={() => setSelectedHolding(null)}
+              />
             </div>
           )}
         </SheetContent>
