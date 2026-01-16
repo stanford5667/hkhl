@@ -858,7 +858,7 @@ export function EliteQuestionnaireV2({ onComplete, onCancel, userName: initialUs
               <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-emerald-500 flex items-center justify-center">
                 <Sparkles className="w-4 h-4 text-white" />
               </div>
-              <span className="font-semibold">Investment Plan Builder</span>
+              <span className="font-semibold">Strategy Builder</span>
             </div>
             {onCancel && (
               <Button

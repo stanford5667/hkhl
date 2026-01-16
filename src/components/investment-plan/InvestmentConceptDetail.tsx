@@ -210,7 +210,7 @@ const CONCEPT_EXPLANATIONS: Record<string, {
   'us-equities': {
     description: 'US Equities represent ownership in American companies. They\'re the growth engine of most portfolios, historically returning ~10% annually but with significant volatility.',
     whyItMatters: 'US markets are the deepest, most liquid in the world. Major indices like the S&P 500 represent the backbone of global capitalism and long-term wealth creation.',
-    howToUse: 'Core allocation for most investors. Use low-cost index funds (VOO, VTI). Higher risk tolerance = higher allocation. Never 0%, rarely 100%.',
+    howToUse: 'Core allocation for most investors. Use low-cost index funds. Higher risk tolerance = higher allocation. Never 0%, rarely 100%.',
     benchmarks: [
       { name: 'S&P 500 (1957-2024)', value: '10.5%', description: 'Annualized total return' },
       { name: 'Best Year (1995)', value: '+37.6%', description: 'Tech boom peak' },
@@ -489,7 +489,7 @@ const CONCEPT_EXPLANATIONS: Record<string, {
   'passive-investing': {
     description: 'Passive investing is a buy-and-hold strategy using index funds to match market returns. It minimizes trading and fees, accepting average returns rather than trying to beat the market.',
     whyItMatters: 'Most active managers underperform index funds after fees. Passive investing is simple, low-cost, and outperforms 80%+ of active funds over long periods.',
-    howToUse: 'Use low-cost index funds like VTI or VOO. Hold for decades. Ignore market noise. Focus on asset allocation, not stock picking.',
+    howToUse: 'Use low-cost index funds that track broad market indices. Hold for decades. Ignore market noise. Focus on asset allocation, not stock picking.',
     benchmarks: [
       { name: 'Active Funds Underperforming', value: '80%+', description: 'Over 20 years' },
       { name: 'Index Fund Expense Ratio', value: '0.03-0.10%', description: 'Very low cost' },
@@ -556,10 +556,10 @@ const CONCEPT_EXPLANATIONS: Record<string, {
   'index-fund': {
     description: 'An index fund is a mutual fund or ETF that tracks a market index like the S&P 500. It provides broad market exposure with minimal fees and no stock-picking.',
     whyItMatters: 'Index funds have outperformed 80%+ of actively managed funds over 20 years. They\'re the backbone of modern portfolio theory and passive investing.',
-    howToUse: 'Use broad market index funds (VTI, VOO, VXUS) as your core holdings. Add sector or factor funds for tilts. Keep costs under 0.20%.',
+    howToUse: 'Use broad market index funds as your core holdings. Add sector or factor funds for tilts. Keep costs under 0.20%.',
     benchmarks: [
-      { name: 'S&P 500 Index (SPY)', value: '0.09%', description: 'Expense ratio' },
-      { name: 'Total Market (VTI)', value: '0.03%', description: 'Lowest cost option' },
+      { name: 'S&P 500 Index Funds', value: '0.03-0.10%', description: 'Typical expense ratio' },
+      { name: 'Total Market Funds', value: '0.03-0.05%', description: 'Lowest cost options' },
     ],
     relatedConcepts: ['ETF', 'Passive Investing', 'Expense Ratio'],
   },
