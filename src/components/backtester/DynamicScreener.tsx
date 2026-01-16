@@ -73,6 +73,7 @@ import {
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { MetricInfoIcon } from '@/components/shared/MetricInfoIcon';
+import { MetricEducationalPopover } from '@/components/shared/MetricEducationalPopover';
 import {
   quickScreenPortfolios,
   fetchTickerCounts,
@@ -766,125 +767,47 @@ export function DynamicScreener({ onSelect, onComplete }: DynamicScreenerProps) 
                   
                   {/* Metrics row - tap any metric to learn more */}
                   <div className="grid grid-cols-6 gap-1 text-center">
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <div className="p-1 rounded bg-muted/50 text-[9px] cursor-pointer hover:bg-muted transition-colors">
-                          <p className="text-muted-foreground flex items-center justify-center gap-0.5">
-                            DD
-                            <HelpCircle className="h-2 w-2 opacity-50" />
-                          </p>
-                          <p className={cn(
-                            "font-mono font-bold",
-                            p.metrics.maxDrawdown <= maxDrawdown ? "text-emerald-400" : ""
-                          )}>
-                            -{p.metrics.maxDrawdown}%
-                          </p>
-                        </div>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-64 text-xs" side="top">
-                        <p className="font-semibold">Max Drawdown</p>
-                        <p className="text-muted-foreground mt-1">The largest peak-to-bottom drop this portfolio experienced. Lower is safer.</p>
-                      </PopoverContent>
-                    </Popover>
+                    <MetricEducationalPopover
+                      label="Max Drop"
+                      value={`-${p.metrics.maxDrawdown}%`}
+                      termKey="drawdown"
+                      isHighlighted={p.metrics.maxDrawdown <= maxDrawdown}
+                    />
                     
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <div className="p-1 rounded bg-muted/50 text-[9px] cursor-pointer hover:bg-muted transition-colors">
-                          <p className="text-muted-foreground flex items-center justify-center gap-0.5">
-                            σ
-                            <HelpCircle className="h-2 w-2 opacity-50" />
-                          </p>
-                          <p className={cn(
-                            "font-mono font-bold",
-                            p.metrics.volatility <= maxVolatility ? "text-emerald-400" : ""
-                          )}>
-                            {p.metrics.volatility}%
-                          </p>
-                        </div>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-64 text-xs" side="top">
-                        <p className="font-semibold">Standard Deviation (σ)</p>
-                        <p className="text-muted-foreground mt-1">Measures how much returns vary from the average. Higher = more unpredictable swings.</p>
-                      </PopoverContent>
-                    </Popover>
+                    <MetricEducationalPopover
+                      label="Volatility"
+                      value={`${p.metrics.volatility}%`}
+                      termKey="standardDeviation"
+                      isHighlighted={p.metrics.volatility <= maxVolatility}
+                    />
                     
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <div className="p-1 rounded bg-muted/50 text-[9px] cursor-pointer hover:bg-muted transition-colors">
-                          <p className="text-muted-foreground flex items-center justify-center gap-0.5">
-                            Sharpe
-                            <HelpCircle className="h-2 w-2 opacity-50" />
-                          </p>
-                          <p className={cn(
-                            "font-mono font-bold",
-                            p.metrics.sharpe >= minSharpe ? "text-emerald-400" : ""
-                          )}>
-                            {p.metrics.sharpe.toFixed(2)}
-                          </p>
-                        </div>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-64 text-xs" side="top">
-                        <p className="font-semibold">Sharpe Ratio</p>
-                        <p className="text-muted-foreground mt-1">Return per unit of risk. Above 1.0 is good, above 2.0 is excellent.</p>
-                      </PopoverContent>
-                    </Popover>
+                    <MetricEducationalPopover
+                      label="Risk Score"
+                      value={p.metrics.sharpe.toFixed(2)}
+                      termKey="sharpeRatio"
+                      isHighlighted={p.metrics.sharpe >= minSharpe}
+                    />
                     
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <div className="p-1 rounded bg-muted/50 text-[9px] cursor-pointer hover:bg-muted transition-colors">
-                          <p className="text-muted-foreground flex items-center justify-center gap-0.5">
-                            Sortino
-                            <HelpCircle className="h-2 w-2 opacity-50" />
-                          </p>
-                          <p className="font-mono font-bold">
-                            {p.metrics.sortino.toFixed(2)}
-                          </p>
-                        </div>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-64 text-xs" side="top">
-                        <p className="font-semibold">Sortino Ratio</p>
-                        <p className="text-muted-foreground mt-1">Like Sharpe but only counts downside risk. Higher = better protection from losses.</p>
-                      </PopoverContent>
-                    </Popover>
+                    <MetricEducationalPopover
+                      label="Safety"
+                      value={p.metrics.sortino.toFixed(2)}
+                      termKey="sortinoRatio"
+                    />
                     
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <div className="p-1 rounded bg-muted/50 text-[9px] cursor-pointer hover:bg-muted transition-colors">
-                          <p className="text-muted-foreground flex items-center justify-center gap-0.5">
-                            CAGR
-                            <HelpCircle className="h-2 w-2 opacity-50" />
-                          </p>
-                          <p className={cn(
-                            "font-mono font-bold",
-                            p.metrics.cagr >= minCagr ? "text-emerald-400" : "text-rose-400"
-                          )}>
-                            {p.metrics.cagr >= 0 ? '+' : ''}{p.metrics.cagr}%
-                          </p>
-                        </div>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-64 text-xs" side="top">
-                        <p className="font-semibold">CAGR (Annual Growth)</p>
-                        <p className="text-muted-foreground mt-1">Compound Annual Growth Rate - the smoothed yearly return, as if it grew steadily each year.</p>
-                      </PopoverContent>
-                    </Popover>
+                    <MetricEducationalPopover
+                      label="Growth"
+                      value={`${p.metrics.cagr >= 0 ? '+' : ''}${p.metrics.cagr}%`}
+                      termKey="cagr"
+                      isHighlighted={p.metrics.cagr >= minCagr}
+                      isNegative={p.metrics.cagr < 0}
+                    />
                     
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <div className="p-1 rounded bg-muted/50 text-[9px] cursor-pointer hover:bg-muted transition-colors">
-                          <p className="text-muted-foreground flex items-center justify-center gap-0.5">
-                            Score
-                            <HelpCircle className="h-2 w-2 opacity-50" />
-                          </p>
-                          <p className="font-mono font-bold text-primary">
-                            {p.matchScore}%
-                          </p>
-                        </div>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-64 text-xs" side="top">
-                        <p className="font-semibold">Match Score</p>
-                        <p className="text-muted-foreground mt-1">How well this portfolio matches your screening criteria. Higher = better fit.</p>
-                      </PopoverContent>
-                    </Popover>
+                    <MetricEducationalPopover
+                      label="Match"
+                      value={`${p.matchScore}%`}
+                      termKey="matchScore"
+                      isPrimary
+                    />
                   </div>
                   
                   {/* Allocation pills */}
