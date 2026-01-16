@@ -91,7 +91,9 @@ interface DynamicScreenerProps {
   }) => void;
 }
 
-const ITEMS_PER_PAGE = 20;
+const INITIAL_ITEMS = 10; // First load
+const LOAD_MORE_INCREMENT = 10; // Each "See More" click
+const ITEMS_PER_PAGE = 20; // Max items per server page
 
 const RISK_STYLES = {
   conservative: { color: 'text-blue-400', bg: 'bg-blue-500/10', border: 'border-blue-500/30', icon: Snowflake },
@@ -151,7 +153,10 @@ export function DynamicScreener({ onSelect, onComplete }: DynamicScreenerProps) 
   const [filterRiskLevel, setFilterRiskLevel] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
   
-  // Pagination
+  // Progressive loading state
+  const [visibleCount, setVisibleCount] = useState(INITIAL_ITEMS);
+  
+  // Pagination (for legacy quick mode)
   const [currentPage, setCurrentPage] = useState(1);
   
   // Universe stats
@@ -198,17 +203,18 @@ export function DynamicScreener({ onSelect, onComplete }: DynamicScreenerProps) 
       }
       
       try {
+        // Fetch a reasonable batch (e.g., 50) from server for progressive reveal
         const result = await screenPortfoliosServer(
           criteria,
           {
-            page,
-            pageSize: ITEMS_PER_PAGE,
+            page: 1,
+            pageSize: 50, // Fetch 50 at a time for client-side "See More"
             sortBy: sortField === 'matchScore' ? 'matchScore' : 
                    sortField === 'cagr' ? 'cagr' : 
                    sortField === 'sharpe' ? 'sharpe' : 
                    sortField === 'maxDrawdown' ? 'maxDrawdown' : 'matchScore',
             sortDirection,
-            limit: maxPortfolios,
+            limit: 1000, // Only generate up to 1000 for speed, user can filter to narrow
             useCache: true,
           },
           (prog) => setProgress(prog)
@@ -293,26 +299,36 @@ export function DynamicScreener({ onSelect, onComplete }: DynamicScreenerProps) 
     return filtered;
   }, [portfolios, filterRiskLevel, searchQuery, sortField, sortDirection, screenMode]);
 
-  // Pagination
-  const totalPages = screenMode === 'expanded' ? expandedTotalPages : Math.ceil(filteredPortfolios.length / ITEMS_PER_PAGE);
-  const totalCount = screenMode === 'expanded' ? expandedTotalCount : filteredPortfolios.length;
-  
-  const paginatedPortfolios = useMemo(() => {
-    if (screenMode === 'expanded') return expandedPortfolios;
+  // For expanded mode we use progressive loading (show first N, "See More" to reveal more)
+  // For legacy quick mode we keep pagination
+  const displayedPortfolios = useMemo(() => {
+    if (screenMode === 'expanded') {
+      return expandedPortfolios.slice(0, visibleCount);
+    }
     const start = (currentPage - 1) * ITEMS_PER_PAGE;
     return filteredPortfolios.slice(start, start + ITEMS_PER_PAGE);
-  }, [screenMode, expandedPortfolios, filteredPortfolios, currentPage]);
+  }, [screenMode, expandedPortfolios, filteredPortfolios, currentPage, visibleCount]);
+
+  // Pagination (legacy mode only)
+  const totalPages = screenMode === 'expanded' ? 1 : Math.ceil(filteredPortfolios.length / ITEMS_PER_PAGE);
+  const totalCount = screenMode === 'expanded' ? expandedTotalCount : filteredPortfolios.length;
+
+  // Can we show more in expanded mode?
+  const hasMore = screenMode === 'expanded' && visibleCount < expandedPortfolios.length;
+  const canLoadNextPage = screenMode === 'expanded' && expandedPortfolios.length < expandedTotalCount;
+
+  // Reset visible count when running new screening
+  useEffect(() => {
+    setVisibleCount(INITIAL_ITEMS);
+  }, [expandedPortfolios]);
 
   // ─────────────────────────────────────────────────────────────────────────────
   // Handlers
   // ─────────────────────────────────────────────────────────────────────────────
   
   const handlePageChange = (newPage: number) => {
-    if (screenMode === 'expanded') {
-      runScreening(newPage);
-    } else {
-      setCurrentPage(newPage);
-    }
+    // Only used for legacy quick mode now
+    setCurrentPage(newPage);
   };
   
   const handleSelect = (p: GeneratedPortfolio | GeneratedPortfolioV2) => {
@@ -552,7 +568,7 @@ export function DynamicScreener({ onSelect, onComplete }: DynamicScreenerProps) 
         {/* Portfolio list */}
         <ScrollArea className="flex-1">
           <div className="p-2 space-y-2">
-            {paginatedPortfolios.map((portfolio, idx) => {
+            {displayedPortfolios.map((portfolio, idx) => {
               const isExpanded = 'tickers' in portfolio;
               const p = portfolio as any;
               const riskLevel = p.riskLevel || p.riskProfile || 'moderate';
@@ -612,18 +628,45 @@ export function DynamicScreener({ onSelect, onComplete }: DynamicScreenerProps) 
               );
             })}
             
-            {paginatedPortfolios.length === 0 && !isLoading && (
+            {displayedPortfolios.length === 0 && !isLoading && (
               <div className="text-center py-12 text-muted-foreground">
                 <Database className="h-8 w-8 mx-auto mb-2 opacity-50" />
                 <p>No portfolios match your criteria</p>
                 <p className="text-xs mt-1">Try adjusting your filters</p>
               </div>
             )}
+
+            {/* See More button for expanded mode */}
+            {screenMode === 'expanded' && (hasMore || canLoadNextPage) && (
+              <div className="flex flex-col items-center gap-2 py-4">
+                <p className="text-xs text-muted-foreground">
+                  Showing {visibleCount} of {expandedTotalCount.toLocaleString()} portfolios
+                </p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={isLoading}
+                  onClick={() => {
+                    if (hasMore) {
+                      // Reveal more from current batch
+                      setVisibleCount((prev) => Math.min(prev + LOAD_MORE_INCREMENT, expandedPortfolios.length));
+                    } else if (canLoadNextPage) {
+                      // Fetch next page and append
+                      // For simplicity, just show the user they can run a new screen with different filters
+                      toast.info('Adjust filters to narrow results', { description: 'Try adding criteria to find specific portfolios faster.' });
+                    }
+                  }}
+                >
+                  <Sparkles className="h-3 w-3 mr-1" />
+                  See More ({Math.min(LOAD_MORE_INCREMENT, expandedPortfolios.length - visibleCount)} more)
+                </Button>
+              </div>
+            )}
           </div>
         </ScrollArea>
         
-        {/* Pagination */}
-        {totalPages > 1 && (
+        {/* Pagination (legacy quick mode only) */}
+        {screenMode !== 'expanded' && totalPages > 1 && (
           <div className="flex items-center justify-center gap-2 p-2 border-t">
             <Button variant="outline" size="icon" className="h-7 w-7" disabled={currentPage === 1 || isLoading} onClick={() => handlePageChange(1)}>
               <ChevronsLeft className="h-3 w-3" />
