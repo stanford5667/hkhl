@@ -26,7 +26,9 @@ import {
   ChevronDown,
   ChevronUp,
   BookOpen,
+  Bell,
 } from 'lucide-react';
+import { EventAlertManager } from './EventAlertManager';
 import { format, parseISO, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isToday, isSameDay, differenceInDays } from 'date-fns';
 import { 
   useEconomicCalendar, 
@@ -261,6 +263,9 @@ export function EconomicCalendarTab() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Event Alert Manager */}
+      <EventAlertManager />
 
       <div className="grid lg:grid-cols-3 gap-6">
         {/* Calendar View */}
