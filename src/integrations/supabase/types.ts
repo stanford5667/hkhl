@@ -1114,6 +1114,42 @@ export type Database = {
         }
         Relationships: []
       }
+      data_sync_status: {
+        Row: {
+          created_at: string
+          error_message: string | null
+          id: string
+          last_sync_at: string | null
+          next_sync_at: string | null
+          records_updated: number | null
+          status: string | null
+          sync_type: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          last_sync_at?: string | null
+          next_sync_at?: string | null
+          records_updated?: number | null
+          status?: string | null
+          sync_type: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          last_sync_at?: string | null
+          next_sync_at?: string | null
+          records_updated?: number | null
+          status?: string | null
+          sync_type?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       deal_pipeline: {
         Row: {
           asking_multiple: number | null
@@ -1357,6 +1393,60 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      economic_calendar: {
+        Row: {
+          actual_value: string | null
+          country: string | null
+          created_at: string
+          currency: string | null
+          description: string | null
+          event_date: string
+          event_name: string
+          event_time: string | null
+          event_type: string
+          forecast_value: string | null
+          id: string
+          importance: string | null
+          previous_value: string | null
+          source: string | null
+          updated_at: string
+        }
+        Insert: {
+          actual_value?: string | null
+          country?: string | null
+          created_at?: string
+          currency?: string | null
+          description?: string | null
+          event_date: string
+          event_name: string
+          event_time?: string | null
+          event_type: string
+          forecast_value?: string | null
+          id?: string
+          importance?: string | null
+          previous_value?: string | null
+          source?: string | null
+          updated_at?: string
+        }
+        Update: {
+          actual_value?: string | null
+          country?: string | null
+          created_at?: string
+          currency?: string | null
+          description?: string | null
+          event_date?: string
+          event_name?: string
+          event_time?: string | null
+          event_type?: string
+          forecast_value?: string | null
+          id?: string
+          importance?: string | null
+          previous_value?: string | null
+          source?: string | null
+          updated_at?: string
+        }
+        Relationships: []
       }
       economic_indicators: {
         Row: {

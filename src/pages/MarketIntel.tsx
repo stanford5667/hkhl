@@ -16,8 +16,9 @@ import {
   Landmark, Users, Sparkles, Bell, RefreshCw, DollarSign, TrendingUp, TrendingDown,
   BarChart3, Shield, AlertTriangle, ArrowUpRight, ArrowDownRight, Home, 
   LineChart, Coins, ChevronRight, AlertCircle, Calendar, ExternalLink,
-  Gem, Fuel, Wheat, Banknote, Crown
+  Gem, Fuel, Wheat, Banknote, Crown, CalendarDays
 } from 'lucide-react';
+import { EconomicCalendarTab } from '@/components/market-intel/EconomicCalendarTab';
 import { PremiumFeatureBlock, PremiumFeatureInline } from '@/components/premium/PremiumFeatureBlock';
 import { usePortfolioTotals, useAlerts, useDealPipeline, usePortfolioAssets, useAssetAllocation, useEvents, useEconomicIndicators, useCovenants, useMATransactions, usePEFunds } from '@/hooks/useMarketIntel';
 import { LiveMacroContent } from '@/components/markets/LiveMacroContent';
@@ -116,7 +117,7 @@ export default function MarketIntel() {
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-        <TabsList className="grid w-full grid-cols-4 h-auto gap-1 bg-secondary/50 p-1">
+        <TabsList className="grid w-full grid-cols-5 h-auto gap-1 bg-secondary/50 p-1">
           <TabsTrigger value="macro" className="text-xs sm:text-sm min-w-0 px-2">
             <Globe className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-1.5 shrink-0" />
             <span className="truncate hidden sm:inline">Macro</span>
@@ -128,6 +129,10 @@ export default function MarketIntel() {
           <TabsTrigger value="currencies" className="text-xs sm:text-sm min-w-0 px-2">
             <Banknote className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-1.5 shrink-0" />
             <span className="truncate hidden sm:inline">Currencies</span>
+          </TabsTrigger>
+          <TabsTrigger value="calendar" className="text-xs sm:text-sm min-w-0 px-2">
+            <CalendarDays className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-1.5 shrink-0" />
+            <span className="truncate hidden sm:inline">Calendar</span>
           </TabsTrigger>
           <TabsTrigger value="funds" className="text-xs sm:text-sm min-w-0 px-2">
             <Landmark className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-1.5 shrink-0" />
@@ -146,6 +151,10 @@ export default function MarketIntel() {
 
         <TabsContent value="macro" className="mt-6">
           <LiveMacroContent onItemClick={handleItemClick} />
+        </TabsContent>
+
+        <TabsContent value="calendar" className="mt-6">
+          <EconomicCalendarTab />
         </TabsContent>
 
         <TabsContent value="funds" className="mt-6">
