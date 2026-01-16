@@ -2,8 +2,10 @@
  * Live Macro Content Component
  * 
  * Displays real-time economic data from FRED and other sources.
+ * All items are clickable and connected to detail sheets for educational content.
  */
 
+import { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -19,7 +21,12 @@ import {
   ArrowDownRight,
   Minus,
   Globe,
-  Clock
+  Clock,
+  ChevronRight,
+  Landmark,
+  Briefcase,
+  Percent,
+  TrendingUp,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
@@ -37,6 +44,8 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { EventDetailSheet } from '@/components/market-intel/EventDetailSheet';
+import type { CalendarEvent } from '@/hooks/useEconomicCalendar';
 
 interface MacroDataItem {
   symbol: string;
@@ -57,11 +66,23 @@ interface MacroDataItem {
   quote?: string;
 }
 
+// Get event icon based on event type
+function getEventIcon(eventType: string) {
+  const type = eventType?.toLowerCase() || '';
+  if (type.includes('fed') || type.includes('fomc') || type.includes('monetary')) return Landmark;
+  if (type.includes('employment') || type.includes('job') || type.includes('labor')) return Briefcase;
+  if (type.includes('inflation') || type.includes('cpi') || type.includes('ppi')) return Percent;
+  return TrendingUp;
+}
+
 interface LiveMacroContentProps {
   onItemClick?: (item: MacroDataItem) => void;
 }
 
 export function LiveMacroContent({ onItemClick }: LiveMacroContentProps) {
+  const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
+  const [eventDetailOpen, setEventDetailOpen] = useState(false);
+  
   const { 
     byCategory, 
     useMockData, 
@@ -75,6 +96,26 @@ export function LiveMacroContent({ onItemClick }: LiveMacroContentProps) {
   const { data: yieldCurve } = useYieldCurve();
   const { data: sectors } = useSectorPerformance();
   const { data: calendar } = useEconomicCalendar();
+
+  const handleEventClick = (event: any) => {
+    // Convert to CalendarEvent format
+    const calendarEvent: CalendarEvent = {
+      id: event.id || `event-${event.name}-${event.date}`,
+      event_date: event.date,
+      event_time: event.time || null,
+      event_name: event.name,
+      event_type: event.type || 'economic',
+      description: event.description || null,
+      importance: event.importance || 'medium',
+      actual_value: null,
+      forecast_value: event.forecast || null,
+      previous_value: event.previous || null,
+      currency: 'USD',
+      country: 'US',
+    };
+    setSelectedEvent(calendarEvent);
+    setEventDetailOpen(true);
+  };
   
   const rates = byCategory?.rates || [];
   const economic = byCategory?.economic || [];
@@ -327,6 +368,9 @@ export function LiveMacroContent({ onItemClick }: LiveMacroContentProps) {
           <div className="flex items-center gap-2 mb-4">
             <Calendar className="h-5 w-5 text-primary" />
             <h3 className="text-lg font-medium">Upcoming Events</h3>
+            <Badge variant="outline" className="ml-auto text-xs">
+              Click any event for details
+            </Badge>
           </div>
           
           {isLoading ? (
@@ -337,41 +381,56 @@ export function LiveMacroContent({ onItemClick }: LiveMacroContentProps) {
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
-              {calendar?.slice(0, 8).map((event: any, i: number) => (
-                <div 
-                  key={`${event.type}-${event.date}-${i}`}
-                  className={cn(
-                    "p-3 rounded-lg border",
-                    event.importance === 'high' 
-                      ? "bg-amber-500/5 border-amber-500/20" 
-                      : "bg-card/50 border-border"
-                  )}
-                >
-                  <div className="flex items-center justify-between mb-1">
-                    <Badge 
-                      variant="outline" 
-                      className={cn(
-                        "text-xs",
-                        event.importance === 'high' && "border-amber-500/30 text-amber-400"
-                      )}
-                    >
-                      {event.type}
-                    </Badge>
-                    <span className="text-xs text-muted-foreground flex items-center gap-1">
-                      <Clock className="h-3 w-3" />
-                      {event.daysUntil}d
-                    </span>
+              {calendar?.slice(0, 8).map((event: any, i: number) => {
+                const EventIcon = getEventIcon(event.type);
+                return (
+                  <div 
+                    key={`${event.type}-${event.date}-${i}`}
+                    onClick={() => handleEventClick(event)}
+                    className={cn(
+                      "p-3 rounded-lg border cursor-pointer transition-all group hover:ring-1 hover:ring-primary/50",
+                      event.importance === 'high' 
+                        ? "bg-amber-500/5 border-amber-500/20 hover:bg-amber-500/10" 
+                        : "bg-card/50 border-border hover:bg-primary/5"
+                    )}
+                  >
+                    <div className="flex items-center justify-between mb-1">
+                      <div className="flex items-center gap-1.5">
+                        <EventIcon className={cn(
+                          "h-3 w-3",
+                          event.importance === 'high' ? "text-amber-400" : "text-muted-foreground"
+                        )} />
+                        <Badge 
+                          variant="outline" 
+                          className={cn(
+                            "text-xs",
+                            event.importance === 'high' && "border-amber-500/30 text-amber-400"
+                          )}
+                        >
+                          {event.type}
+                        </Badge>
+                      </div>
+                      <span className="text-xs text-muted-foreground flex items-center gap-1">
+                        <Clock className="h-3 w-3" />
+                        {event.daysUntil}d
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm font-medium truncate group-hover:text-primary transition-colors">
+                        {event.name}
+                      </p>
+                      <ChevronRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {new Date(event.date).toLocaleDateString('en-US', { 
+                        weekday: 'short', 
+                        month: 'short', 
+                        day: 'numeric' 
+                      })}
+                    </p>
                   </div>
-                  <p className="text-sm font-medium truncate">{event.name}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {new Date(event.date).toLocaleDateString('en-US', { 
-                      weekday: 'short', 
-                      month: 'short', 
-                      day: 'numeric' 
-                    })}
-                  </p>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </CardContent>
@@ -403,6 +462,13 @@ export function LiveMacroContent({ onItemClick }: LiveMacroContentProps) {
           </div>
         </CardContent>
       </Card>
+
+      {/* Event Detail Sheet */}
+      <EventDetailSheet
+        event={selectedEvent}
+        open={eventDetailOpen}
+        onOpenChange={setEventDetailOpen}
+      />
     </div>
   );
 }
@@ -458,10 +524,12 @@ function IndicatorCard({ title, icon, indicators, isLoading, insight, insightTyp
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <div 
-                        className="flex justify-between items-center py-2 border-b border-border last:border-0 hover:bg-primary/5 rounded px-2 -mx-2 cursor-pointer transition-colors"
+                        className="flex justify-between items-center py-2 border-b border-border last:border-0 hover:bg-primary/5 rounded px-2 -mx-2 cursor-pointer transition-colors group"
                         onClick={() => handleClick(indicator)}
                       >
-                        <span className="text-muted-foreground text-sm">{indicator.indicator_name}</span>
+                        <span className="text-muted-foreground text-sm group-hover:text-foreground transition-colors">
+                          {indicator.indicator_name}
+                        </span>
                         <div className="flex items-center gap-2">
                           <span className="font-medium font-mono">{indicator.current_value}</span>
                           {indicator.change_value !== 0 && (
@@ -476,6 +544,7 @@ function IndicatorCard({ title, icon, indicators, isLoading, insight, insightTyp
                               {change.text}
                             </span>
                           )}
+                          <ChevronRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
                         </div>
                       </div>
                     </TooltipTrigger>
