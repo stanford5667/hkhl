@@ -211,6 +211,16 @@ function calculateMatchScore(metrics: RealMetrics, criteria: FilterCriteria): nu
   return Math.min(100, score);
 }
 
+// Check if portfolio meets all filter criteria
+function meetsFilterCriteria(metrics: RealMetrics, criteria: FilterCriteria): boolean {
+  if (criteria.minCagr !== undefined && metrics.cagr < criteria.minCagr) return false;
+  if (criteria.maxDrawdown !== undefined && metrics.maxDrawdown > criteria.maxDrawdown) return false;
+  if (criteria.maxVolatility !== undefined && metrics.volatility > criteria.maxVolatility) return false;
+  if (criteria.minSharpe !== undefined && metrics.sharpe < criteria.minSharpe) return false;
+  if (criteria.minSortino !== undefined && metrics.sortino < criteria.minSortino) return false;
+  return true;
+}
+
 // ═══════════════════════════════════════════════════════════════════════════════
 // COMBINATION GENERATOR
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -488,6 +498,9 @@ serve(async (req) => {
         const metrics = calculatePortfolioMetricsFromData(combo, weights, tickerData);
         if (!metrics) continue;
 
+        // Apply filter criteria during generation
+        if (!meetsFilterCriteria(metrics, criteria)) continue;
+
         const riskProfile = determineRiskProfile(combo);
         if (criteria.riskProfiles?.length && !criteria.riskProfiles.includes(riskProfile)) continue;
 
@@ -517,6 +530,9 @@ serve(async (req) => {
 
         const metrics = calculatePortfolioMetricsFromData(combo, weights, tickerData);
         if (!metrics) continue;
+
+        // Apply filter criteria during generation
+        if (!meetsFilterCriteria(metrics, criteria)) continue;
 
         const riskProfile = determineRiskProfile(combo);
         if (criteria.riskProfiles?.length && !criteria.riskProfiles.includes(riskProfile)) continue;
