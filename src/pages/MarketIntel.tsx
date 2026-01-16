@@ -176,13 +176,6 @@ export default function MarketIntel() {
         </div>
       )}
       
-      {/* Performance Ranking Panel - Development Phase */}
-      <PerformanceRankingPanel 
-        scores={scores}
-        onRetest={retestComponent}
-        onAutoIterate={autoIterate}
-        showDuringDev={true}
-      />
 
       {/* Market Data Detail Sheet */}
       <MarketDataDetail 
