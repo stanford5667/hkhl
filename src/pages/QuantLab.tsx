@@ -1317,10 +1317,25 @@ function QuantLabContent(props: any) {
                     </Button>
                   </div>
                 </div>
-                {/* Ticker indicator in panel */}
+              {/* Ticker input in panel - editable */}
                 <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-primary/10 border border-primary/20">
-                  <span className="text-[11px] text-muted-foreground">For:</span>
-                  <span className="font-bold font-mono text-primary">${selectedTicker || '---'}</span>
+                  <span className="text-[11px] text-muted-foreground shrink-0">For:</span>
+                  <Input
+                    value={ticker}
+                    onChange={(e) => setTicker(e.target.value.toUpperCase())}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && ticker.trim()) {
+                        handleSetTicker(ticker.trim());
+                      }
+                    }}
+                    onBlur={() => {
+                      if (ticker.trim()) {
+                        handleSetTicker(ticker.trim());
+                      }
+                    }}
+                    placeholder="AAPL"
+                    className="h-7 px-2 text-sm font-bold font-mono text-primary bg-transparent border-0 focus-visible:ring-0 focus-visible:ring-offset-0"
+                  />
                 </div>
               </div>
               

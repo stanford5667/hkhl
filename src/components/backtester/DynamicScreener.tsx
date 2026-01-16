@@ -123,7 +123,8 @@ export function DynamicScreener({ onSelect, onComplete }: DynamicScreenerProps) 
   const [progress, setProgress] = useState<GenerationProgress | ScreeningProgress | null>(null);
   
   // Criteria - relaxed defaults to show portfolios initially
-  const [activeMetric, setActiveMetric] = useState<MetricKey | null>(null);
+  // Default to minTotalReturn as the active screener
+  const [activeMetric, setActiveMetric] = useState<MetricKey | null>('minTotalReturn');
   const [maxLoss, setMaxLoss] = useState(50);
   const [minSharpe, setMinSharpe] = useState(-1);
   const [minAvgReturns, setMinAvgReturns] = useState(-30);
