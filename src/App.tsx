@@ -53,6 +53,7 @@ const BacktesterPage = lazy(() => import('./pages/Backtester'));
 const Terms = lazy(() => import('./pages/Terms'));
 const Disclosures = lazy(() => import('./pages/Disclosures'));
 const Privacy = lazy(() => import('./pages/Privacy'));
+const Glossary = lazy(() => import('./pages/Glossary'));
 const NotFound = lazy(() => import('./pages/NotFound'));
 
 // Optimized QueryClient with caching defaults
@@ -129,6 +130,7 @@ const App = () => {
                               <Route path="/terms" element={<Terms />} />
                               <Route path="/disclosures" element={<Disclosures />} />
                               <Route path="/privacy" element={<Privacy />} />
+                              <Route path="/glossary" element={<Glossary />} />
                               {/* Redirects from old routes */}
                               <Route path="/portfolio" element={<Navigate to="/" replace />} />
                               <Route path="/companies" element={<Navigate to="/" replace />} />
