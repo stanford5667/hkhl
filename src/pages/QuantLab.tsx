@@ -1300,7 +1300,7 @@ function QuantLabContent(props: any) {
               {/* Panel Header with Ticker */}
               <div className="px-4 py-3 border-b bg-muted/30">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-bold">Select Studies</span>
+                  <span className="text-sm font-bold">Select Quant Studies</span>
                   <div className="flex items-center gap-2">
                     {selectedStudies.length > 0 && (
                       <Badge variant="default" className="text-xs px-2.5 py-1">
@@ -1432,7 +1432,7 @@ function QuantLabContent(props: any) {
                     className="w-full h-14 text-lg font-bold gap-3 bg-gradient-to-r from-violet-500 to-purple-600 hover:from-violet-600 hover:to-purple-700 shadow-xl rounded-xl"
                   >
                     <Play className="h-6 w-6" />
-                    Run {selectedStudies.length} {selectedStudies.length === 1 ? 'Study' : 'Studies'}
+                    Run {selectedStudies.length} Quant {selectedStudies.length === 1 ? 'Study' : 'Studies'}
                   </Button>
                 </div>
               )}
@@ -1639,7 +1639,7 @@ function QuantLabContent(props: any) {
                 <div className="p-6 rounded-2xl bg-muted/50 border-2 border-border mb-6">
                   <FlaskConical className="h-12 w-12 text-muted-foreground" />
                 </div>
-                <p className="text-xl font-bold mb-2">Select Studies to Begin</p>
+                <p className="text-xl font-bold mb-2">Select Quant Studies to Begin</p>
                 <p className="text-sm text-muted-foreground max-w-xs">
                   Tap the button above to choose analysis types for your selected stock
                 </p>

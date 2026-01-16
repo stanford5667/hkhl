@@ -399,7 +399,7 @@ export function StudyBuilderPanel({ symbol, symbolName, onClose }: StudyBuilderP
           <div>
             <div className="flex items-center gap-2 mb-3">
               <Settings2 className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm font-medium">Select Studies</span>
+              <span className="text-sm font-medium">Select Quant Studies</span>
             </div>
             
             <ScrollArea className="w-full">

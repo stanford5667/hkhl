@@ -525,7 +525,7 @@ export function QuantitativeStudiesPanel({ ticker, companyName }: QuantitativeSt
               ) : (
                 <>
                   <Play className="h-4 w-4" />
-                  Run Study
+                  Run Quant Study
                 </>
               )}
             </Button>
