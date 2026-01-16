@@ -15,6 +15,7 @@
 
 import { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -39,8 +40,9 @@ import {
   Calendar, Zap, Layers, Volume2, Crosshair, LineChart,
   Gauge, ArrowLeftRight, Mountain, ArrowUpDown,
   Target, Shield, Loader2,
-  CheckCircle2, X
+  CheckCircle2, X, ExternalLink
 } from 'lucide-react';
+import { InlinePrice } from '@/components/shared/PriceDisplay';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
@@ -1134,6 +1136,7 @@ function QuantLabContent(props: any) {
 
   const { markStudyCompleted, checkAndUnlockAchievements, addXp } = useLearning();
   const { user } = useAuth();
+  const navigate = useNavigate();
   
   // Auth state for prompting sign in/up
   const [showAuthSheet, setShowAuthSheet] = useState(false);
@@ -1250,13 +1253,30 @@ function QuantLabContent(props: any) {
         </div>
         
         {/* Selected Ticker Indicator - Always visible */}
-        <div className="px-3 md:px-6 pb-3 flex items-center gap-3">
+        <div className="px-3 md:px-6 pb-3 flex items-center gap-3 flex-wrap">
           <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-primary/10 to-primary/5 border-2 border-primary/30">
             <TrendingUp className="h-5 w-5 text-primary" />
             <span className="text-xs font-medium text-muted-foreground">Analyzing:</span>
             <span className="text-xl font-bold font-mono text-primary">${selectedTicker || 'Select Ticker'}</span>
+            {selectedTicker && (
+              <>
+                <span className="text-muted-foreground mx-1">•</span>
+                <InlinePrice ticker={selectedTicker} showStaleness={false} className="text-base font-semibold" />
+              </>
+            )}
           </div>
-          <div className="hidden md:flex items-center gap-2 text-xs text-muted-foreground">
+          {selectedTicker && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 gap-1.5 text-xs text-muted-foreground hover:text-primary"
+              onClick={() => navigate(`/equity/${selectedTicker}`)}
+            >
+              <ExternalLink className="h-3.5 w-3.5" />
+              Company Details
+            </Button>
+          )}
+          <div className="hidden md:flex items-center gap-2 text-xs text-muted-foreground ml-auto">
             <span className="px-2 py-1 bg-muted rounded">{period}</span>
             <span>•</span>
             <span>{selectedStudies.length} {selectedStudies.length === 1 ? 'study' : 'studies'} selected</span>
