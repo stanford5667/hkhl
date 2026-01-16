@@ -51,7 +51,7 @@ import {
 import { EventDetailSheet } from '@/components/market-intel/EventDetailSheet';
 import { MarketDataTable, type MarketDataRow } from '@/components/market-intel/MarketDataTable';
 import type { CalendarEvent } from '@/hooks/useEconomicCalendar';
-import type { MacroCategory } from '@/components/market-intel/MacroIndicatorCategories';
+
 
 interface MacroDataItem {
   symbol: string;
@@ -72,22 +72,6 @@ interface MacroDataItem {
   quote?: string;
 }
 
-// Mapping from MacroCategory to indicator keywords for filtering
-const macroCategoryKeywords: Record<MacroCategory, string[]> = {
-  gdp: ['gdp', 'growth', 'output', 'production'],
-  labour: ['employment', 'unemployment', 'jobs', 'labor', 'labour', 'payroll', 'wage', 'workforce'],
-  prices: ['cpi', 'ppi', 'inflation', 'price', 'pce', 'deflator'],
-  money: ['fed', 'rate', 'monetary', 'money supply', 'm2', 'fomc', 'funds', 'treasury', 'yield', 'sofr', 'prime'],
-  trade: ['trade', 'export', 'import', 'balance', 'tariff', 'deficit', 'surplus'],
-  government: ['government', 'fiscal', 'budget', 'debt', 'spending', 'federal'],
-  business: ['business', 'pmi', 'manufacturing', 'industrial', 'capacity', 'ism', 'orders'],
-  consumer: ['consumer', 'retail', 'spending', 'confidence', 'sentiment', 'personal'],
-  housing: ['housing', 'home', 'mortgage', 'construction', 'building', 'real estate'],
-  taxes: ['tax', 'revenue', 'fiscal'],
-  energy: ['energy', 'oil', 'gas', 'crude', 'petroleum', 'wti', 'brent'],
-  health: ['health', 'healthcare', 'medical'],
-  climate: ['climate', 'carbon', 'environmental', 'green'],
-};
 
 // Get event icon based on event type
 function getEventIcon(eventType: string) {
@@ -101,10 +85,9 @@ function getEventIcon(eventType: string) {
 interface LiveMacroContentProps {
   onItemClick?: (item: MacroDataItem) => void;
   onPerformanceUpdate?: (loadTimeMs: number, accuracy: number, issues: string[]) => void;
-  macroCategory?: MacroCategory | null;
 }
 
-export function LiveMacroContent({ onItemClick, onPerformanceUpdate, macroCategory }: LiveMacroContentProps) {
+export function LiveMacroContent({ onItemClick, onPerformanceUpdate }: LiveMacroContentProps) {
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const [eventDetailOpen, setEventDetailOpen] = useState(false);
   const [loadStartTime] = useState(() => performance.now());
@@ -178,40 +161,16 @@ export function LiveMacroContent({ onItemClick, onPerformanceUpdate, macroCatego
   const allEconomic = byCategory?.economic || [];
   const allMarkets = byCategory?.markets || [];
   
-  // Filter function based on macro category
-  const filterByMacroCategory = (indicators: EconomicIndicator[]): EconomicIndicator[] => {
-    // When no category selected (All Categories), return ALL indicators
-    if (!macroCategory) return indicators;
-    
-    const keywords = macroCategoryKeywords[macroCategory] || [];
-    if (keywords.length === 0) return indicators;
-    
-    return indicators.filter(indicator => {
-      const searchText = [
-        indicator.indicator_name,
-        indicator.id,
-        indicator.description,
-      ].filter(Boolean).join(' ').toLowerCase();
-      
-      return keywords.some(kw => searchText.includes(kw));
-    });
-  };
-  
-  // Apply filtering - when macroCategory is null, returns all
-  const rates = filterByMacroCategory(allRates);
-  const economic = filterByMacroCategory(allEconomic);
-  const markets = filterByMacroCategory(allMarkets);
+  // Use all indicators directly (no filtering)
+  const rates = allRates;
+  const economic = allEconomic;
+  const markets = allMarkets;
   
   // Calculate market health score (always use all indicators)
   const allIndicators = [...allRates, ...allEconomic, ...allMarkets];
   const healthScore = allIndicators.length > 0 
     ? calculateMarketHealthScore(allIndicators) 
     : { score: 50, label: 'Loading...', factors: [] };
-    
-  // Show category-specific heading when filtering
-  const categoryLabel = macroCategory 
-    ? macroCategoryKeywords[macroCategory]?.[0]?.charAt(0).toUpperCase() + macroCategoryKeywords[macroCategory]?.[0]?.slice(1) || macroCategory
-    : null;
 
   // Convert indicators to table format
   const tableData: MarketDataRow[] = useMemo(() => {
@@ -267,9 +226,9 @@ export function LiveMacroContent({ onItemClick, onPerformanceUpdate, macroCatego
     );
   }
 
-  // Check if any indicators match the filter
-  const totalFilteredCount = rates.length + economic.length + markets.length;
-  const hasNoResults = macroCategory && totalFilteredCount === 0 && !isLoading;
+  // Check if any indicators available
+  const totalCount = rates.length + economic.length + markets.length;
+  const hasNoResults = totalCount === 0 && !isLoading;
 
   return (
     <div className="space-y-6">
@@ -278,14 +237,7 @@ export function LiveMacroContent({ onItemClick, onPerformanceUpdate, macroCatego
         <div className="flex items-center gap-3">
           <Globe className="h-5 w-5 text-primary" />
           <div>
-            <h3 className="font-semibold flex items-center gap-2">
-              Live Economic Data
-              {macroCategory && (
-                <Badge variant="secondary" className="bg-primary/20 text-primary">
-                  Filtered: {macroCategory.charAt(0).toUpperCase() + macroCategory.slice(1)}
-                </Badge>
-              )}
-            </h3>
+            <h3 className="font-semibold">Live Economic Data</h3>
             <p className="text-xs text-muted-foreground">
               {useMockData ? (
                 <span className="text-amber-400">Using demo data • Add FRED_API_KEY for live data</span>
@@ -318,11 +270,9 @@ export function LiveMacroContent({ onItemClick, onPerformanceUpdate, macroCatego
             </Button>
           </div>
           
-          {macroCategory && (
-            <Badge variant="outline" className="text-xs">
-              {totalFilteredCount} indicator{totalFilteredCount !== 1 ? 's' : ''}
-            </Badge>
-          )}
+          <Badge variant="outline" className="text-xs">
+            {totalCount} indicator{totalCount !== 1 ? 's' : ''}
+          </Badge>
           <Badge 
             variant={useMockData ? 'secondary' : 'default'}
             className={useMockData ? 'bg-amber-500/20 text-amber-400' : 'bg-emerald-500/20 text-emerald-400'}
@@ -349,9 +299,9 @@ export function LiveMacroContent({ onItemClick, onPerformanceUpdate, macroCatego
               <BarChart3 className="h-6 w-6 text-muted-foreground" />
             </div>
             <div>
-              <h4 className="font-medium">No indicators found for "{macroCategory}"</h4>
+              <h4 className="font-medium">No economic indicators available</h4>
               <p className="text-sm text-muted-foreground mt-1">
-                Try selecting "All Categories" to see all available economic indicators
+                Data is currently loading or unavailable
               </p>
             </div>
           </div>
@@ -405,7 +355,7 @@ export function LiveMacroContent({ onItemClick, onPerformanceUpdate, macroCatego
       {viewMode === 'table' && !hasNoResults && (
         <MarketDataTable
           data={tableData}
-          title={macroCategory ? `${macroCategory.charAt(0).toUpperCase() + macroCategory.slice(1)} Indicators` : 'All Economic Indicators'}
+          title="All Economic Indicators"
           onRowClick={handleTableRowClick}
           showStudyActions={true}
         />
@@ -414,23 +364,23 @@ export function LiveMacroContent({ onItemClick, onPerformanceUpdate, macroCatego
       {/* Cards View - Main Indicators Grid - Only show if we have results */}
       {viewMode === 'cards' && !hasNoResults && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {/* Rates & Credit - Show if has indicators or no filter */}
-          {(rates.length > 0 || !macroCategory) && (
+          {/* Rates & Credit */}
+          {rates.length > 0 && (
             <IndicatorCard
-              title={macroCategory ? `Rates & Credit (${rates.length})` : "Rates & Credit"}
+              title="Rates & Credit"
               icon={<DollarSign className="h-5 w-5 text-blue-400" />}
               indicators={rates}
               isLoading={isLoading}
-              insight={!macroCategory && yieldCurve?.inverted ? "⚠️ Yield curve inverted - recession signal" : undefined}
+              insight={yieldCurve?.inverted ? "⚠️ Yield curve inverted - recession signal" : undefined}
               insightType={yieldCurve?.inverted ? 'warning' : 'info'}
               onItemClick={onItemClick}
             />
           )}
 
-          {/* Economic - Show if has indicators or no filter */}
-          {(economic.length > 0 || !macroCategory) && (
+          {/* Economic */}
+          {economic.length > 0 && (
             <IndicatorCard
-              title={macroCategory ? `Economic (${economic.length})` : "Economic"}
+              title="Economic"
               icon={<BarChart3 className="h-5 w-5 text-emerald-400" />}
               indicators={economic}
               isLoading={isLoading}
@@ -438,10 +388,10 @@ export function LiveMacroContent({ onItemClick, onPerformanceUpdate, macroCatego
             />
           )}
 
-          {/* Markets - Show if has indicators or no filter */}
-          {(markets.length > 0 || !macroCategory) && (
+          {/* Markets */}
+          {markets.length > 0 && (
             <IndicatorCard
-              title={macroCategory ? `Markets (${markets.length})` : "Markets"}
+              title="Markets"
               icon={<LineChart className="h-5 w-5 text-purple-400" />}
               indicators={markets}
               isLoading={isLoading}

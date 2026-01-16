@@ -28,7 +28,7 @@ import { CompanyFundamentalsSearch } from '@/components/market-intel/CompanyFund
 import { PerformanceRankingPanel, type ComponentScore } from '@/components/market-intel/PerformanceRankingPanel';
 import { useComponentPerformance, validateFedRates } from '@/hooks/useComponentPerformance';
 import { MarketIntelNavigation, type MarketCategory } from '@/components/market-intel/MarketIntelNavigation';
-import { MacroIndicatorCategories, type MacroCategory } from '@/components/market-intel/MacroIndicatorCategories';
+
 import { GlobalBondYields } from '@/components/market-intel/GlobalBondYields';
 import { NewsContent } from '@/components/market-intel/NewsContent';
 import { CountriesContent } from '@/components/market-intel/CountriesContent';
@@ -43,7 +43,7 @@ import { PageHeader, PAGE_ICON_PRESETS } from '@/components/layout/PageHeader';
 export default function MarketIntel() {
   const [activeTab, setActiveTab] = useState('macro');
   const [activeCategory, setActiveCategory] = useState<MarketCategory>('indicators');
-  const [activeMacroCategory, setActiveMacroCategory] = useState<MacroCategory | null>(null);
+  
   const [showUpgradeDialog, setShowUpgradeDialog] = useState(false);
   const [selectedItem, setSelectedItem] = useState<MarketDataItem | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
@@ -155,16 +155,9 @@ export default function MarketIntel() {
       {activeCategory === 'currencies' && <CurrenciesContent onItemClick={handleItemClick} />}
       {activeCategory === 'indicators' && (
         <div className="space-y-6">
-          {/* Macro Indicator Categories */}
-          <MacroIndicatorCategories 
-            activeCategory={activeMacroCategory}
-            onCategoryChange={setActiveMacroCategory}
-          />
-          
           <LiveMacroContent 
             onItemClick={handleItemClick} 
             onPerformanceUpdate={handleMacroPerformance}
-            macroCategory={activeMacroCategory}
           />
           <StockForexGrid onPerformanceUpdate={handleStockForexPerformance} />
           <CompanyFundamentalsSearch onPerformanceUpdate={handleFundamentalsPerformance} />
