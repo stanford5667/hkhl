@@ -72,12 +72,15 @@ import {
   HelpCircle,
   ExternalLink,
   Lightbulb,
+  Bell,
+  BellPlus,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format, parseISO, differenceInDays } from 'date-fns';
 import { CalendarEvent } from '@/hooks/useEconomicCalendar';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useCreateEventAlert } from '@/hooks/useEventAlerts';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // TYPES
@@ -882,6 +885,9 @@ export function EventDetailSheet({ event, open, onOpenChange }: EventDetailSheet
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
   const [historyDataSource, setHistoryDataSource] = useState<'live' | 'mock'>('mock');
   
+  // Hook for creating alerts
+  const createAlert = useCreateEventAlert();
+  
   // Get educational content
   const education = useMemo(() => {
     if (!event) return DEFAULT_EDUCATION;
@@ -995,6 +1001,25 @@ export function EventDetailSheet({ event, open, onOpenChange }: EventDetailSheet
                   Today
                 </Badge>
               )}
+              <Button
+                variant="outline"
+                size="sm"
+                className="ml-auto gap-1.5"
+                onClick={() => {
+                  createAlert.mutate({
+                    event_name: event.event_name,
+                    event_type: event.event_type,
+                    importance: [event.importance || 'high'],
+                    alert_before_hours: 24,
+                    alert_on_release: true,
+                    in_app: true,
+                  });
+                }}
+                disabled={createAlert.isPending}
+              >
+                <BellPlus className="h-3.5 w-3.5" />
+                {createAlert.isPending ? 'Adding...' : 'Set Alert'}
+              </Button>
             </div>
           </SheetHeader>
         </div>

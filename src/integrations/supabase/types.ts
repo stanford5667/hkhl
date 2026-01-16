@@ -1493,6 +1493,57 @@ export type Database = {
         }
         Relationships: []
       }
+      event_alert_subscriptions: {
+        Row: {
+          alert_before_hours: number | null
+          alert_on_release: boolean | null
+          countries: string[] | null
+          created_at: string | null
+          email: boolean | null
+          event_name: string | null
+          event_type: string | null
+          id: string
+          importance: string[] | null
+          in_app: boolean | null
+          is_active: boolean | null
+          push: boolean | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          alert_before_hours?: number | null
+          alert_on_release?: boolean | null
+          countries?: string[] | null
+          created_at?: string | null
+          email?: boolean | null
+          event_name?: string | null
+          event_type?: string | null
+          id?: string
+          importance?: string[] | null
+          in_app?: boolean | null
+          is_active?: boolean | null
+          push?: boolean | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          alert_before_hours?: number | null
+          alert_on_release?: boolean | null
+          countries?: string[] | null
+          created_at?: string | null
+          email?: boolean | null
+          event_name?: string | null
+          event_type?: string | null
+          id?: string
+          importance?: string[] | null
+          in_app?: boolean | null
+          is_active?: boolean | null
+          push?: boolean | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       event_market_correlations: {
         Row: {
           avg_price_impact: number | null
