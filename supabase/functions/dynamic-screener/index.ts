@@ -222,6 +222,89 @@ function meetsFilterCriteria(metrics: RealMetrics, criteria: FilterCriteria): bo
   return true;
 }
 
+// Generate descriptive portfolio names based on composition
+function generatePortfolioName(tickers: string[], weights: number[], metrics: RealMetrics): string {
+  // Group tickers by category with their weights
+  const categoryWeights: Record<string, number> = {};
+  const categoryTickers: Record<string, string[]> = {};
+  
+  for (let i = 0; i < tickers.length; i++) {
+    const ticker = tickers[i];
+    const weight = weights[i];
+    const cat = TICKER_CATEGORIES[ticker]?.category || 'Equity';
+    categoryWeights[cat] = (categoryWeights[cat] || 0) + weight;
+    if (!categoryTickers[cat]) categoryTickers[cat] = [];
+    categoryTickers[cat].push(ticker);
+  }
+  
+  // Sort categories by weight
+  const sortedCats = Object.entries(categoryWeights).sort((a, b) => b[1] - a[1]);
+  const topCategory = sortedCats[0]?.[0] || 'Mixed';
+  const topWeight = sortedCats[0]?.[1] || 0;
+  const secondCategory = sortedCats[1]?.[0];
+  const secondWeight = sortedCats[1]?.[1] || 0;
+  
+  // Find dominant ticker
+  const dominantIdx = weights.indexOf(Math.max(...weights));
+  const dominantTicker = tickers[dominantIdx];
+  const dominantWeight = weights[dominantIdx];
+  
+  // Build name based on composition
+  let name = '';
+  
+  // If one ticker dominates (>60%), name it after that ticker
+  if (dominantWeight >= 60) {
+    const baseName = getTickerShortName(dominantTicker);
+    if (tickers.length === 2) {
+      const otherTicker = tickers[1 - dominantIdx];
+      name = `${baseName}-Heavy + ${otherTicker}`;
+    } else {
+      name = `${baseName}-Led ${topCategory} Mix`;
+    }
+  }
+  // If one category dominates (>50%), name by category
+  else if (topWeight >= 50) {
+    if (secondCategory && secondWeight >= 20) {
+      name = `${topCategory}/${secondCategory} Blend`;
+    } else {
+      name = `${topCategory} Focus`;
+    }
+  }
+  // Balanced between categories
+  else if (sortedCats.length >= 2 && topWeight - secondWeight < 15) {
+    name = `${topCategory}+${secondCategory} Balance`;
+  }
+  // Default: describe the mix
+  else {
+    const tickerList = tickers.slice(0, 2).join('/');
+    name = `${topCategory} (${tickerList})`;
+  }
+  
+  // Add performance hint suffix based on metrics
+  if (metrics.sharpe >= 1.5) {
+    name += ' ★';
+  } else if (metrics.maxDrawdown <= 10) {
+    name += ' ⛨';
+  } else if (metrics.cagr >= 15) {
+    name += ' ↗';
+  }
+  
+  return name;
+}
+
+function getTickerShortName(ticker: string): string {
+  const names: Record<string, string> = {
+    SPY: 'S&P 500', VOO: 'S&P 500', VTI: 'Total Market', QQQ: 'Nasdaq',
+    TLT: 'Long Treasury', IEF: 'Mid Treasury', SHY: 'Short Treasury',
+    AGG: 'Agg Bond', BND: 'Total Bond', GLD: 'Gold', VNQ: 'REITs',
+    VWO: 'EM', EEM: 'EM', EFA: 'EAFE', VEA: 'Developed Intl',
+    XLK: 'Tech', XLF: 'Financials', XLV: 'Healthcare',
+    AAPL: 'Apple', MSFT: 'Microsoft', GOOGL: 'Google', AMZN: 'Amazon',
+    NVDA: 'Nvidia', META: 'Meta', SCHD: 'Dividend', VIG: 'Div Growth',
+  };
+  return names[ticker] || ticker;
+}
+
 // ═══════════════════════════════════════════════════════════════════════════════
 // COMBINATION GENERATOR
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -536,7 +619,7 @@ serve(async (req) => {
 
         allPortfolios.push({
           id: `pair-${combo.join('-')}-${weights.join('-')}`,
-          name: `Pair (${combo.join('/')})`,
+          name: generatePortfolioName(combo, weights, metrics),
           family: 'Cross-Ticker Pairs',
           tickers: combo,
           weights,
@@ -570,7 +653,7 @@ serve(async (req) => {
 
         allPortfolios.push({
           id: `trio-${combo.join('-')}-${weights.join('-')}`,
-          name: `Trio (${combo.join('/')})`,
+          name: generatePortfolioName(combo, weights, metrics),
           family: 'Cross-Ticker Trios',
           tickers: combo,
           weights,

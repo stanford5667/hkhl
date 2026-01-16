@@ -49,9 +49,12 @@ import {
   Play,
   Sparkles,
   Infinity,
+  FlaskConical,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { useNavigate } from 'react-router-dom';
+import { QuickStudyButton } from '@/components/shared/QuickStudyButton';
 
 // Import expanded universe service
 import {
@@ -738,10 +741,37 @@ export function DynamicScreener({ onSelect, onComplete }: DynamicScreenerProps) 
                 )}
               </div>
               
-              {/* Allocations */}
+              {/* Allocations with Study Actions */}
               <div>
-                <h4 className="font-medium mb-2">Allocations</h4>
-                <div className="space-y-2">
+                <div className="flex items-center justify-between mb-2">
+                  <h4 className="font-medium">Holdings</h4>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-7 text-xs gap-1"
+                    onClick={() => {
+                      // Run portfolio-level study with all tickers
+                      const isExpanded = 'tickers' in selectedPortfolio;
+                      const tickers = isExpanded
+                        ? (selectedPortfolio as GeneratedPortfolioV2).tickers
+                        : (selectedPortfolio as GeneratedPortfolio).allocations.map(a => a.ticker);
+                      const weights = isExpanded
+                        ? (selectedPortfolio as GeneratedPortfolioV2).weights
+                        : (selectedPortfolio as GeneratedPortfolio).allocations.map(a => a.weight);
+                      
+                      // Navigate to quant lab with portfolio context
+                      const params = new URLSearchParams();
+                      params.set('tickers', tickers.join(','));
+                      params.set('weights', weights.join(','));
+                      params.set('mode', 'portfolio');
+                      window.location.href = `/quant-lab?${params.toString()}`;
+                    }}
+                  >
+                    <FlaskConical className="h-3 w-3" />
+                    Study Portfolio
+                  </Button>
+                </div>
+                <div className="space-y-1.5">
                   {(() => {
                     const isExpanded = 'tickers' in selectedPortfolio;
                     const allocations = isExpanded
@@ -753,12 +783,17 @@ export function DynamicScreener({ onSelect, onComplete }: DynamicScreenerProps) 
                       : (selectedPortfolio as GeneratedPortfolio).allocations;
                     
                     return allocations.map((a: any, i: number) => (
-                      <div key={i} className="flex items-center justify-between p-2 rounded bg-muted/50">
-                        <div>
-                          <span className="font-mono font-medium">{a.ticker}</span>
-                          <span className="text-xs text-muted-foreground ml-2">{a.name}</span>
+                      <div key={i} className="flex items-center justify-between p-2 rounded bg-muted/50 hover:bg-muted/70 transition-colors group">
+                        <div className="flex items-center gap-2 flex-1 min-w-0">
+                          <div className="flex-1 min-w-0">
+                            <span className="font-mono font-medium">{a.ticker}</span>
+                            <span className="text-xs text-muted-foreground ml-2 truncate">{a.name}</span>
+                          </div>
+                          <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+                            <QuickStudyButton ticker={a.ticker} variant="ghost" size="sm" />
+                          </div>
                         </div>
-                        <Badge variant="outline">{a.weight}%</Badge>
+                        <Badge variant="outline" className="ml-2 shrink-0">{a.weight}%</Badge>
                       </div>
                     ));
                   })()}
