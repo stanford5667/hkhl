@@ -170,6 +170,12 @@ export function DynamicScreener({ onSelect, onComplete }: DynamicScreenerProps) 
     loadTickers();
   }, []);
 
+  // Auto-run quick screening on mount to show templates
+  useEffect(() => {
+    runScreening();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // ─────────────────────────────────────────────────────────────────────────────
   // Run screening
   // ─────────────────────────────────────────────────────────────────────────────
