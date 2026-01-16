@@ -123,12 +123,6 @@ export function Sidebar() {
         href: "/market-intel", 
         icon: BarChart3 
       },
-      { 
-        label: "Models", 
-        subtitle: "Financial Models",
-        href: "/models", 
-        icon: Calculator 
-      },
       ...(isAdmin ? [{ 
         label: "Asset Research", 
         subtitle: "Screener & Lookup",
@@ -140,26 +134,6 @@ export function Sidebar() {
         subtitle: "Run Studies",
         href: "/quant-lab", 
         icon: FlaskConical,
-        isPremium: true,
-      },
-      { 
-        label: "Backtester Pro", 
-        subtitle: "Terminal Backtester",
-        href: "/backtester", 
-        icon: Activity,
-        isPremium: true,
-      },
-      { 
-        label: "News Intel", 
-        subtitle: "News & Sentiment",
-        href: "/news", 
-        icon: Newspaper,
-      },
-      { 
-        label: "Prediction AI", 
-        subtitle: "Market Predictions",
-        href: "/prediction-ai", 
-        icon: Lightbulb,
         isPremium: true,
       },
       { 
