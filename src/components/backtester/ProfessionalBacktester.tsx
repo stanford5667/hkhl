@@ -408,7 +408,7 @@ export function ProfessionalBacktester() {
         .order('bar_date', { ascending: true });
       
       if (error) throw error;
-      if (!data || data.length === 0) throw new Error('No data found');
+      if (!data || data.length === 0) throw new Error('No data found for any tickers. Try major ETFs like SPY, QQQ, VTI.');
       
       setLoadingProgress(40);
       
@@ -417,17 +417,54 @@ export function ProfessionalBacktester() {
       for (const row of data) {
         if (!tickerData[row.ticker]) tickerData[row.ticker] = [];
         tickerData[row.ticker].push({
-          date: row.bar_date,
+          date: String(row.bar_date).split('T')[0], // Normalize date format
           close: row.close,
           return: row.daily_return || 0,
         });
       }
       
-      // Find common dates
-      const allDates = Object.values(tickerData).map(d => new Set(d.map(r => r.date)));
+      // Check which tickers have enough data
+      const tickersWithData = Object.keys(tickerData).filter(t => tickerData[t].length >= 20);
+      const missingTickers = allTickers.filter(t => !tickersWithData.includes(t));
+      
+      if (missingTickers.length > 0) {
+        toast.warning(`Limited data for: ${missingTickers.join(', ')}`);
+      }
+      
+      // Filter assets to only those with data
+      const validAssets = assets.filter(a => tickersWithData.includes(a.symbol));
+      
+      if (validAssets.length === 0) {
+        throw new Error(`No valid data found for any portfolio assets. Try different tickers or a shorter time period.`);
+      }
+      
+      // Renormalize weights
+      const totalWeight = validAssets.reduce((sum, a) => sum + a.weight, 0);
+      validAssets.forEach(a => a.weight = (a.weight / totalWeight) * 100);
+      
+      // Find common dates - only include tickers with data
+      const tickersToAnalyze = [...validAssets.map(a => a.symbol)];
+      if (tickersWithData.includes(benchmark)) {
+        tickersToAnalyze.push(benchmark);
+      }
+      
+      const allDates = tickersToAnalyze
+        .filter(t => tickerData[t] && tickerData[t].length > 0)
+        .map(t => new Set(tickerData[t].map(r => r.date)));
+      
+      if (allDates.length === 0 || allDates[0].size === 0) {
+        throw new Error('No trading data found in the selected date range');
+      }
+      
       const commonDates = [...allDates[0]].filter(d => allDates.every(s => s.has(d))).sort();
       
-      if (commonDates.length < 50) throw new Error('Insufficient overlapping data');
+      if (commonDates.length < 20) {
+        const dateInfo = tickersToAnalyze
+          .filter(t => tickerData[t])
+          .map(t => `${t}: ${tickerData[t][0]?.date?.slice(0, 10) || 'N/A'}`)
+          .join(', ');
+        throw new Error(`Only ${commonDates.length} overlapping days found (need 20+). Data starts: ${dateInfo}`);
+      }
       
       setLoadingProgress(60);
       
@@ -442,7 +479,7 @@ export function ProfessionalBacktester() {
         
         // Portfolio return
         let portfolioReturn = 0;
-        for (const asset of assets) {
+        for (const asset of validAssets) {
           const assetData = tickerData[asset.symbol]?.find(d => d.date === date);
           if (assetData) {
             portfolioReturn += (asset.weight / 100) * assetData.return;

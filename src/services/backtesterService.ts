@@ -242,21 +242,50 @@ export async function runBacktest(config: BacktestConfig): Promise<BacktestResul
   const benchmarkPriceMap = new Map<string, number>();
   benchmarkData.forEach(p => benchmarkPriceMap.set(p.date, p.price));
   
-  // Find dates where ALL assets have data
+  // Check which assets have enough data
+  const assetsWithData = assets.filter(a => {
+    const priceMap = priceMaps.get(a.symbol);
+    return priceMap && priceMap.size >= 5;
+  });
+  
+  if (assetsWithData.length === 0) {
+    throw new Error('No assets have sufficient price data. Try different tickers.');
+  }
+  
+  if (assetsWithData.length < assets.length) {
+    const missingAssets = assets.filter(a => !assetsWithData.find(ad => ad.symbol === a.symbol));
+    console.warn(`[Backtester] Missing data for: ${missingAssets.map(a => a.symbol).join(', ')}`);
+  }
+  
+  // Renormalize weights for assets with data
+  const totalWeight = assetsWithData.reduce((sum, a) => sum + a.allocation, 0);
+  assetsWithData.forEach(a => a.allocation = (a.allocation / totalWeight) * 100);
+  
+  // Find dates where ALL valid assets have data
   const allDatesSet = new Set<string>();
-  assetData.forEach(data => data.forEach(d => allDatesSet.add(d.date)));
+  assetsWithData.forEach(a => {
+    const priceMap = priceMaps.get(a.symbol);
+    if (priceMap) {
+      priceMap.forEach((_, date) => allDatesSet.add(date));
+    }
+  });
   
   const commonDates = Array.from(allDatesSet)
     .filter(date => {
-      // All assets must have data for this date
-      return assets.every(a => priceMaps.get(a.symbol)?.has(date));
+      // All valid assets must have data for this date
+      return assetsWithData.every(a => priceMaps.get(a.symbol)?.has(date));
     })
     .sort();
   
   console.log(`[Backtester] Found ${commonDates.length} trading days with data for all assets`);
   
   if (commonDates.length < 5) {
-    throw new Error(`Not enough trading days (${commonDates.length}). Need at least 5 days with data for all assets.`);
+    const dateRanges = assetsWithData.map(a => {
+      const priceMap = priceMaps.get(a.symbol);
+      const dates = priceMap ? Array.from(priceMap.keys()).sort() : [];
+      return `${a.symbol}: ${dates[0] || 'N/A'} to ${dates[dates.length - 1] || 'N/A'}`;
+    }).join(', ');
+    throw new Error(`Not enough overlapping trading days (${commonDates.length}). Asset date ranges: ${dateRanges}`);
   }
   
   // Calculate initial shares for each asset based on allocation and FIRST DAY price
@@ -264,7 +293,7 @@ export async function runBacktest(config: BacktestConfig): Promise<BacktestResul
   const sharesPerAsset: Map<string, number> = new Map();
   const trades: Trade[] = [];
   
-  for (const asset of assets) {
+  for (const asset of assetsWithData) {
     const firstPrice = priceMaps.get(asset.symbol)?.get(firstDate);
     if (!firstPrice || firstPrice === 0) {
       throw new Error(`No price data for ${asset.symbol} on ${firstDate}`);
@@ -294,7 +323,7 @@ export async function runBacktest(config: BacktestConfig): Promise<BacktestResul
   for (const date of commonDates) {
     let dayValue = 0;
     
-    for (const asset of assets) {
+    for (const asset of assetsWithData) {
       const shares = sharesPerAsset.get(asset.symbol) || 0;
       const price = priceMaps.get(asset.symbol)?.get(date) || 0;
       dayValue += shares * price;
@@ -357,7 +386,7 @@ export async function runBacktest(config: BacktestConfig): Promise<BacktestResul
     }
   }
   
-  const assetPerformance = assets.map(asset => {
+  const assetPerformance = assetsWithData.map(asset => {
     const firstPrice = priceMaps.get(asset.symbol)?.get(firstDate) || 1;
     const lastPrice = priceMaps.get(asset.symbol)?.get(lastDate) || firstPrice;
     const assetReturn = ((lastPrice - firstPrice) / firstPrice) * 100;

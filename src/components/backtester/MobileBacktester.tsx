@@ -206,9 +206,9 @@ const DRAWDOWN_PORTFOLIOS: Record<number, { name: string; description: string; a
   50: { name: 'Maximum Risk', description: 'Full equity, sector concentrated', assets: [{ symbol: 'QQQ', weight: 50 }, { symbol: 'VGT', weight: 30 }, { symbol: 'VTI', weight: 20 }] },
 };
 
-// =============================================================================
+// ═══════════════════════════════════════════════════════════════════════════════
 // METRIC CARD COMPONENT
-// =============================================================================
+// ═══════════════════════════════════════════════════════════════════════════════
 
 const METRIC_INFO: Record<string, string> = {
   'CAGR': 'Compound Annual Growth Rate - your annualized return',
@@ -280,9 +280,9 @@ function MetricPill({
   );
 }
 
-// =============================================================================
+// ═══════════════════════════════════════════════════════════════════════════════
 // MAIN COMPONENT
-// =============================================================================
+// ═══════════════════════════════════════════════════════════════════════════════
 
 export function MobileBacktester() {
   // Default 5 positions
@@ -558,6 +558,43 @@ export function MobileBacktester() {
         assetData[symbol] = assetData[symbol].filter(d => d.date >= effectiveStartStr);
       }
       
+      // Remove assets that have no data in the effective date range
+      const assetsWithNoData: string[] = [];
+      for (const symbol of Object.keys(assetData)) {
+        if (assetData[symbol].length < 20) {
+          assetsWithNoData.push(symbol);
+          delete assetData[symbol];
+        }
+      }
+      
+      if (assetsWithNoData.length > 0) {
+        toast.warning(`Insufficient data for: ${assetsWithNoData.join(', ')} (removed from backtest)`);
+      }
+      
+      // Check if we still have any assets with data
+      if (Object.keys(assetData).length === 0) {
+        toast.error('No assets have enough historical data for the selected period. Try a shorter time frame or different tickers.');
+        setIsLoading(false);
+        return;
+      }
+      
+      // Update validAssets after filtering
+      const validSymbolsAfterFilter = new Set(Object.keys(assetData));
+      const validAssetsFiltered = validAssets.filter(a => validSymbolsAfterFilter.has(a.symbol));
+      
+      if (validAssetsFiltered.length === 0) {
+        toast.error('No valid assets remaining after data validation. Try different tickers.');
+        setIsLoading(false);
+        return;
+      }
+      
+      // Renormalize weights again after filtering
+      const totalWeightFiltered = validAssetsFiltered.reduce((sum, a) => sum + a.weight, 0);
+      validAssetsFiltered.forEach(a => a.weight = (a.weight / totalWeightFiltered) * 100);
+      
+      // Replace validAssets reference
+      const finalAssets = validAssetsFiltered;
+      
       // Fetch benchmark
       let benchmarkData: { date: string; return: number }[] = [];
       if (benchmark !== 'NONE') {
@@ -578,12 +615,23 @@ export function MobileBacktester() {
         }
       }
       
-      // Find common dates
-      const allDateSets = Object.values(assetData).map(d => new Set(d.map(x => x.date)));
-      if (benchmarkData.length > 0) allDateSets.push(new Set(benchmarkData.map(d => d.date)));
+      // Find common dates - only include non-empty sets
+      const allDateSets = Object.values(assetData)
+        .filter(d => d.length > 0)
+        .map(d => new Set(d.map(x => x.date)));
       
-      if (allDateSets.length === 0 || allDateSets[0].size === 0) {
-        toast.error('No overlapping data found. Try different tickers.');
+      if (benchmarkData.length > 0) {
+        allDateSets.push(new Set(benchmarkData.map(d => d.date)));
+      }
+      
+      if (allDateSets.length === 0) {
+        toast.error('No data found for any assets. Try major ETFs like SPY, QQQ, VTI.');
+        setIsLoading(false);
+        return;
+      }
+      
+      if (allDateSets[0].size === 0) {
+        toast.error('No trading days found in the selected period. Try a different date range.');
         setIsLoading(false);
         return;
       }
@@ -593,10 +641,17 @@ export function MobileBacktester() {
       ).sort();
       
       if (commonDates.length < 20) {
-        const tickerInfo = Object.entries(assetDateRanges)
-          .map(([t, r]) => `${t}: ${r.min.slice(0, 7)}`)
+        // Build helpful error message showing when each asset's data starts
+        const dateInfo = Object.entries(assetDateRanges)
+          .filter(([t]) => validSymbolsAfterFilter.has(t))
+          .map(([t, r]) => `${t}: ${r.min.slice(0, 10)}`)
           .join(', ');
-        toast.error(`Only ${commonDates.length} days overlap. Data starts: ${tickerInfo}`);
+        
+        if (commonDates.length === 0) {
+          toast.error(`No overlapping trading days found. Asset data starts: ${dateInfo}`);
+        } else {
+          toast.error(`Only ${commonDates.length} days overlap (need 20+). Data starts: ${dateInfo}`);
+        }
         setIsLoading(false);
         return;
       }
@@ -627,7 +682,7 @@ export function MobileBacktester() {
         const date = commonDates[i];
         
         let portfolioReturn = 0;
-        for (const asset of validAssets) {
+        for (const asset of finalAssets) {
           portfolioReturn += (indexed[asset.symbol]?.[date] || 0) * (asset.weight / 100);
         }
         
@@ -737,9 +792,9 @@ export function MobileBacktester() {
     }));
   }, [result]);
 
-  // ===========================================================================
+  // ═══════════════════════════════════════════════════════════════════════════════
   // RESULTS VIEW
-  // ===========================================================================
+  // ═══════════════════════════════════════════════════════════════════════════════
 
   if (showResults && result) {
     return (
@@ -749,7 +804,7 @@ export function MobileBacktester() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Button variant="ghost" size="sm" onClick={() => setShowResults(false)}>
-                &larr; Back
+                ← Back
               </Button>
               <h1 className="font-semibold">Results</h1>
             </div>
@@ -1019,9 +1074,9 @@ export function MobileBacktester() {
     );
   }
 
-  // ===========================================================================
+  // ═══════════════════════════════════════════════════════════════════════════════
   // MAIN BUILD VIEW
-  // ===========================================================================
+  // ═══════════════════════════════════════════════════════════════════════════════
 
   return (
     <div className="flex flex-col h-full min-h-0 bg-background">
@@ -1232,7 +1287,7 @@ export function MobileBacktester() {
                           onClick={() => setInitialCapital(amount)}
                           className="text-xs font-mono h-7 px-2"
                         >
-                          {'$'}{amount >= 1000000 ? `${amount / 1000000}M` : `${amount / 1000}K`}
+                          ${amount >= 1000000 ? `${amount / 1000000}M` : `${amount / 1000}K`}
                         </Button>
                       ))}
                     </div>
@@ -1408,7 +1463,7 @@ export function MobileBacktester() {
                           onClick={() => updateWeight(asset.symbol, Math.max(0, asset.weight - 5))}
                           className="w-6 h-6 rounded border bg-muted/50 hover:bg-muted flex items-center justify-center text-xs"
                         >
-                          -
+                          −
                         </button>
                         <span className="font-mono font-semibold text-sm w-10 text-center">
                           {asset.weight.toFixed(0)}
@@ -1621,22 +1676,22 @@ export function MobileBacktester() {
                         <div className="p-3 rounded-lg bg-secondary/30">
                           <p className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wider">52W High</p>
                           <p className="font-mono font-semibold text-emerald-500 text-sm sm:text-base">
-                            {selectedAsset.high52w != null ? ('$' + selectedAsset.high52w.toFixed(2)) : 'N/A'}
+                            {'$'}{selectedAsset.high52w?.toFixed(2) || 'N/A'}
                           </p>
                         </div>
                         <div className="p-3 rounded-lg bg-secondary/30">
                           <p className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wider">52W Low</p>
                           <p className="font-mono font-semibold text-rose-500 text-sm sm:text-base">
-                            {selectedAsset.low52w != null ? ('$' + selectedAsset.low52w.toFixed(2)) : 'N/A'}
+                            {'$'}{selectedAsset.low52w?.toFixed(2) || 'N/A'}
                           </p>
                         </div>
                         <div className="p-3 rounded-lg bg-secondary/30">
                           <p className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wider">Volume</p>
                           <p className="font-mono font-semibold text-sm sm:text-base">
-                            {selectedAsset.volume
-                              ? (selectedAsset.volume >= 1000000
-                                  ? (selectedAsset.volume / 1000000).toFixed(1) + 'M'
-                                  : (selectedAsset.volume / 1000).toFixed(0) + 'K')
+                            {selectedAsset.volume 
+                              ? (selectedAsset.volume >= 1000000 
+                                  ? `${(selectedAsset.volume / 1000000).toFixed(1)}M` 
+                                  : `${(selectedAsset.volume / 1000).toFixed(0)}K`)
                               : 'N/A'}
                           </p>
                         </div>
