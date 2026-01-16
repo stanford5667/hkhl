@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -16,13 +16,16 @@ import {
   Landmark, Users, Sparkles, Bell, RefreshCw, DollarSign, TrendingUp, TrendingDown,
   BarChart3, Shield, AlertTriangle, ArrowUpRight, ArrowDownRight, Home, 
   LineChart, Coins, ChevronRight, AlertCircle, Calendar, ExternalLink,
-  Gem, Fuel, Wheat, Banknote, CalendarDays
+  Gem, Fuel, Wheat, Banknote, CalendarDays, Search
 } from 'lucide-react';
 import { EconomicCalendarTab } from '@/components/market-intel/EconomicCalendarTab';
 import { usePortfolioTotals, useAlerts, useDealPipeline, usePortfolioAssets, useAssetAllocation, useEvents, useEconomicIndicators, useCovenants, useMATransactions, usePEFunds } from '@/hooks/useMarketIntel';
 import { LiveMacroContent } from '@/components/markets/LiveMacroContent';
 import { useCommodities, useForex, groupCommoditiesByCategory, groupForexByCategory, type CommodityData, type ForexData } from '@/hooks/useForexCommodities';
 import { MarketDataDetail, type MarketDataItem } from '@/components/market-intel/MarketDataDetail';
+import { StockForexGrid } from '@/components/market-intel/StockForexGrid';
+import { CompanyFundamentalsSearch } from '@/components/market-intel/CompanyFundamentalsSearch';
+import { usePerformanceTracker, type PerformanceRank } from '@/hooks/useMarketIntelData';
 
 export default function MarketIntel() {
   const [activeTab, setActiveTab] = useState('macro');
@@ -127,7 +130,11 @@ export default function MarketIntel() {
         </TabsContent>
 
         <TabsContent value="macro" className="mt-6">
-          <LiveMacroContent onItemClick={handleItemClick} />
+          <div className="space-y-6">
+            <LiveMacroContent onItemClick={handleItemClick} />
+            <StockForexGrid />
+            <CompanyFundamentalsSearch />
+          </div>
         </TabsContent>
 
         <TabsContent value="calendar" className="mt-6">
