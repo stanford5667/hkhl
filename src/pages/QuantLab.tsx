@@ -831,52 +831,7 @@ const STUDY_CATEGORIES = [
   { id: 'projections', name: 'Targets', icon: Target, description: 'Price projections' }
 ];
 
-// Preset Templates
-const STUDY_TEMPLATES = [
-  {
-    id: 'quick-health-check',
-    name: '🩺 Quick Health Check',
-    description: 'Get a fast overview of any stock',
-    studies: ['trend_strength', 'rsi_analysis', 'volume_analysis'],
-    difficulty: 'beginner'
-  },
-  {
-    id: 'momentum-scanner',
-    name: '🚀 Momentum Check',
-    description: 'Is momentum building or fading?',
-    studies: ['rsi_analysis', 'macd_analysis', 'up_down_streaks'],
-    difficulty: 'beginner'
-  },
-  {
-    id: 'trend-analysis',
-    name: '📈 Trend Analysis',
-    description: 'Full trend breakdown with MAs',
-    studies: ['moving_average_analysis', 'trend_strength', 'high_low_analysis'],
-    difficulty: 'intermediate'
-  },
-  {
-    id: 'risk-assessment',
-    name: '⚠️ Risk Assessment',
-    description: 'How risky is this stock?',
-    studies: ['volatility_analysis', 'drawdown_analysis', 'daily_return_distribution'],
-    difficulty: 'intermediate'
-  },
-  {
-    id: 'timing-optimizer',
-    name: '⏰ Best Time to Trade',
-    description: 'Find optimal entry points',
-    studies: ['day_of_week_returns', 'month_of_year_returns', 'gap_analysis'],
-    difficulty: 'beginner'
-  },
-  {
-    id: 'full-analysis',
-    name: '🔬 Complete Analysis',
-    description: 'Run all major studies',
-    studies: ['trend_strength', 'rsi_analysis', 'moving_average_analysis', 'volume_analysis', 'volatility_analysis', 'drawdown_analysis'],
-    difficulty: 'advanced'
-  }
-];
-
+// Time Period Options
 // Time Period Options
 const PERIOD_OPTIONS = [
   { value: '6m', label: '6 Months', days: 126 },
@@ -960,15 +915,6 @@ export default function QuantLab() {
     toast.success('Parameters reset to defaults');
   }, [initStudyParams]);
 
-  // Load a template
-  const loadTemplate = useCallback((templateId: string) => {
-    const template = STUDY_TEMPLATES.find(t => t.id === templateId);
-    if (!template) return;
-    
-    setSelectedStudies(template.studies);
-    template.studies.forEach(initStudyParams);
-    toast.success(`Loaded "${template.name}" template`);
-  }, [initStudyParams]);
 
   // Set ticker
   const handleSetTicker = useCallback((t: string) => {
@@ -1162,7 +1108,7 @@ export default function QuantLab() {
         removeStudy={removeStudy}
         updateParam={updateParam}
         resetParams={resetParams}
-        loadTemplate={loadTemplate}
+        
         handleSetTicker={handleSetTicker}
         runStudy={runStudy}
         runAllStudies={runAllStudies}
@@ -1182,7 +1128,7 @@ function QuantLabContent(props: any) {
     ticker, setTicker, selectedTicker, setSelectedTicker, period, setPeriod,
     selectedStudies, setSelectedStudies, studyParams, results, setResults,
     isRunning, runningStudy, showHelp, setShowHelp, activeCategory, setActiveCategory,
-    isSaving, initStudyParams, addStudy, removeStudy, loadTemplate, handleSetTicker,
+    isSaving, initStudyParams, addStudy, removeStudy, handleSetTicker,
     runStudy, runAllStudies, saveStudyResult, getStudy, formatValue, getSentimentStyle, getDisplayMetrics
   } = props;
 
@@ -1238,34 +1184,32 @@ function QuantLabContent(props: any) {
           </div>
         </div>
 
-        {/* STEP 1: Stock Selection - Always visible, prominent */}
-        <Card className={cn(
-          "transition-all border-2",
-          !selectedTicker ? "border-primary shadow-lg shadow-primary/10" : "border-border"
-        )}>
+        {/* Unified Analysis Panel */}
+        <Card className="border-2 border-border">
           <CardHeader className="pb-2 sm:pb-3 px-3 sm:px-6">
-            <div className="flex items-center gap-2 sm:gap-3">
-              <div className={cn(
-                "w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-xs sm:text-sm font-bold shrink-0",
-                selectedTicker ? "bg-emerald-500 text-white" : "bg-primary text-primary-foreground"
-              )}>
-                {selectedTicker ? <CheckCircle2 className="h-4 w-4 sm:h-5 sm:w-5" /> : '1'}
-              </div>
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
               <div className="min-w-0">
-                <CardTitle className="text-base sm:text-lg">Choose a Stock</CardTitle>
-                <CardDescription className="text-xs sm:text-sm">Enter any ticker symbol to analyze</CardDescription>
+                <CardTitle className="text-base sm:text-lg">Stock Analysis</CardTitle>
+                <CardDescription className="text-xs sm:text-sm">Enter a ticker and run studies</CardDescription>
               </div>
             </div>
           </CardHeader>
-          <CardContent className="pt-0 px-3 sm:px-6">
-            <div className="flex flex-col gap-3 sm:gap-4">
-              {/* Mobile: Stack input and period selector */}
-              <div className="flex gap-2">
+          <CardContent className="pt-0 px-3 sm:px-6 space-y-4">
+            {/* Ticker Input + Period + Run Button - All in one row */}
+            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
+              <div className="flex gap-2 flex-1">
                 <Input
                   placeholder="e.g., AAPL, SPY"
                   value={ticker}
                   onChange={(e) => setTicker(e.target.value.toUpperCase())}
-                  onKeyDown={(e) => e.key === 'Enter' && handleSetTicker(ticker)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      handleSetTicker(ticker);
+                      if (selectedStudies.length > 0) {
+                        handleRunAllStudies();
+                      }
+                    }
+                  }}
                   className="text-base sm:text-lg font-mono h-10 sm:h-12 flex-1"
                 />
                 <Select value={period} onValueChange={setPeriod}>
@@ -1278,110 +1222,89 @@ function QuantLabContent(props: any) {
                     ))}
                   </SelectContent>
                 </Select>
-                <Button onClick={() => handleSetTicker(ticker)} disabled={!ticker} className="h-10 sm:h-12 px-3 sm:px-6 shrink-0">
-                  <Search className="h-4 w-4" />
-                  <span className="hidden sm:inline ml-2">Go</span>
-                </Button>
               </div>
-              
-              {/* Quick Tickers - Scrollable on mobile */}
-              <div className="flex gap-1.5 sm:gap-2 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-hide">
-                <span className="text-xs text-muted-foreground self-center shrink-0">Try:</span>
-                {['AAPL', 'MSFT', 'GOOGL', 'NVDA', 'TSLA', 'SPY', 'QQQ'].map((t) => (
-                  <Badge
-                    key={t}
-                    variant={selectedTicker === t ? 'default' : 'outline'}
-                    className="cursor-pointer hover:bg-primary hover:text-primary-foreground transition-colors shrink-0 text-xs"
-                    onClick={() => handleSetTicker(t)}
-                  >
-                    {t}
-                  </Badge>
-                ))}
-              </div>
+              <Button
+                onClick={() => {
+                  handleSetTicker(ticker);
+                  if (selectedStudies.length > 0) {
+                    setTimeout(() => handleRunAllStudies(), 100);
+                  }
+                }}
+                disabled={!ticker || isRunning}
+                className="h-10 sm:h-12 px-4 sm:px-6 gap-2 bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 shadow-lg"
+              >
+                {isRunning ? (
+                  <Loader2 className="h-4 w-4 sm:h-5 sm:w-5 animate-spin" />
+                ) : (
+                  <Play className="h-4 w-4 sm:h-5 sm:w-5" />
+                )}
+                <span className="text-sm sm:text-base">Run {selectedStudies.length > 0 ? `(${selectedStudies.length})` : 'Studies'}</span>
+              </Button>
+            </div>
+            
+            {/* Quick Tickers - Scrollable on mobile */}
+            <div className="flex gap-1.5 sm:gap-2 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-hide">
+              <span className="text-xs text-muted-foreground self-center shrink-0">Quick:</span>
+              {['AAPL', 'MSFT', 'GOOGL', 'NVDA', 'TSLA', 'SPY', 'QQQ'].map((t) => (
+                <Badge
+                  key={t}
+                  variant={selectedTicker === t ? 'default' : 'outline'}
+                  className="cursor-pointer hover:bg-primary hover:text-primary-foreground transition-colors shrink-0 text-xs"
+                  onClick={() => handleSetTicker(t)}
+                >
+                  {t}
+                </Badge>
+              ))}
             </div>
 
+            {/* Selected Stock Confirmation */}
             {selectedTicker && (
               <motion.div 
                 initial={{ opacity: 0, y: -10 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="mt-3 sm:mt-4 p-3 sm:p-4 bg-emerald-500/10 border border-emerald-500/30 rounded-lg flex items-center justify-between gap-2"
+                className="p-2 sm:p-3 bg-muted/50 border border-border rounded-lg flex items-center justify-between gap-2"
               >
-                <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-                  <CheckCircle2 className="h-5 w-5 sm:h-6 sm:w-6 text-emerald-500 shrink-0" />
-                  <div className="flex items-center gap-1 sm:gap-2 flex-wrap">
-                    <span className="text-xl sm:text-2xl font-bold font-mono">{selectedTicker}</span>
-                    <span className="text-muted-foreground text-xs sm:text-sm">• {PERIOD_OPTIONS.find(p => p.value === period)?.label}</span>
-                  </div>
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className="text-lg sm:text-xl font-bold font-mono">{selectedTicker}</span>
+                  <span className="text-muted-foreground text-xs">• {PERIOD_OPTIONS.find(p => p.value === period)?.label}</span>
+                  {selectedStudies.length > 0 && (
+                    <Badge variant="secondary" className="text-xs">
+                      {selectedStudies.length} studies
+                    </Badge>
+                  )}
                 </div>
-                <Button variant="ghost" size="sm" onClick={() => { setSelectedTicker(null); setResults({}); }} className="shrink-0 text-xs sm:text-sm px-2 sm:px-3">
-                  Change
+                <Button variant="ghost" size="sm" onClick={() => { setSelectedTicker(null); setResults({}); }} className="shrink-0 text-xs px-2">
+                  Clear
                 </Button>
               </motion.div>
             )}
+
           </CardContent>
         </Card>
 
-        {/* STEP 2: Pick Studies - Only show after ticker is selected */}
+        {/* Studies Selection */}
         <AnimatePresence>
           {selectedTicker && (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
-              className="space-y-6"
             >
-              <Card className={cn(
-                "transition-all border-2",
-                selectedStudies.length === 0 ? "border-primary shadow-lg shadow-primary/10" : "border-border"
-              )}>
-                <CardHeader className="pb-3">
+              <Card className="border border-border">
+                <CardHeader className="pb-2 px-3 sm:px-6">
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className={cn(
-                        "w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold",
-                        selectedStudies.length > 0 ? "bg-emerald-500 text-white" : "bg-primary text-primary-foreground"
-                      )}>
-                        {selectedStudies.length > 0 ? <CheckCircle2 className="h-5 w-5" /> : '2'}
-                      </div>
-                      <div>
-                        <CardTitle className="text-lg">Pick Your Analysis</CardTitle>
-                        <CardDescription>Choose a template or individual studies</CardDescription>
-                      </div>
+                    <div>
+                      <CardTitle className="text-base sm:text-lg">Select Studies</CardTitle>
+                      <CardDescription className="text-xs sm:text-sm">Pick studies to run on {selectedTicker}</CardDescription>
                     </div>
                     {selectedStudies.length > 0 && (
-                      <Badge variant="secondary" className="text-sm">
+                      <Badge variant="secondary" className="text-xs sm:text-sm">
                         {selectedStudies.length} selected
                       </Badge>
                     )}
                   </div>
                 </CardHeader>
-                <CardContent className="pt-0 px-3 sm:px-6 space-y-3 sm:space-y-4">
-                  {/* Quick Templates - Horizontal scroll on mobile */}
-                  <div className="flex gap-2 overflow-x-auto pb-2 -mx-1 px-1 sm:grid sm:grid-cols-3 lg:grid-cols-6 sm:overflow-visible scrollbar-hide">
-                    {STUDY_TEMPLATES.map((template) => (
-                      <Button
-                        key={template.id}
-                        variant="outline"
-                        className="h-auto py-2 sm:py-3 px-3 flex flex-col items-center text-center hover:border-primary hover:bg-primary/5 shrink-0 min-w-[100px] sm:min-w-0"
-                        onClick={() => loadTemplate(template.id)}
-                      >
-                        <span className="text-base sm:text-lg mb-0.5 sm:mb-1">{template.name.split(' ')[0]}</span>
-                        <span className="text-[10px] sm:text-xs font-medium whitespace-nowrap">{template.name.split(' ').slice(1).join(' ')}</span>
-                        <span className="text-[9px] sm:text-[10px] text-muted-foreground mt-0.5 sm:mt-1">{template.studies.length} studies</span>
-                      </Button>
-                    ))}
-                  </div>
-
-                  {/* Or pick individual */}
-                  <div className="relative">
-                    <div className="absolute inset-0 flex items-center">
-                      <span className="w-full border-t" />
-                    </div>
-                    <div className="relative flex justify-center text-[10px] sm:text-xs uppercase">
-                      <span className="bg-card px-2 text-muted-foreground">or pick individual studies</span>
-                    </div>
-                  </div>
-
+                <CardContent className="pt-0 px-3 sm:px-6">
                   {/* Category Tabs - Horizontal scroll on mobile */}
                   <Tabs value={activeCategory} onValueChange={setActiveCategory}>
                     <div className="overflow-x-auto -mx-1 px-1 scrollbar-hide">
@@ -1442,55 +1365,42 @@ function QuantLabContent(props: any) {
                 </CardContent>
               </Card>
 
-              {/* STEP 3: Run & Results */}
+              {/* Results Section */}
               {selectedStudies.length > 0 && (
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
+                  className="mt-4"
                 >
-                  <Card className="border-2 border-primary shadow-lg shadow-primary/10">
-                    <CardHeader className="pb-3">
-                      <div className="flex items-center justify-between flex-wrap gap-4">
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-bold">
-                            3
-                          </div>
-                          <div>
-                            <CardTitle className="text-lg">Run Analysis</CardTitle>
-                            <CardDescription>
-                              {Object.keys(results).length === 0 
-                                ? `Ready to analyze ${selectedTicker} with ${selectedStudies.length} studies`
-                                : `${Object.keys(results).length}/${selectedStudies.length} studies complete`
-                              }
-                            </CardDescription>
-                          </div>
+                  <Card className="border border-border">
+                    <CardHeader className="pb-2 px-3 sm:px-6">
+                      <div className="flex items-center justify-between flex-wrap gap-2">
+                        <div>
+                          <CardTitle className="text-base sm:text-lg">
+                            {Object.keys(results).length === 0 
+                              ? 'Ready to Run'
+                              : `Results (${Object.keys(results).length}/${selectedStudies.length})`
+                            }
+                          </CardTitle>
+                          <CardDescription className="text-xs sm:text-sm">
+                            {Object.keys(results).length === 0 
+                              ? `${selectedStudies.length} studies selected for ${selectedTicker}`
+                              : `Analysis complete`
+                            }
+                          </CardDescription>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => { setSelectedStudies([]); setResults({}); }}
-                          >
-                            <X className="h-4 w-4 mr-1" />
-                            Clear All
-                          </Button>
-                          <Button
-                            onClick={handleRunAllStudies}
-                            disabled={isRunning}
-                            size="lg"
-                            className="gap-2 bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 shadow-lg"
-                          >
-                            {isRunning ? (
-                              <Loader2 className="h-5 w-5 animate-spin" />
-                            ) : (
-                              <Play className="h-5 w-5" />
-                            )}
-                            Run All Studies
-                          </Button>
-                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => { setSelectedStudies([]); setResults({}); }}
+                          className="text-xs"
+                        >
+                          <X className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
+                          Clear
+                        </Button>
                       </div>
                     </CardHeader>
-                    <CardContent>
+                    <CardContent className="px-3 sm:px-6">
                       {/* Selected studies chips */}
                       <div className="flex flex-wrap gap-2 mb-4">
                         {selectedStudies.map((studyId) => {
