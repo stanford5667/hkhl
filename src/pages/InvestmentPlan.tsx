@@ -466,7 +466,7 @@ export default function InvestmentPlanPage() {
 
   return (
     <>
-      <AcknowledgmentDialog open={showEducationalAcknowledgment} onAccept={acknowledge} feature="the Portfolio Explorer" />
+      <AcknowledgmentDialog open={showEducationalAcknowledgment} onAccept={acknowledge} feature="the Strategy Explorer" />
       <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
@@ -476,7 +476,7 @@ export default function InvestmentPlanPage() {
             </div>
             <div className="flex items-center gap-3">
               <div>
-                <h1 className="text-xl sm:text-2xl font-bold text-foreground">Portfolio Explorer</h1>
+                <h1 className="text-xl sm:text-2xl font-bold text-foreground">Strategy Explorer</h1>
                 <p className="text-muted-foreground text-sm sm:text-base mt-0.5">
                   Explore different portfolio strategies and learn about asset allocation
                 </p>

@@ -106,7 +106,7 @@ export function Sidebar() {
         isPremium: true,
       },
       { 
-        label: "Portfolio Explorer", 
+        label: "Strategy Explorer", 
         subtitle: "Educational Tools",
         href: "/investment-plan", 
         icon: ClipboardList 

@@ -117,7 +117,7 @@ function MobileSidebarContent({ onNavigate }: { onNavigate: () => void }) {
     { label: "Portfolio Builder", href: "/portfolio-visualizer", icon: PieChart },
     { label: "Quant Lab", href: "/quant-lab", icon: FlaskConical },
     
-    { label: "Portfolio Explorer", href: "/investment-plan", icon: ClipboardList },
+    { label: "Strategy Explorer", href: "/investment-plan", icon: ClipboardList },
     { label: "Market Intel", href: "/market-intel", icon: BarChart3 },
     ...(isAdmin ? [{ label: "Asset Research", href: "/asset-research", icon: Search }] : []),
     ...(isAdmin ? [{ label: "Admin Portal", href: "/admin", icon: Shield }] : []),
