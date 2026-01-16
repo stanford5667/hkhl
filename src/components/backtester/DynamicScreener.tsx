@@ -385,30 +385,35 @@ export function DynamicScreener({ onSelect, onComplete }: DynamicScreenerProps) 
               <SelectTrigger className="h-8 text-xs">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="z-[100]">
                 <SelectItem value="maxDrawdown">
-                  <span className="flex items-center gap-1.5">
-                    Max Decline (Drawdown)
+                  <span className="flex items-center gap-1.5 w-full justify-between">
+                    <span>Max Decline (Drawdown)</span>
+                    <MetricInfoIcon termKey="maxDrawdown" iconSize={12} />
                   </span>
                 </SelectItem>
                 <SelectItem value="maxVolatility">
-                  <span className="flex items-center gap-1.5">
-                    Max Price Swings (Volatility)
+                  <span className="flex items-center gap-1.5 w-full justify-between">
+                    <span>Max Price Swings (Volatility)</span>
+                    <MetricInfoIcon termKey="volatility" iconSize={12} />
                   </span>
                 </SelectItem>
                 <SelectItem value="maxStdDev">
-                  <span className="flex items-center gap-1.5">
-                    Max Std. Deviation
+                  <span className="flex items-center gap-1.5 w-full justify-between">
+                    <span>Max Std. Deviation</span>
+                    <MetricInfoIcon termKey="standardDeviation" iconSize={12} />
                   </span>
                 </SelectItem>
                 <SelectItem value="minSharpe">
-                  <span className="flex items-center gap-1.5">
-                    Min Risk-Adjusted Return (Sharpe)
+                  <span className="flex items-center gap-1.5 w-full justify-between">
+                    <span>Min Risk-Adjusted Return (Sharpe)</span>
+                    <MetricInfoIcon termKey="sharpeRatio" iconSize={12} />
                   </span>
                 </SelectItem>
                 <SelectItem value="minCagr">
-                  <span className="flex items-center gap-1.5">
-                    Min Annual Growth (CAGR)
+                  <span className="flex items-center gap-1.5 w-full justify-between">
+                    <span>Min Annual Growth (CAGR)</span>
+                    <MetricInfoIcon termKey="cagr" iconSize={12} />
                   </span>
                 </SelectItem>
               </SelectContent>
@@ -654,13 +659,43 @@ export function DynamicScreener({ onSelect, onComplete }: DynamicScreenerProps) 
                 <SelectTrigger className="h-7 w-[120px] text-xs">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="totalReturn">Total Return</SelectItem>
-                  <SelectItem value="cagr">Annual Growth</SelectItem>
-                  <SelectItem value="sharpe">Risk Score</SelectItem>
-                  <SelectItem value="sortino">Safety</SelectItem>
-                  <SelectItem value="maxDrawdown">Max Drop</SelectItem>
-                  <SelectItem value="stdDev">Volatility</SelectItem>
+                <SelectContent className="z-[100]">
+                  <SelectItem value="totalReturn">
+                    <span className="flex items-center gap-1.5 w-full justify-between">
+                      <span>Total Return</span>
+                      <MetricInfoIcon termKey="totalReturn" iconSize={11} />
+                    </span>
+                  </SelectItem>
+                  <SelectItem value="cagr">
+                    <span className="flex items-center gap-1.5 w-full justify-between">
+                      <span>Annual Growth</span>
+                      <MetricInfoIcon termKey="cagr" iconSize={11} />
+                    </span>
+                  </SelectItem>
+                  <SelectItem value="sharpe">
+                    <span className="flex items-center gap-1.5 w-full justify-between">
+                      <span>Risk Score</span>
+                      <MetricInfoIcon termKey="sharpeRatio" iconSize={11} />
+                    </span>
+                  </SelectItem>
+                  <SelectItem value="sortino">
+                    <span className="flex items-center gap-1.5 w-full justify-between">
+                      <span>Safety</span>
+                      <MetricInfoIcon termKey="sortinoRatio" iconSize={11} />
+                    </span>
+                  </SelectItem>
+                  <SelectItem value="maxDrawdown">
+                    <span className="flex items-center gap-1.5 w-full justify-between">
+                      <span>Max Drop</span>
+                      <MetricInfoIcon termKey="maxDrawdown" iconSize={11} />
+                    </span>
+                  </SelectItem>
+                  <SelectItem value="stdDev">
+                    <span className="flex items-center gap-1.5 w-full justify-between">
+                      <span>Volatility</span>
+                      <MetricInfoIcon termKey="standardDeviation" iconSize={11} />
+                    </span>
+                  </SelectItem>
                 </SelectContent>
               </Select>
               <Button
