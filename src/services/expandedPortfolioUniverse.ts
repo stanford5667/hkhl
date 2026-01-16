@@ -1,10 +1,11 @@
 /**
- * Expanded Portfolio Universe Service - REAL METRICS
+ * Expanded Portfolio Universe Service - DYNAMIC TICKER SOURCING
  * 
- * Key Changes:
- * - Fetches REAL metrics from database (not estimates)
- * - Wide ticker range with LIMITED weight variations (max 6 per combo)
- * - Pulls tickers from asset_universe table for maximum coverage
+ * Key Features:
+ * - Dynamically fetches ALL available tickers from market_daily_bars
+ * - Builds portfolio families based on actual available data
+ * - Limited weight variations (4-5 per combo) for manageability
+ * - REAL metrics calculated from historical data
  */
 
 import { supabase } from '@/integrations/supabase/client';
@@ -24,8 +25,9 @@ export interface TickerMeta {
   symbol: string;
   name: string;
   category: string;
-  subCategory: string;
-  riskTier: 1 | 2 | 3 | 4 | 5;
+  sector?: string;
+  isEtf: boolean;
+  marketCapTier?: string;
 }
 
 export interface RealMetrics {
@@ -66,7 +68,7 @@ export interface GenerationProgress {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// FIXED WEIGHT SCHEMES (limit variations)
+// LIMITED WEIGHT SCHEMES (4-5 variations per asset count)
 // ═══════════════════════════════════════════════════════════════════════════════
 
 const WEIGHT_SCHEMES: Record<number, number[][]> = {
@@ -81,21 +83,18 @@ const WEIGHT_SCHEMES: Record<number, number[][]> = {
     [50, 30, 20],
     [40, 40, 20],
     [50, 25, 25],
-    [60, 20, 20],
   ],
   4: [
     [25, 25, 25, 25],
     [40, 20, 20, 20],
     [30, 30, 20, 20],
     [35, 25, 25, 15],
-    [40, 30, 15, 15],
   ],
   5: [
     [20, 20, 20, 20, 20],
     [30, 20, 20, 15, 15],
     [25, 25, 20, 15, 15],
     [35, 20, 20, 15, 10],
-    [30, 25, 20, 15, 10],
   ],
   6: [
     [17, 17, 17, 17, 16, 16],
@@ -106,10 +105,112 @@ const WEIGHT_SCHEMES: Record<number, number[][]> = {
 };
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// PORTFOLIO FAMILIES WITH EXPANDED TICKER POOLS
+// TICKER CATEGORIZATION (by known characteristics)
 // ═══════════════════════════════════════════════════════════════════════════════
 
-interface PortfolioFamily {
+interface TickerCategory {
+  category: string;
+  riskProfile: 'conservative' | 'moderate' | 'growth' | 'aggressive';
+  keywords: string[];
+}
+
+// Map known tickers to categories
+const TICKER_CATEGORIES: Record<string, TickerCategory> = {
+  // Treasury/Bond ETFs (Conservative)
+  TLT: { category: 'Treasury', riskProfile: 'conservative', keywords: ['long', 'treasury'] },
+  IEF: { category: 'Treasury', riskProfile: 'conservative', keywords: ['intermediate', 'treasury'] },
+  SHY: { category: 'Treasury', riskProfile: 'conservative', keywords: ['short', 'treasury'] },
+  GOVT: { category: 'Treasury', riskProfile: 'conservative', keywords: ['treasury'] },
+  AGG: { category: 'Bond', riskProfile: 'conservative', keywords: ['aggregate', 'bond'] },
+  BND: { category: 'Bond', riskProfile: 'conservative', keywords: ['total', 'bond'] },
+  LQD: { category: 'Corporate Bond', riskProfile: 'conservative', keywords: ['corporate', 'bond'] },
+  HYG: { category: 'High Yield', riskProfile: 'moderate', keywords: ['high', 'yield'] },
+  TIP: { category: 'TIPS', riskProfile: 'conservative', keywords: ['inflation', 'protected'] },
+  
+  // Dividend (Conservative)
+  DVY: { category: 'Dividend', riskProfile: 'conservative', keywords: ['dividend'] },
+  VIG: { category: 'Dividend', riskProfile: 'conservative', keywords: ['dividend', 'growth'] },
+  VYM: { category: 'Dividend', riskProfile: 'conservative', keywords: ['high', 'yield'] },
+  SCHD: { category: 'Dividend', riskProfile: 'conservative', keywords: ['dividend'] },
+  
+  // Low Volatility (Conservative)
+  SPLV: { category: 'Low Volatility', riskProfile: 'conservative', keywords: ['low', 'volatility'] },
+  
+  // Broad Market ETFs (Moderate)
+  SPY: { category: 'US Large Cap', riskProfile: 'moderate', keywords: ['s&p', '500'] },
+  VOO: { category: 'US Large Cap', riskProfile: 'moderate', keywords: ['s&p', '500'] },
+  VTI: { category: 'Total Market', riskProfile: 'moderate', keywords: ['total', 'market'] },
+  DIA: { category: 'US Large Cap', riskProfile: 'moderate', keywords: ['dow', 'jones'] },
+  SPYG: { category: 'Growth', riskProfile: 'growth', keywords: ['growth'] },
+  
+  // International (Moderate/Growth)
+  VWO: { category: 'Emerging Markets', riskProfile: 'aggressive', keywords: ['emerging'] },
+  EEM: { category: 'Emerging Markets', riskProfile: 'aggressive', keywords: ['emerging'] },
+  EFA: { category: 'Developed International', riskProfile: 'moderate', keywords: ['developed'] },
+  VEA: { category: 'Developed International', riskProfile: 'moderate', keywords: ['developed'] },
+  VXUS: { category: 'International', riskProfile: 'moderate', keywords: ['international'] },
+  
+  // Alternatives (Moderate)
+  GLD: { category: 'Gold', riskProfile: 'moderate', keywords: ['gold'] },
+  VNQ: { category: 'Real Estate', riskProfile: 'moderate', keywords: ['real', 'estate'] },
+  DBC: { category: 'Commodities', riskProfile: 'moderate', keywords: ['commodities'] },
+  
+  // Sectors (Growth)
+  XLK: { category: 'Technology', riskProfile: 'growth', keywords: ['technology'] },
+  XLF: { category: 'Financials', riskProfile: 'growth', keywords: ['financials'] },
+  XLV: { category: 'Healthcare', riskProfile: 'growth', keywords: ['healthcare'] },
+  XLI: { category: 'Industrials', riskProfile: 'growth', keywords: ['industrials'] },
+  XLP: { category: 'Consumer Staples', riskProfile: 'moderate', keywords: ['staples'] },
+  XLY: { category: 'Consumer Discretionary', riskProfile: 'growth', keywords: ['consumer'] },
+  XLE: { category: 'Energy', riskProfile: 'aggressive', keywords: ['energy'] },
+  XLU: { category: 'Utilities', riskProfile: 'conservative', keywords: ['utilities'] },
+  
+  // Tech Heavy (Growth/Aggressive)
+  QQQ: { category: 'Nasdaq', riskProfile: 'growth', keywords: ['nasdaq', 'tech'] },
+  IWM: { category: 'Small Cap', riskProfile: 'aggressive', keywords: ['small', 'cap'] },
+  
+  // Mega Cap Stocks (Growth/Aggressive)
+  AAPL: { category: 'Mega Tech', riskProfile: 'growth', keywords: ['apple', 'tech'] },
+  MSFT: { category: 'Mega Tech', riskProfile: 'growth', keywords: ['microsoft', 'tech'] },
+  GOOGL: { category: 'Mega Tech', riskProfile: 'growth', keywords: ['google', 'tech'] },
+  AMZN: { category: 'Mega Tech', riskProfile: 'growth', keywords: ['amazon', 'tech'] },
+  NVDA: { category: 'Semiconductors', riskProfile: 'aggressive', keywords: ['nvidia', 'ai'] },
+  META: { category: 'Mega Tech', riskProfile: 'growth', keywords: ['meta', 'social'] },
+  INTC: { category: 'Semiconductors', riskProfile: 'growth', keywords: ['intel', 'chip'] },
+  AMAT: { category: 'Semiconductors', riskProfile: 'aggressive', keywords: ['applied', 'chip'] },
+  
+  // Healthcare
+  JNJ: { category: 'Healthcare', riskProfile: 'moderate', keywords: ['johnson', 'pharma'] },
+  UNH: { category: 'Healthcare', riskProfile: 'moderate', keywords: ['unitedhealth'] },
+  
+  // Financials
+  JPM: { category: 'Financials', riskProfile: 'moderate', keywords: ['jpmorgan', 'bank'] },
+  V: { category: 'Financials', riskProfile: 'growth', keywords: ['visa', 'payments'] },
+  
+  // Crypto/Speculative (Aggressive)
+  BITO: { category: 'Crypto', riskProfile: 'aggressive', keywords: ['bitcoin', 'crypto'] },
+  IBIT: { category: 'Crypto', riskProfile: 'aggressive', keywords: ['bitcoin', 'crypto'] },
+  ETHA: { category: 'Crypto', riskProfile: 'aggressive', keywords: ['ethereum', 'crypto'] },
+  BITF: { category: 'Crypto', riskProfile: 'aggressive', keywords: ['bitcoin', 'mining'] },
+  MSOS: { category: 'Cannabis', riskProfile: 'aggressive', keywords: ['cannabis'] },
+  GME: { category: 'Meme', riskProfile: 'aggressive', keywords: ['gamestop'] },
+  UPST: { category: 'Fintech', riskProfile: 'aggressive', keywords: ['upstart'] },
+  
+  // Other
+  DRI: { category: 'Consumer', riskProfile: 'moderate', keywords: ['darden', 'restaurant'] },
+  GRAB: { category: 'Emerging Tech', riskProfile: 'aggressive', keywords: ['grab', 'asia'] },
+  MUFG: { category: 'Financials', riskProfile: 'moderate', keywords: ['mitsubishi', 'bank'] },
+  MITSY: { category: 'Industrial', riskProfile: 'moderate', keywords: ['mitsubishi'] },
+  SDGR: { category: 'Biotech', riskProfile: 'aggressive', keywords: ['schrodinger'] },
+  SIDU: { category: 'Small Cap', riskProfile: 'aggressive', keywords: ['sidus'] },
+  IONR: { category: 'Small Cap', riskProfile: 'aggressive', keywords: ['ioneer'] },
+};
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// DYNAMIC PORTFOLIO FAMILY BUILDER
+// ═══════════════════════════════════════════════════════════════════════════════
+
+interface DynamicFamily {
   id: string;
   name: string;
   riskProfile: 'conservative' | 'moderate' | 'growth' | 'aggressive';
@@ -117,195 +218,239 @@ interface PortfolioFamily {
   assetCount: number;
 }
 
-// Expanded families with more tickers, fixed asset counts
-export const PORTFOLIO_FAMILIES: PortfolioFamily[] = [
-  // CONSERVATIVE (bonds, low-vol, dividends)
-  {
-    id: 'treasury-ladder',
-    name: 'Treasury Ladder',
-    riskProfile: 'conservative',
-    tickerPool: ['TLT', 'IEF', 'SHY', 'GOVT', 'BIL', 'SHV', 'VGSH', 'SCHO', 'SCHR', 'SPTS', 'VGIT', 'VGLT'],
-    assetCount: 3,
-  },
-  {
-    id: 'core-bond',
-    name: 'Core Bond',
-    riskProfile: 'conservative',
-    tickerPool: ['AGG', 'BND', 'SCHZ', 'FBND', 'IUSB', 'NUBD', 'SPAB', 'EAGG'],
-    assetCount: 2,
-  },
-  {
-    id: 'bond-plus',
-    name: 'Bond Plus',
-    riskProfile: 'conservative',
-    tickerPool: ['AGG', 'BND', 'LQD', 'VCIT', 'VCSH', 'TIP', 'MUB', 'BNDX', 'HYG', 'JNK', 'EMB'],
-    assetCount: 4,
-  },
-  {
-    id: 'dividend-income',
-    name: 'Dividend Income',
-    riskProfile: 'conservative',
-    tickerPool: ['SCHD', 'VIG', 'VYM', 'DVY', 'NOBL', 'SDY', 'DGRW', 'HDV', 'DGRO', 'SPYD', 'SPHD', 'FDL'],
-    assetCount: 3,
-  },
-  {
-    id: 'low-volatility',
-    name: 'Low Volatility',
-    riskProfile: 'conservative',
-    tickerPool: ['USMV', 'SPLV', 'SPHD', 'EFAV', 'EEMV', 'XMLV', 'XSLV', 'FDLO', 'LVHD', 'ACWV'],
-    assetCount: 3,
-  },
-
-  // MODERATE (balanced, global, factor)
-  {
-    id: 'classic-60-40',
-    name: 'Classic 60/40',
-    riskProfile: 'moderate',
-    tickerPool: ['SPY', 'VOO', 'VTI', 'IVV', 'SPTM', 'ITOT', 'AGG', 'BND', 'SCHZ'],
-    assetCount: 2,
-  },
-  {
-    id: 'global-balanced',
-    name: 'Global Balanced',
-    riskProfile: 'moderate',
-    tickerPool: ['VTI', 'VXUS', 'VWO', 'EFA', 'IEFA', 'AGG', 'BNDX', 'GLD', 'VNQ', 'SCHH'],
-    assetCount: 5,
-  },
-  {
-    id: 'all-weather',
-    name: 'All Weather',
-    riskProfile: 'moderate',
-    tickerPool: ['SPY', 'TLT', 'IEF', 'GLD', 'DBC', 'VTI', 'PDBC', 'IAU', 'SLV', 'GSG'],
-    assetCount: 4,
-  },
-  {
-    id: 'factor-blend',
-    name: 'Factor Blend',
-    riskProfile: 'moderate',
-    tickerPool: ['MTUM', 'QUAL', 'VLUE', 'SIZE', 'USMV', 'VTV', 'VUG', 'VIG', 'DGRW', 'MOAT'],
-    assetCount: 4,
-  },
-  {
-    id: 'real-assets',
-    name: 'Real Assets',
-    riskProfile: 'moderate',
-    tickerPool: ['VNQ', 'SCHH', 'RWR', 'IYR', 'GLD', 'IAU', 'TIP', 'DBC', 'PDBC', 'USCI', 'BCI'],
-    assetCount: 4,
-  },
-
-  // GROWTH (US growth, tech, sectors)
-  {
-    id: 'us-large-growth',
-    name: 'US Large Growth',
-    riskProfile: 'growth',
-    tickerPool: ['QQQ', 'VUG', 'IWF', 'SPYG', 'MGK', 'VONG', 'SCHG', 'IUSG', 'RPG', 'IWY'],
-    assetCount: 3,
-  },
-  {
-    id: 'tech-overweight',
-    name: 'Tech Overweight',
-    riskProfile: 'growth',
-    tickerPool: ['QQQ', 'XLK', 'VGT', 'FTEC', 'IYW', 'IGV', 'WCLD', 'SKYY', 'CLOU', 'HACK'],
-    assetCount: 3,
-  },
-  {
-    id: 'sector-blend',
-    name: 'Sector Blend',
-    riskProfile: 'growth',
-    tickerPool: ['XLK', 'XLF', 'XLV', 'XLI', 'XLP', 'XLY', 'XLE', 'XLRE', 'XLC', 'XLB', 'XLU'],
-    assetCount: 5,
-  },
-  {
-    id: 'international-developed',
-    name: 'International Developed',
-    riskProfile: 'growth',
-    tickerPool: ['EFA', 'VEA', 'IEFA', 'VGK', 'EWJ', 'EWU', 'EWG', 'EWQ', 'EWL', 'IEUR', 'HEDJ'],
-    assetCount: 4,
-  },
-  {
-    id: 'healthcare-biotech',
-    name: 'Healthcare & Biotech',
-    riskProfile: 'growth',
-    tickerPool: ['XLV', 'VHT', 'IBB', 'XBI', 'IHI', 'IHF', 'ARKG', 'GNOM', 'IDNA', 'BBH'],
-    assetCount: 3,
-  },
-
-  // AGGRESSIVE (small cap, EM, thematic, single stocks)
-  {
-    id: 'small-cap-blend',
-    name: 'Small Cap Blend',
-    riskProfile: 'aggressive',
-    tickerPool: ['IWM', 'IJR', 'VB', 'SCHA', 'VBR', 'VBK', 'IWN', 'IWO', 'VIOO', 'SLYV', 'SLYG'],
-    assetCount: 3,
-  },
-  {
-    id: 'emerging-markets',
-    name: 'Emerging Markets',
-    riskProfile: 'aggressive',
-    tickerPool: ['VWO', 'EEM', 'IEMG', 'FXI', 'EWZ', 'INDA', 'EWT', 'EWY', 'EWH', 'THD', 'EZA', 'TUR'],
-    assetCount: 4,
-  },
-  {
-    id: 'thematic-innovation',
-    name: 'Thematic Innovation',
-    riskProfile: 'aggressive',
-    tickerPool: ['ARKK', 'ARKG', 'ARKW', 'ARKF', 'ARKQ', 'IZRL', 'MOON', 'KOMP', 'GINN', 'DRIV'],
-    assetCount: 3,
-  },
-  {
-    id: 'semiconductors',
-    name: 'Semiconductors',
-    riskProfile: 'aggressive',
-    tickerPool: ['SOXX', 'SMH', 'XSD', 'PSI', 'NVDA', 'AMD', 'INTC', 'AVGO', 'QCOM', 'MU', 'TSM', 'ASML'],
-    assetCount: 4,
-  },
-  {
-    id: 'mega-tech',
-    name: 'Mega Tech',
-    riskProfile: 'aggressive',
-    tickerPool: ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'NVDA', 'META', 'TSLA', 'AMD', 'NFLX', 'CRM', 'ADBE', 'ORCL'],
-    assetCount: 5,
-  },
-  {
-    id: 'energy-materials',
-    name: 'Energy & Materials',
-    riskProfile: 'aggressive',
-    tickerPool: ['XLE', 'VDE', 'XOP', 'OIH', 'XLB', 'VAW', 'GUNR', 'GNR', 'MOO', 'PICK', 'SLX', 'REMX'],
-    assetCount: 3,
-  },
-  {
-    id: 'clean-energy',
-    name: 'Clean Energy',
-    riskProfile: 'aggressive',
-    tickerPool: ['ICLN', 'TAN', 'QCLN', 'PBW', 'FAN', 'ACES', 'SMOG', 'LIT', 'DRIV', 'KARS'],
-    assetCount: 3,
-  },
-  {
-    id: 'fintech-crypto',
-    name: 'Fintech & Crypto',
-    riskProfile: 'aggressive',
-    tickerPool: ['ARKF', 'FINX', 'IPAY', 'KOIN', 'BLOK', 'BITQ', 'GBTC', 'SQ', 'PYPL', 'COIN', 'MARA', 'RIOT'],
-    assetCount: 4,
-  },
-];
-
-// Build ticker map for lookups
-export const TICKER_MAP = new Map<string, TickerMeta>();
-PORTFOLIO_FAMILIES.forEach(family => {
-  family.tickerPool.forEach(ticker => {
-    if (!TICKER_MAP.has(ticker)) {
-      TICKER_MAP.set(ticker, {
-        symbol: ticker,
-        name: ticker,
-        category: family.riskProfile,
-        subCategory: family.name,
-        riskTier: family.riskProfile === 'conservative' ? 1 : 
-                  family.riskProfile === 'moderate' ? 2 :
-                  family.riskProfile === 'growth' ? 4 : 5,
+function buildDynamicFamilies(availableTickers: string[]): DynamicFamily[] {
+  // Group tickers by category
+  const conservative: string[] = [];
+  const moderate: string[] = [];
+  const growth: string[] = [];
+  const aggressive: string[] = [];
+  
+  // Specific groupings
+  const treasury: string[] = [];
+  const bonds: string[] = [];
+  const dividend: string[] = [];
+  const broadMarket: string[] = [];
+  const international: string[] = [];
+  const alternatives: string[] = [];
+  const sectors: string[] = [];
+  const tech: string[] = [];
+  const stocks: string[] = [];
+  
+  for (const ticker of availableTickers) {
+    const cat = TICKER_CATEGORIES[ticker];
+    if (!cat) {
+      // Unknown ticker - assume moderate growth
+      growth.push(ticker);
+      stocks.push(ticker);
+      continue;
+    }
+    
+    switch (cat.riskProfile) {
+      case 'conservative': conservative.push(ticker); break;
+      case 'moderate': moderate.push(ticker); break;
+      case 'growth': growth.push(ticker); break;
+      case 'aggressive': aggressive.push(ticker); break;
+    }
+    
+    // Specific groupings
+    if (cat.category === 'Treasury') treasury.push(ticker);
+    if (cat.category.includes('Bond') || cat.category === 'TIPS') bonds.push(ticker);
+    if (cat.category === 'Dividend') dividend.push(ticker);
+    if (cat.category.includes('Cap') || cat.category === 'Total Market') broadMarket.push(ticker);
+    if (cat.category.includes('International') || cat.category.includes('Emerging') || cat.category.includes('Developed')) international.push(ticker);
+    if (cat.category === 'Gold' || cat.category === 'Commodities' || cat.category === 'Real Estate') alternatives.push(ticker);
+    if (cat.category.includes('Technology') || cat.category.includes('Financials') || cat.category.includes('Healthcare') || 
+        cat.category.includes('Industrial') || cat.category.includes('Energy') || cat.category.includes('Utilities') ||
+        cat.category.includes('Consumer')) sectors.push(ticker);
+    if (cat.category === 'Nasdaq' || cat.category === 'Mega Tech' || cat.category === 'Semiconductors') tech.push(ticker);
+    if (cat.category === 'Mega Tech' || cat.category === 'Semiconductors' || cat.category === 'Financials' || cat.category === 'Healthcare') stocks.push(ticker);
+  }
+  
+  const families: DynamicFamily[] = [];
+  
+  // Conservative families
+  if (treasury.length >= 2) {
+    families.push({
+      id: 'treasury-ladder',
+      name: 'Treasury Ladder',
+      riskProfile: 'conservative',
+      tickerPool: treasury,
+      assetCount: Math.min(3, treasury.length),
+    });
+  }
+  
+  if (bonds.length >= 2) {
+    families.push({
+      id: 'core-bond',
+      name: 'Core Bond',
+      riskProfile: 'conservative',
+      tickerPool: bonds,
+      assetCount: Math.min(3, bonds.length),
+    });
+  }
+  
+  if (dividend.length >= 2) {
+    families.push({
+      id: 'dividend-income',
+      name: 'Dividend Income',
+      riskProfile: 'conservative',
+      tickerPool: dividend,
+      assetCount: Math.min(3, dividend.length),
+    });
+  }
+  
+  if (conservative.length >= 3) {
+    families.push({
+      id: 'conservative-blend',
+      name: 'Conservative Blend',
+      riskProfile: 'conservative',
+      tickerPool: conservative,
+      assetCount: Math.min(4, conservative.length),
+    });
+  }
+  
+  // Moderate families
+  if (broadMarket.length >= 1 && (bonds.length >= 1 || conservative.length >= 1)) {
+    const pool = [...new Set([...broadMarket, ...bonds.slice(0, 2)])];
+    if (pool.length >= 2) {
+      families.push({
+        id: 'classic-60-40',
+        name: 'Classic 60/40',
+        riskProfile: 'moderate',
+        tickerPool: pool,
+        assetCount: 2,
       });
     }
-  });
-});
+  }
+  
+  if (broadMarket.length >= 2) {
+    families.push({
+      id: 'us-core',
+      name: 'US Core Equity',
+      riskProfile: 'moderate',
+      tickerPool: broadMarket,
+      assetCount: Math.min(3, broadMarket.length),
+    });
+  }
+  
+  if (international.length >= 2) {
+    families.push({
+      id: 'global-equity',
+      name: 'Global Equity',
+      riskProfile: 'moderate',
+      tickerPool: [...broadMarket.slice(0, 2), ...international],
+      assetCount: Math.min(4, broadMarket.length + international.length),
+    });
+  }
+  
+  if (alternatives.length >= 2) {
+    families.push({
+      id: 'real-assets',
+      name: 'Real Assets',
+      riskProfile: 'moderate',
+      tickerPool: alternatives,
+      assetCount: Math.min(3, alternatives.length),
+    });
+  }
+  
+  // All-weather (mix of everything)
+  const allWeatherPool = [...broadMarket.slice(0, 2), ...bonds.slice(0, 2), ...alternatives.slice(0, 2)];
+  if (allWeatherPool.length >= 4) {
+    families.push({
+      id: 'all-weather',
+      name: 'All Weather',
+      riskProfile: 'moderate',
+      tickerPool: [...new Set(allWeatherPool)],
+      assetCount: Math.min(4, allWeatherPool.length),
+    });
+  }
+  
+  if (moderate.length >= 3) {
+    families.push({
+      id: 'moderate-blend',
+      name: 'Moderate Blend',
+      riskProfile: 'moderate',
+      tickerPool: moderate,
+      assetCount: Math.min(4, moderate.length),
+    });
+  }
+  
+  // Growth families
+  if (sectors.length >= 3) {
+    families.push({
+      id: 'sector-rotation',
+      name: 'Sector Rotation',
+      riskProfile: 'growth',
+      tickerPool: sectors,
+      assetCount: Math.min(4, sectors.length),
+    });
+  }
+  
+  if (tech.length >= 2) {
+    families.push({
+      id: 'tech-leaders',
+      name: 'Tech Leaders',
+      riskProfile: 'growth',
+      tickerPool: tech,
+      assetCount: Math.min(4, tech.length),
+    });
+  }
+  
+  if (stocks.length >= 3) {
+    families.push({
+      id: 'blue-chip-stocks',
+      name: 'Blue Chip Stocks',
+      riskProfile: 'growth',
+      tickerPool: stocks,
+      assetCount: Math.min(5, stocks.length),
+    });
+  }
+  
+  if (growth.length >= 3) {
+    families.push({
+      id: 'growth-blend',
+      name: 'Growth Blend',
+      riskProfile: 'growth',
+      tickerPool: growth,
+      assetCount: Math.min(4, growth.length),
+    });
+  }
+  
+  // Aggressive families
+  if (aggressive.length >= 2) {
+    families.push({
+      id: 'aggressive-growth',
+      name: 'Aggressive Growth',
+      riskProfile: 'aggressive',
+      tickerPool: aggressive,
+      assetCount: Math.min(4, aggressive.length),
+    });
+  }
+  
+  // High conviction (all tickers)
+  if (availableTickers.length >= 5) {
+    families.push({
+      id: 'diversified-all',
+      name: 'Diversified All-Asset',
+      riskProfile: 'moderate',
+      tickerPool: availableTickers,
+      assetCount: 5,
+    });
+  }
+  
+  // Create more combinations with mixed profiles
+  if (conservative.length >= 2 && growth.length >= 2) {
+    families.push({
+      id: 'barbell',
+      name: 'Barbell Strategy',
+      riskProfile: 'moderate',
+      tickerPool: [...conservative.slice(0, 3), ...growth.slice(0, 3)],
+      assetCount: 4,
+    });
+  }
+  
+  return families;
+}
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // DATABASE TICKER RETURNS CACHE
@@ -317,8 +462,34 @@ interface TickerDailyData {
 }
 
 let tickerDataCache: Map<string, TickerDailyData> | null = null;
+let availableTickersCache: string[] | null = null;
 let cacheTimestamp: number = 0;
 const CACHE_TTL = 60 * 60 * 1000; // 1 hour
+
+// Fetch all available tickers from database
+async function fetchAvailableTickers(): Promise<string[]> {
+  const now = Date.now();
+  if (availableTickersCache && (now - cacheTimestamp) < CACHE_TTL) {
+    return availableTickersCache;
+  }
+  
+  const { data, error } = await supabase
+    .from('market_daily_bars')
+    .select('ticker')
+    .limit(1000);
+  
+  if (error) {
+    console.error('Failed to fetch available tickers:', error);
+    return [];
+  }
+  
+  const tickers = [...new Set((data || []).map(d => d.ticker))].sort();
+  availableTickersCache = tickers;
+  cacheTimestamp = now;
+  
+  console.log(`[ExpandedUniverse] Found ${tickers.length} tickers with historical data`);
+  return tickers;
+}
 
 async function fetchTickerDailyReturns(
   tickers: string[],
@@ -327,7 +498,6 @@ async function fetchTickerDailyReturns(
 ): Promise<Map<string, TickerDailyData>> {
   const now = Date.now();
   if (tickerDataCache && (now - cacheTimestamp) < CACHE_TTL) {
-    // Check if we have all needed tickers
     const missing = tickers.filter(t => !tickerDataCache!.has(t));
     if (missing.length === 0) {
       return tickerDataCache;
@@ -356,9 +526,8 @@ async function fetchTickerDailyReturns(
   onProgress?.({ phase: 'fetching', current: 40, total: 100, message: 'Processing market data...' });
 
   const result = new Map<string, TickerDailyData>();
-
-  // Group by ticker
   const byTicker: Record<string, { date: string; ret: number }[]> = {};
+  
   for (const row of data || []) {
     if (!byTicker[row.ticker]) {
       byTicker[row.ticker] = [];
@@ -388,17 +557,14 @@ function calculatePortfolioMetrics(
   weights: number[],
   tickerData: Map<string, TickerDailyData>
 ): RealMetrics | null {
-  // Get data for all tickers
   const tickerDataArr = tickers.map(t => tickerData.get(t)).filter(Boolean) as TickerDailyData[];
   if (tickerDataArr.length !== tickers.length) return null;
 
-  // Find common dates (all tickers have data)
   const dateSets = tickerDataArr.map(td => new Set(td.dates));
   const commonDates = [...dateSets[0]].filter(d => dateSets.every(s => s.has(d))).sort();
 
   if (commonDates.length < 20) return null;
 
-  // Build date-indexed returns
   const dateToReturns: Record<string, number[]> = {};
   for (let i = 0; i < tickers.length; i++) {
     const td = tickerDataArr[i];
@@ -410,7 +576,6 @@ function calculatePortfolioMetrics(
     }
   }
 
-  // Calculate portfolio daily returns
   const portfolioReturns: number[] = [];
   const portfolioValues: number[] = [100000];
 
@@ -428,7 +593,6 @@ function calculatePortfolioMetrics(
 
   if (portfolioReturns.length < 20) return null;
 
-  // Calculate real metrics
   const years = portfolioReturns.length / 252;
   const finalValue = portfolioValues[portfolioValues.length - 1];
   const cagr = calculateCAGR(100000, finalValue, years) * 100;
@@ -450,7 +614,7 @@ function calculatePortfolioMetrics(
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// COMBINATION GENERATOR (limited)
+// COMBINATION GENERATOR
 // ═══════════════════════════════════════════════════════════════════════════════
 
 function* combinations<T>(arr: T[], k: number): Generator<T[]> {
@@ -470,6 +634,15 @@ function* combinations<T>(arr: T[], k: number): Generator<T[]> {
   }
 
   yield* backtrack(0, []);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// GET AVAILABLE TICKER COUNT (for UI display)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+export async function getAvailableTickerCount(): Promise<{ count: number; tickers: string[] }> {
+  const tickers = await fetchAvailableTickers();
+  return { count: tickers.length, tickers };
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -493,49 +666,58 @@ export async function screenPortfoliosV2(
   pageSize: number;
   totalPages: number;
   generationTime: number;
+  availableTickers: number;
 }> {
   const startTime = Date.now();
   const { page = 1, pageSize = 50, sortBy = 'sharpe', sortDirection = 'desc', limit = 5000 } = options;
 
-  onProgress?.({ phase: 'init', current: 0, total: 100, message: 'Initializing...' });
+  onProgress?.({ phase: 'init', current: 0, total: 100, message: 'Discovering available tickers...' });
 
-  // Get all unique tickers from families matching risk profile filter
-  const familiesFiltered = criteria.riskProfiles?.length
-    ? PORTFOLIO_FAMILIES.filter(f => criteria.riskProfiles!.includes(f.riskProfile))
-    : PORTFOLIO_FAMILIES;
+  // Step 1: Get all available tickers from database
+  const availableTickers = await fetchAvailableTickers();
+  
+  if (availableTickers.length === 0) {
+    return {
+      portfolios: [],
+      totalCount: 0,
+      page,
+      pageSize,
+      totalPages: 0,
+      generationTime: Date.now() - startTime,
+      availableTickers: 0,
+    };
+  }
 
-  const allTickers = [...new Set(familiesFiltered.flatMap(f => f.tickerPool))];
+  onProgress?.({ phase: 'init', current: 5, total: 100, message: `Found ${availableTickers.length} tickers with data` });
 
-  // Fetch real returns data
-  const tickerData = await fetchTickerDailyReturns(allTickers, 1, onProgress);
+  // Step 2: Build dynamic families based on available tickers
+  const families = buildDynamicFamilies(availableTickers);
+  
+  onProgress?.({ phase: 'init', current: 10, total: 100, message: `Built ${families.length} portfolio families` });
 
-  onProgress?.({ phase: 'calculating', current: 50, total: 100, message: 'Calculating portfolio metrics...' });
+  // Step 3: Fetch all ticker data at once
+  const tickerData = await fetchTickerDailyReturns(availableTickers, 1, onProgress);
 
-  // Generate portfolios with REAL metrics
-  const portfolios: GeneratedPortfolioV2[] = [];
-  let portfolioId = 0;
-  let processed = 0;
+  onProgress?.({ phase: 'calculating', current: 50, total: 100, message: 'Generating portfolios...' });
 
-  for (const family of familiesFiltered) {
-    if (portfolios.length >= limit) break;
+  // Step 4: Generate and calculate portfolios
+  const allPortfolios: GeneratedPortfolioV2[] = [];
+  let portfolioCount = 0;
 
-    // Get available tickers (those with data)
-    const availableTickers = family.tickerPool.filter(t => tickerData.has(t));
-    if (availableTickers.length < family.assetCount) continue;
+  for (const family of families) {
+    // Only use tickers that have data
+    const validTickers = family.tickerPool.filter(t => tickerData.has(t));
+    if (validTickers.length < 2) continue;
+
+    const assetCount = Math.min(family.assetCount, validTickers.length);
+    const weightSchemes = WEIGHT_SCHEMES[assetCount] || [[100 / assetCount].fill(100 / assetCount).slice(0, assetCount)];
 
     // Generate ticker combinations
-    const weightSchemes = WEIGHT_SCHEMES[family.assetCount] || [
-      Array(family.assetCount).fill(Math.round(100 / family.assetCount)),
-    ];
-
-    for (const tickerCombo of combinations(availableTickers, family.assetCount)) {
-      if (portfolios.length >= limit) break;
-
-      // Apply each weight scheme (max 6 variations per ticker combo)
+    for (const combo of combinations(validTickers, assetCount)) {
       for (const weights of weightSchemes) {
-        if (portfolios.length >= limit) break;
+        if (portfolioCount >= limit) break;
 
-        const metrics = calculatePortfolioMetrics(tickerCombo, weights, tickerData);
+        const metrics = calculatePortfolioMetrics(combo, weights, tickerData);
         if (!metrics) continue;
 
         // Apply filters
@@ -544,61 +726,52 @@ export async function screenPortfoliosV2(
         if (criteria.minSharpe !== undefined && metrics.sharpe < criteria.minSharpe) continue;
         if (criteria.minCagr !== undefined && metrics.cagr < criteria.minCagr) continue;
         if (criteria.minSortino !== undefined && metrics.sortino < criteria.minSortino) continue;
+        if (criteria.riskProfiles?.length && !criteria.riskProfiles.includes(family.riskProfile)) continue;
 
         // Calculate match score
-        let matchScore = 70;
-        if (metrics.sharpe > 1) matchScore += 10;
-        if (metrics.sharpe > 1.5) matchScore += 5;
-        if (metrics.maxDrawdown < 15) matchScore += 5;
-        if (metrics.sortino > 1.5) matchScore += 5;
-        if (metrics.cagr > 10) matchScore += 5;
+        let matchScore = 50;
+        if (criteria.minSharpe && metrics.sharpe >= criteria.minSharpe) matchScore += 15;
+        if (criteria.minCagr && metrics.cagr >= criteria.minCagr) matchScore += 15;
+        if (criteria.maxDrawdown && metrics.maxDrawdown <= criteria.maxDrawdown) matchScore += 10;
+        if (criteria.maxVolatility && metrics.volatility <= criteria.maxVolatility) matchScore += 10;
 
-        portfolios.push({
-          id: `${family.id}_${portfolioId++}`,
-          name: `${family.name}: ${tickerCombo.join('/')}`,
+        const portfolio: GeneratedPortfolioV2 = {
+          id: `${family.id}-${combo.join('-')}-${weights.join('-')}`,
+          name: `${family.name} (${combo.join('/')})`,
           family: family.name,
-          tickers: tickerCombo,
+          tickers: combo,
           weights,
           metrics,
           riskProfile: family.riskProfile,
           matchScore: Math.min(100, matchScore),
-        });
+        };
 
-        processed++;
-        if (processed % 500 === 0) {
-          onProgress?.({
-            phase: 'calculating',
-            current: 50 + Math.round((processed / limit) * 40),
-            total: 100,
-            message: `Calculated ${processed} portfolios...`,
-          });
-        }
+        allPortfolios.push(portfolio);
+        portfolioCount++;
       }
+      if (portfolioCount >= limit) break;
     }
+    if (portfolioCount >= limit) break;
   }
 
-  onProgress?.({ phase: 'calculating', current: 95, total: 100, message: 'Sorting results...' });
+  onProgress?.({ phase: 'calculating', current: 80, total: 100, message: 'Sorting results...' });
 
-  // Sort
+  // Step 5: Sort
   const sortMultiplier = sortDirection === 'desc' ? -1 : 1;
-  portfolios.sort((a, b) => {
-    switch (sortBy) {
-      case 'sharpe': return (a.metrics.sharpe - b.metrics.sharpe) * sortMultiplier;
-      case 'cagr': return (a.metrics.cagr - b.metrics.cagr) * sortMultiplier;
-      case 'sortino': return (a.metrics.sortino - b.metrics.sortino) * sortMultiplier;
-      case 'maxDrawdown': return (a.metrics.maxDrawdown - b.metrics.maxDrawdown) * -sortMultiplier;
-      case 'matchScore':
-      default: return (a.matchScore - b.matchScore) * sortMultiplier;
-    }
+  allPortfolios.sort((a, b) => {
+    const aVal = sortBy === 'matchScore' ? a.matchScore : a.metrics[sortBy as keyof RealMetrics] as number;
+    const bVal = sortBy === 'matchScore' ? b.matchScore : b.metrics[sortBy as keyof RealMetrics] as number;
+    return (aVal - bVal) * sortMultiplier;
   });
 
-  // Paginate
-  const totalCount = portfolios.length;
+  // Step 6: Paginate
+  const totalCount = allPortfolios.length;
   const totalPages = Math.ceil(totalCount / pageSize);
   const startIdx = (page - 1) * pageSize;
-  const paginatedPortfolios = portfolios.slice(startIdx, startIdx + pageSize);
+  const endIdx = startIdx + pageSize;
+  const paginatedPortfolios = allPortfolios.slice(startIdx, endIdx);
 
-  onProgress?.({ phase: 'complete', current: 100, total: 100, message: `Found ${totalCount} portfolios with real metrics` });
+  onProgress?.({ phase: 'complete', current: 100, total: 100, message: `Generated ${totalCount} portfolios` });
 
   return {
     portfolios: paginatedPortfolios,
@@ -607,68 +780,13 @@ export async function screenPortfoliosV2(
     pageSize,
     totalPages,
     generationTime: Date.now() - startTime,
+    availableTickers: availableTickers.length,
   };
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// ACCURATE METRICS FOR DETAIL VIEW (same calculation, different interface)
+// LEGACY EXPORTS FOR COMPATIBILITY
 // ═══════════════════════════════════════════════════════════════════════════════
 
-export interface AccurateMetrics extends RealMetrics {
-  dateRange: { start: string; end: string };
-}
-
-export async function calculateAccuratePortfolioMetrics(
-  tickers: string[],
-  weights: number[],
-  lookbackYears: number = 1
-): Promise<AccurateMetrics | null> {
-  const tickerData = await fetchTickerDailyReturns(tickers, lookbackYears);
-  const metrics = calculatePortfolioMetrics(tickers, weights, tickerData);
-  if (!metrics) return null;
-
-  // Get date range
-  const firstTicker = tickerData.get(tickers[0]);
-  const dates = firstTicker?.dates || [];
-
-  return {
-    ...metrics,
-    dateRange: {
-      start: dates[0] || '',
-      end: dates[dates.length - 1] || '',
-    },
-  };
-}
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// UNIVERSE STATS
-// ═══════════════════════════════════════════════════════════════════════════════
-
-export function getUniverseStats() {
-  const allTickers = new Set<string>();
-  let estimatedCombos = 0;
-
-  for (const family of PORTFOLIO_FAMILIES) {
-    family.tickerPool.forEach(t => allTickers.add(t));
-    
-    // Calculate combinations
-    const n = family.tickerPool.length;
-    const k = family.assetCount;
-    const combos = factorial(n) / (factorial(k) * factorial(n - k));
-    const weightVariations = WEIGHT_SCHEMES[k]?.length || 1;
-    estimatedCombos += combos * weightVariations;
-  }
-
-  return {
-    totalTickers: allTickers.size,
-    totalFamilies: PORTFOLIO_FAMILIES.length,
-    estimatedPortfolios: Math.round(estimatedCombos),
-  };
-}
-
-function factorial(n: number): number {
-  if (n <= 1) return 1;
-  let result = 1;
-  for (let i = 2; i <= n; i++) result *= i;
-  return result;
-}
+export const PORTFOLIO_FAMILIES: { id: string; name: string }[] = [];
+export const TICKER_MAP = new Map<string, TickerMeta>();
