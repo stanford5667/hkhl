@@ -15,6 +15,8 @@ interface MetricEducationalPopoverProps {
   isNegative?: boolean;
   isPrimary?: boolean;
   className?: string;
+  /** Use 'card' for larger detail views, 'compact' for inline grids */
+  variant?: 'compact' | 'card';
 }
 
 const categoryColors: Record<string, string> = {
@@ -38,24 +40,40 @@ export function MetricEducationalPopover({
   isNegative = false,
   isPrimary = false,
   className,
+  variant = 'compact',
 }: MetricEducationalPopoverProps) {
   const term = financialTerms[termKey];
+
+  const isCard = variant === 'card';
 
   return (
     <Popover>
       <PopoverTrigger asChild>
         <div className={cn(
-          "p-1.5 rounded bg-muted/50 text-[9px] cursor-pointer hover:bg-muted transition-colors",
-          "border border-transparent hover:border-border",
+          "cursor-pointer transition-colors",
+          isCard ? [
+            "p-3 rounded-lg",
+            "hover:opacity-90"
+          ] : [
+            "p-1.5 rounded bg-muted/50 text-[9px]",
+            "border border-transparent hover:border-border hover:bg-muted"
+          ],
           className
         )}>
-          <p className="text-muted-foreground flex items-center justify-center gap-0.5">
+          <p className={cn(
+            "text-muted-foreground flex items-center gap-1",
+            isCard ? "text-[10px] uppercase mb-1" : "justify-center text-[9px] gap-0.5"
+          )}>
             {label}
-            <HelpCircle className="h-2.5 w-2.5 opacity-60" />
+            <HelpCircle className={cn(
+              "opacity-60",
+              isCard ? "h-3 w-3" : "h-2.5 w-2.5"
+            )} />
           </p>
           <p className={cn(
             "font-mono font-bold",
-            isPrimary && "text-primary",
+            isCard ? "text-xl" : "text-xs",
+            isPrimary && "text-emerald-400",
             isHighlighted && !isPrimary && "text-emerald-400",
             isNegative && !isHighlighted && "text-rose-400"
           )}>

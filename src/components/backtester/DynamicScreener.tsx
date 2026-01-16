@@ -940,26 +940,30 @@ export function DynamicScreener({ onSelect, onComplete }: DynamicScreenerProps) 
                       termKey="cagr"
                       isPrimary
                       isNegative={selectedPortfolio.metrics.cagr < 0}
-                      className="p-3 bg-emerald-500/10 border-emerald-500/30 rounded-lg border"
+                      variant="card"
+                      className="bg-emerald-500/10 border border-emerald-500/30"
                     />
                     <MetricEducationalPopover
                       label="Max Drawdown"
                       value={`-${selectedPortfolio.metrics.maxDrawdown}%`}
                       termKey="drawdown"
                       isNegative
-                      className="p-3 bg-rose-500/10 border-rose-500/30 rounded-lg border"
+                      variant="card"
+                      className="bg-rose-500/10 border border-rose-500/30"
                     />
                     <MetricEducationalPopover
                       label="Volatility"
                       value={`${selectedPortfolio.metrics.volatility}%`}
                       termKey="standardDeviation"
-                      className="p-3 bg-card border rounded-lg"
+                      variant="card"
+                      className="bg-card border"
                     />
                     <MetricEducationalPopover
                       label="Sharpe Ratio"
                       value={selectedPortfolio.metrics.sharpe.toFixed(2)}
                       termKey="sharpeRatio"
-                      className="p-3 bg-card border rounded-lg"
+                      variant="card"
+                      className="bg-card border"
                     />
                   </div>
                   
@@ -967,7 +971,8 @@ export function DynamicScreener({ onSelect, onComplete }: DynamicScreenerProps) 
                     label="Sortino Ratio"
                     value={selectedPortfolio.metrics.sortino.toFixed(2)}
                     termKey="sortinoRatio"
-                    className="p-3 bg-card border rounded-lg w-full"
+                    variant="card"
+                    className="bg-card border w-full"
                   />
                   
                   {/* Allocations */}
