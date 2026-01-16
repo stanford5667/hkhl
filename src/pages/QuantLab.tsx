@@ -1168,67 +1168,58 @@ function QuantLabContent(props: any) {
       {/* Tutorial Overlay for new users */}
       <TutorialOverlay />
       
-      {/* Compact Header Bar */}
+      {/* Header with Prominent Search */}
       <div className="shrink-0 border-b bg-card/50 backdrop-blur-sm">
-        <div className="flex items-center gap-3 px-4 py-2">
-          <div className="p-1.5 rounded-lg bg-gradient-to-br from-purple-500 to-indigo-600 shadow-md">
-            <FlaskConical className="h-4 w-4 text-white" />
+        <div className="flex items-center gap-4 px-6 py-3">
+          <div className="p-2.5 rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 shadow-lg">
+            <FlaskConical className="h-5 w-5 text-white" />
           </div>
-          <div className="flex-1 min-w-0">
-            <h1 className="text-sm font-semibold flex items-center gap-2">
-              Quant Lab
-            </h1>
+          <div className="flex-1">
+            <h1 className="text-lg font-bold">Quant Lab</h1>
+            <p className="text-xs text-muted-foreground">Professional-grade quantitative analysis</p>
           </div>
           
-          {/* Ticker + Controls - Inline in header */}
-          <div className="flex items-center gap-2">
-            <Input
-              placeholder="TICKER"
-              value={ticker}
-              onChange={(e) => setTicker(e.target.value.toUpperCase())}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  handleSetTicker(ticker);
-                  if (selectedStudies.length > 0) handleRunAllStudies();
-                }
-              }}
-              className="h-8 w-20 text-xs font-mono"
-            />
+          {/* Prominent Search Bar */}
+          <div className="flex items-center gap-3 flex-1 max-w-xl">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Enter ticker symbol (e.g., AAPL, MSFT, NVDA)"
+                value={ticker}
+                onChange={(e) => setTicker(e.target.value.toUpperCase())}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    handleSetTicker(ticker);
+                    if (selectedStudies.length > 0) handleRunAllStudies();
+                  }
+                }}
+                className="h-11 pl-10 text-sm font-mono bg-background border-2 border-primary/20 focus:border-primary/50 transition-colors"
+              />
+            </div>
             <Select value={period} onValueChange={setPeriod}>
-              <SelectTrigger className="h-8 w-16 text-xs">
+              <SelectTrigger className="h-11 w-28 text-sm font-medium">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
                 {PERIOD_OPTIONS.map((p) => (
-                  <SelectItem key={p.value} value={p.value} className="text-xs">{p.label}</SelectItem>
+                  <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
-            <Button
-              onClick={() => {
-                handleSetTicker(ticker);
-                if (selectedStudies.length > 0) setTimeout(() => handleRunAllStudies(), 100);
-              }}
-              disabled={!ticker || isRunning}
-              size="sm"
-              className="h-8 px-3 gap-1.5 bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700"
-            >
-              {isRunning ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Play className="h-3.5 w-3.5" />}
-              <span className="text-xs">Run {selectedStudies.length > 0 ? `(${selectedStudies.length})` : ''}</span>
-            </Button>
           </div>
           
           {/* Quick Tickers */}
-          <div className="hidden md:flex gap-1">
+          <div className="hidden lg:flex gap-2">
             {['AAPL', 'MSFT', 'NVDA', 'SPY', 'QQQ'].map((t) => (
-              <Badge
+              <Button
                 key={t}
                 variant={selectedTicker === t ? 'default' : 'outline'}
-                className="cursor-pointer hover:bg-primary hover:text-primary-foreground transition-colors text-[10px] px-1.5 py-0"
+                size="sm"
+                className="h-9 px-4 font-mono text-sm"
                 onClick={() => handleSetTicker(t)}
               >
                 {t}
-              </Badge>
+              </Button>
             ))}
           </div>
         </div>
@@ -1237,78 +1228,93 @@ function QuantLabContent(props: any) {
       {/* Main Content - 2 Panel Layout */}
       <div className="flex-1 flex overflow-hidden">
         {/* Left Panel - Study Selection */}
-        <div className="w-64 shrink-0 border-r bg-card/30 flex flex-col overflow-hidden">
-          <div className="px-3 py-2 border-b bg-muted/30">
+        <div className="w-80 shrink-0 border-r bg-card/30 flex flex-col overflow-hidden">
+          <div className="px-4 py-3 border-b bg-muted/30">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-medium">Studies</span>
+              <span className="text-sm font-semibold">Select Studies</span>
               {selectedStudies.length > 0 && (
-                <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
-                  {selectedStudies.length}
+                <Badge variant="secondary" className="text-xs px-2 py-0.5">
+                  {selectedStudies.length} selected
                 </Badge>
               )}
             </div>
           </div>
           
-          {/* Category Tabs - Compact Grid */}
+          {/* Category Tabs - Bigger */}
           <div className="flex-1 overflow-hidden flex flex-col">
             <Tabs value={activeCategory} onValueChange={setActiveCategory} className="flex-1 flex flex-col overflow-hidden">
-              <TabsList className="w-full grid grid-cols-4 gap-0.5 bg-muted/50 p-0.5 h-auto shrink-0 mx-2 mt-2" style={{ width: 'calc(100% - 16px)' }}>
-                {STUDY_CATEGORIES.slice(0, 4).map((cat) => (
-                  <TabsTrigger 
-                    key={cat.id} 
-                    value={cat.id} 
-                    className="text-[9px] px-1 py-1 data-[state=active]:bg-background"
-                    title={cat.name}
-                  >
-                    <cat.icon className="h-3 w-3" />
-                  </TabsTrigger>
-                ))}
-              </TabsList>
-              <TabsList className="w-full grid grid-cols-3 gap-0.5 bg-muted/50 p-0.5 h-auto shrink-0 mx-2 mt-1" style={{ width: 'calc(100% - 16px)' }}>
-                {STUDY_CATEGORIES.slice(4).map((cat) => (
-                  <TabsTrigger 
-                    key={cat.id} 
-                    value={cat.id} 
-                    className="text-[9px] px-1 py-1 data-[state=active]:bg-background"
-                    title={cat.name}
-                  >
-                    <cat.icon className="h-3 w-3" />
-                  </TabsTrigger>
-                ))}
-              </TabsList>
+              <div className="px-3 pt-3">
+                <TabsList className="w-full grid grid-cols-4 gap-1 bg-muted/50 p-1.5 h-auto">
+                  {STUDY_CATEGORIES.slice(0, 4).map((cat) => (
+                    <TabsTrigger 
+                      key={cat.id} 
+                      value={cat.id} 
+                      className="text-xs px-2 py-2.5 gap-1.5 data-[state=active]:bg-background data-[state=active]:shadow-sm flex flex-col"
+                      title={cat.name}
+                    >
+                      <cat.icon className="h-4 w-4" />
+                      <span className="text-[10px] truncate">{cat.name}</span>
+                    </TabsTrigger>
+                  ))}
+                </TabsList>
+                <TabsList className="w-full grid grid-cols-3 gap-1 bg-muted/50 p-1.5 h-auto mt-1.5">
+                  {STUDY_CATEGORIES.slice(4).map((cat) => (
+                    <TabsTrigger 
+                      key={cat.id} 
+                      value={cat.id} 
+                      className="text-xs px-2 py-2.5 gap-1.5 data-[state=active]:bg-background data-[state=active]:shadow-sm flex flex-col"
+                      title={cat.name}
+                    >
+                      <cat.icon className="h-4 w-4" />
+                      <span className="text-[10px] truncate">{cat.name}</span>
+                    </TabsTrigger>
+                  ))}
+                </TabsList>
+              </div>
 
-              <div className="flex-1 overflow-y-auto">
+              <div className="flex-1 overflow-y-auto p-3">
                 {STUDY_CATEGORIES.map((cat) => (
-                  <TabsContent key={cat.id} value={cat.id} className="mt-0 p-2 space-y-1">
+                  <TabsContent key={cat.id} value={cat.id} className="mt-0 space-y-2">
                     {STUDY_DEFINITIONS.filter(s => s.category === cat.id).map((study) => (
                       <button
                         key={study.id}
                         onClick={() => addStudy(study.id)}
                         disabled={selectedStudies.includes(study.id)}
                         className={cn(
-                          "w-full p-2 rounded-md border text-left transition-all flex items-center gap-2",
+                          "w-full p-3 rounded-lg border text-left transition-all",
                           selectedStudies.includes(study.id)
                             ? "border-primary bg-primary/10 opacity-70"
                             : "border-border hover:border-primary/50 hover:bg-muted/50"
                         )}
                       >
-                        <div className={cn(
-                          "p-1 rounded shrink-0",
-                          selectedStudies.includes(study.id) ? "bg-primary/20" : "bg-muted"
-                        )}>
-                          <study.icon className={cn(
-                            "h-3 w-3",
-                            selectedStudies.includes(study.id) ? "text-primary" : "text-muted-foreground"
-                          )} />
+                        <div className="flex items-start gap-3">
+                          <div className={cn(
+                            "p-2 rounded-lg shrink-0",
+                            selectedStudies.includes(study.id) ? "bg-primary/20" : "bg-muted"
+                          )}>
+                            <study.icon className={cn(
+                              "h-4 w-4",
+                              selectedStudies.includes(study.id) ? "text-primary" : "text-muted-foreground"
+                            )} />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <span className="font-semibold text-sm">{study.name}</span>
+                              {selectedStudies.includes(study.id) ? (
+                                <CheckCircle2 className="h-4 w-4 text-primary shrink-0" />
+                              ) : (
+                                <Plus className="h-4 w-4 text-muted-foreground shrink-0" />
+                              )}
+                            </div>
+                            {/* Study explanation */}
+                            <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                              {study.description}
+                            </p>
+                            <Badge variant="outline" className="mt-2 text-[10px] capitalize">
+                              {study.difficulty}
+                            </Badge>
+                          </div>
                         </div>
-                        <div className="flex-1 min-w-0">
-                          <span className="font-medium text-[11px] block truncate">{study.name}</span>
-                        </div>
-                        {selectedStudies.includes(study.id) ? (
-                          <CheckCircle2 className="h-3 w-3 text-primary shrink-0" />
-                        ) : (
-                          <Plus className="h-3 w-3 text-muted-foreground shrink-0" />
-                        )}
                       </button>
                     ))}
                   </TabsContent>
@@ -1322,8 +1328,8 @@ function QuantLabContent(props: any) {
         <div className="flex-1 flex flex-col overflow-hidden bg-background">
           {/* Selected Studies Bar */}
           {selectedStudies.length > 0 && (
-            <div className="shrink-0 px-4 py-2 border-b bg-muted/20 flex items-center gap-2 overflow-x-auto">
-              <span className="text-[10px] text-muted-foreground shrink-0">Queue:</span>
+            <div className="shrink-0 px-4 py-3 border-b bg-muted/20 flex items-center gap-3 overflow-x-auto">
+              <span className="text-xs text-muted-foreground shrink-0 font-medium">Queue:</span>
               {selectedStudies.map((studyId) => {
                 const study = getStudy(studyId);
                 const hasResult = !!results[studyId];
@@ -1332,17 +1338,17 @@ function QuantLabContent(props: any) {
                     key={studyId}
                     variant={hasResult ? 'default' : 'secondary'}
                     className={cn(
-                      "gap-1 pr-0.5 text-[10px] shrink-0",
+                      "gap-1.5 pr-1 text-xs shrink-0 py-1",
                       hasResult && "bg-emerald-500 hover:bg-emerald-600"
                     )}
                   >
                     {study?.name}
-                    {hasResult && <CheckCircle2 className="h-2.5 w-2.5" />}
+                    {hasResult && <CheckCircle2 className="h-3 w-3" />}
                     <button
                       onClick={() => removeStudy(studyId)}
-                      className="ml-0.5 hover:bg-black/20 rounded p-0.5"
+                      className="ml-1 hover:bg-black/20 rounded p-0.5"
                     >
-                      <X className="h-2.5 w-2.5" />
+                      <X className="h-3 w-3" />
                     </button>
                   </Badge>
                 );
@@ -1351,9 +1357,9 @@ function QuantLabContent(props: any) {
                 variant="ghost"
                 size="sm"
                 onClick={() => { setSelectedStudies([]); setResults({}); }}
-                className="h-5 px-1.5 text-[10px] ml-auto shrink-0"
+                className="h-7 px-3 text-xs ml-auto shrink-0"
               >
-                Clear
+                Clear All
               </Button>
             </div>
           )}
@@ -1361,7 +1367,7 @@ function QuantLabContent(props: any) {
           {/* Results Grid */}
           <div className="flex-1 overflow-y-auto p-4">
             {Object.keys(results).length > 0 ? (
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 {selectedStudies.map((studyId) => {
                   const study = getStudy(studyId);
                   const result = results[studyId];
@@ -1376,18 +1382,19 @@ function QuantLabContent(props: any) {
                       initial={{ opacity: 0, scale: 0.95 }}
                       animate={{ opacity: 1, scale: 1 }}
                       className={cn(
-                        "rounded-lg border overflow-hidden",
+                        "rounded-xl border-2 overflow-hidden",
                         sentiment.border
                       )}
                     >
-                      {/* Compact Card Header */}
-                      <div className={cn("px-3 py-2 flex items-center justify-between", sentiment.bg)}>
-                        <div className="flex items-center gap-2 min-w-0">
-                          <div className={cn("p-1 rounded bg-background/80 shrink-0")}>
-                            <study.icon className={cn("h-3.5 w-3.5", sentiment.text)} />
+                      {/* Card Header */}
+                      <div className={cn("px-4 py-3 flex items-center justify-between", sentiment.bg)}>
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className={cn("p-2 rounded-lg bg-background/80 shrink-0")}>
+                            <study.icon className={cn("h-4 w-4", sentiment.text)} />
                           </div>
                           <div className="min-w-0">
-                            <h4 className="font-medium text-xs truncate">{study.name}</h4>
+                            <h4 className="font-semibold text-sm">{study.name}</h4>
+                            <p className="text-xs text-muted-foreground">{study.description}</p>
                           </div>
                         </div>
                         <Button
@@ -1395,35 +1402,35 @@ function QuantLabContent(props: any) {
                           variant="ghost"
                           onClick={() => saveStudyResult(studyId)}
                           disabled={isSaving === studyId}
-                          className="h-6 px-1.5 gap-1 text-[10px] text-amber-600 hover:text-amber-700 hover:bg-amber-50 shrink-0"
+                          className="h-8 px-3 gap-1.5 text-xs text-amber-600 hover:text-amber-700 hover:bg-amber-50 shrink-0"
                         >
-                          {isSaving === studyId ? <Loader2 className="h-3 w-3 animate-spin" /> : <Save className="h-3 w-3" />}
+                          {isSaving === studyId ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
                           Save
                         </Button>
                       </div>
 
                       {/* Interpretation */}
-                      <div className="px-3 py-1.5 border-b">
-                        <p className={cn("text-[11px] font-medium line-clamp-1", sentiment.text)}>
+                      <div className="px-4 py-2 border-b">
+                        <p className={cn("text-sm font-medium", sentiment.text)}>
                           {result.interpretation || 'Analysis complete'}
                         </p>
                       </div>
 
-                      {/* Key Metrics - Compact Grid */}
-                      <div className="p-2">
-                        <div className="grid grid-cols-2 gap-1.5">
+                      {/* Key Metrics Grid */}
+                      <div className="p-3">
+                        <div className="grid grid-cols-2 gap-2">
                           {metrics.slice(0, 4).map(([key, value]) => (
                             <button
                               key={key}
                               onClick={() => setSelectedMetric({ 
                                 key, value, studyName: study.name, studyResult: result
                               })}
-                              className="text-center p-1.5 bg-muted/50 rounded hover:bg-muted hover:ring-1 hover:ring-primary/30 transition-all cursor-pointer"
+                              className="text-center p-3 bg-muted/50 rounded-lg hover:bg-muted hover:ring-2 hover:ring-primary/30 transition-all cursor-pointer"
                             >
-                              <p className="text-[9px] text-muted-foreground capitalize mb-0.5 truncate">
+                              <p className="text-xs text-muted-foreground capitalize mb-1">
                                 {key.replace(/([A-Z])/g, ' $1').replace(/_/g, ' ').trim()}
                               </p>
-                              <p className="text-sm font-bold font-mono">
+                              <p className="text-lg font-bold font-mono">
                                 {formatValue(key, value)}
                               </p>
                             </button>
@@ -1432,8 +1439,8 @@ function QuantLabContent(props: any) {
                       </div>
 
                       {/* Footer */}
-                      <div className="px-3 py-1 bg-muted/30 text-[9px] text-muted-foreground flex items-center justify-between">
-                        <span>{result.barsAnalyzed} days</span>
+                      <div className="px-4 py-2 bg-muted/30 text-xs text-muted-foreground flex items-center justify-between">
+                        <span>{result.barsAnalyzed} days analyzed</span>
                         <span>{result.dateRange?.start} → {result.dateRange?.end}</span>
                       </div>
                     </motion.div>
@@ -1442,23 +1449,43 @@ function QuantLabContent(props: any) {
               </div>
             ) : isRunning ? (
               <div className="flex flex-col items-center justify-center h-full text-center">
-                <Loader2 className="h-8 w-8 animate-spin text-primary mb-2" />
-                <p className="text-sm font-medium">Running analysis...</p>
-                <p className="text-xs text-muted-foreground">
+                <div className="p-6 rounded-2xl bg-primary/5 border-2 border-primary/20 mb-4">
+                  <Loader2 className="h-12 w-12 animate-spin text-primary" />
+                </div>
+                <p className="text-lg font-semibold">Running Analysis...</p>
+                <p className="text-sm text-muted-foreground mt-1">
                   {runningStudy && getStudy(runningStudy)?.name}
                 </p>
               </div>
             ) : selectedStudies.length > 0 ? (
               <div className="flex flex-col items-center justify-center h-full text-center">
-                <Play className="h-10 w-10 text-muted-foreground/30 mb-2" />
-                <p className="text-sm font-medium">Ready to analyze</p>
-                <p className="text-xs text-muted-foreground">Click "Run" to see results for {selectedTicker}</p>
+                <div className="p-6 rounded-2xl bg-gradient-to-br from-violet-500/10 to-purple-500/10 border-2 border-violet-500/20 mb-6">
+                  <Play className="h-12 w-12 text-violet-500" />
+                </div>
+                <p className="text-xl font-bold mb-2">Ready to Analyze</p>
+                <p className="text-sm text-muted-foreground mb-6 max-w-sm">
+                  You've selected {selectedStudies.length} {selectedStudies.length === 1 ? 'study' : 'studies'} to run on {selectedTicker || 'your ticker'}
+                </p>
+                {/* BIG RUN BUTTON */}
+                <Button
+                  onClick={handleRunAllStudies}
+                  disabled={!selectedTicker || isRunning}
+                  size="lg"
+                  className="h-14 px-10 text-lg gap-3 bg-gradient-to-r from-violet-500 to-purple-600 hover:from-violet-600 hover:to-purple-700 shadow-xl hover:shadow-2xl transition-all"
+                >
+                  <Play className="h-6 w-6" />
+                  Run {selectedStudies.length} {selectedStudies.length === 1 ? 'Study' : 'Studies'}
+                </Button>
               </div>
             ) : (
               <div className="flex flex-col items-center justify-center h-full text-center">
-                <FlaskConical className="h-10 w-10 text-muted-foreground/30 mb-2" />
-                <p className="text-sm font-medium">Select studies from the left panel</p>
-                <p className="text-xs text-muted-foreground">Then click Run to analyze {selectedTicker || 'your stock'}</p>
+                <div className="p-6 rounded-2xl bg-muted/50 border-2 border-border mb-6">
+                  <FlaskConical className="h-12 w-12 text-muted-foreground" />
+                </div>
+                <p className="text-xl font-bold mb-2">Select Studies to Begin</p>
+                <p className="text-sm text-muted-foreground max-w-sm">
+                  Choose from the study categories on the left, then click Run to analyze {selectedTicker || 'your stock'}
+                </p>
               </div>
             )}
           </div>
