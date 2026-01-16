@@ -494,19 +494,20 @@ export default function InvestmentPlanPage() {
             ) : plans.length > 0 ? (
               <div className="space-y-6">
                 {/* Section Header */}
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h2 className="text-2xl font-bold text-foreground">Your Investment Strategies</h2>
-                    <p className="text-muted-foreground">AI-generated plans tailored to your profile</p>
+                <div className="flex items-start justify-between gap-4 pb-2">
+                  <div className="space-y-1">
+                    <h2 className="text-xl font-semibold text-foreground tracking-tight">Your Strategies</h2>
+                    <p className="text-sm text-muted-foreground">AI-generated plans tailored to your profile</p>
                   </div>
                   <Button 
+                    size="sm"
                     onClick={() => {
                       setForceNewAssessment(true);
                       setShowQuestionnaire(true);
                     }}
-                    className="gap-2 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 shadow-lg shadow-purple-500/25"
+                    className="gap-1.5 shrink-0"
                   >
-                    <Sparkles className="h-4 w-4" />
+                    <Sparkles className="h-3.5 w-3.5" />
                     New Strategy
                   </Button>
                 </div>
