@@ -39,12 +39,15 @@ import {
   Layers,
   DollarSign,
   Info,
+  LogIn,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
+import { MobileAuthSheet } from '@/components/auth/MobileAuthSheet';
 import { 
   getInvestorTypeCode, 
   getInvestorType,
@@ -454,16 +457,15 @@ interface EliteQuestionnaireV2Props {
     dimensions: InvestorDimensions;
   }) => void;
   onCancel?: () => void;
-  userName?: string;
 }
 
-export function EliteQuestionnaireV2({ onComplete, onCancel, userName: initialUserName }: EliteQuestionnaireV2Props) {
+export function EliteQuestionnaireV2({ onComplete, onCancel }: EliteQuestionnaireV2Props) {
   const { toast } = useToast();
+  const { user, isAuthenticated } = useAuth();
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [responses, setResponses] = useState<Record<string, string>>({});
-  const [userName, setUserName] = useState(initialUserName || '');
-  const [showNameInput, setShowNameInput] = useState(!initialUserName);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showAuthSheet, setShowAuthSheet] = useState(false);
 
   const currentQuestion = QUESTIONS[currentQuestionIndex];
   const progress = ((currentQuestionIndex + 1) / QUESTIONS.length) * 100;
@@ -471,7 +473,6 @@ export function EliteQuestionnaireV2({ onComplete, onCancel, userName: initialUs
 
   // Check if current question is answered
   const isCurrentAnswered = useMemo(() => {
-    if (showNameInput) return userName.trim().length > 0;
     if (currentQuestion?.type === 'currency') {
       const val = responses[currentQuestion?.id];
       if (!val) return false;
@@ -479,7 +480,7 @@ export function EliteQuestionnaireV2({ onComplete, onCancel, userName: initialUs
       return !isNaN(num) && num > 0;
     }
     return responses[currentQuestion?.id] !== undefined;
-  }, [showNameInput, userName, responses, currentQuestion?.id, currentQuestion?.type]);
+  }, [responses, currentQuestion?.id, currentQuestion?.type]);
 
   // Handle option selection
   const handleSelect = useCallback((value: string) => {
@@ -570,16 +571,28 @@ export function EliteQuestionnaireV2({ onComplete, onCancel, userName: initialUs
     return 'Aggressive';
   };
 
+  // Get user name from profile or email
+  const getUserDisplayName = useCallback(() => {
+    if (user?.user_metadata?.full_name) {
+      return user.user_metadata.full_name.split(' ')[0];
+    }
+    if (user?.email) {
+      return user.email.split('@')[0];
+    }
+    return 'Investor';
+  }, [user]);
+
   // Handle next
   const handleNext = useCallback(() => {
-    if (showNameInput) {
-      setShowNameInput(false);
-      return;
-    }
-
     if (currentQuestionIndex < QUESTIONS.length - 1) {
       setCurrentQuestionIndex(prev => prev + 1);
     } else {
+      // Check if user is authenticated before submitting
+      if (!isAuthenticated) {
+        setShowAuthSheet(true);
+        return;
+      }
+
       // Complete - format responses for scoring engine
       setIsSubmitting(true);
       
@@ -610,20 +623,25 @@ export function EliteQuestionnaireV2({ onComplete, onCancel, userName: initialUs
         riskProfile,
         investorType: typeCode,
         investorTypeName: investorType.name,
-        userName: userName || 'Investor',
+        userName: getUserDisplayName(),
         dimensions,
       });
     }
-  }, [showNameInput, currentQuestionIndex, responses, calculateRiskScore, calculateDimensions, onComplete, userName]);
+  }, [currentQuestionIndex, responses, calculateRiskScore, calculateDimensions, onComplete, isAuthenticated, getUserDisplayName]);
 
   // Handle previous
   const handlePrevious = useCallback(() => {
     if (currentQuestionIndex > 0) {
       setCurrentQuestionIndex(prev => prev - 1);
-    } else if (!showNameInput && !initialUserName) {
-      setShowNameInput(true);
     }
-  }, [currentQuestionIndex, showNameInput, initialUserName]);
+  }, [currentQuestionIndex]);
+
+  // Handle successful auth - auto-submit
+  const handleAuthSuccess = useCallback(() => {
+    setShowAuthSheet(false);
+    // After auth, trigger submit
+    handleNext();
+  }, [handleNext]);
 
   // Keyboard navigation
   useEffect(() => {
@@ -872,94 +890,60 @@ export function EliteQuestionnaireV2({ onComplete, onCancel, userName: initialUs
             )}
           </div>
           
-          {!showNameInput && (
-            <div className="space-y-2">
-              <div className="flex justify-between text-xs text-white/50">
-                <span>{currentSection?.title}</span>
-                <span>{currentQuestionIndex + 1} of {QUESTIONS.length}</span>
-              </div>
-              <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
-                <motion.div
-                  className="h-full bg-gradient-to-r from-blue-500 to-emerald-500"
-                  initial={{ width: 0 }}
-                  animate={{ width: `${progress}%` }}
-                  transition={{ duration: 0.3 }}
-                />
-              </div>
+          <div className="space-y-2">
+            <div className="flex justify-between text-xs text-white/50">
+              <span>{currentSection?.title}</span>
+              <span>{currentQuestionIndex + 1} of {QUESTIONS.length}</span>
             </div>
-          )}
+            <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
+              <motion.div
+                className="h-full bg-gradient-to-r from-blue-500 to-emerald-500"
+                initial={{ width: 0 }}
+                animate={{ width: `${progress}%` }}
+                transition={{ duration: 0.3 }}
+              />
+            </div>
+          </div>
         </div>
       </header>
 
       {/* Main content */}
       <main className="relative z-10 max-w-3xl mx-auto px-6 py-12">
         <AnimatePresence mode="wait">
-          {showNameInput ? (
-            <motion.div
-              key="name-input"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              className="space-y-8"
-            >
-              <div className="text-center">
-                <Badge className="bg-gradient-to-r from-blue-500/20 to-emerald-500/20 border-blue-500/30 text-blue-300 mb-4">
-                  <Sparkles className="w-3 h-3 mr-1" />
-                  Let's Get Started
+          <motion.div
+            key={currentQuestion.id}
+            initial={{ opacity: 0, x: 50 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -50 }}
+            transition={{ duration: 0.3 }}
+            className="space-y-8"
+          >
+            <div className="flex items-center gap-2">
+              <div className={`w-8 h-8 rounded-lg bg-gradient-to-br ${currentSection?.color} flex items-center justify-center`}>
+                {currentSection?.icon && <currentSection.icon className="w-4 h-4 text-white" />}
+              </div>
+              <span className="text-sm text-white/50">{currentSection?.title}</span>
+              {currentQuestion.section === 'personality' && (
+                <Badge variant="outline" className="ml-2 border-indigo-500/30 text-indigo-300 text-xs">
+                  Investor DNA
                 </Badge>
-                <h1 className="text-3xl md:text-4xl font-bold mb-3">
-                  What should we call you?
-                </h1>
-                <p className="text-white/60 max-w-md mx-auto">
-                  We'll personalize your investment strategy report.
-                </p>
-              </div>
-              <div className="max-w-sm mx-auto">
-                <Input
-                  value={userName}
-                  onChange={(e) => setUserName(e.target.value)}
-                  placeholder="Your first name"
-                  className="h-14 text-lg text-center bg-white/5 border-white/20 focus:border-blue-500"
-                  autoFocus
-                />
-              </div>
-            </motion.div>
-          ) : (
-            <motion.div
-              key={currentQuestion.id}
-              initial={{ opacity: 0, x: 50 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -50 }}
-              transition={{ duration: 0.3 }}
-              className="space-y-8"
-            >
-              <div className="flex items-center gap-2">
-                <div className={`w-8 h-8 rounded-lg bg-gradient-to-br ${currentSection?.color} flex items-center justify-center`}>
-                  {currentSection?.icon && <currentSection.icon className="w-4 h-4 text-white" />}
-                </div>
-                <span className="text-sm text-white/50">{currentSection?.title}</span>
-                {currentQuestion.section === 'personality' && (
-                  <Badge variant="outline" className="ml-2 border-indigo-500/30 text-indigo-300 text-xs">
-                    Investor DNA
-                  </Badge>
-                )}
-              </div>
-              <div>
-                <h2 className="text-2xl md:text-3xl font-bold mb-2">
-                  {currentQuestion.question}
-                </h2>
-                <p className="text-white/60">
-                  {currentQuestion.subtitle}
-                </p>
-              </div>
-              {currentQuestion.type === 'scenario' 
-                ? renderScenarioQuestion(currentQuestion)
-                : currentQuestion.type === 'currency'
-                ? renderCurrencyQuestion(currentQuestion)
-                : renderSelectQuestion(currentQuestion)
-              }
-            </motion.div>
-          )}
+              )}
+            </div>
+            <div>
+              <h2 className="text-2xl md:text-3xl font-bold mb-2">
+                {currentQuestion.question}
+              </h2>
+              <p className="text-white/60">
+                {currentQuestion.subtitle}
+              </p>
+            </div>
+            {currentQuestion.type === 'scenario' 
+              ? renderScenarioQuestion(currentQuestion)
+              : currentQuestion.type === 'currency'
+              ? renderCurrencyQuestion(currentQuestion)
+              : renderSelectQuestion(currentQuestion)
+            }
+          </motion.div>
         </AnimatePresence>
 
         {/* Navigation */}
@@ -967,7 +951,7 @@ export function EliteQuestionnaireV2({ onComplete, onCancel, userName: initialUs
           <Button
             variant="ghost"
             onClick={handlePrevious}
-            disabled={showNameInput && !!initialUserName}
+            disabled={currentQuestionIndex === 0}
             className="text-white/50 hover:text-white"
           >
             <ChevronLeft className="w-4 h-4 mr-1" />
@@ -1013,6 +997,14 @@ export function EliteQuestionnaireV2({ onComplete, onCancel, userName: initialUs
           </motion.div>
         )}
       </main>
+
+      {/* Auth Sheet for unauthenticated users */}
+      <MobileAuthSheet
+        open={showAuthSheet}
+        onOpenChange={setShowAuthSheet}
+        title="Create an account to generate your strategy"
+        description="Sign up for free to receive your personalized investment plan."
+      />
     </div>
   );
 }

@@ -433,7 +433,6 @@ export default function InvestmentPlanPage() {
             setShowQuestionnaire(false);
             setForceNewAssessment(false);
           }}
-          userName={user?.user_metadata?.name || user?.user_metadata?.full_name || undefined}
         />
       </div>
     );
