@@ -1290,7 +1290,7 @@ function QuantLabContent(props: any) {
               animate={{ y: 0, opacity: 1 }}
               exit={{ y: '100%', opacity: 0 }}
               transition={{ duration: 0.25, ease: 'easeOut' }}
-              className="fixed inset-x-0 bottom-0 top-auto md:relative md:inset-auto md:w-72 lg:w-80 shrink-0 md:border-r bg-card z-40 flex flex-col overflow-hidden md:!h-full rounded-t-2xl md:rounded-none shadow-2xl md:shadow-none max-h-[70vh] md:max-h-none"
+              className="fixed inset-x-0 bottom-16 top-auto md:relative md:inset-auto md:w-72 lg:w-80 shrink-0 md:border-r bg-card z-40 flex flex-col overflow-hidden md:!h-full rounded-t-2xl md:rounded-none shadow-2xl md:shadow-none max-h-[60vh] md:max-h-none pb-safe"
             >
               {/* Mobile drag handle */}
               <div className="md:hidden flex justify-center pt-2 pb-1">
@@ -1405,9 +1405,9 @@ function QuantLabContent(props: any) {
                 </Tabs>
               </div>
               
-              {/* Mobile: Run button in panel */}
+              {/* Mobile: Run button in panel - Always visible at bottom */}
               {selectedStudies.length > 0 && (
-                <div className="md:hidden p-4 border-t bg-card">
+                <div className="md:hidden p-4 border-t bg-card shrink-0">
                   <Button
                     onClick={() => {
                       setShowStudyPanel(false);
