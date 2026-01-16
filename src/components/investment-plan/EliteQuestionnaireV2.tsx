@@ -455,7 +455,7 @@ interface EliteQuestionnaireV2Props {
     investorTypeName: string;
     userName: string;
     dimensions: InvestorDimensions;
-  }) => void;
+  }) => void | Promise<void>;
   onCancel?: () => void;
 }
 
@@ -583,40 +583,52 @@ export function EliteQuestionnaireV2({ onComplete, onCancel }: EliteQuestionnair
   }, [user]);
 
   // Submit the questionnaire
-  const submitQuestionnaire = useCallback(() => {
+  const submitQuestionnaire = useCallback(async () => {
     setIsSubmitting(true);
-    
-    const scoringResponses: Record<string, { value: string | number | string[] }> = {};
-    
-    // Only include questions with scoringKey
-    QUESTIONS.forEach(q => {
-      if (responses[q.id] && q.scoringKey) {
-        // Parse currency values as numbers
-        if (q.type === 'currency') {
-          const numVal = parseFloat(responses[q.id].replace(/[^0-9.]/g, ''));
-          scoringResponses[q.scoringKey] = { value: numVal };
-        } else {
-          scoringResponses[q.scoringKey] = { value: responses[q.id] };
+
+    try {
+      const scoringResponses: Record<string, { value: string | number | string[] }> = {};
+
+      // Only include questions with scoringKey
+      QUESTIONS.forEach(q => {
+        if (responses[q.id] && q.scoringKey) {
+          // Parse currency values as numbers
+          if (q.type === 'currency') {
+            const numVal = parseFloat(responses[q.id].replace(/[^0-9.]/g, ''));
+            scoringResponses[q.scoringKey] = { value: numVal };
+          } else {
+            scoringResponses[q.scoringKey] = { value: responses[q.id] };
+          }
         }
-      }
-    });
+      });
 
-    const riskScore = calculateRiskScore();
-    const riskProfile = getRiskProfile(riskScore);
-    const dimensions = calculateDimensions();
-    const typeCode = getInvestorTypeCode(dimensions);
-    const investorType = getInvestorType(typeCode);
+      const riskScore = calculateRiskScore();
+      const riskProfile = getRiskProfile(riskScore);
+      const dimensions = calculateDimensions();
+      const typeCode = getInvestorTypeCode(dimensions);
+      const investorType = getInvestorType(typeCode);
 
-    onComplete({
-      responses: scoringResponses,
-      riskScore,
-      riskProfile,
-      investorType: typeCode,
-      investorTypeName: investorType.name,
-      userName: getUserDisplayName(),
-      dimensions,
-    });
-  }, [responses, calculateRiskScore, calculateDimensions, onComplete, getUserDisplayName]);
+      await Promise.resolve(
+        onComplete({
+          responses: scoringResponses,
+          riskScore,
+          riskProfile,
+          investorType: typeCode,
+          investorTypeName: investorType.name,
+          userName: getUserDisplayName(),
+          dimensions,
+        })
+      );
+    } catch (err) {
+      console.error('Failed to submit questionnaire:', err);
+      toast({
+        title: "Couldn't generate plan",
+        description: 'Please try again in a moment.',
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  }, [responses, calculateRiskScore, getRiskProfile, calculateDimensions, onComplete, getUserDisplayName, toast]);
 
   // Handle next
   const handleNext = useCallback(() => {
