@@ -68,7 +68,7 @@ export interface GenerationProgress {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// LIMITED WEIGHT SCHEMES (4-5 variations per asset count)
+// EXPANDED WEIGHT SCHEMES (more variations for 10K+ combos)
 // ═══════════════════════════════════════════════════════════════════════════════
 
 const WEIGHT_SCHEMES: Record<number, number[][]> = {
@@ -77,30 +77,50 @@ const WEIGHT_SCHEMES: Record<number, number[][]> = {
     [60, 40],
     [70, 30],
     [80, 20],
+    [90, 10],
+    [75, 25],
+    [65, 35],
+    [55, 45],
   ],
   3: [
     [34, 33, 33],
     [50, 30, 20],
     [40, 40, 20],
     [50, 25, 25],
+    [60, 25, 15],
+    [45, 35, 20],
+    [55, 30, 15],
+    [70, 20, 10],
   ],
   4: [
     [25, 25, 25, 25],
     [40, 20, 20, 20],
     [30, 30, 20, 20],
     [35, 25, 25, 15],
+    [50, 20, 20, 10],
+    [40, 30, 20, 10],
+    [45, 25, 20, 10],
+    [35, 30, 25, 10],
   ],
   5: [
     [20, 20, 20, 20, 20],
     [30, 20, 20, 15, 15],
     [25, 25, 20, 15, 15],
     [35, 20, 20, 15, 10],
+    [40, 20, 15, 15, 10],
+    [30, 25, 20, 15, 10],
+    [35, 25, 15, 15, 10],
+    [25, 20, 20, 20, 15],
   ],
   6: [
     [17, 17, 17, 17, 16, 16],
     [25, 20, 15, 15, 15, 10],
     [20, 20, 20, 15, 15, 10],
     [30, 20, 15, 15, 10, 10],
+    [35, 20, 15, 12, 10, 8],
+    [25, 25, 15, 15, 10, 10],
+    [30, 25, 15, 12, 10, 8],
+    [20, 18, 18, 18, 14, 12],
   ],
 };
 
@@ -637,6 +657,35 @@ function* combinations<T>(arr: T[], k: number): Generator<T[]> {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
+// DETERMINE RISK PROFILE FOR AD-HOC COMBINATIONS
+// ═══════════════════════════════════════════════════════════════════════════════
+
+function determineRiskProfile(tickers: string[]): 'conservative' | 'moderate' | 'growth' | 'aggressive' {
+  let conservativeCount = 0;
+  let aggressiveCount = 0;
+  let growthCount = 0;
+  
+  for (const ticker of tickers) {
+    const cat = TICKER_CATEGORIES[ticker];
+    if (!cat) {
+      growthCount++; // Unknown tickers default to growth
+      continue;
+    }
+    switch (cat.riskProfile) {
+      case 'conservative': conservativeCount++; break;
+      case 'aggressive': aggressiveCount++; break;
+      case 'growth': growthCount++; break;
+    }
+  }
+  
+  const total = tickers.length;
+  if (aggressiveCount >= total / 2) return 'aggressive';
+  if (conservativeCount >= total / 2) return 'conservative';
+  if (growthCount >= total / 2) return 'growth';
+  return 'moderate';
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
 // GET AVAILABLE TICKER COUNT (for UI display)
 // ═══════════════════════════════════════════════════════════════════════════════
 
@@ -669,7 +718,7 @@ export async function screenPortfoliosV2(
   availableTickers: number;
 }> {
   const startTime = Date.now();
-  const { page = 1, pageSize = 50, sortBy = 'sharpe', sortDirection = 'desc', limit = 5000 } = options;
+  const { page = 1, pageSize = 50, sortBy = 'sharpe', sortDirection = 'desc', limit = 15000 } = options;
 
   onProgress?.({ phase: 'init', current: 0, total: 100, message: 'Discovering available tickers...' });
 
@@ -704,23 +753,25 @@ export async function screenPortfoliosV2(
   const allPortfolios: GeneratedPortfolioV2[] = [];
   let portfolioCount = 0;
 
+  // Phase 1: Family-based portfolios
   for (const family of families) {
-    // Only use tickers that have data
+    if (portfolioCount >= limit) break;
+    
     const validTickers = family.tickerPool.filter(t => tickerData.has(t));
     if (validTickers.length < 2) continue;
 
     const assetCount = Math.min(family.assetCount, validTickers.length);
     const weightSchemes = WEIGHT_SCHEMES[assetCount] || [[100 / assetCount].fill(100 / assetCount).slice(0, assetCount)];
 
-    // Generate ticker combinations
     for (const combo of combinations(validTickers, assetCount)) {
+      if (portfolioCount >= limit) break;
+      
       for (const weights of weightSchemes) {
         if (portfolioCount >= limit) break;
 
         const metrics = calculatePortfolioMetrics(combo, weights, tickerData);
         if (!metrics) continue;
 
-        // Apply filters
         if (criteria.maxDrawdown !== undefined && metrics.maxDrawdown > criteria.maxDrawdown) continue;
         if (criteria.maxVolatility !== undefined && metrics.volatility > criteria.maxVolatility) continue;
         if (criteria.minSharpe !== undefined && metrics.sharpe < criteria.minSharpe) continue;
@@ -728,14 +779,13 @@ export async function screenPortfoliosV2(
         if (criteria.minSortino !== undefined && metrics.sortino < criteria.minSortino) continue;
         if (criteria.riskProfiles?.length && !criteria.riskProfiles.includes(family.riskProfile)) continue;
 
-        // Calculate match score
         let matchScore = 50;
         if (criteria.minSharpe && metrics.sharpe >= criteria.minSharpe) matchScore += 15;
         if (criteria.minCagr && metrics.cagr >= criteria.minCagr) matchScore += 15;
         if (criteria.maxDrawdown && metrics.maxDrawdown <= criteria.maxDrawdown) matchScore += 10;
         if (criteria.maxVolatility && metrics.volatility <= criteria.maxVolatility) matchScore += 10;
 
-        const portfolio: GeneratedPortfolioV2 = {
+        allPortfolios.push({
           id: `${family.id}-${combo.join('-')}-${weights.join('-')}`,
           name: `${family.name} (${combo.join('/')})`,
           family: family.name,
@@ -744,14 +794,105 @@ export async function screenPortfoliosV2(
           metrics,
           riskProfile: family.riskProfile,
           matchScore: Math.min(100, matchScore),
-        };
-
-        allPortfolios.push(portfolio);
+        });
         portfolioCount++;
       }
-      if (portfolioCount >= limit) break;
     }
-    if (portfolioCount >= limit) break;
+  }
+
+  onProgress?.({ phase: 'calculating', current: 65, total: 100, message: `Family portfolios: ${portfolioCount}. Generating cross-ticker combos...` });
+
+  // Phase 2: Direct cross-ticker combinations (for 10K+ combos)
+  const allValidTickers = availableTickers.filter(t => tickerData.has(t));
+  
+  // Generate 2-asset combinations from all tickers
+  if (portfolioCount < limit && allValidTickers.length >= 2) {
+    for (const combo of combinations(allValidTickers, 2)) {
+      if (portfolioCount >= limit) break;
+      
+      for (const weights of WEIGHT_SCHEMES[2]) {
+        if (portfolioCount >= limit) break;
+        
+        const metrics = calculatePortfolioMetrics(combo, weights, tickerData);
+        if (!metrics) continue;
+
+        if (criteria.maxDrawdown !== undefined && metrics.maxDrawdown > criteria.maxDrawdown) continue;
+        if (criteria.maxVolatility !== undefined && metrics.volatility > criteria.maxVolatility) continue;
+        if (criteria.minSharpe !== undefined && metrics.sharpe < criteria.minSharpe) continue;
+        if (criteria.minCagr !== undefined && metrics.cagr < criteria.minCagr) continue;
+        if (criteria.minSortino !== undefined && metrics.sortino < criteria.minSortino) continue;
+
+        const riskProfile = determineRiskProfile(combo);
+        if (criteria.riskProfiles?.length && !criteria.riskProfiles.includes(riskProfile)) continue;
+
+        let matchScore = 50;
+        if (criteria.minSharpe && metrics.sharpe >= criteria.minSharpe) matchScore += 15;
+        if (criteria.minCagr && metrics.cagr >= criteria.minCagr) matchScore += 15;
+        if (criteria.maxDrawdown && metrics.maxDrawdown <= criteria.maxDrawdown) matchScore += 10;
+        if (criteria.maxVolatility && metrics.volatility <= criteria.maxVolatility) matchScore += 10;
+
+        allPortfolios.push({
+          id: `pair-${combo.join('-')}-${weights.join('-')}`,
+          name: `Pair (${combo.join('/')})`,
+          family: 'Cross-Ticker Pairs',
+          tickers: combo,
+          weights,
+          metrics,
+          riskProfile,
+          matchScore: Math.min(100, matchScore),
+        });
+        portfolioCount++;
+      }
+    }
+  }
+
+  onProgress?.({ phase: 'calculating', current: 75, total: 100, message: `2-asset combos done. Adding 3-asset...` });
+
+  // Generate 3-asset combinations (sample for performance)
+  if (portfolioCount < limit && allValidTickers.length >= 3) {
+    let threeAssetCount = 0;
+    const maxThreeAsset = Math.min(3000, limit - portfolioCount);
+    
+    for (const combo of combinations(allValidTickers, 3)) {
+      if (threeAssetCount >= maxThreeAsset || portfolioCount >= limit) break;
+      
+      // Use fewer weight schemes for 3-asset to allow more ticker diversity
+      const weights3 = WEIGHT_SCHEMES[3].slice(0, 4);
+      for (const weights of weights3) {
+        if (threeAssetCount >= maxThreeAsset || portfolioCount >= limit) break;
+        
+        const metrics = calculatePortfolioMetrics(combo, weights, tickerData);
+        if (!metrics) continue;
+
+        if (criteria.maxDrawdown !== undefined && metrics.maxDrawdown > criteria.maxDrawdown) continue;
+        if (criteria.maxVolatility !== undefined && metrics.volatility > criteria.maxVolatility) continue;
+        if (criteria.minSharpe !== undefined && metrics.sharpe < criteria.minSharpe) continue;
+        if (criteria.minCagr !== undefined && metrics.cagr < criteria.minCagr) continue;
+        if (criteria.minSortino !== undefined && metrics.sortino < criteria.minSortino) continue;
+
+        const riskProfile = determineRiskProfile(combo);
+        if (criteria.riskProfiles?.length && !criteria.riskProfiles.includes(riskProfile)) continue;
+
+        let matchScore = 50;
+        if (criteria.minSharpe && metrics.sharpe >= criteria.minSharpe) matchScore += 15;
+        if (criteria.minCagr && metrics.cagr >= criteria.minCagr) matchScore += 15;
+        if (criteria.maxDrawdown && metrics.maxDrawdown <= criteria.maxDrawdown) matchScore += 10;
+        if (criteria.maxVolatility && metrics.volatility <= criteria.maxVolatility) matchScore += 10;
+
+        allPortfolios.push({
+          id: `trio-${combo.join('-')}-${weights.join('-')}`,
+          name: `Trio (${combo.join('/')})`,
+          family: 'Cross-Ticker Trios',
+          tickers: combo,
+          weights,
+          metrics,
+          riskProfile,
+          matchScore: Math.min(100, matchScore),
+        });
+        portfolioCount++;
+        threeAssetCount++;
+      }
+    }
   }
 
   onProgress?.({ phase: 'calculating', current: 80, total: 100, message: 'Sorting results...' });
