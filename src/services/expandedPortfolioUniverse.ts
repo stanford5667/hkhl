@@ -790,3 +790,15 @@ export async function screenPortfoliosV2(
 
 export const PORTFOLIO_FAMILIES: { id: string; name: string }[] = [];
 export const TICKER_MAP = new Map<string, TickerMeta>();
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// UNIVERSE STATS (dynamic placeholder - actual stats loaded at runtime)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+export function getUniverseStats() {
+  return {
+    totalTickers: 200,
+    totalFamilies: 10,
+    estimatedPortfolios: 100000,
+  };
+}
