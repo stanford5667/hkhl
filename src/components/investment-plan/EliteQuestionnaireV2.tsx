@@ -582,6 +582,42 @@ export function EliteQuestionnaireV2({ onComplete, onCancel }: EliteQuestionnair
     return 'Investor';
   }, [user]);
 
+  // Submit the questionnaire
+  const submitQuestionnaire = useCallback(() => {
+    setIsSubmitting(true);
+    
+    const scoringResponses: Record<string, { value: string | number | string[] }> = {};
+    
+    // Only include questions with scoringKey
+    QUESTIONS.forEach(q => {
+      if (responses[q.id] && q.scoringKey) {
+        // Parse currency values as numbers
+        if (q.type === 'currency') {
+          const numVal = parseFloat(responses[q.id].replace(/[^0-9.]/g, ''));
+          scoringResponses[q.scoringKey] = { value: numVal };
+        } else {
+          scoringResponses[q.scoringKey] = { value: responses[q.id] };
+        }
+      }
+    });
+
+    const riskScore = calculateRiskScore();
+    const riskProfile = getRiskProfile(riskScore);
+    const dimensions = calculateDimensions();
+    const typeCode = getInvestorTypeCode(dimensions);
+    const investorType = getInvestorType(typeCode);
+
+    onComplete({
+      responses: scoringResponses,
+      riskScore,
+      riskProfile,
+      investorType: typeCode,
+      investorTypeName: investorType.name,
+      userName: getUserDisplayName(),
+      dimensions,
+    });
+  }, [responses, calculateRiskScore, calculateDimensions, onComplete, getUserDisplayName]);
+
   // Handle next
   const handleNext = useCallback(() => {
     if (currentQuestionIndex < QUESTIONS.length - 1) {
@@ -593,41 +629,10 @@ export function EliteQuestionnaireV2({ onComplete, onCancel }: EliteQuestionnair
         return;
       }
 
-      // Complete - format responses for scoring engine
-      setIsSubmitting(true);
-      
-      const scoringResponses: Record<string, { value: string | number | string[] }> = {};
-      
-      // Only include questions with scoringKey
-      QUESTIONS.forEach(q => {
-        if (responses[q.id] && q.scoringKey) {
-          // Parse currency values as numbers
-          if (q.type === 'currency') {
-            const numVal = parseFloat(responses[q.id].replace(/[^0-9.]/g, ''));
-            scoringResponses[q.scoringKey] = { value: numVal };
-          } else {
-            scoringResponses[q.scoringKey] = { value: responses[q.id] };
-          }
-        }
-      });
-
-      const riskScore = calculateRiskScore();
-      const riskProfile = getRiskProfile(riskScore);
-      const dimensions = calculateDimensions();
-      const typeCode = getInvestorTypeCode(dimensions);
-      const investorType = getInvestorType(typeCode);
-
-      onComplete({
-        responses: scoringResponses,
-        riskScore,
-        riskProfile,
-        investorType: typeCode,
-        investorTypeName: investorType.name,
-        userName: getUserDisplayName(),
-        dimensions,
-      });
+      // User is authenticated, submit
+      submitQuestionnaire();
     }
-  }, [currentQuestionIndex, responses, calculateRiskScore, calculateDimensions, onComplete, isAuthenticated, getUserDisplayName]);
+  }, [currentQuestionIndex, isAuthenticated, submitQuestionnaire]);
 
   // Handle previous
   const handlePrevious = useCallback(() => {
@@ -639,9 +644,9 @@ export function EliteQuestionnaireV2({ onComplete, onCancel }: EliteQuestionnair
   // Handle successful auth - auto-submit
   const handleAuthSuccess = useCallback(() => {
     setShowAuthSheet(false);
-    // After auth, trigger submit
-    handleNext();
-  }, [handleNext]);
+    // After auth, directly submit (don't go through handleNext which would check auth again)
+    submitQuestionnaire();
+  }, [submitQuestionnaire]);
 
   // Keyboard navigation
   useEffect(() => {
