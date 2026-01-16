@@ -1,28 +1,20 @@
 /**
- * Investment Plan Page
+ * Investment Plan Page - Fortune 500 Style Strategy Explorer
  * 
- * A dedicated page for creating and managing personalized investment plans
+ * Premium design with glassmorphism, animated elements, and intuitive UX
  * Features:
- * - New questionnaire flow
- * - View saved plans
+ * - Hero section with orbiting archetypes
+ * - Premium plan cards
+ * - Interactive learn section
  * - AI-generated investment strategies
  */
 
 import { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import DOMPurify from 'dompurify';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -34,44 +26,28 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import {
-  Plus,
   FileText,
-  Calendar,
-  Clock,
-  Target,
-  Shield,
-  TrendingUp,
-  Download,
-  Trash2,
-  MoreVertical,
   Sparkles,
   Brain,
-  ChevronRight,
-  Eye,
-  RefreshCw,
-  CheckCircle2,
-  PieChart,
-  BarChart3,
   BookOpen,
-  ArrowRight,
+  Layers,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRequireAuth } from '@/hooks/useRequireAuth';
 import { AuthGateDialog } from '@/components/auth/AuthGateDialog';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { cn } from '@/lib/utils';
-import { format, formatDistanceToNow } from 'date-fns';
-import { PreActionDisclaimer } from '@/components/ui/PreActionDisclaimer';
+import { format } from 'date-fns';
 import { AcknowledgmentDialog, EducationalBadge, InlineDisclaimer } from '@/components/legal';
 import { useEducationalAcknowledgment } from '@/hooks/useEducationalAcknowledgment';
 import { PageHeader, PAGE_ICON_PRESETS } from '@/components/layout/PageHeader';
+
+// Fortune 500 style components
+import { StrategyExplorerHero } from '@/components/investment-plan/StrategyExplorerHero';
+import { InvestorTypeShowcase } from '@/components/investment-plan/InvestorTypeShowcase';
+import { PlanCard } from '@/components/investment-plan/PlanCard';
+import { CreatePlanCard } from '@/components/investment-plan/CreatePlanCard';
+import { LearnSection } from '@/components/investment-plan/LearnSection';
 
 // Simple markdown renderer component
 function SimpleMarkdown({ content }: { content: string }) {
@@ -468,381 +444,125 @@ export default function InvestmentPlanPage() {
   return (
     <>
       <AcknowledgmentDialog open={showEducationalAcknowledgment} onAccept={acknowledge} feature="the Strategy Explorer" />
-      <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
-        {/* Header */}
-        <PageHeader
-          icon={Brain}
-          title="Strategy Explorer"
-          subtitle="Explore different portfolio strategies and learn about asset allocation"
-          {...PAGE_ICON_PRESETS.violet}
-          actions={
-            <div className="flex items-center gap-3">
-              <EducationalBadge className="hidden sm:flex" />
-              <Button 
-                onClick={() => {
-                  setForceNewAssessment(true);
-                  setShowQuestionnaire(true);
-                }}
-                className="hidden sm:flex gap-2 shadow-lg shadow-primary/25"
-                size="lg"
-              >
-                <Sparkles className="h-4 w-4" />
-                Take Assessment
-              </Button>
-            </div>
-          }
-        />
+      <div className="p-4 sm:p-6 lg:p-8 space-y-6 sm:space-y-8">
+        {/* Premium Header */}
+        <div className="flex items-center justify-between">
+          <PageHeader
+            icon={Brain}
+            title="Strategy Explorer"
+            subtitle="AI-powered portfolio strategies tailored to your investor profile"
+            {...PAGE_ICON_PRESETS.violet}
+          />
+          <div className="hidden sm:flex items-center gap-3">
+            <EducationalBadge />
+          </div>
+        </div>
         
         <InlineDisclaimer />
 
-      {/* Main Content */}
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="bg-secondary/50">
-          <TabsTrigger value="plans" className="gap-2">
-            <FileText className="h-4 w-4" />
-            My Plans
-          </TabsTrigger>
-          <TabsTrigger value="learn" className="gap-2">
-            <BookOpen className="h-4 w-4" />
-            Learn
-          </TabsTrigger>
-        </TabsList>
+        {/* Main Content with Premium Tabs */}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-8">
+          <TabsList className="bg-white/5 border border-white/10 p-1 rounded-xl">
+            <TabsTrigger 
+              value="plans" 
+              className="gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500/20 data-[state=active]:to-blue-500/20 data-[state=active]:border-white/20 rounded-lg px-6"
+            >
+              <FileText className="h-4 w-4" />
+              My Strategies
+            </TabsTrigger>
+            <TabsTrigger 
+              value="archetypes" 
+              className="gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500/20 data-[state=active]:to-blue-500/20 data-[state=active]:border-white/20 rounded-lg px-6"
+            >
+              <Layers className="h-4 w-4" />
+              Archetypes
+            </TabsTrigger>
+            <TabsTrigger 
+              value="learn" 
+              className="gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500/20 data-[state=active]:to-blue-500/20 data-[state=active]:border-white/20 rounded-lg px-6"
+            >
+              <BookOpen className="h-4 w-4" />
+              Academy
+            </TabsTrigger>
+          </TabsList>
 
-        {/* My Plans Tab */}
-        <TabsContent value="plans" className="mt-6">
-          {isLoading ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-              {[1, 2, 3].map(i => (
-                <Card key={i} className="bg-secondary/30 animate-pulse">
-                  <CardContent className="p-6 h-48" />
-                </Card>
-              ))}
-            </div>
-          ) : plans.length === 0 ? (
-            <Card className="bg-gradient-to-br from-primary/5 via-purple-500/5 to-pink-500/5 border-primary/20 overflow-hidden">
-              <CardContent className="p-6 sm:p-8 md:p-12">
-                <div className="grid md:grid-cols-2 gap-6 sm:gap-8 items-center">
-                  {/* Left side - Content */}
-                  <div className="text-center md:text-left">
-                    <Badge variant="secondary" className="mb-3 sm:mb-4 bg-primary/10 text-primary border-primary/20 text-xs">
-                      16 Personality Types
-                    </Badge>
-                    <h3 className="text-xl sm:text-2xl md:text-3xl font-bold mb-2 sm:mb-3">
-                      Discover Your Investor DNA
-                    </h3>
-                    <p className="text-muted-foreground mb-6 leading-relaxed">
-                      Just like Myers-Briggs reveals your personality, our 5-minute assessment uncovers your unique investing style across 4 dimensions. Get personalized strategies matched to how you think, feel, and make decisions.
-                    </p>
-                    <div className="flex flex-wrap gap-2 mb-6 justify-center md:justify-start">
-                      {['Guardian vs Pioneer', 'Analytical vs Intuitive', 'Patient vs Active', 'Diversifier vs Concentrator'].map((dim) => (
-                        <Badge key={dim} variant="outline" className="text-xs bg-background/50">
-                          {dim}
-                        </Badge>
-                      ))}
-                    </div>
-                    <PreActionDisclaimer variant="investment-plan" className="mb-4" />
-                    <Button onClick={() => {
-                      setForceNewAssessment(true);
-                      setShowQuestionnaire(true);
-                    }} size="lg" className="gap-2 shadow-lg shadow-primary/25">
-                      <Brain className="h-5 w-5" />
-                      Take the 5-Minute Assessment
-                      <ArrowRight className="h-4 w-4" />
-                    </Button>
-                  </div>
-                  
-                  {/* Right side - Visual */}
-                  <div className="hidden md:block relative">
-                    <div className="grid grid-cols-2 gap-3">
-                      {[
-                        { name: 'The Strategist', code: 'GAPC', color: 'from-emerald-500/20 to-blue-500/20' },
-                        { name: 'The Pioneer', code: 'PAPC', color: 'from-purple-500/20 to-pink-500/20' },
-                        { name: 'The Guardian', code: 'GIAD', color: 'from-amber-500/20 to-orange-500/20' },
-                        { name: 'The Maverick', code: 'PIAC', color: 'from-cyan-500/20 to-blue-500/20' },
-                      ].map((type) => (
-                        <div 
-                          key={type.code}
-                          className={cn(
-                            "p-4 rounded-xl border border-border/50 bg-gradient-to-br",
-                            type.color
-                          )}
-                        >
-                          <div className="font-mono text-xs text-muted-foreground mb-1">{type.code}</div>
-                          <div className="font-semibold text-sm">{type.name}</div>
-                        </div>
-                      ))}
-                    </div>
-                    <div className="absolute inset-0 pointer-events-none bg-gradient-to-t from-background/80 via-transparent to-transparent" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {plans.map((plan) => (
-                <motion.div
-                  key={plan.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                >
-                  <Card className="bg-secondary/30 hover:bg-secondary/50 transition-colors cursor-pointer group"
-                    onClick={() => {
-                      setSelectedPlan(plan);
-                      setViewPlanOpen(true);
-                    }}
-                  >
-                    <CardHeader className="pb-3">
-                      <div className="flex items-start justify-between">
-                        <div className="flex items-center gap-3">
-                          <div className="p-2 rounded-lg bg-primary/10">
-                            <Target className="h-5 w-5 text-primary" />
-                          </div>
-                          <div>
-                            <CardTitle className="text-base line-clamp-1">{plan.name}</CardTitle>
-                            <CardDescription className="flex items-center gap-1 mt-1">
-                              <Calendar className="h-3 w-3" />
-                              {format(new Date(plan.created_at), 'MMM d, yyyy')}
-                            </CardDescription>
-                          </div>
-                        </div>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                            <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity">
-                              <MoreVertical className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={(e) => {
-                              e.stopPropagation();
-                              setSelectedPlan(plan);
-                              setViewPlanOpen(true);
-                            }}>
-                              <Eye className="h-4 w-4 mr-2" />
-                              View Plan
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={(e) => {
-                              e.stopPropagation();
-                              downloadPlan(plan);
-                            }}>
-                              <Download className="h-4 w-4 mr-2" />
-                              Download
-                            </DropdownMenuItem>
-                            <DropdownMenuItem 
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setDeletePlanId(plan.id);
-                              }}
-                              className="text-rose-500"
-                            >
-                              <Trash2 className="h-4 w-4 mr-2" />
-                              Delete
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </div>
-                    </CardHeader>
-                    <CardContent className="pt-0">
-                      <div className="space-y-3">
-                        {/* Risk Profile Badge */}
-                        <div className="flex items-center gap-2">
-                          <Badge className={cn("text-xs", getRiskColor(plan.risk_profile))}>
-                            <Shield className="h-3 w-3 mr-1" />
-                            {plan.risk_profile}
-                          </Badge>
-                          <span className="text-xs text-muted-foreground">
-                            Score: {plan.risk_score}/100
-                          </span>
-                        </div>
-
-                        {/* Investor Type */}
-                        <div className="flex items-center gap-2 text-sm">
-                          <Brain className="h-4 w-4 text-purple-400" />
-                          <span className="text-muted-foreground">{plan.investor_type_name || 'Balanced Investor'}</span>
-                        </div>
-
-                        {/* Status */}
-                        <div className="flex items-center justify-between pt-2 border-t border-border/50">
-                          <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                            <CheckCircle2 className="h-3 w-3 text-emerald-500" />
-                            Complete
-                          </div>
-                          <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:translate-x-1 transition-transform" />
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </motion.div>
-              ))}
-
-              {/* Add New Plan Card */}
-              <Card 
-                className="bg-secondary/10 border-dashed border-2 border-muted-foreground/20 hover:border-primary/50 hover:bg-secondary/20 transition-all cursor-pointer"
-                onClick={() => {
+          {/* My Strategies Tab */}
+          <TabsContent value="plans" className="mt-0 space-y-8">
+            {/* Hero Section - Show when no plans */}
+            {!isLoading && plans.length === 0 && (
+              <StrategyExplorerHero 
+                onStartAssessment={() => {
                   setForceNewAssessment(true);
                   setShowQuestionnaire(true);
                 }}
-              >
-                <CardContent className="p-6 h-full flex flex-col items-center justify-center text-center">
-                  <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-3">
-                    <Plus className="h-6 w-6 text-primary" />
+              />
+            )}
+
+            {/* Plans Grid */}
+            {isLoading ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                {[1, 2, 3].map(i => (
+                  <div key={i} className="h-72 rounded-2xl bg-white/5 border border-white/10 animate-pulse" />
+                ))}
+              </div>
+            ) : plans.length > 0 ? (
+              <div className="space-y-6">
+                {/* Section Header */}
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h2 className="text-2xl font-bold text-foreground">Your Investment Strategies</h2>
+                    <p className="text-muted-foreground">AI-generated plans tailored to your profile</p>
                   </div>
-                  <p className="font-medium text-sm">Create New Plan</p>
-                  <p className="text-xs text-muted-foreground mt-1">Start questionnaire</p>
-                </CardContent>
-              </Card>
-            </div>
-          )}
-        </TabsContent>
+                  <Button 
+                    onClick={() => {
+                      setForceNewAssessment(true);
+                      setShowQuestionnaire(true);
+                    }}
+                    className="gap-2 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 shadow-lg shadow-purple-500/25"
+                  >
+                    <Sparkles className="h-4 w-4" />
+                    New Strategy
+                  </Button>
+                </div>
 
-        {/* Learn Tab */}
-        <TabsContent value="learn" className="mt-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <Card className="bg-gradient-to-br from-blue-500/10 to-transparent border-blue-500/20">
-              <CardHeader>
-                <div className="p-3 w-fit rounded-lg bg-blue-500/20 mb-2">
-                  <Shield className="h-6 w-6 text-blue-400" />
+                {/* Plans Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                  {plans.map((plan, index) => (
+                    <PlanCard
+                      key={plan.id}
+                      plan={plan}
+                      index={index}
+                      onView={() => {
+                        setSelectedPlan(plan);
+                        setViewPlanOpen(true);
+                      }}
+                      onDownload={() => downloadPlan(plan)}
+                      onDelete={() => setDeletePlanId(plan.id)}
+                    />
+                  ))}
+                  
+                  {/* Create New Plan Card */}
+                  <CreatePlanCard 
+                    onClick={() => {
+                      setForceNewAssessment(true);
+                      setShowQuestionnaire(true);
+                    }}
+                  />
                 </div>
-                <CardTitle className="text-lg">Understanding Risk</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground">
-                  Learn about risk tolerance vs. risk capacity, and how they affect your investment strategy.
-                </p>
-                <ul className="mt-4 space-y-2 text-sm">
-                  <li className="flex items-center gap-2">
-                    <CheckCircle2 className="h-4 w-4 text-blue-400" />
-                    Risk tolerance: emotional comfort
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <CheckCircle2 className="h-4 w-4 text-blue-400" />
-                    Risk capacity: financial ability
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <CheckCircle2 className="h-4 w-4 text-blue-400" />
-                    Time horizon affects both
-                  </li>
-                </ul>
-              </CardContent>
-            </Card>
+              </div>
+            ) : null}
+          </TabsContent>
 
-            <Card className="bg-gradient-to-br from-emerald-500/10 to-transparent border-emerald-500/20">
-              <CardHeader>
-                <div className="p-3 w-fit rounded-lg bg-emerald-500/20 mb-2">
-                  <PieChart className="h-6 w-6 text-emerald-400" />
-                </div>
-                <CardTitle className="text-lg">Asset Allocation</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground">
-                  How dividing your portfolio across different asset classes reduces risk.
-                </p>
-                <ul className="mt-4 space-y-2 text-sm">
-                  <li className="flex items-center gap-2">
-                    <CheckCircle2 className="h-4 w-4 text-emerald-400" />
-                    Stocks: Growth potential
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <CheckCircle2 className="h-4 w-4 text-emerald-400" />
-                    Bonds: Stability & income
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <CheckCircle2 className="h-4 w-4 text-emerald-400" />
-                    Alternatives: Diversification
-                  </li>
-                </ul>
-              </CardContent>
-            </Card>
+          {/* Archetypes Tab */}
+          <TabsContent value="archetypes" className="mt-0">
+            <InvestorTypeShowcase />
+          </TabsContent>
 
-            <Card className="bg-gradient-to-br from-purple-500/10 to-transparent border-purple-500/20">
-              <CardHeader>
-                <div className="p-3 w-fit rounded-lg bg-purple-500/20 mb-2">
-                  <Brain className="h-6 w-6 text-purple-400" />
-                </div>
-                <CardTitle className="text-lg">Investor Personality</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground">
-                  Discover your investor DNA - the 16 types based on 4 key dimensions.
-                </p>
-                <ul className="mt-4 space-y-2 text-sm">
-                  <li className="flex items-center gap-2">
-                    <CheckCircle2 className="h-4 w-4 text-purple-400" />
-                    Risk orientation: Guardian vs Pioneer
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <CheckCircle2 className="h-4 w-4 text-purple-400" />
-                    Decision style: Analytical vs Intuitive
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <CheckCircle2 className="h-4 w-4 text-purple-400" />
-                    Time preference: Patient vs Active
-                  </li>
-                </ul>
-              </CardContent>
-            </Card>
-
-            <Card className="bg-gradient-to-br from-amber-500/10 to-transparent border-amber-500/20">
-              <CardHeader>
-                <div className="p-3 w-fit rounded-lg bg-amber-500/20 mb-2">
-                  <TrendingUp className="h-6 w-6 text-amber-400" />
-                </div>
-                <CardTitle className="text-lg">Compound Growth</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground">
-                  The power of earning returns on your returns over time.
-                </p>
-                <div className="mt-4 p-3 rounded-lg bg-amber-500/10">
-                  <p className="text-xs text-amber-300 font-medium">Example:</p>
-                  <p className="text-sm text-amber-200 mt-1">
-                    $10,000 at 7% annual return becomes ~$76,000 in 30 years without adding a penny.
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="bg-gradient-to-br from-rose-500/10 to-transparent border-rose-500/20">
-              <CardHeader>
-                <div className="p-3 w-fit rounded-lg bg-rose-500/20 mb-2">
-                  <BarChart3 className="h-6 w-6 text-rose-400" />
-                </div>
-                <CardTitle className="text-lg">Market Volatility</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground">
-                  Why short-term fluctuations matter less than long-term trends.
-                </p>
-                <div className="mt-4 p-3 rounded-lg bg-rose-500/10">
-                  <p className="text-xs text-rose-300 font-medium">Did you know?</p>
-                  <p className="text-sm text-rose-200 mt-1">
-                    Missing just the 10 best trading days over 20 years can cut your returns in half.
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="bg-gradient-to-br from-cyan-500/10 to-transparent border-cyan-500/20">
-              <CardHeader>
-                <div className="p-3 w-fit rounded-lg bg-cyan-500/20 mb-2">
-                  <Target className="h-6 w-6 text-cyan-400" />
-                </div>
-                <CardTitle className="text-lg">Goal-Based Investing</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground">
-                  Aligning your portfolio strategy with specific financial objectives.
-                </p>
-                <div className="mt-4 p-3 rounded-lg bg-cyan-500/10">
-                  <p className="text-xs text-cyan-300 font-medium">Research shows:</p>
-                  <p className="text-sm text-cyan-200 mt-1">
-                    Investors with clear goals are 3x more likely to stay invested during downturns.
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </TabsContent>
-      </Tabs>
+          {/* Learn Tab */}
+          <TabsContent value="learn" className="mt-0">
+            <LearnSection />
+          </TabsContent>
+        </Tabs>
 
       {/* View Plan - Full Screen Results Component */}
       {viewPlanOpen && selectedPlan && (
