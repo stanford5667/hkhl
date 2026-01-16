@@ -1004,11 +1004,11 @@ export function MobileBacktester() {
                 <div>
                   <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Final Value</p>
                   <p className="text-xl font-bold font-mono">
-                    ${result.portfolioValues[result.portfolioValues.length - 1].toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                    {'$'}{result.portfolioValues[result.portfolioValues.length - 1].toLocaleString(undefined, { maximumFractionDigits: 0 })}
                   </p>
                 </div>
                 <div className="text-right text-sm text-muted-foreground">
-                  <p>from ${initialCapital.toLocaleString()}</p>
+                  <p>from {'$'}{initialCapital.toLocaleString()}</p>
                   <p>{PERIODS.find(p => p.value === period)?.label}</p>
                 </div>
               </CardContent>
@@ -1533,7 +1533,7 @@ export function MobileBacktester() {
               <div className="mt-4 p-3 rounded-xl bg-muted/30 text-center">
                 <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">STARTING VALUE</p>
                 <p className="text-xl font-bold font-mono">
-                  ${initialCapital.toLocaleString()}
+                  {'$'}{initialCapital.toLocaleString()}
                 </p>
                 <p className="text-[10px] text-muted-foreground mt-1">
                   {PERIODS.find(p => p.value === period)?.label} backtest
@@ -1579,7 +1579,7 @@ export function MobileBacktester() {
                   <div>
                     <p className="text-xs sm:text-sm text-muted-foreground">Current Price</p>
                     <p className="text-2xl sm:text-3xl font-bold tabular-nums font-mono">
-                      ${selectedAsset.price?.toFixed(2) || '—'}
+                      {'$'}{selectedAsset.price?.toFixed(2) || '—'}
                     </p>
                   </div>
                   <div className={cn(
@@ -1595,7 +1595,7 @@ export function MobileBacktester() {
                     )}
                     <div>
                       <p className="font-bold tabular-nums font-mono text-sm">
-                        {(selectedAsset.change || 0) >= 0 ? '+' : ''}${selectedAsset.change?.toFixed(2) || '0.00'}
+                        {(selectedAsset.change || 0) >= 0 ? '+' : ''}{'$'}{selectedAsset.change?.toFixed(2) || '0.00'}
                       </p>
                       <p className="text-xs tabular-nums font-mono">
                         ({(selectedAsset.changePercent || 0) >= 0 ? '+' : ''}{selectedAsset.changePercent?.toFixed(2) || '0.00'}%)
