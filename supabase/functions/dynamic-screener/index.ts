@@ -4,6 +4,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -280,7 +281,7 @@ function createDiversePortfolioSet(
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, { status: 204, headers: corsHeaders });
   }
 
   const startTime = Date.now();
@@ -306,19 +307,10 @@ serve(async (req) => {
     // CHECK CACHE FIRST (unless refresh requested)
     // ═══════════════════════════════════════════════════════════════════════════
     if (useCache && !refreshCache) {
-      const { count } = await supabase
-        .from('screened_portfolios_cache')
-        .select('id', { count: 'exact', head: true })
-        .gt('expires_at', new Date().toISOString());
+      const nowIso = new Date().toISOString();
 
-      if (count && count > 0) {
-        console.log(`Using cached data: ${count} portfolios`);
-
-        // Build query with filters
-        let query = supabase
-          .from('screened_portfolios_cache')
-          .select('*')
-          .gt('expires_at', new Date().toISOString());
+      const applyCacheFilters = (q: any) => {
+        let query = q.gt('expires_at', nowIso);
 
         if (criteria.riskProfiles?.length) {
           query = query.in('risk_profile', criteria.riskProfiles);
@@ -339,15 +331,39 @@ serve(async (req) => {
           query = query.gte('sortino', criteria.minSortino);
         }
 
-        // Apply sorting and pagination
-        const sortColumn = sortBy === 'matchScore' ? 'sharpe' : sortBy === 'maxDrawdown' ? 'max_drawdown' : sortBy;
-        query = query.order(sortColumn, { ascending: sortDirection === 'asc' })
+        return query;
+      };
+
+      // Count matching cached portfolios (with filters)
+      const { count: totalCount, error: countError } = await applyCacheFilters(
+        supabase.from('screened_portfolios_cache').select('id', { count: 'exact', head: true })
+      );
+
+      if (!countError && (totalCount ?? 0) > 0) {
+        console.log(`Using cached data: ${totalCount} portfolios (filtered)`);
+
+        // Fetch current page
+        let pageQuery = applyCacheFilters(
+          supabase.from('screened_portfolios_cache').select('*')
+        );
+
+        // matchScore is criteria-dependent, so we can't sort it in SQL.
+        // We approximate by sorting on sharpe when matchScore is requested.
+        const sortColumn =
+          sortBy === 'matchScore'
+            ? 'sharpe'
+            : sortBy === 'maxDrawdown'
+              ? 'max_drawdown'
+              : sortBy;
+
+        pageQuery = pageQuery
+          .order(sortColumn, { ascending: sortDirection === 'asc' })
           .range((page - 1) * pageSize, page * pageSize - 1);
 
-        const { data: cachedPortfolios, error } = await query;
+        const { data: cachedPortfolios, error } = await pageQuery;
 
         if (!error && cachedPortfolios) {
-          const portfolios: GeneratedPortfolio[] = cachedPortfolios.map(row => ({
+          const portfolios: GeneratedPortfolio[] = cachedPortfolios.map((row: any) => ({
             id: row.id,
             name: row.name,
             family: row.family,
@@ -363,29 +379,35 @@ serve(async (req) => {
               dataPoints: row.data_points,
             },
             riskProfile: row.risk_profile as GeneratedPortfolio['riskProfile'],
-            matchScore: calculateMatchScore({
-              cagr: Number(row.cagr),
-              totalReturn: Number(row.total_return),
-              volatility: Number(row.volatility),
-              sharpe: Number(row.sharpe),
-              sortino: Number(row.sortino),
-              maxDrawdown: Number(row.max_drawdown),
-              dataPoints: row.data_points,
-            }, criteria),
+            matchScore: calculateMatchScore(
+              {
+                cagr: Number(row.cagr),
+                totalReturn: Number(row.total_return),
+                volatility: Number(row.volatility),
+                sharpe: Number(row.sharpe),
+                sortino: Number(row.sortino),
+                maxDrawdown: Number(row.max_drawdown),
+                dataPoints: row.data_points,
+              },
+              criteria
+            ),
           }));
 
-          return new Response(JSON.stringify({
-            portfolios,
-            totalCount: portfolios.length,
-            page,
-            pageSize,
-            totalPages: Math.ceil(portfolios.length / pageSize),
-            generationTime: Date.now() - startTime,
-            availableTickers: 0,
-            fromCache: true,
-          }), {
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          });
+          return new Response(
+            JSON.stringify({
+              portfolios,
+              totalCount: totalCount ?? portfolios.length,
+              page,
+              pageSize,
+              totalPages: Math.ceil((totalCount ?? portfolios.length) / pageSize),
+              generationTime: Date.now() - startTime,
+              availableTickers: 0,
+              fromCache: true,
+            }),
+            {
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            }
+          );
         }
       }
     }
@@ -489,6 +511,11 @@ serve(async (req) => {
     const allPortfolios: GeneratedPortfolio[] = [];
     let portfolioCount = 0;
 
+    // IMPORTANT: when caching is enabled we generate an unfiltered universe,
+    // then apply criteria only when returning results. This avoids caching only
+    // the first criteria the user happened to run.
+    const filterDuringGeneration = !useCache;
+
     // 2-asset combinations
     for (const combo of combinations(validTickers, 2)) {
       if (portfolioCount >= limit) break;
@@ -498,11 +525,12 @@ serve(async (req) => {
         const metrics = calculatePortfolioMetricsFromData(combo, weights, tickerData);
         if (!metrics) continue;
 
-        // Apply filter criteria during generation
-        if (!meetsFilterCriteria(metrics, criteria)) continue;
-
         const riskProfile = determineRiskProfile(combo);
-        if (criteria.riskProfiles?.length && !criteria.riskProfiles.includes(riskProfile)) continue;
+
+        if (filterDuringGeneration) {
+          if (!meetsFilterCriteria(metrics, criteria)) continue;
+          if (criteria.riskProfiles?.length && !criteria.riskProfiles.includes(riskProfile)) continue;
+        }
 
         const matchScore = calculateMatchScore(metrics, criteria);
 
@@ -531,11 +559,12 @@ serve(async (req) => {
         const metrics = calculatePortfolioMetricsFromData(combo, weights, tickerData);
         if (!metrics) continue;
 
-        // Apply filter criteria during generation
-        if (!meetsFilterCriteria(metrics, criteria)) continue;
-
         const riskProfile = determineRiskProfile(combo);
-        if (criteria.riskProfiles?.length && !criteria.riskProfiles.includes(riskProfile)) continue;
+
+        if (filterDuringGeneration) {
+          if (!meetsFilterCriteria(metrics, criteria)) continue;
+          if (criteria.riskProfiles?.length && !criteria.riskProfiles.includes(riskProfile)) continue;
+        }
 
         const matchScore = calculateMatchScore(metrics, criteria);
 
@@ -555,12 +584,20 @@ serve(async (req) => {
 
     console.log(`Generated ${allPortfolios.length} portfolios`);
 
+    // Apply criteria on the *result set* (always), so UI filters are respected
+    // even when cache generation is unfiltered.
+    const filteredPortfolios = allPortfolios.filter((p) => {
+      if (!meetsFilterCriteria(p.metrics, criteria)) return false;
+      if (criteria.riskProfiles?.length && !criteria.riskProfiles.includes(p.riskProfile)) return false;
+      return true;
+    });
+
     // ═══════════════════════════════════════════════════════════════════════════
     // SAVE TO CACHE (if refreshing or cache was empty)
     // ═══════════════════════════════════════════════════════════════════════════
     if (refreshCache || useCache) {
       console.log('Saving to cache...');
-      
+
       // Clear old cache
       await supabase.from('screened_portfolios_cache').delete().lt('expires_at', new Date().toISOString());
 
@@ -588,13 +625,13 @@ serve(async (req) => {
       console.log('Cache updated');
     }
 
-    // Apply diversity sorting
-    const diversePortfolios = createDiversePortfolioSet(allPortfolios, sortBy, sortDirection);
+    // Apply diversity sorting (on filtered results)
+    const diversePortfolios = createDiversePortfolioSet(filteredPortfolios, sortBy, sortDirection);
 
     // Paginate
-    const totalCount = diversePortfolios.length;
-    const startIdx = (page - 1) * pageSize;
-    const paginatedPortfolios = diversePortfolios.slice(startIdx, startIdx + pageSize);
+    const totalCount = diversePortfolios.length,
+      startIdx = (page - 1) * pageSize,
+      paginatedPortfolios = diversePortfolios.slice(startIdx, startIdx + pageSize);
 
     return new Response(JSON.stringify({
       portfolios: paginatedPortfolios,
