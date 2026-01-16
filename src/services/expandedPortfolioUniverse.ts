@@ -24,6 +24,112 @@ import {
 } from './portfolioMetricsService';
 
 // ═══════════════════════════════════════════════════════════════════════════════
+// ACCURATE METRICS CALCULATION (for portfolio details)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+export interface AccurateMetrics {
+  cagr: number;
+  totalReturn: number;
+  volatility: number;
+  sharpe: number;
+  sortino: number;
+  maxDrawdown: number;
+  dataPoints: number;
+  dateRange: { start: string; end: string };
+}
+
+/**
+ * Calculate accurate portfolio metrics by fetching actual daily returns
+ * from the database. Use this for portfolio detail views.
+ */
+export async function calculateAccuratePortfolioMetrics(
+  tickers: string[],
+  weights: number[],
+  lookbackYears: number = 1
+): Promise<AccurateMetrics | null> {
+  const endDate = new Date();
+  const startDate = new Date();
+  startDate.setFullYear(endDate.getFullYear() - lookbackYears);
+  
+  const startStr = startDate.toISOString().split('T')[0];
+  const endStr = endDate.toISOString().split('T')[0];
+  
+  // Fetch daily returns for all tickers
+  const { data, error } = await supabase
+    .from('market_daily_bars')
+    .select('ticker, bar_date, daily_return')
+    .in('ticker', tickers)
+    .gte('bar_date', startStr)
+    .lte('bar_date', endStr)
+    .order('bar_date', { ascending: true });
+  
+  if (error || !data) {
+    console.error('Failed to fetch ticker data:', error);
+    return null;
+  }
+  
+  // Group by date to find common trading days
+  const dateData: Record<string, Record<string, number>> = {};
+  
+  for (const row of data) {
+    if (!dateData[row.bar_date]) {
+      dateData[row.bar_date] = {};
+    }
+    dateData[row.bar_date][row.ticker] = row.daily_return ?? 0;
+  }
+  
+  // Filter to only dates where ALL tickers have data
+  const commonDates = Object.entries(dateData)
+    .filter(([_, tickerReturns]) => tickers.every(t => t in tickerReturns))
+    .sort((a, b) => a[0].localeCompare(b[0]));
+  
+  if (commonDates.length < 20) {
+    console.warn('Insufficient overlapping data:', commonDates.length);
+    return null;
+  }
+  
+  // Calculate portfolio returns for each day
+  const portfolioReturns: number[] = [];
+  const portfolioValues: number[] = [100000];
+  
+  for (const [_, tickerReturns] of commonDates) {
+    let dayReturn = 0;
+    for (let i = 0; i < tickers.length; i++) {
+      const tickerReturn = tickerReturns[tickers[i]] ?? 0;
+      dayReturn += (weights[i] / 100) * tickerReturn;
+    }
+    portfolioReturns.push(dayReturn);
+    
+    const prevValue = portfolioValues[portfolioValues.length - 1];
+    portfolioValues.push(prevValue * (1 + dayReturn));
+  }
+  
+  // Calculate metrics
+  const years = portfolioReturns.length / 252;
+  const finalValue = portfolioValues[portfolioValues.length - 1];
+  const cagr = calculateCAGR(100000, finalValue, years) * 100;
+  const totalReturn = ((finalValue - 100000) / 100000) * 100;
+  const volatility = annualizedVolatility(portfolioReturns) * 100;
+  const sharpe = calculateSharpeRatio(portfolioReturns, 0.05);
+  const sortino = calculateSortinoRatio(portfolioReturns, 0.05);
+  const { maxDrawdownPercent } = calculateMaxDrawdown(portfolioValues);
+  
+  return {
+    cagr: Math.round(cagr * 100) / 100,
+    totalReturn: Math.round(totalReturn * 100) / 100,
+    volatility: Math.round(volatility * 100) / 100,
+    sharpe: Math.round(sharpe * 100) / 100,
+    sortino: Math.round(sortino * 100) / 100,
+    maxDrawdown: Math.round(maxDrawdownPercent * 100) / 100,
+    dataPoints: portfolioReturns.length,
+    dateRange: { 
+      start: commonDates[0]?.[0] ?? '', 
+      end: commonDates[commonDates.length - 1]?.[0] ?? '' 
+    },
+  };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
 // EXPANDED TICKER UNIVERSE (150+ tickers)
 // ═══════════════════════════════════════════════════════════════════════════════
 
@@ -940,6 +1046,7 @@ export default {
   PORTFOLIO_FAMILIES,
   screenPortfoliosV2,
   estimatePortfolioMetrics,
+  calculateAccuratePortfolioMetrics,
   getUniverseStats,
   getCachedStats,
   setCachedStats,

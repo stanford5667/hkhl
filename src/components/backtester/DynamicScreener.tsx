@@ -61,6 +61,8 @@ import {
   GeneratedPortfolioV2,
   GenerationProgress,
   TICKER_MAP,
+  calculateAccuratePortfolioMetrics,
+  AccurateMetrics,
 } from '@/services/expandedPortfolioUniverse';
 
 // Legacy imports for backward compatibility
@@ -142,6 +144,10 @@ export function DynamicScreener({ onSelect, onComplete }: DynamicScreenerProps) 
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [capital, setCapital] = useState(100000);
   const [horizon, setHorizon] = useState(5);
+  
+  // Accurate metrics for portfolio details
+  const [accurateMetrics, setAccurateMetrics] = useState<AccurateMetrics | null>(null);
+  const [loadingAccurateMetrics, setLoadingAccurateMetrics] = useState(false);
   
   // Filters
   const [filterRiskLevel, setFilterRiskLevel] = useState<string>('all');
@@ -310,9 +316,27 @@ export function DynamicScreener({ onSelect, onComplete }: DynamicScreenerProps) 
     }
   };
   
-  const handleSelect = (p: GeneratedPortfolio | GeneratedPortfolioV2) => {
+  const handleSelect = async (p: GeneratedPortfolio | GeneratedPortfolioV2) => {
     setSelectedPortfolio(p);
     setDetailsOpen(true);
+    setAccurateMetrics(null);
+    
+    // For expanded mode, fetch accurate metrics
+    if ('tickers' in p) {
+      setLoadingAccurateMetrics(true);
+      try {
+        const metrics = await calculateAccuratePortfolioMetrics(
+          (p as GeneratedPortfolioV2).tickers,
+          (p as GeneratedPortfolioV2).weights,
+          1 // 1 year lookback
+        );
+        setAccurateMetrics(metrics);
+      } catch (error) {
+        console.error('Failed to calculate accurate metrics:', error);
+      } finally {
+        setLoadingAccurateMetrics(false);
+      }
+    }
   };
 
   const handleUsePortfolio = () => {
@@ -644,27 +668,64 @@ export function DynamicScreener({ onSelect, onComplete }: DynamicScreenerProps) 
           
           {selectedPortfolio && (
             <div className="space-y-6 mt-4">
-              {/* Metrics */}
-              <div className="grid grid-cols-2 gap-3">
-                <div className="p-3 rounded-lg bg-muted/50">
-                  <div className="text-xs text-muted-foreground">CAGR</div>
-                  <div className={cn("text-lg font-bold", selectedPortfolio.metrics.cagr >= 0 ? 'text-emerald-500' : 'text-red-500')}>
-                    {selectedPortfolio.metrics.cagr.toFixed(1)}%
+              {/* Metrics - Use accurate metrics when available */}
+              {loadingAccurateMetrics ? (
+                <div className="flex items-center justify-center py-6">
+                  <Loader2 className="h-5 w-5 animate-spin mr-2" />
+                  <span className="text-sm text-muted-foreground">Calculating accurate metrics...</span>
+                </div>
+              ) : (
+                <>
+                  {/* Show badge if using accurate vs estimated */}
+                  {'tickers' in selectedPortfolio && (
+                    <div className="flex items-center gap-2">
+                      <Badge variant={accurateMetrics ? 'default' : 'secondary'} className="text-[10px]">
+                        {accurateMetrics ? '✓ Calculated from historical data' : '~ Estimated metrics'}
+                      </Badge>
+                      {accurateMetrics && (
+                        <span className="text-[10px] text-muted-foreground">
+                          {accurateMetrics.dataPoints} days ({accurateMetrics.dateRange.start} to {accurateMetrics.dateRange.end})
+                        </span>
+                      )}
+                    </div>
+                  )}
+                  
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="p-3 rounded-lg bg-muted/50">
+                      <div className="text-xs text-muted-foreground">CAGR</div>
+                      <div className={cn("text-lg font-bold", (accurateMetrics?.cagr ?? selectedPortfolio.metrics.cagr) >= 0 ? 'text-emerald-500' : 'text-red-500')}>
+                        {(accurateMetrics?.cagr ?? selectedPortfolio.metrics.cagr).toFixed(1)}%
+                      </div>
+                    </div>
+                    <div className="p-3 rounded-lg bg-muted/50">
+                      <div className="text-xs text-muted-foreground">Volatility</div>
+                      <div className="text-lg font-bold">{(accurateMetrics?.volatility ?? selectedPortfolio.metrics.volatility).toFixed(1)}%</div>
+                    </div>
+                    <div className="p-3 rounded-lg bg-muted/50">
+                      <div className="text-xs text-muted-foreground">Sharpe Ratio</div>
+                      <div className="text-lg font-bold">{(accurateMetrics?.sharpe ?? selectedPortfolio.metrics.sharpe).toFixed(2)}</div>
+                    </div>
+                    <div className="p-3 rounded-lg bg-muted/50">
+                      <div className="text-xs text-muted-foreground">Max Drawdown</div>
+                      <div className="text-lg font-bold text-red-400">-{(accurateMetrics?.maxDrawdown ?? selectedPortfolio.metrics.maxDrawdown).toFixed(1)}%</div>
+                    </div>
+                    {accurateMetrics && (
+                      <>
+                        <div className="p-3 rounded-lg bg-muted/50">
+                          <div className="text-xs text-muted-foreground">Sortino Ratio</div>
+                          <div className="text-lg font-bold">{accurateMetrics.sortino.toFixed(2)}</div>
+                        </div>
+                        <div className="p-3 rounded-lg bg-muted/50">
+                          <div className="text-xs text-muted-foreground">Total Return</div>
+                          <div className={cn("text-lg font-bold", accurateMetrics.totalReturn >= 0 ? 'text-emerald-500' : 'text-red-500')}>
+                            {accurateMetrics.totalReturn.toFixed(1)}%
+                          </div>
+                        </div>
+                      </>
+                    )}
                   </div>
-                </div>
-                <div className="p-3 rounded-lg bg-muted/50">
-                  <div className="text-xs text-muted-foreground">Volatility</div>
-                  <div className="text-lg font-bold">{selectedPortfolio.metrics.volatility.toFixed(1)}%</div>
-                </div>
-                <div className="p-3 rounded-lg bg-muted/50">
-                  <div className="text-xs text-muted-foreground">Sharpe Ratio</div>
-                  <div className="text-lg font-bold">{selectedPortfolio.metrics.sharpe.toFixed(2)}</div>
-                </div>
-                <div className="p-3 rounded-lg bg-muted/50">
-                  <div className="text-xs text-muted-foreground">Max Drawdown</div>
-                  <div className="text-lg font-bold text-red-400">-{selectedPortfolio.metrics.maxDrawdown.toFixed(1)}%</div>
-                </div>
-              </div>
+                </>
+              )}
               
               {/* Allocations */}
               <div>
