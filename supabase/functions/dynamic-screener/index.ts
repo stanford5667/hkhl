@@ -17,6 +17,8 @@ interface FilterCriteria {
   minSharpe?: number;
   minCagr?: number;
   minSortino?: number;
+  minTotalReturn?: number;
+  returnPeriod?: number;
   riskProfiles?: ('conservative' | 'moderate' | 'growth' | 'aggressive')[];
 }
 
@@ -209,6 +211,11 @@ function calculateMatchScore(metrics: RealMetrics, criteria: FilterCriteria): nu
   if (criteria.maxDrawdown !== undefined && metrics.maxDrawdown <= criteria.maxDrawdown) score += 10;
   if (criteria.maxVolatility !== undefined && metrics.volatility <= criteria.maxVolatility) score += 10;
   if (criteria.minSortino !== undefined && metrics.sortino >= criteria.minSortino) score += 10;
+  if (criteria.minTotalReturn !== undefined) {
+    const period = criteria.returnPeriod || 1;
+    const estimatedTotalReturn = (Math.pow(1 + metrics.cagr / 100, period) - 1) * 100;
+    if (estimatedTotalReturn >= criteria.minTotalReturn) score += 15;
+  }
   return Math.min(100, score);
 }
 
@@ -219,6 +226,13 @@ function meetsFilterCriteria(metrics: RealMetrics, criteria: FilterCriteria): bo
   if (criteria.maxVolatility !== undefined && metrics.volatility > criteria.maxVolatility) return false;
   if (criteria.minSharpe !== undefined && metrics.sharpe < criteria.minSharpe) return false;
   if (criteria.minSortino !== undefined && metrics.sortino < criteria.minSortino) return false;
+  // Filter by total return - scale based on return period if available
+  if (criteria.minTotalReturn !== undefined) {
+    const period = criteria.returnPeriod || 1;
+    // For multi-year periods, estimate total return from CAGR: (1 + cagr/100)^period - 1
+    const estimatedTotalReturn = (Math.pow(1 + metrics.cagr / 100, period) - 1) * 100;
+    if (estimatedTotalReturn < criteria.minTotalReturn) return false;
+  }
   return true;
 }
 

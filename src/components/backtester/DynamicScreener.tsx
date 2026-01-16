@@ -243,8 +243,9 @@ export function DynamicScreener({ onSelect, onComplete }: DynamicScreenerProps) 
           criteria.minCagr = minAvgReturns;
           break;
         case 'minTotalReturn':
-          // Scale total return by period for approximate filtering
-          criteria.minCagr = minTotalReturn / parseInt(returnPeriod);
+          // Pass both minTotalReturn and returnPeriod for accurate filtering
+          criteria.minTotalReturn = minTotalReturn;
+          criteria.returnPeriod = parseInt(returnPeriod);
           break;
       }
       
@@ -537,11 +538,11 @@ export function DynamicScreener({ onSelect, onComplete }: DynamicScreenerProps) 
                 </p>
               </div>
             )}
-            {activeMetric === 'minTotalReturn' && (
+      {activeMetric === 'minTotalReturn' && (
               <div className="space-y-2">
-                <div className="flex justify-between text-xs">
-                  <span className="text-muted-foreground">Min Total Return</span>
-                  <span className="font-mono font-bold">≥{minTotalReturn}%</span>
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-muted-foreground">Min Total Return</span>
+                  <span className="text-2xl font-bold text-primary">≥{minTotalReturn}%</span>
                 </div>
                 <Slider value={[minTotalReturn]} onValueChange={([v]) => setMinTotalReturn(v)} min={-50} max={200} step={10} />
                 
