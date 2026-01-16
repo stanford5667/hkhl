@@ -88,7 +88,7 @@ import {
 // TYPES
 // ═══════════════════════════════════════════════════════════════════════════════
 
-type SortField = 'matchScore' | 'cagr' | 'sharpe' | 'maxDrawdown' | 'volatility' | 'sortino' | 'stdDev';
+type SortField = 'cagr' | 'sharpe' | 'maxDrawdown' | 'volatility' | 'sortino' | 'stdDev';
 type SortDirection = 'asc' | 'desc';
 type ScreenMode = 'quick' | 'full';
 type MetricKey = 'maxDrawdown' | 'maxVolatility' | 'minSharpe' | 'minCagr' | 'maxStdDev';
@@ -147,7 +147,7 @@ export function DynamicScreener({ onSelect, onComplete }: DynamicScreenerProps) 
   const [maxPortfolios, setMaxPortfolios] = useState(10000);
   
   // UI state
-  const [sortField, setSortField] = useState<SortField>('matchScore');
+  const [sortField, setSortField] = useState<SortField>('cagr');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
   const [selectedPortfolio, setSelectedPortfolio] = useState<GeneratedPortfolio | null>(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
@@ -284,10 +284,9 @@ export function DynamicScreener({ onSelect, onComplete }: DynamicScreenerProps) 
           aVal = a.metrics.sortino;
           bVal = b.metrics.sortino;
           break;
-        case 'matchScore':
         default:
-          aVal = a.matchScore;
-          bVal = b.matchScore;
+          aVal = a.metrics.cagr;
+          bVal = b.metrics.cagr;
       }
       
       return sortDirection === 'asc' ? aVal - bVal : bVal - aVal;
@@ -648,16 +647,15 @@ export function DynamicScreener({ onSelect, onComplete }: DynamicScreenerProps) 
             </div>
             <div className="flex items-center gap-1">
               <Select value={sortField} onValueChange={(v) => setSortField(v as SortField)}>
-                <SelectTrigger className="h-7 w-[100px] text-xs">
+                <SelectTrigger className="h-7 w-[110px] text-xs">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="matchScore">Match %</SelectItem>
-                  <SelectItem value="cagr">CAGR</SelectItem>
-                  <SelectItem value="sharpe">Sharpe</SelectItem>
-                  <SelectItem value="sortino">Sortino</SelectItem>
-                  <SelectItem value="maxDrawdown">Drawdown</SelectItem>
-                  <SelectItem value="stdDev">Std Dev</SelectItem>
+                  <SelectItem value="cagr">Growth</SelectItem>
+                  <SelectItem value="sharpe">Risk Score</SelectItem>
+                  <SelectItem value="sortino">Safety</SelectItem>
+                  <SelectItem value="maxDrawdown">Max Drop</SelectItem>
+                  <SelectItem value="stdDev">Volatility</SelectItem>
                 </SelectContent>
               </Select>
               <Button
@@ -766,7 +764,7 @@ export function DynamicScreener({ onSelect, onComplete }: DynamicScreenerProps) 
                   </div>
                   
                   {/* Metrics row - tap any metric to learn more */}
-                  <div className="grid grid-cols-6 gap-1 text-center">
+                  <div className="grid grid-cols-5 gap-1 text-center">
                     <MetricEducationalPopover
                       label="Max Drop"
                       value={`-${p.metrics.maxDrawdown}%`}
@@ -800,13 +798,6 @@ export function DynamicScreener({ onSelect, onComplete }: DynamicScreenerProps) 
                       termKey="cagr"
                       isHighlighted={p.metrics.cagr >= minCagr}
                       isNegative={p.metrics.cagr < 0}
-                    />
-                    
-                    <MetricEducationalPopover
-                      label="Match"
-                      value={`${p.matchScore}%`}
-                      termKey="matchScore"
-                      isPrimary
                     />
                   </div>
                   
