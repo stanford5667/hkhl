@@ -504,9 +504,9 @@ export function DynamicScreener({ onSelect, onComplete }: DynamicScreenerProps) 
           <div className="space-y-2">
             {activeMetric === 'maxLoss' && (
               <div className="space-y-1">
-                <div className="flex justify-between text-xs">
-                  <span className="text-muted-foreground">Max Loss (Max Drawdown)</span>
-                  <span className="font-mono font-bold">≤{maxLoss}%</span>
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-muted-foreground">Max Loss (Max Drawdown)</span>
+                  <span className="text-2xl font-bold text-primary">≤{maxLoss}%</span>
                 </div>
                 <Slider value={[maxLoss]} onValueChange={([v]) => setMaxLoss(v)} min={5} max={60} step={5} />
                 <p className="text-[10px] text-muted-foreground">
@@ -516,9 +516,9 @@ export function DynamicScreener({ onSelect, onComplete }: DynamicScreenerProps) 
             )}
             {activeMetric === 'minSharpe' && (
               <div className="space-y-1">
-                <div className="flex justify-between text-xs">
-                  <span className="text-muted-foreground">Min Sharpe Ratio</span>
-                  <span className="font-mono font-bold">≥{minSharpe.toFixed(1)}</span>
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-muted-foreground">Min Sharpe Ratio</span>
+                  <span className="text-2xl font-bold text-primary">≥{minSharpe.toFixed(1)}</span>
                 </div>
                 <Slider value={[minSharpe * 10]} onValueChange={([v]) => setMinSharpe(v / 10)} min={-5} max={20} step={1} />
                 <p className="text-[10px] text-muted-foreground">
@@ -528,13 +528,13 @@ export function DynamicScreener({ onSelect, onComplete }: DynamicScreenerProps) 
             )}
             {activeMetric === 'minAvgReturns' && (
               <div className="space-y-1">
-                <div className="flex justify-between text-xs">
-                  <span className="text-muted-foreground">Min Avg Returns (CAGR)</span>
-                  <span className="font-mono font-bold">≥{minAvgReturns}%</span>
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-muted-foreground">Min Avg Returns</span>
+                  <span className="text-2xl font-bold text-primary">≥{minAvgReturns}%</span>
                 </div>
                 <Slider value={[minAvgReturns]} onValueChange={([v]) => setMinAvgReturns(v)} min={-20} max={30} step={5} />
                 <p className="text-[10px] text-muted-foreground">
-                  Compound Annual Growth Rate - average yearly return
+                  Average yearly return, annualized from the selected history window
                 </p>
               </div>
             )}

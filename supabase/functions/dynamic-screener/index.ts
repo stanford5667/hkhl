@@ -392,9 +392,14 @@ serve(async (req) => {
       sortBy = 'sharpe',
       sortDirection = 'desc',
       limit = 50000,
-      useCache = true,
+      useCache: requestedUseCache = true,
       refreshCache = false,
     } = body;
+
+    // Cache reads can't correctly support criteria that depend on a derived value
+    // (e.g. minTotalReturn over a custom returnPeriod).
+    const useCacheRead = requestedUseCache && criteria.minTotalReturn === undefined;
+    const useCacheWrite = requestedUseCache;
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -403,7 +408,7 @@ serve(async (req) => {
     // ═══════════════════════════════════════════════════════════════════════════
     // CHECK CACHE FIRST (unless refresh requested)
     // ═══════════════════════════════════════════════════════════════════════════
-    if (useCache && !refreshCache) {
+    if (useCacheRead && !refreshCache) {
       const nowIso = new Date().toISOString();
 
       const applyCacheFilters = (q: any) => {
@@ -611,7 +616,10 @@ serve(async (req) => {
     // IMPORTANT: when caching is enabled we generate an unfiltered universe,
     // then apply criteria only when returning results. This avoids caching only
     // the first criteria the user happened to run.
-    const filterDuringGeneration = !useCache;
+    //
+    // If the user requests a derived filter (like minTotalReturn), we *do* filter
+    // during generation so results stay fast and accurate.
+    const filterDuringGeneration = !(useCacheWrite && criteria.minTotalReturn === undefined);
 
     // 2-asset combinations
     for (const combo of combinations(validTickers, 2)) {
@@ -692,7 +700,7 @@ serve(async (req) => {
     // ═══════════════════════════════════════════════════════════════════════════
     // SAVE TO CACHE (if refreshing or cache was empty)
     // ═══════════════════════════════════════════════════════════════════════════
-    if (refreshCache || useCache) {
+    if (refreshCache || useCacheWrite) {
       console.log('Saving to cache...');
 
       // Clear old cache

@@ -769,6 +769,37 @@ export async function screenPortfoliosV2(
   const startTime = Date.now();
   const { page = 1, pageSize = 20, sortBy = 'sharpe', sortDirection = 'desc', limit = 100000 } = options;
 
+  const meetsFilterCriteria = (metrics: RealMetrics): boolean => {
+    if (criteria.minCagr !== undefined && metrics.cagr < criteria.minCagr) return false;
+    if (criteria.maxDrawdown !== undefined && metrics.maxDrawdown > criteria.maxDrawdown) return false;
+    if (criteria.maxVolatility !== undefined && metrics.volatility > criteria.maxVolatility) return false;
+    if (criteria.minSharpe !== undefined && metrics.sharpe < criteria.minSharpe) return false;
+    if (criteria.minSortino !== undefined && metrics.sortino < criteria.minSortino) return false;
+
+    if (criteria.minTotalReturn !== undefined) {
+      const period = criteria.returnPeriod || 1;
+      const estimatedTotalReturn = (Math.pow(1 + metrics.cagr / 100, period) - 1) * 100;
+      if (estimatedTotalReturn < criteria.minTotalReturn) return false;
+    }
+
+    return true;
+  };
+
+  const calculateMatchScore = (metrics: RealMetrics): number => {
+    let score = 50;
+    if (criteria.minSharpe !== undefined && metrics.sharpe >= criteria.minSharpe) score += 15;
+    if (criteria.minCagr !== undefined && metrics.cagr >= criteria.minCagr) score += 15;
+    if (criteria.maxDrawdown !== undefined && metrics.maxDrawdown <= criteria.maxDrawdown) score += 10;
+    if (criteria.maxVolatility !== undefined && metrics.volatility <= criteria.maxVolatility) score += 10;
+    if (criteria.minSortino !== undefined && metrics.sortino >= criteria.minSortino) score += 10;
+    if (criteria.minTotalReturn !== undefined) {
+      const period = criteria.returnPeriod || 1;
+      const estimatedTotalReturn = (Math.pow(1 + metrics.cagr / 100, period) - 1) * 100;
+      if (estimatedTotalReturn >= criteria.minTotalReturn) score += 15;
+    }
+    return Math.min(100, score);
+  };
+
   onProgress?.({ phase: 'init', current: 0, total: 100, message: 'Discovering available tickers...' });
 
   // Step 1: Get all available tickers from database
@@ -824,12 +855,7 @@ export async function screenPortfoliosV2(
         // Only filter by risk profiles if specified - no metric filtering during generation
         if (criteria.riskProfiles?.length && !criteria.riskProfiles.includes(family.riskProfile)) continue;
 
-        // Calculate match score based on how well it meets criteria (for sorting)
-        let matchScore = 50;
-        if (criteria.minSharpe !== undefined && metrics.sharpe >= criteria.minSharpe) matchScore += 15;
-        if (criteria.minCagr !== undefined && metrics.cagr >= criteria.minCagr) matchScore += 15;
-        if (criteria.maxDrawdown !== undefined && metrics.maxDrawdown <= criteria.maxDrawdown) matchScore += 10;
-        if (criteria.maxVolatility !== undefined && metrics.volatility <= criteria.maxVolatility) matchScore += 10;
+        const matchScore = calculateMatchScore(metrics);
 
         allPortfolios.push({
           id: `${family.id}-${combo.join('-')}-${weights.join('-')}`,
@@ -865,11 +891,7 @@ export async function screenPortfoliosV2(
         const riskProfile = determineRiskProfile(combo);
         if (criteria.riskProfiles?.length && !criteria.riskProfiles.includes(riskProfile)) continue;
 
-        let matchScore = 50;
-        if (criteria.minSharpe !== undefined && metrics.sharpe >= criteria.minSharpe) matchScore += 15;
-        if (criteria.minCagr !== undefined && metrics.cagr >= criteria.minCagr) matchScore += 15;
-        if (criteria.maxDrawdown !== undefined && metrics.maxDrawdown <= criteria.maxDrawdown) matchScore += 10;
-        if (criteria.maxVolatility !== undefined && metrics.volatility <= criteria.maxVolatility) matchScore += 10;
+        const matchScore = calculateMatchScore(metrics);
 
         allPortfolios.push({
           id: `pair-${combo.join('-')}-${weights.join('-')}`,
@@ -906,11 +928,7 @@ export async function screenPortfoliosV2(
         const riskProfile = determineRiskProfile(combo);
         if (criteria.riskProfiles?.length && !criteria.riskProfiles.includes(riskProfile)) continue;
 
-        let matchScore = 50;
-        if (criteria.minSharpe !== undefined && metrics.sharpe >= criteria.minSharpe) matchScore += 15;
-        if (criteria.minCagr !== undefined && metrics.cagr >= criteria.minCagr) matchScore += 15;
-        if (criteria.maxDrawdown !== undefined && metrics.maxDrawdown <= criteria.maxDrawdown) matchScore += 10;
-        if (criteria.maxVolatility !== undefined && metrics.volatility <= criteria.maxVolatility) matchScore += 10;
+        const matchScore = calculateMatchScore(metrics);
 
         allPortfolios.push({
           id: `trio-${combo.join('-')}-${weights.join('-')}`,
@@ -930,9 +948,11 @@ export async function screenPortfoliosV2(
 
   onProgress?.({ phase: 'calculating', current: 80, total: 100, message: 'Diversifying results across risk spectrum...' });
 
-  // Step 5: Create diversity-prioritized sort
+  // Step 5: Apply filters, then create diversity-prioritized sort
+  const filteredPortfolios = allPortfolios.filter((p) => meetsFilterCriteria(p.metrics));
+
   // First, bucket portfolios by risk profile and metric ranges to ensure full spectrum coverage
-  const diversePortfolios = createDiversePortfolioSet(allPortfolios, sortBy, sortDirection);
+  const diversePortfolios = createDiversePortfolioSet(filteredPortfolios, sortBy, sortDirection);
 
   // Step 6: Paginate
   const totalCount = diversePortfolios.length;
