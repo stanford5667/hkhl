@@ -167,26 +167,31 @@ export function LiveMacroContent({ onItemClick, onPerformanceUpdate, macroCatego
     setEventDetailOpen(true);
   };
   
-  // Filter function based on macro category
-  const filterByMacroCategory = (indicators: EconomicIndicator[]): EconomicIndicator[] => {
-    if (!macroCategory) return indicators;
-    
-    const keywords = macroCategoryKeywords[macroCategory] || [];
-    return indicators.filter(indicator => {
-      const nameMatch = keywords.some(kw => 
-        indicator.indicator_name?.toLowerCase().includes(kw) ||
-        indicator.id?.toLowerCase().includes(kw) ||
-        indicator.description?.toLowerCase().includes(kw)
-      );
-      return nameMatch;
-    });
-  };
-  
+  // Get all indicators from byCategory
   const allRates = byCategory?.rates || [];
   const allEconomic = byCategory?.economic || [];
   const allMarkets = byCategory?.markets || [];
   
-  // Apply filtering based on macro category
+  // Filter function based on macro category
+  const filterByMacroCategory = (indicators: EconomicIndicator[]): EconomicIndicator[] => {
+    // When no category selected (All Categories), return ALL indicators
+    if (!macroCategory) return indicators;
+    
+    const keywords = macroCategoryKeywords[macroCategory] || [];
+    if (keywords.length === 0) return indicators;
+    
+    return indicators.filter(indicator => {
+      const searchText = [
+        indicator.indicator_name,
+        indicator.id,
+        indicator.description,
+      ].filter(Boolean).join(' ').toLowerCase();
+      
+      return keywords.some(kw => searchText.includes(kw));
+    });
+  };
+  
+  // Apply filtering - when macroCategory is null, returns all
   const rates = filterByMacroCategory(allRates);
   const economic = filterByMacroCategory(allEconomic);
   const markets = filterByMacroCategory(allMarkets);
