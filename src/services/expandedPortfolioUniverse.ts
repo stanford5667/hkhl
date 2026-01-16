@@ -33,6 +33,8 @@ export interface TickerMeta {
 export interface RealMetrics {
   cagr: number;
   totalReturn: number;
+  periodTotalReturn?: number;
+  returnPeriodYears?: number;
   volatility: number;
   sharpe: number;
   sortino: number;

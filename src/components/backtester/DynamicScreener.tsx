@@ -646,7 +646,7 @@ export function DynamicScreener({ onSelect, onComplete }: DynamicScreenerProps) 
               const tickers = isExpanded ? p.tickers : p.allocations.map((a: any) => a.ticker);
               const weights = isExpanded ? p.weights : p.allocations.map((a: any) => a.weight);
               
-              return (
+                return (
                 <PortfolioCard
                   key={p.id || idx}
                   name={p.name}
@@ -657,6 +657,7 @@ export function DynamicScreener({ onSelect, onComplete }: DynamicScreenerProps) 
                   family={p.family || p.riskLevel || p.riskProfile}
                   onClick={() => handleSelect(portfolio)}
                   rank={idx + 1}
+                  screeningPeriod={activeMetric === 'minTotalReturn' ? parseInt(returnPeriod) : 1}
                 />
               );
             })}

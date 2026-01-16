@@ -27,6 +27,8 @@ interface PortfolioMetrics {
   maxDrawdown: number;
   sortino?: number;
   totalReturn?: number;
+  periodTotalReturn?: number;
+  returnPeriodYears?: number;
   dataPoints?: number;
 }
 
@@ -39,6 +41,7 @@ interface PortfolioCardProps {
   family?: string;
   onClick: () => void;
   rank?: number;
+  screeningPeriod?: number; // The period user is screening for
 }
 
 const FAMILY_COLORS: Record<string, { bg: string; text: string; border: string }> = {
@@ -85,6 +88,7 @@ export function PortfolioCard({
   family,
   onClick,
   rank,
+  screeningPeriod,
 }: PortfolioCardProps) {
   // Convert matchScore (0-100) to 1-10 scale
   const score10 = matchScore !== undefined ? Math.round((matchScore / 100) * 10) : 0;
@@ -208,22 +212,28 @@ export function PortfolioCard({
           </div>
         </div>
 
-        {/* Total Return Bar (if available) */}
-        {metrics.totalReturn !== undefined && (
+        {/* Total Return Bar - show period-matched return if available */}
+        {(metrics.periodTotalReturn !== undefined || metrics.totalReturn !== undefined) && (
           <div className="mb-3">
             <div className="flex items-center justify-between text-[10px] mb-1">
-              <span className="text-muted-foreground">Total Return (1Y)</span>
-              <span className={cn("font-bold", metrics.totalReturn >= 0 ? 'text-emerald-400' : 'text-red-400')}>
-                {metrics.totalReturn >= 0 ? '+' : ''}{metrics.totalReturn.toFixed(1)}%
+              <span className="text-muted-foreground">
+                Total Return ({metrics.returnPeriodYears || screeningPeriod || 1}Y)
+              </span>
+              <span className={cn(
+                "font-bold text-base",
+                (metrics.periodTotalReturn ?? metrics.totalReturn ?? 0) >= 0 ? 'text-emerald-400' : 'text-red-400'
+              )}>
+                {(metrics.periodTotalReturn ?? metrics.totalReturn ?? 0) >= 0 ? '+' : ''}
+                {(metrics.periodTotalReturn ?? metrics.totalReturn ?? 0).toFixed(1)}%
               </span>
             </div>
             <div className="h-1.5 rounded-full bg-muted overflow-hidden">
               <div
                 className={cn(
                   "h-full rounded-full transition-all",
-                  metrics.totalReturn >= 0 ? 'bg-emerald-500' : 'bg-red-500'
+                  (metrics.periodTotalReturn ?? metrics.totalReturn ?? 0) >= 0 ? 'bg-emerald-500' : 'bg-red-500'
                 )}
-                style={{ width: `${Math.min(Math.abs(metrics.totalReturn), 100)}%` }}
+                style={{ width: `${Math.min(Math.abs(metrics.periodTotalReturn ?? metrics.totalReturn ?? 0), 100)}%` }}
               />
             </div>
           </div>

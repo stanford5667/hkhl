@@ -36,6 +36,8 @@ interface RequestBody {
 interface RealMetrics {
   cagr: number;
   totalReturn: number;
+  periodTotalReturn?: number; // Total return for the screening period
+  returnPeriodYears?: number; // The period in years for periodTotalReturn
   volatility: number;
   sharpe: number;
   sortino: number;
@@ -630,6 +632,11 @@ serve(async (req) => {
         const metrics = calculatePortfolioMetricsFromData(combo, weights, tickerData);
         if (!metrics) continue;
 
+        // Add period-specific total return if returnPeriod is specified
+        const returnPeriod = criteria.returnPeriod || 1;
+        metrics.periodTotalReturn = (Math.pow(1 + metrics.cagr / 100, returnPeriod) - 1) * 100;
+        metrics.returnPeriodYears = returnPeriod;
+
         const riskProfile = determineRiskProfile(combo);
 
         if (filterDuringGeneration) {
@@ -663,6 +670,11 @@ serve(async (req) => {
 
         const metrics = calculatePortfolioMetricsFromData(combo, weights, tickerData);
         if (!metrics) continue;
+
+        // Add period-specific total return if returnPeriod is specified
+        const returnPeriod = criteria.returnPeriod || 1;
+        metrics.periodTotalReturn = (Math.pow(1 + metrics.cagr / 100, returnPeriod) - 1) * 100;
+        metrics.returnPeriodYears = returnPeriod;
 
         const riskProfile = determineRiskProfile(combo);
 
