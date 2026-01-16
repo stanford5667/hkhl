@@ -94,6 +94,11 @@ const STUDY_PARAMS: Record<string, { label: string; key: string; type: 'number' 
     { label: 'Long MA', key: 'longMa', type: 'slider', min: 100, max: 300, step: 50, default: 200 },
     { label: 'Recent Days', key: 'recentDays', type: 'slider', min: 5, max: 60, step: 5, default: 20, description: 'Days for higher highs/lows analysis' },
   ],
+  close_to_open_analysis: [
+    { label: 'Doji Threshold', key: 'dojiThreshold', type: 'slider', min: 0.05, max: 0.25, step: 0.05, default: 0.1, description: 'Body % of range to consider a doji' },
+    { label: 'Strong Move Threshold', key: 'strongMoveThreshold', type: 'slider', min: 0.5, max: 3, step: 0.25, default: 1.5, description: '% move to consider strong' },
+    { label: 'Forward Days', key: 'forwardDays', type: 'slider', min: 1, max: 10, step: 1, default: 1, description: 'Days to measure follow-through' },
+  ],
 };
 
 const STUDY_CATEGORIES = {
@@ -140,6 +145,7 @@ const STUDY_CATEGORIES = {
       { id: 'gap_analysis', name: 'Gap Analysis', icon: ArrowUpDown, description: 'Gap fill rates, continuation' },
       { id: 'range_analysis', name: 'Range Analysis', icon: Layers, description: 'Inside/outside days, doji rate' },
       { id: 'high_low_analysis', name: 'New Highs/Lows', icon: Mountain, description: '20-day high/low breakouts' },
+      { id: 'close_to_open_analysis', name: 'Close vs Open', icon: Activity, description: 'Where price closes relative to open and daily range' },
     ]
   },
   volume: {
@@ -233,6 +239,10 @@ const MATH_EXPLANATIONS: Record<string, { formula: string; explanation: string }
   price_targets: {
     formula: 'Expected = Price × (1 + μ)^n\nBull = Price × (1 + μ + σ)^n\nBear = Price × (1 + μ - σ)^n',
     explanation: 'Statistical projections based on historical return distribution. Not predictions, but probability-based scenarios.'
+  },
+  close_to_open_analysis: {
+    formula: 'Close Position = (Close - Low) / (High - Low) × 100\nGreen Day = Close > Open\nDoji = Body % < Threshold',
+    explanation: 'Analyzes where the price closes relative to the daily range. Closes near highs suggest buying pressure, closes near lows suggest selling pressure.'
   },
 };
 
@@ -391,6 +401,8 @@ export function QuantitativeStudiesPanel({ ticker, companyName }: QuantitativeSt
         return <TrendStrengthResult result={result} />;
       case 'price_targets':
         return <PriceTargetsResult result={result} />;
+      case 'close_to_open':
+        return <CloseToOpenResult result={result} />;
       default:
         return <pre className="text-xs overflow-auto p-4 bg-muted rounded-lg">{JSON.stringify(result, null, 2)}</pre>;
     }
@@ -1007,6 +1019,169 @@ function PriceTargetsResult({ result }: { result: any }) {
           </Card>
         );
       })}
+    </div>
+  );
+}
+
+function CloseToOpenResult({ result }: { result: any }) {
+  const summary = result.summary || {};
+  const followThrough = result.followThrough || {};
+  const distribution = result.distribution || [];
+  const currentDay = result.currentDay || {};
+  const recentPatterns = result.recentPatterns || [];
+
+  return (
+    <div className="space-y-4">
+      {/* Current Day Pattern */}
+      <div className={cn(
+        "p-6 rounded-lg border text-center",
+        currentDay.type === 'green' ? "bg-emerald-500/10" : currentDay.type === 'red' ? "bg-rose-500/10" : "bg-amber-500/10"
+      )}>
+        <p className="text-sm text-muted-foreground mb-2">Today's Pattern</p>
+        <div className="flex items-center justify-center gap-3">
+          <Badge variant={currentDay.type === 'green' ? 'default' : currentDay.type === 'red' ? 'destructive' : 'secondary'}>
+            {currentDay.type?.toUpperCase()}
+          </Badge>
+          <span className="text-2xl font-bold">{currentDay.closePosition}%</span>
+          <span className="text-sm text-muted-foreground">of range</span>
+        </div>
+        <p className="text-sm mt-2">
+          Move: <span className={cn("font-medium", currentDay.move > 0 ? "text-emerald-500" : "text-rose-500")}>
+            {currentDay.move > 0 ? '+' : ''}{currentDay.move?.toFixed(2)}%
+          </span>
+        </p>
+      </div>
+
+      {/* Summary Stats */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <StatBox 
+          value={`${summary.greenDays?.pct?.toFixed(1)}%`} 
+          label="Green Days" 
+          color="emerald" 
+        />
+        <StatBox 
+          value={`${summary.redDays?.pct?.toFixed(1)}%`} 
+          label="Red Days" 
+          color="rose" 
+        />
+        <StatBox 
+          value={`${summary.avgClosePosition?.toFixed(0)}%`} 
+          label="Avg Close Position" 
+        />
+        <StatBox 
+          value={summary.bias?.charAt(0).toUpperCase() + summary.bias?.slice(1)} 
+          label="Bias" 
+          color={summary.bias === 'bullish' ? 'emerald' : summary.bias === 'bearish' ? 'rose' : undefined}
+        />
+      </div>
+
+      {/* Follow-Through Analysis */}
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm">Follow-Through Analysis</CardTitle>
+          <CardDescription className="text-xs">What happens after specific patterns</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm">
+            <div className="p-2 rounded bg-muted/50">
+              <p className="text-xs text-muted-foreground">After Close Near High</p>
+              <p className="font-medium">{followThrough.afterClosedNearHigh?.avgReturn?.toFixed(2)}% avg</p>
+              <p className="text-xs text-muted-foreground">{followThrough.afterClosedNearHigh?.hitRate?.toFixed(0)}% win rate</p>
+            </div>
+            <div className="p-2 rounded bg-muted/50">
+              <p className="text-xs text-muted-foreground">After Close Near Low</p>
+              <p className="font-medium">{followThrough.afterClosedNearLow?.avgReturn?.toFixed(2)}% avg</p>
+              <p className="text-xs text-muted-foreground">{followThrough.afterClosedNearLow?.hitRate?.toFixed(0)}% win rate</p>
+            </div>
+            <div className="p-2 rounded bg-muted/50">
+              <p className="text-xs text-muted-foreground">After Strong Green</p>
+              <p className="font-medium">{followThrough.afterStrongGreen?.avgReturn?.toFixed(2)}% avg</p>
+              <p className="text-xs text-muted-foreground">{followThrough.afterStrongGreen?.hitRate?.toFixed(0)}% win rate</p>
+            </div>
+            <div className="p-2 rounded bg-muted/50">
+              <p className="text-xs text-muted-foreground">After Strong Red</p>
+              <p className="font-medium">{followThrough.afterStrongRed?.avgReturn?.toFixed(2)}% avg</p>
+              <p className="text-xs text-muted-foreground">{followThrough.afterStrongRed?.hitRate?.toFixed(0)}% win rate</p>
+            </div>
+            <div className="p-2 rounded bg-muted/50">
+              <p className="text-xs text-muted-foreground">After Doji</p>
+              <p className="font-medium">{followThrough.afterDoji?.avgReturn?.toFixed(2)}% avg</p>
+              <p className="text-xs text-muted-foreground">{followThrough.afterDoji?.hitRate?.toFixed(0)}% win rate</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Close Position Distribution */}
+      {distribution.length > 0 && (
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm">Close Position Distribution</CardTitle>
+            <CardDescription className="text-xs">Where price tends to close within daily range</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={150}>
+              <BarChart data={distribution}>
+                <CartesianGrid strokeDasharray="3 3" opacity={0.1} />
+                <XAxis dataKey="range" tick={{ fontSize: 10 }} angle={-30} textAnchor="end" height={60} />
+                <YAxis tick={{ fontSize: 10 }} />
+                <Tooltip />
+                <Bar dataKey="count" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Recent Patterns Grid */}
+      {recentPatterns.length > 0 && (
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm">Recent 10-Day Patterns</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex gap-1 flex-wrap">
+              {recentPatterns.map((p: any, i: number) => (
+                <div 
+                  key={i} 
+                  className={cn(
+                    "w-8 h-8 rounded flex items-center justify-center text-xs font-medium",
+                    p.type === 'green' ? "bg-emerald-500/20 text-emerald-500" : 
+                    p.type === 'red' ? "bg-rose-500/20 text-rose-500" : 
+                    "bg-amber-500/20 text-amber-500"
+                  )}
+                  title={`${p.date}: ${p.move}`}
+                >
+                  {p.position}
+                </div>
+              ))}
+            </div>
+            <p className="text-xs text-muted-foreground mt-2">Numbers show close position % within daily range</p>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Insights */}
+      {result.insights?.length > 0 && (
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm flex items-center gap-2">
+              <Activity className="h-4 w-4" />
+              Key Insights
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ul className="space-y-1">
+              {result.insights.map((insight: string, i: number) => (
+                <li key={i} className="text-sm flex items-start gap-2">
+                  <span className="text-primary">•</span>
+                  {insight}
+                </li>
+              ))}
+            </ul>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

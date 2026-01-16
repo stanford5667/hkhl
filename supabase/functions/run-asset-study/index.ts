@@ -179,6 +179,73 @@ function studyTrendStrength(bars: PriceBar[], params?: Record<string, any>) {
   const recentDays = params?.recentDays || 20;
   const closes = bars.map(b => b.close); const smaShort = calculateSMA(closes, shortMa); const smaMedium = calculateSMA(closes, mediumMa); const smaLong = bars.length >= longMa ? calculateSMA(closes, longMa) : []; let score = 0; const curr = bars.length - 1; if (!isNaN(smaShort[curr]) && closes[curr] > smaShort[curr]) score += 1; if (!isNaN(smaMedium[curr]) && closes[curr] > smaMedium[curr]) score += 1; if (smaLong.length > 0 && !isNaN(smaLong[curr]) && closes[curr] > smaLong[curr]) score += 1; if (!isNaN(smaShort[curr]) && !isNaN(smaMedium[curr]) && smaShort[curr] > smaMedium[curr]) score += 1; if (smaLong.length > 0 && !isNaN(smaMedium[curr]) && !isNaN(smaLong[curr]) && smaMedium[curr] > smaLong[curr]) score += 1; const recentBars = bars.slice(-recentDays); let higherHighs = 0, higherLows = 0; for (let i = 1; i < recentBars.length; i++) { if (recentBars[i].high > recentBars[i - 1].high) higherHighs++; if (recentBars[i].low > recentBars[i - 1].low) higherLows++; } const maxScore = smaLong.length > 0 ? 5 : 3; return { type: 'trend_strength', params: { shortMa, mediumMa, longMa, recentDays }, trendScore: score, maxScore, trendDirection: score >= maxScore - 1 ? 'strong_up' : score >= maxScore / 2 ? 'up' : score <= 1 ? 'strong_down' : score <= maxScore / 2 ? 'down' : 'neutral', aboveSMA20: !isNaN(smaShort[curr]) && closes[curr] > smaShort[curr], aboveSMA50: !isNaN(smaMedium[curr]) && closes[curr] > smaMedium[curr], aboveSMA200: smaLong.length > 0 && !isNaN(smaLong[curr]) && closes[curr] > smaLong[curr], sma20AboveSMA50: !isNaN(smaShort[curr]) && !isNaN(smaMedium[curr]) && smaShort[curr] > smaMedium[curr], sma50AboveSMA200: smaLong.length > 0 && !isNaN(smaMedium[curr]) && !isNaN(smaLong[curr]) && smaMedium[curr] > smaLong[curr], higherHighsRate: (higherHighs / (recentBars.length - 1)) * 100, higherLowsRate: (higherLows / (recentBars.length - 1)) * 100 }; }
 
+// Close vs Open Analysis - Analyzes where price closes relative to its open and daily range
+function studyCloseToOpenAnalysis(bars: PriceBar[], params?: Record<string, any>) {
+  const dojiThreshold = params?.dojiThreshold || 0.1;
+  const strongMoveThreshold = params?.strongMoveThreshold || 1.5;
+  const forwardDays = params?.forwardDays || 1;
+  const closePositions: { date: string; position: number; isGreen: boolean; isDoji: boolean; movePercent: number }[] = [];
+  let greenDays = 0, redDays = 0, dojiDays = 0, strongGreenDays = 0, strongRedDays = 0, closedNearHigh = 0, closedNearLow = 0;
+  for (let i = 0; i < bars.length; i++) {
+    const bar = bars[i];
+    const range = bar.high - bar.low;
+    const closePosition = range > 0 ? ((bar.close - bar.low) / range) * 100 : 50;
+    const bodyPercent = range > 0 ? (Math.abs(bar.close - bar.open) / range) * 100 : 0;
+    const isDoji = bodyPercent < dojiThreshold * 100;
+    const isGreen = bar.close > bar.open;
+    const movePercent = ((bar.close - bar.open) / bar.open) * 100;
+    closePositions.push({ date: bar.date, position: closePosition, isGreen, isDoji, movePercent });
+    if (isDoji) dojiDays++; else if (isGreen) greenDays++; else redDays++;
+    if (Math.abs(movePercent) >= strongMoveThreshold) { if (isGreen) strongGreenDays++; else strongRedDays++; }
+    if (closePosition >= 75) closedNearHigh++; if (closePosition <= 25) closedNearLow++;
+  }
+  const afterClosedNearHigh: number[] = [], afterClosedNearLow: number[] = [], afterStrongGreen: number[] = [], afterStrongRed: number[] = [], afterDoji: number[] = [];
+  for (let i = 0; i < bars.length - forwardDays; i++) {
+    const futureReturn = ((bars[i + forwardDays].close - bars[i].close) / bars[i].close) * 100;
+    const bar = bars[i], range = bar.high - bar.low;
+    const closePosition = range > 0 ? ((bar.close - bar.low) / range) * 100 : 50;
+    const bodyPercent = range > 0 ? (Math.abs(bar.close - bar.open) / range) * 100 : 0;
+    const isDoji = bodyPercent < dojiThreshold * 100, isGreen = bar.close > bar.open;
+    const movePercent = ((bar.close - bar.open) / bar.open) * 100;
+    if (closePosition >= 75) afterClosedNearHigh.push(futureReturn); if (closePosition <= 25) afterClosedNearLow.push(futureReturn);
+    if (Math.abs(movePercent) >= strongMoveThreshold && isGreen) afterStrongGreen.push(futureReturn);
+    if (Math.abs(movePercent) >= strongMoveThreshold && !isGreen) afterStrongRed.push(futureReturn);
+    if (isDoji) afterDoji.push(futureReturn);
+  }
+  const positionBuckets = [
+    { range: '0-10% (At Low)', count: closePositions.filter(p => p.position <= 10).length },
+    { range: '10-25%', count: closePositions.filter(p => p.position > 10 && p.position <= 25).length },
+    { range: '25-50%', count: closePositions.filter(p => p.position > 25 && p.position <= 50).length },
+    { range: '50-75%', count: closePositions.filter(p => p.position > 50 && p.position <= 75).length },
+    { range: '75-90%', count: closePositions.filter(p => p.position > 75 && p.position <= 90).length },
+    { range: '90-100% (At High)', count: closePositions.filter(p => p.position > 90).length },
+  ];
+  const movesSorted = closePositions.map(p => p.movePercent).sort((a, b) => a - b);
+  const moveSizeDistribution = {
+    avgMove: movesSorted.reduce((a, b) => a + Math.abs(b), 0) / movesSorted.length,
+    avgUp: closePositions.filter(p => p.isGreen).length > 0 ? closePositions.filter(p => p.isGreen).map(p => p.movePercent).reduce((a, b) => a + b, 0) / closePositions.filter(p => p.isGreen).length : 0,
+    avgDown: closePositions.filter(p => !p.isGreen && !p.isDoji).length > 0 ? closePositions.filter(p => !p.isGreen && !p.isDoji).map(p => Math.abs(p.movePercent)).reduce((a, b) => a + b, 0) / closePositions.filter(p => !p.isGreen && !p.isDoji).length : 0,
+    largestUp: Math.max(...movesSorted), largestDown: Math.min(...movesSorted),
+  };
+  const helper = (arr: number[]) => ({ count: arr.length, avgReturn: arr.length > 0 ? arr.reduce((a, b) => a + b, 0) / arr.length : 0, hitRate: arr.length > 0 ? (arr.filter(r => r > 0).length / arr.length) * 100 : 0 });
+  const recentPatterns = closePositions.slice(-10).map(p => ({ date: p.date, position: Math.round(p.position), type: p.isDoji ? 'doji' : p.isGreen ? 'green' : 'red', move: p.movePercent.toFixed(2) + '%' }));
+  const avgClosePosition = closePositions.reduce((a, b) => a + b.position, 0) / closePositions.length;
+  const currentDay = closePositions[closePositions.length - 1];
+  return {
+    type: 'close_to_open', params: { dojiThreshold, strongMoveThreshold, forwardDays },
+    summary: { greenDays: { count: greenDays, pct: (greenDays / bars.length) * 100 }, redDays: { count: redDays, pct: (redDays / bars.length) * 100 }, dojiDays: { count: dojiDays, pct: (dojiDays / bars.length) * 100 }, strongGreenDays: { count: strongGreenDays, pct: (strongGreenDays / bars.length) * 100 }, strongRedDays: { count: strongRedDays, pct: (strongRedDays / bars.length) * 100 }, closedNearHigh: { count: closedNearHigh, pct: (closedNearHigh / bars.length) * 100 }, closedNearLow: { count: closedNearLow, pct: (closedNearLow / bars.length) * 100 }, avgClosePosition, bias: greenDays > redDays ? 'bullish' : greenDays < redDays ? 'bearish' : 'neutral' },
+    followThrough: { afterClosedNearHigh: helper(afterClosedNearHigh), afterClosedNearLow: helper(afterClosedNearLow), afterStrongGreen: helper(afterStrongGreen), afterStrongRed: helper(afterStrongRed), afterDoji: helper(afterDoji) },
+    distribution: positionBuckets, moveSizeDistribution,
+    currentDay: { date: currentDay.date, closePosition: Math.round(currentDay.position), type: currentDay.isDoji ? 'doji' : currentDay.isGreen ? 'green' : 'red', move: currentDay.movePercent },
+    recentPatterns,
+    insights: [
+      avgClosePosition > 60 ? `Price tends to close in upper range (avg ${avgClosePosition.toFixed(1)}%), suggesting buying pressure` : avgClosePosition < 40 ? `Price tends to close in lower range (avg ${avgClosePosition.toFixed(1)}%), suggesting selling pressure` : `Price closes near middle of range on average (${avgClosePosition.toFixed(1)}%)`,
+      greenDays > redDays * 1.2 ? `Bullish bias: ${((greenDays / bars.length) * 100).toFixed(1)}% green days` : redDays > greenDays * 1.2 ? `Bearish bias: ${((redDays / bars.length) * 100).toFixed(1)}% red days` : `Balanced: roughly equal green/red days`,
+      dojiDays > bars.length * 0.1 ? `High indecision: ${((dojiDays / bars.length) * 100).toFixed(1)}% doji days` : null,
+    ].filter(Boolean),
+  };
+}
+
 function studyPriceTargets(bars: PriceBar[]) { const closes = bars.map(b => b.close); const returns = closes.slice(1).map((c, i) => (c - closes[i]) / closes[i]); const avgReturn = returns.reduce((a, b) => a + b, 0) / returns.length; const stdDev = Math.sqrt(returns.reduce((sum, r) => sum + Math.pow(r - avgReturn, 2), 0) / returns.length); const currentPrice = closes[closes.length - 1]; const projections = { days30: { expected: currentPrice * Math.pow(1 + avgReturn, 30), bull: currentPrice * Math.pow(1 + avgReturn + stdDev, 30), bear: currentPrice * Math.pow(1 + avgReturn - stdDev, 30), best: currentPrice * Math.pow(1 + avgReturn + 2 * stdDev, 30), worst: currentPrice * Math.pow(1 + avgReturn - 2 * stdDev, 30) }, days90: { expected: currentPrice * Math.pow(1 + avgReturn, 90), bull: currentPrice * Math.pow(1 + avgReturn + stdDev, 90), bear: currentPrice * Math.pow(1 + avgReturn - stdDev, 90) }, days252: { expected: currentPrice * Math.pow(1 + avgReturn, 252), bull: currentPrice * Math.pow(1 + avgReturn + stdDev, 252), bear: currentPrice * Math.pow(1 + avgReturn - stdDev, 252) } }; const highs = bars.map(b => b.high); const lows = bars.map(b => b.low); const priceRange = Math.max(...highs) - Math.min(...lows); const bucketSize = priceRange / 50; const volumeProfile: Record<number, number> = {}; for (const bar of bars) { const bucket = Math.floor(bar.close / bucketSize) * bucketSize; volumeProfile[bucket] = (volumeProfile[bucket] || 0) + bar.volume; } const levels = Object.entries(volumeProfile).map(([price, vol]) => ({ price: parseFloat(price), volume: vol })).sort((a, b) => b.volume - a.volume).slice(0, 5).map(l => l.price); return { type: 'price_targets', currentPrice, dailyReturn: avgReturn * 100, dailyVol: stdDev * 100, projections, keyLevels: levels.sort((a, b) => a - b), nearestSupport: levels.filter(l => l < currentPrice).sort((a, b) => b - a)[0] || null, nearestResistance: levels.filter(l => l > currentPrice).sort((a, b) => a - b)[0] || null }; }
 
 serve(async (req) => {
@@ -211,6 +278,7 @@ serve(async (req) => {
       case 'trend_strength': 
       case 'trend_analysis': result = studyTrendStrength(bars, params); break;
       case 'price_targets': result = studyPriceTargets(bars); break;
+      case 'close_to_open_analysis': result = studyCloseToOpenAnalysis(bars, params); break;
       default: return new Response(JSON.stringify({ error: `Unknown study type: ${studyType}` }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
     return new Response(JSON.stringify({ success: true, result, barsAnalyzed: bars.length, useMockData, computationTimeMs: Date.now() - startTime, dateRange: { start: bars[0].date, end: bars[bars.length - 1].date } }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
