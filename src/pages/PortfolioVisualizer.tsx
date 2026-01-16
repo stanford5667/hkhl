@@ -1607,25 +1607,21 @@ export default function PortfolioVisualizer() {
     );
   }
 
-  // Manual flow - full control portfolio builder
+  // Manual flow - full control portfolio builder using ManualPortfolioForm
   if (currentFlow === 'manual') {
     return (
-      <>
-        <div className="min-h-screen bg-background">
-          <div className="p-4">
-            <Button variant="ghost" size="sm" onClick={() => setCurrentFlow('choose')} className="mb-4">
-              ← Back
-            </Button>
-          </div>
-          <MobileBacktester />
-        </div>
+      <div className="min-h-screen bg-background">
+        <ManualPortfolioForm
+          onComplete={handleManualComplete}
+          onBack={() => setCurrentFlow('choose')}
+        />
         <AuthGateDialog
           open={showAuthDialog}
           onOpenChange={closeAuthDialog}
           title="Sign in to analyze portfolios"
           description="Create a free account to run portfolio analysis and save your results."
         />
-      </>
+      </div>
     );
   }
 
