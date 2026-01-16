@@ -907,8 +907,8 @@ export function EliteQuestionnaireV2({ onComplete, onCancel }: EliteQuestionnair
         </div>
       </header>
 
-      {/* Main content */}
-      <main className="relative z-10 max-w-3xl mx-auto px-6 py-12">
+      {/* Main content - add padding bottom for fixed footer on mobile */}
+      <main className="relative z-10 max-w-3xl mx-auto px-6 py-8 md:py-12 pb-36 md:pb-12">
         <AnimatePresence mode="wait">
           <motion.div
             key={currentQuestion.id}
@@ -946,8 +946,8 @@ export function EliteQuestionnaireV2({ onComplete, onCancel }: EliteQuestionnair
           </motion.div>
         </AnimatePresence>
 
-        {/* Navigation */}
-        <div className="flex items-center justify-between mt-12 pt-6 border-t border-white/10">
+        {/* Desktop Navigation - visible only on larger screens */}
+        <div className="hidden md:flex items-center justify-between mt-12 pt-6 border-t border-white/10">
           <Button
             variant="ghost"
             onClick={handlePrevious}
@@ -991,12 +991,56 @@ export function EliteQuestionnaireV2({ onComplete, onCancel }: EliteQuestionnair
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="text-center mt-4 text-xs text-white/30"
+            className="hidden md:block text-center mt-4 text-xs text-white/30"
           >
             Press <kbd className="px-1.5 py-0.5 rounded bg-white/10 font-mono">Enter</kbd> to continue
           </motion.div>
         )}
       </main>
+
+      {/* Mobile Fixed Footer Navigation */}
+      <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-[#0a0a0a]/95 backdrop-blur-xl border-t border-white/10 px-4 py-4 pb-safe">
+        <div className="flex items-center justify-between gap-3">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handlePrevious}
+            disabled={currentQuestionIndex === 0}
+            className="text-white/50 hover:text-white px-3"
+          >
+            <ChevronLeft className="w-4 h-4 mr-1" />
+            Back
+          </Button>
+
+          <Button
+            onClick={handleNext}
+            disabled={!isCurrentAnswered || isSubmitting}
+            className={cn(
+              "flex-1 max-w-[200px] h-12 transition-all duration-200",
+              isCurrentAnswered
+                ? "bg-gradient-to-r from-blue-500 to-emerald-500 hover:from-blue-600 hover:to-emerald-600 text-white shadow-lg shadow-blue-500/25"
+                : "bg-white/10 text-white/50"
+            )}
+          >
+            {isSubmitting ? (
+              <>
+                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2" />
+                Generating...
+              </>
+            ) : currentQuestionIndex === QUESTIONS.length - 1 ? (
+              <>
+                Generate My Plan
+                <Sparkles className="w-4 h-4 ml-2" />
+              </>
+            ) : (
+              <>
+                Continue
+                <ChevronRight className="w-4 h-4 ml-1" />
+              </>
+            )}
+          </Button>
+        </div>
+      </div>
 
       {/* Auth Sheet for unauthenticated users */}
       <MobileAuthSheet
