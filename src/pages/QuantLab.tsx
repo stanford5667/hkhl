@@ -1164,436 +1164,305 @@ function QuantLabContent(props: any) {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="h-screen bg-background flex flex-col overflow-hidden">
       {/* Tutorial Overlay for new users */}
       <TutorialOverlay />
       
-      <div className="p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-6 pb-24 md:pb-6 max-w-7xl mx-auto">
-        {/* Header - Compact and mobile-first */}
-        <div className="flex items-center gap-3">
-          <div className="p-2 rounded-xl bg-gradient-to-br from-purple-500 to-indigo-600 shadow-lg shadow-purple-500/25 shrink-0">
-            <FlaskConical className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
+      {/* Compact Header Bar */}
+      <div className="shrink-0 border-b bg-card/50 backdrop-blur-sm">
+        <div className="flex items-center gap-3 px-4 py-2">
+          <div className="p-1.5 rounded-lg bg-gradient-to-br from-purple-500 to-indigo-600 shadow-md">
+            <FlaskConical className="h-4 w-4 text-white" />
           </div>
           <div className="flex-1 min-w-0">
-            <h1 className="text-lg sm:text-xl md:text-2xl font-bold flex items-center gap-2">
+            <h1 className="text-sm font-semibold flex items-center gap-2">
               Quant Lab
             </h1>
-            <p className="text-muted-foreground text-xs sm:text-sm line-clamp-1">
-              Interactive stock analysis — no coding required
-            </p>
+          </div>
+          
+          {/* Ticker + Controls - Inline in header */}
+          <div className="flex items-center gap-2">
+            <Input
+              placeholder="TICKER"
+              value={ticker}
+              onChange={(e) => setTicker(e.target.value.toUpperCase())}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  handleSetTicker(ticker);
+                  if (selectedStudies.length > 0) handleRunAllStudies();
+                }
+              }}
+              className="h-8 w-20 text-xs font-mono"
+            />
+            <Select value={period} onValueChange={setPeriod}>
+              <SelectTrigger className="h-8 w-16 text-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {PERIOD_OPTIONS.map((p) => (
+                  <SelectItem key={p.value} value={p.value} className="text-xs">{p.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Button
+              onClick={() => {
+                handleSetTicker(ticker);
+                if (selectedStudies.length > 0) setTimeout(() => handleRunAllStudies(), 100);
+              }}
+              disabled={!ticker || isRunning}
+              size="sm"
+              className="h-8 px-3 gap-1.5 bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700"
+            >
+              {isRunning ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Play className="h-3.5 w-3.5" />}
+              <span className="text-xs">Run {selectedStudies.length > 0 ? `(${selectedStudies.length})` : ''}</span>
+            </Button>
+          </div>
+          
+          {/* Quick Tickers */}
+          <div className="hidden md:flex gap-1">
+            {['AAPL', 'MSFT', 'NVDA', 'SPY', 'QQQ'].map((t) => (
+              <Badge
+                key={t}
+                variant={selectedTicker === t ? 'default' : 'outline'}
+                className="cursor-pointer hover:bg-primary hover:text-primary-foreground transition-colors text-[10px] px-1.5 py-0"
+                onClick={() => handleSetTicker(t)}
+              >
+                {t}
+              </Badge>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Main Content - 2 Panel Layout */}
+      <div className="flex-1 flex overflow-hidden">
+        {/* Left Panel - Study Selection */}
+        <div className="w-64 shrink-0 border-r bg-card/30 flex flex-col overflow-hidden">
+          <div className="px-3 py-2 border-b bg-muted/30">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-medium">Studies</span>
+              {selectedStudies.length > 0 && (
+                <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+                  {selectedStudies.length}
+                </Badge>
+              )}
+            </div>
+          </div>
+          
+          {/* Category Tabs - Compact Grid */}
+          <div className="flex-1 overflow-hidden flex flex-col">
+            <Tabs value={activeCategory} onValueChange={setActiveCategory} className="flex-1 flex flex-col overflow-hidden">
+              <TabsList className="w-full grid grid-cols-4 gap-0.5 bg-muted/50 p-0.5 h-auto shrink-0 mx-2 mt-2" style={{ width: 'calc(100% - 16px)' }}>
+                {STUDY_CATEGORIES.slice(0, 4).map((cat) => (
+                  <TabsTrigger 
+                    key={cat.id} 
+                    value={cat.id} 
+                    className="text-[9px] px-1 py-1 data-[state=active]:bg-background"
+                    title={cat.name}
+                  >
+                    <cat.icon className="h-3 w-3" />
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+              <TabsList className="w-full grid grid-cols-3 gap-0.5 bg-muted/50 p-0.5 h-auto shrink-0 mx-2 mt-1" style={{ width: 'calc(100% - 16px)' }}>
+                {STUDY_CATEGORIES.slice(4).map((cat) => (
+                  <TabsTrigger 
+                    key={cat.id} 
+                    value={cat.id} 
+                    className="text-[9px] px-1 py-1 data-[state=active]:bg-background"
+                    title={cat.name}
+                  >
+                    <cat.icon className="h-3 w-3" />
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+
+              <div className="flex-1 overflow-y-auto">
+                {STUDY_CATEGORIES.map((cat) => (
+                  <TabsContent key={cat.id} value={cat.id} className="mt-0 p-2 space-y-1">
+                    {STUDY_DEFINITIONS.filter(s => s.category === cat.id).map((study) => (
+                      <button
+                        key={study.id}
+                        onClick={() => addStudy(study.id)}
+                        disabled={selectedStudies.includes(study.id)}
+                        className={cn(
+                          "w-full p-2 rounded-md border text-left transition-all flex items-center gap-2",
+                          selectedStudies.includes(study.id)
+                            ? "border-primary bg-primary/10 opacity-70"
+                            : "border-border hover:border-primary/50 hover:bg-muted/50"
+                        )}
+                      >
+                        <div className={cn(
+                          "p-1 rounded shrink-0",
+                          selectedStudies.includes(study.id) ? "bg-primary/20" : "bg-muted"
+                        )}>
+                          <study.icon className={cn(
+                            "h-3 w-3",
+                            selectedStudies.includes(study.id) ? "text-primary" : "text-muted-foreground"
+                          )} />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <span className="font-medium text-[11px] block truncate">{study.name}</span>
+                        </div>
+                        {selectedStudies.includes(study.id) ? (
+                          <CheckCircle2 className="h-3 w-3 text-primary shrink-0" />
+                        ) : (
+                          <Plus className="h-3 w-3 text-muted-foreground shrink-0" />
+                        )}
+                      </button>
+                    ))}
+                  </TabsContent>
+                ))}
+              </div>
+            </Tabs>
           </div>
         </div>
 
-        {/* Unified Analysis Panel */}
-        <Card className="border-2 border-border">
-          <CardHeader className="pb-2 sm:pb-3 px-3 sm:px-6">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-              <div className="min-w-0">
-                <CardTitle className="text-base sm:text-lg">Stock Analysis</CardTitle>
-                <CardDescription className="text-xs sm:text-sm">Enter a ticker and run studies</CardDescription>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent className="pt-0 px-3 sm:px-6 space-y-4">
-            {/* Ticker Input + Period + Run Button - All in one row */}
-            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
-              <div className="flex gap-2 flex-1">
-                <Input
-                  placeholder="e.g., AAPL, SPY"
-                  value={ticker}
-                  onChange={(e) => setTicker(e.target.value.toUpperCase())}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      handleSetTicker(ticker);
-                      if (selectedStudies.length > 0) {
-                        handleRunAllStudies();
-                      }
-                    }
-                  }}
-                  className="text-base sm:text-lg font-mono h-10 sm:h-12 flex-1"
-                />
-                <Select value={period} onValueChange={setPeriod}>
-                  <SelectTrigger className="h-10 sm:h-12 w-20 sm:w-24 shrink-0">
-                    <SelectValue placeholder="Period" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {PERIOD_OPTIONS.map((p) => (
-                      <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+        {/* Right Panel - Results */}
+        <div className="flex-1 flex flex-col overflow-hidden bg-background">
+          {/* Selected Studies Bar */}
+          {selectedStudies.length > 0 && (
+            <div className="shrink-0 px-4 py-2 border-b bg-muted/20 flex items-center gap-2 overflow-x-auto">
+              <span className="text-[10px] text-muted-foreground shrink-0">Queue:</span>
+              {selectedStudies.map((studyId) => {
+                const study = getStudy(studyId);
+                const hasResult = !!results[studyId];
+                return (
+                  <Badge
+                    key={studyId}
+                    variant={hasResult ? 'default' : 'secondary'}
+                    className={cn(
+                      "gap-1 pr-0.5 text-[10px] shrink-0",
+                      hasResult && "bg-emerald-500 hover:bg-emerald-600"
+                    )}
+                  >
+                    {study?.name}
+                    {hasResult && <CheckCircle2 className="h-2.5 w-2.5" />}
+                    <button
+                      onClick={() => removeStudy(studyId)}
+                      className="ml-0.5 hover:bg-black/20 rounded p-0.5"
+                    >
+                      <X className="h-2.5 w-2.5" />
+                    </button>
+                  </Badge>
+                );
+              })}
               <Button
-                onClick={() => {
-                  handleSetTicker(ticker);
-                  if (selectedStudies.length > 0) {
-                    setTimeout(() => handleRunAllStudies(), 100);
-                  }
-                }}
-                disabled={!ticker || isRunning}
-                className="h-10 sm:h-12 px-4 sm:px-6 gap-2 bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 shadow-lg"
+                variant="ghost"
+                size="sm"
+                onClick={() => { setSelectedStudies([]); setResults({}); }}
+                className="h-5 px-1.5 text-[10px] ml-auto shrink-0"
               >
-                {isRunning ? (
-                  <Loader2 className="h-4 w-4 sm:h-5 sm:w-5 animate-spin" />
-                ) : (
-                  <Play className="h-4 w-4 sm:h-5 sm:w-5" />
-                )}
-                <span className="text-sm sm:text-base">Run {selectedStudies.length > 0 ? `(${selectedStudies.length})` : 'Studies'}</span>
+                Clear
               </Button>
             </div>
-            
-            {/* Quick Tickers - Scrollable on mobile */}
-            <div className="flex gap-1.5 sm:gap-2 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-hide">
-              <span className="text-xs text-muted-foreground self-center shrink-0">Quick:</span>
-              {['AAPL', 'MSFT', 'GOOGL', 'NVDA', 'TSLA', 'SPY', 'QQQ'].map((t) => (
-                <Badge
-                  key={t}
-                  variant={selectedTicker === t ? 'default' : 'outline'}
-                  className="cursor-pointer hover:bg-primary hover:text-primary-foreground transition-colors shrink-0 text-xs"
-                  onClick={() => handleSetTicker(t)}
-                >
-                  {t}
-                </Badge>
-              ))}
-            </div>
+          )}
 
-            {/* Selected Stock Confirmation */}
-            {selectedTicker && (
-              <motion.div 
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="p-2 sm:p-3 bg-muted/50 border border-border rounded-lg flex items-center justify-between gap-2"
-              >
-                <div className="flex items-center gap-2 min-w-0">
-                  <span className="text-lg sm:text-xl font-bold font-mono">{selectedTicker}</span>
-                  <span className="text-muted-foreground text-xs">• {PERIOD_OPTIONS.find(p => p.value === period)?.label}</span>
-                  {selectedStudies.length > 0 && (
-                    <Badge variant="secondary" className="text-xs">
-                      {selectedStudies.length} studies
-                    </Badge>
-                  )}
-                </div>
-                <Button variant="ghost" size="sm" onClick={() => { setSelectedTicker(null); setResults({}); }} className="shrink-0 text-xs px-2">
-                  Clear
-                </Button>
-              </motion.div>
-            )}
+          {/* Results Grid */}
+          <div className="flex-1 overflow-y-auto p-4">
+            {Object.keys(results).length > 0 ? (
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+                {selectedStudies.map((studyId) => {
+                  const study = getStudy(studyId);
+                  const result = results[studyId];
+                  if (!study || !result) return null;
+                  
+                  const sentiment = getSentimentStyle(result.interpretation);
+                  const metrics = getDisplayMetrics(result);
 
-          </CardContent>
-        </Card>
+                  return (
+                    <motion.div
+                      key={studyId}
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      className={cn(
+                        "rounded-lg border overflow-hidden",
+                        sentiment.border
+                      )}
+                    >
+                      {/* Compact Card Header */}
+                      <div className={cn("px-3 py-2 flex items-center justify-between", sentiment.bg)}>
+                        <div className="flex items-center gap-2 min-w-0">
+                          <div className={cn("p-1 rounded bg-background/80 shrink-0")}>
+                            <study.icon className={cn("h-3.5 w-3.5", sentiment.text)} />
+                          </div>
+                          <div className="min-w-0">
+                            <h4 className="font-medium text-xs truncate">{study.name}</h4>
+                          </div>
+                        </div>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => saveStudyResult(studyId)}
+                          disabled={isSaving === studyId}
+                          className="h-6 px-1.5 gap-1 text-[10px] text-amber-600 hover:text-amber-700 hover:bg-amber-50 shrink-0"
+                        >
+                          {isSaving === studyId ? <Loader2 className="h-3 w-3 animate-spin" /> : <Save className="h-3 w-3" />}
+                          Save
+                        </Button>
+                      </div>
 
-        {/* Studies Selection */}
-        <AnimatePresence>
-          {selectedTicker && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-            >
-              <Card className="border border-border">
-                <CardHeader className="pb-2 px-3 sm:px-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <CardTitle className="text-base sm:text-lg">Select Studies</CardTitle>
-                      <CardDescription className="text-xs sm:text-sm">Pick studies to run on {selectedTicker}</CardDescription>
-                    </div>
-                    {selectedStudies.length > 0 && (
-                      <Badge variant="secondary" className="text-xs sm:text-sm">
-                        {selectedStudies.length} selected
-                      </Badge>
-                    )}
-                  </div>
-                </CardHeader>
-                <CardContent className="pt-0 px-3 sm:px-6">
-                  {/* Category Tabs - Horizontal scroll on mobile */}
-                  <Tabs value={activeCategory} onValueChange={setActiveCategory}>
-                    <div className="overflow-x-auto -mx-1 px-1 scrollbar-hide">
-                      <TabsList className="w-max sm:w-full flex gap-1 bg-muted/50 p-1">
-                        {STUDY_CATEGORIES.map((cat) => (
-                          <TabsTrigger 
-                            key={cat.id} 
-                            value={cat.id} 
-                            className="gap-1 sm:gap-1.5 text-[10px] sm:text-xs px-2 sm:px-3 whitespace-nowrap"
-                          >
-                            <cat.icon className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
-                            <span className="hidden xs:inline sm:inline">{cat.name}</span>
-                            <span className="xs:hidden sm:hidden">{cat.name.split(' ')[0]}</span>
-                          </TabsTrigger>
-                        ))}
-                      </TabsList>
-                    </div>
+                      {/* Interpretation */}
+                      <div className="px-3 py-1.5 border-b">
+                        <p className={cn("text-[11px] font-medium line-clamp-1", sentiment.text)}>
+                          {result.interpretation || 'Analysis complete'}
+                        </p>
+                      </div>
 
-                    {STUDY_CATEGORIES.map((cat) => (
-                      <TabsContent key={cat.id} value={cat.id} className="mt-3">
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                          {STUDY_DEFINITIONS.filter(s => s.category === cat.id).map((study) => (
+                      {/* Key Metrics - Compact Grid */}
+                      <div className="p-2">
+                        <div className="grid grid-cols-2 gap-1.5">
+                          {metrics.slice(0, 4).map(([key, value]) => (
                             <button
-                              key={study.id}
-                              onClick={() => addStudy(study.id)}
-                              disabled={selectedStudies.includes(study.id)}
-                              className={cn(
-                                "p-3 rounded-lg border text-left transition-all flex items-center gap-3",
-                                selectedStudies.includes(study.id)
-                                  ? "border-primary bg-primary/10 opacity-70"
-                                  : "border-border hover:border-primary/50 hover:bg-muted/50"
-                              )}
+                              key={key}
+                              onClick={() => setSelectedMetric({ 
+                                key, value, studyName: study.name, studyResult: result
+                              })}
+                              className="text-center p-1.5 bg-muted/50 rounded hover:bg-muted hover:ring-1 hover:ring-primary/30 transition-all cursor-pointer"
                             >
-                              <div className={cn(
-                                "p-2 rounded-lg shrink-0",
-                                selectedStudies.includes(study.id) ? "bg-primary/20" : "bg-muted"
-                              )}>
-                                <study.icon className={cn(
-                                  "h-4 w-4",
-                                  selectedStudies.includes(study.id) ? "text-primary" : "text-muted-foreground"
-                                )} />
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <span className="font-medium text-sm block">{study.name}</span>
-                                <span className="text-xs text-muted-foreground line-clamp-1">{study.description}</span>
-                              </div>
-                              {selectedStudies.includes(study.id) ? (
-                                <CheckCircle2 className="h-5 w-5 text-primary shrink-0" />
-                              ) : (
-                                <Plus className="h-5 w-5 text-muted-foreground shrink-0" />
-                              )}
+                              <p className="text-[9px] text-muted-foreground capitalize mb-0.5 truncate">
+                                {key.replace(/([A-Z])/g, ' $1').replace(/_/g, ' ').trim()}
+                              </p>
+                              <p className="text-sm font-bold font-mono">
+                                {formatValue(key, value)}
+                              </p>
                             </button>
                           ))}
                         </div>
-                      </TabsContent>
-                    ))}
-                  </Tabs>
-                </CardContent>
-              </Card>
-
-              {/* Results Section */}
-              {selectedStudies.length > 0 && (
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="mt-4"
-                >
-                  <Card className="border border-border">
-                    <CardHeader className="pb-2 px-3 sm:px-6">
-                      <div className="flex items-center justify-between flex-wrap gap-2">
-                        <div>
-                          <CardTitle className="text-base sm:text-lg">
-                            {Object.keys(results).length === 0 
-                              ? 'Ready to Run'
-                              : `Results (${Object.keys(results).length}/${selectedStudies.length})`
-                            }
-                          </CardTitle>
-                          <CardDescription className="text-xs sm:text-sm">
-                            {Object.keys(results).length === 0 
-                              ? `${selectedStudies.length} studies selected for ${selectedTicker}`
-                              : `Analysis complete`
-                            }
-                          </CardDescription>
-                        </div>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => { setSelectedStudies([]); setResults({}); }}
-                          className="text-xs"
-                        >
-                          <X className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
-                          Clear
-                        </Button>
-                      </div>
-                    </CardHeader>
-                    <CardContent className="px-3 sm:px-6">
-                      {/* Selected studies chips */}
-                      <div className="flex flex-wrap gap-2 mb-4">
-                        {selectedStudies.map((studyId) => {
-                          const study = getStudy(studyId);
-                          const hasResult = !!results[studyId];
-                          return (
-                            <Badge
-                              key={studyId}
-                              variant={hasResult ? 'default' : 'secondary'}
-                              className={cn(
-                                "gap-1 pr-1 cursor-pointer",
-                                hasResult && "bg-emerald-500 hover:bg-emerald-600"
-                              )}
-                            >
-                              {study?.name}
-                              {hasResult && <CheckCircle2 className="h-3 w-3" />}
-                              <button
-                                onClick={() => removeStudy(studyId)}
-                                className="ml-1 hover:bg-black/20 rounded p-0.5"
-                              >
-                                <X className="h-3 w-3" />
-                              </button>
-                            </Badge>
-                          );
-                        })}
                       </div>
 
-                      {/* Results Grid */}
-                      {Object.keys(results).length > 0 && (
-                        <div className="space-y-4">
-                          <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                            <BarChart3 className="h-4 w-4" />
-                            Results
-                          </div>
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            {selectedStudies.map((studyId) => {
-                              const study = getStudy(studyId);
-                              const result = results[studyId];
-                              if (!study || !result) return null;
-                              
-                              const sentiment = getSentimentStyle(result.interpretation);
-                              const metrics = getDisplayMetrics(result);
-
-                              return (
-                                <motion.div
-                                  key={studyId}
-                                  initial={{ opacity: 0, scale: 0.95 }}
-                                  animate={{ opacity: 1, scale: 1 }}
-                                  className={cn(
-                                    "rounded-xl border-2 overflow-hidden",
-                                    sentiment.border
-                                  )}
-                                >
-                                  {/* Card Header */}
-                                  <div className={cn("p-4", sentiment.bg)}>
-                                    <div className="flex items-start justify-between">
-                                      <div className="flex items-center gap-3">
-                                        <div className={cn("p-2 rounded-lg bg-background/80")}>
-                                          <study.icon className={cn("h-5 w-5", sentiment.text)} />
-                                        </div>
-                                        <div>
-                                          <h4 className="font-semibold">{study.name}</h4>
-                                          <p className="text-xs text-muted-foreground">{study.description}</p>
-                                        </div>
-                                      </div>
-                                      <Button
-                                        size="sm"
-                                        variant="ghost"
-                                        onClick={() => saveStudyResult(studyId)}
-                                        disabled={isSaving === studyId}
-                                        className="gap-1 text-amber-600 hover:text-amber-700 hover:bg-amber-50"
-                                      >
-                                        {isSaving === studyId ? (
-                                          <Loader2 className="h-4 w-4 animate-spin" />
-                                        ) : (
-                                          <Save className="h-4 w-4" />
-                                        )}
-                                        Save
-                                      </Button>
-                                    </div>
-                                  </div>
-
-                                  {/* Interpretation */}
-                                  <div className="p-4 border-b">
-                                    <p className={cn("text-sm font-medium", sentiment.text)}>
-                                      {result.interpretation || 'Analysis complete'}
-                                    </p>
-                                  </div>
-
-                                  {/* Key Metrics - CLICKABLE */}
-                                  <div className="p-4">
-                                    <div className="flex items-center gap-1 mb-2 text-xs text-muted-foreground">
-                                      <Info className="h-3 w-3" />
-                                      Click any metric to learn more
-                                    </div>
-                                    <div className="grid grid-cols-2 gap-3">
-                                      {metrics.slice(0, 4).map(([key, value]) => (
-                                        <button
-                                          key={key}
-                                          onClick={() => setSelectedMetric({ 
-                                            key, 
-                                            value, 
-                                            studyName: study.name,
-                                            studyResult: result
-                                          })}
-                                          className="text-center p-2 bg-muted/50 rounded-lg hover:bg-muted hover:ring-2 hover:ring-primary/30 transition-all cursor-pointer group"
-                                        >
-                                          <p className="text-xs text-muted-foreground capitalize mb-1 group-hover:text-primary transition-colors">
-                                            {key.replace(/([A-Z])/g, ' $1').replace(/_/g, ' ').trim()}
-                                          </p>
-                                          <p className="text-lg font-bold font-mono group-hover:text-primary transition-colors">
-                                            {formatValue(key, value)}
-                                          </p>
-                                        </button>
-                                      ))}
-                                    </div>
-                                    
-                                    {/* More metrics if available - also clickable */}
-                                    {metrics.length > 4 && (
-                                      <div className="mt-3 flex flex-wrap gap-2">
-                                        {metrics.slice(4, 8).map(([key, value]) => (
-                                          <Badge 
-                                            key={key} 
-                                            variant="outline" 
-                                            className="text-xs cursor-pointer hover:bg-primary/10 hover:border-primary transition-colors"
-                                            onClick={() => setSelectedMetric({ 
-                                              key, 
-                                              value, 
-                                              studyName: study.name,
-                                              studyResult: result
-                                            })}
-                                          >
-                                            {key.replace(/([A-Z])/g, ' $1').trim()}: {formatValue(key, value)}
-                                          </Badge>
-                                        ))}
-                                      </div>
-                                    )}
-                                  </div>
-
-                                  {/* Footer */}
-                                  <div className="px-4 py-2 bg-muted/30 text-xs text-muted-foreground flex items-center justify-between">
-                                    <span>{result.barsAnalyzed} days analyzed</span>
-                                    <span>{result.dateRange?.start} → {result.dateRange?.end}</span>
-                                  </div>
-                                </motion.div>
-                              );
-                            })}
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Empty state */}
-                      {Object.keys(results).length === 0 && !isRunning && (
-                        <div className="text-center py-8 text-muted-foreground">
-                          <Play className="h-12 w-12 mx-auto mb-3 opacity-30" />
-                          <p className="font-medium">Ready to analyze</p>
-                          <p className="text-sm">Click "Run All Studies" to see your results</p>
-                        </div>
-                      )}
-
-                      {/* Loading state */}
-                      {isRunning && (
-                        <div className="text-center py-8">
-                          <Loader2 className="h-12 w-12 mx-auto mb-3 animate-spin text-primary" />
-                          <p className="font-medium">Running analysis...</p>
-                          <p className="text-sm text-muted-foreground">
-                            {runningStudy && `Currently: ${getStudy(runningStudy)?.name}`}
-                          </p>
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
-                </motion.div>
-              )}
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-
-        {/* Study Accuracy Audit Dashboard */}
-        <Accordion type="single" collapsible className="w-full">
-          <AccordionItem value="audit" className="border rounded-lg">
-            <AccordionTrigger className="px-4 hover:no-underline">
-              <div className="flex items-center gap-2">
-                <Shield className="h-4 w-4 text-primary" />
-                <span className="font-medium">Developer Tools: Study Accuracy Audit</span>
+                      {/* Footer */}
+                      <div className="px-3 py-1 bg-muted/30 text-[9px] text-muted-foreground flex items-center justify-between">
+                        <span>{result.barsAnalyzed} days</span>
+                        <span>{result.dateRange?.start} → {result.dateRange?.end}</span>
+                      </div>
+                    </motion.div>
+                  );
+                })}
               </div>
-            </AccordionTrigger>
-            <AccordionContent className="px-4 pb-4">
-              <StudyAuditDashboard ticker={selectedTicker || 'AAPL'} />
-            </AccordionContent>
-          </AccordionItem>
-        </Accordion>
+            ) : isRunning ? (
+              <div className="flex flex-col items-center justify-center h-full text-center">
+                <Loader2 className="h-8 w-8 animate-spin text-primary mb-2" />
+                <p className="text-sm font-medium">Running analysis...</p>
+                <p className="text-xs text-muted-foreground">
+                  {runningStudy && getStudy(runningStudy)?.name}
+                </p>
+              </div>
+            ) : selectedStudies.length > 0 ? (
+              <div className="flex flex-col items-center justify-center h-full text-center">
+                <Play className="h-10 w-10 text-muted-foreground/30 mb-2" />
+                <p className="text-sm font-medium">Ready to analyze</p>
+                <p className="text-xs text-muted-foreground">Click "Run" to see results for {selectedTicker}</p>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center h-full text-center">
+                <FlaskConical className="h-10 w-10 text-muted-foreground/30 mb-2" />
+                <p className="text-sm font-medium">Select studies from the left panel</p>
+                <p className="text-xs text-muted-foreground">Then click Run to analyze {selectedTicker || 'your stock'}</p>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
       
       {/* Metric Detail Modal */}
