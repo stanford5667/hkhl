@@ -1,5 +1,5 @@
 /**
- * Portfolio Risk Screener - Mobile-First
+ * Performance Screener - Mobile-First
  * 
  * Clean, compact design that:
  * - Fetches real data directly from market_daily_bars
@@ -781,7 +781,7 @@ export function RiskScreener({ onSelect, onComplete }: RiskScreenerProps) {
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
             <Target className="h-5 w-5 text-primary" />
-            <h2 className="font-semibold">Risk Screener</h2>
+            <h2 className="font-semibold">Performance Screener</h2>
           </div>
           <Button variant="ghost" size="icon" onClick={loadPortfolios} disabled={isLoading}>
             <RefreshCw className={cn("h-4 w-4", isLoading && "animate-spin")} />
