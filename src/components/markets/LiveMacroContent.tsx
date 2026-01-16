@@ -606,6 +606,8 @@ interface IndicatorCardProps {
 }
 
 function IndicatorCard({ title, icon, indicators, isLoading, insight, insightType = 'info', onItemClick }: IndicatorCardProps) {
+  const [expanded, setExpanded] = useState(false);
+
   const handleClick = (indicator: EconomicIndicator) => {
     if (onItemClick) {
       onItemClick({
@@ -621,14 +623,24 @@ function IndicatorCard({ title, icon, indicators, isLoading, insight, insightTyp
     }
   };
 
+  const canToggle = indicators.length > 8;
+  const visibleIndicators = expanded ? indicators : indicators.slice(0, 8);
+
   return (
     <Card className="bg-secondary/50 border-border">
       <CardContent className="p-6">
-        <h3 className="text-lg font-medium mb-4 flex items-center gap-2">
-          {icon}
-          {title}
-        </h3>
-        
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-medium flex items-center gap-2">
+            {icon}
+            {title}
+          </h3>
+          {canToggle && (
+            <Badge variant="outline" className="text-xs">
+              {indicators.length}
+            </Badge>
+          )}
+        </div>
+
         {isLoading ? (
           <div className="space-y-3">
             {[...Array(5)].map((_, i) => (
@@ -637,14 +649,14 @@ function IndicatorCard({ title, icon, indicators, isLoading, insight, insightTyp
           </div>
         ) : (
           <div className="space-y-2">
-            {indicators.slice(0, 8).map((indicator) => {
+            {visibleIndicators.map((indicator) => {
               const change = formatIndicatorChange(indicator);
-              
+
               return (
                 <TooltipProvider key={indicator.id}>
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <div 
+                      <div
                         className="flex justify-between items-center py-2 border-b border-border last:border-0 hover:bg-primary/5 rounded px-2 -mx-2 cursor-pointer transition-colors group"
                         onClick={() => handleClick(indicator)}
                       >
@@ -680,9 +692,21 @@ function IndicatorCard({ title, icon, indicators, isLoading, insight, insightTyp
                 </TooltipProvider>
               );
             })}
+
+            {canToggle && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="w-full"
+                onClick={() => setExpanded((v) => !v)}
+              >
+                {expanded ? 'Show less' : `Show all (${indicators.length})`}
+              </Button>
+            )}
           </div>
         )}
-        
+
         {insight && (
           <div className={cn(
             "mt-4 p-3 rounded text-sm",
