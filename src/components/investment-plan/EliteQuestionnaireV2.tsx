@@ -632,6 +632,14 @@ export function EliteQuestionnaireV2({ onComplete, onCancel }: EliteQuestionnair
 
   // Handle next
   const handleNext = useCallback(() => {
+    if (!isCurrentAnswered) {
+      toast({
+        title: 'Answer required',
+        description: 'Please select an option or enter a value to continue.',
+      });
+      return;
+    }
+
     if (currentQuestionIndex < QUESTIONS.length - 1) {
       setCurrentQuestionIndex(prev => prev + 1);
     } else {
@@ -644,7 +652,7 @@ export function EliteQuestionnaireV2({ onComplete, onCancel }: EliteQuestionnair
       // User is authenticated, submit
       submitQuestionnaire();
     }
-  }, [currentQuestionIndex, isAuthenticated, submitQuestionnaire]);
+  }, [currentQuestionIndex, isAuthenticated, isCurrentAnswered, submitQuestionnaire, toast]);
 
   // Handle previous
   const handlePrevious = useCallback(() => {
@@ -689,6 +697,7 @@ export function EliteQuestionnaireV2({ onComplete, onCancel }: EliteQuestionnair
           
           return (
             <motion.button
+              data-testid={`question-option-${question.id}-${scenario.value}`}
               key={scenario.value}
               onClick={() => handleSelect(scenario.value)}
               className={cn(
@@ -736,10 +745,11 @@ export function EliteQuestionnaireV2({ onComplete, onCancel }: EliteQuestionnair
           const isSelected = responses[question.id] === option.value;
           const Icon = option.icon;
           
-          return (
-            <motion.button
-              key={option.value}
-              onClick={() => handleSelect(option.value)}
+            return (
+              <motion.button
+                data-testid={`question-option-${question.id}-${option.value}`}
+                key={option.value}
+                onClick={() => handleSelect(option.value)}
               className={cn(
                 "relative flex items-center gap-4 p-4 rounded-xl border text-left transition-all duration-200",
                 isSelected
@@ -837,6 +847,7 @@ export function EliteQuestionnaireV2({ onComplete, onCancel }: EliteQuestionnair
             <DollarSign className="w-6 h-6 text-white/50" />
           </div>
           <Input
+            data-testid={`currency-input-${question.id}`}
             type="text"
             inputMode="numeric"
             value={currentValue}
@@ -1019,6 +1030,7 @@ export function EliteQuestionnaireV2({ onComplete, onCancel }: EliteQuestionnair
       <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-[#0a0a0a]/95 backdrop-blur-xl border-t border-white/10 px-4 py-4 pb-safe">
         <div className="flex items-center justify-between gap-3">
           <Button
+            data-testid="strategy-back"
             variant="ghost"
             size="sm"
             onClick={handlePrevious}
@@ -1030,11 +1042,14 @@ export function EliteQuestionnaireV2({ onComplete, onCancel }: EliteQuestionnair
           </Button>
 
           <Button
+            data-testid="strategy-next"
             onClick={handleNext}
-            disabled={!isCurrentAnswered || isSubmitting}
+            disabled={isSubmitting}
             className={cn(
               "flex-1 max-w-[200px] h-12 transition-all duration-200",
-              isCurrentAnswered
+              isSubmitting
+                ? "bg-white/10 text-white/50"
+                : isCurrentAnswered
                 ? "bg-gradient-to-r from-blue-500 to-emerald-500 hover:from-blue-600 hover:to-emerald-600 text-white shadow-lg shadow-blue-500/25"
                 : "bg-white/10 text-white/50"
             )}
