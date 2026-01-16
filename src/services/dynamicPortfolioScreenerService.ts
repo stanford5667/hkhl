@@ -51,6 +51,7 @@ export interface GeneratedPortfolio {
   allocations: PortfolioAllocation[];
   metrics: {
     cagr: number;
+    totalReturn: number;
     volatility: number;
     sharpe: number;
     sortino: number;
@@ -459,8 +460,13 @@ export function calculatePortfolioMetrics(
   // Estimate Sortino (simplified)
   const portfolioSortino = portfolioSharpe * 1.3;
   
+  // Estimate total return from CAGR and years (assuming 5 year lookback by default)
+  const estimatedYears = 5;
+  const totalReturn = ((1 + portfolioCagr / 100) ** estimatedYears - 1) * 100;
+  
   return {
     cagr: Math.round(portfolioCagr * 100) / 100,
+    totalReturn: Math.round(totalReturn * 100) / 100,
     volatility: Math.round(portfolioVol * 100) / 100,
     sharpe: Math.round(portfolioSharpe * 100) / 100,
     sortino: Math.round(portfolioSortino * 100) / 100,
@@ -509,7 +515,9 @@ export function calculateExactPortfolioMetrics(
   }
 
   const years = portfolioReturns.length / 252;
-  const cagr = calculateCAGR(100000, portfolioValues[portfolioValues.length - 1], years) * 100;
+  const finalValue = portfolioValues[portfolioValues.length - 1];
+  const cagr = calculateCAGR(100000, finalValue, years) * 100;
+  const totalReturn = ((finalValue - 100000) / 100000) * 100;
   const volatility = annualizedVolatility(portfolioReturns) * 100;
   const sharpe = calculateSharpeRatio(portfolioReturns, 0.05);
   const sortino = calculateSortinoRatio(portfolioReturns, 0.05);
@@ -517,6 +525,7 @@ export function calculateExactPortfolioMetrics(
 
   return {
     cagr: Math.round(cagr * 100) / 100,
+    totalReturn: Math.round(totalReturn * 100) / 100,
     volatility: Math.round(volatility * 100) / 100,
     sharpe: Math.round(sharpe * 100) / 100,
     sortino: Math.round(sortino * 100) / 100,

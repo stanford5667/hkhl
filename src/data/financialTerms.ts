@@ -7,6 +7,14 @@ export interface FinancialTerm {
 }
 
 export const financialTerms: Record<string, FinancialTerm> = {
+  totalReturn: {
+    term: "Total Return",
+    definition: "The complete gain or loss on your investment over the entire period, including all price changes and dividends. This is the actual percentage your money grew (or shrank).",
+    impact: "Total return shows your real-world results. It's what you'd actually see in your account - if you invested $10,000 and now have $15,000, your total return is 50%.",
+    example: "If you invested $10,000 five years ago and it's now worth $16,000, your total return is 60%. This is different from annual return, which would be about 10% per year.",
+    learnMoreUrl: "https://www.investopedia.com/terms/t/totalreturn.asp"
+  },
+  
   sharpeRatio: {
     term: "Sharpe Ratio",
     definition: "A measure of how much extra return you get for the extra risk you take. Higher is better - it means you're being rewarded more for each unit of risk.",
@@ -198,13 +206,6 @@ export const financialTerms: Record<string, FinancialTerm> = {
     example: "If you're evaluating 10 potential investments and have passed on 3, you have 7 active deals in your pipeline."
   },
   
-  totalReturn: {
-    term: "Total Return",
-    definition: "The complete gain or loss on an investment including price appreciation, dividends, and interest over a period.",
-    impact: "Total return gives the full picture of performance. Focusing only on price gains can undervalue income-producing investments.",
-    example: "A stock that rose 5% and paid 3% in dividends had a total return of 8%, not just 5%.",
-    learnMoreUrl: "https://www.investopedia.com/terms/t/totalreturn.asp"
-  },
 
   standardDeviation: {
     term: "Standard Deviation",
