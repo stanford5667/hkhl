@@ -35,9 +35,6 @@ import {
 import {
   TrendingUp,
   TrendingDown,
-  Scale,
-  Snowflake,
-  Flame,
   Loader2,
   CheckCircle2,
   ChevronRight,
@@ -50,14 +47,15 @@ import {
   Sparkles,
   Infinity,
   FlaskConical,
+  Calendar,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
-import { useNavigate } from 'react-router-dom';
-import { QuickStudyButton } from '@/components/shared/QuickStudyButton';
 import { InlinePortfolioStudy } from './InlinePortfolioStudy';
 import { MetricCard } from './MetricCard';
 import { HoldingDetailCard } from './HoldingDetailCard';
+import { PortfolioCard } from './PortfolioCard';
+import { ScreenerGuide } from './ScreenerGuide';
 
 // Import expanded universe service
 import {
@@ -83,10 +81,11 @@ import {
 // TYPES
 // ═══════════════════════════════════════════════════════════════════════════════
 
-type SortField = 'cagr' | 'totalReturn' | 'sharpe' | 'maxDrawdown' | 'volatility' | 'sortino' | 'matchScore';
+type SortField = 'cagr' | 'totalReturn' | 'sharpe' | 'maxDrawdown' | 'matchScore';
 type SortDirection = 'asc' | 'desc';
 type ScreenMode = 'quick' | 'expanded';
-type MetricKey = 'maxDrawdown' | 'maxVolatility' | 'minSharpe' | 'minCagr' | null;
+type MetricKey = 'maxLoss' | 'minSharpe' | 'minAvgReturns' | 'minTotalReturn' | null;
+type ReturnPeriod = '1' | '2' | '3' | '4' | '5';
 
 interface DynamicScreenerProps {
   onSelect?: (allocations: { symbol: string; weight: number }[]) => void;
@@ -100,13 +99,6 @@ interface DynamicScreenerProps {
 const INITIAL_ITEMS = 10; // First load
 const LOAD_MORE_INCREMENT = 10; // Each "See More" click
 const ITEMS_PER_PAGE = 20; // Max items per server page
-
-const RISK_STYLES = {
-  conservative: { color: 'text-blue-400', bg: 'bg-blue-500/10', border: 'border-blue-500/30', icon: Snowflake },
-  moderate: { color: 'text-emerald-400', bg: 'bg-emerald-500/10', border: 'border-emerald-500/30', icon: Scale },
-  growth: { color: 'text-amber-400', bg: 'bg-amber-500/10', border: 'border-amber-500/30', icon: TrendingUp },
-  aggressive: { color: 'text-rose-400', bg: 'bg-rose-500/10', border: 'border-rose-500/30', icon: Flame },
-};
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // MAIN COMPONENT
@@ -132,18 +124,16 @@ export function DynamicScreener({ onSelect, onComplete }: DynamicScreenerProps) 
   
   // Criteria - relaxed defaults to show portfolios initially
   const [activeMetric, setActiveMetric] = useState<MetricKey | null>(null);
-  const [maxDrawdown, setMaxDrawdown] = useState(50);
-  const [maxVolatility, setMaxVolatility] = useState(40);
+  const [maxLoss, setMaxLoss] = useState(50);
   const [minSharpe, setMinSharpe] = useState(-1);
-  const [minCagr, setMinCagr] = useState(-30);
+  const [minAvgReturns, setMinAvgReturns] = useState(-30);
+  const [minTotalReturn, setMinTotalReturn] = useState(-50);
+  const [returnPeriod, setReturnPeriod] = useState<ReturnPeriod>('1');
   
   // Mode
   const [screenMode, setScreenMode] = useState<ScreenMode>('expanded');
   const [lookbackYears] = useState(1);
   const [maxPortfolios] = useState(100000);
-  
-  // Risk profile filter
-  const [selectedRiskProfiles, setSelectedRiskProfiles] = useState<string[]>([]);
   
   // UI state
   const [sortField, setSortField] = useState<SortField>('matchScore');
@@ -155,8 +145,6 @@ export function DynamicScreener({ onSelect, onComplete }: DynamicScreenerProps) 
   
   // Selected holding for inline detail view
   const [selectedHolding, setSelectedHolding] = useState<{ ticker: string; weight: number } | null>(null);
-  
-  // No longer need separate accurate metrics - all metrics are real now
   
   // Filters
   const [filterRiskLevel, setFilterRiskLevel] = useState<string>('all');
@@ -245,22 +233,19 @@ export function DynamicScreener({ onSelect, onComplete }: DynamicScreenerProps) 
       const criteria: FilterCriteria = {};
       
       switch (activeMetric) {
-        case 'maxDrawdown':
-          criteria.maxDrawdown = maxDrawdown;
-          break;
-        case 'maxVolatility':
-          criteria.maxVolatility = maxVolatility;
+        case 'maxLoss':
+          criteria.maxDrawdown = maxLoss;
           break;
         case 'minSharpe':
           criteria.minSharpe = minSharpe;
           break;
-        case 'minCagr':
-          criteria.minCagr = minCagr;
+        case 'minAvgReturns':
+          criteria.minCagr = minAvgReturns;
           break;
-      }
-      
-      if (selectedRiskProfiles.length > 0) {
-        criteria.riskProfiles = selectedRiskProfiles as any;
+        case 'minTotalReturn':
+          // Scale total return by period for approximate filtering
+          criteria.minCagr = minTotalReturn / parseInt(returnPeriod);
+          break;
       }
       
       try {
@@ -299,17 +284,14 @@ export function DynamicScreener({ onSelect, onComplete }: DynamicScreenerProps) 
     } else {
       const criteria: ScreeningCriteria = {};
       switch (activeMetric) {
-        case 'maxDrawdown':
-          criteria.maxDrawdown = maxDrawdown;
-          break;
-        case 'maxVolatility':
-          criteria.maxVolatility = maxVolatility;
+        case 'maxLoss':
+          criteria.maxDrawdown = maxLoss;
           break;
         case 'minSharpe':
           criteria.minSharpe = minSharpe;
           break;
-        case 'minCagr':
-          criteria.minCagr = minCagr;
+        case 'minAvgReturns':
+          criteria.minCagr = minAvgReturns;
           break;
       }
       
@@ -328,7 +310,7 @@ export function DynamicScreener({ onSelect, onComplete }: DynamicScreenerProps) 
     }
     
     setIsLoading(false);
-  }, [screenMode, activeMetric, maxDrawdown, maxVolatility, minSharpe, minCagr, selectedRiskProfiles, sortField, sortDirection, maxPortfolios, lookbackYears]);
+  }, [screenMode, activeMetric, maxLoss, minSharpe, minAvgReturns, minTotalReturn, returnPeriod, sortField, sortDirection, maxPortfolios, lookbackYears]);
 
   // ─────────────────────────────────────────────────────────────────────────────
   // Filtered portfolios (for legacy mode)
@@ -455,25 +437,28 @@ export function DynamicScreener({ onSelect, onComplete }: DynamicScreenerProps) 
               </Badge>
             )}
           </div>
-          <Select value={screenMode} onValueChange={(v) => setScreenMode(v as ScreenMode)}>
-            <SelectTrigger className="h-8 w-32 text-xs">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="expanded">
-                <span className="flex items-center gap-1">
-                  <Infinity className="h-3 w-3" />
-                  Expanded
-                </span>
-              </SelectItem>
-              <SelectItem value="quick">
-                <span className="flex items-center gap-1">
-                  <Zap className="h-3 w-3" />
-                  Quick
-                </span>
-              </SelectItem>
-            </SelectContent>
-          </Select>
+          <div className="flex items-center gap-2">
+            <ScreenerGuide />
+            <Select value={screenMode} onValueChange={(v) => setScreenMode(v as ScreenMode)}>
+              <SelectTrigger className="h-8 w-32 text-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="expanded">
+                  <span className="flex items-center gap-1">
+                    <Infinity className="h-3 w-3" />
+                    Expanded
+                  </span>
+                </SelectItem>
+                <SelectItem value="quick">
+                  <span className="flex items-center gap-1">
+                    <Zap className="h-3 w-3" />
+                    Quick
+                  </span>
+                </SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
 
         {/* Mode info */}
@@ -506,84 +491,83 @@ export function DynamicScreener({ onSelect, onComplete }: DynamicScreenerProps) 
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="none">No filter (show all)</SelectItem>
-                <SelectItem value="maxDrawdown">Max Drawdown</SelectItem>
-                <SelectItem value="maxVolatility">Max Volatility</SelectItem>
+                <SelectItem value="maxLoss">Max Loss (Drawdown)</SelectItem>
                 <SelectItem value="minSharpe">Min Sharpe Ratio</SelectItem>
-                <SelectItem value="minCagr">Min CAGR</SelectItem>
+                <SelectItem value="minAvgReturns">Min Avg Returns</SelectItem>
+                <SelectItem value="minTotalReturn">Min Total Return</SelectItem>
               </SelectContent>
             </Select>
           </div>
           
           {/* Slider for active metric */}
           <div className="space-y-2">
-            {activeMetric === 'maxDrawdown' && (
+            {activeMetric === 'maxLoss' && (
               <div className="space-y-1">
                 <div className="flex justify-between text-xs">
-                  <span className="text-muted-foreground">Max Drawdown</span>
-                  <span className="font-mono font-bold">≤{maxDrawdown}%</span>
+                  <span className="text-muted-foreground">Max Loss (Max Drawdown)</span>
+                  <span className="font-mono font-bold">≤{maxLoss}%</span>
                 </div>
-                <Slider value={[maxDrawdown]} onValueChange={([v]) => setMaxDrawdown(v)} min={5} max={60} step={5} />
-              </div>
-            )}
-            {activeMetric === 'maxVolatility' && (
-              <div className="space-y-1">
-                <div className="flex justify-between text-xs">
-                  <span className="text-muted-foreground">Max Volatility</span>
-                  <span className="font-mono font-bold">≤{maxVolatility}%</span>
-                </div>
-                <Slider value={[maxVolatility]} onValueChange={([v]) => setMaxVolatility(v)} min={5} max={40} step={5} />
+                <Slider value={[maxLoss]} onValueChange={([v]) => setMaxLoss(v)} min={5} max={60} step={5} />
+                <p className="text-[10px] text-muted-foreground">
+                  Maximum peak-to-trough decline you're willing to accept
+                </p>
               </div>
             )}
             {activeMetric === 'minSharpe' && (
               <div className="space-y-1">
                 <div className="flex justify-between text-xs">
-                  <span className="text-muted-foreground">Min Sharpe</span>
+                  <span className="text-muted-foreground">Min Sharpe Ratio</span>
                   <span className="font-mono font-bold">≥{minSharpe.toFixed(1)}</span>
                 </div>
                 <Slider value={[minSharpe * 10]} onValueChange={([v]) => setMinSharpe(v / 10)} min={-5} max={20} step={1} />
+                <p className="text-[10px] text-muted-foreground">
+                  Risk-adjusted return (above 1.0 is good, above 2.0 is excellent)
+                </p>
               </div>
             )}
-            {activeMetric === 'minCagr' && (
+            {activeMetric === 'minAvgReturns' && (
               <div className="space-y-1">
                 <div className="flex justify-between text-xs">
-                  <span className="text-muted-foreground">Min CAGR</span>
-                  <span className="font-mono font-bold">≥{minCagr}%</span>
+                  <span className="text-muted-foreground">Min Avg Returns (CAGR)</span>
+                  <span className="font-mono font-bold">≥{minAvgReturns}%</span>
                 </div>
-                <Slider value={[minCagr]} onValueChange={([v]) => setMinCagr(v)} min={-20} max={30} step={5} />
+                <Slider value={[minAvgReturns]} onValueChange={([v]) => setMinAvgReturns(v)} min={-20} max={30} step={5} />
+                <p className="text-[10px] text-muted-foreground">
+                  Compound Annual Growth Rate - average yearly return
+                </p>
+              </div>
+            )}
+            {activeMetric === 'minTotalReturn' && (
+              <div className="space-y-2">
+                <div className="flex justify-between text-xs">
+                  <span className="text-muted-foreground">Min Total Return</span>
+                  <span className="font-mono font-bold">≥{minTotalReturn}%</span>
+                </div>
+                <Slider value={[minTotalReturn]} onValueChange={([v]) => setMinTotalReturn(v)} min={-50} max={200} step={10} />
+                
+                {/* Period selector */}
+                <div className="flex items-center gap-2">
+                  <Label className="text-[10px] text-muted-foreground">Over</Label>
+                  <div className="flex gap-1">
+                    {(['1', '2', '3', '4', '5'] as ReturnPeriod[]).map((period) => (
+                      <Button
+                        key={period}
+                        variant={returnPeriod === period ? 'default' : 'outline'}
+                        size="sm"
+                        className="h-6 w-8 text-[10px] px-0"
+                        onClick={() => setReturnPeriod(period)}
+                      >
+                        {period}Y
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+                <p className="text-[10px] text-muted-foreground">
+                  Cumulative return over the selected time period
+                </p>
               </div>
             )}
           </div>
-          
-          {/* Risk profile filter */}
-          {screenMode === 'expanded' && (
-            <div className="space-y-2">
-              <Label className="text-xs">Risk Profiles</Label>
-              <div className="flex flex-wrap gap-1">
-                {(['conservative', 'moderate', 'growth', 'aggressive'] as const).map(profile => {
-                  const style = RISK_STYLES[profile];
-                  const Icon = style.icon;
-                  const isSelected = selectedRiskProfiles.includes(profile);
-                  
-                  return (
-                    <Button
-                      key={profile}
-                      variant="outline"
-                      size="sm"
-                      className={cn("h-7 text-xs gap-1 capitalize", isSelected && style.bg, isSelected && style.border)}
-                      onClick={() => {
-                        setSelectedRiskProfiles(prev =>
-                          prev.includes(profile) ? prev.filter(p => p !== profile) : [...prev, profile]
-                        );
-                      }}
-                    >
-                      <Icon className={cn("h-3 w-3", isSelected && style.color)} />
-                      {profile}
-                    </Button>
-                  );
-                })}
-              </div>
-            </div>
-          )}
           
           <Button onClick={() => runScreening(1)} className="w-full" disabled={isLoading}>
             {isLoading ? (
@@ -635,10 +619,10 @@ export function DynamicScreener({ onSelect, onComplete }: DynamicScreenerProps) 
                 <SelectValue placeholder="Sort by" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="matchScore">Match Score</SelectItem>
+                <SelectItem value="matchScore">Score</SelectItem>
                 <SelectItem value="sharpe">Sharpe</SelectItem>
-                <SelectItem value="cagr">CAGR</SelectItem>
-                <SelectItem value="maxDrawdown">Drawdown</SelectItem>
+                <SelectItem value="cagr">Avg Returns</SelectItem>
+                <SelectItem value="maxDrawdown">Max Loss</SelectItem>
               </SelectContent>
             </Select>
             <Button
@@ -654,64 +638,25 @@ export function DynamicScreener({ onSelect, onComplete }: DynamicScreenerProps) 
         
         {/* Portfolio list */}
         <ScrollArea className="flex-1">
-          <div className="p-2 space-y-2">
+          <div className="p-3 space-y-3">
             {displayedPortfolios.map((portfolio, idx) => {
               const isExpanded = 'tickers' in portfolio;
               const p = portfolio as any;
-              const riskLevel = p.riskLevel || p.riskProfile || 'moderate';
-              const style = RISK_STYLES[riskLevel as keyof typeof RISK_STYLES] || RISK_STYLES.moderate;
-              const Icon = style.icon;
-              
-              const metrics = p.metrics;
-              const allocations = isExpanded 
-                ? p.tickers.map((t: string, i: number) => ({ ticker: t, weight: p.weights[i] }))
-                : p.allocations;
+              const tickers = isExpanded ? p.tickers : p.allocations.map((a: any) => a.ticker);
+              const weights = isExpanded ? p.weights : p.allocations.map((a: any) => a.weight);
               
               return (
-                <Card 
+                <PortfolioCard
                   key={p.id || idx}
-                  className={cn("cursor-pointer transition-all hover:shadow-md border", style.border)}
+                  name={p.name}
+                  tickers={tickers}
+                  weights={weights}
+                  metrics={p.metrics}
+                  matchScore={p.matchScore}
+                  family={p.family || p.riskLevel || p.riskProfile}
                   onClick={() => handleSelect(portfolio)}
-                >
-                  <CardContent className="p-3">
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <div className={cn("p-1 rounded", style.bg)}>
-                            <Icon className={cn("h-3 w-3", style.color)} />
-                          </div>
-                          <span className="font-medium text-sm truncate">{p.name}</span>
-                          {p.matchScore !== undefined && (
-                            <Badge variant="outline" className="text-[10px] ml-auto">
-                              {p.matchScore}%
-                            </Badge>
-                          )}
-                        </div>
-                        
-                        <div className="flex flex-wrap gap-1 mt-2">
-                          {allocations.slice(0, 4).map((a: any, i: number) => (
-                            <Badge key={i} variant="secondary" className="text-[10px] font-mono">
-                              {a.ticker} {a.weight}%
-                            </Badge>
-                          ))}
-                          {allocations.length > 4 && (
-                            <Badge variant="outline" className="text-[10px]">+{allocations.length - 4}</Badge>
-                          )}
-                        </div>
-                        
-                        <div className="flex gap-3 mt-2 text-xs">
-                          <span className={metrics.cagr >= 0 ? 'text-emerald-500' : 'text-red-500'}>
-                            Avg: {metrics.cagr?.toFixed(1)}%
-                          </span>
-                          <span className="text-muted-foreground">Vol: {metrics.volatility?.toFixed(1)}%</span>
-                          <span className="text-muted-foreground">Sharpe: {metrics.sharpe?.toFixed(2)}</span>
-                          <span className="text-red-400">Loss: -{metrics.maxDrawdown?.toFixed(1)}%</span>
-                        </div>
-                      </div>
-                      <ChevronRight className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                    </div>
-                  </CardContent>
-                </Card>
+                  rank={idx + 1}
+                />
               );
             })}
             
@@ -795,20 +740,12 @@ export function DynamicScreener({ onSelect, onComplete }: DynamicScreenerProps) 
                 <div className="grid grid-cols-2 gap-2">
                   <MetricCard
                     label="CAGR"
-                    displayLabel="Avg Return"
+                    displayLabel="Avg Returns"
                     termKey="cagr"
                     value={selectedPortfolio.metrics.cagr}
                     format="percent"
                     colorize
                     calculationPeriod="Annualized from 1Y data"
-                  />
-                  <MetricCard
-                    label="Volatility"
-                    displayLabel="Volatility"
-                    termKey="volatility"
-                    value={selectedPortfolio.metrics.volatility}
-                    format="percent"
-                    calculationPeriod="30-day rolling std dev"
                   />
                   <MetricCard
                     label="Sharpe Ratio"
@@ -843,6 +780,7 @@ export function DynamicScreener({ onSelect, onComplete }: DynamicScreenerProps) 
                         format="percent"
                         colorize
                         calculationPeriod="1Y cumulative return"
+                        className="col-span-2"
                       />
                     </>
                   )}
@@ -878,7 +816,7 @@ export function DynamicScreener({ onSelect, onComplete }: DynamicScreenerProps) 
                   </div>
                   
                   <p className="text-[10px] text-muted-foreground mb-2">
-                    Click on any holding to see details and run studies
+                    Click on any holding to see company details and run studies
                   </p>
                   
                   <div className="space-y-1.5">

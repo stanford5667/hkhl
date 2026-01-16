@@ -1,31 +1,33 @@
 /**
  * Holding Detail Card Component
- * Shows detailed information about a single holding with inline studies
+ * Shows detailed information about a single holding with real Polygon data
  */
 
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Skeleton } from '@/components/ui/skeleton';
 import { 
   ArrowLeft, 
   TrendingUp, 
   TrendingDown,
   Building2,
-  BarChart3,
   FlaskConical,
   Loader2,
   Globe,
-  DollarSign,
   Gauge,
   Zap,
   Calendar,
   ExternalLink,
+  DollarSign,
+  Factory,
+  MapPin,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
+import { fetchTickerDetails, TickerDetails } from '@/services/tickerDetailsService';
 import { TICKER_MAP } from '@/services/expandedPortfolioUniverse';
 
 interface HoldingDetailCardProps {
@@ -33,14 +35,6 @@ interface HoldingDetailCardProps {
   weight: number;
   annualReturn?: number;
   onBack: () => void;
-}
-
-interface TickerInfo {
-  name: string;
-  category: string;
-  sector?: string;
-  description?: string;
-  assetType?: string;
 }
 
 interface StudyResult {
@@ -52,7 +46,6 @@ interface StudyResult {
 const QUICK_STUDIES = [
   { id: 'rsi_analysis', name: 'RSI', icon: Gauge, color: 'text-emerald-500' },
   { id: 'moving_average_analysis', name: 'Moving Avg', icon: TrendingUp, color: 'text-blue-500' },
-  { id: 'volatility_analysis', name: 'Volatility', icon: Zap, color: 'text-amber-500' },
   { id: 'day_of_week_returns', name: 'Seasonality', icon: Calendar, color: 'text-violet-500' },
 ];
 
@@ -60,16 +53,27 @@ export function HoldingDetailCard({ ticker, weight, annualReturn, onBack }: Hold
   const [activeTab, setActiveTab] = useState<'overview' | 'studies'>('overview');
   const [isLoadingStudy, setIsLoadingStudy] = useState<string | null>(null);
   const [studyResults, setStudyResults] = useState<StudyResult[]>([]);
+  const [polygonDetails, setPolygonDetails] = useState<TickerDetails | null>(null);
+  const [isLoadingDetails, setIsLoadingDetails] = useState(true);
   
-  // Get ticker info from universe
+  // Get basic ticker info from universe (fallback)
   const tickerData = TICKER_MAP.get(ticker);
-  const tickerInfo: TickerInfo = {
-    name: tickerData?.name || ticker,
-    category: tickerData?.category || 'Unknown',
-    sector: tickerData?.sector,
-    description: getTickerDescription(ticker),
-    assetType: (tickerData as any)?.assetType || 'ETF',
-  };
+
+  // Fetch real data from Polygon
+  useEffect(() => {
+    async function loadDetails() {
+      setIsLoadingDetails(true);
+      try {
+        const details = await fetchTickerDetails(ticker);
+        setPolygonDetails(details);
+      } catch (error) {
+        console.error('Failed to load ticker details:', error);
+      } finally {
+        setIsLoadingDetails(false);
+      }
+    }
+    loadDetails();
+  }, [ticker]);
 
   const runStudy = async (studyType: string) => {
     setIsLoadingStudy(studyType);
@@ -97,6 +101,15 @@ export function HoldingDetailCard({ ticker, weight, annualReturn, onBack }: Hold
     }
   };
 
+  // Use Polygon data if available, fallback to TICKER_MAP
+  const displayName = polygonDetails?.name || tickerData?.name || ticker;
+  const displaySector = polygonDetails?.sector || tickerData?.sector || 'N/A';
+  const displayIndustry = polygonDetails?.industry || 'N/A';
+  const displayDescription = polygonDetails?.description || getTickerDescription(ticker);
+  const displayType = polygonDetails?.type || (tickerData as any)?.assetType || 'ETF';
+  const displayMarketCap = polygonDetails?.marketCap;
+  const displayLogo = polygonDetails?.logoUrl;
+
   return (
     <div className="space-y-4">
       {/* Header with back button */}
@@ -104,12 +117,15 @@ export function HoldingDetailCard({ ticker, weight, annualReturn, onBack }: Hold
         <Button variant="ghost" size="sm" onClick={onBack} className="h-7 px-2">
           <ArrowLeft className="h-4 w-4" />
         </Button>
-        <div className="flex-1">
+        <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
+            {displayLogo && (
+              <img src={displayLogo} alt={ticker} className="w-6 h-6 rounded" />
+            )}
             <span className="font-mono font-bold text-lg">{ticker}</span>
             <Badge variant="outline" className="text-xs">{weight}%</Badge>
           </div>
-          <p className="text-xs text-muted-foreground truncate">{tickerInfo.name}</p>
+          <p className="text-xs text-muted-foreground truncate">{displayName}</p>
         </div>
         {annualReturn !== undefined && (
           <div className={cn(
@@ -128,7 +144,7 @@ export function HoldingDetailCard({ ticker, weight, annualReturn, onBack }: Hold
         <TabsList className="grid w-full grid-cols-2 h-8">
           <TabsTrigger value="overview" className="text-xs">
             <Building2 className="h-3 w-3 mr-1" />
-            Overview
+            Details
           </TabsTrigger>
           <TabsTrigger value="studies" className="text-xs">
             <FlaskConical className="h-3 w-3 mr-1" />
@@ -137,62 +153,100 @@ export function HoldingDetailCard({ ticker, weight, annualReturn, onBack }: Hold
         </TabsList>
 
         <TabsContent value="overview" className="mt-3 space-y-3">
-          {/* Asset Info */}
-          <div className="grid grid-cols-2 gap-2">
-            <div className="p-2 rounded bg-muted/50">
-              <div className="text-[10px] text-muted-foreground">Asset Type</div>
-              <div className="text-sm font-medium">{tickerInfo.assetType}</div>
+          {isLoadingDetails ? (
+            <div className="space-y-2">
+              <Skeleton className="h-10 w-full" />
+              <Skeleton className="h-10 w-full" />
+              <Skeleton className="h-20 w-full" />
             </div>
-            <div className="p-2 rounded bg-muted/50">
-              <div className="text-[10px] text-muted-foreground">Category</div>
-              <div className="text-sm font-medium">{tickerInfo.category}</div>
-            </div>
-            {tickerInfo.sector && (
-              <div className="p-2 rounded bg-muted/50 col-span-2">
-                <div className="text-[10px] text-muted-foreground">Sector</div>
-                <div className="text-sm font-medium">{tickerInfo.sector}</div>
+          ) : (
+            <>
+              {/* Asset Info Grid */}
+              <div className="grid grid-cols-2 gap-2">
+                <div className="p-2 rounded bg-muted/50">
+                  <div className="text-[10px] text-muted-foreground flex items-center gap-1">
+                    <Building2 className="h-2.5 w-2.5" />
+                    Type
+                  </div>
+                  <div className="text-sm font-medium">{displayType}</div>
+                </div>
+                <div className="p-2 rounded bg-muted/50">
+                  <div className="text-[10px] text-muted-foreground flex items-center gap-1">
+                    <MapPin className="h-2.5 w-2.5" />
+                    Sector
+                  </div>
+                  <div className="text-sm font-medium truncate">{displaySector}</div>
+                </div>
+                {displayIndustry !== 'N/A' && (
+                  <div className="p-2 rounded bg-muted/50 col-span-2">
+                    <div className="text-[10px] text-muted-foreground flex items-center gap-1">
+                      <Factory className="h-2.5 w-2.5" />
+                      Industry
+                    </div>
+                    <div className="text-sm font-medium">{displayIndustry}</div>
+                  </div>
+                )}
+                {displayMarketCap && (
+                  <div className="p-2 rounded bg-muted/50 col-span-2">
+                    <div className="text-[10px] text-muted-foreground flex items-center gap-1">
+                      <DollarSign className="h-2.5 w-2.5" />
+                      Market Cap
+                    </div>
+                    <div className="text-sm font-medium">
+                      ${(displayMarketCap / 1e9).toFixed(2)}B
+                    </div>
+                  </div>
+                )}
               </div>
-            )}
-          </div>
 
-          {/* Description */}
-          {tickerInfo.description && (
-            <div className="p-3 rounded bg-muted/30 border border-border/50">
-              <p className="text-xs text-muted-foreground leading-relaxed">
-                {tickerInfo.description}
-              </p>
-            </div>
+              {/* Description */}
+              {displayDescription && (
+                <div className="p-3 rounded bg-muted/30 border border-border/50">
+                  <p className="text-xs text-muted-foreground leading-relaxed line-clamp-4">
+                    {displayDescription}
+                  </p>
+                </div>
+              )}
+
+              {/* Quick Actions */}
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="flex-1 text-xs h-8"
+                  onClick={() => setActiveTab('studies')}
+                >
+                  <FlaskConical className="h-3 w-3 mr-1" />
+                  Run Studies
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="flex-1 text-xs h-8"
+                  onClick={() => window.open(`https://finance.yahoo.com/quote/${ticker}`, '_blank')}
+                >
+                  <ExternalLink className="h-3 w-3 mr-1" />
+                  Yahoo Finance
+                </Button>
+              </div>
+
+              {/* Polygon Attribution */}
+              {polygonDetails && (
+                <div className="flex items-center justify-center gap-1 text-[9px] text-muted-foreground/60">
+                  <Globe className="h-2.5 w-2.5" />
+                  Data from Polygon.io
+                </div>
+              )}
+            </>
           )}
-
-          {/* Quick Actions */}
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              className="flex-1 text-xs h-8"
-              onClick={() => setActiveTab('studies')}
-            >
-              <FlaskConical className="h-3 w-3 mr-1" />
-              Run Studies
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              className="flex-1 text-xs h-8"
-              onClick={() => window.open(`https://finance.yahoo.com/quote/${ticker}`, '_blank')}
-            >
-              <ExternalLink className="h-3 w-3 mr-1" />
-              Yahoo Finance
-            </Button>
-          </div>
         </TabsContent>
 
         <TabsContent value="studies" className="mt-3 space-y-3">
           <p className="text-xs text-muted-foreground">
-            Run technical studies on {ticker}
+            Run technical studies on <span className="font-mono font-bold">{ticker}</span>
           </p>
 
-          <div className="grid grid-cols-2 gap-1.5">
+          <div className="grid grid-cols-3 gap-1.5">
             {QUICK_STUDIES.map(study => (
               <Button
                 key={study.id}
@@ -265,9 +319,6 @@ function generateInterpretation(data: any, studyType: string, ticker: string): s
       return data?.trend === 'bullish' 
         ? `${ticker} trading above key moving averages - bullish trend.`
         : `${ticker} trading below key moving averages - caution advised.`;
-    case 'volatility_analysis':
-      const vol = data?.volatility30d || data?.volatility || 15;
-      return `${ticker} 30-day volatility: ${vol.toFixed(1)}%. ${vol > 25 ? 'Higher than average risk.' : 'Moderate volatility.'}`;
     case 'day_of_week_returns':
       return data?.bestDay ? `${ticker} historically performs best on ${data.bestDay}s.` : 'Seasonality analysis complete.';
     default:
