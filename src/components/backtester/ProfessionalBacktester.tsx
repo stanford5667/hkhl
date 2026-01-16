@@ -67,7 +67,6 @@ import {
   SectionDivider,
 } from './TerminalDesignSystem';
 import { AllocationDonut, RiskScore } from './AdvancedAnalytics';
-import { BacktestResultsPanel, BacktestResultData } from './BacktestResultsPanel';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // TYPES
@@ -1105,49 +1104,286 @@ export function ProfessionalBacktester() {
         {/* ─────────────────────────────────────────────────────────────────────────
             CENTER - Results
             ───────────────────────────────────────────────────────────────────────── */}
-        <div className="flex-1 flex flex-col min-w-0 overflow-auto bg-background">
+        <div className="flex-1 flex flex-col min-w-0">
           {result ? (
-            <div className="p-4">
-              <BacktestResultsPanel 
-                result={{
-                  dates: result.dates,
-                  portfolioValues: result.portfolioValues,
-                  benchmarkValues: result.benchmarkValues,
-                  dailyReturns: result.dailyReturns,
-                  benchmarkReturns: result.benchmarkReturns,
-                  drawdowns: result.drawdownSeries,
-                  metrics: {
-                    totalReturn: result.metrics.totalReturn,
-                    cagr: result.metrics.cagr,
-                    volatility: result.metrics.volatility,
-                    sharpeRatio: result.metrics.sharpeRatio,
-                    sortinoRatio: result.metrics.sortinoRatio,
-                    maxDrawdown: result.metrics.maxDrawdown,
-                    beta: result.metrics.beta,
-                    alpha: result.metrics.alpha,
-                    calmarRatio: result.metrics.calmarRatio,
-                    treynorRatio: result.metrics.treynorRatio,
-                  },
-                  yearlyReturns: result.yearlyReturns,
-                  monthlyReturns: result.monthlyReturns,
-                }}
-                initialCapital={initialCapital}
-              />
-            </div>
+            <>
+              {/* Metrics bar */}
+              <div className="flex-shrink-0 p-3 border-b border-[rgb(33,38,45)] bg-[rgb(13,17,23)]">
+                <div className="grid grid-cols-6 gap-2">
+                  <MetricCell
+                    label="Total Return"
+                    value={`${result.metrics.totalReturn >= 0 ? '+' : ''}${result.metrics.totalReturn.toFixed(1)}%`}
+                    size="sm"
+                    variant={result.metrics.totalReturn >= 0 ? 'default' : 'danger'}
+                  />
+                  <MetricCell
+                    label="CAGR"
+                    value={`${result.metrics.cagr >= 0 ? '+' : ''}${result.metrics.cagr.toFixed(1)}%`}
+                    size="sm"
+                  />
+                  <MetricCell
+                    label="Volatility"
+                    value={`${result.metrics.volatility.toFixed(1)}%`}
+                    size="sm"
+                  />
+                  <MetricCell
+                    label="Sharpe"
+                    value={result.metrics.sharpeRatio.toFixed(2)}
+                    size="sm"
+                    variant={result.metrics.sharpeRatio >= 1 ? 'highlight' : 'default'}
+                  />
+                  <MetricCell
+                    label="Max DD"
+                    value={`-${result.metrics.maxDrawdown.toFixed(1)}%`}
+                    size="sm"
+                    variant={result.metrics.maxDrawdown > 30 ? 'danger' : result.metrics.maxDrawdown > 20 ? 'warning' : 'default'}
+                  />
+                  <MetricCell
+                    label="Final Value"
+                    value={`$${(result.portfolioValues[result.portfolioValues.length - 1] / 1000).toFixed(0)}k`}
+                    subValue={`from $${(initialCapital / 1000).toFixed(0)}k`}
+                    size="sm"
+                  />
+                </div>
+              </div>
+              
+              {/* Chart tabs */}
+              <div className="flex-1 flex flex-col min-h-0">
+                <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
+                  <div className="flex-shrink-0 px-3 pt-2 border-b border-[rgb(33,38,45)] bg-[rgb(13,17,23)]">
+                    <TabsList className="h-8 bg-transparent gap-1 p-0">
+                      {[
+                        { value: 'overview', label: 'Growth' },
+                        { value: 'drawdown', label: 'Drawdown' },
+                        { value: 'yearly', label: 'Annual' },
+                        { value: 'monthly', label: 'Monthly' },
+                      ].map(tab => (
+                        <TabsTrigger
+                          key={tab.value}
+                          value={tab.value}
+                          className={cn(
+                            "h-8 px-3 text-xs font-medium rounded-none border-b-2 border-transparent",
+                            "data-[state=active]:border-[rgb(56,139,253)] data-[state=active]:text-[rgb(230,237,243)]",
+                            "text-[rgb(87,96,106)] hover:text-[rgb(139,148,158)]"
+                          )}
+                        >
+                          {tab.label}
+                        </TabsTrigger>
+                      ))}
+                    </TabsList>
+                  </div>
+                  
+                  <TabsContent value="overview" className="flex-1 p-3 mt-0">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <AreaChart data={chartData}>
+                        <defs>
+                          <linearGradient id="portfolioGrad" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor="rgb(56,139,253)" stopOpacity={0.3}/>
+                            <stop offset="100%" stopColor="rgb(56,139,253)" stopOpacity={0}/>
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid strokeDasharray="3 3" stroke="rgb(33,38,45)" />
+                        <XAxis 
+                          dataKey="date" 
+                          tick={{ fill: 'rgb(87,96,106)', fontSize: 10, fontFamily: 'monospace' }}
+                          tickFormatter={(v) => new Date(v).getFullYear().toString()}
+                          axisLine={{ stroke: 'rgb(33,38,45)' }}
+                          tickLine={{ stroke: 'rgb(33,38,45)' }}
+                        />
+                        <YAxis 
+                          tick={{ fill: 'rgb(87,96,106)', fontSize: 10, fontFamily: 'monospace' }}
+                          tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`}
+                          width={50}
+                          axisLine={{ stroke: 'rgb(33,38,45)' }}
+                          tickLine={{ stroke: 'rgb(33,38,45)' }}
+                        />
+                        <RechartsTooltip
+                          contentStyle={{
+                            backgroundColor: 'rgb(17,21,28)',
+                            border: '1px solid rgb(33,38,45)',
+                            borderRadius: '8px',
+                            fontSize: 11,
+                            fontFamily: 'monospace',
+                          }}
+                          formatter={(value: number) => [`$${value.toLocaleString()}`, '']}
+                          labelFormatter={(label) => new Date(label).toLocaleDateString()}
+                        />
+                        <Area
+                          type="monotone"
+                          dataKey="benchmark"
+                          stroke="rgb(87,96,106)"
+                          strokeWidth={1}
+                          fill="none"
+                          strokeDasharray="4 4"
+                        />
+                        <Area
+                          type="monotone"
+                          dataKey="portfolio"
+                          stroke="rgb(56,139,253)"
+                          strokeWidth={2}
+                          fill="url(#portfolioGrad)"
+                        />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  </TabsContent>
+                  
+                  <TabsContent value="drawdown" className="flex-1 p-3 mt-0">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <AreaChart data={chartData}>
+                        <defs>
+                          <linearGradient id="ddGrad" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor="rgb(248,81,73)" stopOpacity={0.3}/>
+                            <stop offset="100%" stopColor="rgb(248,81,73)" stopOpacity={0.05}/>
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid strokeDasharray="3 3" stroke="rgb(33,38,45)" />
+                        <XAxis 
+                          dataKey="date" 
+                          tick={{ fill: 'rgb(87,96,106)', fontSize: 10, fontFamily: 'monospace' }}
+                          tickFormatter={(v) => new Date(v).getFullYear().toString()}
+                          axisLine={{ stroke: 'rgb(33,38,45)' }}
+                        />
+                        <YAxis 
+                          tick={{ fill: 'rgb(87,96,106)', fontSize: 10, fontFamily: 'monospace' }}
+                          tickFormatter={(v) => `${v.toFixed(0)}%`}
+                          domain={['auto', 0]}
+                          width={40}
+                          axisLine={{ stroke: 'rgb(33,38,45)' }}
+                        />
+                        <RechartsTooltip
+                          contentStyle={{
+                            backgroundColor: 'rgb(17,21,28)',
+                            border: '1px solid rgb(33,38,45)',
+                            borderRadius: '8px',
+                            fontSize: 11,
+                            fontFamily: 'monospace',
+                          }}
+                          formatter={(value: number) => [`${value.toFixed(2)}%`, 'Drawdown']}
+                          labelFormatter={(label) => new Date(label).toLocaleDateString()}
+                        />
+                        <ReferenceLine 
+                          y={-result.metrics.maxDrawdown} 
+                          stroke="rgb(248,81,73)" 
+                          strokeDasharray="5 5"
+                          label={{ 
+                            value: `Max: -${result.metrics.maxDrawdown.toFixed(1)}%`, 
+                            fill: 'rgb(248,81,73)', 
+                            fontSize: 10,
+                            fontFamily: 'monospace',
+                          }}
+                        />
+                        <Area
+                          type="monotone"
+                          dataKey="drawdown"
+                          stroke="rgb(248,81,73)"
+                          strokeWidth={1.5}
+                          fill="url(#ddGrad)"
+                        />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  </TabsContent>
+                  
+                  <TabsContent value="yearly" className="flex-1 p-3 mt-0">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <ComposedChart data={result.yearlyReturns}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="rgb(33,38,45)" />
+                        <XAxis 
+                          dataKey="year" 
+                          tick={{ fill: 'rgb(87,96,106)', fontSize: 10, fontFamily: 'monospace' }}
+                          axisLine={{ stroke: 'rgb(33,38,45)' }}
+                        />
+                        <YAxis 
+                          tick={{ fill: 'rgb(87,96,106)', fontSize: 10, fontFamily: 'monospace' }}
+                          tickFormatter={(v) => `${v.toFixed(0)}%`}
+                          width={40}
+                          axisLine={{ stroke: 'rgb(33,38,45)' }}
+                        />
+                        <RechartsTooltip
+                          contentStyle={{
+                            backgroundColor: 'rgb(17,21,28)',
+                            border: '1px solid rgb(33,38,45)',
+                            borderRadius: '8px',
+                            fontSize: 11,
+                            fontFamily: 'monospace',
+                          }}
+                          formatter={(value: number, name: string) => [
+                            `${value.toFixed(1)}%`,
+                            name === 'return' ? 'Portfolio' : 'Benchmark'
+                          ]}
+                        />
+                        <ReferenceLine y={0} stroke="rgb(48,54,61)" />
+                        <Bar 
+                          dataKey="return" 
+                          radius={[2, 2, 0, 0]}
+                          name="return"
+                        >
+                          {result.yearlyReturns.map((entry, index) => (
+                            <rect
+                              key={index}
+                              fill={entry.return >= 0 ? 'rgb(35,197,94)' : 'rgb(248,81,73)'}
+                            />
+                          ))}
+                        </Bar>
+                        <Line 
+                          type="monotone" 
+                          dataKey="benchmark" 
+                          stroke="rgb(139,148,158)" 
+                          strokeWidth={2}
+                          dot={{ fill: 'rgb(139,148,158)', r: 3 }}
+                          name="benchmark"
+                        />
+                      </ComposedChart>
+                    </ResponsiveContainer>
+                  </TabsContent>
+                  
+                  <TabsContent value="monthly" className="flex-1 p-3 mt-0 overflow-auto">
+                    <div className="grid grid-cols-13 gap-0.5 text-center">
+                      <div className="text-[9px] font-medium text-[rgb(87,96,106)]">Year</div>
+                      {['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'].map(m => (
+                        <div key={m} className="text-[9px] font-medium text-[rgb(87,96,106)]">{m}</div>
+                      ))}
+                      
+                      {/* Group monthly returns by year */}
+                      {Object.entries(
+                        result.monthlyReturns.reduce((acc, m) => {
+                          const [year, month] = m.month.split('-');
+                          if (!acc[year]) acc[year] = {};
+                          acc[year][parseInt(month)] = m.return;
+                          return acc;
+                        }, {} as Record<string, Record<number, number>>)
+                      ).map(([year, months]) => (
+                        <React.Fragment key={year}>
+                          <div className="text-[10px] font-mono text-[rgb(139,148,158)] py-1">{year}</div>
+                          {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(m => (
+                            <HeatMapCell
+                              key={m}
+                              value={months[m] || 0}
+                              min={-15}
+                              max={15}
+                              format={(v) => v !== 0 ? `${v.toFixed(1)}` : '-'}
+                            />
+                          ))}
+                        </React.Fragment>
+                      ))}
+                    </div>
+                  </TabsContent>
+                </Tabs>
+              </div>
+            </>
           ) : (
             /* Empty state */
-            <div className="flex-1 flex items-center justify-center bg-background">
+            <div className="flex-1 flex items-center justify-center bg-[rgb(8,12,16)]">
               <div className="text-center max-w-md px-6">
-                <div className="w-16 h-16 rounded-2xl bg-secondary mx-auto mb-4 flex items-center justify-center">
-                  <Activity className="h-8 w-8 text-muted-foreground" />
+                <div className="w-16 h-16 rounded-2xl bg-[rgb(17,21,28)] mx-auto mb-4 flex items-center justify-center">
+                  <Activity className="h-8 w-8 text-[rgb(87,96,106)]" />
                 </div>
-                <h3 className="text-lg font-semibold text-foreground mb-2">
+                <h3 className="text-lg font-semibold text-[rgb(230,237,243)] mb-2">
                   Build Your Portfolio
                 </h3>
-                <p className="text-sm text-muted-foreground mb-6">
+                <p className="text-sm text-[rgb(87,96,106)] mb-6">
                   Add assets to your portfolio, adjust weights, then run a backtest to see historical performance.
                 </p>
-                <div className="flex items-center justify-center gap-2 text-[10px] text-muted-foreground">
+                <div className="flex items-center justify-center gap-2 text-[10px] text-[rgb(87,96,106)]">
                   <Kbd>⌘</Kbd>
                   <Kbd>K</Kbd>
                   <span>to search</span>
@@ -1161,6 +1397,135 @@ export function ProfessionalBacktester() {
           )}
         </div>
 
+        {/* ─────────────────────────────────────────────────────────────────────────
+            RIGHT PANEL - Advanced Metrics (only when results exist)
+            ───────────────────────────────────────────────────────────────────────── */}
+        {result && (
+          <div className="w-72 flex-shrink-0 border-l border-[rgb(33,38,45)] bg-[rgb(13,17,23)] overflow-y-auto">
+            <PanelHeader title="Risk Analytics" />
+            
+            <div className="p-3 space-y-4">
+              {/* Overall Risk Score */}
+              <RiskScore 
+                score={Math.max(0, Math.min(100, 
+                  50 + 
+                  result.metrics.sharpeRatio * 15 + 
+                  (result.metrics.alpha > 0 ? 10 : -5) +
+                  (result.metrics.maxDrawdown < 20 ? 15 : result.metrics.maxDrawdown < 30 ? 5 : -10) +
+                  (result.metrics.sortinoRatio > 1 ? 10 : 0)
+                ))}
+                label="Portfolio Score"
+                description="Based on risk-adjusted returns, drawdown, and alpha"
+              />
+              
+              {/* Risk-adjusted returns */}
+              <div>
+                <SectionDivider label="Risk-Adjusted" className="mb-2" />
+                <div className="grid grid-cols-2 gap-2">
+                  <MetricCell label="Sharpe" value={result.metrics.sharpeRatio.toFixed(2)} size="sm" />
+                  <MetricCell label="Sortino" value={result.metrics.sortinoRatio.toFixed(2)} size="sm" />
+                  <MetricCell label="Calmar" value={result.metrics.calmarRatio.toFixed(2)} size="sm" />
+                  <MetricCell label="Treynor" value={result.metrics.treynorRatio.toFixed(2)} size="sm" />
+                </div>
+              </div>
+              
+              {/* Drawdown metrics */}
+              <div>
+                <SectionDivider label="Drawdown" className="mb-2" />
+                <div className="grid grid-cols-2 gap-2">
+                  <MetricCell 
+                    label="Max DD" 
+                    value={`-${result.metrics.maxDrawdown.toFixed(1)}%`} 
+                    size="sm"
+                    variant="danger"
+                  />
+                  <MetricCell 
+                    label="Current DD" 
+                    value={`-${result.metrics.currentDrawdown.toFixed(1)}%`} 
+                    size="sm"
+                    variant={result.metrics.currentDrawdown > 10 ? 'warning' : 'default'}
+                  />
+                  <MetricCell label="Ulcer Index" value={result.metrics.ulcerIndex.toFixed(2)} size="sm" />
+                  <MetricCell label="Pain Index" value={result.metrics.painIndex.toFixed(2)} size="sm" />
+                </div>
+              </div>
+              
+              {/* Benchmark comparison */}
+              <div>
+                <SectionDivider label="vs Benchmark" className="mb-2" />
+                <div className="grid grid-cols-2 gap-2">
+                  <MetricCell label="Beta" value={result.metrics.beta.toFixed(2)} size="sm" />
+                  <MetricCell 
+                    label="Alpha" 
+                    value={`${result.metrics.alpha >= 0 ? '+' : ''}${result.metrics.alpha.toFixed(2)}%`} 
+                    size="sm"
+                    variant={result.metrics.alpha >= 0 ? 'highlight' : 'danger'}
+                  />
+                  <MetricCell label="Up Capture" value={`${result.metrics.upCapture.toFixed(0)}%`} size="sm" />
+                  <MetricCell label="Down Capture" value={`${result.metrics.downCapture.toFixed(0)}%`} size="sm" />
+                  <MetricCell label="Info Ratio" value={result.metrics.informationRatio.toFixed(2)} size="sm" />
+                  <MetricCell label="Track Error" value={`${result.metrics.trackingError.toFixed(1)}%`} size="sm" />
+                </div>
+              </div>
+              
+              {/* Tail risk */}
+              <div>
+                <SectionDivider label="Tail Risk" className="mb-2" />
+                <div className="grid grid-cols-2 gap-2">
+                  <MetricCell label="VaR 95%" value={`${result.metrics.var95.toFixed(2)}%`} size="sm" />
+                  <MetricCell label="CVaR 95%" value={`${result.metrics.cvar95.toFixed(2)}%`} size="sm" />
+                </div>
+              </div>
+              
+              {/* Return distribution */}
+              <div>
+                <SectionDivider label="Returns" className="mb-2" />
+                <div className="grid grid-cols-2 gap-2">
+                  <MetricCell label="Win Rate" value={`${result.metrics.winRate.toFixed(0)}%`} size="sm" />
+                  <MetricCell label="Avg Win" value={`+${result.metrics.avgWin.toFixed(2)}%`} size="sm" />
+                  <MetricCell label="Avg Loss" value={`${result.metrics.avgLoss.toFixed(2)}%`} size="sm" />
+                  <MetricCell 
+                    label="Best Day" 
+                    value={`+${result.metrics.bestDay.toFixed(2)}%`} 
+                    size="sm"
+                    variant="highlight"
+                  />
+                  <MetricCell 
+                    label="Worst Day" 
+                    value={`${result.metrics.worstDay.toFixed(2)}%`} 
+                    size="sm"
+                    variant="danger"
+                  />
+                  <MetricCell 
+                    label="Best Month" 
+                    value={`+${result.metrics.bestMonth.toFixed(1)}%`} 
+                    size="sm"
+                  />
+                  <MetricCell 
+                    label="Worst Month" 
+                    value={`${result.metrics.worstMonth.toFixed(1)}%`} 
+                    size="sm"
+                  />
+                  <MetricCell 
+                    label="Best Year" 
+                    value={`+${result.metrics.bestYear.toFixed(1)}%`} 
+                    size="sm"
+                  />
+                  <MetricCell 
+                    label="Worst Year" 
+                    value={`${result.metrics.worstYear.toFixed(1)}%`} 
+                    size="sm"
+                  />
+                  <MetricCell 
+                    label="% Pos Months" 
+                    value={`${result.metrics.positiveMonths.toFixed(0)}%`} 
+                    size="sm"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* ═══════════════════════════════════════════════════════════════════════════
