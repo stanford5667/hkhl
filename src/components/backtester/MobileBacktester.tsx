@@ -508,7 +508,7 @@ export function MobileBacktester() {
         if (!error && data && data.length >= 20) {
           // Normalize date format to YYYY-MM-DD
           const normalizedData = data.map(d => ({
-            date: typeof d.bar_date === 'string' ? d.bar_date.split('T')[0] : d.bar_date,
+            date: String(d.bar_date).split('T')[0],
             return: d.daily_return || 0,
           }));
           assetData[asset.symbol] = normalizedData;
@@ -572,7 +572,7 @@ export function MobileBacktester() {
         if (data && data.length >= 20) {
           // Normalize date format to YYYY-MM-DD
           benchmarkData = data.map(d => ({ 
-            date: typeof d.bar_date === 'string' ? d.bar_date.split('T')[0] : d.bar_date, 
+            date: String(d.bar_date).split('T')[0],
             return: d.daily_return || 0 
           }));
         }
@@ -1621,13 +1621,13 @@ export function MobileBacktester() {
                         <div className="p-3 rounded-lg bg-secondary/30">
                           <p className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wider">52W High</p>
                           <p className="font-mono font-semibold text-emerald-500 text-sm sm:text-base">
-                            ${selectedAsset.high52w?.toFixed(2) || 'N/A'}
+                            {'$'}{selectedAsset.high52w?.toFixed(2) || 'N/A'}
                           </p>
                         </div>
                         <div className="p-3 rounded-lg bg-secondary/30">
                           <p className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wider">52W Low</p>
                           <p className="font-mono font-semibold text-rose-500 text-sm sm:text-base">
-                            ${selectedAsset.low52w?.toFixed(2) || 'N/A'}
+                            {'$'}{selectedAsset.low52w?.toFixed(2) || 'N/A'}
                           </p>
                         </div>
                         <div className="p-3 rounded-lg bg-secondary/30">
@@ -1674,11 +1674,11 @@ export function MobileBacktester() {
                           />
                         </div>
                         <div className="flex justify-between mt-3 text-xs text-muted-foreground font-mono">
-                          <span>${selectedAsset.low52w.toFixed(2)}</span>
+                          <span>{'$'}{selectedAsset.low52w.toFixed(2)}</span>
                           <span className="font-semibold text-foreground bg-secondary px-2 py-0.5 rounded">
-                            ${selectedAsset.price.toFixed(2)}
+                            {'$'}{selectedAsset.price.toFixed(2)}
                           </span>
-                          <span>${selectedAsset.high52w.toFixed(2)}</span>
+                          <span>{'$'}{selectedAsset.high52w.toFixed(2)}</span>
                         </div>
                       </CardContent>
                     </Card>
@@ -1712,7 +1712,7 @@ export function MobileBacktester() {
                           <div className="flex justify-between text-sm p-3 rounded-lg bg-secondary/30">
                             <span className="text-muted-foreground">Estimated Value</span>
                             <span className="font-mono font-bold text-primary">
-                              ${((initialCapital * selectedAsset.weight / 100)).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                              {'$'}{((initialCapital * selectedAsset.weight / 100)).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
                             </span>
                           </div>
                         )}
