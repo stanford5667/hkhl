@@ -391,7 +391,7 @@ serve(async (req) => {
       pageSize = 20,
       sortBy = 'sharpe',
       sortDirection = 'desc',
-      limit = 50000,
+      limit = 5000, // Reduced from 50000 to prevent edge function resource exhaustion
       useCache: requestedUseCache = true,
       refreshCache = false,
     } = body;
@@ -653,8 +653,8 @@ serve(async (req) => {
       }
     }
 
-    // 3-asset combinations (limited for performance)
-    const maxThreeAsset = Math.min(20000, limit - portfolioCount);
+    // 3-asset combinations (limited for performance in edge function)
+    const maxThreeAsset = Math.min(2000, limit - portfolioCount);
     let threeCount = 0;
     for (const combo of combinations(validTickers, 3)) {
       if (threeCount >= maxThreeAsset) break;
