@@ -422,7 +422,7 @@ export function DynamicScreener({ onSelect, onComplete }: DynamicScreenerProps) 
   return (
     <div className="flex flex-col h-full bg-background">
       {/* Header */}
-      <div className="flex-shrink-0 px-4 py-4 border-b space-y-4">
+      <div className="flex-shrink-0 px-3 py-2 border-b space-y-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Sparkles className="h-5 w-5 text-primary" />
