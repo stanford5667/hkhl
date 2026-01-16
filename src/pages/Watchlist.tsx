@@ -22,6 +22,7 @@ import {
 import { Skeleton } from '@/components/ui/skeleton';
 import { useWatchlistWithQuotes, WatchlistItemWithQuote } from '@/hooks/useWatchlistWithQuotes';
 import { cn } from '@/lib/utils';
+import { PageHeader, PAGE_ICON_PRESETS } from '@/components/layout/PageHeader';
 
 function StatCard({ label, value, icon }: { label: string; value: string | number; icon?: React.ReactNode }) {
   return (
@@ -184,20 +185,13 @@ export default function Watchlist() {
   return (
     <div className="p-4 sm:p-6 space-y-4 sm:space-y-6 animate-fade-up">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
-        <div className="flex items-center gap-3">
-          <div className="p-2.5 rounded-xl bg-gradient-to-br from-amber-500/20 to-yellow-500/10 border border-amber-500/30">
-            <Star className="h-5 w-5 sm:h-6 sm:w-6 text-amber-400" />
-          </div>
-          <div>
-            <h1 className="text-xl sm:text-2xl font-bold text-foreground">Watchlist</h1>
-            <p className="text-muted-foreground text-sm sm:text-base mt-0.5">
-              Track stocks and get price updates
-            </p>
-          </div>
-        </div>
-        <AddStockDialog onAdd={handleAdd} isAdding={isAdding} />
-      </div>
+      <PageHeader
+        icon={Star}
+        title="Watchlist"
+        subtitle="Track stocks and get price updates"
+        {...PAGE_ICON_PRESETS.amber}
+        actions={<AddStockDialog onAdd={handleAdd} isAdding={isAdding} />}
+      />
 
       {/* Stats Row */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

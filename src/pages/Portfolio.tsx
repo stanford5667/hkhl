@@ -47,29 +47,10 @@ import { PortfolioAnalysisTabs } from '@/components/portfolio/PortfolioAnalysisT
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { HelpCircle, Info, BookOpen, Lightbulb, Calculator, ExternalLink } from 'lucide-react';
 import { financialTerms } from '@/data/financialTerms';
+import { PageHeader, PAGE_ICON_PRESETS } from '@/components/layout/PageHeader';
+import { containerVariants, itemVariants } from '@/lib/animations';
 
-// Animation variants
-const containerVariants = {
-  hidden: {
-    opacity: 0
-  },
-  visible: {
-    opacity: 1,
-    transition: {
-      staggerChildren: 0.1
-    }
-  }
-};
-const itemVariants = {
-  hidden: {
-    opacity: 0,
-    y: 20
-  },
-  visible: {
-    opacity: 1,
-    y: 0
-  }
-};
+// Animation variants imported from lib/animations
 
 // Asset class configuration
 const ASSET_CLASS_CONFIG: Record<AssetClass, {
@@ -1263,36 +1244,30 @@ export default function Portfolio() {
       <MarketDataPausedBanner />
 
       {/* Header - Unified Style */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
-        <div className="flex items-center gap-3">
-          <div className="p-2.5 rounded-xl bg-gradient-to-br from-emerald-500/20 to-teal-500/10 border border-emerald-500/30">
-            <Wallet className="h-5 w-5 sm:h-6 sm:w-6 text-emerald-400" />
+      <PageHeader
+        icon={Wallet}
+        title="Portfolio"
+        subtitle={`${activePortfolio?.name || 'My Portfolio'} • ${perfPositionCount > 0 ? perfPositionCount : allHoldings.length} Holdings`}
+        {...PAGE_ICON_PRESETS.emerald}
+        actions={
+          <div className="flex items-center gap-2 flex-wrap">
+            <PortfolioSwitcher portfolios={portfolios} activePortfolioId={activePortfolioId} onSelect={setActivePortfolio} onCreateNew={() => setShowCreatePortfolioDialog(true)} onDelete={deletePortfolio} onDuplicate={duplicatePortfolio} onRename={handleRenamePortfolio} isLoading={portfoliosLoading} isDeleting={isDeleting} />
+            <Button variant="outline" size="sm" onClick={handleRefresh} disabled={isRefreshing}>
+              <RefreshCw className={cn("h-4 w-4", isRefreshing && "animate-spin")} />
+            </Button>
+            <Button variant="outline" size="sm" className="relative">
+              <AlertTriangle className="h-4 w-4" />
+              {stats.overdueTasks > 0 && <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-destructive text-[10px] font-medium flex items-center justify-center text-destructive-foreground">
+                  {stats.overdueTasks}
+                </span>}
+            </Button>
+            <Button onClick={() => setShowAddDialog(true)} size="sm" className="gap-2">
+              <Plus className="h-4 w-4" />
+              Add Position
+            </Button>
           </div>
-          <div>
-            <h1 className="text-xl sm:text-2xl font-bold text-foreground">Portfolio</h1>
-            <p className="text-muted-foreground text-sm sm:text-base mt-0.5">
-              {activePortfolio?.name || 'My Portfolio'} • {perfPositionCount > 0 ? perfPositionCount : allHoldings.length} Holdings
-            </p>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2 flex-wrap">
-          <PortfolioSwitcher portfolios={portfolios} activePortfolioId={activePortfolioId} onSelect={setActivePortfolio} onCreateNew={() => setShowCreatePortfolioDialog(true)} onDelete={deletePortfolio} onDuplicate={duplicatePortfolio} onRename={handleRenamePortfolio} isLoading={portfoliosLoading} isDeleting={isDeleting} />
-          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={isRefreshing}>
-            <RefreshCw className={cn("h-4 w-4", isRefreshing && "animate-spin")} />
-          </Button>
-          <Button variant="outline" size="sm" className="relative">
-            <AlertTriangle className="h-4 w-4" />
-            {stats.overdueTasks > 0 && <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-destructive text-[10px] font-medium flex items-center justify-center text-destructive-foreground">
-                {stats.overdueTasks}
-              </span>}
-          </Button>
-          <Button onClick={() => setShowAddDialog(true)} size="sm" className="gap-2">
-            <Plus className="h-4 w-4" />
-            Add Position
-          </Button>
-        </div>
-      </div>
+        }
+      />
 
       {/* Create Portfolio Dialog */}
       <CreatePortfolioDialog open={showCreatePortfolioDialog} onOpenChange={setShowCreatePortfolioDialog} onSave={handleCreatePortfolio} isSaving={isSaving} />
