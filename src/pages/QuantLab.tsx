@@ -1249,6 +1249,20 @@ function QuantLabContent(props: any) {
           </div>
         </div>
         
+        {/* Selected Ticker Indicator - Always visible */}
+        <div className="px-3 md:px-6 pb-3 flex items-center gap-3">
+          <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-primary/10 to-primary/5 border-2 border-primary/30">
+            <TrendingUp className="h-5 w-5 text-primary" />
+            <span className="text-xs font-medium text-muted-foreground">Analyzing:</span>
+            <span className="text-xl font-bold font-mono text-primary">${selectedTicker || 'Select Ticker'}</span>
+          </div>
+          <div className="hidden md:flex items-center gap-2 text-xs text-muted-foreground">
+            <span className="px-2 py-1 bg-muted rounded">{period}</span>
+            <span>•</span>
+            <span>{selectedStudies.length} {selectedStudies.length === 1 ? 'study' : 'studies'} selected</span>
+          </div>
+        </div>
+        
         {/* Mobile Quick Tickers - Larger buttons */}
         <div className="md:hidden flex gap-2 px-3 pb-3 overflow-x-auto">
           {['AAPL', 'MSFT', 'NVDA', 'SPY', 'QQQ', 'TSLA', 'AMZN'].map((t) => (
@@ -1283,22 +1297,30 @@ function QuantLabContent(props: any) {
                 <div className="w-10 h-1 rounded-full bg-muted-foreground/30" />
               </div>
               
-              <div className="px-4 py-3 border-b bg-muted/30 flex items-center justify-between">
-                <span className="text-sm font-bold">Select Studies</span>
-                <div className="flex items-center gap-2">
-                  {selectedStudies.length > 0 && (
-                    <Badge variant="default" className="text-xs px-2.5 py-1">
-                      {selectedStudies.length} selected
-                    </Badge>
-                  )}
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="md:hidden h-8 w-8 p-0"
-                    onClick={() => setShowStudyPanel(false)}
-                  >
-                    <X className="h-5 w-5" />
-                  </Button>
+              {/* Panel Header with Ticker */}
+              <div className="px-4 py-3 border-b bg-muted/30">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-bold">Select Studies</span>
+                  <div className="flex items-center gap-2">
+                    {selectedStudies.length > 0 && (
+                      <Badge variant="default" className="text-xs px-2.5 py-1">
+                        {selectedStudies.length} selected
+                      </Badge>
+                    )}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="md:hidden h-8 w-8 p-0"
+                      onClick={() => setShowStudyPanel(false)}
+                    >
+                      <X className="h-5 w-5" />
+                    </Button>
+                  </div>
+                </div>
+                {/* Ticker indicator in panel */}
+                <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-primary/10 border border-primary/20">
+                  <span className="text-[11px] text-muted-foreground">For:</span>
+                  <span className="font-bold font-mono text-primary">${selectedTicker || '---'}</span>
                 </div>
               </div>
               
@@ -1418,41 +1440,55 @@ function QuantLabContent(props: any) {
 
         {/* Right Panel - Results */}
         <div className="flex-1 flex flex-col overflow-hidden bg-background">
-          {/* Selected Studies Bar */}
+          {/* Selected Studies Bar with Ticker */}
           {selectedStudies.length > 0 && (
-            <div className="shrink-0 px-3 md:px-4 py-2.5 md:py-3 border-b bg-muted/20 flex items-center gap-2 md:gap-3 overflow-x-auto">
-              <span className="text-xs text-muted-foreground shrink-0 font-medium">Queue:</span>
-              {selectedStudies.map((studyId) => {
-                const study = getStudy(studyId);
-                const hasResult = !!results[studyId];
-                return (
-                  <Badge
-                    key={studyId}
-                    variant={hasResult ? 'default' : 'secondary'}
-                    className={cn(
-                      "gap-1.5 pr-1.5 text-xs shrink-0 py-1 h-7",
-                      hasResult && "bg-emerald-500 hover:bg-emerald-600"
-                    )}
-                  >
-                    <span className="max-w-[100px] truncate">{study?.name}</span>
-                    {hasResult && <CheckCircle2 className="h-3.5 w-3.5" />}
-                    <button
-                      onClick={() => removeStudy(studyId)}
-                      className="ml-1 hover:bg-black/20 rounded p-0.5"
+            <div className="shrink-0 px-3 md:px-4 py-2.5 md:py-3 border-b bg-muted/20">
+              {/* Ticker + Period context */}
+              <div className="flex items-center gap-2 mb-2">
+                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-primary/10 border border-primary/20">
+                  <span className="text-[10px] text-muted-foreground">Ticker:</span>
+                  <span className="font-bold font-mono text-sm text-primary">${selectedTicker}</span>
+                </div>
+                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-muted border">
+                  <span className="text-[10px] text-muted-foreground">Period:</span>
+                  <span className="font-medium text-sm">{period}</span>
+                </div>
+              </div>
+              {/* Study queue */}
+              <div className="flex items-center gap-2 md:gap-3 overflow-x-auto">
+                <span className="text-xs text-muted-foreground shrink-0 font-medium">Queue:</span>
+                {selectedStudies.map((studyId) => {
+                  const study = getStudy(studyId);
+                  const hasResult = !!results[studyId];
+                  return (
+                    <Badge
+                      key={studyId}
+                      variant={hasResult ? 'default' : 'secondary'}
+                      className={cn(
+                        "gap-1.5 pr-1.5 text-xs shrink-0 py-1 h-7",
+                        hasResult && "bg-emerald-500 hover:bg-emerald-600"
+                      )}
                     >
-                      <X className="h-3.5 w-3.5" />
-                    </button>
-                  </Badge>
-                );
-              })}
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => { setSelectedStudies([]); setResults({}); }}
-                className="h-7 px-3 text-xs ml-auto shrink-0"
-              >
-                Clear
-              </Button>
+                      <span className="max-w-[100px] truncate">{study?.name}</span>
+                      {hasResult && <CheckCircle2 className="h-3.5 w-3.5" />}
+                      <button
+                        onClick={() => removeStudy(studyId)}
+                        className="ml-1 hover:bg-black/20 rounded p-0.5"
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </button>
+                    </Badge>
+                  );
+                })}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => { setSelectedStudies([]); setResults({}); }}
+                  className="h-7 px-3 text-xs ml-auto shrink-0"
+                >
+                  Clear
+                </Button>
+              </div>
             </div>
           )}
 
@@ -1478,27 +1514,36 @@ function QuantLabContent(props: any) {
                         sentiment.border
                       )}
                     >
-                      {/* Card Header */}
-                      <div className={cn("px-4 py-3 flex items-center justify-between", sentiment.bg)}>
-                        <div className="flex items-center gap-3 min-w-0">
-                          <div className={cn("p-2 rounded-lg bg-background/80 shrink-0")}>
-                            <study.icon className={cn("h-5 w-5", sentiment.text)} />
-                          </div>
-                          <div className="min-w-0">
-                            <h4 className="font-semibold text-sm">{study.name}</h4>
-                            <p className="text-xs text-muted-foreground truncate">{study.description}</p>
-                          </div>
+                      {/* Card Header with Ticker */}
+                      <div className={cn("px-4 py-3", sentiment.bg)}>
+                        {/* Ticker badge */}
+                        <div className="flex items-center gap-2 mb-2">
+                          <Badge variant="outline" className="font-mono font-bold text-xs bg-background/80 border-primary/30 text-primary">
+                            ${selectedTicker}
+                          </Badge>
+                          <span className="text-[10px] text-muted-foreground">• {period}</span>
                         </div>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => saveStudyResult(studyId)}
-                          disabled={isSaving === studyId}
-                          className="h-9 px-3 gap-2 text-xs text-amber-600 hover:text-amber-700 hover:bg-amber-50 shrink-0"
-                        >
-                          {isSaving === studyId ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                          <span className="hidden sm:inline">Save</span>
-                        </Button>
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3 min-w-0">
+                            <div className={cn("p-2 rounded-lg bg-background/80 shrink-0")}>
+                              <study.icon className={cn("h-5 w-5", sentiment.text)} />
+                            </div>
+                            <div className="min-w-0">
+                              <h4 className="font-semibold text-sm">{study.name}</h4>
+                              <p className="text-xs text-muted-foreground truncate">{study.description}</p>
+                            </div>
+                          </div>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => saveStudyResult(studyId)}
+                            disabled={isSaving === studyId}
+                            className="h-9 px-3 gap-2 text-xs text-amber-600 hover:text-amber-700 hover:bg-amber-50 shrink-0"
+                          >
+                            {isSaving === studyId ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                            <span className="hidden sm:inline">Save</span>
+                          </Button>
+                        </div>
                       </div>
 
                       {/* Interpretation */}
@@ -1551,12 +1596,17 @@ function QuantLabContent(props: any) {
               </div>
             ) : selectedStudies.length > 0 ? (
               <div className="flex flex-col items-center justify-center h-full text-center px-4">
+                {/* Big Ticker Display */}
+                <div className="mb-4 flex items-center gap-2 px-6 py-3 rounded-2xl bg-gradient-to-r from-primary/10 to-primary/5 border-2 border-primary/30">
+                  <TrendingUp className="h-8 w-8 text-primary" />
+                  <span className="text-3xl md:text-4xl font-bold font-mono text-primary">${selectedTicker || '---'}</span>
+                </div>
                 <div className="p-6 rounded-2xl bg-gradient-to-br from-violet-500/10 to-purple-500/10 border-2 border-violet-500/20 mb-6">
                   <Play className="h-12 w-12 text-violet-500" />
                 </div>
                 <p className="text-xl font-bold mb-2">Ready to Analyze</p>
                 <p className="text-sm text-muted-foreground mb-6 max-w-sm">
-                  You've selected {selectedStudies.length} {selectedStudies.length === 1 ? 'study' : 'studies'} to run on {selectedTicker || 'your ticker'}
+                  Run {selectedStudies.length} {selectedStudies.length === 1 ? 'study' : 'studies'} on <span className="font-mono font-bold text-foreground">${selectedTicker}</span>
                 </p>
                 {/* BIG RUN BUTTON */}
                 <Button
@@ -1566,7 +1616,7 @@ function QuantLabContent(props: any) {
                   className="h-14 px-10 text-lg gap-3 bg-gradient-to-r from-violet-500 to-purple-600 hover:from-violet-600 hover:to-purple-700 shadow-xl hover:shadow-2xl transition-all rounded-xl"
                 >
                   <Play className="h-6 w-6" />
-                  Run {selectedStudies.length} {selectedStudies.length === 1 ? 'Study' : 'Studies'}
+                  Analyze ${selectedTicker}
                 </Button>
               </div>
             ) : (
