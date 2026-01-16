@@ -1,19 +1,14 @@
 /**
  * Dynamic Portfolio Screener
  * 
- * Discovers ALL available tickers from the database and generates
- * ANY portfolio combination that meets user-specified criteria.
- * 
- * Features:
- * - Auto-discovers tickers with sufficient historical data
- * - Generates portfolio combinations dynamically
- * - Real-time progress feedback
- * - Filters ALL matching portfolios
- * - Sorts by match score, returns, risk metrics
+ * UPGRADED: Now supports 100,000+ portfolio combinations using:
+ * - 150+ ticker universe (up from 50)
+ * - 19 portfolio families with algorithmic generation
+ * - Fast metric estimation from cached ticker stats
+ * - Server-side-like pagination (generates on demand)
  */
 
 import { AssetClass } from '@/types/portfolio';
-
 import { useState, useCallback, useMemo, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -38,19 +33,8 @@ import {
   SheetTitle,
 } from '@/components/ui/sheet';
 import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover';
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from '@/components/ui/collapsible';
-import {
   TrendingUp,
   TrendingDown,
-  Shield,
   Scale,
   Snowflake,
   Flame,
@@ -60,38 +44,41 @@ import {
   ChevronLeft,
   ChevronsLeft,
   ChevronsRight,
-  Search,
-  Filter,
   Zap,
   Database,
-  Settings,
   Play,
-  Clock,
   Sparkles,
-  HelpCircle,
+  Infinity,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
-import { MetricInfoIcon } from '@/components/shared/MetricInfoIcon';
-import { MetricEducationalPopover } from '@/components/shared/MetricEducationalPopover';
+
+// Import expanded universe service
+import {
+  screenPortfoliosV2,
+  getUniverseStats,
+  FilterCriteria,
+  GeneratedPortfolioV2,
+  GenerationProgress,
+  TICKER_MAP,
+} from '@/services/expandedPortfolioUniverse';
+
+// Legacy imports for backward compatibility
 import {
   quickScreenPortfolios,
-  fetchTickerCounts,
   ScreeningCriteria,
   GeneratedPortfolio,
-  TickerStats,
   ScreeningProgress,
-  ScreeningResult,
 } from '@/services/dynamicPortfolioScreenerService';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // TYPES
 // ═══════════════════════════════════════════════════════════════════════════════
 
-type SortField = 'cagr' | 'totalReturn' | 'sharpe' | 'maxDrawdown' | 'volatility' | 'sortino' | 'stdDev';
+type SortField = 'cagr' | 'totalReturn' | 'sharpe' | 'maxDrawdown' | 'volatility' | 'sortino' | 'matchScore';
 type SortDirection = 'asc' | 'desc';
-type ScreenMode = 'quick' | 'full';
-type MetricKey = 'maxDrawdown' | 'maxVolatility' | 'minSharpe' | 'minCagr' | 'maxStdDev';
+type ScreenMode = 'quick' | 'expanded';
+type MetricKey = 'maxDrawdown' | 'maxVolatility' | 'minSharpe' | 'minCagr';
 
 interface DynamicScreenerProps {
   onSelect?: (allocations: { symbol: string; weight: number }[]) => void;
@@ -120,38 +107,39 @@ export function DynamicScreener({ onSelect, onComplete }: DynamicScreenerProps) 
   // State
   // ─────────────────────────────────────────────────────────────────────────────
   
-  // Results
+  // Expanded universe state
+  const [expandedPortfolios, setExpandedPortfolios] = useState<GeneratedPortfolioV2[]>([]);
+  const [expandedTotalCount, setExpandedTotalCount] = useState(0);
+  const [expandedTotalPages, setExpandedTotalPages] = useState(0);
+  const [generationTime, setGenerationTime] = useState(0);
+  
+  // Legacy results
   const [portfolios, setPortfolios] = useState<GeneratedPortfolio[]>([]);
-  const [tickerStats, setTickerStats] = useState<TickerStats[]>([]);
-  const [availableTickers, setAvailableTickers] = useState<{ ticker: string; count: number }[]>([]);
   
   // Screening state
   const [isLoading, setIsLoading] = useState(false);
-  const [progress, setProgress] = useState<ScreeningProgress | null>(null);
-  const [lastResult, setLastResult] = useState<ScreeningResult | null>(null);
+  const [progress, setProgress] = useState<GenerationProgress | ScreeningProgress | null>(null);
   
-  // Criteria (store values, but only ONE is active at a time)
+  // Criteria
   const [activeMetric, setActiveMetric] = useState<MetricKey>('maxDrawdown');
   const [maxDrawdown, setMaxDrawdown] = useState(30);
   const [maxVolatility, setMaxVolatility] = useState(20);
   const [minSharpe, setMinSharpe] = useState(0.3);
   const [minCagr, setMinCagr] = useState(-5);
-  const [maxStdDev, setMaxStdDev] = useState(18);
   
-  // Config
-  // Always use quick mode
-  const screenMode: ScreenMode = 'quick';
-  const [lookbackYears, setLookbackYears] = useState(5); // Match typical backtest period
-  const [minAssets, setMinAssets] = useState(2);
-  const [maxAssets, setMaxAssets] = useState(5);
-  const [maxPortfolios, setMaxPortfolios] = useState(10000);
+  // Mode
+  const [screenMode, setScreenMode] = useState<ScreenMode>('expanded');
+  const [lookbackYears] = useState(1);
+  const [maxPortfolios] = useState(100000);
+  
+  // Risk profile filter
+  const [selectedRiskProfiles, setSelectedRiskProfiles] = useState<string[]>([]);
   
   // UI state
-  const [sortField, setSortField] = useState<SortField>('cagr');
+  const [sortField, setSortField] = useState<SortField>('matchScore');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
-  const [selectedPortfolio, setSelectedPortfolio] = useState<GeneratedPortfolio | null>(null);
+  const [selectedPortfolio, setSelectedPortfolio] = useState<GeneratedPortfolio | GeneratedPortfolioV2 | null>(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
-  const [configOpen, setConfigOpen] = useState(false);
   const [capital, setCapital] = useState(100000);
   const [horizon, setHorizon] = useState(5);
   
@@ -161,24 +149,14 @@ export function DynamicScreener({ onSelect, onComplete }: DynamicScreenerProps) 
   
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
+  
+  // Universe stats
+  const universeStats = useMemo(() => getUniverseStats(), []);
 
   // ─────────────────────────────────────────────────────────────────────────────
-  // Load available tickers on mount
+  // Auto-run on mount
   // ─────────────────────────────────────────────────────────────────────────────
   
-  useEffect(() => {
-    async function loadTickers() {
-      try {
-        const counts = await fetchTickerCounts();
-        setAvailableTickers(counts.filter(t => t.count >= 100));
-      } catch (error) {
-        console.error('Failed to load tickers:', error);
-      }
-    }
-    loadTickers();
-  }, []);
-
-  // Auto-run quick screening on mount to show templates
   useEffect(() => {
     runScreening();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -188,68 +166,111 @@ export function DynamicScreener({ onSelect, onComplete }: DynamicScreenerProps) 
   // Run screening
   // ─────────────────────────────────────────────────────────────────────────────
   
-  const runScreening = useCallback(async () => {
+  const runScreening = useCallback(async (page: number = 1) => {
     setIsLoading(true);
     setProgress(null);
-    setPortfolios([]);
+    setCurrentPage(page);
     
-    const criteria: ScreeningCriteria = {};
-    switch (activeMetric) {
-      case 'maxDrawdown':
-        criteria.maxDrawdown = maxDrawdown;
-        break;
-      case 'maxVolatility':
-        criteria.maxVolatility = maxVolatility;
-        break;
-      case 'minSharpe':
-        criteria.minSharpe = minSharpe;
-        break;
-      case 'minCagr':
-        criteria.minCagr = minCagr;
-        break;
-      case 'maxStdDev':
-        // Standard deviation = volatility in this context
-        criteria.maxVolatility = maxStdDev;
-        break;
+    if (screenMode === 'expanded') {
+      const criteria: FilterCriteria = {};
+      
+      switch (activeMetric) {
+        case 'maxDrawdown':
+          criteria.maxDrawdown = maxDrawdown;
+          break;
+        case 'maxVolatility':
+          criteria.maxVolatility = maxVolatility;
+          break;
+        case 'minSharpe':
+          criteria.minSharpe = minSharpe;
+          break;
+        case 'minCagr':
+          criteria.minCagr = minCagr;
+          break;
+      }
+      
+      if (selectedRiskProfiles.length > 0) {
+        criteria.riskProfiles = selectedRiskProfiles as any;
+      }
+      
+      try {
+        const result = await screenPortfoliosV2(
+          criteria,
+          {
+            page,
+            pageSize: ITEMS_PER_PAGE,
+            sortBy: sortField === 'matchScore' ? 'matchScore' : 
+                   sortField === 'cagr' ? 'cagr' : 
+                   sortField === 'sharpe' ? 'sharpe' : 
+                   sortField === 'maxDrawdown' ? 'maxDrawdown' : 'matchScore',
+            sortDirection,
+            limit: maxPortfolios,
+          },
+          (prog) => setProgress(prog)
+        );
+        
+        setExpandedPortfolios(result.portfolios);
+        setExpandedTotalCount(result.totalCount);
+        setExpandedTotalPages(result.totalPages);
+        setGenerationTime(result.generationTime);
+        setPortfolios([]);
+        
+        toast.success(`Found ${result.totalCount.toLocaleString()} portfolios`, {
+          description: `Generated in ${(result.generationTime / 1000).toFixed(1)}s`,
+        });
+      } catch (error) {
+        console.error('Expanded screening failed:', error);
+        toast.error('Screening failed', {
+          description: error instanceof Error ? error.message : 'Unknown error',
+        });
+      }
+    } else {
+      const criteria: ScreeningCriteria = {};
+      switch (activeMetric) {
+        case 'maxDrawdown':
+          criteria.maxDrawdown = maxDrawdown;
+          break;
+        case 'maxVolatility':
+          criteria.maxVolatility = maxVolatility;
+          break;
+        case 'minSharpe':
+          criteria.minSharpe = minSharpe;
+          break;
+        case 'minCagr':
+          criteria.minCagr = minCagr;
+          break;
+      }
+      
+      try {
+        const result = await quickScreenPortfolios(criteria, lookbackYears, setProgress as any);
+        setPortfolios(result.portfolios);
+        setExpandedPortfolios([]);
+        
+        toast.success(`Found ${result.totalMatched} portfolios`, {
+          description: `Screened in ${(result.screeningTime / 1000).toFixed(1)}s`,
+        });
+      } catch (error) {
+        console.error('Screening failed:', error);
+        toast.error('Screening failed');
+      }
     }
     
-    
-    try {
-      let result: ScreeningResult;
-      
-      // Always use quick screening
-      result = await quickScreenPortfolios(criteria, lookbackYears, setProgress);
-      
-      setPortfolios(result.portfolios);
-      setTickerStats(result.tickerStats);
-      setLastResult(result);
-      
-      toast.success(`Found ${result.totalMatched} portfolios matching your criteria`, {
-        description: `Screened ${result.totalGenerated} combinations in ${(result.screeningTime / 1000).toFixed(1)}s`,
-      });
-    } catch (error) {
-      console.error('Screening failed:', error);
-      toast.error('Screening failed', {
-        description: error instanceof Error ? error.message : 'Unknown error',
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  }, [activeMetric, maxDrawdown, maxVolatility, minSharpe, minCagr, screenMode, minAssets, maxAssets, maxPortfolios, lookbackYears]);
+    setIsLoading(false);
+  }, [screenMode, activeMetric, maxDrawdown, maxVolatility, minSharpe, minCagr, selectedRiskProfiles, sortField, sortDirection, maxPortfolios, lookbackYears]);
 
   // ─────────────────────────────────────────────────────────────────────────────
-  // Filtered and sorted portfolios
+  // Filtered portfolios (for legacy mode)
   // ─────────────────────────────────────────────────────────────────────────────
   
   const filteredPortfolios = useMemo(() => {
+    if (screenMode === 'expanded') return [];
+    
     let filtered = [...portfolios];
     
-    // Filter by risk level
     if (filterRiskLevel !== 'all') {
       filtered = filtered.filter(p => p.riskLevel === filterRiskLevel);
     }
     
-    // Filter by search query
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter(p => 
@@ -258,64 +279,38 @@ export function DynamicScreener({ onSelect, onComplete }: DynamicScreenerProps) 
       );
     }
     
-    // Sort
     filtered.sort((a, b) => {
-      let aVal: number, bVal: number;
-      
-      switch (sortField) {
-        case 'cagr':
-          aVal = a.metrics.cagr;
-          bVal = b.metrics.cagr;
-          break;
-        case 'totalReturn':
-          aVal = a.metrics.totalReturn;
-          bVal = b.metrics.totalReturn;
-          break;
-        case 'sharpe':
-          aVal = a.metrics.sharpe;
-          bVal = b.metrics.sharpe;
-          break;
-        case 'maxDrawdown':
-          aVal = a.metrics.maxDrawdown;
-          bVal = b.metrics.maxDrawdown;
-          break;
-        case 'volatility':
-        case 'stdDev':
-          aVal = a.metrics.volatility;
-          bVal = b.metrics.volatility;
-          break;
-        case 'sortino':
-          aVal = a.metrics.sortino;
-          bVal = b.metrics.sortino;
-          break;
-        default:
-          aVal = a.metrics.cagr;
-          bVal = b.metrics.cagr;
-      }
-      
-      return sortDirection === 'asc' ? aVal - bVal : bVal - aVal;
+      const aVal = sortField === 'matchScore' ? a.matchScore : a.metrics[sortField as keyof typeof a.metrics] || 0;
+      const bVal = sortField === 'matchScore' ? b.matchScore : b.metrics[sortField as keyof typeof b.metrics] || 0;
+      return sortDirection === 'asc' ? (aVal as number) - (bVal as number) : (bVal as number) - (aVal as number);
     });
     
     return filtered;
-  }, [portfolios, filterRiskLevel, searchQuery, sortField, sortDirection]);
+  }, [portfolios, filterRiskLevel, searchQuery, sortField, sortDirection, screenMode]);
 
   // Pagination
-  const totalPages = Math.ceil(filteredPortfolios.length / ITEMS_PER_PAGE);
+  const totalPages = screenMode === 'expanded' ? expandedTotalPages : Math.ceil(filteredPortfolios.length / ITEMS_PER_PAGE);
+  const totalCount = screenMode === 'expanded' ? expandedTotalCount : filteredPortfolios.length;
+  
   const paginatedPortfolios = useMemo(() => {
+    if (screenMode === 'expanded') return expandedPortfolios;
     const start = (currentPage - 1) * ITEMS_PER_PAGE;
     return filteredPortfolios.slice(start, start + ITEMS_PER_PAGE);
-  }, [filteredPortfolios, currentPage]);
-
-  // Reset page when filters change
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [filterRiskLevel, searchQuery, sortField, sortDirection, portfolios]);
+  }, [screenMode, expandedPortfolios, filteredPortfolios, currentPage]);
 
   // ─────────────────────────────────────────────────────────────────────────────
   // Handlers
   // ─────────────────────────────────────────────────────────────────────────────
   
-  const handleSelect = (p: GeneratedPortfolio) => {
+  const handlePageChange = (newPage: number) => {
+    if (screenMode === 'expanded') {
+      runScreening(newPage);
+    } else {
+      setCurrentPage(newPage);
+    }
+  };
+  
+  const handleSelect = (p: GeneratedPortfolio | GeneratedPortfolioV2) => {
     setSelectedPortfolio(p);
     setDetailsOpen(true);
   };
@@ -323,12 +318,19 @@ export function DynamicScreener({ onSelect, onComplete }: DynamicScreenerProps) 
   const handleUsePortfolio = () => {
     if (!selectedPortfolio) return;
     
-    const allocations: { symbol: string; weight: number; assetClass: AssetClass }[] = 
-      selectedPortfolio.allocations.map(a => ({ 
-        symbol: a.ticker, 
-        weight: a.weight,
-        assetClass: 'etfs' as AssetClass,
-      }));
+    const isExpandedPortfolio = 'tickers' in selectedPortfolio;
+    
+    const allocations: { symbol: string; weight: number; assetClass: AssetClass }[] = isExpandedPortfolio
+      ? (selectedPortfolio as GeneratedPortfolioV2).tickers.map((ticker, i) => ({
+          symbol: ticker,
+          weight: (selectedPortfolio as GeneratedPortfolioV2).weights[i],
+          assetClass: 'etfs' as AssetClass,
+        }))
+      : (selectedPortfolio as GeneratedPortfolio).allocations.map(a => ({ 
+          symbol: a.ticker, 
+          weight: a.weight,
+          assetClass: 'etfs' as AssetClass,
+        }));
     
     if (onComplete) {
       onComplete({ capital, horizon, allocations });
@@ -352,678 +354,362 @@ export function DynamicScreener({ onSelect, onComplete }: DynamicScreenerProps) 
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Sparkles className="h-5 w-5 text-primary" />
-            <h2 className="font-semibold">Dynamic Screener</h2>
-            <Badge variant="secondary" className="text-[10px]">
-              20 Templates
-            </Badge>
+            <h2 className="font-semibold">Portfolio Screener</h2>
+            {screenMode === 'expanded' ? (
+              <Badge variant="default" className="text-[10px] bg-gradient-to-r from-primary to-emerald-500">
+                <Infinity className="h-3 w-3 mr-1" />
+                {universeStats.estimatedPortfolios.toLocaleString()}+ Portfolios
+              </Badge>
+            ) : (
+              <Badge variant="secondary" className="text-[10px]">
+                20 Templates
+              </Badge>
+            )}
           </div>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setConfigOpen(!configOpen)}
-            >
-              <Settings className="h-4 w-4" />
-            </Button>
-          </div>
+          <Select value={screenMode} onValueChange={(v) => setScreenMode(v as ScreenMode)}>
+            <SelectTrigger className="h-8 w-32 text-xs">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="expanded">
+                <span className="flex items-center gap-1">
+                  <Infinity className="h-3 w-3" />
+                  Expanded
+                </span>
+              </SelectItem>
+              <SelectItem value="quick">
+                <span className="flex items-center gap-1">
+                  <Zap className="h-3 w-3" />
+                  Quick
+                </span>
+              </SelectItem>
+            </SelectContent>
+          </Select>
         </div>
 
-        {/* Quick screening mode indicator */}
+        {/* Mode info */}
         <div className="flex items-center gap-2 px-3 py-2 bg-muted/50 rounded-lg">
-          <Zap className="h-4 w-4 text-primary" />
-          <span className="text-xs text-muted-foreground">Quick Screening (20 Templates)</span>
+          {screenMode === 'expanded' ? (
+            <>
+              <Database className="h-4 w-4 text-primary" />
+              <span className="text-xs text-muted-foreground">
+                {universeStats.totalTickers} tickers × {universeStats.totalFamilies} strategies
+              </span>
+            </>
+          ) : (
+            <>
+              <Zap className="h-4 w-4 text-primary" />
+              <span className="text-xs text-muted-foreground">Quick Mode (20 Templates)</span>
+            </>
+          )}
         </div>
 
-        {/* Screening metric (one at a time) */}
+        {/* Screening controls */}
         <div className="space-y-3">
           <div className="space-y-1">
-            <div className="flex items-center gap-1">
-              <Label className="text-xs">Filter By</Label>
-              <MetricInfoIcon termKey="riskAdjustedReturn" iconSize={12} />
-            </div>
+            <Label className="text-xs">Filter By</Label>
             <Select value={activeMetric} onValueChange={(v) => setActiveMetric(v as MetricKey)}>
               <SelectTrigger className="h-8 text-xs">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent className="z-[100]">
-                <SelectItem value="maxDrawdown">
-                  <span className="flex items-center gap-1.5 w-full justify-between">
-                    <span>Max Decline (Drawdown)</span>
-                    <MetricInfoIcon termKey="maxDrawdown" iconSize={12} />
-                  </span>
-                </SelectItem>
-                <SelectItem value="maxVolatility">
-                  <span className="flex items-center gap-1.5 w-full justify-between">
-                    <span>Max Price Swings (Volatility)</span>
-                    <MetricInfoIcon termKey="volatility" iconSize={12} />
-                  </span>
-                </SelectItem>
-                <SelectItem value="maxStdDev">
-                  <span className="flex items-center gap-1.5 w-full justify-between">
-                    <span>Max Std. Deviation</span>
-                    <MetricInfoIcon termKey="standardDeviation" iconSize={12} />
-                  </span>
-                </SelectItem>
-                <SelectItem value="minSharpe">
-                  <span className="flex items-center gap-1.5 w-full justify-between">
-                    <span>Min Risk-Adjusted Return (Sharpe)</span>
-                    <MetricInfoIcon termKey="sharpeRatio" iconSize={12} />
-                  </span>
-                </SelectItem>
-                <SelectItem value="minCagr">
-                  <span className="flex items-center gap-1.5 w-full justify-between">
-                    <span>Min Annual Growth (CAGR)</span>
-                    <MetricInfoIcon termKey="cagr" iconSize={12} />
-                  </span>
-                </SelectItem>
+              <SelectContent>
+                <SelectItem value="maxDrawdown">Max Drawdown</SelectItem>
+                <SelectItem value="maxVolatility">Max Volatility</SelectItem>
+                <SelectItem value="minSharpe">Min Sharpe Ratio</SelectItem>
+                <SelectItem value="minCagr">Min CAGR</SelectItem>
               </SelectContent>
             </Select>
           </div>
-
-          {activeMetric === 'maxDrawdown' && (
-            <div className="space-y-1">
-              <div className="flex justify-between text-xs items-center">
-                <span className="text-muted-foreground flex items-center gap-1">
-                  Max Decline
-                  <MetricInfoIcon termKey="maxDrawdown" iconSize={12} />
-                </span>
-                <span className="font-mono font-bold">≤{maxDrawdown}%</span>
+          
+          {/* Slider for active metric */}
+          <div className="space-y-2">
+            {activeMetric === 'maxDrawdown' && (
+              <div className="space-y-1">
+                <div className="flex justify-between text-xs">
+                  <span className="text-muted-foreground">Max Drawdown</span>
+                  <span className="font-mono font-bold">≤{maxDrawdown}%</span>
+                </div>
+                <Slider value={[maxDrawdown]} onValueChange={([v]) => setMaxDrawdown(v)} min={5} max={60} step={5} />
               </div>
-              <Slider
-                value={[maxDrawdown]}
-                onValueChange={([v]) => setMaxDrawdown(v)}
-                min={5}
-                max={60}
-                step={5}
-              />
-              <p className="text-[10px] text-muted-foreground/70">
-                Worst peak-to-bottom drop you'd accept
-              </p>
+            )}
+            {activeMetric === 'maxVolatility' && (
+              <div className="space-y-1">
+                <div className="flex justify-between text-xs">
+                  <span className="text-muted-foreground">Max Volatility</span>
+                  <span className="font-mono font-bold">≤{maxVolatility}%</span>
+                </div>
+                <Slider value={[maxVolatility]} onValueChange={([v]) => setMaxVolatility(v)} min={5} max={40} step={5} />
+              </div>
+            )}
+            {activeMetric === 'minSharpe' && (
+              <div className="space-y-1">
+                <div className="flex justify-between text-xs">
+                  <span className="text-muted-foreground">Min Sharpe</span>
+                  <span className="font-mono font-bold">≥{minSharpe.toFixed(1)}</span>
+                </div>
+                <Slider value={[minSharpe * 10]} onValueChange={([v]) => setMinSharpe(v / 10)} min={-5} max={20} step={1} />
+              </div>
+            )}
+            {activeMetric === 'minCagr' && (
+              <div className="space-y-1">
+                <div className="flex justify-between text-xs">
+                  <span className="text-muted-foreground">Min CAGR</span>
+                  <span className="font-mono font-bold">≥{minCagr}%</span>
+                </div>
+                <Slider value={[minCagr]} onValueChange={([v]) => setMinCagr(v)} min={-20} max={30} step={5} />
+              </div>
+            )}
+          </div>
+          
+          {/* Risk profile filter */}
+          {screenMode === 'expanded' && (
+            <div className="space-y-2">
+              <Label className="text-xs">Risk Profiles</Label>
+              <div className="flex flex-wrap gap-1">
+                {(['conservative', 'moderate', 'growth', 'aggressive'] as const).map(profile => {
+                  const style = RISK_STYLES[profile];
+                  const Icon = style.icon;
+                  const isSelected = selectedRiskProfiles.includes(profile);
+                  
+                  return (
+                    <Button
+                      key={profile}
+                      variant="outline"
+                      size="sm"
+                      className={cn("h-7 text-xs gap-1 capitalize", isSelected && style.bg, isSelected && style.border)}
+                      onClick={() => {
+                        setSelectedRiskProfiles(prev =>
+                          prev.includes(profile) ? prev.filter(p => p !== profile) : [...prev, profile]
+                        );
+                      }}
+                    >
+                      <Icon className={cn("h-3 w-3", isSelected && style.color)} />
+                      {profile}
+                    </Button>
+                  );
+                })}
+              </div>
             </div>
           )}
-
-          {activeMetric === 'maxVolatility' && (
-            <div className="space-y-1">
-              <div className="flex justify-between text-xs items-center">
-                <span className="text-muted-foreground flex items-center gap-1">
-                  Max Price Swings
-                  <MetricInfoIcon termKey="volatility" iconSize={12} />
-                </span>
-                <span className="font-mono font-bold">≤{maxVolatility}%</span>
-              </div>
-              <Slider
-                value={[maxVolatility]}
-                onValueChange={([v]) => setMaxVolatility(v)}
-                min={5}
-                max={40}
-                step={5}
-              />
-              <p className="text-[10px] text-muted-foreground/70">
-                How much daily ups and downs you're comfortable with
-              </p>
-            </div>
-          )}
-
-          {activeMetric === 'maxStdDev' && (
-            <div className="space-y-1">
-              <div className="flex justify-between text-xs items-center">
-                <span className="text-muted-foreground flex items-center gap-1">
-                  Max Std. Deviation
-                  <MetricInfoIcon termKey="standardDeviation" iconSize={12} />
-                </span>
-                <span className="font-mono font-bold">≤{maxStdDev}%</span>
-              </div>
-              <Slider
-                value={[maxStdDev]}
-                onValueChange={([v]) => setMaxStdDev(v)}
-                min={5}
-                max={35}
-                step={1}
-              />
-              <p className="text-[10px] text-muted-foreground/70">
-                How spread out returns are from the average
-              </p>
-            </div>
-          )}
-
-          {activeMetric === 'minSharpe' && (
-            <div className="space-y-1">
-              <div className="flex justify-between text-xs items-center">
-                <span className="text-muted-foreground flex items-center gap-1">
-                  Min Sharpe Ratio
-                  <MetricInfoIcon termKey="sharpeRatio" iconSize={12} />
-                </span>
-                <span className="font-mono font-bold">≥{minSharpe.toFixed(1)}</span>
-              </div>
-              <Slider
-                value={[minSharpe]}
-                onValueChange={([v]) => setMinSharpe(v)}
-                min={-0.5}
-                max={1.5}
-                step={0.1}
-              />
-              <p className="text-[10px] text-muted-foreground/70">
-                Return per unit of risk (higher = better reward for risk)
-              </p>
-            </div>
-          )}
-
-          {activeMetric === 'minCagr' && (
-            <div className="space-y-1">
-              <div className="flex justify-between text-xs items-center">
-                <span className="text-muted-foreground flex items-center gap-1">
-                  Min Annual Growth
-                  <MetricInfoIcon termKey="cagr" iconSize={12} />
-                </span>
-                <span className="font-mono font-bold">≥{minCagr}%</span>
-              </div>
-              <Slider
-                value={[minCagr]}
-                onValueChange={([v]) => setMinCagr(v)}
-                min={-20}
-                max={20}
-                step={5}
-              />
-              <p className="text-[10px] text-muted-foreground/70">
-                Smoothed yearly return target
-              </p>
-            </div>
-          )}
+          
+          <Button onClick={() => runScreening(1)} className="w-full" disabled={isLoading}>
+            {isLoading ? (
+              <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Screening...</>
+            ) : (
+              <><Play className="h-4 w-4 mr-2" />Screen Portfolios</>
+            )}
+          </Button>
         </div>
-
-        {/* Advanced config */}
-        <Collapsible open={configOpen} onOpenChange={setConfigOpen}>
-          <CollapsibleContent className="space-y-3 pt-3 border-t">
-            {/* Lookback period selector */}
-            <div className="space-y-1">
-              <Label className="text-xs">Lookback Period</Label>
-              <div className="grid grid-cols-4 gap-1">
-                {[
-                  { value: 1, label: '1Y' },
-                  { value: 3, label: '3Y' },
-                  { value: 5, label: '5Y' },
-                  { value: 10, label: '10Y' },
-                ].map(option => (
-                  <Button
-                    key={option.value}
-                    variant={lookbackYears === option.value ? 'default' : 'outline'}
-                    size="sm"
-                    className="h-7 text-xs"
-                    onClick={() => setLookbackYears(option.value)}
-                  >
-                    {option.label}
-                  </Button>
-                ))}
-              </div>
-            </div>
-            
-            <div className="grid grid-cols-3 gap-3">
-              <div>
-                <Label className="text-xs">Min Assets</Label>
-                <Input
-                  type="number"
-                  value={minAssets}
-                  onChange={(e) => setMinAssets(Number(e.target.value))}
-                  min={1}
-                  max={10}
-                  className="h-8 text-xs"
-                />
-              </div>
-              <div>
-                <Label className="text-xs">Max Assets</Label>
-                <Input
-                  type="number"
-                  value={maxAssets}
-                  onChange={(e) => setMaxAssets(Number(e.target.value))}
-                  min={1}
-                  max={10}
-                  className="h-8 text-xs"
-                />
-              </div>
-              <div>
-                <Label className="text-xs">Max Results</Label>
-                <Input
-                  type="number"
-                  value={maxPortfolios}
-                  onChange={(e) => setMaxPortfolios(Number(e.target.value))}
-                  min={100}
-                  max={50000}
-                  step={100}
-                  className="h-8 text-xs"
-                />
-              </div>
-            </div>
-          </CollapsibleContent>
-        </Collapsible>
-
-        {/* Run button */}
-        <Button 
-          className="w-full" 
-          onClick={runScreening}
-          disabled={isLoading}
-        >
-          {isLoading ? (
-            <>
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              Screening...
-            </>
-          ) : (
-            <>
-              <Play className="h-4 w-4 mr-2" />
-              Screen Portfolios
-            </>
-          )}
-        </Button>
-
+        
         {/* Progress */}
-        {progress && (
+        {isLoading && progress && (
           <div className="space-y-1">
-            <div className="flex justify-between text-xs">
-              <span className="text-muted-foreground">{progress.message}</span>
-              <span className="font-mono">{Math.round(progress.current)}%</span>
-            </div>
-            <Progress value={progress.current} className="h-1" />
+            <Progress value={progress.current} max={progress.total} className="h-1" />
+            <p className="text-xs text-muted-foreground text-center">{progress.message}</p>
           </div>
         )}
       </div>
 
-      {/* Filters & Stats - only show when we have results */}
-      {filteredPortfolios.length > 0 && (
-        <div className="flex-shrink-0 px-4 py-2 border-b bg-muted/30">
-          <div className="flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2 flex-1">
-              <div className="relative flex-1 max-w-xs">
-                <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground" />
-                <Input
-                  placeholder="Search..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="h-7 text-xs pl-7"
-                />
-              </div>
-              <Select value={filterRiskLevel} onValueChange={setFilterRiskLevel}>
-                <SelectTrigger className="h-7 w-[100px] text-xs">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Risk</SelectItem>
-                  <SelectItem value="conservative">Conservative</SelectItem>
-                  <SelectItem value="moderate">Moderate</SelectItem>
-                  <SelectItem value="growth">Growth</SelectItem>
-                  <SelectItem value="aggressive">Aggressive</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex items-center gap-1">
-              <Select value={sortField} onValueChange={(v) => setSortField(v as SortField)}>
-                <SelectTrigger className="h-7 w-[120px] text-xs">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent className="z-[100]">
-                  <SelectItem value="totalReturn">
-                    <span className="flex items-center gap-1.5 w-full justify-between">
-                      <span>Total Return</span>
-                      <MetricInfoIcon termKey="totalReturn" iconSize={11} />
-                    </span>
-                  </SelectItem>
-                  <SelectItem value="cagr">
-                    <span className="flex items-center gap-1.5 w-full justify-between">
-                      <span>Annual Growth</span>
-                      <MetricInfoIcon termKey="cagr" iconSize={11} />
-                    </span>
-                  </SelectItem>
-                  <SelectItem value="sharpe">
-                    <span className="flex items-center gap-1.5 w-full justify-between">
-                      <span>Risk Score</span>
-                      <MetricInfoIcon termKey="sharpeRatio" iconSize={11} />
-                    </span>
-                  </SelectItem>
-                  <SelectItem value="sortino">
-                    <span className="flex items-center gap-1.5 w-full justify-between">
-                      <span>Safety</span>
-                      <MetricInfoIcon termKey="sortinoRatio" iconSize={11} />
-                    </span>
-                  </SelectItem>
-                  <SelectItem value="maxDrawdown">
-                    <span className="flex items-center gap-1.5 w-full justify-between">
-                      <span>Max Drop</span>
-                      <MetricInfoIcon termKey="maxDrawdown" iconSize={11} />
-                    </span>
-                  </SelectItem>
-                  <SelectItem value="stdDev">
-                    <span className="flex items-center gap-1.5 w-full justify-between">
-                      <span>Volatility</span>
-                      <MetricInfoIcon termKey="standardDeviation" iconSize={11} />
-                    </span>
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-              <Button
-                variant="outline"
-                size="sm"
-                className="h-7 text-xs px-2 gap-1"
-                onClick={() => setSortDirection(d => d === 'asc' ? 'desc' : 'asc')}
-              >
-                {sortDirection === 'desc' ? (
-                  <>
-                    <TrendingDown className="h-3 w-3" />
-                    High→Low
-                  </>
-                ) : (
-                  <>
-                    <TrendingUp className="h-3 w-3" />
-                    Low→High
-                  </>
-                )}
-              </Button>
-            </div>
+      {/* Results */}
+      <div className="flex-1 overflow-hidden flex flex-col">
+        {/* Results header */}
+        <div className="flex items-center justify-between px-4 py-2 border-b bg-muted/30">
+          <span className="text-xs text-muted-foreground">
+            {totalCount.toLocaleString()} portfolios {generationTime > 0 && `(${(generationTime / 1000).toFixed(1)}s)`}
+          </span>
+          <div className="flex items-center gap-2">
+            <Select value={sortField} onValueChange={(v) => setSortField(v as SortField)}>
+              <SelectTrigger className="h-7 w-28 text-xs">
+                <SelectValue placeholder="Sort by" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="matchScore">Match Score</SelectItem>
+                <SelectItem value="sharpe">Sharpe</SelectItem>
+                <SelectItem value="cagr">CAGR</SelectItem>
+                <SelectItem value="maxDrawdown">Drawdown</SelectItem>
+              </SelectContent>
+            </Select>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7"
+              onClick={() => setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc')}
+            >
+              {sortDirection === 'desc' ? <TrendingDown className="h-3 w-3" /> : <TrendingUp className="h-3 w-3" />}
+            </Button>
           </div>
-          <div className="flex items-center justify-between mt-2 text-xs text-muted-foreground">
-            <span>
-              Showing {((currentPage - 1) * ITEMS_PER_PAGE) + 1}-{Math.min(currentPage * ITEMS_PER_PAGE, filteredPortfolios.length)} of {filteredPortfolios.length}
-            </span>
-            {lastResult && (
-              <span className="flex items-center gap-1">
-                <Clock className="h-3 w-3" />
-                {(lastResult.screeningTime / 1000).toFixed(1)}s
-              </span>
+        </div>
+        
+        {/* Portfolio list */}
+        <ScrollArea className="flex-1">
+          <div className="p-2 space-y-2">
+            {paginatedPortfolios.map((portfolio, idx) => {
+              const isExpanded = 'tickers' in portfolio;
+              const p = portfolio as any;
+              const riskLevel = p.riskLevel || p.riskProfile || 'moderate';
+              const style = RISK_STYLES[riskLevel as keyof typeof RISK_STYLES] || RISK_STYLES.moderate;
+              const Icon = style.icon;
+              
+              const metrics = p.metrics;
+              const allocations = isExpanded 
+                ? p.tickers.map((t: string, i: number) => ({ ticker: t, weight: p.weights[i] }))
+                : p.allocations;
+              
+              return (
+                <Card 
+                  key={p.id || idx}
+                  className={cn("cursor-pointer transition-all hover:shadow-md border", style.border)}
+                  onClick={() => handleSelect(portfolio)}
+                >
+                  <CardContent className="p-3">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <div className={cn("p-1 rounded", style.bg)}>
+                            <Icon className={cn("h-3 w-3", style.color)} />
+                          </div>
+                          <span className="font-medium text-sm truncate">{p.name}</span>
+                          {p.matchScore !== undefined && (
+                            <Badge variant="outline" className="text-[10px] ml-auto">
+                              {p.matchScore}%
+                            </Badge>
+                          )}
+                        </div>
+                        
+                        <div className="flex flex-wrap gap-1 mt-2">
+                          {allocations.slice(0, 4).map((a: any, i: number) => (
+                            <Badge key={i} variant="secondary" className="text-[10px] font-mono">
+                              {a.ticker} {a.weight}%
+                            </Badge>
+                          ))}
+                          {allocations.length > 4 && (
+                            <Badge variant="outline" className="text-[10px]">+{allocations.length - 4}</Badge>
+                          )}
+                        </div>
+                        
+                        <div className="flex gap-3 mt-2 text-xs">
+                          <span className={metrics.cagr >= 0 ? 'text-emerald-500' : 'text-red-500'}>
+                            CAGR: {metrics.cagr?.toFixed(1)}%
+                          </span>
+                          <span className="text-muted-foreground">Vol: {metrics.volatility?.toFixed(1)}%</span>
+                          <span className="text-muted-foreground">Sharpe: {metrics.sharpe?.toFixed(2)}</span>
+                          <span className="text-red-400">DD: -{metrics.maxDrawdown?.toFixed(1)}%</span>
+                        </div>
+                      </div>
+                      <ChevronRight className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+            
+            {paginatedPortfolios.length === 0 && !isLoading && (
+              <div className="text-center py-12 text-muted-foreground">
+                <Database className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                <p>No portfolios match your criteria</p>
+                <p className="text-xs mt-1">Try adjusting your filters</p>
+              </div>
             )}
           </div>
-        </div>
-      )}
-
-      {/* Results */}
-      <ScrollArea className="flex-1">
-        <div className="p-4 space-y-2">
-          {!isLoading && portfolios.length === 0 && !progress && !lastResult && (
-            <div className="text-center py-16 text-muted-foreground">
-              <Database className="h-10 w-10 mx-auto mb-3 opacity-30" />
-              <p>No portfolios screened yet</p>
-              <p className="text-xs mt-1">Set your criteria and click "Screen Portfolios"</p>
-            </div>
-          )}
-          
-          {!isLoading && portfolios.length === 0 && lastResult && (
-            <div className="text-center py-16 text-muted-foreground">
-              <Filter className="h-10 w-10 mx-auto mb-3 opacity-30" />
-              <p>No portfolios matched your criteria</p>
-              <p className="text-xs mt-1">
-                Screened {lastResult.totalGenerated} combinations. Try relaxing your criteria (higher max drawdown, lower min Sharpe, etc.)
-              </p>
-            </div>
-          )}
-          
-          {isLoading && portfolios.length === 0 && (
-            <div className="text-center py-16">
-              <Loader2 className="h-10 w-10 mx-auto mb-3 animate-spin text-primary" />
-              <p className="text-sm">{progress?.message || 'Initializing...'}</p>
-            </div>
-          )}
-          
-          {filteredPortfolios.length === 0 && portfolios.length > 0 && (
-            <div className="text-center py-16 text-muted-foreground">
-              <Filter className="h-10 w-10 mx-auto mb-3 opacity-30" />
-              <p>No portfolios match your filters</p>
-              <p className="text-xs mt-1">Try adjusting the risk level or search query</p>
-            </div>
-          )}
-          
-          {paginatedPortfolios.map((p, idx) => {
-            const style = RISK_STYLES[p.riskLevel];
-            const Icon = style.icon;
-            const isTop = idx === 0 && currentPage === 1;
-            
-            return (
-              <Card
-                key={p.id}
-                className={cn(
-                  "cursor-pointer transition-all active:scale-[0.98]",
-                  isTop && "ring-2 ring-primary"
-                )}
-                onClick={() => handleSelect(p)}
-              >
-                <CardContent className="p-3">
-                  {/* Header row */}
-                  <div className="flex items-center gap-3 mb-2">
-                    <div className={cn("p-1.5 rounded-lg", style.bg)}>
-                      <Icon className={cn("h-4 w-4", style.color)} />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <h3 className="font-medium text-sm truncate">{p.name}</h3>
-                        {isTop && <Badge className="text-[9px] h-4">Best</Badge>}
-                      </div>
-                      <p className="text-[10px] text-muted-foreground truncate">{p.description}</p>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Badge variant="secondary" className="font-mono text-xs">
-                        {p.matchScore}%
-                      </Badge>
-                      <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                    </div>
-                  </div>
-                  
-                  {/* Metrics row - tap any metric to learn more */}
-                  {/* Return metrics first */}
-                  <div className="grid grid-cols-6 gap-1 text-center">
-                    <MetricEducationalPopover
-                      label="Total Return"
-                      value={`${p.metrics.totalReturn >= 0 ? '+' : ''}${p.metrics.totalReturn}%`}
-                      termKey="totalReturn"
-                      isPrimary
-                      isNegative={p.metrics.totalReturn < 0}
-                    />
-                    
-                    <MetricEducationalPopover
-                      label="Annual"
-                      value={`${p.metrics.cagr >= 0 ? '+' : ''}${p.metrics.cagr}%`}
-                      termKey="cagr"
-                      isHighlighted={p.metrics.cagr >= minCagr}
-                      isNegative={p.metrics.cagr < 0}
-                    />
-                    
-                    <MetricEducationalPopover
-                      label="Risk Score"
-                      value={p.metrics.sharpe.toFixed(2)}
-                      termKey="sharpeRatio"
-                      isHighlighted={p.metrics.sharpe >= minSharpe}
-                    />
-                    
-                    <MetricEducationalPopover
-                      label="Safety"
-                      value={p.metrics.sortino.toFixed(2)}
-                      termKey="sortinoRatio"
-                    />
-                    
-                    <MetricEducationalPopover
-                      label="Max Drop"
-                      value={`-${p.metrics.maxDrawdown}%`}
-                      termKey="drawdown"
-                      isHighlighted={p.metrics.maxDrawdown <= maxDrawdown}
-                    />
-                    
-                    <MetricEducationalPopover
-                      label="Volatility"
-                      value={`${p.metrics.volatility}%`}
-                      termKey="standardDeviation"
-                      isHighlighted={p.metrics.volatility <= maxVolatility}
-                    />
-                  </div>
-                  
-                  {/* Allocation pills */}
-                  <div className="flex flex-wrap gap-1 mt-2">
-                    {p.allocations.map(a => (
-                      <Badge key={a.ticker} variant="outline" className="text-[9px] h-5 font-mono">
-                        {a.ticker} {a.weight}%
-                      </Badge>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })}
-          
-          {/* Pagination */}
-          {totalPages > 1 && (
-            <div className="flex items-center justify-center gap-2 py-4 border-t mt-4">
-              <Button
-                variant="outline"
-                size="icon"
-                className="h-8 w-8"
-                onClick={() => setCurrentPage(1)}
-                disabled={currentPage === 1}
-              >
-                <ChevronsLeft className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="outline"
-                size="icon"
-                className="h-8 w-8"
-                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                disabled={currentPage === 1}
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </Button>
-              <span className="text-sm px-3 font-mono">
-                {currentPage} / {totalPages}
-              </span>
-              <Button
-                variant="outline"
-                size="icon"
-                className="h-8 w-8"
-                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                disabled={currentPage === totalPages}
-              >
-                <ChevronRight className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="outline"
-                size="icon"
-                className="h-8 w-8"
-                onClick={() => setCurrentPage(totalPages)}
-                disabled={currentPage === totalPages}
-              >
-                <ChevronsRight className="h-4 w-4" />
-              </Button>
-            </div>
-          )}
-        </div>
-      </ScrollArea>
-
-      {/* Details Sheet */}
+        </ScrollArea>
+        
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-center gap-2 p-2 border-t">
+            <Button variant="outline" size="icon" className="h-7 w-7" disabled={currentPage === 1 || isLoading} onClick={() => handlePageChange(1)}>
+              <ChevronsLeft className="h-3 w-3" />
+            </Button>
+            <Button variant="outline" size="icon" className="h-7 w-7" disabled={currentPage === 1 || isLoading} onClick={() => handlePageChange(currentPage - 1)}>
+              <ChevronLeft className="h-3 w-3" />
+            </Button>
+            <span className="text-xs text-muted-foreground px-2">
+              Page {currentPage} of {totalPages.toLocaleString()}
+            </span>
+            <Button variant="outline" size="icon" className="h-7 w-7" disabled={currentPage === totalPages || isLoading} onClick={() => handlePageChange(currentPage + 1)}>
+              <ChevronRight className="h-3 w-3" />
+            </Button>
+            <Button variant="outline" size="icon" className="h-7 w-7" disabled={currentPage === totalPages || isLoading} onClick={() => handlePageChange(totalPages)}>
+              <ChevronsRight className="h-3 w-3" />
+            </Button>
+          </div>
+        )}
+      </div>
+      
+      {/* Portfolio details sheet */}
       <Sheet open={detailsOpen} onOpenChange={setDetailsOpen}>
-        <SheetContent side="bottom" className="h-[85vh] max-h-[85vh] flex flex-col">
+        <SheetContent className="w-full sm:max-w-lg">
+          <SheetHeader>
+            <SheetTitle>{selectedPortfolio?.name}</SheetTitle>
+          </SheetHeader>
+          
           {selectedPortfolio && (
-            <div className="flex flex-col h-full overflow-hidden">
-              <SheetHeader className="flex-shrink-0 pb-4">
-                <SheetTitle className="flex items-center gap-2">
+            <div className="space-y-6 mt-4">
+              {/* Metrics */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="p-3 rounded-lg bg-muted/50">
+                  <div className="text-xs text-muted-foreground">CAGR</div>
+                  <div className={cn("text-lg font-bold", selectedPortfolio.metrics.cagr >= 0 ? 'text-emerald-500' : 'text-red-500')}>
+                    {selectedPortfolio.metrics.cagr.toFixed(1)}%
+                  </div>
+                </div>
+                <div className="p-3 rounded-lg bg-muted/50">
+                  <div className="text-xs text-muted-foreground">Volatility</div>
+                  <div className="text-lg font-bold">{selectedPortfolio.metrics.volatility.toFixed(1)}%</div>
+                </div>
+                <div className="p-3 rounded-lg bg-muted/50">
+                  <div className="text-xs text-muted-foreground">Sharpe Ratio</div>
+                  <div className="text-lg font-bold">{selectedPortfolio.metrics.sharpe.toFixed(2)}</div>
+                </div>
+                <div className="p-3 rounded-lg bg-muted/50">
+                  <div className="text-xs text-muted-foreground">Max Drawdown</div>
+                  <div className="text-lg font-bold text-red-400">-{selectedPortfolio.metrics.maxDrawdown.toFixed(1)}%</div>
+                </div>
+              </div>
+              
+              {/* Allocations */}
+              <div>
+                <h4 className="font-medium mb-2">Allocations</h4>
+                <div className="space-y-2">
                   {(() => {
-                    const Icon = RISK_STYLES[selectedPortfolio.riskLevel].icon;
-                    return <Icon className={cn("h-5 w-5", RISK_STYLES[selectedPortfolio.riskLevel].color)} />;
-                  })()}
-                  {selectedPortfolio.name}
-                  <Badge variant="secondary" className="ml-2">
-                    {selectedPortfolio.matchScore}% Match
-                  </Badge>
-                </SheetTitle>
-              </SheetHeader>
-              
-              <ScrollArea className="flex-1">
-                <div className="space-y-4 pr-2">
-                  <p className="text-sm text-muted-foreground">{selectedPortfolio.description}</p>
-                  
-                  {/* Key metrics - with educational popovers */}
-                  <div className="grid grid-cols-2 gap-2">
-                    <MetricEducationalPopover
-                      label="CAGR"
-                      value={`${selectedPortfolio.metrics.cagr >= 0 ? '+' : ''}${selectedPortfolio.metrics.cagr}%`}
-                      termKey="cagr"
-                      isPrimary
-                      isNegative={selectedPortfolio.metrics.cagr < 0}
-                      variant="card"
-                      className="bg-emerald-500/10 border border-emerald-500/30"
-                    />
-                    <MetricEducationalPopover
-                      label="Max Drawdown"
-                      value={`-${selectedPortfolio.metrics.maxDrawdown}%`}
-                      termKey="drawdown"
-                      isNegative
-                      variant="card"
-                      className="bg-rose-500/10 border border-rose-500/30"
-                    />
-                    <MetricEducationalPopover
-                      label="Volatility"
-                      value={`${selectedPortfolio.metrics.volatility}%`}
-                      termKey="standardDeviation"
-                      variant="card"
-                      className="bg-card border"
-                    />
-                    <MetricEducationalPopover
-                      label="Sharpe Ratio"
-                      value={selectedPortfolio.metrics.sharpe.toFixed(2)}
-                      termKey="sharpeRatio"
-                      variant="card"
-                      className="bg-card border"
-                    />
-                  </div>
-                  
-                  <MetricEducationalPopover
-                    label="Sortino Ratio"
-                    value={selectedPortfolio.metrics.sortino.toFixed(2)}
-                    termKey="sortinoRatio"
-                    variant="card"
-                    className="bg-card border w-full"
-                  />
-                  
-                  {/* Allocations */}
-                  <div>
-                    <h4 className="text-xs font-medium text-muted-foreground uppercase mb-2">Allocations</h4>
-                    <div className="space-y-1.5">
-                      {selectedPortfolio.allocations.map(a => (
-                        <div key={a.ticker} className="flex items-center justify-between p-2 rounded bg-muted/50">
-                          <div className="flex items-center gap-2">
-                            <Badge variant="outline" className="font-mono text-xs">{a.ticker}</Badge>
-                            <span className="text-xs text-muted-foreground">{a.name}</span>
-                          </div>
-                          <span className="font-bold text-sm">{a.weight}%</span>
+                    const isExpanded = 'tickers' in selectedPortfolio;
+                    const allocations = isExpanded
+                      ? (selectedPortfolio as GeneratedPortfolioV2).tickers.map((t, i) => ({
+                          ticker: t,
+                          weight: (selectedPortfolio as GeneratedPortfolioV2).weights[i],
+                          name: TICKER_MAP.get(t)?.name || t,
+                        }))
+                      : (selectedPortfolio as GeneratedPortfolio).allocations;
+                    
+                    return allocations.map((a: any, i: number) => (
+                      <div key={i} className="flex items-center justify-between p-2 rounded bg-muted/50">
+                        <div>
+                          <span className="font-mono font-medium">{a.ticker}</span>
+                          <span className="text-xs text-muted-foreground ml-2">{a.name}</span>
                         </div>
-                      ))}
-                    </div>
-                  </div>
+                        <Badge variant="outline">{a.weight}%</Badge>
+                      </div>
+                    ));
+                  })()}
                 </div>
-              </ScrollArea>
+              </div>
               
-              {/* Action button */}
-              {(onSelect || onComplete) && (
-                <div className="flex-shrink-0 pt-4 border-t border-border mt-4 space-y-3">
-                  {onComplete && (
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <Label className="text-[10px] text-muted-foreground uppercase">Initial Capital</Label>
-                        <Input
-                          type="number"
-                          value={capital}
-                          onChange={(e) => setCapital(Number(e.target.value))}
-                          className="h-9 font-mono"
-                        />
-                      </div>
-                      <div>
-                        <Label className="text-[10px] text-muted-foreground uppercase">Horizon (years)</Label>
-                        <Input
-                          type="number"
-                          value={horizon}
-                          onChange={(e) => setHorizon(Number(e.target.value))}
-                          className="h-9 font-mono"
-                        />
-                      </div>
-                    </div>
-                  )}
-                  <Button className="w-full h-11" onClick={handleUsePortfolio}>
-                    <CheckCircle2 className="h-4 w-4 mr-2" />
-                    {onComplete ? 'Analyze Portfolio' : 'Use This Portfolio'}
-                  </Button>
+              {/* Settings */}
+              <div className="space-y-3">
+                <h4 className="font-medium">Investment Settings</h4>
+                <div>
+                  <Label className="text-xs">Initial Capital</Label>
+                  <Input type="number" value={capital} onChange={(e) => setCapital(Number(e.target.value))} className="h-9" />
                 </div>
-              )}
+                <div>
+                  <Label className="text-xs">Horizon: {horizon} years</Label>
+                  <Slider value={[horizon]} onValueChange={([v]) => setHorizon(v)} min={1} max={30} step={1} />
+                </div>
+              </div>
+              
+              <Button onClick={handleUsePortfolio} className="w-full">
+                <CheckCircle2 className="h-4 w-4 mr-2" />
+                Use This Portfolio
+              </Button>
             </div>
           )}
         </SheetContent>
@@ -1031,5 +717,3 @@ export function DynamicScreener({ onSelect, onComplete }: DynamicScreenerProps) 
     </div>
   );
 }
-
-export default DynamicScreener;
