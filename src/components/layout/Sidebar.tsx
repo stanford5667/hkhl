@@ -53,6 +53,7 @@ import {
   Zap,
   Activity,
   Lightbulb,
+  BookOpen,
 } from "lucide-react";
 
 interface NavItem {
@@ -135,6 +136,12 @@ export function Sidebar() {
         href: "/quant-lab", 
         icon: FlaskConical,
         isPremium: true,
+      },
+      { 
+        label: "Glossary", 
+        subtitle: "Terms & Definitions",
+        href: "/glossary", 
+        icon: BookOpen 
       },
       { 
         label: "Support", 

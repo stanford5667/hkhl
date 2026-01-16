@@ -13,6 +13,7 @@ import {
   Headphones,
   Mail,
   Book,
+  BookOpen,
   LogOut,
   Settings
 } from "lucide-react";
@@ -119,6 +120,7 @@ function MobileSidebarContent({ onNavigate }: { onNavigate: () => void }) {
     
     { label: "Strategy Explorer", href: "/investment-plan", icon: ClipboardList },
     { label: "Market Intel", href: "/market-intel", icon: BarChart3 },
+    { label: "Glossary", href: "/glossary", icon: BookOpen },
     ...(isAdmin ? [{ label: "Asset Research", href: "/asset-research", icon: Search }] : []),
     ...(isAdmin ? [{ label: "Admin Portal", href: "/admin", icon: Shield }] : []),
   ];
