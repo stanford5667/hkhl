@@ -169,6 +169,7 @@ export default function MarketIntel() {
           <LiveMacroContent 
             onItemClick={handleItemClick} 
             onPerformanceUpdate={handleMacroPerformance}
+            macroCategory={activeMacroCategory}
           />
           <StockForexGrid onPerformanceUpdate={handleStockForexPerformance} />
           <CompanyFundamentalsSearch onPerformanceUpdate={handleFundamentalsPerformance} />
