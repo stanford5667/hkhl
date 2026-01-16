@@ -87,7 +87,7 @@ import {
 // TYPES
 // ═══════════════════════════════════════════════════════════════════════════════
 
-type SortField = 'matchScore' | 'cagr' | 'sharpe' | 'maxDrawdown' | 'volatility' | 'sortino';
+type SortField = 'matchScore' | 'cagr' | 'sharpe' | 'maxDrawdown' | 'volatility' | 'sortino' | 'stdDev';
 type SortDirection = 'asc' | 'desc';
 type ScreenMode = 'quick' | 'full';
 type MetricKey = 'maxDrawdown' | 'maxVolatility' | 'minSharpe' | 'minCagr' | 'maxStdDev';
@@ -275,6 +275,7 @@ export function DynamicScreener({ onSelect, onComplete }: DynamicScreenerProps) 
           bVal = b.metrics.maxDrawdown;
           break;
         case 'volatility':
+        case 'stdDev':
           aVal = a.metrics.volatility;
           bVal = b.metrics.volatility;
           break;
@@ -646,24 +647,35 @@ export function DynamicScreener({ onSelect, onComplete }: DynamicScreenerProps) 
             </div>
             <div className="flex items-center gap-1">
               <Select value={sortField} onValueChange={(v) => setSortField(v as SortField)}>
-                <SelectTrigger className="h-7 w-[90px] text-xs">
+                <SelectTrigger className="h-7 w-[100px] text-xs">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="matchScore">Match %</SelectItem>
                   <SelectItem value="cagr">CAGR</SelectItem>
                   <SelectItem value="sharpe">Sharpe</SelectItem>
+                  <SelectItem value="sortino">Sortino</SelectItem>
                   <SelectItem value="maxDrawdown">Drawdown</SelectItem>
-                  <SelectItem value="volatility">Volatility</SelectItem>
+                  <SelectItem value="stdDev">Std Dev</SelectItem>
                 </SelectContent>
               </Select>
               <Button
-                variant="ghost"
-                size="icon"
-                className="h-7 w-7"
+                variant="outline"
+                size="sm"
+                className="h-7 text-xs px-2 gap-1"
                 onClick={() => setSortDirection(d => d === 'asc' ? 'desc' : 'asc')}
               >
-                {sortDirection === 'desc' ? <TrendingDown className="h-3 w-3" /> : <TrendingUp className="h-3 w-3" />}
+                {sortDirection === 'desc' ? (
+                  <>
+                    <TrendingDown className="h-3 w-3" />
+                    High→Low
+                  </>
+                ) : (
+                  <>
+                    <TrendingUp className="h-3 w-3" />
+                    Low→High
+                  </>
+                )}
               </Button>
             </div>
           </div>
@@ -753,7 +765,7 @@ export function DynamicScreener({ onSelect, onComplete }: DynamicScreenerProps) 
                   </div>
                   
                   {/* Metrics row - tap any metric to learn more */}
-                  <div className="grid grid-cols-5 gap-1 text-center">
+                  <div className="grid grid-cols-6 gap-1 text-center">
                     <Popover>
                       <PopoverTrigger asChild>
                         <div className="p-1 rounded bg-muted/50 text-[9px] cursor-pointer hover:bg-muted transition-colors">
@@ -779,7 +791,7 @@ export function DynamicScreener({ onSelect, onComplete }: DynamicScreenerProps) 
                       <PopoverTrigger asChild>
                         <div className="p-1 rounded bg-muted/50 text-[9px] cursor-pointer hover:bg-muted transition-colors">
                           <p className="text-muted-foreground flex items-center justify-center gap-0.5">
-                            Vol
+                            σ
                             <HelpCircle className="h-2 w-2 opacity-50" />
                           </p>
                           <p className={cn(
@@ -791,8 +803,8 @@ export function DynamicScreener({ onSelect, onComplete }: DynamicScreenerProps) 
                         </div>
                       </PopoverTrigger>
                       <PopoverContent className="w-64 text-xs" side="top">
-                        <p className="font-semibold">Volatility (Std Dev)</p>
-                        <p className="text-muted-foreground mt-1">How much the value bounces up and down. Higher = bumpier ride.</p>
+                        <p className="font-semibold">Standard Deviation (σ)</p>
+                        <p className="text-muted-foreground mt-1">Measures how much returns vary from the average. Higher = more unpredictable swings.</p>
                       </PopoverContent>
                     </Popover>
                     
@@ -853,6 +865,24 @@ export function DynamicScreener({ onSelect, onComplete }: DynamicScreenerProps) 
                       <PopoverContent className="w-64 text-xs" side="top">
                         <p className="font-semibold">CAGR (Annual Growth)</p>
                         <p className="text-muted-foreground mt-1">Compound Annual Growth Rate - the smoothed yearly return, as if it grew steadily each year.</p>
+                      </PopoverContent>
+                    </Popover>
+                    
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <div className="p-1 rounded bg-muted/50 text-[9px] cursor-pointer hover:bg-muted transition-colors">
+                          <p className="text-muted-foreground flex items-center justify-center gap-0.5">
+                            Score
+                            <HelpCircle className="h-2 w-2 opacity-50" />
+                          </p>
+                          <p className="font-mono font-bold text-primary">
+                            {p.matchScore}%
+                          </p>
+                        </div>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-64 text-xs" side="top">
+                        <p className="font-semibold">Match Score</p>
+                        <p className="text-muted-foreground mt-1">How well this portfolio matches your screening criteria. Higher = better fit.</p>
                       </PopoverContent>
                     </Popover>
                   </div>
