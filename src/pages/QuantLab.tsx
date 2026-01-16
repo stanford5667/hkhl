@@ -13,16 +13,13 @@
  * - No coding required
  */
 
-import { useState, useCallback, useEffect, useMemo } from 'react';
+import { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Slider } from '@/components/ui/slider';
-import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Progress } from '@/components/ui/progress';
 import {
   Select,
   SelectContent,
@@ -31,23 +28,18 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
-import {
   Accordion,
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
 } from '@/components/ui/accordion';
 import {
-  FlaskConical, Search, Play, Plus, Trash2, Save,
+  FlaskConical, Search, Play, Plus, Save,
   TrendingUp, TrendingDown, BarChart3, Activity, Info,
   Calendar, Zap, Layers, Volume2, Crosshair, LineChart,
-  Gauge, ArrowLeftRight, Mountain, ArrowUpDown, Settings2,
-  Sparkles, HelpCircle, Lightbulb, Target, Shield, Loader2,
-  CheckCircle2, X, RotateCcw, GraduationCap, Trophy, Brain
+  Gauge, ArrowLeftRight, Mountain, ArrowUpDown,
+  Target, Shield, Loader2,
+  CheckCircle2, X
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -57,9 +49,6 @@ import { toast } from 'sonner';
 // Interactive Learning Components
 import { LearningProvider, useLearning } from '@/components/quant-lab/LearningContext';
 import { TutorialOverlay } from '@/components/quant-lab/TutorialOverlay';
-import { ProgressHeader } from '@/components/quant-lab/ProgressHeader';
-import { StudyExplainer } from '@/components/quant-lab/StudyExplainer';
-import { ResultInterpreter } from '@/components/quant-lab/ResultInterpreter';
 import { MetricDetailModal } from '@/components/quant-lab/MetricDetailModal';
 import { StudyAuditDashboard } from '@/components/quant-lab/StudyAuditDashboard';
 import { MobileAuthSheet } from '@/components/auth/MobileAuthSheet';
@@ -905,16 +894,18 @@ const PERIOD_OPTIONS = [
 export default function QuantLab() {
   const { user } = useAuth();
   
-  // State
-  const [ticker, setTicker] = useState('');
-  const [selectedTicker, setSelectedTicker] = useState<string | null>(null);
+  // State - Initialize with default ticker and study for immediate interactivity
+  const [ticker, setTicker] = useState('AAPL');
+  const [selectedTicker, setSelectedTicker] = useState<string>('AAPL');
   const [period, setPeriod] = useState('3y');
-  const [selectedStudies, setSelectedStudies] = useState<string[]>([]);
-  const [studyParams, setStudyParams] = useState<Record<string, Record<string, any>>>({});
+  const [selectedStudies, setSelectedStudies] = useState<string[]>(['daily_close_gt_prior']);
+  const [studyParams, setStudyParams] = useState<Record<string, Record<string, any>>>({
+    'daily_close_gt_prior': { minChangePercent: 0 }
+  });
   const [results, setResults] = useState<Record<string, any>>({});
   const [isRunning, setIsRunning] = useState(false);
   const [runningStudy, setRunningStudy] = useState<string | null>(null);
-  const [showHelp, setShowHelp] = useState(true);
+  const [showHelp, setShowHelp] = useState(false);
   const [activeCategory, setActiveCategory] = useState('basic');
   const [isSaving, setIsSaving] = useState<string | null>(null);
 
@@ -1195,7 +1186,7 @@ function QuantLabContent(props: any) {
     runStudy, runAllStudies, saveStudyResult, getStudy, formatValue, getSentimentStyle, getDisplayMetrics
   } = props;
 
-  const { progress, learningMode, markStudyCompleted, checkAndUnlockAchievements, addXp } = useLearning();
+  const { markStudyCompleted, checkAndUnlockAchievements, addXp } = useLearning();
   const { user } = useAuth();
   
   // Auth state for prompting sign in/up
@@ -1231,38 +1222,20 @@ function QuantLabContent(props: any) {
       {/* Tutorial Overlay for new users */}
       <TutorialOverlay />
       
-      <div className="p-4 sm:p-6 space-y-6 pb-20 md:pb-6 max-w-7xl mx-auto">
-        {/* Progress Header with XP & Achievements */}
-        <ProgressHeader />
-
-        {/* Header - Compact on mobile */}
-        <div className="flex items-start sm:items-center justify-between gap-2 sm:gap-4">
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 sm:gap-3">
-              <div className="p-1.5 sm:p-2 rounded-lg sm:rounded-xl bg-gradient-to-br from-purple-500 to-indigo-600 shadow-lg shadow-purple-500/25 shrink-0">
-                <FlaskConical className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
-              </div>
-              <div>
-                <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold flex items-center gap-2">
-                  Quant Lab
-                  {learningMode && (
-                    <Badge className="bg-gradient-to-r from-purple-500 to-primary text-white border-0 gap-1 text-[10px] sm:text-xs px-1.5 py-0.5">
-                      <GraduationCap className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
-                      <span className="hidden sm:inline">Learning</span>
-                    </Badge>
-                  )}
-                </h1>
-                <p className="text-muted-foreground text-xs sm:text-sm hidden sm:block">
-                  Interactive stock analysis — no coding required
-                </p>
-              </div>
-            </div>
+      <div className="p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-6 pb-24 md:pb-6 max-w-7xl mx-auto">
+        {/* Header - Compact and mobile-first */}
+        <div className="flex items-center gap-3">
+          <div className="p-2 rounded-xl bg-gradient-to-br from-purple-500 to-indigo-600 shadow-lg shadow-purple-500/25 shrink-0">
+            <FlaskConical className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
           </div>
-
-          <Badge variant="outline" className="gap-1 shrink-0 text-xs">
-            <Trophy className="h-3 w-3 text-amber-500" />
-            {progress.xp} XP
-          </Badge>
+          <div className="flex-1 min-w-0">
+            <h1 className="text-lg sm:text-xl md:text-2xl font-bold flex items-center gap-2">
+              Quant Lab
+            </h1>
+            <p className="text-muted-foreground text-xs sm:text-sm line-clamp-1">
+              Interactive stock analysis — no coding required
+            </p>
+          </div>
         </div>
 
         {/* STEP 1: Stock Selection - Always visible, prominent */}
@@ -1696,29 +1669,6 @@ function QuantLabContent(props: any) {
           )}
         </AnimatePresence>
 
-        {/* Help for new users */}
-        {!selectedTicker && showHelp && (
-          <Card className="bg-gradient-to-br from-blue-500/5 via-purple-500/5 to-pink-500/5 border-primary/10">
-            <CardContent className="p-6">
-              <div className="flex items-start gap-4">
-                <div className="p-3 rounded-lg bg-primary/10 shrink-0">
-                  <Lightbulb className="h-6 w-6 text-primary" />
-                </div>
-                <div className="flex-1">
-                  <h3 className="font-semibold text-lg mb-2">Getting Started</h3>
-                  <p className="text-muted-foreground text-sm">
-                    Enter a stock ticker above to begin. You can type any symbol (like AAPL, TSLA, or SPY) 
-                    or click one of the popular options. Then pick from our pre-built analysis templates 
-                    or choose individual studies to run.
-                  </p>
-                </div>
-                <Button variant="ghost" size="icon" onClick={() => setShowHelp(false)}>
-                  <X className="h-4 w-4" />
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        )}
 
         {/* Study Accuracy Audit Dashboard */}
         <Accordion type="single" collapsible className="w-full">
