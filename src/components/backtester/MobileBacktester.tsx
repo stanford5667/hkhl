@@ -206,9 +206,9 @@ const DRAWDOWN_PORTFOLIOS: Record<number, { name: string; description: string; a
   50: { name: 'Maximum Risk', description: 'Full equity, sector concentrated', assets: [{ symbol: 'QQQ', weight: 50 }, { symbol: 'VGT', weight: 30 }, { symbol: 'VTI', weight: 20 }] },
 };
 
-// ═══════════════════════════════════════════════════════════════════════════════
+// =============================================================================
 // METRIC CARD COMPONENT
-// ═══════════════════════════════════════════════════════════════════════════════
+// =============================================================================
 
 const METRIC_INFO: Record<string, string> = {
   'CAGR': 'Compound Annual Growth Rate - your annualized return',
@@ -280,9 +280,9 @@ function MetricPill({
   );
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
+// =============================================================================
 // MAIN COMPONENT
-// ═══════════════════════════════════════════════════════════════════════════════
+// =============================================================================
 
 export function MobileBacktester() {
   // Default 5 positions
@@ -737,9 +737,9 @@ export function MobileBacktester() {
     }));
   }, [result]);
 
-  // ═══════════════════════════════════════════════════════════════════════════════
+  // ===========================================================================
   // RESULTS VIEW
-  // ═══════════════════════════════════════════════════════════════════════════════
+  // ===========================================================================
 
   if (showResults && result) {
     return (
@@ -749,7 +749,7 @@ export function MobileBacktester() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Button variant="ghost" size="sm" onClick={() => setShowResults(false)}>
-                ← Back
+                &larr; Back
               </Button>
               <h1 className="font-semibold">Results</h1>
             </div>
@@ -1019,9 +1019,9 @@ export function MobileBacktester() {
     );
   }
 
-  // ═══════════════════════════════════════════════════════════════════════════════
+  // ===========================================================================
   // MAIN BUILD VIEW
-  // ═══════════════════════════════════════════════════════════════════════════════
+  // ===========================================================================
 
   return (
     <div className="flex flex-col h-full min-h-0 bg-background">
@@ -1408,7 +1408,7 @@ export function MobileBacktester() {
                           onClick={() => updateWeight(asset.symbol, Math.max(0, asset.weight - 5))}
                           className="w-6 h-6 rounded border bg-muted/50 hover:bg-muted flex items-center justify-center text-xs"
                         >
-                          −
+                          -
                         </button>
                         <span className="font-mono font-semibold text-sm w-10 text-center">
                           {asset.weight.toFixed(0)}
@@ -1621,22 +1621,22 @@ export function MobileBacktester() {
                         <div className="p-3 rounded-lg bg-secondary/30">
                           <p className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wider">52W High</p>
                           <p className="font-mono font-semibold text-emerald-500 text-sm sm:text-base">
-                            {selectedAsset.high52w != null ? `$${selectedAsset.high52w.toFixed(2)}` : 'N/A'}
+                            {selectedAsset.high52w != null ? ('$' + selectedAsset.high52w.toFixed(2)) : 'N/A'}
                           </p>
                         </div>
                         <div className="p-3 rounded-lg bg-secondary/30">
                           <p className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wider">52W Low</p>
                           <p className="font-mono font-semibold text-rose-500 text-sm sm:text-base">
-                            {selectedAsset.low52w != null ? `$${selectedAsset.low52w.toFixed(2)}` : 'N/A'}
+                            {selectedAsset.low52w != null ? ('$' + selectedAsset.low52w.toFixed(2)) : 'N/A'}
                           </p>
                         </div>
                         <div className="p-3 rounded-lg bg-secondary/30">
                           <p className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wider">Volume</p>
                           <p className="font-mono font-semibold text-sm sm:text-base">
-                            {selectedAsset.volume 
-                              ? (selectedAsset.volume >= 1000000 
-                                  ? `${(selectedAsset.volume / 1000000).toFixed(1)}M` 
-                                  : `${(selectedAsset.volume / 1000).toFixed(0)}K`)
+                            {selectedAsset.volume
+                              ? (selectedAsset.volume >= 1000000
+                                  ? (selectedAsset.volume / 1000000).toFixed(1) + 'M'
+                                  : (selectedAsset.volume / 1000).toFixed(0) + 'K')
                               : 'N/A'}
                           </p>
                         </div>
