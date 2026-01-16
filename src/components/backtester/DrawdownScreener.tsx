@@ -1,6 +1,6 @@
 /**
- * Risk-Based Screener - Suggest portfolios based on multiple risk metrics
- * A visually stunning interface for screening portfolios by risk appetite
+ * Performance Screener - Suggest portfolios based on return, risk & drawdown metrics
+ * A visually stunning interface for screening portfolios by performance criteria
  * Now with real backtested data from the portfolio-screener edge function
  */
 
@@ -543,7 +543,7 @@ export function DrawdownScreener({ onComplete }: DrawdownScreenerProps) {
             >
               <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-primary/20 to-primary/5 border border-primary/20 mb-4">
                 <Sparkles className="h-4 w-4 text-primary" />
-                <span className="text-sm font-medium text-primary">Risk-Based Screener</span>
+                <span className="text-sm font-medium text-primary">Performance Screener</span>
               </div>
             </motion.div>
             

@@ -1372,10 +1372,10 @@ export default function PortfolioVisualizer() {
                     <Target className="h-7 w-7 text-primary" />
                   </motion.div>
                   <CardTitle className="text-xl font-semibold text-foreground group-hover:text-primary transition-colors">
-                    Risk-Based Screener
+                    Performance Screener
                   </CardTitle>
                   <CardDescription className="text-sm leading-relaxed">
-                    Find portfolios that match your risk tolerance based on historical drawdown analysis
+                    Screen portfolios by return, max loss, volatility and other key performance metrics
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="pt-0">
