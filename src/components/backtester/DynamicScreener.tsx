@@ -338,7 +338,7 @@ export function DynamicScreener({ onSelect, onComplete }: DynamicScreenerProps) 
             <Sparkles className="h-5 w-5 text-primary" />
             <h2 className="font-semibold">Dynamic Screener</h2>
             <Badge variant="secondary" className="text-[10px]">
-              {availableTickers.length} tickers
+              20 Templates
             </Badge>
           </div>
           <div className="flex items-center gap-2">
