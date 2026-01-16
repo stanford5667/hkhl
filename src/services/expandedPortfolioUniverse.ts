@@ -749,7 +749,7 @@ export async function screenPortfoliosV2(
 
   onProgress?.({ phase: 'calculating', current: 50, total: 100, message: 'Generating portfolios...' });
 
-  // Step 4: Generate and calculate portfolios
+  // Step 4: Generate ALL portfolios without filtering (filter later for diversity)
   const allPortfolios: GeneratedPortfolioV2[] = [];
   let portfolioCount = 0;
 
@@ -772,18 +772,15 @@ export async function screenPortfoliosV2(
         const metrics = calculatePortfolioMetrics(combo, weights, tickerData);
         if (!metrics) continue;
 
-        if (criteria.maxDrawdown !== undefined && metrics.maxDrawdown > criteria.maxDrawdown) continue;
-        if (criteria.maxVolatility !== undefined && metrics.volatility > criteria.maxVolatility) continue;
-        if (criteria.minSharpe !== undefined && metrics.sharpe < criteria.minSharpe) continue;
-        if (criteria.minCagr !== undefined && metrics.cagr < criteria.minCagr) continue;
-        if (criteria.minSortino !== undefined && metrics.sortino < criteria.minSortino) continue;
+        // Only filter by risk profiles if specified - no metric filtering during generation
         if (criteria.riskProfiles?.length && !criteria.riskProfiles.includes(family.riskProfile)) continue;
 
+        // Calculate match score based on how well it meets criteria (for sorting)
         let matchScore = 50;
-        if (criteria.minSharpe && metrics.sharpe >= criteria.minSharpe) matchScore += 15;
-        if (criteria.minCagr && metrics.cagr >= criteria.minCagr) matchScore += 15;
-        if (criteria.maxDrawdown && metrics.maxDrawdown <= criteria.maxDrawdown) matchScore += 10;
-        if (criteria.maxVolatility && metrics.volatility <= criteria.maxVolatility) matchScore += 10;
+        if (criteria.minSharpe !== undefined && metrics.sharpe >= criteria.minSharpe) matchScore += 15;
+        if (criteria.minCagr !== undefined && metrics.cagr >= criteria.minCagr) matchScore += 15;
+        if (criteria.maxDrawdown !== undefined && metrics.maxDrawdown <= criteria.maxDrawdown) matchScore += 10;
+        if (criteria.maxVolatility !== undefined && metrics.volatility <= criteria.maxVolatility) matchScore += 10;
 
         allPortfolios.push({
           id: `${family.id}-${combo.join('-')}-${weights.join('-')}`,
@@ -805,7 +802,7 @@ export async function screenPortfoliosV2(
   // Phase 2: Direct cross-ticker combinations (for 10K+ combos)
   const allValidTickers = availableTickers.filter(t => tickerData.has(t));
   
-  // Generate 2-asset combinations from all tickers
+  // Generate 2-asset combinations from all tickers (no filtering)
   if (portfolioCount < limit && allValidTickers.length >= 2) {
     for (const combo of combinations(allValidTickers, 2)) {
       if (portfolioCount >= limit) break;
@@ -816,20 +813,14 @@ export async function screenPortfoliosV2(
         const metrics = calculatePortfolioMetrics(combo, weights, tickerData);
         if (!metrics) continue;
 
-        if (criteria.maxDrawdown !== undefined && metrics.maxDrawdown > criteria.maxDrawdown) continue;
-        if (criteria.maxVolatility !== undefined && metrics.volatility > criteria.maxVolatility) continue;
-        if (criteria.minSharpe !== undefined && metrics.sharpe < criteria.minSharpe) continue;
-        if (criteria.minCagr !== undefined && metrics.cagr < criteria.minCagr) continue;
-        if (criteria.minSortino !== undefined && metrics.sortino < criteria.minSortino) continue;
-
         const riskProfile = determineRiskProfile(combo);
         if (criteria.riskProfiles?.length && !criteria.riskProfiles.includes(riskProfile)) continue;
 
         let matchScore = 50;
-        if (criteria.minSharpe && metrics.sharpe >= criteria.minSharpe) matchScore += 15;
-        if (criteria.minCagr && metrics.cagr >= criteria.minCagr) matchScore += 15;
-        if (criteria.maxDrawdown && metrics.maxDrawdown <= criteria.maxDrawdown) matchScore += 10;
-        if (criteria.maxVolatility && metrics.volatility <= criteria.maxVolatility) matchScore += 10;
+        if (criteria.minSharpe !== undefined && metrics.sharpe >= criteria.minSharpe) matchScore += 15;
+        if (criteria.minCagr !== undefined && metrics.cagr >= criteria.minCagr) matchScore += 15;
+        if (criteria.maxDrawdown !== undefined && metrics.maxDrawdown <= criteria.maxDrawdown) matchScore += 10;
+        if (criteria.maxVolatility !== undefined && metrics.volatility <= criteria.maxVolatility) matchScore += 10;
 
         allPortfolios.push({
           id: `pair-${combo.join('-')}-${weights.join('-')}`,
@@ -851,33 +842,26 @@ export async function screenPortfoliosV2(
   // Generate 3-asset combinations (sample for performance)
   if (portfolioCount < limit && allValidTickers.length >= 3) {
     let threeAssetCount = 0;
-    const maxThreeAsset = Math.min(3000, limit - portfolioCount);
+    const maxThreeAsset = Math.min(50000, limit - portfolioCount); // Allow more 3-asset combos
     
     for (const combo of combinations(allValidTickers, 3)) {
       if (threeAssetCount >= maxThreeAsset || portfolioCount >= limit) break;
       
-      // Use fewer weight schemes for 3-asset to allow more ticker diversity
-      const weights3 = WEIGHT_SCHEMES[3].slice(0, 4);
-      for (const weights of weights3) {
+      // Use all weight schemes for 3-asset
+      for (const weights of WEIGHT_SCHEMES[3]) {
         if (threeAssetCount >= maxThreeAsset || portfolioCount >= limit) break;
         
         const metrics = calculatePortfolioMetrics(combo, weights, tickerData);
         if (!metrics) continue;
 
-        if (criteria.maxDrawdown !== undefined && metrics.maxDrawdown > criteria.maxDrawdown) continue;
-        if (criteria.maxVolatility !== undefined && metrics.volatility > criteria.maxVolatility) continue;
-        if (criteria.minSharpe !== undefined && metrics.sharpe < criteria.minSharpe) continue;
-        if (criteria.minCagr !== undefined && metrics.cagr < criteria.minCagr) continue;
-        if (criteria.minSortino !== undefined && metrics.sortino < criteria.minSortino) continue;
-
         const riskProfile = determineRiskProfile(combo);
         if (criteria.riskProfiles?.length && !criteria.riskProfiles.includes(riskProfile)) continue;
 
         let matchScore = 50;
-        if (criteria.minSharpe && metrics.sharpe >= criteria.minSharpe) matchScore += 15;
-        if (criteria.minCagr && metrics.cagr >= criteria.minCagr) matchScore += 15;
-        if (criteria.maxDrawdown && metrics.maxDrawdown <= criteria.maxDrawdown) matchScore += 10;
-        if (criteria.maxVolatility && metrics.volatility <= criteria.maxVolatility) matchScore += 10;
+        if (criteria.minSharpe !== undefined && metrics.sharpe >= criteria.minSharpe) matchScore += 15;
+        if (criteria.minCagr !== undefined && metrics.cagr >= criteria.minCagr) matchScore += 15;
+        if (criteria.maxDrawdown !== undefined && metrics.maxDrawdown <= criteria.maxDrawdown) matchScore += 10;
+        if (criteria.maxVolatility !== undefined && metrics.volatility <= criteria.maxVolatility) matchScore += 10;
 
         allPortfolios.push({
           id: `trio-${combo.join('-')}-${weights.join('-')}`,
@@ -895,24 +879,20 @@ export async function screenPortfoliosV2(
     }
   }
 
-  onProgress?.({ phase: 'calculating', current: 80, total: 100, message: 'Sorting results...' });
+  onProgress?.({ phase: 'calculating', current: 80, total: 100, message: 'Diversifying results across risk spectrum...' });
 
-  // Step 5: Sort
-  const sortMultiplier = sortDirection === 'desc' ? -1 : 1;
-  allPortfolios.sort((a, b) => {
-    const aVal = sortBy === 'matchScore' ? a.matchScore : a.metrics[sortBy as keyof RealMetrics] as number;
-    const bVal = sortBy === 'matchScore' ? b.matchScore : b.metrics[sortBy as keyof RealMetrics] as number;
-    return (aVal - bVal) * sortMultiplier;
-  });
+  // Step 5: Create diversity-prioritized sort
+  // First, bucket portfolios by risk profile and metric ranges to ensure full spectrum coverage
+  const diversePortfolios = createDiversePortfolioSet(allPortfolios, sortBy, sortDirection);
 
   // Step 6: Paginate
-  const totalCount = allPortfolios.length;
+  const totalCount = diversePortfolios.length;
   const totalPages = Math.ceil(totalCount / pageSize);
   const startIdx = (page - 1) * pageSize;
   const endIdx = startIdx + pageSize;
-  const paginatedPortfolios = allPortfolios.slice(startIdx, endIdx);
+  const paginatedPortfolios = diversePortfolios.slice(startIdx, endIdx);
 
-  onProgress?.({ phase: 'complete', current: 100, total: 100, message: `Generated ${totalCount} portfolios` });
+  onProgress?.({ phase: 'complete', current: 100, total: 100, message: `Generated ${totalCount} portfolios across full risk spectrum` });
 
   return {
     portfolios: paginatedPortfolios,
@@ -923,6 +903,51 @@ export async function screenPortfoliosV2(
     generationTime: Date.now() - startTime,
     availableTickers: availableTickers.length,
   };
+}
+
+/**
+ * Creates a diverse portfolio set ensuring coverage across all risk profiles and metric ranges
+ */
+function createDiversePortfolioSet(
+  portfolios: GeneratedPortfolioV2[],
+  sortBy: string,
+  sortDirection: string
+): GeneratedPortfolioV2[] {
+  // Bucket by risk profile
+  const buckets: Record<string, GeneratedPortfolioV2[]> = {
+    conservative: [],
+    moderate: [],
+    growth: [],
+    aggressive: [],
+  };
+
+  for (const p of portfolios) {
+    buckets[p.riskProfile]?.push(p);
+  }
+
+  // Sort each bucket by the requested field
+  const sortMultiplier = sortDirection === 'desc' ? -1 : 1;
+  for (const key of Object.keys(buckets)) {
+    buckets[key].sort((a, b) => {
+      const aVal = sortBy === 'matchScore' ? a.matchScore : a.metrics[sortBy as keyof RealMetrics] as number;
+      const bVal = sortBy === 'matchScore' ? b.matchScore : b.metrics[sortBy as keyof RealMetrics] as number;
+      return (aVal - bVal) * sortMultiplier;
+    });
+  }
+
+  // Interleave from each bucket to ensure diversity in first pages
+  const result: GeneratedPortfolioV2[] = [];
+  const maxLen = Math.max(...Object.values(buckets).map(b => b.length));
+  
+  for (let i = 0; i < maxLen; i++) {
+    for (const key of ['conservative', 'moderate', 'growth', 'aggressive']) {
+      if (i < buckets[key].length) {
+        result.push(buckets[key][i]);
+      }
+    }
+  }
+
+  return result;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
