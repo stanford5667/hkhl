@@ -1232,7 +1232,7 @@ export function MobileBacktester() {
                           onClick={() => setInitialCapital(amount)}
                           className="text-xs font-mono h-7 px-2"
                         >
-                          ${amount >= 1000000 ? `${amount / 1000000}M` : `${amount / 1000}K`}
+                          {'$'}{amount >= 1000000 ? `${amount / 1000000}M` : `${amount / 1000}K`}
                         </Button>
                       ))}
                     </div>
@@ -1621,13 +1621,13 @@ export function MobileBacktester() {
                         <div className="p-3 rounded-lg bg-secondary/30">
                           <p className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wider">52W High</p>
                           <p className="font-mono font-semibold text-emerald-500 text-sm sm:text-base">
-                            {'$'}{selectedAsset.high52w?.toFixed(2) || 'N/A'}
+                            {selectedAsset.high52w != null ? `$${selectedAsset.high52w.toFixed(2)}` : 'N/A'}
                           </p>
                         </div>
                         <div className="p-3 rounded-lg bg-secondary/30">
                           <p className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wider">52W Low</p>
                           <p className="font-mono font-semibold text-rose-500 text-sm sm:text-base">
-                            {'$'}{selectedAsset.low52w?.toFixed(2) || 'N/A'}
+                            {selectedAsset.low52w != null ? `$${selectedAsset.low52w.toFixed(2)}` : 'N/A'}
                           </p>
                         </div>
                         <div className="p-3 rounded-lg bg-secondary/30">
