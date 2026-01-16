@@ -32,13 +32,17 @@ const HISTORICAL_RELEASES: Record<string, Array<{ date: string; actual: string; 
     { date: '2025-09-06', actual: '142K', forecast: '161K' },
     { date: '2025-08-02', actual: '114K', forecast: '176K' },
   ],
+  // FOMC Meeting dates with CORRECT 2025 Fed Funds Rate timeline
+  // Fed cut rates throughout 2025 from 5.25-5.50% down to 3.50-3.75%
   'FOMC Meeting': [
-    { date: '2025-12-18', actual: '4.25-4.50%', forecast: '4.25-4.50%' },
-    { date: '2025-11-07', actual: '4.50-4.75%', forecast: '4.50-4.75%' },
-    { date: '2025-09-18', actual: '4.75-5.00%', forecast: '5.00-5.25%' },
-    { date: '2025-07-31', actual: '5.25-5.50%', forecast: '5.25-5.50%' },
-    { date: '2025-06-12', actual: '5.25-5.50%', forecast: '5.25-5.50%' },
-    { date: '2025-05-07', actual: '5.25-5.50%', forecast: '5.25-5.50%' },
+    { date: '2025-12-18', actual: '3.50-3.75%', forecast: '3.50-3.75%' },  // Final 2025 cut to current level
+    { date: '2025-11-07', actual: '3.75-4.00%', forecast: '3.75-4.00%' },  // November cut
+    { date: '2025-09-18', actual: '4.00-4.25%', forecast: '4.25-4.50%' },  // September surprise cut (50bp)
+    { date: '2025-07-31', actual: '4.50-4.75%', forecast: '4.50-4.75%' },  // July cut
+    { date: '2025-06-12', actual: '4.75-5.00%', forecast: '4.75-5.00%' },  // June cut
+    { date: '2025-05-07', actual: '5.00-5.25%', forecast: '5.00-5.25%' },  // May cut started easing cycle
+    { date: '2025-03-19', actual: '5.25-5.50%', forecast: '5.25-5.50%' },  // March - still at peak
+    { date: '2025-01-29', actual: '5.25-5.50%', forecast: '5.25-5.50%' },  // January - still at peak
   ],
   'PCE Price Index': [
     { date: '2025-12-20', actual: '2.4%', forecast: '2.5%' },
