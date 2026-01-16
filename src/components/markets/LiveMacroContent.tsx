@@ -8,6 +8,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
+import { MarketHealthCard } from './MarketHealthCard';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -82,12 +83,17 @@ function getEventIcon(eventType: string) {
   return TrendingUp;
 }
 
+// Re-export MarketHealthCard for use in other components
+export { MarketHealthCard } from './MarketHealthCard';
+
 interface LiveMacroContentProps {
   onItemClick?: (item: MacroDataItem) => void;
   onPerformanceUpdate?: (loadTimeMs: number, accuracy: number, issues: string[]) => void;
+  /** Render slot for content to appear between Market Health and Economic Data */
+  renderAfterMarketHealth?: React.ReactNode;
 }
 
-export function LiveMacroContent({ onItemClick, onPerformanceUpdate }: LiveMacroContentProps) {
+export function LiveMacroContent({ onItemClick, onPerformanceUpdate, renderAfterMarketHealth }: LiveMacroContentProps) {
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const [eventDetailOpen, setEventDetailOpen] = useState(false);
   const [loadStartTime] = useState(() => performance.now());
@@ -309,47 +315,10 @@ export function LiveMacroContent({ onItemClick, onPerformanceUpdate }: LiveMacro
       )}
 
       {/* Market Health Score */}
-      <Card className="bg-gradient-to-br from-card to-secondary/20 border-primary/20">
-        <CardContent className="p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-muted-foreground mb-1">Market Health Score</p>
-              <div className="flex items-center gap-3">
-                <span className={cn(
-                  "text-4xl font-bold",
-                  healthScore.score >= 60 ? "text-emerald-400" :
-                  healthScore.score <= 40 ? "text-rose-400" : "text-amber-400"
-                )}>
-                  {healthScore.score}
-                </span>
-                <Badge variant="outline" className={cn(
-                  healthScore.score >= 60 ? "border-emerald-500/30 text-emerald-400" :
-                  healthScore.score <= 40 ? "border-rose-500/30 text-rose-400" : 
-                  "border-amber-500/30 text-amber-400"
-                )}>
-                  {healthScore.label}
-                </Badge>
-              </div>
-            </div>
-            <div className="flex flex-wrap gap-2 max-w-md">
-              {healthScore.factors.slice(0, 4).map((f, i) => (
-                <Badge 
-                  key={i}
-                  variant="outline"
-                  className={cn(
-                    "text-xs",
-                    f.impact === 'positive' ? "border-emerald-500/30 text-emerald-400" :
-                    f.impact === 'negative' ? "border-rose-500/30 text-rose-400" :
-                    "border-muted"
-                  )}
-                >
-                  {f.impact === 'positive' ? '✓' : f.impact === 'negative' ? '✗' : '○'} {f.name}
-                </Badge>
-              ))}
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      <MarketHealthCard healthScore={healthScore} />
+
+      {/* Render slot for content between Market Health and Economic Data */}
+      {renderAfterMarketHealth}
 
       {/* Table View - Full tabular data with study integration */}
       {viewMode === 'table' && !hasNoResults && (

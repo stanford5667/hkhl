@@ -150,14 +150,12 @@ export default function MarketIntel() {
       {activeCategory === 'currencies' && <CurrenciesContent onItemClick={handleItemClick} />}
       {activeCategory === 'indicators' && (
         <div className="space-y-6">
-          {/* Live Economic Data & Market Health at the top */}
+          {/* Live Economic Data with Market Health, then Featured Insight, then Economic Data */}
           <LiveMacroContent 
             onItemClick={handleItemClick} 
             onPerformanceUpdate={handleMacroPerformance}
+            renderAfterMarketHealth={<FeaturedInsightCard />}
           />
-          
-          {/* Featured Insight Card - surfaces probabilities & market impact */}
-          <FeaturedInsightCard />
           
           <StockForexGrid onPerformanceUpdate={handleStockForexPerformance} />
         </div>
