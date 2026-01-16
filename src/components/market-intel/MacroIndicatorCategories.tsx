@@ -1,8 +1,9 @@
+import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { 
   TrendingUp, Users, DollarSign, Banknote, ArrowLeftRight, Building, 
-  Briefcase, ShoppingCart, Home, Receipt, Zap, Heart, Cloud
+  Briefcase, ShoppingCart, Home, Receipt, Zap, Heart, Cloud, Layers
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -33,39 +34,51 @@ const macroCategories: { id: MacroCategory; label: string; icon: React.ElementTy
 
 export function MacroIndicatorCategories({ activeCategory, onCategoryChange }: MacroIndicatorCategoriesProps) {
   return (
-    <div className="space-y-2">
-      <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Macro Indicators</h4>
-      <ScrollArea className="w-full whitespace-nowrap">
-        <div className="flex gap-1.5 pb-2">
-          <button
-            onClick={() => onCategoryChange(null)}
-            className={cn(
-              "px-2.5 py-1 rounded-md text-xs font-medium transition-all border",
-              activeCategory === null 
-                ? "bg-primary/10 text-primary border-primary/30" 
-                : "bg-secondary/30 text-muted-foreground border-transparent hover:bg-secondary/50"
-            )}
-          >
-            All
-          </button>
-          {macroCategories.map(({ id, label, icon: Icon }) => (
+    <Card className="bg-secondary/30 border-border/30">
+      <CardContent className="p-3">
+        <div className="flex items-center gap-2 mb-2.5">
+          <Layers className="h-4 w-4 text-primary" />
+          <span className="text-sm font-medium">Macro Indicator Categories</span>
+          <Badge variant="outline" className="ml-auto text-xs bg-background/50">
+            {macroCategories.length} filters
+          </Badge>
+        </div>
+        
+        <ScrollArea className="w-full whitespace-nowrap">
+          <div className="flex gap-1.5 pb-2">
             <button
-              key={id}
-              onClick={() => onCategoryChange(id)}
+              onClick={() => onCategoryChange(null)}
               className={cn(
-                "flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium transition-all border",
-                activeCategory === id 
-                  ? "bg-primary/10 text-primary border-primary/30" 
-                  : "bg-secondary/30 text-muted-foreground border-transparent hover:bg-secondary/50 hover:text-foreground"
+                "px-3 py-1.5 rounded-md text-xs font-medium transition-all border-2",
+                activeCategory === null 
+                  ? "bg-primary text-primary-foreground border-primary shadow-sm" 
+                  : "bg-card text-muted-foreground border-border/50 hover:bg-secondary/80 hover:border-primary/30 hover:text-foreground"
               )}
             >
-              <Icon className="h-3 w-3" />
-              {label}
+              All Categories
             </button>
-          ))}
-        </div>
-        <ScrollBar orientation="horizontal" />
-      </ScrollArea>
-    </div>
+            {macroCategories.map(({ id, label, icon: Icon }) => (
+              <button
+                key={id}
+                onClick={() => onCategoryChange(id)}
+                className={cn(
+                  "group flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all border-2",
+                  activeCategory === id 
+                    ? "bg-primary text-primary-foreground border-primary shadow-sm" 
+                    : "bg-card text-muted-foreground border-border/50 hover:bg-secondary/80 hover:border-primary/30 hover:text-foreground"
+                )}
+              >
+                <Icon className={cn(
+                  "h-3 w-3 transition-transform group-hover:scale-110",
+                  activeCategory === id ? "text-primary-foreground" : "text-primary"
+                )} />
+                {label}
+              </button>
+            ))}
+          </div>
+          <ScrollBar orientation="horizontal" className="bg-secondary/50" />
+        </ScrollArea>
+      </CardContent>
+    </Card>
   );
 }
