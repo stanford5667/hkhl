@@ -55,13 +55,15 @@ import { toast } from 'sonner';
 
 // Import expanded universe service
 import {
-  screenPortfoliosV2,
   getUniverseStats,
   FilterCriteria,
   GeneratedPortfolioV2,
   GenerationProgress,
   TICKER_MAP,
 } from '@/services/expandedPortfolioUniverse';
+
+// Import server-side screener API
+import { screenPortfoliosServer } from '@/services/portfolioScreenerApi';
 
 // Legacy imports for backward compatibility
 import {
@@ -196,7 +198,7 @@ export function DynamicScreener({ onSelect, onComplete }: DynamicScreenerProps) 
       }
       
       try {
-        const result = await screenPortfoliosV2(
+        const result = await screenPortfoliosServer(
           criteria,
           {
             page,
@@ -207,6 +209,7 @@ export function DynamicScreener({ onSelect, onComplete }: DynamicScreenerProps) 
                    sortField === 'maxDrawdown' ? 'maxDrawdown' : 'matchScore',
             sortDirection,
             limit: maxPortfolios,
+            useCache: true,
           },
           (prog) => setProgress(prog)
         );

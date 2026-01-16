@@ -2946,6 +2946,66 @@ export type Database = {
         }
         Relationships: []
       }
+      screened_portfolios_cache: {
+        Row: {
+          cagr: number
+          computed_at: string | null
+          created_at: string | null
+          data_points: number
+          expires_at: string | null
+          family: string
+          id: string
+          lookback_years: number | null
+          max_drawdown: number
+          name: string
+          risk_profile: string
+          sharpe: number
+          sortino: number
+          tickers: string[]
+          total_return: number
+          volatility: number
+          weights: number[]
+        }
+        Insert: {
+          cagr: number
+          computed_at?: string | null
+          created_at?: string | null
+          data_points: number
+          expires_at?: string | null
+          family: string
+          id: string
+          lookback_years?: number | null
+          max_drawdown: number
+          name: string
+          risk_profile: string
+          sharpe: number
+          sortino: number
+          tickers: string[]
+          total_return: number
+          volatility: number
+          weights: number[]
+        }
+        Update: {
+          cagr?: number
+          computed_at?: string | null
+          created_at?: string | null
+          data_points?: number
+          expires_at?: string | null
+          family?: string
+          id?: string
+          lookback_years?: number | null
+          max_drawdown?: number
+          name?: string
+          risk_profile?: string
+          sharpe?: number
+          sortino?: number
+          tickers?: string[]
+          total_return?: number
+          volatility?: number
+          weights?: number[]
+        }
+        Relationships: []
+      }
       security_rate_limits: {
         Row: {
           action_count: number | null
