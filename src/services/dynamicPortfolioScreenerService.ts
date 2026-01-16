@@ -470,6 +470,7 @@ export function calculatePortfolioMetrics(
 
 /**
  * Calculate EXACT portfolio metrics using aligned daily returns
+ * Note: polygonDataHandler returns LOG returns, so we convert to simple returns
  */
 export function calculateExactPortfolioMetrics(
   allocations: PortfolioAllocation[],
@@ -481,9 +482,7 @@ export function calculateExactPortfolioMetrics(
 
   if (assets.length !== allocations.length) return null;
 
-  // Match PortfolioVisualizer methodology:
-  // - use per-asset "returns" arrays (log returns) from polygonDataHandler
-  // - align series by the shortest available history
+  // Align series by the shortest available history
   const minLength = Math.min(...assets.map((a) => a.data.returns.length));
 
   // Need enough data to produce stable metrics
@@ -496,12 +495,15 @@ export function calculateExactPortfolioMetrics(
   for (let i = 0; i < minLength; i++) {
     let dayReturn = 0;
     for (const { alloc, data } of assets) {
-      dayReturn += (alloc.weight / 100) * (data.returns[i] ?? 0);
+      // Convert log return to simple return: exp(logReturn) - 1
+      const logReturn = data.returns[i] ?? 0;
+      const simpleReturn = Math.exp(logReturn) - 1;
+      dayReturn += (alloc.weight / 100) * simpleReturn;
     }
 
     portfolioReturns.push(dayReturn);
 
-    // Keep consistent with PortfolioVisualizer (it treats returns as simple returns)
+    // Compound the portfolio value
     const prev = portfolioValues[portfolioValues.length - 1];
     portfolioValues.push(prev * (1 + dayReturn));
   }
@@ -658,15 +660,20 @@ export async function screenAllPortfolios(
     if (asset && asset.returns.length >= 50) {
       const dates = asset.bars.map((b) => new Date(b.timestamp).toISOString().split('T')[0]);
       const values: number[] = [100000];
-      for (const r of asset.returns) {
-        values.push(values[values.length - 1] * (1 + r));
+      
+      // Convert log returns to simple returns for value calculation
+      const simpleReturns: number[] = [];
+      for (const logReturn of asset.returns) {
+        const simpleReturn = Math.exp(logReturn) - 1;
+        simpleReturns.push(simpleReturn);
+        values.push(values[values.length - 1] * (1 + simpleReturn));
       }
 
       const years = asset.returns.length / 252;
       const cagr = calculateCAGR(100000, values[values.length - 1], years) * 100;
-      const volatility = annualizedVolatility(asset.returns) * 100;
-      const sharpe = calculateSharpeRatio(asset.returns, 0.05);
-      const sortino = calculateSortinoRatio(asset.returns, 0.05);
+      const volatility = annualizedVolatility(simpleReturns) * 100;
+      const sharpe = calculateSharpeRatio(simpleReturns, 0.05);
+      const sortino = calculateSortinoRatio(simpleReturns, 0.05);
       const { maxDrawdownPercent } = calculateMaxDrawdown(values);
 
       const meta = TICKER_METADATA[ticker] || { name: ticker, category: 'Unknown' };
@@ -861,15 +868,20 @@ export async function quickScreenPortfolios(
     if (asset && asset.returns.length >= 50) {
       const dates = asset.bars.map((b) => new Date(b.timestamp).toISOString().split('T')[0]);
       const values: number[] = [100000];
-      for (const r of asset.returns) {
-        values.push(values[values.length - 1] * (1 + r));
+      
+      // Convert log returns to simple returns for value calculation
+      const simpleReturns: number[] = [];
+      for (const logReturn of asset.returns) {
+        const simpleReturn = Math.exp(logReturn) - 1;
+        simpleReturns.push(simpleReturn);
+        values.push(values[values.length - 1] * (1 + simpleReturn));
       }
 
       const years = asset.returns.length / 252;
       const cagr = calculateCAGR(100000, values[values.length - 1], years) * 100;
-      const volatility = annualizedVolatility(asset.returns) * 100;
-      const sharpe = calculateSharpeRatio(asset.returns, 0.05);
-      const sortino = calculateSortinoRatio(asset.returns, 0.05);
+      const volatility = annualizedVolatility(simpleReturns) * 100;
+      const sharpe = calculateSharpeRatio(simpleReturns, 0.05);
+      const sortino = calculateSortinoRatio(simpleReturns, 0.05);
       const { maxDrawdownPercent } = calculateMaxDrawdown(values);
 
       const meta = TICKER_METADATA[ticker] || { name: ticker, category: 'Unknown' };
