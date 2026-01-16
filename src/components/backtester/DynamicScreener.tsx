@@ -38,6 +38,11 @@ import {
   SheetTitle,
 } from '@/components/ui/sheet';
 import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
+import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
@@ -61,12 +66,13 @@ import {
   Database,
   Settings,
   Play,
-  
   Clock,
   Sparkles,
+  HelpCircle,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { MetricInfoIcon } from '@/components/shared/MetricInfoIcon';
 import {
   quickScreenPortfolios,
   fetchTickerCounts,
@@ -84,7 +90,7 @@ import {
 type SortField = 'matchScore' | 'cagr' | 'sharpe' | 'maxDrawdown' | 'volatility' | 'sortino';
 type SortDirection = 'asc' | 'desc';
 type ScreenMode = 'quick' | 'full';
-type MetricKey = 'maxDrawdown' | 'maxVolatility' | 'minSharpe' | 'minCagr';
+type MetricKey = 'maxDrawdown' | 'maxVolatility' | 'minSharpe' | 'minCagr' | 'maxStdDev';
 
 interface DynamicScreenerProps {
   onSelect?: (allocations: { symbol: string; weight: number }[]) => void;
@@ -129,6 +135,7 @@ export function DynamicScreener({ onSelect, onComplete }: DynamicScreenerProps) 
   const [maxVolatility, setMaxVolatility] = useState(20);
   const [minSharpe, setMinSharpe] = useState(0.3);
   const [minCagr, setMinCagr] = useState(-5);
+  const [maxStdDev, setMaxStdDev] = useState(18);
   
   // Config
   // Always use quick mode
@@ -198,6 +205,10 @@ export function DynamicScreener({ onSelect, onComplete }: DynamicScreenerProps) 
         break;
       case 'minCagr':
         criteria.minCagr = minCagr;
+        break;
+      case 'maxStdDev':
+        // Standard deviation = volatility in this context
+        criteria.maxVolatility = maxStdDev;
         break;
     }
     
@@ -361,24 +372,51 @@ export function DynamicScreener({ onSelect, onComplete }: DynamicScreenerProps) 
         {/* Screening metric (one at a time) */}
         <div className="space-y-3">
           <div className="space-y-1">
-            <Label className="text-xs">Screen Metric</Label>
+            <div className="flex items-center gap-1">
+              <Label className="text-xs">Filter By</Label>
+              <MetricInfoIcon termKey="riskAdjustedReturn" iconSize={12} />
+            </div>
             <Select value={activeMetric} onValueChange={(v) => setActiveMetric(v as MetricKey)}>
               <SelectTrigger className="h-8 text-xs">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="maxDrawdown">Max Drawdown</SelectItem>
-                <SelectItem value="maxVolatility">Max Volatility</SelectItem>
-                <SelectItem value="minSharpe">Min Sharpe</SelectItem>
-                <SelectItem value="minCagr">Min CAGR</SelectItem>
+                <SelectItem value="maxDrawdown">
+                  <span className="flex items-center gap-1.5">
+                    Max Decline (Drawdown)
+                  </span>
+                </SelectItem>
+                <SelectItem value="maxVolatility">
+                  <span className="flex items-center gap-1.5">
+                    Max Price Swings (Volatility)
+                  </span>
+                </SelectItem>
+                <SelectItem value="maxStdDev">
+                  <span className="flex items-center gap-1.5">
+                    Max Std. Deviation
+                  </span>
+                </SelectItem>
+                <SelectItem value="minSharpe">
+                  <span className="flex items-center gap-1.5">
+                    Min Risk-Adjusted Return (Sharpe)
+                  </span>
+                </SelectItem>
+                <SelectItem value="minCagr">
+                  <span className="flex items-center gap-1.5">
+                    Min Annual Growth (CAGR)
+                  </span>
+                </SelectItem>
               </SelectContent>
             </Select>
           </div>
 
           {activeMetric === 'maxDrawdown' && (
             <div className="space-y-1">
-              <div className="flex justify-between text-xs">
-                <span className="text-muted-foreground">Max Drawdown</span>
+              <div className="flex justify-between text-xs items-center">
+                <span className="text-muted-foreground flex items-center gap-1">
+                  Max Decline
+                  <MetricInfoIcon termKey="maxDrawdown" iconSize={12} />
+                </span>
                 <span className="font-mono font-bold">≤{maxDrawdown}%</span>
               </div>
               <Slider
@@ -388,13 +426,19 @@ export function DynamicScreener({ onSelect, onComplete }: DynamicScreenerProps) 
                 max={60}
                 step={5}
               />
+              <p className="text-[10px] text-muted-foreground/70">
+                Worst peak-to-bottom drop you'd accept
+              </p>
             </div>
           )}
 
           {activeMetric === 'maxVolatility' && (
             <div className="space-y-1">
-              <div className="flex justify-between text-xs">
-                <span className="text-muted-foreground">Max Volatility</span>
+              <div className="flex justify-between text-xs items-center">
+                <span className="text-muted-foreground flex items-center gap-1">
+                  Max Price Swings
+                  <MetricInfoIcon termKey="volatility" iconSize={12} />
+                </span>
                 <span className="font-mono font-bold">≤{maxVolatility}%</span>
               </div>
               <Slider
@@ -404,13 +448,41 @@ export function DynamicScreener({ onSelect, onComplete }: DynamicScreenerProps) 
                 max={40}
                 step={5}
               />
+              <p className="text-[10px] text-muted-foreground/70">
+                How much daily ups and downs you're comfortable with
+              </p>
+            </div>
+          )}
+
+          {activeMetric === 'maxStdDev' && (
+            <div className="space-y-1">
+              <div className="flex justify-between text-xs items-center">
+                <span className="text-muted-foreground flex items-center gap-1">
+                  Max Std. Deviation
+                  <MetricInfoIcon termKey="standardDeviation" iconSize={12} />
+                </span>
+                <span className="font-mono font-bold">≤{maxStdDev}%</span>
+              </div>
+              <Slider
+                value={[maxStdDev]}
+                onValueChange={([v]) => setMaxStdDev(v)}
+                min={5}
+                max={35}
+                step={1}
+              />
+              <p className="text-[10px] text-muted-foreground/70">
+                How spread out returns are from the average
+              </p>
             </div>
           )}
 
           {activeMetric === 'minSharpe' && (
             <div className="space-y-1">
-              <div className="flex justify-between text-xs">
-                <span className="text-muted-foreground">Min Sharpe</span>
+              <div className="flex justify-between text-xs items-center">
+                <span className="text-muted-foreground flex items-center gap-1">
+                  Min Sharpe Ratio
+                  <MetricInfoIcon termKey="sharpeRatio" iconSize={12} />
+                </span>
                 <span className="font-mono font-bold">≥{minSharpe.toFixed(1)}</span>
               </div>
               <Slider
@@ -420,13 +492,19 @@ export function DynamicScreener({ onSelect, onComplete }: DynamicScreenerProps) 
                 max={1.5}
                 step={0.1}
               />
+              <p className="text-[10px] text-muted-foreground/70">
+                Return per unit of risk (higher = better reward for risk)
+              </p>
             </div>
           )}
 
           {activeMetric === 'minCagr' && (
             <div className="space-y-1">
-              <div className="flex justify-between text-xs">
-                <span className="text-muted-foreground">Min CAGR</span>
+              <div className="flex justify-between text-xs items-center">
+                <span className="text-muted-foreground flex items-center gap-1">
+                  Min Annual Growth
+                  <MetricInfoIcon termKey="cagr" iconSize={12} />
+                </span>
                 <span className="font-mono font-bold">≥{minCagr}%</span>
               </div>
               <Slider
@@ -436,6 +514,9 @@ export function DynamicScreener({ onSelect, onComplete }: DynamicScreenerProps) 
                 max={20}
                 step={5}
               />
+              <p className="text-[10px] text-muted-foreground/70">
+                Smoothed yearly return target
+              </p>
             </div>
           )}
         </div>
@@ -671,50 +752,109 @@ export function DynamicScreener({ onSelect, onComplete }: DynamicScreenerProps) 
                     </div>
                   </div>
                   
-                  {/* Metrics row */}
+                  {/* Metrics row - tap any metric to learn more */}
                   <div className="grid grid-cols-5 gap-1 text-center">
-                    <div className="p-1 rounded bg-muted/50 text-[9px]">
-                      <p className="text-muted-foreground">DD</p>
-                      <p className={cn(
-                        "font-mono font-bold",
-                        p.metrics.maxDrawdown <= maxDrawdown ? "text-emerald-400" : ""
-                      )}>
-                        -{p.metrics.maxDrawdown}%
-                      </p>
-                    </div>
-                    <div className="p-1 rounded bg-muted/50 text-[9px]">
-                      <p className="text-muted-foreground">Vol</p>
-                      <p className={cn(
-                        "font-mono font-bold",
-                        p.metrics.volatility <= maxVolatility ? "text-emerald-400" : ""
-                      )}>
-                        {p.metrics.volatility}%
-                      </p>
-                    </div>
-                    <div className="p-1 rounded bg-muted/50 text-[9px]">
-                      <p className="text-muted-foreground">Sharpe</p>
-                      <p className={cn(
-                        "font-mono font-bold",
-                        p.metrics.sharpe >= minSharpe ? "text-emerald-400" : ""
-                      )}>
-                        {p.metrics.sharpe.toFixed(2)}
-                      </p>
-                    </div>
-                    <div className="p-1 rounded bg-muted/50 text-[9px]">
-                      <p className="text-muted-foreground">Sortino</p>
-                      <p className="font-mono font-bold">
-                        {p.metrics.sortino.toFixed(2)}
-                      </p>
-                    </div>
-                    <div className="p-1 rounded bg-muted/50 text-[9px]">
-                      <p className="text-muted-foreground">CAGR</p>
-                      <p className={cn(
-                        "font-mono font-bold",
-                        p.metrics.cagr >= minCagr ? "text-emerald-400" : "text-rose-400"
-                      )}>
-                        {p.metrics.cagr >= 0 ? '+' : ''}{p.metrics.cagr}%
-                      </p>
-                    </div>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <div className="p-1 rounded bg-muted/50 text-[9px] cursor-pointer hover:bg-muted transition-colors">
+                          <p className="text-muted-foreground flex items-center justify-center gap-0.5">
+                            DD
+                            <HelpCircle className="h-2 w-2 opacity-50" />
+                          </p>
+                          <p className={cn(
+                            "font-mono font-bold",
+                            p.metrics.maxDrawdown <= maxDrawdown ? "text-emerald-400" : ""
+                          )}>
+                            -{p.metrics.maxDrawdown}%
+                          </p>
+                        </div>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-64 text-xs" side="top">
+                        <p className="font-semibold">Max Drawdown</p>
+                        <p className="text-muted-foreground mt-1">The largest peak-to-bottom drop this portfolio experienced. Lower is safer.</p>
+                      </PopoverContent>
+                    </Popover>
+                    
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <div className="p-1 rounded bg-muted/50 text-[9px] cursor-pointer hover:bg-muted transition-colors">
+                          <p className="text-muted-foreground flex items-center justify-center gap-0.5">
+                            Vol
+                            <HelpCircle className="h-2 w-2 opacity-50" />
+                          </p>
+                          <p className={cn(
+                            "font-mono font-bold",
+                            p.metrics.volatility <= maxVolatility ? "text-emerald-400" : ""
+                          )}>
+                            {p.metrics.volatility}%
+                          </p>
+                        </div>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-64 text-xs" side="top">
+                        <p className="font-semibold">Volatility (Std Dev)</p>
+                        <p className="text-muted-foreground mt-1">How much the value bounces up and down. Higher = bumpier ride.</p>
+                      </PopoverContent>
+                    </Popover>
+                    
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <div className="p-1 rounded bg-muted/50 text-[9px] cursor-pointer hover:bg-muted transition-colors">
+                          <p className="text-muted-foreground flex items-center justify-center gap-0.5">
+                            Sharpe
+                            <HelpCircle className="h-2 w-2 opacity-50" />
+                          </p>
+                          <p className={cn(
+                            "font-mono font-bold",
+                            p.metrics.sharpe >= minSharpe ? "text-emerald-400" : ""
+                          )}>
+                            {p.metrics.sharpe.toFixed(2)}
+                          </p>
+                        </div>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-64 text-xs" side="top">
+                        <p className="font-semibold">Sharpe Ratio</p>
+                        <p className="text-muted-foreground mt-1">Return per unit of risk. Above 1.0 is good, above 2.0 is excellent.</p>
+                      </PopoverContent>
+                    </Popover>
+                    
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <div className="p-1 rounded bg-muted/50 text-[9px] cursor-pointer hover:bg-muted transition-colors">
+                          <p className="text-muted-foreground flex items-center justify-center gap-0.5">
+                            Sortino
+                            <HelpCircle className="h-2 w-2 opacity-50" />
+                          </p>
+                          <p className="font-mono font-bold">
+                            {p.metrics.sortino.toFixed(2)}
+                          </p>
+                        </div>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-64 text-xs" side="top">
+                        <p className="font-semibold">Sortino Ratio</p>
+                        <p className="text-muted-foreground mt-1">Like Sharpe but only counts downside risk. Higher = better protection from losses.</p>
+                      </PopoverContent>
+                    </Popover>
+                    
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <div className="p-1 rounded bg-muted/50 text-[9px] cursor-pointer hover:bg-muted transition-colors">
+                          <p className="text-muted-foreground flex items-center justify-center gap-0.5">
+                            CAGR
+                            <HelpCircle className="h-2 w-2 opacity-50" />
+                          </p>
+                          <p className={cn(
+                            "font-mono font-bold",
+                            p.metrics.cagr >= minCagr ? "text-emerald-400" : "text-rose-400"
+                          )}>
+                            {p.metrics.cagr >= 0 ? '+' : ''}{p.metrics.cagr}%
+                          </p>
+                        </div>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-64 text-xs" side="top">
+                        <p className="font-semibold">CAGR (Annual Growth)</p>
+                        <p className="text-muted-foreground mt-1">Compound Annual Growth Rate - the smoothed yearly return, as if it grew steadily each year.</p>
+                      </PopoverContent>
+                    </Popover>
                   </div>
                   
                   {/* Allocation pills */}
