@@ -49,7 +49,8 @@ export async function screenPortfoliosServer(
     pageSize = 20,
     sortBy = 'sharpe',
     sortDirection = 'desc',
-    limit = 50000,
+    // Keep server work bounded to avoid WORKER_LIMIT timeouts
+    limit = 5000,
     useCache = true,
     refreshCache = false,
   } = options;

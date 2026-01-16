@@ -527,46 +527,30 @@ serve(async (req) => {
     const startDateStr = startDate.toISOString().split('T')[0];
 
     // ═══════════════════════════════════════════════════════════════════════════
-    // DISCOVER ALL AVAILABLE TICKERS USING PAGINATION
+    // UNIVERSE SELECTION
     // ═══════════════════════════════════════════════════════════════════════════
-    const discoveredTickers = new Set<string>();
-    const PAGE_SIZE = 1000;
-    const TARGET_TICKERS = 200; // Target number of unique tickers
-    let offset = 0;
-    const maxIterations = 50;
-    
-    for (let i = 0; i < maxIterations && discoveredTickers.size < TARGET_TICKERS; i++) {
-      const { data: tickerRows, error: tickerError } = await supabase
-        .from('market_daily_bars')
-        .select('ticker')
-        .gte('bar_date', startDateStr)
-        .order('ticker', { ascending: true })
-        .range(offset, offset + PAGE_SIZE - 1);
-
-      if (tickerError || !tickerRows || tickerRows.length === 0) break;
-
-      for (const row of tickerRows) {
-        if (row.ticker) discoveredTickers.add(row.ticker);
-      }
-
-      if (tickerRows.length < PAGE_SIZE) break;
-      offset += PAGE_SIZE;
-    }
-
-    const availableTickers = [...discoveredTickers].sort();
-    console.log(`Discovered ${availableTickers.length} unique tickers`);
+    // Scanning the entire table to "discover" tickers is very expensive in an
+    // edge function and can lead to CPU timeouts. We instead use our curated
+    // universe (the tickers we actually support in the UI).
+    const availableTickers = Object.keys(TICKER_CATEGORIES).sort();
+    console.log(`Using curated universe: ${availableTickers.length} tickers`);
 
     if (availableTickers.length === 0) {
-      return new Response(JSON.stringify({
-        portfolios: [],
-        totalCount: 0,
-        page, pageSize, totalPages: 0,
-        generationTime: Date.now() - startTime,
-        availableTickers: 0,
-        fromCache: false,
-      }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+      return new Response(
+        JSON.stringify({
+          portfolios: [],
+          totalCount: 0,
+          page,
+          pageSize,
+          totalPages: 0,
+          generationTime: Date.now() - startTime,
+          availableTickers: 0,
+          fromCache: false,
+        }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -789,32 +773,46 @@ function calculatePortfolioMetricsFromData(
   weights: number[],
   tickerData: Record<string, { date: string; ret: number }[]>
 ): RealMetrics | null {
-  const tickerDataArr = tickers.map(t => tickerData[t]).filter(Boolean);
-  if (tickerDataArr.length !== tickers.length) return null;
+  const series = tickers.map((t) => tickerData[t]).filter(Boolean);
+  if (series.length !== tickers.length) return null;
 
-  const dateSets = tickerDataArr.map(td => new Set(td.map(d => d.date)));
-  const commonDates = [...dateSets[0]].filter(d => dateSets.every(s => s.has(d))).sort();
-
-  if (commonDates.length < 20) return null;
-
-  const dateToReturns: Record<string, number[]> = {};
-  for (let i = 0; i < tickers.length; i++) {
-    for (const row of tickerDataArr[i]) {
-      if (!dateToReturns[row.date]) dateToReturns[row.date] = new Array(tickers.length).fill(0);
-      dateToReturns[row.date][i] = row.ret;
-    }
-  }
-
+  // Each series is already sorted by date ascending (query order). We compute
+  // common-date returns via a multi-way merge (no Sets, no per-combo maps), which
+  // is dramatically cheaper in CPU + memory.
+  const idx = new Array(series.length).fill(0);
   const portfolioReturns: number[] = [];
-  for (const date of commonDates) {
-    const tickerReturns = dateToReturns[date];
-    if (!tickerReturns) continue;
-    let dayReturn = 0;
-    for (let i = 0; i < tickers.length; i++) {
-      dayReturn += (weights[i] / 100) * (tickerReturns[i] ?? 0);
-    }
-    portfolioReturns.push(dayReturn);
-  }
 
-  return calculateMetrics(portfolioReturns);
+  while (true) {
+    // stop when any series is exhausted
+    for (let i = 0; i < series.length; i++) {
+      if (idx[i] >= series[i].length) {
+        return portfolioReturns.length >= 20 ? calculateMetrics(portfolioReturns) : null;
+      }
+    }
+
+    let minDate = series[0][idx[0]].date;
+    let maxDate = minDate;
+
+    for (let i = 1; i < series.length; i++) {
+      const d = series[i][idx[i]].date;
+      if (d < minDate) minDate = d;
+      if (d > maxDate) maxDate = d;
+    }
+
+    if (minDate === maxDate) {
+      let dayReturn = 0;
+      for (let i = 0; i < series.length; i++) {
+        dayReturn += (weights[i] / 100) * (series[i][idx[i]].ret ?? 0);
+        idx[i]++;
+      }
+      portfolioReturns.push(dayReturn);
+    } else {
+      // advance lagging series up to maxDate
+      for (let i = 0; i < series.length; i++) {
+        while (idx[i] < series[i].length && series[i][idx[i]].date < maxDate) {
+          idx[i]++;
+        }
+      }
+    }
+  }
 }
