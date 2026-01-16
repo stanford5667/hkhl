@@ -204,6 +204,14 @@ export const financialTerms: Record<string, FinancialTerm> = {
     impact: "Total return gives the full picture of performance. Focusing only on price gains can undervalue income-producing investments.",
     example: "A stock that rose 5% and paid 3% in dividends had a total return of 8%, not just 5%.",
     learnMoreUrl: "https://www.investopedia.com/terms/t/totalreturn.asp"
+  },
+
+  standardDeviation: {
+    term: "Standard Deviation",
+    definition: "A measure of how spread out returns are from the average. Higher standard deviation means more unpredictable performance - your returns could vary widely.",
+    impact: "Use this to understand how 'wild' an investment might behave. A 15% standard deviation means returns typically fall within 15% of the average in a given year.",
+    example: "If an investment averages 8% return with 12% standard deviation, most years you'd see returns between -4% and +20%.",
+    learnMoreUrl: "https://www.investopedia.com/terms/s/standarddeviation.asp"
   }
 };
 
