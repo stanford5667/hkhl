@@ -16,6 +16,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { QuickStartBanner } from "@/components/onboarding/QuickStartBanner";
 import { useOnboarding } from "@/hooks/useOnboarding";
 import { FooterDisclaimer } from "@/components/legal";
+import { useEventNotifications } from "@/hooks/useEventNotifications";
 interface LayoutProps {
   children: ReactNode;
 }
@@ -38,6 +39,9 @@ export function Layout({ children }: LayoutProps) {
 
   // Use the search shortcut hook
   useSearchShortcut(() => setSearchOpen(true));
+
+  // Enable event notifications (checks for upcoming events and shows toasts)
+  useEventNotifications();
 
   // Create handlers - no auth required for navigation
   const handleCreateCompany = () => {
