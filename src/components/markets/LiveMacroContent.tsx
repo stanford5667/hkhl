@@ -3,13 +3,15 @@
  * 
  * Displays real-time economic data from FRED and other sources.
  * All items are clickable and connected to detail sheets for educational content.
+ * Supports both card and tabular views with study integration.
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   DollarSign, 
   BarChart3, 
@@ -27,6 +29,8 @@ import {
   Briefcase,
   Percent,
   TrendingUp,
+  Table as TableIcon,
+  LayoutGrid,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
@@ -45,6 +49,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { EventDetailSheet } from '@/components/market-intel/EventDetailSheet';
+import { MarketDataTable, type MarketDataRow } from '@/components/market-intel/MarketDataTable';
 import type { CalendarEvent } from '@/hooks/useEconomicCalendar';
 import type { MacroCategory } from '@/components/market-intel/MacroIndicatorCategories';
 
@@ -103,6 +108,7 @@ export function LiveMacroContent({ onItemClick, onPerformanceUpdate, macroCatego
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const [eventDetailOpen, setEventDetailOpen] = useState(false);
   const [loadStartTime] = useState(() => performance.now());
+  const [viewMode, setViewMode] = useState<'cards' | 'table'>('cards');
   
   const { 
     byCategory, 
@@ -207,6 +213,42 @@ export function LiveMacroContent({ onItemClick, onPerformanceUpdate, macroCatego
     ? macroCategoryKeywords[macroCategory]?.[0]?.charAt(0).toUpperCase() + macroCategoryKeywords[macroCategory]?.[0]?.slice(1) || macroCategory
     : null;
 
+  // Convert indicators to table format
+  const tableData: MarketDataRow[] = useMemo(() => {
+    const allFiltered = [...rates, ...economic, ...markets];
+    return allFiltered.map((indicator) => ({
+      id: indicator.id,
+      symbol: indicator.id.toUpperCase(),
+      name: indicator.indicator_name,
+      currentValue: indicator.current_raw ?? (parseFloat(String(indicator.current_value)) || 0),
+      previousValue: indicator.previous_raw ?? indicator.previous_value,
+      change: indicator.change_value || 0,
+      changePercent: 0,
+      category: indicator.category || 'economic',
+      type: (indicator.category === 'rates' ? 'rate' : 'economic') as 'rate' | 'economic',
+      unit: undefined,
+      lastUpdated: indicator.last_updated,
+      description: indicator.description,
+      importance: undefined,
+    }));
+  }, [rates, economic, markets]);
+
+  // Handle table row click
+  const handleTableRowClick = (row: MarketDataRow) => {
+    if (onItemClick) {
+      onItemClick({
+        symbol: row.symbol,
+        name: row.name,
+        price: typeof row.currentValue === 'number' ? row.currentValue : parseFloat(String(row.currentValue)) || 0,
+        change: row.change || 0,
+        changePercent: row.changePercent || 0,
+        type: row.type as 'economic' | 'index' | 'rate' | 'commodity' | 'forex' | 'fund',
+        category: row.category,
+        description: row.description,
+      });
+    }
+  };
+
   if (error) {
     return (
       <Card className="bg-rose-500/10 border-rose-500/20 p-6">
@@ -231,8 +273,8 @@ export function LiveMacroContent({ onItemClick, onPerformanceUpdate, macroCatego
 
   return (
     <div className="space-y-6">
-      {/* Header with data source indicator */}
-      <div className="flex items-center justify-between">
+      {/* Header with data source indicator and view toggle */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <Globe className="h-5 w-5 text-primary" />
           <div>
@@ -254,6 +296,28 @@ export function LiveMacroContent({ onItemClick, onPerformanceUpdate, macroCatego
           </div>
         </div>
         <div className="flex items-center gap-2">
+          {/* View Mode Toggle */}
+          <div className="flex border rounded-md overflow-hidden">
+            <Button
+              variant={viewMode === 'cards' ? 'secondary' : 'ghost'}
+              size="sm"
+              className="h-8 px-2.5 rounded-none"
+              onClick={() => setViewMode('cards')}
+            >
+              <LayoutGrid className="h-4 w-4" />
+              <span className="ml-1.5 text-xs hidden sm:inline">Cards</span>
+            </Button>
+            <Button
+              variant={viewMode === 'table' ? 'secondary' : 'ghost'}
+              size="sm"
+              className="h-8 px-2.5 rounded-none"
+              onClick={() => setViewMode('table')}
+            >
+              <TableIcon className="h-4 w-4" />
+              <span className="ml-1.5 text-xs hidden sm:inline">Table</span>
+            </Button>
+          </div>
+          
           {macroCategory && (
             <Badge variant="outline" className="text-xs">
               {totalFilteredCount} indicator{totalFilteredCount !== 1 ? 's' : ''}
@@ -337,8 +401,18 @@ export function LiveMacroContent({ onItemClick, onPerformanceUpdate, macroCatego
         </CardContent>
       </Card>
 
-      {/* Main Indicators Grid - Only show if we have results */}
-      {!hasNoResults && (
+      {/* Table View - Full tabular data with study integration */}
+      {viewMode === 'table' && !hasNoResults && (
+        <MarketDataTable
+          data={tableData}
+          title={macroCategory ? `${macroCategory.charAt(0).toUpperCase() + macroCategory.slice(1)} Indicators` : 'All Economic Indicators'}
+          onRowClick={handleTableRowClick}
+          showStudyActions={true}
+        />
+      )}
+
+      {/* Cards View - Main Indicators Grid - Only show if we have results */}
+      {viewMode === 'cards' && !hasNoResults && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {/* Rates & Credit - Show if has indicators or no filter */}
           {(rates.length > 0 || !macroCategory) && (
