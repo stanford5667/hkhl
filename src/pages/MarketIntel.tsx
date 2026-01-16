@@ -27,9 +27,14 @@ import { StockForexGrid } from '@/components/market-intel/StockForexGrid';
 import { CompanyFundamentalsSearch } from '@/components/market-intel/CompanyFundamentalsSearch';
 import { PerformanceRankingPanel, type ComponentScore } from '@/components/market-intel/PerformanceRankingPanel';
 import { useComponentPerformance, validateFedRates } from '@/hooks/useComponentPerformance';
+import { MarketIntelNavigation, type MarketCategory } from '@/components/market-intel/MarketIntelNavigation';
+import { MacroIndicatorCategories, type MacroCategory } from '@/components/market-intel/MacroIndicatorCategories';
+import { GlobalBondYields } from '@/components/market-intel/GlobalBondYields';
 
 export default function MarketIntel() {
   const [activeTab, setActiveTab] = useState('macro');
+  const [activeCategory, setActiveCategory] = useState<MarketCategory>('indicators');
+  const [activeMacroCategory, setActiveMacroCategory] = useState<MacroCategory | null>(null);
   const [showUpgradeDialog, setShowUpgradeDialog] = useState(false);
   const [selectedItem, setSelectedItem] = useState<MarketDataItem | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
@@ -126,12 +131,22 @@ export default function MarketIntel() {
       </div>
 
 
+      {/* Data Category Navigation */}
+      <MarketIntelNavigation 
+        activeCategory={activeCategory} 
+        onCategoryChange={setActiveCategory} 
+      />
+
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-        <TabsList className="grid w-full grid-cols-5 h-auto gap-1 bg-secondary/50 p-1">
+        <TabsList className="grid w-full grid-cols-6 h-auto gap-1 bg-secondary/50 p-1">
           <TabsTrigger value="macro" className="text-xs sm:text-sm min-w-0 px-2">
             <Globe className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-1.5 shrink-0" />
             <span className="truncate hidden sm:inline">Macro</span>
+          </TabsTrigger>
+          <TabsTrigger value="bonds" className="text-xs sm:text-sm min-w-0 px-2">
+            <Landmark className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-1.5 shrink-0" />
+            <span className="truncate hidden sm:inline">Bonds</span>
           </TabsTrigger>
           <TabsTrigger value="commodities" className="text-xs sm:text-sm min-w-0 px-2">
             <Gem className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-1.5 shrink-0" />
@@ -146,7 +161,7 @@ export default function MarketIntel() {
             <span className="truncate hidden sm:inline">Calendar</span>
           </TabsTrigger>
           <TabsTrigger value="funds" className="text-xs sm:text-sm min-w-0 px-2">
-            <Landmark className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-1.5 shrink-0" />
+            <Briefcase className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-1.5 shrink-0" />
             <span className="truncate hidden sm:inline">Funds</span>
           </TabsTrigger>
         </TabsList>
@@ -162,6 +177,12 @@ export default function MarketIntel() {
 
         <TabsContent value="macro" className="mt-6">
           <div className="space-y-6">
+            {/* Macro Indicator Categories */}
+            <MacroIndicatorCategories 
+              activeCategory={activeMacroCategory}
+              onCategoryChange={setActiveMacroCategory}
+            />
+            
             <LiveMacroContent 
               onItemClick={handleItemClick} 
               onPerformanceUpdate={handleMacroPerformance}
@@ -169,6 +190,10 @@ export default function MarketIntel() {
             <StockForexGrid onPerformanceUpdate={handleStockForexPerformance} />
             <CompanyFundamentalsSearch onPerformanceUpdate={handleFundamentalsPerformance} />
           </div>
+        </TabsContent>
+
+        <TabsContent value="bonds" className="mt-6">
+          <GlobalBondYields />
         </TabsContent>
 
         <TabsContent value="calendar" className="mt-6">
