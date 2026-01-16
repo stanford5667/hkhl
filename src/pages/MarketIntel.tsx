@@ -25,6 +25,7 @@ import { useCommodities, useForex, groupCommoditiesByCategory, groupForexByCateg
 import { MarketDataDetail, type MarketDataItem } from '@/components/market-intel/MarketDataDetail';
 import { StockForexGrid } from '@/components/market-intel/StockForexGrid';
 import { FeaturedInsightCard } from '@/components/market-intel/FeaturedInsightCard';
+import { MarketImpactCard } from '@/components/market-intel/MarketImpactCard';
 import { PerformanceRankingPanel, type ComponentScore } from '@/components/market-intel/PerformanceRankingPanel';
 import { useComponentPerformance, validateFedRates } from '@/hooks/useComponentPerformance';
 import { MarketIntelNavigation, type MarketCategory } from '@/components/market-intel/MarketIntelNavigation';
@@ -150,11 +151,16 @@ export default function MarketIntel() {
       {activeCategory === 'currencies' && <CurrenciesContent onItemClick={handleItemClick} />}
       {activeCategory === 'indicators' && (
         <div className="space-y-6">
-          {/* Live Economic Data with Market Health, then Featured Insight, then Economic Data */}
+          {/* Live Economic Data with Market Health, then Featured Insight + Market Impact, then Economic Data */}
           <LiveMacroContent 
             onItemClick={handleItemClick} 
             onPerformanceUpdate={handleMacroPerformance}
-            renderAfterMarketHealth={<FeaturedInsightCard />}
+            renderAfterMarketHealth={
+              <div className="grid md:grid-cols-2 gap-4">
+                <FeaturedInsightCard />
+                <MarketImpactCard />
+              </div>
+            }
           />
           
           <StockForexGrid onPerformanceUpdate={handleStockForexPerformance} />
