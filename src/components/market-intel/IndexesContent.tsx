@@ -1,6 +1,8 @@
+import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import { BarChart3, TrendingUp, TrendingDown, Globe } from 'lucide-react';
+import { BarChart3, TrendingUp, TrendingDown, Globe, Map, Star, Activity } from 'lucide-react';
 
 interface IndexData {
   name: string;
@@ -37,63 +39,127 @@ const globalIndexes: IndexData[] = [
   { name: 'TSX', symbol: 'GSPTSE', value: 25012.45, change: 78.23, changePercent: 0.31, region: 'Americas', ytd: 21.4 },
 ];
 
-const regions = ['All', 'US', 'Europe', 'Asia', 'Americas', 'Pacific'];
+const IndexCard = ({ index }: { index: IndexData }) => (
+  <Card className="hover:bg-secondary/30 transition-colors cursor-pointer">
+    <CardContent className="p-4">
+      <div className="flex items-center justify-between mb-2">
+        <div>
+          <h4 className="font-semibold">{index.name}</h4>
+          <span className="text-xs text-muted-foreground">{index.symbol}</span>
+        </div>
+        <Badge variant="outline" className="text-[10px]">
+          {index.region}
+        </Badge>
+      </div>
+      
+      <div className="text-2xl font-bold mb-2">
+        {index.value.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+      </div>
+      
+      <div className="flex items-center justify-between text-sm">
+        <div className={`flex items-center gap-1 ${index.changePercent >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
+          {index.changePercent >= 0 ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />}
+          <span>{index.changePercent >= 0 ? '+' : ''}{index.change.toFixed(2)}</span>
+          <span>({index.changePercent >= 0 ? '+' : ''}{index.changePercent.toFixed(2)}%)</span>
+        </div>
+      </div>
+      
+      <div className="mt-2 pt-2 border-t border-border">
+        <div className="flex justify-between text-xs">
+          <span className="text-muted-foreground">YTD</span>
+          <span className={`font-medium ${index.ytd >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
+            {index.ytd >= 0 ? '+' : ''}{index.ytd}%
+          </span>
+        </div>
+      </div>
+    </CardContent>
+  </Card>
+);
 
 export function IndexesContent() {
+  const [activeTab, setActiveTab] = useState('all');
+  
+  const regions = [
+    { id: 'all', label: 'All Regions', icon: Globe },
+    { id: 'US', label: 'United States', icon: Star },
+    { id: 'Europe', label: 'Europe', icon: Map },
+    { id: 'Asia', label: 'Asia Pacific', icon: Activity },
+  ];
+  
+  const filteredIndexes = activeTab === 'all' 
+    ? globalIndexes 
+    : globalIndexes.filter(i => i.region === activeTab || (activeTab === 'Asia' && (i.region === 'Asia' || i.region === 'Pacific')));
+
+  const topGainers = [...globalIndexes].sort((a, b) => b.changePercent - a.changePercent).slice(0, 4);
+  const topLosers = [...globalIndexes].sort((a, b) => a.changePercent - b.changePercent).slice(0, 4);
+
   return (
     <div className="space-y-6">
-      {/* Region Filter */}
-      <div className="flex flex-wrap gap-2">
-        {regions.map((region) => (
-          <Badge
-            key={region}
-            variant={region === 'All' ? 'default' : 'outline'}
-            className="cursor-pointer hover:bg-primary/80"
-          >
-            {region}
-          </Badge>
-        ))}
-      </div>
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="w-full justify-start bg-secondary/30 p-1 h-auto flex-wrap">
+          {regions.map(({ id, label, icon: Icon }) => (
+            <TabsTrigger
+              key={id}
+              value={id}
+              className="flex items-center gap-2 px-3 py-2 text-xs sm:text-sm"
+            >
+              <Icon className="h-4 w-4" />
+              <span className="hidden sm:inline">{label}</span>
+              <span className="sm:hidden">{id === 'all' ? 'All' : id}</span>
+            </TabsTrigger>
+          ))}
+        </TabsList>
 
-      {/* Indexes Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-        {globalIndexes.map((index) => (
-          <Card key={index.symbol} className="hover:bg-secondary/30 transition-colors cursor-pointer">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between mb-2">
-                <div>
-                  <h4 className="font-semibold">{index.name}</h4>
-                  <span className="text-xs text-muted-foreground">{index.symbol}</span>
+        <TabsContent value={activeTab} className="mt-4 space-y-6">
+          {/* Performance Summary */}
+          <div className="grid md:grid-cols-2 gap-4">
+            <Card className="bg-emerald-500/10 border-emerald-500/30">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm flex items-center gap-2 text-emerald-500">
+                  <TrendingUp className="h-4 w-4" />
+                  Top Gainers
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <div className="space-y-2">
+                  {topGainers.map((index) => (
+                    <div key={index.symbol} className="flex items-center justify-between text-sm">
+                      <span className="font-medium">{index.symbol}</span>
+                      <span className="text-emerald-500">+{index.changePercent.toFixed(2)}%</span>
+                    </div>
+                  ))}
                 </div>
-                <Badge variant="outline" className="text-[10px]">
-                  {index.region}
-                </Badge>
-              </div>
-              
-              <div className="text-2xl font-bold mb-2">
-                {index.value.toLocaleString(undefined, { maximumFractionDigits: 2 })}
-              </div>
-              
-              <div className="flex items-center justify-between text-sm">
-                <div className={`flex items-center gap-1 ${index.changePercent >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
-                  {index.changePercent >= 0 ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />}
-                  <span>{index.changePercent >= 0 ? '+' : ''}{index.change.toFixed(2)}</span>
-                  <span>({index.changePercent >= 0 ? '+' : ''}{index.changePercent.toFixed(2)}%)</span>
+              </CardContent>
+            </Card>
+            
+            <Card className="bg-rose-500/10 border-rose-500/30">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm flex items-center gap-2 text-rose-500">
+                  <TrendingDown className="h-4 w-4" />
+                  Top Losers
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <div className="space-y-2">
+                  {topLosers.map((index) => (
+                    <div key={index.symbol} className="flex items-center justify-between text-sm">
+                      <span className="font-medium">{index.symbol}</span>
+                      <span className="text-rose-500">{index.changePercent.toFixed(2)}%</span>
+                    </div>
+                  ))}
                 </div>
-              </div>
-              
-              <div className="mt-2 pt-2 border-t border-border">
-                <div className="flex justify-between text-xs">
-                  <span className="text-muted-foreground">YTD</span>
-                  <span className={`font-medium ${index.ytd >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
-                    {index.ytd >= 0 ? '+' : ''}{index.ytd}%
-                  </span>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Indexes Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            {filteredIndexes.map((index) => (
+              <IndexCard key={index.symbol} index={index} />
+            ))}
+          </div>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
