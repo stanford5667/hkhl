@@ -296,6 +296,22 @@ export const financialTerms: Record<string, FinancialTerm> = {
     learnMoreUrl: "https://www.investopedia.com/terms/s/sortinoratio.asp"
   },
   
+  // Alias for sortino
+  sortino: {
+    term: "Sortino Ratio",
+    category: "EFFICIENCY",
+    definition: "Similar to Sharpe Ratio, but only penalizes downside volatility. It recognizes that upside volatility (gains) shouldn't be treated as 'risk.'",
+    impact: "Sortino gives a more realistic view of risk-adjusted returns since most investors only worry about losses, not gains.",
+    howToUse: "Use Sortino when comparing investments with asymmetric return profiles. It's more relevant than Sharpe for most investors.",
+    typicalRanges: [
+      { label: "< 1.0", range: "Below Average", description: "Downside risk not compensated" },
+      { label: "1.0-2.0", range: "Good", description: "Solid downside-adjusted returns" },
+      { label: "> 2.0", range: "Excellent", description: "Strong protection against losses" }
+    ],
+    example: "A fund with high upside volatility but low downside volatility will have a better Sortino than Sharpe ratio.",
+    learnMoreUrl: "https://www.investopedia.com/terms/s/sortinoratio.asp"
+  },
+  
   portfolioValue: {
     term: "Portfolio Value",
     category: "VALUATION",
