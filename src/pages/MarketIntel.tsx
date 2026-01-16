@@ -16,10 +16,9 @@ import {
   Landmark, Users, Sparkles, Bell, RefreshCw, DollarSign, TrendingUp, TrendingDown,
   BarChart3, Shield, AlertTriangle, ArrowUpRight, ArrowDownRight, Home, 
   LineChart, Coins, ChevronRight, AlertCircle, Calendar, ExternalLink,
-  Gem, Fuel, Wheat, Banknote, Crown, CalendarDays
+  Gem, Fuel, Wheat, Banknote, CalendarDays
 } from 'lucide-react';
 import { EconomicCalendarTab } from '@/components/market-intel/EconomicCalendarTab';
-import { PremiumFeatureBlock, PremiumFeatureInline } from '@/components/premium/PremiumFeatureBlock';
 import { usePortfolioTotals, useAlerts, useDealPipeline, usePortfolioAssets, useAssetAllocation, useEvents, useEconomicIndicators, useCovenants, useMATransactions, usePEFunds } from '@/hooks/useMarketIntel';
 import { LiveMacroContent } from '@/components/markets/LiveMacroContent';
 import { useCommodities, useForex, groupCommoditiesByCategory, groupForexByCategory, type CommodityData, type ForexData } from '@/hooks/useForexCommodities';
@@ -92,28 +91,6 @@ export default function MarketIntel() {
         </div>
       </div>
 
-      {/* Upgrade Dialog */}
-      <Dialog open={showUpgradeDialog} onOpenChange={setShowUpgradeDialog}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Zap className="h-5 w-5 text-primary" />
-              Premium Feature
-            </DialogTitle>
-            <DialogDescription className="text-base pt-2">
-              Upgrade to access real-time data across all markets
-            </DialogDescription>
-          </DialogHeader>
-          <div className="flex justify-end gap-2 pt-4">
-            <Button variant="outline" onClick={() => setShowUpgradeDialog(false)}>
-              Maybe Later
-            </Button>
-            <Button onClick={() => setShowUpgradeDialog(false)}>
-              Upgrade Now
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
@@ -1314,7 +1291,7 @@ function CommoditiesContent({ onItemClick }: { onItemClick: (item: MarketDataIte
                 />
               ))
             ) : (
-              <PremiumFeatureBlock size="sm" />
+              <p className="text-sm text-muted-foreground text-center py-4">No data available</p>
             )}
           </div>
         </Card>
@@ -1335,7 +1312,7 @@ function CommoditiesContent({ onItemClick }: { onItemClick: (item: MarketDataIte
                 />
               ))
             ) : (
-              <PremiumFeatureBlock size="sm" />
+              <p className="text-sm text-muted-foreground text-center py-4">No data available</p>
             )}
           </div>
         </Card>
@@ -1356,7 +1333,7 @@ function CommoditiesContent({ onItemClick }: { onItemClick: (item: MarketDataIte
                 />
               ))
             ) : (
-              <PremiumFeatureBlock size="sm" />
+              <p className="text-sm text-muted-foreground text-center py-4">No data available</p>
             )}
           </div>
         </Card>
@@ -1384,7 +1361,7 @@ function CommoditiesContent({ onItemClick }: { onItemClick: (item: MarketDataIte
                   </div>
                 </>
               ) : (
-                <PremiumFeatureInline />
+                <span className="text-sm text-muted-foreground">--</span>
               )}
             </Card>
           );
@@ -1536,7 +1513,7 @@ function CurrenciesContent({ onItemClick }: { onItemClick: (item: MarketDataItem
                 />
               ))
             ) : (
-              <PremiumFeatureBlock size="sm" />
+              <p className="text-sm text-muted-foreground text-center py-4">No data available</p>
             )}
           </div>
         </Card>
@@ -1557,7 +1534,7 @@ function CurrenciesContent({ onItemClick }: { onItemClick: (item: MarketDataItem
                 />
               ))
             ) : (
-              <PremiumFeatureBlock size="sm" />
+              <p className="text-sm text-muted-foreground text-center py-4">No data available</p>
             )}
           </div>
         </Card>
@@ -1578,7 +1555,7 @@ function CurrenciesContent({ onItemClick }: { onItemClick: (item: MarketDataItem
                 />
               ))
             ) : (
-              <PremiumFeatureBlock size="sm" />
+              <p className="text-sm text-muted-foreground text-center py-4">No data available</p>
             )}
           </div>
         </Card>
@@ -1607,7 +1584,7 @@ function CurrenciesContent({ onItemClick }: { onItemClick: (item: MarketDataItem
                   </div>
                 </>
               ) : (
-                <PremiumFeatureInline />
+                <span className="text-sm text-muted-foreground">--</span>
               )}
             </Card>
           );

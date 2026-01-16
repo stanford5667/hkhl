@@ -67,9 +67,7 @@ import {
   CheckCircle2,
   XCircle,
   Clock,
-  Crown,
 } from 'lucide-react';
-import { PremiumFeatureBlock } from '@/components/premium/PremiumFeatureBlock';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -797,10 +795,7 @@ export function MarketDataDetail({ item, open, onOpenChange }: MarketDataDetailP
                 </ResponsiveContainer>
               ) : (
                 <div className="h-[400px] flex items-center justify-center">
-                  <PremiumFeatureBlock 
-                    size="lg"
-                    description="Historical data requires premium access"
-                  />
+                  <p className="text-muted-foreground">No historical data available</p>
                 </div>
               )}
             </Card>
