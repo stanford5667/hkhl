@@ -30,6 +30,14 @@ import { useComponentPerformance, validateFedRates } from '@/hooks/useComponentP
 import { MarketIntelNavigation, type MarketCategory } from '@/components/market-intel/MarketIntelNavigation';
 import { MacroIndicatorCategories, type MacroCategory } from '@/components/market-intel/MacroIndicatorCategories';
 import { GlobalBondYields } from '@/components/market-intel/GlobalBondYields';
+import { NewsContent } from '@/components/market-intel/NewsContent';
+import { CountriesContent } from '@/components/market-intel/CountriesContent';
+import { ForecastsContent } from '@/components/market-intel/ForecastsContent';
+import { IndexesContent } from '@/components/market-intel/IndexesContent';
+import { SharesContent } from '@/components/market-intel/SharesContent';
+import { CryptoContent } from '@/components/market-intel/CryptoContent';
+import { EarningsContent } from '@/components/market-intel/EarningsContent';
+import { HolidaysContent } from '@/components/market-intel/HolidaysContent';
 
 export default function MarketIntel() {
   const [activeTab, setActiveTab] = useState('macro');
@@ -137,74 +145,35 @@ export default function MarketIntel() {
         onCategoryChange={setActiveCategory} 
       />
 
-      {/* Tabs */}
-      <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-        <TabsList className="grid w-full grid-cols-6 h-auto gap-1 bg-secondary/50 p-1">
-          <TabsTrigger value="macro" className="text-xs sm:text-sm min-w-0 px-2">
-            <Globe className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-1.5 shrink-0" />
-            <span className="truncate hidden sm:inline">Macro</span>
-          </TabsTrigger>
-          <TabsTrigger value="bonds" className="text-xs sm:text-sm min-w-0 px-2">
-            <Landmark className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-1.5 shrink-0" />
-            <span className="truncate hidden sm:inline">Bonds</span>
-          </TabsTrigger>
-          <TabsTrigger value="commodities" className="text-xs sm:text-sm min-w-0 px-2">
-            <Gem className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-1.5 shrink-0" />
-            <span className="truncate hidden sm:inline">Commodities</span>
-          </TabsTrigger>
-          <TabsTrigger value="currencies" className="text-xs sm:text-sm min-w-0 px-2">
-            <Banknote className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-1.5 shrink-0" />
-            <span className="truncate hidden sm:inline">Currencies</span>
-          </TabsTrigger>
-          <TabsTrigger value="calendar" className="text-xs sm:text-sm min-w-0 px-2">
-            <CalendarDays className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-1.5 shrink-0" />
-            <span className="truncate hidden sm:inline">Calendar</span>
-          </TabsTrigger>
-          <TabsTrigger value="funds" className="text-xs sm:text-sm min-w-0 px-2">
-            <Briefcase className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-1.5 shrink-0" />
-            <span className="truncate hidden sm:inline">Funds</span>
-          </TabsTrigger>
-        </TabsList>
-
-
-        <TabsContent value="commodities" className="mt-6">
-          <CommoditiesContent onItemClick={handleItemClick} />
-        </TabsContent>
-
-        <TabsContent value="currencies" className="mt-6">
-          <CurrenciesContent onItemClick={handleItemClick} />
-        </TabsContent>
-
-        <TabsContent value="macro" className="mt-6">
-          <div className="space-y-6">
-            {/* Macro Indicator Categories */}
-            <MacroIndicatorCategories 
-              activeCategory={activeMacroCategory}
-              onCategoryChange={setActiveMacroCategory}
-            />
-            
-            <LiveMacroContent 
-              onItemClick={handleItemClick} 
-              onPerformanceUpdate={handleMacroPerformance}
-            />
-            <StockForexGrid onPerformanceUpdate={handleStockForexPerformance} />
-            <CompanyFundamentalsSearch onPerformanceUpdate={handleFundamentalsPerformance} />
-          </div>
-        </TabsContent>
-
-        <TabsContent value="bonds" className="mt-6">
-          <GlobalBondYields />
-        </TabsContent>
-
-        <TabsContent value="calendar" className="mt-6">
-          <EconomicCalendarTab onPerformanceUpdate={handleCalendarPerformance} />
-        </TabsContent>
-
-        <TabsContent value="funds" className="mt-6">
-          <FundsContent onItemClick={handleItemClick} />
-        </TabsContent>
-
-      </Tabs>
+      {/* Category-based Content */}
+      {activeCategory === 'calendar' && <EconomicCalendarTab onPerformanceUpdate={handleCalendarPerformance} />}
+      {activeCategory === 'news' && <NewsContent />}
+      {activeCategory === 'countries' && <CountriesContent />}
+      {activeCategory === 'forecasts' && <ForecastsContent />}
+      {activeCategory === 'indexes' && <IndexesContent />}
+      {activeCategory === 'shares' && <SharesContent />}
+      {activeCategory === 'crypto' && <CryptoContent />}
+      {activeCategory === 'bonds' && <GlobalBondYields />}
+      {activeCategory === 'earnings' && <EarningsContent />}
+      {activeCategory === 'holidays' && <HolidaysContent />}
+      {activeCategory === 'commodities' && <CommoditiesContent onItemClick={handleItemClick} />}
+      {activeCategory === 'currencies' && <CurrenciesContent onItemClick={handleItemClick} />}
+      {activeCategory === 'indicators' && (
+        <div className="space-y-6">
+          {/* Macro Indicator Categories */}
+          <MacroIndicatorCategories 
+            activeCategory={activeMacroCategory}
+            onCategoryChange={setActiveMacroCategory}
+          />
+          
+          <LiveMacroContent 
+            onItemClick={handleItemClick} 
+            onPerformanceUpdate={handleMacroPerformance}
+          />
+          <StockForexGrid onPerformanceUpdate={handleStockForexPerformance} />
+          <CompanyFundamentalsSearch onPerformanceUpdate={handleFundamentalsPerformance} />
+        </div>
+      )}
       
       {/* Performance Ranking Panel - Development Phase */}
       <PerformanceRankingPanel 
