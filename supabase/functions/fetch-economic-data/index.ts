@@ -315,30 +315,36 @@ async function fetchAllIndicators(fredApiKey: string): Promise<IndicatorResult[]
 }
 
 function generateMockIndicators(): IndicatorResult[] {
+  // Updated January 2026 mock data - Fed target: 3.50-3.75%, Effective: 3.64%
   const mockData: Record<string, { value: number; change: number }> = {
-    fed_funds: { value: 5.33, change: 0 },
-    treasury_10y: { value: 4.42, change: -0.08 },
-    treasury_2y: { value: 4.28, change: -0.05 },
-    treasury_30y: { value: 4.58, change: -0.03 },
-    sofr: { value: 5.31, change: 0 },
-    prime_rate: { value: 8.50, change: 0 },
-    ig_spread: { value: 0.89, change: -0.02 },
-    hy_spread: { value: 2.95, change: -0.08 },
-    yield_curve: { value: 0.14, change: 0.03 },
-    breakeven_5y: { value: 2.35, change: 0.02 },
-    gdp_growth: { value: 2.8, change: 0.3 },
-    cpi_yoy: { value: 2.9, change: -0.1 },
-    core_pce: { value: 2.8, change: 0 },
-    unemployment: { value: 4.2, change: 0.1 },
-    initial_claims: { value: 219, change: -5 },
-    consumer_sentiment: { value: 73.2, change: 1.4 },
-    pmi_manufacturing: { value: 49.3, change: -0.5 },
-    housing_starts: { value: 1.36, change: 0.02 },
-    sp500: { value: 5942, change: 1.2 },
-    vix: { value: 16.8, change: -2.1 },
-    dxy: { value: 108.2, change: 0.4 },
-    gold: { value: 2658, change: 0.8 },
-    oil_wti: { value: 73.45, change: -1.5 },
+    // Interest Rates - January 2026 (Post-Fed cuts)
+    fed_funds: { value: 3.72, change: -0.25 },        // Fed Funds Effective Rate (within 3.50-3.75% target)
+    treasury_10y: { value: 4.17, change: 0.05 },      // 10Y Treasury
+    treasury_2y: { value: 3.89, change: -0.03 },      // 2Y Treasury  
+    treasury_30y: { value: 4.39, change: 0.02 },      // 30Y Treasury
+    sofr: { value: 3.64, change: -0.25 },             // SOFR aligned with Fed effective rate
+    prime_rate: { value: 7.25, change: -0.25 },       // Prime follows Fed
+    ig_spread: { value: 0.92, change: 0.01 },         // Investment Grade spread
+    hy_spread: { value: 3.15, change: -0.05 },        // High Yield spread
+    yield_curve: { value: 0.28, change: 0.08 },       // 10Y-2Y spread (normalizing)
+    breakeven_5y: { value: 2.42, change: 0.03 },      // Inflation expectations
+    
+    // Economic Indicators - January 2026
+    gdp_growth: { value: 2.3, change: -0.2 },         // GDP moderating
+    cpi_yoy: { value: 2.6, change: -0.1 },            // Inflation trending to target
+    core_pce: { value: 2.5, change: -0.1 },           // Core PCE near target
+    unemployment: { value: 4.1, change: 0.1 },        // Slight uptick in unemployment
+    initial_claims: { value: 225, change: 3 },        // Jobless claims stable
+    consumer_sentiment: { value: 74.8, change: 1.2 }, // Consumer confidence improving
+    pmi_manufacturing: { value: 50.2, change: 0.8 },  // Manufacturing expanding
+    housing_starts: { value: 1.42, change: 0.03 },    // Housing recovering with lower rates
+    
+    // Market Indicators - January 2026
+    sp500: { value: 6025, change: 0.8 },              // S&P 500 new highs
+    vix: { value: 15.2, change: -1.3 },               // Low volatility
+    dxy: { value: 106.8, change: -0.3 },              // Dollar slightly weaker
+    gold: { value: 2715, change: 0.5 },               // Gold steady
+    oil_wti: { value: 71.85, change: -0.8 },          // Oil stable
   };
   
   return Object.entries(INDICATORS).map(([id, config]) => {
@@ -362,7 +368,7 @@ function generateMockIndicators(): IndicatorResult[] {
       change_formatted: `${mock.change >= 0 ? '+' : ''}${mock.change.toFixed(2)}%`,
       last_updated: new Date().toISOString().split('T')[0],
       description: config.description || config.name,
-      source: 'Mock',
+      source: 'Demo Data',
       trend,
     };
   });
@@ -402,19 +408,20 @@ async function fetchYieldCurve(fredApiKey: string): Promise<any> {
   ];
   
   if (!fredApiKey) {
+    // Updated yield curve for January 2026 - post-Fed cuts, curve normalizing
     return {
       curve: [
-        { name: '1M', yield: 5.45 },
-        { name: '3M', yield: 5.38 },
-        { name: '6M', yield: 5.15 },
-        { name: '1Y', yield: 4.68 },
-        { name: '2Y', yield: 4.28 },
-        { name: '5Y', yield: 4.18 },
-        { name: '10Y', yield: 4.42 },
-        { name: '30Y', yield: 4.58 },
+        { name: '1M', yield: 3.75 },
+        { name: '3M', yield: 3.72 },
+        { name: '6M', yield: 3.68 },
+        { name: '1Y', yield: 3.72 },
+        { name: '2Y', yield: 3.89 },
+        { name: '5Y', yield: 4.02 },
+        { name: '10Y', yield: 4.17 },
+        { name: '30Y', yield: 4.39 },
       ],
-      inverted: true,
-      spread_10y_2y: 0.14,
+      inverted: false,  // Curve has normalized in 2026
+      spread_10y_2y: 0.28,
     };
   }
   
