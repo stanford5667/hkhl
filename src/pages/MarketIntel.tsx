@@ -24,7 +24,6 @@ import { LiveMacroContent } from '@/components/markets/LiveMacroContent';
 import { useCommodities, useForex, groupCommoditiesByCategory, groupForexByCategory, type CommodityData, type ForexData } from '@/hooks/useForexCommodities';
 import { MarketDataDetail, type MarketDataItem } from '@/components/market-intel/MarketDataDetail';
 import { StockForexGrid } from '@/components/market-intel/StockForexGrid';
-import { CompanyFundamentalsSearch } from '@/components/market-intel/CompanyFundamentalsSearch';
 import { PerformanceRankingPanel, type ComponentScore } from '@/components/market-intel/PerformanceRankingPanel';
 import { useComponentPerformance, validateFedRates } from '@/hooks/useComponentPerformance';
 import { MarketIntelNavigation, type MarketCategory } from '@/components/market-intel/MarketIntelNavigation';
@@ -58,7 +57,6 @@ export default function MarketIntel() {
     'Macro Insights',
     'Stock/Forex Grid', 
     'Economic Calendar',
-    'Company Fundamentals',
   ]);
 
   // Callback handlers for performance updates from child components
@@ -72,10 +70,6 @@ export default function MarketIntel() {
   
   const handleCalendarPerformance = useCallback((loadTimeMs: number, accuracy: number, issues: string[]) => {
     updateMetrics('economic-calendar', { loadTimeMs, dataAccuracy: accuracy, issues });
-  }, [updateMetrics]);
-  
-  const handleFundamentalsPerformance = useCallback((loadTimeMs: number, accuracy: number, issues: string[]) => {
-    updateMetrics('company-fundamentals', { loadTimeMs, dataAccuracy: accuracy, issues });
   }, [updateMetrics]);
 
   const handleItemClick = (item: MarketDataItem) => {
@@ -160,7 +154,6 @@ export default function MarketIntel() {
             onPerformanceUpdate={handleMacroPerformance}
           />
           <StockForexGrid onPerformanceUpdate={handleStockForexPerformance} />
-          <CompanyFundamentalsSearch onPerformanceUpdate={handleFundamentalsPerformance} />
         </div>
       )}
       
