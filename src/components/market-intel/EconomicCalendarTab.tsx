@@ -3,6 +3,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { 
   Calendar, 
   Landmark, 
@@ -11,9 +12,22 @@ import {
   AlertCircle,
   ChevronLeft,
   ChevronRight,
-  RefreshCw
+  RefreshCw,
+  Clock,
+  Zap,
+  DollarSign,
+  Briefcase,
+  Factory,
+  Home,
+  ShoppingCart,
+  Users,
+  Globe,
+  Percent,
+  ChevronDown,
+  ChevronUp,
+  BookOpen,
 } from 'lucide-react';
-import { format, parseISO, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isToday, isSameDay } from 'date-fns';
+import { format, parseISO, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isToday, isSameDay, differenceInDays } from 'date-fns';
 import { 
   useEconomicCalendar, 
   useSyncStatus,
@@ -22,19 +36,72 @@ import {
   getImportanceColor,
   type CalendarEvent 
 } from '@/hooks/useEconomicCalendar';
+import { EventDetailSheet } from './EventDetailSheet';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
 
-const eventTypeIcons: Record<string, React.ElementType> = {
+// Event icons by category
+const eventCategoryIcons: Record<string, React.ElementType> = {
   fed: Landmark,
+  fomc: Landmark,
+  monetary: Landmark,
+  employment: Briefcase,
+  jobs: Briefcase,
+  labor: Briefcase,
+  inflation: Percent,
+  cpi: Percent,
+  ppi: Percent,
+  pce: Percent,
+  gdp: TrendingUp,
+  growth: TrendingUp,
+  manufacturing: Factory,
+  ism: Factory,
+  pmi: Factory,
+  housing: Home,
+  consumer: ShoppingCart,
+  retail: ShoppingCart,
   earnings: Building2,
-  economic: TrendingUp,
   holiday: Calendar,
 };
+
+// Get appropriate icon for event
+function getEventIcon(event: CalendarEvent): React.ElementType {
+  const nameLower = event.event_name.toLowerCase();
+  
+  for (const [key, icon] of Object.entries(eventCategoryIcons)) {
+    if (nameLower.includes(key)) {
+      return icon;
+    }
+  }
+  
+  // Default based on event type
+  if (event.event_type === 'fed') return Landmark;
+  if (event.event_type === 'earnings') return Building2;
+  if (event.event_type === 'economic') return TrendingUp;
+  if (event.event_type === 'holiday') return Calendar;
+  
+  return Calendar;
+}
+
+// Get event importance badge style
+function getImportanceBadge(importance: string) {
+  switch (importance) {
+    case 'high':
+      return { color: 'text-rose-400', bg: 'bg-rose-500/10', border: 'border-rose-500/30', label: 'High Impact' };
+    case 'medium':
+      return { color: 'text-amber-400', bg: 'bg-amber-500/10', border: 'border-amber-500/30', label: 'Medium Impact' };
+    default:
+      return { color: 'text-muted-foreground', bg: 'bg-muted/50', border: 'border-border', label: 'Low Impact' };
+  }
+}
 
 export function EconomicCalendarTab() {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
+  const [eventDetailOpen, setEventDetailOpen] = useState(false);
+  const [expandedDays, setExpandedDays] = useState<Set<string>>(new Set());
   
   const { data: events = [], isLoading, refetch } = useEconomicCalendar(180);
   const { data: syncStatus = [] } = useSyncStatus();
@@ -66,17 +133,38 @@ export function EconomicCalendarTab() {
     }
   };
 
+  const handleEventClick = (event: CalendarEvent) => {
+    setSelectedEvent(event);
+    setEventDetailOpen(true);
+  };
+
+  const toggleDayExpansion = (dateStr: string) => {
+    setExpandedDays(prev => {
+      const next = new Set(prev);
+      if (next.has(dateStr)) {
+        next.delete(dateStr);
+      } else {
+        next.add(dateStr);
+      }
+      return next;
+    });
+  };
+
   // Get upcoming events for the list view
-  const upcomingEvents = events.slice(0, 10);
+  const upcomingEvents = events.slice(0, 15);
+
+  // Get today's events
+  const todayStr = format(new Date(), 'yyyy-MM-dd');
+  const todayEvents = groupedEvents[todayStr] || [];
 
   if (isLoading) {
     return (
       <div className="grid lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2">
-          <Skeleton className="h-[400px] w-full" />
+          <Skeleton className="h-[500px] w-full" />
         </div>
         <div>
-          <Skeleton className="h-[400px] w-full" />
+          <Skeleton className="h-[500px] w-full" />
         </div>
       </div>
     );
@@ -84,6 +172,62 @@ export function EconomicCalendarTab() {
 
   return (
     <div className="space-y-6">
+      {/* Today's Events Highlight */}
+      {todayEvents.length > 0 && (
+        <Card className="bg-gradient-to-r from-primary/10 to-blue-500/5 border-primary/30">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2 mb-3">
+              <Zap className="h-5 w-5 text-primary animate-pulse" />
+              <span className="font-semibold">Today's Economic Events</span>
+              <Badge variant="secondary" className="ml-auto">
+                {todayEvents.length} event{todayEvents.length > 1 ? 's' : ''}
+              </Badge>
+            </div>
+            <div className="space-y-2">
+              {todayEvents.map(event => {
+                const Icon = getEventIcon(event);
+                const importance = getImportanceBadge(event.importance);
+                
+                return (
+                  <div
+                    key={event.id}
+                    onClick={() => handleEventClick(event)}
+                    className="flex items-center gap-3 p-3 rounded-lg bg-background/50 hover:bg-background/80 cursor-pointer transition-colors border border-border/50"
+                  >
+                    <div className={cn("p-2 rounded-lg", getEventTypeColor(event.event_type))}>
+                      <Icon className="h-4 w-4" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-sm truncate">{event.event_name}</p>
+                      <div className="flex items-center gap-2 mt-0.5">
+                        {event.event_time && (
+                          <span className="text-xs text-muted-foreground flex items-center gap-1">
+                            <Clock className="h-3 w-3" />
+                            {event.event_time}
+                          </span>
+                        )}
+                        {event.forecast_value && (
+                          <span className="text-xs text-muted-foreground">
+                            Forecast: {event.forecast_value}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <Badge 
+                      variant="outline" 
+                      className={cn("text-[10px]", importance.color, importance.bg, importance.border)}
+                    >
+                      {importance.label}
+                    </Badge>
+                    <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                  </div>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Sync Status Bar */}
       <Card className="bg-secondary/30">
         <CardContent className="p-4">
@@ -151,7 +295,7 @@ export function EconomicCalendarTab() {
 
               {/* Empty cells for start of month */}
               {Array.from({ length: monthStart.getDay() }).map((_, i) => (
-                <div key={`empty-start-${i}`} className="h-20" />
+                <div key={`empty-start-${i}`} className="h-24" />
               ))}
 
               {/* Day Cells */}
@@ -159,20 +303,25 @@ export function EconomicCalendarTab() {
                 const dateStr = format(day, 'yyyy-MM-dd');
                 const dayEvents = groupedEvents[dateStr] || [];
                 const hasHighImportance = dayEvents.some(e => e.importance === 'high');
+                const isExpanded = expandedDays.has(dateStr);
+                const displayEvents = isExpanded ? dayEvents : dayEvents.slice(0, 2);
 
                 return (
                   <div
                     key={dateStr}
-                    className={`h-20 p-1 border rounded-lg transition-colors ${
+                    className={cn(
+                      "min-h-24 p-1 border rounded-lg transition-all",
                       isToday(day) 
-                        ? 'border-primary bg-primary/5' 
-                        : 'border-border/50 hover:border-border'
-                    } ${!isSameMonth(day, currentMonth) ? 'opacity-50' : ''}`}
+                        ? 'border-primary bg-primary/5 ring-1 ring-primary/20' 
+                        : 'border-border/50 hover:border-border',
+                      !isSameMonth(day, currentMonth) && 'opacity-50'
+                    )}
                   >
-                    <div className="flex items-center justify-between">
-                      <span className={`text-xs font-medium ${
-                        isToday(day) ? 'text-primary' : 'text-foreground'
-                      }`}>
+                    <div className="flex items-center justify-between px-1">
+                      <span className={cn(
+                        "text-xs font-medium",
+                        isToday(day) ? 'text-primary font-bold' : 'text-foreground'
+                      )}>
                         {format(day, 'd')}
                       </span>
                       {hasHighImportance && (
@@ -180,22 +329,40 @@ export function EconomicCalendarTab() {
                       )}
                     </div>
                     <div className="mt-1 space-y-0.5 overflow-hidden">
-                      {dayEvents.slice(0, 2).map(event => {
-                        const Icon = eventTypeIcons[event.event_type] || Calendar;
+                      {displayEvents.map(event => {
+                        const Icon = getEventIcon(event);
                         return (
                           <div
                             key={event.id}
-                            className={`text-[10px] px-1 py-0.5 rounded truncate flex items-center gap-1 ${getEventTypeColor(event.event_type)}`}
+                            onClick={() => handleEventClick(event)}
+                            className={cn(
+                              "text-[10px] px-1.5 py-1 rounded cursor-pointer flex items-center gap-1 transition-colors",
+                              getEventTypeColor(event.event_type),
+                              "hover:opacity-80"
+                            )}
                           >
-                            <Icon className="h-2 w-2 shrink-0" />
+                            <Icon className="h-2.5 w-2.5 shrink-0" />
                             <span className="truncate">{event.event_name}</span>
                           </div>
                         );
                       })}
                       {dayEvents.length > 2 && (
-                        <div className="text-[10px] text-muted-foreground px-1">
-                          +{dayEvents.length - 2} more
-                        </div>
+                        <button
+                          onClick={() => toggleDayExpansion(dateStr)}
+                          className="text-[10px] text-muted-foreground px-1 hover:text-foreground transition-colors flex items-center gap-0.5"
+                        >
+                          {isExpanded ? (
+                            <>
+                              <ChevronUp className="h-2.5 w-2.5" />
+                              Show less
+                            </>
+                          ) : (
+                            <>
+                              <ChevronDown className="h-2.5 w-2.5" />
+                              +{dayEvents.length - 2} more
+                            </>
+                          )}
+                        </button>
                       )}
                     </div>
                   </div>
@@ -208,51 +375,94 @@ export function EconomicCalendarTab() {
         {/* Upcoming Events List */}
         <Card>
           <CardContent className="p-6">
-            <h3 className="text-lg font-semibold mb-4">Upcoming Events</h3>
-            <div className="space-y-3">
-              {upcomingEvents.length === 0 ? (
-                <p className="text-sm text-muted-foreground text-center py-8">
-                  No upcoming events
-                </p>
-              ) : (
-                upcomingEvents.map(event => {
-                  const Icon = eventTypeIcons[event.event_type] || Calendar;
-                  return (
-                    <div
-                      key={event.id}
-                      className="flex items-start gap-3 p-3 rounded-lg bg-secondary/30 hover:bg-secondary/50 transition-colors"
-                    >
-                      <div className={`p-2 rounded-lg ${getEventTypeColor(event.event_type)}`}>
-                        <Icon className="h-4 w-4" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <p className="font-medium text-sm truncate">{event.event_name}</p>
-                          <span className={`text-xs ${getImportanceColor(event.importance)}`}>
-                            •
-                          </span>
-                        </div>
-                        <p className="text-xs text-muted-foreground">
-                          {format(parseISO(event.event_date), 'MMM d, yyyy')}
-                          {event.event_time && ` at ${event.event_time}`}
-                        </p>
-                        {event.description && (
-                          <p className="text-xs text-muted-foreground/80 mt-1 truncate">
-                            {event.description}
-                          </p>
-                        )}
-                      </div>
-                      <Badge 
-                        variant="outline" 
-                        className={`text-[10px] shrink-0 ${getEventTypeColor(event.event_type)}`}
-                      >
-                        {event.event_type}
-                      </Badge>
-                    </div>
-                  );
-                })
-              )}
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold">Upcoming Events</h3>
+              <Button variant="ghost" size="sm" className="text-xs">
+                <BookOpen className="h-3 w-3 mr-1" />
+                Learn
+              </Button>
             </div>
+            <ScrollArea className="h-[500px] pr-4">
+              <div className="space-y-3">
+                {upcomingEvents.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-8">
+                    No upcoming events
+                  </p>
+                ) : (
+                  upcomingEvents.map(event => {
+                    const Icon = getEventIcon(event);
+                    const importance = getImportanceBadge(event.importance);
+                    const daysAway = differenceInDays(parseISO(event.event_date), new Date());
+                    
+                    return (
+                      <div
+                        key={event.id}
+                        onClick={() => handleEventClick(event)}
+                        className="flex items-start gap-3 p-3 rounded-lg bg-secondary/30 hover:bg-secondary/50 transition-colors cursor-pointer group"
+                      >
+                        <div className={cn("p-2 rounded-lg shrink-0", getEventTypeColor(event.event_type))}>
+                          <Icon className="h-4 w-4" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-start justify-between gap-2">
+                            <p className="font-medium text-sm leading-tight">{event.event_name}</p>
+                            <ChevronRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
+                          </div>
+                          <div className="flex items-center gap-2 mt-1.5">
+                            <span className="text-xs text-muted-foreground">
+                              {daysAway === 0 ? (
+                                <span className="text-primary font-medium">Today</span>
+                              ) : daysAway === 1 ? (
+                                <span className="text-amber-400 font-medium">Tomorrow</span>
+                              ) : (
+                                format(parseISO(event.event_date), 'MMM d, yyyy')
+                              )}
+                            </span>
+                            {event.event_time && (
+                              <span className="text-xs text-muted-foreground flex items-center gap-1">
+                                <Clock className="h-3 w-3" />
+                                {event.event_time}
+                              </span>
+                            )}
+                          </div>
+                          {/* Forecast/Previous values */}
+                          {(event.forecast_value || event.previous_value) && (
+                            <div className="flex items-center gap-3 mt-2 text-[10px]">
+                              {event.previous_value && (
+                                <span className="text-muted-foreground">
+                                  Prev: <span className="font-mono">{event.previous_value}</span>
+                                </span>
+                              )}
+                              {event.forecast_value && (
+                                <span className="text-primary">
+                                  Fcst: <span className="font-mono">{event.forecast_value}</span>
+                                </span>
+                              )}
+                            </div>
+                          )}
+                          {event.description && (
+                            <p className="text-xs text-muted-foreground/80 mt-1 truncate">
+                              {event.description}
+                            </p>
+                          )}
+                        </div>
+                        <Badge 
+                          variant="outline" 
+                          className={cn(
+                            "text-[10px] shrink-0 mt-0.5",
+                            importance.color, 
+                            importance.bg, 
+                            importance.border
+                          )}
+                        >
+                          {event.importance}
+                        </Badge>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            </ScrollArea>
           </CardContent>
         </Card>
       </div>
@@ -260,13 +470,43 @@ export function EconomicCalendarTab() {
       {/* Legend */}
       <div className="flex flex-wrap items-center gap-4 text-xs">
         <span className="text-muted-foreground">Event Types:</span>
-        {Object.entries(eventTypeIcons).map(([type, Icon]) => (
-          <div key={type} className={`flex items-center gap-1.5 px-2 py-1 rounded ${getEventTypeColor(type)}`}>
+        {[
+          { type: 'fed', label: 'Fed/Central Bank', Icon: Landmark },
+          { type: 'economic', label: 'Economic Data', Icon: TrendingUp },
+          { type: 'earnings', label: 'Earnings', Icon: Building2 },
+          { type: 'holiday', label: 'Market Holiday', Icon: Calendar },
+        ].map(({ type, label, Icon }) => (
+          <div 
+            key={type} 
+            className={cn(
+              "flex items-center gap-1.5 px-2 py-1 rounded cursor-pointer hover:opacity-80 transition-opacity",
+              getEventTypeColor(type)
+            )}
+          >
             <Icon className="h-3 w-3" />
-            <span className="capitalize">{type}</span>
+            <span>{label}</span>
           </div>
         ))}
+        <div className="ml-auto flex items-center gap-3">
+          <span className="text-muted-foreground">Impact:</span>
+          <span className="flex items-center gap-1 text-rose-400">
+            <AlertCircle className="h-3 w-3" /> High
+          </span>
+          <span className="flex items-center gap-1 text-amber-400">
+            <AlertCircle className="h-3 w-3" /> Medium
+          </span>
+          <span className="flex items-center gap-1 text-muted-foreground">
+            <AlertCircle className="h-3 w-3" /> Low
+          </span>
+        </div>
       </div>
+
+      {/* Event Detail Sheet */}
+      <EventDetailSheet
+        event={selectedEvent}
+        open={eventDetailOpen}
+        onOpenChange={setEventDetailOpen}
+      />
     </div>
   );
 }
