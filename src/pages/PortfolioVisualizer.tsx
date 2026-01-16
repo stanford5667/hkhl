@@ -1574,28 +1574,30 @@ export default function PortfolioVisualizer() {
   if (currentFlow === 'screener') {
     return (
       <>
-        <div className="min-h-screen bg-background">
-          <div className="p-4">
-            <Button variant="ghost" size="sm" onClick={() => setCurrentFlow('choose')} className="mb-4">
+        <div className="min-h-screen bg-background flex flex-col">
+          <div className="px-3 pt-2 pb-1 shrink-0">
+            <Button variant="ghost" size="sm" onClick={() => setCurrentFlow('choose')} className="h-8 text-xs">
               ← Back
             </Button>
           </div>
-          <DynamicScreener 
-            onComplete={(data) => {
-              setInvestorProfile(prev => ({
-                ...prev,
-                investableCapital: data.capital,
-                investmentHorizon: data.horizon,
-              }));
-              setAllocations(data.allocations);
-              setPortfolioMode('manual');
-              runAnalysis(
-                { ...investorProfile, investableCapital: data.capital, investmentHorizon: data.horizon },
-                data.allocations,
-                'manual'
-              );
-            }}
-          />
+          <div className="flex-1 overflow-hidden">
+            <DynamicScreener 
+              onComplete={(data) => {
+                setInvestorProfile(prev => ({
+                  ...prev,
+                  investableCapital: data.capital,
+                  investmentHorizon: data.horizon,
+                }));
+                setAllocations(data.allocations);
+                setPortfolioMode('manual');
+                runAnalysis(
+                  { ...investorProfile, investableCapital: data.capital, investmentHorizon: data.horizon },
+                  data.allocations,
+                  'manual'
+                );
+              }}
+            />
+          </div>
         </div>
         <AuthGateDialog
           open={showAuthDialog}
