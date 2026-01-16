@@ -486,28 +486,55 @@ let availableTickersCache: string[] | null = null;
 let cacheTimestamp: number = 0;
 const CACHE_TTL = 60 * 60 * 1000; // 1 hour
 
-// Fetch all available tickers from database
+const TARGET_TICKERS = 200; // enough breadth for 100k+ portfolio combos
+const TICKER_DISCOVERY_DAYS = 30; // sample recent market days to discover tickers broadly
+const POSTGREST_PAGE_SIZE = 1000;
+const TICKER_CHUNK_SIZE = 50; // keep queries reasonably sized
+
+// Fetch available tickers from database (avoid "limit 1000 rows" bias by sampling recent bars)
 async function fetchAvailableTickers(): Promise<string[]> {
   const now = Date.now();
   if (availableTickersCache && (now - cacheTimestamp) < CACHE_TTL) {
     return availableTickersCache;
   }
-  
-  const { data, error } = await supabase
-    .from('market_daily_bars')
-    .select('ticker')
-    .limit(1000);
-  
-  if (error) {
-    console.error('Failed to fetch available tickers:', error);
-    return [];
+
+  const endDate = new Date();
+  const startDate = new Date();
+  startDate.setDate(endDate.getDate() - TICKER_DISCOVERY_DAYS);
+
+  const unique = new Set<string>();
+  let from = 0;
+
+  // Pull pages of recent bars, ordered by most recent date first, and dedupe tickers.
+  // This yields many distinct tickers quickly (as opposed to ordering by ticker which clusters duplicates).
+  while (unique.size < TARGET_TICKERS) {
+    const { data, error } = await supabase
+      .from('market_daily_bars')
+      .select('ticker, bar_date')
+      .gte('bar_date', startDate.toISOString().split('T')[0])
+      .lte('bar_date', endDate.toISOString().split('T')[0])
+      .order('bar_date', { ascending: false })
+      .range(from, from + POSTGREST_PAGE_SIZE - 1);
+
+    if (error) {
+      console.error('Failed to fetch available tickers:', error);
+      return [];
+    }
+
+    const rows = data ?? [];
+    if (rows.length === 0) break;
+
+    for (const row of rows) unique.add(row.ticker);
+
+    if (rows.length < POSTGREST_PAGE_SIZE) break;
+    from += POSTGREST_PAGE_SIZE;
   }
-  
-  const tickers = [...new Set((data || []).map(d => d.ticker))].sort();
+
+  const tickers = [...unique].sort();
   availableTickersCache = tickers;
   cacheTimestamp = now;
-  
-  console.log(`[ExpandedUniverse] Found ${tickers.length} tickers with historical data`);
+
+  console.log(`[ExpandedUniverse] Discovered ${tickers.length} tickers from last ${TICKER_DISCOVERY_DAYS} days`);
   return tickers;
 }
 
@@ -530,32 +557,52 @@ async function fetchTickerDailyReturns(
   const startDate = new Date();
   startDate.setFullYear(endDate.getFullYear() - lookbackYears);
 
-  const { data, error } = await supabase
-    .from('market_daily_bars')
-    .select('ticker, bar_date, daily_return')
-    .in('ticker', tickers)
-    .gte('bar_date', startDate.toISOString().split('T')[0])
-    .lte('bar_date', endDate.toISOString().split('T')[0])
-    .order('bar_date', { ascending: true });
+  const byTicker: Record<string, { date: string; ret: number }[]> = {};
 
-  if (error) {
-    console.error('Failed to fetch daily returns:', error);
-    throw new Error('Failed to fetch market data');
+  const chunks: string[][] = [];
+  for (let i = 0; i < tickers.length; i += TICKER_CHUNK_SIZE) {
+    chunks.push(tickers.slice(i, i + TICKER_CHUNK_SIZE));
+  }
+
+  for (let c = 0; c < chunks.length; c++) {
+    const chunk = chunks[c];
+
+    let from = 0;
+    // Pull all rows for this chunk across multiple pages to bypass the default 1000 row cap.
+    while (true) {
+      const { data, error } = await supabase
+        .from('market_daily_bars')
+        .select('ticker, bar_date, daily_return')
+        .in('ticker', chunk)
+        .gte('bar_date', startDate.toISOString().split('T')[0])
+        .lte('bar_date', endDate.toISOString().split('T')[0])
+        .order('bar_date', { ascending: true })
+        .range(from, from + POSTGREST_PAGE_SIZE - 1);
+
+      if (error) {
+        console.error('Failed to fetch daily returns:', error);
+        throw new Error('Failed to fetch market data');
+      }
+
+      const rows = data ?? [];
+      for (const row of rows) {
+        if (!byTicker[row.ticker]) byTicker[row.ticker] = [];
+        byTicker[row.ticker].push({ date: row.bar_date, ret: row.daily_return ?? 0 });
+      }
+
+      if (rows.length < POSTGREST_PAGE_SIZE) break;
+      from += POSTGREST_PAGE_SIZE;
+    }
+
+    const pct = 10 + Math.round(((c + 1) / chunks.length) * 30);
+    onProgress?.({ phase: 'fetching', current: pct, total: 100, message: `Loaded market data (${c + 1}/${chunks.length})...` });
   }
 
   onProgress?.({ phase: 'fetching', current: 40, total: 100, message: 'Processing market data...' });
 
   const result = new Map<string, TickerDailyData>();
-  const byTicker: Record<string, { date: string; ret: number }[]> = {};
-  
-  for (const row of data || []) {
-    if (!byTicker[row.ticker]) {
-      byTicker[row.ticker] = [];
-    }
-    byTicker[row.ticker].push({ date: row.bar_date, ret: row.daily_return ?? 0 });
-  }
-
   for (const [ticker, rows] of Object.entries(byTicker)) {
+    if (!rows.length) continue;
     result.set(ticker, {
       dates: rows.map(r => r.date),
       returns: rows.map(r => r.ret),
