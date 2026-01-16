@@ -932,34 +932,43 @@ export function DynamicScreener({ onSelect, onComplete }: DynamicScreenerProps) 
                 <div className="space-y-4 pr-2">
                   <p className="text-sm text-muted-foreground">{selectedPortfolio.description}</p>
                   
-                  {/* Key metrics */}
+                  {/* Key metrics - with educational popovers */}
                   <div className="grid grid-cols-2 gap-2">
-                    <Card className="p-3 bg-emerald-500/10 border-emerald-500/30">
-                      <p className="text-[10px] text-muted-foreground uppercase">CAGR</p>
-                      <p className="text-xl font-bold text-emerald-400 font-mono">
-                        {selectedPortfolio.metrics.cagr >= 0 ? '+' : ''}{selectedPortfolio.metrics.cagr}%
-                      </p>
-                    </Card>
-                    <Card className="p-3 bg-rose-500/10 border-rose-500/30">
-                      <p className="text-[10px] text-muted-foreground uppercase">Max Drawdown</p>
-                      <p className="text-xl font-bold text-rose-400 font-mono">
-                        -{selectedPortfolio.metrics.maxDrawdown}%
-                      </p>
-                    </Card>
-                    <Card className="p-3">
-                      <p className="text-[10px] text-muted-foreground uppercase">Volatility</p>
-                      <p className="text-lg font-bold font-mono">{selectedPortfolio.metrics.volatility}%</p>
-                    </Card>
-                    <Card className="p-3">
-                      <p className="text-[10px] text-muted-foreground uppercase">Sharpe Ratio</p>
-                      <p className="text-lg font-bold font-mono">{selectedPortfolio.metrics.sharpe.toFixed(2)}</p>
-                    </Card>
+                    <MetricEducationalPopover
+                      label="CAGR"
+                      value={`${selectedPortfolio.metrics.cagr >= 0 ? '+' : ''}${selectedPortfolio.metrics.cagr}%`}
+                      termKey="cagr"
+                      isPrimary
+                      isNegative={selectedPortfolio.metrics.cagr < 0}
+                      className="p-3 bg-emerald-500/10 border-emerald-500/30 rounded-lg border"
+                    />
+                    <MetricEducationalPopover
+                      label="Max Drawdown"
+                      value={`-${selectedPortfolio.metrics.maxDrawdown}%`}
+                      termKey="drawdown"
+                      isNegative
+                      className="p-3 bg-rose-500/10 border-rose-500/30 rounded-lg border"
+                    />
+                    <MetricEducationalPopover
+                      label="Volatility"
+                      value={`${selectedPortfolio.metrics.volatility}%`}
+                      termKey="standardDeviation"
+                      className="p-3 bg-card border rounded-lg"
+                    />
+                    <MetricEducationalPopover
+                      label="Sharpe Ratio"
+                      value={selectedPortfolio.metrics.sharpe.toFixed(2)}
+                      termKey="sharpeRatio"
+                      className="p-3 bg-card border rounded-lg"
+                    />
                   </div>
                   
-                  <Card className="p-3">
-                    <p className="text-[10px] text-muted-foreground uppercase">Sortino Ratio</p>
-                    <p className="text-lg font-bold font-mono">{selectedPortfolio.metrics.sortino.toFixed(2)}</p>
-                  </Card>
+                  <MetricEducationalPopover
+                    label="Sortino Ratio"
+                    value={selectedPortfolio.metrics.sortino.toFixed(2)}
+                    termKey="sortinoRatio"
+                    className="p-3 bg-card border rounded-lg w-full"
+                  />
                   
                   {/* Allocations */}
                   <div>
