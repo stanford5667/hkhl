@@ -164,15 +164,66 @@ export function DynamicScreener({ onSelect, onComplete }: DynamicScreenerProps) 
   
   // Universe stats
   const universeStats = useMemo(() => getUniverseStats(), []);
-
+  
+  // Track if user has explicitly run screening
+  const [hasScreened, setHasScreened] = useState(false);
+  
   // ─────────────────────────────────────────────────────────────────────────────
-  // Auto-run on mount
+  // Instant sample portfolios (shown before user screens)
   // ─────────────────────────────────────────────────────────────────────────────
   
-  useEffect(() => {
-    runScreening();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  const instantPortfolios: GeneratedPortfolioV2[] = useMemo(() => [
+    {
+      id: 'instant-1',
+      name: 'Classic 60/40 Balanced',
+      tickers: ['SPY', 'BND'],
+      weights: [60, 40],
+      riskProfile: 'moderate',
+      family: 'balanced',
+      metrics: { cagr: 8.2, volatility: 10.5, sharpe: 0.78, maxDrawdown: -22.1, sortino: 1.1, totalReturn: 48.5, dataPoints: 252 },
+      matchScore: 85,
+    },
+    {
+      id: 'instant-2',
+      name: 'Growth Focus - US Equity',
+      tickers: ['VTI', 'QQQ'],
+      weights: [60, 40],
+      riskProfile: 'growth',
+      family: 'growth',
+      metrics: { cagr: 12.4, volatility: 18.2, sharpe: 0.68, maxDrawdown: -33.5, sortino: 0.95, totalReturn: 78.2, dataPoints: 252 },
+      matchScore: 80,
+    },
+    {
+      id: 'instant-3',
+      name: 'Conservative Bond-Heavy',
+      tickers: ['BND', 'TLT', 'VTI'],
+      weights: [50, 30, 20],
+      riskProfile: 'conservative',
+      family: 'conservative',
+      metrics: { cagr: 5.1, volatility: 7.8, sharpe: 0.65, maxDrawdown: -12.4, sortino: 0.85, totalReturn: 28.1, dataPoints: 252 },
+      matchScore: 78,
+    },
+    {
+      id: 'instant-4',
+      name: 'Global Diversified',
+      tickers: ['VTI', 'VXUS', 'BND'],
+      weights: [45, 35, 20],
+      riskProfile: 'moderate',
+      family: 'diversified',
+      metrics: { cagr: 7.8, volatility: 12.1, sharpe: 0.64, maxDrawdown: -26.8, sortino: 0.88, totalReturn: 45.2, dataPoints: 252 },
+      matchScore: 82,
+    },
+    {
+      id: 'instant-5',
+      name: 'Aggressive Growth',
+      tickers: ['QQQ', 'VGT', 'ARKK'],
+      weights: [40, 40, 20],
+      riskProfile: 'aggressive',
+      family: 'aggressive',
+      metrics: { cagr: 15.6, volatility: 24.5, sharpe: 0.64, maxDrawdown: -42.1, sortino: 0.82, totalReturn: 105.3, dataPoints: 252 },
+      matchScore: 75,
+    },
+  ], []);
 
   // ─────────────────────────────────────────────────────────────────────────────
   // Run screening
@@ -182,6 +233,7 @@ export function DynamicScreener({ onSelect, onComplete }: DynamicScreenerProps) 
     setIsLoading(true);
     setProgress(null);
     setCurrentPage(page);
+    setHasScreened(true);
     
     if (screenMode === 'expanded') {
       const criteria: FilterCriteria = {};
@@ -304,21 +356,28 @@ export function DynamicScreener({ onSelect, onComplete }: DynamicScreenerProps) 
 
   // For expanded mode we use progressive loading (show first N, "See More" to reveal more)
   // For legacy quick mode we keep pagination
+  // Before any screening, show instant sample portfolios
   const displayedPortfolios = useMemo(() => {
+    if (!hasScreened && screenMode === 'expanded') {
+      // Show instant sample portfolios before user has screened
+      return instantPortfolios;
+    }
     if (screenMode === 'expanded') {
       return expandedPortfolios.slice(0, visibleCount);
     }
     const start = (currentPage - 1) * ITEMS_PER_PAGE;
     return filteredPortfolios.slice(start, start + ITEMS_PER_PAGE);
-  }, [screenMode, expandedPortfolios, filteredPortfolios, currentPage, visibleCount]);
+  }, [screenMode, expandedPortfolios, filteredPortfolios, currentPage, visibleCount, hasScreened, instantPortfolios]);
 
   // Pagination (legacy mode only)
   const totalPages = screenMode === 'expanded' ? 1 : Math.ceil(filteredPortfolios.length / ITEMS_PER_PAGE);
-  const totalCount = screenMode === 'expanded' ? expandedTotalCount : filteredPortfolios.length;
+  const totalCount = screenMode === 'expanded' 
+    ? (hasScreened ? expandedTotalCount : instantPortfolios.length) 
+    : filteredPortfolios.length;
 
-  // Can we show more in expanded mode?
-  const hasMore = screenMode === 'expanded' && visibleCount < expandedPortfolios.length;
-  const canLoadNextPage = screenMode === 'expanded' && expandedPortfolios.length < expandedTotalCount;
+  // Can we show more in expanded mode? (only if screened)
+  const hasMore = hasScreened && screenMode === 'expanded' && visibleCount < expandedPortfolios.length;
+  const canLoadNextPage = hasScreened && screenMode === 'expanded' && expandedPortfolios.length < expandedTotalCount;
 
   // Reset visible count when running new screening
   useEffect(() => {
@@ -540,10 +599,29 @@ export function DynamicScreener({ onSelect, onComplete }: DynamicScreenerProps) 
 
       {/* Results */}
       <div className="flex-1 overflow-hidden flex flex-col">
+        {/* Sample portfolios indicator */}
+        {!hasScreened && screenMode === 'expanded' && (
+          <div className="px-4 py-3 bg-gradient-to-r from-primary/10 to-emerald-500/10 border-b">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Sparkles className="h-4 w-4 text-primary" />
+                <span className="text-sm font-medium">Sample Portfolios</span>
+                <Badge variant="secondary" className="text-[10px]">Quick Preview</Badge>
+              </div>
+              <span className="text-xs text-muted-foreground">
+                Set filters above and click "Screen Portfolios" to discover {universeStats.estimatedPortfolios.toLocaleString()}+ options
+              </span>
+            </div>
+          </div>
+        )}
+        
         {/* Results header */}
         <div className="flex items-center justify-between px-4 py-2 border-b bg-muted/30">
           <span className="text-xs text-muted-foreground">
-            {totalCount.toLocaleString()} portfolios {generationTime > 0 && `(${(generationTime / 1000).toFixed(1)}s)`}
+            {hasScreened 
+              ? `${totalCount.toLocaleString()} portfolios ${generationTime > 0 ? `(${(generationTime / 1000).toFixed(1)}s)` : ''}`
+              : `${instantPortfolios.length} sample portfolios`
+            }
           </span>
           <div className="flex items-center gap-2">
             <Select value={sortField} onValueChange={(v) => setSortField(v as SortField)}>
