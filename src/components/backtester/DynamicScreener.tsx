@@ -78,7 +78,7 @@ import {
 type SortField = 'cagr' | 'totalReturn' | 'sharpe' | 'maxDrawdown' | 'volatility' | 'sortino' | 'matchScore';
 type SortDirection = 'asc' | 'desc';
 type ScreenMode = 'quick' | 'expanded';
-type MetricKey = 'maxDrawdown' | 'maxVolatility' | 'minSharpe' | 'minCagr';
+type MetricKey = 'maxDrawdown' | 'maxVolatility' | 'minSharpe' | 'minCagr' | null;
 
 interface DynamicScreenerProps {
   onSelect?: (allocations: { symbol: string; weight: number }[]) => void;
@@ -120,12 +120,12 @@ export function DynamicScreener({ onSelect, onComplete }: DynamicScreenerProps) 
   const [isLoading, setIsLoading] = useState(false);
   const [progress, setProgress] = useState<GenerationProgress | ScreeningProgress | null>(null);
   
-  // Criteria
-  const [activeMetric, setActiveMetric] = useState<MetricKey>('maxDrawdown');
-  const [maxDrawdown, setMaxDrawdown] = useState(30);
-  const [maxVolatility, setMaxVolatility] = useState(20);
-  const [minSharpe, setMinSharpe] = useState(0.3);
-  const [minCagr, setMinCagr] = useState(-5);
+  // Criteria - relaxed defaults to show portfolios initially
+  const [activeMetric, setActiveMetric] = useState<MetricKey | null>(null);
+  const [maxDrawdown, setMaxDrawdown] = useState(50);
+  const [maxVolatility, setMaxVolatility] = useState(40);
+  const [minSharpe, setMinSharpe] = useState(-1);
+  const [minCagr, setMinCagr] = useState(-30);
   
   // Mode
   const [screenMode, setScreenMode] = useState<ScreenMode>('expanded');
@@ -410,11 +410,15 @@ export function DynamicScreener({ onSelect, onComplete }: DynamicScreenerProps) 
         <div className="space-y-3">
           <div className="space-y-1">
             <Label className="text-xs">Filter By</Label>
-            <Select value={activeMetric} onValueChange={(v) => setActiveMetric(v as MetricKey)}>
+            <Select 
+              value={activeMetric || 'none'} 
+              onValueChange={(v) => setActiveMetric(v === 'none' ? null : v as MetricKey)}
+            >
               <SelectTrigger className="h-8 text-xs">
-                <SelectValue />
+                <SelectValue placeholder="No filter" />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value="none">No filter (show all)</SelectItem>
                 <SelectItem value="maxDrawdown">Max Drawdown</SelectItem>
                 <SelectItem value="maxVolatility">Max Volatility</SelectItem>
                 <SelectItem value="minSharpe">Min Sharpe Ratio</SelectItem>
