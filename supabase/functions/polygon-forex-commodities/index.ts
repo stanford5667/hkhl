@@ -182,14 +182,54 @@ async function fetchCommodities(apiKey: string): Promise<TickerSnapshot[]> {
   return results;
 }
 
-// Fetch all forex data
-async function fetchForex(apiKey: string): Promise<TickerSnapshot[]> {
-  const results: TickerSnapshot[] = [];
+// Mock forex data for rate limit fallback
+function getMockForexData(): TickerSnapshot[] {
+  const mockData: { pair: typeof FOREX_PAIRS[0]; price: number }[] = [
+    { pair: FOREX_PAIRS[0], price: 1.0292 }, // EUR/USD
+    { pair: FOREX_PAIRS[1], price: 1.2218 }, // GBP/USD  
+    { pair: FOREX_PAIRS[2], price: 156.38 }, // USD/JPY
+    { pair: FOREX_PAIRS[3], price: 0.9108 }, // USD/CHF
+    { pair: FOREX_PAIRS[4], price: 0.6212 }, // AUD/USD
+    { pair: FOREX_PAIRS[5], price: 1.4378 }, // USD/CAD
+    { pair: FOREX_PAIRS[6], price: 0.5628 }, // NZD/USD
+  ];
   
-  const allPromises = FOREX_PAIRS.map(async (pair) => {
+  return mockData.map(({ pair, price }) => {
+    const isJpyPair = pair.quote === 'JPY' || pair.base === 'JPY';
+    const change = (Math.random() - 0.5) * price * 0.002;
+    const decimals = isJpyPair ? 3 : 5;
+    const multiplier = Math.pow(10, decimals);
+    
+    return {
+      symbol: pair.symbol,
+      name: pair.name,
+      price: Math.round((price + change) * multiplier) / multiplier,
+      change: Math.round(change * multiplier) / multiplier,
+      changePercent: Math.round((change / price) * 100 * 100) / 100,
+      high: Math.round(price * 1.002 * multiplier) / multiplier,
+      low: Math.round(price * 0.998 * multiplier) / multiplier,
+      open: Math.round((price - change * 0.3) * multiplier) / multiplier,
+      prevClose: Math.round(price * multiplier) / multiplier,
+      timestamp: new Date().toISOString(),
+      category: pair.category,
+      base: pair.base,
+      quote: pair.quote,
+    };
+  });
+}
+
+// Fetch all forex data
+async function fetchForex(apiKey: string): Promise<{ data: TickerSnapshot[]; useMockData: boolean }> {
+  const results: TickerSnapshot[] = [];
+  let rateLimited = false;
+  
+  const allPromises = FOREX_PAIRS.slice(0, 7).map(async (pair) => { // Limit to essential pairs
     const bars = await fetchRecentBars(pair.symbol, apiKey);
     
-    if (!bars) return null;
+    if (!bars) {
+      rateLimited = true;
+      return null;
+    }
     
     const { current, previous } = bars;
     const price = current.c;
@@ -227,7 +267,13 @@ async function fetchForex(apiKey: string): Promise<TickerSnapshot[]> {
     }
   }
   
-  return results;
+  // Return mock data if rate limited and no results
+  if (results.length === 0 && rateLimited) {
+    console.log('[ForexCommodities] Rate limited, using mock forex data');
+    return { data: getMockForexData(), useMockData: true };
+  }
+  
+  return { data: results, useMockData: false };
 }
 
 serve(async (req) => {
@@ -250,20 +296,25 @@ serve(async (req) => {
     let commodities: TickerSnapshot[] = [];
     let forex: TickerSnapshot[] = [];
 
+    let useMockData = false;
+
     if (type === "commodities" || type === "both") {
       commodities = await fetchCommodities(POLYGON_API_KEY);
       console.log(`[ForexCommodities] Got ${commodities.length} commodities`);
     }
 
     if (type === "forex" || type === "both") {
-      forex = await fetchForex(POLYGON_API_KEY);
-      console.log(`[ForexCommodities] Got ${forex.length} forex pairs`);
+      const forexResult = await fetchForex(POLYGON_API_KEY);
+      forex = forexResult.data;
+      useMockData = forexResult.useMockData;
+      console.log(`[ForexCommodities] Got ${forex.length} forex pairs${useMockData ? ' (mock)' : ''}`);
     }
 
     return json({
       ok: true,
       commodities,
       forex,
+      useMockData,
       timestamp: new Date().toISOString(),
     });
   } catch (error) {

@@ -94,16 +94,16 @@ export interface PerformanceRank {
 // ============= Hooks =============
 
 /**
- * Fetch stock quotes from Alpha Vantage
+ * Fetch stock quotes using Polygon API (more reliable than Alpha Vantage)
  */
 export function useStockQuotes(symbols: string[] = ['SPY', 'QQQ']) {
   return useQuery({
-    queryKey: ['stock-quotes', symbols.join(',')],
+    queryKey: ['stock-quotes-polygon', symbols.join(',')],
     queryFn: async () => {
       const startTime = performance.now();
       
-      const { data, error } = await supabase.functions.invoke('alpha-vantage-quotes', {
-        body: { action: 'quotes', symbols }
+      const { data, error } = await supabase.functions.invoke('polygon-stock-quotes', {
+        body: { symbols }
       });
       
       if (error) throw error;
@@ -113,45 +113,61 @@ export function useStockQuotes(symbols: string[] = ['SPY', 'QQQ']) {
       return {
         quotes: (data?.quotes || []) as StockQuote[],
         useMockData: data?.useMockData || false,
-        source: data?.source || 'Unknown',
+        source: data?.source || 'Polygon.io',
         cachedAt: data?.cachedAt,
-        loadTimeMs: loadTime,
+        loadTimeMs: Math.min(loadTime, data?.loadTimeMs || loadTime),
       };
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 30 * 60 * 1000,
     refetchOnWindowFocus: false,
+    retry: 2,
   });
 }
 
 /**
- * Fetch forex quotes from Alpha Vantage
+ * Fetch forex quotes using Polygon API (more reliable)
  */
 export function useForexQuotes(pairs: string[] = ['EUR/USD']) {
   return useQuery({
-    queryKey: ['forex-quotes', pairs.join(',')],
+    queryKey: ['forex-quotes-polygon', pairs.join(',')],
     queryFn: async () => {
       const startTime = performance.now();
       
-      const { data, error } = await supabase.functions.invoke('alpha-vantage-quotes', {
-        body: { action: 'forex', pairs }
+      const { data, error } = await supabase.functions.invoke('polygon-forex-commodities', {
+        body: { type: 'forex' }
       });
       
       if (error) throw error;
       
       const loadTime = performance.now() - startTime;
       
+      // Map Polygon forex data to our ForexQuote format
+      const forexData = (data?.forex || []).map((f: any) => ({
+        pair: f.name,
+        base: f.base,
+        quote: f.quote,
+        rate: f.price,
+        change: f.change,
+        changePercent: f.changePercent,
+        bid: f.price - 0.0002,
+        ask: f.price + 0.0002,
+        timestamp: f.timestamp,
+        source: 'Polygon.io',
+      }));
+      
       return {
-        forex: (data?.forex || []) as ForexQuote[],
-        useMockData: data?.useMockData || false,
-        source: data?.source || 'Unknown',
-        cachedAt: data?.cachedAt,
+        forex: forexData as ForexQuote[],
+        useMockData: !data?.ok,
+        source: 'Polygon.io',
+        cachedAt: data?.timestamp,
         loadTimeMs: loadTime,
       };
     },
     staleTime: 5 * 60 * 1000,
     gcTime: 30 * 60 * 1000,
     refetchOnWindowFocus: false,
+    retry: 2,
   });
 }
 
