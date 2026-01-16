@@ -29,7 +29,6 @@ import {
   FileText,
   Sparkles,
   Brain,
-  BookOpen,
   Layers,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
@@ -38,7 +37,7 @@ import { AuthGateDialog } from '@/components/auth/AuthGateDialog';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
-import { AcknowledgmentDialog, EducationalBadge, InlineDisclaimer } from '@/components/legal';
+import { AcknowledgmentDialog, InlineDisclaimer } from '@/components/legal';
 import { useEducationalAcknowledgment } from '@/hooks/useEducationalAcknowledgment';
 import { PageHeader, PAGE_ICON_PRESETS } from '@/components/layout/PageHeader';
 
@@ -47,7 +46,6 @@ import { StrategyExplorerHero } from '@/components/investment-plan/StrategyExplo
 import { InvestorTypeShowcase } from '@/components/investment-plan/InvestorTypeShowcase';
 import { PlanCard } from '@/components/investment-plan/PlanCard';
 import { CreatePlanCard } from '@/components/investment-plan/CreatePlanCard';
-import { LearnSection } from '@/components/investment-plan/LearnSection';
 
 // Simple markdown renderer component
 function SimpleMarkdown({ content }: { content: string }) {
@@ -453,12 +451,7 @@ export default function InvestmentPlanPage() {
             subtitle="AI-powered portfolio strategies tailored to your investor profile"
             {...PAGE_ICON_PRESETS.violet}
           />
-          <div className="hidden sm:flex items-center gap-3">
-            <EducationalBadge />
-          </div>
         </div>
-        
-        <InlineDisclaimer />
 
         {/* Main Content with Premium Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-8">
@@ -476,13 +469,6 @@ export default function InvestmentPlanPage() {
             >
               <Layers className="h-4 w-4" />
               Archetypes
-            </TabsTrigger>
-            <TabsTrigger 
-              value="learn" 
-              className="gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500/20 data-[state=active]:to-blue-500/20 data-[state=active]:border-white/20 rounded-lg px-6"
-            >
-              <BookOpen className="h-4 w-4" />
-              Academy
             </TabsTrigger>
           </TabsList>
 
@@ -557,12 +543,12 @@ export default function InvestmentPlanPage() {
           <TabsContent value="archetypes" className="mt-0">
             <InvestorTypeShowcase />
           </TabsContent>
-
-          {/* Learn Tab */}
-          <TabsContent value="learn" className="mt-0">
-            <LearnSection />
-          </TabsContent>
         </Tabs>
+
+        {/* Educational Content - Above Disclosures */}
+        <div className="mt-8 pt-8 border-t border-white/10">
+          <InlineDisclaimer />
+        </div>
 
       {/* View Plan - Full Screen Results Component */}
       {viewPlanOpen && selectedPlan && (
