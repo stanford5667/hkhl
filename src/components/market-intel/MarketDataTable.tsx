@@ -23,6 +23,9 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import {
@@ -52,9 +55,17 @@ import {
   Eye,
   Star,
   StarOff,
+  Shield,
+  Target,
+  Volume2,
+  Layers,
+  Settings2,
+  Sparkles,
+  ChevronRight,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useNavigate } from 'react-router-dom';
+import { StudyBuilderSheet, STUDY_CONFIG } from './StudyBuilderPanel';
 
 export interface MarketDataRow {
   id: string;
@@ -402,7 +413,11 @@ export function MarketDataTable({
                                       <span className="text-xs hidden sm:inline">Studies</span>
                                     </Button>
                                   </DropdownMenuTrigger>
-                                  <DropdownMenuContent align="end" className="w-48">
+                                  <DropdownMenuContent align="end" className="w-56">
+                                    {/* Quick Studies */}
+                                    <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground">
+                                      Quick Studies
+                                    </div>
                                     <DropdownMenuItem onClick={() => runStudy(row.symbol, 'rsi_analysis')}>
                                       <Gauge className="h-4 w-4 mr-2 text-emerald-500" />
                                       RSI Analysis
@@ -411,19 +426,77 @@ export function MarketDataTable({
                                       <LineChart className="h-4 w-4 mr-2 text-blue-500" />
                                       Moving Averages
                                     </DropdownMenuItem>
-                                    <DropdownMenuItem onClick={() => runStudy(row.symbol, 'trend_strength')}>
-                                      <TrendingUp className="h-4 w-4 mr-2 text-violet-500" />
-                                      Trend Strength
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem onClick={() => runStudy(row.symbol, 'day_of_week_returns')}>
-                                      <Calendar className="h-4 w-4 mr-2 text-amber-500" />
-                                      Seasonality
-                                    </DropdownMenuItem>
                                     <DropdownMenuItem onClick={() => runStudy(row.symbol, 'volatility_analysis')}>
                                       <Zap className="h-4 w-4 mr-2 text-rose-500" />
-                                      Volatility
+                                      Volatility Profile
                                     </DropdownMenuItem>
+                                    
                                     <DropdownMenuSeparator />
+                                    
+                                    {/* Categories Submenu */}
+                                    {STUDY_CONFIG.categories.slice(0, 4).map((cat) => {
+                                      const CatIcon = cat.icon;
+                                      const catStudies = STUDY_CONFIG.studies.filter(s => s.category === cat.id);
+                                      
+                                      return (
+                                        <DropdownMenuSub key={cat.id}>
+                                          <DropdownMenuSubTrigger>
+                                            <CatIcon className={cn("h-4 w-4 mr-2", cat.color)} />
+                                            {cat.name}
+                                          </DropdownMenuSubTrigger>
+                                          <DropdownMenuSubContent className="w-48">
+                                            {catStudies.map((study) => {
+                                              const StudyIcon = study.icon;
+                                              return (
+                                                <DropdownMenuItem 
+                                                  key={study.id}
+                                                  onClick={() => runStudy(row.symbol, study.id)}
+                                                >
+                                                  <StudyIcon className="h-4 w-4 mr-2 text-muted-foreground" />
+                                                  {study.name}
+                                                </DropdownMenuItem>
+                                              );
+                                            })}
+                                          </DropdownMenuSubContent>
+                                        </DropdownMenuSub>
+                                      );
+                                    })}
+                                    
+                                    <DropdownMenuSeparator />
+                                    
+                                    {/* Presets */}
+                                    <DropdownMenuSub>
+                                      <DropdownMenuSubTrigger>
+                                        <Sparkles className="h-4 w-4 mr-2 text-amber-500" />
+                                        Quick Presets
+                                      </DropdownMenuSubTrigger>
+                                      <DropdownMenuSubContent className="w-52">
+                                        {STUDY_CONFIG.presets.map((preset) => {
+                                          const PresetIcon = preset.icon;
+                                          return (
+                                            <DropdownMenuItem 
+                                              key={preset.id}
+                                              onClick={() => {
+                                                const params = new URLSearchParams({
+                                                  ticker: row.symbol,
+                                                  studies: preset.studies.join(','),
+                                                });
+                                                navigate(`/quant-lab?${params.toString()}`);
+                                              }}
+                                            >
+                                              <PresetIcon className="h-4 w-4 mr-2 text-primary" />
+                                              <div className="flex-1 min-w-0">
+                                                <div className="text-sm">{preset.name}</div>
+                                                <div className="text-xs text-muted-foreground">{preset.studies.length} studies</div>
+                                              </div>
+                                            </DropdownMenuItem>
+                                          );
+                                        })}
+                                      </DropdownMenuSubContent>
+                                    </DropdownMenuSub>
+                                    
+                                    <DropdownMenuSeparator />
+                                    
                                     <DropdownMenuItem onClick={() => openQuantLab(row.symbol)}>
                                       <FlaskConical className="h-4 w-4 mr-2 text-primary" />
                                       Open Quant Lab
@@ -431,6 +504,17 @@ export function MarketDataTable({
                                     </DropdownMenuItem>
                                   </DropdownMenuContent>
                                 </DropdownMenu>
+                                
+                                {/* Advanced Study Builder */}
+                                <StudyBuilderSheet
+                                  symbol={row.symbol}
+                                  symbolName={row.name}
+                                  trigger={
+                                    <Button variant="ghost" size="sm" className="h-7 w-7 p-0">
+                                      <Settings2 className="h-4 w-4 text-muted-foreground" />
+                                    </Button>
+                                  }
+                                />
                               </div>
                             </TableCell>
                           )}
@@ -512,33 +596,48 @@ export function MarketDataTable({
                     </div>
 
                     {showStudyActions && (
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                          <Button variant="outline" size="sm" className="h-7 gap-1">
-                            <FlaskConical className="h-3 w-3" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-44">
-                          <DropdownMenuItem onClick={() => runStudy(row.symbol, 'rsi_analysis')}>
-                            <Gauge className="h-4 w-4 mr-2 text-emerald-500" />
-                            RSI
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => runStudy(row.symbol, 'moving_average_analysis')}>
-                            <LineChart className="h-4 w-4 mr-2 text-blue-500" />
-                            Moving Avg
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => runStudy(row.symbol, 'volatility_analysis')}>
-                            <Zap className="h-4 w-4 mr-2 text-rose-500" />
-                            Volatility
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem onClick={() => openQuantLab(row.symbol)}>
-                            <FlaskConical className="h-4 w-4 mr-2" />
-                            Quant Lab
-                            <ArrowRight className="h-3 w-3 ml-auto" />
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                      <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="outline" size="sm" className="h-7 gap-1">
+                              <FlaskConical className="h-3 w-3" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-48">
+                            <div className="px-2 py-1 text-xs font-medium text-muted-foreground">
+                              Quick Studies
+                            </div>
+                            <DropdownMenuItem onClick={() => runStudy(row.symbol, 'rsi_analysis')}>
+                              <Gauge className="h-4 w-4 mr-2 text-emerald-500" />
+                              RSI Analysis
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => runStudy(row.symbol, 'moving_average_analysis')}>
+                              <LineChart className="h-4 w-4 mr-2 text-blue-500" />
+                              Moving Averages
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => runStudy(row.symbol, 'volatility_analysis')}>
+                              <Zap className="h-4 w-4 mr-2 text-rose-500" />
+                              Volatility
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem onClick={() => openQuantLab(row.symbol)}>
+                              <FlaskConical className="h-4 w-4 mr-2" />
+                              Quant Lab
+                              <ArrowRight className="h-3 w-3 ml-auto" />
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                        
+                        <StudyBuilderSheet
+                          symbol={row.symbol}
+                          symbolName={row.name}
+                          trigger={
+                            <Button variant="ghost" size="sm" className="h-7 w-7 p-0">
+                              <Settings2 className="h-3 w-3" />
+                            </Button>
+                          }
+                        />
+                      </div>
                     )}
                   </div>
                 </div>
