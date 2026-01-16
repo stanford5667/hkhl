@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -25,13 +25,44 @@ import { useCommodities, useForex, groupCommoditiesByCategory, groupForexByCateg
 import { MarketDataDetail, type MarketDataItem } from '@/components/market-intel/MarketDataDetail';
 import { StockForexGrid } from '@/components/market-intel/StockForexGrid';
 import { CompanyFundamentalsSearch } from '@/components/market-intel/CompanyFundamentalsSearch';
-import { usePerformanceTracker, type PerformanceRank } from '@/hooks/useMarketIntelData';
+import { PerformanceRankingPanel, type ComponentScore } from '@/components/market-intel/PerformanceRankingPanel';
+import { useComponentPerformance, validateFedRates } from '@/hooks/useComponentPerformance';
 
 export default function MarketIntel() {
   const [activeTab, setActiveTab] = useState('macro');
   const [showUpgradeDialog, setShowUpgradeDialog] = useState(false);
   const [selectedItem, setSelectedItem] = useState<MarketDataItem | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
+  
+  // Performance tracking for development phase
+  const { 
+    scores, 
+    updateMetrics, 
+    retestComponent, 
+    autoIterate 
+  } = useComponentPerformance([
+    'Macro Insights',
+    'Stock/Forex Grid', 
+    'Economic Calendar',
+    'Company Fundamentals',
+  ]);
+
+  // Callback handlers for performance updates from child components
+  const handleMacroPerformance = useCallback((loadTimeMs: number, accuracy: number, issues: string[]) => {
+    updateMetrics('macro-insights', { loadTimeMs, dataAccuracy: accuracy, issues });
+  }, [updateMetrics]);
+  
+  const handleStockForexPerformance = useCallback((loadTimeMs: number, accuracy: number, issues: string[]) => {
+    updateMetrics('stock/forex-grid', { loadTimeMs, dataAccuracy: accuracy, issues });
+  }, [updateMetrics]);
+  
+  const handleCalendarPerformance = useCallback((loadTimeMs: number, accuracy: number, issues: string[]) => {
+    updateMetrics('economic-calendar', { loadTimeMs, dataAccuracy: accuracy, issues });
+  }, [updateMetrics]);
+  
+  const handleFundamentalsPerformance = useCallback((loadTimeMs: number, accuracy: number, issues: string[]) => {
+    updateMetrics('company-fundamentals', { loadTimeMs, dataAccuracy: accuracy, issues });
+  }, [updateMetrics]);
 
   const handleItemClick = (item: MarketDataItem) => {
     setSelectedItem(item);
@@ -131,14 +162,17 @@ export default function MarketIntel() {
 
         <TabsContent value="macro" className="mt-6">
           <div className="space-y-6">
-            <LiveMacroContent onItemClick={handleItemClick} />
-            <StockForexGrid />
-            <CompanyFundamentalsSearch />
+            <LiveMacroContent 
+              onItemClick={handleItemClick} 
+              onPerformanceUpdate={handleMacroPerformance}
+            />
+            <StockForexGrid onPerformanceUpdate={handleStockForexPerformance} />
+            <CompanyFundamentalsSearch onPerformanceUpdate={handleFundamentalsPerformance} />
           </div>
         </TabsContent>
 
         <TabsContent value="calendar" className="mt-6">
-          <EconomicCalendarTab />
+          <EconomicCalendarTab onPerformanceUpdate={handleCalendarPerformance} />
         </TabsContent>
 
         <TabsContent value="funds" className="mt-6">
@@ -146,6 +180,14 @@ export default function MarketIntel() {
         </TabsContent>
 
       </Tabs>
+      
+      {/* Performance Ranking Panel - Development Phase */}
+      <PerformanceRankingPanel 
+        scores={scores}
+        onRetest={retestComponent}
+        onAutoIterate={autoIterate}
+        showDuringDev={true}
+      />
 
       {/* Market Data Detail Sheet */}
       <MarketDataDetail 

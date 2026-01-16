@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -98,15 +98,38 @@ function getImportanceBadge(importance: string) {
   }
 }
 
-export function EconomicCalendarTab() {
+interface EconomicCalendarTabProps {
+  onPerformanceUpdate?: (loadTimeMs: number, accuracy: number, issues: string[]) => void;
+}
+
+export function EconomicCalendarTab({ onPerformanceUpdate }: EconomicCalendarTabProps) {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const [eventDetailOpen, setEventDetailOpen] = useState(false);
   const [expandedDays, setExpandedDays] = useState<Set<string>>(new Set());
+  const [loadStartTime] = useState(() => performance.now());
   
   const { data: events = [], isLoading, refetch } = useEconomicCalendar(180);
   const { data: syncStatus = [] } = useSyncStatus();
+  
+  // Track performance when data loads
+  useEffect(() => {
+    if (!isLoading && onPerformanceUpdate) {
+      const loadTimeMs = performance.now() - loadStartTime;
+      const issues: string[] = [];
+      
+      if (events.length === 0) issues.push('No calendar events loaded');
+      
+      // Check for high-impact events
+      const highImpactEvents = events.filter((e) => e.importance === 'high');
+      if (highImpactEvents.length === 0) issues.push('No high-impact events found');
+      
+      const dataAccuracy = issues.length === 0 ? 10 : Math.max(6, 10 - issues.length * 2);
+      
+      onPerformanceUpdate(loadTimeMs, dataAccuracy, issues);
+    }
+  }, [isLoading, events, onPerformanceUpdate, loadStartTime]);
 
   const groupedEvents = groupEventsByDate(events);
 

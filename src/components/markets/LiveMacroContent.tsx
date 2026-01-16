@@ -5,7 +5,7 @@
  * All items are clickable and connected to detail sheets for educational content.
  */
 
-import { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -77,11 +77,13 @@ function getEventIcon(eventType: string) {
 
 interface LiveMacroContentProps {
   onItemClick?: (item: MacroDataItem) => void;
+  onPerformanceUpdate?: (loadTimeMs: number, accuracy: number, issues: string[]) => void;
 }
 
-export function LiveMacroContent({ onItemClick }: LiveMacroContentProps) {
+export function LiveMacroContent({ onItemClick, onPerformanceUpdate }: LiveMacroContentProps) {
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const [eventDetailOpen, setEventDetailOpen] = useState(false);
+  const [loadStartTime] = useState(() => performance.now());
   
   const { 
     byCategory, 
@@ -92,6 +94,35 @@ export function LiveMacroContent({ onItemClick }: LiveMacroContentProps) {
     refresh,
     isFetching,
   } = useEconomicDataWithRefresh();
+  
+  // Track performance when data loads
+  useEffect(() => {
+    if (!isLoading && byCategory && onPerformanceUpdate) {
+      const loadTimeMs = performance.now() - loadStartTime;
+      const issues: string[] = [];
+      
+      if (error) issues.push('Failed to fetch economic data');
+      if (useMockData) issues.push('Using demo data');
+      
+      // Validate Fed rate data - Expected: 3.50-3.75% target, 3.64% effective
+      const fedRate = byCategory?.rates?.find((r) => 
+        r.indicator_name?.toLowerCase().includes('fed') || r.indicator_name?.toLowerCase().includes('funds')
+      );
+      
+      let dataAccuracy = 10;
+      if (fedRate) {
+        const rateValue = fedRate.current_raw;
+        if (rateValue && Math.abs(rateValue - 3.64) > 0.1) {
+          issues.push('Fed rate may not reflect current 3.64% effective rate');
+          dataAccuracy = 8;
+        }
+      }
+      
+      if (issues.length > 0) dataAccuracy = Math.max(5, dataAccuracy - issues.length);
+      
+      onPerformanceUpdate(loadTimeMs, dataAccuracy, issues);
+    }
+  }, [isLoading, byCategory, error, useMockData, onPerformanceUpdate, loadStartTime]);
   
   const { data: yieldCurve } = useYieldCurve();
   const { data: sectors } = useSectorPerformance();
