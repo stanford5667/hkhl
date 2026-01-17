@@ -1755,9 +1755,9 @@ function QuantLabContent(props: any) {
                 </p>
               </div>
             ) : (
-              <div className="flex flex-col items-center justify-center h-full text-center px-6">
+              <div className="flex flex-col items-center h-full text-center px-6 pt-4">
                 {selectedStudies.length > 0 ? (
-                  <div className="w-full max-w-3xl mx-auto space-y-4">
+                  <div className="w-full max-w-2xl mx-auto space-y-3">
                     {/* Compact controls (no giant run button) */}
                     <div className="rounded-2xl border-2 bg-card p-4 text-left">
                       <div className="grid gap-3 md:grid-cols-3 md:items-end">
