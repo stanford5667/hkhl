@@ -1868,8 +1868,8 @@ function QuantLabContent(props: any) {
       <MobileAuthSheet
         open={showAuthSheet}
         onOpenChange={setShowAuthSheet}
-        title="Sign in to run studies"
-        description="Create a free account to analyze stocks with our quant tools."
+        title="Unlock Your Quant Edge"
+        description="Free no-code tools to backtest strategies and find statistical edges—in seconds."
       />
 
       {/* Saved Studies Panel */}

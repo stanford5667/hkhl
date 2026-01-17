@@ -107,9 +107,9 @@ export function AuthGateDialog({
   };
 
   const features = [
-    { icon: TrendingUp, text: "Portfolio tracking" },
-    { icon: Sparkles, text: "AI-powered insights" },
-    { icon: Shield, text: "Secure & private" },
+    { icon: TrendingUp, text: "No-Code Backtesting", highlight: true },
+    { icon: Sparkles, text: "AI Strategy Builder", highlight: true },
+    { icon: Shield, text: "Statistical Edge Detection", highlight: true },
   ];
 
   const authForm = (
@@ -126,12 +126,24 @@ export function AuthGateDialog({
         </div>
       )}
 
+      {/* Value Proposition */}
+      {mode === 'signup' && (
+        <div className="text-center space-y-1 py-2">
+          <p className="text-sm font-semibold text-foreground">
+            Turn market hunches into <span className="text-primary">statistical proof</span>
+          </p>
+          <p className="text-xs text-muted-foreground">No coding required. Just pick, click, and discover.</p>
+        </div>
+      )}
+
       {/* Features list - horizontal */}
-      <div className="flex justify-center gap-4 py-2 border-y border-border/50">
+      <div className="flex justify-center gap-3 py-3 border-y border-border/50 bg-secondary/30 rounded-lg mx-0">
         {features.map((feature, i) => (
-          <div key={i} className="flex flex-col items-center gap-1 text-center">
-            <feature.icon className="h-4 w-4 text-primary" />
-            <span className="text-[10px] text-muted-foreground">{feature.text}</span>
+          <div key={i} className="flex flex-col items-center gap-1.5 text-center px-2">
+            <div className="p-1.5 rounded-full bg-primary/10">
+              <feature.icon className="h-4 w-4 text-primary" />
+            </div>
+            <span className="text-[11px] font-semibold text-primary">{feature.text}</span>
           </div>
         ))}
       </div>
