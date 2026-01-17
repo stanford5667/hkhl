@@ -1380,51 +1380,6 @@ function QuantLabContent(props: any) {
                   </div>
                 </div>
                 
-                {/* CONTROLS - Period, Ticker, Study Filter, Analyze */}
-                <div className="space-y-3">
-                  {/* Time Period */}
-                  <Select value={period} onValueChange={setPeriod}>
-                    <SelectTrigger className="h-12 w-full text-base font-bold rounded-xl border-2 border-muted-foreground/30 bg-background">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {PERIOD_OPTIONS.map((p) => (
-                        <SelectItem key={p.value} value={p.value} className="text-base font-medium">{p.label}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  
-                  {/* Ticker Search */}
-                  <div className="relative">
-                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-primary" />
-                    <Input
-                      placeholder="Enter ticker..."
-                      value={ticker}
-                      onChange={(e) => setTicker(e.target.value.toUpperCase())}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' && ticker.trim()) {
-                          handleSetTicker(ticker.trim());
-                          if (selectedStudies.length > 0) handleRunAllStudies();
-                        }
-                      }}
-                      className="h-12 pl-12 pr-4 text-lg font-bold font-mono tracking-wider bg-background border-2 border-primary focus:ring-2 focus:ring-primary/30 rounded-xl text-center placeholder:text-muted-foreground/40 placeholder:font-normal placeholder:text-sm"
-                    />
-                  </div>
-                  
-                  {/* Analyze Button */}
-                  <Button
-                    onClick={() => {
-                      handleSetTicker(ticker);
-                      if (selectedStudies.length > 0) handleRunAllStudies();
-                    }}
-                    disabled={!ticker.trim()}
-                    variant="success"
-                    className="w-full h-12 text-base font-bold rounded-xl"
-                  >
-                    <Play className="h-5 w-5 mr-2" />
-                    Analyze
-                  </Button>
-                </div>
               </div>
               
               {/* Category Tabs - Larger touch targets */}
@@ -1725,6 +1680,52 @@ function QuantLabContent(props: any) {
               </div>
             ) : (
               <div className="flex flex-col items-center justify-center h-full text-center px-6">
+                {/* CENTRAL CONTROLS - Period, Ticker, Analyze */}
+                <div className="w-full max-w-md space-y-4 mb-8">
+                  {/* Time Period */}
+                  <Select value={period} onValueChange={setPeriod}>
+                    <SelectTrigger className="h-14 w-full text-lg font-bold rounded-xl border-2 border-muted-foreground/30 bg-background">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {PERIOD_OPTIONS.map((p) => (
+                        <SelectItem key={p.value} value={p.value} className="text-base font-medium">{p.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  
+                  {/* Ticker Search */}
+                  <div className="relative">
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-6 w-6 text-primary" />
+                    <Input
+                      placeholder="Enter ticker (e.g. AAPL)..."
+                      value={ticker}
+                      onChange={(e) => setTicker(e.target.value.toUpperCase())}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && ticker.trim()) {
+                          handleSetTicker(ticker.trim());
+                          if (selectedStudies.length > 0) handleRunAllStudies();
+                        }
+                      }}
+                      className="h-14 pl-14 pr-4 text-xl font-bold font-mono tracking-wider bg-background border-2 border-primary focus:ring-2 focus:ring-primary/30 rounded-xl text-center placeholder:text-muted-foreground/40 placeholder:font-normal placeholder:text-base"
+                    />
+                  </div>
+                  
+                  {/* Analyze Button */}
+                  <Button
+                    onClick={() => {
+                      handleSetTicker(ticker);
+                      if (selectedStudies.length > 0) handleRunAllStudies();
+                    }}
+                    disabled={!ticker.trim()}
+                    variant="success"
+                    className="w-full h-14 text-lg font-bold rounded-xl"
+                  >
+                    <Play className="h-6 w-6 mr-2" />
+                    Analyze
+                  </Button>
+                </div>
+
                 <div className="p-6 rounded-2xl bg-muted/50 border-2 border-border mb-6">
                   <FlaskConical className="h-12 w-12 text-muted-foreground" />
                 </div>
