@@ -1803,43 +1803,101 @@ function QuantLabContent(props: any) {
                   <div className="space-y-2">
                     {categoryStudies.map((study) => {
                       const isSelected = selectedStudies.includes(study.id);
+                      const params = studyParams[study.id] || {};
                       return (
-                        <button
-                          key={study.id}
-                          onClick={() => isSelected ? removeStudy(study.id) : addStudy(study.id)}
-                          className={cn(
-                            "w-full text-left p-3 rounded-xl border-2 transition-all duration-200",
-                            isSelected
-                              ? "border-primary bg-primary/5"
-                              : "border-transparent bg-muted/50 hover:bg-muted active:scale-[0.98]"
-                          )}
-                        >
-                          <div className="flex items-center gap-3">
-                            <div className={cn(
-                              "p-2 rounded-lg shrink-0",
-                              isSelected ? "bg-primary text-primary-foreground" : "bg-background"
-                            )}>
-                              <study.icon className="h-4 w-4" />
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2">
-                                <span className="font-semibold text-sm">{study.name}</span>
-                                <Badge variant="outline" className={cn(
-                                  "text-[9px] px-1.5",
-                                  study.difficulty === 'beginner' && "border-emerald-500/50 text-emerald-600",
-                                  study.difficulty === 'intermediate' && "border-amber-500/50 text-amber-600",
-                                  study.difficulty === 'advanced' && "border-red-500/50 text-red-600"
-                                )}>
-                                  {study.difficulty}
-                                </Badge>
-                              </div>
-                              <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">{study.description}</p>
-                            </div>
-                            {isSelected && (
-                              <CheckCircle2 className="h-5 w-5 text-primary shrink-0" />
+                        <div key={study.id} className="space-y-2">
+                          <button
+                            onClick={() => isSelected ? removeStudy(study.id) : addStudy(study.id)}
+                            className={cn(
+                              "w-full text-left p-2.5 rounded-lg border-2 transition-all duration-200",
+                              isSelected
+                                ? "border-primary bg-primary/5"
+                                : "border-transparent bg-muted/50 hover:bg-muted active:scale-[0.98]"
                             )}
-                          </div>
-                        </button>
+                          >
+                            <div className="flex items-center gap-2">
+                              <div className={cn(
+                                "p-1.5 rounded-lg shrink-0",
+                                isSelected ? "bg-primary text-primary-foreground" : "bg-background"
+                              )}>
+                                <study.icon className="h-3.5 w-3.5" />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-1.5">
+                                  <span className="font-semibold text-xs">{study.name}</span>
+                                  <Badge variant="outline" className={cn(
+                                    "text-[8px] px-1 py-0",
+                                    study.difficulty === 'beginner' && "border-emerald-500/50 text-emerald-600",
+                                    study.difficulty === 'intermediate' && "border-amber-500/50 text-amber-600",
+                                    study.difficulty === 'advanced' && "border-red-500/50 text-red-600"
+                                  )}>
+                                    {study.difficulty}
+                                  </Badge>
+                                </div>
+                                <p className="text-[10px] text-muted-foreground line-clamp-1">{study.description}</p>
+                              </div>
+                              {isSelected && (
+                                <CheckCircle2 className="h-4 w-4 text-primary shrink-0" />
+                              )}
+                            </div>
+                          </button>
+                          
+                          {/* Parameter Controls - Show when selected */}
+                          {isSelected && study.params.length > 0 && (
+                            <div className="ml-6 p-2 bg-muted/30 rounded-lg border space-y-2">
+                              {study.params.map((param) => (
+                                <div key={param.key} className="space-y-1">
+                                  <div className="flex items-center justify-between">
+                                    <label className="text-[10px] font-medium text-muted-foreground">{param.label}</label>
+                                    {param.type === 'slider' && (
+                                      <span className="text-[10px] font-mono font-bold text-primary">
+                                        {params[param.key] ?? param.default}{param.key.includes('threshold') || param.key.includes('Percent') ? '%' : ''}
+                                      </span>
+                                    )}
+                                  </div>
+                                  {param.type === 'slider' && (
+                                    <Slider
+                                      value={[Number(params[param.key] ?? param.default)]}
+                                      onValueChange={([v]) => updateParam(study.id, param.key, v)}
+                                      min={param.min}
+                                      max={param.max}
+                                      step={param.step}
+                                      className="w-full"
+                                    />
+                                  )}
+                                  {param.type === 'select' && (
+                                    <Select
+                                      value={String(params[param.key] ?? param.default)}
+                                      onValueChange={(v) => updateParam(study.id, param.key, v)}
+                                    >
+                                      <SelectTrigger className="h-7 text-xs">
+                                        <SelectValue />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        {param.options?.map((opt) => (
+                                          <SelectItem key={opt.value} value={String(opt.value)} className="text-xs">
+                                            {opt.label}
+                                          </SelectItem>
+                                        ))}
+                                      </SelectContent>
+                                    </Select>
+                                  )}
+                                  {param.type === 'number' && (
+                                    <Input
+                                      type="number"
+                                      value={params[param.key] ?? param.default}
+                                      onChange={(e) => updateParam(study.id, param.key, Number(e.target.value))}
+                                      min={param.min}
+                                      max={param.max}
+                                      step={param.step}
+                                      className="h-7 text-xs font-mono"
+                                    />
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
                       );
                     })}
                   </div>
@@ -1947,43 +2005,101 @@ function QuantLabContent(props: any) {
                           <div className="space-y-2">
                             {categoryStudies.map((study) => {
                               const isSelected = selectedStudies.includes(study.id);
+                              const params = studyParams[study.id] || {};
                               return (
-                                <button
-                                  key={study.id}
-                                  onClick={() => isSelected ? removeStudy(study.id) : addStudy(study.id)}
-                                  className={cn(
-                                    "w-full text-left p-3 rounded-xl border-2 transition-all",
-                                    isSelected
-                                      ? "border-primary bg-primary/5"
-                                      : "border-transparent bg-muted/50 active:scale-[0.98]"
-                                  )}
-                                >
-                                  <div className="flex items-center gap-3">
-                                    <div className={cn(
-                                      "p-2 rounded-lg shrink-0",
-                                      isSelected ? "bg-primary text-primary-foreground" : "bg-background"
-                                    )}>
-                                      <study.icon className="h-4 w-4" />
-                                    </div>
-                                    <div className="flex-1 min-w-0">
-                                      <div className="flex items-center gap-2">
-                                        <span className="font-semibold text-sm">{study.name}</span>
-                                        <Badge variant="outline" className={cn(
-                                          "text-[9px] px-1.5",
-                                          study.difficulty === 'beginner' && "border-emerald-500/50 text-emerald-600",
-                                          study.difficulty === 'intermediate' && "border-amber-500/50 text-amber-600",
-                                          study.difficulty === 'advanced' && "border-red-500/50 text-red-600"
-                                        )}>
-                                          {study.difficulty}
-                                        </Badge>
-                                      </div>
-                                      <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">{study.description}</p>
-                                    </div>
-                                    {isSelected && (
-                                      <CheckCircle2 className="h-5 w-5 text-primary shrink-0" />
+                                <div key={study.id} className="space-y-2">
+                                  <button
+                                    onClick={() => isSelected ? removeStudy(study.id) : addStudy(study.id)}
+                                    className={cn(
+                                      "w-full text-left p-2.5 rounded-lg border-2 transition-all",
+                                      isSelected
+                                        ? "border-primary bg-primary/5"
+                                        : "border-transparent bg-muted/50 active:scale-[0.98]"
                                     )}
-                                  </div>
-                                </button>
+                                  >
+                                    <div className="flex items-center gap-2">
+                                      <div className={cn(
+                                        "p-1.5 rounded-lg shrink-0",
+                                        isSelected ? "bg-primary text-primary-foreground" : "bg-background"
+                                      )}>
+                                        <study.icon className="h-3.5 w-3.5" />
+                                      </div>
+                                      <div className="flex-1 min-w-0">
+                                        <div className="flex items-center gap-1.5">
+                                          <span className="font-semibold text-xs">{study.name}</span>
+                                          <Badge variant="outline" className={cn(
+                                            "text-[8px] px-1 py-0",
+                                            study.difficulty === 'beginner' && "border-emerald-500/50 text-emerald-600",
+                                            study.difficulty === 'intermediate' && "border-amber-500/50 text-amber-600",
+                                            study.difficulty === 'advanced' && "border-red-500/50 text-red-600"
+                                          )}>
+                                            {study.difficulty}
+                                          </Badge>
+                                        </div>
+                                        <p className="text-[10px] text-muted-foreground line-clamp-1">{study.description}</p>
+                                      </div>
+                                      {isSelected && (
+                                        <CheckCircle2 className="h-4 w-4 text-primary shrink-0" />
+                                      )}
+                                    </div>
+                                  </button>
+                                  
+                                  {/* Parameter Controls - Show when selected */}
+                                  {isSelected && study.params.length > 0 && (
+                                    <div className="ml-6 p-2 bg-muted/30 rounded-lg border space-y-2">
+                                      {study.params.map((param) => (
+                                        <div key={param.key} className="space-y-1">
+                                          <div className="flex items-center justify-between">
+                                            <label className="text-[10px] font-medium text-muted-foreground">{param.label}</label>
+                                            {param.type === 'slider' && (
+                                              <span className="text-[10px] font-mono font-bold text-primary">
+                                                {params[param.key] ?? param.default}{param.key.includes('threshold') || param.key.includes('Percent') ? '%' : ''}
+                                              </span>
+                                            )}
+                                          </div>
+                                          {param.type === 'slider' && (
+                                            <Slider
+                                              value={[Number(params[param.key] ?? param.default)]}
+                                              onValueChange={([v]) => updateParam(study.id, param.key, v)}
+                                              min={param.min}
+                                              max={param.max}
+                                              step={param.step}
+                                              className="w-full"
+                                            />
+                                          )}
+                                          {param.type === 'select' && (
+                                            <Select
+                                              value={String(params[param.key] ?? param.default)}
+                                              onValueChange={(v) => updateParam(study.id, param.key, v)}
+                                            >
+                                              <SelectTrigger className="h-7 text-xs">
+                                                <SelectValue />
+                                              </SelectTrigger>
+                                              <SelectContent>
+                                                {param.options?.map((opt) => (
+                                                  <SelectItem key={opt.value} value={String(opt.value)} className="text-xs">
+                                                    {opt.label}
+                                                  </SelectItem>
+                                                ))}
+                                              </SelectContent>
+                                            </Select>
+                                          )}
+                                          {param.type === 'number' && (
+                                            <Input
+                                              type="number"
+                                              value={params[param.key] ?? param.default}
+                                              onChange={(e) => updateParam(study.id, param.key, Number(e.target.value))}
+                                              min={param.min}
+                                              max={param.max}
+                                              step={param.step}
+                                              className="h-7 text-xs font-mono"
+                                            />
+                                          )}
+                                        </div>
+                                      ))}
+                                    </div>
+                                  )}
+                                </div>
                               );
                             })}
                           </div>
