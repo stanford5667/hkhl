@@ -822,39 +822,59 @@ export function StudyResultCard({
                             }}
                           />
 
-                          {/* Worst marker */}
+                          {/* Worst marker with label */}
                           <div
-                            className="absolute top-1/2 -translate-y-1/2 flex flex-col items-center"
+                            className="absolute top-1/2 flex flex-col items-center"
                             style={{ left: `${worstPos}%`, transform: 'translateX(-50%) translateY(-50%)' }}
                           >
-                            <div className="w-2 h-2 rounded-full bg-red-500 border border-background shadow-sm" />
+                            <span className="text-[8px] font-bold text-red-500 -mt-4 whitespace-nowrap">
+                              {worstMove.toFixed(1)}%
+                            </span>
+                            <div className="w-2.5 h-2.5 rounded-full bg-red-500 border-2 border-background shadow-sm" />
                           </div>
 
                           {/* Median marker (diamond shape) */}
                           <div
-                            className="absolute top-1/2 -translate-y-1/2"
+                            className="absolute top-1/2"
                             style={{ left: `${medianPos}%`, transform: 'translateX(-50%) translateY(-50%)' }}
                           >
-                            <div className="w-2.5 h-2.5 rotate-45 bg-primary border border-background shadow-sm" />
+                            <div className="w-2 h-2 rotate-45 bg-primary/70 border border-background shadow-sm" />
                           </div>
 
                           {/* Average marker (larger, prominent) */}
                           <div
-                            className="absolute top-1/2 -translate-y-1/2"
+                            className="absolute top-1/2"
                             style={{ left: `${avgPos}%`, transform: 'translateX(-50%) translateY(-50%)' }}
                           >
                             <div className={cn(
-                              "w-4 h-4 rounded-full border-2 border-background shadow-lg",
+                              "w-3.5 h-3.5 rounded-full border-2 border-background shadow-lg",
                               avgMove >= 0 ? "bg-emerald-500" : "bg-red-500"
                             )} />
                           </div>
 
-                          {/* Best marker */}
+                          {/* Best marker with label */}
                           <div
-                            className="absolute top-1/2 -translate-y-1/2"
+                            className="absolute top-1/2 flex flex-col items-center"
                             style={{ left: `${bestPos}%`, transform: 'translateX(-50%) translateY(-50%)' }}
                           >
-                            <div className="w-2 h-2 rounded-full bg-emerald-500 border border-background shadow-sm" />
+                            <span className="text-[8px] font-bold text-emerald-500 -mt-4 whitespace-nowrap">
+                              +{bestMove.toFixed(1)}%
+                            </span>
+                            <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 border-2 border-background shadow-sm" />
+                          </div>
+
+                          {/* IQR labels */}
+                          <div
+                            className="absolute -bottom-3.5 text-[7px] text-muted-foreground"
+                            style={{ left: `${q1Pos}%`, transform: 'translateX(-50%)' }}
+                          >
+                            {q1.toFixed(1)}%
+                          </div>
+                          <div
+                            className="absolute -bottom-3.5 text-[7px] text-muted-foreground"
+                            style={{ left: `${q3Pos}%`, transform: 'translateX(-50%)' }}
+                          >
+                            +{q3.toFixed(1)}%
                           </div>
                         </>
                       );
