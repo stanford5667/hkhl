@@ -1344,7 +1344,7 @@ function QuantLabContent(props: any) {
       {/* Main Content - Responsive Layout */}
       <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
         
-        {/* Study Selection Panel - Full screen overlay on mobile, sidebar on desktop */}
+        {/* Study Selection Panel - Compact sheet on mobile, sidebar on desktop */}
         <AnimatePresence>
           {showStudyPanel && (
             <motion.div
@@ -1352,7 +1352,7 @@ function QuantLabContent(props: any) {
               animate={{ y: 0, opacity: 1 }}
               exit={{ y: '100%', opacity: 0 }}
               transition={{ duration: 0.25, ease: 'easeOut' }}
-              className="fixed inset-x-0 bottom-16 top-auto md:relative md:inset-auto md:w-80 lg:w-96 shrink-0 md:border-r bg-card z-40 flex flex-col overflow-hidden md:!h-full rounded-t-2xl md:rounded-none shadow-2xl md:shadow-none max-h-[75vh] md:max-h-none pb-safe"
+              className="fixed inset-x-0 bottom-16 top-auto md:relative md:inset-auto md:w-80 lg:w-96 shrink-0 md:border-r bg-card z-40 flex flex-col overflow-hidden md:!h-full rounded-t-2xl md:rounded-none shadow-2xl md:shadow-none max-h-[50vh] md:max-h-none pb-safe"
             >
               {/* Mobile drag handle */}
               <div className="md:hidden flex justify-center pt-2 pb-1">
@@ -1534,10 +1534,10 @@ function QuantLabContent(props: any) {
             </div>
           )}
 
-          {/* Results - Single Study Full View */}
-          <div className="flex-1 overflow-y-auto p-4 md:p-6">
+          {/* Results - Compact on mobile, full on desktop */}
+          <div className="flex-1 overflow-y-auto p-2 md:p-6">
             {Object.keys(results).length > 0 ? (
-              <div className="max-w-3xl mx-auto">
+              <div className="max-w-3xl mx-auto space-y-3 md:space-y-6">
                 {selectedStudies.map((studyId) => {
                   const study = getStudy(studyId);
                   const result = results[studyId];
@@ -1552,92 +1552,105 @@ function QuantLabContent(props: any) {
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                       className={cn(
-                        "rounded-2xl border-2 overflow-hidden shadow-lg",
+                        "rounded-xl md:rounded-2xl border-2 overflow-hidden shadow-lg",
                         sentiment.border
                       )}
                     >
-                      {/* Card Header - Expanded */}
-                      <div className={cn("px-6 py-5", sentiment.bg)}>
-                        {/* Ticker badge */}
-                        <div className="flex items-center gap-3 mb-4">
-                          <Badge variant="outline" className="font-mono font-bold text-sm bg-background/80 border-primary/30 text-primary px-3 py-1">
-                            ${selectedTicker}
-                          </Badge>
-                          <span className="text-sm text-muted-foreground">• {period}</span>
-                        </div>
-                        <div className="flex items-start justify-between gap-4">
-                          <div className="flex items-start gap-4">
-                            <div className={cn("p-3 rounded-xl bg-background/80 shrink-0")}>
-                              <study.icon className={cn("h-7 w-7", sentiment.text)} />
+                      {/* Card Header - Compact on mobile */}
+                      <div className={cn("px-3 py-3 md:px-6 md:py-5", sentiment.bg)}>
+                        {/* Mobile: Inline header */}
+                        <div className="flex items-center gap-2 md:gap-4">
+                          <div className={cn("p-2 md:p-3 rounded-lg md:rounded-xl bg-background/80 shrink-0")}>
+                            <study.icon className={cn("h-5 w-5 md:h-7 md:w-7", sentiment.text)} />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <h4 className="font-bold text-sm md:text-xl">{study.name}</h4>
+                              <Badge variant="outline" className="font-mono text-[10px] md:text-sm bg-background/80 border-primary/30 text-primary px-1.5 md:px-3 py-0.5">
+                                ${selectedTicker}
+                              </Badge>
                             </div>
-                            <div>
-                              <h4 className="font-bold text-xl mb-2">{study.name}</h4>
-                              <p className="text-sm text-muted-foreground leading-relaxed">{study.description}</p>
-                              <p className="text-sm text-muted-foreground/80 mt-2">{study.whatItMeasures}</p>
-                            </div>
+                            <p className="text-xs md:text-sm text-muted-foreground mt-0.5 md:mt-1 line-clamp-1 md:line-clamp-none">{study.description}</p>
                           </div>
                           <Button
                             size="sm"
                             variant="ghost"
                             onClick={() => saveStudyResult(studyId)}
                             disabled={isSaving === studyId}
-                            className="h-10 px-4 gap-2 text-sm text-amber-600 hover:text-amber-700 hover:bg-amber-50 shrink-0"
+                            className="h-8 w-8 md:h-10 md:w-auto md:px-4 p-0 md:gap-2 text-amber-600 shrink-0"
                           >
-                            {isSaving === studyId ? <Loader2 className="h-5 w-5 animate-spin" /> : <Save className="h-5 w-5" />}
-                            Save
+                            {isSaving === studyId ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                            <span className="hidden md:inline">Save</span>
                           </Button>
                         </div>
                       </div>
 
-                      {/* Interpretation - Larger */}
-                      <div className="px-6 py-4 border-b bg-background">
-                        <p className={cn("text-base font-semibold leading-relaxed", sentiment.text)}>
+                      {/* Interpretation - Compact */}
+                      <div className="px-3 py-2 md:px-6 md:py-4 border-b bg-background">
+                        <p className={cn("text-xs md:text-base font-semibold leading-snug md:leading-relaxed", sentiment.text)}>
                           {result.interpretation || 'Analysis complete'}
                         </p>
                       </div>
 
-                      {/* Key Metrics Grid - Larger */}
-                      <div className="p-6">
-                        <h5 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-4">Key Metrics</h5>
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                          {metrics.map(([key, value]) => (
+                      {/* Key Metrics Grid - Compact 4-col on mobile */}
+                      <div className="p-2 md:p-6">
+                        <div className="grid grid-cols-4 md:grid-cols-4 gap-1.5 md:gap-4">
+                          {metrics.slice(0, 4).map(([key, value]) => (
                             <button
                               key={key}
                               onClick={() => setSelectedMetric({ 
                                 key, value, studyName: study.name, studyResult: result
                               })}
-                              className="text-center p-5 bg-muted/50 rounded-xl hover:bg-muted active:scale-[0.98] hover:ring-2 hover:ring-primary/30 transition-all cursor-pointer group"
+                              className="text-center p-2 md:p-5 bg-muted/50 rounded-lg md:rounded-xl hover:bg-muted active:scale-[0.98] transition-all cursor-pointer"
                             >
-                              <p className="text-xs text-muted-foreground capitalize mb-2 group-hover:text-foreground transition-colors">
+                              <p className="text-[9px] md:text-xs text-muted-foreground capitalize mb-0.5 md:mb-2 truncate">
                                 {key.replace(/([A-Z])/g, ' $1').replace(/_/g, ' ').trim()}
                               </p>
-                              <p className="text-2xl font-bold font-mono">
+                              <p className="text-sm md:text-2xl font-bold font-mono">
                                 {formatValue(key, value)}
-                              </p>
-                              <p className="text-[10px] text-primary/70 mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                Click for details
                               </p>
                             </button>
                           ))}
-                      </div>
+                        </div>
+                        {/* Show more metrics on desktop */}
+                        {metrics.length > 4 && (
+                          <div className="hidden md:grid grid-cols-4 gap-4 mt-4">
+                            {metrics.slice(4).map(([key, value]) => (
+                              <button
+                                key={key}
+                                onClick={() => setSelectedMetric({ 
+                                  key, value, studyName: study.name, studyResult: result
+                                })}
+                                className="text-center p-5 bg-muted/50 rounded-xl hover:bg-muted active:scale-[0.98] hover:ring-2 hover:ring-primary/30 transition-all cursor-pointer group"
+                              >
+                                <p className="text-xs text-muted-foreground capitalize mb-2 group-hover:text-foreground transition-colors">
+                                  {key.replace(/([A-Z])/g, ' $1').replace(/_/g, ' ').trim()}
+                                </p>
+                                <p className="text-2xl font-bold font-mono">
+                                  {formatValue(key, value)}
+                                </p>
+                              </button>
+                            ))}
+                          </div>
+                        )}
                       </div>
 
-                      {/* Visualizations Section */}
-                      <div className="px-6 py-6 border-t">
+                      {/* Visualizations - Hidden on mobile, shown on desktop */}
+                      <div className="hidden md:block px-6 py-6 border-t">
                         <h5 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-4">Visual Analysis</h5>
                         <StudyVisualizations studyId={studyId} result={result} />
                       </div>
 
-                      {/* How to Use - Educational */}
-                      <div className="px-6 py-4 border-t bg-muted/20">
+                      {/* How to Use - Hidden on mobile */}
+                      <div className="hidden md:block px-6 py-4 border-t bg-muted/20">
                         <h5 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">How to Use This</h5>
                         <p className="text-sm text-muted-foreground">{study.howToUse}</p>
                       </div>
 
-                      {/* Footer */}
-                      <div className="px-6 py-3 bg-muted/30 text-sm text-muted-foreground flex items-center justify-between">
-                        <span className="font-medium">{result.barsAnalyzed} trading days analyzed</span>
-                        <span>{result.dateRange?.start} → {result.dateRange?.end}</span>
+                      {/* Footer - Compact */}
+                      <div className="px-3 py-2 md:px-6 md:py-3 bg-muted/30 text-[10px] md:text-sm text-muted-foreground flex items-center justify-between">
+                        <span className="font-medium">{result.barsAnalyzed} days</span>
+                        <span className="truncate">{result.dateRange?.start} → {result.dateRange?.end}</span>
                       </div>
                     </motion.div>
                   );
