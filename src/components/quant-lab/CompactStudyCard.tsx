@@ -151,20 +151,20 @@ export const CompactStudyCard = memo(function CompactStudyCard({
     <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      className="rounded-lg border bg-card overflow-hidden"
+      className="rounded-lg border bg-card overflow-hidden text-xs"
     >
-      {/* Header - Ticker + Study Name + Sentiment */}
-      <div className="flex items-center gap-2 px-3 py-2 bg-muted/30 border-b">
+      {/* Compact Header Row - Ticker + Study + Sentiment + Save */}
+      <div className="flex items-center gap-1.5 px-2 py-1.5 bg-muted/30 border-b">
         <Badge 
           variant="default" 
-          className="font-mono text-xs px-2 py-0.5 cursor-pointer hover:bg-primary/80"
+          className="font-mono text-[10px] px-1.5 py-0 h-5 cursor-pointer hover:bg-primary/80"
           onClick={onTickerClick}
         >
           {ticker}
         </Badge>
-        <study.icon className={cn("h-4 w-4 shrink-0", sentiment.color)} />
-        <span className="font-semibold text-sm truncate flex-1">{study.name}</span>
-        <div className={cn("flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full", 
+        <study.icon className={cn("h-3 w-3 shrink-0", sentiment.color)} />
+        <span className="font-semibold text-[11px] truncate flex-1">{study.name}</span>
+        <div className={cn("flex items-center gap-0.5 text-[9px] font-medium px-1.5 py-0.5 rounded-full", 
           sentiment.label === 'Bullish' ? 'bg-emerald-500/10' : 
           sentiment.label === 'Bearish' ? 'bg-red-500/10' : 'bg-amber-500/10',
           sentiment.color
@@ -172,81 +172,55 @@ export const CompactStudyCard = memo(function CompactStudyCard({
           {sentiment.icon}
           {sentiment.label}
         </div>
-        <Button size="sm" variant="ghost" onClick={onSave} disabled={isSaving} className="h-6 w-6 p-0">
-          {isSaving ? <Loader2 className="h-3 w-3 animate-spin" /> : <Save className="h-3 w-3" />}
+        <Button size="sm" variant="ghost" onClick={onSave} disabled={isSaving} className="h-5 w-5 p-0">
+          {isSaving ? <Loader2 className="h-2.5 w-2.5 animate-spin" /> : <Save className="h-2.5 w-2.5" />}
         </Button>
       </div>
 
-      {/* Study Description / What This Measures */}
-      <div className="px-3 py-2 border-b bg-muted/10">
-        <div className="flex items-start gap-2">
-          <Info className="h-3.5 w-3.5 text-muted-foreground mt-0.5 shrink-0" />
-          <p className="text-xs text-muted-foreground leading-relaxed">{study.description}</p>
-        </div>
-      </div>
-
-      {/* All Metrics Grid with Formulas */}
-      <div className="px-3 py-2 border-b">
-        <div className="grid grid-cols-3 md:grid-cols-6 gap-1.5">
-          {displayMetrics.map(({ key, value }) => {
-            const explanation = METRIC_EXPLANATIONS[key];
-            return (
-              <div 
-                key={key} 
-                className="group relative text-center px-2 py-1.5 rounded bg-muted/40 hover:bg-muted/60 transition-colors cursor-help"
-                title={explanation ? `${explanation.formula}\n${explanation.description}` : formatKey(key)}
-              >
-                <div className="text-[9px] text-muted-foreground uppercase truncate font-medium">
-                  {explanation?.name || formatKey(key)}
-                </div>
-                <div className="text-sm font-bold font-mono">{formatMetricValue(key, value)}</div>
-                {explanation && (
-                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-1 bg-popover border rounded shadow-lg text-[10px] hidden group-hover:block z-50 w-48">
-                    <div className="font-mono text-primary text-[9px] mb-0.5">{explanation.formula}</div>
-                    <div className="text-muted-foreground">{explanation.description}</div>
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
+      {/* Inline Metrics - All on one row when possible */}
+      <div className="px-2 py-1.5 border-b flex flex-wrap gap-x-3 gap-y-1">
+        {displayMetrics.map(({ key, value }) => {
+          const explanation = METRIC_EXPLANATIONS[key];
+          return (
+            <div 
+              key={key} 
+              className="flex items-center gap-1 text-[10px] cursor-help"
+              title={explanation ? `${explanation.formula}\n${explanation.description}` : formatKey(key)}
+            >
+              <span className="text-muted-foreground">{explanation?.name || formatKey(key)}:</span>
+              <span className="font-mono font-bold">{formatMetricValue(key, value)}</span>
+            </div>
+          );
+        })}
         {allMetrics.length > 6 && (
           <button
             onClick={() => setShowAllMetrics(!showAllMetrics)}
-            className="flex items-center gap-1 text-[10px] text-primary hover:underline mt-2 mx-auto"
+            className="flex items-center gap-0.5 text-[9px] text-primary hover:underline"
           >
-            {showAllMetrics ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
-            {showAllMetrics ? 'Show less' : `Show all ${allMetrics.length} metrics`}
+            {showAllMetrics ? <ChevronUp className="h-2.5 w-2.5" /> : <ChevronDown className="h-2.5 w-2.5" />}
+            {showAllMetrics ? 'Less' : `+${allMetrics.length - 6}`}
           </button>
         )}
       </div>
 
-      {/* Interpretation if available */}
-      {result.interpretation && (
-        <div className="px-3 py-2 border-b bg-amber-500/5 border-l-2 border-l-amber-500">
-          <div className="text-[10px] text-amber-600 dark:text-amber-400 font-semibold uppercase mb-0.5">Signal Interpretation</div>
-          <p className="text-xs leading-relaxed">{result.interpretation}</p>
-        </div>
-      )}
-
-      {/* AI Summary + Chart Side by Side */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-0 md:gap-px bg-border">
+      {/* AI Summary + Chart - Side by Side */}
+      <div className="grid grid-cols-[1fr,140px] gap-px bg-border">
         {/* AI Summary */}
-        <div className="bg-background px-3 py-2">
-          <div className="flex items-center gap-1.5 mb-1">
-            <Sparkles className="h-3 w-3 text-primary" />
-            <span className="text-[10px] font-semibold text-primary uppercase tracking-wide">AI Analysis</span>
+        <div className="bg-background px-2 py-1.5">
+          <div className="flex items-center gap-1 mb-0.5">
+            <Sparkles className="h-2.5 w-2.5 text-primary" />
+            <span className="text-[9px] font-semibold text-primary uppercase">AI Analysis</span>
           </div>
-          <p className="text-[11px] text-muted-foreground leading-relaxed">{aiSummary}</p>
+          <p className="text-[10px] text-muted-foreground leading-snug line-clamp-3">{aiSummary}</p>
         </div>
 
-        {/* Performance Chart */}
-        <div className="bg-background px-3 py-2">
-          <div className="flex items-center gap-1.5 mb-1">
-            <BarChart3 className="h-3 w-3 text-muted-foreground" />
-            <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">30-Day Trend</span>
+        {/* Mini Chart */}
+        <div className="bg-background px-1 py-1">
+          <div className="flex items-center gap-1 mb-0.5">
+            <BarChart3 className="h-2.5 w-2.5 text-muted-foreground" />
+            <span className="text-[8px] text-muted-foreground uppercase">30d Trend</span>
           </div>
-          <div className="h-14">
+          <div className="h-10">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={performanceData}>
                 <defs>
@@ -255,23 +229,11 @@ export const CompactStudyCard = memo(function CompactStudyCard({
                     <stop offset="95%" stopColor={trendColor} stopOpacity={0}/>
                   </linearGradient>
                 </defs>
-                <XAxis dataKey="date" hide />
-                <YAxis hide domain={['auto', 'auto']} />
-                <Tooltip 
-                  contentStyle={{ 
-                    background: 'hsl(var(--background))', 
-                    border: '1px solid hsl(var(--border))',
-                    borderRadius: '6px',
-                    fontSize: '10px',
-                    padding: '4px 8px'
-                  }}
-                  formatter={(value: number) => [`${value.toFixed(1)}%`, 'Win Rate']}
-                />
                 <Area 
                   type="monotone" 
                   dataKey="value" 
                   stroke={trendColor} 
-                  strokeWidth={1.5}
+                  strokeWidth={1}
                   fill={`url(#gradient-${study.id})`}
                 />
               </AreaChart>
@@ -280,16 +242,11 @@ export const CompactStudyCard = memo(function CompactStudyCard({
         </div>
       </div>
 
-      {/* Footer - Date Range */}
-      <div className="flex items-center justify-between px-3 py-1 bg-muted/20 text-[10px] text-muted-foreground">
-        <div className="flex items-center gap-1">
-          <Calendar className="h-2.5 w-2.5" />
-          <span className="font-mono">{result.barsAnalyzed || '-'} trading days analyzed</span>
-        </div>
+      {/* Footer - Date Range (minimal) */}
+      <div className="flex items-center justify-between px-2 py-1 bg-muted/20 text-[9px] text-muted-foreground">
+        <span className="font-mono">{result.barsAnalyzed || '-'} days</span>
         {result.dateRange && (
-          <div className="font-mono">
-            {result.dateRange.start} → {result.dateRange.end}
-          </div>
+          <span className="font-mono">{result.dateRange.start} → {result.dateRange.end}</span>
         )}
       </div>
     </motion.div>
