@@ -586,20 +586,6 @@ export function StudyResultCard({
       {/* Primary Metrics Grid - Matching reference layout */}
       <div className="p-4 border-b bg-gradient-to-b from-background to-muted/10">
         <div className="grid grid-cols-4 gap-3">
-          {/* TYPE */}
-          <button
-            onClick={() => setSelectedMetric({ key: 'study_type', value: study.id })}
-            className="flex flex-col p-3 rounded-xl border-2 bg-muted/30 border-border/50 hover:border-primary/50 hover:shadow-lg transition-all cursor-pointer group"
-          >
-            <span className="text-[10px] text-muted-foreground uppercase tracking-wide font-medium mb-1">Type</span>
-            <span className="text-lg font-bold font-mono text-foreground break-all leading-tight">
-              {study.id.replace(/-/g, '_')}
-            </span>
-            <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-              <Info className="h-3 w-3 text-muted-foreground" />
-            </div>
-          </button>
-
           {/* TOTAL OCCURRENCES */}
           <button
             onClick={() => setSelectedMetric({ key: 'occurrences', value: result.occurrences || result.total_signals || result.matchCount || 0 })}
@@ -628,11 +614,26 @@ export function StudyResultCard({
             className="flex flex-col p-3 rounded-xl border-2 bg-muted/30 border-border/50 hover:border-primary/50 hover:shadow-lg transition-all cursor-pointer group"
           >
             <span className="text-[10px] text-muted-foreground uppercase tracking-wide font-medium mb-1">Avg Gain</span>
-            <span className={cn(
-              "text-2xl font-bold font-mono",
-              (result.avg_gain || result.avgGain || result.avgReturn || 0) >= 0 ? "text-emerald-500" : "text-red-500"
-            )}>
+            <span
+              className={cn(
+                "text-2xl font-bold font-mono",
+                (result.avg_gain || result.avgGain || result.avgReturn || 0) >= 0 ? "text-emerald-500" : "text-red-500"
+              )}
+            >
               {(result.avg_gain || result.avgGain || result.avgReturn || 0) >= 0 ? '+' : ''}{(result.avg_gain || result.avgGain || result.avgReturn || 0).toFixed(2)}%
+            </span>
+          </button>
+
+          {/* WIN RATE */}
+          <button
+            onClick={() => setSelectedMetric({ key: 'win_rate', value: result.win_rate ?? result.winRate ?? result.hitRate ?? result.hit_rate ?? null })}
+            className="flex flex-col p-3 rounded-xl border-2 bg-muted/30 border-border/50 hover:border-primary/50 hover:shadow-lg transition-all cursor-pointer group"
+          >
+            <span className="text-[10px] text-muted-foreground uppercase tracking-wide font-medium mb-1">Win Rate</span>
+            <span className="text-2xl font-bold font-mono text-foreground">
+              {typeof (result.win_rate ?? result.winRate ?? result.hitRate ?? result.hit_rate) === 'number'
+                ? `${(result.win_rate ?? result.winRate ?? result.hitRate ?? result.hit_rate).toFixed(1)}%`
+                : '-'}
             </span>
           </button>
         </div>
@@ -657,15 +658,13 @@ export function StudyResultCard({
         )}
       </div>
 
-      {/* INSIGHT - Inline display with label */}
+      {/* INSIGHT - inline */}
       {result.interpretation && (
         <div className="px-4 py-3 border-b">
-          <div className="flex items-start gap-3">
-            <div className="shrink-0">
-              <span className="text-[10px] text-muted-foreground uppercase tracking-wide font-medium">Insight</span>
-            </div>
-            <p className="text-sm text-foreground/90 leading-relaxed font-medium">{result.interpretation}</p>
-          </div>
+          <p className="text-sm text-foreground/90 leading-relaxed font-medium">
+            <span className="text-[10px] text-muted-foreground uppercase tracking-wide font-semibold mr-2">Insight:</span>
+            {result.interpretation}
+          </p>
         </div>
       )}
 
