@@ -388,8 +388,8 @@ export function WeeklyMacroSummary() {
                       {(() => {
                         const fullSummary = generateDailySummary(healthScore, keyDataPoints, highImportanceEvents);
                         const words = fullSummary.replace(/\*\*/g, '').split(/\s+/);
-                        // Mobile: ~50 words, Desktop: ~100 words
-                        const mobilePreview = words.slice(0, 50).join(' ');
+                        // Mobile: ~28 words, Desktop: ~100 words
+                        const mobilePreview = words.slice(0, 28).join(' ');
                         const desktopPreview = words.slice(0, 100).join(' ');
                         return (
                           <>
