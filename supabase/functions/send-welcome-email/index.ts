@@ -43,7 +43,6 @@ serve(async (req) => {
     logStep("Sending welcome email", { email, fullName });
 
     // Send welcome email via Loops
-    // You'll need to create a transactional email template in Loops and use its ID here
     const loopsResponse = await fetch('https://app.loops.so/api/v1/transactional', {
       method: 'POST',
       headers: {
@@ -52,10 +51,9 @@ serve(async (req) => {
       },
       body: JSON.stringify({
         email: email,
-        transactionalId: 'YOUR_WELCOME_EMAIL_TEMPLATE_ID', // Replace with your Loops template ID
+        transactionalId: 'cmkinb6bd3d8n0i2aaxr50m5o',
         dataVariables: {
-          customer_name: fullName || email.split('@')[0],
-          login_url: 'https://aiassetlabs.com/auth',
+          First_Name: fullName || email.split('@')[0],
         },
       }),
     });
