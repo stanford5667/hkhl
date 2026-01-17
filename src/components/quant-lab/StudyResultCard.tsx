@@ -14,7 +14,7 @@ import {
   X, Save, ExternalLink, GitBranch, Loader2, Play,
   Calculator, Database, ArrowRight, BookOpen, Target,
   Lightbulb, TrendingUp, TrendingDown, Activity, Calendar,
-  ChevronDown, BarChart3, Info, Crosshair
+  BarChart3, Info, Crosshair
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Slider } from '@/components/ui/slider';
@@ -439,7 +439,6 @@ export function StudyResultCard({
   onNavigate,
 }: StudyResultCardProps) {
   const [selectedMetric, setSelectedMetric] = useState<{ key: string; value: any } | null>(null);
-  const [showVisuals, setShowVisuals] = useState(false);
 
   // Get displayable metrics from result
   const getDisplayMetrics = (): [string, any][] => {
@@ -1018,40 +1017,21 @@ export function StudyResultCard({
         </p>
       </div>
 
-      {/* Visual Analysis Toggle */}
-      <button
-        onClick={() => setShowVisuals(!showVisuals)}
-        className="w-full px-4 py-2.5 flex items-center justify-between hover:bg-muted/30 transition-colors border-b"
-      >
-        <div className="flex items-center gap-2">
+      {/* Visual Analysis - Always Visible */}
+      <div className="border-b">
+        <div className="px-4 py-2.5 flex items-center gap-2 bg-muted/20 border-b">
           <BarChart3 className="h-4 w-4 text-primary" />
           <span className="text-xs font-semibold">Visual Analysis</span>
         </div>
-        <ChevronDown className={cn(
-          "h-4 w-4 text-muted-foreground transition-transform",
-          showVisuals && "rotate-180"
-        )} />
-      </button>
-
-      <AnimatePresence>
-        {showVisuals && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            className="overflow-hidden"
-          >
-            <div className="px-4 py-4 bg-muted/10 border-b">
-              <EnhancedResultView 
-                result={result} 
-                studyId={study.id}
-                showInsights={false}
-                showEducation={false}
-              />
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+        <div className="px-4 py-4 bg-muted/10">
+          <EnhancedResultView 
+            result={result} 
+            studyId={study.id}
+            showInsights={false}
+            showEducation={false}
+          />
+        </div>
+      </div>
 
       {/* Trading Strategy Section - Always Visible */}
       <div className="px-4 py-3 border-t bg-amber-500/5">
