@@ -1653,34 +1653,9 @@ function QuantLabContent(props: any) {
                   {runningStudy && getStudy(runningStudy)?.name}
                 </p>
               </div>
-            ) : selectedStudies.length > 0 ? (
-              <div className="flex flex-col items-center justify-center h-full text-center px-4">
-                {/* Big Ticker Display */}
-                <div className="mb-4 flex items-center gap-2 px-6 py-3 rounded-2xl bg-gradient-to-r from-primary/10 to-primary/5 border-2 border-primary/30">
-                  <TrendingUp className="h-8 w-8 text-primary" />
-                  <span className="text-3xl md:text-4xl font-bold font-mono text-primary">${selectedTicker || '---'}</span>
-                </div>
-                <div className="p-6 rounded-2xl bg-gradient-to-br from-violet-500/10 to-purple-500/10 border-2 border-violet-500/20 mb-6">
-                  <Play className="h-12 w-12 text-violet-500" />
-                </div>
-                <p className="text-xl font-bold mb-2">Ready to Analyze</p>
-                <p className="text-sm text-muted-foreground mb-6 max-w-sm">
-                  Run <span className="font-semibold text-foreground">{getStudy(selectedStudies[0])?.name}</span> on <span className="font-mono font-bold text-foreground">${selectedTicker}</span>
-                </p>
-                {/* BIG RUN BUTTON */}
-                <Button
-                  onClick={handleRunAllStudies}
-                  disabled={!selectedTicker || isRunning}
-                  size="lg"
-                  className="h-14 px-10 text-lg gap-3 bg-gradient-to-r from-violet-500 to-purple-600 hover:from-violet-600 hover:to-purple-700 shadow-xl hover:shadow-2xl transition-all rounded-xl"
-                >
-                  <Play className="h-6 w-6" />
-                  Analyze ${selectedTicker}
-                </Button>
-              </div>
             ) : (
               <div className="flex flex-col items-center justify-center h-full text-center px-6">
-                {/* CENTRAL CONTROLS - Period, Ticker, Analyze */}
+                {/* CENTRAL CONTROLS - Always visible */}
                 <div className="w-full max-w-md space-y-4 mb-8">
                   {/* Time Period */}
                   <Select value={period} onValueChange={setPeriod}>
@@ -1717,32 +1692,48 @@ function QuantLabContent(props: any) {
                       handleSetTicker(ticker);
                       if (selectedStudies.length > 0) handleRunAllStudies();
                     }}
-                    disabled={!ticker.trim()}
+                    disabled={!ticker.trim() || selectedStudies.length === 0}
                     variant="success"
                     className="w-full h-14 text-lg font-bold rounded-xl"
                   >
                     <Play className="h-6 w-6 mr-2" />
-                    Analyze
+                    {selectedStudies.length > 0 ? `Analyze ${selectedTicker || ticker}` : 'Select a study first'}
                   </Button>
                 </div>
 
-                <div className="p-6 rounded-2xl bg-muted/50 border-2 border-border mb-6">
-                  <FlaskConical className="h-12 w-12 text-muted-foreground" />
-                </div>
-                <p className="text-xl font-bold mb-2">Select a Study to Begin</p>
-                <p className="text-sm text-muted-foreground max-w-xs">
-                  Choose a quantitative analysis to run on your selected stock
-                </p>
-                {/* Mobile CTA to show studies */}
-                <Button
-                  variant="default"
-                  size="lg"
-                  className="md:hidden mt-6 h-14 gap-3 text-base font-semibold rounded-xl w-full max-w-xs"
-                  onClick={() => setShowStudyPanel(true)}
-                >
-                  <Layers className="h-5 w-5" />
-                  Browse Studies
-                </Button>
+                {selectedStudies.length > 0 ? (
+                  <>
+                    {/* Big Ticker Display */}
+                    <div className="mb-4 flex items-center gap-2 px-6 py-3 rounded-2xl bg-gradient-to-r from-primary/10 to-primary/5 border-2 border-primary/30">
+                      <TrendingUp className="h-8 w-8 text-primary" />
+                      <span className="text-3xl md:text-4xl font-bold font-mono text-primary">${selectedTicker || '---'}</span>
+                    </div>
+                    <p className="text-xl font-bold mb-2">Ready to Analyze</p>
+                    <p className="text-sm text-muted-foreground max-w-sm">
+                      Run <span className="font-semibold text-foreground">{getStudy(selectedStudies[0])?.name}</span> on <span className="font-mono font-bold text-foreground">${selectedTicker}</span>
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <div className="p-6 rounded-2xl bg-muted/50 border-2 border-border mb-6">
+                      <FlaskConical className="h-12 w-12 text-muted-foreground" />
+                    </div>
+                    <p className="text-xl font-bold mb-2">Select a Study to Begin</p>
+                    <p className="text-sm text-muted-foreground max-w-xs">
+                      Choose a quantitative analysis to run on your selected stock
+                    </p>
+                    {/* Mobile CTA to show studies */}
+                    <Button
+                      variant="default"
+                      size="lg"
+                      className="md:hidden mt-6 h-14 gap-3 text-base font-semibold rounded-xl w-full max-w-xs"
+                      onClick={() => setShowStudyPanel(true)}
+                    >
+                      <Layers className="h-5 w-5" />
+                      Browse Studies
+                    </Button>
+                  </>
+                )}
               </div>
             )}
           </div>
