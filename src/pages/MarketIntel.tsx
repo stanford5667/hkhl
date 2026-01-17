@@ -105,30 +105,6 @@ export default function MarketIntel() {
 
   return (
     <div className="p-4 sm:p-6 space-y-4 sm:space-y-6 animate-fade-up">
-      {/* Header */}
-      <PageHeader
-        icon={BarChart3}
-        title="Market Intelligence"
-        subtitle="Economic indicators for portfolio analysis"
-        {...PAGE_ICON_PRESETS.primary}
-        actions={
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" className="h-8 text-xs sm:text-sm">
-              <RefreshCw className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-              Refresh
-            </Button>
-            <Button variant="outline" size="sm" className="relative h-8 w-8 p-0">
-              <Bell className="h-3 w-3 sm:h-4 sm:w-4" />
-              {unreadAlerts > 0 && (
-                <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-destructive text-[10px] font-medium flex items-center justify-center text-destructive-foreground">
-                  {unreadAlerts}
-                </span>
-              )}
-            </Button>
-          </div>
-        }
-      />
-
 
       {/* Data Category Navigation */}
       <MarketIntelNavigation 
