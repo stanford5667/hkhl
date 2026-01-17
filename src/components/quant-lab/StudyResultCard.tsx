@@ -4,7 +4,7 @@
  * Includes trading strategy explanations and comprehensive visualizations
  */
 
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -14,7 +14,7 @@ import {
   X, Save, ExternalLink, GitBranch, Loader2, Play,
   Calculator, Database, ArrowRight, BookOpen, Target,
   Lightbulb, TrendingUp, TrendingDown, Activity, Calendar,
-  BarChart3, Info, Crosshair
+  BarChart3, Info, Crosshair, ChevronDown, ChevronRight
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Slider } from '@/components/ui/slider';
@@ -783,46 +783,11 @@ export function StudyResultCard({
         
         const { interpretations, conclusion, conclusionSentiment } = generateAISummary();
         const hasData = interpretations.length > 0;
+        const [showDetails, setShowDetails] = React.useState(false);
         
         return hasData ? (
           <div className="px-3 py-3 border-b bg-gradient-to-r from-primary/5 via-primary/3 to-transparent">
-            {/* Header */}
-            <div className="flex items-center gap-2 mb-2.5">
-              <div className="p-1.5 rounded-lg bg-primary/20">
-                <Lightbulb className="h-3.5 w-3.5 text-primary" />
-              </div>
-              <span className="text-xs font-semibold text-primary uppercase tracking-wide">AI Analysis & Interpretation</span>
-            </div>
-            
-            {/* Interpretation Cards */}
-            <div className="space-y-2 mb-3">
-              {interpretations.map((item, idx) => (
-                <div 
-                  key={idx} 
-                  className={cn(
-                    "flex items-start gap-2 p-2 rounded-lg border text-xs",
-                    item.sentiment === 'good' && "bg-emerald-500/5 border-emerald-500/20",
-                    item.sentiment === 'bad' && "bg-red-500/5 border-red-500/20",
-                    item.sentiment === 'neutral' && "bg-muted/30 border-border/50"
-                  )}
-                >
-                  <Badge 
-                    variant="outline" 
-                    className={cn(
-                      "text-[9px] px-1.5 py-0 shrink-0 mt-0.5",
-                      item.sentiment === 'good' && "border-emerald-500/40 text-emerald-600",
-                      item.sentiment === 'bad' && "border-red-500/40 text-red-600",
-                      item.sentiment === 'neutral' && "border-border text-muted-foreground"
-                    )}
-                  >
-                    {item.label}
-                  </Badge>
-                  <p className="text-muted-foreground leading-relaxed">{item.text}</p>
-                </div>
-              ))}
-            </div>
-            
-            {/* Conclusion */}
+            {/* Bottom Line - Always Visible */}
             {conclusion && (
               <div className={cn(
                 "p-2.5 rounded-lg border-2",
@@ -831,13 +796,10 @@ export function StudyResultCard({
                 conclusionSentiment === 'neutral' && "bg-muted/40 border-border"
               )}>
                 <div className="flex items-center gap-2 mb-1">
-                  <Crosshair className={cn(
-                    "h-3.5 w-3.5",
-                    conclusionSentiment === 'good' && "text-emerald-500",
-                    conclusionSentiment === 'bad' && "text-red-500",
-                    conclusionSentiment === 'neutral' && "text-muted-foreground"
-                  )} />
-                  <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Bottom Line</span>
+                  <div className="p-1 rounded-md bg-primary/20">
+                    <Lightbulb className="h-3 w-3 text-primary" />
+                  </div>
+                  <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">AI Analysis</span>
                 </div>
                 <p className={cn(
                   "text-xs font-medium leading-relaxed",
@@ -847,6 +809,56 @@ export function StudyResultCard({
                 )}>
                   {conclusion}
                 </p>
+                
+                {/* See More Toggle */}
+                {interpretations.length > 0 && (
+                  <button
+                    onClick={() => setShowDetails(!showDetails)}
+                    className="flex items-center gap-1 mt-2 text-[10px] font-medium text-primary hover:text-primary/80 transition-colors"
+                  >
+                    {showDetails ? (
+                      <>
+                        <ChevronDown className="h-3 w-3" />
+                        Hide details
+                      </>
+                    ) : (
+                      <>
+                        <ChevronRight className="h-3 w-3" />
+                        See detailed breakdown
+                      </>
+                    )}
+                  </button>
+                )}
+              </div>
+            )}
+            
+            {/* Detailed Interpretation Cards - Expandable */}
+            {showDetails && (
+              <div className="space-y-2 mt-3 animate-in slide-in-from-top-2 duration-200">
+                {interpretations.map((item, idx) => (
+                  <div 
+                    key={idx} 
+                    className={cn(
+                      "flex items-start gap-2 p-2 rounded-lg border text-xs",
+                      item.sentiment === 'good' && "bg-emerald-500/5 border-emerald-500/20",
+                      item.sentiment === 'bad' && "bg-red-500/5 border-red-500/20",
+                      item.sentiment === 'neutral' && "bg-muted/30 border-border/50"
+                    )}
+                  >
+                    <Badge 
+                      variant="outline" 
+                      className={cn(
+                        "text-[9px] px-1.5 py-0 shrink-0 mt-0.5",
+                        item.sentiment === 'good' && "border-emerald-500/40 text-emerald-600",
+                        item.sentiment === 'bad' && "border-red-500/40 text-red-600",
+                        item.sentiment === 'neutral' && "border-border text-muted-foreground"
+                      )}
+                    >
+                      {item.label}
+                    </Badge>
+                    <p className="text-muted-foreground leading-relaxed">{item.text}</p>
+                  </div>
+                ))}
               </div>
             )}
           </div>
