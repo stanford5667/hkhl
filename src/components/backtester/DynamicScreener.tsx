@@ -755,16 +755,19 @@ export function DynamicScreener({ onSelect, onComplete }: DynamicScreenerProps) 
                         <div className="bg-gradient-to-br from-amber-500/20 to-orange-500/20 p-3 rounded-full w-fit mx-auto mb-2">
                           <Crown className="h-6 w-6 text-amber-500" />
                         </div>
-                        <p className="font-medium text-sm mb-1">Upgrade to Pro</p>
-                        <p className="text-xs text-muted-foreground max-w-[200px]">
-                          Unlock unlimited portfolio results, advanced filters & full analysis
+                        <p className="font-semibold text-lg text-primary mb-0.5">
+                          {expandedTotalCount > 0 ? expandedTotalCount.toLocaleString() : '100,000'}+ Portfolios
+                        </p>
+                        <p className="text-xs text-muted-foreground mb-2">waiting to be discovered</p>
+                        <p className="text-xs text-muted-foreground max-w-[220px]">
+                          Upgrade to unlock all results, advanced filters & full backtesting analysis
                         </p>
                         <Button 
                           size="sm" 
                           className="mt-3 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white"
                         >
                           <Crown className="h-3 w-3 mr-1" />
-                          Unlock Now
+                          Unlock All Portfolios
                         </Button>
                       </div>
                     </div>
@@ -798,14 +801,20 @@ export function DynamicScreener({ onSelect, onComplete }: DynamicScreenerProps) 
 
             {/* Free user upgrade CTA after showing limited results */}
             {!isPro && hasScreened && displayedPortfolios.length > FREE_RESULTS_LIMIT && (
-              <Card className="border-primary/30 bg-gradient-to-br from-primary/5 to-amber-500/5">
-                <CardContent className="p-4 text-center">
-                  <Crown className="h-8 w-8 mx-auto text-amber-500 mb-2" />
-                  <h4 className="font-semibold mb-1">
-                    {expandedTotalCount - FREE_RESULTS_LIMIT}+ more portfolios available
+              <Card className="border-primary/30 bg-gradient-to-br from-primary/5 to-amber-500/5 cursor-pointer hover:border-primary/50 transition-colors" onClick={() => showUpgradeModal('screenerSearches')}>
+                <CardContent className="p-6 text-center">
+                  <Crown className="h-10 w-10 mx-auto text-amber-500 mb-3" />
+                  <p className="text-3xl font-bold text-primary mb-1">
+                    {expandedTotalCount > 0 ? expandedTotalCount.toLocaleString() : '100,000'}+
+                  </p>
+                  <h4 className="font-semibold text-lg mb-2">
+                    Portfolio Combinations Available
                   </h4>
-                  <p className="text-xs text-muted-foreground mb-3">
-                    Upgrade to Pro to see all results and use advanced filters
+                  <p className="text-sm text-muted-foreground mb-1">
+                    You're only seeing {FREE_RESULTS_LIMIT} of them
+                  </p>
+                  <p className="text-xs text-muted-foreground mb-4">
+                    Pro members get unlimited results, all filter criteria, and detailed backtesting
                   </p>
                   <Button 
                     onClick={() => showUpgradeModal('screenerSearches')}
