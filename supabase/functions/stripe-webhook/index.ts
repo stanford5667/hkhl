@@ -53,7 +53,7 @@ serve(async (req) => {
           },
           body: JSON.stringify({
             email: customerEmail,
-            transactionalId: 'payment_confirmation', // Set this in Loops dashboard
+            transactionalId: 'cmkiktuob007b0i2fu76g2z82',
             dataVariables: {
               customer_name: customerName,
               plan_name: 'Pro Plan',
