@@ -182,8 +182,8 @@ export function QuantLabWelcomeHero({
               </h1>
               <p className="text-sm sm:text-base md:text-lg text-muted-foreground max-w-lg mx-auto lg:mx-0">
                 Answer questions like{' '}
-                <span className="text-foreground font-medium italic">"What happens after a -2% day?"</span>
-                {' '}with real data. Build portfolios. Discover your investor type.{' '}
+                <span className="text-foreground font-semibold italic">"What happens after a -2% day?"</span>
+                {' '}with real data.{' '}
                 <span className="text-primary font-medium">All without writing a single line of code.</span>
               </p>
             </motion.div>
@@ -245,7 +245,7 @@ export function QuantLabWelcomeHero({
                       <TrendingDown className="h-4 sm:h-5 w-4 sm:w-5 text-white" />
                     </div>
                     <div className="min-w-0">
-                      <h3 className="font-bold text-foreground text-sm sm:text-base truncate">{CONDITIONAL_STUDY.condition}</h3>
+                      <h3 className="font-extrabold text-foreground text-base sm:text-lg truncate">{CONDITIONAL_STUDY.condition}</h3>
                       <p className="text-[10px] sm:text-xs text-muted-foreground">
                         {CONDITIONAL_STUDY.ticker} • {CONDITIONAL_STUDY.period} of data
                       </p>
