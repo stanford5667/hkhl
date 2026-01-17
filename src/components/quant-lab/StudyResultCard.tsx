@@ -727,6 +727,8 @@ export function StudyResultCard({
             // Q1/Q3 for clustering visualization (IQR = interquartile range where 50% of data falls)
             const q1 = analysisData?.q1 ?? result.q1 ?? (medianMove - Math.abs(avgMove - medianMove) * 1.5);
             const q3 = analysisData?.q3 ?? result.q3 ?? (medianMove + Math.abs(avgMove - medianMove) * 1.5);
+            // Individual data points for strip plot
+            const dataPoints: number[] = analysisData?.dataPoints ?? result.dataPoints ?? [];
 
             return (
               <>
@@ -776,16 +778,17 @@ export function StudyResultCard({
                   </button>
                 </div>
 
-                <div className="mt-3 p-2 rounded-lg bg-muted/20 border border-border/40">
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-[9px] text-muted-foreground uppercase tracking-wide font-semibold">
-                      Historical Range ({timelineLabel})
+                <div className="mt-3 p-3 rounded-lg bg-muted/20 border border-border/40">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-[10px] text-muted-foreground uppercase tracking-wide font-semibold">
+                      Distribution of Outcomes ({timelineLabel})
                     </span>
-                    <span className="text-[9px] text-muted-foreground">{occurrences} events</span>
+                    <span className="text-[10px] text-muted-foreground">{occurrences} historical events</span>
                   </div>
 
-                  <div className="relative h-8">
-                    <div className="absolute inset-y-0 left-0 right-0 bg-muted/40 rounded-full" />
+                  {/* Strip plot with individual data points */}
+                  <div className="relative h-14 mb-2">
+                    <div className="absolute inset-y-0 left-0 right-0 bg-muted/30 rounded-lg" />
 
                     {(() => {
                       const range = Math.max(Math.abs(worstMove), Math.abs(bestMove), 1);
@@ -801,80 +804,89 @@ export function StudyResultCard({
 
                       return (
                         <>
-                          {/* Zero line */}
-                          <div className="absolute top-0 bottom-0 left-1/2 w-px bg-border" />
+                          {/* Zero line with label */}
+                          <div className="absolute top-0 bottom-0 left-1/2 w-px bg-border/70" />
+                          <span className="absolute top-0 left-1/2 -translate-x-1/2 text-[7px] text-muted-foreground/70 -mt-0.5">0%</span>
 
-                          {/* Full range bar (worst to best) */}
-                          <div
-                            className="absolute top-3.5 bottom-3.5 bg-muted-foreground/15 rounded-full"
-                            style={{
-                              left: `${Math.min(worstPos, bestPos)}%`,
-                              right: `${100 - Math.max(worstPos, bestPos)}%`,
-                            }}
-                          />
+                          {/* Individual data points (strip plot) */}
+                          {dataPoints.map((point, i) => {
+                            const pos = Math.max(5, Math.min(95, centerPos + (point / range) * scale));
+                            const yOffset = 20 + (i % 3) * 8; // Stagger vertically to avoid overlap
+                            return (
+                              <div
+                                key={i}
+                                className={cn(
+                                  "absolute w-1.5 h-1.5 rounded-full opacity-60 hover:opacity-100 transition-opacity",
+                                  point >= 0 ? "bg-emerald-400" : "bg-red-400"
+                                )}
+                                style={{ 
+                                  left: `${pos}%`, 
+                                  top: `${yOffset}px`,
+                                  transform: 'translateX(-50%)'
+                                }}
+                                title={`${point >= 0 ? '+' : ''}${point.toFixed(2)}%`}
+                              />
+                            );
+                          })}
 
-                          {/* IQR clustering band (Q1 to Q3) - where 50% of data falls */}
+                          {/* IQR shaded region (where 50% of results fall) */}
                           <div
-                            className="absolute top-2 bottom-2 bg-primary/30 rounded-full border border-primary/50"
+                            className="absolute top-6 bottom-2 bg-primary/20 rounded border-l-2 border-r-2 border-primary/40"
                             style={{
                               left: `${Math.min(q1Pos, q3Pos)}%`,
                               right: `${100 - Math.max(q1Pos, q3Pos)}%`,
                             }}
                           />
 
-                          {/* Worst marker with label */}
+                          {/* Median line (prominent vertical line) */}
                           <div
-                            className="absolute top-1/2 flex flex-col items-center"
-                            style={{ left: `${worstPos}%`, transform: 'translateX(-50%) translateY(-50%)' }}
+                            className="absolute top-4 bottom-0 w-0.5 bg-primary shadow-sm"
+                            style={{ left: `${medianPos}%`, transform: 'translateX(-50%)' }}
+                          />
+                          <span 
+                            className="absolute text-[8px] font-bold text-primary whitespace-nowrap"
+                            style={{ left: `${medianPos}%`, top: '2px', transform: 'translateX(-50%)' }}
                           >
-                            <span className="text-[8px] font-bold text-red-500 -mt-4 whitespace-nowrap">
-                              {worstMove.toFixed(1)}%
-                            </span>
-                            <div className="w-2.5 h-2.5 rounded-full bg-red-500 border-2 border-background shadow-sm" />
-                          </div>
+                            {medianMove >= 0 ? '+' : ''}{medianMove.toFixed(1)}%
+                          </span>
 
-                          {/* Median marker (diamond shape) */}
+                          {/* Worst marker */}
                           <div
-                            className="absolute top-1/2"
-                            style={{ left: `${medianPos}%`, transform: 'translateX(-50%) translateY(-50%)' }}
+                            className="absolute bottom-1 flex flex-col items-center"
+                            style={{ left: `${worstPos}%`, transform: 'translateX(-50%)' }}
                           >
-                            <div className="w-2 h-2 rotate-45 bg-primary/70 border border-background shadow-sm" />
+                            <div className="w-0 h-0 border-l-[4px] border-r-[4px] border-b-[6px] border-l-transparent border-r-transparent border-b-red-500" />
                           </div>
+                          <span 
+                            className="absolute text-[7px] font-semibold text-red-500 whitespace-nowrap"
+                            style={{ left: `${worstPos}%`, bottom: '-2px', transform: 'translateX(-50%)' }}
+                          >
+                            {worstMove.toFixed(1)}%
+                          </span>
 
-                          {/* Average marker (larger, prominent) */}
+                          {/* Best marker */}
                           <div
-                            className="absolute top-1/2"
-                            style={{ left: `${avgPos}%`, transform: 'translateX(-50%) translateY(-50%)' }}
+                            className="absolute bottom-1 flex flex-col items-center"
+                            style={{ left: `${bestPos}%`, transform: 'translateX(-50%)' }}
+                          >
+                            <div className="w-0 h-0 border-l-[4px] border-r-[4px] border-b-[6px] border-l-transparent border-r-transparent border-b-emerald-500" />
+                          </div>
+                          <span 
+                            className="absolute text-[7px] font-semibold text-emerald-500 whitespace-nowrap"
+                            style={{ left: `${bestPos}%`, bottom: '-2px', transform: 'translateX(-50%)' }}
+                          >
+                            +{bestMove.toFixed(1)}%
+                          </span>
+
+                          {/* Average marker */}
+                          <div
+                            className="absolute top-5"
+                            style={{ left: `${avgPos}%`, transform: 'translateX(-50%)' }}
                           >
                             <div className={cn(
-                              "w-3.5 h-3.5 rounded-full border-2 border-background shadow-lg",
+                              "w-3 h-3 rounded-full border-2 border-background shadow-md",
                               avgMove >= 0 ? "bg-emerald-500" : "bg-red-500"
                             )} />
-                          </div>
-
-                          {/* Best marker with label */}
-                          <div
-                            className="absolute top-1/2 flex flex-col items-center"
-                            style={{ left: `${bestPos}%`, transform: 'translateX(-50%) translateY(-50%)' }}
-                          >
-                            <span className="text-[8px] font-bold text-emerald-500 -mt-4 whitespace-nowrap">
-                              +{bestMove.toFixed(1)}%
-                            </span>
-                            <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 border-2 border-background shadow-sm" />
-                          </div>
-
-                          {/* IQR labels */}
-                          <div
-                            className="absolute -bottom-3.5 text-[7px] text-muted-foreground"
-                            style={{ left: `${q1Pos}%`, transform: 'translateX(-50%)' }}
-                          >
-                            {q1.toFixed(1)}%
-                          </div>
-                          <div
-                            className="absolute -bottom-3.5 text-[7px] text-muted-foreground"
-                            style={{ left: `${q3Pos}%`, transform: 'translateX(-50%)' }}
-                          >
-                            +{q3.toFixed(1)}%
                           </div>
                         </>
                       );
@@ -882,22 +894,32 @@ export function StudyResultCard({
                   </div>
                   
                   {/* Legend */}
-                  <div className="flex items-center justify-between mt-1.5 text-[9px] text-muted-foreground">
+                  <div className="flex items-center justify-between mt-3 pt-2 border-t border-border/30 text-[9px] text-muted-foreground">
                     <div className="flex items-center gap-3">
                       <span className="flex items-center gap-1">
-                        <span className="w-2 h-2 rounded-full bg-red-500" /> Worst
+                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-400/60" /> Individual outcomes
                       </span>
                       <span className="flex items-center gap-1">
-                        <span className="w-2 h-2 rounded-full bg-emerald-500" /> Best
+                        <div className="w-0.5 h-3 bg-primary" /> Median
                       </span>
                       <span className="flex items-center gap-1">
-                        <span className="w-2.5 h-2.5 rotate-45 bg-primary" /> Median
+                        <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 border border-background" /> Avg
                       </span>
                     </div>
                     <span className="flex items-center gap-1">
-                      <span className="w-4 h-2 rounded-sm bg-primary/30 border border-primary/50" />
-                      <span>50% cluster</span>
+                      <span className="w-4 h-2 rounded-sm bg-primary/20 border-l border-r border-primary/40" />
+                      <span>Middle 50%</span>
                     </span>
+                  </div>
+
+                  {/* Written explanation */}
+                  <div className="mt-3 p-2 rounded bg-muted/30 border border-border/30">
+                    <p className="text-[10px] text-muted-foreground leading-relaxed">
+                      <span className="font-semibold text-foreground">How to read this:</span> Each dot is a historical outcome. 
+                      The <span className="font-semibold text-primary">vertical line</span> shows the median ({medianMove >= 0 ? '+' : ''}{medianMove.toFixed(1)}%) — half of outcomes were better, half worse. 
+                      The <span className="font-semibold" style={{ color: 'hsl(var(--primary) / 0.7)' }}>shaded region</span> shows where 50% of results clustered (from {q1.toFixed(1)}% to +{q3.toFixed(1)}%). 
+                      Extremes ranged from <span className="text-red-500 font-semibold">{worstMove.toFixed(1)}%</span> to <span className="text-emerald-500 font-semibold">+{bestMove.toFixed(1)}%</span>.
+                    </p>
                   </div>
                 </div>
               </>

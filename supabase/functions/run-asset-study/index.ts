@@ -351,6 +351,11 @@ function studyAfterUpX(bars: PriceBar[], params?: Record<string, any>) {
   const analysis = Object.entries(forwardReturns).map(([days, data]) => {
     const sorted = [...data.returns].sort((a, b) => a - b);
     const len = sorted.length;
+    // Sample up to 50 data points for visualization (evenly distributed)
+    const sampleSize = Math.min(50, len);
+    const step = len > sampleSize ? Math.floor(len / sampleSize) : 1;
+    const dataPoints = len > 0 ? sorted.filter((_, i) => i % step === 0).slice(0, 50) : [];
+    
     return {
       days: parseInt(days),
       occurrences: len,
@@ -360,7 +365,8 @@ function studyAfterUpX(bars: PriceBar[], params?: Record<string, any>) {
       q1: len > 0 ? sorted[Math.floor(len * 0.25)] : 0,
       q3: len > 0 ? sorted[Math.floor(len * 0.75)] : 0,
       best: len > 0 ? Math.max(...data.returns) : 0,
-      worst: len > 0 ? Math.min(...data.returns) : 0
+      worst: len > 0 ? Math.min(...data.returns) : 0,
+      dataPoints
     };
   });
   
@@ -432,6 +438,11 @@ function studyAfterConsecutiveDays(bars: PriceBar[], params?: Record<string, any
   const analysis = Object.entries(forwardReturns).map(([days, data]) => {
     const sorted = [...data.returns].sort((a, b) => a - b);
     const len = sorted.length;
+    // Sample up to 50 data points for visualization (evenly distributed)
+    const sampleSize = Math.min(50, len);
+    const step = len > sampleSize ? Math.floor(len / sampleSize) : 1;
+    const dataPoints = len > 0 ? sorted.filter((_, i) => i % step === 0).slice(0, 50) : [];
+    
     return {
       days: parseInt(days),
       occurrences: len,
@@ -441,7 +452,8 @@ function studyAfterConsecutiveDays(bars: PriceBar[], params?: Record<string, any
       q1: len > 0 ? sorted[Math.floor(len * 0.25)] : 0,
       q3: len > 0 ? sorted[Math.floor(len * 0.75)] : 0,
       best: len > 0 ? Math.max(...data.returns) : 0,
-      worst: len > 0 ? Math.min(...data.returns) : 0
+      worst: len > 0 ? Math.min(...data.returns) : 0,
+      dataPoints
     };
   });
   
