@@ -395,89 +395,88 @@ export function WeeklyMacroSummary() {
               </div>
             </TooltipProvider>
 
-            {/* Upcoming Economic Events Card */}
-            <div className="mb-4 p-3 bg-secondary/20 border border-border/50 rounded-lg">
-              <div className="flex items-center gap-2 mb-3">
-                <Calendar className="h-4 w-4 text-primary" />
-                <span className="text-xs font-medium text-foreground">Upcoming Economic Events</span>
-                <Badge variant="outline" className="text-[10px] ml-auto">
-                  {upcomingEvents.length} upcoming
-                </Badge>
-              </div>
-              <div className="space-y-2 max-h-[180px] overflow-y-auto pr-1">
-                {upcomingEvents.length > 0 ? (
-                  upcomingEvents.slice(0, 6).map((event, idx) => {
-                    const eventDate = parseISO(event.event_date);
-                    const dayLabel = isToday(eventDate) ? 'Today' : isTomorrow(eventDate) ? 'Tomorrow' : format(eventDate, 'EEE, MMM d');
-                    const isHighImportance = event.importance?.toLowerCase() === 'high';
-                    
-                    return (
-                      <div 
-                        key={idx}
-                        className={cn(
-                          "flex items-center gap-2 p-2 rounded-md text-sm transition-colors",
-                          isHighImportance 
-                            ? "bg-rose-500/10 border border-rose-500/20" 
-                            : "bg-secondary/30 hover:bg-secondary/50"
-                        )}
-                      >
-                        <div className={cn(
-                          "w-1.5 h-1.5 rounded-full shrink-0",
-                          isHighImportance ? "bg-rose-400" : "bg-primary/60"
-                        )} />
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium truncate">{event.event_name}</p>
-                          <p className="text-xs text-muted-foreground">{dayLabel} • {event.country || 'US'}</p>
+            {/* Events & Forecasts Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
+              {/* Upcoming Economic Events Card */}
+              <div className="p-3 bg-secondary/20 border border-border/50 rounded-lg">
+                <div className="flex items-center gap-2 mb-2">
+                  <Calendar className="h-3.5 w-3.5 text-primary" />
+                  <span className="text-xs font-medium text-foreground">Upcoming Events</span>
+                  <Badge variant="outline" className="text-[9px] ml-auto px-1.5 py-0">
+                    {upcomingEvents.length}
+                  </Badge>
+                </div>
+                <div className="space-y-1.5 max-h-[140px] overflow-y-auto pr-1">
+                  {upcomingEvents.length > 0 ? (
+                    upcomingEvents.slice(0, 4).map((event, idx) => {
+                      const eventDate = parseISO(event.event_date);
+                      const dayLabel = isToday(eventDate) ? 'Today' : isTomorrow(eventDate) ? 'Tomorrow' : format(eventDate, 'MMM d');
+                      const isHighImportance = event.importance?.toLowerCase() === 'high';
+                      
+                      return (
+                        <div 
+                          key={idx}
+                          className={cn(
+                            "flex items-center gap-1.5 p-1.5 rounded text-xs transition-colors",
+                            isHighImportance 
+                              ? "bg-rose-500/10 border border-rose-500/20" 
+                              : "bg-secondary/30"
+                          )}
+                        >
+                          <div className={cn(
+                            "w-1 h-1 rounded-full shrink-0",
+                            isHighImportance ? "bg-rose-400" : "bg-primary/60"
+                          )} />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-medium truncate">{event.event_name}</p>
+                          </div>
+                          <span className="text-[10px] text-muted-foreground shrink-0">{dayLabel}</span>
                         </div>
-                        {isHighImportance && (
-                          <Badge variant="destructive" className="text-[10px] px-1.5 py-0 bg-rose-500/20 text-rose-400 border-rose-500/30 shrink-0">
-                            High
-                          </Badge>
-                        )}
-                      </div>
-                    );
-                  })
-                ) : (
-                  <p className="text-sm text-muted-foreground text-center py-4">No upcoming economic events</p>
-                )}
+                      );
+                    })
+                  ) : (
+                    <p className="text-xs text-muted-foreground text-center py-2">No upcoming events</p>
+                  )}
+                </div>
               </div>
-            </div>
 
-            {/* Key Forecasts Card */}
-            <div className="mb-4 p-3 bg-secondary/20 border border-border/50 rounded-lg">
-              <div className="flex items-center gap-2 mb-3">
-                <LineChart className="h-4 w-4 text-primary" />
-                <span className="text-xs font-medium text-foreground">2026 Forecasts</span>
-                <Badge variant="outline" className="text-[10px] ml-auto">
-                  Analyst Consensus
-                </Badge>
-              </div>
-              <div className="space-y-2">
-                {[
-                  { indicator: 'Fed Funds Rate', current: '4.50%', forecast: '3.50%', change: -22.2 },
-                  { indicator: 'S&P 500', current: '6,050', forecast: '6,600', change: 9.1 },
-                  { indicator: 'US Inflation', current: '3.2%', forecast: '2.2%', change: -31.3 },
-                  { indicator: '10Y Treasury', current: '4.17%', forecast: '3.60%', change: -13.7 },
-                ].map((item, idx) => (
-                  <div 
-                    key={idx}
-                    className="flex items-center justify-between p-2 rounded-md bg-secondary/30 hover:bg-secondary/50 transition-colors"
-                  >
-                    <div className="flex-1">
-                      <p className="text-sm font-medium">{item.indicator}</p>
-                      <p className="text-xs text-muted-foreground">Current: {item.current}</p>
+              {/* Key Forecasts Card */}
+              <div className="p-3 bg-secondary/20 border border-border/50 rounded-lg">
+                <div className="flex items-center gap-2 mb-2">
+                  <LineChart className="h-3.5 w-3.5 text-primary" />
+                  <span className="text-xs font-medium text-foreground">2026 Forecasts</span>
+                  <Badge variant="outline" className="text-[9px] ml-auto px-1.5 py-0">
+                    YE
+                  </Badge>
+                </div>
+                <div className="space-y-1.5 max-h-[140px] overflow-y-auto">
+                  {[
+                    { indicator: 'Fed Rate', current: '4.50%', forecast: '3.50%', change: -22.2 },
+                    { indicator: 'S&P 500', current: '6,050', forecast: '6,600', change: 9.1 },
+                    { indicator: 'Inflation', current: '3.2%', forecast: '2.2%', change: -31.3 },
+                    { indicator: '10Y Yield', current: '4.17%', forecast: '3.60%', change: -13.7 },
+                  ].map((item, idx) => (
+                    <div 
+                      key={idx}
+                      className="flex items-center justify-between p-1.5 rounded bg-secondary/30"
+                    >
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-medium truncate">{item.indicator}</p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-muted-foreground">{item.current}</span>
+                        <span className="text-xs">→</span>
+                        <span className="text-xs font-semibold">{item.forecast}</span>
+                        <span className={cn(
+                          "text-[10px] font-medium",
+                          item.change >= 0 ? "text-emerald-500" : "text-rose-500"
+                        )}>
+                          {item.change >= 0 ? '+' : ''}{item.change.toFixed(0)}%
+                        </span>
+                      </div>
                     </div>
-                    <div className="text-right">
-                      <p className="text-sm font-semibold">{item.forecast}</p>
-                      <p className={cn(
-                        "text-xs font-medium",
-                        item.change >= 0 ? "text-emerald-500" : "text-rose-500"
-                      )}>
-                        {item.change >= 0 ? '+' : ''}{item.change.toFixed(1)}% YE
-                      </p>
-                    </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
             </div>
 
