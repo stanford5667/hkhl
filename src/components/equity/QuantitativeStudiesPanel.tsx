@@ -46,6 +46,18 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+
+// Helper to safely extract a numeric value from properties that may be objects or numbers
+function safeNumber(value: unknown, property: string = 'current'): number | null {
+  if (value === null || value === undefined) return null;
+  if (typeof value === 'number') return value;
+  if (typeof value === 'object' && value !== null && property in value) {
+    const extracted = (value as Record<string, unknown>)[property];
+    return typeof extracted === 'number' ? extracted : null;
+  }
+  return null;
+}
+
 import {
   BarChart,
   Bar,
@@ -739,7 +751,7 @@ function DistributionResult({ result }: { result: any }) {
         <StatBox value={`${result.min.toFixed(2)}%`} label="Worst Day" color="rose" />
       </div>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <StatBox value={`${result.annualizedVol?.toFixed(1) || 'N/A'}%`} label="Annual Vol" />
+        <StatBox value={`${safeNumber(result.annualizedVol)?.toFixed(1) ?? 'N/A'}%`} label="Annual Vol" />
         <StatBox value={result.skewness?.toFixed(2) || 'N/A'} label="Skewness" />
         <StatBox value={result.kurtosis?.toFixed(2) || 'N/A'} label="Kurtosis" />
         <StatBox value={result.count} label="Observations" />
