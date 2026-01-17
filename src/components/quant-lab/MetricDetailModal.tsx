@@ -469,6 +469,199 @@ const METRIC_DEFINITIONS: Record<string, {
     category: 'Momentum',
     badRange: '> 20%',
   },
+  
+  // Conditional Probability Studies
+  occurrences: {
+    name: 'Occurrences',
+    description: 'The number of times this specific condition was triggered in the historical data.',
+    formula: 'Count of days where condition = TRUE',
+    interpretation: 'More occurrences = more reliable statistics. Less than 30 occurrences may not be statistically significant.',
+    example: 'If "After -3% Drop" shows 47 occurrences, the condition happened 47 times in the analyzed period.',
+    category: 'Conditional',
+  },
+  forwardReturn: {
+    name: 'Forward Return',
+    description: 'The average return over the forward period after the condition was triggered.',
+    formula: 'Mean of [(Price at T+N - Price at T) ÷ Price at T × 100] for all trigger dates',
+    interpretation: 'Positive = condition leads to gains. Negative = condition leads to losses. Compare to unconditional average.',
+    example: 'Forward return of +2.3% means after the condition, the stock gained 2.3% on average over the forward period.',
+    category: 'Conditional',
+    goodRange: '> 0%',
+  },
+  avgForwardReturn: {
+    name: 'Avg Forward Return',
+    description: 'The average percentage return in the N days following the trigger condition.',
+    formula: 'Σ(Forward Returns) ÷ Number of Occurrences',
+    interpretation: 'Compare to the unconditional average return. Significant deviation indicates predictive value.',
+    example: 'If avg forward return is +1.8% vs unconditional +0.5%, the condition predicts above-average gains.',
+    category: 'Conditional',
+  },
+  medianForwardReturn: {
+    name: 'Median Forward Return',
+    description: 'The middle value of all forward returns, less affected by outliers than the mean.',
+    formula: 'Middle value when all forward returns are sorted',
+    interpretation: 'If median differs significantly from mean, there are outliers skewing the average.',
+    example: 'Median of +1.2% with mean of +2.5% suggests a few large gains are pulling up the average.',
+    category: 'Conditional',
+  },
+  forwardWinRate: {
+    name: 'Forward Win Rate',
+    description: 'The percentage of times the forward return was positive after the condition triggered.',
+    formula: '(Positive forward returns ÷ Total occurrences) × 100',
+    interpretation: '> 50% = condition predicts up moves more often. > 60% = strong predictive signal.',
+    example: 'Win rate of 68% means after this condition, the stock went up 68% of the time.',
+    category: 'Conditional',
+    goodRange: '> 55%',
+    badRange: '< 45%',
+  },
+  forwardVolatility: {
+    name: 'Forward Volatility',
+    description: 'Standard deviation of forward returns after the condition.',
+    formula: '√[Σ(Returnᵢ - Mean)² ÷ (n-1)]',
+    interpretation: 'Higher volatility = less reliable prediction. Low volatility = more consistent outcomes.',
+    example: 'Forward volatility of 3.2% means outcomes after the condition vary by about ±3.2%.',
+    category: 'Conditional',
+  },
+  bestOutcome: {
+    name: 'Best Outcome',
+    description: 'The maximum forward return observed after the condition triggered.',
+    formula: 'Max(all forward returns)',
+    interpretation: 'Shows the upside potential after this condition occurs.',
+    example: 'Best outcome of +12.5% means the biggest gain after this condition was 12.5%.',
+    category: 'Conditional',
+  },
+  worstOutcome: {
+    name: 'Worst Outcome',
+    description: 'The minimum forward return observed after the condition triggered.',
+    formula: 'Min(all forward returns)',
+    interpretation: 'Shows the downside risk after this condition occurs.',
+    example: 'Worst outcome of -8.3% means the biggest loss after this condition was 8.3%.',
+    category: 'Conditional',
+  },
+  unconditionalReturn: {
+    name: 'Unconditional Return',
+    description: 'The average return over any random N-day period (baseline comparison).',
+    formula: 'Mean of all N-day returns in the dataset',
+    interpretation: 'Compare forward return to this baseline. If forward > unconditional, condition has edge.',
+    example: 'If unconditional is +0.3% but forward return is +1.8%, the condition adds +1.5% edge.',
+    category: 'Conditional',
+  },
+  edge: {
+    name: 'Edge',
+    description: 'The excess return from the condition vs random entry (forward return - unconditional return).',
+    formula: 'Forward Return - Unconditional Return',
+    interpretation: 'Positive edge = condition provides advantage. Negative = condition is harmful signal.',
+    example: 'Edge of +1.5% means this condition provides 1.5% better returns than random timing.',
+    category: 'Conditional',
+    goodRange: '> 0.5%',
+    badRange: '< 0%',
+  },
+  tStatistic: {
+    name: 'T-Statistic',
+    description: 'Statistical measure of how significant the edge is (accounts for sample size and volatility).',
+    formula: '(Mean - Expected) ÷ (StdDev ÷ √n)',
+    interpretation: '|t| > 2 = statistically significant at 95% confidence. |t| > 3 = very significant.',
+    example: 't-stat of 2.5 means there\'s less than 2% chance this edge is due to random luck.',
+    category: 'Conditional',
+    goodRange: '> 2.0',
+  },
+  pValue: {
+    name: 'P-Value',
+    description: 'Probability that the observed edge is due to chance rather than a real pattern.',
+    formula: 'Derived from t-distribution based on t-statistic and degrees of freedom',
+    interpretation: 'p < 0.05 = statistically significant. p < 0.01 = highly significant.',
+    example: 'p-value of 0.02 means only 2% chance this pattern is random noise.',
+    category: 'Conditional',
+    goodRange: '< 0.05',
+    badRange: '> 0.10',
+  },
+  consecutiveDays: {
+    name: 'Consecutive Days',
+    description: 'The number of consecutive days in the same direction before measuring forward return.',
+    formula: 'User-defined parameter (e.g., 3 consecutive up days)',
+    interpretation: 'More consecutive days = rarer condition but potentially stronger signal.',
+    example: '5 consecutive down days is a rarer event than 2 consecutive down days.',
+    category: 'Conditional',
+  },
+  thresholdPercent: {
+    name: 'Threshold %',
+    description: 'The percentage move that triggers the condition (e.g., -3% drop).',
+    formula: 'User-defined parameter',
+    interpretation: 'Larger thresholds = more extreme events = rarer but potentially more predictive.',
+    example: '-5% threshold triggers only on days with 5%+ drops, which are rare but significant.',
+    category: 'Conditional',
+  },
+  forwardDays: {
+    name: 'Forward Days',
+    description: 'The number of days over which forward return is measured.',
+    formula: 'User-defined parameter (e.g., 5 days)',
+    interpretation: 'Shorter periods = noise. Longer periods = more time for signal to play out.',
+    example: '20 forward days measures the return over approximately one month after the trigger.',
+    category: 'Conditional',
+  },
+  sampleSize: {
+    name: 'Sample Size',
+    description: 'The number of occurrences used to calculate statistics.',
+    formula: 'Count of times condition was triggered',
+    interpretation: 'n > 30 is preferred for statistical reliability. n < 10 = take results with caution.',
+    example: 'Sample size of 52 means we have 52 data points to analyze this pattern.',
+    category: 'Conditional',
+    goodRange: '> 30',
+    badRange: '< 10',
+  },
+  sharpeRatio: {
+    name: 'Sharpe Ratio (Conditional)',
+    description: 'Risk-adjusted return of the conditional strategy.',
+    formula: '(Forward Return - Risk-Free Rate) ÷ Forward Volatility',
+    interpretation: '> 1.0 = good risk-adjusted return. > 2.0 = excellent.',
+    example: 'Sharpe of 1.5 means the conditional strategy has solid risk-adjusted performance.',
+    category: 'Conditional',
+    goodRange: '> 1.0',
+  },
+  profitFactor: {
+    name: 'Profit Factor',
+    description: 'Ratio of total gains to total losses from the conditional entries.',
+    formula: 'Sum(winning trades) ÷ |Sum(losing trades)|',
+    interpretation: '> 1.0 = profitable strategy. > 2.0 = very strong. < 1.0 = losing strategy.',
+    example: 'Profit factor of 1.8 means gains are 1.8x larger than losses.',
+    category: 'Conditional',
+    goodRange: '> 1.5',
+    badRange: '< 1.0',
+  },
+  avgWin: {
+    name: 'Avg Win',
+    description: 'Average return on winning trades after the condition.',
+    formula: 'Sum(positive forward returns) ÷ Count(positive forward returns)',
+    interpretation: 'Compare to avg loss. Ideally avg win > avg loss.',
+    example: 'Avg win of +3.2% means profitable trades after this condition gain 3.2% on average.',
+    category: 'Conditional',
+  },
+  avgLossConditional: {
+    name: 'Avg Loss',
+    description: 'Average return on losing trades after the condition.',
+    formula: 'Sum(negative forward returns) ÷ Count(negative forward returns)',
+    interpretation: 'Smaller avg loss = better downside control.',
+    example: 'Avg loss of -1.8% means losing trades after this condition lose 1.8% on average.',
+    category: 'Conditional',
+  },
+  winLossRatio: {
+    name: 'Win/Loss Ratio',
+    description: 'Ratio of average winning trade to average losing trade.',
+    formula: 'Avg Win ÷ |Avg Loss|',
+    interpretation: '> 1.0 = winners bigger than losers. Combined with win rate gives expected value.',
+    example: 'Win/loss ratio of 1.8 means winners are 1.8x bigger than losers.',
+    category: 'Conditional',
+    goodRange: '> 1.0',
+  },
+  expectancy: {
+    name: 'Expectancy',
+    description: 'Expected value per trade using the conditional strategy.',
+    formula: '(Win Rate × Avg Win) - (Loss Rate × |Avg Loss|)',
+    interpretation: 'Positive = profitable strategy. Higher = better. Measures expected return per trade.',
+    example: 'Expectancy of +0.8% means each conditional trade is expected to return +0.8%.',
+    category: 'Conditional',
+    goodRange: '> 0%',
+  },
 };
 
 // Fallback for metrics not in the dictionary
@@ -964,42 +1157,58 @@ export function MetricDetailModal({
             <Separator />
 
             {/* What It Is */}
-            <div className="space-y-3">
+            <div className="space-y-4">
               <div>
-                <div className="flex items-center gap-2 text-sm font-medium mb-1">
-                  <BookOpen className="h-4 w-4 text-blue-500" />
+                <div className="flex items-center gap-2 text-base font-semibold mb-2">
+                  <BookOpen className="h-5 w-5 text-blue-500" />
                   What It Measures
                 </div>
-                <p className="text-sm text-muted-foreground">{definition.description}</p>
+                <p className="text-base text-muted-foreground leading-relaxed">{definition.description}</p>
               </div>
 
               {/* Formula */}
               <div>
-                <div className="flex items-center gap-2 text-sm font-medium mb-1">
-                  <Calculator className="h-4 w-4 text-purple-500" />
-                  General Formula
+                <div className="flex items-center gap-2 text-base font-semibold mb-2">
+                  <Calculator className="h-5 w-5 text-purple-500" />
+                  Formula
                 </div>
-                <div className="bg-muted/50 rounded-lg p-3 font-mono text-sm">
+                <div className="bg-muted/50 rounded-lg p-4 font-mono text-base leading-relaxed">
                   {definition.formula}
                 </div>
               </div>
 
               {/* How to Interpret */}
               <div>
-                <div className="flex items-center gap-2 text-sm font-medium mb-1">
-                  <Target className="h-4 w-4 text-amber-500" />
+                <div className="flex items-center gap-2 text-base font-semibold mb-2">
+                  <Target className="h-5 w-5 text-amber-500" />
                   How to Interpret
                 </div>
-                <p className="text-sm text-muted-foreground">{definition.interpretation}</p>
+                <p className="text-base text-muted-foreground leading-relaxed">{definition.interpretation}</p>
               </div>
 
+              {/* Good/Bad Range if available */}
+              {(definition.goodRange || definition.badRange) && (
+                <div className="flex gap-4 flex-wrap">
+                  {definition.goodRange && (
+                    <div className="flex items-center gap-2 text-sm bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 px-3 py-1.5 rounded-full">
+                      <span className="font-medium">Good:</span> {definition.goodRange}
+                    </div>
+                  )}
+                  {definition.badRange && (
+                    <div className="flex items-center gap-2 text-sm bg-rose-100 dark:bg-rose-900/30 text-rose-700 dark:text-rose-300 px-3 py-1.5 rounded-full">
+                      <span className="font-medium">Caution:</span> {definition.badRange}
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* Example */}
-              <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3 border border-blue-200 dark:border-blue-800">
-                <div className="flex items-center gap-2 text-sm font-medium text-blue-700 dark:text-blue-300 mb-1">
-                  <Lightbulb className="h-4 w-4" />
+              <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
+                <div className="flex items-center gap-2 text-base font-semibold text-blue-700 dark:text-blue-300 mb-2">
+                  <Lightbulb className="h-5 w-5" />
                   Example
                 </div>
-                <p className="text-sm text-blue-600 dark:text-blue-400">{definition.example}</p>
+                <p className="text-base text-blue-600 dark:text-blue-400 leading-relaxed">{definition.example}</p>
               </div>
             </div>
           </div>
