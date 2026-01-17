@@ -1604,6 +1604,40 @@ function QuantLabContent(props: any) {
   
   // Study search filter
   const [studySearch, setStudySearch] = useState('');
+  
+  // Track if initial auto-run has been done this session
+  const [hasAutoRun, setHasAutoRun] = useState(false);
+  
+  // Auto-run default study on first load if no results exist
+  useEffect(() => {
+    if (hasAutoRun) return;
+    
+    // Check if we already have results (from localStorage or previous run)
+    if (Object.keys(results).length > 0) {
+      setHasAutoRun(true);
+      return;
+    }
+    
+    // Ensure we have a ticker and a study selected
+    if (!selectedTicker) return;
+    
+    // Set default study if none selected
+    if (selectedStudies.length === 0) {
+      addStudy('after_consecutive_days');
+    }
+    
+    // Auto-run the study after a brief delay to allow UI to settle
+    const timer = setTimeout(async () => {
+      const studyToRun = selectedStudies[0] || 'after_consecutive_days';
+      if (!selectedStudies.includes(studyToRun)) {
+        addStudy(studyToRun);
+      }
+      setHasAutoRun(true);
+      await handleRunStudy(studyToRun);
+    }, 500);
+    
+    return () => clearTimeout(timer);
+  }, [selectedTicker, selectedStudies, results, hasAutoRun, addStudy, handleRunStudy]);
 
 
   return (
@@ -1644,9 +1678,44 @@ function QuantLabContent(props: any) {
             </Button>
           </div>
           
-          {/* Spacer */}
-          <div className="flex-1" />
-
+          {/* Prominent Ticker Search */}
+          <div className="flex-1 max-w-md">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+              <Input
+                placeholder="Search ticker (e.g. AAPL, TSLA, SPY)"
+                value={ticker}
+                onChange={(e) => setTicker(e.target.value.toUpperCase())}
+                onBlur={() => { if (ticker.trim()) handleSetTicker(ticker.trim()); }}
+                onKeyDown={(e) => { 
+                  if (e.key === 'Enter' && ticker.trim()) {
+                    handleSetTicker(ticker.trim());
+                    // Auto-run current study with new ticker
+                    if (selectedStudies.length > 0) {
+                      setTimeout(() => handleRunStudy(selectedStudies[0]), 100);
+                    }
+                  }
+                }}
+                className="h-10 pl-10 pr-20 font-mono font-bold bg-background rounded-xl border-2 focus:border-primary"
+              />
+              <Button
+                size="sm"
+                variant="default"
+                className="absolute right-1 top-1/2 -translate-y-1/2 h-8 px-3 text-xs"
+                onClick={() => {
+                  if (ticker.trim()) {
+                    handleSetTicker(ticker.trim());
+                    if (selectedStudies.length > 0) {
+                      setTimeout(() => handleRunStudy(selectedStudies[0]), 100);
+                    }
+                  }
+                }}
+                disabled={!ticker.trim() || isRunning}
+              >
+                {isRunning ? <Loader2 className="h-3 w-3 animate-spin" /> : 'Go'}
+              </Button>
+            </div>
+          </div>
           
           {/* Quick Tickers - Hidden on mobile */}
           <div className="hidden md:flex gap-2 overflow-x-auto">
@@ -1656,7 +1725,13 @@ function QuantLabContent(props: any) {
                 variant={selectedTicker === t ? 'default' : 'outline'}
                 size="sm"
                 className="h-9 px-4 font-mono text-sm shrink-0"
-                onClick={() => handleSetTicker(t)}
+                onClick={() => {
+                  handleSetTicker(t);
+                  // Auto-run with new ticker
+                  if (selectedStudies.length > 0) {
+                    setTimeout(() => handleRunStudy(selectedStudies[0]), 100);
+                  }
+                }}
               >
                 {t}
               </Button>
@@ -1700,7 +1775,13 @@ function QuantLabContent(props: any) {
               variant={selectedTicker === t ? 'default' : 'outline'}
               size="sm"
               className="h-10 px-4 font-mono text-sm shrink-0 rounded-lg"
-              onClick={() => handleSetTicker(t)}
+              onClick={() => {
+                handleSetTicker(t);
+                // Auto-run with new ticker
+                if (selectedStudies.length > 0) {
+                  setTimeout(() => handleRunStudy(selectedStudies[0]), 100);
+                }
+              }}
             >
               {t}
             </Button>
