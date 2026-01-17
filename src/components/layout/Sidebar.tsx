@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { useOrganization } from "@/contexts/OrganizationContext";
+import { useUsage } from "@/contexts/UsageContext";
 import { useAdmin } from "@/hooks/useAdmin";
 import { OrganizationSwitcher } from "@/components/organization/OrganizationSwitcher";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -54,6 +55,7 @@ import {
   Activity,
   Lightbulb,
   BookOpen,
+  CreditCard,
 } from "lucide-react";
 
 interface NavItem {
@@ -81,6 +83,7 @@ export function Sidebar() {
   const location = useLocation();
   const { signOut } = useAuth();
   const { userProfile, currentOrganization, enabledAssetTypes } = useOrganization();
+  const { isPro } = useUsage();
   const { isAdmin } = useAdmin();
 
   // Persist hidden tabs to localStorage
@@ -449,9 +452,18 @@ export function Sidebar() {
                 {!collapsed && (
                   <div className="flex-1 text-left min-w-0">
                     <p className="text-foreground text-sm font-medium truncate">{userProfile?.full_name || 'User'}</p>
-                    <p className="text-xs text-muted-foreground truncate flex items-center gap-1">
-                      <Zap className="h-2.5 w-2.5 text-amber-500" />
-                      {currentOrganization?.plan || 'Free'} Plan
+                    <p className="text-xs truncate flex items-center gap-1">
+                      {isPro ? (
+                        <>
+                          <Sparkles className="h-2.5 w-2.5 text-amber-400" />
+                          <span className="text-amber-400 font-medium">Pro Plan</span>
+                        </>
+                      ) : (
+                        <>
+                          <Zap className="h-2.5 w-2.5 text-muted-foreground" />
+                          <span className="text-muted-foreground">Free Plan</span>
+                        </>
+                      )}
                     </p>
                   </div>
                 )}
@@ -460,23 +472,74 @@ export function Sidebar() {
             <DropdownMenuContent 
               side={collapsed ? "right" : "top"} 
               align={collapsed ? "start" : "center"}
-              className="w-56 bg-popover border-border"
+              className="w-64 bg-popover border-border"
             >
-              <div className="px-3 py-2.5">
-                <p className="text-sm font-semibold text-foreground">{userProfile?.full_name || 'User'}</p>
-                <p className="text-xs text-muted-foreground truncate">{userProfile?.job_title || 'Team Member'}</p>
+              {/* User header */}
+              <div className="px-3 py-3 border-b border-border">
+                <div className="flex items-center gap-3">
+                  <Avatar className="h-10 w-10 ring-2 ring-primary/20">
+                    <AvatarImage src={userProfile?.avatar_url || undefined} />
+                    <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/5 text-primary text-sm font-semibold">
+                      {userProfile?.full_name?.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() || 'U'}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-foreground truncate">{userProfile?.full_name || 'User'}</p>
+                    <p className="text-xs text-muted-foreground truncate">{userProfile?.job_title || 'Team Member'}</p>
+                  </div>
+                </div>
               </div>
+
+              {/* Plan status */}
+              <div className="px-3 py-2">
+                <div className={cn(
+                  "flex items-center justify-between px-3 py-2 rounded-lg",
+                  isPro 
+                    ? "bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-500/20" 
+                    : "bg-secondary/50 border border-border"
+                )}>
+                  <div className="flex items-center gap-2">
+                    {isPro ? (
+                      <Sparkles className="h-4 w-4 text-amber-400" />
+                    ) : (
+                      <Zap className="h-4 w-4 text-muted-foreground" />
+                    )}
+                    <span className={cn(
+                      "text-sm font-medium",
+                      isPro ? "text-amber-400" : "text-muted-foreground"
+                    )}>
+                      {isPro ? 'Pro Plan' : 'Free Plan'}
+                    </span>
+                  </div>
+                  {!isPro && (
+                    <Link 
+                      to="/settings" 
+                      className="text-xs text-primary hover:text-primary/80 font-medium"
+                    >
+                      Upgrade
+                    </Link>
+                  )}
+                </div>
+              </div>
+
               <DropdownMenuSeparator className="bg-border" />
-              <DropdownMenuItem className="text-foreground hover:bg-accent cursor-pointer">
-                <User className="mr-2 h-4 w-4" />
-                Profile
-              </DropdownMenuItem>
+              
               <DropdownMenuItem className="text-foreground hover:bg-accent cursor-pointer" asChild>
                 <Link to="/settings">
-                  <Settings className="mr-2 h-4 w-4" />
-                  Settings
+                  <User className="mr-2 h-4 w-4" />
+                  Profile & Settings
                 </Link>
               </DropdownMenuItem>
+              
+              {isPro && (
+                <DropdownMenuItem className="text-foreground hover:bg-accent cursor-pointer" asChild>
+                  <Link to="/settings#billing">
+                    <CreditCard className="mr-2 h-4 w-4" />
+                    Manage Billing
+                  </Link>
+                </DropdownMenuItem>
+              )}
+              
               <DropdownMenuSeparator className="bg-border" />
               <DropdownMenuItem 
                 className="text-destructive hover:bg-destructive/10 cursor-pointer"
