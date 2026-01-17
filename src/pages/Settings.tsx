@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Camera, Loader2, User, Wifi, WifiOff, Trash2, LogOut, Settings as SettingsIcon, Shield, Sparkles, Crown, Palette, CreditCard, ExternalLink, AlertTriangle } from "lucide-react";
+import { Camera, Loader2, User, Wifi, Trash2, LogOut, Settings as SettingsIcon, Shield, Sparkles, Crown, Palette, CreditCard, ExternalLink, AlertTriangle, Key, Mail, Lock } from "lucide-react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,6 +10,8 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Switch } from "@/components/ui/switch";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUsage } from "@/contexts/UsageContext";
@@ -50,13 +52,15 @@ const cardVariants = {
 };
 
 export default function Settings() {
-  const { user, signOut } = useAuth();
+  const { user, signOut, resetPassword } = useAuth();
+  const { isPro } = useUsage();
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState("profile");
 
   const form = useForm<ProfileFormData>({
     resolver: zodResolver(profileSchema),
@@ -68,6 +72,13 @@ export default function Settings() {
       fetchProfile();
     }
   }, [user]);
+
+  // Check URL hash for billing tab
+  useEffect(() => {
+    if (window.location.hash === '#billing') {
+      setActiveTab('billing');
+    }
+  }, []);
 
   const fetchProfile = async () => {
     if (!user) return;
@@ -101,7 +112,6 @@ export default function Settings() {
     const file = event.target.files?.[0];
     if (!file || !user) return;
 
-    // Validate file type
     if (!file.type.startsWith("image/")) {
       toast({
         title: "Invalid file type",
@@ -111,7 +121,6 @@ export default function Settings() {
       return;
     }
 
-    // Validate file size (max 5MB)
     if (file.size > 5 * 1024 * 1024) {
       toast({
         title: "File too large",
@@ -127,21 +136,18 @@ export default function Settings() {
       const fileExt = file.name.split(".").pop();
       const filePath = `${user.id}/avatar.${fileExt}`;
 
-      // Upload to storage
       const { error: uploadError } = await supabase.storage
         .from("avatars")
         .upload(filePath, file, { upsert: true });
 
       if (uploadError) throw uploadError;
 
-      // Get public URL
       const { data: urlData } = supabase.storage
         .from("avatars")
         .getPublicUrl(filePath);
 
       const newAvatarUrl = `${urlData.publicUrl}?t=${Date.now()}`;
 
-      // Update profile
       const { error: updateError } = await supabase
         .from("profiles")
         .update({ avatar_url: newAvatarUrl })
@@ -220,276 +226,422 @@ export default function Settings() {
           <PageHeader
             icon={SettingsIcon}
             title="Account Settings"
-            subtitle="Manage your profile, preferences, and account security"
+            subtitle="Manage your profile, subscription, and preferences"
             {...PAGE_ICON_PRESETS.violet}
           />
         </div>
       </div>
 
-      <motion.div 
-        className="p-6 lg:p-8 max-w-4xl mx-auto space-y-6"
-        variants={containerVariants}
-        initial="hidden"
-        animate="visible"
-      >
+      <div className="p-6 lg:p-8 max-w-4xl mx-auto">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+          <TabsList className="grid w-full grid-cols-4 bg-secondary/50 p-1">
+            <TabsTrigger value="profile" className="gap-2 data-[state=active]:bg-background">
+              <User className="h-4 w-4" />
+              <span className="hidden sm:inline">Profile</span>
+            </TabsTrigger>
+            <TabsTrigger value="billing" className="gap-2 data-[state=active]:bg-background">
+              <CreditCard className="h-4 w-4" />
+              <span className="hidden sm:inline">Billing</span>
+            </TabsTrigger>
+            <TabsTrigger value="preferences" className="gap-2 data-[state=active]:bg-background">
+              <Palette className="h-4 w-4" />
+              <span className="hidden sm:inline">Preferences</span>
+            </TabsTrigger>
+            <TabsTrigger value="security" className="gap-2 data-[state=active]:bg-background">
+              <Shield className="h-4 w-4" />
+              <span className="hidden sm:inline">Security</span>
+            </TabsTrigger>
+          </TabsList>
 
-        {/* Profile Card */}
-        <motion.div variants={cardVariants}>
-          <Card className="glass-card overflow-hidden">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-primary/10 to-transparent rounded-bl-full" />
-            <CardHeader className="relative">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-gradient-to-br from-primary/20 to-violet-500/20 border border-primary/30">
-                  <User className="h-5 w-5 text-primary" />
-                </div>
-                <div>
-                  <CardTitle className="text-lg">Profile Information</CardTitle>
-                  <CardDescription>
-                    Update your personal details and profile picture
-                  </CardDescription>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-6 relative">
-              {/* Avatar Section */}
-              <div className="flex items-center gap-6 p-4 rounded-xl bg-gradient-to-r from-secondary/50 to-transparent border border-border/50">
-                <div className="relative group">
-                  <div className="absolute -inset-1 bg-gradient-to-r from-primary/50 to-violet-500/50 rounded-full blur opacity-25 group-hover:opacity-50 transition-opacity" />
-                  <Avatar className="relative h-24 w-24 border-2 border-primary/30">
-                    <AvatarImage src={avatarUrl || undefined} alt="Profile" />
-                    <AvatarFallback className="bg-gradient-to-br from-primary/20 to-violet-500/20 text-primary text-xl font-semibold">
-                      {getInitials(profile?.full_name || null)}
-                    </AvatarFallback>
-                  </Avatar>
-                  <button
-                    type="button"
-                    onClick={handleAvatarClick}
-                    disabled={isUploading}
-                    className="absolute inset-0 flex items-center justify-center bg-background/80 rounded-full opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
-                  >
-                    {isUploading ? (
-                      <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                    ) : (
-                      <Camera className="h-6 w-6 text-foreground" />
-                    )}
-                  </button>
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/*"
-                    onChange={handleAvatarChange}
-                    className="hidden"
-                  />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-foreground flex items-center gap-2">
-                    Profile Picture
-                    <Sparkles className="h-4 w-4 text-amber-400" />
-                  </h3>
-                  <p className="text-sm text-muted-foreground">
-                    Click to upload a new photo. Max 5MB.
-                  </p>
-                </div>
-              </div>
+          {/* Profile Tab */}
+          <TabsContent value="profile">
+            <motion.div 
+              className="space-y-6"
+              variants={containerVariants}
+              initial="hidden"
+              animate="visible"
+            >
+              <motion.div variants={cardVariants}>
+                <Card className="glass-card overflow-hidden">
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-primary/10 to-transparent rounded-bl-full" />
+                  <CardHeader className="relative">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 rounded-lg bg-gradient-to-br from-primary/20 to-violet-500/20 border border-primary/30">
+                        <User className="h-5 w-5 text-primary" />
+                      </div>
+                      <div>
+                        <CardTitle className="text-lg">Profile Information</CardTitle>
+                        <CardDescription>
+                          Update your personal details and profile picture
+                        </CardDescription>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-6 relative">
+                    {/* Avatar Section */}
+                    <div className="flex items-center gap-6 p-4 rounded-xl bg-gradient-to-r from-secondary/50 to-transparent border border-border/50">
+                      <div className="relative group">
+                        <div className="absolute -inset-1 bg-gradient-to-r from-primary/50 to-violet-500/50 rounded-full blur opacity-25 group-hover:opacity-50 transition-opacity" />
+                        <Avatar className="relative h-24 w-24 border-2 border-primary/30">
+                          <AvatarImage src={avatarUrl || undefined} alt="Profile" />
+                          <AvatarFallback className="bg-gradient-to-br from-primary/20 to-violet-500/20 text-primary text-xl font-semibold">
+                            {getInitials(profile?.full_name || null)}
+                          </AvatarFallback>
+                        </Avatar>
+                        <button
+                          type="button"
+                          onClick={handleAvatarClick}
+                          disabled={isUploading}
+                          className="absolute inset-0 flex items-center justify-center bg-background/80 rounded-full opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                        >
+                          {isUploading ? (
+                            <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                          ) : (
+                            <Camera className="h-6 w-6 text-foreground" />
+                          )}
+                        </button>
+                        <input
+                          ref={fileInputRef}
+                          type="file"
+                          accept="image/*"
+                          onChange={handleAvatarChange}
+                          className="hidden"
+                        />
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-foreground flex items-center gap-2">
+                          Profile Picture
+                          {isPro && <Sparkles className="h-4 w-4 text-amber-400" />}
+                        </h3>
+                        <p className="text-sm text-muted-foreground">
+                          Click to upload a new photo. Max 5MB.
+                        </p>
+                      </div>
+                    </div>
 
-              {/* Form Section */}
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="email" className="text-foreground font-medium">Email</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    value={user?.email || ""}
-                    disabled
-                    className="bg-secondary/50 border-border text-muted-foreground"
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Email cannot be changed
-                  </p>
-                </div>
+                    {/* Form Section */}
+                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="email" className="text-foreground font-medium">Email</Label>
+                        <Input
+                          id="email"
+                          type="email"
+                          value={user?.email || ""}
+                          disabled
+                          className="bg-secondary/50 border-border text-muted-foreground"
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          Email cannot be changed
+                        </p>
+                      </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="fullName" className="text-foreground font-medium">Full Name</Label>
-                  <Input
-                    id="fullName"
-                    type="text"
-                    placeholder="John Smith"
-                    className="bg-secondary border-border text-foreground placeholder:text-muted-foreground focus:border-primary focus:ring-1 focus:ring-primary/50"
-                    {...form.register("fullName")}
-                  />
-                  {form.formState.errors.fullName && (
-                    <p className="text-sm text-destructive">
-                      {form.formState.errors.fullName.message}
+                      <div className="space-y-2">
+                        <Label htmlFor="fullName" className="text-foreground font-medium">Full Name</Label>
+                        <Input
+                          id="fullName"
+                          type="text"
+                          placeholder="John Smith"
+                          className="bg-secondary border-border text-foreground placeholder:text-muted-foreground focus:border-primary focus:ring-1 focus:ring-primary/50"
+                          {...form.register("fullName")}
+                        />
+                        {form.formState.errors.fullName && (
+                          <p className="text-sm text-destructive">
+                            {form.formState.errors.fullName.message}
+                          </p>
+                        )}
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="company" className="text-foreground font-medium">Company</Label>
+                        <Input
+                          id="company"
+                          type="text"
+                          placeholder="Acme Capital"
+                          className="bg-secondary border-border text-foreground placeholder:text-muted-foreground focus:border-primary focus:ring-1 focus:ring-primary/50"
+                          {...form.register("company")}
+                        />
+                        {form.formState.errors.company && (
+                          <p className="text-sm text-destructive">
+                            {form.formState.errors.company.message}
+                          </p>
+                        )}
+                      </div>
+
+                      <div className="pt-4">
+                        <Button type="submit" disabled={isLoading} className="gap-2">
+                          {isLoading ? (
+                            <>
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                              Saving...
+                            </>
+                          ) : (
+                            <>
+                              <Sparkles className="h-4 w-4" />
+                              Save Changes
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                    </form>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            </motion.div>
+          </TabsContent>
+
+          {/* Billing Tab */}
+          <TabsContent value="billing">
+            <motion.div 
+              className="space-y-6"
+              variants={containerVariants}
+              initial="hidden"
+              animate="visible"
+            >
+              <motion.div variants={cardVariants}>
+                <SubscriptionManagement />
+              </motion.div>
+            </motion.div>
+          </TabsContent>
+
+          {/* Preferences Tab */}
+          <TabsContent value="preferences">
+            <motion.div 
+              className="space-y-6"
+              variants={containerVariants}
+              initial="hidden"
+              animate="visible"
+            >
+              {/* Appearance Settings */}
+              <motion.div variants={cardVariants}>
+                <Card className="glass-card overflow-hidden">
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-violet-500/10 to-transparent rounded-bl-full" />
+                  <CardHeader className="relative">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 rounded-lg bg-gradient-to-br from-violet-500/20 to-purple-500/20 border border-violet-500/30">
+                        <Palette className="h-5 w-5 text-violet-400" />
+                      </div>
+                      <div>
+                        <CardTitle className="text-lg">Appearance</CardTitle>
+                        <CardDescription>
+                          Customize the look and feel of the app
+                        </CardDescription>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="relative">
+                    <div className="flex items-center justify-between p-4 rounded-xl bg-secondary/50 border border-border/50">
+                      <div>
+                        <h3 className="font-semibold text-foreground">Theme</h3>
+                        <p className="text-sm text-muted-foreground">
+                          Switch between light and dark mode
+                        </p>
+                      </div>
+                      <ThemeToggle />
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
+
+              {/* Market Data Settings */}
+              <motion.div variants={cardVariants}>
+                <MarketDataSettings />
+              </motion.div>
+            </motion.div>
+          </TabsContent>
+
+          {/* Security Tab */}
+          <TabsContent value="security">
+            <motion.div 
+              className="space-y-6"
+              variants={containerVariants}
+              initial="hidden"
+              animate="visible"
+            >
+              {/* Password Change */}
+              <motion.div variants={cardVariants}>
+                <SecuritySettings />
+              </motion.div>
+
+              {/* Sign Out */}
+              <motion.div variants={cardVariants}>
+                <Card className="glass-card overflow-hidden border-rose-500/20">
+                  <div className="absolute inset-0 bg-gradient-to-r from-rose-500/5 via-transparent to-transparent" />
+                  <CardHeader className="relative">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 rounded-lg bg-gradient-to-br from-rose-500/20 to-pink-500/20 border border-rose-500/30">
+                        <LogOut className="h-5 w-5 text-rose-400" />
+                      </div>
+                      <div>
+                        <CardTitle className="text-lg">Session</CardTitle>
+                        <CardDescription>
+                          Sign out of your account
+                        </CardDescription>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="relative">
+                    <Button 
+                      variant="destructive" 
+                      onClick={async () => {
+                        try {
+                          await signOut();
+                          window.location.href = '/';
+                        } catch (error) {
+                          console.error('Sign out failed:', error);
+                        }
+                      }}
+                      className="gap-2"
+                    >
+                      <LogOut className="h-4 w-4" />
+                      Sign Out
+                    </Button>
+                  </CardContent>
+                </Card>
+              </motion.div>
+
+              {/* Delete Account */}
+              <motion.div variants={cardVariants}>
+                <Card className="glass-card overflow-hidden border-destructive/30">
+                  <div className="absolute inset-0 bg-gradient-to-r from-destructive/5 via-transparent to-transparent" />
+                  <CardHeader className="relative">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 rounded-lg bg-destructive/20 border border-destructive/30">
+                        <Trash2 className="h-5 w-5 text-destructive" />
+                      </div>
+                      <div>
+                        <CardTitle className="text-lg text-destructive">Danger Zone</CardTitle>
+                        <CardDescription>
+                          Permanently delete your account and all data
+                        </CardDescription>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="relative">
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button variant="outline" className="border-destructive/50 text-destructive hover:bg-destructive/10 gap-2">
+                          <Trash2 className="h-4 w-4" />
+                          Delete Account
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            This action cannot be undone. This will permanently delete your account
+                            and remove all your data from our servers, including portfolios, studies,
+                            and saved configurations.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction 
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            onClick={async () => {
+                              // TODO: Implement account deletion
+                              console.log("Account deletion requested");
+                            }}
+                          >
+                            Delete Account
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                    <p className="text-xs text-muted-foreground mt-3">
+                      Once you delete your account, there is no going back. Please be certain.
                     </p>
-                  )}
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="company" className="text-foreground font-medium">Company</Label>
-                  <Input
-                    id="company"
-                    type="text"
-                    placeholder="Acme Capital"
-                    className="bg-secondary border-border text-foreground placeholder:text-muted-foreground focus:border-primary focus:ring-1 focus:ring-primary/50"
-                    {...form.register("company")}
-                  />
-                  {form.formState.errors.company && (
-                    <p className="text-sm text-destructive">
-                      {form.formState.errors.company.message}
-                    </p>
-                  )}
-                </div>
-
-                <div className="pt-4">
-                  <Button type="submit" disabled={isLoading} className="gap-2">
-                    {isLoading ? (
-                      <>
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        Saving...
-                      </>
-                    ) : (
-                      <>
-                        <Sparkles className="h-4 w-4" />
-                        Save Changes
-                      </>
-                    )}
-                  </Button>
-                </div>
-              </form>
-            </CardContent>
-          </Card>
-        </motion.div>
-
-        {/* Appearance Settings */}
-        <motion.div variants={cardVariants}>
-          <Card className="glass-card overflow-hidden">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-violet-500/10 to-transparent rounded-bl-full" />
-            <CardHeader className="relative">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-gradient-to-br from-violet-500/20 to-purple-500/20 border border-violet-500/30">
-                  <Palette className="h-5 w-5 text-violet-400" />
-                </div>
-                <div>
-                  <CardTitle className="text-lg">Appearance</CardTitle>
-                  <CardDescription>
-                    Customize the look and feel of the app
-                  </CardDescription>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="relative">
-              <div className="flex items-center justify-between p-4 rounded-xl bg-secondary/50 border border-border/50">
-                <div>
-                  <h3 className="font-semibold text-foreground">Theme</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Switch between light and dark mode
-                  </p>
-                </div>
-                <ThemeToggle />
-              </div>
-            </CardContent>
-          </Card>
-        </motion.div>
-
-        {/* Market Data Settings */}
-        <motion.div variants={cardVariants}>
-          <MarketDataSettings />
-        </motion.div>
-
-        {/* Subscription Management */}
-        <motion.div variants={cardVariants}>
-          <SubscriptionManagement />
-        </motion.div>
-
-        {/* Premium Features Teaser - Only show for free users */}
-        <motion.div variants={cardVariants}>
-          <Card className="glass-card overflow-hidden border-amber-500/20">
-            <div className="absolute inset-0 bg-gradient-to-r from-amber-500/5 via-transparent to-orange-500/5" />
-            <CardHeader className="relative">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-gradient-to-br from-amber-500/20 to-orange-500/20 border border-amber-500/30">
-                  <Crown className="h-5 w-5 text-amber-400" />
-                </div>
-                <div>
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    Premium Features
-                    <span className="text-xs px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400 font-medium">
-                      Coming Soon
-                    </span>
-                  </CardTitle>
-                  <CardDescription>
-                    Unlock advanced analytics and exclusive insights
-                  </CardDescription>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="relative">
-              <div className="grid sm:grid-cols-3 gap-4">
-                {[
-                  { label: "AI Portfolio Planner", icon: "🤖" },
-                  { label: "Real-time Alerts", icon: "⚡" },
-                  { label: "Priority Support", icon: "🎯" },
-                ].map((feature) => (
-                  <div 
-                    key={feature.label}
-                    className="p-3 rounded-lg bg-secondary/50 border border-border/50 text-center"
-                  >
-                    <span className="text-2xl mb-2 block">{feature.icon}</span>
-                    <span className="text-sm font-medium text-muted-foreground">{feature.label}</span>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </motion.div>
-
-        {/* Sign Out Section */}
-        <motion.div variants={cardVariants}>
-          <Card className="glass-card overflow-hidden border-rose-500/20">
-            <div className="absolute inset-0 bg-gradient-to-r from-rose-500/5 via-transparent to-transparent" />
-            <CardHeader className="relative">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-gradient-to-br from-rose-500/20 to-pink-500/20 border border-rose-500/30">
-                  <Shield className="h-5 w-5 text-rose-400" />
-                </div>
-                <div>
-                  <CardTitle className="text-lg">Account Security</CardTitle>
-                  <CardDescription>
-                    Manage your session and sign out securely
-                  </CardDescription>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="relative">
-              <Button 
-                variant="destructive" 
-                onClick={async () => {
-                  try {
-                    await signOut();
-                    toast({
-                      title: "Signed out",
-                      description: "You have been logged out successfully.",
-                    });
-                    window.location.href = '/';
-                  } catch (error) {
-                    console.error('Sign out failed:', error);
-                    toast({
-                      title: "Sign out failed",
-                      description: "Please try again.",
-                      variant: "destructive",
-                    });
-                  }
-                }}
-                className="gap-2"
-              >
-                <LogOut className="h-4 w-4" />
-                Sign Out
-              </Button>
-            </CardContent>
-          </Card>
-        </motion.div>
-      </motion.div>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            </motion.div>
+          </TabsContent>
+        </Tabs>
+      </div>
     </div>
+  );
+}
+
+function SecuritySettings() {
+  const { user, resetPassword } = useAuth();
+  const { toast } = useToast();
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handlePasswordReset = async () => {
+    if (!user?.email) return;
+    
+    setIsLoading(true);
+    try {
+      const { error } = await resetPassword(user.email);
+      if (error) throw error;
+      
+      toast({
+        title: "Password reset email sent",
+        description: "Check your email for a link to reset your password.",
+      });
+    } catch (error) {
+      console.error("Error sending password reset:", error);
+      toast({
+        title: "Failed to send reset email",
+        description: "Please try again later.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <Card className="glass-card overflow-hidden">
+      <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-blue-500/10 to-transparent rounded-bl-full" />
+      <CardHeader className="relative">
+        <div className="flex items-center gap-3">
+          <div className="p-2 rounded-lg bg-gradient-to-br from-blue-500/20 to-cyan-500/20 border border-blue-500/30">
+            <Lock className="h-5 w-5 text-blue-400" />
+          </div>
+          <div>
+            <CardTitle className="text-lg">Password & Authentication</CardTitle>
+            <CardDescription>
+              Manage your password and security settings
+            </CardDescription>
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-4 relative">
+        <div className="p-4 rounded-xl bg-secondary/50 border border-border/50">
+          <div className="flex items-center gap-3 mb-3">
+            <Mail className="h-4 w-4 text-muted-foreground" />
+            <div>
+              <p className="text-sm font-medium text-foreground">Email</p>
+              <p className="text-xs text-muted-foreground">{user?.email}</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            <Key className="h-4 w-4 text-muted-foreground" />
+            <div>
+              <p className="text-sm font-medium text-foreground">Password</p>
+              <p className="text-xs text-muted-foreground">••••••••••••</p>
+            </div>
+          </div>
+        </div>
+
+        <Button 
+          variant="outline" 
+          onClick={handlePasswordReset}
+          disabled={isLoading}
+          className="gap-2"
+        >
+          {isLoading ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <Lock className="h-4 w-4" />
+          )}
+          Change Password
+        </Button>
+        <p className="text-xs text-muted-foreground">
+          We'll send you an email with a link to reset your password
+        </p>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -517,7 +669,7 @@ function MarketDataSettings() {
           <div>
             <CardTitle className="text-lg">Market Data</CardTitle>
             <CardDescription>
-              Control live market data fetching to manage API costs
+              Control live market data fetching
             </CardDescription>
           </div>
         </div>
@@ -529,7 +681,7 @@ function MarketDataSettings() {
               Enable live market data
             </Label>
             <p className="text-sm text-muted-foreground">
-              When disabled, the app shows cached data to reduce API costs
+              When disabled, the app shows cached data
             </p>
           </div>
           <div className="flex items-center gap-3">
@@ -566,11 +718,8 @@ function MarketDataSettings() {
             className="gap-2"
           >
             <Trash2 className="h-4 w-4" />
-            Clear all cached market data
+            Clear cached data
           </Button>
-          <p className="text-xs text-muted-foreground mt-2">
-            This will clear all locally cached prices and force fresh data on next fetch
-          </p>
         </div>
       </CardContent>
     </Card>
@@ -624,10 +773,10 @@ function SubscriptionManagement() {
               <CardTitle className="text-lg">Subscription</CardTitle>
               <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${
                 isPro 
-                  ? 'bg-primary/20 text-primary border border-primary/30' 
+                  ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30' 
                   : 'bg-muted text-muted-foreground border border-border'
               }`}>
-                {isPro ? 'Pro Plan' : 'Free Plan'}
+                {isPro ? '✨ Pro Plan' : 'Free Plan'}
               </span>
             </div>
             <CardDescription>
@@ -639,9 +788,9 @@ function SubscriptionManagement() {
       <CardContent className="relative space-y-4">
         {isPro ? (
           <>
-            <div className="p-4 rounded-xl bg-gradient-to-r from-primary/10 to-purple-500/10 border border-primary/20">
+            <div className="p-4 rounded-xl bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-500/20">
               <div className="flex items-center gap-2 mb-2">
-                <Crown className="h-4 w-4 text-primary" />
+                <Crown className="h-4 w-4 text-amber-400" />
                 <span className="font-semibold text-foreground">Pro Member</span>
               </div>
               <p className="text-sm text-muted-foreground">
@@ -684,7 +833,7 @@ function SubscriptionManagement() {
           <>
             <div className="p-4 rounded-xl bg-secondary/50 border border-border">
               <p className="text-sm text-muted-foreground mb-3">
-                Upgrade to Pro for unlimited access to all features, including:
+                Upgrade to Pro for unlimited access to all features:
               </p>
               <ul className="text-sm space-y-2">
                 <li className="flex items-center gap-2 text-foreground">
