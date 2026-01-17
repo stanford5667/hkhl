@@ -56,6 +56,7 @@ import { MetricDetailModal } from '@/components/quant-lab/MetricDetailModal';
 import { StudyAuditDashboard } from '@/components/quant-lab/StudyAuditDashboard';
 import { MobileAuthSheet } from '@/components/auth/MobileAuthSheet';
 import { IntegratedQuantStudiesPanel } from '@/components/equity/IntegratedQuantStudiesPanel';
+import { EnhancedResultView } from '@/components/quant-lab/EnhancedResultViews';
 
 // ===========================================
 // STUDY DEFINITIONS WITH BEGINNER-FRIENDLY EXPLANATIONS
@@ -1651,10 +1652,15 @@ function QuantLabContent(props: any) {
                         )}
                       </div>
 
-                      {/* Visualizations - Hidden on mobile, shown on desktop */}
-                      <div className="hidden md:block px-6 py-6 border-t">
+                      {/* Enhanced Visualizations - Now shown on all devices */}
+                      <div className="px-3 md:px-6 py-4 md:py-6 border-t">
                         <h5 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-4">Visual Analysis</h5>
-                        <StudyVisualizations studyId={studyId} result={result} />
+                        <EnhancedResultView 
+                          result={result} 
+                          studyId={studyId}
+                          showInsights={true}
+                          showEducation={true}
+                        />
                       </div>
 
                       {/* How to Use - Hidden on mobile */}
