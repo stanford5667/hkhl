@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Loader2, TrendingUp, Shield, Zap, Sparkles, BarChart3, Brain } from "lucide-react";
+import { Loader2, TrendingUp, Shield, Zap, Sparkles, BarChart3, Brain, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -26,6 +26,9 @@ const signUpSchema = z.object({
   email: z.string().trim().email("Please enter a valid email address"),
   password: z.string().min(6, "Password must be at least 6 characters"),
   confirmPassword: z.string(),
+  ageConfirmed: z.boolean().refine(val => val === true, {
+    message: "You must be 18 or older to use this platform",
+  }),
 }).refine((data) => data.password === data.confirmPassword, {
   message: "Passwords don't match",
   path: ["confirmPassword"],
@@ -57,7 +60,7 @@ export default function Auth() {
 
   const signUpForm = useForm<SignUpFormData>({
     resolver: zodResolver(signUpSchema),
-    defaultValues: { fullName: "", email: "", password: "", confirmPassword: "" },
+    defaultValues: { fullName: "", email: "", password: "", confirmPassword: "", ageConfirmed: false },
   });
 
   const forgotPasswordForm = useForm<ForgotPasswordFormData>({
@@ -406,6 +409,37 @@ export default function Auth() {
                     />
                     {signUpForm.formState.errors.confirmPassword && (
                       <p className="text-sm text-destructive">{signUpForm.formState.errors.confirmPassword.message}</p>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <div className="flex items-start gap-3 p-3 rounded-lg bg-secondary/50 border border-border">
+                      <button
+                        type="button"
+                        onClick={() => signUpForm.setValue("ageConfirmed", !signUpForm.watch("ageConfirmed"))}
+                        className={`mt-0.5 h-5 w-5 rounded border flex items-center justify-center transition-colors ${
+                          signUpForm.watch("ageConfirmed") 
+                            ? "bg-primary border-primary text-primary-foreground" 
+                            : "border-muted-foreground/50 bg-transparent"
+                        }`}
+                      >
+                        {signUpForm.watch("ageConfirmed") && <Check className="h-3 w-3" />}
+                      </button>
+                      <div className="flex-1">
+                        <label 
+                          htmlFor="ageConfirmed" 
+                          className="text-sm text-foreground cursor-pointer"
+                          onClick={() => signUpForm.setValue("ageConfirmed", !signUpForm.watch("ageConfirmed"))}
+                        >
+                          I confirm that I am 18 years of age or older
+                        </label>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          By signing up, you agree to our Terms of Service and acknowledge that you must be at least 18 years old to use this platform.
+                        </p>
+                      </div>
+                    </div>
+                    {signUpForm.formState.errors.ageConfirmed && (
+                      <p className="text-sm text-destructive">{signUpForm.formState.errors.ageConfirmed.message}</p>
                     )}
                   </div>
 

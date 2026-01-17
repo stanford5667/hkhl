@@ -167,11 +167,15 @@ const FAQ_CATEGORIES = [
       },
       {
         question: 'How do I upgrade or downgrade my plan?',
-        answer: 'Go to Settings → Billing → Change Plan. Select your new plan and confirm. Upgrades take effect immediately with prorated billing. Downgrades take effect at the end of your current billing period.'
+        answer: 'Go to Settings → Subscription → Manage Subscription. You can upgrade or downgrade your plan through our secure billing portal. Upgrades take effect immediately. Downgrades take effect at the end of your current billing period and you will retain Pro access until then.'
+      },
+      {
+        question: 'Can I cancel my subscription?',
+        answer: 'Yes, you can cancel anytime from Settings → Subscription → Manage Subscription. Your Pro access will continue until the end of your current billing period. After cancellation, you will be downgraded to the Free plan with limited features.'
       },
       {
         question: 'Can I get a refund?',
-        answer: 'We offer a 14-day money-back guarantee for new subscriptions. If you\'re not satisfied, contact support within 14 days of your purchase for a full refund. After 14 days, we offer prorated refunds on annual plans only.'
+        answer: 'All sales are final. We do not offer refunds for any subscription purchases. When you cancel, you will retain access to Pro features until the end of your current billing period. We encourage you to fully explore our platform during any trial periods before subscribing.'
       },
     ]
   },
