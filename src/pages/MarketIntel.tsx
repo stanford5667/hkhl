@@ -38,7 +38,7 @@ import { IndexesContent } from '@/components/market-intel/IndexesContent';
 import { SharesContent } from '@/components/market-intel/SharesContent';
 import { CryptoContent } from '@/components/market-intel/CryptoContent';
 import { EarningsContent } from '@/components/market-intel/EarningsContent';
-import { HolidaysContent } from '@/components/market-intel/HolidaysContent';
+
 import { PageHeader, PAGE_ICON_PRESETS } from '@/components/layout/PageHeader';
 
 export default function MarketIntel() {
@@ -123,7 +123,7 @@ export default function MarketIntel() {
       {activeCategory === 'crypto' && <CryptoContent />}
       {activeCategory === 'bonds' && <GlobalBondYields />}
       {activeCategory === 'earnings' && <EarningsContent />}
-      {activeCategory === 'holidays' && <HolidaysContent />}
+      
       {activeCategory === 'commodities' && <CommoditiesContent onItemClick={handleItemClick} />}
       {activeCategory === 'currencies' && <CurrenciesContent onItemClick={handleItemClick} />}
       {activeCategory === 'indicators' && (

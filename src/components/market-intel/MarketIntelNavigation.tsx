@@ -1,14 +1,14 @@
 import { Card, CardContent } from '@/components/ui/card';
 import { 
   Calendar, Newspaper, TrendingUp, Globe, LineChart, Fuel, BarChart3, 
-  Wallet, DollarSign, Bitcoin, Landmark, FileText, CalendarDays
+  Wallet, DollarSign, Bitcoin, Landmark, FileText
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export type MarketCategory = 
   | 'calendar' | 'news' | 'indicators' | 'countries' | 'forecasts' 
   | 'commodities' | 'indexes' | 'shares' | 'currencies' | 'crypto' 
-  | 'bonds' | 'earnings' | 'holidays';
+  | 'bonds' | 'earnings';
 
 interface MarketIntelNavigationProps {
   activeCategory: MarketCategory;
@@ -28,7 +28,6 @@ const categories: { id: MarketCategory; label: string; icon: React.ElementType }
   { id: 'crypto', label: 'Crypto', icon: Bitcoin },
   { id: 'bonds', label: 'Bonds', icon: Landmark },
   { id: 'earnings', label: 'Earnings', icon: FileText },
-  { id: 'holidays', label: 'Holidays', icon: CalendarDays },
 ];
 
 export function MarketIntelNavigation({ activeCategory, onCategoryChange }: MarketIntelNavigationProps) {
