@@ -1244,8 +1244,6 @@ function QuantLabContent(props: any) {
   // Study search filter
   const [studySearch, setStudySearch] = useState('');
 
-  // Preview mode toggle (current vs enhanced)
-  const [viewMode, setViewMode] = useState<'current' | 'preview'>('current');
 
   return (
     <div className="h-screen bg-background flex flex-col overflow-hidden">
@@ -1288,26 +1286,6 @@ function QuantLabContent(props: any) {
           {/* Spacer */}
           <div className="flex-1" />
 
-          {/* Preview Mode Toggle */}
-          <div className="flex border rounded-lg overflow-hidden bg-muted/50">
-            <Button
-              variant={viewMode === 'current' ? 'default' : 'ghost'}
-              size="sm"
-              className="h-9 px-4 rounded-none text-xs font-medium"
-              onClick={() => setViewMode('current')}
-            >
-              Current
-            </Button>
-            <Button
-              variant={viewMode === 'preview' ? 'default' : 'ghost'}
-              size="sm"
-              className="h-9 px-4 rounded-none text-xs font-medium gap-1.5"
-              onClick={() => setViewMode('preview')}
-            >
-              <Zap className="h-3.5 w-3.5" />
-              Preview Enhanced
-            </Button>
-          </div>
           
           {/* Quick Tickers - Hidden on mobile */}
           <div className="hidden md:flex gap-2 overflow-x-auto">
@@ -1369,31 +1347,8 @@ function QuantLabContent(props: any) {
         </div>
       </div>
 
-      {/* Main Content - Switch between current and preview */}
-      {viewMode === 'preview' ? (
-        <div className="flex-1 overflow-y-auto p-4 md:p-6">
-          <div className="max-w-5xl mx-auto">
-            <div className="mb-4 p-4 bg-gradient-to-r from-violet-500/10 to-purple-500/10 border border-violet-500/30 rounded-xl">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-violet-500/20">
-                  <Zap className="h-5 w-5 text-violet-500" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-sm">Enhanced Studies Preview</h3>
-                  <p className="text-xs text-muted-foreground">
-                    Preview the new integrated panel with AI insights, enhanced visualizations, and educational content.
-                  </p>
-                </div>
-              </div>
-            </div>
-            <IntegratedQuantStudiesPanel 
-              ticker={selectedTicker || 'AAPL'} 
-              companyName={selectedTicker ? `${selectedTicker} Company` : 'Apple Inc.'} 
-            />
-          </div>
-        </div>
-      ) : (
-        <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
+      {/* Main Content */}
+      <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
         
         {/* Study Selection Panel - Compact sheet on mobile, sidebar on desktop */}
         <AnimatePresence>
@@ -1437,20 +1392,6 @@ function QuantLabContent(props: any) {
                       onKeyDown={(e) => { if (e.key === 'Enter' && ticker.trim()) handleSetTicker(ticker.trim()); }}
                       className="h-12 pl-10 text-lg font-mono font-bold bg-background rounded-xl border-2 focus:border-primary"
                     />
-                  </div>
-                  {/* Quick tickers */}
-                  <div className="flex gap-2 overflow-x-auto pb-1">
-                    {['AAPL', 'MSFT', 'NVDA', 'SPY', 'QQQ', 'TSLA'].map((t) => (
-                      <Button
-                        key={t}
-                        variant={selectedTicker === t ? 'default' : 'outline'}
-                        size="sm"
-                        className="h-9 px-3 font-mono text-sm shrink-0 rounded-lg"
-                        onClick={() => handleSetTicker(t)}
-                      >
-                        {t}
-                      </Button>
-                    ))}
                   </div>
                   {selectedTicker && (
                     <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-primary/10 border border-primary/30">
@@ -1936,7 +1877,6 @@ function QuantLabContent(props: any) {
           </div>
         </div>
         </div>
-      )}
       
       {/* Metric Detail Modal */}
       <MetricDetailModal
