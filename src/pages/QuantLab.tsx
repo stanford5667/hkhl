@@ -1188,9 +1188,8 @@ function QuantLabContent(props: any) {
   const [hasAutoRun, setHasAutoRun] = useState(false);
   
   // Determine if we should show the welcome hero
-  // Show for guests who haven't interacted, regardless of default selectedStudies initialization
-  const hasSavedResults = Object.keys(results).length > 0;
-  const showWelcomeHero = !user && !hasInteracted && !hasSavedResults;
+  // Show for ALL logged-out users to maximize conversion
+  const showWelcomeHero = !user;
   
   // Handler to select study from welcome hero
   const handleWelcomeSelectStudy = (studyId: string) => {
