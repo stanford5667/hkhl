@@ -79,8 +79,15 @@ export function StudySetupCard({
 
       {/* Conditional Studies - Show editable condition variables */}
       {isConditional && hasParams && (
-        <div className="px-4 py-3">
-          <div className="flex items-center gap-2 mb-3">
+        <div className="px-4 py-4 space-y-4">
+          {/* Study explanation */}
+          <div className="p-3 rounded-lg bg-primary/5 border border-primary/10">
+            <p className="text-sm text-foreground/80 leading-relaxed">
+              Configure the conditions below to customize your analysis. Adjust the variables, then click <span className="font-semibold text-primary">Run</span> to see what historically happens to <span className="font-mono font-semibold">{ticker || 'your ticker'}</span> after these conditions are met.
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2">
             <GitBranch className="h-4 w-4 text-primary" />
             <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
               Condition Variables
