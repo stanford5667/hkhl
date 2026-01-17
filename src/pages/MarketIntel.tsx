@@ -31,9 +31,7 @@ import { MarketIntelNavigation, type MarketCategory } from '@/components/market-
 import { WeeklyMacroSummary } from '@/components/market-intel/WeeklyMacroSummary';
 
 import { GlobalBondYields } from '@/components/market-intel/GlobalBondYields';
-import { NewsContent } from '@/components/market-intel/NewsContent';
 import { CountriesContent } from '@/components/market-intel/CountriesContent';
-import { ForecastsContent } from '@/components/market-intel/ForecastsContent';
 import { IndexesContent } from '@/components/market-intel/IndexesContent';
 import { SharesContent } from '@/components/market-intel/SharesContent';
 import { CryptoContent } from '@/components/market-intel/CryptoContent';
@@ -115,9 +113,7 @@ export default function MarketIntel() {
 
       {/* Category-based Content */}
       {activeCategory === 'calendar' && <EconomicCalendarTab onPerformanceUpdate={handleCalendarPerformance} />}
-      {activeCategory === 'news' && <NewsContent />}
       {activeCategory === 'countries' && <CountriesContent />}
-      {activeCategory === 'forecasts' && <ForecastsContent />}
       {activeCategory === 'indexes' && <IndexesContent />}
       {activeCategory === 'shares' && <SharesContent />}
       {activeCategory === 'crypto' && <CryptoContent />}
