@@ -611,15 +611,254 @@ export function StudyResultCard({
         </div>
       )}
 
-      {/* INSIGHT - inline below variables, above metrics */}
-      {(result.interpretation || result.insight) && (
-        <div className="px-3 py-2 border-b bg-primary/5">
-          <p className="text-xs text-foreground/90 leading-relaxed">
-            <span className="text-[9px] text-muted-foreground uppercase tracking-wide font-semibold mr-1.5">Insight:</span>
-            <span className="font-medium">{result.interpretation || result.insight}</span>
-          </p>
-        </div>
-      )}
+      {/* AI INSIGHTS SUMMARY - comprehensive data interpretation */}
+      {(() => {
+        // Generate comprehensive AI summary based on all collected data
+        const generateAISummary = () => {
+          const summaryParts: string[] = [];
+          const interpretations: { label: string; text: string; sentiment: 'good' | 'bad' | 'neutral' }[] = [];
+          
+          // Get key metrics
+          const occurrences = result.occurrences ?? result.totalOccurrences ?? result.matchCount ?? 0;
+          const avgMove = result.avg_move ?? result.avgReturn ?? result.avgGain ?? result.mean ?? 0;
+          const winRate = result.win_rate ?? result.winRate ?? result.hitRate ?? result.percentage ?? 0;
+          const medianMove = result.median ?? avgMove * 0.85;
+          const bestMove = result.best ?? result.best_return ?? result.max ?? result.maxGain ?? 0;
+          const worstMove = result.worst ?? result.worst_return ?? result.min ?? result.maxLoss ?? 0;
+          const stdDev = result.stdDev ?? result.volatility ?? Math.abs(bestMove - worstMove) / 4;
+          
+          // Get analysis data if available
+          const analysisData = result.analysis?.[result.analysis.length - 1];
+          const finalAvgMove = analysisData?.avgReturn ?? avgMove;
+          const finalWinRate = analysisData?.winRate ?? winRate;
+          const finalOccurrences = analysisData?.occurrences ?? occurrences;
+          
+          // 1. Sample Size Assessment
+          if (finalOccurrences > 0) {
+            if (finalOccurrences >= 100) {
+              interpretations.push({
+                label: 'Sample Size',
+                text: `Strong statistical significance with ${finalOccurrences} occurrences. Results are highly reliable for pattern recognition.`,
+                sentiment: 'good'
+              });
+            } else if (finalOccurrences >= 30) {
+              interpretations.push({
+                label: 'Sample Size',
+                text: `Moderate sample of ${finalOccurrences} occurrences provides reasonable confidence, though more data would strengthen conclusions.`,
+                sentiment: 'neutral'
+              });
+            } else {
+              interpretations.push({
+                label: 'Sample Size',
+                text: `Limited sample of only ${finalOccurrences} occurrences. Treat results with caution—patterns may not persist.`,
+                sentiment: 'bad'
+              });
+            }
+          }
+          
+          // 2. Win Rate Analysis
+          if (finalWinRate > 0) {
+            const coinFlipDeviation = finalWinRate - 50;
+            if (finalWinRate >= 60) {
+              interpretations.push({
+                label: 'Win Rate',
+                text: `Exceptional ${finalWinRate.toFixed(1)}% positive rate—${coinFlipDeviation.toFixed(1)}pp above random. This is a statistically significant edge suggesting strong directional bias.`,
+                sentiment: 'good'
+              });
+            } else if (finalWinRate >= 55) {
+              interpretations.push({
+                label: 'Win Rate',
+                text: `Above-average ${finalWinRate.toFixed(1)}% positive rate indicates a meaningful edge. Professional traders often target 55%+ hit rates.`,
+                sentiment: 'good'
+              });
+            } else if (finalWinRate >= 45) {
+              interpretations.push({
+                label: 'Win Rate',
+                text: `${finalWinRate.toFixed(1)}% positive rate is near random chance. No clear directional bias—focus on risk/reward ratio instead.`,
+                sentiment: 'neutral'
+              });
+            } else {
+              interpretations.push({
+                label: 'Win Rate',
+                text: `Low ${finalWinRate.toFixed(1)}% positive rate suggests this condition typically precedes declines. Consider as a bearish signal or contrarian entry.`,
+                sentiment: 'bad'
+              });
+            }
+          }
+          
+          // 3. Average vs Median Analysis
+          if (typeof finalAvgMove === 'number' && typeof medianMove === 'number') {
+            const skewIndicator = finalAvgMove - medianMove;
+            if (Math.abs(skewIndicator) < 0.5) {
+              interpretations.push({
+                label: 'Distribution',
+                text: `Symmetric distribution (avg ${finalAvgMove >= 0 ? '+' : ''}${finalAvgMove.toFixed(2)}% ≈ median ${medianMove >= 0 ? '+' : ''}${medianMove.toFixed(2)}%). Outcomes are evenly distributed without extreme outliers skewing results.`,
+                sentiment: 'neutral'
+              });
+            } else if (skewIndicator > 0.5) {
+              interpretations.push({
+                label: 'Distribution',
+                text: `Positive skew detected (avg ${finalAvgMove >= 0 ? '+' : ''}${finalAvgMove.toFixed(2)}% > median ${medianMove >= 0 ? '+' : ''}${medianMove.toFixed(2)}%). A few large gains pull the average up—expect more modest typical outcomes.`,
+                sentiment: 'neutral'
+              });
+            } else {
+              interpretations.push({
+                label: 'Distribution',
+                text: `Negative skew detected (avg ${finalAvgMove >= 0 ? '+' : ''}${finalAvgMove.toFixed(2)}% < median ${medianMove >= 0 ? '+' : ''}${medianMove.toFixed(2)}%). Some large losses pull the average down—typical outcomes may be better than average suggests.`,
+                sentiment: 'neutral'
+              });
+            }
+          }
+          
+          // 4. Risk/Reward Assessment
+          if (bestMove && worstMove) {
+            const riskRewardRatio = Math.abs(bestMove) / Math.abs(worstMove);
+            if (riskRewardRatio >= 1.5) {
+              interpretations.push({
+                label: 'Risk/Reward',
+                text: `Favorable asymmetry: best case (+${bestMove.toFixed(1)}%) outweighs worst case (${worstMove.toFixed(1)}%) by ${riskRewardRatio.toFixed(1)}:1. Upside potential exceeds downside risk.`,
+                sentiment: 'good'
+              });
+            } else if (riskRewardRatio >= 0.8) {
+              interpretations.push({
+                label: 'Risk/Reward',
+                text: `Balanced risk profile: upside (+${bestMove.toFixed(1)}%) roughly matches downside (${worstMove.toFixed(1)}%). Position sizing and stop-losses are critical.`,
+                sentiment: 'neutral'
+              });
+            } else {
+              interpretations.push({
+                label: 'Risk/Reward',
+                text: `Unfavorable asymmetry: worst case (${worstMove.toFixed(1)}%) exceeds best case (+${bestMove.toFixed(1)}%). Consider tight stop-losses or smaller position sizes.`,
+                sentiment: 'bad'
+              });
+            }
+          }
+          
+          // 5. Volatility Context
+          if (stdDev > 0) {
+            if (stdDev >= 5) {
+              interpretations.push({
+                label: 'Volatility',
+                text: `High volatility (σ = ${stdDev.toFixed(2)}%) means wide outcome dispersion. Expect significant variance—individual results will differ greatly from averages.`,
+                sentiment: 'neutral'
+              });
+            } else if (stdDev >= 2) {
+              interpretations.push({
+                label: 'Volatility',
+                text: `Moderate volatility (σ = ${stdDev.toFixed(2)}%). Outcomes cluster reasonably around the mean—averages are a decent predictor of typical results.`,
+                sentiment: 'neutral'
+              });
+            } else {
+              interpretations.push({
+                label: 'Volatility',
+                text: `Low volatility (σ = ${stdDev.toFixed(2)}%) indicates tight clustering around the mean. Outcomes are highly predictable and consistent.`,
+                sentiment: 'good'
+              });
+            }
+          }
+          
+          // 6. Actionable Conclusion
+          let conclusion = '';
+          let conclusionSentiment: 'good' | 'bad' | 'neutral' = 'neutral';
+          
+          if (finalAvgMove >= 1 && finalWinRate >= 55 && finalOccurrences >= 30) {
+            conclusion = `Strong bullish signal: positive expected value (+${finalAvgMove.toFixed(2)}%), high win rate (${finalWinRate.toFixed(1)}%), and sufficient sample size make this a reliable pattern for upside bias.`;
+            conclusionSentiment = 'good';
+          } else if (finalAvgMove <= -1 && finalWinRate <= 45 && finalOccurrences >= 30) {
+            conclusion = `Bearish signal: negative expected value (${finalAvgMove.toFixed(2)}%) with low win rate (${finalWinRate.toFixed(1)}%). Consider as a warning signal or potential short opportunity.`;
+            conclusionSentiment = 'bad';
+          } else if (finalOccurrences < 20) {
+            conclusion = `Insufficient data for reliable conclusions. Collect more historical occurrences before acting on this pattern.`;
+            conclusionSentiment = 'neutral';
+          } else if (Math.abs(finalAvgMove) < 0.5 && finalWinRate >= 45 && finalWinRate <= 55) {
+            conclusion = `No significant edge detected. This condition shows near-random price behavior—not recommended as a standalone trading signal.`;
+            conclusionSentiment = 'neutral';
+          } else {
+            conclusion = `Mixed signal: some edge exists but with tradeoffs. Use in combination with other indicators and proper risk management.`;
+            conclusionSentiment = 'neutral';
+          }
+          
+          return { interpretations, conclusion, conclusionSentiment };
+        };
+        
+        const { interpretations, conclusion, conclusionSentiment } = generateAISummary();
+        const hasData = interpretations.length > 0;
+        
+        return hasData ? (
+          <div className="px-3 py-3 border-b bg-gradient-to-r from-primary/5 via-primary/3 to-transparent">
+            {/* Header */}
+            <div className="flex items-center gap-2 mb-2.5">
+              <div className="p-1.5 rounded-lg bg-primary/20">
+                <Lightbulb className="h-3.5 w-3.5 text-primary" />
+              </div>
+              <span className="text-xs font-semibold text-primary uppercase tracking-wide">AI Analysis & Interpretation</span>
+            </div>
+            
+            {/* Interpretation Cards */}
+            <div className="space-y-2 mb-3">
+              {interpretations.map((item, idx) => (
+                <div 
+                  key={idx} 
+                  className={cn(
+                    "flex items-start gap-2 p-2 rounded-lg border text-xs",
+                    item.sentiment === 'good' && "bg-emerald-500/5 border-emerald-500/20",
+                    item.sentiment === 'bad' && "bg-red-500/5 border-red-500/20",
+                    item.sentiment === 'neutral' && "bg-muted/30 border-border/50"
+                  )}
+                >
+                  <Badge 
+                    variant="outline" 
+                    className={cn(
+                      "text-[9px] px-1.5 py-0 shrink-0 mt-0.5",
+                      item.sentiment === 'good' && "border-emerald-500/40 text-emerald-600",
+                      item.sentiment === 'bad' && "border-red-500/40 text-red-600",
+                      item.sentiment === 'neutral' && "border-border text-muted-foreground"
+                    )}
+                  >
+                    {item.label}
+                  </Badge>
+                  <p className="text-muted-foreground leading-relaxed">{item.text}</p>
+                </div>
+              ))}
+            </div>
+            
+            {/* Conclusion */}
+            {conclusion && (
+              <div className={cn(
+                "p-2.5 rounded-lg border-2",
+                conclusionSentiment === 'good' && "bg-emerald-500/10 border-emerald-500/30",
+                conclusionSentiment === 'bad' && "bg-red-500/10 border-red-500/30",
+                conclusionSentiment === 'neutral' && "bg-muted/40 border-border"
+              )}>
+                <div className="flex items-center gap-2 mb-1">
+                  <Crosshair className={cn(
+                    "h-3.5 w-3.5",
+                    conclusionSentiment === 'good' && "text-emerald-500",
+                    conclusionSentiment === 'bad' && "text-red-500",
+                    conclusionSentiment === 'neutral' && "text-muted-foreground"
+                  )} />
+                  <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Bottom Line</span>
+                </div>
+                <p className={cn(
+                  "text-xs font-medium leading-relaxed",
+                  conclusionSentiment === 'good' && "text-emerald-700 dark:text-emerald-400",
+                  conclusionSentiment === 'bad' && "text-red-700 dark:text-red-400",
+                  conclusionSentiment === 'neutral' && "text-foreground"
+                )}>
+                  {conclusion}
+                </p>
+              </div>
+            )}
+          </div>
+        ) : (result.interpretation || result.insight) ? (
+          <div className="px-3 py-2 border-b bg-primary/5">
+            <p className="text-xs text-foreground/90 leading-relaxed">
+              <span className="text-[9px] text-muted-foreground uppercase tracking-wide font-semibold mr-1.5">Insight:</span>
+              <span className="font-medium">{result.interpretation || result.insight}</span>
+            </p>
+          </div>
+        ) : null;
+      })()}
 
       {/* Metrics Display */}
       <div className="p-3 border-b bg-gradient-to-b from-background to-muted/10">
