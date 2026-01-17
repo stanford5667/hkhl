@@ -132,24 +132,24 @@ export function QuantLabWelcomeHero({
   }));
 
   return (
-    <div className="flex flex-col items-center justify-start min-h-[calc(100vh-100px)] px-4 py-6 overflow-y-auto">
-      {/* Animated Background */}
+    <div className="flex flex-col items-center justify-start min-h-[calc(100vh-140px)] md:min-h-[calc(100vh-100px)] px-3 sm:px-4 py-4 sm:py-6 overflow-y-auto pb-24 md:pb-6">
+      {/* Animated Background - smaller on mobile */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-primary/5 rounded-full blur-3xl animate-pulse" />
-        <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-violet-500/5 rounded-full blur-3xl animate-pulse delay-1000" />
-        <div className="absolute top-1/2 right-1/3 w-64 h-64 bg-emerald-500/5 rounded-full blur-3xl animate-pulse delay-500" />
+        <div className="absolute top-1/4 left-1/4 w-48 sm:w-96 h-48 sm:h-96 bg-primary/5 rounded-full blur-3xl animate-pulse" />
+        <div className="absolute bottom-1/4 right-1/4 w-40 sm:w-80 h-40 sm:h-80 bg-violet-500/5 rounded-full blur-3xl animate-pulse delay-1000" />
+        <div className="absolute top-1/2 right-1/3 w-32 sm:w-64 h-32 sm:h-64 bg-emerald-500/5 rounded-full blur-3xl animate-pulse delay-500" />
       </div>
 
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="relative z-10 w-full max-w-7xl mx-auto space-y-12"
+        className="relative z-10 w-full max-w-7xl mx-auto space-y-6 sm:space-y-12"
       >
         {/* ===================== HERO SECTION ===================== */}
-        <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-start">
+        <div className="grid lg:grid-cols-2 gap-5 sm:gap-8 lg:gap-12 items-start">
           
           {/* Left Column - Hero Text & CTA */}
-          <div className="space-y-6 text-center lg:text-left">
+          <div className="space-y-4 sm:space-y-6 text-center lg:text-left">
             {/* Hero Badge */}
             <motion.div
               initial={{ opacity: 0, scale: 0.9 }}
@@ -159,9 +159,9 @@ export function QuantLabWelcomeHero({
             >
               <Badge 
                 variant="outline" 
-                className="px-4 py-1.5 text-sm border-primary/30 bg-primary/5"
+                className="px-3 sm:px-4 py-1 sm:py-1.5 text-xs sm:text-sm border-primary/30 bg-primary/5"
               >
-                <Sparkles className="h-3.5 w-3.5 mr-2 text-primary" />
+                <Sparkles className="h-3 sm:h-3.5 w-3 sm:w-3.5 mr-1.5 sm:mr-2 text-primary" />
                 No-Code Quant Tools
               </Badge>
             </motion.div>
@@ -171,16 +171,16 @@ export function QuantLabWelcomeHero({
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
-              className="space-y-4"
+              className="space-y-2 sm:space-y-4"
             >
-              <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight">
+              <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight">
                 <span className="bg-gradient-to-r from-primary via-violet-500 to-purple-500 bg-clip-text text-transparent">
                   Zero Coding
                 </span>
                 <br />
                 <span className="text-foreground">Quant Analysis.</span>
               </h1>
-              <p className="text-base md:text-lg text-muted-foreground max-w-lg mx-auto lg:mx-0">
+              <p className="text-sm sm:text-base md:text-lg text-muted-foreground max-w-lg mx-auto lg:mx-0">
                 Answer questions like{' '}
                 <span className="text-foreground font-medium italic">"What happens after a -2% day?"</span>
                 {' '}with real data. Build portfolios. Discover your investor type.{' '}
@@ -188,19 +188,19 @@ export function QuantLabWelcomeHero({
               </p>
             </motion.div>
 
-            {/* Benefits Row */}
+            {/* Benefits Row - 2x2 grid on mobile */}
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3 }}
-              className="flex flex-wrap justify-center lg:justify-start gap-x-4 gap-y-2"
+              className="grid grid-cols-2 sm:flex sm:flex-wrap justify-center lg:justify-start gap-x-3 sm:gap-x-4 gap-y-1.5 sm:gap-y-2"
             >
               {BENEFITS.map((benefit) => (
                 <div 
                   key={benefit}
-                  className="flex items-center gap-2 text-sm text-muted-foreground"
+                  className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm text-muted-foreground"
                 >
-                  <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
+                  <CheckCircle2 className="h-3.5 sm:h-4 w-3.5 sm:w-4 text-emerald-500 shrink-0" />
                   <span>{benefit}</span>
                 </div>
               ))}
@@ -211,16 +211,16 @@ export function QuantLabWelcomeHero({
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.4 }}
-              className="flex justify-center lg:justify-start pt-2"
+              className="flex justify-center lg:justify-start pt-1 sm:pt-2"
             >
               <Button
                 size="lg"
                 onClick={onSignUp}
-                className="h-12 px-6 text-base gap-2 rounded-xl shadow-lg shadow-primary/20"
+                className="h-10 sm:h-12 px-4 sm:px-6 text-sm sm:text-base gap-2 rounded-xl shadow-lg shadow-primary/20"
               >
-                <FlaskConical className="h-5 w-5" />
+                <FlaskConical className="h-4 sm:h-5 w-4 sm:w-5" />
                 Run Quant Studies
-                <ArrowRight className="h-4 w-4" />
+                <ArrowRight className="h-3.5 sm:h-4 w-3.5 sm:w-4" />
               </Button>
             </motion.div>
           </div>
@@ -236,57 +236,57 @@ export function QuantLabWelcomeHero({
             <div className="absolute -inset-4 bg-gradient-to-r from-red-500/20 via-primary/20 to-emerald-500/20 rounded-3xl blur-2xl opacity-50" />
             
             {/* Conditional Probability Card */}
-            <div className="relative bg-card border-2 border-primary/30 rounded-2xl overflow-hidden shadow-2xl shadow-primary/10">
+            <div className="relative bg-card border-2 border-primary/30 rounded-xl sm:rounded-2xl overflow-hidden shadow-2xl shadow-primary/10">
               {/* Header */}
-              <div className="px-5 py-4 bg-gradient-to-r from-red-500/10 via-primary/5 to-emerald-500/10 border-b border-border">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-red-500 to-primary flex items-center justify-center">
-                      <TrendingDown className="h-5 w-5 text-white" />
+              <div className="px-3 sm:px-5 py-3 sm:py-4 bg-gradient-to-r from-red-500/10 via-primary/5 to-emerald-500/10 border-b border-border">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2 sm:gap-3">
+                    <div className="w-8 sm:w-10 h-8 sm:h-10 rounded-lg sm:rounded-xl bg-gradient-to-br from-red-500 to-primary flex items-center justify-center shrink-0">
+                      <TrendingDown className="h-4 sm:h-5 w-4 sm:w-5 text-white" />
                     </div>
-                    <div>
-                      <h3 className="font-bold text-foreground">{CONDITIONAL_STUDY.condition}</h3>
-                      <p className="text-xs text-muted-foreground">
+                    <div className="min-w-0">
+                      <h3 className="font-bold text-foreground text-sm sm:text-base truncate">{CONDITIONAL_STUDY.condition}</h3>
+                      <p className="text-[10px] sm:text-xs text-muted-foreground">
                         {CONDITIONAL_STUDY.ticker} • {CONDITIONAL_STUDY.period} of data
                       </p>
                     </div>
                   </div>
-                  <Badge variant="outline" className="text-primary border-primary/30 bg-primary/10">
-                    <Activity className="h-3 w-3 mr-1" />
+                  <Badge variant="outline" className="text-primary border-primary/30 bg-primary/10 text-[10px] sm:text-xs shrink-0 px-1.5 sm:px-2">
+                    <Activity className="h-2.5 sm:h-3 w-2.5 sm:w-3 mr-0.5 sm:mr-1" />
                     Live Study
                   </Badge>
                 </div>
               </div>
 
               {/* Main Content */}
-              <div className="p-5 space-y-5">
+              <div className="p-3 sm:p-5 space-y-3 sm:space-y-5">
                 {/* Question & Answer */}
-                <div className="bg-muted/30 rounded-xl p-4 border border-border/50">
-                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">
+                <div className="bg-muted/30 rounded-lg sm:rounded-xl p-3 sm:p-4 border border-border/50">
+                  <p className="text-[10px] sm:text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1 sm:mb-2">
                     The Question
                   </p>
-                  <p className="text-sm text-foreground font-medium">
+                  <p className="text-xs sm:text-sm text-foreground font-medium">
                     "When SPY drops more than {CONDITIONAL_STUDY.threshold}% in a single day, what happens next?"
                   </p>
                 </div>
 
                 {/* Hero Metrics */}
-                <div className="grid grid-cols-3 gap-3">
+                <div className="grid grid-cols-3 gap-2 sm:gap-3">
                   {/* Win Rate */}
                   <motion.div 
                     initial={{ scale: 0.9 }}
                     animate={{ scale: 1 }}
                     transition={{ delay: 0.5, type: 'spring' }}
-                    className="bg-emerald-500/10 border border-emerald-500/30 rounded-xl p-3 text-center"
+                    className="bg-emerald-500/10 border border-emerald-500/30 rounded-lg sm:rounded-xl p-2 sm:p-3 text-center"
                   >
-                    <div className="flex items-center justify-center gap-1 text-emerald-500 mb-1">
-                      <TrendingUp className="h-3.5 w-3.5" />
-                      <span className="text-[10px] font-medium uppercase">Bounce Rate</span>
+                    <div className="flex items-center justify-center gap-0.5 sm:gap-1 text-emerald-500 mb-0.5 sm:mb-1">
+                      <TrendingUp className="h-3 sm:h-3.5 w-3 sm:w-3.5" />
+                      <span className="text-[8px] sm:text-[10px] font-medium uppercase">Bounce Rate</span>
                     </div>
-                    <p className="text-2xl font-bold text-emerald-500 font-mono">
+                    <p className="text-lg sm:text-2xl font-bold text-emerald-500 font-mono">
                       {CONDITIONAL_STUDY.winRate}%
                     </p>
-                    <p className="text-[10px] text-emerald-500/70">
+                    <p className="text-[8px] sm:text-[10px] text-emerald-500/70">
                       go UP within 5 days
                     </p>
                   </motion.div>
@@ -296,16 +296,16 @@ export function QuantLabWelcomeHero({
                     initial={{ scale: 0.9 }}
                     animate={{ scale: 1 }}
                     transition={{ delay: 0.6, type: 'spring' }}
-                    className="bg-primary/10 border border-primary/30 rounded-xl p-3 text-center"
+                    className="bg-primary/10 border border-primary/30 rounded-lg sm:rounded-xl p-2 sm:p-3 text-center"
                   >
-                    <div className="flex items-center justify-center gap-1 text-primary mb-1">
-                      <DollarSign className="h-3.5 w-3.5" />
-                      <span className="text-[10px] font-medium uppercase">Avg Return</span>
+                    <div className="flex items-center justify-center gap-0.5 sm:gap-1 text-primary mb-0.5 sm:mb-1">
+                      <DollarSign className="h-3 sm:h-3.5 w-3 sm:w-3.5" />
+                      <span className="text-[8px] sm:text-[10px] font-medium uppercase">Avg Return</span>
                     </div>
-                    <p className="text-2xl font-bold text-primary font-mono">
+                    <p className="text-lg sm:text-2xl font-bold text-primary font-mono">
                       +{CONDITIONAL_STUDY.avgReturn}%
                     </p>
-                    <p className="text-[10px] text-primary/70">
+                    <p className="text-[8px] sm:text-[10px] text-primary/70">
                       average 5-day move
                     </p>
                   </motion.div>
@@ -315,16 +315,16 @@ export function QuantLabWelcomeHero({
                     initial={{ scale: 0.9 }}
                     animate={{ scale: 1 }}
                     transition={{ delay: 0.7, type: 'spring' }}
-                    className="bg-muted/50 border border-border rounded-xl p-3 text-center"
+                    className="bg-muted/50 border border-border rounded-lg sm:rounded-xl p-2 sm:p-3 text-center"
                   >
-                    <div className="flex items-center justify-center gap-1 text-muted-foreground mb-1">
-                      <Calendar className="h-3.5 w-3.5" />
-                      <span className="text-[10px] font-medium uppercase">Occurrences</span>
+                    <div className="flex items-center justify-center gap-0.5 sm:gap-1 text-muted-foreground mb-0.5 sm:mb-1">
+                      <Calendar className="h-3 sm:h-3.5 w-3 sm:w-3.5" />
+                      <span className="text-[8px] sm:text-[10px] font-medium uppercase">Occurrences</span>
                     </div>
-                    <p className="text-2xl font-bold text-foreground font-mono">
+                    <p className="text-lg sm:text-2xl font-bold text-foreground font-mono">
                       {CONDITIONAL_STUDY.occurrences}
                     </p>
-                    <p className="text-[10px] text-muted-foreground">
+                    <p className="text-[8px] sm:text-[10px] text-muted-foreground">
                       times this happened
                     </p>
                   </motion.div>
@@ -335,19 +335,19 @@ export function QuantLabWelcomeHero({
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.8 }}
-                  className="bg-muted/20 rounded-xl p-4 border border-border/50"
+                  className="bg-muted/20 rounded-lg sm:rounded-xl p-3 sm:p-4 border border-border/50"
                 >
-                  <div className="flex items-center justify-between mb-3">
-                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                  <div className="flex items-center justify-between mb-2 sm:mb-3 gap-2">
+                    <p className="text-[10px] sm:text-xs font-semibold text-muted-foreground uppercase tracking-wide">
                       5-Day Forward Returns Distribution
                     </p>
-                    <Badge variant="secondary" className="text-[10px]">
+                    <Badge variant="secondary" className="text-[8px] sm:text-[10px] shrink-0">
                       {CONDITIONAL_STUDY.returns.filter(r => r >= 0).length} wins / {CONDITIONAL_STUDY.returns.filter(r => r < 0).length} losses
                     </Badge>
                   </div>
                   
                   {/* Bar Chart */}
-                  <div className="h-20">
+                  <div className="h-16 sm:h-20">
                     <ResponsiveContainer width="100%" height="100%">
                       <BarChart data={chartData} margin={{ top: 5, right: 5, bottom: 5, left: 5 }}>
                         <XAxis dataKey="idx" hide />
@@ -361,43 +361,43 @@ export function QuantLabWelcomeHero({
                     </ResponsiveContainer>
                   </div>
                   
-                  <div className="flex justify-between text-[10px] text-muted-foreground mt-2">
+                  <div className="flex justify-between text-[8px] sm:text-[10px] text-muted-foreground mt-1.5 sm:mt-2">
                     <span className="flex items-center gap-1">
-                      <div className="w-2 h-2 rounded-sm bg-emerald-500" />
+                      <div className="w-1.5 sm:w-2 h-1.5 sm:h-2 rounded-sm bg-emerald-500" />
                       Positive Returns
                     </span>
                     <span className="flex items-center gap-1">
-                      <div className="w-2 h-2 rounded-sm bg-destructive" />
+                      <div className="w-1.5 sm:w-2 h-1.5 sm:h-2 rounded-sm bg-destructive" />
                       Negative Returns
                     </span>
                   </div>
                 </motion.div>
 
                 {/* Forward Analysis Preview */}
-                <div className="grid grid-cols-4 gap-2">
+                <div className="grid grid-cols-4 gap-1.5 sm:gap-2">
                   {CONDITIONAL_STUDY.distribution.map((item, idx) => (
                     <motion.div
                       key={item.day}
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: 0.9 + idx * 0.1 }}
-                      className="bg-muted/30 rounded-lg p-2 text-center"
+                      className="bg-muted/30 rounded-md sm:rounded-lg p-1.5 sm:p-2 text-center"
                     >
-                      <p className="text-[10px] text-muted-foreground">{item.day}D Forward</p>
-                      <p className="text-sm font-bold text-emerald-500 font-mono">+{item.return}%</p>
-                      <p className="text-[9px] text-muted-foreground">{item.winRate}% win</p>
+                      <p className="text-[8px] sm:text-[10px] text-muted-foreground">{item.day}D Forward</p>
+                      <p className="text-xs sm:text-sm font-bold text-emerald-500 font-mono">+{item.return}%</p>
+                      <p className="text-[7px] sm:text-[9px] text-muted-foreground">{item.winRate}% win</p>
                     </motion.div>
                   ))}
                 </div>
               </div>
             </div>
 
-            {/* Floating Annotation */}
+            {/* Floating Annotation - hidden on very small screens */}
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 1.2 }}
-              className="absolute -bottom-4 -right-4 bg-primary text-primary-foreground text-xs font-semibold px-3 py-1.5 rounded-full shadow-lg"
+              className="absolute -bottom-3 sm:-bottom-4 -right-2 sm:-right-4 bg-primary text-primary-foreground text-[10px] sm:text-xs font-semibold px-2 sm:px-3 py-1 sm:py-1.5 rounded-full shadow-lg hidden sm:block"
             >
               ← Real conditional probability output
             </motion.div>
@@ -409,23 +409,23 @@ export function QuantLabWelcomeHero({
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.8 }}
-          className="space-y-6"
+          className="space-y-4 sm:space-y-6"
         >
           <div className="text-center">
-            <Badge variant="outline" className="mb-3">
-              <Database className="h-3 w-3 mr-1.5" />
+            <Badge variant="outline" className="mb-2 sm:mb-3 text-xs">
+              <Database className="h-2.5 sm:h-3 w-2.5 sm:w-3 mr-1 sm:mr-1.5" />
               Full Platform Access
             </Badge>
-            <h2 className="text-2xl md:text-3xl font-bold">
+            <h2 className="text-xl sm:text-2xl md:text-3xl font-bold">
               Everything You Need to <span className="text-primary">Invest Smarter</span>
             </h2>
-            <p className="text-muted-foreground mt-2 max-w-2xl mx-auto">
+            <p className="text-sm sm:text-base text-muted-foreground mt-1.5 sm:mt-2 max-w-2xl mx-auto px-2">
               From portfolio construction to AI-powered insights—explore institutional-grade tools designed for modern investors.
             </p>
           </div>
 
           {/* Feature Cards Grid */}
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
             {PLATFORM_FEATURES.map((feature, idx) => (
               <motion.div
                 key={feature.id}
@@ -447,32 +447,32 @@ export function QuantLabWelcomeHero({
                     "opacity-5"
                   )} />
                   
-                  <CardContent className="p-5 space-y-4">
+                  <CardContent className="p-3 sm:p-5 space-y-2 sm:space-y-4">
                     {/* Header */}
-                    <div className="flex items-start justify-between">
+                    <div className="flex items-start justify-between gap-1">
                       <div className={cn(
-                        "w-12 h-12 rounded-xl flex items-center justify-center bg-gradient-to-br",
+                        "w-9 sm:w-12 h-9 sm:h-12 rounded-lg sm:rounded-xl flex items-center justify-center bg-gradient-to-br shrink-0",
                         feature.color
                       )}>
-                        <feature.icon className="h-6 w-6 text-white" />
+                        <feature.icon className="h-4 sm:h-6 w-4 sm:w-6 text-white" />
                       </div>
-                      <Badge variant="outline" className="text-[10px] bg-background/80">
+                      <Badge variant="outline" className="text-[8px] sm:text-[10px] bg-background/80 px-1 sm:px-2 shrink-0">
                         {feature.badge}
                       </Badge>
                     </div>
 
                     {/* Content */}
                     <div>
-                      <h3 className="font-bold text-lg text-foreground group-hover:text-primary transition-colors">
+                      <h3 className="font-bold text-sm sm:text-lg text-foreground group-hover:text-primary transition-colors line-clamp-1">
                         {feature.name}
                       </h3>
-                      <p className="text-sm text-muted-foreground mt-1">
+                      <p className="text-xs sm:text-sm text-muted-foreground mt-0.5 sm:mt-1 line-clamp-2">
                         {feature.description}
                       </p>
                     </div>
 
-                    {/* Preview Content */}
-                    <div className="bg-muted/50 rounded-lg p-3 border border-border/50">
+                    {/* Preview Content - hidden on very small screens */}
+                    <div className="bg-muted/50 rounded-lg p-2 sm:p-3 border border-border/50 hidden sm:block">
                       {feature.preview.type === 'options' && 'options' in feature.preview && (
                         <div className="space-y-2">
                           {feature.preview.options?.map((item, i: number) => (
@@ -519,9 +519,10 @@ export function QuantLabWelcomeHero({
                     </div>
 
                     {/* CTA */}
-                    <div className="flex items-center text-sm font-medium text-primary group-hover:translate-x-1 transition-transform">
-                      Explore {feature.name}
-                      <ChevronRight className="h-4 w-4 ml-1" />
+                    <div className="flex items-center text-xs sm:text-sm font-medium text-primary group-hover:translate-x-1 transition-transform">
+                      <span className="hidden sm:inline">Explore {feature.name}</span>
+                      <span className="sm:hidden">Explore</span>
+                      <ChevronRight className="h-3.5 sm:h-4 w-3.5 sm:w-4 ml-0.5 sm:ml-1" />
                     </div>
                   </CardContent>
                 </Card>
@@ -535,25 +536,25 @@ export function QuantLabWelcomeHero({
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 1.2 }}
-          className="bg-card border rounded-2xl p-6 md:p-8"
+          className="bg-card border rounded-xl sm:rounded-2xl p-4 sm:p-6 md:p-8"
         >
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 sm:gap-4 mb-4 sm:mb-6">
             <div>
-              <h3 className="text-xl font-bold flex items-center gap-2">
-                <FlaskConical className="h-5 w-5 text-primary" />
+              <h3 className="text-base sm:text-xl font-bold flex items-center gap-2">
+                <FlaskConical className="h-4 sm:h-5 w-4 sm:w-5 text-primary" />
                 Popular Quant Studies
               </h3>
-              <p className="text-sm text-muted-foreground mt-1">
+              <p className="text-xs sm:text-sm text-muted-foreground mt-0.5 sm:mt-1">
                 Click any study below to run it instantly
               </p>
             </div>
-            <Button variant="outline" onClick={onRunDemo} className="gap-2">
-              <Zap className="h-4 w-4" />
+            <Button variant="outline" onClick={onRunDemo} className="gap-2 h-9 sm:h-10 text-xs sm:text-sm">
+              <Zap className="h-3.5 sm:h-4 w-3.5 sm:w-4" />
               Run Custom Study
             </Button>
           </div>
 
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          <div className="grid grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3">
             {[
               { id: 'after_consecutive_days', name: 'After 3 Down Days', question: 'Does SPY bounce after 3 red days?', result: '68% bounce' },
               { id: 'after_large_move', name: 'After -2% Down Day', question: 'What happens after big selloffs?', result: '64% go up' },
@@ -566,20 +567,20 @@ export function QuantLabWelcomeHero({
                 key={study.id}
                 onClick={() => onSelectStudy(study.id)}
                 className={cn(
-                  "flex flex-col p-4 rounded-xl border transition-all text-left",
+                  "flex flex-col p-2.5 sm:p-4 rounded-lg sm:rounded-xl border transition-all text-left",
                   "bg-muted/30 hover:bg-muted/50 border-border hover:border-primary/50",
                   "group"
                 )}
               >
-                <div className="flex items-center justify-between mb-2">
-                  <span className="font-semibold text-foreground group-hover:text-primary transition-colors">
+                <div className="flex items-start sm:items-center justify-between gap-1 mb-1 sm:mb-2">
+                  <span className="font-semibold text-xs sm:text-base text-foreground group-hover:text-primary transition-colors line-clamp-1">
                     {study.name}
                   </span>
-                  <Badge variant="outline" className="text-[10px] text-emerald-500 border-emerald-500/30">
+                  <Badge variant="outline" className="text-[8px] sm:text-[10px] text-emerald-500 border-emerald-500/30 shrink-0 px-1 sm:px-2">
                     {study.result}
                   </Badge>
                 </div>
-                <p className="text-xs text-muted-foreground">{study.question}</p>
+                <p className="text-[10px] sm:text-xs text-muted-foreground line-clamp-2">{study.question}</p>
               </button>
             ))}
           </div>
@@ -590,7 +591,7 @@ export function QuantLabWelcomeHero({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 1.4 }}
-          className="flex flex-wrap justify-center gap-6 py-6"
+          className="grid grid-cols-2 sm:flex sm:flex-wrap justify-center gap-3 sm:gap-6 py-4 sm:py-6"
         >
           {[
             { icon: Database, label: '10+ Years Historical Data' },
@@ -598,8 +599,8 @@ export function QuantLabWelcomeHero({
             { icon: Zap, label: 'Real-Time Analysis' },
             { icon: Users, label: 'Used by 10,000+ Investors' }
           ].map((item, idx) => (
-            <div key={idx} className="flex items-center gap-2 text-sm text-muted-foreground">
-              <item.icon className="h-4 w-4 text-primary" />
+            <div key={idx} className="flex items-center gap-1.5 sm:gap-2 text-[10px] sm:text-sm text-muted-foreground">
+              <item.icon className="h-3.5 sm:h-4 w-3.5 sm:w-4 text-primary shrink-0" />
               <span>{item.label}</span>
             </div>
           ))}
