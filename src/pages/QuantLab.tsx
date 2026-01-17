@@ -1142,7 +1142,7 @@ export default function QuantLab() {
       return metrics.filter((entry): entry is [string, any] => entry[1] !== undefined);
     }
 
-    const excludeKeys = ['type', 'studyName', 'params', 'interpretation', 'histogram', 'distribution', 'stats', 'recentGaps', 'recentDrawdowns', 'recentNewHighs', 'recentNewLows', 'components', 'barsAnalyzed', 'dateRange', 'usedMockData', 'dayStats', 'monthStats'];
+    const excludeKeys = ['type', 'studyName', 'params', 'interpretation', 'histogram', 'distribution', 'stats', 'recentGaps', 'recentDrawdowns', 'recentNewHighs', 'recentNewLows', 'components', 'barsAnalyzed', 'dateRange', 'usedMockData', 'dayStats', 'monthStats', 'label', 'total_days'];
     return Object.entries(result).filter(([key, value]) => {
       if (excludeKeys.includes(key)) return false;
       if (typeof value === 'object') return false;
@@ -1681,7 +1681,14 @@ function QuantLabContent(props: any) {
                                 ${selectedTicker}
                               </Badge>
                             </div>
-                            <p className="text-xs md:text-sm text-muted-foreground mt-0.5 md:mt-1 line-clamp-1 md:line-clamp-none">{study.description}</p>
+                            <p className="text-xs md:text-sm text-muted-foreground mt-0.5 md:mt-1 line-clamp-1 md:line-clamp-none">
+                              {study.description}
+                              {result.total_days && (
+                                <span className="ml-1 text-foreground font-medium">
+                                  · {result.total_days} days analyzed
+                                </span>
+                              )}
+                            </p>
                           </div>
                           <Button
                             size="sm"
