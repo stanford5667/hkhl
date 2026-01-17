@@ -93,6 +93,7 @@ interface StudyDefinition {
 
 const STUDY_DEFINITIONS: StudyDefinition[] = [
   // ========== BASIC STATISTICS ==========
+  // ========== BASIC STATISTICS (no editable params - pure analysis) ==========
   {
     id: 'daily_close_gt_open',
     name: 'Intraday Direction',
@@ -104,19 +105,7 @@ const STUDY_DEFINITIONS: StudyDefinition[] = [
     howToUse: 'Values above 55% suggest bullish intraday bias. Below 45% suggests bearish bias.',
     difficulty: 'beginner',
     tags: ['momentum', 'direction', 'daily'],
-    params: [
-      {
-        key: 'minGapPercent',
-        label: 'Minimum Gap',
-        description: 'Only count days with at least this much gain',
-        type: 'slider',
-        min: 0,
-        max: 2,
-        step: 0.1,
-        default: 0,
-        beginner: 'Set to 0 to count all up days, or higher to only count significant moves'
-      }
-    ]
+    params: [] // No adjustable params - pure factual analysis
   },
   {
     id: 'daily_close_gt_prior',
@@ -129,19 +118,7 @@ const STUDY_DEFINITIONS: StudyDefinition[] = [
     howToUse: 'Most stocks hover around 52-54%. Higher is bullish, lower is concerning.',
     difficulty: 'beginner',
     tags: ['momentum', 'win-rate'],
-    params: [
-      {
-        key: 'minChangePercent',
-        label: 'Minimum Change',
-        description: 'Only count days with at least this much change',
-        type: 'slider',
-        min: 0,
-        max: 1,
-        step: 0.1,
-        default: 0,
-        beginner: 'Set higher to filter out tiny moves'
-      }
-    ]
+    params: [] // No adjustable params - pure factual analysis
   },
   {
     id: 'daily_return_distribution',
@@ -154,30 +131,7 @@ const STUDY_DEFINITIONS: StudyDefinition[] = [
     howToUse: 'Look at the mean (average daily gain), std dev (typical range), and outliers.',
     difficulty: 'intermediate',
     tags: ['volatility', 'statistics'],
-    params: [
-      {
-        key: 'bucketSize',
-        label: 'Histogram Bucket Size',
-        description: 'Width of each bar in the histogram',
-        type: 'slider',
-        min: 0.25,
-        max: 2,
-        step: 0.25,
-        default: 0.5,
-        beginner: 'Smaller = more detailed chart, larger = simpler view'
-      },
-      {
-        key: 'outlierThreshold',
-        label: 'Outlier Threshold',
-        description: 'Standard deviations to flag as outlier',
-        type: 'slider',
-        min: 2,
-        max: 4,
-        step: 0.5,
-        default: 3,
-        beginner: 'How extreme a move needs to be to flag it as unusual'
-      }
-    ]
+    params: [] // No adjustable params - shows full distribution automatically
   },
   {
     id: 'up_down_streaks',
@@ -190,22 +144,10 @@ const STUDY_DEFINITIONS: StudyDefinition[] = [
     howToUse: 'Compare max win streak vs loss streak. Longer win streaks = stronger momentum.',
     difficulty: 'beginner',
     tags: ['momentum', 'streaks'],
-    params: [
-      {
-        key: 'minStreakLength',
-        label: 'Min Streak to Count',
-        description: 'Minimum days in a row to be considered a streak',
-        type: 'slider',
-        min: 2,
-        max: 5,
-        step: 1,
-        default: 2,
-        beginner: 'Set to 3+ to only see significant streaks'
-      }
-    ]
+    params: [] // No adjustable params - analyzes all streaks
   },
   
-  // ========== SEASONALITY ==========
+  // ========== SEASONALITY (simple or no params) ==========
   {
     id: 'day_of_week_returns',
     name: 'Best Days of the Week',
@@ -217,19 +159,7 @@ const STUDY_DEFINITIONS: StudyDefinition[] = [
     howToUse: 'Look for days with consistently positive returns and high win rates.',
     difficulty: 'beginner',
     tags: ['seasonality', 'timing'],
-    params: [
-      {
-        key: 'forwardDays',
-        label: 'Holding Period',
-        description: 'How many days to measure return',
-        type: 'slider',
-        min: 1,
-        max: 5,
-        step: 1,
-        default: 1,
-        beginner: '1 = next day return, 5 = week-long return'
-      }
-    ]
+    params: [] // Analyzes all days automatically
   },
   {
     id: 'month_of_year_returns',
@@ -242,10 +172,10 @@ const STUDY_DEFINITIONS: StudyDefinition[] = [
     howToUse: 'Identify strong and weak months for timing entries/exits.',
     difficulty: 'beginner',
     tags: ['seasonality', 'timing'],
-    params: []
+    params: [] // Analyzes all months automatically
   },
   
-  // ========== TECHNICAL ANALYSIS ==========
+  // ========== TECHNICAL ANALYSIS (uses industry-standard defaults) ==========
   {
     id: 'rsi_analysis',
     name: 'RSI (Overbought/Oversold)',
@@ -257,52 +187,7 @@ const STUDY_DEFINITIONS: StudyDefinition[] = [
     howToUse: 'Look for extreme readings and check historical accuracy.',
     difficulty: 'intermediate',
     tags: ['momentum', 'overbought', 'oversold'],
-    params: [
-      {
-        key: 'period',
-        label: 'RSI Period',
-        description: 'Number of days for RSI calculation',
-        type: 'slider',
-        min: 5,
-        max: 30,
-        step: 1,
-        default: 14,
-        beginner: '14 is standard. Lower = more sensitive. Higher = smoother.'
-      },
-      {
-        key: 'overbought',
-        label: 'Overbought Level',
-        description: 'RSI above this is considered overbought',
-        type: 'slider',
-        min: 60,
-        max: 90,
-        step: 5,
-        default: 70,
-        beginner: '70 is standard. Set higher for fewer, stronger signals.'
-      },
-      {
-        key: 'oversold',
-        label: 'Oversold Level',
-        description: 'RSI below this is considered oversold',
-        type: 'slider',
-        min: 10,
-        max: 40,
-        step: 5,
-        default: 30,
-        beginner: '30 is standard. Set lower for fewer, stronger signals.'
-      },
-      {
-        key: 'forwardDays',
-        label: 'Days to Measure',
-        description: 'How many days forward to check return',
-        type: 'slider',
-        min: 1,
-        max: 20,
-        step: 1,
-        default: 5,
-        beginner: 'After an overbought/oversold signal, how long to wait'
-      }
-    ]
+    params: [] // Uses industry-standard RSI(14) with 70/30 levels
   },
   {
     id: 'moving_average_analysis',
@@ -315,53 +200,7 @@ const STUDY_DEFINITIONS: StudyDefinition[] = [
     howToUse: 'Look for price above all MAs and short MA above long MA for strongest uptrends.',
     difficulty: 'intermediate',
     tags: ['trend', 'moving-average'],
-    params: [
-      {
-        key: 'shortPeriod',
-        label: 'Short MA',
-        description: 'Fast moving average period',
-        type: 'slider',
-        min: 5,
-        max: 50,
-        step: 5,
-        default: 20,
-        beginner: '20 days is common. Shows recent trend.'
-      },
-      {
-        key: 'mediumPeriod',
-        label: 'Medium MA',
-        description: 'Medium moving average period',
-        type: 'slider',
-        min: 20,
-        max: 100,
-        step: 10,
-        default: 50,
-        beginner: '50 days. Important support/resistance level.'
-      },
-      {
-        key: 'longPeriod',
-        label: 'Long MA',
-        description: 'Long moving average period',
-        type: 'slider',
-        min: 100,
-        max: 300,
-        step: 50,
-        default: 200,
-        beginner: '200 days. The "big picture" trend.'
-      },
-      {
-        key: 'maType',
-        label: 'MA Type',
-        description: 'Simple or Exponential',
-        type: 'select',
-        default: 'sma',
-        options: [
-          { value: 'sma', label: 'Simple (SMA)' },
-          { value: 'ema', label: 'Exponential (EMA)' }
-        ],
-        beginner: 'SMA = equal weight to all days. EMA = more weight to recent days.'
-      }
-    ]
+    params: [] // Uses standard 20/50/200 moving averages
   },
   {
     id: 'trend_strength',
@@ -374,52 +213,7 @@ const STUDY_DEFINITIONS: StudyDefinition[] = [
     howToUse: 'Score of 4-5 = strong uptrend. 0-1 = strong downtrend. 2-3 = mixed.',
     difficulty: 'beginner',
     tags: ['trend', 'strength'],
-    params: [
-      {
-        key: 'shortMa',
-        label: 'Short MA',
-        description: 'Fast moving average',
-        type: 'slider',
-        min: 5,
-        max: 50,
-        step: 5,
-        default: 20,
-        beginner: 'Short-term trend indicator'
-      },
-      {
-        key: 'mediumMa',
-        label: 'Medium MA',
-        description: 'Medium moving average',
-        type: 'slider',
-        min: 20,
-        max: 100,
-        step: 10,
-        default: 50,
-        beginner: 'Medium-term trend indicator'
-      },
-      {
-        key: 'longMa',
-        label: 'Long MA',
-        description: 'Long moving average',
-        type: 'slider',
-        min: 100,
-        max: 300,
-        step: 50,
-        default: 200,
-        beginner: 'Long-term trend indicator'
-      },
-      {
-        key: 'recentDays',
-        label: 'Recent Days',
-        description: 'Days to check for higher highs/lows',
-        type: 'slider',
-        min: 5,
-        max: 60,
-        step: 5,
-        default: 20,
-        beginner: 'How far back to check price pattern'
-      }
-    ]
+    params: [] // Uses standard moving average configuration
   },
   {
     id: 'macd_analysis',
@@ -432,41 +226,7 @@ const STUDY_DEFINITIONS: StudyDefinition[] = [
     howToUse: 'Buy when MACD crosses above signal. Sell when it crosses below.',
     difficulty: 'intermediate',
     tags: ['momentum', 'trend'],
-    params: [
-      {
-        key: 'fastPeriod',
-        label: 'Fast Period',
-        description: 'Fast EMA period',
-        type: 'slider',
-        min: 8,
-        max: 20,
-        step: 1,
-        default: 12,
-        beginner: 'Standard is 12'
-      },
-      {
-        key: 'slowPeriod',
-        label: 'Slow Period',
-        description: 'Slow EMA period',
-        type: 'slider',
-        min: 20,
-        max: 35,
-        step: 1,
-        default: 26,
-        beginner: 'Standard is 26'
-      },
-      {
-        key: 'signalPeriod',
-        label: 'Signal Period',
-        description: 'Signal line EMA period',
-        type: 'slider',
-        min: 5,
-        max: 15,
-        step: 1,
-        default: 9,
-        beginner: 'Standard is 9'
-      }
-    ]
+    params: [] // Uses standard MACD(12, 26, 9)
   },
   {
     id: 'bollinger_analysis',
@@ -479,30 +239,7 @@ const STUDY_DEFINITIONS: StudyDefinition[] = [
     howToUse: 'Look for touches of bands and band squeezes before breakouts.',
     difficulty: 'intermediate',
     tags: ['volatility', 'bands'],
-    params: [
-      {
-        key: 'period',
-        label: 'Period',
-        description: 'Moving average period',
-        type: 'slider',
-        min: 10,
-        max: 50,
-        step: 5,
-        default: 20,
-        beginner: '20 is standard'
-      },
-      {
-        key: 'stdDevMultiplier',
-        label: 'Band Width',
-        description: 'Standard deviations for bands',
-        type: 'slider',
-        min: 1,
-        max: 3,
-        step: 0.5,
-        default: 2,
-        beginner: '2 captures 95% of price action'
-      }
-    ]
+    params: [] // Uses standard Bollinger(20, 2)
   },
   {
     id: 'stochastic_analysis',
@@ -515,55 +252,10 @@ const STUDY_DEFINITIONS: StudyDefinition[] = [
     howToUse: 'Above 80 = near highs. Below 20 = near lows. Crossovers signal turns.',
     difficulty: 'intermediate',
     tags: ['momentum', 'overbought', 'oversold'],
-    params: [
-      {
-        key: 'kPeriod',
-        label: '%K Period',
-        description: 'Lookback period',
-        type: 'slider',
-        min: 5,
-        max: 21,
-        step: 1,
-        default: 14,
-        beginner: 'Standard is 14 days'
-      },
-      {
-        key: 'dPeriod',
-        label: '%D Period',
-        description: 'Signal line smoothing',
-        type: 'slider',
-        min: 1,
-        max: 7,
-        step: 1,
-        default: 3,
-        beginner: 'Standard is 3 days'
-      },
-      {
-        key: 'overbought',
-        label: 'Overbought',
-        description: 'Overbought threshold',
-        type: 'slider',
-        min: 70,
-        max: 90,
-        step: 5,
-        default: 80,
-        beginner: 'Standard is 80'
-      },
-      {
-        key: 'oversold',
-        label: 'Oversold',
-        description: 'Oversold threshold',
-        type: 'slider',
-        min: 10,
-        max: 30,
-        step: 5,
-        default: 20,
-        beginner: 'Standard is 20'
-      }
-    ]
+    params: [] // Uses standard Stochastic(14, 3) with 80/20 levels
   },
   
-  // ========== VOLATILITY & RISK ==========
+  // ========== VOLATILITY & RISK (no editable params) ==========
   {
     id: 'volatility_analysis',
     name: 'Volatility Profile',
@@ -575,30 +267,7 @@ const STUDY_DEFINITIONS: StudyDefinition[] = [
     howToUse: 'Compare current volatility to average. Use for position sizing.',
     difficulty: 'intermediate',
     tags: ['volatility', 'risk'],
-    params: [
-      {
-        key: 'atrPeriod',
-        label: 'ATR Period',
-        description: 'Days for ATR calculation',
-        type: 'slider',
-        min: 5,
-        max: 30,
-        step: 1,
-        default: 14,
-        beginner: '14 is standard. Measures average daily movement.'
-      },
-      {
-        key: 'volLookback',
-        label: 'Vol Lookback',
-        description: 'Days for volatility calculation',
-        type: 'slider',
-        min: 10,
-        max: 60,
-        step: 5,
-        default: 20,
-        beginner: 'Period for calculating annualized volatility'
-      }
-    ]
+    params: [] // Uses standard ATR(14) and 20-day volatility
   },
   {
     id: 'drawdown_analysis',
@@ -611,19 +280,7 @@ const STUDY_DEFINITIONS: StudyDefinition[] = [
     howToUse: 'Know the max drawdown before investing. Can you handle it?',
     difficulty: 'beginner',
     tags: ['risk', 'drawdown'],
-    params: [
-      {
-        key: 'significantThreshold',
-        label: 'Significant Threshold',
-        description: 'Minimum % drop to flag as significant',
-        type: 'slider',
-        min: 3,
-        max: 15,
-        step: 1,
-        default: 5,
-        beginner: 'Only show drawdowns bigger than this %'
-      }
-    ]
+    params: [] // Shows all significant drawdowns automatically
   },
   {
     id: 'mean_reversion',
@@ -636,33 +293,11 @@ const STUDY_DEFINITIONS: StudyDefinition[] = [
     howToUse: 'High reversal rate = fade big moves. Low = ride momentum.',
     difficulty: 'intermediate',
     tags: ['reversal', 'momentum'],
-    params: [
-      {
-        key: 'stdDevThreshold',
-        label: 'Extreme Move Size',
-        description: 'Standard deviations for "large" move',
-        type: 'slider',
-        min: 1,
-        max: 4,
-        step: 0.5,
-        default: 2,
-        beginner: '2 = roughly top/bottom 5% of days'
-      },
-      {
-        key: 'lookbackDays',
-        label: 'Days After',
-        description: 'Days to check for reversal',
-        type: 'slider',
-        min: 1,
-        max: 5,
-        step: 1,
-        default: 1,
-        beginner: 'How many days after the big move to check'
-      }
-    ]
+    params: [] // Uses standard 2 standard deviation threshold
   },
   
   // ========== PRICE PATTERNS ==========
+  // ========== PRICE PATTERNS (no editable params) ==========
   {
     id: 'gap_analysis',
     name: 'Gap Analysis',
@@ -674,30 +309,7 @@ const STUDY_DEFINITIONS: StudyDefinition[] = [
     howToUse: 'High fill rate = gaps tend to close. Low = gaps often continue.',
     difficulty: 'intermediate',
     tags: ['gaps', 'patterns'],
-    params: [
-      {
-        key: 'minGapPercent',
-        label: 'Minimum Gap',
-        description: 'Minimum gap size to analyze',
-        type: 'slider',
-        min: 0.25,
-        max: 2,
-        step: 0.25,
-        default: 0.5,
-        beginner: 'Only count gaps bigger than this %'
-      },
-      {
-        key: 'forwardDays',
-        label: 'Days to Track',
-        description: 'Days after gap to measure',
-        type: 'slider',
-        min: 1,
-        max: 5,
-        step: 1,
-        default: 1,
-        beginner: 'How long after the gap to track'
-      }
-    ]
+    params: [] // Analyzes all significant gaps automatically
   },
   {
     id: 'range_analysis',
@@ -710,19 +322,7 @@ const STUDY_DEFINITIONS: StudyDefinition[] = [
     howToUse: 'Many inside days = breakout coming. Doji = indecision.',
     difficulty: 'intermediate',
     tags: ['patterns', 'consolidation'],
-    params: [
-      {
-        key: 'dojiThreshold',
-        label: 'Doji Threshold',
-        description: 'Max body % of range to be a doji',
-        type: 'slider',
-        min: 5,
-        max: 20,
-        step: 5,
-        default: 10,
-        beginner: 'How small the body needs to be for a doji'
-      }
-    ]
+    params: [] // Uses standard definitions for patterns
   },
   {
     id: 'high_low_analysis',
@@ -735,30 +335,7 @@ const STUDY_DEFINITIONS: StudyDefinition[] = [
     howToUse: 'Check if new highs lead to gains (trend) or losses (reversal).',
     difficulty: 'intermediate',
     tags: ['breakout', 'momentum'],
-    params: [
-      {
-        key: 'lookbackPeriod',
-        label: 'Lookback Period',
-        description: 'Days to define "new high"',
-        type: 'slider',
-        min: 5,
-        max: 60,
-        step: 5,
-        default: 20,
-        beginner: '20 = monthly high. 60 = quarterly high.'
-      },
-      {
-        key: 'forwardDays',
-        label: 'Forward Days',
-        description: 'Days to measure performance after breakout',
-        type: 'slider',
-        min: 1,
-        max: 20,
-        step: 1,
-        default: 5,
-        beginner: 'How long after the breakout to check'
-      }
-    ]
+    params: [] // Uses 20-day high/low as standard
   },
   {
     id: 'close_to_open_analysis',
@@ -771,44 +348,10 @@ const STUDY_DEFINITIONS: StudyDefinition[] = [
     howToUse: 'Use this to gauge intraday conviction and the typical follow-through after strong/indecision days.',
     difficulty: 'intermediate',
     tags: ['patterns', 'candles', 'pressure'],
-    params: [
-      {
-        key: 'dojiThreshold',
-        label: 'Doji Threshold',
-        description: 'Body % of range to consider a doji',
-        type: 'slider',
-        min: 0.05,
-        max: 0.25,
-        step: 0.05,
-        default: 0.1,
-        beginner: '0.10 means body is 10% of the candle\'s range'
-      },
-      {
-        key: 'strongMoveThreshold',
-        label: 'Strong Move Threshold',
-        description: '% move to consider a strong day',
-        type: 'slider',
-        min: 0.5,
-        max: 3,
-        step: 0.25,
-        default: 1.5,
-        beginner: '1.5 means a 1.5% move from open to close'
-      },
-      {
-        key: 'forwardDays',
-        label: 'Forward Days',
-        description: 'Days to measure follow-through',
-        type: 'slider',
-        min: 1,
-        max: 10,
-        step: 1,
-        default: 1,
-        beginner: 'How many days ahead to measure what happens next'
-      }
-    ]
+    params: [] // Uses standard pattern definitions
   },
   
-  // ========== VOLUME ==========
+  // ========== VOLUME (no editable params) ==========
   {
     id: 'volume_analysis',
     name: 'Volume Profile',
@@ -820,33 +363,10 @@ const STUDY_DEFINITIONS: StudyDefinition[] = [
     howToUse: 'Look for accumulation (up volume > down volume) for bullish bias.',
     difficulty: 'intermediate',
     tags: ['volume', 'accumulation'],
-    params: [
-      {
-        key: 'avgPeriod',
-        label: 'Average Period',
-        description: 'Days for volume average',
-        type: 'slider',
-        min: 5,
-        max: 50,
-        step: 5,
-        default: 20,
-        beginner: 'Period to calculate average volume'
-      },
-      {
-        key: 'highVolThreshold',
-        label: 'High Volume Threshold',
-        description: 'Multiplier for "high volume" day',
-        type: 'slider',
-        min: 1.25,
-        max: 3,
-        step: 0.25,
-        default: 1.5,
-        beginner: '1.5x = 50% above average volume'
-      }
-    ]
+    params: [] // Uses 20-day volume average
   },
   
-  // ========== PROJECTIONS ==========
+  // ========== PROJECTIONS (no editable params) ==========
   {
     id: 'price_targets',
     name: 'Price Targets',
@@ -858,19 +378,7 @@ const STUDY_DEFINITIONS: StudyDefinition[] = [
     howToUse: 'Use bull/bear scenarios for planning, not as guarantees.',
     difficulty: 'intermediate',
     tags: ['targets', 'projections'],
-    params: [
-      {
-        key: 'confidenceLevel',
-        label: 'Confidence Range',
-        description: 'Standard deviations for bull/bear',
-        type: 'slider',
-        min: 0.5,
-        max: 2,
-        step: 0.5,
-        default: 1,
-        beginner: '1 = ~68% confidence. 2 = ~95% confidence.'
-      }
-    ]
+    params: [] // Uses 1 standard deviation for projection range
   },
   
   // ========== CONDITIONAL PROBABILITY ==========
