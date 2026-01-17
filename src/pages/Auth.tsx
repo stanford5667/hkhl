@@ -420,7 +420,7 @@ export default function Auth() {
                 </form>
               )}
 
-              <div className="text-center">
+              <div className="text-center space-y-3">
                 <button
                   type="button"
                   onClick={() => {
@@ -428,12 +428,24 @@ export default function Auth() {
                     signInForm.reset();
                     signUpForm.reset();
                   }}
-                  className="text-sm text-primary hover:text-primary/80 transition-colors"
+                  className="text-sm font-medium text-primary hover:text-primary/80 transition-colors"
                 >
                   {mode === "signin" 
                     ? "Don't have an account? Sign up" 
                     : "Already have an account? Sign in"}
                 </button>
+                
+                {mode === "signup" && (
+                  <div>
+                    <button
+                      type="button"
+                      onClick={() => setMode("forgot-password")}
+                      className="text-sm text-muted-foreground hover:text-primary transition-colors"
+                    >
+                      Forgot your password?
+                    </button>
+                  </div>
+                )}
               </div>
             </>
           )}
