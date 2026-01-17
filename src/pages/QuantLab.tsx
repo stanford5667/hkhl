@@ -1198,13 +1198,13 @@ const STUDY_DEFINITIONS: StudyDefinition[] = [
 
 // Study Categories
 const STUDY_CATEGORIES = [
+  { id: 'conditional', name: 'Conditional', icon: GitBranch, description: 'What happens after X?' },
   { id: 'basic', name: 'Basic Stats', icon: BarChart3, description: 'Simple statistics anyone can understand' },
   { id: 'seasonality', name: 'Timing', icon: Calendar, description: 'Best days, weeks, and months' },
   { id: 'technical', name: 'Technical', icon: LineChart, description: 'RSI, MACD, Moving Averages' },
   { id: 'volatility', name: 'Risk', icon: Shield, description: 'Volatility and drawdown analysis' },
   { id: 'patterns', name: 'Patterns', icon: Layers, description: 'Gaps, ranges, and breakouts' },
   { id: 'volume', name: 'Volume', icon: Volume2, description: 'Buying and selling pressure' },
-  { id: 'conditional', name: 'Conditional', icon: GitBranch, description: 'What happens after X?' },
   { id: 'projections', name: 'Targets', icon: Target, description: 'Price projections' }
 ];
 
