@@ -108,7 +108,7 @@ export function QuantLabWelcomeHero({
                 className="px-4 py-1.5 text-sm border-primary/30 bg-primary/5"
               >
                 <Sparkles className="h-3.5 w-3.5 mr-2 text-primary" />
-                No-Code Quantitative Analysis
+                The No-Edge Quant Tool
               </Badge>
             </motion.div>
 
@@ -120,16 +120,16 @@ export function QuantLabWelcomeHero({
               className="space-y-4"
             >
               <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight">
-                <span className="text-foreground">Answer Any</span>
+                <span className="text-foreground">Stop Guessing.</span>
                 <br />
                 <span className="bg-gradient-to-r from-primary via-violet-500 to-purple-500 bg-clip-text text-transparent">
-                  "What If?" Question
+                  Start Knowing.
                 </span>
               </h1>
               <p className="text-base md:text-lg text-muted-foreground max-w-lg mx-auto lg:mx-0">
-                Run conditional probability studies on any stock. 
-                Get answers like{' '}
-                <span className="text-foreground font-medium">"After 3 red days, SPY goes up 68% of the time"</span>
+                Turn market hunches into statistical proof. Ask questions like{' '}
+                <span className="text-foreground font-medium italic">"What happens after 3 red days?"</span>
+                {' '}and get real answers backed by data—not opinions.
               </p>
             </motion.div>
 
