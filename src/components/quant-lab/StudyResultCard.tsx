@@ -188,6 +188,28 @@ function getDefaultMetricInfo(key: string) {
 function formatValue(key: string, value: any): string {
   if (value === null || value === undefined) return '-';
   if (typeof value === 'boolean') return value ? 'Yes' : 'No';
+  
+  // Handle arrays - show count or first few items
+  if (Array.isArray(value)) {
+    if (value.length === 0) return '-';
+    if (value.length <= 3 && value.every(v => typeof v === 'string' || typeof v === 'number')) {
+      return value.join(', ');
+    }
+    return `${value.length} items`;
+  }
+  
+  // Handle objects - don't render as [object Object]
+  if (typeof value === 'object') {
+    // Try to extract a meaningful value from common object structures
+    if ('value' in value && (typeof value.value === 'number' || typeof value.value === 'string')) {
+      return formatValue(key, value.value);
+    }
+    if ('count' in value && typeof value.count === 'number') {
+      return formatValue(key, value.count);
+    }
+    return '-';
+  }
+  
   if (typeof value === 'string') return value;
   if (typeof value !== 'number') return String(value);
   
@@ -406,10 +428,11 @@ export function StudyResultCard({
   // Get displayable metrics from result
   const getDisplayMetrics = (): [string, any][] => {
     if (!result) return [];
-    const exclude = ['interpretation', 'dateRange', 'barsAnalyzed', 'ticker', 'studyId', 'params', 'total_days', 'study_name'];
+    const exclude = ['interpretation', 'dateRange', 'barsAnalyzed', 'ticker', 'studyId', 'params', 'total_days', 'study_name', 'events', 'recentEvents', 'recent_events'];
     return Object.entries(result)
       .filter(([key, value]) => !exclude.includes(key) && value !== null && value !== undefined)
-      .filter(([_, value]) => typeof value !== 'object' || Array.isArray(value))
+      // Only include primitive values (numbers, strings, booleans) - exclude objects and arrays
+      .filter(([_, value]) => typeof value === 'number' || typeof value === 'string' || typeof value === 'boolean')
       .slice(0, 12);
   };
 
