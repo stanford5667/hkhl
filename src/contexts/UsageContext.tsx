@@ -128,6 +128,21 @@ export function UsageProvider({ children, onUpgradeRequest }: UsageProviderProps
     fetchUsage();
   }, [fetchUsage]);
 
+  // Auto-refresh subscription status when returning from Stripe checkout
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const subscriptionStatus = urlParams.get('subscription');
+    
+    if (subscriptionStatus === 'success') {
+      // Remove the query param from URL without refreshing
+      const newUrl = window.location.pathname;
+      window.history.replaceState({}, '', newUrl);
+      
+      // Refresh usage/subscription status
+      fetchUsage();
+    }
+  }, [fetchUsage]);
+
   const canUse = useCallback((feature: keyof UsageLimits): boolean => {
     if (isPro) return true;
     return usage[feature].used < usage[feature].limit;
