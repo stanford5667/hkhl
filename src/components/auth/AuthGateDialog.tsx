@@ -119,12 +119,6 @@ export function AuthGateDialog({
         <AssetLabsLogo size="lg" />
       </div>
 
-      {/* Age Rating Badge for Signup */}
-      {mode === 'signup' && (
-        <div className="flex justify-center">
-          <AgeRatingBadge />
-        </div>
-      )}
 
       {/* Value Proposition */}
       {mode === 'signup' && (

@@ -301,11 +301,6 @@ export default function Auth() {
           ) : (
             <>
               <div className="text-center space-y-3">
-                {mode === "signup" && (
-                  <div className="flex justify-center">
-                    <AgeRatingBadge />
-                  </div>
-                )}
                 <h1 className="text-3xl font-bold text-foreground">
                   {mode === "signin" ? "Welcome back" : "Create your account"}
                 </h1>

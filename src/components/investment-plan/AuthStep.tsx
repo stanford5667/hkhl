@@ -156,11 +156,6 @@ export function AuthStep({ progress, onComplete }: AuthStepProps) {
             <div className="w-12 h-12 mx-auto mb-4 rounded-xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center">
               <Lock className="w-6 h-6 text-primary-foreground" />
             </div>
-            {mode === 'signup' && (
-              <div className="flex justify-center">
-                <AgeRatingBadge />
-              </div>
-            )}
             <h2 className="text-xl font-bold">
               {mode === 'signup' ? 'Create Your Account' : 'Welcome Back'}
             </h2>
