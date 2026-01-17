@@ -115,7 +115,7 @@ export default function MarketIntel() {
       {activeCategory === 'calendar' && <EconomicCalendarTab onPerformanceUpdate={handleCalendarPerformance} />}
       {activeCategory === 'countries' && <CountriesContent />}
       {activeCategory === 'indexes' && <IndexesContent />}
-      {activeCategory === 'shares' && <SharesContent />}
+      
       {activeCategory === 'crypto' && <CryptoContent />}
       {activeCategory === 'bonds' && <GlobalBondYields />}
       {activeCategory === 'earnings' && <EarningsContent />}
