@@ -48,6 +48,29 @@ serve(async (req) => {
     if (customers.data.length > 0) {
       customerId = customers.data[0].id;
       logStep("Existing customer found", { customerId });
+      
+      // Check if customer already has an active subscription to the Pro plan
+      const subscriptions = await stripe.subscriptions.list({
+        customer: customerId,
+        status: "active",
+        limit: 100,
+      });
+      
+      const hasActiveProSubscription = subscriptions.data.some(
+        (sub: { items: { data: Array<{ price: { id: string } }> } }) => 
+          sub.items.data.some((item: { price: { id: string } }) => item.price.id === PRO_PRICE_ID)
+      );
+      
+      if (hasActiveProSubscription) {
+        logStep("User already has active Pro subscription");
+        return new Response(
+          JSON.stringify({ error: "You already have an active Pro subscription" }),
+          {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+            status: 400,
+          }
+        );
+      }
     }
 
     // Always use production URL for Stripe redirects (preview URLs won't work)
