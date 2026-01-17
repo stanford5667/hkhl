@@ -61,38 +61,35 @@ export function PlanCard({ plan, onView, onDownload, onDelete, index = 0 }: Plan
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, delay: index * 0.1 }}
-      className="group"
+      className="group h-full"
     >
       <div
         onClick={onView}
         className={cn(
-          "relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br backdrop-blur-sm cursor-pointer transition-all duration-300",
-          "hover:border-white/20 hover:shadow-2xl hover:shadow-purple-500/10 hover:scale-[1.02]",
-          getRiskBg(plan.risk_profile)
+          "relative overflow-hidden rounded-2xl border border-border/50 bg-card cursor-pointer transition-all duration-300 h-full flex flex-col",
+          "hover:border-primary/30 hover:shadow-xl hover:shadow-primary/5 hover:scale-[1.01]"
         )}
       >
-        {/* Animated gradient border on hover */}
-        <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
-          <div className={cn(
-            "absolute inset-0 bg-gradient-to-r opacity-10 blur-xl",
-            getRiskGradient(plan.risk_profile)
-          )} />
-        </div>
+        {/* Subtle gradient accent at top */}
+        <div className={cn(
+          "absolute top-0 left-0 right-0 h-1 bg-gradient-to-r",
+          getRiskGradient(plan.risk_profile)
+        )} />
 
-        <div className="relative p-6">
+        <div className="relative p-5 flex flex-col flex-1">
           {/* Header */}
-          <div className="flex items-start justify-between mb-4">
-            <div className="flex items-center gap-3">
+          <div className="flex items-start justify-between mb-5">
+            <div className="flex items-center gap-3 flex-1 min-w-0">
               <div className={cn(
-                "w-12 h-12 rounded-xl bg-gradient-to-br flex items-center justify-center shadow-lg",
+                "w-11 h-11 rounded-xl bg-gradient-to-br flex items-center justify-center shadow-md shrink-0",
                 getRiskGradient(plan.risk_profile)
               )}>
-                <Target className="w-6 h-6 text-white" />
+                <Target className="w-5 h-5 text-white" />
               </div>
               <div className="min-w-0 flex-1">
-                <h3 className="font-bold text-foreground truncate pr-2">{plan.name}</h3>
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Calendar className="w-3.5 h-3.5" />
+                <h3 className="font-semibold text-foreground truncate text-base">{plan.name}</h3>
+                <div className="flex items-center gap-1.5 text-xs text-muted-foreground mt-0.5">
+                  <Calendar className="w-3 h-3" />
                   <span>{formatDistanceToNow(new Date(plan.created_at), { addSuffix: true })}</span>
                 </div>
               </div>
@@ -103,12 +100,12 @@ export function PlanCard({ plan, onView, onDownload, onDelete, index = 0 }: Plan
                 <Button 
                   variant="ghost" 
                   size="icon" 
-                  className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white/10"
+                  className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-muted shrink-0"
                 >
                   <MoreVertical className="h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="bg-card/95 backdrop-blur-xl border-white/10">
+              <DropdownMenuContent align="end" className="bg-popover border-border">
                 <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onView(); }}>
                   <Eye className="h-4 w-4 mr-2" />
                   View Details
@@ -128,16 +125,16 @@ export function PlanCard({ plan, onView, onDownload, onDelete, index = 0 }: Plan
             </DropdownMenu>
           </div>
 
-          {/* Stats Grid */}
-          <div className="grid grid-cols-2 gap-3 mb-4">
+          {/* Stats Grid - Fixed height alignment */}
+          <div className="grid grid-cols-2 gap-2.5 mb-4">
             {/* Risk Profile */}
-            <div className="bg-white/5 rounded-xl p-3">
-              <div className="flex items-center gap-2 mb-1">
-                <Shield className="w-4 h-4 text-muted-foreground" />
-                <span className="text-xs text-muted-foreground">Risk Profile</span>
+            <div className="bg-muted/50 rounded-lg p-3">
+              <div className="flex items-center gap-1.5 mb-1.5">
+                <Shield className="w-3.5 h-3.5 text-muted-foreground" />
+                <span className="text-[11px] text-muted-foreground font-medium uppercase tracking-wide">Risk Profile</span>
               </div>
               <div className={cn(
-                "font-semibold bg-gradient-to-r bg-clip-text text-transparent",
+                "font-semibold text-sm bg-gradient-to-r bg-clip-text text-transparent",
                 getRiskGradient(plan.risk_profile)
               )}>
                 {plan.risk_profile || 'Moderate'}
@@ -145,44 +142,44 @@ export function PlanCard({ plan, onView, onDownload, onDelete, index = 0 }: Plan
             </div>
 
             {/* Risk Score */}
-            <div className="bg-white/5 rounded-xl p-3">
-              <div className="flex items-center gap-2 mb-1">
-                <TrendingUp className="w-4 h-4 text-muted-foreground" />
-                <span className="text-xs text-muted-foreground">Risk Score</span>
+            <div className="bg-muted/50 rounded-lg p-3">
+              <div className="flex items-center gap-1.5 mb-1.5">
+                <TrendingUp className="w-3.5 h-3.5 text-muted-foreground" />
+                <span className="text-[11px] text-muted-foreground font-medium uppercase tracking-wide">Risk Score</span>
               </div>
-              <div className="font-semibold font-mono text-foreground">
-                {plan.risk_score ?? 50}/100
+              <div className="font-semibold font-mono text-sm text-foreground">
+                {plan.risk_score ?? 50}<span className="text-muted-foreground font-normal">/100</span>
               </div>
             </div>
           </div>
 
-          {/* Investor Type */}
-          <div className="flex items-center gap-3 p-3 bg-white/5 rounded-xl mb-4">
-            <div className="w-8 h-8 rounded-lg bg-purple-500/20 flex items-center justify-center">
-              <Brain className="w-4 h-4 text-purple-400" />
+          {/* Investor Type - Spacer for alignment */}
+          <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg flex-1">
+            <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+              <Brain className="w-4 h-4 text-primary" />
             </div>
             <div className="flex-1 min-w-0">
-              <div className="text-xs text-muted-foreground">Investor Type</div>
-              <div className="font-medium text-foreground truncate">
+              <div className="text-[11px] text-muted-foreground font-medium uppercase tracking-wide">Investor Type</div>
+              <div className="font-medium text-sm text-foreground truncate mt-0.5">
                 {plan.investor_type_name || 'Balanced Investor'}
               </div>
             </div>
             {plan.investor_type && (
-              <Badge variant="outline" className="font-mono text-xs border-white/20">
+              <Badge variant="secondary" className="font-mono text-[10px] shrink-0">
                 {plan.investor_type}
               </Badge>
             )}
           </div>
 
-          {/* Footer */}
-          <div className="flex items-center justify-between pt-3 border-t border-white/10">
-            <div className="flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-emerald-400" />
-              <span className="text-xs text-emerald-400">AI Generated</span>
+          {/* Footer - Always at bottom */}
+          <div className="flex items-center justify-between pt-4 mt-4 border-t border-border/50">
+            <div className="flex items-center gap-1.5">
+              <Sparkles className="w-3.5 h-3.5 text-primary" />
+              <span className="text-xs text-primary font-medium">AI Generated</span>
             </div>
-            <div className="flex items-center gap-1 text-sm text-muted-foreground group-hover:text-foreground transition-colors">
-              <span>View Strategy</span>
-              <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+            <div className="flex items-center gap-1 text-xs text-muted-foreground group-hover:text-foreground transition-colors">
+              <span className="font-medium">View Strategy</span>
+              <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
             </div>
           </div>
         </div>

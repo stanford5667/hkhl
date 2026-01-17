@@ -485,9 +485,9 @@ export default function InvestmentPlanPage() {
 
             {/* Plans Grid */}
             {isLoading ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-                {[1, 2, 3].map(i => (
-                  <div key={i} className="h-72 rounded-2xl bg-white/5 border border-white/10 animate-pulse" />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5 auto-rows-fr">
+                {[1, 2].map(i => (
+                  <div key={i} className="h-80 rounded-2xl bg-muted/50 border border-border animate-pulse" />
                 ))}
               </div>
             ) : plans.length > 0 ? (
@@ -511,8 +511,8 @@ export default function InvestmentPlanPage() {
                   </Button>
                 </div>
 
-                {/* Plans Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                {/* Plans Grid - 2 columns for better alignment */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5 auto-rows-fr">
                   {plans.map((plan, index) => (
                     <PlanCard
                       key={plan.id}
