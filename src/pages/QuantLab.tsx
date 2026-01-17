@@ -39,7 +39,7 @@ import {
   TrendingUp, TrendingDown, BarChart3, Activity, Info,
   Calendar, Zap, Layers, Volume2, Crosshair, LineChart,
   Gauge, ArrowLeftRight, Mountain, ArrowUpDown,
-  Target, Shield, Loader2,
+  Target, Shield, Loader2, GitBranch,
   CheckCircle2, X, ExternalLink, ChevronLeft
 } from 'lucide-react';
 import { InlinePrice } from '@/components/shared/PriceDisplay';
@@ -869,6 +869,217 @@ const STUDY_DEFINITIONS: StudyDefinition[] = [
         beginner: '1 = ~68% confidence. 2 = ~95% confidence.'
       }
     ]
+  },
+  
+  // ========== CONDITIONAL PROBABILITY ==========
+  {
+    id: 'after_down_x',
+    name: 'After Down X%',
+    category: 'conditional',
+    icon: TrendingDown,
+    description: 'What happens after the stock drops by X%?',
+    whatItMeasures: 'Forward returns after big down days at various time horizons.',
+    whyItMatters: 'Helps determine if big drops are buying opportunities or warning signs.',
+    howToUse: 'High win rate after drops = mean reversion. Low win rate = momentum continues.',
+    difficulty: 'intermediate',
+    tags: ['conditional', 'reversal', 'drops'],
+    params: [
+      {
+        key: 'threshold',
+        label: 'Drop Threshold (%)',
+        description: 'Minimum % drop to trigger analysis',
+        type: 'slider',
+        min: 1,
+        max: 10,
+        step: 0.5,
+        default: 2,
+        beginner: '2% is a significant daily drop for most stocks'
+      },
+    ]
+  },
+  {
+    id: 'after_up_x',
+    name: 'After Up X%',
+    category: 'conditional',
+    icon: TrendingUp,
+    description: 'What happens after the stock jumps by X%?',
+    whatItMeasures: 'Forward returns after big up days at various time horizons.',
+    whyItMatters: 'Determines if big gains continue (momentum) or reverse (exhaustion).',
+    howToUse: 'High win rate = momentum. Low win rate = exhaustion/profit-taking.',
+    difficulty: 'intermediate',
+    tags: ['conditional', 'momentum', 'gains'],
+    params: [
+      {
+        key: 'threshold',
+        label: 'Gain Threshold (%)',
+        description: 'Minimum % gain to trigger analysis',
+        type: 'slider',
+        min: 1,
+        max: 10,
+        step: 0.5,
+        default: 2,
+        beginner: '2% is a significant daily gain for most stocks'
+      },
+    ]
+  },
+  {
+    id: 'after_consecutive_days',
+    name: 'After Consecutive Days',
+    category: 'conditional',
+    icon: Activity,
+    description: 'What happens after N consecutive up/down days?',
+    whatItMeasures: 'Forward returns after winning or losing streaks.',
+    whyItMatters: 'Long streaks may signal exhaustion or strong momentum.',
+    howToUse: 'If reversals are common, fade streaks. If not, ride momentum.',
+    difficulty: 'intermediate',
+    tags: ['conditional', 'streaks', 'reversal'],
+    params: [
+      {
+        key: 'consecutiveDays',
+        label: 'Consecutive Days',
+        description: 'Number of days in a row',
+        type: 'slider',
+        min: 2,
+        max: 7,
+        step: 1,
+        default: 3,
+        beginner: '3 days in a row is a notable streak'
+      },
+      {
+        key: 'direction',
+        label: 'Direction',
+        description: 'Track up streaks or down streaks',
+        type: 'select',
+        default: 'down',
+        options: [
+          { value: 'down', label: 'Down Days' },
+          { value: 'up', label: 'Up Days' }
+        ],
+        beginner: 'Down = look for bounce after losing streak'
+      }
+    ]
+  },
+  {
+    id: 'after_high_volume',
+    name: 'After High Volume',
+    category: 'conditional',
+    icon: Volume2,
+    description: 'What happens after unusually high volume days?',
+    whatItMeasures: 'Forward returns after volume spikes (up or down days separately).',
+    whyItMatters: 'High volume can signal capitulation, breakouts, or climax moves.',
+    howToUse: 'Check if high volume up days continue or exhaust, same for down days.',
+    difficulty: 'intermediate',
+    tags: ['conditional', 'volume', 'climax'],
+    params: [
+      {
+        key: 'volumeMultiplier',
+        label: 'Volume Multiplier',
+        description: 'How many times above average volume',
+        type: 'slider',
+        min: 1.5,
+        max: 5,
+        step: 0.5,
+        default: 2,
+        beginner: '2x = double the average volume'
+      },
+      {
+        key: 'avgPeriod',
+        label: 'Average Period',
+        description: 'Days for calculating average volume',
+        type: 'slider',
+        min: 10,
+        max: 50,
+        step: 5,
+        default: 20,
+        beginner: '20-day average is standard'
+      }
+    ]
+  },
+  {
+    id: 'after_gap',
+    name: 'After Gap Up/Down',
+    category: 'conditional',
+    icon: ArrowUpDown,
+    description: 'What happens after overnight gaps?',
+    whatItMeasures: 'Forward returns after gap ups and gap downs, plus fill rates.',
+    whyItMatters: 'Gaps often signal strong sentiment. Do they continue or fill?',
+    howToUse: 'High fill rate = fade gaps. Continuation = ride the gap direction.',
+    difficulty: 'intermediate',
+    tags: ['conditional', 'gaps', 'overnight'],
+    params: [
+      {
+        key: 'minGapPercent',
+        label: 'Minimum Gap (%)',
+        description: 'Minimum gap size to analyze',
+        type: 'slider',
+        min: 0.5,
+        max: 5,
+        step: 0.5,
+        default: 1,
+        beginner: '1% gap is significant for most stocks'
+      }
+    ]
+  },
+  {
+    id: 'below_ma',
+    name: 'Below Moving Average',
+    category: 'conditional',
+    icon: LineChart,
+    description: 'What happens when price is X% below moving average?',
+    whatItMeasures: 'Forward returns when stock is extended below its moving average.',
+    whyItMatters: 'Stocks far below MA may bounce (mean reversion) or continue falling.',
+    howToUse: 'High win rate = buy the dip works. Low = broken stocks stay down.',
+    difficulty: 'intermediate',
+    tags: ['conditional', 'moving-average', 'dip'],
+    params: [
+      {
+        key: 'maPeriod',
+        label: 'MA Period',
+        description: 'Moving average period',
+        type: 'slider',
+        min: 20,
+        max: 200,
+        step: 10,
+        default: 50,
+        beginner: '50-day MA is commonly watched'
+      },
+      {
+        key: 'threshold',
+        label: 'Below Threshold (%)',
+        description: 'How far below MA to trigger',
+        type: 'slider',
+        min: 2,
+        max: 20,
+        step: 1,
+        default: 5,
+        beginner: '5% below MA is notably oversold'
+      }
+    ]
+  },
+  {
+    id: 'after_drawdown',
+    name: 'After Drawdown X%',
+    category: 'conditional',
+    icon: TrendingDown,
+    description: 'What happens after a X% drawdown from peak?',
+    whatItMeasures: 'Forward returns after entering significant drawdown territory.',
+    whyItMatters: 'Drawdowns can signal buying opportunities or the start of longer declines.',
+    howToUse: 'Strong recovery stats = buy drawdowns. Weak = wait for stabilization.',
+    difficulty: 'intermediate',
+    tags: ['conditional', 'drawdown', 'recovery'],
+    params: [
+      {
+        key: 'drawdownThreshold',
+        label: 'Drawdown Threshold (%)',
+        description: 'Minimum drawdown to trigger',
+        type: 'slider',
+        min: 5,
+        max: 30,
+        step: 5,
+        default: 10,
+        beginner: '10% drawdown is correction territory'
+      }
+    ]
   }
 ];
 
@@ -880,6 +1091,7 @@ const STUDY_CATEGORIES = [
   { id: 'volatility', name: 'Risk', icon: Shield, description: 'Volatility and drawdown analysis' },
   { id: 'patterns', name: 'Patterns', icon: Layers, description: 'Gaps, ranges, and breakouts' },
   { id: 'volume', name: 'Volume', icon: Volume2, description: 'Buying and selling pressure' },
+  { id: 'conditional', name: 'Conditional', icon: GitBranch, description: 'What happens after X?' },
   { id: 'projections', name: 'Targets', icon: Target, description: 'Price projections' }
 ];
 
