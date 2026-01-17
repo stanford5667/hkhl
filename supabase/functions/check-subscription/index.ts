@@ -12,8 +12,8 @@ const logStep = (step: string, details?: unknown) => {
   console.log(`[CHECK-SUBSCRIPTION] ${step}${detailsStr}`);
 };
 
-// Product IDs for subscription tiers
-const PRO_PRODUCT_ID = "prod_TmstE9xtaH6xoT";
+// Product IDs for subscription tiers (includes test product)
+const PRO_PRODUCT_IDS = ["prod_TmstE9xtaH6xoT", "prod_ToF1TRMcLjOt1t"];
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -81,7 +81,7 @@ serve(async (req) => {
       }
       productId = subscription.items.data[0]?.price?.product as string;
       
-      if (productId === PRO_PRODUCT_ID) {
+      if (productId && PRO_PRODUCT_IDS.includes(productId)) {
         plan = 'pro';
       }
       
