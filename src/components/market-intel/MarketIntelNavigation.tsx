@@ -33,26 +33,26 @@ const categories: { id: MarketCategory; label: string; icon: React.ElementType }
 
 export function MarketIntelNavigation({ activeCategory, onCategoryChange }: MarketIntelNavigationProps) {
   return (
-    <Card className="bg-gradient-to-r from-card via-secondary/20 to-card border-border/50">
-      <CardContent className="p-3 sm:p-4">
-        <div className="flex flex-wrap gap-1.5 sm:gap-2">
+    <Card className="bg-gradient-to-r from-card via-secondary/20 to-card border-border/50 overflow-hidden">
+      <CardContent className="p-2 sm:p-3">
+        <div className="flex flex-wrap gap-1 sm:gap-1.5">
           {categories.map(({ id, label, icon: Icon }) => (
             <button
               key={id}
               onClick={() => onCategoryChange(id)}
               className={cn(
-                "group flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1.5 sm:py-2 rounded-md font-medium transition-all duration-200",
-                "border text-xs sm:text-sm",
+                "group flex items-center gap-1 px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-md font-medium transition-all duration-200",
+                "border text-[10px] sm:text-xs whitespace-nowrap",
                 activeCategory === id 
                   ? "bg-primary text-primary-foreground border-primary shadow-md shadow-primary/25" 
                   : "bg-card hover:bg-secondary/80 text-muted-foreground border-border/50 hover:border-primary/50 hover:text-foreground"
               )}
             >
               <Icon className={cn(
-                "h-3 w-3 sm:h-4 sm:w-4 transition-transform group-hover:scale-110",
+                "h-3 w-3 transition-transform group-hover:scale-110 shrink-0",
                 activeCategory === id ? "text-primary-foreground" : "text-primary"
               )} />
-              <span>{label}</span>
+              <span className="truncate max-w-[60px] sm:max-w-none">{label}</span>
             </button>
           ))}
         </div>

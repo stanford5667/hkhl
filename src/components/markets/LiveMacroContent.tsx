@@ -237,32 +237,61 @@ export function LiveMacroContent({ onItemClick, onPerformanceUpdate, renderAfter
   const hasNoResults = totalCount === 0 && !isLoading;
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center gap-3">
-        <Globe className="h-5 w-5 text-primary" />
-        <div>
-          <h2 className="text-lg font-semibold">Live Economic Data</h2>
-          <p className="text-xs text-muted-foreground">
-            {useMockData ? (
-              <span className="text-amber-400">Using demo data</span>
-            ) : (
-              <span className="text-emerald-400">Live from FRED</span>
-            )}
-          </p>
-        </div>
-      </div>
+    <div className="space-y-4 sm:space-y-6">
+      {/* Header - Compact with Live status and Market Health inline */}
+      <Card className="bg-gradient-to-r from-primary/10 via-card to-primary/10 border-primary/20">
+        <CardContent className="p-3 sm:p-4">
+          <div className="flex items-center justify-between gap-2 flex-wrap sm:flex-nowrap">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <Globe className="h-4 w-4 sm:h-5 sm:w-5 text-primary shrink-0" />
+              <div>
+                <h2 className="text-sm sm:text-lg font-semibold">Live Economic Data</h2>
+                <p className="text-[10px] sm:text-xs">
+                  {useMockData ? (
+                    <span className="text-amber-400">Using demo data</span>
+                  ) : (
+                    <span className="text-emerald-400">Live from FRED</span>
+                  )}
+                </p>
+              </div>
+            </div>
+            {/* Inline Market Health */}
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="text-right">
+                <p className="text-[10px] sm:text-xs text-muted-foreground">Market Health</p>
+                <div className="flex items-center gap-1.5 sm:gap-2 justify-end">
+                  <span className={cn(
+                    "text-2xl sm:text-4xl font-bold tabular-nums",
+                    healthScore.score >= 60 ? "text-emerald-400" :
+                    healthScore.score <= 40 ? "text-rose-400" : "text-amber-400"
+                  )}>
+                    {healthScore.score}
+                  </span>
+                  <Badge variant="outline" className={cn(
+                    "text-[10px] sm:text-xs px-1.5 sm:px-2",
+                    healthScore.score >= 60 ? "border-emerald-500/30 text-emerald-400" :
+                    healthScore.score <= 40 ? "border-rose-500/30 text-rose-400" : 
+                    "border-amber-500/30 text-amber-400"
+                  )}>
+                    {healthScore.label}
+                  </Badge>
+                </div>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* No Results Message */}
       {hasNoResults && (
-        <Card className="bg-secondary/30 border-border/50 p-8 text-center">
+        <Card className="bg-secondary/30 border-border/50 p-6 sm:p-8 text-center">
           <div className="flex flex-col items-center gap-3">
             <div className="p-3 rounded-full bg-muted/50">
-              <BarChart3 className="h-6 w-6 text-muted-foreground" />
+              <BarChart3 className="h-5 w-5 sm:h-6 sm:w-6 text-muted-foreground" />
             </div>
             <div>
-              <h4 className="font-medium">No economic indicators available</h4>
-              <p className="text-sm text-muted-foreground mt-1">
+              <h4 className="font-medium text-sm sm:text-base">No economic indicators available</h4>
+              <p className="text-xs sm:text-sm text-muted-foreground mt-1">
                 Data is currently loading or unavailable
               </p>
             </div>
@@ -270,10 +299,7 @@ export function LiveMacroContent({ onItemClick, onPerformanceUpdate, renderAfter
         </Card>
       )}
 
-      {/* Market Health Score */}
-      <MarketHealthCard healthScore={healthScore} />
-
-      {/* Render slot for content between Market Health and Economic Data */}
+      {/* Render slot for content between header and Economic Data */}
       {renderAfterMarketHealth}
 
       {/* Table View - Full tabular data with study integration */}

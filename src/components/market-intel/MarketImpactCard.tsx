@@ -94,26 +94,26 @@ const colorClasses = {
 export function MarketImpactCard() {
   return (
     <Card className="bg-gradient-to-br from-secondary/30 via-card to-primary/5 border-primary/20 overflow-hidden h-full">
-      <CardHeader className="pb-2">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="p-1.5 rounded-md bg-amber-500/10">
-              <Zap className="h-4 w-4 text-amber-400" />
+      <CardHeader className="p-3 sm:pb-2 sm:p-6">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
+            <div className="p-1 sm:p-1.5 rounded-md bg-amber-500/10 shrink-0">
+              <Zap className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-amber-400" />
             </div>
-            <div>
-              <CardTitle className="text-base">Market Impact</CardTitle>
-              <CardDescription className="text-xs">Asset Class Reactions to Events</CardDescription>
+            <div className="min-w-0">
+              <CardTitle className="text-sm sm:text-base truncate">Market Impact</CardTitle>
+              <CardDescription className="text-[10px] sm:text-xs truncate">Asset Reactions</CardDescription>
             </div>
           </div>
-          <Badge variant="outline" className="text-[10px] bg-amber-500/10 text-amber-400 border-amber-500/30">
+          <Badge variant="outline" className="text-[9px] sm:text-[10px] bg-amber-500/10 text-amber-400 border-amber-500/30 shrink-0 px-1.5">
             Historical
           </Badge>
         </div>
       </CardHeader>
       
-      <CardContent className="space-y-4">
+      <CardContent className="p-3 pt-0 sm:p-6 sm:pt-0 space-y-3 sm:space-y-4">
         {/* Asset Class Impact Grid */}
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-2 gap-1.5 sm:gap-2">
           {assetImpacts.map((asset) => {
             const colors = colorClasses[asset.color as keyof typeof colorClasses];
             const IconComponent = asset.icon;
@@ -123,32 +123,32 @@ export function MarketImpactCard() {
               <div 
                 key={asset.ticker}
                 className={cn(
-                  "p-3 rounded-lg border",
+                  "p-2 sm:p-3 rounded-lg border",
                   colors.bg,
                   colors.border
                 )}
               >
-                <div className="flex items-center gap-2 mb-1">
-                  <IconComponent className={cn("h-4 w-4", colors.icon)} />
-                  <span className={cn("font-medium text-sm", colors.text)}>{asset.name}</span>
+                <div className="flex items-center gap-1.5 sm:gap-2 mb-0.5 sm:mb-1">
+                  <IconComponent className={cn("h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0", colors.icon)} />
+                  <span className={cn("font-medium text-xs sm:text-sm truncate", colors.text)}>{asset.name}</span>
                 </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] text-muted-foreground">{asset.ticker}</span>
+                <div className="flex items-center justify-between gap-1">
+                  <span className="text-[9px] sm:text-[10px] text-muted-foreground">{asset.ticker}</span>
                   <div className="flex items-center gap-0.5">
                     {isPositive ? (
-                      <ArrowUpRight className="h-3 w-3 text-emerald-400" />
+                      <ArrowUpRight className="h-2.5 w-2.5 sm:h-3 sm:w-3 text-emerald-400" />
                     ) : (
-                      <ArrowDownRight className="h-3 w-3 text-rose-400" />
+                      <ArrowDownRight className="h-2.5 w-2.5 sm:h-3 sm:w-3 text-rose-400" />
                     )}
                     <span className={cn(
-                      "text-xs font-mono font-semibold",
+                      "text-[10px] sm:text-xs font-mono font-semibold",
                       isPositive ? "text-emerald-400" : "text-rose-400"
                     )}>
                       {isPositive ? '+' : ''}{asset.change.toFixed(2)}%
                     </span>
                   </div>
                 </div>
-                <p className="text-[10px] text-muted-foreground mt-1">{asset.description}</p>
+                <p className="text-[9px] sm:text-[10px] text-muted-foreground mt-0.5 sm:mt-1 truncate">{asset.description}</p>
               </div>
             );
           })}
@@ -158,22 +158,22 @@ export function MarketImpactCard() {
         <div className="h-px bg-border" />
         
         {/* Historical Averages */}
-        <div className="space-y-3">
-          <div className="flex items-center gap-2">
-            <BarChart2 className="h-4 w-4 text-muted-foreground" />
-            <span className="text-sm font-medium">Avg. Event Reactions</span>
+        <div className="space-y-2 sm:space-y-3">
+          <div className="flex items-center gap-1.5 sm:gap-2">
+            <BarChart2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-muted-foreground shrink-0" />
+            <span className="text-xs sm:text-sm font-medium truncate">Avg. Reactions</span>
           </div>
           
-          <div className="space-y-2">
+          <div className="space-y-1.5 sm:space-y-2">
             {eventImpacts.map((event, i) => (
               <div 
                 key={i} 
-                className="flex items-center justify-between p-2 rounded-lg bg-secondary/30 hover:bg-secondary/50 transition-colors"
+                className="flex items-center justify-between p-1.5 sm:p-2 rounded-lg bg-secondary/30 hover:bg-secondary/50 transition-colors gap-2"
               >
-                <Badge variant="outline" className="text-[10px] px-1.5">
+                <Badge variant="outline" className="text-[9px] sm:text-[10px] px-1 sm:px-1.5 shrink-0">
                   {event.event}
                 </Badge>
-                <div className="flex items-center gap-3 text-[10px]">
+                <div className="flex items-center gap-2 sm:gap-3 text-[9px] sm:text-[10px]">
                   <span className={cn(
                     "font-mono",
                     event.spyAvg >= 0 ? "text-emerald-400" : "text-rose-400"

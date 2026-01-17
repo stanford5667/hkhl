@@ -28,19 +28,20 @@ interface MarketHealthCardProps {
 export function MarketHealthCard({ healthScore }: MarketHealthCardProps) {
   return (
     <Card className="bg-gradient-to-br from-card to-secondary/20 border-primary/20">
-      <CardContent className="p-6">
-        <div className="flex items-center justify-between">
+      <CardContent className="p-4 sm:p-6">
+        <div className="flex items-center justify-between gap-4">
           <div>
-            <p className="text-sm text-muted-foreground mb-1">Market Health</p>
+            <p className="text-base sm:text-lg text-muted-foreground mb-1">Market Health</p>
             <div className="flex items-center gap-3">
               <span className={cn(
-                "text-4xl font-bold",
+                "text-5xl sm:text-6xl font-bold tabular-nums tracking-tight",
                 healthScore.score >= 60 ? "text-emerald-400" :
                 healthScore.score <= 40 ? "text-rose-400" : "text-amber-400"
               )}>
                 {healthScore.score}
               </span>
               <Badge variant="outline" className={cn(
+                "text-sm sm:text-base px-3 py-1",
                 healthScore.score >= 60 ? "border-emerald-500/30 text-emerald-400" :
                 healthScore.score <= 40 ? "border-rose-500/30 text-rose-400" : 
                 "border-amber-500/30 text-amber-400"
@@ -48,22 +49,6 @@ export function MarketHealthCard({ healthScore }: MarketHealthCardProps) {
                 {healthScore.label}
               </Badge>
             </div>
-          </div>
-          <div className="flex flex-wrap gap-2 max-w-md">
-            {healthScore.factors.slice(0, 4).map((f, i) => (
-              <Badge 
-                key={i}
-                variant="outline"
-                className={cn(
-                  "text-xs",
-                  f.impact === 'positive' ? "border-emerald-500/30 text-emerald-400" :
-                  f.impact === 'negative' ? "border-rose-500/30 text-rose-400" :
-                  "border-muted"
-                )}
-              >
-                {f.impact === 'positive' ? '✓' : f.impact === 'negative' ? '✗' : '○'} {f.name}
-              </Badge>
-            ))}
           </div>
         </div>
       </CardContent>

@@ -126,13 +126,13 @@ export default function MarketIntel() {
       {activeCategory === 'commodities' && <CommoditiesContent onItemClick={handleItemClick} />}
       {activeCategory === 'currencies' && <CurrenciesContent onItemClick={handleItemClick} />}
       {activeCategory === 'indicators' && (
-        <div className="space-y-6">
-          {/* Live Economic Data with Market Health, then Featured Insight + Market Impact, then Economic Data */}
+        <div className="space-y-4 sm:space-y-6">
+          {/* Live Economic Data with integrated header - Featured Insight + Market Impact below */}
           <LiveMacroContent 
             onItemClick={handleItemClick} 
             onPerformanceUpdate={handleMacroPerformance}
             renderAfterMarketHealth={
-              <div className="grid md:grid-cols-2 gap-4">
+              <div className="grid md:grid-cols-2 gap-3 sm:gap-4">
                 <FeaturedInsightCard />
                 <MarketImpactCard />
               </div>
