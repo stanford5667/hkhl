@@ -604,51 +604,51 @@ export function StudyResultCard({
         <div className="grid grid-cols-4 gap-3">
           {/* TOTAL OCCURRENCES */}
           <button
-            onClick={() => setSelectedMetric({ key: 'occurrences', value: result.occurrences || result.total_signals || result.matchCount || 0 })}
+            onClick={() => setSelectedMetric({ key: 'occurrences', value: result.totalOccurrences || result.occurrences || result.total_signals || result.matchCount || 0 })}
             className="flex flex-col p-3 rounded-xl border-2 bg-muted/30 border-border/50 hover:border-primary/50 hover:shadow-lg transition-all cursor-pointer group"
           >
             <span className="text-[10px] text-muted-foreground uppercase tracking-wide font-medium mb-1">Total Occurrences</span>
             <span className="text-2xl font-bold font-mono text-foreground">
-              {result.occurrences || result.total_signals || result.matchCount || 0}
+              {result.totalOccurrences || result.occurrences || result.total_signals || result.matchCount || 0}
             </span>
           </button>
 
           {/* PERCENT OF DAYS */}
           <button
-            onClick={() => setSelectedMetric({ key: 'percent_of_days', value: result.percentOfDays || result.percent_of_days || ((result.occurrences || 0) / (result.barsAnalyzed || result.total_days || 1) * 100) })}
+            onClick={() => setSelectedMetric({ key: 'percent_of_days', value: result.percentOfDays || result.percent_of_days || ((result.totalOccurrences || result.occurrences || 0) / (result.barsAnalyzed || result.total_days || 1) * 100) })}
             className="flex flex-col p-3 rounded-xl border-2 bg-muted/30 border-border/50 hover:border-primary/50 hover:shadow-lg transition-all cursor-pointer group"
           >
             <span className="text-[10px] text-muted-foreground uppercase tracking-wide font-medium mb-1">Percent of Days</span>
             <span className="text-2xl font-bold font-mono text-foreground">
-              +{(result.percentOfDays || result.percent_of_days || ((result.occurrences || 0) / (result.barsAnalyzed || result.total_days || 1) * 100)).toFixed(2)}%
+              {(result.percentOfDays || result.percent_of_days || ((result.totalOccurrences || result.occurrences || 0) / (result.barsAnalyzed || result.total_days || 1) * 100)).toFixed(2)}%
             </span>
           </button>
 
           {/* AVG GAIN */}
           <button
-            onClick={() => setSelectedMetric({ key: 'avg_gain', value: result.avg_gain || result.avgGain || result.avgReturn || 0 })}
+            onClick={() => setSelectedMetric({ key: 'avg_gain', value: result.avgGain || result.avg_gain || result.avgReturn || 0 })}
             className="flex flex-col p-3 rounded-xl border-2 bg-muted/30 border-border/50 hover:border-primary/50 hover:shadow-lg transition-all cursor-pointer group"
           >
             <span className="text-[10px] text-muted-foreground uppercase tracking-wide font-medium mb-1">Avg Gain</span>
             <span
               className={cn(
                 "text-2xl font-bold font-mono",
-                (result.avg_gain || result.avgGain || result.avgReturn || 0) >= 0 ? "text-emerald-500" : "text-red-500"
+                (result.avgGain || result.avg_gain || result.avgReturn || 0) >= 0 ? "text-emerald-500" : "text-red-500"
               )}
             >
-              {(result.avg_gain || result.avgGain || result.avgReturn || 0) >= 0 ? '+' : ''}{(result.avg_gain || result.avgGain || result.avgReturn || 0).toFixed(2)}%
+              {(result.avgGain || result.avg_gain || result.avgReturn || 0) >= 0 ? '+' : ''}{(result.avgGain || result.avg_gain || result.avgReturn || 0).toFixed(2)}%
             </span>
           </button>
 
-          {/* WIN RATE */}
+          {/* WIN RATE - from analysis array if available */}
           <button
-            onClick={() => setSelectedMetric({ key: 'win_rate', value: result.win_rate ?? result.winRate ?? result.hitRate ?? result.hit_rate ?? null })}
+            onClick={() => setSelectedMetric({ key: 'win_rate', value: result.analysis?.[0]?.winRate ?? result.win_rate ?? result.winRate ?? result.hitRate ?? result.hit_rate ?? null })}
             className="flex flex-col p-3 rounded-xl border-2 bg-muted/30 border-border/50 hover:border-primary/50 hover:shadow-lg transition-all cursor-pointer group"
           >
             <span className="text-[10px] text-muted-foreground uppercase tracking-wide font-medium mb-1">Win Rate</span>
             <span className="text-2xl font-bold font-mono text-foreground">
-              {typeof (result.win_rate ?? result.winRate ?? result.hitRate ?? result.hit_rate) === 'number'
-                ? `${(result.win_rate ?? result.winRate ?? result.hitRate ?? result.hit_rate).toFixed(1)}%`
+              {typeof (result.analysis?.[0]?.winRate ?? result.win_rate ?? result.winRate ?? result.hitRate ?? result.hit_rate) === 'number'
+                ? `${(result.analysis?.[0]?.winRate ?? result.win_rate ?? result.winRate ?? result.hitRate ?? result.hit_rate).toFixed(1)}%`
                 : '-'}
             </span>
           </button>
@@ -675,11 +675,11 @@ export function StudyResultCard({
       </div>
 
       {/* INSIGHT - inline (single line, no separate card) */}
-      {result.interpretation && (
+      {(result.interpretation || result.insight) && (
         <div className="px-4 pb-4 -mt-2">
           <p className="text-sm text-foreground/90 leading-relaxed">
             <span className="text-[10px] text-muted-foreground uppercase tracking-wide font-semibold mr-2">Insight:</span>
-            <span className="font-medium">{result.interpretation}</span>
+            <span className="font-medium">{result.interpretation || result.insight}</span>
           </p>
         </div>
       )}
