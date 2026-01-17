@@ -904,20 +904,11 @@ export default function QuantLab() {
       return;
     }
 
-    // Check if this is a premium study and user doesn't have access
-    if (study.isPremium && !isPro) {
-      showUpgradeModal('quantStudies');
-      toast.error('Premium study requires Pro subscription', {
-        description: 'Upgrade to unlock all advanced studies',
-      });
-      return;
-    }
-
-    // Check free tier usage limit (for non-premium users running free studies)
+    // Check free tier usage limit for non-premium users
     if (!isPro) {
       if (!canUse('quantStudies')) {
         showUpgradeModal('quantStudies');
-        toast.error('Free study limit reached', {
+        toast.error('Daily free study limit reached', {
           description: `You've used ${usage.quantStudies.used}/${usage.quantStudies.limit} free studies today. Upgrade to Pro for unlimited access.`,
         });
         return;
@@ -1655,12 +1646,6 @@ function QuantLabContent(props: any) {
                                     <div className="flex-1 min-w-0">
                                       <div className="flex items-center gap-2">
                                         <span className="font-semibold text-sm">{study.name}</span>
-                                        {study.isPremium && !isPro && (
-                                          <Badge variant="outline" className="text-[9px] px-1.5 border-amber-500/50 bg-amber-500/10 text-amber-600">
-                                            <Crown className="h-2.5 w-2.5 mr-0.5" />
-                                            Pro
-                                          </Badge>
-                                        )}
                                         <Badge variant="outline" className={cn(
                                           "text-[9px] px-1.5",
                                           study.difficulty === 'beginner' && "border-emerald-500/50 text-emerald-600",
