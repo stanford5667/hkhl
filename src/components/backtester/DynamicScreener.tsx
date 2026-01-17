@@ -734,7 +734,8 @@ export function DynamicScreener({ onSelect, onComplete }: DynamicScreenerProps) 
                 return (
                   <div 
                     key={p.id || idx}
-                    className="relative"
+                    className="relative cursor-pointer group"
+                    onClick={() => showUpgradeModal('screenerSearches')}
                   >
                     <div className="blur-sm pointer-events-none">
                       <PortfolioCard
@@ -749,10 +750,22 @@ export function DynamicScreener({ onSelect, onComplete }: DynamicScreenerProps) 
                         screeningPeriod={activeMetric === 'minTotalReturn' ? parseInt(returnPeriod) : 1}
                       />
                     </div>
-                    <div className="absolute inset-0 flex items-center justify-center bg-background/60 backdrop-blur-[2px] rounded-lg">
-                      <div className="text-center">
-                        <Lock className="h-5 w-5 mx-auto text-muted-foreground mb-1" />
-                        <p className="text-xs text-muted-foreground">Pro only</p>
+                    <div className="absolute inset-0 flex items-center justify-center bg-background/80 backdrop-blur-[2px] rounded-lg border border-primary/20 group-hover:border-primary/40 transition-all">
+                      <div className="text-center p-4">
+                        <div className="bg-gradient-to-br from-amber-500/20 to-orange-500/20 p-3 rounded-full w-fit mx-auto mb-2">
+                          <Crown className="h-6 w-6 text-amber-500" />
+                        </div>
+                        <p className="font-medium text-sm mb-1">Upgrade to Pro</p>
+                        <p className="text-xs text-muted-foreground max-w-[200px]">
+                          Unlock unlimited portfolio results, advanced filters & full analysis
+                        </p>
+                        <Button 
+                          size="sm" 
+                          className="mt-3 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white"
+                        >
+                          <Crown className="h-3 w-3 mr-1" />
+                          Unlock Now
+                        </Button>
                       </div>
                     </div>
                   </div>
