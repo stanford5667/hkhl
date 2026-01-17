@@ -40,7 +40,7 @@ import {
   TrendingUp, TrendingDown, BarChart3, Activity, Info,
   Calendar, Zap, Layers, Volume2, Crosshair, LineChart,
   Gauge, ArrowLeftRight, Mountain, ArrowUpDown,
-  Target, Shield, Loader2, GitBranch,
+  Target, Shield, Loader2, GitBranch, Lightbulb,
   CheckCircle2, X, ExternalLink, ChevronLeft, ChevronDown
 } from 'lucide-react';
 import { InlinePrice } from '@/components/shared/PriceDisplay';
@@ -2070,12 +2070,15 @@ function QuantLabContent(props: any) {
                         </div>
                       </div>
 
-                      {/* Interpretation - Compact */}
-                      <div className="px-3 py-2 md:px-6 md:py-4 border-b bg-background">
-                        <p className={cn("text-xs md:text-base font-semibold leading-snug md:leading-relaxed", sentiment.text)}>
-                          {result.interpretation || 'Analysis complete'}
-                        </p>
-                      </div>
+                      {/* Interpretation - Inline */}
+                      {result.interpretation && (
+                        <div className="px-3 py-1.5 border-b bg-background flex items-start gap-2">
+                          <Lightbulb className="h-3.5 w-3.5 text-amber-500 shrink-0 mt-0.5" />
+                          <p className={cn("text-xs leading-relaxed", sentiment.text)}>
+                            {result.interpretation}
+                          </p>
+                        </div>
+                      )}
 
                       {/* Conditional Study Parameters - Only for conditional category */}
                       {study.category === 'conditional' && study.params && study.params.length > 0 && (
@@ -2136,47 +2139,24 @@ function QuantLabContent(props: any) {
                           </div>
                         </div>
                       )}
-                      {/* Metrics Grid - More Compact */}
-                      <div className="p-2 md:p-4">
-                        <div className="grid grid-cols-4 md:grid-cols-6 gap-1.5 md:gap-3">
-                          {metrics.slice(0, 6).map(([key, value]) => (
-                            <button
-                              key={key}
-                              onClick={() => setSelectedMetric({ 
-                                key, value, studyName: study.name, studyResult: result
-                              })}
-                              className="text-center p-1.5 md:p-3 bg-muted/50 rounded-lg hover:bg-muted active:scale-[0.98] transition-all cursor-pointer"
-                            >
-                              <p className="text-[8px] md:text-[10px] text-muted-foreground capitalize mb-0.5 truncate">
-                                {key.replace(/([A-Z])/g, ' $1').replace(/_/g, ' ').trim()}
-                              </p>
-                              <p className="text-xs md:text-lg font-bold font-mono">
-                                {formatValue(key, value)}
-                              </p>
-                            </button>
-                          ))}
-                        </div>
-                        {/* Show more metrics row if available */}
-                        {metrics.length > 6 && (
-                          <div className="grid grid-cols-4 md:grid-cols-6 gap-1.5 md:gap-3 mt-2">
-                            {metrics.slice(6, 12).map(([key, value]) => (
-                              <button
-                                key={key}
-                                onClick={() => setSelectedMetric({ 
-                                  key, value, studyName: study.name, studyResult: result
-                                })}
-                                className="text-center p-1.5 md:p-3 bg-muted/50 rounded-lg hover:bg-muted active:scale-[0.98] transition-all cursor-pointer"
-                              >
-                                <p className="text-[8px] md:text-[10px] text-muted-foreground capitalize mb-0.5 truncate">
-                                  {key.replace(/([A-Z])/g, ' $1').replace(/_/g, ' ').trim()}
-                                </p>
-                                <p className="text-xs md:text-lg font-bold font-mono">
-                                  {formatValue(key, value)}
-                                </p>
-                              </button>
-                            ))}
-                          </div>
-                        )}
+                      {/* Metrics Grid - Compact inline */}
+                      <div className="px-3 py-2 flex flex-wrap gap-2">
+                        {metrics.slice(0, 8).map(([key, value]) => (
+                          <button
+                            key={key}
+                            onClick={() => setSelectedMetric({ 
+                              key, value, studyName: study.name, studyResult: result
+                            })}
+                            className="flex items-center gap-1.5 px-2 py-1 bg-muted/50 rounded-md hover:bg-muted active:scale-[0.98] transition-all cursor-pointer"
+                          >
+                            <span className="text-[10px] text-muted-foreground capitalize">
+                              {key.replace(/([A-Z])/g, ' $1').replace(/_/g, ' ').trim()}:
+                            </span>
+                            <span className="text-sm font-bold font-mono">
+                              {formatValue(key, value)}
+                            </span>
+                          </button>
+                        ))}
                       </div>
 
                       {/* Enhanced Visualizations - Collapsible to save space */}

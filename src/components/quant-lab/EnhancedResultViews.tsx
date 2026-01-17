@@ -672,32 +672,29 @@ function GenericEnhancedResult({ result, showInsights, showEducation }: { result
     .slice(0, 8);
 
   return (
-    <div className="space-y-6">
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+    <div className="space-y-3">
+      <div className="grid grid-cols-3 md:grid-cols-4 gap-2">
         {metrics.map(([key, value]) => (
-          <Card key={key}>
-            <CardContent className="pt-4 text-center">
-              <p className="text-xs text-muted-foreground capitalize">
-                {key.replace(/([A-Z])/g, ' $1').replace(/_/g, ' ').trim()}
-              </p>
-              <p className="text-2xl font-bold">
-                {typeof value === 'number' 
-                  ? value % 1 === 0 
-                    ? value 
-                    : value.toFixed(2)
-                  : String(value)}
-              </p>
-            </CardContent>
-          </Card>
+          <div key={key} className="text-center p-2 bg-muted/50 rounded-lg">
+            <p className="text-[10px] text-muted-foreground capitalize truncate">
+              {key.replace(/([A-Z])/g, ' $1').replace(/_/g, ' ').trim()}
+            </p>
+            <p className="text-lg font-bold font-mono">
+              {typeof value === 'number' 
+                ? value % 1 === 0 
+                  ? value 
+                  : value.toFixed(2)
+                : String(value)}
+            </p>
+          </div>
         ))}
       </div>
 
-      {result.interpretation && (
-        <Card className="bg-muted/50">
-          <CardContent className="pt-4">
-            <p className="text-sm">{result.interpretation}</p>
-          </CardContent>
-        </Card>
+      {result.interpretation && showInsights && (
+        <p className="text-xs text-muted-foreground leading-relaxed">
+          <Lightbulb className="inline h-3 w-3 text-amber-500 mr-1" />
+          {result.interpretation}
+        </p>
       )}
     </div>
   );
