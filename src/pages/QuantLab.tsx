@@ -1739,34 +1739,6 @@ function QuantLabContent(props: any) {
           </div>
         </div>
         
-        {/* Selected Ticker Indicator - Always visible and clickable */}
-        <div className="px-3 md:px-6 pb-3 flex items-center gap-3 flex-wrap">
-          <button
-            onClick={() => selectedTicker && navigate(`/stock/${selectedTicker}`)}
-            disabled={!selectedTicker}
-            className={cn(
-              "flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-primary/10 to-primary/5 border-2 border-primary/30 transition-all duration-200",
-              selectedTicker && "hover:border-primary/50 hover:bg-primary/15 cursor-pointer active:scale-[0.98]"
-            )}
-          >
-            <TrendingUp className="h-5 w-5 text-primary" />
-            <span className="text-xs font-medium text-muted-foreground">Analyzing:</span>
-            <span className="text-xl font-bold font-mono text-primary">${selectedTicker || 'Select Ticker'}</span>
-            {selectedTicker && (
-              <>
-                <span className="text-muted-foreground mx-1">•</span>
-                <InlinePrice ticker={selectedTicker} showStaleness={false} className="text-base font-semibold" />
-                
-              </>
-            )}
-          </button>
-          <div className="hidden md:flex items-center gap-2 text-xs text-muted-foreground ml-auto">
-            <span className="px-2 py-1 bg-muted rounded">{period}</span>
-            <span>•</span>
-            <span>1 study selected</span>
-          </div>
-        </div>
-        
         {/* Mobile Quick Tickers - Larger buttons */}
         <div className="md:hidden flex gap-2 px-3 pb-3 overflow-x-auto">
           {['AAPL', 'MSFT', 'NVDA', 'SPY', 'QQQ', 'TSLA', 'AMZN'].map((t) => (
