@@ -14,7 +14,11 @@ import {
   FileText,
   ExternalLink,
   Info,
-  LineChart
+  LineChart,
+  HelpCircle,
+  BookOpen,
+  History,
+  Lightbulb
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useEconomicCalendar } from '@/hooks/useEconomicCalendar';
@@ -34,6 +38,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 // Generate daily macro summary text based on current data
 function generateDailySummary(
@@ -128,7 +133,7 @@ function generateDailySummary(
   return summary;
 }
 
-// Clickable data point component
+// Clickable data point component with tabbed details
 interface ClickableDataPointProps {
   label: string;
   value: string | number | null | undefined;
@@ -136,9 +141,22 @@ interface ClickableDataPointProps {
   description: string;
   details: string;
   trend?: 'up' | 'down' | 'neutral';
+  explainer: string; // Short tooltip explanation
+  historicalContext?: string;
+  tradingImplications?: string;
 }
 
-function ClickableDataPoint({ label, value, icon, description, details, trend }: ClickableDataPointProps) {
+function ClickableDataPoint({ 
+  label, 
+  value, 
+  icon, 
+  description, 
+  details, 
+  trend, 
+  explainer,
+  historicalContext,
+  tradingImplications 
+}: ClickableDataPointProps) {
   if (!value) return null;
   
   return (
@@ -147,8 +165,18 @@ function ClickableDataPoint({ label, value, icon, description, details, trend }:
         <button className="bg-secondary/30 rounded-lg p-2 text-left hover:bg-secondary/50 transition-colors cursor-pointer group w-full">
           <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-1">
             {icon}
-            {label}
-            <ExternalLink className="h-2.5 w-2.5 opacity-0 group-hover:opacity-100 transition-opacity" />
+            <span>{label}</span>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <HelpCircle className="h-2.5 w-2.5 text-muted-foreground/60 hover:text-primary cursor-help" />
+                </TooltipTrigger>
+                <TooltipContent side="top" className="max-w-[200px] text-xs">
+                  <p>{explainer}</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+            <ExternalLink className="h-2.5 w-2.5 opacity-0 group-hover:opacity-100 transition-opacity ml-auto" />
           </div>
           <p className="font-mono font-semibold text-sm flex items-center gap-1">
             {value}
@@ -157,7 +185,7 @@ function ClickableDataPoint({ label, value, icon, description, details, trend }:
           </p>
         </button>
       </DialogTrigger>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-lg">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             {icon}
@@ -165,13 +193,51 @@ function ClickableDataPoint({ label, value, icon, description, details, trend }:
           </DialogTitle>
           <DialogDescription>{description}</DialogDescription>
         </DialogHeader>
-        <div className="space-y-4">
-          <div className="p-4 bg-secondary/30 rounded-lg">
-            <p className="text-2xl font-mono font-bold">{value}</p>
-            <p className="text-sm text-muted-foreground mt-1">Current Value</p>
-          </div>
-          <p className="text-sm text-foreground/80 leading-relaxed">{details}</p>
+        
+        <div className="p-4 bg-secondary/30 rounded-lg mb-4">
+          <p className="text-2xl font-mono font-bold flex items-center gap-2">
+            {value}
+            {trend === 'up' && <TrendingUp className="h-5 w-5 text-emerald-400" />}
+            {trend === 'down' && <TrendingDown className="h-5 w-5 text-rose-400" />}
+          </p>
+          <p className="text-sm text-muted-foreground mt-1">Current Value</p>
         </div>
+        
+        <Tabs defaultValue="overview" className="w-full">
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="overview" className="text-xs flex items-center gap-1">
+              <BookOpen className="h-3 w-3" />
+              Overview
+            </TabsTrigger>
+            <TabsTrigger value="history" className="text-xs flex items-center gap-1">
+              <History className="h-3 w-3" />
+              Context
+            </TabsTrigger>
+            <TabsTrigger value="trading" className="text-xs flex items-center gap-1">
+              <Lightbulb className="h-3 w-3" />
+              Trading
+            </TabsTrigger>
+          </TabsList>
+          <TabsContent value="overview" className="mt-3">
+            <div className="p-3 bg-secondary/20 rounded-lg">
+              <p className="text-sm text-foreground/80 leading-relaxed">{details}</p>
+            </div>
+          </TabsContent>
+          <TabsContent value="history" className="mt-3">
+            <div className="p-3 bg-secondary/20 rounded-lg">
+              <p className="text-sm text-foreground/80 leading-relaxed">
+                {historicalContext || "Historical data shows this indicator has been a reliable signal for market direction. During economic expansions, it typically rises, while contractions see declines. Monitor for sudden changes that may precede market moves."}
+              </p>
+            </div>
+          </TabsContent>
+          <TabsContent value="trading" className="mt-3">
+            <div className="p-3 bg-secondary/20 rounded-lg">
+              <p className="text-sm text-foreground/80 leading-relaxed">
+                {tradingImplications || "Consider this indicator alongside other macro data for a complete picture. Changes in this metric can affect equity valuations, bond yields, and currency movements. Use as one input in your broader investment thesis."}
+              </p>
+            </div>
+          </TabsContent>
+        </Tabs>
       </DialogContent>
     </Dialog>
   );
@@ -375,6 +441,9 @@ export function WeeklyMacroSummary() {
                   description="Federal Funds Target Rate"
                   details="The Federal Funds Rate is the target interest rate set by the FOMC at which commercial banks borrow and lend their excess reserves to each other overnight. This rate influences all other interest rates in the economy and is a primary tool of monetary policy."
                   trend="neutral"
+                  explainer="The interest rate banks charge each other for overnight loans. Set by the Fed to control inflation and stimulate/slow the economy."
+                  historicalContext="The Fed raised rates aggressively from near-zero in 2022 to combat inflation. Historically, rate cuts follow once inflation is controlled. The current rate cycle began in March 2022."
+                  tradingImplications="Higher rates typically pressure growth stocks and benefit financials. Rate cuts often spark equity rallies. Bond prices move inversely to rate expectations."
                 />
                 <ClickableDataPoint
                   label="CPI"
@@ -383,6 +452,9 @@ export function WeeklyMacroSummary() {
                   description="Consumer Price Index (Inflation)"
                   details="The Consumer Price Index measures the average change in prices paid by consumers for goods and services. The Fed targets 2% annual inflation. Higher readings typically lead to tighter monetary policy, while lower readings may support rate cuts."
                   trend={parseFloat(String(keyDataPoints.inflation?.current_value).replace('%', '')) > 3 ? 'up' : 'down'}
+                  explainer="Measures how fast prices are rising for everyday goods and services. The Fed's target is 2% annually."
+                  historicalContext="CPI peaked at 9.1% in June 2022, the highest since 1981. The path to 2% has been gradual with shelter costs being the stickiest component."
+                  tradingImplications="Higher CPI = hawkish Fed = pressure on stocks/bonds. Falling CPI supports 'soft landing' narrative and risk assets. Watch core CPI (ex-food/energy) for trend."
                 />
                 <ClickableDataPoint
                   label="GDP"
@@ -391,6 +463,9 @@ export function WeeklyMacroSummary() {
                   description="Gross Domestic Product Growth"
                   details="GDP measures the total value of goods and services produced in the economy. Strong GDP growth typically supports equity markets and risk assets, while contraction may signal recession and favor defensive positioning."
                   trend={parseFloat(String(keyDataPoints.gdp?.current_value).replace('%', '')) > 2 ? 'up' : parseFloat(String(keyDataPoints.gdp?.current_value).replace('%', '')) < 0 ? 'down' : 'neutral'}
+                  explainer="Total value of all goods and services produced. Shows if the economy is growing or shrinking."
+                  historicalContext="Average U.S. GDP growth is around 2-3%. Two consecutive quarters of negative growth technically defines a recession. Consumer spending drives ~70% of GDP."
+                  tradingImplications="Strong GDP supports cyclical sectors and risk-on positioning. Weak GDP favors defensives and bonds. Watch GDP revisions—markets react to surprises."
                 />
                 <ClickableDataPoint
                   label="Unemployment"
@@ -399,6 +474,9 @@ export function WeeklyMacroSummary() {
                   description="U.S. Unemployment Rate"
                   details="The unemployment rate represents the percentage of the labor force that is jobless and actively seeking employment. Low unemployment indicates a strong labor market but may contribute to wage inflation. Rising unemployment often precedes economic downturns."
                   trend={parseFloat(String(keyDataPoints.unemployment?.current_value).replace('%', '')) < 4 ? 'down' : 'up'}
+                  explainer="Percentage of people actively looking for work who can't find jobs. Low = strong economy, but can fuel inflation."
+                  historicalContext="Pre-pandemic unemployment was 3.5% (50-year low). It spiked to 14.7% in April 2020 and has since recovered. The Fed considers below 4% as 'full employment'."
+                  tradingImplications="Rising unemployment often leads to Fed rate cuts (bullish for stocks/bonds). Very low unemployment can pressure wages and inflation, keeping the Fed hawkish."
                 />
               </div>
             </TooltipProvider>
