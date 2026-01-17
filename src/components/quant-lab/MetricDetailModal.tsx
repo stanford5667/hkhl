@@ -385,6 +385,90 @@ const METRIC_DEFINITIONS: Record<string, {
     example: '$92 target at -1 std means ~16% chance price falls below this.',
     category: 'Targets',
   },
+  
+  // Close vs Open Analysis
+  bias: {
+    name: 'Bias',
+    description: 'The overall directional tendency based on close positions - bullish (closes near highs), bearish (closes near lows), or neutral.',
+    formula: 'Based on avgClosePosition: > 55% = Bullish, < 45% = Bearish, else Neutral',
+    interpretation: 'A bullish bias suggests buyers are in control; bearish bias suggests sellers dominate.',
+    example: 'Bullish bias means the stock tends to close near its daily highs more often.',
+    category: 'Pressure',
+  },
+  avgClosePositionPct: {
+    name: 'Avg Close Position',
+    description: 'Where price closes within the day\'s range on average. 100% = closes at high, 0% = closes at low.',
+    formula: 'Average of [(Close - Low) ÷ (High - Low) × 100] for each day',
+    interpretation: 'Above 50% suggests buying pressure; below 50% suggests selling pressure.',
+    example: 'Avg close position of 62% means the stock typically closes in the upper portion of its daily range.',
+    category: 'Pressure',
+    goodRange: '> 55%',
+    badRange: '< 45%',
+  },
+  greenDaysPct: {
+    name: 'Green Days %',
+    description: 'Percentage of days where close > open (intraday gains).',
+    formula: '(Days where Close > Open) ÷ Total Days × 100',
+    interpretation: 'Above 50% means the stock goes up more often than down during trading hours.',
+    example: 'Green days of 58% means the stock gains during the trading session 58% of the time.',
+    category: 'Direction',
+    goodRange: '> 52%',
+    badRange: '< 48%',
+  },
+  redDaysPct: {
+    name: 'Red Days %',
+    description: 'Percentage of days where close < open (intraday losses).',
+    formula: '(Days where Close < Open) ÷ Total Days × 100',
+    interpretation: 'Below 50% is healthy; consistently above 50% suggests persistent selling pressure.',
+    example: 'Red days of 42% means the stock declines during trading on 42% of days.',
+    category: 'Direction',
+    goodRange: '< 48%',
+    badRange: '> 52%',
+  },
+  closedNearHighPct: {
+    name: 'Closed Near High %',
+    description: 'Percentage of days where price closed in the top 20% of the day\'s range.',
+    formula: '(Days where ClosePosition > 80%) ÷ Total Days × 100',
+    interpretation: 'High percentage = strong buying conviction; buyers push price up into close.',
+    example: 'Closed near high 35% of the time means buyers frequently took control into the close.',
+    category: 'Pressure',
+    goodRange: '> 25%',
+  },
+  closedNearLowPct: {
+    name: 'Closed Near Low %',
+    description: 'Percentage of days where price closed in the bottom 20% of the day\'s range.',
+    formula: '(Days where ClosePosition < 20%) ÷ Total Days × 100',
+    interpretation: 'High percentage = selling pressure dominates; sellers push price down into close.',
+    example: 'Closed near low 30% of the time suggests sellers frequently won by end of day.',
+    category: 'Pressure',
+    badRange: '> 30%',
+  },
+  dojiDaysPct: {
+    name: 'Doji Days %',
+    description: 'Percentage of days with very small body relative to range (indecision candles).',
+    formula: '(Days where |Close - Open| / Range < Threshold) ÷ Total Days × 100',
+    interpretation: 'High doji % = market indecision; often precedes breakouts or reversals.',
+    example: 'Doji days of 15% means about 1 in 7 days shows indecision between buyers and sellers.',
+    category: 'Patterns',
+  },
+  strongGreenDaysPct: {
+    name: 'Strong Green Days %',
+    description: 'Percentage of days with a large positive move from open to close.',
+    formula: '(Days where (Close - Open) / Open ≥ Threshold%) ÷ Total Days × 100',
+    interpretation: 'High strong green % = bullish momentum with conviction moves.',
+    example: 'Strong green days of 20% means 1 in 5 days sees a significant intraday rally.',
+    category: 'Momentum',
+    goodRange: '> 15%',
+  },
+  strongRedDaysPct: {
+    name: 'Strong Red Days %',
+    description: 'Percentage of days with a large negative move from open to close.',
+    formula: '(Days where (Open - Close) / Open ≥ Threshold%) ÷ Total Days × 100',
+    interpretation: 'High strong red % = vulnerability to sharp intraday selloffs.',
+    example: 'Strong red days of 12% means about 1 in 8 days sees a significant intraday decline.',
+    category: 'Momentum',
+    badRange: '> 20%',
+  },
 };
 
 // Fallback for metrics not in the dictionary
@@ -562,6 +646,118 @@ function generateCalculationTrace(metricKey: string, metricValue: any, studyResu
         steps.push({ label: 'Count filled gaps', value: 'Gaps where price returned to prior close' });
         steps.push({ label: 'Calculate fill rate', value: 'Filled ÷ Total × 100' });
         steps.push({ label: 'Gap fill rate', value: `${typeof metricValue === 'number' ? metricValue.toFixed(2) : metricValue}%` });
+      }
+      break;
+
+    // Close vs Open Analysis metrics
+    case 'bias':
+      if (studyResult?.summary?.avgClosePosition !== undefined) {
+        const avgPos = studyResult.summary.avgClosePosition;
+        inputs.push({ name: 'Avg Close Position', value: `${avgPos.toFixed(1)}%` });
+        steps.push({ label: 'Calculate avg close position', value: `${avgPos.toFixed(1)}%`, formula: 'Average of (Close - Low) / (High - Low) × 100' });
+        steps.push({ label: 'Apply bias threshold', value: avgPos > 55 ? '> 55% → Bullish' : avgPos < 45 ? '< 45% → Bearish' : '45-55% → Neutral' });
+        steps.push({ label: 'Final bias', value: metricValue });
+      }
+      break;
+
+    case 'avgClosePositionPct':
+      if (studyResult?.barsAnalyzed !== undefined) {
+        inputs.push({ name: 'Days Analyzed', value: studyResult.barsAnalyzed.toString() });
+        steps.push({ label: 'For each day, calculate', value: '(Close - Low) ÷ (High - Low)', formula: 'Close Position = (Close - Low) ÷ (High - Low) × 100' });
+        steps.push({ label: 'Example: Day with H=$150, L=$145, C=$148', value: '(148-145) ÷ (150-145) = 60%', formula: '(148 - 145) ÷ (150 - 145) × 100' });
+        steps.push({ label: 'Sum all daily positions', value: 'Σ(close positions)' });
+        steps.push({ label: 'Divide by count', value: `Sum ÷ ${studyResult.barsAnalyzed}` });
+        steps.push({ label: 'Average close position', value: `${typeof metricValue === 'number' ? metricValue.toFixed(1) : metricValue}%` });
+      }
+      break;
+
+    case 'greenDaysPct':
+      if (studyResult?.summary?.greenDays !== undefined) {
+        const gd = studyResult.summary.greenDays;
+        inputs.push({ name: 'Green Days', value: gd.count?.toString() || 'N/A' });
+        inputs.push({ name: 'Total Days', value: studyResult.barsAnalyzed?.toString() || 'N/A' });
+        steps.push({ label: 'Count days where Close > Open', value: gd.count?.toString() || 'N/A', formula: 'Green Day = Close > Open' });
+        steps.push({ label: 'Divide by total days', value: `${gd.count} ÷ ${studyResult.barsAnalyzed}`, formula: 'Green Days ÷ Total Days' });
+        steps.push({ label: 'Multiply by 100', value: `${typeof metricValue === 'number' ? metricValue.toFixed(1) : metricValue}%` });
+      }
+      break;
+
+    case 'redDaysPct':
+      if (studyResult?.summary?.redDays !== undefined) {
+        const rd = studyResult.summary.redDays;
+        inputs.push({ name: 'Red Days', value: rd.count?.toString() || 'N/A' });
+        inputs.push({ name: 'Total Days', value: studyResult.barsAnalyzed?.toString() || 'N/A' });
+        steps.push({ label: 'Count days where Close < Open', value: rd.count?.toString() || 'N/A', formula: 'Red Day = Close < Open' });
+        steps.push({ label: 'Divide by total days', value: `${rd.count} ÷ ${studyResult.barsAnalyzed}`, formula: 'Red Days ÷ Total Days' });
+        steps.push({ label: 'Multiply by 100', value: `${typeof metricValue === 'number' ? metricValue.toFixed(1) : metricValue}%` });
+      }
+      break;
+
+    case 'closedNearHighPct':
+      if (studyResult?.summary?.closedNearHigh !== undefined) {
+        const cnh = studyResult.summary.closedNearHigh;
+        inputs.push({ name: 'Near High Days', value: cnh.count?.toString() || 'N/A' });
+        inputs.push({ name: 'Total Days', value: studyResult.barsAnalyzed?.toString() || 'N/A' });
+        inputs.push({ name: 'Near High Threshold', value: '> 80%' });
+        steps.push({ label: 'Calculate close position for each day', value: '(Close - Low) ÷ (High - Low) × 100' });
+        steps.push({ label: 'Count days with position > 80%', value: cnh.count?.toString() || 'N/A', formula: 'ClosePosition > 80% = Near High' });
+        steps.push({ label: 'Calculate percentage', value: `${cnh.count} ÷ ${studyResult.barsAnalyzed} × 100` });
+        steps.push({ label: 'Closed near high %', value: `${typeof metricValue === 'number' ? metricValue.toFixed(1) : metricValue}%` });
+      }
+      break;
+
+    case 'closedNearLowPct':
+      if (studyResult?.summary?.closedNearLow !== undefined) {
+        const cnl = studyResult.summary.closedNearLow;
+        inputs.push({ name: 'Near Low Days', value: cnl.count?.toString() || 'N/A' });
+        inputs.push({ name: 'Total Days', value: studyResult.barsAnalyzed?.toString() || 'N/A' });
+        inputs.push({ name: 'Near Low Threshold', value: '< 20%' });
+        steps.push({ label: 'Calculate close position for each day', value: '(Close - Low) ÷ (High - Low) × 100' });
+        steps.push({ label: 'Count days with position < 20%', value: cnl.count?.toString() || 'N/A', formula: 'ClosePosition < 20% = Near Low' });
+        steps.push({ label: 'Calculate percentage', value: `${cnl.count} ÷ ${studyResult.barsAnalyzed} × 100` });
+        steps.push({ label: 'Closed near low %', value: `${typeof metricValue === 'number' ? metricValue.toFixed(1) : metricValue}%` });
+      }
+      break;
+
+    case 'dojiDaysPct':
+      if (studyResult?.summary?.dojiDays !== undefined) {
+        const doji = studyResult.summary.dojiDays;
+        const threshold = studyResult.params?.dojiThreshold || 0.1;
+        inputs.push({ name: 'Doji Days', value: doji.count?.toString() || 'N/A' });
+        inputs.push({ name: 'Total Days', value: studyResult.barsAnalyzed?.toString() || 'N/A' });
+        inputs.push({ name: 'Doji Threshold', value: `${(threshold * 100).toFixed(0)}% body/range` });
+        steps.push({ label: 'Calculate body %', value: '|Close - Open| ÷ (High - Low)', formula: 'Body % = |Close - Open| ÷ Range' });
+        steps.push({ label: 'Count doji days', value: `Body % < ${(threshold * 100).toFixed(0)}%`, formula: `Doji = Body % < ${(threshold * 100).toFixed(0)}%` });
+        steps.push({ label: 'Calculate percentage', value: `${doji.count} ÷ ${studyResult.barsAnalyzed} × 100` });
+        steps.push({ label: 'Doji days %', value: `${typeof metricValue === 'number' ? metricValue.toFixed(1) : metricValue}%` });
+      }
+      break;
+
+    case 'strongGreenDaysPct':
+      if (studyResult?.summary?.strongGreenDays !== undefined) {
+        const sg = studyResult.summary.strongGreenDays;
+        const threshold = studyResult.params?.strongMoveThreshold || 1.5;
+        inputs.push({ name: 'Strong Green Days', value: sg.count?.toString() || 'N/A' });
+        inputs.push({ name: 'Total Days', value: studyResult.barsAnalyzed?.toString() || 'N/A' });
+        inputs.push({ name: 'Strong Move Threshold', value: `≥ ${threshold}%` });
+        steps.push({ label: 'Calculate daily move', value: '(Close - Open) ÷ Open × 100', formula: 'Daily Move % = (Close - Open) ÷ Open × 100' });
+        steps.push({ label: 'Count strong green days', value: `Move ≥ ${threshold}%`, formula: `Strong Green = Move ≥ ${threshold}%` });
+        steps.push({ label: 'Calculate percentage', value: `${sg.count} ÷ ${studyResult.barsAnalyzed} × 100` });
+        steps.push({ label: 'Strong green days %', value: `${typeof metricValue === 'number' ? metricValue.toFixed(1) : metricValue}%` });
+      }
+      break;
+
+    case 'strongRedDaysPct':
+      if (studyResult?.summary?.strongRedDays !== undefined) {
+        const sr = studyResult.summary.strongRedDays;
+        const threshold = studyResult.params?.strongMoveThreshold || 1.5;
+        inputs.push({ name: 'Strong Red Days', value: sr.count?.toString() || 'N/A' });
+        inputs.push({ name: 'Total Days', value: studyResult.barsAnalyzed?.toString() || 'N/A' });
+        inputs.push({ name: 'Strong Move Threshold', value: `≥ ${threshold}%` });
+        steps.push({ label: 'Calculate daily move', value: '(Open - Close) ÷ Open × 100', formula: 'Daily Loss % = (Open - Close) ÷ Open × 100' });
+        steps.push({ label: 'Count strong red days', value: `Loss ≥ ${threshold}%`, formula: `Strong Red = Loss ≥ ${threshold}%` });
+        steps.push({ label: 'Calculate percentage', value: `${sr.count} ÷ ${studyResult.barsAnalyzed} × 100` });
+        steps.push({ label: 'Strong red days %', value: `${typeof metricValue === 'number' ? metricValue.toFixed(1) : metricValue}%` });
       }
       break;
 
