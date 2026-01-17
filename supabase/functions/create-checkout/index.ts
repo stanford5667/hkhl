@@ -65,6 +65,22 @@ serve(async (req) => {
       mode: "subscription",
       success_url: `${productionUrl}/?subscription=success`,
       cancel_url: `${productionUrl}/?subscription=cancelled`,
+      // Enable automatic invoice and receipt emails from Stripe
+      invoice_creation: {
+        enabled: true,
+      },
+      // Add custom fields to show what's included
+      custom_text: {
+        submit: {
+          message: "Your Pro subscription includes:\n• Unlimited portfolio analysis\n• Advanced risk metrics & correlations\n• AI-powered insights & recommendations\n• Real-time market data\n• Priority support\n\nSubscription auto-renews monthly. Cancel anytime from your account settings.",
+        },
+      },
+      // Collect billing address for invoices
+      billing_address_collection: "required",
+      // Enable tax ID collection for businesses
+      tax_id_collection: {
+        enabled: true,
+      },
     });
 
     logStep("Checkout session created", { sessionId: session.id });
