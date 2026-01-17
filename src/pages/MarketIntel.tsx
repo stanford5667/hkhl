@@ -120,7 +120,6 @@ export default function MarketIntel() {
       {activeCategory === 'bonds' && <GlobalBondYields />}
       {activeCategory === 'earnings' && <EarningsContent />}
       
-      {activeCategory === 'commodities' && <CommoditiesContent onItemClick={handleItemClick} />}
       {activeCategory === 'currencies' && <CurrenciesContent onItemClick={handleItemClick} />}
       {activeCategory === 'indicators' && (
         <div className="space-y-4 sm:space-y-6">
