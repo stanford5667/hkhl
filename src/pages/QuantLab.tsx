@@ -28,6 +28,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Slider } from '@/components/ui/slider';
 import {
   Accordion,
   AccordionContent,
@@ -1446,9 +1447,9 @@ export default function QuantLab() {
 function QuantLabContent(props: any) {
   const {
     ticker, setTicker, selectedTicker, setSelectedTicker, period, setPeriod,
-    selectedStudies, setSelectedStudies, studyParams, results, setResults,
+    selectedStudies, setSelectedStudies, studyParams, setStudyParams, results, setResults,
     isRunning, runningStudy, showHelp, setShowHelp, activeCategory, setActiveCategory,
-    isSaving, initStudyParams, addStudy, removeStudy, handleSetTicker,
+    isSaving, initStudyParams, addStudy, removeStudy, updateParam, handleSetTicker,
     runStudy, runAllStudies, saveStudyResult, getStudy, formatValue, getSentimentStyle, getDisplayMetrics
   } = props;
 
@@ -1953,7 +1954,65 @@ function QuantLabContent(props: any) {
                         </p>
                       </div>
 
-                      {/* Key Metrics Grid - Compact 4-col on mobile */}
+                      {/* Conditional Study Parameters - Only for conditional category */}
+                      {study.category === 'conditional' && study.params && study.params.length > 0 && (
+                        <div className="px-3 py-3 md:px-6 md:py-4 border-b bg-muted/20">
+                          <div className="flex items-center gap-2 mb-3">
+                            <GitBranch className="h-4 w-4 text-muted-foreground" />
+                            <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Adjust Conditions</span>
+                          </div>
+                          <div className="flex flex-wrap gap-4 md:gap-6">
+                            {study.params.map((param: any) => (
+                              <div key={param.key} className="flex-1 min-w-[140px] max-w-[200px]">
+                                <div className="flex items-center justify-between mb-2">
+                                  <span className="text-xs font-medium">{param.label}</span>
+                                  <span className="text-xs font-mono font-bold text-primary">
+                                    {studyParams[studyId]?.[param.key] ?? param.default}
+                                    {param.label.includes('%') ? '%' : ''}
+                                  </span>
+                                </div>
+                                {param.type === 'slider' && (
+                                  <Slider
+                                    value={[studyParams[studyId]?.[param.key] ?? param.default]}
+                                    min={param.min}
+                                    max={param.max}
+                                    step={param.step}
+                                    onValueChange={([val]) => updateParam(studyId, param.key, val)}
+                                    className="w-full"
+                                  />
+                                )}
+                                {param.type === 'select' && param.options && (
+                                  <Select
+                                    value={studyParams[studyId]?.[param.key] ?? param.default}
+                                    onValueChange={(val) => updateParam(studyId, param.key, val)}
+                                  >
+                                    <SelectTrigger className="h-8 text-xs">
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      {param.options.map((opt: any) => (
+                                        <SelectItem key={opt.value} value={opt.value} className="text-xs">
+                                          {opt.label}
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                )}
+                              </div>
+                            ))}
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => runStudy(studyId)}
+                              disabled={isRunning}
+                              className="h-8 gap-1.5 text-xs self-end"
+                            >
+                              <Play className="h-3 w-3" />
+                              Re-run
+                            </Button>
+                          </div>
+                        </div>
+                      )}
                       <div className="p-2 md:p-6">
                         <div className="grid grid-cols-4 md:grid-cols-4 gap-1.5 md:gap-4">
                           {metrics.slice(0, 4).map(([key, value]) => (
