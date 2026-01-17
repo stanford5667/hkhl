@@ -62,11 +62,19 @@ const FEATURE_COPY: Record<string, { title: string; benefit: string }> = {
 };
 
 const PRO_FEATURES = [
-  { icon: Sparkles, text: 'Unlimited AI analyses' },
-  { icon: TrendingUp, text: 'Real-time screener alerts' },
-  { icon: Bell, text: 'Unlimited price alerts' },
-  { icon: Zap, text: 'Priority AI processing' },
-  { icon: Crown, text: 'Exclusive pro screens' },
+  { icon: Sparkles, text: 'Unlimited AI analyses & market chat' },
+  { icon: TrendingUp, text: 'Full portfolio screener access' },
+  { icon: Bell, text: 'Save portfolios, studies & screens' },
+  { icon: Zap, text: 'All Quant Lab studies (100+ available)' },
+  { icon: Crown, text: 'Extended historical timeframes' },
+];
+
+const COMING_SOON_FEATURES = [
+  'Options flow screening',
+  'Agentic news bots',
+  'Hundreds of new studies',
+  'Deep conditional probability studies',
+  'Expanded datasets & asset coverage',
 ];
 
 export function UpgradeModal({ isOpen, feature, onClose, onUpgrade }: UpgradeModalProps) {
@@ -107,29 +115,30 @@ export function UpgradeModal({ isOpen, feature, onClose, onUpgrade }: UpgradeMod
   };
 
   const UpgradeContent = () => (
-    <div className="space-y-5 py-4">
+    <div className="space-y-4 py-4">
       <motion.div 
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1 }}
-        className="bg-primary/5 rounded-lg p-4 border border-primary/10"
+        className="bg-primary/5 rounded-lg p-3 border border-primary/10"
       >
         <p className="text-sm text-muted-foreground text-center">
-          Upgrade to Pro and get:
+          Unlock the full power of quantitative analysis
         </p>
       </motion.div>
 
-      <div className="space-y-3">
+      <div className="space-y-2">
+        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Pro Features</p>
         {PRO_FEATURES.map((f, i) => (
           <motion.div
             key={f.text}
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.15 + i * 0.05 }}
+            transition={{ delay: 0.15 + i * 0.04 }}
             className="flex items-center gap-3"
           >
-            <div className="w-8 h-8 rounded-full bg-green-500/10 flex items-center justify-center flex-shrink-0">
-              <Check className="h-4 w-4 text-green-500" />
+            <div className="w-7 h-7 rounded-full bg-green-500/10 flex items-center justify-center flex-shrink-0">
+              <Check className="h-3.5 w-3.5 text-green-500" />
             </div>
             <span className="text-sm font-medium">{f.text}</span>
             {f.text === copy.benefit && (
@@ -140,6 +149,26 @@ export function UpgradeModal({ isOpen, feature, onClose, onUpgrade }: UpgradeMod
           </motion.div>
         ))}
       </div>
+
+      {/* Coming Soon Section */}
+      <motion.div 
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.4 }}
+        className="bg-gradient-to-r from-purple-500/10 to-amber-500/10 rounded-lg p-3 border border-purple-500/20"
+      >
+        <p className="text-xs font-semibold text-purple-400 uppercase tracking-wide mb-2 flex items-center gap-1">
+          <Sparkles className="h-3 w-3" />
+          Coming Soon for Pro
+        </p>
+        <div className="flex flex-wrap gap-1.5">
+          {COMING_SOON_FEATURES.map((feature, i) => (
+            <span key={i} className="text-xs bg-background/50 px-2 py-1 rounded-full text-muted-foreground">
+              {feature}
+            </span>
+          ))}
+        </div>
+      </motion.div>
 
       <motion.div 
         initial={{ opacity: 0, y: 10 }}
