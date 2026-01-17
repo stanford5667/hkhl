@@ -1,6 +1,7 @@
 /**
  * StudyResultCard - Enhanced visual display for study results
  * Matches the reference design with clickable metrics that show detailed popups
+ * Includes trading strategy explanations and comprehensive visualizations
  */
 
 import { useState } from 'react';
@@ -13,7 +14,7 @@ import {
   X, Save, ExternalLink, GitBranch, Loader2, Play,
   Calculator, Database, ArrowRight, BookOpen, Target,
   Lightbulb, TrendingUp, TrendingDown, Activity, Calendar,
-  ChevronDown, BarChart3, Info
+  ChevronDown, BarChart3, Info, Crosshair
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Slider } from '@/components/ui/slider';
@@ -26,6 +27,7 @@ import {
 } from '@/components/ui/select';
 import { StudyVisualizations } from './StudyVisualizations';
 import { EnhancedResultView } from './EnhancedResultViews';
+import { TradingStrategyCard } from './TradingStrategyCard';
 
 interface StudyParam {
   key: string;
@@ -438,6 +440,7 @@ export function StudyResultCard({
 }: StudyResultCardProps) {
   const [selectedMetric, setSelectedMetric] = useState<{ key: string; value: any } | null>(null);
   const [showVisuals, setShowVisuals] = useState(false);
+  const [showStrategy, setShowStrategy] = useState(false);
 
   // Get displayable metrics from result
   const getDisplayMetrics = (): [string, any][] => {
@@ -964,7 +967,7 @@ export function StudyResultCard({
       {/* Visual Analysis Toggle */}
       <button
         onClick={() => setShowVisuals(!showVisuals)}
-        className="w-full px-4 py-2.5 flex items-center justify-between hover:bg-muted/30 transition-colors"
+        className="w-full px-4 py-2.5 flex items-center justify-between hover:bg-muted/30 transition-colors border-b"
       >
         <div className="flex items-center gap-2">
           <BarChart3 className="h-4 w-4 text-primary" />
@@ -984,12 +987,49 @@ export function StudyResultCard({
             exit={{ height: 0, opacity: 0 }}
             className="overflow-hidden"
           >
-            <div className="px-4 py-4 bg-muted/10 border-t">
+            <div className="px-4 py-4 bg-muted/10 border-b">
               <EnhancedResultView 
                 result={result} 
                 studyId={study.id}
                 showInsights={false}
                 showEducation={false}
+              />
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Trading Strategy Toggle */}
+      <button
+        onClick={() => setShowStrategy(!showStrategy)}
+        className="w-full px-4 py-2.5 flex items-center justify-between hover:bg-muted/30 transition-colors"
+      >
+        <div className="flex items-center gap-2">
+          <Crosshair className="h-4 w-4 text-amber-500" />
+          <span className="text-xs font-semibold">How to Trade This</span>
+          <Badge variant="outline" className="text-[8px] h-4 px-1.5 border-amber-500/50 text-amber-600">
+            Strategy
+          </Badge>
+        </div>
+        <ChevronDown className={cn(
+          "h-4 w-4 text-muted-foreground transition-transform",
+          showStrategy && "rotate-180"
+        )} />
+      </button>
+
+      <AnimatePresence>
+        {showStrategy && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            className="overflow-hidden"
+          >
+            <div className="px-4 py-4 bg-amber-500/5 border-t">
+              <TradingStrategyCard 
+                studyId={study.id}
+                result={result}
+                ticker={ticker}
               />
             </div>
           </motion.div>
