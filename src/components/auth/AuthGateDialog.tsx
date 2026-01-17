@@ -19,9 +19,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
-import { Loader2, Sparkles, TrendingUp, Shield, Check } from "lucide-react";
+import { Loader2, Sparkles, TrendingUp, Shield } from "lucide-react";
 import { AssetLabsLogo } from "@/components/brand/AssetLabsLogo";
 import { EmailVerificationPending } from "./EmailVerificationPending";
+import { AgeVerificationInput, AgeRatingBadge } from "./AgeVerificationInput";
 
 interface AuthGateDialogProps {
   open: boolean;
@@ -40,7 +41,7 @@ export function AuthGateDialog({
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
-  const [ageConfirmed, setAgeConfirmed] = useState(false);
+  const [isAgeVerified, setIsAgeVerified] = useState(false);
   const [ageError, setAgeError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const { signIn, signUp } = useAuth();
@@ -66,9 +67,9 @@ export function AuthGateDialog({
     e.preventDefault();
     setAgeError('');
 
-    // Validate age confirmation for signup
-    if (mode === 'signup' && !ageConfirmed) {
-      setAgeError('You must be 18 or older to use this platform');
+    // Validate age verification for signup
+    if (mode === 'signup' && !isAgeVerified) {
+      setAgeError('Please verify your age to continue');
       return;
     }
 
@@ -117,6 +118,13 @@ export function AuthGateDialog({
       <div className="flex items-center justify-center py-2">
         <AssetLabsLogo size="lg" />
       </div>
+
+      {/* Age Rating Badge for Signup */}
+      {mode === 'signup' && (
+        <div className="flex justify-center">
+          <AgeRatingBadge />
+        </div>
+      )}
 
       {/* Features list - horizontal */}
       <div className="flex justify-center gap-4 py-2 border-y border-border/50">
@@ -176,41 +184,10 @@ export function AuthGateDialog({
         </div>
 
         {mode === 'signup' && (
-          <div className="space-y-1.5">
-            <div className="flex items-start gap-3 p-3 rounded-lg bg-secondary/50 border border-border">
-              <button
-                type="button"
-                onClick={() => {
-                  setAgeConfirmed(!ageConfirmed);
-                  setAgeError('');
-                }}
-                className={`mt-0.5 h-5 w-5 rounded border flex items-center justify-center transition-colors flex-shrink-0 ${
-                  ageConfirmed 
-                    ? "bg-primary border-primary text-primary-foreground" 
-                    : "border-muted-foreground/50 bg-transparent"
-                }`}
-              >
-                {ageConfirmed && <Check className="h-3 w-3" />}
-              </button>
-              <div className="flex-1">
-                <label 
-                  className="text-sm text-foreground cursor-pointer"
-                  onClick={() => {
-                    setAgeConfirmed(!ageConfirmed);
-                    setAgeError('');
-                  }}
-                >
-                  I confirm that I am 18 years of age or older
-                </label>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  You must be at least 18 years old to use this platform.
-                </p>
-              </div>
-            </div>
-            {ageError && (
-              <p className="text-sm text-destructive">{ageError}</p>
-            )}
-          </div>
+          <AgeVerificationInput
+            onVerificationChange={setIsAgeVerified}
+            error={ageError}
+          />
         )}
 
         <Button 

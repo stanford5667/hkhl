@@ -2814,12 +2814,14 @@ export type Database = {
       }
       profiles: {
         Row: {
+          age_verified_at: string | null
           avatar_url: string | null
           company: string | null
           created_at: string
           current_organization_id: string | null
           full_name: string | null
           id: string
+          is_age_verified: boolean | null
           job_title: string | null
           linkedin_url: string | null
           membership_tier: string | null
@@ -2831,12 +2833,14 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          age_verified_at?: string | null
           avatar_url?: string | null
           company?: string | null
           created_at?: string
           current_organization_id?: string | null
           full_name?: string | null
           id?: string
+          is_age_verified?: boolean | null
           job_title?: string | null
           linkedin_url?: string | null
           membership_tier?: string | null
@@ -2848,12 +2852,14 @@ export type Database = {
           user_id: string
         }
         Update: {
+          age_verified_at?: string | null
           avatar_url?: string | null
           company?: string | null
           created_at?: string
           current_organization_id?: string | null
           full_name?: string | null
           id?: string
+          is_age_verified?: boolean | null
           job_title?: string | null
           linkedin_url?: string | null
           membership_tier?: string | null
