@@ -92,11 +92,13 @@ interface StudyDefinition {
   params: StudyParam[];
   difficulty: 'beginner' | 'intermediate' | 'advanced';
   tags: string[];
+  isPremium?: boolean; // Premium studies require subscription
 }
 
 const STUDY_DEFINITIONS: StudyDefinition[] = [
   // ========== BASIC STATISTICS ==========
   // ========== BASIC STATISTICS (no editable params - pure analysis) ==========
+  // FREE: First 2 basic studies
   {
     id: 'daily_close_gt_open',
     name: 'Intraday Direction',
@@ -108,7 +110,8 @@ const STUDY_DEFINITIONS: StudyDefinition[] = [
     howToUse: 'Values above 55% suggest bullish intraday bias. Below 45% suggests bearish bias.',
     difficulty: 'beginner',
     tags: ['momentum', 'direction', 'daily'],
-    params: [] // No adjustable params - pure factual analysis
+    params: [], // No adjustable params - pure factual analysis
+    isPremium: false, // FREE
   },
   {
     id: 'daily_close_gt_prior',
@@ -121,8 +124,10 @@ const STUDY_DEFINITIONS: StudyDefinition[] = [
     howToUse: 'Most stocks hover around 52-54%. Higher is bullish, lower is concerning.',
     difficulty: 'beginner',
     tags: ['momentum', 'win-rate'],
-    params: [] // No adjustable params - pure factual analysis
+    params: [], // No adjustable params - pure factual analysis
+    isPremium: false, // FREE
   },
+  // PREMIUM: Remaining basic studies
   {
     id: 'daily_return_distribution',
     name: 'Return Profile',
@@ -134,7 +139,8 @@ const STUDY_DEFINITIONS: StudyDefinition[] = [
     howToUse: 'Look at the mean (average daily gain), std dev (typical range), and outliers.',
     difficulty: 'intermediate',
     tags: ['volatility', 'statistics'],
-    params: [] // No adjustable params - shows full distribution automatically
+    params: [], // No adjustable params - shows full distribution automatically
+    isPremium: true, // PREMIUM
   },
   {
     id: 'up_down_streaks',
@@ -147,10 +153,12 @@ const STUDY_DEFINITIONS: StudyDefinition[] = [
     howToUse: 'Compare max win streak vs loss streak. Longer win streaks = stronger momentum.',
     difficulty: 'beginner',
     tags: ['momentum', 'streaks'],
-    params: [] // No adjustable params - analyzes all streaks
+    params: [], // No adjustable params - analyzes all streaks
+    isPremium: true, // PREMIUM
   },
   
   // ========== SEASONALITY (simple or no params) ==========
+  // ALL PREMIUM
   {
     id: 'day_of_week_returns',
     name: 'Best Days of the Week',
@@ -162,7 +170,8 @@ const STUDY_DEFINITIONS: StudyDefinition[] = [
     howToUse: 'Look for days with consistently positive returns and high win rates.',
     difficulty: 'beginner',
     tags: ['seasonality', 'timing'],
-    params: [] // Analyzes all days automatically
+    params: [], // Analyzes all days automatically
+    isPremium: true,
   },
   {
     id: 'month_of_year_returns',
@@ -175,10 +184,12 @@ const STUDY_DEFINITIONS: StudyDefinition[] = [
     howToUse: 'Identify strong and weak months for timing entries/exits.',
     difficulty: 'beginner',
     tags: ['seasonality', 'timing'],
-    params: [] // Analyzes all months automatically
+    params: [], // Analyzes all months automatically
+    isPremium: true,
   },
   
   // ========== TECHNICAL ANALYSIS (uses industry-standard defaults) ==========
+  // ALL PREMIUM
   {
     id: 'rsi_analysis',
     name: 'RSI (Overbought/Oversold)',
@@ -190,7 +201,8 @@ const STUDY_DEFINITIONS: StudyDefinition[] = [
     howToUse: 'Look for extreme readings and check historical accuracy.',
     difficulty: 'intermediate',
     tags: ['momentum', 'overbought', 'oversold'],
-    params: [] // Uses industry-standard RSI(14) with 70/30 levels
+    params: [], // Uses industry-standard RSI(14) with 70/30 levels
+    isPremium: true,
   },
   {
     id: 'moving_average_analysis',
@@ -203,7 +215,8 @@ const STUDY_DEFINITIONS: StudyDefinition[] = [
     howToUse: 'Look for price above all MAs and short MA above long MA for strongest uptrends.',
     difficulty: 'intermediate',
     tags: ['trend', 'moving-average'],
-    params: [] // Uses standard 20/50/200 moving averages
+    params: [], // Uses standard 20/50/200 moving averages
+    isPremium: true,
   },
   {
     id: 'trend_strength',
@@ -216,7 +229,8 @@ const STUDY_DEFINITIONS: StudyDefinition[] = [
     howToUse: 'Score of 4-5 = strong uptrend. 0-1 = strong downtrend. 2-3 = mixed.',
     difficulty: 'beginner',
     tags: ['trend', 'strength'],
-    params: [] // Uses standard moving average configuration
+    params: [], // Uses standard moving average configuration
+    isPremium: true,
   },
   {
     id: 'macd_analysis',
@@ -229,7 +243,8 @@ const STUDY_DEFINITIONS: StudyDefinition[] = [
     howToUse: 'Buy when MACD crosses above signal. Sell when it crosses below.',
     difficulty: 'intermediate',
     tags: ['momentum', 'trend'],
-    params: [] // Uses standard MACD(12, 26, 9)
+    params: [], // Uses standard MACD(12, 26, 9)
+    isPremium: true,
   },
   {
     id: 'bollinger_analysis',
@@ -242,7 +257,8 @@ const STUDY_DEFINITIONS: StudyDefinition[] = [
     howToUse: 'Look for touches of bands and band squeezes before breakouts.',
     difficulty: 'intermediate',
     tags: ['volatility', 'bands'],
-    params: [] // Uses standard Bollinger(20, 2)
+    params: [], // Uses standard Bollinger(20, 2)
+    isPremium: true,
   },
   {
     id: 'stochastic_analysis',
@@ -255,10 +271,12 @@ const STUDY_DEFINITIONS: StudyDefinition[] = [
     howToUse: 'Above 80 = near highs. Below 20 = near lows. Crossovers signal turns.',
     difficulty: 'intermediate',
     tags: ['momentum', 'overbought', 'oversold'],
-    params: [] // Uses standard Stochastic(14, 3) with 80/20 levels
+    params: [], // Uses standard Stochastic(14, 3) with 80/20 levels
+    isPremium: true,
   },
   
   // ========== VOLATILITY & RISK (no editable params) ==========
+  // ALL PREMIUM
   {
     id: 'volatility_analysis',
     name: 'Volatility Profile',
@@ -270,7 +288,8 @@ const STUDY_DEFINITIONS: StudyDefinition[] = [
     howToUse: 'Compare current volatility to average. Use for position sizing.',
     difficulty: 'intermediate',
     tags: ['volatility', 'risk'],
-    params: [] // Uses standard ATR(14) and 20-day volatility
+    params: [], // Uses standard ATR(14) and 20-day volatility
+    isPremium: true,
   },
   {
     id: 'drawdown_analysis',
@@ -283,7 +302,8 @@ const STUDY_DEFINITIONS: StudyDefinition[] = [
     howToUse: 'Know the max drawdown before investing. Can you handle it?',
     difficulty: 'beginner',
     tags: ['risk', 'drawdown'],
-    params: [] // Shows all significant drawdowns automatically
+    params: [], // Shows all significant drawdowns automatically
+    isPremium: true,
   },
   {
     id: 'mean_reversion',
@@ -296,11 +316,12 @@ const STUDY_DEFINITIONS: StudyDefinition[] = [
     howToUse: 'High reversal rate = fade big moves. Low = ride momentum.',
     difficulty: 'intermediate',
     tags: ['reversal', 'momentum'],
-    params: [] // Uses standard 2 standard deviation threshold
+    params: [], // Uses standard 2 standard deviation threshold
+    isPremium: true,
   },
   
   // ========== PRICE PATTERNS ==========
-  // ========== PRICE PATTERNS (no editable params) ==========
+  // ALL PREMIUM
   {
     id: 'gap_analysis',
     name: 'Gap Analysis',
@@ -312,7 +333,8 @@ const STUDY_DEFINITIONS: StudyDefinition[] = [
     howToUse: 'High fill rate = gaps tend to close. Low = gaps often continue.',
     difficulty: 'intermediate',
     tags: ['gaps', 'patterns'],
-    params: [] // Analyzes all significant gaps automatically
+    params: [], // Analyzes all significant gaps automatically
+    isPremium: true,
   },
   {
     id: 'range_analysis',
@@ -325,7 +347,8 @@ const STUDY_DEFINITIONS: StudyDefinition[] = [
     howToUse: 'Many inside days = breakout coming. Doji = indecision.',
     difficulty: 'intermediate',
     tags: ['patterns', 'consolidation'],
-    params: [] // Uses standard definitions for patterns
+    params: [], // Uses standard definitions for patterns
+    isPremium: true,
   },
   {
     id: 'high_low_analysis',
@@ -338,7 +361,8 @@ const STUDY_DEFINITIONS: StudyDefinition[] = [
     howToUse: 'Check if new highs lead to gains (trend) or losses (reversal).',
     difficulty: 'intermediate',
     tags: ['breakout', 'momentum'],
-    params: [] // Uses 20-day high/low as standard
+    params: [], // Uses 20-day high/low as standard
+    isPremium: true,
   },
   {
     id: 'close_to_open_analysis',
@@ -351,10 +375,12 @@ const STUDY_DEFINITIONS: StudyDefinition[] = [
     howToUse: 'Use this to gauge intraday conviction and the typical follow-through after strong/indecision days.',
     difficulty: 'intermediate',
     tags: ['patterns', 'candles', 'pressure'],
-    params: [] // Uses standard pattern definitions
+    params: [], // Uses standard pattern definitions
+    isPremium: true,
   },
   
   // ========== VOLUME (no editable params) ==========
+  // ALL PREMIUM
   {
     id: 'volume_analysis',
     name: 'Volume Profile',
@@ -366,10 +392,12 @@ const STUDY_DEFINITIONS: StudyDefinition[] = [
     howToUse: 'Look for accumulation (up volume > down volume) for bullish bias.',
     difficulty: 'intermediate',
     tags: ['volume', 'accumulation'],
-    params: [] // Uses 20-day volume average
+    params: [], // Uses 20-day volume average
+    isPremium: true,
   },
   
   // ========== PROJECTIONS (no editable params) ==========
+  // ALL PREMIUM
   {
     id: 'price_targets',
     name: 'Price Targets',
@@ -381,10 +409,12 @@ const STUDY_DEFINITIONS: StudyDefinition[] = [
     howToUse: 'Use bull/bear scenarios for planning, not as guarantees.',
     difficulty: 'intermediate',
     tags: ['targets', 'projections'],
-    params: [] // Uses 1 standard deviation for projection range
+    params: [], // Uses 1 standard deviation for projection range
+    isPremium: true,
   },
   
   // ========== CONDITIONAL PROBABILITY ==========
+  // FREE: First conditional study
   {
     id: 'after_down_x',
     name: 'After Down X%',
@@ -424,8 +454,10 @@ const STUDY_DEFINITIONS: StudyDefinition[] = [
         ],
         beginner: 'Choose how far ahead to measure the outcome'
       }
-    ]
+    ],
+    isPremium: false, // FREE
   },
+  // PREMIUM: Rest of conditional studies
   {
     id: 'after_up_x',
     name: 'After Up X%',
@@ -465,7 +497,8 @@ const STUDY_DEFINITIONS: StudyDefinition[] = [
         ],
         beginner: 'Choose how far ahead to measure the outcome'
       }
-    ]
+    ],
+    isPremium: true, // PREMIUM
   },
   {
     id: 'after_consecutive_days',
@@ -518,7 +551,8 @@ const STUDY_DEFINITIONS: StudyDefinition[] = [
         ],
         beginner: 'Choose how far ahead to measure the outcome'
       }
-    ]
+    ],
+    isPremium: true, // PREMIUM
   },
   {
     id: 'after_high_volume',
@@ -570,7 +604,8 @@ const STUDY_DEFINITIONS: StudyDefinition[] = [
         ],
         beginner: 'Choose how far ahead to measure the outcome'
       }
-    ]
+    ],
+    isPremium: true, // PREMIUM
   },
   {
     id: 'after_gap',
@@ -611,7 +646,8 @@ const STUDY_DEFINITIONS: StudyDefinition[] = [
         ],
         beginner: 'Choose how far ahead to measure the outcome'
       }
-    ]
+    ],
+    isPremium: true, // PREMIUM
   },
   {
     id: 'below_ma',
@@ -663,7 +699,8 @@ const STUDY_DEFINITIONS: StudyDefinition[] = [
         ],
         beginner: 'Choose how far ahead to measure the outcome'
       }
-    ]
+    ],
+    isPremium: true, // PREMIUM
   },
   {
     id: 'after_drawdown',
@@ -704,7 +741,8 @@ const STUDY_DEFINITIONS: StudyDefinition[] = [
         ],
         beginner: 'Choose how far ahead to measure the outcome'
       }
-    ]
+    ],
+    isPremium: true, // PREMIUM
   }
 ];
 
