@@ -41,7 +41,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signUp = async (email: string, password: string, fullName: string) => {
-    // Sign up user (Supabase has auto-confirm disabled, so email won't be confirmed yet)
+    // Sign up user - we handle verification ourselves via Loops, so skip Supabase's email
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
@@ -49,6 +49,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         data: {
           full_name: fullName,
         },
+        emailRedirectTo: undefined, // Don't use Supabase's email confirmation
       },
     });
 
