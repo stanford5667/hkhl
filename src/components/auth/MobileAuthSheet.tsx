@@ -121,39 +121,35 @@ export function MobileAuthSheet({
   ];
 
   const authForm = (
-    <div className="space-y-4 px-1">
+    <div className="space-y-2 px-1">
       {/* Asset Labs Branding */}
-      <div className="flex items-center justify-center py-2">
-        <AssetLabsLogo size="lg" />
+      <div className="flex items-center justify-center py-1">
+        <AssetLabsLogo size="md" />
       </div>
 
-
-      {/* Value Proposition */}
+      {/* Value Proposition - compact */}
       {mode === 'signup' && (
-        <div className="text-center space-y-1 py-2">
-          <p className="text-sm font-semibold text-foreground">
-            Turn market hunches into <span className="text-primary">statistical proof</span>
-          </p>
-          <p className="text-xs text-muted-foreground">No coding required. Just pick, click, and discover.</p>
+        <p className="text-center text-xs text-muted-foreground">
+          Turn hunches into <span className="text-primary font-medium">statistical proof</span> — no code required
+        </p>
+      )}
+
+      {/* Features list - single row, minimal */}
+      {mode === 'signup' && (
+        <div className="flex justify-center gap-4 py-1.5">
+          {features.map((feature, i) => (
+            <div key={i} className="flex items-center gap-1">
+              <feature.icon className="h-3 w-3 text-primary" />
+              <span className="text-[10px] font-medium text-primary">{feature.text}</span>
+            </div>
+          ))}
         </div>
       )}
 
-      {/* Features list - horizontal */}
-      <div className="flex justify-center gap-3 py-3 border-y border-border/50 bg-secondary/30 rounded-lg mx-0">
-        {features.map((feature, i) => (
-          <div key={i} className="flex flex-col items-center gap-1.5 text-center px-2">
-            <div className="p-1.5 rounded-full bg-primary/10">
-              <feature.icon className="h-4 w-4 text-primary" />
-            </div>
-            <span className="text-[11px] font-semibold text-primary">{feature.text}</span>
-          </div>
-        ))}
-      </div>
-
-      <form onSubmit={handleSubmit} className="space-y-3">
+      <form onSubmit={handleSubmit} className="space-y-2">
         {mode === 'signup' && (
-          <div className="space-y-1.5">
-            <Label htmlFor="fullName" className="text-sm font-medium">Full Name</Label>
+          <div className="space-y-1">
+            <Label htmlFor="fullName" className="text-xs font-medium">Full Name</Label>
             <Input
               ref={fullNameInputRef}
               id="fullName"
@@ -161,14 +157,14 @@ export function MobileAuthSheet({
               onChange={(e) => setFullName(e.target.value)}
               placeholder="John Doe"
               required
-              className="h-12 text-base"
+              className="h-10 text-sm"
               autoComplete="name"
             />
           </div>
         )}
         
-        <div className="space-y-1.5">
-          <Label htmlFor="email" className="text-sm font-medium">Email</Label>
+        <div className="space-y-1">
+          <Label htmlFor="email" className="text-xs font-medium">Email</Label>
           <Input
             ref={emailInputRef}
             id="email"
@@ -177,13 +173,13 @@ export function MobileAuthSheet({
             onChange={(e) => setEmail(e.target.value)}
             placeholder="you@example.com"
             required
-            className="h-12 text-base"
+            className="h-10 text-sm"
             autoComplete="email"
           />
         </div>
 
-        <div className="space-y-1.5">
-          <Label htmlFor="password" className="text-sm font-medium">Password</Label>
+        <div className="space-y-1">
+          <Label htmlFor="password" className="text-xs font-medium">Password</Label>
           <Input
             id="password"
             type="password"
@@ -192,7 +188,7 @@ export function MobileAuthSheet({
             placeholder="••••••••"
             required
             minLength={6}
-            className="h-12 text-base"
+            className="h-10 text-sm"
             autoComplete={mode === 'signup' ? 'new-password' : 'current-password'}
           />
         </div>
@@ -206,11 +202,11 @@ export function MobileAuthSheet({
 
         <Button 
           type="submit" 
-          className="w-full h-12 text-base font-semibold bg-gradient-to-r from-primary to-primary/80" 
+          className="w-full h-11 text-sm font-semibold bg-gradient-to-r from-primary to-primary/80" 
           disabled={isLoading}
         >
           {isLoading ? (
-            <Loader2 className="h-5 w-5 animate-spin" />
+            <Loader2 className="h-4 w-4 animate-spin" />
           ) : mode === 'signup' ? (
             "Create Account"
           ) : (
@@ -219,7 +215,7 @@ export function MobileAuthSheet({
         </Button>
       </form>
 
-      <div className="text-center text-sm text-muted-foreground pb-4">
+      <div className="text-center text-xs text-muted-foreground pb-2">
         {mode === 'signup' ? (
           <>
             Already have an account?{" "}
