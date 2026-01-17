@@ -40,6 +40,8 @@ import {
   FolderOpen,
   Trash2,
   LineChart,
+  Crown,
+  Lock,
 } from 'lucide-react';
 import {
   Dialog,
@@ -79,6 +81,8 @@ import { InvestorPolicyStatement } from '@/types/investorPolicy';
 import { MobileBacktester } from '@/components/backtester/MobileBacktester';
 import { RiskScreener } from '@/components/backtester/RiskScreener';
 import { DynamicScreener } from '@/components/backtester/DynamicScreener';
+import { PremiumFeatureBlock } from '@/components/premium/PremiumFeatureBlock';
+import { useUsage } from '@/contexts/UsageContext';
 import { AICoPilotWizard } from '@/components/backtester/AICoPilotWizard';
 import { ManualPortfolioForm } from '@/components/backtester/ManualPortfolioForm';
 import { EfficientFrontierSlider } from '@/components/backtester/EfficientFrontierSlider';
@@ -372,6 +376,7 @@ export default function PortfolioVisualizer() {
   // Auth and query client
   const { user } = useAuth();
   const { requireAuth, showAuthDialog, closeAuthDialog } = useRequireAuth();
+  const { isPro, isLoading: isUsageLoading } = useUsage();
   const queryClient = useQueryClient();
   
   // Shared portfolio management hook
@@ -1342,7 +1347,17 @@ export default function PortfolioVisualizer() {
               
               <Card 
                 className="cursor-pointer relative bg-gradient-to-br from-surface-2/95 via-surface-2/90 to-surface-1/80 backdrop-blur-sm border-white/10 hover:border-primary/50 transition-all duration-300 h-full overflow-hidden shadow-xl shadow-black/20"
-                onClick={() => setCurrentFlow('screener')}
+                onClick={() => {
+                  if (!user) {
+                    requireAuth(() => {}, 'screener-access');
+                    return;
+                  }
+                  if (!isPro) {
+                    setCurrentFlow('screener'); // Will show premium gate
+                    return;
+                  }
+                  setCurrentFlow('screener');
+                }}
               >
                 {/* Top accent bar with animation */}
                 <motion.div 
@@ -1355,11 +1370,11 @@ export default function PortfolioVisualizer() {
                 {/* Shine effect on hover */}
                 <div className="absolute inset-0 bg-gradient-to-br from-white/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                 
-                {/* Recommended badge */}
-                <div className="absolute top-4 right-4">
-                  <Badge className="bg-primary/20 text-primary border-primary/30 text-xs font-medium">
-                    <Zap className="h-3 w-3 mr-1" />
-                    Recommended
+                {/* Premium badge */}
+                <div className="absolute top-4 right-4 flex items-center gap-2">
+                  <Badge className="bg-amber-500/20 text-amber-500 border-amber-500/30 text-xs font-medium">
+                    <Crown className="h-3 w-3 mr-1" />
+                    Premium
                   </Badge>
                 </div>
                 
@@ -1570,8 +1585,70 @@ export default function PortfolioVisualizer() {
     );
   }
 
-  // Screener flow - risk-based portfolio screening
+  // Screener flow - risk-based portfolio screening (PREMIUM ONLY)
   if (currentFlow === 'screener') {
+    // Gate: must be logged in
+    if (!user) {
+      return (
+        <div className="min-h-screen bg-background flex flex-col">
+          <div className="px-3 pt-2 pb-1 shrink-0">
+            <Button variant="ghost" size="sm" onClick={() => setCurrentFlow('choose')} className="h-8 text-xs">
+              ← Back
+            </Button>
+          </div>
+          <div className="flex-1 flex items-center justify-center p-6">
+            <Card className="w-full max-w-md border-border/50 bg-card/50 backdrop-blur-sm">
+              <CardContent className="py-12">
+                <div className="text-center space-y-4">
+                  <div className="h-16 w-16 rounded-full bg-amber-500/10 flex items-center justify-center mx-auto">
+                    <Lock className="h-8 w-8 text-amber-500" />
+                  </div>
+                  <h2 className="text-xl font-bold">Sign In Required</h2>
+                  <p className="text-sm text-muted-foreground">
+                    The Portfolio Screener is a premium feature. Please sign in to continue.
+                  </p>
+                  <Button onClick={() => requireAuth(() => {}, 'screener-access')} className="mt-4">
+                    Sign In
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+          <AuthGateDialog
+            open={showAuthDialog}
+            onOpenChange={closeAuthDialog}
+            title="Sign in to access Portfolio Screener"
+            description="Create a free account, then upgrade to Pro to unlock the Portfolio Screener."
+          />
+        </div>
+      );
+    }
+
+    // Gate: must be premium
+    if (!isPro) {
+      return (
+        <div className="min-h-screen bg-background flex flex-col">
+          <div className="px-3 pt-2 pb-1 shrink-0">
+            <Button variant="ghost" size="sm" onClick={() => setCurrentFlow('choose')} className="h-8 text-xs">
+              ← Back
+            </Button>
+          </div>
+          <div className="flex-1 flex items-center justify-center p-6">
+            <Card className="w-full max-w-md border-border/50 bg-card/50 backdrop-blur-sm">
+              <CardContent className="py-12">
+                <PremiumFeatureBlock 
+                  size="lg"
+                  title="Premium Feature"
+                  description="The Portfolio Screener lets you screen 100,000+ portfolio combinations by performance metrics. Upgrade to Pro to unlock this powerful tool."
+                />
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      );
+    }
+
+    // Premium user - show full screener
     return (
       <>
         <div className="min-h-screen bg-background flex flex-col">
