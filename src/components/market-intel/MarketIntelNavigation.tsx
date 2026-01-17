@@ -16,9 +16,9 @@ interface MarketIntelNavigationProps {
 }
 
 const categories: { id: MarketCategory; label: string; icon: React.ElementType }[] = [
+  { id: 'indicators', label: 'Overview', icon: TrendingUp },
   { id: 'calendar', label: 'Calendar', icon: Calendar },
   { id: 'news', label: 'News', icon: Newspaper },
-  { id: 'indicators', label: 'Indicators', icon: TrendingUp },
   { id: 'countries', label: 'Countries', icon: Globe },
   { id: 'forecasts', label: 'Forecasts', icon: LineChart },
   { id: 'commodities', label: 'Commodities', icon: Fuel },
