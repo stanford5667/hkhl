@@ -173,7 +173,7 @@ export function QuantLabWelcomeHero({
               transition={{ delay: 0.2 }}
               className="space-y-2 sm:space-y-4"
             >
-              <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight">
+              <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight">
                 <span className="bg-gradient-to-r from-primary via-violet-500 to-purple-500 bg-clip-text text-transparent">
                   Zero Coding
                 </span>
