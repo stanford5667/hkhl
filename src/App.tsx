@@ -55,6 +55,7 @@ const Disclosures = lazy(() => import('./pages/Disclosures'));
 const Privacy = lazy(() => import('./pages/Privacy'));
 const Glossary = lazy(() => import('./pages/Glossary'));
 const NotFound = lazy(() => import('./pages/NotFound'));
+const VerifyEmail = lazy(() => import('./pages/VerifyEmail'));
 
 // Optimized QueryClient with caching defaults
 const queryClient = new QueryClient({
@@ -97,6 +98,7 @@ const App = () => {
                               <Route path="/" element={<Portfolio />} />
                               <Route path="/news" element={<NewsIntelligence />} />
                               <Route path="/auth" element={<Auth />} />
+                              <Route path="/verify-email" element={<VerifyEmail />} />
                               <Route path="/pipeline" element={<Pipeline />} />
                               <Route path="/assets" element={<Portfolio />} />
                               <Route path="/portfolio/:id" element={<CompanyDetail />} />

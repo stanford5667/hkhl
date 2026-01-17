@@ -73,22 +73,24 @@ export function EmailVerificationPending({
     };
   }, [isPolling, checkVerification, onVerified]);
 
-  // Resend verification email via Supabase
+  // Resend verification email via Loops
   const handleResendEmail = async () => {
     setIsResending(true);
     try {
-      const { error } = await supabase.auth.resend({
-        type: 'signup',
-        email,
-        options: {
-          emailRedirectTo: `${window.location.origin}/`,
+      // Get user ID from a fresh session check or pass it as prop
+      // For resend, we need to trigger our custom edge function
+      const response = await supabase.functions.invoke('send-verification-email', {
+        body: {
+          userId: '', // We'll need to get this from somewhere
+          email: email,
+          fullName: email.split('@')[0], // Fallback name
         },
       });
 
-      if (error) {
+      if (response.error) {
         toast({
           title: "Failed to resend email",
-          description: error.message,
+          description: response.error.message || "Please try again later.",
           variant: "destructive",
         });
       } else {

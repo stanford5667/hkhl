@@ -41,23 +41,42 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signUp = async (email: string, password: string, fullName: string) => {
-    // Email verification links redirect to the custom domain
-    const customDomain = "https://aiassetlabs.com";
-
-    const redirectUrl = `${customDomain}/`;
-
-    const { error } = await supabase.auth.signUp({
+    // Sign up user (Supabase has auto-confirm disabled, so email won't be confirmed yet)
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
-        emailRedirectTo: redirectUrl,
         data: {
           full_name: fullName,
         },
       },
     });
 
-    return { error: error as Error | null };
+    if (error) {
+      return { error: error as Error | null };
+    }
+
+    // If signup succeeded, send custom verification email via Loops
+    if (data.user) {
+      try {
+        const response = await supabase.functions.invoke('send-verification-email', {
+          body: {
+            userId: data.user.id,
+            email: email,
+            fullName: fullName,
+          },
+        });
+
+        if (response.error) {
+          console.error('Failed to send verification email:', response.error);
+          // Don't fail the signup, just log the error
+        }
+      } catch (err) {
+        console.error('Error sending verification email:', err);
+      }
+    }
+
+    return { error: null };
   };
 
   const signIn = async (email: string, password: string) => {
