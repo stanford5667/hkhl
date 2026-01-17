@@ -61,6 +61,7 @@ import { MobileAuthSheet } from '@/components/auth/MobileAuthSheet';
 import { IntegratedQuantStudiesPanel } from '@/components/equity/IntegratedQuantStudiesPanel';
 import { EnhancedResultView } from '@/components/quant-lab/EnhancedResultViews';
 import { StudyRunningOverlay } from '@/components/quant-lab/StudyRunningOverlay';
+import { QuantLabWelcomeHero } from '@/components/quant-lab/QuantLabWelcomeHero';
 
 // ===========================================
 // STUDY DEFINITIONS WITH BEGINNER-FRIENDLY EXPLANATIONS
@@ -1177,14 +1178,37 @@ function QuantLabContent(props: any) {
   // Study search filter
   const [studySearch, setStudySearch] = useState('');
   
+  // Track if user has interacted (to show welcome vs regular UI)
+  const [hasInteracted, setHasInteracted] = useState(false);
+  
   // Saved studies panel
   const [showSavedStudies, setShowSavedStudies] = useState(false);
   
   // Track if initial auto-run has been done this session
   const [hasAutoRun, setHasAutoRun] = useState(false);
   
-  // Auto-run default study on first load if no results exist
+  // Determine if we should show the welcome hero
+  // Show for guests who haven't interacted, regardless of default selectedStudies initialization
+  const hasSavedResults = Object.keys(results).length > 0;
+  const showWelcomeHero = !user && !hasInteracted && !hasSavedResults;
+  
+  // Handler to select study from welcome hero
+  const handleWelcomeSelectStudy = (studyId: string) => {
+    setHasInteracted(true);
+    addStudy(studyId);
+  };
+  
+  // Handler for "Run Demo" from welcome hero
+  const handleWelcomeRunDemo = () => {
+    setHasInteracted(true);
+    addStudy('after_consecutive_days');
+    setTimeout(() => handleRunStudy('after_consecutive_days'), 100);
+  };
+  
+  // Auto-run default study on first load ONLY for logged-in users
   useEffect(() => {
+    // Skip for guests - they see the welcome hero
+    if (!user) return;
     if (hasAutoRun) return;
     
     // Check if we already have results (from localStorage or previous run)
@@ -1212,7 +1236,7 @@ function QuantLabContent(props: any) {
     }, 500);
     
     return () => clearTimeout(timer);
-  }, [selectedTicker, selectedStudies, results, hasAutoRun, addStudy, handleRunStudy]);
+  }, [user, selectedTicker, selectedStudies, results, hasAutoRun, addStudy, handleRunStudy]);
 
 
   return (
@@ -1225,10 +1249,11 @@ function QuantLabContent(props: any) {
         isGuest={!user}
       />
       
-      {/* Tutorial Overlay for new users */}
-      <TutorialOverlay />
+      {/* Tutorial Overlay for new users - Only show when not displaying welcome hero */}
+      {!showWelcomeHero && <TutorialOverlay />}
       
-      {/* Header with Prominent Search - Mobile Optimized */}
+      {/* Header with Prominent Search - Hidden on welcome hero for cleaner experience */}
+      {!showWelcomeHero && (
       <div className="shrink-0 border-b bg-card/50 backdrop-blur-sm">
         <div className="flex flex-col md:flex-row md:items-center gap-3 px-3 md:px-6 py-3">
           {/* Top row on mobile: Logo + Quick Actions */}
@@ -1354,11 +1379,13 @@ function QuantLabContent(props: any) {
           ))}
         </div>
       </div>
+      )}
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
         
-        {/* Desktop: Always-visible Study Sidebar */}
+        {/* Desktop: Always-visible Study Sidebar - Hidden when showing welcome hero */}
+        {!showWelcomeHero && (
         <div className="hidden md:flex md:w-80 lg:w-96 shrink-0 md:border-r bg-card flex-col overflow-hidden h-full">
           {/* Panel Header */}
           <div className="px-4 py-3 border-b bg-muted/30">
@@ -1447,6 +1474,7 @@ function QuantLabContent(props: any) {
             </p>
           </div>
         </div>
+        )}
 
         {/* Mobile: Study Selection Panel - Full screen overlay */}
         <AnimatePresence>
@@ -1721,6 +1749,14 @@ function QuantLabContent(props: any) {
                       );
                     })}
                   </div>
+                ) : showWelcomeHero ? (
+                  /* Guest Welcome Hero */
+                  <QuantLabWelcomeHero
+                    onSelectStudy={handleWelcomeSelectStudy}
+                    onRunDemo={handleWelcomeRunDemo}
+                    isGuest={!user}
+                    onSignUp={() => setShowAuthSheet(true)}
+                  />
                 ) : (
                   <>
                     {/* Arrow pointing to sidebar on desktop */}
