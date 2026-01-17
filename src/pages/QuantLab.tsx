@@ -1544,8 +1544,8 @@ function QuantLabContent(props: any) {
                   </div>
                 </div>
                 
-                {/* Fixed bottom action bar */}
-                <div className="shrink-0 border-t bg-card px-4 py-3 pb-safe">
+                {/* Fixed bottom action bar - extra padding for bottom nav */}
+                <div className="shrink-0 border-t bg-card px-4 pt-3 pb-20">
                   <Button
                     onClick={() => {
                       if (ticker.trim()) handleSetTicker(ticker.trim());
