@@ -15,27 +15,33 @@ interface MembershipStepProps {
 const FREE_FEATURES = [
   { name: 'Basic Portfolio Tracking', included: true },
   { name: 'Market Overview Dashboard', included: true },
-  { name: 'Up to 3 Saved Portfolios', included: true },
-  { name: 'Daily Market Updates', included: true },
-  { name: 'AI Market Chat', included: false },
-  { name: 'Advanced Analytics', included: false },
-  { name: 'Quant Lab Access', included: false },
-  { name: 'Real-time Alerts', included: false },
-  { name: 'Custom Investment Plans', included: false },
-  { name: 'Priority Support', included: false },
+  { name: '2 Basic Quant Lab Studies', included: true },
+  { name: 'Limited Screener Results', included: true },
+  { name: 'Save Portfolios & Studies', included: false },
+  { name: 'Full Quant Lab Access', included: false },
+  { name: 'Unlimited Screener', included: false },
+  { name: 'Extended Timeframes', included: false },
+  { name: 'Coming Soon Features', included: false },
 ];
 
 const PRO_FEATURES = [
   { name: 'Everything in Free', included: true },
-  { name: 'Unlimited Portfolios', included: true },
+  { name: 'Save Portfolios, Studies & Screens', included: true, highlight: true },
+  { name: '100+ Quant Lab Studies', included: true },
+  { name: 'Deep Conditional Probability Studies', included: true },
+  { name: 'Unlimited Screener Results & Filters', included: true },
+  { name: 'Extended Historical Timeframes', included: true },
   { name: 'AI-Powered Market Chat', included: true },
-  { name: 'Advanced Risk Analytics', included: true },
-  { name: 'Quant Lab & Backtesting', included: true },
   { name: 'Real-time Price Alerts', included: true },
-  { name: 'Custom Investment Plans', included: true },
-  { name: 'Priority Email Support', included: true },
-  { name: 'Export Reports (PDF/Excel)', included: true },
+  { name: 'Priority Support', included: true },
   { name: 'Early Access to New Features', included: true },
+];
+
+const COMING_SOON = [
+  'Options Flow Screening',
+  'Agentic News Bots',
+  'Hundreds of New Studies',
+  'Expanded Datasets & Assets',
 ];
 
 export function MembershipStep({ onComplete, onBack }: MembershipStepProps) {
@@ -178,14 +184,32 @@ export function MembershipStep({ onComplete, onBack }: MembershipStepProps) {
               <p className="text-slate-400 text-sm">Billed monthly</p>
             </div>
             
-            <ul className="space-y-3 mb-6">
+            <ul className="space-y-2 mb-4">
               {PRO_FEATURES.map((feature, index) => (
                 <li key={index} className="flex items-center gap-2">
                   <Check className="h-4 w-4 text-purple-400 flex-shrink-0" />
-                  <span className="text-sm text-slate-300">{feature.name}</span>
+                  <span className={cn(
+                    "text-sm text-slate-300",
+                    (feature as any).highlight && "font-semibold text-amber-400"
+                  )}>{feature.name}</span>
                 </li>
               ))}
             </ul>
+
+            {/* Coming Soon Section */}
+            <div className="bg-gradient-to-r from-purple-500/10 to-amber-500/10 rounded-lg p-3 border border-purple-500/20 mb-4">
+              <p className="text-xs font-semibold text-purple-400 uppercase tracking-wide mb-2 flex items-center gap-1">
+                <Sparkles className="h-3 w-3" />
+                Coming Soon
+              </p>
+              <div className="flex flex-wrap gap-1">
+                {COMING_SOON.map((feature, i) => (
+                  <span key={i} className="text-xs bg-slate-800/50 px-2 py-0.5 rounded-full text-slate-400">
+                    {feature}
+                  </span>
+                ))}
+              </div>
+            </div>
 
             <Button 
               className="w-full bg-purple-600 hover:bg-purple-500"
