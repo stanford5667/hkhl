@@ -1821,12 +1821,16 @@ function QuantLabContent(props: any) {
                       handleSetTicker(ticker);
                       if (selectedStudies.length > 0) handleRunAllStudies();
                     }}
-                    disabled={!ticker.trim() || selectedStudies.length === 0}
+                    disabled={!ticker.trim() || selectedStudies.length === 0 || isRunning}
                     variant="success"
                     className="w-full h-14 text-lg font-bold rounded-xl"
                   >
-                    <Play className="h-6 w-6 mr-2" />
-                    {selectedStudies.length > 0 ? `Analyze ${selectedTicker || ticker}` : 'Select a study first'}
+                    {isRunning ? (
+                      <Loader2 className="h-5 w-5 animate-spin mr-2" />
+                    ) : (
+                      <Play className="h-5 w-5 mr-2" />
+                    )}
+                    {isRunning ? 'Running...' : `Run ${selectedTicker || ticker || 'Ticker'} Quant Study`}
                   </Button>
                 </div>
 
