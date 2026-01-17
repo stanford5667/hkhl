@@ -17,7 +17,7 @@ import { ProcessingBanner, ProcessingIndicator, AIAnalyzedBadge } from '@/compon
 import { AISummaryCard } from '@/components/companies/AISummaryCard';
 import { PublicEquityDetailView } from '@/components/equity/PublicEquityDetailView';
 import { AssetBacktestPanel } from '@/components/equity/AssetBacktestPanel';
-import { QuantitativeStudiesPanel } from '@/components/equity/QuantitativeStudiesPanel';
+import { IntegratedQuantStudiesPanel } from '@/components/equity/IntegratedQuantStudiesPanel';
 import { SECFilingsPanel } from '@/components/research/SECFilingsPanel';
 import { AnalystSocialPanel } from '@/components/research/AnalystSocialPanel';
 import { MessageCircle } from 'lucide-react';
@@ -706,7 +706,7 @@ export default function CompanyDetail() {
         {/* Studies Tab - Public Equity Only */}
         {isPublicEquity && company.ticker_symbol && (
           <TabsContent value="studies">
-            <QuantitativeStudiesPanel 
+            <IntegratedQuantStudiesPanel 
               ticker={company.ticker_symbol}
               companyName={company.name}
             />
