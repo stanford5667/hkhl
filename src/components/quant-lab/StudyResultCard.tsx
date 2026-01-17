@@ -83,10 +83,10 @@ const METRIC_INFO: Record<string, {
     category: 'General',
   },
   win_rate: {
-    name: 'Win Rate',
-    description: 'Percentage of times the forward return was positive after the condition.',
-    formula: '(Positive outcomes ÷ Total occurrences) × 100',
-    interpretation: 'Above 50% suggests the condition leads to gains more often than losses.',
+    name: '% Positive',
+    description: 'Percentage of times the price moved UP after the condition triggered. This measures positive returns, not trading direction.',
+    formula: '(Days with positive return ÷ Total occurrences) × 100',
+    interpretation: 'Above 50% means the condition leads to gains more often than losses. Above 55% is considered significant.',
     category: 'Performance',
   },
   avg_move: {
@@ -146,10 +146,10 @@ const METRIC_INFO: Record<string, {
     category: 'Direction',
   },
   winRate: {
-    name: 'Win Rate',
-    description: 'Percentage of days with positive returns.',
+    name: '% Positive',
+    description: 'Percentage of days with positive returns after the condition.',
     formula: '(Positive return days ÷ Total days) × 100',
-    interpretation: 'Most stocks hover around 52-54%. Higher is bullish.',
+    interpretation: 'Most stocks hover around 52-54%. Above 55% is significant.',
     category: 'Performance',
   },
   avgGain: {
@@ -502,38 +502,35 @@ export function StudyResultCard({
     >
       {/* Header with study info */}
       <div className={cn(
-        "px-4 py-4 border-b",
+        "px-3 py-2.5 border-b",
         "bg-gradient-to-r from-muted/50 via-muted/30 to-transparent"
       )}>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           <div className={cn(
-            "p-2.5 rounded-xl shrink-0",
+            "p-2 rounded-lg shrink-0",
             "bg-gradient-to-br from-primary/20 to-primary/10",
             "border border-primary/20"
           )}>
-            <study.icon className="h-5 w-5 text-primary" />
+            <study.icon className="h-4 w-4 text-primary" />
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
-              <h4 className="font-bold text-lg">{study.name}</h4>
+              <h4 className="font-bold text-base">{study.name}</h4>
               <Badge 
                 variant="outline" 
-                className="font-mono text-xs bg-background/80 border-primary/30 text-primary cursor-pointer hover:bg-primary/20"
+                className="font-mono text-[10px] px-1.5 py-0 bg-background/80 border-primary/30 text-primary cursor-pointer hover:bg-primary/20"
                 onClick={() => onNavigate(`/stock/${ticker}`)}
               >
                 ${ticker}
               </Badge>
             </div>
-            <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">
-              {study.description}
-            </p>
           </div>
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex items-center gap-1.5 shrink-0">
             <Button
               size="sm"
               variant="ghost"
               onClick={() => onNavigate(`/stock/${ticker}`)}
-              className="h-8 px-2 text-xs gap-1"
+              className="h-7 px-1.5 text-xs"
             >
               <ExternalLink className="h-3.5 w-3.5" />
             </Button>
@@ -542,10 +539,10 @@ export function StudyResultCard({
               variant="outline"
               onClick={() => saveStudy(study.id)}
               disabled={isSaving === study.id}
-              className="h-8 px-3 gap-1.5 border-amber-500/50 bg-amber-500/10 hover:bg-amber-500/20 text-amber-600"
+              className="h-7 px-2 gap-1 text-[10px] border-amber-500/50 bg-amber-500/10 hover:bg-amber-500/20 text-amber-600"
             >
-              {isSaving === study.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
-              <span className="hidden md:inline">Save</span>
+              {isSaving === study.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Save className="h-3 w-3" />}
+              <span className="hidden sm:inline">Save</span>
             </Button>
           </div>
         </div>
@@ -553,19 +550,19 @@ export function StudyResultCard({
 
       {/* Parameters section - always visible for conditional studies */}
       {study.params && study.params.length > 0 && (
-        <div className="px-4 py-3 border-b bg-muted/20">
-          <div className="flex items-center gap-2 mb-3">
-            <GitBranch className="h-4 w-4 text-primary" />
-            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+        <div className="px-3 py-2 border-b bg-muted/20">
+          <div className="flex items-center gap-1.5 mb-2">
+            <GitBranch className="h-3.5 w-3.5 text-primary" />
+            <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">
               {study.category === 'conditional' ? 'Condition Variables' : 'Parameters'}
             </span>
           </div>
-          <div className="flex flex-wrap gap-4 items-end">
+          <div className="flex flex-wrap gap-2 items-end">
             {study.params.map((param) => (
-              <div key={param.key} className="flex-1 min-w-[140px] max-w-[200px]">
-                <div className="flex items-center justify-between mb-1.5">
-                  <span className="text-xs font-medium">{param.label}</span>
-                  <span className="text-xs font-mono font-bold text-primary">
+              <div key={param.key} className="flex-1 min-w-[100px] max-w-[160px]">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-[10px] font-medium">{param.label}</span>
+                  <span className="text-[10px] font-mono font-bold text-primary">
                     {studyParams[study.id]?.[param.key] ?? param.default}
                     {param.label.includes('%') ? '%' : ''}
                   </span>
@@ -585,12 +582,12 @@ export function StudyResultCard({
                     value={String(studyParams[study.id]?.[param.key] ?? param.default)}
                     onValueChange={(val) => updateParam(study.id, param.key, val)}
                   >
-                    <SelectTrigger className="h-8 text-xs">
+                    <SelectTrigger className="h-7 text-[10px]">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
                       {param.options.map((opt) => (
-                        <SelectItem key={opt.value} value={String(opt.value)} className="text-xs">
+                        <SelectItem key={opt.value} value={String(opt.value)} className="text-[10px]">
                           {opt.label}
                         </SelectItem>
                       ))}
@@ -604,7 +601,7 @@ export function StudyResultCard({
               variant="outline"
               onClick={() => runStudy(study.id)}
               disabled={isRunning}
-              className="h-8 gap-1.5 text-xs"
+              className="h-7 gap-1 text-[10px] px-2"
             >
               <Activity className="h-3 w-3" />
               Re-run
@@ -615,16 +612,16 @@ export function StudyResultCard({
 
       {/* INSIGHT - inline below variables, above metrics */}
       {(result.interpretation || result.insight) && (
-        <div className="px-4 py-3 border-b bg-primary/5">
-          <p className="text-sm text-foreground/90 leading-relaxed">
-            <span className="text-[10px] text-muted-foreground uppercase tracking-wide font-semibold mr-2">Insight:</span>
+        <div className="px-3 py-2 border-b bg-primary/5">
+          <p className="text-xs text-foreground/90 leading-relaxed">
+            <span className="text-[9px] text-muted-foreground uppercase tracking-wide font-semibold mr-1.5">Insight:</span>
             <span className="font-medium">{result.interpretation || result.insight}</span>
           </p>
         </div>
       )}
 
       {/* Timeline-Aware Metrics Display */}
-      <div className="p-4 border-b bg-gradient-to-b from-background to-muted/10">
+      <div className="p-3 border-b bg-gradient-to-b from-background to-muted/10">
         {/* Get primary analysis data - use the selected timeline from analysis array */}
         {(() => {
           const selectedForwardDays = studyParams[study.id]?.forwardDays;
@@ -652,21 +649,21 @@ export function StudyResultCard({
             <>
               {/* Timeline Header */}
               {analysisData && (
-                <div className="flex items-center gap-2 mb-3">
-                  <Badge variant="outline" className="text-xs font-semibold bg-primary/10 border-primary/30">
+                <div className="flex items-center gap-2 mb-2">
+                  <Badge variant="outline" className="text-[10px] font-semibold bg-primary/10 border-primary/30 px-2 py-0">
                     {timelineLabel} Outlook
                   </Badge>
                 </div>
               )}
 
-              <div className="grid grid-cols-4 gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                 {/* TOTAL OCCURRENCES */}
                 <button
                   onClick={() => setSelectedMetric({ key: 'occurrences', value: result.totalOccurrences || result.occurrences || 0 })}
-                  className="flex flex-col p-3 rounded-xl border-2 bg-muted/30 border-border/50 hover:border-primary/50 hover:shadow-lg transition-all cursor-pointer group"
+                  className="flex flex-col p-2.5 rounded-xl border bg-muted/30 border-border/50 hover:border-primary/50 hover:shadow-lg transition-all cursor-pointer group"
                 >
-                  <span className="text-[10px] text-muted-foreground uppercase tracking-wide font-medium mb-1">Occurrences</span>
-                  <span className="text-2xl font-bold font-mono text-foreground">
+                  <span className="text-[10px] text-muted-foreground uppercase tracking-wide font-medium mb-0.5">Occurrences</span>
+                  <span className="text-xl font-bold font-mono text-foreground">
                     {result.totalOccurrences || result.occurrences || result.total_signals || result.matchCount || 0}
                   </span>
                 </button>
@@ -674,21 +671,21 @@ export function StudyResultCard({
                 {/* AVG MOVE (not "gain" since it can be negative) */}
                 <button
                   onClick={() => setSelectedMetric({ key: 'avg_move', value: avgMove })}
-                  className="flex flex-col p-3 rounded-xl border-2 bg-muted/30 border-border/50 hover:border-primary/50 hover:shadow-lg transition-all cursor-pointer group"
+                  className="flex flex-col p-2.5 rounded-xl border bg-muted/30 border-border/50 hover:border-primary/50 hover:shadow-lg transition-all cursor-pointer group"
                 >
-                  <span className="text-[10px] text-muted-foreground uppercase tracking-wide font-medium mb-1">Avg Move ({timelineLabel})</span>
-                  <span className={cn("text-2xl font-bold font-mono", avgMove >= 0 ? "text-emerald-500" : "text-red-500")}>
+                  <span className="text-[10px] text-muted-foreground uppercase tracking-wide font-medium mb-0.5">Avg Move ({timelineLabel})</span>
+                  <span className={cn("text-xl font-bold font-mono", avgMove >= 0 ? "text-emerald-500" : "text-red-500")}>
                     {avgMove >= 0 ? '+' : ''}{avgMove.toFixed(2)}%
                   </span>
                 </button>
 
-                {/* WIN RATE */}
+                {/* % POSITIVE (clearer than "win rate") */}
                 <button
                   onClick={() => setSelectedMetric({ key: 'win_rate', value: winRate })}
-                  className="flex flex-col p-3 rounded-xl border-2 bg-muted/30 border-border/50 hover:border-primary/50 hover:shadow-lg transition-all cursor-pointer group"
+                  className="flex flex-col p-2.5 rounded-xl border bg-muted/30 border-border/50 hover:border-primary/50 hover:shadow-lg transition-all cursor-pointer group"
                 >
-                  <span className="text-[10px] text-muted-foreground uppercase tracking-wide font-medium mb-1">Win Rate</span>
-                  <span className={cn("text-2xl font-bold font-mono", winRate >= 55 ? "text-emerald-500" : winRate <= 45 ? "text-red-500" : "text-foreground")}>
+                  <span className="text-[10px] text-muted-foreground uppercase tracking-wide font-medium mb-0.5">% Positive</span>
+                  <span className={cn("text-xl font-bold font-mono", winRate >= 55 ? "text-emerald-500" : winRate <= 45 ? "text-red-500" : "text-foreground")}>
                     {winRate.toFixed(1)}%
                   </span>
                 </button>
@@ -696,10 +693,10 @@ export function StudyResultCard({
                 {/* MEDIAN MOVE */}
                 <button
                   onClick={() => setSelectedMetric({ key: 'median', value: median })}
-                  className="flex flex-col p-3 rounded-xl border-2 bg-muted/30 border-border/50 hover:border-primary/50 hover:shadow-lg transition-all cursor-pointer group"
+                  className="flex flex-col p-2.5 rounded-xl border bg-muted/30 border-border/50 hover:border-primary/50 hover:shadow-lg transition-all cursor-pointer group"
                 >
-                  <span className="text-[10px] text-muted-foreground uppercase tracking-wide font-medium mb-1">Median Move</span>
-                  <span className={cn("text-2xl font-bold font-mono", median >= 0 ? "text-emerald-500" : "text-red-500")}>
+                  <span className="text-[10px] text-muted-foreground uppercase tracking-wide font-medium mb-0.5">Median Move</span>
+                  <span className={cn("text-xl font-bold font-mono", median >= 0 ? "text-emerald-500" : "text-red-500")}>
                     {median >= 0 ? '+' : ''}{median.toFixed(2)}%
                   </span>
                 </button>
@@ -707,18 +704,18 @@ export function StudyResultCard({
 
               {/* Probability Range Visual */}
               {analysisData && (worst !== 0 || best !== 0) && (
-                <div className="mt-4 p-3 rounded-xl bg-muted/20 border border-border/40">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-[10px] text-muted-foreground uppercase tracking-wide font-semibold">
+                <div className="mt-3 p-2 rounded-lg bg-muted/20 border border-border/40">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-[9px] text-muted-foreground uppercase tracking-wide font-semibold">
                       Historical Range ({timelineLabel})
                     </span>
-                    <span className="text-[10px] text-muted-foreground">
-                      Based on {analysisData.occurrences || result.totalOccurrences || 0} events
+                    <span className="text-[9px] text-muted-foreground">
+                      {analysisData.occurrences || result.totalOccurrences || 0} events
                     </span>
                   </div>
                   
                   {/* Range Bar Visualization */}
-                  <div className="relative h-10 mt-2">
+                  <div className="relative h-8">
                     {/* Background track */}
                     <div className="absolute inset-y-0 left-0 right-0 bg-muted/40 rounded-full" />
                     
@@ -825,12 +822,10 @@ export function StudyResultCard({
 
 
       {/* Study Summary - What it tracks */}
-      <div className="px-4 py-3 border-b bg-muted/10">
-        <p className="text-xs text-muted-foreground leading-relaxed">
-          <span className="font-semibold text-foreground">{study.name}</span> analyzes {result.barsAnalyzed || result.total_days || 'historical'} trading days
-          {result.dateRange && ` from ${result.dateRange.start} to ${result.dateRange.end}`}
-          {studyParams[study.id]?.forwardDays && ` measuring price action over the next ${studyParams[study.id].forwardDays} days after each signal`}
-          {studyParams[study.id]?.threshold && ` when the condition threshold of ${studyParams[study.id].threshold}% is triggered`}.
+      <div className="px-3 py-2 border-b bg-muted/10">
+        <p className="text-[11px] text-muted-foreground leading-relaxed">
+          <span className="font-semibold text-foreground">{study.name}</span> analyzed {result.barsAnalyzed || result.total_days || 'historical'} trading days
+          {result.dateRange && ` from ${result.dateRange.start} to ${result.dateRange.end}`}.
           {' '}{study.whatItMeasures}
         </p>
       </div>

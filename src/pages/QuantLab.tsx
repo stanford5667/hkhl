@@ -1348,14 +1348,18 @@ export default function QuantLab() {
 
     // For conditional probability studies, verify required condition variables are set
     const study = STUDY_DEFINITIONS.find(s => s.id === studyId);
-    if (study?.category === 'conditional') {
+    if (study?.category === 'conditional' && study.params?.length > 0) {
       const params = studyParams[studyId] || {};
-      const hasThreshold = params.threshold !== undefined && params.threshold !== null;
-      const hasForwardDays = params.forwardDays !== undefined && params.forwardDays !== null;
+      // Check that all defined params have values (use defaults if not set)
+      const missingParams = study.params.filter(p => {
+        const value = params[p.key];
+        // If param has no value AND no default, it's missing
+        return value === undefined && p.default === undefined;
+      });
       
-      if (!hasThreshold || !hasForwardDays) {
+      if (missingParams.length > 0) {
         toast.error('Please set the condition variables before running', {
-          description: 'Adjust the threshold and timeline parameters above.',
+          description: `Missing: ${missingParams.map(p => p.label).join(', ')}`,
         });
         return;
       }
@@ -1438,11 +1442,10 @@ export default function QuantLab() {
     // Check if any conditional studies are missing required variables
     const conditionalStudiesWithoutVars = selectedStudies.filter(studyId => {
       const study = STUDY_DEFINITIONS.find(s => s.id === studyId);
-      if (study?.category !== 'conditional') return false;
+      if (study?.category !== 'conditional' || !study.params?.length) return false;
       const params = studyParams[studyId] || {};
-      const hasThreshold = params.threshold !== undefined && params.threshold !== null;
-      const hasForwardDays = params.forwardDays !== undefined && params.forwardDays !== null;
-      return !hasThreshold || !hasForwardDays;
+      // Check that all params have values or defaults
+      return study.params.some(p => params[p.key] === undefined && p.default === undefined);
     });
 
     if (conditionalStudiesWithoutVars.length > 0) {
@@ -1451,7 +1454,7 @@ export default function QuantLab() {
         .filter(Boolean)
         .join(', ');
       toast.error('Configure condition variables first', {
-        description: `Set threshold and timeline for: ${studyNames}`,
+        description: `Missing parameters for: ${studyNames}`,
       });
       return;
     }
