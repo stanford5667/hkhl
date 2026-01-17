@@ -13,7 +13,8 @@ import {
   BarChart3,
   FileText,
   ExternalLink,
-  Info
+  Info,
+  LineChart
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useEconomicCalendar } from '@/hooks/useEconomicCalendar';
@@ -439,6 +440,44 @@ export function WeeklyMacroSummary() {
                 ) : (
                   <p className="text-sm text-muted-foreground text-center py-4">No upcoming economic events</p>
                 )}
+              </div>
+            </div>
+
+            {/* Key Forecasts Card */}
+            <div className="mb-4 p-3 bg-secondary/20 border border-border/50 rounded-lg">
+              <div className="flex items-center gap-2 mb-3">
+                <LineChart className="h-4 w-4 text-primary" />
+                <span className="text-xs font-medium text-foreground">2026 Forecasts</span>
+                <Badge variant="outline" className="text-[10px] ml-auto">
+                  Analyst Consensus
+                </Badge>
+              </div>
+              <div className="space-y-2">
+                {[
+                  { indicator: 'Fed Funds Rate', current: '4.50%', forecast: '3.50%', change: -22.2 },
+                  { indicator: 'S&P 500', current: '6,050', forecast: '6,600', change: 9.1 },
+                  { indicator: 'US Inflation', current: '3.2%', forecast: '2.2%', change: -31.3 },
+                  { indicator: '10Y Treasury', current: '4.17%', forecast: '3.60%', change: -13.7 },
+                ].map((item, idx) => (
+                  <div 
+                    key={idx}
+                    className="flex items-center justify-between p-2 rounded-md bg-secondary/30 hover:bg-secondary/50 transition-colors"
+                  >
+                    <div className="flex-1">
+                      <p className="text-sm font-medium">{item.indicator}</p>
+                      <p className="text-xs text-muted-foreground">Current: {item.current}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm font-semibold">{item.forecast}</p>
+                      <p className={cn(
+                        "text-xs font-medium",
+                        item.change >= 0 ? "text-emerald-500" : "text-rose-500"
+                      )}>
+                        {item.change >= 0 ? '+' : ''}{item.change.toFixed(1)}% YE
+                      </p>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
 
