@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { BarChart3, TrendingUp, TrendingDown, Globe, Map, Star, Activity } from 'lucide-react';
+import { type MarketDataItem } from './MarketDataDetail';
 
 interface IndexData {
   name: string;
@@ -12,6 +13,10 @@ interface IndexData {
   changePercent: number;
   region: string;
   ytd: number;
+}
+
+interface IndexesContentProps {
+  onItemClick?: (item: MarketDataItem) => void;
 }
 
 const globalIndexes: IndexData[] = [
@@ -39,8 +44,8 @@ const globalIndexes: IndexData[] = [
   { name: 'TSX', symbol: 'GSPTSE', value: 25012.45, change: 78.23, changePercent: 0.31, region: 'Americas', ytd: 21.4 },
 ];
 
-const IndexCard = ({ index }: { index: IndexData }) => (
-  <Card className="hover:bg-secondary/30 transition-colors cursor-pointer">
+const IndexCard = ({ index, onClick }: { index: IndexData; onClick?: () => void }) => (
+  <Card className="hover:bg-secondary/30 transition-colors cursor-pointer" onClick={onClick}>
     <CardContent className="p-4">
       <div className="flex items-center justify-between mb-2">
         <div>
@@ -76,8 +81,22 @@ const IndexCard = ({ index }: { index: IndexData }) => (
   </Card>
 );
 
-export function IndexesContent() {
+export function IndexesContent({ onItemClick }: IndexesContentProps) {
   const [activeTab, setActiveTab] = useState('all');
+  
+  const handleIndexClick = (index: IndexData) => {
+    if (onItemClick) {
+      onItemClick({
+        symbol: index.symbol,
+        name: index.name,
+        price: index.value,
+        change: index.change,
+        changePercent: index.changePercent,
+        type: 'index',
+        category: index.region,
+      });
+    }
+  };
   
   const regions = [
     { id: 'all', label: 'All Regions', icon: Globe },
@@ -155,7 +174,7 @@ export function IndexesContent() {
           {/* Indexes Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             {filteredIndexes.map((index) => (
-              <IndexCard key={index.symbol} index={index} />
+              <IndexCard key={index.symbol} index={index} onClick={() => handleIndexClick(index)} />
             ))}
           </div>
         </TabsContent>

@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Calendar, TrendingUp, TrendingDown, Clock, CheckCircle, AlertCircle } from 'lucide-react';
+import { type MarketDataItem } from './MarketDataDetail';
 
 interface EarningsEvent {
   symbol: string;
@@ -30,8 +31,12 @@ const earningsEvents: EarningsEvent[] = [
   { symbol: 'BAC', company: 'Bank of America', date: '2026-01-16', time: 'BMO', epsEstimate: 0.77, epsActual: 0.82, revenueEstimate: '$25.1B', revenueActual: '$25.5B', surprise: 6.5, status: 'reported' },
 ];
 
-const EarningsRow = ({ event, formatDate }: { event: EarningsEvent; formatDate: (date: string) => string }) => (
-  <tr className="border-b border-border/50 hover:bg-secondary/30">
+interface EarningsContentProps {
+  onItemClick?: (item: MarketDataItem) => void;
+}
+
+const EarningsRow = ({ event, formatDate, onClick }: { event: EarningsEvent; formatDate: (date: string) => string; onClick?: () => void }) => (
+  <tr className="border-b border-border/50 hover:bg-secondary/30 cursor-pointer" onClick={onClick}>
     <td className="py-3 px-2">
       <div className="flex items-center gap-2">
         <span className="font-semibold">{event.symbol}</span>
@@ -62,8 +67,22 @@ const EarningsRow = ({ event, formatDate }: { event: EarningsEvent; formatDate: 
   </tr>
 );
 
-export function EarningsContent() {
+export function EarningsContent({ onItemClick }: EarningsContentProps) {
   const [activeTab, setActiveTab] = useState('upcoming');
+  
+  const handleEarningsClick = (event: EarningsEvent) => {
+    if (onItemClick) {
+      onItemClick({
+        symbol: event.symbol,
+        name: event.company,
+        price: event.epsActual || event.epsEstimate,
+        change: event.surprise || 0,
+        changePercent: event.surprise || 0,
+        type: 'economic',
+        category: 'earnings',
+      });
+    }
+  };
   
   const tabs = [
     { id: 'upcoming', label: 'Upcoming', icon: Clock },
@@ -187,7 +206,7 @@ export function EarningsContent() {
                   </thead>
                   <tbody>
                     {filteredEvents.map((event) => (
-                      <EarningsRow key={event.symbol} event={event} formatDate={formatDate} />
+                      <EarningsRow key={event.symbol} event={event} formatDate={formatDate} onClick={() => handleEarningsClick(event)} />
                     ))}
                   </tbody>
                 </table>
