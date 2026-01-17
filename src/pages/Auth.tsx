@@ -141,10 +141,12 @@ export default function Auth() {
   };
 
   const features = [
-    { icon: BarChart3, title: "Portfolio Analytics", description: "Real-time performance tracking and insights" },
-    { icon: Brain, title: "AI-Powered Research", description: "Intelligent market analysis and recommendations" },
-    { icon: Sparkles, title: "Quant Lab", description: "Run quantitative studies on any asset" },
-    { icon: Zap, title: "Smart Automation", description: "Automated screening and portfolio optimization" },
+    { icon: BarChart3, title: "Portfolio Analytics", description: "Real-time performance tracking across all your holdings" },
+    { icon: Brain, title: "AI-Powered Research", description: "Chat with AI about markets, get instant analysis" },
+    { icon: Sparkles, title: "100+ Quant Studies", description: "Deep conditional probability & statistical analysis" },
+    { icon: Zap, title: "Smart Screening", description: "Unlimited filters & save your favorite screens" },
+    { icon: Shield, title: "Save Everything", description: "Portfolios, studies, and screens saved to your account" },
+    { icon: TrendingUp, title: "Expanded Data", description: "Extended timeframes & comprehensive asset coverage" },
   ];
 
   return (
@@ -152,32 +154,49 @@ export default function Auth() {
       {/* Left side - Branding */}
       <div className="hidden lg:flex lg:w-1/2 flex-col justify-between p-12 bg-gradient-to-br from-card via-card to-primary/5 border-r border-border">
         <div>
-          <AssetLabsLogo size="xl" showTagline className="mb-6" />
-          <p className="text-muted-foreground text-lg max-w-sm">
-            The intelligent platform for portfolio analytics, quantitative research, and corporate finance.
+          <AssetLabsLogo size="xl" showTagline className="mb-4" />
+          <p className="text-muted-foreground text-lg max-w-md leading-relaxed">
+            The intelligent platform for portfolio analytics, quantitative research, and data-driven investing.
           </p>
+          <div className="mt-4 flex flex-wrap gap-2">
+            <span className="text-xs px-2 py-1 rounded-full bg-primary/10 text-primary border border-primary/20">
+              100+ Studies
+            </span>
+            <span className="text-xs px-2 py-1 rounded-full bg-primary/10 text-primary border border-primary/20">
+              AI Analysis
+            </span>
+            <span className="text-xs px-2 py-1 rounded-full bg-primary/10 text-primary border border-primary/20">
+              Save & Sync
+            </span>
+          </div>
         </div>
 
-        <div className="space-y-6">
+        <div className="space-y-4">
           {features.map((feature, index) => (
-            <div key={index} className="flex gap-4 animate-fade-up" style={{ animationDelay: `${index * 100}ms` }}>
-              <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0 border border-primary/20">
-                <feature.icon className="h-6 w-6 text-primary" />
+            <div key={index} className="flex gap-3 animate-fade-up" style={{ animationDelay: `${index * 80}ms` }}>
+              <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0 border border-primary/20">
+                <feature.icon className="h-5 w-5 text-primary" />
               </div>
               <div>
-                <h3 className="font-semibold text-foreground">{feature.title}</h3>
-                <p className="text-sm text-muted-foreground">{feature.description}</p>
+                <h3 className="font-semibold text-foreground text-sm">{feature.title}</h3>
+                <p className="text-xs text-muted-foreground">{feature.description}</p>
               </div>
             </div>
           ))}
         </div>
 
-        <div className="space-y-2">
+        <div className="space-y-3">
+          <div className="bg-gradient-to-r from-purple-500/10 to-amber-500/10 rounded-lg p-3 border border-purple-500/20">
+            <p className="text-xs font-semibold text-purple-400 uppercase tracking-wide mb-1 flex items-center gap-1">
+              <Sparkles className="h-3 w-3" />
+              Coming Soon
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Options flow screening • Agentic news bots • Hundreds of new studies
+            </p>
+          </div>
           <p className="text-sm text-muted-foreground">
             © 2025 Asset Labs AI. All rights reserved.
-          </p>
-          <p className="text-xs text-muted-foreground/60">
-            Intelligent Investing for Everyone
           </p>
         </div>
       </div>

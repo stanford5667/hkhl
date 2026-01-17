@@ -29,6 +29,7 @@ const PRO_FEATURES = [
   { name: 'Save Portfolios, Studies & Screens', included: true, highlight: true },
   { name: '100+ Quant Lab Studies', included: true },
   { name: 'Deep Conditional Probability Studies', included: true },
+  { name: 'Expanded Datasets & Asset Coverage', included: true },
   { name: 'Unlimited Screener Results & Filters', included: true },
   { name: 'Extended Historical Timeframes', included: true },
   { name: 'AI-Powered Market Chat', included: true },
@@ -41,7 +42,6 @@ const COMING_SOON = [
   'Options Flow Screening',
   'Agentic News Bots',
   'Hundreds of New Studies',
-  'Expanded Datasets & Assets',
 ];
 
 export function MembershipStep({ onComplete, onBack }: MembershipStepProps) {
