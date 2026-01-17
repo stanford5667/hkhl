@@ -11,7 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ArrowLeft, LineChart, TrendingUp, TrendingDown, RefreshCw, Plus, Building2, Globe, BarChart3, LayoutDashboard, FlaskConical, FileText, MessageCircle, Newspaper } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { CandlestickChart } from '@/components/charts/CandlestickChart';
-import { QuantitativeStudiesPanel } from '@/components/equity/QuantitativeStudiesPanel';
+import { IntegratedQuantStudiesPanel } from '@/components/equity/IntegratedQuantStudiesPanel';
 import { AssetBacktestPanel } from '@/components/equity/AssetBacktestPanel';
 import { SECFilingsPanel } from '@/components/research/SECFilingsPanel';
 import { AnalystSocialPanel } from '@/components/research/AnalystSocialPanel';
@@ -558,7 +558,7 @@ export default function PublicStockView() {
 
         {/* Studies Tab */}
         <TabsContent value="studies">
-          <QuantitativeStudiesPanel ticker={ticker} companyName={details?.name || ticker} />
+          <IntegratedQuantStudiesPanel ticker={ticker} companyName={details?.name || ticker} />
         </TabsContent>
 
         {/* Metrics/Backtest Tab */}
