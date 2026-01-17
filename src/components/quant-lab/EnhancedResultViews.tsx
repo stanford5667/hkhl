@@ -33,6 +33,17 @@ const COLORS = {
   slate: '#64748b',
 };
 
+// Helper to safely extract a numeric value from properties that may be objects or numbers
+function safeNumber(value: unknown, property: string = 'current'): number | null {
+  if (value === null || value === undefined) return null;
+  if (typeof value === 'number') return value;
+  if (typeof value === 'object' && value !== null && property in value) {
+    const extracted = (value as Record<string, unknown>)[property];
+    return typeof extracted === 'number' ? extracted : null;
+  }
+  return null;
+}
+
 // StatBox helper component
 function StatBox({ value, label, color }: { value: number; label: string; color?: string }) {
   return (
@@ -167,7 +178,7 @@ function EnhancedDistributionResult({ result, showInsights, showEducation }: { r
         <Card>
           <CardContent className="pt-4">
             <p className="text-xs text-muted-foreground">Annualized Vol</p>
-            <p className="text-2xl font-bold">{result.annualizedVol?.toFixed(1) || 'N/A'}%</p>
+            <p className="text-2xl font-bold">{safeNumber(result.annualizedVol)?.toFixed(1) ?? 'N/A'}%</p>
             <Badge variant={isVolatile ? "destructive" : "secondary"} className="mt-1">
               {isVolatile ? 'High' : 'Normal'}
             </Badge>
@@ -246,7 +257,7 @@ function EnhancedDistributionResult({ result, showInsights, showEducation }: { r
             {isVolatile && (
               <span className="inline-flex items-center gap-1.5 text-sm text-amber-600 dark:text-amber-400">
                 <Zap className="h-3.5 w-3.5" />
-                High volatility ({result.annualizedVol?.toFixed(1)}%) - expect large daily swings
+                High volatility ({safeNumber(result.annualizedVol)?.toFixed(1) ?? 'N/A'}%) - expect large daily swings
               </span>
             )}
             {hasNegativeSkew && (
@@ -562,7 +573,10 @@ function EnhancedTrendStrengthResult({ result, showInsights, showEducation }: { 
 }
 
 function EnhancedVolatilityResult({ result, showInsights, showEducation }: { result: any; showInsights: boolean; showEducation: boolean }) {
-  const isHighVol = result.annualizedVol > 30;
+  const annualizedVolValue = safeNumber(result.annualizedVol);
+  const isHighVol = (annualizedVolValue ?? 0) > 30;
+  const dailyRangeValue = typeof result.dailyRange === 'object' ? result.dailyRange?.avg : result.avgDailyRange;
+  const atrValue = typeof result.atr === 'object' ? result.atr?.current : result.atr14;
   
   return (
     <div className="space-y-6">
@@ -571,25 +585,25 @@ function EnhancedVolatilityResult({ result, showInsights, showEducation }: { res
           <CardContent className="pt-4 text-center">
             <Zap className={cn("h-6 w-6 mx-auto mb-2", isHighVol ? "text-amber-500" : "text-muted-foreground")} />
             <p className="text-xs text-muted-foreground">Annualized Vol</p>
-            <p className="text-2xl font-bold">{result.annualizedVol?.toFixed(1) || 'N/A'}%</p>
+            <p className="text-2xl font-bold">{annualizedVolValue?.toFixed(1) ?? 'N/A'}%</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-4 text-center">
             <p className="text-xs text-muted-foreground">Daily Range</p>
-            <p className="text-2xl font-bold">{result.avgDailyRange?.toFixed(2) || 'N/A'}%</p>
+            <p className="text-2xl font-bold">{dailyRangeValue?.toFixed(2) ?? 'N/A'}%</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-4 text-center">
             <p className="text-xs text-muted-foreground">ATR (14)</p>
-            <p className="text-2xl font-bold">${result.atr14?.toFixed(2) || 'N/A'}</p>
+            <p className="text-2xl font-bold">${atrValue?.toFixed(2) ?? 'N/A'}</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-4 text-center">
-            <p className="text-xs text-muted-foreground">Vol Trend</p>
-            <p className="text-2xl font-bold">{result.volTrend || 'Stable'}</p>
+            <p className="text-xs text-muted-foreground">Vol Clustering</p>
+            <p className="text-2xl font-bold">{result.volatilityClustering?.toFixed(1) ?? 'N/A'}%</p>
           </CardContent>
         </Card>
       </div>
@@ -597,7 +611,7 @@ function EnhancedVolatilityResult({ result, showInsights, showEducation }: { res
       {showInsights && (
         <InsightsCard insights={[
           isHighVol 
-            ? { type: 'warning', text: `High volatility (${result.annualizedVol?.toFixed(1)}%) - expect larger daily moves` }
+            ? { type: 'warning', text: `High volatility (${annualizedVolValue?.toFixed(1) ?? 'N/A'}%) - expect larger daily moves` }
             : { type: 'positive', text: 'Normal volatility levels - typical trading conditions' }
         ]} />
       )}
@@ -605,7 +619,7 @@ function EnhancedVolatilityResult({ result, showInsights, showEducation }: { res
       {showEducation && (
         <EducationCard>
           Volatility measures how much price fluctuates. Higher volatility means larger potential gains 
-          but also larger potential losses. An annualized volatility of {result.annualizedVol?.toFixed(1)}% 
+          but also larger potential losses. An annualized volatility of {annualizedVolValue?.toFixed(1) ?? 'N/A'}% 
           means you can expect the stock to move roughly this much over a year (in standard deviation terms).
         </EducationCard>
       )}

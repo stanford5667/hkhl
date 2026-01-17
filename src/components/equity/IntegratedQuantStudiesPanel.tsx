@@ -42,6 +42,17 @@ import {
   StatCardWithChart, ScoreBreakdown, TimelineChart
 } from '@/components/quant-lab/AdditionalVisualizations';
 
+// Helper to safely extract a numeric value from properties that may be objects or numbers
+function safeNumber(value: unknown, property: string = 'current'): number | null {
+  if (value === null || value === undefined) return null;
+  if (typeof value === 'number') return value;
+  if (typeof value === 'object' && value !== null && property in value) {
+    const extracted = (value as Record<string, unknown>)[property];
+    return typeof extracted === 'number' ? extracted : null;
+  }
+  return null;
+}
+
 interface IntegratedQuantStudiesPanelProps {
   ticker: string;
   companyName: string;
@@ -940,7 +951,7 @@ function EnhancedDistributionResult({ result, showInsights, showEducation }: { r
         <Card>
           <CardContent className="pt-4">
             <p className="text-xs text-muted-foreground">Annualized Vol</p>
-            <p className="text-2xl font-bold">{result.annualizedVol?.toFixed(1) || 'N/A'}%</p>
+            <p className="text-2xl font-bold">{safeNumber(result.annualizedVol)?.toFixed(1) ?? 'N/A'}%</p>
             <Badge variant={isVolatile ? "destructive" : "secondary"} className="mt-1">
               {isVolatile ? 'High' : 'Normal'}
             </Badge>
@@ -1488,7 +1499,7 @@ function EnhancedVolatilityResult({ result, showInsights, showEducation }: { res
         <Card>
           <CardContent className="pt-4 text-center">
             <p className="text-xs text-muted-foreground">Annualized Vol</p>
-            <p className="text-2xl font-bold">{result.annualizedVol?.toFixed(1)}%</p>
+            <p className="text-2xl font-bold">{safeNumber(result.annualizedVol)?.toFixed(1) ?? 'N/A'}%</p>
           </CardContent>
         </Card>
         <Card>
