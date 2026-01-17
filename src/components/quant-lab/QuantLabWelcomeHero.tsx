@@ -392,106 +392,213 @@ export function QuantLabWelcomeHero({
           </motion.div>
         </div>
 
+        {/* ===================== HOW IT WORKS SECTION ===================== */}
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.5 }}
+          className="bg-gradient-to-br from-primary/5 via-violet-500/5 to-purple-500/5 border border-primary/20 rounded-xl sm:rounded-2xl p-4 sm:p-8"
+        >
+          <div className="text-center mb-6 sm:mb-8">
+            <Badge variant="outline" className="mb-2 sm:mb-3 text-xs border-primary/30">
+              <Settings className="h-2.5 sm:h-3 w-2.5 sm:w-3 mr-1 sm:mr-1.5" />
+              How It Works
+            </Badge>
+            <h2 className="text-xl sm:text-2xl md:text-3xl font-bold">
+              From Question to <span className="text-primary">Data-Driven Answer</span> in Seconds
+            </h2>
+            <p className="text-sm sm:text-base text-muted-foreground mt-2 max-w-2xl mx-auto">
+              No spreadsheets. No coding. No data subscriptions. Just ask your question and get institutional-quality analysis instantly.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
+            {[
+              { 
+                step: '1', 
+                title: 'Ask Your Question', 
+                description: 'Type any market hypothesis like "What happens after AAPL drops 5%?" or "Does QQQ rally in January?"',
+                icon: FlaskConical
+              },
+              { 
+                step: '2', 
+                title: 'We Crunch the Data', 
+                description: 'Our engine scans 10+ years of market history, finding every instance that matches your criteria.',
+                icon: Database
+              },
+              { 
+                step: '3', 
+                title: 'Get Actionable Insights', 
+                description: 'See win rates, average returns, distribution charts, and forward projections—all in plain English.',
+                icon: BarChart3
+              }
+            ].map((item, idx) => (
+              <motion.div
+                key={item.step}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.6 + idx * 0.1 }}
+                className="relative bg-card border border-border rounded-xl p-4 sm:p-6 text-center"
+              >
+                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-gradient-to-br from-primary to-violet-600 flex items-center justify-center mx-auto mb-3 sm:mb-4">
+                  <item.icon className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
+                </div>
+                <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground text-xs font-bold px-2 py-0.5 rounded-full">
+                  Step {item.step}
+                </div>
+                <h3 className="font-bold text-sm sm:text-base text-foreground mb-1 sm:mb-2">{item.title}</h3>
+                <p className="text-xs sm:text-sm text-muted-foreground">{item.description}</p>
+              </motion.div>
+            ))}
+          </div>
+
+          <div className="flex justify-center mt-6">
+            <Button
+              size="lg"
+              onClick={(e) => { e.stopPropagation(); onSignUp(); }}
+              className="h-10 sm:h-12 px-4 sm:px-6 text-sm sm:text-base gap-2 rounded-xl shadow-lg shadow-primary/20"
+            >
+              <Play className="h-4 sm:h-5 w-4 sm:w-5" />
+              Try Your First Study Free
+              <ArrowRight className="h-3.5 sm:h-4 w-3.5 sm:w-4" />
+            </Button>
+          </div>
+        </motion.div>
+
         {/* ===================== ADDITIONAL UI MOCKUPS SECTION ===================== */}
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.6 }}
-          className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6"
+          className="space-y-4 sm:space-y-6"
         >
-          {/* Portfolio Performance Mockup */}
-          <div className="relative bg-card border-2 border-primary/20 rounded-xl sm:rounded-2xl overflow-hidden shadow-xl">
-            <div className="px-3 sm:px-5 py-3 sm:py-4 bg-gradient-to-r from-primary/10 via-violet-500/5 to-purple-500/10 border-b border-border">
-              <div className="flex items-center gap-2 sm:gap-3">
-                <div className="w-8 sm:w-10 h-8 sm:h-10 rounded-lg sm:rounded-xl bg-gradient-to-br from-primary to-violet-600 flex items-center justify-center shrink-0">
-                  <PieChart className="h-4 sm:h-5 w-4 sm:w-5 text-white" />
-                </div>
-                <div className="min-w-0">
-                  <h3 className="font-extrabold text-foreground text-base sm:text-lg truncate">Portfolio Analysis</h3>
-                  <p className="text-[10px] sm:text-xs text-muted-foreground">Optimized allocation breakdown</p>
+          <div className="text-center">
+            <Badge variant="outline" className="mb-2 sm:mb-3 text-xs border-violet-500/30">
+              <LineChart className="h-2.5 sm:h-3 w-2.5 sm:w-3 mr-1 sm:mr-1.5" />
+              Powerful Tools
+            </Badge>
+            <h2 className="text-xl sm:text-2xl md:text-3xl font-bold">
+              Built for <span className="text-primary">Modern Investors</span>
+            </h2>
+            <p className="text-sm sm:text-base text-muted-foreground mt-2 max-w-2xl mx-auto">
+              Whether you're building your first portfolio or refining your strategy, our tools adapt to your needs.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+            {/* Portfolio Performance Mockup */}
+            <div className="relative bg-card border-2 border-primary/20 rounded-xl sm:rounded-2xl overflow-hidden shadow-xl">
+              <div className="px-3 sm:px-5 py-3 sm:py-4 bg-gradient-to-r from-primary/10 via-violet-500/5 to-purple-500/10 border-b border-border">
+                <div className="flex items-center gap-2 sm:gap-3">
+                  <div className="w-8 sm:w-10 h-8 sm:h-10 rounded-lg sm:rounded-xl bg-gradient-to-br from-primary to-violet-600 flex items-center justify-center shrink-0">
+                    <PieChart className="h-4 sm:h-5 w-4 sm:w-5 text-white" />
+                  </div>
+                  <div className="min-w-0">
+                    <h3 className="font-extrabold text-foreground text-base sm:text-lg truncate">Portfolio Analysis</h3>
+                    <p className="text-[10px] sm:text-xs text-muted-foreground">See how different allocations perform over time</p>
+                  </div>
                 </div>
               </div>
-            </div>
-            <div className="p-3 sm:p-5 space-y-3 sm:space-y-4">
-              {/* Allocation bars */}
-              <div className="space-y-2">
-                {[
-                  { name: 'SPY', allocation: 40, color: 'bg-primary' },
-                  { name: 'QQQ', allocation: 25, color: 'bg-violet-500' },
-                  { name: 'TLT', allocation: 20, color: 'bg-purple-500' },
-                  { name: 'GLD', allocation: 15, color: 'bg-violet-400' }
-                ].map((asset) => (
-                  <div key={asset.name} className="flex items-center gap-2 sm:gap-3">
-                    <span className="text-xs sm:text-sm font-mono font-medium w-8 sm:w-10">{asset.name}</span>
-                    <div className="flex-1 bg-muted/50 rounded-full h-2 sm:h-3 overflow-hidden">
-                      <motion.div
-                        initial={{ width: 0 }}
-                        animate={{ width: `${asset.allocation}%` }}
-                        transition={{ delay: 0.8, duration: 0.5 }}
-                        className={cn("h-full rounded-full", asset.color)}
-                      />
+              <div className="p-3 sm:p-5 space-y-3 sm:space-y-4">
+                {/* Allocation bars */}
+                <div className="space-y-2">
+                  {[
+                    { name: 'SPY', allocation: 40, color: 'bg-primary' },
+                    { name: 'QQQ', allocation: 25, color: 'bg-violet-500' },
+                    { name: 'TLT', allocation: 20, color: 'bg-purple-500' },
+                    { name: 'GLD', allocation: 15, color: 'bg-violet-400' }
+                  ].map((asset) => (
+                    <div key={asset.name} className="flex items-center gap-2 sm:gap-3">
+                      <span className="text-xs sm:text-sm font-mono font-medium w-8 sm:w-10">{asset.name}</span>
+                      <div className="flex-1 bg-muted/50 rounded-full h-2 sm:h-3 overflow-hidden">
+                        <motion.div
+                          initial={{ width: 0 }}
+                          animate={{ width: `${asset.allocation}%` }}
+                          transition={{ delay: 0.8, duration: 0.5 }}
+                          className={cn("h-full rounded-full", asset.color)}
+                        />
+                      </div>
+                      <span className="text-xs sm:text-sm font-mono text-muted-foreground w-8 sm:w-10 text-right">{asset.allocation}%</span>
                     </div>
-                    <span className="text-xs sm:text-sm font-mono text-muted-foreground w-8 sm:w-10 text-right">{asset.allocation}%</span>
+                  ))}
+                </div>
+                {/* Stats row */}
+                <div className="grid grid-cols-3 gap-2 pt-2 border-t border-border">
+                  <div className="text-center">
+                    <p className="text-xs sm:text-sm font-bold text-emerald-500 font-mono">+12.4%</p>
+                    <p className="text-[9px] sm:text-[10px] text-muted-foreground">Ann. Return</p>
                   </div>
-                ))}
+                  <div className="text-center">
+                    <p className="text-xs sm:text-sm font-bold text-primary font-mono">0.89</p>
+                    <p className="text-[9px] sm:text-[10px] text-muted-foreground">Sharpe Ratio</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-xs sm:text-sm font-bold text-violet-500 font-mono">-8.2%</p>
+                    <p className="text-[9px] sm:text-[10px] text-muted-foreground">Max DD</p>
+                  </div>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={(e) => { e.stopPropagation(); onSignUp(); }}
+                  className="w-full gap-2 text-xs sm:text-sm"
+                >
+                  <FlaskConical className="h-3.5 w-3.5" />
+                  Run Portfolio Study
+                  <ArrowRight className="h-3 w-3" />
+                </Button>
               </div>
-              {/* Stats row */}
-              <div className="grid grid-cols-3 gap-2 pt-2 border-t border-border">
-                <div className="text-center">
-                  <p className="text-xs sm:text-sm font-bold text-emerald-500 font-mono">+12.4%</p>
-                  <p className="text-[9px] sm:text-[10px] text-muted-foreground">Ann. Return</p>
+            </div>
+
+            {/* Investor DNA Mockup */}
+            <div className="relative bg-card border-2 border-primary/20 rounded-xl sm:rounded-2xl overflow-hidden shadow-xl">
+              <div className="px-3 sm:px-5 py-3 sm:py-4 bg-gradient-to-r from-violet-500/10 via-primary/5 to-purple-500/10 border-b border-border">
+                <div className="flex items-center gap-2 sm:gap-3">
+                  <div className="w-8 sm:w-10 h-8 sm:h-10 rounded-lg sm:rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center shrink-0">
+                    <Brain className="h-4 sm:h-5 w-4 sm:w-5 text-white" />
+                  </div>
+                  <div className="min-w-0">
+                    <h3 className="font-extrabold text-foreground text-base sm:text-lg truncate">Your Investor DNA</h3>
+                    <p className="text-[10px] sm:text-xs text-muted-foreground">Discover your unique investing personality</p>
+                  </div>
                 </div>
-                <div className="text-center">
-                  <p className="text-xs sm:text-sm font-bold text-primary font-mono">0.89</p>
-                  <p className="text-[9px] sm:text-[10px] text-muted-foreground">Sharpe Ratio</p>
+              </div>
+              <div className="p-3 sm:p-5 space-y-3 sm:space-y-4">
+                {/* Investor type result */}
+                <div className="bg-gradient-to-r from-violet-500/10 to-purple-500/10 rounded-lg p-3 sm:p-4 border border-violet-500/20">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Badge className="bg-violet-500 text-white text-[10px] sm:text-xs">Your Type</Badge>
+                  </div>
+                  <h4 className="font-bold text-sm sm:text-lg text-foreground">Strategic Opportunist</h4>
+                  <p className="text-[10px] sm:text-xs text-muted-foreground mt-1">You balance calculated risk with data-driven decisions</p>
                 </div>
-                <div className="text-center">
-                  <p className="text-xs sm:text-sm font-bold text-violet-500 font-mono">-8.2%</p>
-                  <p className="text-[9px] sm:text-[10px] text-muted-foreground">Max DD</p>
+                {/* Traits */}
+                <div className="grid grid-cols-2 gap-2">
+                  {[
+                    { trait: 'Risk Tolerance', value: 'Moderate-High', color: 'text-primary' },
+                    { trait: 'Time Horizon', value: '5-10 Years', color: 'text-violet-500' },
+                    { trait: 'Style', value: 'Momentum', color: 'text-purple-500' },
+                    { trait: 'Focus', value: 'Growth', color: 'text-violet-400' }
+                  ].map((item) => (
+                    <div key={item.trait} className="bg-muted/30 rounded-md p-2 text-center">
+                      <p className="text-[9px] sm:text-[10px] text-muted-foreground">{item.trait}</p>
+                      <p className={cn("text-xs sm:text-sm font-semibold", item.color)}>{item.value}</p>
+                    </div>
+                  ))}
                 </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={(e) => { e.stopPropagation(); onSignUp(); }}
+                  className="w-full gap-2 text-xs sm:text-sm"
+                >
+                  <Brain className="h-3.5 w-3.5" />
+                  Discover Your Type
+                  <ArrowRight className="h-3 w-3" />
+                </Button>
               </div>
             </div>
           </div>
-
-          {/* Investor DNA Mockup */}
-          <div className="relative bg-card border-2 border-primary/20 rounded-xl sm:rounded-2xl overflow-hidden shadow-xl">
-            <div className="px-3 sm:px-5 py-3 sm:py-4 bg-gradient-to-r from-violet-500/10 via-primary/5 to-purple-500/10 border-b border-border">
-              <div className="flex items-center gap-2 sm:gap-3">
-                <div className="w-8 sm:w-10 h-8 sm:h-10 rounded-lg sm:rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center shrink-0">
-                  <Brain className="h-4 sm:h-5 w-4 sm:w-5 text-white" />
-                </div>
-                <div className="min-w-0">
-                  <h3 className="font-extrabold text-foreground text-base sm:text-lg truncate">Your Investor DNA</h3>
-                  <p className="text-[10px] sm:text-xs text-muted-foreground">AI-powered profile analysis</p>
-                </div>
-              </div>
-            </div>
-            <div className="p-3 sm:p-5 space-y-3 sm:space-y-4">
-              {/* Investor type result */}
-              <div className="bg-gradient-to-r from-violet-500/10 to-purple-500/10 rounded-lg p-3 sm:p-4 border border-violet-500/20">
-                <div className="flex items-center gap-2 mb-2">
-                  <Badge className="bg-violet-500 text-white text-[10px] sm:text-xs">Your Type</Badge>
-                </div>
-                <h4 className="font-bold text-sm sm:text-lg text-foreground">Strategic Opportunist</h4>
-                <p className="text-[10px] sm:text-xs text-muted-foreground mt-1">You balance calculated risk with data-driven decisions</p>
-              </div>
-              {/* Traits */}
-              <div className="grid grid-cols-2 gap-2">
-                {[
-                  { trait: 'Risk Tolerance', value: 'Moderate-High', color: 'text-primary' },
-                  { trait: 'Time Horizon', value: '5-10 Years', color: 'text-violet-500' },
-                  { trait: 'Style', value: 'Momentum', color: 'text-purple-500' },
-                  { trait: 'Focus', value: 'Growth', color: 'text-violet-400' }
-                ].map((item) => (
-                  <div key={item.trait} className="bg-muted/30 rounded-md p-2 text-center">
-                    <p className="text-[9px] sm:text-[10px] text-muted-foreground">{item.trait}</p>
-                    <p className={cn("text-xs sm:text-sm font-semibold", item.color)}>{item.value}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-
         </motion.div>
 
         {/* ===================== PLATFORM FEATURES SECTION ===================== */}
@@ -611,6 +718,72 @@ export function QuantLabWelcomeHero({
           </div>
         </motion.div>
 
+        {/* ===================== WHY DATA MATTERS SECTION ===================== */}
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 1.0 }}
+          className="bg-gradient-to-br from-emerald-500/5 via-primary/5 to-violet-500/5 border border-emerald-500/20 rounded-xl sm:rounded-2xl p-4 sm:p-8"
+        >
+          <div className="grid md:grid-cols-2 gap-6 sm:gap-8 items-center">
+            <div className="space-y-4">
+              <Badge variant="outline" className="text-xs border-emerald-500/30">
+                <Target className="h-2.5 sm:h-3 w-2.5 sm:w-3 mr-1 sm:mr-1.5" />
+                Why This Matters
+              </Badge>
+              <h2 className="text-xl sm:text-2xl md:text-3xl font-bold">
+                Stop Guessing. <span className="text-emerald-500">Start Knowing.</span>
+              </h2>
+              <p className="text-sm sm:text-base text-muted-foreground">
+                Most investors rely on gut feelings, headlines, or Twitter tips. But the market rewards those who understand probabilities. Our studies reveal what actually happens—based on real data, not opinions.
+              </p>
+              <div className="space-y-2">
+                {[
+                  'Backtest any hypothesis against 10+ years of history',
+                  'See exact win rates and average returns',
+                  'Understand statistical significance of your edge',
+                  'Make confident decisions backed by data'
+                ].map((point, idx) => (
+                  <div key={idx} className="flex items-start gap-2 text-xs sm:text-sm">
+                    <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0 mt-0.5" />
+                    <span className="text-muted-foreground">{point}</span>
+                  </div>
+                ))}
+              </div>
+              <Button
+                onClick={(e) => { e.stopPropagation(); onSignUp(); }}
+                className="gap-2 h-10 sm:h-11 text-sm"
+              >
+                <FlaskConical className="h-4 w-4" />
+                Run My First Study
+                <ArrowRight className="h-3.5 w-3.5" />
+              </Button>
+            </div>
+            <div className="bg-card border rounded-xl p-4 sm:p-6 space-y-4">
+              <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                <Activity className="h-4 w-4 text-primary" />
+                Example: "Buy the Dip" Myth
+              </div>
+              <p className="text-xs sm:text-sm text-muted-foreground">
+                Everyone says "buy the dip." But does it actually work? We ran the numbers on SPY over 10 years...
+              </p>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-lg p-3 text-center">
+                  <p className="text-xl sm:text-2xl font-bold text-emerald-500 font-mono">64%</p>
+                  <p className="text-[10px] sm:text-xs text-muted-foreground">Win Rate After -2% Days</p>
+                </div>
+                <div className="bg-primary/10 border border-primary/30 rounded-lg p-3 text-center">
+                  <p className="text-xl sm:text-2xl font-bold text-primary font-mono">+0.82%</p>
+                  <p className="text-[10px] sm:text-xs text-muted-foreground">Avg 5-Day Return</p>
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground italic">
+                That's a statistically significant edge. Imagine knowing this before making your next trade.
+              </p>
+            </div>
+          </div>
+        </motion.div>
+
         {/* ===================== QUICK STUDIES SECTION ===================== */}
         <motion.div
           initial={{ opacity: 0, y: 30 }}
@@ -625,10 +798,10 @@ export function QuantLabWelcomeHero({
                 Popular Quant Studies
               </h3>
               <p className="text-xs sm:text-sm text-muted-foreground mt-0.5 sm:mt-1">
-                Click any study below to run it instantly
+                One-click studies that answer real investing questions. No setup required.
               </p>
             </div>
-            <Button variant="outline" onClick={(e) => { e.stopPropagation(); onSignUp(); }} className="gap-2 h-9 sm:h-10 text-xs sm:text-sm">
+            <Button onClick={(e) => { e.stopPropagation(); onSignUp(); }} className="gap-2 h-9 sm:h-10 text-xs sm:text-sm">
               <Zap className="h-3.5 sm:h-4 w-3.5 sm:w-4" />
               Run Custom Study
             </Button>
@@ -661,8 +834,29 @@ export function QuantLabWelcomeHero({
                   </Badge>
                 </div>
                 <p className="text-[10px] sm:text-xs text-muted-foreground line-clamp-2">{study.question}</p>
+                <div className="flex items-center gap-1 mt-2 text-[10px] sm:text-xs text-primary opacity-0 group-hover:opacity-100 transition-opacity">
+                  <Play className="h-3 w-3" />
+                  <span>Run Study</span>
+                </div>
               </button>
             ))}
+          </div>
+
+          <div className="mt-4 sm:mt-6 pt-4 border-t border-border">
+            <p className="text-xs sm:text-sm text-muted-foreground text-center mb-3">
+              Have a different question? Create a custom study with any ticker, any condition, any timeframe.
+            </p>
+            <div className="flex justify-center">
+              <Button
+                variant="outline"
+                onClick={(e) => { e.stopPropagation(); onSignUp(); }}
+                className="gap-2 text-sm"
+              >
+                <FlaskConical className="h-4 w-4" />
+                Build Custom Study
+                <ArrowRight className="h-3.5 w-3.5" />
+              </Button>
+            </div>
           </div>
         </motion.div>
 
