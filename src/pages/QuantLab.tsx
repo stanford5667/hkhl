@@ -1352,7 +1352,7 @@ function QuantLabContent(props: any) {
               animate={{ y: 0, opacity: 1 }}
               exit={{ y: '100%', opacity: 0 }}
               transition={{ duration: 0.25, ease: 'easeOut' }}
-              className="fixed inset-x-0 bottom-16 top-auto md:relative md:inset-auto md:w-72 lg:w-80 shrink-0 md:border-r bg-card z-40 flex flex-col overflow-hidden md:!h-full rounded-t-2xl md:rounded-none shadow-2xl md:shadow-none max-h-[60vh] md:max-h-none pb-safe"
+              className="fixed inset-x-0 bottom-16 top-auto md:relative md:inset-auto md:w-80 lg:w-96 shrink-0 md:border-r bg-card z-40 flex flex-col overflow-hidden md:!h-full rounded-t-2xl md:rounded-none shadow-2xl md:shadow-none max-h-[75vh] md:max-h-none pb-safe"
             >
               {/* Mobile drag handle */}
               <div className="md:hidden flex justify-center pt-2 pb-1">
@@ -1411,17 +1411,6 @@ function QuantLabContent(props: any) {
                     />
                   </div>
                   
-                  {/* Study Filter */}
-                  <div className="relative">
-                    <FlaskConical className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      placeholder="Filter studies..."
-                      value={studySearch}
-                      onChange={(e) => setStudySearch(e.target.value)}
-                      className="h-10 w-full pl-10 pr-4 text-sm bg-background border border-muted-foreground/30 focus:border-primary rounded-lg placeholder:text-muted-foreground/50"
-                    />
-                  </div>
-                  
                   {/* Analyze Button */}
                   <Button
                     onClick={() => {
@@ -1466,7 +1455,7 @@ function QuantLabContent(props: any) {
                   <div className="flex-1 overflow-y-auto p-3 space-y-2">
                     {STUDY_CATEGORIES.map((cat) => (
                       <TabsContent key={cat.id} value={cat.id} className="mt-0 space-y-2">
-                        {STUDY_DEFINITIONS.filter(s => s.category === cat.id && (studySearch === '' || s.name.toLowerCase().includes(studySearch.toLowerCase()) || s.tags.some(tag => tag.toLowerCase().includes(studySearch.toLowerCase())))).map((study) => (
+                        {STUDY_DEFINITIONS.filter(s => s.category === cat.id).map((study) => (
                           <button
                             key={study.id}
                             onClick={() => {
@@ -1519,23 +1508,6 @@ function QuantLabContent(props: any) {
                 </Tabs>
               </div>
               
-              {/* Mobile: Run button in panel - Always visible at bottom */}
-              {selectedStudies.length > 0 && (
-                <div className="md:hidden p-4 border-t bg-card shrink-0">
-                    <Button
-                      onClick={() => {
-                        setShowStudyPanel(false);
-                        handleRunAllStudies();
-                      }}
-                      disabled={!selectedTicker || isRunning}
-                      variant="success"
-                      className="w-full h-14 text-lg font-bold gap-3 shadow-xl rounded-xl"
-                    >
-                      <Play className="h-6 w-6" />
-                      Analyze
-                    </Button>
-                </div>
-              )}
             </motion.div>
           )}
         </AnimatePresence>
