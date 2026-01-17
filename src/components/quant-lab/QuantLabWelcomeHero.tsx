@@ -161,12 +161,11 @@ export function QuantLabWelcomeHero({
               transition={{ delay: 0.2 }}
               className="space-y-2 sm:space-y-4"
             >
-              <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight">
-                <span className="bg-gradient-to-r from-primary via-violet-500 to-purple-500 bg-clip-text text-transparent">
+              <h1 className="font-bold tracking-tight">
+                <span className="block text-[2.1rem] sm:text-[2.6rem] md:text-[3.2rem] lg:text-[3.8rem] leading-tight bg-gradient-to-r from-primary via-violet-500 to-purple-500 bg-clip-text text-transparent">
                   Zero Coding
                 </span>
-                <br />
-                <span className="text-foreground">Quant Analysis.</span>
+                <span className="block text-[2.1rem] sm:text-[2.6rem] md:text-[3.2rem] lg:text-[3.8rem] leading-tight text-foreground">Quant Tools.</span>
               </h1>
               <p className="text-sm sm:text-base md:text-lg text-muted-foreground max-w-lg mx-auto lg:mx-0">
                 Answer questions like{' '}
