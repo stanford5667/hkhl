@@ -641,37 +641,33 @@ export function StudyResultCard({
         )}
       </div>
 
-      {/* AI Interpretation */}
+      {/* Study Summary - What it tracks */}
+      <div className="px-4 py-3 border-b bg-muted/10">
+        <p className="text-xs text-muted-foreground leading-relaxed">
+          <span className="font-semibold text-foreground">{study.name}</span> analyzes {result.barsAnalyzed || result.total_days || 'historical'} trading days
+          {result.dateRange && ` from ${result.dateRange.start} to ${result.dateRange.end}`}
+          {studyParams[study.id]?.forwardDays && ` measuring price action over the next ${studyParams[study.id].forwardDays} days after each signal`}
+          {studyParams[study.id]?.threshold && ` when the condition threshold of ${studyParams[study.id].threshold}% is triggered`}.
+          {' '}{study.whatItMeasures}
+        </p>
+      </div>
+
+      {/* AI Insight - Inline display */}
       {result.interpretation && (
-        <div className="px-4 py-4 border-b">
-          <div className={cn(
-            "flex items-start gap-3 p-4 rounded-xl border-l-4",
-            "bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent",
-            "border-amber-500"
-          )}>
-            <div className="shrink-0 p-2 rounded-lg bg-amber-500/20">
-              <Lightbulb className="h-5 w-5 text-amber-500" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <span className="text-[10px] font-bold text-amber-600 uppercase tracking-widest">
-                AI Insight
-              </span>
-              <p className="text-sm leading-relaxed mt-1 text-foreground/90">
-                {result.interpretation}
-              </p>
-            </div>
-          </div>
+        <div className="px-4 py-2 border-b flex items-start gap-2">
+          <Lightbulb className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
+          <p className="text-sm text-foreground/90 leading-relaxed">{result.interpretation}</p>
         </div>
       )}
 
       {/* Visual Analysis Toggle */}
       <button
         onClick={() => setShowVisuals(!showVisuals)}
-        className="w-full px-4 py-3 flex items-center justify-between hover:bg-muted/30 transition-colors border-b"
+        className="w-full px-4 py-2.5 flex items-center justify-between hover:bg-muted/30 transition-colors border-b"
       >
         <div className="flex items-center gap-2">
           <BarChart3 className="h-4 w-4 text-primary" />
-          <span className="text-sm font-semibold">Visual Analysis</span>
+          <span className="text-xs font-semibold">Visual Analysis</span>
         </div>
         <ChevronDown className={cn(
           "h-4 w-4 text-muted-foreground transition-transform",
@@ -699,20 +695,11 @@ export function StudyResultCard({
         )}
       </AnimatePresence>
 
-      {/* Footer with data info */}
-      <div className="px-4 py-3 bg-gradient-to-r from-muted/40 to-muted/20 flex items-center justify-between">
-        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-          <Activity className="h-3.5 w-3.5 text-primary" />
-          <span className="font-mono font-semibold text-foreground">{result.barsAnalyzed || result.total_days}</span>
-          <span>trading days</span>
-        </div>
+      {/* Footer with date range only */}
+      <div className="px-4 py-2 bg-muted/20 flex items-center justify-between text-[10px] text-muted-foreground">
+        <span className="font-mono">{result.barsAnalyzed || result.total_days} days analyzed</span>
         {result.dateRange && (
-          <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-mono">
-            <Calendar className="h-3.5 w-3.5" />
-            <span>{result.dateRange.start}</span>
-            <span>→</span>
-            <span>{result.dateRange.end}</span>
-          </div>
+          <span className="font-mono">{result.dateRange.start} → {result.dateRange.end}</span>
         )}
       </div>
 
