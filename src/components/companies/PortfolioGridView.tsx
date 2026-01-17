@@ -48,31 +48,31 @@ export function PortfolioGridView({ companies, onViewChange }: PortfolioGridView
   return (
     <div>
       {/* Portfolio Summary */}
-      <div className="grid grid-cols-4 gap-4 mb-6">
-        <Card className="p-4 bg-card border-border">
-          <p className="text-muted-foreground text-sm">Total Revenue</p>
-          <p className="text-2xl font-bold text-foreground">{formatCurrency(totals.totalRevenue)}</p>
-          <p className="text-emerald-400 text-xs mt-1 flex items-center gap-1">
-            <TrendingUp className="h-3 w-3" />
-            Across portfolio
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4 mb-6">
+        <Card className="p-2 sm:p-4 bg-card border-border">
+          <p className="text-muted-foreground text-[10px] sm:text-sm truncate">Total Revenue</p>
+          <p className="text-lg sm:text-2xl font-bold font-mono text-foreground truncate">{formatCurrency(totals.totalRevenue)}</p>
+          <p className="text-emerald-400 text-[10px] sm:text-xs mt-1 flex items-center gap-1">
+            <TrendingUp className="h-2.5 w-2.5 sm:h-3 sm:w-3 shrink-0" />
+            <span className="truncate">Across portfolio</span>
           </p>
         </Card>
-        <Card className="p-4 bg-card border-border">
-          <p className="text-muted-foreground text-sm">Portfolio Companies</p>
-          <p className="text-2xl font-bold text-foreground">{portfolioCompanies.length}</p>
-          <p className="text-muted-foreground text-xs mt-1">Active investments</p>
+        <Card className="p-2 sm:p-4 bg-card border-border">
+          <p className="text-muted-foreground text-[10px] sm:text-sm truncate">Companies</p>
+          <p className="text-lg sm:text-2xl font-bold font-mono text-foreground">{portfolioCompanies.length}</p>
+          <p className="text-muted-foreground text-[10px] sm:text-xs mt-1 truncate">Active investments</p>
         </Card>
-        <Card className="p-4 bg-card border-border">
-          <p className="text-muted-foreground text-sm">Total EBITDA</p>
-          <p className="text-2xl font-bold text-emerald-400">{formatCurrency(totals.totalEbitda)}</p>
-          <p className="text-muted-foreground text-xs mt-1">Combined earnings</p>
+        <Card className="p-2 sm:p-4 bg-card border-border">
+          <p className="text-muted-foreground text-[10px] sm:text-sm truncate">Total EBITDA</p>
+          <p className="text-lg sm:text-2xl font-bold font-mono text-emerald-400 truncate">{formatCurrency(totals.totalEbitda)}</p>
+          <p className="text-muted-foreground text-[10px] sm:text-xs mt-1 truncate">Combined earnings</p>
         </Card>
-        <Card className="p-4 bg-card border-border">
-          <p className="text-muted-foreground text-sm">Avg Margin</p>
-          <p className="text-2xl font-bold text-emerald-400">
+        <Card className="p-2 sm:p-4 bg-card border-border">
+          <p className="text-muted-foreground text-[10px] sm:text-sm truncate">Avg Margin</p>
+          <p className="text-lg sm:text-2xl font-bold font-mono text-emerald-400">
             {totals.avgMargin > 0 ? `${totals.avgMargin.toFixed(1)}%` : '—'}
           </p>
-          <p className="text-muted-foreground text-xs mt-1">EBITDA margin</p>
+          <p className="text-muted-foreground text-[10px] sm:text-xs mt-1 truncate">EBITDA margin</p>
         </Card>
       </div>
       

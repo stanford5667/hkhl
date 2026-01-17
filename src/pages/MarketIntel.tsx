@@ -190,19 +190,19 @@ interface StatCardProps {
 function StatCard({ label, value, change, subtitle, icon, color = 'text-primary' }: StatCardProps) {
   return (
     <Card className="bg-gradient-to-br from-card to-secondary/20">
-      <CardContent className="p-4">
-        <div className="flex items-center justify-between mb-1">
-          <span className="text-xs text-muted-foreground">{label}</span>
-          <span className={color}>{icon}</span>
+      <CardContent className="p-2 sm:p-4">
+        <div className="flex items-center justify-between mb-1 gap-1">
+          <span className="text-[10px] sm:text-xs text-muted-foreground truncate">{label}</span>
+          <span className={`${color} shrink-0`}>{icon}</span>
         </div>
-        <p className="text-xl font-bold">{value}</p>
+        <p className="text-base sm:text-xl font-bold font-mono truncate">{value}</p>
         {change !== undefined && (
-          <p className={`text-xs flex items-center gap-1 ${change >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
-            {change >= 0 ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
-            {Math.abs(change).toFixed(1)}%
+          <p className={`text-[10px] sm:text-xs flex items-center gap-0.5 ${change >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+            {change >= 0 ? <ArrowUpRight className="h-2.5 w-2.5 sm:h-3 sm:w-3 shrink-0" /> : <ArrowDownRight className="h-2.5 w-2.5 sm:h-3 sm:w-3 shrink-0" />}
+            <span className="font-mono">{Math.abs(change).toFixed(1)}%</span>
           </p>
         )}
-        {subtitle && <p className="text-xs text-muted-foreground">{subtitle}</p>}
+        {subtitle && <p className="text-[10px] sm:text-xs text-muted-foreground truncate">{subtitle}</p>}
       </CardContent>
     </Card>
   );

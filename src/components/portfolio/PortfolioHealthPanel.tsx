@@ -84,22 +84,22 @@ function StatCard({
       )}
       onClick={onClick}
     >
-      <CardContent className="p-4">
-        <div className="flex items-center justify-between mb-1">
-          <span className="text-xs text-muted-foreground">{label}</span>
-          <span className={color}>{icon}</span>
+      <CardContent className="p-2 sm:p-4">
+        <div className="flex items-center justify-between mb-1 gap-1">
+          <span className="text-[10px] sm:text-xs text-muted-foreground truncate">{label}</span>
+          <span className={cn(color, "shrink-0")}>{icon}</span>
         </div>
-        <p className="text-xl font-bold">{value}</p>
+        <p className="text-base sm:text-xl font-bold font-mono truncate">{value}</p>
         {change !== undefined && (
           <p className={cn(
-            "text-xs flex items-center gap-1",
+            "text-[10px] sm:text-xs flex items-center gap-0.5",
             change >= 0 ? 'text-emerald-400' : 'text-rose-400'
           )}>
-            {change >= 0 ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
-            {Math.abs(change).toFixed(2)}%
+            {change >= 0 ? <ArrowUpRight className="h-2.5 w-2.5 sm:h-3 sm:w-3 shrink-0" /> : <ArrowDownRight className="h-2.5 w-2.5 sm:h-3 sm:w-3 shrink-0" />}
+            <span className="font-mono truncate">{Math.abs(change).toFixed(2)}%</span>
           </p>
         )}
-        {subtitle && <p className="text-xs text-muted-foreground">{subtitle}</p>}
+        {subtitle && <p className="text-[10px] sm:text-xs text-muted-foreground truncate">{subtitle}</p>}
       </CardContent>
     </Card>
   );
@@ -135,33 +135,33 @@ function HoldingHealthCard({
   const value = (weight / 100) * investableCapital;
 
   return (
-    <Card className={cn("bg-card p-4 border", colorClass)}>
-      <div className="flex justify-between mb-3">
-        <div>
-          <span className="font-medium text-sm">{symbol}</span>
-          {name && <p className="text-xs text-muted-foreground truncate max-w-[120px]">{name}</p>}
+    <Card className={cn("bg-card p-2 sm:p-4 border", colorClass)}>
+      <div className="flex justify-between mb-2 sm:mb-3 gap-2">
+        <div className="min-w-0 flex-1">
+          <span className="font-medium text-xs sm:text-sm truncate block">{symbol}</span>
+          {name && <p className="text-[10px] sm:text-xs text-muted-foreground truncate">{name}</p>}
         </div>
-        <span className={cn("text-2xl font-bold", textClass)}>{Math.round(healthScore)}</span>
+        <span className={cn("text-lg sm:text-2xl font-bold font-mono shrink-0", textClass)}>{Math.round(healthScore)}</span>
       </div>
-      <div className="space-y-2 text-xs">
-        <div className="flex justify-between">
-          <span className="text-muted-foreground">Weight</span>
-          <span>{weight.toFixed(1)}%</span>
+      <div className="space-y-1.5 sm:space-y-2 text-[10px] sm:text-xs">
+        <div className="flex justify-between gap-1">
+          <span className="text-muted-foreground truncate">Weight</span>
+          <span className="font-mono shrink-0">{weight.toFixed(1)}%</span>
         </div>
-        <div className="flex justify-between">
-          <span className="text-muted-foreground">Value</span>
-          <span>${value.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
+        <div className="flex justify-between gap-1">
+          <span className="text-muted-foreground truncate">Value</span>
+          <span className="font-mono shrink-0">${value.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
         </div>
         {price !== undefined && (
-          <div className="flex justify-between">
-            <span className="text-muted-foreground">Price</span>
-            <span>${price.toFixed(2)}</span>
+          <div className="flex justify-between gap-1">
+            <span className="text-muted-foreground truncate">Price</span>
+            <span className="font-mono shrink-0">${price.toFixed(2)}</span>
           </div>
         )}
         {changePercent !== undefined && (
-          <div className="flex justify-between">
-            <span className="text-muted-foreground">Today</span>
-            <span className={changePercent >= 0 ? 'text-emerald-400' : 'text-rose-400'}>
+          <div className="flex justify-between gap-1">
+            <span className="text-muted-foreground truncate">Today</span>
+            <span className={cn("font-mono shrink-0", changePercent >= 0 ? 'text-emerald-400' : 'text-rose-400')}>
               {changePercent >= 0 ? '+' : ''}{changePercent.toFixed(2)}%
             </span>
           </div>

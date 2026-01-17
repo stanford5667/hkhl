@@ -35,38 +35,38 @@ const countriesData: CountryData[] = [
 
 const CountryCard = ({ country }: { country: CountryData }) => (
   <Card className="hover:bg-secondary/30 transition-colors cursor-pointer">
-    <CardContent className="p-4">
-      <div className="flex items-center gap-3 mb-3">
-        <span className="text-2xl">{country.flag}</span>
-        <div>
-          <h4 className="font-medium">{country.name}</h4>
-          <Badge variant="outline" className="text-[10px]">
+    <CardContent className="p-3 sm:p-4">
+      <div className="flex items-center gap-2 sm:gap-3 mb-2 sm:mb-3">
+        <span className="text-xl sm:text-2xl">{country.flag}</span>
+        <div className="min-w-0 flex-1">
+          <h4 className="font-medium text-sm sm:text-base truncate">{country.name}</h4>
+          <Badge variant="outline" className="text-[9px] sm:text-[10px]">
             {country.region}
           </Badge>
         </div>
       </div>
       
-      <div className="grid grid-cols-2 gap-3 text-sm">
-        <div>
-          <span className="text-muted-foreground text-xs">GDP Growth</span>
-          <p className={`font-medium ${country.gdpGrowth >= 2 ? 'text-emerald-500' : country.gdpGrowth >= 0 ? 'text-yellow-500' : 'text-rose-500'}`}>
+      <div className="grid grid-cols-2 gap-2 sm:gap-3 text-xs sm:text-sm">
+        <div className="min-w-0">
+          <span className="text-muted-foreground text-[10px] sm:text-xs block truncate">GDP Growth</span>
+          <p className={`font-medium font-mono ${country.gdpGrowth >= 2 ? 'text-emerald-500' : country.gdpGrowth >= 0 ? 'text-yellow-500' : 'text-rose-500'}`}>
             {country.gdpGrowth > 0 ? '+' : ''}{country.gdpGrowth}%
           </p>
         </div>
-        <div>
-          <span className="text-muted-foreground text-xs">Inflation</span>
-          <p className={`font-medium ${country.inflation <= 2 ? 'text-emerald-500' : country.inflation <= 4 ? 'text-yellow-500' : 'text-rose-500'}`}>
+        <div className="min-w-0">
+          <span className="text-muted-foreground text-[10px] sm:text-xs block truncate">Inflation</span>
+          <p className={`font-medium font-mono ${country.inflation <= 2 ? 'text-emerald-500' : country.inflation <= 4 ? 'text-yellow-500' : 'text-rose-500'}`}>
             {country.inflation}%
           </p>
         </div>
-        <div>
-          <span className="text-muted-foreground text-xs">Interest Rate</span>
-          <p className="font-medium">{country.interestRate}%</p>
+        <div className="min-w-0">
+          <span className="text-muted-foreground text-[10px] sm:text-xs block truncate">Rate</span>
+          <p className="font-medium font-mono">{country.interestRate}%</p>
         </div>
-        <div>
-          <span className="text-muted-foreground text-xs">{country.currency} YTD</span>
-          <p className={`font-medium flex items-center gap-1 ${country.currencyChange >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
-            {country.currencyChange >= 0 ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
+        <div className="min-w-0">
+          <span className="text-muted-foreground text-[10px] sm:text-xs block truncate">{country.currency}</span>
+          <p className={`font-medium font-mono flex items-center gap-0.5 ${country.currencyChange >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
+            {country.currencyChange >= 0 ? <TrendingUp className="h-2.5 w-2.5 sm:h-3 sm:w-3 shrink-0" /> : <TrendingDown className="h-2.5 w-2.5 sm:h-3 sm:w-3 shrink-0" />}
             {country.currencyChange > 0 ? '+' : ''}{country.currencyChange}%
           </p>
         </div>
@@ -115,41 +115,41 @@ export function CountriesContent() {
 
         <TabsContent value={activeTab} className="mt-4 space-y-6">
           {/* Regional Summary */}
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-3 gap-2 sm:gap-4">
             <Card className="bg-secondary/30">
-              <CardContent className="p-4 flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-emerald-500/20">
-                  <BarChart3 className="h-5 w-5 text-emerald-500" />
+              <CardContent className="p-2 sm:p-4 flex flex-col sm:flex-row items-center gap-1 sm:gap-3">
+                <div className="p-1.5 sm:p-2 rounded-lg bg-emerald-500/20 shrink-0">
+                  <BarChart3 className="h-4 w-4 sm:h-5 sm:w-5 text-emerald-500" />
                 </div>
-                <div>
-                  <span className="text-xs text-muted-foreground">Avg GDP Growth</span>
-                  <p className={`text-xl font-bold ${avgGDP >= 2 ? 'text-emerald-500' : 'text-yellow-500'}`}>
+                <div className="text-center sm:text-left min-w-0">
+                  <span className="text-[9px] sm:text-xs text-muted-foreground block truncate">Avg GDP</span>
+                  <p className={`text-sm sm:text-xl font-bold font-mono ${avgGDP >= 2 ? 'text-emerald-500' : 'text-yellow-500'}`}>
                     {avgGDP.toFixed(1)}%
                   </p>
                 </div>
               </CardContent>
             </Card>
             <Card className="bg-secondary/30">
-              <CardContent className="p-4 flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-yellow-500/20">
-                  <Percent className="h-5 w-5 text-yellow-500" />
+              <CardContent className="p-2 sm:p-4 flex flex-col sm:flex-row items-center gap-1 sm:gap-3">
+                <div className="p-1.5 sm:p-2 rounded-lg bg-yellow-500/20 shrink-0">
+                  <Percent className="h-4 w-4 sm:h-5 sm:w-5 text-yellow-500" />
                 </div>
-                <div>
-                  <span className="text-xs text-muted-foreground">Avg Inflation</span>
-                  <p className={`text-xl font-bold ${avgInflation <= 2 ? 'text-emerald-500' : avgInflation <= 4 ? 'text-yellow-500' : 'text-rose-500'}`}>
+                <div className="text-center sm:text-left min-w-0">
+                  <span className="text-[9px] sm:text-xs text-muted-foreground block truncate">Inflation</span>
+                  <p className={`text-sm sm:text-xl font-bold font-mono ${avgInflation <= 2 ? 'text-emerald-500' : avgInflation <= 4 ? 'text-yellow-500' : 'text-rose-500'}`}>
                     {avgInflation.toFixed(1)}%
                   </p>
                 </div>
               </CardContent>
             </Card>
             <Card className="bg-secondary/30">
-              <CardContent className="p-4 flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-primary/20">
-                  <DollarSign className="h-5 w-5 text-primary" />
+              <CardContent className="p-2 sm:p-4 flex flex-col sm:flex-row items-center gap-1 sm:gap-3">
+                <div className="p-1.5 sm:p-2 rounded-lg bg-primary/20 shrink-0">
+                  <DollarSign className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
                 </div>
-                <div>
-                  <span className="text-xs text-muted-foreground">Avg Interest Rate</span>
-                  <p className="text-xl font-bold">{avgRate.toFixed(1)}%</p>
+                <div className="text-center sm:text-left min-w-0">
+                  <span className="text-[9px] sm:text-xs text-muted-foreground block truncate">Rate</span>
+                  <p className="text-sm sm:text-xl font-bold font-mono">{avgRate.toFixed(1)}%</p>
                 </div>
               </CardContent>
             </Card>

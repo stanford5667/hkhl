@@ -184,17 +184,17 @@ function StatCard({
   const isPositive = change !== undefined && change >= 0;
   const cardContent = <motion.div variants={itemVariants} className="h-full">
       <Card className="cursor-pointer hover:shadow-md transition-all hover:scale-[1.02] group bg-gradient-to-br from-card to-secondary/20 relative h-full flex flex-col" onClick={onClick}>
-        <CardContent className="p-4 pb-6 flex-1 flex flex-col min-h-[100px]">
-          <div className="flex items-center justify-between mb-1">
-            <div className="flex items-center gap-1">
-              <span className="text-xs text-muted-foreground">{title}</span>
+        <CardContent className="p-2 sm:p-4 pb-4 sm:pb-6 flex-1 flex flex-col min-h-[80px] sm:min-h-[100px]">
+          <div className="flex items-center justify-between mb-1 gap-1">
+            <div className="flex items-center gap-1 min-w-0 flex-1">
+              <span className="text-[10px] sm:text-xs text-muted-foreground truncate">{title}</span>
               {term && <Tooltip>
                   <TooltipTrigger asChild>
-                    <button className="text-muted-foreground hover:text-primary transition-colors" onClick={e => {
+                    <button className="text-muted-foreground hover:text-primary transition-colors shrink-0" onClick={e => {
                   e.stopPropagation();
                   setShowPopover(true);
                 }}>
-                      <HelpCircle className="h-3 w-3" />
+                      <HelpCircle className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
                     </button>
                   </TooltipTrigger>
                   <TooltipContent side="top" className="max-w-xs">
@@ -202,9 +202,9 @@ function StatCard({
                   </TooltipContent>
                 </Tooltip>}
             </div>
-            <Icon className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
+            <Icon className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground group-hover:text-primary transition-colors shrink-0" />
           </div>
-          <p className="text-xl font-bold">
+          <p className="text-base sm:text-xl font-bold font-mono truncate">
             {displayValue !== undefined ? displayValue : value}
           </p>
           <div className="mt-auto">

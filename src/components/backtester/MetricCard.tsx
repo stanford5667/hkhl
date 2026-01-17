@@ -93,20 +93,20 @@ export function MetricCard({
       <PopoverTrigger asChild>
         <div 
           className={cn(
-            "p-3 rounded-lg bg-muted/50 cursor-pointer hover:bg-muted/70 transition-colors",
-            "border border-transparent hover:border-border/50",
+            "p-2 sm:p-3 rounded-lg bg-muted/50 cursor-pointer hover:bg-muted/70 transition-colors",
+            "border border-transparent hover:border-border/50 min-w-0",
             className
           )}
         >
-          <div className="flex items-center gap-1 text-xs text-muted-foreground">
-            <span>{displayLabel || label}</span>
-            <HelpCircle className="h-3 w-3 opacity-50" />
+          <div className="flex items-center gap-1 text-[10px] sm:text-xs text-muted-foreground">
+            <span className="truncate">{displayLabel || label}</span>
+            <HelpCircle className="h-2.5 w-2.5 sm:h-3 sm:w-3 opacity-50 shrink-0" />
           </div>
-          <div className={cn("text-lg font-bold", valueColor)}>
+          <div className={cn("text-sm sm:text-lg font-bold font-mono truncate", valueColor)}>
             {formattedValue}
           </div>
           {calculationPeriod && (
-            <div className="text-[10px] text-muted-foreground mt-0.5">
+            <div className="text-[9px] sm:text-[10px] text-muted-foreground mt-0.5 truncate">
               {calculationPeriod}
             </div>
           )}
