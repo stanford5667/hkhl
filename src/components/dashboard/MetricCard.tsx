@@ -39,20 +39,20 @@ export function MetricCard({
   };
 
   return (
-    <Card className={cn("p-6", variantStyles[variant])}>
-      <div className="flex items-start justify-between">
-        <div className="space-y-2">
+    <Card className={cn("p-3 sm:p-6", variantStyles[variant])}>
+      <div className="flex items-start justify-between gap-2">
+        <div className="space-y-1 sm:space-y-2 min-w-0 flex-1">
           <div className="flex items-center gap-1.5">
-            <p className="text-sm font-medium text-muted-foreground">{title}</p>
+            <p className="text-xs sm:text-sm font-medium text-muted-foreground truncate">{title}</p>
             {termKey && <MetricInfoIcon termKey={termKey} iconSize={12} />}
           </div>
-          <p className="metric-medium text-foreground">{value}</p>
+          <p className="text-lg sm:text-2xl font-bold text-foreground truncate font-mono">{value}</p>
           {subtitle && (
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1 sm:gap-2 flex-wrap">
               {change !== undefined && (
                 <span
                   className={cn(
-                    "flex items-center gap-1 text-sm font-medium",
+                    "flex items-center gap-0.5 text-xs sm:text-sm font-medium shrink-0",
                     change >= 0 ? "text-success" : "text-destructive"
                   )}
                 >
@@ -64,11 +64,11 @@ export function MetricCard({
                   {Math.abs(change)}%
                 </span>
               )}
-              <p className="text-sm text-muted-foreground">{subtitle}</p>
+              <p className="text-xs sm:text-sm text-muted-foreground truncate">{subtitle}</p>
             </div>
           )}
         </div>
-        <div className={cn("p-3 rounded-lg", iconStyles[variant])}>{icon}</div>
+        <div className={cn("p-2 sm:p-3 rounded-lg shrink-0", iconStyles[variant])}>{icon}</div>
       </div>
     </Card>
   );

@@ -96,28 +96,28 @@ function YieldCard({ bond, compact = false }: { bond: BondYield; compact?: boole
   
   return (
     <div className={cn(
-      "flex items-center justify-between p-2 rounded-lg bg-secondary/30 hover:bg-secondary/50 transition-colors",
-      compact ? "gap-2" : "gap-3"
+      "flex items-center justify-between p-1.5 sm:p-2 rounded-lg bg-secondary/30 hover:bg-secondary/50 transition-colors",
+      compact ? "gap-1.5" : "gap-3"
     )}>
-      <div className="flex items-center gap-2 min-w-0">
-        <span className="text-base">{bond.flag}</span>
+      <div className="flex items-center gap-1.5 min-w-0 flex-1">
+        <span className="text-sm sm:text-base shrink-0">{bond.flag}</span>
         <span className={cn(
           "font-medium truncate",
-          compact ? "text-xs" : "text-sm"
+          compact ? "text-[10px] sm:text-xs" : "text-xs sm:text-sm"
         )}>
           {bond.country}
         </span>
       </div>
-      <div className="flex items-center gap-1.5">
+      <div className="flex items-center gap-1 shrink-0">
         <span className={cn(
           "font-mono font-semibold",
-          compact ? "text-xs" : "text-sm",
+          compact ? "text-[10px] sm:text-xs" : "text-xs sm:text-sm",
           isHighYield ? "text-rose-400" : isLowYield ? "text-emerald-400" : "text-foreground"
         )}>
           {bond.yield.toFixed(2)}%
         </span>
-        {isHighYield && <TrendingUp className="h-3 w-3 text-rose-400" />}
-        {isLowYield && <TrendingDown className="h-3 w-3 text-emerald-400" />}
+        {isHighYield && <TrendingUp className="h-2.5 w-2.5 sm:h-3 sm:w-3 text-rose-400" />}
+        {isLowYield && <TrendingDown className="h-2.5 w-2.5 sm:h-3 sm:w-3 text-emerald-400" />}
       </div>
     </div>
   );
