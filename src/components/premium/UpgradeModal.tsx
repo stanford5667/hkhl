@@ -43,6 +43,10 @@ const FEATURE_COPY: Record<string, { title: string; benefit: string }> = {
     title: "This is a Pro feature",
     benefit: 'Access premium stock screens',
   },
+  quantStudies: {
+    title: "You've used all your free Quant Lab studies",
+    benefit: 'Unlimited Quant Lab analyses',
+  },
   default: {
     title: "Upgrade to Pro",
     benefit: 'Unlock all premium features',
