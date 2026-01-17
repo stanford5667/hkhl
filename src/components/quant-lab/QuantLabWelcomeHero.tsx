@@ -184,8 +184,8 @@ export function QuantLabWelcomeHero({
               <p className="text-sm sm:text-base md:text-lg text-muted-foreground max-w-lg mx-auto lg:mx-0">
                 Answer questions like{' '}
                 <span className="text-foreground font-semibold italic">"What happens after a $NVDA -2% day?"</span>
-                {' '}
-                <span className="text-primary font-medium">All without writing a single line of code.</span>
+                {' '}Run quant studies{' '}
+                <span className="text-primary font-medium">all without a single line of code.</span>
               </p>
             </motion.div>
 
