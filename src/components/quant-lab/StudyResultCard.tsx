@@ -89,11 +89,25 @@ const METRIC_INFO: Record<string, {
     interpretation: 'Above 50% suggests the condition leads to gains more often than losses.',
     category: 'Performance',
   },
+  avg_move: {
+    name: 'Average Move',
+    description: 'The average percentage price change over the selected timeline after the condition triggers.',
+    formula: 'Sum of all forward returns ÷ Total occurrences',
+    interpretation: 'Positive = condition tends to precede gains. The larger the move, the stronger the edge.',
+    category: 'Returns',
+  },
   avg_gain: {
     name: 'Average Gain',
     description: 'The average percentage return on winning trades.',
     formula: 'Sum of positive returns ÷ Count of positive outcomes',
     interpretation: 'Higher average gains paired with high win rate = strong edge.',
+    category: 'Returns',
+  },
+  median: {
+    name: 'Median Move',
+    description: 'The middle value of all forward returns - more robust to outliers than the average.',
+    formula: 'Middle value when all returns are sorted',
+    interpretation: 'If median differs significantly from average, there are outlier moves skewing results.',
     category: 'Returns',
   },
   avg_loss: {
@@ -609,79 +623,204 @@ export function StudyResultCard({
         </div>
       )}
 
-      {/* Primary Metrics Grid - Matching reference layout */}
+      {/* Timeline-Aware Metrics Display */}
       <div className="p-4 border-b bg-gradient-to-b from-background to-muted/10">
-        <div className="grid grid-cols-4 gap-3">
-          {/* TOTAL OCCURRENCES */}
-          <button
-            onClick={() => setSelectedMetric({ key: 'occurrences', value: result.totalOccurrences || result.occurrences || result.total_signals || result.matchCount || 0 })}
-            className="flex flex-col p-3 rounded-xl border-2 bg-muted/30 border-border/50 hover:border-primary/50 hover:shadow-lg transition-all cursor-pointer group"
-          >
-            <span className="text-[10px] text-muted-foreground uppercase tracking-wide font-medium mb-1">Total Occurrences</span>
-            <span className="text-2xl font-bold font-mono text-foreground">
-              {result.totalOccurrences || result.occurrences || result.total_signals || result.matchCount || 0}
-            </span>
-          </button>
+        {/* Get primary analysis data - use the selected timeline from analysis array */}
+        {(() => {
+          const selectedForwardDays = studyParams[study.id]?.forwardDays;
+          const analysisData = result.analysis?.find((a: any) => a.days === parseInt(selectedForwardDays)) 
+            || result.analysis?.[result.analysis.length - 1] // Use last (longest) if not found
+            || null;
+          
+          const timelineLabel = analysisData 
+            ? analysisData.days === 1 ? '1 Day' 
+              : analysisData.days === 5 ? '1 Week'
+              : analysisData.days === 21 ? '1 Month'
+              : analysisData.days === 63 ? '3 Months'
+              : analysisData.days === 126 ? '6 Months'
+              : analysisData.days === 252 ? '1 Year'
+              : `${analysisData.days} Days`
+            : 'Forward';
 
-          {/* PERCENT OF DAYS */}
-          <button
-            onClick={() => setSelectedMetric({ key: 'percent_of_days', value: result.percentOfDays || result.percent_of_days || ((result.totalOccurrences || result.occurrences || 0) / (result.barsAnalyzed || result.total_days || 1) * 100) })}
-            className="flex flex-col p-3 rounded-xl border-2 bg-muted/30 border-border/50 hover:border-primary/50 hover:shadow-lg transition-all cursor-pointer group"
-          >
-            <span className="text-[10px] text-muted-foreground uppercase tracking-wide font-medium mb-1">Percent of Days</span>
-            <span className="text-2xl font-bold font-mono text-foreground">
-              {(result.percentOfDays || result.percent_of_days || ((result.totalOccurrences || result.occurrences || 0) / (result.barsAnalyzed || result.total_days || 1) * 100)).toFixed(2)}%
-            </span>
-          </button>
+          const avgMove = analysisData?.avgReturn ?? result.avgGain ?? result.avg_gain ?? result.avgReturn ?? 0;
+          const winRate = analysisData?.winRate ?? result.win_rate ?? result.winRate ?? result.hitRate ?? 0;
+          const best = analysisData?.best ?? 0;
+          const worst = analysisData?.worst ?? 0;
+          const median = analysisData?.median ?? 0;
 
-          {/* AVG GAIN */}
-          <button
-            onClick={() => setSelectedMetric({ key: 'avg_gain', value: result.avgGain || result.avg_gain || result.avgReturn || 0 })}
-            className="flex flex-col p-3 rounded-xl border-2 bg-muted/30 border-border/50 hover:border-primary/50 hover:shadow-lg transition-all cursor-pointer group"
-          >
-            <span className="text-[10px] text-muted-foreground uppercase tracking-wide font-medium mb-1">Avg Gain</span>
-            <span
-              className={cn(
-                "text-2xl font-bold font-mono",
-                (result.avgGain || result.avg_gain || result.avgReturn || 0) >= 0 ? "text-emerald-500" : "text-red-500"
+          return (
+            <>
+              {/* Timeline Header */}
+              {analysisData && (
+                <div className="flex items-center gap-2 mb-3">
+                  <Badge variant="outline" className="text-xs font-semibold bg-primary/10 border-primary/30">
+                    {timelineLabel} Outlook
+                  </Badge>
+                </div>
               )}
-            >
-              {(result.avgGain || result.avg_gain || result.avgReturn || 0) >= 0 ? '+' : ''}{(result.avgGain || result.avg_gain || result.avgReturn || 0).toFixed(2)}%
-            </span>
-          </button>
 
-          {/* WIN RATE - from analysis array if available */}
-          <button
-            onClick={() => setSelectedMetric({ key: 'win_rate', value: result.analysis?.[0]?.winRate ?? result.win_rate ?? result.winRate ?? result.hitRate ?? result.hit_rate ?? null })}
-            className="flex flex-col p-3 rounded-xl border-2 bg-muted/30 border-border/50 hover:border-primary/50 hover:shadow-lg transition-all cursor-pointer group"
-          >
-            <span className="text-[10px] text-muted-foreground uppercase tracking-wide font-medium mb-1">Win Rate</span>
-            <span className="text-2xl font-bold font-mono text-foreground">
-              {typeof (result.analysis?.[0]?.winRate ?? result.win_rate ?? result.winRate ?? result.hitRate ?? result.hit_rate) === 'number'
-                ? `${(result.analysis?.[0]?.winRate ?? result.win_rate ?? result.winRate ?? result.hitRate ?? result.hit_rate).toFixed(1)}%`
-                : '-'}
-            </span>
-          </button>
-        </div>
-
-        {/* Additional Metrics Row */}
-        {secondaryMetrics.length > 0 && (
-          <div className="grid grid-cols-4 gap-2 mt-3">
-            {secondaryMetrics.map(([key, value]) => {
-              const formattedKey = key.replace(/([A-Z])/g, ' $1').replace(/_/g, ' ').trim();
-              return (
+              <div className="grid grid-cols-4 gap-3">
+                {/* TOTAL OCCURRENCES */}
                 <button
-                  key={key}
-                  onClick={() => setSelectedMetric({ key, value })}
-                  className="flex flex-col p-2 rounded-lg bg-muted/20 hover:bg-muted/40 transition-colors cursor-pointer"
+                  onClick={() => setSelectedMetric({ key: 'occurrences', value: result.totalOccurrences || result.occurrences || 0 })}
+                  className="flex flex-col p-3 rounded-xl border-2 bg-muted/30 border-border/50 hover:border-primary/50 hover:shadow-lg transition-all cursor-pointer group"
                 >
-                  <span className="text-[9px] text-muted-foreground uppercase truncate">{formattedKey}</span>
-                  <span className="text-sm font-bold font-mono">{formatValue(key, value)}</span>
+                  <span className="text-[10px] text-muted-foreground uppercase tracking-wide font-medium mb-1">Occurrences</span>
+                  <span className="text-2xl font-bold font-mono text-foreground">
+                    {result.totalOccurrences || result.occurrences || result.total_signals || result.matchCount || 0}
+                  </span>
                 </button>
-              );
-            })}
-          </div>
-        )}
+
+                {/* AVG MOVE (not "gain" since it can be negative) */}
+                <button
+                  onClick={() => setSelectedMetric({ key: 'avg_move', value: avgMove })}
+                  className="flex flex-col p-3 rounded-xl border-2 bg-muted/30 border-border/50 hover:border-primary/50 hover:shadow-lg transition-all cursor-pointer group"
+                >
+                  <span className="text-[10px] text-muted-foreground uppercase tracking-wide font-medium mb-1">Avg Move ({timelineLabel})</span>
+                  <span className={cn("text-2xl font-bold font-mono", avgMove >= 0 ? "text-emerald-500" : "text-red-500")}>
+                    {avgMove >= 0 ? '+' : ''}{avgMove.toFixed(2)}%
+                  </span>
+                </button>
+
+                {/* WIN RATE */}
+                <button
+                  onClick={() => setSelectedMetric({ key: 'win_rate', value: winRate })}
+                  className="flex flex-col p-3 rounded-xl border-2 bg-muted/30 border-border/50 hover:border-primary/50 hover:shadow-lg transition-all cursor-pointer group"
+                >
+                  <span className="text-[10px] text-muted-foreground uppercase tracking-wide font-medium mb-1">Win Rate</span>
+                  <span className={cn("text-2xl font-bold font-mono", winRate >= 55 ? "text-emerald-500" : winRate <= 45 ? "text-red-500" : "text-foreground")}>
+                    {winRate.toFixed(1)}%
+                  </span>
+                </button>
+
+                {/* MEDIAN MOVE */}
+                <button
+                  onClick={() => setSelectedMetric({ key: 'median', value: median })}
+                  className="flex flex-col p-3 rounded-xl border-2 bg-muted/30 border-border/50 hover:border-primary/50 hover:shadow-lg transition-all cursor-pointer group"
+                >
+                  <span className="text-[10px] text-muted-foreground uppercase tracking-wide font-medium mb-1">Median Move</span>
+                  <span className={cn("text-2xl font-bold font-mono", median >= 0 ? "text-emerald-500" : "text-red-500")}>
+                    {median >= 0 ? '+' : ''}{median.toFixed(2)}%
+                  </span>
+                </button>
+              </div>
+
+              {/* Probability Range Visual */}
+              {analysisData && (worst !== 0 || best !== 0) && (
+                <div className="mt-4 p-3 rounded-xl bg-muted/20 border border-border/40">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-[10px] text-muted-foreground uppercase tracking-wide font-semibold">
+                      Historical Range ({timelineLabel})
+                    </span>
+                    <span className="text-[10px] text-muted-foreground">
+                      Based on {analysisData.occurrences || result.totalOccurrences || 0} events
+                    </span>
+                  </div>
+                  
+                  {/* Range Bar Visualization */}
+                  <div className="relative h-10 mt-2">
+                    {/* Background track */}
+                    <div className="absolute inset-y-0 left-0 right-0 bg-muted/40 rounded-full" />
+                    
+                    {/* Calculate positions - normalize to 0-100 range */}
+                    {(() => {
+                      const range = Math.max(Math.abs(worst), Math.abs(best), 1);
+                      const scale = 45; // Use 45% of width for each side (leaving room for center)
+                      const centerPos = 50;
+                      
+                      // Position calculations (clamped)
+                      const worstPos = Math.max(5, Math.min(95, centerPos + (worst / range) * scale));
+                      const bestPos = Math.max(5, Math.min(95, centerPos + (best / range) * scale));
+                      const avgPos = Math.max(5, Math.min(95, centerPos + (avgMove / range) * scale));
+                      const medianPos = Math.max(5, Math.min(95, centerPos + (median / range) * scale));
+
+                      return (
+                        <>
+                          {/* Zero line */}
+                          <div className="absolute top-0 bottom-0 left-1/2 w-px bg-border" />
+                          
+                          {/* Range bar from worst to best */}
+                          <div 
+                            className="absolute top-3 bottom-3 bg-gradient-to-r from-red-500/40 via-muted-foreground/20 to-emerald-500/40 rounded-full"
+                            style={{ 
+                              left: `${Math.min(worstPos, bestPos)}%`, 
+                              right: `${100 - Math.max(worstPos, bestPos)}%` 
+                            }}
+                          />
+                          
+                          {/* Worst marker */}
+                          <div 
+                            className="absolute top-1/2 -translate-y-1/2 flex flex-col items-center"
+                            style={{ left: `${worstPos}%`, transform: 'translateX(-50%) translateY(-50%)' }}
+                          >
+                            <div className="w-2.5 h-2.5 rounded-full bg-red-500 border-2 border-background shadow-md" />
+                          </div>
+                          
+                          {/* Average marker */}
+                          <div 
+                            className="absolute top-1/2 -translate-y-1/2"
+                            style={{ left: `${avgPos}%`, transform: 'translateX(-50%) translateY(-50%)' }}
+                          >
+                            <div className={cn(
+                              "w-4 h-4 rounded-full border-2 border-background shadow-lg",
+                              avgMove >= 0 ? "bg-emerald-500" : "bg-red-500"
+                            )} />
+                          </div>
+                          
+                          {/* Best marker */}
+                          <div 
+                            className="absolute top-1/2 -translate-y-1/2"
+                            style={{ left: `${bestPos}%`, transform: 'translateX(-50%) translateY(-50%)' }}
+                          >
+                            <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 border-2 border-background shadow-md" />
+                          </div>
+                        </>
+                      );
+                    })()}
+                  </div>
+                  
+                  {/* Legend */}
+                  <div className="flex items-center justify-between mt-2 text-[10px]">
+                    <div className="flex items-center gap-1">
+                      <div className="w-2 h-2 rounded-full bg-red-500" />
+                      <span className="text-muted-foreground">Worst: </span>
+                      <span className="font-mono font-semibold text-red-500">{worst.toFixed(1)}%</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <div className={cn("w-3 h-3 rounded-full", avgMove >= 0 ? "bg-emerald-500" : "bg-red-500")} />
+                      <span className="text-muted-foreground">Avg: </span>
+                      <span className={cn("font-mono font-semibold", avgMove >= 0 ? "text-emerald-500" : "text-red-500")}>{avgMove >= 0 ? '+' : ''}{avgMove.toFixed(1)}%</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <div className="w-2 h-2 rounded-full bg-emerald-500" />
+                      <span className="text-muted-foreground">Best: </span>
+                      <span className="font-mono font-semibold text-emerald-500">+{best.toFixed(1)}%</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Additional Metrics Row */}
+              {secondaryMetrics.length > 0 && (
+                <div className="grid grid-cols-4 gap-2 mt-3">
+                  {secondaryMetrics.map(([key, value]) => {
+                    const formattedKey = key.replace(/([A-Z])/g, ' $1').replace(/_/g, ' ').trim();
+                    return (
+                      <button
+                        key={key}
+                        onClick={() => setSelectedMetric({ key, value })}
+                        className="flex flex-col p-2 rounded-lg bg-muted/20 hover:bg-muted/40 transition-colors cursor-pointer"
+                      >
+                        <span className="text-[9px] text-muted-foreground uppercase truncate">{formattedKey}</span>
+                        <span className="text-sm font-bold font-mono">{formatValue(key, value)}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </>
+          );
+        })()}
       </div>
 
 
