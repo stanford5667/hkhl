@@ -1756,7 +1756,15 @@ function QuantLabContent(props: any) {
               </div>
             ) : (
               <div className="flex flex-col items-center h-full text-center px-6 pt-4">
-                {selectedStudies.length > 0 ? (
+                {showWelcomeHero ? (
+                  /* Guest Welcome Hero - Show FIRST for logged out users */
+                  <QuantLabWelcomeHero
+                    onSelectStudy={handleWelcomeSelectStudy}
+                    onRunDemo={handleWelcomeRunDemo}
+                    isGuest={!user}
+                    onSignUp={() => setShowAuthSheet(true)}
+                  />
+                ) : selectedStudies.length > 0 ? (
                   <div className="w-full max-w-2xl mx-auto space-y-3">
                     {/* Compact controls (no giant run button) */}
                     <div className="rounded-2xl border-2 bg-card p-4 text-left">
@@ -1809,14 +1817,6 @@ function QuantLabContent(props: any) {
                       );
                     })}
                   </div>
-                ) : showWelcomeHero ? (
-                  /* Guest Welcome Hero */
-                  <QuantLabWelcomeHero
-                    onSelectStudy={handleWelcomeSelectStudy}
-                    onRunDemo={handleWelcomeRunDemo}
-                    isGuest={!user}
-                    onSignUp={() => setShowAuthSheet(true)}
-                  />
                 ) : (
                   <>
                     {/* Arrow pointing to sidebar on desktop */}
