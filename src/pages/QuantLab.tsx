@@ -1559,7 +1559,7 @@ function QuantLabContent(props: any) {
                     ) : (
                       <Play className="h-5 w-5 mr-2" />
                     )}
-                    {isRunning ? 'Running...' : `Analyze ${selectedTicker || 'Ticker'}`}
+                    {isRunning ? 'Running...' : `Run ${selectedTicker || 'Ticker'} Quant Study`}
                   </Button>
                 </div>
               </motion.div>
