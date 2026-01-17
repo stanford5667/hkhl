@@ -599,6 +599,16 @@ export function StudyResultCard({
         </div>
       )}
 
+      {/* INSIGHT - inline below variables, above metrics */}
+      {(result.interpretation || result.insight) && (
+        <div className="px-4 py-3 border-b bg-primary/5">
+          <p className="text-sm text-foreground/90 leading-relaxed">
+            <span className="text-[10px] text-muted-foreground uppercase tracking-wide font-semibold mr-2">Insight:</span>
+            <span className="font-medium">{result.interpretation || result.insight}</span>
+          </p>
+        </div>
+      )}
+
       {/* Primary Metrics Grid - Matching reference layout */}
       <div className="p-4 border-b bg-gradient-to-b from-background to-muted/10">
         <div className="grid grid-cols-4 gap-3">
@@ -674,15 +684,6 @@ export function StudyResultCard({
         )}
       </div>
 
-      {/* INSIGHT - inline (single line, no separate card) */}
-      {(result.interpretation || result.insight) && (
-        <div className="px-4 pb-4 -mt-2">
-          <p className="text-sm text-foreground/90 leading-relaxed">
-            <span className="text-[10px] text-muted-foreground uppercase tracking-wide font-semibold mr-2">Insight:</span>
-            <span className="font-medium">{result.interpretation || result.insight}</span>
-          </p>
-        </div>
-      )}
 
       {/* Study Summary - What it tracks */}
       <div className="px-4 py-3 border-b bg-muted/10">
