@@ -46,7 +46,7 @@ const CONDITIONAL_STUDY = {
   ]
 };
 
-// Platform features to showcase
+// Platform features to showcase - cohesive violet/purple palette
 const PLATFORM_FEATURES = [
   {
     id: 'portfolio-builder',
@@ -54,7 +54,7 @@ const PLATFORM_FEATURES = [
     description: 'Construct optimized, risk-managed portfolios',
     icon: PieChart,
     badge: 'Quant-Grade',
-    color: 'from-blue-500 to-indigo-600',
+    color: 'from-primary to-violet-600',
     route: '/portfolio-visualizer',
     preview: {
       type: 'options' as const,
@@ -86,25 +86,12 @@ const PLATFORM_FEATURES = [
     description: 'Run conditional probability analysis',
     icon: FlaskConical,
     badge: 'No-Code',
-    color: 'from-emerald-500 to-green-600',
+    color: 'from-purple-500 to-primary',
     route: '/quant-lab',
     preview: {
       type: 'result' as const,
       winRate: 68,
       avgReturn: 1.87
-    }
-  },
-  {
-    id: 'market-intel',
-    name: 'Market Intelligence',
-    description: 'Real-time economic calendar & indicators',
-    icon: LineChart,
-    badge: 'Live Data',
-    color: 'from-amber-500 to-orange-600',
-    route: '/markets',
-    preview: {
-      type: 'live' as const,
-      liveItems: ['Fed Decisions', 'CPI Reports', 'Earnings']
     }
   }
 ];
@@ -414,9 +401,9 @@ export function QuantLabWelcomeHero({
         >
           {/* Portfolio Performance Mockup */}
           <div className="relative bg-card border-2 border-primary/20 rounded-xl sm:rounded-2xl overflow-hidden shadow-xl">
-            <div className="px-3 sm:px-5 py-3 sm:py-4 bg-gradient-to-r from-blue-500/10 via-primary/5 to-indigo-500/10 border-b border-border">
+            <div className="px-3 sm:px-5 py-3 sm:py-4 bg-gradient-to-r from-primary/10 via-violet-500/5 to-purple-500/10 border-b border-border">
               <div className="flex items-center gap-2 sm:gap-3">
-                <div className="w-8 sm:w-10 h-8 sm:h-10 rounded-lg sm:rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shrink-0">
+                <div className="w-8 sm:w-10 h-8 sm:h-10 rounded-lg sm:rounded-xl bg-gradient-to-br from-primary to-violet-600 flex items-center justify-center shrink-0">
                   <PieChart className="h-4 sm:h-5 w-4 sm:w-5 text-white" />
                 </div>
                 <div className="min-w-0">
@@ -429,10 +416,10 @@ export function QuantLabWelcomeHero({
               {/* Allocation bars */}
               <div className="space-y-2">
                 {[
-                  { name: 'SPY', allocation: 40, color: 'bg-blue-500' },
+                  { name: 'SPY', allocation: 40, color: 'bg-primary' },
                   { name: 'QQQ', allocation: 25, color: 'bg-violet-500' },
-                  { name: 'TLT', allocation: 20, color: 'bg-emerald-500' },
-                  { name: 'GLD', allocation: 15, color: 'bg-amber-500' }
+                  { name: 'TLT', allocation: 20, color: 'bg-purple-500' },
+                  { name: 'GLD', allocation: 15, color: 'bg-violet-400' }
                 ].map((asset) => (
                   <div key={asset.name} className="flex items-center gap-2 sm:gap-3">
                     <span className="text-xs sm:text-sm font-mono font-medium w-8 sm:w-10">{asset.name}</span>
@@ -459,7 +446,7 @@ export function QuantLabWelcomeHero({
                   <p className="text-[9px] sm:text-[10px] text-muted-foreground">Sharpe Ratio</p>
                 </div>
                 <div className="text-center">
-                  <p className="text-xs sm:text-sm font-bold text-amber-500 font-mono">-8.2%</p>
+                  <p className="text-xs sm:text-sm font-bold text-violet-500 font-mono">-8.2%</p>
                   <p className="text-[9px] sm:text-[10px] text-muted-foreground">Max DD</p>
                 </div>
               </div>
@@ -491,10 +478,10 @@ export function QuantLabWelcomeHero({
               {/* Traits */}
               <div className="grid grid-cols-2 gap-2">
                 {[
-                  { trait: 'Risk Tolerance', value: 'Moderate-High', color: 'text-amber-500' },
-                  { trait: 'Time Horizon', value: '5-10 Years', color: 'text-blue-500' },
-                  { trait: 'Style', value: 'Momentum', color: 'text-emerald-500' },
-                  { trait: 'Focus', value: 'Growth', color: 'text-violet-500' }
+                  { trait: 'Risk Tolerance', value: 'Moderate-High', color: 'text-primary' },
+                  { trait: 'Time Horizon', value: '5-10 Years', color: 'text-violet-500' },
+                  { trait: 'Style', value: 'Momentum', color: 'text-purple-500' },
+                  { trait: 'Focus', value: 'Growth', color: 'text-violet-400' }
                 ].map((item) => (
                   <div key={item.trait} className="bg-muted/30 rounded-md p-2 text-center">
                     <p className="text-[9px] sm:text-[10px] text-muted-foreground">{item.trait}</p>
@@ -505,82 +492,6 @@ export function QuantLabWelcomeHero({
             </div>
           </div>
 
-          {/* Market Calendar Mockup */}
-          <div className="relative bg-card border-2 border-primary/20 rounded-xl sm:rounded-2xl overflow-hidden shadow-xl">
-            <div className="px-3 sm:px-5 py-3 sm:py-4 bg-gradient-to-r from-amber-500/10 via-primary/5 to-orange-500/10 border-b border-border">
-              <div className="flex items-center gap-2 sm:gap-3">
-                <div className="w-8 sm:w-10 h-8 sm:h-10 rounded-lg sm:rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center shrink-0">
-                  <Calendar className="h-4 sm:h-5 w-4 sm:w-5 text-white" />
-                </div>
-                <div className="min-w-0">
-                  <h3 className="font-extrabold text-foreground text-base sm:text-lg truncate">Economic Calendar</h3>
-                  <p className="text-[10px] sm:text-xs text-muted-foreground">Upcoming market events</p>
-                </div>
-              </div>
-            </div>
-            <div className="p-3 sm:p-5 space-y-2">
-              {[
-                { event: 'CPI Release', time: 'Tomorrow 8:30 AM', impact: 'high', color: 'border-red-500 bg-red-500/10' },
-                { event: 'FOMC Minutes', time: 'Wed 2:00 PM', impact: 'high', color: 'border-red-500 bg-red-500/10' },
-                { event: 'Jobless Claims', time: 'Thu 8:30 AM', impact: 'medium', color: 'border-amber-500 bg-amber-500/10' }
-              ].map((item, idx) => (
-                <div key={idx} className={cn("flex items-center justify-between p-2 sm:p-3 rounded-lg border-l-2", item.color)}>
-                  <div>
-                    <p className="text-xs sm:text-sm font-semibold text-foreground">{item.event}</p>
-                    <p className="text-[10px] sm:text-xs text-muted-foreground">{item.time}</p>
-                  </div>
-                  <Badge variant="outline" className={cn(
-                    "text-[9px] sm:text-[10px]",
-                    item.impact === 'high' ? 'text-red-500 border-red-500/30' : 'text-amber-500 border-amber-500/30'
-                  )}>
-                    {item.impact}
-                  </Badge>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Correlation Matrix Mockup */}
-          <div className="relative bg-card border-2 border-primary/20 rounded-xl sm:rounded-2xl overflow-hidden shadow-xl">
-            <div className="px-3 sm:px-5 py-3 sm:py-4 bg-gradient-to-r from-cyan-500/10 via-primary/5 to-teal-500/10 border-b border-border">
-              <div className="flex items-center gap-2 sm:gap-3">
-                <div className="w-8 sm:w-10 h-8 sm:h-10 rounded-lg sm:rounded-xl bg-gradient-to-br from-cyan-500 to-teal-600 flex items-center justify-center shrink-0">
-                  <LineChart className="h-4 sm:h-5 w-4 sm:w-5 text-white" />
-                </div>
-                <div className="min-w-0">
-                  <h3 className="font-extrabold text-foreground text-base sm:text-lg truncate">Correlation Analysis</h3>
-                  <p className="text-[10px] sm:text-xs text-muted-foreground">Asset relationships</p>
-                </div>
-              </div>
-            </div>
-            <div className="p-3 sm:p-5">
-              {/* Simple correlation grid */}
-              <div className="grid grid-cols-4 gap-1 text-center">
-                <div className="text-[10px] sm:text-xs font-mono text-muted-foreground"></div>
-                <div className="text-[10px] sm:text-xs font-mono font-medium">SPY</div>
-                <div className="text-[10px] sm:text-xs font-mono font-medium">QQQ</div>
-                <div className="text-[10px] sm:text-xs font-mono font-medium">TLT</div>
-                
-                <div className="text-[10px] sm:text-xs font-mono font-medium">SPY</div>
-                <div className="bg-emerald-500/80 text-white text-[10px] sm:text-xs font-mono p-1 sm:p-2 rounded">1.00</div>
-                <div className="bg-emerald-500/60 text-white text-[10px] sm:text-xs font-mono p-1 sm:p-2 rounded">0.92</div>
-                <div className="bg-red-500/40 text-white text-[10px] sm:text-xs font-mono p-1 sm:p-2 rounded">-0.31</div>
-                
-                <div className="text-[10px] sm:text-xs font-mono font-medium">QQQ</div>
-                <div className="bg-emerald-500/60 text-white text-[10px] sm:text-xs font-mono p-1 sm:p-2 rounded">0.92</div>
-                <div className="bg-emerald-500/80 text-white text-[10px] sm:text-xs font-mono p-1 sm:p-2 rounded">1.00</div>
-                <div className="bg-red-500/50 text-white text-[10px] sm:text-xs font-mono p-1 sm:p-2 rounded">-0.38</div>
-                
-                <div className="text-[10px] sm:text-xs font-mono font-medium">TLT</div>
-                <div className="bg-red-500/40 text-white text-[10px] sm:text-xs font-mono p-1 sm:p-2 rounded">-0.31</div>
-                <div className="bg-red-500/50 text-white text-[10px] sm:text-xs font-mono p-1 sm:p-2 rounded">-0.38</div>
-                <div className="bg-emerald-500/80 text-white text-[10px] sm:text-xs font-mono p-1 sm:p-2 rounded">1.00</div>
-              </div>
-              <p className="text-[9px] sm:text-[10px] text-muted-foreground text-center mt-2 sm:mt-3">
-                Green = positive correlation • Red = negative (diversification)
-              </p>
-            </div>
-          </div>
         </motion.div>
 
         {/* ===================== PLATFORM FEATURES SECTION ===================== */}
@@ -604,7 +515,7 @@ export function QuantLabWelcomeHero({
           </div>
 
           {/* Feature Cards Grid */}
-          <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-2 sm:gap-4">
             {PLATFORM_FEATURES.map((feature, idx) => (
               <motion.div
                 key={feature.id}
@@ -683,16 +594,6 @@ export function QuantLabWelcomeHero({
                             <p className="text-lg font-bold text-primary font-mono">+{feature.preview.avgReturn}%</p>
                             <p className="text-[10px] text-muted-foreground">avg return</p>
                           </div>
-                        </div>
-                      )}
-                      {feature.preview.type === 'live' && 'liveItems' in feature.preview && (
-                        <div className="flex flex-wrap gap-1.5">
-                          {feature.preview.liveItems?.map((item, i: number) => (
-                            <Badge key={i} variant="secondary" className="text-[10px]">
-                              <Activity className="h-2.5 w-2.5 mr-1 text-emerald-500" />
-                              {item}
-                            </Badge>
-                          ))}
                         </div>
                       )}
                     </div>
