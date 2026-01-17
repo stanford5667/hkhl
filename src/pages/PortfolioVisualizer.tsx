@@ -1624,31 +1624,7 @@ export default function PortfolioVisualizer() {
       );
     }
 
-    // Gate: must be premium
-    if (!isPro) {
-      return (
-        <div className="min-h-screen bg-background flex flex-col">
-          <div className="px-3 pt-2 pb-1 shrink-0">
-            <Button variant="ghost" size="sm" onClick={() => setCurrentFlow('choose')} className="h-8 text-xs">
-              ← Back
-            </Button>
-          </div>
-          <div className="flex-1 flex items-center justify-center p-6">
-            <Card className="w-full max-w-md border-border/50 bg-card/50 backdrop-blur-sm">
-              <CardContent className="py-12">
-                <PremiumFeatureBlock 
-                  size="lg"
-                  title="Premium Feature"
-                  description="The Portfolio Screener lets you screen 100,000+ portfolio combinations by performance metrics. Upgrade to Pro to unlock this powerful tool."
-                />
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-      );
-    }
-
-    // Premium user - show full screener
+    // Show screener for all logged-in users (freemium model - limits handled inside DynamicScreener)
     return (
       <>
         <div className="min-h-screen bg-background flex flex-col">
