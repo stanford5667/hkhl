@@ -6,6 +6,10 @@
  * - 19 portfolio families with algorithmic generation
  * - Fast metric estimation from cached ticker stats
  * - Server-side-like pagination (generates on demand)
+ * 
+ * FREEMIUM MODEL:
+ * - Free users: 1 filter criteria, max 5 results shown
+ * - Pro users: All filter criteria, unlimited results
  */
 
 import { AssetClass } from '@/types/portfolio';
@@ -48,6 +52,8 @@ import {
   Infinity,
   FlaskConical,
   Calendar,
+  Lock,
+  Crown,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -56,6 +62,7 @@ import { MetricCard } from './MetricCard';
 import { HoldingDetailCard } from './HoldingDetailCard';
 import { PortfolioCard } from './PortfolioCard';
 import { ScreenerGuide } from './ScreenerGuide';
+import { useUsage } from '@/contexts/UsageContext';
 
 // Import expanded universe service
 import {
@@ -76,6 +83,10 @@ import {
   GeneratedPortfolio,
   ScreeningProgress,
 } from '@/services/dynamicPortfolioScreenerService';
+
+// Freemium constants
+const FREE_RESULTS_LIMIT = 5;
+const FREE_FILTER_COUNT = 1;
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // TYPES
@@ -105,6 +116,11 @@ const ITEMS_PER_PAGE = 20; // Max items per server page
 // ═══════════════════════════════════════════════════════════════════════════════
 
 export function DynamicScreener({ onSelect, onComplete }: DynamicScreenerProps) {
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Usage/Freemium hooks
+  // ─────────────────────────────────────────────────────────────────────────────
+  const { isPro, showUpgradeModal } = useUsage();
+  
   // ─────────────────────────────────────────────────────────────────────────────
   // State
   // ─────────────────────────────────────────────────────────────────────────────
@@ -422,14 +438,43 @@ export function DynamicScreener({ onSelect, onComplete }: DynamicScreenerProps) 
   
   return (
     <div className="flex flex-col h-full bg-background">
+      {/* Free tier banner */}
+      {!isPro && (
+        <div className="flex-shrink-0 px-3 py-2 bg-gradient-to-r from-amber-500/10 to-orange-500/10 border-b border-amber-500/20">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 text-sm">
+              <Lock className="h-4 w-4 text-amber-500" />
+              <span className="text-muted-foreground">
+                Free plan: <strong className="text-foreground">1 filter</strong>, <strong className="text-foreground">{FREE_RESULTS_LIMIT} results</strong>
+              </span>
+            </div>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="h-7 text-xs text-amber-600 hover:text-amber-700 hover:bg-amber-500/10"
+              onClick={() => showUpgradeModal('screenerSearches')}
+            >
+              <Crown className="h-3 w-3 mr-1" />
+              Upgrade
+            </Button>
+          </div>
+        </div>
+      )}
+      
       {/* Header */}
       <div className="flex-shrink-0 px-3 py-2 border-b space-y-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Sparkles className="h-5 w-5 text-primary" />
             <h2 className="font-semibold">Portfolio Screener</h2>
+            {isPro && (
+              <Badge variant="default" className="text-[10px] bg-gradient-to-r from-amber-500 to-orange-500">
+                <Crown className="h-3 w-3 mr-1" />
+                Pro
+              </Badge>
+            )}
             {screenMode === 'expanded' ? (
-              <Badge variant="default" className="text-[10px] bg-gradient-to-r from-primary to-emerald-500">
+              <Badge variant="secondary" className="text-[10px]">
                 <Infinity className="h-3 w-3 mr-1" />
                 {universeStats.estimatedPortfolios.toLocaleString()}+ Portfolios
               </Badge>
@@ -483,20 +528,55 @@ export function DynamicScreener({ onSelect, onComplete }: DynamicScreenerProps) 
         {/* Screening controls */}
         <div className="space-y-3">
           <div className="space-y-1">
-            <Label className="text-xs">Filter By</Label>
+            <div className="flex items-center justify-between">
+              <Label className="text-xs">Filter By</Label>
+              {!isPro && (
+                <Badge variant="secondary" className="text-[9px] gap-1">
+                  <Lock className="h-2.5 w-2.5" />
+                  1 filter (free)
+                </Badge>
+              )}
+            </div>
             <Select 
               value={activeMetric || 'none'} 
-              onValueChange={(v) => setActiveMetric(v === 'none' ? null : v as MetricKey)}
+              onValueChange={(v) => {
+                // Free users only get 1 filter - minTotalReturn is the default free one
+                if (!isPro && v !== 'none' && v !== 'minTotalReturn') {
+                  showUpgradeModal('screenerFilters');
+                  return;
+                }
+                setActiveMetric(v === 'none' ? null : v as MetricKey);
+              }}
             >
               <SelectTrigger className="h-8 text-xs">
                 <SelectValue placeholder="No filter" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="none">No filter (show all)</SelectItem>
-                <SelectItem value="maxLoss">Max Loss (Drawdown)</SelectItem>
-                <SelectItem value="minSharpe">Min Sharpe Ratio</SelectItem>
-                <SelectItem value="minAvgReturns">Min Avg Returns</SelectItem>
-                <SelectItem value="minTotalReturn">Min Total Return</SelectItem>
+                <SelectItem value="minTotalReturn">
+                  <span className="flex items-center gap-2">
+                    Min Total Return
+                    {!isPro && <Badge variant="outline" className="text-[8px] h-4 ml-1">Free</Badge>}
+                  </span>
+                </SelectItem>
+                <SelectItem value="maxLoss" disabled={!isPro}>
+                  <span className="flex items-center gap-2">
+                    Max Loss (Drawdown)
+                    {!isPro && <Lock className="h-3 w-3 text-muted-foreground" />}
+                  </span>
+                </SelectItem>
+                <SelectItem value="minSharpe" disabled={!isPro}>
+                  <span className="flex items-center gap-2">
+                    Min Sharpe Ratio
+                    {!isPro && <Lock className="h-3 w-3 text-muted-foreground" />}
+                  </span>
+                </SelectItem>
+                <SelectItem value="minAvgReturns" disabled={!isPro}>
+                  <span className="flex items-center gap-2">
+                    Min Avg Returns
+                    {!isPro && <Lock className="h-3 w-3 text-muted-foreground" />}
+                  </span>
+                </SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -647,7 +727,39 @@ export function DynamicScreener({ onSelect, onComplete }: DynamicScreenerProps) 
               const tickers = isExpanded ? p.tickers : p.allocations.map((a: any) => a.ticker);
               const weights = isExpanded ? p.weights : p.allocations.map((a: any) => a.weight);
               
+              // Free users only see first FREE_RESULTS_LIMIT results clearly
+              const isLockedResult = !isPro && hasScreened && idx >= FREE_RESULTS_LIMIT;
+              
+              if (isLockedResult) {
                 return (
+                  <div 
+                    key={p.id || idx}
+                    className="relative"
+                  >
+                    <div className="blur-sm pointer-events-none">
+                      <PortfolioCard
+                        name={p.name}
+                        tickers={tickers}
+                        weights={weights}
+                        metrics={p.metrics}
+                        matchScore={p.matchScore}
+                        family={p.family || p.riskLevel || p.riskProfile}
+                        onClick={() => {}}
+                        rank={idx + 1}
+                        screeningPeriod={activeMetric === 'minTotalReturn' ? parseInt(returnPeriod) : 1}
+                      />
+                    </div>
+                    <div className="absolute inset-0 flex items-center justify-center bg-background/60 backdrop-blur-[2px] rounded-lg">
+                      <div className="text-center">
+                        <Lock className="h-5 w-5 mx-auto text-muted-foreground mb-1" />
+                        <p className="text-xs text-muted-foreground">Pro only</p>
+                      </div>
+                    </div>
+                  </div>
+                );
+              }
+              
+              return (
                 <PortfolioCard
                   key={p.id || idx}
                   name={p.name}
@@ -671,8 +783,30 @@ export function DynamicScreener({ onSelect, onComplete }: DynamicScreenerProps) 
               </div>
             )}
 
-            {/* See More button for expanded mode */}
-            {screenMode === 'expanded' && (hasMore || canLoadNextPage) && (
+            {/* Free user upgrade CTA after showing limited results */}
+            {!isPro && hasScreened && displayedPortfolios.length > FREE_RESULTS_LIMIT && (
+              <Card className="border-primary/30 bg-gradient-to-br from-primary/5 to-amber-500/5">
+                <CardContent className="p-4 text-center">
+                  <Crown className="h-8 w-8 mx-auto text-amber-500 mb-2" />
+                  <h4 className="font-semibold mb-1">
+                    {expandedTotalCount - FREE_RESULTS_LIMIT}+ more portfolios available
+                  </h4>
+                  <p className="text-xs text-muted-foreground mb-3">
+                    Upgrade to Pro to see all results and use advanced filters
+                  </p>
+                  <Button 
+                    onClick={() => showUpgradeModal('screenerSearches')}
+                    className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white"
+                  >
+                    <Crown className="h-4 w-4 mr-2" />
+                    Unlock All Results
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* See More button for expanded mode - Pro only */}
+            {isPro && screenMode === 'expanded' && (hasMore || canLoadNextPage) && (
               <div className="flex flex-col items-center gap-2 py-4">
                 <p className="text-xs text-muted-foreground">
                   Showing {visibleCount} of {expandedTotalCount.toLocaleString()} portfolios

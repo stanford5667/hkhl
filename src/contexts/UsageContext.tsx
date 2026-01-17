@@ -8,6 +8,7 @@ interface UsageLimits {
   savedScreens: { used: number; limit: number };
   alertsPerDay: { used: number; limit: number };
   quantStudies: { used: number; limit: number };
+  screenerSearches: { used: number; limit: number };
 }
 
 interface UsageContextType {
@@ -26,6 +27,7 @@ const FREE_LIMITS: UsageLimits = {
   savedScreens: { used: 0, limit: 5 },
   alertsPerDay: { used: 0, limit: 3 },
   quantStudies: { used: 0, limit: 3 },
+  screenerSearches: { used: 0, limit: 5 },
 };
 
 const UsageContext = createContext<UsageContextType | null>(null);
@@ -109,6 +111,10 @@ export function UsageProvider({ children, onUpgradeRequest }: UsageProviderProps
             used: usageData.quant_studies_today || 0, 
             limit: userIsPro ? Infinity : 3 
           },
+          screenerSearches: { 
+            used: (usageData as any).screener_searches_today || 0, 
+            limit: userIsPro ? Infinity : 5 
+          },
         });
       }
     } catch (error) {
@@ -150,6 +156,7 @@ export function UsageProvider({ children, onUpgradeRequest }: UsageProviderProps
       savedScreens: 'saved_screens',
       alertsPerDay: 'alerts_today',
       quantStudies: 'quant_studies_today',
+      screenerSearches: 'screener_searches_today',
     };
 
     try {

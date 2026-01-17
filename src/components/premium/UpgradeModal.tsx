@@ -47,6 +47,14 @@ const FEATURE_COPY: Record<string, { title: string; benefit: string }> = {
     title: "You've used all your free Quant Lab studies",
     benefit: 'Unlimited Quant Lab analyses',
   },
+  screenerSearches: {
+    title: "Free plan shows limited results",
+    benefit: 'Unlimited portfolio screener results',
+  },
+  screenerFilters: {
+    title: "Multiple filters are a Pro feature",
+    benefit: 'Use all screening criteria',
+  },
   default: {
     title: "Upgrade to Pro",
     benefit: 'Unlock all premium features',
