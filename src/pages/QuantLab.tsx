@@ -1236,6 +1236,9 @@ function QuantLabContent(props: any) {
 
   // Mobile panel state
   const [showStudyPanel, setShowStudyPanel] = useState(true);
+  
+  // Study search filter
+  const [studySearch, setStudySearch] = useState('');
 
   return (
     <div className="h-screen bg-background flex flex-col overflow-hidden">
@@ -1302,16 +1305,27 @@ function QuantLabContent(props: any) {
                 ))}
               </SelectContent>
             </Select>
+            {/* Study Search */}
+            <div className="relative hidden md:block">
+              <FlaskConical className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+              <Input
+                placeholder="Search studies..."
+                value={studySearch}
+                onChange={(e) => setStudySearch(e.target.value)}
+                className="h-14 w-48 pl-10 pr-4 text-sm bg-background border-2 border-muted-foreground/30 focus:border-primary rounded-xl shadow-lg placeholder:text-muted-foreground/50"
+              />
+            </div>
             <Button
               onClick={() => {
                 handleSetTicker(ticker);
                 if (selectedStudies.length > 0) handleRunAllStudies();
               }}
               disabled={!ticker.trim()}
+              variant="success"
               className="h-14 px-6 text-base font-bold rounded-xl shadow-lg"
             >
               <Play className="h-5 w-5 mr-2" />
-              Run
+              Analyze
             </Button>
           </div>
           
@@ -1463,7 +1477,7 @@ function QuantLabContent(props: any) {
                   <div className="flex-1 overflow-y-auto p-3 space-y-2">
                     {STUDY_CATEGORIES.map((cat) => (
                       <TabsContent key={cat.id} value={cat.id} className="mt-0 space-y-2">
-                        {STUDY_DEFINITIONS.filter(s => s.category === cat.id).map((study) => (
+                        {STUDY_DEFINITIONS.filter(s => s.category === cat.id && (studySearch === '' || s.name.toLowerCase().includes(studySearch.toLowerCase()) || s.tags.some(tag => tag.toLowerCase().includes(studySearch.toLowerCase())))).map((study) => (
                           <button
                             key={study.id}
                             onClick={() => {
@@ -1525,10 +1539,11 @@ function QuantLabContent(props: any) {
                         handleRunAllStudies();
                       }}
                       disabled={!selectedTicker || isRunning}
-                      className="w-full h-14 text-lg font-bold gap-3 bg-gradient-to-r from-violet-500 to-purple-600 hover:from-violet-600 hover:to-purple-700 shadow-xl rounded-xl"
+                      variant="success"
+                      className="w-full h-14 text-lg font-bold gap-3 shadow-xl rounded-xl"
                     >
                       <Play className="h-6 w-6" />
-                      Run Study
+                      Analyze
                     </Button>
                 </div>
               )}
