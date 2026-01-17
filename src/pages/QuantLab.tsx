@@ -41,7 +41,7 @@ import {
   Calendar, Zap, Layers, Volume2, Crosshair, LineChart,
   Gauge, ArrowLeftRight, Mountain, ArrowUpDown,
   Target, Shield, Loader2, GitBranch, Lightbulb,
-  CheckCircle2, X, ExternalLink, ChevronLeft, ChevronDown
+  CheckCircle2, X, ExternalLink, ChevronLeft, ChevronDown, ChevronRight
 } from 'lucide-react';
 import { InlinePrice } from '@/components/shared/PriceDisplay';
 import { supabase } from '@/integrations/supabase/client';
@@ -2075,16 +2075,25 @@ function QuantLabContent(props: any) {
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                       className={cn(
-                        "rounded-xl md:rounded-2xl border-2 overflow-hidden shadow-lg",
+                        "rounded-xl md:rounded-2xl border overflow-hidden",
+                        "bg-gradient-to-br from-card via-card to-secondary/20",
+                        "shadow-xl shadow-black/20 dark:shadow-black/40",
                         sentiment.border
                       )}
                     >
-                      {/* Card Header - Compact on mobile */}
-                      <div className={cn("px-3 py-3 md:px-6 md:py-5", sentiment.bg)}>
-                        {/* Mobile: Inline header */}
-                        <div className="flex items-center gap-2 md:gap-4">
-                          <div className={cn("p-2 md:p-3 rounded-lg md:rounded-xl bg-background/80 shrink-0")}>
-                            <study.icon className={cn("h-5 w-5 md:h-7 md:w-7", sentiment.text)} />
+                      {/* Card Header - Bloomberg-style dense header */}
+                      <div className={cn(
+                        "px-3 py-3 md:px-5 md:py-4 border-b",
+                        "bg-gradient-to-r from-secondary/50 via-secondary/30 to-transparent",
+                        sentiment.bg
+                      )}>
+                        <div className="flex items-center gap-3 md:gap-4">
+                          <div className={cn(
+                            "p-2 md:p-3 rounded-lg md:rounded-xl shrink-0",
+                            "bg-gradient-to-br from-background to-secondary/50",
+                            "border border-border/50 shadow-inner"
+                          )}>
+                            <study.icon className={cn("h-5 w-5 md:h-6 md:w-6", sentiment.text)} />
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 flex-wrap">
@@ -2189,44 +2198,76 @@ function QuantLabContent(props: any) {
                           </div>
                         </div>
                       )}
-                      {/* Stats Row - Clean horizontal layout */}
-                      <div className="px-3 py-3 border-b">
-                        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-                          {metrics.slice(0, 4).map(([key, value]) => {
+                      {/* Bloomberg-style Metrics Grid */}
+                      <div className="px-3 py-4 md:px-5 md:py-5 border-b bg-gradient-to-b from-background to-muted/10">
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 md:gap-3">
+                          {metrics.slice(0, 8).map(([key, value], idx) => {
                             const formattedKey = key.replace(/([A-Z])/g, ' $1').replace(/_/g, ' ').trim();
+                            const isHighlight = idx < 4;
+                            const isPrimary = ['occurrences', 'win_rate', 'avg_gain'].includes(key);
                             return (
                               <button
                                 key={key}
                                 onClick={() => setSelectedMetric({ 
                                   key, value, studyName: study.name, studyResult: result
                                 })}
-                                className="flex items-center gap-1.5 hover:text-primary transition-colors cursor-pointer"
+                                className={cn(
+                                  "group relative flex flex-col p-2.5 md:p-3 rounded-lg border transition-all cursor-pointer",
+                                  "hover:border-primary/50 hover:bg-primary/5 active:scale-[0.98]",
+                                  isHighlight 
+                                    ? "bg-secondary/60 border-border" 
+                                    : "bg-muted/30 border-transparent"
+                                )}
                               >
-                                <span className="text-xs text-muted-foreground capitalize">{formattedKey}:</span>
-                                <span className="text-sm font-bold font-mono text-foreground">{formatValue(key, value)}</span>
+                                <span className="text-[10px] md:text-xs text-muted-foreground capitalize truncate mb-1">
+                                  {formattedKey}
+                                </span>
+                                <span className={cn(
+                                  "text-lg md:text-xl font-bold font-mono tracking-tight",
+                                  isPrimary ? "text-primary" : "text-foreground"
+                                )}>
+                                  {formatValue(key, value)}
+                                </span>
+                                <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                  <ChevronRight className="h-3 w-3 text-muted-foreground" />
+                                </div>
                               </button>
                             );
                           })}
                         </div>
                         
-                        {/* Insight - Full width below stats */}
+                        {/* AI Insight - Prominent banner */}
                         {result.interpretation && (
-                          <div className="mt-3 flex items-start gap-2 p-2.5 rounded-lg bg-amber-500/5 border border-amber-500/20">
-                            <Lightbulb className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
-                            <p className={cn("text-sm leading-relaxed", sentiment.text)}>
-                              {result.interpretation}
-                            </p>
+                          <div className={cn(
+                            "mt-4 flex items-start gap-3 p-3 md:p-4 rounded-xl border-l-4",
+                            "bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent",
+                            "border-amber-500"
+                          )}>
+                            <div className="shrink-0 p-1.5 rounded-lg bg-amber-500/20">
+                              <Lightbulb className="h-4 w-4 md:h-5 md:w-5 text-amber-500" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <span className="text-[10px] md:text-xs font-semibold text-amber-600 dark:text-amber-400 uppercase tracking-wider">
+                                AI Insight
+                              </span>
+                              <p className={cn("text-sm md:text-base leading-relaxed mt-1", sentiment.text)}>
+                                {result.interpretation}
+                              </p>
+                            </div>
                           </div>
                         )}
                       </div>
 
-                      {/* Enhanced Visualizations - Collapsible to save space */}
-                      <details className="group border-t">
-                        <summary className="px-3 md:px-4 py-2 md:py-3 cursor-pointer hover:bg-muted/30 flex items-center justify-between">
-                          <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Visual Analysis</span>
+                      {/* Enhanced Visualizations - Collapsible */}
+                      <details className="group">
+                        <summary className="px-3 md:px-5 py-3 cursor-pointer hover:bg-muted/30 flex items-center justify-between border-b">
+                          <div className="flex items-center gap-2">
+                            <BarChart3 className="h-4 w-4 text-primary" />
+                            <span className="text-xs md:text-sm font-semibold text-foreground">Visual Analysis</span>
+                          </div>
                           <ChevronDown className="h-4 w-4 text-muted-foreground group-open:rotate-180 transition-transform" />
                         </summary>
-                        <div className="px-3 md:px-4 pb-4">
+                        <div className="px-3 md:px-5 py-4 bg-muted/10">
                           <EnhancedResultView 
                             result={result} 
                             studyId={studyId}
@@ -2236,16 +2277,34 @@ function QuantLabContent(props: any) {
                         </div>
                       </details>
 
-                      {/* How to Use - Hidden on mobile */}
-                      <div className="hidden md:block px-6 py-4 border-t bg-muted/20">
+                      {/* How to Use - Expandable on mobile */}
+                      <details className="group md:hidden">
+                        <summary className="px-3 py-2.5 cursor-pointer hover:bg-muted/30 flex items-center justify-between border-t">
+                          <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">How to use</span>
+                          <ChevronDown className="h-3 w-3 text-muted-foreground group-open:rotate-180 transition-transform" />
+                        </summary>
+                        <div className="px-3 pb-3">
+                          <p className="text-xs text-muted-foreground leading-relaxed">{study.howToUse}</p>
+                        </div>
+                      </details>
+                      <div className="hidden md:block px-5 py-4 border-t bg-muted/20">
                         <h5 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">How to Use This</h5>
-                        <p className="text-sm text-muted-foreground">{study.howToUse}</p>
+                        <p className="text-sm text-muted-foreground leading-relaxed">{study.howToUse}</p>
                       </div>
 
-                      {/* Footer - Compact */}
-                      <div className="px-3 py-2 md:px-6 md:py-3 bg-muted/30 text-[10px] md:text-sm text-muted-foreground flex items-center justify-between">
-                        <span className="font-medium">{result.barsAnalyzed} days</span>
-                        <span className="truncate">{result.dateRange?.start} → {result.dateRange?.end}</span>
+                      {/* Footer - Data density info */}
+                      <div className="px-3 py-2.5 md:px-5 md:py-3 bg-gradient-to-r from-muted/40 to-muted/20 flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2 text-[10px] md:text-xs text-muted-foreground">
+                          <Activity className="h-3 w-3 text-primary" />
+                          <span className="font-mono font-semibold text-foreground">{result.barsAnalyzed}</span>
+                          <span>trading days</span>
+                        </div>
+                        <div className="flex items-center gap-1.5 text-[10px] md:text-xs text-muted-foreground font-mono">
+                          <Calendar className="h-3 w-3" />
+                          <span>{result.dateRange?.start}</span>
+                          <span>→</span>
+                          <span>{result.dateRange?.end}</span>
+                        </div>
                       </div>
                     </motion.div>
                   );
