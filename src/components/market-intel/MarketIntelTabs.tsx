@@ -16,6 +16,7 @@ export function MarketIntelTabs({ activeTab, onTabChange, children }: MarketInte
     { id: 'overview', label: 'Overview', icon: PieChart },
     { id: 'markets', label: 'Markets', icon: TrendingUp },
     { id: 'calendar', label: 'Calendar', icon: Calendar },
+    { id: 'earnings', label: 'Earnings', icon: BarChart3 },
     { id: 'news', label: 'News & Analysis', icon: Newspaper },
   ];
 
