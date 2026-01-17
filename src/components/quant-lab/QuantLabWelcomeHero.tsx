@@ -174,11 +174,11 @@ export function QuantLabWelcomeHero({
               className="space-y-4"
             >
               <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight">
-                <span className="text-foreground">Quant-Level Analysis.</span>
-                <br />
                 <span className="bg-gradient-to-r from-primary via-violet-500 to-purple-500 bg-clip-text text-transparent">
-                  Zero Coding.
+                  Zero Coding
                 </span>
+                <br />
+                <span className="text-foreground">Quant Analysis.</span>
               </h1>
               <p className="text-base md:text-lg text-muted-foreground max-w-lg mx-auto lg:mx-0">
                 Answer questions like{' '}
