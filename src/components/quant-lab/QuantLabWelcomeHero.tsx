@@ -143,7 +143,8 @@ export function QuantLabWelcomeHero({
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="relative z-10 w-full max-w-7xl mx-auto space-y-6 sm:space-y-12"
+        className="relative z-10 w-full max-w-7xl mx-auto space-y-6 sm:space-y-12 cursor-pointer"
+        onClick={onSignUp}
       >
         {/* ===================== HERO SECTION ===================== */}
         <div className="grid lg:grid-cols-2 gap-5 sm:gap-8 lg:gap-12 items-start">
@@ -215,7 +216,7 @@ export function QuantLabWelcomeHero({
             >
               <Button
                 size="lg"
-                onClick={onSignUp}
+                onClick={(e) => { e.stopPropagation(); onSignUp(); }}
                 className="h-10 sm:h-12 px-4 sm:px-6 text-sm sm:text-base gap-2 rounded-xl shadow-lg shadow-primary/20"
               >
                 <FlaskConical className="h-4 sm:h-5 w-4 sm:w-5" />
@@ -404,6 +405,184 @@ export function QuantLabWelcomeHero({
           </motion.div>
         </div>
 
+        {/* ===================== ADDITIONAL UI MOCKUPS SECTION ===================== */}
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.6 }}
+          className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6"
+        >
+          {/* Portfolio Performance Mockup */}
+          <div className="relative bg-card border-2 border-primary/20 rounded-xl sm:rounded-2xl overflow-hidden shadow-xl">
+            <div className="px-3 sm:px-5 py-3 sm:py-4 bg-gradient-to-r from-blue-500/10 via-primary/5 to-indigo-500/10 border-b border-border">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <div className="w-8 sm:w-10 h-8 sm:h-10 rounded-lg sm:rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shrink-0">
+                  <PieChart className="h-4 sm:h-5 w-4 sm:w-5 text-white" />
+                </div>
+                <div className="min-w-0">
+                  <h3 className="font-extrabold text-foreground text-base sm:text-lg truncate">Portfolio Analysis</h3>
+                  <p className="text-[10px] sm:text-xs text-muted-foreground">Optimized allocation breakdown</p>
+                </div>
+              </div>
+            </div>
+            <div className="p-3 sm:p-5 space-y-3 sm:space-y-4">
+              {/* Allocation bars */}
+              <div className="space-y-2">
+                {[
+                  { name: 'SPY', allocation: 40, color: 'bg-blue-500' },
+                  { name: 'QQQ', allocation: 25, color: 'bg-violet-500' },
+                  { name: 'TLT', allocation: 20, color: 'bg-emerald-500' },
+                  { name: 'GLD', allocation: 15, color: 'bg-amber-500' }
+                ].map((asset) => (
+                  <div key={asset.name} className="flex items-center gap-2 sm:gap-3">
+                    <span className="text-xs sm:text-sm font-mono font-medium w-8 sm:w-10">{asset.name}</span>
+                    <div className="flex-1 bg-muted/50 rounded-full h-2 sm:h-3 overflow-hidden">
+                      <motion.div
+                        initial={{ width: 0 }}
+                        animate={{ width: `${asset.allocation}%` }}
+                        transition={{ delay: 0.8, duration: 0.5 }}
+                        className={cn("h-full rounded-full", asset.color)}
+                      />
+                    </div>
+                    <span className="text-xs sm:text-sm font-mono text-muted-foreground w-8 sm:w-10 text-right">{asset.allocation}%</span>
+                  </div>
+                ))}
+              </div>
+              {/* Stats row */}
+              <div className="grid grid-cols-3 gap-2 pt-2 border-t border-border">
+                <div className="text-center">
+                  <p className="text-xs sm:text-sm font-bold text-emerald-500 font-mono">+12.4%</p>
+                  <p className="text-[9px] sm:text-[10px] text-muted-foreground">Ann. Return</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-xs sm:text-sm font-bold text-primary font-mono">0.89</p>
+                  <p className="text-[9px] sm:text-[10px] text-muted-foreground">Sharpe Ratio</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-xs sm:text-sm font-bold text-amber-500 font-mono">-8.2%</p>
+                  <p className="text-[9px] sm:text-[10px] text-muted-foreground">Max DD</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Investor DNA Mockup */}
+          <div className="relative bg-card border-2 border-primary/20 rounded-xl sm:rounded-2xl overflow-hidden shadow-xl">
+            <div className="px-3 sm:px-5 py-3 sm:py-4 bg-gradient-to-r from-violet-500/10 via-primary/5 to-purple-500/10 border-b border-border">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <div className="w-8 sm:w-10 h-8 sm:h-10 rounded-lg sm:rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center shrink-0">
+                  <Brain className="h-4 sm:h-5 w-4 sm:w-5 text-white" />
+                </div>
+                <div className="min-w-0">
+                  <h3 className="font-extrabold text-foreground text-base sm:text-lg truncate">Your Investor DNA</h3>
+                  <p className="text-[10px] sm:text-xs text-muted-foreground">AI-powered profile analysis</p>
+                </div>
+              </div>
+            </div>
+            <div className="p-3 sm:p-5 space-y-3 sm:space-y-4">
+              {/* Investor type result */}
+              <div className="bg-gradient-to-r from-violet-500/10 to-purple-500/10 rounded-lg p-3 sm:p-4 border border-violet-500/20">
+                <div className="flex items-center gap-2 mb-2">
+                  <Badge className="bg-violet-500 text-white text-[10px] sm:text-xs">Your Type</Badge>
+                </div>
+                <h4 className="font-bold text-sm sm:text-lg text-foreground">Strategic Opportunist</h4>
+                <p className="text-[10px] sm:text-xs text-muted-foreground mt-1">You balance calculated risk with data-driven decisions</p>
+              </div>
+              {/* Traits */}
+              <div className="grid grid-cols-2 gap-2">
+                {[
+                  { trait: 'Risk Tolerance', value: 'Moderate-High', color: 'text-amber-500' },
+                  { trait: 'Time Horizon', value: '5-10 Years', color: 'text-blue-500' },
+                  { trait: 'Style', value: 'Momentum', color: 'text-emerald-500' },
+                  { trait: 'Focus', value: 'Growth', color: 'text-violet-500' }
+                ].map((item) => (
+                  <div key={item.trait} className="bg-muted/30 rounded-md p-2 text-center">
+                    <p className="text-[9px] sm:text-[10px] text-muted-foreground">{item.trait}</p>
+                    <p className={cn("text-xs sm:text-sm font-semibold", item.color)}>{item.value}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Market Calendar Mockup */}
+          <div className="relative bg-card border-2 border-primary/20 rounded-xl sm:rounded-2xl overflow-hidden shadow-xl">
+            <div className="px-3 sm:px-5 py-3 sm:py-4 bg-gradient-to-r from-amber-500/10 via-primary/5 to-orange-500/10 border-b border-border">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <div className="w-8 sm:w-10 h-8 sm:h-10 rounded-lg sm:rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center shrink-0">
+                  <Calendar className="h-4 sm:h-5 w-4 sm:w-5 text-white" />
+                </div>
+                <div className="min-w-0">
+                  <h3 className="font-extrabold text-foreground text-base sm:text-lg truncate">Economic Calendar</h3>
+                  <p className="text-[10px] sm:text-xs text-muted-foreground">Upcoming market events</p>
+                </div>
+              </div>
+            </div>
+            <div className="p-3 sm:p-5 space-y-2">
+              {[
+                { event: 'CPI Release', time: 'Tomorrow 8:30 AM', impact: 'high', color: 'border-red-500 bg-red-500/10' },
+                { event: 'FOMC Minutes', time: 'Wed 2:00 PM', impact: 'high', color: 'border-red-500 bg-red-500/10' },
+                { event: 'Jobless Claims', time: 'Thu 8:30 AM', impact: 'medium', color: 'border-amber-500 bg-amber-500/10' }
+              ].map((item, idx) => (
+                <div key={idx} className={cn("flex items-center justify-between p-2 sm:p-3 rounded-lg border-l-2", item.color)}>
+                  <div>
+                    <p className="text-xs sm:text-sm font-semibold text-foreground">{item.event}</p>
+                    <p className="text-[10px] sm:text-xs text-muted-foreground">{item.time}</p>
+                  </div>
+                  <Badge variant="outline" className={cn(
+                    "text-[9px] sm:text-[10px]",
+                    item.impact === 'high' ? 'text-red-500 border-red-500/30' : 'text-amber-500 border-amber-500/30'
+                  )}>
+                    {item.impact}
+                  </Badge>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Correlation Matrix Mockup */}
+          <div className="relative bg-card border-2 border-primary/20 rounded-xl sm:rounded-2xl overflow-hidden shadow-xl">
+            <div className="px-3 sm:px-5 py-3 sm:py-4 bg-gradient-to-r from-cyan-500/10 via-primary/5 to-teal-500/10 border-b border-border">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <div className="w-8 sm:w-10 h-8 sm:h-10 rounded-lg sm:rounded-xl bg-gradient-to-br from-cyan-500 to-teal-600 flex items-center justify-center shrink-0">
+                  <LineChart className="h-4 sm:h-5 w-4 sm:w-5 text-white" />
+                </div>
+                <div className="min-w-0">
+                  <h3 className="font-extrabold text-foreground text-base sm:text-lg truncate">Correlation Analysis</h3>
+                  <p className="text-[10px] sm:text-xs text-muted-foreground">Asset relationships</p>
+                </div>
+              </div>
+            </div>
+            <div className="p-3 sm:p-5">
+              {/* Simple correlation grid */}
+              <div className="grid grid-cols-4 gap-1 text-center">
+                <div className="text-[10px] sm:text-xs font-mono text-muted-foreground"></div>
+                <div className="text-[10px] sm:text-xs font-mono font-medium">SPY</div>
+                <div className="text-[10px] sm:text-xs font-mono font-medium">QQQ</div>
+                <div className="text-[10px] sm:text-xs font-mono font-medium">TLT</div>
+                
+                <div className="text-[10px] sm:text-xs font-mono font-medium">SPY</div>
+                <div className="bg-emerald-500/80 text-white text-[10px] sm:text-xs font-mono p-1 sm:p-2 rounded">1.00</div>
+                <div className="bg-emerald-500/60 text-white text-[10px] sm:text-xs font-mono p-1 sm:p-2 rounded">0.92</div>
+                <div className="bg-red-500/40 text-white text-[10px] sm:text-xs font-mono p-1 sm:p-2 rounded">-0.31</div>
+                
+                <div className="text-[10px] sm:text-xs font-mono font-medium">QQQ</div>
+                <div className="bg-emerald-500/60 text-white text-[10px] sm:text-xs font-mono p-1 sm:p-2 rounded">0.92</div>
+                <div className="bg-emerald-500/80 text-white text-[10px] sm:text-xs font-mono p-1 sm:p-2 rounded">1.00</div>
+                <div className="bg-red-500/50 text-white text-[10px] sm:text-xs font-mono p-1 sm:p-2 rounded">-0.38</div>
+                
+                <div className="text-[10px] sm:text-xs font-mono font-medium">TLT</div>
+                <div className="bg-red-500/40 text-white text-[10px] sm:text-xs font-mono p-1 sm:p-2 rounded">-0.31</div>
+                <div className="bg-red-500/50 text-white text-[10px] sm:text-xs font-mono p-1 sm:p-2 rounded">-0.38</div>
+                <div className="bg-emerald-500/80 text-white text-[10px] sm:text-xs font-mono p-1 sm:p-2 rounded">1.00</div>
+              </div>
+              <p className="text-[9px] sm:text-[10px] text-muted-foreground text-center mt-2 sm:mt-3">
+                Green = positive correlation • Red = negative (diversification)
+              </p>
+            </div>
+          </div>
+        </motion.div>
+
         {/* ===================== PLATFORM FEATURES SECTION ===================== */}
         <motion.div
           initial={{ opacity: 0, y: 30 }}
@@ -548,7 +727,7 @@ export function QuantLabWelcomeHero({
                 Click any study below to run it instantly
               </p>
             </div>
-            <Button variant="outline" onClick={onRunDemo} className="gap-2 h-9 sm:h-10 text-xs sm:text-sm">
+            <Button variant="outline" onClick={(e) => { e.stopPropagation(); onSignUp(); }} className="gap-2 h-9 sm:h-10 text-xs sm:text-sm">
               <Zap className="h-3.5 sm:h-4 w-3.5 sm:w-4" />
               Run Custom Study
             </Button>
@@ -565,7 +744,7 @@ export function QuantLabWelcomeHero({
             ].map((study) => (
               <button
                 key={study.id}
-                onClick={() => onSelectStudy(study.id)}
+                onClick={(e) => { e.stopPropagation(); onSignUp(); }}
                 className={cn(
                   "flex flex-col p-2.5 sm:p-4 rounded-lg sm:rounded-xl border transition-all text-left",
                   "bg-muted/30 hover:bg-muted/50 border-border hover:border-primary/50",
