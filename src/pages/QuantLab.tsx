@@ -36,7 +36,7 @@ import {
   AccordionTrigger,
 } from '@/components/ui/accordion';
 import {
-  FlaskConical, Search, Play, Plus, Save,
+  FlaskConical, Search, Play, Plus, Save, Bookmark,
   TrendingUp, TrendingDown, BarChart3, Activity, Info,
   Calendar, Zap, Layers, Volume2, Crosshair, LineChart,
   Gauge, ArrowLeftRight, Mountain, ArrowUpDown,
@@ -51,6 +51,7 @@ import { toast } from 'sonner';
 import { StudyVisualizations } from '@/components/quant-lab/StudyVisualizations';
 import { StudyResultCard } from '@/components/quant-lab/StudyResultCard';
 import { StudySetupCard } from '@/components/quant-lab/StudySetupCard';
+import { SavedStudiesPanel } from '@/components/quant-lab/SavedStudiesPanel';
 // Interactive Learning Components
 import { LearningProvider, useLearning } from '@/components/quant-lab/LearningContext';
 import { TutorialOverlay } from '@/components/quant-lab/TutorialOverlay';
@@ -1175,6 +1176,9 @@ function QuantLabContent(props: any) {
   // Study search filter
   const [studySearch, setStudySearch] = useState('');
   
+  // Saved studies panel
+  const [showSavedStudies, setShowSavedStudies] = useState(false);
+  
   // Track if initial auto-run has been done this session
   const [hasAutoRun, setHasAutoRun] = useState(false);
   
@@ -1307,6 +1311,17 @@ function QuantLabContent(props: any) {
               </Button>
             ))}
           </div>
+          
+          {/* Saved Studies Button */}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowSavedStudies(true)}
+            className="hidden md:flex h-9 gap-2 px-4 border-amber-500/50 text-amber-600 hover:bg-amber-50"
+          >
+            <Bookmark className="h-4 w-4" />
+            <span>Saved</span>
+          </Button>
         </div>
         
         {/* Mobile Quick Tickers - Larger buttons */}
@@ -1751,6 +1766,20 @@ function QuantLabContent(props: any) {
         title="Sign in to run studies"
         description="Create a free account to analyze stocks with our quant tools."
       />
+
+      {/* Saved Studies Panel */}
+      <AnimatePresence>
+        {showSavedStudies && (
+          <SavedStudiesPanel
+            isOpen={showSavedStudies}
+            onClose={() => setShowSavedStudies(false)}
+            onNavigateToTicker={(t) => {
+              handleSetTicker(t);
+              setShowSavedStudies(false);
+            }}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }

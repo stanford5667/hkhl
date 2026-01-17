@@ -10,3 +10,5 @@ export * from './ConceptCard';
 export * from './MetricDetailModal';
 export * from './ResultInterpreter';
 export * from './StudyAuditDashboard';
+export * from './SavedStudiesPanel';
+export * from './TradingStrategyCard';
