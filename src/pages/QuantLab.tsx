@@ -1369,13 +1369,36 @@ export default function QuantLab() {
       const startDate = new Date();
       startDate.setDate(startDate.getDate() - (periodData?.days || 756));
 
+      // Prepare params - convert forwardDays from single value to array for edge function
+      const rawParams = studyParams[studyId] || {};
+      const formattedParams: Record<string, any> = { ...rawParams };
+      
+      // Edge function expects forwardDays as an array of numbers [1, 3, 5, 10]
+      // Frontend stores it as a single selected value like '5' or 5
+      if (formattedParams.forwardDays !== undefined) {
+        const fd = parseInt(String(formattedParams.forwardDays), 10);
+        // Create an array with common forward-looking periods up to and including the selected value
+        const allPeriods = [1, 3, 5, 10, 21, 63, 126, 252];
+        const filteredPeriods = allPeriods.filter(p => p <= fd || p === 1 || p === fd);
+        // Always include at least [1, fd] if fd is valid
+        if (fd && !filteredPeriods.includes(fd)) {
+          filteredPeriods.push(fd);
+        }
+        formattedParams.forwardDays = [...new Set(filteredPeriods)].sort((a: number, b: number) => a - b);
+      }
+      
+      // Ensure threshold is a number
+      if (formattedParams.threshold !== undefined) {
+        formattedParams.threshold = parseFloat(String(formattedParams.threshold));
+      }
+
       const { data, error } = await supabase.functions.invoke('run-asset-study', {
         body: {
           ticker: selectedTicker,
           studyType: studyId,
           startDate: startDate.toISOString().split('T')[0],
           endDate,
-          params: studyParams[studyId] || {}
+          params: formattedParams
         }
       });
 
