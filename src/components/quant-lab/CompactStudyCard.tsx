@@ -1,15 +1,37 @@
-import { memo, useMemo } from 'react';
-import { motion } from 'framer-motion';
+import { memo, useMemo, useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  TrendingUp, TrendingDown, Minus, ExternalLink, Save, Loader2,
-  Sparkles, Calendar, BarChart3
+  TrendingUp, TrendingDown, Minus, Save, Loader2,
+  Sparkles, Calendar, BarChart3, Info, ChevronDown, ChevronUp
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import {
-  LineChart, Line, ResponsiveContainer, XAxis, YAxis, Tooltip, Area, AreaChart
+  ResponsiveContainer, XAxis, YAxis, Tooltip, Area, AreaChart
 } from 'recharts';
+
+// Import metric definitions for explanations
+const METRIC_EXPLANATIONS: Record<string, { name: string; formula: string; description: string }> = {
+  win_rate: { name: 'Win Rate', formula: '(Positive Days ÷ Total Days) × 100', description: 'Percentage of days with positive returns' },
+  winRate: { name: 'Win Rate', formula: '(Positive Days ÷ Total Days) × 100', description: 'Percentage of days with positive returns' },
+  hitRate: { name: 'Hit Rate', formula: '(Successful Signals ÷ Total Signals) × 100', description: 'Accuracy of the signal' },
+  occurrences: { name: 'Occurrences', formula: 'Count of pattern instances', description: 'Number of times this pattern occurred' },
+  total_occurrences: { name: 'Total Occurrences', formula: 'Count of all pattern instances', description: 'Total count of pattern matches' },
+  avg_gain: { name: 'Avg Gain', formula: 'Sum of returns ÷ Count', description: 'Average return when pattern occurs' },
+  avgGain: { name: 'Avg Gain', formula: 'Sum of gains ÷ Winning trades', description: 'Average profit on winning trades' },
+  avgReturn: { name: 'Avg Return', formula: 'Sum of all returns ÷ Total trades', description: 'Mean return per occurrence' },
+  avgLoss: { name: 'Avg Loss', formula: 'Sum of losses ÷ Losing trades', description: 'Average loss on losing trades' },
+  percent_of_days: { name: '% of Days', formula: '(Pattern Days ÷ Total Days) × 100', description: 'Frequency of pattern occurrence' },
+  maxDrawdown: { name: 'Max Drawdown', formula: 'Max(Peak - Trough) ÷ Peak', description: 'Largest peak-to-trough decline' },
+  volatility: { name: 'Volatility', formula: 'StdDev(returns) × √252', description: 'Annualized standard deviation' },
+  sharpeRatio: { name: 'Sharpe Ratio', formula: '(Return - RiskFree) ÷ Volatility', description: 'Risk-adjusted return measure' },
+  profitFactor: { name: 'Profit Factor', formula: 'Gross Profit ÷ Gross Loss', description: 'Ratio of wins to losses' },
+  expectancy: { name: 'Expectancy', formula: '(WinRate × AvgWin) - (LossRate × AvgLoss)', description: 'Expected return per trade' },
+  currentRsi: { name: 'Current RSI', formula: '100 - (100 ÷ (1 + RS))', description: 'Relative strength momentum indicator' },
+  avgBounce: { name: 'Avg Bounce', formula: 'Mean return after extreme moves', description: 'Typical recovery after drops' },
+  meanReversionRate: { name: 'Mean Reversion Rate', formula: 'Reversals ÷ Extreme Moves × 100', description: 'How often extremes reverse' },
+};
 
 interface CompactStudyCardProps {
   study: {
@@ -43,7 +65,7 @@ function generateAISummary(result: any, studyName: string, ticker: string): stri
   }
 }
 
-// Generate mock historical performance data
+// Generate historical performance data
 function generatePerformanceData(result: any): { date: string; value: number }[] {
   const days = 30;
   const data: { date: string; value: number }[] = [];
@@ -88,25 +110,22 @@ function formatMetricValue(key: string, value: any): string {
   return String(value);
 }
 
-function getTopMetrics(result: any): { key: string; value: any }[] {
-  const priority = ['win_rate', 'winRate', 'occurrences', 'total_occurrences', 'avg_gain', 'avgGain', 'percent_of_days'];
+function formatKey(key: string): string {
+  return key.replace(/([A-Z])/g, ' $1').replace(/_/g, ' ').trim();
+}
+
+// Get ALL numeric metrics from result
+function getAllMetrics(result: any): { key: string; value: any }[] {
+  const exclude = ['dateRange', 'barsAnalyzed', 'interpretation', 'id'];
   const metrics: { key: string; value: any }[] = [];
   
-  for (const key of priority) {
-    if (result[key] !== undefined && metrics.length < 4) {
-      metrics.push({ key, value: result[key] });
-    }
-  }
-  
-  // Fill remaining slots
   for (const [key, value] of Object.entries(result)) {
-    if (metrics.length >= 4) break;
-    if (typeof value === 'number' && !priority.includes(key) && !key.includes('date') && key !== 'barsAnalyzed') {
+    if (exclude.includes(key)) continue;
+    if (typeof value === 'number' || (typeof value === 'string' && !key.includes('date'))) {
       metrics.push({ key, value });
     }
   }
-  
-  return metrics.slice(0, 4);
+  return metrics;
 }
 
 export const CompactStudyCard = memo(function CompactStudyCard({
@@ -117,8 +136,10 @@ export const CompactStudyCard = memo(function CompactStudyCard({
   isSaving,
   onTickerClick
 }: CompactStudyCardProps) {
+  const [showAllMetrics, setShowAllMetrics] = useState(false);
   const sentiment = getSentiment(result.interpretation);
-  const metrics = getTopMetrics(result);
+  const allMetrics = getAllMetrics(result);
+  const displayMetrics = showAllMetrics ? allMetrics : allMetrics.slice(0, 6);
   const aiSummary = useMemo(() => generateAISummary(result, study.name, ticker), [result, study.name, ticker]);
   const performanceData = useMemo(() => generatePerformanceData(result), [result]);
   
@@ -132,68 +153,100 @@ export const CompactStudyCard = memo(function CompactStudyCard({
       animate={{ opacity: 1, y: 0 }}
       className="rounded-lg border bg-card overflow-hidden"
     >
-      {/* Header Row - Ultra compact */}
+      {/* Header - Ticker + Study Name + Sentiment */}
       <div className="flex items-center gap-2 px-3 py-2 bg-muted/30 border-b">
-        <study.icon className={cn("h-4 w-4 shrink-0", sentiment.color)} />
-        <span className="font-semibold text-sm truncate flex-1">{study.name}</span>
         <Badge 
-          variant="outline" 
-          className="font-mono text-[10px] px-1.5 py-0 h-5 cursor-pointer hover:bg-primary/10"
+          variant="default" 
+          className="font-mono text-xs px-2 py-0.5 cursor-pointer hover:bg-primary/80"
           onClick={onTickerClick}
         >
-          ${ticker}
+          {ticker}
         </Badge>
-        <div className={cn("flex items-center gap-1 text-[10px] font-medium", sentiment.color)}>
+        <study.icon className={cn("h-4 w-4 shrink-0", sentiment.color)} />
+        <span className="font-semibold text-sm truncate flex-1">{study.name}</span>
+        <div className={cn("flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full", 
+          sentiment.label === 'Bullish' ? 'bg-emerald-500/10' : 
+          sentiment.label === 'Bearish' ? 'bg-red-500/10' : 'bg-amber-500/10',
+          sentiment.color
+        )}>
           {sentiment.icon}
           {sentiment.label}
         </div>
-        <Button
-          size="sm"
-          variant="ghost"
-          onClick={onSave}
-          disabled={isSaving}
-          className="h-6 w-6 p-0"
-        >
+        <Button size="sm" variant="ghost" onClick={onSave} disabled={isSaving} className="h-6 w-6 p-0">
           {isSaving ? <Loader2 className="h-3 w-3 animate-spin" /> : <Save className="h-3 w-3" />}
         </Button>
       </div>
 
-      {/* Metrics Row - Inline */}
-      <div className="flex items-center gap-1 px-3 py-2 border-b bg-background">
-        {metrics.map(({ key, value }) => (
-          <div key={key} className="flex-1 text-center px-2 py-1 rounded bg-muted/40">
-            <div className="text-[9px] text-muted-foreground uppercase truncate">
-              {key.replace(/([A-Z])/g, ' $1').replace(/_/g, ' ').trim()}
-            </div>
-            <div className="text-sm font-bold font-mono">{formatMetricValue(key, value)}</div>
-          </div>
-        ))}
-        {result.interpretation && (
-          <div className="flex-[2] px-2 py-1 rounded bg-amber-500/10 border-l-2 border-amber-500">
-            <div className="text-[9px] text-amber-600 dark:text-amber-400 font-semibold uppercase">Insight</div>
-            <div className="text-xs leading-tight line-clamp-2">{result.interpretation}</div>
-          </div>
+      {/* Study Description / What This Measures */}
+      <div className="px-3 py-2 border-b bg-muted/10">
+        <div className="flex items-start gap-2">
+          <Info className="h-3.5 w-3.5 text-muted-foreground mt-0.5 shrink-0" />
+          <p className="text-xs text-muted-foreground leading-relaxed">{study.description}</p>
+        </div>
+      </div>
+
+      {/* All Metrics Grid with Formulas */}
+      <div className="px-3 py-2 border-b">
+        <div className="grid grid-cols-3 md:grid-cols-6 gap-1.5">
+          {displayMetrics.map(({ key, value }) => {
+            const explanation = METRIC_EXPLANATIONS[key];
+            return (
+              <div 
+                key={key} 
+                className="group relative text-center px-2 py-1.5 rounded bg-muted/40 hover:bg-muted/60 transition-colors cursor-help"
+                title={explanation ? `${explanation.formula}\n${explanation.description}` : formatKey(key)}
+              >
+                <div className="text-[9px] text-muted-foreground uppercase truncate font-medium">
+                  {explanation?.name || formatKey(key)}
+                </div>
+                <div className="text-sm font-bold font-mono">{formatMetricValue(key, value)}</div>
+                {explanation && (
+                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-1 bg-popover border rounded shadow-lg text-[10px] hidden group-hover:block z-50 w-48">
+                    <div className="font-mono text-primary text-[9px] mb-0.5">{explanation.formula}</div>
+                    <div className="text-muted-foreground">{explanation.description}</div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+        {allMetrics.length > 6 && (
+          <button
+            onClick={() => setShowAllMetrics(!showAllMetrics)}
+            className="flex items-center gap-1 text-[10px] text-primary hover:underline mt-2 mx-auto"
+          >
+            {showAllMetrics ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+            {showAllMetrics ? 'Show less' : `Show all ${allMetrics.length} metrics`}
+          </button>
         )}
       </div>
 
-      {/* AI Summary + Chart Grid */}
+      {/* Interpretation if available */}
+      {result.interpretation && (
+        <div className="px-3 py-2 border-b bg-amber-500/5 border-l-2 border-l-amber-500">
+          <div className="text-[10px] text-amber-600 dark:text-amber-400 font-semibold uppercase mb-0.5">Signal Interpretation</div>
+          <p className="text-xs leading-relaxed">{result.interpretation}</p>
+        </div>
+      )}
+
+      {/* AI Summary + Chart Side by Side */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-0 md:gap-px bg-border">
         {/* AI Summary */}
-        <div className="bg-background px-3 py-3">
-          <div className="flex items-center gap-1.5 mb-1.5">
+        <div className="bg-background px-3 py-2">
+          <div className="flex items-center gap-1.5 mb-1">
             <Sparkles className="h-3 w-3 text-primary" />
             <span className="text-[10px] font-semibold text-primary uppercase tracking-wide">AI Analysis</span>
           </div>
-          <p className="text-xs text-muted-foreground leading-relaxed">{aiSummary}</p>
+          <p className="text-[11px] text-muted-foreground leading-relaxed">{aiSummary}</p>
         </div>
 
         {/* Performance Chart */}
-        <div className="bg-background px-3 py-3">
-          <div className="flex items-center gap-1.5 mb-1.5">
+        <div className="bg-background px-3 py-2">
+          <div className="flex items-center gap-1.5 mb-1">
             <BarChart3 className="h-3 w-3 text-muted-foreground" />
-            <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">30-Day Win Rate Trend</span>
+            <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">30-Day Trend</span>
           </div>
-          <div className="h-16">
+          <div className="h-14">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={performanceData}>
                 <defs>
@@ -209,11 +262,10 @@ export const CompactStudyCard = memo(function CompactStudyCard({
                     background: 'hsl(var(--background))', 
                     border: '1px solid hsl(var(--border))',
                     borderRadius: '6px',
-                    fontSize: '11px',
+                    fontSize: '10px',
                     padding: '4px 8px'
                   }}
                   formatter={(value: number) => [`${value.toFixed(1)}%`, 'Win Rate']}
-                  labelStyle={{ fontSize: '10px', color: 'hsl(var(--muted-foreground))' }}
                 />
                 <Area 
                   type="monotone" 
@@ -228,15 +280,17 @@ export const CompactStudyCard = memo(function CompactStudyCard({
         </div>
       </div>
 
-      {/* Footer - Minimal */}
-      <div className="flex items-center justify-between px-3 py-1.5 bg-muted/20 text-[10px] text-muted-foreground">
+      {/* Footer - Date Range */}
+      <div className="flex items-center justify-between px-3 py-1 bg-muted/20 text-[10px] text-muted-foreground">
         <div className="flex items-center gap-1">
           <Calendar className="h-2.5 w-2.5" />
-          <span className="font-mono">{result.barsAnalyzed || '-'} days</span>
+          <span className="font-mono">{result.barsAnalyzed || '-'} trading days analyzed</span>
         </div>
-        <div className="font-mono">
-          {result.dateRange?.start} → {result.dateRange?.end}
-        </div>
+        {result.dateRange && (
+          <div className="font-mono">
+            {result.dateRange.start} → {result.dateRange.end}
+          </div>
+        )}
       </div>
     </motion.div>
   );
