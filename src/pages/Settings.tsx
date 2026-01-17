@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Camera, Loader2, User, Wifi, WifiOff, Trash2, LogOut, Settings as SettingsIcon, Shield, Sparkles, Crown, Palette } from "lucide-react";
+import { Camera, Loader2, User, Wifi, WifiOff, Trash2, LogOut, Settings as SettingsIcon, Shield, Sparkles, Crown, Palette, CreditCard, ExternalLink, AlertTriangle } from "lucide-react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,12 +12,14 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
+import { useUsage } from "@/contexts/UsageContext";
 import { useDevMode } from "@/contexts/DevModeContext";
 import { supabase } from "@/integrations/supabase/client";
 import { clearAllCache } from "@/services/marketDataService";
 import { clearMarketDataCache } from "@/services/MarketDataManager";
 import { PageHeader, PAGE_ICON_PRESETS } from "@/components/layout/PageHeader";
 import { ThemeToggle } from "@/components/theme/ThemeToggle";
+import { useUpgrade } from "@/hooks/useUpgrade";
 
 const profileSchema = z.object({
   fullName: z.string().trim().min(2, "Name must be at least 2 characters").max(100, "Name is too long"),
@@ -394,7 +396,12 @@ export default function Settings() {
           <MarketDataSettings />
         </motion.div>
 
-        {/* Premium Features Teaser */}
+        {/* Subscription Management */}
+        <motion.div variants={cardVariants}>
+          <SubscriptionManagement />
+        </motion.div>
+
+        {/* Premium Features Teaser - Only show for free users */}
         <motion.div variants={cardVariants}>
           <Card className="glass-card overflow-hidden border-amber-500/20">
             <div className="absolute inset-0 bg-gradient-to-r from-amber-500/5 via-transparent to-orange-500/5" />
@@ -565,6 +572,149 @@ function MarketDataSettings() {
             This will clear all locally cached prices and force fresh data on next fetch
           </p>
         </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function SubscriptionManagement() {
+  const { toast } = useToast();
+  const { isPro, refreshUsage } = useUsage();
+  const [isLoading, setIsLoading] = useState(false);
+  const { startCheckout } = useUpgrade();
+
+  const handleManageSubscription = async () => {
+    setIsLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('customer-portal');
+      
+      if (error) {
+        throw new Error(error.message);
+      }
+      
+      if (data?.url) {
+        window.open(data.url, '_blank');
+        toast({
+          title: "Opening billing portal",
+          description: "Manage your subscription in the new tab.",
+        });
+      }
+    } catch (error) {
+      console.error('Error opening customer portal:', error);
+      toast({
+        title: "Error",
+        description: "Unable to open billing portal. You may not have an active subscription.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <Card className="glass-card overflow-hidden border-primary/20">
+      <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-transparent to-purple-500/5" />
+      <CardHeader className="relative">
+        <div className="flex items-center gap-3">
+          <div className="p-2 rounded-lg bg-gradient-to-br from-primary/20 to-purple-500/20 border border-primary/30">
+            <CreditCard className="h-5 w-5 text-primary" />
+          </div>
+          <div className="flex-1">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-lg">Subscription</CardTitle>
+              <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${
+                isPro 
+                  ? 'bg-primary/20 text-primary border border-primary/30' 
+                  : 'bg-muted text-muted-foreground border border-border'
+              }`}>
+                {isPro ? 'Pro Plan' : 'Free Plan'}
+              </span>
+            </div>
+            <CardDescription>
+              Manage your subscription and billing
+            </CardDescription>
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent className="relative space-y-4">
+        {isPro ? (
+          <>
+            <div className="p-4 rounded-xl bg-gradient-to-r from-primary/10 to-purple-500/10 border border-primary/20">
+              <div className="flex items-center gap-2 mb-2">
+                <Crown className="h-4 w-4 text-primary" />
+                <span className="font-semibold text-foreground">Pro Member</span>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                You have access to all premium features including unlimited studies, saves, and AI analyses.
+              </p>
+            </div>
+            
+            <div className="space-y-3">
+              <Button 
+                variant="outline" 
+                onClick={handleManageSubscription}
+                disabled={isLoading}
+                className="w-full gap-2"
+              >
+                {isLoading ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <ExternalLink className="h-4 w-4" />
+                )}
+                Manage Subscription
+              </Button>
+              <p className="text-xs text-muted-foreground text-center">
+                Cancel, update payment method, or change your plan through our secure billing portal
+              </p>
+            </div>
+
+            <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/20">
+              <div className="flex items-start gap-2">
+                <AlertTriangle className="h-4 w-4 text-amber-500 mt-0.5" />
+                <div>
+                  <p className="text-sm font-medium text-amber-500">No Refunds Policy</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    All sales are final. If you cancel, you'll retain Pro access until the end of your billing period.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="p-4 rounded-xl bg-secondary/50 border border-border">
+              <p className="text-sm text-muted-foreground mb-3">
+                Upgrade to Pro for unlimited access to all features, including:
+              </p>
+              <ul className="text-sm space-y-2">
+                <li className="flex items-center gap-2 text-foreground">
+                  <span className="h-1.5 w-1.5 rounded-full bg-primary" />
+                  Unlimited portfolio saves
+                </li>
+                <li className="flex items-center gap-2 text-foreground">
+                  <span className="h-1.5 w-1.5 rounded-full bg-primary" />
+                  All 100+ quant studies
+                </li>
+                <li className="flex items-center gap-2 text-foreground">
+                  <span className="h-1.5 w-1.5 rounded-full bg-primary" />
+                  Deep conditional probability studies
+                </li>
+                <li className="flex items-center gap-2 text-foreground">
+                  <span className="h-1.5 w-1.5 rounded-full bg-primary" />
+                  Extended historical timeframes
+                </li>
+              </ul>
+            </div>
+            
+            <Button 
+              onClick={startCheckout}
+              className="w-full gap-2 bg-gradient-to-r from-primary to-purple-500 hover:from-primary/90 hover:to-purple-500/90"
+            >
+              <Crown className="h-4 w-4" />
+              Upgrade to Pro
+            </Button>
+          </>
+        )}
       </CardContent>
     </Card>
   );
