@@ -583,45 +583,61 @@ export function StudyResultCard({
         </div>
       )}
 
-      {/* Primary Metrics Grid - Large display */}
+      {/* Primary Metrics Grid - Matching reference layout */}
       <div className="p-4 border-b bg-gradient-to-b from-background to-muted/10">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          {primaryMetrics.map(([key, value], idx) => {
-            const metricSentiment = getSentimentFromValue(key, value);
-            const formattedKey = key.replace(/([A-Z])/g, ' $1').replace(/_/g, ' ').trim();
-            return (
-              <button
-                key={key}
-                onClick={() => setSelectedMetric({ key, value })}
-                className={cn(
-                  "group relative flex flex-col p-4 rounded-xl border-2 transition-all",
-                  "hover:border-primary/50 hover:shadow-lg hover:shadow-primary/10",
-                  "active:scale-[0.98] cursor-pointer",
-                  idx === 0 && "bg-gradient-to-br from-primary/10 to-primary/5 border-primary/30",
-                  idx > 0 && "bg-muted/30 border-border/50"
-                )}
-              >
-                <span className="text-[11px] text-muted-foreground uppercase tracking-wide font-medium mb-1">
-                  {formattedKey}
-                </span>
-                <span className={cn(
-                  "text-2xl md:text-3xl font-bold font-mono tracking-tight",
-                  idx === 0 && "text-primary",
-                  idx > 0 && metricSentiment === 'good' && "text-emerald-500",
-                  idx > 0 && metricSentiment === 'bad' && "text-red-500",
-                  idx > 0 && metricSentiment === 'neutral' && "text-foreground"
-                )}>
-                  {formatValue(key, value)}
-                </span>
-                <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <Info className="h-3.5 w-3.5 text-muted-foreground" />
-                </div>
-              </button>
-            );
-          })}
+        <div className="grid grid-cols-4 gap-3">
+          {/* TYPE */}
+          <button
+            onClick={() => setSelectedMetric({ key: 'study_type', value: study.id })}
+            className="flex flex-col p-3 rounded-xl border-2 bg-muted/30 border-border/50 hover:border-primary/50 hover:shadow-lg transition-all cursor-pointer group"
+          >
+            <span className="text-[10px] text-muted-foreground uppercase tracking-wide font-medium mb-1">Type</span>
+            <span className="text-lg font-bold font-mono text-foreground break-all leading-tight">
+              {study.id.replace(/-/g, '_')}
+            </span>
+            <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+              <Info className="h-3 w-3 text-muted-foreground" />
+            </div>
+          </button>
+
+          {/* TOTAL OCCURRENCES */}
+          <button
+            onClick={() => setSelectedMetric({ key: 'occurrences', value: result.occurrences || result.total_signals || result.matchCount || 0 })}
+            className="flex flex-col p-3 rounded-xl border-2 bg-muted/30 border-border/50 hover:border-primary/50 hover:shadow-lg transition-all cursor-pointer group"
+          >
+            <span className="text-[10px] text-muted-foreground uppercase tracking-wide font-medium mb-1">Total Occurrences</span>
+            <span className="text-2xl font-bold font-mono text-foreground">
+              {result.occurrences || result.total_signals || result.matchCount || 0}
+            </span>
+          </button>
+
+          {/* PERCENT OF DAYS */}
+          <button
+            onClick={() => setSelectedMetric({ key: 'percent_of_days', value: result.percentOfDays || result.percent_of_days || ((result.occurrences || 0) / (result.barsAnalyzed || result.total_days || 1) * 100) })}
+            className="flex flex-col p-3 rounded-xl border-2 bg-muted/30 border-border/50 hover:border-primary/50 hover:shadow-lg transition-all cursor-pointer group"
+          >
+            <span className="text-[10px] text-muted-foreground uppercase tracking-wide font-medium mb-1">Percent of Days</span>
+            <span className="text-2xl font-bold font-mono text-foreground">
+              +{(result.percentOfDays || result.percent_of_days || ((result.occurrences || 0) / (result.barsAnalyzed || result.total_days || 1) * 100)).toFixed(2)}%
+            </span>
+          </button>
+
+          {/* AVG GAIN */}
+          <button
+            onClick={() => setSelectedMetric({ key: 'avg_gain', value: result.avg_gain || result.avgGain || result.avgReturn || 0 })}
+            className="flex flex-col p-3 rounded-xl border-2 bg-muted/30 border-border/50 hover:border-primary/50 hover:shadow-lg transition-all cursor-pointer group"
+          >
+            <span className="text-[10px] text-muted-foreground uppercase tracking-wide font-medium mb-1">Avg Gain</span>
+            <span className={cn(
+              "text-2xl font-bold font-mono",
+              (result.avg_gain || result.avgGain || result.avgReturn || 0) >= 0 ? "text-emerald-500" : "text-red-500"
+            )}>
+              {(result.avg_gain || result.avgGain || result.avgReturn || 0) >= 0 ? '+' : ''}{(result.avg_gain || result.avgGain || result.avgReturn || 0).toFixed(2)}%
+            </span>
+          </button>
         </div>
 
-        {/* Secondary Metrics - Compact row */}
+        {/* Additional Metrics Row */}
         {secondaryMetrics.length > 0 && (
           <div className="grid grid-cols-4 gap-2 mt-3">
             {secondaryMetrics.map(([key, value]) => {
@@ -641,6 +657,18 @@ export function StudyResultCard({
         )}
       </div>
 
+      {/* INSIGHT - Inline display with label */}
+      {result.interpretation && (
+        <div className="px-4 py-3 border-b">
+          <div className="flex items-start gap-3">
+            <div className="shrink-0">
+              <span className="text-[10px] text-muted-foreground uppercase tracking-wide font-medium">Insight</span>
+            </div>
+            <p className="text-sm text-foreground/90 leading-relaxed font-medium">{result.interpretation}</p>
+          </div>
+        </div>
+      )}
+
       {/* Study Summary - What it tracks */}
       <div className="px-4 py-3 border-b bg-muted/10">
         <p className="text-xs text-muted-foreground leading-relaxed">
@@ -652,18 +680,10 @@ export function StudyResultCard({
         </p>
       </div>
 
-      {/* AI Insight - Inline display */}
-      {result.interpretation && (
-        <div className="px-4 py-2 border-b flex items-start gap-2">
-          <Lightbulb className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
-          <p className="text-sm text-foreground/90 leading-relaxed">{result.interpretation}</p>
-        </div>
-      )}
-
       {/* Visual Analysis Toggle */}
       <button
         onClick={() => setShowVisuals(!showVisuals)}
-        className="w-full px-4 py-2.5 flex items-center justify-between hover:bg-muted/30 transition-colors border-b"
+        className="w-full px-4 py-2.5 flex items-center justify-between hover:bg-muted/30 transition-colors"
       >
         <div className="flex items-center gap-2">
           <BarChart3 className="h-4 w-4 text-primary" />
@@ -683,7 +703,7 @@ export function StudyResultCard({
             exit={{ height: 0, opacity: 0 }}
             className="overflow-hidden"
           >
-            <div className="px-4 py-4 bg-muted/10">
+            <div className="px-4 py-4 bg-muted/10 border-t">
               <EnhancedResultView 
                 result={result} 
                 studyId={study.id}
@@ -694,14 +714,6 @@ export function StudyResultCard({
           </motion.div>
         )}
       </AnimatePresence>
-
-      {/* Footer with date range only */}
-      <div className="px-4 py-2 bg-muted/20 flex items-center justify-between text-[10px] text-muted-foreground">
-        <span className="font-mono">{result.barsAnalyzed || result.total_days} days analyzed</span>
-        {result.dateRange && (
-          <span className="font-mono">{result.dateRange.start} → {result.dateRange.end}</span>
-        )}
-      </div>
 
       {/* Metric Detail Popup */}
       <AnimatePresence>
