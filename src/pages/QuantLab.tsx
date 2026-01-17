@@ -1937,14 +1937,6 @@ function QuantLabContent(props: any) {
                       className="h-12 pl-10 text-lg font-mono font-bold bg-background rounded-xl border-2 focus:border-primary"
                     />
                   </div>
-                  {selectedTicker && (
-                    <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-primary/10 border border-primary/30">
-                      <TrendingUp className="h-4 w-4 text-primary" />
-                      <span className="text-sm font-medium">Analyzing:</span>
-                      <span className="font-mono font-bold text-primary">${selectedTicker}</span>
-                      <InlinePrice ticker={selectedTicker} showStaleness={false} className="text-sm ml-auto" />
-                    </div>
-                  )}
                 </div>
                 
                 {/* Study Selection Section */}
