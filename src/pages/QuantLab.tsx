@@ -47,6 +47,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { StudyVisualizations } from '@/components/quant-lab/StudyVisualizations';
 
 // Interactive Learning Components
 import { LearningProvider, useLearning } from '@/components/quant-lab/LearningContext';
@@ -1687,7 +1688,13 @@ function QuantLabContent(props: any) {
                               </p>
                             </button>
                           ))}
-                        </div>
+                      </div>
+                      </div>
+
+                      {/* Visualizations Section */}
+                      <div className="px-6 py-6 border-t">
+                        <h5 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-4">Visual Analysis</h5>
+                        <StudyVisualizations studyId={studyId} result={result} />
                       </div>
 
                       {/* How to Use - Educational */}
