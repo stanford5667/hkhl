@@ -184,10 +184,16 @@ export function WeeklyMacroSummary() {
     return calculateMarketHealthScore(economicData?.indicators || []);
   }, [economicData?.indicators]);
 
-  // Get this week's high importance events
+  // Get upcoming events (next 14 days from today)
   const today = new Date();
   const weekStart = startOfWeek(today, { weekStartsOn: 1 });
   const weekEnd = endOfWeek(today, { weekStartsOn: 1 });
+  
+  // Filter for upcoming events from today onwards (sorted by date)
+  const upcomingEvents = calendarEvents.filter(event => {
+    const eventDate = parseISO(event.event_date);
+    return eventDate >= today;
+  }).slice(0, 10); // Get next 10 upcoming events
   
   const thisWeeksEvents = calendarEvents.filter(event => {
     const eventDate = parseISO(event.event_date);
@@ -394,12 +400,12 @@ export function WeeklyMacroSummary() {
                 <Calendar className="h-4 w-4 text-primary" />
                 <span className="text-xs font-medium text-foreground">Upcoming Economic Events</span>
                 <Badge variant="outline" className="text-[10px] ml-auto">
-                  {thisWeeksEvents.length} this week
+                  {upcomingEvents.length} upcoming
                 </Badge>
               </div>
               <div className="space-y-2 max-h-[180px] overflow-y-auto pr-1">
-                {thisWeeksEvents.length > 0 ? (
-                  thisWeeksEvents.slice(0, 6).map((event, idx) => {
+                {upcomingEvents.length > 0 ? (
+                  upcomingEvents.slice(0, 6).map((event, idx) => {
                     const eventDate = parseISO(event.event_date);
                     const dayLabel = isToday(eventDate) ? 'Today' : isTomorrow(eventDate) ? 'Tomorrow' : format(eventDate, 'EEE, MMM d');
                     const isHighImportance = event.importance?.toLowerCase() === 'high';
@@ -431,7 +437,7 @@ export function WeeklyMacroSummary() {
                     );
                   })
                 ) : (
-                  <p className="text-sm text-muted-foreground text-center py-4">No economic events scheduled this week</p>
+                  <p className="text-sm text-muted-foreground text-center py-4">No upcoming economic events</p>
                 )}
               </div>
             </div>
