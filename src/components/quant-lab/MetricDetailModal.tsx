@@ -712,8 +712,502 @@ function generateCalculationTrace(metricKey: string, metricValue: any, studyResu
   if (studyResult.dateRange) {
     inputs.push({ name: 'Date Range', value: `${studyResult.dateRange.start} to ${studyResult.dateRange.end}` });
   }
+  if (studyResult.ticker) {
+    inputs.push({ name: 'Ticker', value: studyResult.ticker });
+  }
 
-  // Generate specific traces based on metric type and study data
+  // Helper to safely format numbers
+  const fmt = (v: any, decimals = 2) => {
+    if (typeof v !== 'number' || isNaN(v)) return 'N/A';
+    return v.toFixed(decimals);
+  };
+
+  // CONDITIONAL STUDY METRICS (after_down_x, after_up_x, after_high_volume, etc.)
+  if (studyResult.analysis || studyResult.condition || studyResult.type?.includes('after_')) {
+    const analysis = studyResult.analysis?.[0] || studyResult;
+    
+    switch (metricKey) {
+      case 'occurrences':
+      case 'sample_size':
+        if (studyResult.occurrences !== undefined) {
+          inputs.push({ name: 'Condition', value: studyResult.condition || 'Trigger condition' });
+          steps.push({ label: 'Scan all trading days', value: `${studyResult.barsAnalyzed || 'N/A'} days` });
+          steps.push({ label: 'Count days matching condition', value: `${studyResult.occurrences} triggers found`, formula: 'Count where condition = TRUE' });
+          steps.push({ label: 'Total occurrences', value: studyResult.occurrences.toString() });
+        }
+        break;
+        
+      case 'win_rate':
+      case 'forwardWinRate':
+        if (analysis?.win_rate !== undefined || analysis?.win_pct !== undefined) {
+          const winRate = analysis.win_rate ?? analysis.win_pct;
+          const wins = analysis.winning_trades ?? analysis.positive_returns ?? Math.round((winRate / 100) * (studyResult.occurrences || 1));
+          const total = studyResult.occurrences || analysis.sample_size || 1;
+          inputs.push({ name: 'Winning Trades', value: wins.toString() });
+          inputs.push({ name: 'Total Occurrences', value: total.toString() });
+          steps.push({ label: 'Count positive returns', value: `${wins} winners`, formula: 'Count where Forward Return > 0' });
+          steps.push({ label: 'Divide by total', value: `${wins} ÷ ${total}`, formula: 'Winners ÷ Total Trades' });
+          steps.push({ label: 'Multiply by 100', value: `${fmt(winRate)}%`, formula: 'Result × 100' });
+        }
+        break;
+        
+      case 'avg_move':
+      case 'avgForwardReturn':
+      case 'forwardReturn':
+        if (analysis?.avg_return !== undefined || analysis?.avg_move !== undefined) {
+          const avgRet = analysis.avg_return ?? analysis.avg_move;
+          const total = studyResult.occurrences || analysis.sample_size || 1;
+          inputs.push({ name: 'Sample Size', value: total.toString() });
+          inputs.push({ name: 'Forward Days', value: analysis.forward_days?.toString() || studyResult.params?.forwardDays?.toString() || '5' });
+          steps.push({ label: 'For each occurrence, calculate', value: '(Price[T+N] - Price[T]) ÷ Price[T] × 100', formula: 'Forward Return %' });
+          steps.push({ label: 'Sum all forward returns', value: `Σ = ${fmt(avgRet * total)}%` });
+          steps.push({ label: 'Divide by occurrences', value: `${fmt(avgRet * total)}% ÷ ${total}`, formula: 'Σ(returns) ÷ n' });
+          steps.push({ label: 'Average forward return', value: `${fmt(avgRet)}%` });
+        }
+        break;
+        
+      case 'median':
+      case 'medianForwardReturn':
+        if (analysis?.median !== undefined) {
+          const total = studyResult.occurrences || analysis.sample_size || 1;
+          inputs.push({ name: 'Sample Size', value: total.toString() });
+          steps.push({ label: 'Sort all forward returns', value: `${total} values sorted` });
+          steps.push({ label: 'Find middle value', value: `Position ${Math.floor(total / 2)}`, formula: 'Median = Middle value when sorted' });
+          steps.push({ label: 'Median return', value: `${fmt(analysis.median)}%` });
+        }
+        break;
+        
+      case 'best_return':
+      case 'bestOutcome':
+        if (analysis?.best_return !== undefined || analysis?.max_return !== undefined) {
+          const best = analysis.best_return ?? analysis.max_return;
+          inputs.push({ name: 'Sample Size', value: (studyResult.occurrences || 'N/A').toString() });
+          steps.push({ label: 'Calculate all forward returns', value: 'For each occurrence' });
+          steps.push({ label: 'Find maximum', value: 'Max(all returns)', formula: 'Best Outcome = Max(forward returns)' });
+          steps.push({ label: 'Best return', value: `${fmt(best)}%` });
+        }
+        break;
+        
+      case 'worst_return':
+      case 'worstOutcome':
+        if (analysis?.worst_return !== undefined || analysis?.min_return !== undefined) {
+          const worst = analysis.worst_return ?? analysis.min_return;
+          inputs.push({ name: 'Sample Size', value: (studyResult.occurrences || 'N/A').toString() });
+          steps.push({ label: 'Calculate all forward returns', value: 'For each occurrence' });
+          steps.push({ label: 'Find minimum', value: 'Min(all returns)', formula: 'Worst Outcome = Min(forward returns)' });
+          steps.push({ label: 'Worst return', value: `${fmt(worst)}%` });
+        }
+        break;
+        
+      case 'total_return':
+        if (analysis?.total_return !== undefined) {
+          const total = studyResult.occurrences || 1;
+          inputs.push({ name: 'Occurrences', value: total.toString() });
+          steps.push({ label: 'Sum all forward returns', value: `Σ(all ${total} returns)`, formula: 'Total = Σ(forward returns)' });
+          steps.push({ label: 'Cumulative return', value: `${fmt(analysis.total_return)}%` });
+        }
+        break;
+
+      case 'sharpeRatio':
+        if (analysis?.sharpe_ratio !== undefined) {
+          const avgRet = analysis.avg_return ?? analysis.avg_move ?? 0;
+          const stdDev = analysis.std_dev ?? analysis.volatility ?? 1;
+          inputs.push({ name: 'Average Return', value: `${fmt(avgRet)}%` });
+          inputs.push({ name: 'Std Deviation', value: `${fmt(stdDev)}%` });
+          inputs.push({ name: 'Risk-Free Rate', value: '0% (simplified)' });
+          steps.push({ label: 'Excess return', value: `${fmt(avgRet)}% - 0%`, formula: 'Return - Risk Free Rate' });
+          steps.push({ label: 'Divide by volatility', value: `${fmt(avgRet)} ÷ ${fmt(stdDev)}`, formula: 'Excess Return ÷ Std Dev' });
+          steps.push({ label: 'Sharpe Ratio', value: fmt(analysis.sharpe_ratio) });
+        }
+        break;
+
+      case 'expectancy':
+        if (analysis?.expectancy !== undefined) {
+          const winRate = (analysis.win_rate ?? 50) / 100;
+          const avgWin = analysis.avg_win ?? analysis.avg_gain ?? 0;
+          const avgLoss = Math.abs(analysis.avg_loss ?? 0);
+          inputs.push({ name: 'Win Rate', value: `${fmt(winRate * 100)}%` });
+          inputs.push({ name: 'Avg Win', value: `${fmt(avgWin)}%` });
+          inputs.push({ name: 'Avg Loss', value: `${fmt(avgLoss)}%` });
+          steps.push({ label: 'Expected win contribution', value: `${fmt(winRate * 100)}% × ${fmt(avgWin)}%`, formula: 'Win Rate × Avg Win' });
+          steps.push({ label: 'Expected loss contribution', value: `${fmt((1 - winRate) * 100)}% × ${fmt(avgLoss)}%`, formula: 'Loss Rate × Avg Loss' });
+          steps.push({ label: 'Net expectancy', value: `${fmt(winRate * avgWin)} - ${fmt((1 - winRate) * avgLoss)}`, formula: '(WR × AvgWin) - (LR × AvgLoss)' });
+          steps.push({ label: 'Expectancy per trade', value: `${fmt(analysis.expectancy)}%` });
+        }
+        break;
+
+      case 'pValue':
+        if (analysis?.p_value !== undefined) {
+          inputs.push({ name: 'Sample Size', value: (studyResult.occurrences || 'N/A').toString() });
+          inputs.push({ name: 'T-Statistic', value: fmt(analysis.t_stat ?? analysis.t_statistic ?? 0) });
+          steps.push({ label: 'Calculate t-statistic', value: '(Mean - Expected) ÷ (StdDev ÷ √n)', formula: 't = (x̄ - μ) ÷ (s ÷ √n)' });
+          steps.push({ label: 'Look up p-value', value: 'From t-distribution table', formula: 'Two-tailed probability' });
+          steps.push({ label: 'P-value', value: fmt(analysis.p_value, 4) });
+          steps.push({ label: 'Interpretation', value: analysis.p_value < 0.05 ? '< 0.05 = Statistically significant' : '≥ 0.05 = Not significant' });
+        }
+        break;
+    }
+  }
+
+  // RSI ANALYSIS
+  if (studyResult.type === 'rsi_analysis' || studyResult.current?.rsi !== undefined) {
+    switch (metricKey) {
+      case 'currentRsi':
+      case 'rsi':
+        const rsiVal = studyResult.current?.rsi ?? metricValue;
+        const period = studyResult.params?.period ?? 14;
+        inputs.push({ name: 'RSI Period', value: period.toString() });
+        inputs.push({ name: 'Avg Gain (14d)', value: fmt(studyResult.avgGainPeriod ?? 0) + '%' });
+        inputs.push({ name: 'Avg Loss (14d)', value: fmt(studyResult.avgLossPeriod ?? 0) + '%' });
+        steps.push({ label: 'Calculate average gains', value: 'Sum(gains) ÷ 14', formula: 'Avg of positive price changes over period' });
+        steps.push({ label: 'Calculate average losses', value: 'Sum(losses) ÷ 14', formula: 'Avg of negative price changes over period' });
+        steps.push({ label: 'Calculate RS', value: 'Avg Gain ÷ Avg Loss', formula: 'Relative Strength = Gain/Loss ratio' });
+        steps.push({ label: 'Apply RSI formula', value: '100 - (100 ÷ (1 + RS))', formula: 'RSI = 100 - (100 ÷ (1 + RS))' });
+        steps.push({ label: 'Current RSI', value: fmt(rsiVal) });
+        break;
+        
+      case 'overboughtDays':
+        if (studyResult.statistics?.overboughtDays !== undefined) {
+          const threshold = studyResult.params?.overboughtLevel ?? 70;
+          inputs.push({ name: 'Overbought Threshold', value: `> ${threshold}` });
+          inputs.push({ name: 'Days Analyzed', value: (studyResult.barsAnalyzed || 'N/A').toString() });
+          steps.push({ label: 'Calculate RSI for each day', value: 'RSI formula applied daily' });
+          steps.push({ label: 'Count days where RSI > threshold', value: `RSI > ${threshold}`, formula: 'Overbought = RSI > threshold' });
+          steps.push({ label: 'Overbought days', value: `${studyResult.statistics.overboughtDays} days` });
+        }
+        break;
+        
+      case 'oversoldDays':
+        if (studyResult.statistics?.oversoldDays !== undefined) {
+          const threshold = studyResult.params?.oversoldLevel ?? 30;
+          inputs.push({ name: 'Oversold Threshold', value: `< ${threshold}` });
+          steps.push({ label: 'Count days where RSI < threshold', value: `RSI < ${threshold}`, formula: 'Oversold = RSI < threshold' });
+          steps.push({ label: 'Oversold days', value: `${studyResult.statistics.oversoldDays} days` });
+        }
+        break;
+
+      case 'returnAfterOverbought':
+        if (studyResult.afterOverbought !== undefined) {
+          const data = studyResult.afterOverbought;
+          inputs.push({ name: 'Overbought Signals', value: (data.count || 0).toString() });
+          inputs.push({ name: 'Forward Days', value: (studyResult.params?.forwardDays || 5).toString() });
+          steps.push({ label: 'Identify overbought days', value: `RSI > ${studyResult.params?.overboughtLevel || 70}` });
+          steps.push({ label: 'Measure forward return', value: 'Price[T+N] vs Price[T]', formula: '(Price[T+N] - Price[T]) ÷ Price[T] × 100' });
+          steps.push({ label: 'Average all returns', value: `Sum ÷ ${data.count}` });
+          steps.push({ label: 'Avg return after overbought', value: `${fmt(data.avgReturn)}%` });
+        }
+        break;
+
+      case 'returnAfterOversold':
+        if (studyResult.afterOversold !== undefined) {
+          const data = studyResult.afterOversold;
+          inputs.push({ name: 'Oversold Signals', value: (data.count || 0).toString() });
+          steps.push({ label: 'Identify oversold days', value: `RSI < ${studyResult.params?.oversoldLevel || 30}` });
+          steps.push({ label: 'Measure forward return', value: 'Price[T+N] vs Price[T]' });
+          steps.push({ label: 'Avg return after oversold', value: `${fmt(data.avgReturn)}%` });
+        }
+        break;
+    }
+  }
+
+  // BOLLINGER BANDS ANALYSIS
+  if (studyResult.type === 'bollinger_analysis' || studyResult.current?.percentB !== undefined) {
+    const curr = studyResult.current || {};
+    const stats = studyResult.statistics || {};
+    
+    switch (metricKey) {
+      case 'percentB':
+        inputs.push({ name: 'Current Price', value: `$${fmt(curr.price)}` });
+        inputs.push({ name: 'Lower Band', value: `$${fmt(curr.lower)}` });
+        inputs.push({ name: 'Upper Band', value: `$${fmt(curr.upper)}` });
+        steps.push({ label: 'Calculate band range', value: `$${fmt(curr.upper)} - $${fmt(curr.lower)}`, formula: 'Range = Upper - Lower' });
+        steps.push({ label: 'Price position in range', value: `$${fmt(curr.price)} - $${fmt(curr.lower)}`, formula: 'Position = Price - Lower' });
+        steps.push({ label: 'Divide by range', value: `Position ÷ Range × 100`, formula: '%B = (Price - Lower) ÷ (Upper - Lower) × 100' });
+        steps.push({ label: '%B value', value: `${fmt(curr.percentB)}%` });
+        break;
+
+      case 'bandwidth':
+        inputs.push({ name: 'Upper Band', value: `$${fmt(curr.upper)}` });
+        inputs.push({ name: 'Lower Band', value: `$${fmt(curr.lower)}` });
+        inputs.push({ name: 'Middle Band (SMA)', value: `$${fmt(curr.middle)}` });
+        steps.push({ label: 'Calculate band width', value: `$${fmt(curr.upper)} - $${fmt(curr.lower)}` });
+        steps.push({ label: 'Divide by middle', value: `Width ÷ $${fmt(curr.middle)}`, formula: 'Bandwidth = (Upper - Lower) ÷ Middle × 100' });
+        steps.push({ label: 'Bandwidth', value: `${fmt(curr.bandwidth)}%` });
+        break;
+
+      case 'isSqueeze':
+        inputs.push({ name: 'Current Bandwidth', value: `${fmt(curr.bandwidth)}%` });
+        inputs.push({ name: 'Avg Bandwidth', value: `${fmt(stats.avgBandwidth)}%` });
+        inputs.push({ name: 'Squeeze Threshold', value: '60% of average' });
+        steps.push({ label: 'Calculate threshold', value: `${fmt(stats.avgBandwidth)} × 0.6 = ${fmt(stats.avgBandwidth * 0.6)}%` });
+        steps.push({ label: 'Compare current to threshold', value: `${fmt(curr.bandwidth)} ${curr.bandwidth < stats.avgBandwidth * 0.6 ? '<' : '≥'} ${fmt(stats.avgBandwidth * 0.6)}` });
+        steps.push({ label: 'Squeeze status', value: stats.isSqueeze ? 'Yes (volatility contraction)' : 'No (normal volatility)' });
+        break;
+
+      case 'upperBandTouchReturn':
+        if (studyResult.upperBandTouches) {
+          const data = studyResult.upperBandTouches;
+          inputs.push({ name: 'Upper Band Touches', value: data.count.toString() });
+          inputs.push({ name: 'Forward Days', value: '5' });
+          steps.push({ label: 'Identify upper band touches', value: '%B ≥ 95%', formula: 'Touch = Price near upper band' });
+          steps.push({ label: 'Measure 5-day forward return', value: 'For each touch' });
+          steps.push({ label: 'Average return after touch', value: `${fmt(data.avgReturn5d)}%` });
+        }
+        break;
+
+      case 'lowerBandTouchReturn':
+        if (studyResult.lowerBandTouches) {
+          const data = studyResult.lowerBandTouches;
+          inputs.push({ name: 'Lower Band Touches', value: data.count.toString() });
+          steps.push({ label: 'Identify lower band touches', value: '%B ≤ 5%' });
+          steps.push({ label: 'Average return after touch', value: `${fmt(data.avgReturn5d)}%` });
+        }
+        break;
+    }
+  }
+
+  // MACD ANALYSIS
+  if (studyResult.type === 'macd_analysis' || studyResult.current?.macd !== undefined) {
+    const curr = studyResult.current || {};
+    
+    switch (metricKey) {
+      case 'macd':
+      case 'macdLine':
+        inputs.push({ name: 'Fast EMA Period', value: (studyResult.params?.fastPeriod || 12).toString() });
+        inputs.push({ name: 'Slow EMA Period', value: (studyResult.params?.slowPeriod || 26).toString() });
+        steps.push({ label: 'Calculate 12-day EMA', value: 'Exponential moving average' });
+        steps.push({ label: 'Calculate 26-day EMA', value: 'Exponential moving average' });
+        steps.push({ label: 'MACD Line', value: 'EMA(12) - EMA(26)', formula: 'MACD = Fast EMA - Slow EMA' });
+        steps.push({ label: 'Current MACD', value: fmt(curr.macd) });
+        break;
+
+      case 'signal':
+      case 'signalLine':
+        inputs.push({ name: 'Signal Period', value: (studyResult.params?.signalPeriod || 9).toString() });
+        steps.push({ label: 'Take MACD line values', value: 'Last 9 periods' });
+        steps.push({ label: 'Calculate EMA', value: '9-period EMA of MACD', formula: 'Signal = EMA(MACD, 9)' });
+        steps.push({ label: 'Signal Line', value: fmt(curr.signal) });
+        break;
+
+      case 'histogram':
+        inputs.push({ name: 'MACD Line', value: fmt(curr.macd) });
+        inputs.push({ name: 'Signal Line', value: fmt(curr.signal) });
+        steps.push({ label: 'Subtract signal from MACD', value: `${fmt(curr.macd)} - ${fmt(curr.signal)}`, formula: 'Histogram = MACD - Signal' });
+        steps.push({ label: 'Histogram value', value: fmt(curr.histogram) });
+        break;
+
+      case 'bullishCrossReturn':
+        if (studyResult.afterBullishCrossover) {
+          const data = studyResult.afterBullishCrossover;
+          inputs.push({ name: 'Bullish Crossovers', value: data.count.toString() });
+          steps.push({ label: 'Identify bullish crossovers', value: 'MACD crosses above Signal', formula: 'Previous: MACD < Signal, Current: MACD > Signal' });
+          steps.push({ label: 'Measure forward return', value: `Average of ${data.count} events` });
+          steps.push({ label: 'Avg return after bullish cross', value: `${fmt(data.avgReturn)}%` });
+        }
+        break;
+
+      case 'bearishCrossReturn':
+        if (studyResult.afterBearishCrossover) {
+          const data = studyResult.afterBearishCrossover;
+          inputs.push({ name: 'Bearish Crossovers', value: data.count.toString() });
+          steps.push({ label: 'Identify bearish crossovers', value: 'MACD crosses below Signal' });
+          steps.push({ label: 'Avg return after bearish cross', value: `${fmt(data.avgReturn)}%` });
+        }
+        break;
+    }
+  }
+
+  // STOCHASTIC ANALYSIS
+  if (studyResult.type === 'stochastic_analysis' || studyResult.current?.k !== undefined) {
+    const curr = studyResult.current || {};
+    
+    switch (metricKey) {
+      case 'k':
+      case 'stochK':
+        const period = studyResult.params?.period || 14;
+        inputs.push({ name: 'Lookback Period', value: period.toString() });
+        inputs.push({ name: 'Highest High', value: `$${fmt(studyResult.highestHigh || 0)}` });
+        inputs.push({ name: 'Lowest Low', value: `$${fmt(studyResult.lowestLow || 0)}` });
+        steps.push({ label: 'Find highest high', value: `Max price over ${period} days` });
+        steps.push({ label: 'Find lowest low', value: `Min price over ${period} days` });
+        steps.push({ label: 'Calculate %K', value: '(Close - Lowest) ÷ (Highest - Lowest) × 100', formula: '%K = (Close - LL) ÷ (HH - LL) × 100' });
+        steps.push({ label: '%K value', value: fmt(curr.k) });
+        break;
+
+      case 'd':
+      case 'stochD':
+        inputs.push({ name: 'Smoothing Period', value: (studyResult.params?.dPeriod || 3).toString() });
+        steps.push({ label: 'Take %K values', value: 'Last 3 periods' });
+        steps.push({ label: 'Calculate SMA', value: 'Simple moving average', formula: '%D = SMA(%K, 3)' });
+        steps.push({ label: '%D value', value: fmt(curr.d) });
+        break;
+
+      case 'overboughtPct':
+        if (studyResult.statistics?.overboughtPct !== undefined) {
+          inputs.push({ name: 'Overbought Threshold', value: '> 80' });
+          steps.push({ label: 'Count days with %K > 80', value: 'Overbought condition' });
+          steps.push({ label: 'Divide by total days', value: 'Overbought ÷ Total × 100' });
+          steps.push({ label: 'Overbought %', value: `${fmt(studyResult.statistics.overboughtPct)}%` });
+        }
+        break;
+
+      case 'oversoldPct':
+        if (studyResult.statistics?.oversoldPct !== undefined) {
+          inputs.push({ name: 'Oversold Threshold', value: '< 20' });
+          steps.push({ label: 'Count days with %K < 20', value: 'Oversold condition' });
+          steps.push({ label: 'Oversold %', value: `${fmt(studyResult.statistics.oversoldPct)}%` });
+        }
+        break;
+    }
+  }
+
+  // MOVING AVERAGE ANALYSIS
+  if (studyResult.type === 'moving_average_analysis' || studyResult.current?.sma20 !== undefined) {
+    const curr = studyResult.current || {};
+    
+    switch (metricKey) {
+      case 'priceVsShortMa':
+      case 'priceVs20MA':
+        inputs.push({ name: 'Current Price', value: `$${fmt(curr.price)}` });
+        inputs.push({ name: '20-Day SMA', value: `$${fmt(curr.sma20)}` });
+        steps.push({ label: 'Calculate difference', value: `$${fmt(curr.price)} - $${fmt(curr.sma20)}`, formula: 'Price - SMA20' });
+        steps.push({ label: 'Divide by MA', value: `Diff ÷ $${fmt(curr.sma20)}`, formula: '(Price - MA) ÷ MA × 100' });
+        steps.push({ label: 'Distance from 20MA', value: `${fmt(((curr.price - curr.sma20) / curr.sma20) * 100)}%` });
+        break;
+
+      case 'priceVsMediumMa':
+      case 'priceVs50MA':
+        inputs.push({ name: 'Current Price', value: `$${fmt(curr.price)}` });
+        inputs.push({ name: '50-Day SMA', value: `$${fmt(curr.sma50)}` });
+        steps.push({ label: 'Distance from 50MA', value: `${fmt(((curr.price - curr.sma50) / curr.sma50) * 100)}%` });
+        break;
+
+      case 'priceVsLongMa':
+      case 'priceVs200MA':
+        inputs.push({ name: 'Current Price', value: `$${fmt(curr.price)}` });
+        inputs.push({ name: '200-Day SMA', value: `$${fmt(curr.sma200)}` });
+        steps.push({ label: 'Distance from 200MA', value: `${fmt(((curr.price - curr.sma200) / curr.sma200) * 100)}%` });
+        break;
+
+      case 'maAlignment':
+        inputs.push({ name: '20 SMA', value: `$${fmt(curr.sma20)}` });
+        inputs.push({ name: '50 SMA', value: `$${fmt(curr.sma50)}` });
+        inputs.push({ name: '200 SMA', value: `$${fmt(curr.sma200)}` });
+        steps.push({ label: 'Check alignment', value: 'Compare MA values' });
+        const bullish = curr.sma20 > curr.sma50 && curr.sma50 > curr.sma200;
+        const bearish = curr.sma20 < curr.sma50 && curr.sma50 < curr.sma200;
+        steps.push({ label: 'Alignment status', value: bullish ? 'Bullish (20 > 50 > 200)' : bearish ? 'Bearish (20 < 50 < 200)' : 'Mixed/Transitioning' });
+        break;
+    }
+  }
+
+  // VOLATILITY ANALYSIS
+  if (studyResult.type === 'volatility_analysis') {
+    switch (metricKey) {
+      case 'volatility':
+      case 'annualizedVol':
+        if (studyResult.dailyVolatility !== undefined) {
+          inputs.push({ name: 'Daily Std Dev', value: `${fmt(studyResult.dailyVolatility, 4)}%` });
+          inputs.push({ name: 'Trading Days/Year', value: '252' });
+          steps.push({ label: 'Calculate daily returns', value: '(Today - Yesterday) ÷ Yesterday × 100' });
+          steps.push({ label: 'Calculate std deviation', value: '√(Σ(r - μ)² ÷ n)', formula: 'Standard deviation of daily returns' });
+          steps.push({ label: 'Annualize', value: `${fmt(studyResult.dailyVolatility, 4)} × √252`, formula: 'Daily Vol × √252' });
+          steps.push({ label: 'Annualized volatility', value: `${fmt(studyResult.annualizedVolatility)}%` });
+        }
+        break;
+
+      case 'atr':
+        if (studyResult.atr !== undefined) {
+          inputs.push({ name: 'ATR Period', value: (studyResult.params?.period || 14).toString() });
+          steps.push({ label: 'For each day, calculate True Range', value: 'Max(H-L, |H-PC|, |L-PC|)', formula: 'TR = Max of: High-Low, |High-PrevClose|, |Low-PrevClose|' });
+          steps.push({ label: 'Average over period', value: `Mean of ${studyResult.params?.period || 14} TRs` });
+          steps.push({ label: 'ATR', value: `$${fmt(studyResult.atr)}` });
+        }
+        break;
+
+      case 'atrPercent':
+        if (studyResult.atrPercent !== undefined) {
+          inputs.push({ name: 'ATR', value: `$${fmt(studyResult.atr)}` });
+          inputs.push({ name: 'Current Price', value: `$${fmt(studyResult.currentPrice)}` });
+          steps.push({ label: 'Calculate ATR %', value: `$${fmt(studyResult.atr)} ÷ $${fmt(studyResult.currentPrice)} × 100`, formula: 'ATR % = ATR ÷ Price × 100' });
+          steps.push({ label: 'ATR %', value: `${fmt(studyResult.atrPercent)}%` });
+        }
+        break;
+    }
+  }
+
+  // DRAWDOWN ANALYSIS
+  if (studyResult.type === 'drawdown_analysis') {
+    switch (metricKey) {
+      case 'maxDrawdown':
+        if (studyResult.maxDrawdown !== undefined) {
+          inputs.push({ name: 'Peak Price', value: `$${fmt(studyResult.peakPrice)}` });
+          inputs.push({ name: 'Trough Price', value: `$${fmt(studyResult.troughPrice)}` });
+          steps.push({ label: 'Find all-time high', value: 'Max(close prices in period)' });
+          steps.push({ label: 'Find lowest point after peak', value: 'Min(close prices after peak)' });
+          steps.push({ label: 'Calculate decline', value: `($${fmt(studyResult.peakPrice)} - $${fmt(studyResult.troughPrice)}) ÷ $${fmt(studyResult.peakPrice)}`, formula: '(Peak - Trough) ÷ Peak × 100' });
+          steps.push({ label: 'Max drawdown', value: `${fmt(studyResult.maxDrawdown)}%` });
+        }
+        break;
+
+      case 'currentDrawdown':
+        if (studyResult.currentDrawdown !== undefined) {
+          inputs.push({ name: 'All-Time High', value: `$${fmt(studyResult.allTimeHigh)}` });
+          inputs.push({ name: 'Current Price', value: `$${fmt(studyResult.currentPrice)}` });
+          steps.push({ label: 'Calculate decline from high', value: `($${fmt(studyResult.allTimeHigh)} - $${fmt(studyResult.currentPrice)}) ÷ $${fmt(studyResult.allTimeHigh)} × 100` });
+          steps.push({ label: 'Current drawdown', value: `${fmt(studyResult.currentDrawdown)}%` });
+        }
+        break;
+
+      case 'avgRecoveryDays':
+        if (studyResult.avgRecoveryDays !== undefined) {
+          inputs.push({ name: 'Number of Drawdowns', value: (studyResult.drawdownCount || 'N/A').toString() });
+          steps.push({ label: 'For each drawdown > 5%', value: 'Count days from trough to new high' });
+          steps.push({ label: 'Average recovery time', value: `${fmt(studyResult.avgRecoveryDays, 0)} days` });
+        }
+        break;
+    }
+  }
+
+  // DAY OF WEEK / MONTH SEASONALITY
+  if (studyResult.type === 'day_of_week_returns' || studyResult.dayReturns) {
+    switch (metricKey) {
+      case 'bestDay':
+        if (studyResult.bestDay) {
+          steps.push({ label: 'Group returns by day', value: 'Mon, Tue, Wed, Thu, Fri' });
+          steps.push({ label: 'Calculate average for each', value: 'Mean return per day' });
+          steps.push({ label: 'Find highest average', value: 'Max(day averages)' });
+          steps.push({ label: 'Best performing day', value: `${studyResult.bestDay.day} (${fmt(studyResult.bestDay.avgReturn)}%)` });
+        }
+        break;
+      case 'worstDay':
+        if (studyResult.worstDay) {
+          steps.push({ label: 'Group returns by day', value: 'Mon, Tue, Wed, Thu, Fri' });
+          steps.push({ label: 'Find lowest average', value: 'Min(day averages)' });
+          steps.push({ label: 'Worst performing day', value: `${studyResult.worstDay.day} (${fmt(studyResult.worstDay.avgReturn)}%)` });
+        }
+        break;
+    }
+  }
+
+  if (studyResult.type === 'month_of_year_returns' || studyResult.monthReturns) {
+    switch (metricKey) {
+      case 'bestMonth':
+        if (studyResult.bestMonth) {
+          steps.push({ label: 'Group returns by month', value: 'Jan through Dec' });
+          steps.push({ label: 'Calculate average for each', value: 'Mean return per month' });
+          steps.push({ label: 'Best performing month', value: `${studyResult.bestMonth.month} (${fmt(studyResult.bestMonth.avgReturn)}%)` });
+        }
+        break;
+      case 'worstMonth':
+        if (studyResult.worstMonth) {
+          steps.push({ label: 'Worst performing month', value: `${studyResult.worstMonth.month} (${fmt(studyResult.worstMonth.avgReturn)}%)` });
+        }
+        break;
+    }
+  }
+
+  // BASIC STATISTICS (upDayPercent, winRate, etc.)
   switch (metricKey) {
     case 'percentage':
     case 'upDayPercent':
@@ -722,7 +1216,7 @@ function generateCalculationTrace(metricKey: string, metricValue: any, studyResu
         inputs.push({ name: 'Total Days', value: studyResult.total_days.toString() });
         steps.push({ label: 'Count up days', value: studyResult.up_days.toString(), formula: 'Days where Close > Open' });
         steps.push({ label: 'Divide by total', value: `${studyResult.up_days} ÷ ${studyResult.total_days}`, formula: 'Up Days ÷ Total Days' });
-        steps.push({ label: 'Multiply by 100', value: `${((studyResult.up_days / studyResult.total_days) * 100).toFixed(2)}%`, formula: 'Result × 100' });
+        steps.push({ label: 'Multiply by 100', value: `${fmt((studyResult.up_days / studyResult.total_days) * 100)}%`, formula: 'Result × 100' });
       }
       break;
       
@@ -732,7 +1226,7 @@ function generateCalculationTrace(metricKey: string, metricValue: any, studyResu
         inputs.push({ name: 'Total Trading Days', value: studyResult.total_days.toString() });
         steps.push({ label: 'Count winning days', value: studyResult.up_days.toString(), formula: 'Days where Close > Prior Close' });
         steps.push({ label: 'Calculate win rate', value: `${studyResult.up_days} ÷ ${studyResult.total_days} × 100`, formula: '(Wins ÷ Total) × 100' });
-        steps.push({ label: 'Final result', value: `${typeof metricValue === 'number' ? metricValue.toFixed(2) : metricValue}%` });
+        steps.push({ label: 'Final result', value: `${fmt(metricValue)}%` });
       }
       break;
       
@@ -740,32 +1234,21 @@ function generateCalculationTrace(metricKey: string, metricValue: any, studyResu
     case 'avgReturn':
       if (studyResult.count !== undefined) {
         inputs.push({ name: 'Number of Returns', value: studyResult.count.toString() });
-        if (studyResult.stdDev) inputs.push({ name: 'Standard Deviation', value: `${studyResult.stdDev.toFixed(4)}%` });
+        if (studyResult.stdDev) inputs.push({ name: 'Standard Deviation', value: `${fmt(studyResult.stdDev, 4)}%` });
         steps.push({ label: 'Sum all daily returns', value: `Σ(daily returns)` });
         steps.push({ label: 'Divide by count', value: `Sum ÷ ${studyResult.count}`, formula: 'Σ(returns) ÷ n' });
-        steps.push({ label: 'Mean daily return', value: `${typeof metricValue === 'number' ? metricValue.toFixed(4) : metricValue}%` });
+        steps.push({ label: 'Mean daily return', value: `${fmt(metricValue, 4)}%` });
       }
       break;
       
     case 'stdDev':
-    case 'volatility':
       if (studyResult.count !== undefined && studyResult.mean !== undefined) {
-        inputs.push({ name: 'Mean Return', value: `${studyResult.mean.toFixed(4)}%` });
+        inputs.push({ name: 'Mean Return', value: `${fmt(studyResult.mean, 4)}%` });
         inputs.push({ name: 'Sample Size', value: studyResult.count.toString() });
-        steps.push({ label: 'Calculate mean', value: `μ = ${studyResult.mean.toFixed(4)}%` });
+        steps.push({ label: 'Calculate mean', value: `μ = ${fmt(studyResult.mean, 4)}%` });
         steps.push({ label: 'Calculate variance', value: `Σ(rᵢ - μ)² ÷ n`, formula: 'Sum of squared deviations ÷ n' });
         steps.push({ label: 'Take square root', value: `√variance`, formula: '√(variance)' });
-        steps.push({ label: 'Standard deviation', value: `${typeof metricValue === 'number' ? metricValue.toFixed(4) : metricValue}%` });
-      }
-      break;
-      
-    case 'annualizedVol':
-      if (studyResult.stdDev !== undefined) {
-        inputs.push({ name: 'Daily Std Dev', value: `${studyResult.stdDev.toFixed(4)}%` });
-        inputs.push({ name: 'Trading Days/Year', value: '252' });
-        steps.push({ label: 'Daily volatility', value: `${studyResult.stdDev.toFixed(4)}%` });
-        steps.push({ label: 'Annualize', value: `${studyResult.stdDev.toFixed(4)} × √252`, formula: 'Daily Vol × √252' });
-        steps.push({ label: 'Annualized volatility', value: `${(studyResult.stdDev * Math.sqrt(252)).toFixed(2)}%` });
+        steps.push({ label: 'Standard deviation', value: `${fmt(metricValue, 4)}%` });
       }
       break;
 
@@ -790,31 +1273,19 @@ function generateCalculationTrace(metricKey: string, metricValue: any, studyResu
         inputs.push({ name: `Total ${isUp ? 'Up' : 'Down'} Streaks`, value: total?.toString() || '0' });
         steps.push({ label: 'Sum all streak lengths', value: `Σ(streak lengths)` });
         steps.push({ label: 'Divide by count', value: `Sum ÷ ${total}` });
-        steps.push({ label: 'Average streak', value: `${typeof metricValue === 'number' ? metricValue.toFixed(2) : metricValue} days` });
+        steps.push({ label: 'Average streak', value: `${fmt(metricValue)} days` });
       }
       break;
 
     case 'maxDrawdown':
     case 'currentDrawdown':
-      if (studyResult.maxDrawdown !== undefined) {
+      if (studyResult.maxDrawdown !== undefined && steps.length === 0) {
         inputs.push({ name: 'Peak Price', value: 'Highest close in period' });
         inputs.push({ name: 'Trough Price', value: 'Lowest close after peak' });
         steps.push({ label: 'Find peak price', value: 'Max(close prices)' });
         steps.push({ label: 'Find subsequent trough', value: 'Min(close prices after peak)' });
         steps.push({ label: 'Calculate decline', value: '(Peak - Trough) ÷ Peak × 100', formula: '(Peak - Trough) ÷ Peak × 100' });
-        steps.push({ label: 'Max drawdown', value: `${typeof metricValue === 'number' ? metricValue.toFixed(2) : metricValue}%` });
-      }
-      break;
-
-    case 'currentRsi':
-    case 'rsi':
-      if (studyResult.avgGain !== undefined || studyResult.currentRsi !== undefined) {
-        inputs.push({ name: 'RSI Period', value: studyResult.period?.toString() || '14' });
-        steps.push({ label: 'Calculate avg gains', value: 'Avg(gains over period)', formula: 'Avg of positive price changes' });
-        steps.push({ label: 'Calculate avg losses', value: 'Avg(losses over period)', formula: 'Avg of negative price changes' });
-        steps.push({ label: 'Calculate RS', value: 'Avg Gain ÷ Avg Loss', formula: 'Relative Strength = Gain/Loss' });
-        steps.push({ label: 'Calculate RSI', value: '100 - (100 ÷ (1 + RS))', formula: 'RSI = 100 - (100 ÷ (1 + RS))' });
-        steps.push({ label: 'Current RSI', value: `${typeof metricValue === 'number' ? metricValue.toFixed(2) : metricValue}` });
+        steps.push({ label: 'Max drawdown', value: `${fmt(metricValue)}%` });
       }
       break;
 
@@ -827,18 +1298,18 @@ function generateCalculationTrace(metricKey: string, metricValue: any, studyResu
           steps.push({ label: 'Identify gaps', value: `Days where Open ${metricKey === 'avgGapUp' ? '>' : '<'} Prior Close` });
           steps.push({ label: 'Calculate each gap', value: '(Open - Prior Close) ÷ Prior Close × 100' });
           steps.push({ label: 'Average all gaps', value: `Sum(gaps) ÷ ${gapData.count}` });
-          steps.push({ label: 'Average gap', value: `${typeof metricValue === 'number' ? metricValue.toFixed(2) : metricValue}%` });
+          steps.push({ label: 'Average gap', value: `${fmt(metricValue)}%` });
         }
       }
       break;
 
     case 'gapFillRate':
     case 'fillRate':
-      if (studyResult.gapsUp || studyResult.gapsDown) {
+      if ((studyResult.gapsUp || studyResult.gapsDown) && steps.length === 0) {
         steps.push({ label: 'Count total gaps', value: 'Gaps > 0.5% threshold' });
         steps.push({ label: 'Count filled gaps', value: 'Gaps where price returned to prior close' });
         steps.push({ label: 'Calculate fill rate', value: 'Filled ÷ Total × 100' });
-        steps.push({ label: 'Gap fill rate', value: `${typeof metricValue === 'number' ? metricValue.toFixed(2) : metricValue}%` });
+        steps.push({ label: 'Gap fill rate', value: `${fmt(metricValue)}%` });
       }
       break;
 
@@ -846,8 +1317,8 @@ function generateCalculationTrace(metricKey: string, metricValue: any, studyResu
     case 'bias':
       if (studyResult?.summary?.avgClosePosition !== undefined) {
         const avgPos = studyResult.summary.avgClosePosition;
-        inputs.push({ name: 'Avg Close Position', value: `${avgPos.toFixed(1)}%` });
-        steps.push({ label: 'Calculate avg close position', value: `${avgPos.toFixed(1)}%`, formula: 'Average of (Close - Low) / (High - Low) × 100' });
+        inputs.push({ name: 'Avg Close Position', value: `${fmt(avgPos, 1)}%` });
+        steps.push({ label: 'Calculate avg close position', value: `${fmt(avgPos, 1)}%`, formula: 'Average of (Close - Low) / (High - Low) × 100' });
         steps.push({ label: 'Apply bias threshold', value: avgPos > 55 ? '> 55% → Bullish' : avgPos < 45 ? '< 45% → Bearish' : '45-55% → Neutral' });
         steps.push({ label: 'Final bias', value: metricValue });
       }
@@ -860,7 +1331,7 @@ function generateCalculationTrace(metricKey: string, metricValue: any, studyResu
         steps.push({ label: 'Example: Day with H=$150, L=$145, C=$148', value: '(148-145) ÷ (150-145) = 60%', formula: '(148 - 145) ÷ (150 - 145) × 100' });
         steps.push({ label: 'Sum all daily positions', value: 'Σ(close positions)' });
         steps.push({ label: 'Divide by count', value: `Sum ÷ ${studyResult.barsAnalyzed}` });
-        steps.push({ label: 'Average close position', value: `${typeof metricValue === 'number' ? metricValue.toFixed(1) : metricValue}%` });
+        steps.push({ label: 'Average close position', value: `${fmt(metricValue, 1)}%` });
       }
       break;
 
@@ -871,7 +1342,7 @@ function generateCalculationTrace(metricKey: string, metricValue: any, studyResu
         inputs.push({ name: 'Total Days', value: studyResult.barsAnalyzed?.toString() || 'N/A' });
         steps.push({ label: 'Count days where Close > Open', value: gd.count?.toString() || 'N/A', formula: 'Green Day = Close > Open' });
         steps.push({ label: 'Divide by total days', value: `${gd.count} ÷ ${studyResult.barsAnalyzed}`, formula: 'Green Days ÷ Total Days' });
-        steps.push({ label: 'Multiply by 100', value: `${typeof metricValue === 'number' ? metricValue.toFixed(1) : metricValue}%` });
+        steps.push({ label: 'Multiply by 100', value: `${fmt(metricValue, 1)}%` });
       }
       break;
 
@@ -882,7 +1353,7 @@ function generateCalculationTrace(metricKey: string, metricValue: any, studyResu
         inputs.push({ name: 'Total Days', value: studyResult.barsAnalyzed?.toString() || 'N/A' });
         steps.push({ label: 'Count days where Close < Open', value: rd.count?.toString() || 'N/A', formula: 'Red Day = Close < Open' });
         steps.push({ label: 'Divide by total days', value: `${rd.count} ÷ ${studyResult.barsAnalyzed}`, formula: 'Red Days ÷ Total Days' });
-        steps.push({ label: 'Multiply by 100', value: `${typeof metricValue === 'number' ? metricValue.toFixed(1) : metricValue}%` });
+        steps.push({ label: 'Multiply by 100', value: `${fmt(metricValue, 1)}%` });
       }
       break;
 
@@ -895,7 +1366,7 @@ function generateCalculationTrace(metricKey: string, metricValue: any, studyResu
         steps.push({ label: 'Calculate close position for each day', value: '(Close - Low) ÷ (High - Low) × 100' });
         steps.push({ label: 'Count days with position > 80%', value: cnh.count?.toString() || 'N/A', formula: 'ClosePosition > 80% = Near High' });
         steps.push({ label: 'Calculate percentage', value: `${cnh.count} ÷ ${studyResult.barsAnalyzed} × 100` });
-        steps.push({ label: 'Closed near high %', value: `${typeof metricValue === 'number' ? metricValue.toFixed(1) : metricValue}%` });
+        steps.push({ label: 'Closed near high %', value: `${fmt(metricValue, 1)}%` });
       }
       break;
 
@@ -908,7 +1379,7 @@ function generateCalculationTrace(metricKey: string, metricValue: any, studyResu
         steps.push({ label: 'Calculate close position for each day', value: '(Close - Low) ÷ (High - Low) × 100' });
         steps.push({ label: 'Count days with position < 20%', value: cnl.count?.toString() || 'N/A', formula: 'ClosePosition < 20% = Near Low' });
         steps.push({ label: 'Calculate percentage', value: `${cnl.count} ÷ ${studyResult.barsAnalyzed} × 100` });
-        steps.push({ label: 'Closed near low %', value: `${typeof metricValue === 'number' ? metricValue.toFixed(1) : metricValue}%` });
+        steps.push({ label: 'Closed near low %', value: `${fmt(metricValue, 1)}%` });
       }
       break;
 
@@ -922,7 +1393,7 @@ function generateCalculationTrace(metricKey: string, metricValue: any, studyResu
         steps.push({ label: 'Calculate body %', value: '|Close - Open| ÷ (High - Low)', formula: 'Body % = |Close - Open| ÷ Range' });
         steps.push({ label: 'Count doji days', value: `Body % < ${(threshold * 100).toFixed(0)}%`, formula: `Doji = Body % < ${(threshold * 100).toFixed(0)}%` });
         steps.push({ label: 'Calculate percentage', value: `${doji.count} ÷ ${studyResult.barsAnalyzed} × 100` });
-        steps.push({ label: 'Doji days %', value: `${typeof metricValue === 'number' ? metricValue.toFixed(1) : metricValue}%` });
+        steps.push({ label: 'Doji days %', value: `${fmt(metricValue, 1)}%` });
       }
       break;
 
@@ -936,7 +1407,7 @@ function generateCalculationTrace(metricKey: string, metricValue: any, studyResu
         steps.push({ label: 'Calculate daily move', value: '(Close - Open) ÷ Open × 100', formula: 'Daily Move % = (Close - Open) ÷ Open × 100' });
         steps.push({ label: 'Count strong green days', value: `Move ≥ ${threshold}%`, formula: `Strong Green = Move ≥ ${threshold}%` });
         steps.push({ label: 'Calculate percentage', value: `${sg.count} ÷ ${studyResult.barsAnalyzed} × 100` });
-        steps.push({ label: 'Strong green days %', value: `${typeof metricValue === 'number' ? metricValue.toFixed(1) : metricValue}%` });
+        steps.push({ label: 'Strong green days %', value: `${fmt(metricValue, 1)}%` });
       }
       break;
 
@@ -950,17 +1421,15 @@ function generateCalculationTrace(metricKey: string, metricValue: any, studyResu
         steps.push({ label: 'Calculate daily move', value: '(Open - Close) ÷ Open × 100', formula: 'Daily Loss % = (Open - Close) ÷ Open × 100' });
         steps.push({ label: 'Count strong red days', value: `Loss ≥ ${threshold}%`, formula: `Strong Red = Loss ≥ ${threshold}%` });
         steps.push({ label: 'Calculate percentage', value: `${sr.count} ÷ ${studyResult.barsAnalyzed} × 100` });
-        steps.push({ label: 'Strong red days %', value: `${typeof metricValue === 'number' ? metricValue.toFixed(1) : metricValue}%` });
+        steps.push({ label: 'Strong red days %', value: `${fmt(metricValue, 1)}%` });
       }
       break;
+  }
 
-    default:
-      // Generic trace for any numeric value
-      if (typeof metricValue === 'number') {
-        steps.push({ label: 'Raw calculation', value: metricValue.toFixed(4) });
-        steps.push({ label: 'Formatted result', value: formatMetricForTrace(metricKey, metricValue) });
-      }
-      break;
+  // Default fallback - always show something useful
+  if (steps.length === 0 && typeof metricValue === 'number') {
+    steps.push({ label: 'Raw calculation', value: metricValue.toFixed(4) });
+    steps.push({ label: 'Formatted result', value: formatMetricForTrace(metricKey, metricValue) });
   }
 
   return steps.length > 0 ? { steps, inputs } : null;
