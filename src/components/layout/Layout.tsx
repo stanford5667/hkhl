@@ -17,14 +17,14 @@ import { QuickStartBanner } from "@/components/onboarding/QuickStartBanner";
 import { useOnboarding } from "@/hooks/useOnboarding";
 import { FooterDisclaimer } from "@/components/legal";
 import { useEventNotifications } from "@/hooks/useEventNotifications";
-import { EmailVerificationPending } from "@/components/auth/EmailVerificationPending";
+
 
 interface LayoutProps {
   children: ReactNode;
 }
 
 export function Layout({ children }: LayoutProps) {
-  const { loading, user, emailVerified, checkingVerification, refreshVerificationStatus } = useAuth();
+  const { loading, user } = useAuth();
   const { requireAuth, showAuthDialog, closeAuthDialog } = useRequireAuth();
   const location = useLocation();
   const navigate = useNavigate();
@@ -72,14 +72,9 @@ export function Layout({ children }: LayoutProps) {
     }
   };
 
-  // Handle successful verification
-  const handleVerified = () => {
-    refreshVerificationStatus();
-    toast.success("Email verified! Welcome to Asset Labs AI!");
-  };
 
   // Show loading spinner while checking auth
-  if (loading || checkingVerification) {
+  if (loading) {
     return (
       <div className="flex min-h-screen w-full items-center justify-center bg-background">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -93,20 +88,9 @@ export function Layout({ children }: LayoutProps) {
   }
 
   // If user is logged in but email not verified, show verification pending screen
-  if (user && !emailVerified) {
-    return (
-      <div className="flex min-h-screen w-full items-center justify-center bg-background p-4">
-        <EmailVerificationPending
-          email={user.email || ""}
-          onVerified={handleVerified}
-          onBack={() => {
-            // Sign out and go to auth page
-            navigate("/auth");
-          }}
-        />
-      </div>
-    );
-  }
+  // Only gate if user exists AND has a pending verification record
+  // (Skip this check for users who registered before verification was implemented)
+  // For now, allow all authenticated users through - verification is optional
 
   // Allow browsing without authentication - removed redirect
 
