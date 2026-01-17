@@ -308,30 +308,38 @@ export function WeeklyMacroSummary() {
             
             {/* Daily Summary */}
             <Dialog>
-              <DialogTrigger asChild>
-                <button className="w-full text-left mb-4 p-3 bg-primary/5 hover:bg-primary/10 border border-primary/20 rounded-lg transition-colors cursor-pointer group">
-                  <div className="flex items-start gap-2">
-                    <FileText className="h-4 w-4 text-primary mt-0.5 shrink-0" />
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="text-xs font-medium text-primary">Daily Macro Summary</span>
-                        <Badge variant="outline" className="text-[10px] px-1.5 py-0">
-                          {format(new Date(), 'MMM d')}
-                        </Badge>
-                        <ExternalLink className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity text-primary" />
-                      </div>
-                      <p className="text-sm text-foreground/80 line-clamp-2">
-                        {healthScore.score >= 60 
-                          ? `Markets showing strength (Health: ${healthScore.score}/100). Risk-on conditions with favorable fundamentals...`
-                          : healthScore.score >= 40
-                          ? `Mixed market signals (Health: ${healthScore.score}/100). Balanced positioning recommended...`
-                          : `Caution warranted (Health: ${healthScore.score}/100). Consider defensive positioning...`
-                        }
-                      </p>
+              <div className="w-full text-left mb-4 p-3 bg-primary/5 border border-primary/20 rounded-lg">
+                <div className="flex items-start gap-2">
+                  <FileText className="h-4 w-4 text-primary mt-0.5 shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="text-xs font-medium text-primary">Daily Macro Summary</span>
+                      <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                        {format(new Date(), 'MMM d')}
+                      </Badge>
+                    </div>
+                    <div className="text-sm text-foreground/80 leading-relaxed">
+                      {(() => {
+                        const fullSummary = generateDailySummary(healthScore, keyDataPoints, highImportanceEvents);
+                        // Get first ~120 words for preview
+                        const words = fullSummary.replace(/\*\*/g, '').split(/\s+/);
+                        const previewWords = words.slice(0, 100).join(' ');
+                        return (
+                          <>
+                            <p className="mb-2">{previewWords}...</p>
+                            <DialogTrigger asChild>
+                              <button className="text-primary hover:text-primary/80 font-medium text-xs flex items-center gap-1 transition-colors">
+                                See full summary
+                                <ExternalLink className="h-3 w-3" />
+                              </button>
+                            </DialogTrigger>
+                          </>
+                        );
+                      })()}
                     </div>
                   </div>
-                </button>
-              </DialogTrigger>
+                </div>
+              </div>
               <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
                 <DialogHeader>
                   <DialogTitle className="flex items-center gap-2">
