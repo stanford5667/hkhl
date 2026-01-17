@@ -620,17 +620,16 @@ export function StudyResultCard({
         </div>
       )}
 
-      {/* Timeline-Aware Metrics Display */}
+      {/* Metrics Display */}
       <div className="p-3 border-b bg-gradient-to-b from-background to-muted/10">
-        {/* Get primary analysis data - use the selected timeline from analysis array */}
         {(() => {
           const selectedForwardDays = studyParams[study.id]?.forwardDays;
-          const analysisData = result.analysis?.find((a: any) => a.days === parseInt(selectedForwardDays)) 
-            || result.analysis?.[result.analysis.length - 1] // Use last (longest) if not found
+          const analysisData = result.analysis?.find((a: any) => a.days === parseInt(selectedForwardDays))
+            || result.analysis?.[result.analysis.length - 1]
             || null;
-          
-          const timelineLabel = analysisData 
-            ? analysisData.days === 1 ? '1 Day' 
+
+          const timelineLabel = analysisData
+            ? analysisData.days === 1 ? '1 Day'
               : analysisData.days === 5 ? '1 Week'
               : analysisData.days === 21 ? '1 Month'
               : analysisData.days === 63 ? '3 Months'
@@ -639,123 +638,181 @@ export function StudyResultCard({
               : `${analysisData.days} Days`
             : 'Forward';
 
-          const avgMove = analysisData?.avgReturn ?? result.avgGain ?? result.avg_gain ?? result.avgReturn ?? 0;
-          const winRate = analysisData?.winRate ?? result.win_rate ?? result.winRate ?? result.hitRate ?? 0;
-          // Fallback to result-level best/worst or calculate reasonable defaults from returns data
-          const best = analysisData?.best ?? result.best ?? result.maxGain ?? result.max_gain ?? (avgMove > 0 ? avgMove * 3 : avgMove * 0.5);
-          const worst = analysisData?.worst ?? result.worst ?? result.maxLoss ?? result.max_loss ?? (avgMove < 0 ? avgMove * 3 : avgMove * -2);
-          const median = analysisData?.median ?? result.median ?? avgMove * 0.8;
+          const Tile = ({ label, value, metricKey, valueClassName }: {
+            label: string;
+            value: string;
+            metricKey: string;
+            valueClassName?: string;
+          }) => (
+            <button
+              onClick={() => setSelectedMetric({ key: metricKey, value })}
+              className="flex flex-col p-2.5 rounded-xl border bg-muted/30 border-border/50 hover:border-primary/50 hover:shadow-lg transition-all cursor-pointer group"
+            >
+              <span className="text-[10px] text-muted-foreground uppercase tracking-wide font-medium mb-0.5">{label}</span>
+              <span className={cn("text-xl font-bold font-mono", valueClassName ?? 'text-foreground')}>
+                {value}
+              </span>
+            </button>
+          );
 
-          return (
-            <>
-              {/* Timeline Header */}
-              {analysisData && (
+          // 1) Percentage studies (e.g., Intraday Direction, Daily Win Rate)
+          if (result.type === 'percentage' && typeof result.percentage === 'number') {
+            return (
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                <Tile
+                  label="Up Day %"
+                  metricKey="upDayPercent"
+                  value={`${result.percentage.toFixed(1)}%`}
+                  valueClassName={result.percentage >= 55 ? 'text-emerald-500' : result.percentage <= 45 ? 'text-red-500' : 'text-foreground'}
+                />
+                <Tile label="Up Days" metricKey="up_days" value={String(result.up_days ?? 0)} />
+                <Tile label="Down Days" metricKey="down_days" value={String(result.down_days ?? 0)} />
+                <Tile label="Total Days" metricKey="total_days" value={String(result.total_days ?? 0)} />
+              </div>
+            );
+          }
+
+          // 2) Calendar studies (day-of-week / month-of-year)
+          if (result.type === 'calendar' && Array.isArray(result.stats)) {
+            const stats = result.stats as Array<{ name: string; avgReturn?: number; hitRate?: number; count?: number }>;
+            const total = stats.reduce((sum, s) => sum + (s.count ?? 0), 0);
+            const best = stats.reduce((a, b) => ((b.avgReturn ?? -Infinity) > (a.avgReturn ?? -Infinity) ? b : a), stats[0]);
+            const worst = stats.reduce((a, b) => ((b.avgReturn ?? Infinity) < (a.avgReturn ?? Infinity) ? b : a), stats[0]);
+            const avgHitRate = total > 0
+              ? stats.reduce((sum, s) => sum + (s.hitRate ?? 0) * (s.count ?? 0), 0) / total
+              : 0;
+
+            return (
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                <Tile label="Periods" metricKey="occurrences" value={String(total)} />
+                <Tile label="Best" metricKey="best_return" value={`${(best?.avgReturn ?? 0) >= 0 ? '+' : ''}${(best?.avgReturn ?? 0).toFixed(2)}%`} valueClassName={(best?.avgReturn ?? 0) >= 0 ? 'text-emerald-500' : 'text-red-500'} />
+                <Tile label="Worst" metricKey="worst_return" value={`${(worst?.avgReturn ?? 0) >= 0 ? '+' : ''}${(worst?.avgReturn ?? 0).toFixed(2)}%`} valueClassName={(worst?.avgReturn ?? 0) >= 0 ? 'text-emerald-500' : 'text-red-500'} />
+                <Tile label="Avg Hit Rate" metricKey="win_rate" value={`${avgHitRate.toFixed(1)}%`} valueClassName={avgHitRate >= 55 ? 'text-emerald-500' : avgHitRate <= 45 ? 'text-red-500' : 'text-foreground'} />
+              </div>
+            );
+          }
+
+          // 3) Distribution studies
+          if (result.type === 'distribution' && typeof result.mean === 'number') {
+            return (
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                <Tile label="Mean" metricKey="avg_move" value={`${result.mean >= 0 ? '+' : ''}${result.mean.toFixed(2)}%`} valueClassName={result.mean >= 0 ? 'text-emerald-500' : 'text-red-500'} />
+                <Tile label="Std Dev" metricKey="volatility" value={`${(result.stdDev ?? 0).toFixed(2)}%`} />
+                <Tile label="Best" metricKey="best_return" value={`${(result.max ?? 0) >= 0 ? '+' : ''}${(result.max ?? 0).toFixed(2)}%`} valueClassName={(result.max ?? 0) >= 0 ? 'text-emerald-500' : 'text-red-500'} />
+                <Tile label="Worst" metricKey="worst_return" value={`${(result.min ?? 0) >= 0 ? '+' : ''}${(result.min ?? 0).toFixed(2)}%`} valueClassName={(result.min ?? 0) >= 0 ? 'text-emerald-500' : 'text-red-500'} />
+              </div>
+            );
+          }
+
+          // 4) Streaks
+          if (result.type === 'streaks') {
+            return (
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                <Tile label="Max Up" metricKey="maxUpStreak" value={String(result.maxUpStreak ?? 0)} />
+                <Tile label="Max Down" metricKey="maxDownStreak" value={String(result.maxDownStreak ?? 0)} />
+                <Tile label="Avg Up" metricKey="avgUpStreak" value={(result.avgUpStreak ?? 0).toFixed(1)} />
+                <Tile label="Avg Down" metricKey="avgDownStreak" value={(result.avgDownStreak ?? 0).toFixed(1)} />
+              </div>
+            );
+          }
+
+          // 5) Default (conditional studies with analysis array)
+          if (analysisData) {
+            const avgMove = analysisData?.avgReturn ?? result.avgGain ?? result.avg_gain ?? result.avgReturn ?? 0;
+            const winRate = analysisData?.winRate ?? result.win_rate ?? result.winRate ?? result.hitRate ?? 0;
+            const bestMove = analysisData?.best ?? result.best ?? result.maxGain ?? result.max_gain ?? (avgMove > 0 ? avgMove * 3 : avgMove * 0.5);
+            const worstMove = analysisData?.worst ?? result.worst ?? result.maxLoss ?? result.max_loss ?? (avgMove < 0 ? avgMove * 3 : avgMove * -2);
+            const medianMove = analysisData?.median ?? result.median ?? avgMove * 0.8;
+            const occurrences = analysisData?.occurrences ?? result.totalOccurrences ?? result.occurrences ?? result.total_signals ?? result.matchCount ?? 0;
+
+            return (
+              <>
                 <div className="flex items-center gap-2 mb-2">
                   <Badge variant="outline" className="text-[10px] font-semibold bg-primary/10 border-primary/30 px-2 py-0">
                     {timelineLabel} Outlook
                   </Badge>
                 </div>
-              )}
 
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                {/* TOTAL OCCURRENCES */}
-                <button
-                  onClick={() => setSelectedMetric({ key: 'occurrences', value: result.totalOccurrences || result.occurrences || 0 })}
-                  className="flex flex-col p-2.5 rounded-xl border bg-muted/30 border-border/50 hover:border-primary/50 hover:shadow-lg transition-all cursor-pointer group"
-                >
-                  <span className="text-[10px] text-muted-foreground uppercase tracking-wide font-medium mb-0.5">Occurrences</span>
-                  <span className="text-xl font-bold font-mono text-foreground">
-                    {result.totalOccurrences || result.occurrences || result.total_signals || result.matchCount || 0}
-                  </span>
-                </button>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  <button
+                    onClick={() => setSelectedMetric({ key: 'occurrences', value: occurrences })}
+                    className="flex flex-col p-2.5 rounded-xl border bg-muted/30 border-border/50 hover:border-primary/50 hover:shadow-lg transition-all cursor-pointer group"
+                  >
+                    <span className="text-[10px] text-muted-foreground uppercase tracking-wide font-medium mb-0.5">Occurrences</span>
+                    <span className="text-xl font-bold font-mono text-foreground">{occurrences}</span>
+                  </button>
 
-                {/* AVG MOVE (not "gain" since it can be negative) */}
-                <button
-                  onClick={() => setSelectedMetric({ key: 'avg_move', value: avgMove })}
-                  className="flex flex-col p-2.5 rounded-xl border bg-muted/30 border-border/50 hover:border-primary/50 hover:shadow-lg transition-all cursor-pointer group"
-                >
-                  <span className="text-[10px] text-muted-foreground uppercase tracking-wide font-medium mb-0.5">Avg Move ({timelineLabel})</span>
-                  <span className={cn("text-xl font-bold font-mono", avgMove >= 0 ? "text-emerald-500" : "text-red-500")}>
-                    {avgMove >= 0 ? '+' : ''}{avgMove.toFixed(2)}%
-                  </span>
-                </button>
+                  <button
+                    onClick={() => setSelectedMetric({ key: 'avg_move', value: avgMove })}
+                    className="flex flex-col p-2.5 rounded-xl border bg-muted/30 border-border/50 hover:border-primary/50 hover:shadow-lg transition-all cursor-pointer group"
+                  >
+                    <span className="text-[10px] text-muted-foreground uppercase tracking-wide font-medium mb-0.5">Avg Move ({timelineLabel})</span>
+                    <span className={cn("text-xl font-bold font-mono", avgMove >= 0 ? "text-emerald-500" : "text-red-500")}>
+                      {avgMove >= 0 ? '+' : ''}{avgMove.toFixed(2)}%
+                    </span>
+                  </button>
 
-                {/* % POSITIVE (clearer than "win rate") */}
-                <button
-                  onClick={() => setSelectedMetric({ key: 'win_rate', value: winRate })}
-                  className="flex flex-col p-2.5 rounded-xl border bg-muted/30 border-border/50 hover:border-primary/50 hover:shadow-lg transition-all cursor-pointer group"
-                >
-                  <span className="text-[10px] text-muted-foreground uppercase tracking-wide font-medium mb-0.5">% Positive</span>
-                  <span className={cn("text-xl font-bold font-mono", winRate >= 55 ? "text-emerald-500" : winRate <= 45 ? "text-red-500" : "text-foreground")}>
-                    {winRate.toFixed(1)}%
-                  </span>
-                </button>
+                  <button
+                    onClick={() => setSelectedMetric({ key: 'win_rate', value: winRate })}
+                    className="flex flex-col p-2.5 rounded-xl border bg-muted/30 border-border/50 hover:border-primary/50 hover:shadow-lg transition-all cursor-pointer group"
+                  >
+                    <span className="text-[10px] text-muted-foreground uppercase tracking-wide font-medium mb-0.5">% Positive</span>
+                    <span className={cn("text-xl font-bold font-mono", winRate >= 55 ? "text-emerald-500" : winRate <= 45 ? "text-red-500" : "text-foreground")}>
+                      {winRate.toFixed(1)}%
+                    </span>
+                  </button>
 
-                {/* MEDIAN MOVE */}
-                <button
-                  onClick={() => setSelectedMetric({ key: 'median', value: median })}
-                  className="flex flex-col p-2.5 rounded-xl border bg-muted/30 border-border/50 hover:border-primary/50 hover:shadow-lg transition-all cursor-pointer group"
-                >
-                  <span className="text-[10px] text-muted-foreground uppercase tracking-wide font-medium mb-0.5">Median Move</span>
-                  <span className={cn("text-xl font-bold font-mono", median >= 0 ? "text-emerald-500" : "text-red-500")}>
-                    {median >= 0 ? '+' : ''}{median.toFixed(2)}%
-                  </span>
-                </button>
-              </div>
+                  <button
+                    onClick={() => setSelectedMetric({ key: 'median', value: medianMove })}
+                    className="flex flex-col p-2.5 rounded-xl border bg-muted/30 border-border/50 hover:border-primary/50 hover:shadow-lg transition-all cursor-pointer group"
+                  >
+                    <span className="text-[10px] text-muted-foreground uppercase tracking-wide font-medium mb-0.5">Median Move</span>
+                    <span className={cn("text-xl font-bold font-mono", medianMove >= 0 ? "text-emerald-500" : "text-red-500")}>
+                      {medianMove >= 0 ? '+' : ''}{medianMove.toFixed(2)}%
+                    </span>
+                  </button>
+                </div>
 
-              {/* Probability Range Visual - Always show when we have data */}
-              {(result.totalOccurrences || result.occurrences || avgMove !== 0) && (
                 <div className="mt-3 p-2 rounded-lg bg-muted/20 border border-border/40">
                   <div className="flex items-center justify-between mb-1">
                     <span className="text-[9px] text-muted-foreground uppercase tracking-wide font-semibold">
                       Historical Range ({timelineLabel})
                     </span>
-                    <span className="text-[9px] text-muted-foreground">
-                      {analysisData?.occurrences || result.totalOccurrences || result.occurrences || 0} events
-                    </span>
+                    <span className="text-[9px] text-muted-foreground">{occurrences} events</span>
                   </div>
-                  
-                  {/* Range Bar Visualization */}
+
                   <div className="relative h-8">
-                    {/* Background track */}
                     <div className="absolute inset-y-0 left-0 right-0 bg-muted/40 rounded-full" />
-                    
-                    {/* Calculate positions - normalize to 0-100 range */}
+
                     {(() => {
-                      const range = Math.max(Math.abs(worst), Math.abs(best), 1);
-                      const scale = 45; // Use 45% of width for each side (leaving room for center)
+                      const range = Math.max(Math.abs(worstMove), Math.abs(bestMove), 1);
+                      const scale = 45;
                       const centerPos = 50;
-                      
-                      // Position calculations (clamped)
-                      const worstPos = Math.max(5, Math.min(95, centerPos + (worst / range) * scale));
-                      const bestPos = Math.max(5, Math.min(95, centerPos + (best / range) * scale));
+
+                      const worstPos = Math.max(5, Math.min(95, centerPos + (worstMove / range) * scale));
+                      const bestPos = Math.max(5, Math.min(95, centerPos + (bestMove / range) * scale));
                       const avgPos = Math.max(5, Math.min(95, centerPos + (avgMove / range) * scale));
-                      const medianPos = Math.max(5, Math.min(95, centerPos + (median / range) * scale));
 
                       return (
                         <>
-                          {/* Zero line */}
                           <div className="absolute top-0 bottom-0 left-1/2 w-px bg-border" />
-                          
-                          {/* Range bar from worst to best */}
-                          <div 
+
+                          <div
                             className="absolute top-3 bottom-3 bg-gradient-to-r from-red-500/40 via-muted-foreground/20 to-emerald-500/40 rounded-full"
-                            style={{ 
-                              left: `${Math.min(worstPos, bestPos)}%`, 
-                              right: `${100 - Math.max(worstPos, bestPos)}%` 
+                            style={{
+                              left: `${Math.min(worstPos, bestPos)}%`,
+                              right: `${100 - Math.max(worstPos, bestPos)}%`,
                             }}
                           />
-                          
-                          {/* Worst marker */}
-                          <div 
+
+                          <div
                             className="absolute top-1/2 -translate-y-1/2 flex flex-col items-center"
                             style={{ left: `${worstPos}%`, transform: 'translateX(-50%) translateY(-50%)' }}
                           >
                             <div className="w-2.5 h-2.5 rounded-full bg-red-500 border-2 border-background shadow-md" />
                           </div>
-                          
-                          {/* Average marker */}
-                          <div 
+
+                          <div
                             className="absolute top-1/2 -translate-y-1/2"
                             style={{ left: `${avgPos}%`, transform: 'translateX(-50%) translateY(-50%)' }}
                           >
@@ -764,9 +821,8 @@ export function StudyResultCard({
                               avgMove >= 0 ? "bg-emerald-500" : "bg-red-500"
                             )} />
                           </div>
-                          
-                          {/* Best marker */}
-                          <div 
+
+                          <div
                             className="absolute top-1/2 -translate-y-1/2"
                             style={{ left: `${bestPos}%`, transform: 'translateX(-50%) translateY(-50%)' }}
                           >
@@ -776,8 +832,36 @@ export function StudyResultCard({
                       );
                     })()}
                   </div>
-                  
-                  {/* Legend */}
+                </div>
+              </>
+            );
+          }
+
+          // 6) Last-resort fallback: show first few primitive metrics
+          const fallbackMetrics = getDisplayMetrics().slice(0, 4);
+          if (fallbackMetrics.length > 0) {
+            return (
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                {fallbackMetrics.map(([key, raw]) => (
+                  <Tile
+                    key={key}
+                    label={key.replace(/_/g, ' ')}
+                    metricKey={key}
+                    value={formatValue(key, raw)}
+                  />
+                ))}
+              </div>
+            );
+          }
+
+          return (
+            <div className="text-xs text-muted-foreground">
+              No metrics available for this study result.
+            </div>
+          );
+        })()}
+      </div>
+
                   <div className="flex items-center justify-between mt-2 text-[10px]">
                     <div className="flex items-center gap-1">
                       <div className="w-2 h-2 rounded-full bg-red-500" />
