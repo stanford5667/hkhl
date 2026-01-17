@@ -633,6 +633,28 @@ export function StudyResultCard({
           const finalWinRate = analysisData?.winRate ?? winRate;
           const finalOccurrences = analysisData?.occurrences ?? occurrences;
           
+          // Generate study context explanation
+          const getStudyContext = () => {
+            const studyExplanations: Record<string, string> = {
+              'rsi_oversold': `This study tracks what happens to ${ticker} after RSI drops below oversold levels, signaling potential buying opportunities when the stock may be undervalued.`,
+              'rsi_overbought': `This study tracks what happens to ${ticker} after RSI rises above overbought levels, identifying potential reversal points when the stock may be overextended.`,
+              'rsi_analysis': `This study analyzes ${ticker}'s RSI momentum patterns to identify optimal entry points based on relative strength conditions.`,
+              'volatility_breakout': `This study measures ${ticker}'s price behavior after volatility expansions, tracking how the stock moves following periods of increased price swings.`,
+              'volatility_analysis': `This study examines ${ticker}'s volatility regime to help size positions appropriately and set realistic price targets.`,
+              'trend_strength': `This study evaluates the strength of ${ticker}'s current trend using multiple indicators to assess momentum sustainability.`,
+              'momentum_divergence': `This study identifies divergences between ${ticker}'s price action and momentum indicators, which often precede trend reversals.`,
+              'drawdown_analysis': `This study analyzes ${ticker}'s historical drawdown patterns to understand typical pullback depths and recovery times.`,
+              'volume_spike': `This study tracks ${ticker}'s price movement following unusual volume activity, which often signals institutional interest.`,
+              'gap_analysis': `This study examines how ${ticker} behaves after opening price gaps, measuring gap fill rates and continuation patterns.`,
+              'seasonal_patterns': `This study identifies ${ticker}'s recurring calendar-based tendencies, revealing periods of historical strength or weakness.`,
+              'mean_reversion': `This study measures ${ticker}'s tendency to revert to average prices after extreme moves, quantifying reversion speed and magnitude.`,
+              'support_resistance': `This study analyzes ${ticker}'s price reactions at key technical levels, measuring bounce and breakdown probabilities.`,
+              'moving_average_cross': `This study tracks ${ticker}'s performance following moving average crossovers, a classic trend-following signal.`,
+              'correlation_breakdown': `This study monitors when ${ticker} decouples from correlated assets, which may signal company-specific developments.`,
+            };
+            return studyExplanations[study.id] || `This study analyzes ${ticker}'s behavior under the "${study.name}" condition, measuring forward returns and win rates across ${finalOccurrences} historical occurrences.`;
+          };
+          
           // 1. Sample Size Assessment
           if (finalOccurrences > 0) {
             if (finalOccurrences >= 100) {
@@ -778,15 +800,24 @@ export function StudyResultCard({
             conclusionSentiment = 'neutral';
           }
           
-          return { interpretations, conclusion, conclusionSentiment };
+          const studyContext = getStudyContext();
+          
+          return { interpretations, conclusion, conclusionSentiment, studyContext };
         };
         
-        const { interpretations, conclusion, conclusionSentiment } = generateAISummary();
-        const hasData = interpretations.length > 0;
+        const { interpretations, conclusion, conclusionSentiment, studyContext } = generateAISummary();
+        const hasData = interpretations.length > 0 || studyContext;
         const [showDetails, setShowDetails] = React.useState(false);
         
         return hasData ? (
           <div className="px-3 py-3 border-b bg-gradient-to-r from-primary/5 via-primary/3 to-transparent">
+            {/* Study Context - What are we tracking? */}
+            {studyContext && (
+              <p className="text-xs text-muted-foreground leading-relaxed mb-3">
+                {studyContext}
+              </p>
+            )}
+            
             {/* Bottom Line - Always Visible */}
             {conclusion && (
               <div className={cn(
@@ -799,7 +830,7 @@ export function StudyResultCard({
                   <div className="p-1 rounded-md bg-primary/20">
                     <Lightbulb className="h-3 w-3 text-primary" />
                   </div>
-                  <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">AI Analysis</span>
+                  <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Bottom Line</span>
                 </div>
                 <p className={cn(
                   "text-xs font-medium leading-relaxed",

@@ -25,8 +25,15 @@ import {
 import {
   Bookmark, Search, Trash2, ExternalLink, Calendar, 
   ChevronDown, ChevronRight, TrendingUp, TrendingDown,
-  BarChart3, Filter, Clock, RefreshCcw, Loader2, X
+  BarChart3, Filter, Clock, RefreshCcw, Loader2, X,
+  Share2, Twitter, Link2, Copy, Eye
 } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -50,6 +57,7 @@ interface SavedStudy {
 interface SavedStudiesPanelProps {
   onSelectStudy?: (study: SavedStudy) => void;
   onNavigateToTicker?: (ticker: string) => void;
+  onViewOriginalResults?: (study: SavedStudy) => void;
   isOpen: boolean;
   onClose: () => void;
 }
@@ -57,6 +65,7 @@ interface SavedStudiesPanelProps {
 export function SavedStudiesPanel({ 
   onSelectStudy, 
   onNavigateToTicker,
+  onViewOriginalResults,
   isOpen,
   onClose
 }: SavedStudiesPanelProps) {
@@ -340,23 +349,73 @@ export function SavedStudiesPanel({
                               
                               {/* Actions */}
                               <div className="flex items-center gap-2 mt-3">
-                                {onSelectStudy && (
+                                {onViewOriginalResults && (
                                   <Button 
                                     size="sm" 
-                                    variant="outline" 
+                                    variant="default" 
                                     className="h-7 text-xs gap-1 flex-1"
-                                    onClick={() => onSelectStudy(study)}
+                                    onClick={() => onViewOriginalResults(study)}
                                   >
-                                    <BarChart3 className="h-3.5 w-3.5" />
-                                    View Details
+                                    <Eye className="h-3.5 w-3.5" />
+                                    View Results
                                   </Button>
                                 )}
+                                
+                                {/* Share Dropdown */}
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button 
+                                      size="sm" 
+                                      variant="outline" 
+                                      className="h-7 text-xs gap-1"
+                                    >
+                                      <Share2 className="h-3.5 w-3.5" />
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end" className="w-48">
+                                    <DropdownMenuItem
+                                      onClick={() => {
+                                        const text = `📊 ${study.ticker} ${study.study_name}\n\n` +
+                                          `Win Rate: ${study.result.analysis?.[0]?.winRate?.toFixed(1) ?? 'N/A'}%\n` +
+                                          `Avg Move: ${study.result.analysis?.[0]?.avgReturn?.toFixed(2) ?? 'N/A'}%\n\n` +
+                                          `Analyzed with Quant Lab`;
+                                        window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`, '_blank');
+                                      }}
+                                    >
+                                      <Twitter className="h-4 w-4 mr-2" />
+                                      Share on X
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                      onClick={() => {
+                                        const text = `📊 ${study.ticker} ${study.study_name}\n\n` +
+                                          `Win Rate: ${study.result.analysis?.[0]?.winRate?.toFixed(1) ?? 'N/A'}%\n` +
+                                          `Avg Move: ${study.result.analysis?.[0]?.avgReturn?.toFixed(2) ?? 'N/A'}%`;
+                                        navigator.clipboard.writeText(text);
+                                        toast.success('Copied to clipboard!');
+                                      }}
+                                    >
+                                      <Copy className="h-4 w-4 mr-2" />
+                                      Copy Summary
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                      onClick={() => {
+                                        navigator.clipboard.writeText(window.location.href);
+                                        toast.success('Link copied!');
+                                      }}
+                                    >
+                                      <Link2 className="h-4 w-4 mr-2" />
+                                      Copy Link
+                                    </DropdownMenuItem>
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+
                                 {onNavigateToTicker && (
                                   <Button 
                                     size="sm" 
                                     variant="outline" 
                                     className="h-7 text-xs gap-1"
                                     onClick={() => onNavigateToTicker(study.ticker)}
+                                    title={`Go to ${study.ticker}`}
                                   >
                                     <ExternalLink className="h-3.5 w-3.5" />
                                   </Button>
