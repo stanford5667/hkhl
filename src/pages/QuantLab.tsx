@@ -50,7 +50,7 @@ import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { StudyVisualizations } from '@/components/quant-lab/StudyVisualizations';
 import { StudyResultCard } from '@/components/quant-lab/StudyResultCard';
-
+import { StudySetupCard } from '@/components/quant-lab/StudySetupCard';
 // Interactive Learning Components
 import { LearningProvider, useLearning } from '@/components/quant-lab/LearningContext';
 import { TutorialOverlay } from '@/components/quant-lab/TutorialOverlay';
@@ -1388,7 +1388,6 @@ export default function QuantLab() {
           ...data.result,
           barsAnalyzed: data.barsAnalyzed,
           dateRange: data.dateRange,
-          usedMockData: data.useMockData
         }
       }));
 
@@ -2132,68 +2131,59 @@ function QuantLabContent(props: any) {
               </div>
             ) : (
               <div className="flex flex-col items-center justify-center h-full text-center px-6">
-                {/* CENTRAL CONTROLS - Always visible */}
-                <div className="w-full max-w-md space-y-4 mb-8">
-                  {/* Time Period */}
-                  <Select value={period} onValueChange={setPeriod}>
-                    <SelectTrigger className="h-14 w-full text-lg font-bold rounded-xl border-2 border-muted-foreground/30 bg-background">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {PERIOD_OPTIONS.map((p) => (
-                        <SelectItem key={p.value} value={p.value} className="text-base font-medium">{p.label}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  
-                  {/* Ticker Search */}
-                  <div className="relative">
-                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-6 w-6 text-primary" />
-                    <Input
-                      placeholder="Enter ticker (e.g. AAPL)..."
-                      value={ticker}
-                      onChange={(e) => setTicker(e.target.value.toUpperCase())}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' && ticker.trim()) {
-                          handleSetTicker(ticker.trim());
-                          if (selectedStudies.length > 0) handleRunAllStudies();
-                        }
-                      }}
-                      className="h-14 pl-14 pr-4 text-xl font-bold font-mono tracking-wider bg-background border-2 border-primary focus:ring-2 focus:ring-primary/30 rounded-xl text-center placeholder:text-muted-foreground/40 placeholder:font-normal placeholder:text-base"
-                    />
-                  </div>
-                  
-                  {/* Analyze Button */}
-                  <Button
-                    onClick={() => {
-                      handleSetTicker(ticker);
-                      if (selectedStudies.length > 0) handleRunAllStudies();
-                    }}
-                    disabled={!ticker.trim() || selectedStudies.length === 0 || isRunning}
-                    variant="success"
-                    className="w-full h-14 text-lg font-bold rounded-xl"
-                  >
-                    {isRunning ? (
-                      <Loader2 className="h-5 w-5 animate-spin mr-2" />
-                    ) : (
-                      <Play className="h-5 w-5 mr-2" />
-                    )}
-                    {isRunning ? 'Running...' : `Run ${selectedTicker || ticker || 'Ticker'} Quant Study`}
-                  </Button>
-                </div>
-
                 {selectedStudies.length > 0 ? (
-                  <>
-                    {/* Big Ticker Display */}
-                    <div className="mb-4 flex items-center gap-2 px-6 py-3 rounded-2xl bg-gradient-to-r from-primary/10 to-primary/5 border-2 border-primary/30">
-                      <TrendingUp className="h-8 w-8 text-primary" />
-                      <span className="text-3xl md:text-4xl font-bold font-mono text-primary">${selectedTicker || '---'}</span>
+                  <div className="w-full max-w-3xl mx-auto space-y-4">
+                    {/* Compact controls (no giant run button) */}
+                    <div className="rounded-2xl border-2 bg-card p-4 text-left">
+                      <div className="grid gap-3 md:grid-cols-3 md:items-end">
+                        <div>
+                          <p className="text-[10px] text-muted-foreground uppercase tracking-wide font-semibold mb-1">Period</p>
+                          <Select value={period} onValueChange={setPeriod}>
+                            <SelectTrigger className="h-10 w-full rounded-xl border-2">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {PERIOD_OPTIONS.map((p) => (
+                                <SelectItem key={p.value} value={p.value} className="text-sm">
+                                  {p.label}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        <div className="md:col-span-2">
+                          <p className="text-[10px] text-muted-foreground uppercase tracking-wide font-semibold mb-1">Ticker</p>
+                          <Input
+                            placeholder="AAPL"
+                            value={ticker}
+                            onChange={(e) => setTicker(e.target.value.toUpperCase())}
+                            onBlur={() => ticker.trim() && handleSetTicker(ticker.trim())}
+                            className="h-10 font-mono font-bold tracking-wider rounded-xl border-2"
+                          />
+                        </div>
+                      </div>
+                      <p className="mt-2 text-xs text-muted-foreground">
+                        Set variables below, then run the study.
+                      </p>
                     </div>
-                    <p className="text-xl font-bold mb-2">Ready to Analyze</p>
-                    <p className="text-sm text-muted-foreground max-w-sm">
-                      Run <span className="font-semibold text-foreground">{getStudy(selectedStudies[0])?.name}</span> on <span className="font-mono font-bold text-foreground">${selectedTicker}</span>
-                    </p>
-                  </>
+
+                    {selectedStudies.map((studyId) => {
+                      const study = getStudy(studyId);
+                      if (!study) return null;
+                      return (
+                        <StudySetupCard
+                          key={studyId}
+                          study={study}
+                          ticker={selectedTicker || ticker || ''}
+                          studyParams={studyParams}
+                          updateParam={updateParam}
+                          runStudy={handleRunStudy}
+                          isRunning={isRunning}
+                        />
+                      );
+                    })}
+                  </div>
                 ) : (
                   <>
                     {/* Arrow pointing to sidebar on desktop */}
@@ -2201,7 +2191,7 @@ function QuantLabContent(props: any) {
                       <ChevronLeft className="h-8 w-8" />
                       <span className="text-lg font-semibold">Select a Quant Study</span>
                     </div>
-                    
+
                     <div className="p-8 rounded-2xl bg-gradient-to-br from-primary/10 to-primary/5 border-2 border-primary/30 border-dashed mb-6">
                       <FlaskConical className="h-16 w-16 text-primary/60" />
                     </div>
