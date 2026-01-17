@@ -393,7 +393,7 @@ serve(async (req) => {
       pageSize = 20,
       sortBy = 'sharpe',
       sortDirection = 'desc',
-      limit = 5000, // Reduced from 50000 to prevent edge function resource exhaustion
+      limit = 500, // Reduced to prevent edge function resource exhaustion
       useCache: requestedUseCache = true,
       refreshCache = false,
     } = body;
@@ -644,8 +644,8 @@ serve(async (req) => {
       }
     }
 
-    // 3-asset combinations (limited for performance in edge function)
-    const maxThreeAsset = Math.min(2000, limit - portfolioCount);
+    // 3-asset combinations (strictly limited to prevent resource exhaustion)
+    const maxThreeAsset = Math.min(200, limit - portfolioCount);
     let threeCount = 0;
     for (const combo of combinations(validTickers, 3)) {
       if (threeCount >= maxThreeAsset) break;
@@ -696,16 +696,17 @@ serve(async (req) => {
     // ═══════════════════════════════════════════════════════════════════════════
     // SAVE TO CACHE (if refreshing or cache was empty)
     // ═══════════════════════════════════════════════════════════════════════════
-    if (refreshCache || useCacheWrite) {
+    // Skip cache writes in real-time requests to conserve resources
+    // Cache can be populated via a separate scheduled job if needed
+    if (refreshCache) {
       console.log('Saving to cache...');
-
       // Clear old cache
       await supabase.from('screened_portfolios_cache').delete().lt('expires_at', new Date().toISOString());
-
-      // Insert in batches
-      const batchSize = 500;
-      for (let i = 0; i < allPortfolios.length; i += batchSize) {
-        const batch = allPortfolios.slice(i, i + batchSize).map(p => ({
+      // Insert in small batches
+      const batchSize = 100;
+      const toCache = allPortfolios.slice(0, 200); // Only cache first 200
+      for (let i = 0; i < toCache.length; i += batchSize) {
+        const batch = toCache.slice(i, i + batchSize).map(p => ({
           id: p.id,
           name: p.name,
           family: p.family,
@@ -720,7 +721,6 @@ serve(async (req) => {
           max_drawdown: p.metrics.maxDrawdown,
           data_points: p.metrics.dataPoints,
         }));
-
         await supabase.from('screened_portfolios_cache').upsert(batch, { onConflict: 'id' });
       }
       console.log('Cache updated');
