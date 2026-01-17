@@ -66,6 +66,8 @@ const PRO_FEATURES = [
   { icon: TrendingUp, text: 'Full portfolio screener access' },
   { icon: Bell, text: 'Save portfolios, studies & screens' },
   { icon: Zap, text: 'All Quant Lab studies (100+ available)' },
+  { icon: Crown, text: 'Deep conditional probability studies' },
+  { icon: Crown, text: 'Expanded datasets & asset coverage' },
   { icon: Crown, text: 'Extended historical timeframes' },
 ];
 
@@ -73,8 +75,6 @@ const COMING_SOON_FEATURES = [
   'Options flow screening',
   'Agentic news bots',
   'Hundreds of new studies',
-  'Deep conditional probability studies',
-  'Expanded datasets & asset coverage',
 ];
 
 export function UpgradeModal({ isOpen, feature, onClose, onUpgrade }: UpgradeModalProps) {
