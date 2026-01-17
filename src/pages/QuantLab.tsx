@@ -1259,8 +1259,6 @@ export default function QuantLab() {
   const [showHelp, setShowHelp] = useState(false);
   const [activeCategory, setActiveCategory] = useState(savedState?.activeCategory || 'basic');
   const [isSaving, setIsSaving] = useState<string | null>(null);
-  // Mobile panel state - moved up so it's available for addStudy callback
-  const [showStudyPanel, setShowStudyPanel] = useState(true);
 
   // Persist state to localStorage whenever key values change
   useEffect(() => {
@@ -1302,8 +1300,6 @@ export default function QuantLab() {
     setSelectedStudies([studyId]);
     setResults({});
     initStudyParams(studyId);
-    // On mobile, close study panel to show the setup/run card
-    setShowStudyPanel(false);
   }, [initStudyParams]);
 
   // Remove a study
@@ -1637,6 +1633,9 @@ function QuantLabContent(props: any) {
   
   // Auth state for prompting sign in/up
   const [showAuthSheet, setShowAuthSheet] = useState(false);
+  
+  // Mobile panel state
+  const [showStudyPanel, setShowStudyPanel] = useState(true);
   
   // Metric detail modal state
   const [selectedMetric, setSelectedMetric] = useState<{
@@ -1998,7 +1997,14 @@ function QuantLabContent(props: any) {
                               return (
                                 <button
                                   key={study.id}
-                                  onClick={() => isSelected ? removeStudy(study.id) : addStudy(study.id)}
+                                  onClick={() => {
+                                    if (isSelected) {
+                                      removeStudy(study.id);
+                                    } else {
+                                      addStudy(study.id);
+                                      setShowStudyPanel(false); // Close panel on mobile to show run card
+                                    }
+                                  }}
                                   className={cn(
                                     "w-full text-left p-3 rounded-xl border-2 transition-all",
                                     isSelected
