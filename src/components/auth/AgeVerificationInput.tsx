@@ -96,23 +96,23 @@ export function AgeVerificationInput({
   };
 
   return (
-    <div className={cn("space-y-3", className)}>
+    <div className={cn("space-y-2", className)}>
       {/* 18+ Rating Badge */}
       <div className="flex items-center justify-between">
-        <Label className="text-sm font-medium flex items-center gap-2">
-          <Calendar className="h-4 w-4 text-muted-foreground" />
+        <Label className="text-xs font-medium flex items-center gap-1.5">
+          <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
           Date of Birth
         </Label>
-        <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-amber-500/10 border border-amber-500/30">
-          <ShieldCheck className="h-3.5 w-3.5 text-amber-500" />
-          <span className="text-xs font-semibold text-amber-500">18+</span>
+        <div className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-amber-500/10 border border-amber-500/30">
+          <ShieldCheck className="h-3 w-3 text-amber-500" />
+          <span className="text-[10px] font-semibold text-amber-500">18+</span>
         </div>
       </div>
 
       {/* DOB Inputs */}
       <div className="grid grid-cols-3 gap-2">
         <Select value={month} onValueChange={handleMonthChange}>
-          <SelectTrigger className="h-11">
+          <SelectTrigger className="h-9 text-xs">
             <SelectValue placeholder="Month" />
           </SelectTrigger>
           <SelectContent>
@@ -125,7 +125,7 @@ export function AgeVerificationInput({
         </Select>
 
         <Select value={day} onValueChange={handleDayChange}>
-          <SelectTrigger className="h-11">
+          <SelectTrigger className="h-9 text-xs">
             <SelectValue placeholder="Day" />
           </SelectTrigger>
           <SelectContent>
@@ -138,7 +138,7 @@ export function AgeVerificationInput({
         </Select>
 
         <Select value={year} onValueChange={handleYearChange}>
-          <SelectTrigger className="h-11">
+          <SelectTrigger className="h-9 text-xs">
             <SelectValue placeholder="Year" />
           </SelectTrigger>
           <SelectContent className="max-h-[200px]">
@@ -151,35 +151,33 @@ export function AgeVerificationInput({
         </Select>
       </div>
 
-      {/* Status Messages */}
+      {/* Status Messages - compact */}
       {verificationStatus === 'verified' && (
-        <div className="flex items-center gap-2 p-2.5 rounded-lg bg-emerald-500/10 border border-emerald-500/30">
-          <ShieldCheck className="h-4 w-4 text-emerald-500 flex-shrink-0" />
-          <p className="text-xs text-emerald-600 dark:text-emerald-400">
-            Age verified. Your date of birth will not be stored.
+        <div className="flex items-center gap-1.5 py-1 px-2 rounded bg-emerald-500/10 border border-emerald-500/30">
+          <ShieldCheck className="h-3 w-3 text-emerald-500 flex-shrink-0" />
+          <p className="text-[10px] text-emerald-600 dark:text-emerald-400">
+            Age verified • DOB not stored
           </p>
         </div>
       )}
 
       {verificationStatus === 'failed' && (
-        <div className="flex items-center gap-2 p-2.5 rounded-lg bg-destructive/10 border border-destructive/30">
-          <AlertTriangle className="h-4 w-4 text-destructive flex-shrink-0" />
-          <p className="text-xs text-destructive">
-            You must be 18 years or older to use this platform.
+        <div className="flex items-center gap-1.5 py-1 px-2 rounded bg-destructive/10 border border-destructive/30">
+          <AlertTriangle className="h-3 w-3 text-destructive flex-shrink-0" />
+          <p className="text-[10px] text-destructive">
+            Must be 18+ to use this platform
           </p>
         </div>
       )}
 
       {error && verificationStatus === 'pending' && (
-        <p className="text-sm text-destructive">{error}</p>
+        <p className="text-xs text-destructive">{error}</p>
       )}
 
-      {/* Legal disclosure */}
-      <p className="text-[10px] text-muted-foreground leading-relaxed">
-        This platform contains financial analysis tools and is rated <strong>18+</strong>. 
-        We verify your age to comply with applicable regulations. Your date of birth is used 
-        for verification only and is not stored. By continuing, you agree to our{" "}
-        <a href="/terms" className="text-primary hover:underline">Terms of Service</a> and{" "}
+      {/* Legal disclosure - minimal */}
+      <p className="text-[9px] text-muted-foreground leading-snug">
+        By continuing, you confirm you're 18+ and agree to our{" "}
+        <a href="/terms" className="text-primary hover:underline">Terms</a> &{" "}
         <a href="/privacy" className="text-primary hover:underline">Privacy Policy</a>.
       </p>
     </div>
