@@ -152,17 +152,17 @@ export function StudyExplainer({
                   <p className="text-xs text-foreground/80">
                     {study.howToUse.includes('bullish') 
                       ? study.howToUse 
-                      : 'High values or positive signals indicate strength'
+                      : 'Values above threshold (e.g., RSI >50, win rate >55%, positive avg return) suggest favorable historical outcomes'
                     }
                   </p>
                 </div>
-                <div className="p-2 bg-red-500/10 border border-red-500/20 rounded-lg">
+              <div className="p-2 bg-red-500/10 border border-red-500/20 rounded-lg">
                   <div className="flex items-center gap-1.5 text-red-600 dark:text-red-400 font-medium text-xs mb-1">
                     <TrendingDown className="h-3.5 w-3.5" />
                     Bearish Sign
                   </div>
                   <p className="text-xs text-foreground/80">
-                    Low values or negative signals may indicate weakness
+                    Values below threshold (e.g., RSI &lt;30, win rate &lt;50%, negative avg return) suggest unfavorable historical outcomes
                   </p>
                 </div>
               </div>

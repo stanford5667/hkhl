@@ -70,19 +70,22 @@ const STUDY_INTERPRETATIONS: Record<string, (result: any, ticker: string) => {
   },
   trend_strength: (result, ticker) => {
     const score = result.score || result.trendScore || 3;
+    const above20 = result.above20DMA ? 'above' : 'below';
+    const above50 = result.above50DMA ? 'above' : 'below';
+    const above200 = result.above200DMA ? 'above' : 'below';
     const sentiment = score >= 4 ? 'bullish' : score <= 1 ? 'bearish' : 'neutral';
     return {
       headline: score >= 4 
-        ? `${ticker} has a STRONG uptrend` 
+        ? `${ticker} trend score: ${score}/5 - Price above all major MAs` 
         : score <= 1 
-          ? `${ticker} has a WEAK or downtrend` 
-          : `${ticker} has a mixed/neutral trend`,
+          ? `${ticker} trend score: ${score}/5 - Price below most MAs` 
+          : `${ticker} trend score: ${score}/5 - Mixed MA positioning`,
       sentiment,
       explanation: score >= 4
-        ? `With a trend score of ${score}/5, ${ticker} is showing strength across multiple timeframes. Price is above key moving averages and the averages are properly aligned (short above medium above long).`
+        ? `${ticker} is ${above20} 20-day MA, ${above50} 50-day MA, and ${above200} 200-day MA. Score ${score}/5 indicates strong alignment where short-term MAs are above long-term MAs (bullish stack).`
         : score <= 1
-          ? `With a trend score of ${score}/5, ${ticker} is showing weakness. Price may be below key moving averages, suggesting a downtrend or transition period.`
-          : `With a trend score of ${score}/5, ${ticker} is showing mixed signals. Some indicators are bullish while others are bearish - this often happens during trend transitions.`,
+          ? `${ticker} is ${above20} 20-day MA, ${above50} 50-day MA, and ${above200} 200-day MA. Score ${score}/5 indicates MAs are inverted (death cross territory) or price is below all MAs.`
+          : `${ticker} is ${above20} 20-day MA, ${above50} 50-day MA, and ${above200} 200-day MA. Score ${score}/5 indicates a transition phase where some MAs are crossed while others are not.`,
       actionItems: score >= 4
         ? ['Strong trends tend to continue - consider buying dips', 'Use pullbacks to moving averages as entry points', 'Trail your stop-loss to lock in gains']
         : score <= 1

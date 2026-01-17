@@ -425,14 +425,37 @@ function studyAfterConsecutiveDays(bars: PriceBar[], params?: Record<string, any
     median: data.returns.length > 0 ? [...data.returns].sort((a, b) => a - b)[Math.floor(data.returns.length / 2)] : 0
   }));
   
+  // Generate specific, data-driven insight
+  const firstAnalysis = analysis[0];
+  const winRate = firstAnalysis?.winRate || 0;
+  const avgReturn = firstAnalysis?.avgReturn || 0;
+  const occurrences = streakEnds.length;
+  
+  let insight: string;
+  if (direction === 'down') {
+    if (winRate > 55) {
+      insight = `After ${consecutiveDays}+ down days: ${winRate.toFixed(1)}% of ${occurrences} instances saw positive returns (avg +${avgReturn.toFixed(2)}%) over ${forwardDays[0]} days`;
+    } else if (winRate < 45) {
+      insight = `After ${consecutiveDays}+ down days: Only ${winRate.toFixed(1)}% of ${occurrences} instances recovered (avg ${avgReturn.toFixed(2)}%) - further downside seen ${(100-winRate).toFixed(1)}% of time`;
+    } else {
+      insight = `After ${consecutiveDays}+ down days: ${winRate.toFixed(1)}% win rate across ${occurrences} instances (avg return: ${avgReturn >= 0 ? '+' : ''}${avgReturn.toFixed(2)}%) - no clear edge`;
+    }
+  } else {
+    if (winRate > 55) {
+      insight = `After ${consecutiveDays}+ up days: ${winRate.toFixed(1)}% of ${occurrences} instances continued higher (avg +${avgReturn.toFixed(2)}%) over ${forwardDays[0]} days`;
+    } else if (winRate < 45) {
+      insight = `After ${consecutiveDays}+ up days: Only ${winRate.toFixed(1)}% of ${occurrences} instances continued up (avg ${avgReturn.toFixed(2)}%) - mean reversion occurred ${(100-winRate).toFixed(1)}% of time`;
+    } else {
+      insight = `After ${consecutiveDays}+ up days: ${winRate.toFixed(1)}% win rate across ${occurrences} instances (avg return: ${avgReturn >= 0 ? '+' : ''}${avgReturn.toFixed(2)}%) - no clear edge`;
+    }
+  }
+  
   return {
     type: 'after_consecutive_days',
     params: { consecutiveDays, direction, forwardDays },
     totalOccurrences: streakEnds.length,
     analysis,
-    insight: direction === 'down' ? 
-      (analysis[0]?.winRate > 55 ? `After ${consecutiveDays}+ down days, bounces are likely (${analysis[0]?.winRate.toFixed(1)}% win rate)` : `After ${consecutiveDays}+ down days, weakness may continue`) :
-      (analysis[0]?.winRate > 55 ? `After ${consecutiveDays}+ up days, momentum continues (${analysis[0]?.winRate.toFixed(1)}% win rate)` : `After ${consecutiveDays}+ up days, pullbacks are likely`)
+    insight
   };
 }
 
