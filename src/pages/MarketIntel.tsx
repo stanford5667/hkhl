@@ -21,6 +21,7 @@ import {
 import { EconomicCalendarTab } from '@/components/market-intel/EconomicCalendarTab';
 import { usePortfolioTotals, useAlerts, useDealPipeline, usePortfolioAssets, useAssetAllocation, useEvents, useEconomicIndicators, useCovenants, useMATransactions, usePEFunds } from '@/hooks/useMarketIntel';
 import { LiveMacroContent } from '@/components/markets/LiveMacroContent';
+import { LiveEconomicDataHeader } from '@/components/markets/LiveEconomicDataHeader';
 import { useCommodities, useForex, groupCommoditiesByCategory, groupForexByCategory, type CommodityData, type ForexData } from '@/hooks/useForexCommodities';
 import { MarketDataDetail, type MarketDataItem } from '@/components/market-intel/MarketDataDetail';
 import { StockForexGrid } from '@/components/market-intel/StockForexGrid';
@@ -106,19 +107,10 @@ export default function MarketIntel() {
   return (
     <div className="p-4 sm:p-6 space-y-4 sm:space-y-6 animate-fade-up">
 
-      {/* Live Economic Data - Top Card */}
-      <LiveMacroContent 
-        onItemClick={handleItemClick} 
-        onPerformanceUpdate={handleMacroPerformance}
-        renderAfterMarketHealth={
-          <div className="grid md:grid-cols-2 gap-3 sm:gap-4">
-            <FeaturedInsightCard />
-            <MarketImpactCard />
-          </div>
-        }
-      />
+      {/* Live Economic Data Header Card - Always visible at top */}
+      <LiveEconomicDataHeader />
 
-      {/* Data Category Navigation - Below Live Economic Data */}
+      {/* Data Category Navigation - Immediately below header */}
       <MarketIntelNavigation 
         activeCategory={activeCategory} 
         onCategoryChange={setActiveCategory} 
@@ -139,6 +131,15 @@ export default function MarketIntel() {
       {activeCategory === 'currencies' && <CurrenciesContent onItemClick={handleItemClick} />}
       {activeCategory === 'indicators' && (
         <div className="space-y-4 sm:space-y-6">
+          <div className="grid md:grid-cols-2 gap-3 sm:gap-4">
+            <FeaturedInsightCard />
+            <MarketImpactCard />
+          </div>
+          <LiveMacroContent 
+            onItemClick={handleItemClick} 
+            onPerformanceUpdate={handleMacroPerformance}
+            hideHeader={true}
+          />
           <StockForexGrid onPerformanceUpdate={handleStockForexPerformance} />
         </div>
       )}
