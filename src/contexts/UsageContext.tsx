@@ -26,7 +26,7 @@ const FREE_LIMITS: UsageLimits = {
   portfolios: { used: 0, limit: 3 },
   savedScreens: { used: 0, limit: 5 },
   alertsPerDay: { used: 0, limit: 3 },
-  quantStudies: { used: 0, limit: 3 },
+  quantStudies: { used: 0, limit: 8 },
   screenerSearches: { used: 0, limit: 5 },
 };
 
@@ -109,7 +109,7 @@ export function UsageProvider({ children, onUpgradeRequest }: UsageProviderProps
           },
           quantStudies: { 
             used: usageData.quant_studies_today || 0, 
-            limit: userIsPro ? Infinity : 3 
+            limit: userIsPro ? Infinity : 8 
           },
           screenerSearches: { 
             used: (usageData as any).screener_searches_today || 0, 
