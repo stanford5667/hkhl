@@ -86,8 +86,8 @@ serve(async (req) => {
         },
       ],
       mode: "subscription",
-      success_url: `${productionUrl}/?subscription=success`,
-      cancel_url: `${productionUrl}/?subscription=cancelled`,
+      success_url: `${productionUrl}/quant-lab?subscription=success`,
+      cancel_url: `${productionUrl}/quant-lab?subscription=cancelled`,
       // Note: For subscription mode, invoices are created automatically by Stripe
       // Add custom fields to show what's included
       custom_text: {
