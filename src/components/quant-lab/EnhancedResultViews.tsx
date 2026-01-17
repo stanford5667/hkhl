@@ -707,33 +707,29 @@ function GenericEnhancedResult({ result, showInsights, showEducation }: { result
 
 function InsightsCard({ insights }: { insights: Array<{ type: string; text: string }> }) {
   return (
-    <Card>
-      <CardHeader className="pb-2">
-        <CardTitle className="text-sm flex items-center gap-2">
-          <Lightbulb className="h-4 w-4 text-amber-500" />
-          AI Insights
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-2">
-          {insights.map((insight, i) => (
-            <div key={i} className={cn(
-              "flex items-center gap-2 p-2 rounded-lg text-sm",
-              insight.type === 'positive' && "bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-300",
-              insight.type === 'negative' && "bg-rose-50 dark:bg-rose-950/30 text-rose-700 dark:text-rose-300",
-              insight.type === 'warning' && "bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-300",
-              insight.type === 'neutral' && "bg-slate-50 dark:bg-slate-950/30 text-slate-700 dark:text-slate-300"
-            )}>
-              {insight.type === 'positive' && <TrendingUp className="h-4 w-4" />}
-              {insight.type === 'negative' && <TrendingDown className="h-4 w-4" />}
-              {insight.type === 'warning' && <AlertCircle className="h-4 w-4" />}
-              {insight.type === 'neutral' && <Activity className="h-4 w-4" />}
-              {insight.text}
-            </div>
-          ))}
-        </div>
-      </CardContent>
-    </Card>
+    <div className="space-y-1.5">
+      <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+        <Lightbulb className="h-3.5 w-3.5 text-amber-500" />
+        Insights
+      </div>
+      <div className="flex flex-wrap gap-x-3 gap-y-1">
+        {insights.map((insight, i) => (
+          <span key={i} className={cn(
+            "inline-flex items-center gap-1.5 text-sm",
+            insight.type === 'positive' && "text-emerald-600 dark:text-emerald-400",
+            insight.type === 'negative' && "text-rose-600 dark:text-rose-400",
+            insight.type === 'warning' && "text-amber-600 dark:text-amber-400",
+            insight.type === 'neutral' && "text-muted-foreground"
+          )}>
+            {insight.type === 'positive' && <TrendingUp className="h-3.5 w-3.5" />}
+            {insight.type === 'negative' && <TrendingDown className="h-3.5 w-3.5" />}
+            {insight.type === 'warning' && <AlertCircle className="h-3.5 w-3.5" />}
+            {insight.type === 'neutral' && <Activity className="h-3.5 w-3.5" />}
+            {insight.text}
+          </span>
+        ))}
+      </div>
+    </div>
   );
 }
 
