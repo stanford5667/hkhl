@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -55,12 +56,18 @@ export default function Settings() {
   const { user, signOut, resetPassword } = useAuth();
   const { isPro } = useUsage();
   const { toast } = useToast();
+  const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("profile");
+
+  // Signed-out reset password (for people landing on /settings)
+  const [resetEmail, setResetEmail] = useState("");
+  const [resetSending, setResetSending] = useState(false);
+  const [resetEmailSent, setResetEmailSent] = useState(false);
 
   const form = useForm<ProfileFormData>({
     resolver: zodResolver(profileSchema),
@@ -204,6 +211,30 @@ export default function Settings() {
     }
   };
 
+  const handleSignedOutReset = async () => {
+    const email = resetEmail.trim();
+    if (!email) return;
+
+    setResetSending(true);
+    const { error } = await resetPassword(email);
+    setResetSending(false);
+
+    if (error) {
+      toast({
+        title: "Couldn't send reset email",
+        description: error.message,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setResetEmailSent(true);
+    toast({
+      title: "Reset email sent",
+      description: "Check your email for a password reset link.",
+    });
+  };
+
   const getInitials = (name: string | null) => {
     if (!name) return user?.email?.charAt(0).toUpperCase() || "U";
     return name
@@ -213,6 +244,80 @@ export default function Settings() {
       .toUpperCase()
       .slice(0, 2);
   };
+
+  // If a signed-out user lands on /settings, show login + reset password here.
+  if (!user) {
+    return (
+      <div className="min-h-screen">
+        <div className="relative overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-violet-500/5 to-transparent" />
+          <div className="relative p-6 lg:p-8 max-w-4xl mx-auto">
+            <PageHeader
+              icon={SettingsIcon}
+              title="Account Settings"
+              subtitle="Sign in to manage your account"
+              {...PAGE_ICON_PRESETS.violet}
+            />
+          </div>
+        </div>
+
+        <div className="p-6 lg:p-8 max-w-2xl mx-auto space-y-6">
+          <Card className="glass-card overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-transparent to-transparent" />
+            <CardHeader className="relative">
+              <CardTitle className="text-lg">Quick access</CardTitle>
+              <CardDescription>Log in, create an account, or reset your password.</CardDescription>
+            </CardHeader>
+            <CardContent className="relative space-y-5">
+              <div className="grid sm:grid-cols-2 gap-3">
+                <Button onClick={() => navigate("/auth")}>Log in</Button>
+                <Button variant="outline" onClick={() => navigate("/auth")}>Sign up</Button>
+              </div>
+
+              <div className="pt-2 border-t border-border space-y-3">
+                <div className="flex items-center gap-2">
+                  <Lock className="h-4 w-4 text-muted-foreground" />
+                  <p className="text-sm font-medium text-foreground">Reset password</p>
+                </div>
+
+                {resetEmailSent ? (
+                  <div className="p-4 rounded-xl bg-secondary/50 border border-border/50">
+                    <p className="text-sm text-foreground">Reset link sent.</p>
+                    <p className="text-xs text-muted-foreground mt-1">Check your inbox (and spam folder).</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <Label htmlFor="reset-email" className="text-foreground">Email</Label>
+                    <Input
+                      id="reset-email"
+                      type="email"
+                      placeholder="name@company.com"
+                      value={resetEmail}
+                      onChange={(e) => setResetEmail(e.target.value)}
+                      className="bg-secondary border-border text-foreground placeholder:text-muted-foreground focus:border-primary focus:ring-1 focus:ring-primary/50"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={handleSignedOutReset}
+                      disabled={resetSending || !resetEmail.trim()}
+                      className="gap-2"
+                    >
+                      {resetSending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mail className="h-4 w-4" />}
+                      Send reset link
+                    </Button>
+                    <p className="text-xs text-muted-foreground">
+                      We’ll email you a link to set a new password.
+                    </p>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen">
