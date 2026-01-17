@@ -3,13 +3,14 @@ import { useNavigate } from "react-router-dom";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Loader2, TrendingUp, Shield, Zap } from "lucide-react";
+import { Loader2, TrendingUp, Shield, Zap, Sparkles, BarChart3, Brain } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { EmailVerificationPending } from "@/components/auth/EmailVerificationPending";
+import { AssetLabsLogo } from "@/components/brand/AssetLabsLogo";
 
 const signInSchema = z.object({
   email: z.string().trim().email("Please enter a valid email address"),
@@ -140,29 +141,27 @@ export default function Auth() {
   };
 
   const features = [
-    { icon: TrendingUp, title: "Portfolio Analytics", description: "Real-time performance tracking and insights" },
-    { icon: Shield, title: "Market Intelligence", description: "AI-powered research and news analysis" },
+    { icon: BarChart3, title: "Portfolio Analytics", description: "Real-time performance tracking and insights" },
+    { icon: Brain, title: "AI-Powered Research", description: "Intelligent market analysis and recommendations" },
+    { icon: Sparkles, title: "Quant Lab", description: "Run quantitative studies on any asset" },
     { icon: Zap, title: "Smart Automation", description: "Automated screening and portfolio optimization" },
   ];
 
   return (
     <div className="min-h-screen flex bg-background">
       {/* Left side - Branding */}
-      <div className="hidden lg:flex lg:w-1/2 flex-col justify-between p-12 bg-card border-r border-border">
+      <div className="hidden lg:flex lg:w-1/2 flex-col justify-between p-12 bg-gradient-to-br from-card via-card to-primary/5 border-r border-border">
         <div>
-          <div className="flex items-center gap-3 mb-4">
-            <img src="/favicon.png" alt="Asset Labs AI" className="h-10 w-10 rounded-xl" />
-            <span className="text-2xl font-bold text-foreground tracking-tight">Asset Labs AI</span>
-          </div>
-          <p className="text-muted-foreground text-lg">
-            AI-powered portfolio analytics and corporate finance platform
+          <AssetLabsLogo size="xl" showTagline className="mb-6" />
+          <p className="text-muted-foreground text-lg max-w-sm">
+            The intelligent platform for portfolio analytics, quantitative research, and corporate finance.
           </p>
         </div>
 
-        <div className="space-y-8">
+        <div className="space-y-6">
           {features.map((feature, index) => (
             <div key={index} className="flex gap-4 animate-fade-up" style={{ animationDelay: `${index * 100}ms` }}>
-              <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+              <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0 border border-primary/20">
                 <feature.icon className="h-6 w-6 text-primary" />
               </div>
               <div>
@@ -173,18 +172,22 @@ export default function Auth() {
           ))}
         </div>
 
-        <p className="text-sm text-muted-foreground">
-          © 2025 Asset Labs AI. All rights reserved.
-        </p>
+        <div className="space-y-2">
+          <p className="text-sm text-muted-foreground">
+            © 2025 Asset Labs AI. All rights reserved.
+          </p>
+          <p className="text-xs text-muted-foreground/60">
+            Intelligent Investing for Everyone
+          </p>
+        </div>
       </div>
 
       {/* Right side - Auth form */}
       <div className="flex-1 flex items-center justify-center p-8">
         <div className="w-full max-w-md space-y-8 animate-fade-up">
           {/* Mobile logo */}
-          <div className="lg:hidden flex items-center gap-3 justify-center mb-8">
-            <img src="/favicon.png" alt="Asset Labs AI" className="h-10 w-10 rounded-xl" />
-            <span className="text-2xl font-bold text-foreground tracking-tight">Asset Labs AI</span>
+          <div className="lg:hidden flex justify-center mb-8">
+            <AssetLabsLogo size="lg" showTagline />
           </div>
 
           {mode === "verification-pending" ? (

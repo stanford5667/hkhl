@@ -96,9 +96,9 @@ export function AuthGateDialog({
   };
 
   const features = [
-    { icon: TrendingUp, text: "Track portfolio" },
-    { icon: Sparkles, text: "AI insights" },
-    { icon: Shield, text: "Secure storage" },
+    { icon: TrendingUp, text: "Portfolio tracking" },
+    { icon: Sparkles, text: "AI-powered insights" },
+    { icon: Shield, text: "Secure & private" },
   ];
 
   const authForm = (
