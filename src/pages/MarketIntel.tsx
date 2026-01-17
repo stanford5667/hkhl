@@ -106,7 +106,19 @@ export default function MarketIntel() {
   return (
     <div className="p-4 sm:p-6 space-y-4 sm:space-y-6 animate-fade-up">
 
-      {/* Data Category Navigation */}
+      {/* Live Economic Data - Top Card */}
+      <LiveMacroContent 
+        onItemClick={handleItemClick} 
+        onPerformanceUpdate={handleMacroPerformance}
+        renderAfterMarketHealth={
+          <div className="grid md:grid-cols-2 gap-3 sm:gap-4">
+            <FeaturedInsightCard />
+            <MarketImpactCard />
+          </div>
+        }
+      />
+
+      {/* Data Category Navigation - Below Live Economic Data */}
       <MarketIntelNavigation 
         activeCategory={activeCategory} 
         onCategoryChange={setActiveCategory} 
@@ -127,18 +139,6 @@ export default function MarketIntel() {
       {activeCategory === 'currencies' && <CurrenciesContent onItemClick={handleItemClick} />}
       {activeCategory === 'indicators' && (
         <div className="space-y-4 sm:space-y-6">
-          {/* Live Economic Data with integrated header - Featured Insight + Market Impact below */}
-          <LiveMacroContent 
-            onItemClick={handleItemClick} 
-            onPerformanceUpdate={handleMacroPerformance}
-            renderAfterMarketHealth={
-              <div className="grid md:grid-cols-2 gap-3 sm:gap-4">
-                <FeaturedInsightCard />
-                <MarketImpactCard />
-              </div>
-            }
-          />
-          
           <StockForexGrid onPerformanceUpdate={handleStockForexPerformance} />
         </div>
       )}
