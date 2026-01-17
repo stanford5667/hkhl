@@ -686,6 +686,321 @@ function studyAfterDrawdown(bars: PriceBar[], params?: Record<string, any>) {
   };
 }
 
+// ========== MACD ANALYSIS ==========
+function studyMACDAnalysis(bars: PriceBar[], params?: Record<string, any>) {
+  const fastPeriod = params?.fastPeriod || 12;
+  const slowPeriod = params?.slowPeriod || 26;
+  const signalPeriod = params?.signalPeriod || 9;
+  
+  const closes = bars.map(b => b.close);
+  const emaFast = calculateEMA(closes, fastPeriod);
+  const emaSlow = calculateEMA(closes, slowPeriod);
+  
+  // Calculate MACD line
+  const macdLine: number[] = [];
+  for (let i = 0; i < bars.length; i++) {
+    if (isNaN(emaFast[i]) || isNaN(emaSlow[i])) {
+      macdLine.push(NaN);
+    } else {
+      macdLine.push(emaFast[i] - emaSlow[i]);
+    }
+  }
+  
+  // Calculate signal line (EMA of MACD)
+  const validMacd = macdLine.filter(x => !isNaN(x));
+  const signalLine: number[] = [];
+  let signalEma = validMacd.slice(0, signalPeriod).reduce((a, b) => a + b, 0) / signalPeriod;
+  const multiplier = 2 / (signalPeriod + 1);
+  
+  let validIdx = 0;
+  for (let i = 0; i < macdLine.length; i++) {
+    if (isNaN(macdLine[i])) {
+      signalLine.push(NaN);
+    } else if (validIdx < signalPeriod - 1) {
+      signalLine.push(NaN);
+      validIdx++;
+    } else if (validIdx === signalPeriod - 1) {
+      signalLine.push(signalEma);
+      validIdx++;
+    } else {
+      signalEma = (macdLine[i] - signalEma) * multiplier + signalEma;
+      signalLine.push(signalEma);
+      validIdx++;
+    }
+  }
+  
+  // Calculate histogram
+  const histogram: number[] = [];
+  for (let i = 0; i < bars.length; i++) {
+    if (isNaN(macdLine[i]) || isNaN(signalLine[i])) {
+      histogram.push(NaN);
+    } else {
+      histogram.push(macdLine[i] - signalLine[i]);
+    }
+  }
+  
+  // Find crossovers
+  const crossovers: { date: string; type: 'bullish' | 'bearish' }[] = [];
+  for (let i = 1; i < bars.length; i++) {
+    if (!isNaN(macdLine[i]) && !isNaN(signalLine[i]) && !isNaN(macdLine[i-1]) && !isNaN(signalLine[i-1])) {
+      const prevAbove = macdLine[i-1] > signalLine[i-1];
+      const currAbove = macdLine[i] > signalLine[i];
+      if (!prevAbove && currAbove) crossovers.push({ date: bars[i].date, type: 'bullish' });
+      else if (prevAbove && !currAbove) crossovers.push({ date: bars[i].date, type: 'bearish' });
+    }
+  }
+  
+  // Calculate forward returns after crossovers
+  const afterBullish: number[] = [];
+  const afterBearish: number[] = [];
+  for (let i = 0; i < crossovers.length; i++) {
+    const barIdx = bars.findIndex(b => b.date === crossovers[i].date);
+    if (barIdx > 0 && barIdx + 5 < bars.length) {
+      const ret = ((bars[barIdx + 5].close - bars[barIdx].close) / bars[barIdx].close) * 100;
+      if (crossovers[i].type === 'bullish') afterBullish.push(ret);
+      else afterBearish.push(ret);
+    }
+  }
+  
+  const curr = bars.length - 1;
+  const currentMacd = macdLine[curr];
+  const currentSignal = signalLine[curr];
+  const currentHistogram = histogram[curr];
+  
+  return {
+    type: 'macd_analysis',
+    params: { fastPeriod, slowPeriod, signalPeriod },
+    current: {
+      macd: currentMacd,
+      signal: currentSignal,
+      histogram: currentHistogram,
+      trend: currentMacd > currentSignal ? 'bullish' : 'bearish',
+      momentum: currentHistogram > 0 ? 'positive' : 'negative'
+    },
+    crossovers: {
+      total: crossovers.length,
+      bullish: crossovers.filter(c => c.type === 'bullish').length,
+      bearish: crossovers.filter(c => c.type === 'bearish').length,
+      recent: crossovers.slice(-5)
+    },
+    afterBullishCrossover: {
+      count: afterBullish.length,
+      avgReturn: afterBullish.length > 0 ? afterBullish.reduce((a, b) => a + b, 0) / afterBullish.length : 0,
+      hitRate: afterBullish.length > 0 ? (afterBullish.filter(r => r > 0).length / afterBullish.length) * 100 : 0
+    },
+    afterBearishCrossover: {
+      count: afterBearish.length,
+      avgReturn: afterBearish.length > 0 ? afterBearish.reduce((a, b) => a + b, 0) / afterBearish.length : 0,
+      hitRate: afterBearish.length > 0 ? (afterBearish.filter(r => r < 0).length / afterBearish.length) * 100 : 0
+    }
+  };
+}
+
+// ========== BOLLINGER BANDS ANALYSIS ==========
+function studyBollingerAnalysis(bars: PriceBar[], params?: Record<string, any>) {
+  const period = params?.period || 20;
+  const stdDevMultiplier = params?.stdDevMultiplier || 2;
+  
+  const closes = bars.map(b => b.close);
+  const sma = calculateSMA(closes, period);
+  
+  // Calculate bands
+  const upperBand: number[] = [];
+  const lowerBand: number[] = [];
+  const bandwidth: number[] = [];
+  const percentB: number[] = [];
+  
+  for (let i = 0; i < bars.length; i++) {
+    if (i < period - 1) {
+      upperBand.push(NaN);
+      lowerBand.push(NaN);
+      bandwidth.push(NaN);
+      percentB.push(NaN);
+    } else {
+      const slice = closes.slice(i - period + 1, i + 1);
+      const mean = sma[i];
+      const stdDev = Math.sqrt(slice.reduce((sum, c) => sum + Math.pow(c - mean, 2), 0) / period);
+      const upper = mean + stdDevMultiplier * stdDev;
+      const lower = mean - stdDevMultiplier * stdDev;
+      upperBand.push(upper);
+      lowerBand.push(lower);
+      bandwidth.push((upper - lower) / mean * 100);
+      percentB.push((closes[i] - lower) / (upper - lower) * 100);
+    }
+  }
+  
+  // Find touches and breakouts
+  const upperTouches: { date: string; result: number }[] = [];
+  const lowerTouches: { date: string; result: number }[] = [];
+  const squeezes: { date: string; subsequentMove: number }[] = [];
+  
+  const validBW = bandwidth.filter(x => !isNaN(x));
+  const avgBandwidth = validBW.reduce((a, b) => a + b, 0) / validBW.length;
+  const squeezeLevelBW = avgBandwidth * 0.6;
+  
+  for (let i = period; i < bars.length - 5; i++) {
+    const pB = percentB[i];
+    if (!isNaN(pB)) {
+      const futureReturn = ((bars[i + 5].close - bars[i].close) / bars[i].close) * 100;
+      if (pB >= 95) upperTouches.push({ date: bars[i].date, result: futureReturn });
+      if (pB <= 5) lowerTouches.push({ date: bars[i].date, result: futureReturn });
+      if (bandwidth[i] < squeezeLevelBW && (i === period || bandwidth[i-1] >= squeezeLevelBW)) {
+        squeezes.push({ date: bars[i].date, subsequentMove: futureReturn });
+      }
+    }
+  }
+  
+  const curr = bars.length - 1;
+  
+  return {
+    type: 'bollinger_analysis',
+    params: { period, stdDevMultiplier },
+    current: {
+      price: closes[curr],
+      upper: upperBand[curr],
+      middle: sma[curr],
+      lower: lowerBand[curr],
+      percentB: percentB[curr],
+      bandwidth: bandwidth[curr],
+      position: percentB[curr] > 80 ? 'near_upper' : percentB[curr] < 20 ? 'near_lower' : 'middle'
+    },
+    statistics: {
+      avgBandwidth,
+      currentBandwidthVsAvg: bandwidth[curr] / avgBandwidth * 100,
+      isSqueeze: bandwidth[curr] < squeezeLevelBW,
+      totalSqueezes: squeezes.length
+    },
+    upperBandTouches: {
+      count: upperTouches.length,
+      avgReturn5d: upperTouches.length > 0 ? upperTouches.reduce((a, b) => a + b.result, 0) / upperTouches.length : 0,
+      hitRate: upperTouches.length > 0 ? (upperTouches.filter(t => t.result < 0).length / upperTouches.length) * 100 : 0
+    },
+    lowerBandTouches: {
+      count: lowerTouches.length,
+      avgReturn5d: lowerTouches.length > 0 ? lowerTouches.reduce((a, b) => a + b.result, 0) / lowerTouches.length : 0,
+      hitRate: lowerTouches.length > 0 ? (lowerTouches.filter(t => t.result > 0).length / lowerTouches.length) * 100 : 0
+    },
+    afterSqueeze: {
+      count: squeezes.length,
+      avgMove: squeezes.length > 0 ? squeezes.reduce((a, b) => a + Math.abs(b.subsequentMove), 0) / squeezes.length : 0
+    }
+  };
+}
+
+// ========== STOCHASTIC OSCILLATOR ANALYSIS ==========
+function studyStochasticAnalysis(bars: PriceBar[], params?: Record<string, any>) {
+  const kPeriod = params?.kPeriod || 14;
+  const dPeriod = params?.dPeriod || 3;
+  const overboughtLevel = params?.overbought || 80;
+  const oversoldLevel = params?.oversold || 20;
+  
+  // Calculate %K
+  const stochK: number[] = [];
+  for (let i = 0; i < bars.length; i++) {
+    if (i < kPeriod - 1) {
+      stochK.push(NaN);
+    } else {
+      const slice = bars.slice(i - kPeriod + 1, i + 1);
+      const highest = Math.max(...slice.map(b => b.high));
+      const lowest = Math.min(...slice.map(b => b.low));
+      const k = highest === lowest ? 50 : ((bars[i].close - lowest) / (highest - lowest)) * 100;
+      stochK.push(k);
+    }
+  }
+  
+  // Calculate %D (SMA of %K)
+  const stochD = calculateSMA(stochK, dPeriod);
+  
+  // Find crossovers and zones
+  const overbought: number[] = [];
+  const oversold: number[] = [];
+  const crossovers: { date: string; type: 'bullish' | 'bearish'; k: number; d: number }[] = [];
+  
+  for (let i = 1; i < bars.length; i++) {
+    if (!isNaN(stochK[i]) && !isNaN(stochD[i])) {
+      if (stochK[i] > overboughtLevel) overbought.push(i);
+      if (stochK[i] < oversoldLevel) oversold.push(i);
+      
+      if (!isNaN(stochK[i-1]) && !isNaN(stochD[i-1])) {
+        const prevAbove = stochK[i-1] > stochD[i-1];
+        const currAbove = stochK[i] > stochD[i];
+        if (!prevAbove && currAbove && stochK[i] < 50) {
+          crossovers.push({ date: bars[i].date, type: 'bullish', k: stochK[i], d: stochD[i] });
+        } else if (prevAbove && !currAbove && stochK[i] > 50) {
+          crossovers.push({ date: bars[i].date, type: 'bearish', k: stochK[i], d: stochD[i] });
+        }
+      }
+    }
+  }
+  
+  // Calculate forward returns after signals
+  const afterOverbought: number[] = [];
+  const afterOversold: number[] = [];
+  const afterBullishCross: number[] = [];
+  const afterBearishCross: number[] = [];
+  
+  for (const idx of overbought) {
+    if (idx + 5 < bars.length) {
+      afterOverbought.push(((bars[idx + 5].close - bars[idx].close) / bars[idx].close) * 100);
+    }
+  }
+  
+  for (const idx of oversold) {
+    if (idx + 5 < bars.length) {
+      afterOversold.push(((bars[idx + 5].close - bars[idx].close) / bars[idx].close) * 100);
+    }
+  }
+  
+  for (const cross of crossovers) {
+    const barIdx = bars.findIndex(b => b.date === cross.date);
+    if (barIdx > 0 && barIdx + 5 < bars.length) {
+      const ret = ((bars[barIdx + 5].close - bars[barIdx].close) / bars[barIdx].close) * 100;
+      if (cross.type === 'bullish') afterBullishCross.push(ret);
+      else afterBearishCross.push(ret);
+    }
+  }
+  
+  const curr = bars.length - 1;
+  const validK = stochK.filter(x => !isNaN(x));
+  
+  return {
+    type: 'stochastic_analysis',
+    params: { kPeriod, dPeriod, overbought: overboughtLevel, oversold: oversoldLevel },
+    current: {
+      k: stochK[curr],
+      d: stochD[curr],
+      zone: stochK[curr] > overboughtLevel ? 'overbought' : stochK[curr] < oversoldLevel ? 'oversold' : 'neutral',
+      trend: stochK[curr] > stochD[curr] ? 'bullish' : 'bearish'
+    },
+    zones: {
+      overboughtPct: (overbought.length / validK.length) * 100,
+      oversoldPct: (oversold.length / validK.length) * 100,
+      neutralPct: ((validK.length - overbought.length - oversold.length) / validK.length) * 100
+    },
+    afterOverbought: {
+      count: afterOverbought.length,
+      avgReturn: afterOverbought.length > 0 ? afterOverbought.reduce((a, b) => a + b, 0) / afterOverbought.length : 0,
+      hitRate: afterOverbought.length > 0 ? (afterOverbought.filter(r => r < 0).length / afterOverbought.length) * 100 : 0
+    },
+    afterOversold: {
+      count: afterOversold.length,
+      avgReturn: afterOversold.length > 0 ? afterOversold.reduce((a, b) => a + b, 0) / afterOversold.length : 0,
+      hitRate: afterOversold.length > 0 ? (afterOversold.filter(r => r > 0).length / afterOversold.length) * 100 : 0
+    },
+    crossovers: {
+      total: crossovers.length,
+      bullish: crossovers.filter(c => c.type === 'bullish').length,
+      bearish: crossovers.filter(c => c.type === 'bearish').length,
+      recent: crossovers.slice(-5)
+    },
+    afterBullishCrossover: {
+      count: afterBullishCross.length,
+      avgReturn: afterBullishCross.length > 0 ? afterBullishCross.reduce((a, b) => a + b, 0) / afterBullishCross.length : 0,
+      hitRate: afterBullishCross.length > 0 ? (afterBullishCross.filter(r => r > 0).length / afterBullishCross.length) * 100 : 0
+    }
+  };
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
   try {
@@ -710,6 +1025,9 @@ serve(async (req) => {
       case 'moving_average_analysis': result = studyMovingAverageAnalysis(bars, params); break;
       case 'volume_analysis': result = studyVolumeAnalysis(bars, params); break;
       case 'rsi_analysis': result = studyRSIAnalysis(bars, params); break;
+      case 'macd_analysis': result = studyMACDAnalysis(bars, params); break;
+      case 'bollinger_analysis': result = studyBollingerAnalysis(bars, params); break;
+      case 'stochastic_analysis': result = studyStochasticAnalysis(bars, params); break;
       case 'mean_reversion': result = studyMeanReversion(bars, params); break;
       case 'range_analysis': result = studyRangeAnalysis(bars); break;
       case 'high_low_analysis': result = studyHighLowAnalysis(bars, params); break;
