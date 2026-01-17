@@ -13,7 +13,7 @@
  * - No coding required
  */
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -901,20 +901,56 @@ const PERIOD_OPTIONS = [
 export default function QuantLab() {
   const { user } = useAuth();
   
-  // State - Initialize with default ticker and study for immediate interactivity
-  const [ticker, setTicker] = useState('AAPL');
-  const [selectedTicker, setSelectedTicker] = useState<string>('AAPL');
-  const [period, setPeriod] = useState('3y');
-  const [selectedStudies, setSelectedStudies] = useState<string[]>(['daily_close_gt_prior']);
-  const [studyParams, setStudyParams] = useState<Record<string, Record<string, any>>>({
-    'daily_close_gt_prior': { minChangePercent: 0 }
-  });
-  const [results, setResults] = useState<Record<string, any>>({});
+  // Local storage key for persistence
+  const STORAGE_KEY = 'quantlab_state';
+  
+  // Load initial state from localStorage
+  const loadSavedState = () => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        return JSON.parse(saved);
+      }
+    } catch (e) {
+      console.warn('Failed to load saved QuantLab state:', e);
+    }
+    return null;
+  };
+  
+  const savedState = loadSavedState();
+  
+  // State - Initialize from localStorage or defaults
+  const [ticker, setTicker] = useState(savedState?.ticker || 'AAPL');
+  const [selectedTicker, setSelectedTicker] = useState<string>(savedState?.selectedTicker || 'AAPL');
+  const [period, setPeriod] = useState(savedState?.period || '3y');
+  const [selectedStudies, setSelectedStudies] = useState<string[]>(savedState?.selectedStudies || ['daily_close_gt_prior']);
+  const [studyParams, setStudyParams] = useState<Record<string, Record<string, any>>>(
+    savedState?.studyParams || { 'daily_close_gt_prior': { minChangePercent: 0 } }
+  );
+  const [results, setResults] = useState<Record<string, any>>(savedState?.results || {});
   const [isRunning, setIsRunning] = useState(false);
   const [runningStudy, setRunningStudy] = useState<string | null>(null);
   const [showHelp, setShowHelp] = useState(false);
-  const [activeCategory, setActiveCategory] = useState('basic');
+  const [activeCategory, setActiveCategory] = useState(savedState?.activeCategory || 'basic');
   const [isSaving, setIsSaving] = useState<string | null>(null);
+
+  // Persist state to localStorage whenever key values change
+  useEffect(() => {
+    const stateToSave = {
+      ticker,
+      selectedTicker,
+      period,
+      selectedStudies,
+      studyParams,
+      results,
+      activeCategory
+    };
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(stateToSave));
+    } catch (e) {
+      console.warn('Failed to save QuantLab state:', e);
+    }
+  }, [ticker, selectedTicker, period, selectedStudies, studyParams, results, activeCategory]);
 
   // Initialize params with defaults
   const initStudyParams = useCallback((studyId: string) => {
