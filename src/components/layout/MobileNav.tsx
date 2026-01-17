@@ -147,7 +147,10 @@ function MobileSidebarContent({ onNavigate }: { onNavigate: () => void }) {
     <div className="p-4 space-y-2">
       <div className="flex items-center gap-2 mb-6 px-2">
         <img src="/favicon.png" alt="Asset Labs AI" className="w-8 h-8 rounded-lg" />
-        <span className="font-bold text-white">Asset Labs AI</span>
+        <div className="flex items-center gap-1">
+          <span className="font-bold text-white">Asset Labs</span>
+          <span className="font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">AI</span>
+        </div>
       </div>
       
       {navItems.map((item) => {

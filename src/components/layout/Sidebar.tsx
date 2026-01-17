@@ -279,8 +279,11 @@ export function Sidebar() {
               animate={{ opacity: 1 }}
               className="flex flex-col"
             >
-              <span className="font-bold text-foreground text-sm tracking-tight">Asset Labs</span>
-              <span className="text-[10px] text-muted-foreground font-medium tracking-wider uppercase">AI Platform</span>
+              <div className="flex items-center gap-1">
+                <span className="font-bold text-foreground text-sm tracking-tight">Asset Labs</span>
+                <span className="font-bold text-sm tracking-tight bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">AI</span>
+              </div>
+              <span className="text-[10px] text-muted-foreground font-medium">Intelligent Investing</span>
             </motion.div>
           )}
         </Link>
