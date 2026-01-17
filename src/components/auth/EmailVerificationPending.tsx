@@ -23,18 +23,24 @@ export function EmailVerificationPending({
   const [isResending, setIsResending] = useState(false);
   const { toast } = useToast();
 
-  // Check if user is now verified
+  // Check if user has verified via our custom Loops verification
   const checkVerification = useCallback(async () => {
     try {
-      const { data: { session }, error } = await supabase.auth.getSession();
+      // Check our custom email_verifications table for verified status
+      const { data, error } = await supabase
+        .from('email_verifications')
+        .select('verified')
+        .eq('email', email)
+        .eq('verified', true)
+        .limit(1);
       
       if (error) {
-        console.error("Error checking session:", error);
+        console.error("Error checking verification:", error);
         return false;
       }
 
-      if (session?.user) {
-        // User is now authenticated (email confirmed)
+      if (data && data.length > 0) {
+        // User has verified via Loops email
         onVerified?.();
         return true;
       }
@@ -44,7 +50,7 @@ export function EmailVerificationPending({
       console.error("Verification check error:", err);
       return false;
     }
-  }, [onVerified]);
+  }, [email, onVerified]);
 
   // Polling loop to check for email verification
   useEffect(() => {
@@ -58,18 +64,30 @@ export function EmailVerificationPending({
       }
     }, 3000); // Check every 3 seconds
 
-    // Also listen for auth state changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === 'SIGNED_IN' && session?.user) {
-        setIsPolling(false);
-        clearInterval(pollInterval);
-        onVerified?.();
-      }
-    });
+    // Set up realtime subscription to email_verifications table
+    const channel = supabase
+      .channel('email-verification')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'email_verifications',
+          filter: `email=eq.${email}`,
+        },
+        (payload) => {
+          if (payload.new && (payload.new as { verified: boolean }).verified) {
+            setIsPolling(false);
+            clearInterval(pollInterval);
+            onVerified?.();
+          }
+        }
+      )
+      .subscribe();
 
     return () => {
       clearInterval(pollInterval);
-      subscription.unsubscribe();
+      supabase.removeChannel(channel);
     };
   }, [isPolling, checkVerification, onVerified]);
 
