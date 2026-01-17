@@ -60,6 +60,7 @@ import { StudyAuditDashboard } from '@/components/quant-lab/StudyAuditDashboard'
 import { MobileAuthSheet } from '@/components/auth/MobileAuthSheet';
 import { IntegratedQuantStudiesPanel } from '@/components/equity/IntegratedQuantStudiesPanel';
 import { EnhancedResultView } from '@/components/quant-lab/EnhancedResultViews';
+import { StudyRunningOverlay } from '@/components/quant-lab/StudyRunningOverlay';
 
 // ===========================================
 // STUDY DEFINITIONS WITH BEGINNER-FRIENDLY EXPLANATIONS
@@ -1216,6 +1217,14 @@ function QuantLabContent(props: any) {
 
   return (
     <div className="h-screen bg-background flex flex-col overflow-hidden">
+      {/* Magic Moment: Study Running Overlay */}
+      <StudyRunningOverlay 
+        isRunning={!!runningStudy}
+        studyName={STUDY_DEFINITIONS.find(s => s.id === runningStudy)?.name || 'Study'}
+        ticker={selectedTicker}
+        isGuest={!user}
+      />
+      
       {/* Tutorial Overlay for new users */}
       <TutorialOverlay />
       
