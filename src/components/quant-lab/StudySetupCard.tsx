@@ -8,7 +8,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
-import { Activity, GitBranch, Play } from "lucide-react";
+import { Activity, GitBranch, Play, Info } from "lucide-react";
 
 interface StudyParam {
   key: string;
@@ -20,6 +20,7 @@ interface StudyParam {
   step?: number;
   default: number | string;
   options?: { value: string | number; label: string }[];
+  beginner?: string;
 }
 
 interface StudyDefinition {
@@ -48,6 +49,9 @@ export function StudySetupCard({
   runStudy,
   isRunning,
 }: StudySetupCardProps) {
+  const isConditional = study.category === "conditional";
+  const hasParams = study.params && study.params.length > 0;
+
   return (
     <div className={cn("rounded-2xl border-2 bg-card overflow-hidden")}>
       {/* Header */}
@@ -73,13 +77,13 @@ export function StudySetupCard({
         </div>
       </div>
 
-      {/* Params */}
-      {study.params?.length > 0 && (
+      {/* Conditional Studies - Show editable condition variables */}
+      {isConditional && hasParams && (
         <div className="px-4 py-3">
           <div className="flex items-center gap-2 mb-3">
             <GitBranch className="h-4 w-4 text-primary" />
             <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-              {study.category === "conditional" ? "Condition Variables" : "Parameters"}
+              Condition Variables
             </span>
           </div>
 
@@ -89,8 +93,10 @@ export function StudySetupCard({
                 <div className="flex items-center justify-between mb-1.5">
                   <span className="text-xs font-medium">{param.label}</span>
                   <span className="text-xs font-mono font-bold text-primary">
-                    {studyParams[study.id]?.[param.key] ?? param.default}
-                    {param.label.includes("%") ? "%" : ""}
+                    {param.type === "select" 
+                      ? (param.options?.find(o => String(o.value) === String(studyParams[study.id]?.[param.key] ?? param.default))?.label ?? (studyParams[study.id]?.[param.key] ?? param.default))
+                      : (studyParams[study.id]?.[param.key] ?? param.default)}
+                    {param.label.includes("%") && param.type !== "select" ? "%" : ""}
                   </span>
                 </div>
 
@@ -122,8 +128,24 @@ export function StudySetupCard({
                     </SelectContent>
                   </Select>
                 )}
+
+                {param.beginner && (
+                  <p className="text-[10px] text-muted-foreground mt-1 line-clamp-1">{param.beginner}</p>
+                )}
               </div>
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* Non-conditional studies - Show simple info message */}
+      {!isConditional && (
+        <div className="px-4 py-3 bg-muted/10">
+          <div className="flex items-start gap-2">
+            <Info className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+            <p className="text-xs text-muted-foreground">
+              This study uses industry-standard settings and analyzes all available data automatically.
+            </p>
           </div>
         </div>
       )}
