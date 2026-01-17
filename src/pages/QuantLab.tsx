@@ -41,11 +41,12 @@ import {
   Calendar, Zap, Layers, Volume2, Crosshair, LineChart,
   Gauge, ArrowLeftRight, Mountain, ArrowUpDown,
   Target, Shield, Loader2, GitBranch, Lightbulb,
-  CheckCircle2, X, ExternalLink, ChevronLeft, ChevronDown, ChevronRight
+  CheckCircle2, X, ExternalLink, ChevronLeft, ChevronDown, ChevronRight, Crown, Lock
 } from 'lucide-react';
 import { InlinePrice } from '@/components/shared/PriceDisplay';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useUsage } from '@/contexts/UsageContext';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { StudyVisualizations } from '@/components/quant-lab/StudyVisualizations';
@@ -775,6 +776,7 @@ const PERIOD_OPTIONS = [
 
 export default function QuantLab() {
   const { user } = useAuth();
+  const { usage, isPro, canUse, trackUsage, showUpgradeModal } = useUsage();
   
   // Local storage key for persistence
   const STORAGE_KEY = 'quantlab_state';
@@ -895,8 +897,34 @@ export default function QuantLab() {
       return;
     }
 
-    // For conditional probability studies, verify required condition variables are set
+    // Check study definition
     const study = STUDY_DEFINITIONS.find(s => s.id === studyId);
+    if (!study) {
+      toast.error('Study not found');
+      return;
+    }
+
+    // Check if this is a premium study and user doesn't have access
+    if (study.isPremium && !isPro) {
+      showUpgradeModal('quantStudies');
+      toast.error('Premium study requires Pro subscription', {
+        description: 'Upgrade to unlock all advanced studies',
+      });
+      return;
+    }
+
+    // Check free tier usage limit (for non-premium users running free studies)
+    if (!isPro) {
+      if (!canUse('quantStudies')) {
+        showUpgradeModal('quantStudies');
+        toast.error('Free study limit reached', {
+          description: `You've used ${usage.quantStudies.used}/${usage.quantStudies.limit} free studies today. Upgrade to Pro for unlimited access.`,
+        });
+        return;
+      }
+    }
+
+    // For conditional probability studies, verify required condition variables are set
     if (study?.category === 'conditional' && study.params?.length > 0) {
       const params = studyParams[studyId] || {};
       // Check that all defined params have values (use defaults if not set)
@@ -917,6 +945,11 @@ export default function QuantLab() {
     setRunningStudy(studyId);
     
     try {
+      // Track usage for free users (before running the study)
+      if (!isPro && user) {
+        await trackUsage('quantStudies');
+      }
+
       const periodData = PERIOD_OPTIONS.find(p => p.value === period);
       const endDate = new Date().toISOString().split('T')[0];
       const startDate = new Date();
@@ -974,7 +1007,7 @@ export default function QuantLab() {
     } finally {
       setRunningStudy(null);
     }
-  }, [selectedTicker, period, studyParams]);
+  }, [selectedTicker, period, studyParams, isPro, canUse, trackUsage, showUpgradeModal, usage.quantStudies, user]);
 
   // Run all selected studies
   const runAllStudies = useCallback(async () => {
@@ -1161,6 +1194,8 @@ export default function QuantLab() {
         formatValue={formatValue}
         getSentimentStyle={getSentimentStyle}
         getDisplayMetrics={getDisplayMetrics}
+        isPro={isPro}
+        usage={usage}
       />
     </LearningProvider>
   );
@@ -1173,7 +1208,8 @@ function QuantLabContent(props: any) {
     selectedStudies, setSelectedStudies, studyParams, setStudyParams, results, setResults,
     isRunning, runningStudy, showHelp, setShowHelp, activeCategory, setActiveCategory,
     isSaving, initStudyParams, addStudy, removeStudy, updateParam, handleSetTicker,
-    runStudy, runAllStudies, saveStudyResult, getStudy, formatValue, getSentimentStyle, getDisplayMetrics
+    runStudy, runAllStudies, saveStudyResult, getStudy, formatValue, getSentimentStyle, getDisplayMetrics,
+    isPro, usage
   } = props;
 
   const { markStudyCompleted, checkAndUnlockAchievements, addXp } = useLearning();
@@ -1619,6 +1655,12 @@ function QuantLabContent(props: any) {
                                     <div className="flex-1 min-w-0">
                                       <div className="flex items-center gap-2">
                                         <span className="font-semibold text-sm">{study.name}</span>
+                                        {study.isPremium && !isPro && (
+                                          <Badge variant="outline" className="text-[9px] px-1.5 border-amber-500/50 bg-amber-500/10 text-amber-600">
+                                            <Crown className="h-2.5 w-2.5 mr-0.5" />
+                                            Pro
+                                          </Badge>
+                                        )}
                                         <Badge variant="outline" className={cn(
                                           "text-[9px] px-1.5",
                                           study.difficulty === 'beginner' && "border-emerald-500/50 text-emerald-600",
@@ -1643,8 +1685,22 @@ function QuantLabContent(props: any) {
                     })}
                   </div>
                 </div>
-                {/* Fixed bottom action bar - removed (run per-study from setup cards) */}
+                {/* Fixed bottom action bar */}
                 <div className="shrink-0 border-t bg-card px-4 pt-3 pb-20">
+                  {!isPro && (
+                    <div className="flex items-center justify-between mb-2 p-2 rounded-lg bg-amber-500/10 border border-amber-500/20">
+                      <div className="flex items-center gap-2">
+                        <FlaskConical className="h-3.5 w-3.5 text-amber-600" />
+                        <span className="text-xs text-amber-700 dark:text-amber-400">
+                          {usage?.quantStudies?.used ?? 0}/{usage?.quantStudies?.limit ?? 3} free studies used today
+                        </span>
+                      </div>
+                      <Badge variant="outline" className="text-[9px] border-amber-500/50 text-amber-600">
+                        <Crown className="h-2.5 w-2.5 mr-0.5" />
+                        Upgrade
+                      </Badge>
+                    </div>
+                  )}
                   <p className="text-xs text-muted-foreground">
                     Select a study, set its variables, then run it from the study card.
                   </p>

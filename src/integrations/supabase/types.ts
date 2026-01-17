@@ -4035,6 +4035,7 @@ export type Database = {
           id: string
           last_reset_at: string | null
           portfolio_count: number | null
+          quant_studies_today: number | null
           saved_screens: number | null
           updated_at: string | null
           user_id: string
@@ -4045,6 +4046,7 @@ export type Database = {
           id?: string
           last_reset_at?: string | null
           portfolio_count?: number | null
+          quant_studies_today?: number | null
           saved_screens?: number | null
           updated_at?: string | null
           user_id: string
@@ -4055,6 +4057,7 @@ export type Database = {
           id?: string
           last_reset_at?: string | null
           portfolio_count?: number | null
+          quant_studies_today?: number | null
           saved_screens?: number | null
           updated_at?: string | null
           user_id?: string

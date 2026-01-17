@@ -119,12 +119,13 @@ export function Sidebar() {
         href: "/investment-plan", 
         icon: ClipboardList 
       },
-      { 
-        label: "Portfolio Tracker", 
-        subtitle: "Holdings Overview",
-        href: "/", 
-        icon: Briefcase 
-      },
+      // Portfolio Tracker hidden for now
+      // { 
+      //   label: "Portfolio Tracker", 
+      //   subtitle: "Holdings Overview",
+      //   href: "/", 
+      //   icon: Briefcase 
+      // },
       { 
         label: "Market Intel", 
         subtitle: "Research & Insights",
