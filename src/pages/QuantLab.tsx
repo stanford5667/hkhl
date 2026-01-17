@@ -1278,62 +1278,8 @@ function QuantLabContent(props: any) {
             </Button>
           </div>
           
-          {/* CENTRAL CONTROL BAR - Ticker, Period, Study Search, Analyze */}
-          <div className="flex items-center justify-center gap-4 flex-1">
-            {/* Time Period */}
-            <Select value={period} onValueChange={setPeriod}>
-              <SelectTrigger className="h-14 w-32 text-base font-bold shrink-0 rounded-xl border-2 border-muted-foreground/30 bg-background shadow-lg">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {PERIOD_OPTIONS.map((p) => (
-                  <SelectItem key={p.value} value={p.value} className="text-base font-medium">{p.label}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            
-            {/* Ticker Search - PROMINENT CENTER */}
-            <div className="relative w-64">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-6 w-6 text-primary" />
-              <Input
-                placeholder="TICKER"
-                value={ticker}
-                onChange={(e) => setTicker(e.target.value.toUpperCase())}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    handleSetTicker(ticker);
-                    if (selectedStudies.length > 0) handleRunAllStudies();
-                  }
-                }}
-                className="h-14 pl-14 pr-4 text-xl font-bold font-mono tracking-wider bg-background border-3 border-primary focus:ring-2 focus:ring-primary/30 transition-all rounded-xl shadow-lg text-center placeholder:text-muted-foreground/40 placeholder:font-normal"
-              />
-            </div>
-            
-            {/* Study Search */}
-            <div className="relative hidden md:block">
-              <FlaskConical className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-              <Input
-                placeholder="Filter studies..."
-                value={studySearch}
-                onChange={(e) => setStudySearch(e.target.value)}
-                className="h-14 w-44 pl-10 pr-4 text-sm bg-background border-2 border-muted-foreground/30 focus:border-primary rounded-xl shadow-lg placeholder:text-muted-foreground/50"
-              />
-            </div>
-            
-            {/* Analyze Button */}
-            <Button
-              onClick={() => {
-                handleSetTicker(ticker);
-                if (selectedStudies.length > 0) handleRunAllStudies();
-              }}
-              disabled={!ticker.trim()}
-              variant="success"
-              className="h-14 px-8 text-base font-bold rounded-xl shadow-lg"
-            >
-              <Play className="h-5 w-5 mr-2" />
-              Analyze
-            </Button>
-          </div>
+          {/* Spacer */}
+          <div className="flex-1" />
           
           {/* Quick Tickers - Hidden on mobile */}
           <div className="hidden md:flex gap-2 overflow-x-auto">
@@ -1413,9 +1359,9 @@ function QuantLabContent(props: any) {
                 <div className="w-10 h-1 rounded-full bg-muted-foreground/30" />
               </div>
               
-              {/* Panel Header with Ticker */}
+              {/* Panel Header */}
               <div className="px-4 py-3 border-b bg-muted/30">
-                <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center justify-between mb-3">
                   <span className="text-sm font-bold">Select Quant Studies</span>
                   <div className="flex items-center gap-2">
                     {selectedStudies.length > 0 && (
@@ -1433,25 +1379,62 @@ function QuantLabContent(props: any) {
                     </Button>
                   </div>
                 </div>
-              {/* Ticker input in panel - editable */}
-                <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-primary/10 border border-primary/20">
-                  <span className="text-[11px] text-muted-foreground shrink-0">For:</span>
-                  <Input
-                    value={ticker}
-                    onChange={(e) => setTicker(e.target.value.toUpperCase())}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' && ticker.trim()) {
-                        handleSetTicker(ticker.trim());
-                      }
+                
+                {/* CONTROLS - Period, Ticker, Study Filter, Analyze */}
+                <div className="space-y-3">
+                  {/* Time Period */}
+                  <Select value={period} onValueChange={setPeriod}>
+                    <SelectTrigger className="h-12 w-full text-base font-bold rounded-xl border-2 border-muted-foreground/30 bg-background">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {PERIOD_OPTIONS.map((p) => (
+                        <SelectItem key={p.value} value={p.value} className="text-base font-medium">{p.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  
+                  {/* Ticker Search */}
+                  <div className="relative">
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-primary" />
+                    <Input
+                      placeholder="Enter ticker..."
+                      value={ticker}
+                      onChange={(e) => setTicker(e.target.value.toUpperCase())}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && ticker.trim()) {
+                          handleSetTicker(ticker.trim());
+                          if (selectedStudies.length > 0) handleRunAllStudies();
+                        }
+                      }}
+                      className="h-12 pl-12 pr-4 text-lg font-bold font-mono tracking-wider bg-background border-2 border-primary focus:ring-2 focus:ring-primary/30 rounded-xl text-center placeholder:text-muted-foreground/40 placeholder:font-normal placeholder:text-sm"
+                    />
+                  </div>
+                  
+                  {/* Study Filter */}
+                  <div className="relative">
+                    <FlaskConical className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Filter studies..."
+                      value={studySearch}
+                      onChange={(e) => setStudySearch(e.target.value)}
+                      className="h-10 w-full pl-10 pr-4 text-sm bg-background border border-muted-foreground/30 focus:border-primary rounded-lg placeholder:text-muted-foreground/50"
+                    />
+                  </div>
+                  
+                  {/* Analyze Button */}
+                  <Button
+                    onClick={() => {
+                      handleSetTicker(ticker);
+                      if (selectedStudies.length > 0) handleRunAllStudies();
                     }}
-                    onBlur={() => {
-                      if (ticker.trim()) {
-                        handleSetTicker(ticker.trim());
-                      }
-                    }}
-                    placeholder="AAPL"
-                    className="h-7 px-2 text-sm font-bold font-mono text-primary bg-transparent border-0 focus-visible:ring-0 focus-visible:ring-offset-0"
-                  />
+                    disabled={!ticker.trim()}
+                    variant="success"
+                    className="w-full h-12 text-base font-bold rounded-xl"
+                  >
+                    <Play className="h-5 w-5 mr-2" />
+                    Analyze
+                  </Button>
                 </div>
               </div>
               
