@@ -88,10 +88,7 @@ serve(async (req) => {
       mode: "subscription",
       success_url: `${productionUrl}/?subscription=success`,
       cancel_url: `${productionUrl}/?subscription=cancelled`,
-      // Enable automatic invoice and receipt emails from Stripe
-      invoice_creation: {
-        enabled: true,
-      },
+      // Note: For subscription mode, invoices are created automatically by Stripe
       // Add custom fields to show what's included
       custom_text: {
         submit: {
