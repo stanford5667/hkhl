@@ -14,7 +14,8 @@ import {
   EyeOff,
   Sparkles,
   Shield,
-  TrendingUp
+  TrendingUp,
+  Check
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -46,9 +47,19 @@ export function AuthStep({ progress, onComplete }: AuthStepProps) {
     firstName: '',
     lastName: '',
   });
+  const [ageConfirmed, setAgeConfirmed] = useState(false);
+  const [ageError, setAgeError] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setAgeError('');
+
+    // Validate age confirmation for signup
+    if (mode === 'signup' && !ageConfirmed) {
+      setAgeError('You must be 18 or older to use this platform');
+      return;
+    }
+
     setIsLoading(true);
 
     try {
@@ -243,6 +254,44 @@ export function AuthStep({ progress, onComplete }: AuthStepProps) {
                 </button>
               </div>
             </div>
+
+            {mode === 'signup' && (
+              <div className="space-y-1.5">
+                <div className="flex items-start gap-3 p-3 rounded-lg bg-secondary/50 border border-border">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAgeConfirmed(!ageConfirmed);
+                      setAgeError('');
+                    }}
+                    className={`mt-0.5 h-5 w-5 rounded border flex items-center justify-center transition-colors flex-shrink-0 ${
+                      ageConfirmed 
+                        ? "bg-primary border-primary text-primary-foreground" 
+                        : "border-muted-foreground/50 bg-transparent"
+                    }`}
+                  >
+                    {ageConfirmed && <Check className="h-3 w-3" />}
+                  </button>
+                  <div className="flex-1">
+                    <label 
+                      className="text-sm text-foreground cursor-pointer"
+                      onClick={() => {
+                        setAgeConfirmed(!ageConfirmed);
+                        setAgeError('');
+                      }}
+                    >
+                      I confirm that I am 18 years of age or older
+                    </label>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      You must be at least 18 years old to use this platform.
+                    </p>
+                  </div>
+                </div>
+                {ageError && (
+                  <p className="text-sm text-destructive">{ageError}</p>
+                )}
+              </div>
+            )}
 
             <Button
               type="submit"
