@@ -428,7 +428,23 @@ export function StudyResultCard({
   // Get displayable metrics from result
   const getDisplayMetrics = (): [string, any][] => {
     if (!result) return [];
-    const exclude = ['interpretation', 'dateRange', 'barsAnalyzed', 'ticker', 'studyId', 'params', 'total_days', 'study_name', 'events', 'recentEvents', 'recent_events'];
+    const exclude = [
+      'type',
+      'usedMockData',
+      'used_mock_data',
+      'interpretation',
+      'dateRange',
+      'barsAnalyzed',
+      'ticker',
+      'studyId',
+      'params',
+      'total_days',
+      'study_name',
+      'events',
+      'recentEvents',
+      'recent_events',
+    ];
+
     return Object.entries(result)
       .filter(([key, value]) => !exclude.includes(key) && value !== null && value !== undefined)
       // Only include primitive values (numbers, strings, booleans) - exclude objects and arrays
@@ -658,12 +674,12 @@ export function StudyResultCard({
         )}
       </div>
 
-      {/* INSIGHT - inline */}
+      {/* INSIGHT - inline (single line, no separate card) */}
       {result.interpretation && (
-        <div className="px-4 py-3 border-b">
-          <p className="text-sm text-foreground/90 leading-relaxed font-medium">
+        <div className="px-4 pb-4 -mt-2">
+          <p className="text-sm text-foreground/90 leading-relaxed">
             <span className="text-[10px] text-muted-foreground uppercase tracking-wide font-semibold mr-2">Insight:</span>
-            {result.interpretation}
+            <span className="font-medium">{result.interpretation}</span>
           </p>
         </div>
       )}
