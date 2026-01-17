@@ -238,62 +238,18 @@ export function LiveMacroContent({ onItemClick, onPerformanceUpdate, renderAfter
 
   return (
     <div className="space-y-6">
-      {/* Header with data source indicator and view toggle */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <Globe className="h-5 w-5 text-primary" />
-          <div>
-            <h3 className="font-semibold">Live Economic Data</h3>
-            <p className="text-xs text-muted-foreground">
-              {useMockData ? (
-                <span className="text-amber-400">Using demo data • Add FRED_API_KEY for live data</span>
-              ) : (
-                <span className="text-emerald-400">Live from FRED • Updated {lastUpdated ? new Date(lastUpdated).toLocaleTimeString() : 'now'}</span>
-              )}
-            </p>
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          {/* View Mode Toggle */}
-          <div className="flex border rounded-md overflow-hidden">
-            <Button
-              variant={viewMode === 'cards' ? 'secondary' : 'ghost'}
-              size="sm"
-              className="h-8 px-2.5 rounded-none"
-              onClick={() => setViewMode('cards')}
-            >
-              <LayoutGrid className="h-4 w-4" />
-              <span className="ml-1.5 text-xs hidden sm:inline">Cards</span>
-            </Button>
-            <Button
-              variant={viewMode === 'table' ? 'secondary' : 'ghost'}
-              size="sm"
-              className="h-8 px-2.5 rounded-none"
-              onClick={() => setViewMode('table')}
-            >
-              <TableIcon className="h-4 w-4" />
-              <span className="ml-1.5 text-xs hidden sm:inline">Table</span>
-            </Button>
-          </div>
-          
-          <Badge variant="outline" className="text-xs">
-            {totalCount} indicator{totalCount !== 1 ? 's' : ''}
-          </Badge>
-          <Badge 
-            variant={useMockData ? 'secondary' : 'default'}
-            className={useMockData ? 'bg-amber-500/20 text-amber-400' : 'bg-emerald-500/20 text-emerald-400'}
-          >
-            {useMockData ? 'Demo' : 'Live'}
-          </Badge>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={refresh}
-            disabled={isFetching}
-          >
-            <RefreshCw className={cn("h-4 w-4 mr-2", isFetching && "animate-spin")} />
-            Refresh
-          </Button>
+      {/* Header */}
+      <div className="flex items-center gap-3">
+        <Globe className="h-5 w-5 text-primary" />
+        <div>
+          <h2 className="text-lg font-semibold">Live Economic Data</h2>
+          <p className="text-xs text-muted-foreground">
+            {useMockData ? (
+              <span className="text-amber-400">Using demo data</span>
+            ) : (
+              <span className="text-emerald-400">Live from FRED</span>
+            )}
+          </p>
         </div>
       </div>
 

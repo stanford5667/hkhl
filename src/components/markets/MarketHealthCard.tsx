@@ -31,7 +31,7 @@ export function MarketHealthCard({ healthScore }: MarketHealthCardProps) {
       <CardContent className="p-6">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-sm text-muted-foreground mb-1">Market Health Score</p>
+            <p className="text-sm text-muted-foreground mb-1">Market Health</p>
             <div className="flex items-center gap-3">
               <span className={cn(
                 "text-4xl font-bold",
