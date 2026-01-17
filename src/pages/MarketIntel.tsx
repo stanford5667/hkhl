@@ -113,12 +113,12 @@ export default function MarketIntel() {
 
       {/* Category-based Content */}
       {activeCategory === 'calendar' && <EconomicCalendarTab onPerformanceUpdate={handleCalendarPerformance} />}
-      {activeCategory === 'countries' && <CountriesContent />}
-      {activeCategory === 'indexes' && <IndexesContent />}
+      {activeCategory === 'countries' && <CountriesContent onItemClick={handleItemClick} />}
+      {activeCategory === 'indexes' && <IndexesContent onItemClick={handleItemClick} />}
       
-      {activeCategory === 'crypto' && <CryptoContent />}
-      {activeCategory === 'bonds' && <GlobalBondYields />}
-      {activeCategory === 'earnings' && <EarningsContent />}
+      {activeCategory === 'crypto' && <CryptoContent onItemClick={handleItemClick} />}
+      {activeCategory === 'bonds' && <GlobalBondYields onItemClick={handleItemClick} />}
+      {activeCategory === 'earnings' && <EarningsContent onItemClick={handleItemClick} />}
       
       {activeCategory === 'currencies' && <CurrenciesContent onItemClick={handleItemClick} />}
       {activeCategory === 'indicators' && (

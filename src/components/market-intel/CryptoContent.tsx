@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Bitcoin, TrendingUp, TrendingDown, Sparkles, Activity, Layers, Coins, Zap } from 'lucide-react';
+import { type MarketDataItem } from './MarketDataDetail';
 
 interface CryptoData {
   symbol: string;
@@ -14,6 +15,10 @@ interface CryptoData {
   volume24h: string;
   rank: number;
   category: 'layer1' | 'defi' | 'meme' | 'infrastructure';
+}
+
+interface CryptoContentProps {
+  onItemClick?: (item: MarketDataItem) => void;
 }
 
 const cryptoData: CryptoData[] = [
@@ -31,8 +36,8 @@ const cryptoData: CryptoData[] = [
   { symbol: 'AAVE', name: 'Aave', price: 287.45, change24h: 1.89, change7d: 14.2, marketCap: '4.3B', volume24h: '189M', rank: 12, category: 'defi' },
 ];
 
-const CryptoRow = ({ crypto }: { crypto: CryptoData }) => (
-  <tr className="border-b border-border/50 hover:bg-secondary/30 cursor-pointer">
+const CryptoRow = ({ crypto, onClick }: { crypto: CryptoData; onClick?: () => void }) => (
+  <tr className="border-b border-border/50 hover:bg-secondary/30 cursor-pointer" onClick={onClick}>
     <td className="py-3 px-2 text-muted-foreground">{crypto.rank}</td>
     <td className="py-3 px-2">
       <div className="flex items-center gap-2">
@@ -57,8 +62,22 @@ const CryptoRow = ({ crypto }: { crypto: CryptoData }) => (
   </tr>
 );
 
-export function CryptoContent() {
+export function CryptoContent({ onItemClick }: CryptoContentProps) {
   const [activeTab, setActiveTab] = useState('all');
+  
+  const handleCryptoClick = (crypto: CryptoData) => {
+    if (onItemClick) {
+      onItemClick({
+        symbol: crypto.symbol,
+        name: crypto.name,
+        price: crypto.price,
+        change: crypto.price * (crypto.change24h / 100),
+        changePercent: crypto.change24h,
+        type: 'index',
+        category: crypto.category,
+      });
+    }
+  };
   
   const tabs = [
     { id: 'all', label: 'All', icon: Bitcoin },
@@ -195,7 +214,7 @@ export function CryptoContent() {
                   </thead>
                   <tbody>
                     {filteredCrypto.map((crypto) => (
-                      <CryptoRow key={crypto.symbol} crypto={crypto} />
+                      <CryptoRow key={crypto.symbol} crypto={crypto} onClick={() => handleCryptoClick(crypto)} />
                     ))}
                   </tbody>
                 </table>

@@ -3,6 +3,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { TrendingUp, TrendingDown, Landmark, Globe } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { type MarketDataItem } from './MarketDataDetail';
 
 interface BondYield {
   country: string;
@@ -90,15 +91,18 @@ const africaYields: BondYield[] = [
   { country: 'Nigeria', yield: 16.8650, flag: '🇳🇬' },
 ];
 
-function YieldCard({ bond, compact = false }: { bond: BondYield; compact?: boolean }) {
+function YieldCard({ bond, compact = false, onClick }: { bond: BondYield; compact?: boolean; onClick?: () => void }) {
   const isHighYield = bond.yield >= 10;
   const isLowYield = bond.yield < 2;
   
   return (
-    <div className={cn(
-      "flex items-center justify-between p-1.5 sm:p-2 rounded-lg bg-secondary/30 hover:bg-secondary/50 transition-colors",
-      compact ? "gap-1.5" : "gap-3"
-    )}>
+    <div 
+      className={cn(
+        "flex items-center justify-between p-1.5 sm:p-2 rounded-lg bg-secondary/30 hover:bg-secondary/50 transition-colors cursor-pointer",
+        compact ? "gap-1.5" : "gap-3"
+      )}
+      onClick={onClick}
+    >
       <div className="flex items-center gap-1.5 min-w-0 flex-1">
         <span className="text-sm sm:text-base shrink-0">{bond.flag}</span>
         <span className={cn(
@@ -123,20 +127,39 @@ function YieldCard({ bond, compact = false }: { bond: BondYield; compact?: boole
   );
 }
 
-function YieldGrid({ yields, compact = false }: { yields: BondYield[]; compact?: boolean }) {
+function YieldGrid({ yields, compact = false, onBondClick }: { yields: BondYield[]; compact?: boolean; onBondClick?: (bond: BondYield) => void }) {
   return (
     <div className={cn(
       "grid gap-1.5",
       compact ? "grid-cols-2 sm:grid-cols-3 lg:grid-cols-4" : "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3"
     )}>
       {yields.map((bond) => (
-        <YieldCard key={bond.country} bond={bond} compact={compact} />
+        <YieldCard key={bond.country} bond={bond} compact={compact} onClick={() => onBondClick?.(bond)} />
       ))}
     </div>
   );
 }
 
-export function GlobalBondYields() {
+interface GlobalBondYieldsProps {
+  onItemClick?: (item: MarketDataItem) => void;
+}
+
+export function GlobalBondYields({ onItemClick }: GlobalBondYieldsProps) {
+  const handleBondClick = (bond: BondYield) => {
+    if (onItemClick) {
+      onItemClick({
+        symbol: bond.country,
+        name: `${bond.country} 10Y Bond`,
+        price: bond.yield,
+        change: 0,
+        changePercent: 0,
+        type: 'rate',
+        category: 'bonds',
+        unit: '%',
+      });
+    }
+  };
+
   return (
     <Card className="border-border/50">
       <CardHeader className="pb-3">
@@ -162,23 +185,23 @@ export function GlobalBondYields() {
           </TabsList>
           
           <TabsContent value="major" className="mt-0">
-            <YieldGrid yields={majorGlobalYields} compact />
+            <YieldGrid yields={majorGlobalYields} compact onBondClick={handleBondClick} />
           </TabsContent>
           
           <TabsContent value="europe" className="mt-0">
-            <YieldGrid yields={europeYields} compact />
+            <YieldGrid yields={europeYields} compact onBondClick={handleBondClick} />
           </TabsContent>
           
           <TabsContent value="americas" className="mt-0">
-            <YieldGrid yields={americasYields} compact />
+            <YieldGrid yields={americasYields} compact onBondClick={handleBondClick} />
           </TabsContent>
           
           <TabsContent value="asia" className="mt-0">
-            <YieldGrid yields={asiaYields} compact />
+            <YieldGrid yields={asiaYields} compact onBondClick={handleBondClick} />
           </TabsContent>
           
           <TabsContent value="africa" className="mt-0">
-            <YieldGrid yields={africaYields} compact />
+            <YieldGrid yields={africaYields} compact onBondClick={handleBondClick} />
           </TabsContent>
         </Tabs>
       </CardContent>

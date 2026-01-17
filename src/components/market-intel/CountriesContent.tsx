@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Globe, TrendingUp, TrendingDown, Map, DollarSign, Percent, BarChart3 } from 'lucide-react';
+import { type MarketDataItem } from './MarketDataDetail';
 
 interface CountryData {
   name: string;
@@ -33,8 +34,12 @@ const countriesData: CountryData[] = [
   { name: 'South Africa', flag: '🇿🇦', region: 'Africa', gdpGrowth: 0.9, inflation: 5.3, interestRate: 8.25, currency: 'ZAR', currencyChange: -8.1 },
 ];
 
-const CountryCard = ({ country }: { country: CountryData }) => (
-  <Card className="hover:bg-secondary/30 transition-colors cursor-pointer">
+interface CountriesContentProps {
+  onItemClick?: (item: MarketDataItem) => void;
+}
+
+const CountryCard = ({ country, onClick }: { country: CountryData; onClick?: () => void }) => (
+  <Card className="hover:bg-secondary/30 transition-colors cursor-pointer" onClick={onClick}>
     <CardContent className="p-3 sm:p-4">
       <div className="flex items-center gap-2 sm:gap-3 mb-2 sm:mb-3">
         <span className="text-xl sm:text-2xl">{country.flag}</span>
@@ -75,8 +80,22 @@ const CountryCard = ({ country }: { country: CountryData }) => (
   </Card>
 );
 
-export function CountriesContent() {
+export function CountriesContent({ onItemClick }: CountriesContentProps) {
   const [activeTab, setActiveTab] = useState('all');
+  
+  const handleCountryClick = (country: CountryData) => {
+    if (onItemClick) {
+      onItemClick({
+        symbol: country.currency,
+        name: country.name,
+        price: country.interestRate,
+        change: country.currencyChange,
+        changePercent: country.currencyChange,
+        type: 'economic',
+        category: country.region,
+      });
+    }
+  };
   
   const tabs = [
     { id: 'all', label: 'All Regions', icon: Globe },
@@ -158,7 +177,7 @@ export function CountriesContent() {
           {/* Countries Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {filteredCountries.map((country) => (
-              <CountryCard key={country.name} country={country} />
+              <CountryCard key={country.name} country={country} onClick={() => handleCountryClick(country)} />
             ))}
           </div>
         </TabsContent>
