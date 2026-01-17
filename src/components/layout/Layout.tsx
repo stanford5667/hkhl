@@ -17,12 +17,14 @@ import { QuickStartBanner } from "@/components/onboarding/QuickStartBanner";
 import { useOnboarding } from "@/hooks/useOnboarding";
 import { FooterDisclaimer } from "@/components/legal";
 import { useEventNotifications } from "@/hooks/useEventNotifications";
+import { EmailVerificationPending } from "@/components/auth/EmailVerificationPending";
+
 interface LayoutProps {
   children: ReactNode;
 }
 
 export function Layout({ children }: LayoutProps) {
-  const { loading } = useAuth();
+  const { loading, user, emailVerified, checkingVerification, refreshVerificationStatus } = useAuth();
   const { requireAuth, showAuthDialog, closeAuthDialog } = useRequireAuth();
   const location = useLocation();
   const navigate = useNavigate();
@@ -70,8 +72,14 @@ export function Layout({ children }: LayoutProps) {
     }
   };
 
+  // Handle successful verification
+  const handleVerified = () => {
+    refreshVerificationStatus();
+    toast.success("Email verified! Welcome to Asset Labs AI!");
+  };
+
   // Show loading spinner while checking auth
-  if (loading) {
+  if (loading || checkingVerification) {
     return (
       <div className="flex min-h-screen w-full items-center justify-center bg-background">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -79,9 +87,25 @@ export function Layout({ children }: LayoutProps) {
     );
   }
 
-  // Auth page doesn't need the layout
-  if (location.pathname === "/auth") {
+  // Auth page and verify-email page don't need the layout
+  if (location.pathname === "/auth" || location.pathname === "/verify-email") {
     return <>{children}</>;
+  }
+
+  // If user is logged in but email not verified, show verification pending screen
+  if (user && !emailVerified) {
+    return (
+      <div className="flex min-h-screen w-full items-center justify-center bg-background p-4">
+        <EmailVerificationPending
+          email={user.email || ""}
+          onVerified={handleVerified}
+          onBack={() => {
+            // Sign out and go to auth page
+            navigate("/auth");
+          }}
+        />
+      </div>
+    );
   }
 
   // Allow browsing without authentication - removed redirect
