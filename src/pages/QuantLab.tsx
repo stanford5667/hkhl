@@ -1756,7 +1756,7 @@ function QuantLabContent(props: any) {
               <>
                 <span className="text-muted-foreground mx-1">•</span>
                 <InlinePrice ticker={selectedTicker} showStaleness={false} className="text-base font-semibold" />
-                <ExternalLink className="h-4 w-4 text-muted-foreground ml-1" />
+                
               </>
             )}
           </button>
