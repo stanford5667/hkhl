@@ -168,10 +168,9 @@ export function QuantLabWelcomeHero({
                 <span className="block text-[2.1rem] sm:text-[2.6rem] md:text-[3.2rem] lg:text-[3.8rem] leading-tight text-foreground">Quant Tools.</span>
               </h1>
               <p className="text-sm sm:text-base md:text-lg text-muted-foreground max-w-lg mx-auto lg:mx-0">
-                Answer questions like{' '}
                 <span className="text-foreground font-semibold italic">"What happens after a $NVDA -2% day?"</span>
-                {' '}Run quant studies{' '}
-                <span className="text-primary font-medium">all without a single line of code.</span>
+                {' '}Don't guess—backtest.{' '}
+                <span className="text-primary font-medium">Zero code quant studies.</span>
               </p>
             </motion.div>
 
