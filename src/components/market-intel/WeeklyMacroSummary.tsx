@@ -387,12 +387,16 @@ export function WeeklyMacroSummary() {
                     <div className="text-sm text-foreground/80 leading-relaxed">
                       {(() => {
                         const fullSummary = generateDailySummary(healthScore, keyDataPoints, highImportanceEvents);
-                        // Get first ~120 words for preview
                         const words = fullSummary.replace(/\*\*/g, '').split(/\s+/);
-                        const previewWords = words.slice(0, 100).join(' ');
+                        // Mobile: ~50 words, Desktop: ~100 words
+                        const mobilePreview = words.slice(0, 50).join(' ');
+                        const desktopPreview = words.slice(0, 100).join(' ');
                         return (
                           <>
-                            <p className="mb-2">{previewWords}...</p>
+                            {/* Mobile: Show 50 words */}
+                            <p className="mb-2 sm:hidden">{mobilePreview}...</p>
+                            {/* Desktop: Show 100 words */}
+                            <p className="mb-2 hidden sm:block">{desktopPreview}...</p>
                             <DialogTrigger asChild>
                               <button className="text-primary hover:text-primary/80 font-medium text-xs flex items-center gap-1 transition-colors">
                                 See full summary
