@@ -724,6 +724,9 @@ export function StudyResultCard({
             const worstMove = analysisData?.worst ?? result.worst ?? result.maxLoss ?? result.max_loss ?? (avgMove < 0 ? avgMove * 3 : avgMove * -2);
             const medianMove = analysisData?.median ?? result.median ?? avgMove * 0.8;
             const occurrences = analysisData?.occurrences ?? result.totalOccurrences ?? result.occurrences ?? result.total_signals ?? result.matchCount ?? 0;
+            // Q1/Q3 for clustering visualization (IQR = interquartile range where 50% of data falls)
+            const q1 = analysisData?.q1 ?? result.q1 ?? (medianMove - Math.abs(avgMove - medianMove) * 1.5);
+            const q3 = analysisData?.q3 ?? result.q3 ?? (medianMove + Math.abs(avgMove - medianMove) * 1.5);
 
             return (
               <>
@@ -792,26 +795,50 @@ export function StudyResultCard({
                       const worstPos = Math.max(5, Math.min(95, centerPos + (worstMove / range) * scale));
                       const bestPos = Math.max(5, Math.min(95, centerPos + (bestMove / range) * scale));
                       const avgPos = Math.max(5, Math.min(95, centerPos + (avgMove / range) * scale));
+                      const medianPos = Math.max(5, Math.min(95, centerPos + (medianMove / range) * scale));
+                      const q1Pos = Math.max(5, Math.min(95, centerPos + (q1 / range) * scale));
+                      const q3Pos = Math.max(5, Math.min(95, centerPos + (q3 / range) * scale));
 
                       return (
                         <>
+                          {/* Zero line */}
                           <div className="absolute top-0 bottom-0 left-1/2 w-px bg-border" />
 
+                          {/* Full range bar (worst to best) */}
                           <div
-                            className="absolute top-3 bottom-3 bg-gradient-to-r from-red-500/40 via-muted-foreground/20 to-emerald-500/40 rounded-full"
+                            className="absolute top-3.5 bottom-3.5 bg-muted-foreground/15 rounded-full"
                             style={{
                               left: `${Math.min(worstPos, bestPos)}%`,
                               right: `${100 - Math.max(worstPos, bestPos)}%`,
                             }}
                           />
 
+                          {/* IQR clustering band (Q1 to Q3) - where 50% of data falls */}
+                          <div
+                            className="absolute top-2 bottom-2 bg-primary/30 rounded-full border border-primary/50"
+                            style={{
+                              left: `${Math.min(q1Pos, q3Pos)}%`,
+                              right: `${100 - Math.max(q1Pos, q3Pos)}%`,
+                            }}
+                          />
+
+                          {/* Worst marker */}
                           <div
                             className="absolute top-1/2 -translate-y-1/2 flex flex-col items-center"
                             style={{ left: `${worstPos}%`, transform: 'translateX(-50%) translateY(-50%)' }}
                           >
-                            <div className="w-2.5 h-2.5 rounded-full bg-red-500 border-2 border-background shadow-md" />
+                            <div className="w-2 h-2 rounded-full bg-red-500 border border-background shadow-sm" />
                           </div>
 
+                          {/* Median marker (diamond shape) */}
+                          <div
+                            className="absolute top-1/2 -translate-y-1/2"
+                            style={{ left: `${medianPos}%`, transform: 'translateX(-50%) translateY(-50%)' }}
+                          >
+                            <div className="w-2.5 h-2.5 rotate-45 bg-primary border border-background shadow-sm" />
+                          </div>
+
+                          {/* Average marker (larger, prominent) */}
                           <div
                             className="absolute top-1/2 -translate-y-1/2"
                             style={{ left: `${avgPos}%`, transform: 'translateX(-50%) translateY(-50%)' }}
@@ -822,15 +849,35 @@ export function StudyResultCard({
                             )} />
                           </div>
 
+                          {/* Best marker */}
                           <div
                             className="absolute top-1/2 -translate-y-1/2"
                             style={{ left: `${bestPos}%`, transform: 'translateX(-50%) translateY(-50%)' }}
                           >
-                            <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 border-2 border-background shadow-md" />
+                            <div className="w-2 h-2 rounded-full bg-emerald-500 border border-background shadow-sm" />
                           </div>
                         </>
                       );
                     })()}
+                  </div>
+                  
+                  {/* Legend */}
+                  <div className="flex items-center justify-between mt-1.5 text-[9px] text-muted-foreground">
+                    <div className="flex items-center gap-3">
+                      <span className="flex items-center gap-1">
+                        <span className="w-2 h-2 rounded-full bg-red-500" /> Worst
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <span className="w-2 h-2 rounded-full bg-emerald-500" /> Best
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <span className="w-2.5 h-2.5 rotate-45 bg-primary" /> Median
+                      </span>
+                    </div>
+                    <span className="flex items-center gap-1">
+                      <span className="w-4 h-2 rounded-sm bg-primary/30 border border-primary/50" />
+                      <span>50% cluster</span>
+                    </span>
                   </div>
                 </div>
               </>

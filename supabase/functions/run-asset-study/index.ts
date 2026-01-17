@@ -281,15 +281,21 @@ function studyAfterDownX(bars: PriceBar[], params?: Record<string, any>) {
     }
   }
   
-  const analysis = Object.entries(forwardReturns).map(([days, data]) => ({
-    days: parseInt(days),
-    occurrences: data.returns.length,
-    avgReturn: data.returns.length > 0 ? data.returns.reduce((a, b) => a + b, 0) / data.returns.length : 0,
-    winRate: data.returns.length > 0 ? (data.wins / data.returns.length) * 100 : 0,
-    median: data.returns.length > 0 ? [...data.returns].sort((a, b) => a - b)[Math.floor(data.returns.length / 2)] : 0,
-    best: data.returns.length > 0 ? Math.max(...data.returns) : 0,
-    worst: data.returns.length > 0 ? Math.min(...data.returns) : 0
-  }));
+  const analysis = Object.entries(forwardReturns).map(([days, data]) => {
+    const sorted = [...data.returns].sort((a, b) => a - b);
+    const len = sorted.length;
+    return {
+      days: parseInt(days),
+      occurrences: len,
+      avgReturn: len > 0 ? data.returns.reduce((a, b) => a + b, 0) / len : 0,
+      winRate: len > 0 ? (data.wins / len) * 100 : 0,
+      median: len > 0 ? sorted[Math.floor(len / 2)] : 0,
+      q1: len > 0 ? sorted[Math.floor(len * 0.25)] : 0,
+      q3: len > 0 ? sorted[Math.floor(len * 0.75)] : 0,
+      best: len > 0 ? Math.max(...data.returns) : 0,
+      worst: len > 0 ? Math.min(...data.returns) : 0
+    };
+  });
   
   const recentEvents = downDays.slice(-10).map(dd => ({
     date: bars[dd.idx].date,
@@ -342,15 +348,21 @@ function studyAfterUpX(bars: PriceBar[], params?: Record<string, any>) {
     }
   }
   
-  const analysis = Object.entries(forwardReturns).map(([days, data]) => ({
-    days: parseInt(days),
-    occurrences: data.returns.length,
-    avgReturn: data.returns.length > 0 ? data.returns.reduce((a, b) => a + b, 0) / data.returns.length : 0,
-    winRate: data.returns.length > 0 ? (data.wins / data.returns.length) * 100 : 0,
-    median: data.returns.length > 0 ? [...data.returns].sort((a, b) => a - b)[Math.floor(data.returns.length / 2)] : 0,
-    best: data.returns.length > 0 ? Math.max(...data.returns) : 0,
-    worst: data.returns.length > 0 ? Math.min(...data.returns) : 0
-  }));
+  const analysis = Object.entries(forwardReturns).map(([days, data]) => {
+    const sorted = [...data.returns].sort((a, b) => a - b);
+    const len = sorted.length;
+    return {
+      days: parseInt(days),
+      occurrences: len,
+      avgReturn: len > 0 ? data.returns.reduce((a, b) => a + b, 0) / len : 0,
+      winRate: len > 0 ? (data.wins / len) * 100 : 0,
+      median: len > 0 ? sorted[Math.floor(len / 2)] : 0,
+      q1: len > 0 ? sorted[Math.floor(len * 0.25)] : 0,
+      q3: len > 0 ? sorted[Math.floor(len * 0.75)] : 0,
+      best: len > 0 ? Math.max(...data.returns) : 0,
+      worst: len > 0 ? Math.min(...data.returns) : 0
+    };
+  });
   
   const recentEvents = upDays.slice(-10).map(ud => ({
     date: bars[ud.idx].date,
@@ -417,13 +429,21 @@ function studyAfterConsecutiveDays(bars: PriceBar[], params?: Record<string, any
     }
   }
   
-  const analysis = Object.entries(forwardReturns).map(([days, data]) => ({
-    days: parseInt(days),
-    occurrences: data.returns.length,
-    avgReturn: data.returns.length > 0 ? data.returns.reduce((a, b) => a + b, 0) / data.returns.length : 0,
-    winRate: data.returns.length > 0 ? (data.wins / data.returns.length) * 100 : 0,
-    median: data.returns.length > 0 ? [...data.returns].sort((a, b) => a - b)[Math.floor(data.returns.length / 2)] : 0
-  }));
+  const analysis = Object.entries(forwardReturns).map(([days, data]) => {
+    const sorted = [...data.returns].sort((a, b) => a - b);
+    const len = sorted.length;
+    return {
+      days: parseInt(days),
+      occurrences: len,
+      avgReturn: len > 0 ? data.returns.reduce((a, b) => a + b, 0) / len : 0,
+      winRate: len > 0 ? (data.wins / len) * 100 : 0,
+      median: len > 0 ? sorted[Math.floor(len / 2)] : 0,
+      q1: len > 0 ? sorted[Math.floor(len * 0.25)] : 0,
+      q3: len > 0 ? sorted[Math.floor(len * 0.75)] : 0,
+      best: len > 0 ? Math.max(...data.returns) : 0,
+      worst: len > 0 ? Math.min(...data.returns) : 0
+    };
+  });
   
   // Generate specific, data-driven insight
   const firstAnalysis = analysis[0];
