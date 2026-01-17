@@ -40,7 +40,7 @@ import {
   Calendar, Zap, Layers, Volume2, Crosshair, LineChart,
   Gauge, ArrowLeftRight, Mountain, ArrowUpDown,
   Target, Shield, Loader2,
-  CheckCircle2, X, ExternalLink
+  CheckCircle2, X, ExternalLink, ChevronLeft
 } from 'lucide-react';
 import { InlinePrice } from '@/components/shared/PriceDisplay';
 import { supabase } from '@/integrations/supabase/client';
@@ -1715,12 +1715,21 @@ function QuantLabContent(props: any) {
                   </>
                 ) : (
                   <>
-                    <div className="p-6 rounded-2xl bg-muted/50 border-2 border-border mb-6">
-                      <FlaskConical className="h-12 w-12 text-muted-foreground" />
+                    {/* Arrow pointing to sidebar on desktop */}
+                    <div className="hidden md:flex items-center gap-4 mb-6 text-primary animate-pulse">
+                      <ChevronLeft className="h-8 w-8" />
+                      <span className="text-lg font-semibold">Select a Quant Study</span>
                     </div>
-                    <p className="text-xl font-bold mb-2">Select a Study to Begin</p>
-                    <p className="text-sm text-muted-foreground max-w-xs">
-                      Choose a quantitative analysis to run on your selected stock
+                    
+                    <div className="p-8 rounded-2xl bg-gradient-to-br from-primary/10 to-primary/5 border-2 border-primary/30 border-dashed mb-6">
+                      <FlaskConical className="h-16 w-16 text-primary/60" />
+                    </div>
+                    <p className="text-2xl font-bold mb-3 text-primary">No Study Selected</p>
+                    <p className="text-base text-muted-foreground max-w-sm mb-2">
+                      Choose a <span className="font-semibold text-foreground">Quant Study</span> from the panel to analyze your stock
+                    </p>
+                    <p className="text-xs text-muted-foreground/70 max-w-xs">
+                      Pick from categories like Risk, Momentum, Volatility & more
                     </p>
                     {/* Mobile CTA to show studies */}
                     <Button
@@ -1730,7 +1739,7 @@ function QuantLabContent(props: any) {
                       onClick={() => setShowStudyPanel(true)}
                     >
                       <Layers className="h-5 w-5" />
-                      Browse Studies
+                      Browse Quant Studies
                     </Button>
                   </>
                 )}
