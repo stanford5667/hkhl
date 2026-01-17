@@ -97,40 +97,46 @@ export default function MarketIntel() {
   };
 
   return (
-    <div className="p-4 sm:p-6 space-y-4 sm:space-y-6 animate-fade-up">
+    <div className="p-3 sm:p-4 md:p-6 space-y-3 sm:space-y-4 md:space-y-6 animate-fade-up max-w-[1800px] mx-auto">
 
       {/* Live Economic Data Header Card - Always visible at top */}
       <LiveEconomicDataHeader />
 
-      {/* Data Category Navigation - Immediately below header */}
-      <MarketIntelNavigation 
-        activeCategory={activeCategory} 
-        onCategoryChange={setActiveCategory} 
-      />
+      {/* Data Category Navigation - Sticky on scroll */}
+      <div className="sticky top-0 z-20 -mx-3 sm:-mx-4 md:-mx-6 px-3 sm:px-4 md:px-6 py-2 bg-background/95 backdrop-blur-sm border-b border-border/50">
+        <MarketIntelNavigation 
+          activeCategory={activeCategory} 
+          onCategoryChange={setActiveCategory} 
+        />
+      </div>
 
-      {/* Weekly Macro Summary - Only on Overview page */}
-      {activeCategory === 'indicators' && <WeeklyMacroSummary />}
+      {/* Main Content Area - Responsive grid */}
+      <div className="min-h-[60vh]">
+        {/* Weekly Macro Summary - Only on Overview page */}
+        {activeCategory === 'indicators' && <WeeklyMacroSummary />}
 
-      {/* Category-based Content */}
-      {activeCategory === 'calendar' && <EconomicCalendarTab onPerformanceUpdate={handleCalendarPerformance} />}
-      {activeCategory === 'countries' && <CountriesContent onItemClick={handleItemClick} />}
-      {activeCategory === 'indexes' && <IndexesContent onItemClick={handleItemClick} />}
-      
-      {activeCategory === 'crypto' && <CryptoContent onItemClick={handleItemClick} />}
-      {activeCategory === 'bonds' && <GlobalBondYields onItemClick={handleItemClick} />}
-      {activeCategory === 'earnings' && <EarningsContent onItemClick={handleItemClick} />}
-      
-      {activeCategory === 'currencies' && <CurrenciesContent onItemClick={handleItemClick} />}
-      {activeCategory === 'indicators' && (
-        <div className="space-y-4 sm:space-y-6">
-          <LiveMacroContent 
-            onItemClick={handleItemClick} 
-            onPerformanceUpdate={handleMacroPerformance}
-            hideHeader={true}
-          />
+        {/* Category-based Content with consistent spacing */}
+        <div className="mt-4 sm:mt-5 md:mt-6">
+          {activeCategory === 'calendar' && <EconomicCalendarTab onPerformanceUpdate={handleCalendarPerformance} />}
+          {activeCategory === 'countries' && <CountriesContent onItemClick={handleItemClick} />}
+          {activeCategory === 'indexes' && <IndexesContent onItemClick={handleItemClick} />}
+          
+          {activeCategory === 'crypto' && <CryptoContent onItemClick={handleItemClick} />}
+          {activeCategory === 'bonds' && <GlobalBondYields onItemClick={handleItemClick} />}
+          {activeCategory === 'earnings' && <EarningsContent onItemClick={handleItemClick} />}
+          
+          {activeCategory === 'currencies' && <CurrenciesContent onItemClick={handleItemClick} />}
+          {activeCategory === 'indicators' && (
+            <div className="space-y-4 sm:space-y-6">
+              <LiveMacroContent 
+                onItemClick={handleItemClick} 
+                onPerformanceUpdate={handleMacroPerformance}
+                hideHeader={true}
+              />
+            </div>
+          )}
         </div>
-      )}
-      
+      </div>
 
       {/* Market Data Detail Sheet */}
       <MarketDataDetail 
