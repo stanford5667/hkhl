@@ -95,7 +95,7 @@ const App = () => {
                         <Layout>
                           <Suspense fallback={<PageLoader />}>
                             <Routes>
-                              <Route path="/" element={<Portfolio />} />
+                              <Route path="/" element={<QuantLab />} />
                               <Route path="/news" element={<NewsIntelligence />} />
                               <Route path="/auth" element={<Auth />} />
                               <Route path="/verify-email" element={<VerifyEmail />} />
