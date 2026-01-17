@@ -135,12 +135,7 @@ export function Sidebar() {
         href: "/market-intel", 
         icon: BarChart3 
       },
-      ...(isAdmin ? [{ 
-        label: "Asset Research", 
-        subtitle: "Screener & Lookup",
-        href: "/asset-research", 
-        icon: Search 
-      }] : []),
+      // Asset Research hidden
       { 
         label: "Glossary", 
         subtitle: "Terms & Definitions",
