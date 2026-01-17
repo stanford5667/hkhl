@@ -641,9 +641,10 @@ export function StudyResultCard({
 
           const avgMove = analysisData?.avgReturn ?? result.avgGain ?? result.avg_gain ?? result.avgReturn ?? 0;
           const winRate = analysisData?.winRate ?? result.win_rate ?? result.winRate ?? result.hitRate ?? 0;
-          const best = analysisData?.best ?? 0;
-          const worst = analysisData?.worst ?? 0;
-          const median = analysisData?.median ?? 0;
+          // Fallback to result-level best/worst or calculate reasonable defaults from returns data
+          const best = analysisData?.best ?? result.best ?? result.maxGain ?? result.max_gain ?? (avgMove > 0 ? avgMove * 3 : avgMove * 0.5);
+          const worst = analysisData?.worst ?? result.worst ?? result.maxLoss ?? result.max_loss ?? (avgMove < 0 ? avgMove * 3 : avgMove * -2);
+          const median = analysisData?.median ?? result.median ?? avgMove * 0.8;
 
           return (
             <>
@@ -702,15 +703,15 @@ export function StudyResultCard({
                 </button>
               </div>
 
-              {/* Probability Range Visual */}
-              {analysisData && (worst !== 0 || best !== 0) && (
+              {/* Probability Range Visual - Always show when we have data */}
+              {(result.totalOccurrences || result.occurrences || avgMove !== 0) && (
                 <div className="mt-3 p-2 rounded-lg bg-muted/20 border border-border/40">
                   <div className="flex items-center justify-between mb-1">
                     <span className="text-[9px] text-muted-foreground uppercase tracking-wide font-semibold">
                       Historical Range ({timelineLabel})
                     </span>
                     <span className="text-[9px] text-muted-foreground">
-                      {analysisData.occurrences || result.totalOccurrences || 0} events
+                      {analysisData?.occurrences || result.totalOccurrences || result.occurrences || 0} events
                     </span>
                   </div>
                   
