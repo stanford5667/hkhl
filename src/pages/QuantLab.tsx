@@ -1525,35 +1525,29 @@ function QuantLabContent(props: any) {
                   </div>
                 </div>
                 
-                {/* Category Tabs */}
-                <div className="flex-1 overflow-hidden flex flex-col">
-                  <Tabs value={activeCategory} onValueChange={setActiveCategory} className="flex-1 flex flex-col overflow-hidden">
-                    <div className="px-3 pt-3 overflow-x-auto flex-shrink-0">
-                      <div className="flex gap-2 pb-2">
-                        {STUDY_CATEGORIES.map((cat) => (
-                          <button
-                            key={cat.id}
-                            onClick={() => setActiveCategory(cat.id)}
-                            className={cn(
-                              "flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm whitespace-nowrap transition-all duration-200 shrink-0",
-                              activeCategory === cat.id
-                                ? "bg-primary text-primary-foreground shadow-lg font-semibold"
-                                : "bg-muted hover:bg-muted/80 font-medium"
-                            )}
-                          >
-                            <cat.icon className="h-4 w-4" />
-                            <span>{cat.name}</span>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Study List */}
-                    <div className="flex-1 overflow-y-auto px-3 pt-2 pb-3">
-                      <div className="space-y-2">
-                        {STUDY_DEFINITIONS
-                          .filter((s) => activeCategory === 'all' || s.category === activeCategory)
-                          .map((study) => {
+                {/* Study List - All categories with separators (matching mobile) */}
+                <div className="flex-1 overflow-y-auto px-3 py-2">
+                  {STUDY_CATEGORIES.map((category, catIndex) => {
+                    const categoryStudies = STUDY_DEFINITIONS.filter((s) => s.category === category.id);
+                    if (categoryStudies.length === 0) return null;
+                    
+                    return (
+                      <div key={category.id}>
+                        {/* Category separator line (except first) */}
+                        {catIndex > 0 && (
+                          <div className="my-4 border-t border-border" />
+                        )}
+                        
+                        {/* Category header */}
+                        <div className="flex items-center gap-2 px-1 py-2 mb-2">
+                          <category.icon className="h-4 w-4 text-muted-foreground" />
+                          <span className="text-sm font-semibold text-foreground">{category.name}</span>
+                          <span className="text-xs text-muted-foreground">• {category.description}</span>
+                        </div>
+                        
+                        {/* Studies in this category */}
+                        <div className="space-y-2">
+                          {categoryStudies.map((study) => {
                             const isSelected = selectedStudies.includes(study.id);
                             return (
                               <button
@@ -1594,9 +1588,10 @@ function QuantLabContent(props: any) {
                               </button>
                             );
                           })}
+                        </div>
                       </div>
-                    </div>
-                  </Tabs>
+                    );
+                  })}
                 </div>
               </motion.div>
             </>
