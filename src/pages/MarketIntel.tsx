@@ -25,8 +25,7 @@ import { LiveEconomicDataHeader } from '@/components/markets/LiveEconomicDataHea
 import { useCommodities, useForex, groupCommoditiesByCategory, groupForexByCategory, type CommodityData, type ForexData } from '@/hooks/useForexCommodities';
 import { MarketDataDetail, type MarketDataItem } from '@/components/market-intel/MarketDataDetail';
 import { StockForexGrid } from '@/components/market-intel/StockForexGrid';
-import { FeaturedInsightCard } from '@/components/market-intel/FeaturedInsightCard';
-import { MarketImpactCard } from '@/components/market-intel/MarketImpactCard';
+import { InsightToggleWithCalendar } from '@/components/market-intel/InsightToggleWithCalendar';
 import { PerformanceRankingPanel, type ComponentScore } from '@/components/market-intel/PerformanceRankingPanel';
 import { useComponentPerformance, validateFedRates } from '@/hooks/useComponentPerformance';
 import { MarketIntelNavigation, type MarketCategory } from '@/components/market-intel/MarketIntelNavigation';
@@ -131,10 +130,7 @@ export default function MarketIntel() {
       {activeCategory === 'currencies' && <CurrenciesContent onItemClick={handleItemClick} />}
       {activeCategory === 'indicators' && (
         <div className="space-y-4 sm:space-y-6">
-          <div className="grid md:grid-cols-2 gap-3 sm:gap-4">
-            <FeaturedInsightCard />
-            <MarketImpactCard />
-          </div>
+          <InsightToggleWithCalendar />
           <LiveMacroContent 
             onItemClick={handleItemClick} 
             onPerformanceUpdate={handleMacroPerformance}
