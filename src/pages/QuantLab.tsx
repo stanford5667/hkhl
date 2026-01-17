@@ -1475,9 +1475,9 @@ function QuantLabContent(props: any) {
         </div>
         )}
 
-        {/* Mobile: Study Selection Panel - Full screen overlay */}
+        {/* Mobile: Study Selection Panel - Full screen overlay - Only show for logged-in users */}
         <AnimatePresence>
-          {showStudyPanel && (
+          {showStudyPanel && !showWelcomeHero && (
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
