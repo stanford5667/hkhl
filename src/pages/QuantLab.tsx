@@ -1413,6 +1413,27 @@ export default function QuantLab() {
       return;
     }
 
+    // Check if any conditional studies are missing required variables
+    const conditionalStudiesWithoutVars = selectedStudies.filter(studyId => {
+      const study = STUDY_DEFINITIONS.find(s => s.id === studyId);
+      if (study?.category !== 'conditional') return false;
+      const params = studyParams[studyId] || {};
+      const hasThreshold = params.threshold !== undefined && params.threshold !== null;
+      const hasForwardDays = params.forwardDays !== undefined && params.forwardDays !== null;
+      return !hasThreshold || !hasForwardDays;
+    });
+
+    if (conditionalStudiesWithoutVars.length > 0) {
+      const studyNames = conditionalStudiesWithoutVars
+        .map(id => STUDY_DEFINITIONS.find(s => s.id === id)?.name)
+        .filter(Boolean)
+        .join(', ');
+      toast.error('Configure condition variables first', {
+        description: `Set threshold and timeline for: ${studyNames}`,
+      });
+      return;
+    }
+
     setIsRunning(true);
 
     for (const studyId of selectedStudies) {
@@ -1421,7 +1442,7 @@ export default function QuantLab() {
 
     setIsRunning(false);
     toast.success('All studies completed!');
-  }, [selectedTicker, selectedStudies, runStudy]);
+  }, [selectedTicker, selectedStudies, runStudy, studyParams]);
 
   // Save study result
   const saveStudyResult = useCallback(async (studyId: string) => {
