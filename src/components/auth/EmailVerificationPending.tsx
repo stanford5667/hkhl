@@ -95,11 +95,35 @@ export function EmailVerificationPending({
   const handleResendEmail = async () => {
     setIsResending(true);
     try {
-      // Get user ID from a fresh session check or pass it as prop
-      // For resend, we need to trigger our custom edge function
+      // Get user ID from existing verification record or current session
+      const { data: sessionData } = await supabase.auth.getSession();
+      let userId = sessionData?.session?.user?.id;
+      
+      // If no session, look up from existing verification record
+      if (!userId) {
+        const { data: verificationData } = await supabase
+          .from('email_verifications')
+          .select('user_id')
+          .eq('email', email)
+          .order('created_at', { ascending: false })
+          .limit(1);
+        
+        userId = verificationData?.[0]?.user_id;
+      }
+      
+      if (!userId) {
+        toast({
+          title: "Unable to resend",
+          description: "Please try signing up again.",
+          variant: "destructive",
+        });
+        setIsResending(false);
+        return;
+      }
+      
       const response = await supabase.functions.invoke('send-verification-email', {
         body: {
-          userId: '', // We'll need to get this from somewhere
+          userId: userId,
           email: email,
           fullName: email.split('@')[0], // Fallback name
         },
