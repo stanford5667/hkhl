@@ -41,7 +41,7 @@ import {
   Calendar, Zap, Layers, Volume2, Crosshair, LineChart,
   Gauge, ArrowLeftRight, Mountain, ArrowUpDown,
   Target, Shield, Loader2, GitBranch,
-  CheckCircle2, X, ExternalLink, ChevronLeft
+  CheckCircle2, X, ExternalLink, ChevronLeft, ChevronDown
 } from 'lucide-react';
 import { InlinePrice } from '@/components/shared/PriceDisplay';
 import { supabase } from '@/integrations/supabase/client';
@@ -896,6 +896,22 @@ const STUDY_DEFINITIONS: StudyDefinition[] = [
         default: 2,
         beginner: '2% is a significant daily drop for most stocks'
       },
+      {
+        key: 'forwardDays',
+        label: 'Result Timeline',
+        description: 'How many days forward to measure returns',
+        type: 'select',
+        default: '5',
+        options: [
+          { value: '1', label: '1 Day' },
+          { value: '5', label: '1 Week' },
+          { value: '21', label: '1 Month' },
+          { value: '63', label: '3 Months' },
+          { value: '126', label: '6 Months' },
+          { value: '252', label: '1 Year' }
+        ],
+        beginner: 'Choose how far ahead to measure the outcome'
+      }
     ]
   },
   {
@@ -921,6 +937,22 @@ const STUDY_DEFINITIONS: StudyDefinition[] = [
         default: 2,
         beginner: '2% is a significant daily gain for most stocks'
       },
+      {
+        key: 'forwardDays',
+        label: 'Result Timeline',
+        description: 'How many days forward to measure returns',
+        type: 'select',
+        default: '5',
+        options: [
+          { value: '1', label: '1 Day' },
+          { value: '5', label: '1 Week' },
+          { value: '21', label: '1 Month' },
+          { value: '63', label: '3 Months' },
+          { value: '126', label: '6 Months' },
+          { value: '252', label: '1 Year' }
+        ],
+        beginner: 'Choose how far ahead to measure the outcome'
+      }
     ]
   },
   {
@@ -957,6 +989,22 @@ const STUDY_DEFINITIONS: StudyDefinition[] = [
           { value: 'up', label: 'Up Days' }
         ],
         beginner: 'Down = look for bounce after losing streak'
+      },
+      {
+        key: 'forwardDays',
+        label: 'Result Timeline',
+        description: 'How many days forward to measure returns',
+        type: 'select',
+        default: '5',
+        options: [
+          { value: '1', label: '1 Day' },
+          { value: '5', label: '1 Week' },
+          { value: '21', label: '1 Month' },
+          { value: '63', label: '3 Months' },
+          { value: '126', label: '6 Months' },
+          { value: '252', label: '1 Year' }
+        ],
+        beginner: 'Choose how far ahead to measure the outcome'
       }
     ]
   },
@@ -993,6 +1041,22 @@ const STUDY_DEFINITIONS: StudyDefinition[] = [
         step: 5,
         default: 20,
         beginner: '20-day average is standard'
+      },
+      {
+        key: 'forwardDays',
+        label: 'Result Timeline',
+        description: 'How many days forward to measure returns',
+        type: 'select',
+        default: '5',
+        options: [
+          { value: '1', label: '1 Day' },
+          { value: '5', label: '1 Week' },
+          { value: '21', label: '1 Month' },
+          { value: '63', label: '3 Months' },
+          { value: '126', label: '6 Months' },
+          { value: '252', label: '1 Year' }
+        ],
+        beginner: 'Choose how far ahead to measure the outcome'
       }
     ]
   },
@@ -1018,6 +1082,22 @@ const STUDY_DEFINITIONS: StudyDefinition[] = [
         step: 0.5,
         default: 1,
         beginner: '1% gap is significant for most stocks'
+      },
+      {
+        key: 'forwardDays',
+        label: 'Result Timeline',
+        description: 'How many days forward to measure returns',
+        type: 'select',
+        default: '5',
+        options: [
+          { value: '1', label: '1 Day' },
+          { value: '5', label: '1 Week' },
+          { value: '21', label: '1 Month' },
+          { value: '63', label: '3 Months' },
+          { value: '126', label: '6 Months' },
+          { value: '252', label: '1 Year' }
+        ],
+        beginner: 'Choose how far ahead to measure the outcome'
       }
     ]
   },
@@ -1054,6 +1134,22 @@ const STUDY_DEFINITIONS: StudyDefinition[] = [
         step: 1,
         default: 5,
         beginner: '5% below MA is notably oversold'
+      },
+      {
+        key: 'forwardDays',
+        label: 'Result Timeline',
+        description: 'How many days forward to measure returns',
+        type: 'select',
+        default: '5',
+        options: [
+          { value: '1', label: '1 Day' },
+          { value: '5', label: '1 Week' },
+          { value: '21', label: '1 Month' },
+          { value: '63', label: '3 Months' },
+          { value: '126', label: '6 Months' },
+          { value: '252', label: '1 Year' }
+        ],
+        beginner: 'Choose how far ahead to measure the outcome'
       }
     ]
   },
@@ -1079,6 +1175,22 @@ const STUDY_DEFINITIONS: StudyDefinition[] = [
         step: 5,
         default: 10,
         beginner: '10% drawdown is correction territory'
+      },
+      {
+        key: 'forwardDays',
+        label: 'Result Timeline',
+        description: 'How many days forward to measure returns',
+        type: 'select',
+        default: '5',
+        options: [
+          { value: '1', label: '1 Day' },
+          { value: '5', label: '1 Week' },
+          { value: '21', label: '1 Month' },
+          { value: '63', label: '3 Months' },
+          { value: '126', label: '6 Months' },
+          { value: '252', label: '1 Year' }
+        ],
+        beginner: 'Choose how far ahead to measure the outcome'
       }
     ]
   }
@@ -2013,40 +2125,41 @@ function QuantLabContent(props: any) {
                           </div>
                         </div>
                       )}
-                      <div className="p-2 md:p-6">
-                        <div className="grid grid-cols-4 md:grid-cols-4 gap-1.5 md:gap-4">
-                          {metrics.slice(0, 4).map(([key, value]) => (
+                      {/* Metrics Grid - More Compact */}
+                      <div className="p-2 md:p-4">
+                        <div className="grid grid-cols-4 md:grid-cols-6 gap-1.5 md:gap-3">
+                          {metrics.slice(0, 6).map(([key, value]) => (
                             <button
                               key={key}
                               onClick={() => setSelectedMetric({ 
                                 key, value, studyName: study.name, studyResult: result
                               })}
-                              className="text-center p-2 md:p-5 bg-muted/50 rounded-lg md:rounded-xl hover:bg-muted active:scale-[0.98] transition-all cursor-pointer"
+                              className="text-center p-1.5 md:p-3 bg-muted/50 rounded-lg hover:bg-muted active:scale-[0.98] transition-all cursor-pointer"
                             >
-                              <p className="text-[9px] md:text-xs text-muted-foreground capitalize mb-0.5 md:mb-2 truncate">
+                              <p className="text-[8px] md:text-[10px] text-muted-foreground capitalize mb-0.5 truncate">
                                 {key.replace(/([A-Z])/g, ' $1').replace(/_/g, ' ').trim()}
                               </p>
-                              <p className="text-sm md:text-2xl font-bold font-mono">
+                              <p className="text-xs md:text-lg font-bold font-mono">
                                 {formatValue(key, value)}
                               </p>
                             </button>
                           ))}
                         </div>
-                        {/* Show more metrics on desktop */}
-                        {metrics.length > 4 && (
-                          <div className="hidden md:grid grid-cols-4 gap-4 mt-4">
-                            {metrics.slice(4).map(([key, value]) => (
+                        {/* Show more metrics row if available */}
+                        {metrics.length > 6 && (
+                          <div className="grid grid-cols-4 md:grid-cols-6 gap-1.5 md:gap-3 mt-2">
+                            {metrics.slice(6, 12).map(([key, value]) => (
                               <button
                                 key={key}
                                 onClick={() => setSelectedMetric({ 
                                   key, value, studyName: study.name, studyResult: result
                                 })}
-                                className="text-center p-5 bg-muted/50 rounded-xl hover:bg-muted active:scale-[0.98] hover:ring-2 hover:ring-primary/30 transition-all cursor-pointer group"
+                                className="text-center p-1.5 md:p-3 bg-muted/50 rounded-lg hover:bg-muted active:scale-[0.98] transition-all cursor-pointer"
                               >
-                                <p className="text-xs text-muted-foreground capitalize mb-2 group-hover:text-foreground transition-colors">
+                                <p className="text-[8px] md:text-[10px] text-muted-foreground capitalize mb-0.5 truncate">
                                   {key.replace(/([A-Z])/g, ' $1').replace(/_/g, ' ').trim()}
                                 </p>
-                                <p className="text-2xl font-bold font-mono">
+                                <p className="text-xs md:text-lg font-bold font-mono">
                                   {formatValue(key, value)}
                                 </p>
                               </button>
@@ -2055,16 +2168,21 @@ function QuantLabContent(props: any) {
                         )}
                       </div>
 
-                      {/* Enhanced Visualizations - Now shown on all devices */}
-                      <div className="px-3 md:px-6 py-4 md:py-6 border-t">
-                        <h5 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-4">Visual Analysis</h5>
-                        <EnhancedResultView 
-                          result={result} 
-                          studyId={studyId}
-                          showInsights={true}
-                          showEducation={true}
-                        />
-                      </div>
+                      {/* Enhanced Visualizations - Collapsible to save space */}
+                      <details className="group border-t">
+                        <summary className="px-3 md:px-4 py-2 md:py-3 cursor-pointer hover:bg-muted/30 flex items-center justify-between">
+                          <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Visual Analysis</span>
+                          <ChevronDown className="h-4 w-4 text-muted-foreground group-open:rotate-180 transition-transform" />
+                        </summary>
+                        <div className="px-3 md:px-4 pb-4">
+                          <EnhancedResultView 
+                            result={result} 
+                            studyId={studyId}
+                            showInsights={true}
+                            showEducation={false}
+                          />
+                        </div>
+                      </details>
 
                       {/* How to Use - Hidden on mobile */}
                       <div className="hidden md:block px-6 py-4 border-t bg-muted/20">
