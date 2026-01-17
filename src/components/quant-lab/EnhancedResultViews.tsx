@@ -237,38 +237,38 @@ function EnhancedDistributionResult({ result, showInsights, showEducation }: { r
       </div>
 
       {showInsights && (
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm flex items-center gap-2">
-              <Lightbulb className="h-4 w-4 text-amber-500" />
-              Risk Assessment
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              {isVolatile && (
-                <InsightRow type="warning" icon={<Zap className="h-4 w-4" />}>
-                  High volatility ({result.annualizedVol?.toFixed(1)}%) - expect large daily swings
-                </InsightRow>
-              )}
-              {hasNegativeSkew && (
-                <InsightRow type="negative" icon={<AlertCircle className="h-4 w-4" />}>
-                  Negative skew - down days tend to be larger than up days
-                </InsightRow>
-              )}
-              {hasFatTails && (
-                <InsightRow type="negative" icon={<AlertCircle className="h-4 w-4" />}>
-                  Fat tails (kurtosis {result.kurtosis?.toFixed(1)}) - extreme moves more likely than normal
-                </InsightRow>
-              )}
-              {!isVolatile && !hasNegativeSkew && !hasFatTails && (
-                <InsightRow type="positive" icon={<TrendingUp className="h-4 w-4" />}>
-                  Normal risk profile - typical return distribution
-                </InsightRow>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+        <div className="space-y-1.5">
+          <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+            <Lightbulb className="h-3.5 w-3.5 text-amber-500" />
+            Risk Assessment
+          </div>
+          <div className="flex flex-wrap gap-x-3 gap-y-1">
+            {isVolatile && (
+              <span className="inline-flex items-center gap-1.5 text-sm text-amber-600 dark:text-amber-400">
+                <Zap className="h-3.5 w-3.5" />
+                High volatility ({result.annualizedVol?.toFixed(1)}%) - expect large daily swings
+              </span>
+            )}
+            {hasNegativeSkew && (
+              <span className="inline-flex items-center gap-1.5 text-sm text-rose-600 dark:text-rose-400">
+                <AlertCircle className="h-3.5 w-3.5" />
+                Negative skew - down days tend to be larger than up days
+              </span>
+            )}
+            {hasFatTails && (
+              <span className="inline-flex items-center gap-1.5 text-sm text-rose-600 dark:text-rose-400">
+                <AlertCircle className="h-3.5 w-3.5" />
+                Fat tails (kurtosis {result.kurtosis?.toFixed(1)}) - extreme moves more likely than normal
+              </span>
+            )}
+            {!isVolatile && !hasNegativeSkew && !hasFatTails && (
+              <span className="inline-flex items-center gap-1.5 text-sm text-emerald-600 dark:text-emerald-400">
+                <TrendingUp className="h-3.5 w-3.5" />
+                Normal risk profile - typical return distribution
+              </span>
+            )}
+          </div>
+        </div>
       )}
     </div>
   );
