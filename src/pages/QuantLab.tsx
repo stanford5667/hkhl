@@ -2129,13 +2129,20 @@ function QuantLabContent(props: any) {
                         </div>
                       </div>
 
-                      {/* Interpretation - Inline */}
+                      {/* Interpretation - Inline with better mobile styling */}
                       {result.interpretation && (
-                        <div className="px-3 py-1.5 border-b bg-background flex items-start gap-2">
-                          <Lightbulb className="h-3.5 w-3.5 text-amber-500 shrink-0 mt-0.5" />
-                          <p className={cn("text-xs leading-relaxed", sentiment.text)}>
-                            {result.interpretation}
-                          </p>
+                        <div className="px-3 py-2.5 md:py-3 border-b bg-gradient-to-r from-amber-500/5 to-transparent">
+                          <div className="flex items-start gap-2.5">
+                            <div className="shrink-0 p-1.5 rounded-full bg-amber-500/10">
+                              <Lightbulb className="h-3.5 w-3.5 md:h-4 md:w-4 text-amber-500" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <span className="text-[10px] md:text-xs font-medium text-amber-600 dark:text-amber-400 uppercase tracking-wide">Insight</span>
+                              <p className={cn("text-xs md:text-sm leading-relaxed mt-0.5", sentiment.text)}>
+                                {result.interpretation}
+                              </p>
+                            </div>
+                          </div>
                         </div>
                       )}
 
@@ -2198,24 +2205,37 @@ function QuantLabContent(props: any) {
                           </div>
                         </div>
                       )}
-                      {/* Metrics Grid - Compact inline */}
-                      <div className="px-3 py-2 flex flex-wrap gap-2">
-                        {metrics.slice(0, 8).map(([key, value]) => (
-                          <button
-                            key={key}
-                            onClick={() => setSelectedMetric({ 
-                              key, value, studyName: study.name, studyResult: result
-                            })}
-                            className="flex items-center gap-1.5 px-2 py-1 bg-muted/50 rounded-md hover:bg-muted active:scale-[0.98] transition-all cursor-pointer"
-                          >
-                            <span className="text-[10px] text-muted-foreground capitalize">
-                              {key.replace(/([A-Z])/g, ' $1').replace(/_/g, ' ').trim()}:
-                            </span>
-                            <span className="text-sm font-bold font-mono">
-                              {formatValue(key, value)}
-                            </span>
-                          </button>
-                        ))}
+                      {/* Metrics Grid - Mobile-friendly with better labels */}
+                      <div className="px-3 py-3 md:py-4">
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 md:gap-3">
+                          {metrics.slice(0, 8).map(([key, value]) => {
+                            const formattedKey = key.replace(/([A-Z])/g, ' $1').replace(/_/g, ' ').trim();
+                            const isHighlight = ['occurrences', 'win_rate', 'avg_gain', 'percent_of_days'].includes(key);
+                            return (
+                              <button
+                                key={key}
+                                onClick={() => setSelectedMetric({ 
+                                  key, value, studyName: study.name, studyResult: result
+                                })}
+                                className={cn(
+                                  "flex flex-col items-start p-2.5 md:p-3 rounded-lg border transition-all cursor-pointer",
+                                  "hover:bg-muted/50 hover:border-primary/30 active:scale-[0.98]",
+                                  isHighlight ? "bg-primary/5 border-primary/20" : "bg-muted/30 border-border/50"
+                                )}
+                              >
+                                <span className="text-[10px] md:text-xs text-muted-foreground capitalize leading-tight">
+                                  {formattedKey}
+                                </span>
+                                <span className={cn(
+                                  "text-base md:text-lg font-bold font-mono mt-0.5",
+                                  isHighlight ? "text-primary" : "text-foreground"
+                                )}>
+                                  {formatValue(key, value)}
+                                </span>
+                              </button>
+                            );
+                          })}
+                        </div>
                       </div>
 
                       {/* Enhanced Visualizations - Collapsible to save space */}
