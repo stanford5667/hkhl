@@ -53,7 +53,7 @@ const PLATFORM_FEATURES = [
     name: 'Portfolio Builder',
     description: 'Construct optimized, risk-managed portfolios',
     icon: PieChart,
-    badge: 'Institutional-Grade',
+    badge: 'Quant-Grade',
     color: 'from-blue-500 to-indigo-600',
     route: '/portfolio-visualizer',
     preview: {
@@ -112,7 +112,7 @@ const PLATFORM_FEATURES = [
 const BENEFITS = [
   'No coding required',
   'Real historical data',
-  'Institutional-grade analysis',
+  'Quant-grade analysis',
   'AI-powered insights'
 ];
 
@@ -174,7 +174,7 @@ export function QuantLabWelcomeHero({
               className="space-y-4"
             >
               <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight">
-                <span className="text-foreground">Institutional Analysis.</span>
+                <span className="text-foreground">Quant-Level Analysis.</span>
                 <br />
                 <span className="bg-gradient-to-r from-primary via-violet-500 to-purple-500 bg-clip-text text-transparent">
                   Zero Coding.
