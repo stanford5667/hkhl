@@ -388,6 +388,54 @@ export function WeeklyMacroSummary() {
               </div>
             </TooltipProvider>
 
+            {/* Upcoming Economic Events Card */}
+            <div className="mb-4 p-3 bg-secondary/20 border border-border/50 rounded-lg">
+              <div className="flex items-center gap-2 mb-3">
+                <Calendar className="h-4 w-4 text-primary" />
+                <span className="text-xs font-medium text-foreground">Upcoming Economic Events</span>
+                <Badge variant="outline" className="text-[10px] ml-auto">
+                  {thisWeeksEvents.length} this week
+                </Badge>
+              </div>
+              <div className="space-y-2 max-h-[180px] overflow-y-auto pr-1">
+                {thisWeeksEvents.length > 0 ? (
+                  thisWeeksEvents.slice(0, 6).map((event, idx) => {
+                    const eventDate = parseISO(event.event_date);
+                    const dayLabel = isToday(eventDate) ? 'Today' : isTomorrow(eventDate) ? 'Tomorrow' : format(eventDate, 'EEE, MMM d');
+                    const isHighImportance = event.importance?.toLowerCase() === 'high';
+                    
+                    return (
+                      <div 
+                        key={idx}
+                        className={cn(
+                          "flex items-center gap-2 p-2 rounded-md text-sm transition-colors",
+                          isHighImportance 
+                            ? "bg-rose-500/10 border border-rose-500/20" 
+                            : "bg-secondary/30 hover:bg-secondary/50"
+                        )}
+                      >
+                        <div className={cn(
+                          "w-1.5 h-1.5 rounded-full shrink-0",
+                          isHighImportance ? "bg-rose-400" : "bg-primary/60"
+                        )} />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium truncate">{event.event_name}</p>
+                          <p className="text-xs text-muted-foreground">{dayLabel} • {event.country || 'US'}</p>
+                        </div>
+                        {isHighImportance && (
+                          <Badge variant="destructive" className="text-[10px] px-1.5 py-0 bg-rose-500/20 text-rose-400 border-rose-500/30 shrink-0">
+                            High
+                          </Badge>
+                        )}
+                      </div>
+                    );
+                  })
+                ) : (
+                  <p className="text-sm text-muted-foreground text-center py-4">No economic events scheduled this week</p>
+                )}
+              </div>
+            </div>
+
             {/* Watch Items - Now Clickable */}
             <div className="space-y-2">
               <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">This Week's Focus</p>
