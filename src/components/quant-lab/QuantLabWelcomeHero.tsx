@@ -4,7 +4,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { 
   FlaskConical, Play, TrendingUp, BarChart3, Target, 
-  Zap, ArrowRight, Sparkles, CheckCircle2, Lock
+  Zap, ArrowRight, Sparkles, CheckCircle2, Lock, Activity,
+  Calendar, Percent, DollarSign
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -50,6 +51,25 @@ const BENEFITS = [
   'AI-powered insights'
 ];
 
+// Mock result preview data - showcasing the "magic" output
+const MOCK_RESULT_PREVIEW = {
+  studyName: 'After 3 Consecutive Down Days',
+  ticker: 'SPY',
+  period: '5 Years',
+  occurrences: 127,
+  winRate: 68.5,
+  avgReturn: 1.87,
+  avgGain: 2.94,
+  avgLoss: -1.42,
+  bestReturn: 8.21,
+  worstReturn: -4.32,
+  recentEvents: [
+    { date: 'Jan 8, 2026', return: 2.1 },
+    { date: 'Dec 15, 2025', return: -0.8 },
+    { date: 'Nov 22, 2025', return: 3.4 },
+  ]
+};
+
 export function QuantLabWelcomeHero({ 
   onSelectStudy, 
   onRunDemo, 
@@ -59,7 +79,7 @@ export function QuantLabWelcomeHero({
   const [hoveredStudy, setHoveredStudy] = useState<string | null>(null);
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-[calc(100vh-200px)] px-4 py-8 overflow-y-auto">
+    <div className="flex flex-col items-center justify-start min-h-[calc(100vh-100px)] px-4 py-6 overflow-y-auto">
       {/* Animated Background */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-primary/5 rounded-full blur-3xl animate-pulse" />
@@ -69,172 +89,300 @@ export function QuantLabWelcomeHero({
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="relative z-10 max-w-4xl mx-auto text-center space-y-8"
+        className="relative z-10 w-full max-w-6xl mx-auto"
       >
-        {/* Hero Badge */}
-        <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: 0.1 }}
-        >
-          <Badge 
-            variant="outline" 
-            className="px-4 py-1.5 text-sm border-primary/30 bg-primary/5"
-          >
-            <Sparkles className="h-3.5 w-3.5 mr-2 text-primary" />
-            Wall Street Analysis • Made Simple
-          </Badge>
-        </motion.div>
-
-        {/* Main Headline */}
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className="space-y-4"
-        >
-          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight">
-            <span className="text-foreground">Discover What</span>
-            <br />
-            <span className="bg-gradient-to-r from-primary via-violet-500 to-purple-500 bg-clip-text text-transparent">
-              Actually Moves Stocks
-            </span>
-          </h1>
-          <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto">
-            Run professional-grade quantitative studies on any stock. 
-            Get data-driven answers to questions like{' '}
-            <span className="text-foreground font-medium">"What happens after 3 red days?"</span>
-          </p>
-        </motion.div>
-
-        {/* Benefits Row */}
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-          className="flex flex-wrap justify-center gap-3"
-        >
-          {BENEFITS.map((benefit, i) => (
-            <div 
-              key={benefit}
-              className="flex items-center gap-2 text-sm text-muted-foreground"
+        {/* Two Column Layout */}
+        <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-start">
+          
+          {/* Left Column - Hero Text & CTA */}
+          <div className="space-y-6 text-center lg:text-left">
+            {/* Hero Badge */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.1 }}
+              className="inline-block"
             >
-              <CheckCircle2 className="h-4 w-4 text-emerald-500" />
-              <span>{benefit}</span>
-            </div>
-          ))}
-        </motion.div>
-
-        {/* Featured Studies Grid */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4 }}
-          className="pt-4"
-        >
-          <p className="text-sm font-medium text-muted-foreground mb-4 uppercase tracking-wide">
-            Pick a study to explore
-          </p>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-3xl mx-auto">
-            {FEATURED_STUDIES.map((study, index) => (
-              <motion.button
-                key={study.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.5 + index * 0.1 }}
-                onClick={() => onSelectStudy(study.id)}
-                onMouseEnter={() => setHoveredStudy(study.id)}
-                onMouseLeave={() => setHoveredStudy(null)}
-                className={cn(
-                  "relative group text-left p-5 rounded-2xl border-2 transition-all duration-300",
-                  "bg-card hover:bg-muted/50",
-                  hoveredStudy === study.id 
-                    ? "border-primary shadow-lg shadow-primary/10 scale-[1.02]" 
-                    : "border-border hover:border-primary/50"
-                )}
+              <Badge 
+                variant="outline" 
+                className="px-4 py-1.5 text-sm border-primary/30 bg-primary/5"
               >
-                {/* Icon */}
-                <div className={cn(
-                  "w-12 h-12 rounded-xl flex items-center justify-center mb-3",
-                  "bg-gradient-to-br",
-                  study.color
-                )}>
-                  <study.icon className="h-6 w-6 text-white" />
-                </div>
+                <Sparkles className="h-3.5 w-3.5 mr-2 text-primary" />
+                No-Code Quantitative Analysis
+              </Badge>
+            </motion.div>
 
-                {/* Content */}
-                <h3 className="font-semibold text-foreground mb-1">
-                  {study.name}
-                </h3>
-                <p className="text-sm text-muted-foreground mb-3">
-                  {study.description}
-                </p>
-
-                {/* Teaser Stats */}
-                <div className="flex items-center gap-3 text-xs">
-                  <div className="flex items-center gap-1">
-                    <span className="text-emerald-500 font-bold">{study.result.winRate}%</span>
-                    <span className="text-muted-foreground">win rate</span>
-                  </div>
-                  <div className="h-3 w-px bg-border" />
-                  <div className="flex items-center gap-1">
-                    <span className="text-primary font-bold">+{study.result.avgReturn}%</span>
-                    <span className="text-muted-foreground">avg</span>
-                  </div>
-                </div>
-
-                {/* Hover Arrow */}
-                <div className={cn(
-                  "absolute right-4 top-1/2 -translate-y-1/2 transition-all duration-300",
-                  hoveredStudy === study.id ? "opacity-100 translate-x-0" : "opacity-0 -translate-x-2"
-                )}>
-                  <ArrowRight className="h-5 w-5 text-primary" />
-                </div>
-              </motion.button>
-            ))}
-          </div>
-        </motion.div>
-
-        {/* CTA Section */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.8 }}
-          className="pt-6 space-y-4"
-        >
-          <Button
-            size="lg"
-            onClick={onRunDemo}
-            className="h-14 px-8 text-lg gap-3 rounded-xl shadow-lg shadow-primary/20"
-          >
-            <Play className="h-5 w-5" />
-            Run Your First Study
-            <ArrowRight className="h-5 w-5" />
-          </Button>
-
-          {isGuest && (
-            <div className="flex flex-col items-center gap-2 pt-2">
-              <p className="text-sm text-muted-foreground">
-                <Lock className="h-3.5 w-3.5 inline mr-1" />
-                Create a free account to save studies & unlock all features
+            {/* Main Headline */}
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+              className="space-y-4"
+            >
+              <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight">
+                <span className="text-foreground">Answer Any</span>
+                <br />
+                <span className="bg-gradient-to-r from-primary via-violet-500 to-purple-500 bg-clip-text text-transparent">
+                  "What If?" Question
+                </span>
+              </h1>
+              <p className="text-base md:text-lg text-muted-foreground max-w-lg mx-auto lg:mx-0">
+                Run conditional probability studies on any stock. 
+                Get answers like{' '}
+                <span className="text-foreground font-medium">"After 3 red days, SPY goes up 68% of the time"</span>
               </p>
-              <Button
-                variant="link"
-                onClick={onSignUp}
-                className="text-primary font-semibold"
-              >
-                Sign up free →
-              </Button>
-            </div>
-          )}
-        </motion.div>
+            </motion.div>
 
-        {/* Trust Indicators */}
+            {/* Benefits Row */}
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
+              className="flex flex-wrap justify-center lg:justify-start gap-x-4 gap-y-2"
+            >
+              {BENEFITS.map((benefit) => (
+                <div 
+                  key={benefit}
+                  className="flex items-center gap-2 text-sm text-muted-foreground"
+                >
+                  <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
+                  <span>{benefit}</span>
+                </div>
+              ))}
+            </motion.div>
+
+            {/* CTA Buttons */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.4 }}
+              className="flex flex-col sm:flex-row gap-3 justify-center lg:justify-start pt-2"
+            >
+              <Button
+                size="lg"
+                onClick={onRunDemo}
+                className="h-12 px-6 text-base gap-2 rounded-xl shadow-lg shadow-primary/20"
+              >
+                <Play className="h-5 w-5" />
+                Run Your First Study
+                <ArrowRight className="h-4 w-4" />
+              </Button>
+
+              {isGuest && (
+                <Button
+                  variant="outline"
+                  size="lg"
+                  onClick={onSignUp}
+                  className="h-12 px-6 text-base rounded-xl"
+                >
+                  Create Free Account
+                </Button>
+              )}
+            </motion.div>
+
+            {/* Quick Study Picker */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.5 }}
+              className="pt-4"
+            >
+              <p className="text-xs font-medium text-muted-foreground mb-3 uppercase tracking-wide">
+                Or pick a study to explore
+              </p>
+              <div className="flex flex-wrap gap-2 justify-center lg:justify-start">
+                {FEATURED_STUDIES.map((study) => (
+                  <button
+                    key={study.id}
+                    onClick={() => onSelectStudy(study.id)}
+                    className={cn(
+                      "flex items-center gap-2 px-3 py-2 rounded-lg border transition-all",
+                      "bg-card hover:bg-muted/50 border-border hover:border-primary/50",
+                      "text-sm font-medium"
+                    )}
+                  >
+                    <div className={cn(
+                      "w-6 h-6 rounded flex items-center justify-center bg-gradient-to-br",
+                      study.color
+                    )}>
+                      <study.icon className="h-3.5 w-3.5 text-white" />
+                    </div>
+                    <span>{study.name}</span>
+                  </button>
+                ))}
+              </div>
+            </motion.div>
+          </div>
+
+          {/* Right Column - Live Result Preview */}
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.3 }}
+            className="relative"
+          >
+            {/* Glowing background effect */}
+            <div className="absolute -inset-4 bg-gradient-to-r from-primary/20 via-violet-500/20 to-purple-500/20 rounded-3xl blur-2xl opacity-50" />
+            
+            {/* Result Card Preview */}
+            <div className="relative bg-card border-2 border-primary/30 rounded-2xl overflow-hidden shadow-2xl shadow-primary/10">
+              {/* Header */}
+              <div className="px-5 py-4 bg-gradient-to-r from-primary/10 via-primary/5 to-transparent border-b border-border">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-green-600 flex items-center justify-center">
+                      <TrendingUp className="h-5 w-5 text-white" />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-foreground">{MOCK_RESULT_PREVIEW.studyName}</h3>
+                      <p className="text-xs text-muted-foreground">
+                        {MOCK_RESULT_PREVIEW.ticker} • {MOCK_RESULT_PREVIEW.period}
+                      </p>
+                    </div>
+                  </div>
+                  <Badge variant="outline" className="text-emerald-500 border-emerald-500/30 bg-emerald-500/10">
+                    <Activity className="h-3 w-3 mr-1" />
+                    Live Result
+                  </Badge>
+                </div>
+              </div>
+
+              {/* Main Stats Grid */}
+              <div className="p-5 space-y-5">
+                {/* Hero Metrics */}
+                <div className="grid grid-cols-3 gap-3">
+                  {/* Win Rate - Hero Metric */}
+                  <motion.div 
+                    initial={{ scale: 0.9 }}
+                    animate={{ scale: 1 }}
+                    transition={{ delay: 0.5, type: 'spring' }}
+                    className="col-span-1 bg-emerald-500/10 border border-emerald-500/30 rounded-xl p-4 text-center"
+                  >
+                    <div className="flex items-center justify-center gap-1 text-emerald-500 mb-1">
+                      <Percent className="h-4 w-4" />
+                      <span className="text-xs font-medium">Win Rate</span>
+                    </div>
+                    <p className="text-3xl font-bold text-emerald-500 font-mono">
+                      {MOCK_RESULT_PREVIEW.winRate}%
+                    </p>
+                    <p className="text-[10px] text-emerald-500/70 mt-1">
+                      of the time it goes UP
+                    </p>
+                  </motion.div>
+
+                  {/* Avg Return */}
+                  <motion.div 
+                    initial={{ scale: 0.9 }}
+                    animate={{ scale: 1 }}
+                    transition={{ delay: 0.6, type: 'spring' }}
+                    className="col-span-1 bg-primary/10 border border-primary/30 rounded-xl p-4 text-center"
+                  >
+                    <div className="flex items-center justify-center gap-1 text-primary mb-1">
+                      <DollarSign className="h-4 w-4" />
+                      <span className="text-xs font-medium">Avg Return</span>
+                    </div>
+                    <p className="text-3xl font-bold text-primary font-mono">
+                      +{MOCK_RESULT_PREVIEW.avgReturn}%
+                    </p>
+                    <p className="text-[10px] text-primary/70 mt-1">
+                      over next 5 days
+                    </p>
+                  </motion.div>
+
+                  {/* Occurrences */}
+                  <motion.div 
+                    initial={{ scale: 0.9 }}
+                    animate={{ scale: 1 }}
+                    transition={{ delay: 0.7, type: 'spring' }}
+                    className="col-span-1 bg-muted/50 border border-border rounded-xl p-4 text-center"
+                  >
+                    <div className="flex items-center justify-center gap-1 text-muted-foreground mb-1">
+                      <Calendar className="h-4 w-4" />
+                      <span className="text-xs font-medium">Sample Size</span>
+                    </div>
+                    <p className="text-3xl font-bold text-foreground font-mono">
+                      {MOCK_RESULT_PREVIEW.occurrences}
+                    </p>
+                    <p className="text-[10px] text-muted-foreground mt-1">
+                      times this happened
+                    </p>
+                  </motion.div>
+                </div>
+
+                {/* Secondary Metrics */}
+                <div className="grid grid-cols-4 gap-2">
+                  <div className="bg-muted/30 rounded-lg p-3 text-center">
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Avg Gain</p>
+                    <p className="text-lg font-bold text-emerald-500 font-mono">+{MOCK_RESULT_PREVIEW.avgGain}%</p>
+                  </div>
+                  <div className="bg-muted/30 rounded-lg p-3 text-center">
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Avg Loss</p>
+                    <p className="text-lg font-bold text-red-500 font-mono">{MOCK_RESULT_PREVIEW.avgLoss}%</p>
+                  </div>
+                  <div className="bg-muted/30 rounded-lg p-3 text-center">
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Best</p>
+                    <p className="text-lg font-bold text-emerald-400 font-mono">+{MOCK_RESULT_PREVIEW.bestReturn}%</p>
+                  </div>
+                  <div className="bg-muted/30 rounded-lg p-3 text-center">
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Worst</p>
+                    <p className="text-lg font-bold text-red-400 font-mono">{MOCK_RESULT_PREVIEW.worstReturn}%</p>
+                  </div>
+                </div>
+
+                {/* Recent Events Preview */}
+                <div className="bg-muted/20 rounded-xl p-3 border border-border/50">
+                  <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide mb-2">
+                    Recent Occurrences
+                  </p>
+                  <div className="space-y-1.5">
+                    {MOCK_RESULT_PREVIEW.recentEvents.map((event, idx) => (
+                      <motion.div
+                        key={idx}
+                        initial={{ opacity: 0, x: -10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: 0.8 + idx * 0.1 }}
+                        className="flex items-center justify-between text-sm"
+                      >
+                        <span className="text-muted-foreground">{event.date}</span>
+                        <span className={cn(
+                          "font-mono font-semibold",
+                          event.return >= 0 ? "text-emerald-500" : "text-red-500"
+                        )}>
+                          {event.return >= 0 ? '+' : ''}{event.return}%
+                        </span>
+                      </motion.div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Bottom CTA in card */}
+                <div className="pt-2 text-center">
+                  <p className="text-xs text-muted-foreground">
+                    <Sparkles className="h-3 w-3 inline mr-1 text-primary" />
+                    This is what you'll see when you run a study
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Floating Annotation */}
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 1 }}
+              className="absolute -bottom-4 -right-4 bg-primary text-primary-foreground text-xs font-semibold px-3 py-1.5 rounded-full shadow-lg"
+            >
+              ← Real analysis output
+            </motion.div>
+          </motion.div>
+        </div>
+
+        {/* Trust Indicator */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ delay: 1 }}
-          className="pt-8 text-center"
+          transition={{ delay: 1.2 }}
+          className="text-center pt-8"
         >
           <p className="text-xs text-muted-foreground">
             Powered by{' '}
