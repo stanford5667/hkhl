@@ -1269,38 +1269,20 @@ function QuantLabContent(props: any) {
     setTimeout(() => handleRunStudy('after_consecutive_days'), 100);
   };
   
-  // Auto-run default study on first load ONLY for logged-in users
+  // Auto-select default study on first load ONLY for logged-in users (NO auto-run)
   useEffect(() => {
     // Skip for guests - they see the welcome hero
     if (!user) return;
     if (hasAutoRun) return;
     
-    // Check if we already have results (from localStorage or previous run)
-    if (Object.keys(results).length > 0) {
-      setHasAutoRun(true);
-      return;
-    }
+    // Mark as handled
+    setHasAutoRun(true);
     
-    // Ensure we have a ticker and a study selected
-    if (!selectedTicker) return;
-    
-    // Set default study if none selected
+    // If no study is selected, auto-select a default one (but don't run it)
     if (selectedStudies.length === 0) {
       addStudy('after_consecutive_days');
     }
-    
-    // Auto-run the study after a brief delay to allow UI to settle
-    const timer = setTimeout(async () => {
-      const studyToRun = selectedStudies[0] || 'after_consecutive_days';
-      if (!selectedStudies.includes(studyToRun)) {
-        addStudy(studyToRun);
-      }
-      setHasAutoRun(true);
-      await handleRunStudy(studyToRun);
-    }, 500);
-    
-    return () => clearTimeout(timer);
-  }, [user, selectedTicker, selectedStudies, results, hasAutoRun, addStudy, handleRunStudy]);
+  }, [user, selectedStudies, hasAutoRun, addStudy]);
 
 
   return (
