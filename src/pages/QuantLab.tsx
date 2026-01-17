@@ -1777,6 +1777,29 @@ function QuantLabContent(props: any) {
               handleSetTicker(t);
               setShowSavedStudies(false);
             }}
+            onViewOriginalResults={(savedStudy) => {
+              // Restore the ticker, params, and results from the saved study
+              handleSetTicker(savedStudy.ticker);
+              
+              // Restore study parameters
+              if (savedStudy.params && Object.keys(savedStudy.params).length > 0) {
+                setStudyParams(prev => ({
+                  ...prev,
+                  [savedStudy.study_type]: savedStudy.params
+                }));
+              }
+              
+              // Restore the result
+              setResults(prev => ({
+                ...prev,
+                [savedStudy.study_type]: savedStudy.result
+              }));
+              
+              setShowSavedStudies(false);
+              toast.success('Restored saved study results', {
+                description: `${savedStudy.ticker} - ${savedStudy.study_name}`
+              });
+            }}
           />
         )}
       </AnimatePresence>
