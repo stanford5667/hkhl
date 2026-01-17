@@ -12,8 +12,8 @@ const logStep = (step: string, details?: unknown) => {
   console.log(`[CREATE-CHECKOUT] ${step}${detailsStr}`);
 };
 
-// Pro Plan price ID
-const PRO_PRICE_ID = "price_1SpOMd0dzxuTW9dBHMT4NmFp";
+// Pro Plan price ID ($1 test price)
+const PRO_PRICE_ID = "price_1SqcXe0ATyKK64GzNAZriP2L";
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
