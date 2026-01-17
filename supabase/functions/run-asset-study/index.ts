@@ -248,6 +248,421 @@ function studyCloseToOpenAnalysis(bars: PriceBar[], params?: Record<string, any>
 
 function studyPriceTargets(bars: PriceBar[]) { const closes = bars.map(b => b.close); const returns = closes.slice(1).map((c, i) => (c - closes[i]) / closes[i]); const avgReturn = returns.reduce((a, b) => a + b, 0) / returns.length; const stdDev = Math.sqrt(returns.reduce((sum, r) => sum + Math.pow(r - avgReturn, 2), 0) / returns.length); const currentPrice = closes[closes.length - 1]; const projections = { days30: { expected: currentPrice * Math.pow(1 + avgReturn, 30), bull: currentPrice * Math.pow(1 + avgReturn + stdDev, 30), bear: currentPrice * Math.pow(1 + avgReturn - stdDev, 30), best: currentPrice * Math.pow(1 + avgReturn + 2 * stdDev, 30), worst: currentPrice * Math.pow(1 + avgReturn - 2 * stdDev, 30) }, days90: { expected: currentPrice * Math.pow(1 + avgReturn, 90), bull: currentPrice * Math.pow(1 + avgReturn + stdDev, 90), bear: currentPrice * Math.pow(1 + avgReturn - stdDev, 90) }, days252: { expected: currentPrice * Math.pow(1 + avgReturn, 252), bull: currentPrice * Math.pow(1 + avgReturn + stdDev, 252), bear: currentPrice * Math.pow(1 + avgReturn - stdDev, 252) } }; const highs = bars.map(b => b.high); const lows = bars.map(b => b.low); const priceRange = Math.max(...highs) - Math.min(...lows); const bucketSize = priceRange / 50; const volumeProfile: Record<number, number> = {}; for (const bar of bars) { const bucket = Math.floor(bar.close / bucketSize) * bucketSize; volumeProfile[bucket] = (volumeProfile[bucket] || 0) + bar.volume; } const levels = Object.entries(volumeProfile).map(([price, vol]) => ({ price: parseFloat(price), volume: vol })).sort((a, b) => b.volume - a.volume).slice(0, 5).map(l => l.price); return { type: 'price_targets', currentPrice, dailyReturn: avgReturn * 100, dailyVol: stdDev * 100, projections, keyLevels: levels.sort((a, b) => a - b), nearestSupport: levels.filter(l => l < currentPrice).sort((a, b) => b - a)[0] || null, nearestResistance: levels.filter(l => l > currentPrice).sort((a, b) => a - b)[0] || null }; }
 
+// ========== CONDITIONAL PROBABILITY STUDIES ==========
+
+// After Down X% - What happens after the stock drops by X%?
+function studyAfterDownX(bars: PriceBar[], params?: Record<string, any>) {
+  const threshold = params?.threshold || 2;
+  const forwardDays = params?.forwardDays || [1, 3, 5, 10];
+  const returns: number[] = [];
+  for (let i = 1; i < bars.length; i++) {
+    returns.push(((bars[i].close - bars[i - 1].close) / bars[i - 1].close) * 100);
+  }
+  
+  const downDays: { idx: number; drop: number }[] = [];
+  for (let i = 0; i < returns.length; i++) {
+    if (returns[i] <= -threshold) {
+      downDays.push({ idx: i + 1, drop: returns[i] });
+    }
+  }
+  
+  const forwardReturns: Record<number, { returns: number[]; wins: number }> = {};
+  for (const fd of forwardDays) {
+    forwardReturns[fd] = { returns: [], wins: 0 };
+  }
+  
+  for (const dd of downDays) {
+    for (const fd of forwardDays) {
+      if (dd.idx + fd < bars.length) {
+        const ret = ((bars[dd.idx + fd].close - bars[dd.idx].close) / bars[dd.idx].close) * 100;
+        forwardReturns[fd].returns.push(ret);
+        if (ret > 0) forwardReturns[fd].wins++;
+      }
+    }
+  }
+  
+  const analysis = Object.entries(forwardReturns).map(([days, data]) => ({
+    days: parseInt(days),
+    occurrences: data.returns.length,
+    avgReturn: data.returns.length > 0 ? data.returns.reduce((a, b) => a + b, 0) / data.returns.length : 0,
+    winRate: data.returns.length > 0 ? (data.wins / data.returns.length) * 100 : 0,
+    median: data.returns.length > 0 ? [...data.returns].sort((a, b) => a - b)[Math.floor(data.returns.length / 2)] : 0,
+    best: data.returns.length > 0 ? Math.max(...data.returns) : 0,
+    worst: data.returns.length > 0 ? Math.min(...data.returns) : 0
+  }));
+  
+  const recentEvents = downDays.slice(-10).map(dd => ({
+    date: bars[dd.idx].date,
+    drop: dd.drop.toFixed(2) + '%',
+    nextDay: dd.idx + 1 < bars.length ? (((bars[dd.idx + 1].close - bars[dd.idx].close) / bars[dd.idx].close) * 100).toFixed(2) + '%' : 'N/A'
+  }));
+  
+  return {
+    type: 'after_down_x',
+    params: { threshold, forwardDays },
+    totalOccurrences: downDays.length,
+    percentOfDays: (downDays.length / returns.length) * 100,
+    avgDrop: downDays.length > 0 ? downDays.reduce((a, b) => a + b.drop, 0) / downDays.length : 0,
+    analysis,
+    recentEvents,
+    insight: analysis[0]?.winRate > 55 ? `After ${threshold}%+ drops, stock tends to bounce (${analysis[0]?.winRate.toFixed(1)}% win rate next day)` :
+             analysis[0]?.winRate < 45 ? `After ${threshold}%+ drops, stock often continues lower (${analysis[0]?.winRate.toFixed(1)}% win rate)` :
+             `After ${threshold}%+ drops, next day is roughly 50/50`
+  };
+}
+
+// After Up X% - What happens after the stock rises by X%?
+function studyAfterUpX(bars: PriceBar[], params?: Record<string, any>) {
+  const threshold = params?.threshold || 2;
+  const forwardDays = params?.forwardDays || [1, 3, 5, 10];
+  const returns: number[] = [];
+  for (let i = 1; i < bars.length; i++) {
+    returns.push(((bars[i].close - bars[i - 1].close) / bars[i - 1].close) * 100);
+  }
+  
+  const upDays: { idx: number; gain: number }[] = [];
+  for (let i = 0; i < returns.length; i++) {
+    if (returns[i] >= threshold) {
+      upDays.push({ idx: i + 1, gain: returns[i] });
+    }
+  }
+  
+  const forwardReturns: Record<number, { returns: number[]; wins: number }> = {};
+  for (const fd of forwardDays) {
+    forwardReturns[fd] = { returns: [], wins: 0 };
+  }
+  
+  for (const ud of upDays) {
+    for (const fd of forwardDays) {
+      if (ud.idx + fd < bars.length) {
+        const ret = ((bars[ud.idx + fd].close - bars[ud.idx].close) / bars[ud.idx].close) * 100;
+        forwardReturns[fd].returns.push(ret);
+        if (ret > 0) forwardReturns[fd].wins++;
+      }
+    }
+  }
+  
+  const analysis = Object.entries(forwardReturns).map(([days, data]) => ({
+    days: parseInt(days),
+    occurrences: data.returns.length,
+    avgReturn: data.returns.length > 0 ? data.returns.reduce((a, b) => a + b, 0) / data.returns.length : 0,
+    winRate: data.returns.length > 0 ? (data.wins / data.returns.length) * 100 : 0,
+    median: data.returns.length > 0 ? [...data.returns].sort((a, b) => a - b)[Math.floor(data.returns.length / 2)] : 0,
+    best: data.returns.length > 0 ? Math.max(...data.returns) : 0,
+    worst: data.returns.length > 0 ? Math.min(...data.returns) : 0
+  }));
+  
+  const recentEvents = upDays.slice(-10).map(ud => ({
+    date: bars[ud.idx].date,
+    gain: ud.gain.toFixed(2) + '%',
+    nextDay: ud.idx + 1 < bars.length ? (((bars[ud.idx + 1].close - bars[ud.idx].close) / bars[ud.idx].close) * 100).toFixed(2) + '%' : 'N/A'
+  }));
+  
+  return {
+    type: 'after_up_x',
+    params: { threshold, forwardDays },
+    totalOccurrences: upDays.length,
+    percentOfDays: (upDays.length / returns.length) * 100,
+    avgGain: upDays.length > 0 ? upDays.reduce((a, b) => a + b.gain, 0) / upDays.length : 0,
+    analysis,
+    recentEvents,
+    insight: analysis[0]?.winRate > 55 ? `After ${threshold}%+ gains, momentum continues (${analysis[0]?.winRate.toFixed(1)}% win rate next day)` :
+             analysis[0]?.winRate < 45 ? `After ${threshold}%+ gains, stock often pulls back (${analysis[0]?.winRate.toFixed(1)}% win rate)` :
+             `After ${threshold}%+ gains, next day is roughly 50/50`
+  };
+}
+
+// After Consecutive Days - What happens after N consecutive up/down days?
+function studyAfterConsecutiveDays(bars: PriceBar[], params?: Record<string, any>) {
+  const consecutiveDays = params?.consecutiveDays || 3;
+  const direction = params?.direction || 'down';
+  const forwardDays = params?.forwardDays || [1, 3, 5];
+  
+  const returns: boolean[] = [];
+  for (let i = 1; i < bars.length; i++) {
+    returns.push(bars[i].close > bars[i - 1].close);
+  }
+  
+  const streakEnds: number[] = [];
+  let currentStreak = 0;
+  const isTargetDirection = direction === 'up';
+  
+  for (let i = 0; i < returns.length; i++) {
+    if (returns[i] === isTargetDirection) {
+      currentStreak++;
+    } else {
+      if (currentStreak >= consecutiveDays) {
+        streakEnds.push(i);
+      }
+      currentStreak = 0;
+    }
+  }
+  if (currentStreak >= consecutiveDays) {
+    streakEnds.push(returns.length);
+  }
+  
+  const forwardReturns: Record<number, { returns: number[]; wins: number }> = {};
+  for (const fd of forwardDays) {
+    forwardReturns[fd] = { returns: [], wins: 0 };
+  }
+  
+  for (const idx of streakEnds) {
+    const barIdx = idx + 1;
+    for (const fd of forwardDays) {
+      if (barIdx + fd < bars.length) {
+        const ret = ((bars[barIdx + fd].close - bars[barIdx].close) / bars[barIdx].close) * 100;
+        forwardReturns[fd].returns.push(ret);
+        if (ret > 0) forwardReturns[fd].wins++;
+      }
+    }
+  }
+  
+  const analysis = Object.entries(forwardReturns).map(([days, data]) => ({
+    days: parseInt(days),
+    occurrences: data.returns.length,
+    avgReturn: data.returns.length > 0 ? data.returns.reduce((a, b) => a + b, 0) / data.returns.length : 0,
+    winRate: data.returns.length > 0 ? (data.wins / data.returns.length) * 100 : 0,
+    median: data.returns.length > 0 ? [...data.returns].sort((a, b) => a - b)[Math.floor(data.returns.length / 2)] : 0
+  }));
+  
+  return {
+    type: 'after_consecutive_days',
+    params: { consecutiveDays, direction, forwardDays },
+    totalOccurrences: streakEnds.length,
+    analysis,
+    insight: direction === 'down' ? 
+      (analysis[0]?.winRate > 55 ? `After ${consecutiveDays}+ down days, bounces are likely (${analysis[0]?.winRate.toFixed(1)}% win rate)` : `After ${consecutiveDays}+ down days, weakness may continue`) :
+      (analysis[0]?.winRate > 55 ? `After ${consecutiveDays}+ up days, momentum continues (${analysis[0]?.winRate.toFixed(1)}% win rate)` : `After ${consecutiveDays}+ up days, pullbacks are likely`)
+  };
+}
+
+// After High Volume Day - What happens after unusually high volume?
+function studyAfterHighVolume(bars: PriceBar[], params?: Record<string, any>) {
+  const volumeMultiplier = params?.volumeMultiplier || 2;
+  const avgPeriod = params?.avgPeriod || 20;
+  const forwardDays = params?.forwardDays || [1, 3, 5];
+  
+  const volumes = bars.map(b => b.volume);
+  const highVolDays: { idx: number; volRatio: number; dayReturn: number }[] = [];
+  
+  for (let i = avgPeriod; i < bars.length; i++) {
+    const avgVol = volumes.slice(i - avgPeriod, i).reduce((a, b) => a + b, 0) / avgPeriod;
+    const volRatio = bars[i].volume / avgVol;
+    if (volRatio >= volumeMultiplier) {
+      const dayReturn = i > 0 ? ((bars[i].close - bars[i - 1].close) / bars[i - 1].close) * 100 : 0;
+      highVolDays.push({ idx: i, volRatio, dayReturn });
+    }
+  }
+  
+  const upVolDays = highVolDays.filter(d => d.dayReturn > 0);
+  const downVolDays = highVolDays.filter(d => d.dayReturn < 0);
+  
+  const analyzeForward = (days: { idx: number }[]) => {
+    const results: Record<number, { returns: number[]; wins: number }> = {};
+    for (const fd of forwardDays) {
+      results[fd] = { returns: [], wins: 0 };
+    }
+    for (const d of days) {
+      for (const fd of forwardDays) {
+        if (d.idx + fd < bars.length) {
+          const ret = ((bars[d.idx + fd].close - bars[d.idx].close) / bars[d.idx].close) * 100;
+          results[fd].returns.push(ret);
+          if (ret > 0) results[fd].wins++;
+        }
+      }
+    }
+    return Object.entries(results).map(([days, data]) => ({
+      days: parseInt(days),
+      avgReturn: data.returns.length > 0 ? data.returns.reduce((a, b) => a + b, 0) / data.returns.length : 0,
+      winRate: data.returns.length > 0 ? (data.wins / data.returns.length) * 100 : 0,
+      count: data.returns.length
+    }));
+  };
+  
+  return {
+    type: 'after_high_volume',
+    params: { volumeMultiplier, avgPeriod, forwardDays },
+    totalHighVolDays: highVolDays.length,
+    percentOfDays: (highVolDays.length / (bars.length - avgPeriod)) * 100,
+    highVolUpDays: { count: upVolDays.length, avgGain: upVolDays.length > 0 ? upVolDays.reduce((a, b) => a + b.dayReturn, 0) / upVolDays.length : 0, forwardAnalysis: analyzeForward(upVolDays) },
+    highVolDownDays: { count: downVolDays.length, avgLoss: downVolDays.length > 0 ? downVolDays.reduce((a, b) => a + b.dayReturn, 0) / downVolDays.length : 0, forwardAnalysis: analyzeForward(downVolDays) },
+    recentEvents: highVolDays.slice(-10).map(d => ({ date: bars[d.idx].date, volRatio: d.volRatio.toFixed(1) + 'x', dayReturn: d.dayReturn.toFixed(2) + '%' }))
+  };
+}
+
+// After Gap - What happens after gap up/down?
+function studyAfterGap(bars: PriceBar[], params?: Record<string, any>) {
+  const minGapPercent = params?.minGapPercent || 1;
+  const forwardDays = params?.forwardDays || [1, 3, 5];
+  
+  const gapUps: { idx: number; gap: number }[] = [];
+  const gapDowns: { idx: number; gap: number }[] = [];
+  
+  for (let i = 1; i < bars.length; i++) {
+    const gapPercent = ((bars[i].open - bars[i - 1].close) / bars[i - 1].close) * 100;
+    if (gapPercent >= minGapPercent) {
+      gapUps.push({ idx: i, gap: gapPercent });
+    } else if (gapPercent <= -minGapPercent) {
+      gapDowns.push({ idx: i, gap: gapPercent });
+    }
+  }
+  
+  const analyzeGaps = (gaps: { idx: number; gap: number }[]) => {
+    const results: Record<number, { returns: number[]; wins: number }> = {};
+    for (const fd of forwardDays) {
+      results[fd] = { returns: [], wins: 0 };
+    }
+    for (const g of gaps) {
+      for (const fd of forwardDays) {
+        if (g.idx + fd < bars.length) {
+          const ret = ((bars[g.idx + fd].close - bars[g.idx].close) / bars[g.idx].close) * 100;
+          results[fd].returns.push(ret);
+          if (ret > 0) results[fd].wins++;
+        }
+      }
+    }
+    return Object.entries(results).map(([days, data]) => ({
+      days: parseInt(days),
+      avgReturn: data.returns.length > 0 ? data.returns.reduce((a, b) => a + b, 0) / data.returns.length : 0,
+      winRate: data.returns.length > 0 ? (data.wins / data.returns.length) * 100 : 0,
+      count: data.returns.length
+    }));
+  };
+  
+  // Check gap fill rate
+  const gapUpFills = gapUps.filter(g => bars[g.idx].low <= bars[g.idx - 1].close).length;
+  const gapDownFills = gapDowns.filter(g => bars[g.idx].high >= bars[g.idx - 1].close).length;
+  
+  return {
+    type: 'after_gap',
+    params: { minGapPercent, forwardDays },
+    gapUps: { count: gapUps.length, avgGap: gapUps.length > 0 ? gapUps.reduce((a, b) => a + b.gap, 0) / gapUps.length : 0, fillRate: gapUps.length > 0 ? (gapUpFills / gapUps.length) * 100 : 0, forwardAnalysis: analyzeGaps(gapUps) },
+    gapDowns: { count: gapDowns.length, avgGap: gapDowns.length > 0 ? gapDowns.reduce((a, b) => a + b.gap, 0) / gapDowns.length : 0, fillRate: gapDowns.length > 0 ? (gapDownFills / gapDowns.length) * 100 : 0, forwardAnalysis: analyzeGaps(gapDowns) },
+    recentGapUps: gapUps.slice(-5).map(g => ({ date: bars[g.idx].date, gap: g.gap.toFixed(2) + '%' })),
+    recentGapDowns: gapDowns.slice(-5).map(g => ({ date: bars[g.idx].date, gap: g.gap.toFixed(2) + '%' }))
+  };
+}
+
+// Below Moving Average X% - What happens when price is X% below MA?
+function studyBelowMA(bars: PriceBar[], params?: Record<string, any>) {
+  const maPeriod = params?.maPeriod || 50;
+  const threshold = params?.threshold || 5;
+  const forwardDays = params?.forwardDays || [1, 5, 10, 20];
+  
+  const closes = bars.map(b => b.close);
+  const sma = calculateSMA(closes, maPeriod);
+  
+  const belowMADays: { idx: number; deviation: number }[] = [];
+  
+  for (let i = maPeriod - 1; i < bars.length; i++) {
+    const deviation = ((closes[i] - sma[i]) / sma[i]) * 100;
+    if (deviation <= -threshold) {
+      belowMADays.push({ idx: i, deviation });
+    }
+  }
+  
+  const forwardReturns: Record<number, { returns: number[]; wins: number }> = {};
+  for (const fd of forwardDays) {
+    forwardReturns[fd] = { returns: [], wins: 0 };
+  }
+  
+  for (const d of belowMADays) {
+    for (const fd of forwardDays) {
+      if (d.idx + fd < bars.length) {
+        const ret = ((bars[d.idx + fd].close - bars[d.idx].close) / bars[d.idx].close) * 100;
+        forwardReturns[fd].returns.push(ret);
+        if (ret > 0) forwardReturns[fd].wins++;
+      }
+    }
+  }
+  
+  const analysis = Object.entries(forwardReturns).map(([days, data]) => ({
+    days: parseInt(days),
+    occurrences: data.returns.length,
+    avgReturn: data.returns.length > 0 ? data.returns.reduce((a, b) => a + b, 0) / data.returns.length : 0,
+    winRate: data.returns.length > 0 ? (data.wins / data.returns.length) * 100 : 0,
+    median: data.returns.length > 0 ? [...data.returns].sort((a, b) => a - b)[Math.floor(data.returns.length / 2)] : 0
+  }));
+  
+  const currentDeviation = sma.length > 0 ? ((closes[closes.length - 1] - sma[sma.length - 1]) / sma[sma.length - 1]) * 100 : 0;
+  
+  return {
+    type: 'below_ma',
+    params: { maPeriod, threshold, forwardDays },
+    totalOccurrences: belowMADays.length,
+    percentOfDays: (belowMADays.length / (bars.length - maPeriod + 1)) * 100,
+    avgDeviation: belowMADays.length > 0 ? belowMADays.reduce((a, b) => a + b.deviation, 0) / belowMADays.length : 0,
+    currentDeviation,
+    currentlyBelow: currentDeviation <= -threshold,
+    analysis,
+    insight: analysis[1]?.winRate > 55 ? `When ${threshold}%+ below ${maPeriod}MA, bounces are likely (${analysis[1]?.winRate.toFixed(1)}% win rate over ${analysis[1]?.days} days)` :
+             `Being ${threshold}%+ below ${maPeriod}MA doesn't strongly predict bounces in this stock`
+  };
+}
+
+// After Drawdown X% - What happens after a drawdown of X% from peak?
+function studyAfterDrawdown(bars: PriceBar[], params?: Record<string, any>) {
+  const drawdownThreshold = params?.drawdownThreshold || 10;
+  const forwardDays = params?.forwardDays || [5, 10, 20, 60];
+  
+  let peak = bars[0].close;
+  const drawdownEvents: { idx: number; drawdown: number }[] = [];
+  let inDrawdown = false;
+  
+  for (let i = 0; i < bars.length; i++) {
+    if (bars[i].close > peak) {
+      peak = bars[i].close;
+      inDrawdown = false;
+    }
+    const drawdown = ((peak - bars[i].close) / peak) * 100;
+    if (drawdown >= drawdownThreshold && !inDrawdown) {
+      drawdownEvents.push({ idx: i, drawdown });
+      inDrawdown = true;
+    }
+  }
+  
+  const forwardReturns: Record<number, { returns: number[]; wins: number }> = {};
+  for (const fd of forwardDays) {
+    forwardReturns[fd] = { returns: [], wins: 0 };
+  }
+  
+  for (const d of drawdownEvents) {
+    for (const fd of forwardDays) {
+      if (d.idx + fd < bars.length) {
+        const ret = ((bars[d.idx + fd].close - bars[d.idx].close) / bars[d.idx].close) * 100;
+        forwardReturns[fd].returns.push(ret);
+        if (ret > 0) forwardReturns[fd].wins++;
+      }
+    }
+  }
+  
+  const analysis = Object.entries(forwardReturns).map(([days, data]) => ({
+    days: parseInt(days),
+    occurrences: data.returns.length,
+    avgReturn: data.returns.length > 0 ? data.returns.reduce((a, b) => a + b, 0) / data.returns.length : 0,
+    winRate: data.returns.length > 0 ? (data.wins / data.returns.length) * 100 : 0
+  }));
+  
+  // Calculate current drawdown
+  let currentPeak = bars[0].close;
+  for (const bar of bars) {
+    if (bar.close > currentPeak) currentPeak = bar.close;
+  }
+  const currentDrawdown = ((currentPeak - bars[bars.length - 1].close) / currentPeak) * 100;
+  
+  return {
+    type: 'after_drawdown',
+    params: { drawdownThreshold, forwardDays },
+    totalOccurrences: drawdownEvents.length,
+    currentDrawdown,
+    currentlyInDrawdown: currentDrawdown >= drawdownThreshold,
+    analysis,
+    recentEvents: drawdownEvents.slice(-5).map(d => ({ date: bars[d.idx].date, drawdown: d.drawdown.toFixed(1) + '%' })),
+    insight: analysis[2]?.winRate > 60 ? `After ${drawdownThreshold}%+ drawdowns, recovery is likely (${analysis[2]?.avgReturn.toFixed(1)}% avg return over ${analysis[2]?.days} days)` :
+             `${drawdownThreshold}%+ drawdowns don't strongly predict quick recoveries`
+  };
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
   try {
@@ -279,6 +694,14 @@ serve(async (req) => {
       case 'trend_analysis': result = studyTrendStrength(bars, params); break;
       case 'price_targets': result = studyPriceTargets(bars); break;
       case 'close_to_open_analysis': result = studyCloseToOpenAnalysis(bars, params); break;
+      // Conditional probability studies
+      case 'after_down_x': result = studyAfterDownX(bars, params); break;
+      case 'after_up_x': result = studyAfterUpX(bars, params); break;
+      case 'after_consecutive_days': result = studyAfterConsecutiveDays(bars, params); break;
+      case 'after_high_volume': result = studyAfterHighVolume(bars, params); break;
+      case 'after_gap': result = studyAfterGap(bars, params); break;
+      case 'below_ma': result = studyBelowMA(bars, params); break;
+      case 'after_drawdown': result = studyAfterDrawdown(bars, params); break;
       default: return new Response(JSON.stringify({ error: `Unknown study type: ${studyType}` }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
     return new Response(JSON.stringify({ success: true, result, barsAnalyzed: bars.length, useMockData, computationTimeMs: Date.now() - startTime, dateRange: { start: bars[0].date, end: bars[bars.length - 1].date } }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
