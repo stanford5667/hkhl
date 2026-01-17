@@ -755,6 +755,53 @@ const STUDY_DEFINITIONS: StudyDefinition[] = [
       }
     ]
   },
+  {
+    id: 'close_to_open_analysis',
+    name: 'Close vs Open',
+    category: 'patterns',
+    icon: Activity,
+    description: 'Where does price close within the day\'s range?',
+    whatItMeasures: 'Close position (near high vs near low), green/red bias, and doji/strong-day patterns.',
+    whyItMatters: 'Closes near highs suggest buying pressure; near lows suggest selling pressure.',
+    howToUse: 'Use this to gauge intraday conviction and the typical follow-through after strong/indecision days.',
+    difficulty: 'intermediate',
+    tags: ['patterns', 'candles', 'pressure'],
+    params: [
+      {
+        key: 'dojiThreshold',
+        label: 'Doji Threshold',
+        description: 'Body % of range to consider a doji',
+        type: 'slider',
+        min: 0.05,
+        max: 0.25,
+        step: 0.05,
+        default: 0.1,
+        beginner: '0.10 means body is 10% of the candle\'s range'
+      },
+      {
+        key: 'strongMoveThreshold',
+        label: 'Strong Move Threshold',
+        description: '% move to consider a strong day',
+        type: 'slider',
+        min: 0.5,
+        max: 3,
+        step: 0.25,
+        default: 1.5,
+        beginner: '1.5 means a 1.5% move from open to close'
+      },
+      {
+        key: 'forwardDays',
+        label: 'Forward Days',
+        description: 'Days to measure follow-through',
+        type: 'slider',
+        min: 1,
+        max: 10,
+        step: 1,
+        default: 1,
+        beginner: 'How many days ahead to measure what happens next'
+      }
+    ]
+  },
   
   // ========== VOLUME ==========
   {
@@ -1071,13 +1118,33 @@ export default function QuantLab() {
   };
 
   // Filter out internal/display keys from results
-  const getDisplayMetrics = (result: any) => {
+  const getDisplayMetrics = (result: any): Array<[string, any]> => {
+    // Special-case: close_to_open returns nested objects (summary/followThrough/etc.), so flatten summary into metrics.
+    if (result?.type === 'close_to_open' && result?.summary) {
+      const s = result.summary;
+      const safePct = (v: any) => (typeof v === 'number' ? v : typeof v?.pct === 'number' ? v.pct : undefined);
+
+      const metrics: Array<[string, any | undefined]> = [
+        ['bias', s.bias],
+        ['avgClosePositionPct', s.avgClosePosition],
+        ['greenDaysPct', safePct(s.greenDays)],
+        ['closedNearHighPct', safePct(s.closedNearHigh)],
+        ['dojiDaysPct', safePct(s.dojiDays)],
+        ['strongGreenDaysPct', safePct(s.strongGreenDays)],
+        ['closedNearLowPct', safePct(s.closedNearLow)],
+        ['redDaysPct', safePct(s.redDays)],
+        ['strongRedDaysPct', safePct(s.strongRedDays)],
+      ];
+
+      return metrics.filter((entry): entry is [string, any] => entry[1] !== undefined);
+    }
+
     const excludeKeys = ['type', 'studyName', 'params', 'interpretation', 'histogram', 'distribution', 'stats', 'recentGaps', 'recentDrawdowns', 'recentNewHighs', 'recentNewLows', 'components', 'barsAnalyzed', 'dateRange', 'usedMockData', 'dayStats', 'monthStats'];
     return Object.entries(result).filter(([key, value]) => {
       if (excludeKeys.includes(key)) return false;
       if (typeof value === 'object') return false;
       return true;
-    });
+    }) as Array<[string, any]>;
   };
 
   return (
