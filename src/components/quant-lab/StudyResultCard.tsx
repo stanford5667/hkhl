@@ -440,7 +440,6 @@ export function StudyResultCard({
 }: StudyResultCardProps) {
   const [selectedMetric, setSelectedMetric] = useState<{ key: string; value: any } | null>(null);
   const [showVisuals, setShowVisuals] = useState(false);
-  const [showStrategy, setShowStrategy] = useState(false);
 
   // Get displayable metrics from result
   const getDisplayMetrics = (): [string, any][] => {
@@ -781,46 +780,107 @@ export function StudyResultCard({
                   </button>
                 </div>
 
-                <div className="mt-3 p-3 rounded-lg bg-muted/20 border border-border/40">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-[10px] text-muted-foreground uppercase tracking-wide font-semibold">
+                <div className="mt-4 p-4 rounded-xl bg-muted/20 border border-border/40">
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="text-sm font-semibold text-foreground">
                       Distribution of Outcomes ({timelineLabel})
                     </span>
-                    <span className="text-[10px] text-muted-foreground">{occurrences} historical events</span>
+                    <Badge variant="outline" className="text-xs">{occurrences} events</Badge>
                   </div>
 
-                  {/* Strip plot with individual data points */}
-                  <div className="relative h-14 mb-2">
-                    <div className="absolute inset-y-0 left-0 right-0 bg-muted/30 rounded-lg" />
+                  {(() => {
+                    // Calculate statistics
+                    const stdDev = analysisData?.stdDev ?? result.stdDev ?? Math.abs(bestMove - worstMove) / 4;
+                    const mode = analysisData?.mode ?? result.mode ?? medianMove; // Mode approximation
+                    const sigma1Low = avgMove - stdDev;
+                    const sigma1High = avgMove + stdDev;
+                    const sigma2Low = avgMove - 2 * stdDev;
+                    const sigma2High = avgMove + 2 * stdDev;
+                    
+                    const range = Math.max(Math.abs(worstMove), Math.abs(bestMove), Math.abs(sigma2Low), Math.abs(sigma2High), 1);
+                    const scale = 42;
+                    const centerPos = 50;
 
-                    {(() => {
-                      const range = Math.max(Math.abs(worstMove), Math.abs(bestMove), 1);
-                      const scale = 45;
-                      const centerPos = 50;
+                    const getPos = (val: number) => Math.max(3, Math.min(97, centerPos + (val / range) * scale));
 
-                      const worstPos = Math.max(5, Math.min(95, centerPos + (worstMove / range) * scale));
-                      const bestPos = Math.max(5, Math.min(95, centerPos + (bestMove / range) * scale));
-                      const avgPos = Math.max(5, Math.min(95, centerPos + (avgMove / range) * scale));
-                      const medianPos = Math.max(5, Math.min(95, centerPos + (medianMove / range) * scale));
-                      const q1Pos = Math.max(5, Math.min(95, centerPos + (q1 / range) * scale));
-                      const q3Pos = Math.max(5, Math.min(95, centerPos + (q3 / range) * scale));
+                    return (
+                      <>
+                        {/* Statistics Summary Cards */}
+                        <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 mb-4">
+                          <div className="flex flex-col items-center p-2 rounded-lg bg-primary/10 border border-primary/30">
+                            <span className="text-[10px] text-muted-foreground uppercase tracking-wide">Median</span>
+                            <span className={cn("text-lg font-bold font-mono", medianMove >= 0 ? "text-emerald-500" : "text-red-500")}>
+                              {medianMove >= 0 ? '+' : ''}{medianMove.toFixed(1)}%
+                            </span>
+                          </div>
+                          <div className="flex flex-col items-center p-2 rounded-lg bg-muted/40 border border-border/50">
+                            <span className="text-[10px] text-muted-foreground uppercase tracking-wide">Mode</span>
+                            <span className={cn("text-lg font-bold font-mono", mode >= 0 ? "text-emerald-500" : "text-red-500")}>
+                              {mode >= 0 ? '+' : ''}{mode.toFixed(1)}%
+                            </span>
+                          </div>
+                          <div className="flex flex-col items-center p-2 rounded-lg bg-muted/40 border border-border/50">
+                            <span className="text-[10px] text-muted-foreground uppercase tracking-wide">Average</span>
+                            <span className={cn("text-lg font-bold font-mono", avgMove >= 0 ? "text-emerald-500" : "text-red-500")}>
+                              {avgMove >= 0 ? '+' : ''}{avgMove.toFixed(1)}%
+                            </span>
+                          </div>
+                          <div className="flex flex-col items-center p-2 rounded-lg bg-blue-500/10 border border-blue-500/30">
+                            <span className="text-[10px] text-muted-foreground uppercase tracking-wide">1σ Range</span>
+                            <span className="text-sm font-bold font-mono text-blue-400">
+                              {sigma1Low.toFixed(1)} to {sigma1High >= 0 ? '+' : ''}{sigma1High.toFixed(1)}%
+                            </span>
+                          </div>
+                          <div className="flex flex-col items-center p-2 rounded-lg bg-purple-500/10 border border-purple-500/30">
+                            <span className="text-[10px] text-muted-foreground uppercase tracking-wide">2σ Range</span>
+                            <span className="text-sm font-bold font-mono text-purple-400">
+                              {sigma2Low.toFixed(1)} to {sigma2High >= 0 ? '+' : ''}{sigma2High.toFixed(1)}%
+                            </span>
+                          </div>
+                          <div className="flex flex-col items-center p-2 rounded-lg bg-muted/40 border border-border/50">
+                            <span className="text-[10px] text-muted-foreground uppercase tracking-wide">Extremes</span>
+                            <span className="text-sm font-bold font-mono">
+                              <span className="text-red-500">{worstMove.toFixed(0)}%</span>
+                              <span className="text-muted-foreground mx-1">to</span>
+                              <span className="text-emerald-500">+{bestMove.toFixed(0)}%</span>
+                            </span>
+                          </div>
+                        </div>
 
-                      return (
-                        <>
-                          {/* Zero line with label */}
-                          <div className="absolute top-0 bottom-0 left-1/2 w-px bg-border/70" />
-                          <span className="absolute top-0 left-1/2 -translate-x-1/2 text-[7px] text-muted-foreground/70 -mt-0.5">0%</span>
+                        {/* Visual Strip Plot */}
+                        <div className="relative h-24 mb-3 bg-muted/30 rounded-xl overflow-hidden">
+                          {/* 2σ band (outer) */}
+                          <div
+                            className="absolute top-8 bottom-4 bg-purple-500/10 border-l-2 border-r-2 border-purple-500/30"
+                            style={{
+                              left: `${getPos(sigma2Low)}%`,
+                              right: `${100 - getPos(sigma2High)}%`,
+                            }}
+                          />
+                          
+                          {/* 1σ band (inner) */}
+                          <div
+                            className="absolute top-8 bottom-4 bg-blue-500/15 border-l-2 border-r-2 border-blue-500/40"
+                            style={{
+                              left: `${getPos(sigma1Low)}%`,
+                              right: `${100 - getPos(sigma1High)}%`,
+                            }}
+                          />
 
-                          {/* Individual data points (strip plot) */}
+                          {/* Zero line */}
+                          <div className="absolute top-0 bottom-0 left-1/2 w-px bg-border" />
+                          <span className="absolute top-1 left-1/2 -translate-x-1/2 text-xs font-medium text-muted-foreground">0%</span>
+
+                          {/* Individual data points - LARGER */}
                           {dataPoints.map((point, i) => {
-                            const pos = Math.max(5, Math.min(95, centerPos + (point / range) * scale));
-                            const yOffset = 20 + (i % 3) * 8; // Stagger vertically to avoid overlap
+                            const pos = getPos(point);
+                            const yOffset = 32 + (i % 4) * 10;
                             return (
                               <div
                                 key={i}
                                 className={cn(
-                                  "absolute w-1.5 h-1.5 rounded-full opacity-60 hover:opacity-100 transition-opacity",
-                                  point >= 0 ? "bg-emerald-400" : "bg-red-400"
+                                  "absolute w-3 h-3 rounded-full opacity-70 hover:opacity-100 hover:scale-125 transition-all cursor-pointer shadow-sm",
+                                  point >= 0 ? "bg-emerald-500" : "bg-red-500"
                                 )}
                                 style={{ 
                                   left: `${pos}%`, 
@@ -832,96 +892,90 @@ export function StudyResultCard({
                             );
                           })}
 
-                          {/* IQR shaded region (where 50% of results fall) */}
+                          {/* Median line - PROMINENT */}
                           <div
-                            className="absolute top-6 bottom-2 bg-primary/20 rounded border-l-2 border-r-2 border-primary/40"
-                            style={{
-                              left: `${Math.min(q1Pos, q3Pos)}%`,
-                              right: `${100 - Math.max(q1Pos, q3Pos)}%`,
-                            }}
-                          />
-
-                          {/* Median line (prominent vertical line) */}
-                          <div
-                            className="absolute top-4 bottom-0 w-0.5 bg-primary shadow-sm"
-                            style={{ left: `${medianPos}%`, transform: 'translateX(-50%)' }}
+                            className="absolute top-6 bottom-2 w-1 bg-primary rounded-full shadow-lg shadow-primary/30"
+                            style={{ left: `${getPos(medianMove)}%`, transform: 'translateX(-50%)' }}
                           />
                           <span 
-                            className="absolute text-[8px] font-bold text-primary whitespace-nowrap"
-                            style={{ left: `${medianPos}%`, top: '2px', transform: 'translateX(-50%)' }}
+                            className="absolute text-sm font-bold text-primary whitespace-nowrap bg-background/80 px-1.5 py-0.5 rounded"
+                            style={{ left: `${getPos(medianMove)}%`, top: '2px', transform: 'translateX(-50%)' }}
                           >
-                            {medianMove >= 0 ? '+' : ''}{medianMove.toFixed(1)}%
+                            Median: {medianMove >= 0 ? '+' : ''}{medianMove.toFixed(1)}%
                           </span>
 
-                          {/* Worst marker */}
+                          {/* Average marker - LARGER */}
+                          <div
+                            className="absolute top-14"
+                            style={{ left: `${getPos(avgMove)}%`, transform: 'translateX(-50%)' }}
+                          >
+                            <div className={cn(
+                              "w-5 h-5 rounded-full border-3 border-background shadow-lg",
+                              avgMove >= 0 ? "bg-emerald-500" : "bg-red-500"
+                            )} />
+                          </div>
+
+                          {/* Worst extreme */}
                           <div
                             className="absolute bottom-1 flex flex-col items-center"
-                            style={{ left: `${worstPos}%`, transform: 'translateX(-50%)' }}
+                            style={{ left: `${getPos(worstMove)}%`, transform: 'translateX(-50%)' }}
                           >
-                            <div className="w-0 h-0 border-l-[4px] border-r-[4px] border-b-[6px] border-l-transparent border-r-transparent border-b-red-500" />
+                            <div className="w-0 h-0 border-l-[6px] border-r-[6px] border-b-[10px] border-l-transparent border-r-transparent border-b-red-500" />
                           </div>
                           <span 
-                            className="absolute text-[7px] font-semibold text-red-500 whitespace-nowrap"
-                            style={{ left: `${worstPos}%`, bottom: '-2px', transform: 'translateX(-50%)' }}
+                            className="absolute text-xs font-bold text-red-500 whitespace-nowrap bg-background/80 px-1 rounded"
+                            style={{ left: `${getPos(worstMove)}%`, bottom: '12px', transform: 'translateX(-50%)' }}
                           >
                             {worstMove.toFixed(1)}%
                           </span>
 
-                          {/* Best marker */}
+                          {/* Best extreme */}
                           <div
                             className="absolute bottom-1 flex flex-col items-center"
-                            style={{ left: `${bestPos}%`, transform: 'translateX(-50%)' }}
+                            style={{ left: `${getPos(bestMove)}%`, transform: 'translateX(-50%)' }}
                           >
-                            <div className="w-0 h-0 border-l-[4px] border-r-[4px] border-b-[6px] border-l-transparent border-r-transparent border-b-emerald-500" />
+                            <div className="w-0 h-0 border-l-[6px] border-r-[6px] border-b-[10px] border-l-transparent border-r-transparent border-b-emerald-500" />
                           </div>
                           <span 
-                            className="absolute text-[7px] font-semibold text-emerald-500 whitespace-nowrap"
-                            style={{ left: `${bestPos}%`, bottom: '-2px', transform: 'translateX(-50%)' }}
+                            className="absolute text-xs font-bold text-emerald-500 whitespace-nowrap bg-background/80 px-1 rounded"
+                            style={{ left: `${getPos(bestMove)}%`, bottom: '12px', transform: 'translateX(-50%)' }}
                           >
                             +{bestMove.toFixed(1)}%
                           </span>
+                        </div>
+                        
+                        {/* Legend - LARGER */}
+                        <div className="flex flex-wrap items-center justify-center gap-4 text-xs text-muted-foreground border-t border-border/30 pt-3">
+                          <span className="flex items-center gap-1.5">
+                            <div className="w-3 h-3 rounded-full bg-emerald-500/70" /> Positive outcomes
+                          </span>
+                          <span className="flex items-center gap-1.5">
+                            <div className="w-3 h-3 rounded-full bg-red-500/70" /> Negative outcomes
+                          </span>
+                          <span className="flex items-center gap-1.5">
+                            <div className="w-1 h-4 bg-primary rounded-full" /> Median
+                          </span>
+                          <span className="flex items-center gap-1.5">
+                            <div className="w-5 h-5 rounded-full bg-emerald-500 border-2 border-background" /> Avg
+                          </span>
+                          <span className="flex items-center gap-1.5">
+                            <div className="w-6 h-3 rounded bg-blue-500/20 border-l-2 border-r-2 border-blue-500/50" /> 1σ
+                          </span>
+                          <span className="flex items-center gap-1.5">
+                            <div className="w-6 h-3 rounded bg-purple-500/15 border-l-2 border-r-2 border-purple-500/40" /> 2σ
+                          </span>
+                        </div>
+                      </>
+                    );
+                  })()}
 
-                          {/* Average marker */}
-                          <div
-                            className="absolute top-5"
-                            style={{ left: `${avgPos}%`, transform: 'translateX(-50%)' }}
-                          >
-                            <div className={cn(
-                              "w-3 h-3 rounded-full border-2 border-background shadow-md",
-                              avgMove >= 0 ? "bg-emerald-500" : "bg-red-500"
-                            )} />
-                          </div>
-                        </>
-                      );
-                    })()}
-                  </div>
-                  
-                  {/* Legend */}
-                  <div className="flex items-center justify-between mt-3 pt-2 border-t border-border/30 text-[9px] text-muted-foreground">
-                    <div className="flex items-center gap-3">
-                      <span className="flex items-center gap-1">
-                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-400/60" /> Individual outcomes
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <div className="w-0.5 h-3 bg-primary" /> Median
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 border border-background" /> Avg
-                      </span>
-                    </div>
-                    <span className="flex items-center gap-1">
-                      <span className="w-4 h-2 rounded-sm bg-primary/20 border-l border-r border-primary/40" />
-                      <span>Middle 50%</span>
-                    </span>
-                  </div>
-
-                  {/* Written explanation */}
-                  <div className="mt-3 p-2 rounded bg-muted/30 border border-border/30">
-                    <p className="text-[10px] text-muted-foreground leading-relaxed">
-                      <span className="font-semibold text-foreground">How to read this:</span> Each dot is a historical outcome. 
-                      The <span className="font-semibold text-primary">vertical line</span> shows the median ({medianMove >= 0 ? '+' : ''}{medianMove.toFixed(1)}%) — half of outcomes were better, half worse. 
-                      The <span className="font-semibold" style={{ color: 'hsl(var(--primary) / 0.7)' }}>shaded region</span> shows where 50% of results clustered (from {q1.toFixed(1)}% to +{q3.toFixed(1)}%). 
-                      Extremes ranged from <span className="text-red-500 font-semibold">{worstMove.toFixed(1)}%</span> to <span className="text-emerald-500 font-semibold">+{bestMove.toFixed(1)}%</span>.
+                  {/* Written explanation - More detailed */}
+                  <div className="mt-4 p-3 rounded-lg bg-muted/40 border border-border/40">
+                    <p className="text-sm text-muted-foreground leading-relaxed">
+                      <span className="font-semibold text-foreground">📊 Reading This Distribution:</span> Each <span className="font-semibold text-emerald-500">green</span>/<span className="font-semibold text-red-500">red dot</span> represents a historical outcome. 
+                      The <span className="font-semibold text-primary">median</span> ({medianMove >= 0 ? '+' : ''}{medianMove.toFixed(1)}%) shows where half of outcomes fall above and below. 
+                      The <span className="font-semibold text-blue-400">blue band (1σ)</span> contains ~68% of results, while the <span className="font-semibold text-purple-400">purple band (2σ)</span> contains ~95%. 
+                      Results ranged from <span className="text-red-500 font-bold">{worstMove.toFixed(1)}%</span> to <span className="text-emerald-500 font-bold">+{bestMove.toFixed(1)}%</span>.
                     </p>
                   </div>
                 </div>
@@ -999,42 +1053,21 @@ export function StudyResultCard({
         )}
       </AnimatePresence>
 
-      {/* Trading Strategy Toggle */}
-      <button
-        onClick={() => setShowStrategy(!showStrategy)}
-        className="w-full px-4 py-2.5 flex items-center justify-between hover:bg-muted/30 transition-colors"
-      >
-        <div className="flex items-center gap-2">
-          <Crosshair className="h-4 w-4 text-amber-500" />
-          <span className="text-xs font-semibold">How to Trade This</span>
-          <Badge variant="outline" className="text-[8px] h-4 px-1.5 border-amber-500/50 text-amber-600">
-            Strategy
+      {/* Trading Strategy Section - Always Visible */}
+      <div className="px-4 py-3 border-t bg-amber-500/5">
+        <div className="flex items-center gap-2 mb-3">
+          <Crosshair className="h-5 w-5 text-amber-500" />
+          <span className="text-sm font-bold text-foreground">How to Trade This</span>
+          <Badge className="text-[10px] h-5 px-2 bg-amber-500/20 text-amber-600 border-amber-500/40">
+            Strategy Guide
           </Badge>
         </div>
-        <ChevronDown className={cn(
-          "h-4 w-4 text-muted-foreground transition-transform",
-          showStrategy && "rotate-180"
-        )} />
-      </button>
-
-      <AnimatePresence>
-        {showStrategy && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            className="overflow-hidden"
-          >
-            <div className="px-4 py-4 bg-amber-500/5 border-t">
-              <TradingStrategyCard 
-                studyId={study.id}
-                result={result}
-                ticker={ticker}
-              />
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+        <TradingStrategyCard 
+          studyId={study.id}
+          result={result}
+          ticker={ticker}
+        />
+      </div>
 
       {/* Metric Detail Popup */}
       <AnimatePresence>
