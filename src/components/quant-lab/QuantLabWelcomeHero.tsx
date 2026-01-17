@@ -206,33 +206,22 @@ export function QuantLabWelcomeHero({
               ))}
             </motion.div>
 
-            {/* CTA Buttons */}
+            {/* CTA Button */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.4 }}
-              className="flex flex-col sm:flex-row gap-3 justify-center lg:justify-start pt-2"
+              className="flex justify-center lg:justify-start pt-2"
             >
               <Button
                 size="lg"
-                onClick={onRunDemo}
+                onClick={onSignUp}
                 className="h-12 px-6 text-base gap-2 rounded-xl shadow-lg shadow-primary/20"
               >
-                <Play className="h-5 w-5" />
-                Try Live Demo
+                <FlaskConical className="h-5 w-5" />
+                Run Quant Studies
                 <ArrowRight className="h-4 w-4" />
               </Button>
-
-              {isGuest && (
-                <Button
-                  variant="outline"
-                  size="lg"
-                  onClick={onSignUp}
-                  className="h-12 px-6 text-base rounded-xl"
-                >
-                  Create Free Account
-                </Button>
-              )}
             </motion.div>
           </div>
 
