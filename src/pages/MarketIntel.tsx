@@ -108,8 +108,8 @@ export default function MarketIntel() {
         onCategoryChange={setActiveCategory} 
       />
 
-      {/* Weekly Macro Summary - Always visible below navigation */}
-      <WeeklyMacroSummary />
+      {/* Weekly Macro Summary - Only on Overview page */}
+      {activeCategory === 'indicators' && <WeeklyMacroSummary />}
 
       {/* Category-based Content */}
       {activeCategory === 'calendar' && <EconomicCalendarTab onPerformanceUpdate={handleCalendarPerformance} />}
