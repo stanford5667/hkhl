@@ -846,122 +846,113 @@ export function StudyResultCard({
                           </div>
                         </div>
 
-                        {/* Visual Strip Plot */}
-                        <div className="relative h-24 mb-3 bg-muted/30 rounded-xl overflow-hidden">
-                          {/* 2σ band (outer) */}
-                          <div
-                            className="absolute top-8 bottom-4 bg-purple-500/10 border-l-2 border-r-2 border-purple-500/30"
-                            style={{
-                              left: `${getPos(sigma2Low)}%`,
-                              right: `${100 - getPos(sigma2High)}%`,
-                            }}
-                          />
-                          
-                          {/* 1σ band (inner) */}
-                          <div
-                            className="absolute top-8 bottom-4 bg-blue-500/15 border-l-2 border-r-2 border-blue-500/40"
-                            style={{
-                              left: `${getPos(sigma1Low)}%`,
-                              right: `${100 - getPos(sigma1High)}%`,
-                            }}
-                          />
+                        {/* Visual Strip Plot - Contained layout */}
+                        <div className="relative bg-muted/30 rounded-xl overflow-hidden">
+                          {/* Chart area with padding for labels */}
+                          <div className="relative h-20 mx-4 mt-2">
+                            {/* 2σ band (outer) */}
+                            <div
+                              className="absolute top-4 bottom-0 bg-purple-500/10 border-l-2 border-r-2 border-purple-500/30 rounded"
+                              style={{
+                                left: `${getPos(sigma2Low)}%`,
+                                right: `${100 - getPos(sigma2High)}%`,
+                              }}
+                            />
+                            
+                            {/* 1σ band (inner) */}
+                            <div
+                              className="absolute top-4 bottom-0 bg-blue-500/15 border-l-2 border-r-2 border-blue-500/40 rounded"
+                              style={{
+                                left: `${getPos(sigma1Low)}%`,
+                                right: `${100 - getPos(sigma1High)}%`,
+                              }}
+                            />
 
-                          {/* Zero line */}
-                          <div className="absolute top-0 bottom-0 left-1/2 w-px bg-border" />
-                          <span className="absolute top-1 left-1/2 -translate-x-1/2 text-xs font-medium text-muted-foreground">0%</span>
+                            {/* Zero line */}
+                            <div className="absolute top-0 bottom-0 left-1/2 w-px bg-border/60" />
 
-                          {/* Individual data points - LARGER */}
-                          {dataPoints.map((point, i) => {
-                            const pos = getPos(point);
-                            const yOffset = 32 + (i % 4) * 10;
-                            return (
-                              <div
-                                key={i}
-                                className={cn(
-                                  "absolute w-3 h-3 rounded-full opacity-70 hover:opacity-100 hover:scale-125 transition-all cursor-pointer shadow-sm",
-                                  point >= 0 ? "bg-emerald-500" : "bg-red-500"
-                                )}
-                                style={{ 
-                                  left: `${pos}%`, 
-                                  top: `${yOffset}px`,
-                                  transform: 'translateX(-50%)'
-                                }}
-                                title={`${point >= 0 ? '+' : ''}${point.toFixed(2)}%`}
-                              />
-                            );
-                          })}
+                            {/* Individual data points */}
+                            {dataPoints.slice(0, 50).map((point, i) => {
+                              const pos = getPos(point);
+                              const yOffset = 20 + (i % 4) * 12;
+                              return (
+                                <div
+                                  key={i}
+                                  className={cn(
+                                    "absolute w-2.5 h-2.5 rounded-full opacity-60 hover:opacity-100 hover:scale-150 transition-all cursor-pointer",
+                                    point >= 0 ? "bg-emerald-500" : "bg-red-500"
+                                  )}
+                                  style={{ 
+                                    left: `${pos}%`, 
+                                    top: `${yOffset}px`,
+                                    transform: 'translateX(-50%)'
+                                  }}
+                                  title={`${point >= 0 ? '+' : ''}${point.toFixed(2)}%`}
+                                />
+                              );
+                            })}
 
-                          {/* Median line - PROMINENT */}
-                          <div
-                            className="absolute top-6 bottom-2 w-1 bg-primary rounded-full shadow-lg shadow-primary/30"
-                            style={{ left: `${getPos(medianMove)}%`, transform: 'translateX(-50%)' }}
-                          />
-                          <span 
-                            className="absolute text-sm font-bold text-primary whitespace-nowrap bg-background/80 px-1.5 py-0.5 rounded"
-                            style={{ left: `${getPos(medianMove)}%`, top: '2px', transform: 'translateX(-50%)' }}
-                          >
-                            Median: {medianMove >= 0 ? '+' : ''}{medianMove.toFixed(1)}%
-                          </span>
+                            {/* Median line */}
+                            <div
+                              className="absolute top-2 bottom-0 w-0.5 bg-primary rounded-full"
+                              style={{ left: `${getPos(medianMove)}%`, transform: 'translateX(-50%)' }}
+                            />
 
-                          {/* Average marker - LARGER */}
-                          <div
-                            className="absolute top-14"
-                            style={{ left: `${getPos(avgMove)}%`, transform: 'translateX(-50%)' }}
-                          >
-                            <div className={cn(
-                              "w-5 h-5 rounded-full border-3 border-background shadow-lg",
-                              avgMove >= 0 ? "bg-emerald-500" : "bg-red-500"
-                            )} />
+                            {/* Average marker */}
+                            <div
+                              className="absolute top-10"
+                              style={{ left: `${getPos(avgMove)}%`, transform: 'translateX(-50%)' }}
+                            >
+                              <div className={cn(
+                                "w-4 h-4 rounded-full border-2 border-background shadow-md",
+                                avgMove >= 0 ? "bg-emerald-500" : "bg-red-500"
+                              )} />
+                            </div>
+
+                            {/* Extreme markers (triangles only, no floating labels) */}
+                            <div
+                              className="absolute bottom-0"
+                              style={{ left: `${getPos(worstMove)}%`, transform: 'translateX(-50%)' }}
+                            >
+                              <div className="w-0 h-0 border-l-[5px] border-r-[5px] border-b-[8px] border-l-transparent border-r-transparent border-b-red-500" />
+                            </div>
+                            <div
+                              className="absolute bottom-0"
+                              style={{ left: `${getPos(bestMove)}%`, transform: 'translateX(-50%)' }}
+                            >
+                              <div className="w-0 h-0 border-l-[5px] border-r-[5px] border-b-[8px] border-l-transparent border-r-transparent border-b-emerald-500" />
+                            </div>
                           </div>
 
-                          {/* Worst extreme */}
-                          <div
-                            className="absolute bottom-1 flex flex-col items-center"
-                            style={{ left: `${getPos(worstMove)}%`, transform: 'translateX(-50%)' }}
-                          >
-                            <div className="w-0 h-0 border-l-[6px] border-r-[6px] border-b-[10px] border-l-transparent border-r-transparent border-b-red-500" />
+                          {/* Axis labels - contained at bottom */}
+                          <div className="flex justify-between items-center px-4 py-2 text-xs font-mono border-t border-border/30 bg-muted/20">
+                            <span className="text-red-500 font-semibold">{worstMove.toFixed(1)}%</span>
+                            <span className="text-muted-foreground">0%</span>
+                            <span className="text-primary font-semibold">Median: {medianMove >= 0 ? '+' : ''}{medianMove.toFixed(1)}%</span>
+                            <span className="text-muted-foreground">Avg: {avgMove >= 0 ? '+' : ''}{avgMove.toFixed(1)}%</span>
+                            <span className="text-emerald-500 font-semibold">+{bestMove.toFixed(1)}%</span>
                           </div>
-                          <span 
-                            className="absolute text-xs font-bold text-red-500 whitespace-nowrap bg-background/80 px-1 rounded"
-                            style={{ left: `${getPos(worstMove)}%`, bottom: '12px', transform: 'translateX(-50%)' }}
-                          >
-                            {worstMove.toFixed(1)}%
-                          </span>
-
-                          {/* Best extreme */}
-                          <div
-                            className="absolute bottom-1 flex flex-col items-center"
-                            style={{ left: `${getPos(bestMove)}%`, transform: 'translateX(-50%)' }}
-                          >
-                            <div className="w-0 h-0 border-l-[6px] border-r-[6px] border-b-[10px] border-l-transparent border-r-transparent border-b-emerald-500" />
-                          </div>
-                          <span 
-                            className="absolute text-xs font-bold text-emerald-500 whitespace-nowrap bg-background/80 px-1 rounded"
-                            style={{ left: `${getPos(bestMove)}%`, bottom: '12px', transform: 'translateX(-50%)' }}
-                          >
-                            +{bestMove.toFixed(1)}%
-                          </span>
                         </div>
                         
-                        {/* Legend - LARGER */}
-                        <div className="flex flex-wrap items-center justify-center gap-4 text-xs text-muted-foreground border-t border-border/30 pt-3">
-                          <span className="flex items-center gap-1.5">
-                            <div className="w-3 h-3 rounded-full bg-emerald-500/70" /> Positive outcomes
+                        {/* Legend - compact */}
+                        <div className="flex flex-wrap items-center justify-center gap-3 text-[10px] text-muted-foreground pt-2">
+                          <span className="flex items-center gap-1">
+                            <div className="w-2 h-2 rounded-full bg-emerald-500" /> Positive
                           </span>
-                          <span className="flex items-center gap-1.5">
-                            <div className="w-3 h-3 rounded-full bg-red-500/70" /> Negative outcomes
+                          <span className="flex items-center gap-1">
+                            <div className="w-2 h-2 rounded-full bg-red-500" /> Negative
                           </span>
-                          <span className="flex items-center gap-1.5">
-                            <div className="w-1 h-4 bg-primary rounded-full" /> Median
+                          <span className="flex items-center gap-1">
+                            <div className="w-0.5 h-3 bg-primary rounded-full" /> Median
                           </span>
-                          <span className="flex items-center gap-1.5">
-                            <div className="w-5 h-5 rounded-full bg-emerald-500 border-2 border-background" /> Avg
+                          <span className="flex items-center gap-1">
+                            <div className="w-3 h-3 rounded-full bg-emerald-500 border border-background" /> Avg
                           </span>
-                          <span className="flex items-center gap-1.5">
-                            <div className="w-6 h-3 rounded bg-blue-500/20 border-l-2 border-r-2 border-blue-500/50" /> 1σ
+                          <span className="flex items-center gap-1">
+                            <div className="w-4 h-2 rounded bg-blue-500/30 border-l border-r border-blue-500" /> 1σ
                           </span>
-                          <span className="flex items-center gap-1.5">
-                            <div className="w-6 h-3 rounded bg-purple-500/15 border-l-2 border-r-2 border-purple-500/40" /> 2σ
+                          <span className="flex items-center gap-1">
+                            <div className="w-4 h-2 rounded bg-purple-500/20 border-l border-r border-purple-500" /> 2σ
                           </span>
                         </div>
                       </>
