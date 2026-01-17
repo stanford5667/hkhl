@@ -1274,12 +1274,12 @@ function QuantLabContent(props: any) {
             </Button>
           </div>
           
-          {/* Search Bar */}
-          <div className="flex items-center gap-2 md:gap-3 flex-1 md:max-w-xl">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 md:h-4 md:w-4 text-muted-foreground" />
+          {/* PROMINENT Search Bar - Large & Visible */}
+          <div className="flex items-center gap-3 flex-1">
+            <div className="relative flex-1 max-w-md">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-6 w-6 text-primary" />
               <Input
-                placeholder="Search ticker..."
+                placeholder="Enter ticker symbol..."
                 value={ticker}
                 onChange={(e) => setTicker(e.target.value.toUpperCase())}
                 onKeyDown={(e) => {
@@ -1288,19 +1288,30 @@ function QuantLabContent(props: any) {
                     if (selectedStudies.length > 0) handleRunAllStudies();
                   }
                 }}
-                className="h-12 md:h-11 pl-11 md:pl-10 text-base md:text-sm font-mono bg-background border-2 border-primary/20 focus:border-primary/50 transition-colors rounded-xl md:rounded-md"
+                className="h-14 pl-14 pr-4 text-xl font-bold font-mono bg-background border-3 border-primary/40 focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all rounded-xl shadow-lg placeholder:text-muted-foreground/50 placeholder:font-normal placeholder:text-base"
               />
             </div>
             <Select value={period} onValueChange={setPeriod}>
-              <SelectTrigger className="h-12 md:h-11 w-20 md:w-28 text-sm font-medium shrink-0 rounded-xl md:rounded-md">
+              <SelectTrigger className="h-14 w-36 text-base font-bold shrink-0 rounded-xl border-3 border-primary/40 bg-background shadow-lg">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
                 {PERIOD_OPTIONS.map((p) => (
-                  <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>
+                  <SelectItem key={p.value} value={p.value} className="text-base font-medium">{p.label}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
+            <Button
+              onClick={() => {
+                handleSetTicker(ticker);
+                if (selectedStudies.length > 0) handleRunAllStudies();
+              }}
+              disabled={!ticker.trim()}
+              className="h-14 px-6 text-base font-bold rounded-xl shadow-lg"
+            >
+              <Play className="h-5 w-5 mr-2" />
+              Run
+            </Button>
           </div>
           
           {/* Quick Tickers - Hidden on mobile */}
