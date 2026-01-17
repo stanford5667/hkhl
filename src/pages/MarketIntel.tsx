@@ -24,11 +24,11 @@ import { LiveMacroContent } from '@/components/markets/LiveMacroContent';
 import { LiveEconomicDataHeader } from '@/components/markets/LiveEconomicDataHeader';
 import { useCommodities, useForex, groupCommoditiesByCategory, groupForexByCategory, type CommodityData, type ForexData } from '@/hooks/useForexCommodities';
 import { MarketDataDetail, type MarketDataItem } from '@/components/market-intel/MarketDataDetail';
-import { StockForexGrid } from '@/components/market-intel/StockForexGrid';
 import { InsightToggleWithCalendar } from '@/components/market-intel/InsightToggleWithCalendar';
 import { PerformanceRankingPanel, type ComponentScore } from '@/components/market-intel/PerformanceRankingPanel';
 import { useComponentPerformance, validateFedRates } from '@/hooks/useComponentPerformance';
 import { MarketIntelNavigation, type MarketCategory } from '@/components/market-intel/MarketIntelNavigation';
+import { WeeklyMacroSummary } from '@/components/market-intel/WeeklyMacroSummary';
 
 import { GlobalBondYields } from '@/components/market-intel/GlobalBondYields';
 import { NewsContent } from '@/components/market-intel/NewsContent';
@@ -57,17 +57,12 @@ export default function MarketIntel() {
     autoIterate 
   } = useComponentPerformance([
     'Macro Insights',
-    'Stock/Forex Grid', 
     'Economic Calendar',
   ]);
 
   // Callback handlers for performance updates from child components
   const handleMacroPerformance = useCallback((loadTimeMs: number, accuracy: number, issues: string[]) => {
     updateMetrics('macro-insights', { loadTimeMs, dataAccuracy: accuracy, issues });
-  }, [updateMetrics]);
-  
-  const handleStockForexPerformance = useCallback((loadTimeMs: number, accuracy: number, issues: string[]) => {
-    updateMetrics('stock/forex-grid', { loadTimeMs, dataAccuracy: accuracy, issues });
   }, [updateMetrics]);
   
   const handleCalendarPerformance = useCallback((loadTimeMs: number, accuracy: number, issues: string[]) => {
@@ -115,6 +110,9 @@ export default function MarketIntel() {
         onCategoryChange={setActiveCategory} 
       />
 
+      {/* Weekly Macro Summary - Always visible below navigation */}
+      <WeeklyMacroSummary />
+
       {/* Category-based Content */}
       {activeCategory === 'calendar' && <EconomicCalendarTab onPerformanceUpdate={handleCalendarPerformance} />}
       {activeCategory === 'news' && <NewsContent />}
@@ -136,7 +134,6 @@ export default function MarketIntel() {
             onPerformanceUpdate={handleMacroPerformance}
             hideHeader={true}
           />
-          <StockForexGrid onPerformanceUpdate={handleStockForexPerformance} />
         </div>
       )}
       

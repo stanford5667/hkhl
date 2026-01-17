@@ -7,6 +7,7 @@ import { cn } from '@/lib/utils';
 import { 
   Lightbulb, 
   TrendingUp, 
+  TrendingDown,
   Calendar, 
   Clock, 
   ChevronRight,
@@ -15,7 +16,9 @@ import {
   LineChart,
   Users,
   Megaphone,
-  FileText
+  FileText,
+  AlertTriangle,
+  Target
 } from 'lucide-react';
 import { FeaturedInsightCard } from './FeaturedInsightCard';
 import { MarketImpactCard } from './MarketImpactCard';
@@ -23,6 +26,64 @@ import { useEconomicCalendar } from '@/hooks/useEconomicCalendar';
 import { differenceInDays, parseISO, format, isToday, isTomorrow } from 'date-fns';
 import { EventDetailSheet } from './EventDetailSheet';
 import type { CalendarEvent } from '@/hooks/useEconomicCalendar';
+
+// Trader Summary Component
+function TraderSummary({ events }: { events: CalendarEvent[] }) {
+  const todayEvents = events.filter(e => isToday(parseISO(e.event_date)));
+  const tomorrowEvents = events.filter(e => isTomorrow(parseISO(e.event_date)));
+  const highImpactEvents = events.filter(e => e.importance?.toLowerCase() === 'high');
+  
+  const fedEvents = events.filter(e => 
+    e.event_type?.toLowerCase().includes('fed') || 
+    e.event_type?.toLowerCase().includes('fomc') ||
+    e.event_name?.toLowerCase().includes('fed') ||
+    e.event_name?.toLowerCase().includes('fomc')
+  );
+
+  return (
+    <div className="bg-gradient-to-r from-amber-500/10 via-secondary/30 to-rose-500/10 rounded-lg p-3 border border-amber-500/20">
+      <div className="flex items-center gap-2 mb-2">
+        <Target className="h-4 w-4 text-amber-400" />
+        <span className="text-sm font-semibold">Trader's Watch</span>
+      </div>
+      <div className="grid grid-cols-2 gap-2 text-xs">
+        <div className="flex items-center gap-1.5">
+          <div className={cn(
+            "w-2 h-2 rounded-full",
+            todayEvents.length > 0 ? "bg-rose-400 animate-pulse" : "bg-muted"
+          )} />
+          <span className="text-muted-foreground">Today:</span>
+          <span className="font-medium">{todayEvents.length} events</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <div className={cn(
+            "w-2 h-2 rounded-full",
+            tomorrowEvents.length > 0 ? "bg-amber-400" : "bg-muted"
+          )} />
+          <span className="text-muted-foreground">Tomorrow:</span>
+          <span className="font-medium">{tomorrowEvents.length} events</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <AlertTriangle className="h-3 w-3 text-rose-400" />
+          <span className="text-muted-foreground">High Impact:</span>
+          <span className="font-medium text-rose-400">{highImpactEvents.length}</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <Building2 className="h-3 w-3 text-primary" />
+          <span className="text-muted-foreground">Fed Events:</span>
+          <span className="font-medium text-primary">{fedEvents.length}</span>
+        </div>
+      </div>
+      {highImpactEvents.length > 0 && (
+        <div className="mt-2 pt-2 border-t border-border/50">
+          <p className="text-xs text-amber-400 font-medium">
+            ⚡ {highImpactEvents[0].event_name} - {format(parseISO(highImpactEvents[0].event_date), 'EEE')}
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
 
 type InsightView = 'featured' | 'impact';
 
@@ -126,9 +187,9 @@ export function InsightToggleWithCalendar() {
           </div>
         </div>
 
-        {/* Right Side: Economic Calendar */}
+        {/* Right Side: Economic Calendar with Trader Summary */}
         <Card className="bg-gradient-to-br from-card to-secondary/10">
-          <CardHeader className="pb-3">
+          <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
               <CardTitle className="text-base font-semibold flex items-center gap-2">
                 <Calendar className="h-4 w-4 text-primary" />
@@ -139,8 +200,11 @@ export function InsightToggleWithCalendar() {
               </Badge>
             </div>
           </CardHeader>
-          <CardContent className="pt-0">
-            <ScrollArea className="h-[400px] pr-2">
+          <CardContent className="pt-0 space-y-3">
+            {/* Trader Summary */}
+            <TraderSummary events={upcomingEvents} />
+            
+            <ScrollArea className="h-[320px] pr-2">
               <div className="space-y-2">
                 {isLoading ? (
                   <div className="flex items-center justify-center h-32">
