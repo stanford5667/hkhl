@@ -1711,17 +1711,119 @@ function QuantLabContent(props: any) {
       {/* Main Content */}
       <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
         
-        {/* Study Selection Panel - Compact sheet on mobile, sidebar on desktop */}
+        {/* Desktop: Always-visible Study Sidebar */}
+        <div className="hidden md:flex md:w-80 lg:w-96 shrink-0 md:border-r bg-card flex-col overflow-hidden h-full">
+          {/* Panel Header */}
+          <div className="px-4 py-3 border-b bg-muted/30">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-sm font-bold">Select Quant Studies</span>
+              {selectedStudies.length > 0 && (
+                <Badge variant="default" className="text-xs px-2.5 py-1">
+                  {selectedStudies.length} selected
+                </Badge>
+              )}
+            </div>
+          </div>
+          
+          {/* Study List - All categories with separators */}
+          <div className="flex-1 overflow-y-auto px-3 py-2">
+            {STUDY_CATEGORIES.map((category, catIndex) => {
+              const categoryStudies = STUDY_DEFINITIONS.filter((s) => s.category === category.id);
+              if (categoryStudies.length === 0) return null;
+              
+              return (
+                <div key={category.id}>
+                  {/* Category separator line (except first) */}
+                  {catIndex > 0 && (
+                    <div className="my-4 border-t border-border" />
+                  )}
+                  
+                  {/* Category header */}
+                  <div className="flex items-center gap-2 px-1 py-2 mb-2">
+                    <category.icon className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-sm font-semibold text-foreground">{category.name}</span>
+                    <span className="text-xs text-muted-foreground">• {category.description}</span>
+                  </div>
+                  
+                  {/* Studies in this category */}
+                  <div className="space-y-2">
+                    {categoryStudies.map((study) => {
+                      const isSelected = selectedStudies.includes(study.id);
+                      return (
+                        <button
+                          key={study.id}
+                          onClick={() => isSelected ? removeStudy(study.id) : addStudy(study.id)}
+                          className={cn(
+                            "w-full text-left p-3 rounded-xl border-2 transition-all duration-200",
+                            isSelected
+                              ? "border-primary bg-primary/5"
+                              : "border-transparent bg-muted/50 hover:bg-muted active:scale-[0.98]"
+                          )}
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className={cn(
+                              "p-2 rounded-lg shrink-0",
+                              isSelected ? "bg-primary text-primary-foreground" : "bg-background"
+                            )}>
+                              <study.icon className="h-4 w-4" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2">
+                                <span className="font-semibold text-sm">{study.name}</span>
+                                <Badge variant="outline" className={cn(
+                                  "text-[9px] px-1.5",
+                                  study.difficulty === 'beginner' && "border-emerald-500/50 text-emerald-600",
+                                  study.difficulty === 'intermediate' && "border-amber-500/50 text-amber-600",
+                                  study.difficulty === 'advanced' && "border-red-500/50 text-red-600"
+                                )}>
+                                  {study.difficulty}
+                                </Badge>
+                              </div>
+                              <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">{study.description}</p>
+                            </div>
+                            {isSelected && (
+                              <CheckCircle2 className="h-5 w-5 text-primary shrink-0" />
+                            )}
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          
+          {/* Run Button at bottom */}
+          <div className="shrink-0 border-t bg-card px-4 py-3">
+            <Button
+              onClick={() => {
+                if (ticker.trim()) handleSetTicker(ticker.trim());
+                if (selectedStudies.length > 0) handleRunAllStudies();
+              }}
+              disabled={!selectedTicker || selectedStudies.length === 0 || isRunning}
+              variant="success"
+              className="w-full h-12 text-base font-bold rounded-xl"
+            >
+              {isRunning ? (
+                <Loader2 className="h-5 w-5 animate-spin mr-2" />
+              ) : (
+                <Play className="h-5 w-5 mr-2" />
+              )}
+              {isRunning ? 'Running...' : `Run ${selectedTicker || 'Ticker'} Study`}
+            </Button>
+          </div>
+        </div>
+
+        {/* Mobile: Study Selection Panel - Full screen overlay */}
         <AnimatePresence>
           {showStudyPanel && (
-            <>
-              {/* Mobile: Full screen overlay */}
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="md:hidden fixed inset-0 bg-background z-50 flex flex-col"
-              >
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="md:hidden fixed inset-0 bg-background z-50 flex flex-col"
+            >
                 {/* Header with close button */}
                 <div className="flex items-center justify-between px-4 py-3 border-b bg-card">
                   <div className="flex items-center gap-3">
@@ -1865,97 +1967,6 @@ function QuantLabContent(props: any) {
                   </Button>
                 </div>
               </motion.div>
-              
-              {/* Desktop: Sidebar */}
-              <motion.div
-                initial={{ x: -20, opacity: 0 }}
-                animate={{ x: 0, opacity: 1 }}
-                exit={{ x: -20, opacity: 0 }}
-                transition={{ duration: 0.2 }}
-                className="hidden md:flex md:w-80 lg:w-96 shrink-0 md:border-r bg-card flex-col overflow-hidden h-full"
-              >
-                {/* Panel Header */}
-                <div className="px-4 py-3 border-b bg-muted/30">
-                  <div className="flex items-center justify-between mb-3">
-                    <span className="text-sm font-bold">Select Quant Studies</span>
-                    {selectedStudies.length > 0 && (
-                      <Badge variant="default" className="text-xs px-2.5 py-1">
-                        {selectedStudies.length} selected
-                      </Badge>
-                    )}
-                  </div>
-                </div>
-                
-                {/* Study List - All categories with separators (matching mobile) */}
-                <div className="flex-1 overflow-y-auto px-3 py-2">
-                  {STUDY_CATEGORIES.map((category, catIndex) => {
-                    const categoryStudies = STUDY_DEFINITIONS.filter((s) => s.category === category.id);
-                    if (categoryStudies.length === 0) return null;
-                    
-                    return (
-                      <div key={category.id}>
-                        {/* Category separator line (except first) */}
-                        {catIndex > 0 && (
-                          <div className="my-4 border-t border-border" />
-                        )}
-                        
-                        {/* Category header */}
-                        <div className="flex items-center gap-2 px-1 py-2 mb-2">
-                          <category.icon className="h-4 w-4 text-muted-foreground" />
-                          <span className="text-sm font-semibold text-foreground">{category.name}</span>
-                          <span className="text-xs text-muted-foreground">• {category.description}</span>
-                        </div>
-                        
-                        {/* Studies in this category */}
-                        <div className="space-y-2">
-                          {categoryStudies.map((study) => {
-                            const isSelected = selectedStudies.includes(study.id);
-                            return (
-                              <button
-                                key={study.id}
-                                onClick={() => isSelected ? removeStudy(study.id) : addStudy(study.id)}
-                                className={cn(
-                                  "w-full text-left p-3 rounded-xl border-2 transition-all duration-200",
-                                  isSelected
-                                    ? "border-primary bg-primary/5"
-                                    : "border-transparent bg-muted/50 hover:bg-muted active:scale-[0.98]"
-                                )}
-                              >
-                                <div className="flex items-center gap-3">
-                                  <div className={cn(
-                                    "p-2 rounded-lg shrink-0",
-                                    isSelected ? "bg-primary text-primary-foreground" : "bg-background"
-                                  )}>
-                                    <study.icon className="h-4 w-4" />
-                                  </div>
-                                  <div className="flex-1 min-w-0">
-                                    <div className="flex items-center gap-2">
-                                      <span className="font-semibold text-sm">{study.name}</span>
-                                      <Badge variant="outline" className={cn(
-                                        "text-[9px] px-1.5",
-                                        study.difficulty === 'beginner' && "border-emerald-500/50 text-emerald-600",
-                                        study.difficulty === 'intermediate' && "border-amber-500/50 text-amber-600",
-                                        study.difficulty === 'advanced' && "border-red-500/50 text-red-600"
-                                      )}>
-                                        {study.difficulty}
-                                      </Badge>
-                                    </div>
-                                    <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">{study.description}</p>
-                                  </div>
-                                  {isSelected && (
-                                    <CheckCircle2 className="h-5 w-5 text-primary shrink-0" />
-                                  )}
-                                </div>
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </motion.div>
-            </>
           )}
         </AnimatePresence>
 
@@ -2048,13 +2059,13 @@ function QuantLabContent(props: any) {
                           </div>
                           <Button
                             size="sm"
-                            variant="ghost"
+                            variant="outline"
                             onClick={() => saveStudyResult(studyId)}
                             disabled={isSaving === studyId}
-                            className="h-8 w-8 md:h-10 md:w-auto md:px-4 p-0 md:gap-2 text-amber-600 shrink-0"
+                            className="h-9 px-3 md:h-10 md:px-4 gap-2 border-amber-500/50 bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 shrink-0"
                           >
                             {isSaving === studyId ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                            <span className="hidden md:inline">Save</span>
+                            <span className="text-xs md:text-sm font-medium">Save</span>
                           </Button>
                         </div>
                       </div>
