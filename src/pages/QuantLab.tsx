@@ -1882,25 +1882,11 @@ function QuantLabContent(props: any) {
               );
             })}
           </div>
-          
-          {/* Run Button at bottom */}
+          {/* Run Button at bottom (removed - run per-study from setup cards) */}
           <div className="shrink-0 border-t bg-card px-4 py-3">
-            <Button
-              onClick={() => {
-                if (ticker.trim()) handleSetTicker(ticker.trim());
-                if (selectedStudies.length > 0) handleRunAllStudies();
-              }}
-              disabled={!selectedTicker || selectedStudies.length === 0 || isRunning}
-              variant="success"
-              className="w-full h-12 text-base font-bold rounded-xl"
-            >
-              {isRunning ? (
-                <Loader2 className="h-5 w-5 animate-spin mr-2" />
-              ) : (
-                <Play className="h-5 w-5 mr-2" />
-              )}
-              {isRunning ? 'Running...' : `Run ${selectedTicker || 'Ticker'} Study`}
-            </Button>
+            <p className="text-xs text-muted-foreground">
+              Select a study, set its variables, then hit <span className="font-semibold text-foreground">Run</span> on the study card.
+            </p>
           </div>
         </div>
 
@@ -2027,25 +2013,11 @@ function QuantLabContent(props: any) {
                     })}
                   </div>
                 </div>
-                
-                {/* Fixed bottom action bar - extra padding for bottom nav */}
+                {/* Fixed bottom action bar - removed (run per-study from setup cards) */}
                 <div className="shrink-0 border-t bg-card px-4 pt-3 pb-20">
-                  <Button
-                    onClick={() => {
-                      if (ticker.trim()) handleSetTicker(ticker.trim());
-                      if (selectedStudies.length > 0) handleRunAllStudies();
-                    }}
-                    disabled={!selectedTicker || selectedStudies.length === 0 || isRunning}
-                    variant="success"
-                    className="w-full h-14 text-lg font-bold rounded-xl"
-                  >
-                    {isRunning ? (
-                      <Loader2 className="h-5 w-5 animate-spin mr-2" />
-                    ) : (
-                      <Play className="h-5 w-5 mr-2" />
-                    )}
-                    {isRunning ? 'Running...' : `Run ${selectedTicker || 'Ticker'} Quant Study`}
-                  </Button>
+                  <p className="text-xs text-muted-foreground">
+                    Select a study, set its variables, then run it from the study card.
+                  </p>
                 </div>
               </motion.div>
           )}
