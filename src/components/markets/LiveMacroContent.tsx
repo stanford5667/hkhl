@@ -356,210 +356,61 @@ export function LiveMacroContent({ onItemClick, onPerformanceUpdate, renderAfter
         </div>
       )}
 
-      {/* Yield Curve & Sectors */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Yield Curve */}
-        <Card className="bg-secondary/50 border-border">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-medium">Treasury Yield Curve</h3>
-              {yieldCurve?.inverted && (
-                <Badge variant="destructive" className="bg-rose-500/20 text-rose-400 border-rose-500/30">
-                  Inverted
-                </Badge>
-              )}
-            </div>
-            
-            {isLoading ? (
-              <div className="h-32 flex items-center justify-center">
-                <Skeleton className="h-full w-full" />
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {/* Simple yield curve visualization */}
-                <div className="flex items-end justify-between h-24 gap-1">
-                  {yieldCurve?.curve.map((point: any, i: number) => (
-                    <TooltipProvider key={point.name}>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <div className="flex-1 flex flex-col items-center gap-1">
-                            <div 
-                              className={cn(
-                                "w-full rounded-t transition-all",
-                                yieldCurve?.inverted && i < 3 ? "bg-rose-500" : "bg-primary"
-                              )}
-                              style={{ height: `${(point.yield / 6) * 100}%`, minHeight: '4px' }}
-                            />
-                            <span className="text-[10px] text-muted-foreground">{point.name}</span>
-                          </div>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>{point.name}: {point.yield.toFixed(2)}%</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                  ))}
-                </div>
-                
-                {/* Spread indicator */}
-                <div className="flex justify-between items-center pt-2 border-t border-border">
-                  <span className="text-sm text-muted-foreground">10Y - 2Y Spread</span>
-                  <span className={cn(
-                    "font-mono font-medium",
-                    (yieldCurve?.spread_10y_2y || 0) < 0 ? "text-rose-400" : "text-emerald-400"
-                  )}>
-                    {(yieldCurve?.spread_10y_2y || 0) >= 0 ? '+' : ''}{(yieldCurve?.spread_10y_2y || 0).toFixed(2)}%
-                  </span>
-                </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Sector Performance */}
-        <Card className="bg-secondary/50 border-border">
-          <CardContent className="p-6">
-            <h3 className="text-lg font-medium mb-4">Sector Performance (YTD)</h3>
-            
-            {isLoading ? (
-              <div className="grid grid-cols-3 gap-2">
-                {[...Array(6)].map((_, i) => (
-                  <Skeleton key={i} className="h-16" />
-                ))}
-              </div>
-            ) : (
-              <div className="grid grid-cols-3 lg:grid-cols-4 gap-2">
-                {sectors?.slice(0, 8).map((s: any) => (
-                  <div 
-                    key={s.name} 
-                    className={cn(
-                      "p-2 rounded-lg text-center cursor-pointer transition-all hover:ring-1 hover:ring-primary/50",
-                      s.ytd >= 0 ? "bg-emerald-500/10 hover:bg-emerald-500/20" : "bg-rose-500/10 hover:bg-rose-500/20"
-                    )}
-                    onClick={() => onItemClick?.({
-                      symbol: s.symbol || s.name.toUpperCase().replace(/\s/g, ''),
-                      name: s.name,
-                      price: s.ytd,
-                      change: s.ytd,
-                      changePercent: s.ytd,
-                      type: 'index',
-                      category: 'sector',
-                      description: `${s.name} sector YTD performance`
-                    })}
-                  >
-                    <div className="text-xs text-muted-foreground truncate">{s.name}</div>
-                    <div className={cn(
-                      "text-sm font-bold",
-                      s.ytd >= 0 ? "text-emerald-400" : "text-rose-400"
-                    )}>
-                      {s.ytd > 0 ? '+' : ''}{s.ytd.toFixed(1)}%
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Economic Calendar */}
+      {/* Yield Curve */}
       <Card className="bg-secondary/50 border-border">
         <CardContent className="p-6">
-          <div className="flex items-center gap-2 mb-4">
-            <Calendar className="h-5 w-5 text-primary" />
-            <h3 className="text-lg font-medium">Upcoming Events</h3>
-            <Badge variant="outline" className="ml-auto text-xs">
-              Click any event for details
-            </Badge>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-medium">Treasury Yield Curve</h3>
+            {yieldCurve?.inverted && (
+              <Badge variant="destructive" className="bg-rose-500/20 text-rose-400 border-rose-500/30">
+                Inverted
+              </Badge>
+            )}
           </div>
           
           {isLoading ? (
-            <div className="space-y-2">
-              {[...Array(4)].map((_, i) => (
-                <Skeleton key={i} className="h-12" />
-              ))}
+            <div className="h-32 flex items-center justify-center">
+              <Skeleton className="h-full w-full" />
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
-              {calendar?.slice(0, 8).map((event: any, i: number) => {
-                const EventIcon = getEventIcon(event.type);
-                return (
-                  <div 
-                    key={`${event.type}-${event.date}-${i}`}
-                    onClick={() => handleEventClick(event)}
-                    className={cn(
-                      "p-3 rounded-lg border cursor-pointer transition-all group hover:ring-1 hover:ring-primary/50",
-                      event.importance === 'high' 
-                        ? "bg-amber-500/5 border-amber-500/20 hover:bg-amber-500/10" 
-                        : "bg-card/50 border-border hover:bg-primary/5"
-                    )}
-                  >
-                    <div className="flex items-center justify-between mb-1">
-                      <div className="flex items-center gap-1.5">
-                        <EventIcon className={cn(
-                          "h-3 w-3",
-                          event.importance === 'high' ? "text-amber-400" : "text-muted-foreground"
-                        )} />
-                        <Badge 
-                          variant="outline" 
-                          className={cn(
-                            "text-xs",
-                            event.importance === 'high' && "border-amber-500/30 text-amber-400"
-                          )}
-                        >
-                          {event.type}
-                        </Badge>
-                      </div>
-                      <span className="text-xs text-muted-foreground flex items-center gap-1">
-                        <Clock className="h-3 w-3" />
-                        {event.daysUntil}d
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <p className="text-sm font-medium truncate group-hover:text-primary transition-colors">
-                        {event.name}
-                      </p>
-                      <ChevronRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      {new Date(event.date).toLocaleDateString('en-US', { 
-                        weekday: 'short', 
-                        month: 'short', 
-                        day: 'numeric' 
-                      })}
-                    </p>
-                  </div>
-                );
-              })}
+            <div className="space-y-4">
+              {/* Simple yield curve visualization */}
+              <div className="flex items-end justify-between h-24 gap-1">
+                {yieldCurve?.curve.map((point: any, i: number) => (
+                  <TooltipProvider key={point.name}>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div className="flex-1 flex flex-col items-center gap-1">
+                          <div 
+                            className={cn(
+                              "w-full rounded-t transition-all",
+                              yieldCurve?.inverted && i < 3 ? "bg-rose-500" : "bg-primary"
+                            )}
+                            style={{ height: `${(point.yield / 6) * 100}%`, minHeight: '4px' }}
+                          />
+                          <span className="text-[10px] text-muted-foreground">{point.name}</span>
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>{point.name}: {point.yield.toFixed(2)}%</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                ))}
+              </div>
+              
+              {/* Spread indicator */}
+              <div className="flex justify-between items-center pt-2 border-t border-border">
+                <span className="text-sm text-muted-foreground">10Y - 2Y Spread</span>
+                <span className={cn(
+                  "font-mono font-medium",
+                  (yieldCurve?.spread_10y_2y || 0) < 0 ? "text-rose-400" : "text-emerald-400"
+                )}>
+                  {(yieldCurve?.spread_10y_2y || 0) >= 0 ? '+' : ''}{(yieldCurve?.spread_10y_2y || 0).toFixed(2)}%
+                </span>
+              </div>
             </div>
           )}
-        </CardContent>
-      </Card>
-
-      {/* Portfolio Sensitivity */}
-      <Card className="bg-secondary/50 border-border">
-        <CardContent className="p-6">
-          <h3 className="text-lg font-medium mb-4">Portfolio Sensitivity Analysis</h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {[
-              { scenario: '+100bps Rates', impact: -12.4, description: 'Duration risk from rate hike' },
-              { scenario: '-100bps Rates', impact: 8.2, description: 'Benefit from rate cuts' },
-              { scenario: 'Recession', impact: -24.6, description: 'GDP -2% scenario' },
-            ].map((s) => (
-              <div key={s.scenario} className="p-4 rounded-lg bg-card/50">
-                <div className="flex justify-between items-center mb-2">
-                  <span className="font-medium">{s.scenario}</span>
-                  <span className={cn(
-                    "font-bold",
-                    s.impact >= 0 ? "text-emerald-400" : "text-rose-400"
-                  )}>
-                    {s.impact > 0 ? '+' : ''}{s.impact}% NAV
-                  </span>
-                </div>
-                <p className="text-xs text-muted-foreground">{s.description}</p>
-              </div>
-            ))}
-          </div>
         </CardContent>
       </Card>
 
