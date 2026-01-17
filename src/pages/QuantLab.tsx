@@ -2125,9 +2125,23 @@ function QuantLabContent(props: any) {
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 flex-wrap">
                               <h4 className="font-bold text-sm md:text-xl">{study.name}</h4>
-                              <Badge variant="outline" className="font-mono text-[10px] md:text-sm bg-background/80 border-primary/30 text-primary px-1.5 md:px-3 py-0.5">
+                              <Badge 
+                                variant="outline" 
+                                className="font-mono text-[10px] md:text-sm bg-background/80 border-primary/30 text-primary px-1.5 md:px-3 py-0.5 cursor-pointer hover:bg-primary/20 transition-colors"
+                                onClick={() => navigate(`/stock/${selectedTicker}`)}
+                              >
                                 ${selectedTicker}
                               </Badge>
+                              <InlinePrice ticker={selectedTicker} showStaleness={false} className="text-xs md:text-sm" />
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => navigate(`/stock/${selectedTicker}`)}
+                                className="h-6 md:h-7 px-2 text-[10px] md:text-xs gap-1 text-muted-foreground hover:text-foreground"
+                              >
+                                <ExternalLink className="h-3 w-3" />
+                                <span className="hidden md:inline">Details</span>
+                              </Button>
                             </div>
                             <p className="text-xs md:text-sm text-muted-foreground mt-0.5 md:mt-1 line-clamp-1 md:line-clamp-none">
                               {study.description}
