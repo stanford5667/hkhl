@@ -4037,6 +4037,7 @@ export type Database = {
           portfolio_count: number | null
           quant_studies_today: number | null
           saved_screens: number | null
+          screener_searches_today: number
           updated_at: string | null
           user_id: string
         }
@@ -4048,6 +4049,7 @@ export type Database = {
           portfolio_count?: number | null
           quant_studies_today?: number | null
           saved_screens?: number | null
+          screener_searches_today?: number
           updated_at?: string | null
           user_id: string
         }
@@ -4059,6 +4061,7 @@ export type Database = {
           portfolio_count?: number | null
           quant_studies_today?: number | null
           saved_screens?: number | null
+          screener_searches_today?: number
           updated_at?: string | null
           user_id?: string
         }
