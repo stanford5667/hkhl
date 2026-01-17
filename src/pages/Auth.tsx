@@ -9,7 +9,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
-import { EmailVerificationPending } from "@/components/auth/EmailVerificationPending";
 import { AssetLabsLogo } from "@/components/brand/AssetLabsLogo";
 import { AgeVerificationInput, AgeRatingBadge } from "@/components/auth/AgeVerificationInput";
 
@@ -37,8 +36,7 @@ type SignUpFormData = z.infer<typeof signUpSchema>;
 type ForgotPasswordFormData = z.infer<typeof forgotPasswordSchema>;
 
 export default function Auth() {
-  const [mode, setMode] = useState<"signin" | "signup" | "forgot-password" | "verification-pending">("signup");
-  const [pendingEmail, setPendingEmail] = useState<string>("");
+  const [mode, setMode] = useState<"signin" | "signup" | "forgot-password">("signup");
   const [isLoading, setIsLoading] = useState(false);
   const [resetEmailSent, setResetEmailSent] = useState(false);
   const [isAgeVerified, setIsAgeVerified] = useState(false);
@@ -116,9 +114,11 @@ export default function Auth() {
       return;
     }
 
-    // Show verification pending screen
-    setPendingEmail(data.email);
-    setMode("verification-pending");
+    toast({
+      title: "Welcome to Asset Labs AI!",
+      description: "Your account has been created successfully.",
+    });
+    navigate("/");
   };
 
   const handleForgotPassword = async (data: ForgotPasswordFormData) => {
@@ -140,14 +140,6 @@ export default function Auth() {
       title: "Reset email sent",
       description: "Check your email for a password reset link.",
     });
-  };
-
-  const handleVerified = () => {
-    toast({
-      title: "Email verified!",
-      description: "Your account is now active. Welcome to Asset Labs AI!",
-    });
-    navigate("/");
   };
 
   const features = [
@@ -219,16 +211,7 @@ export default function Auth() {
             <AssetLabsLogo size="lg" showTagline />
           </div>
 
-          {mode === "verification-pending" ? (
-            <EmailVerificationPending
-              email={pendingEmail}
-              onVerified={handleVerified}
-              onBack={() => {
-                setMode("signin");
-                setPendingEmail("");
-              }}
-            />
-          ) : mode === "forgot-password" ? (
+          {mode === "forgot-password" ? (
             <>
               <div className="text-center">
                 <h1 className="text-3xl font-bold text-foreground">Reset your password</h1>
