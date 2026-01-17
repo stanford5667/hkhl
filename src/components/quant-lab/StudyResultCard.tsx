@@ -862,49 +862,6 @@ export function StudyResultCard({
         })()}
       </div>
 
-                  <div className="flex items-center justify-between mt-2 text-[10px]">
-                    <div className="flex items-center gap-1">
-                      <div className="w-2 h-2 rounded-full bg-red-500" />
-                      <span className="text-muted-foreground">Worst: </span>
-                      <span className="font-mono font-semibold text-red-500">{worst.toFixed(1)}%</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <div className={cn("w-3 h-3 rounded-full", avgMove >= 0 ? "bg-emerald-500" : "bg-red-500")} />
-                      <span className="text-muted-foreground">Avg: </span>
-                      <span className={cn("font-mono font-semibold", avgMove >= 0 ? "text-emerald-500" : "text-red-500")}>{avgMove >= 0 ? '+' : ''}{avgMove.toFixed(1)}%</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <div className="w-2 h-2 rounded-full bg-emerald-500" />
-                      <span className="text-muted-foreground">Best: </span>
-                      <span className="font-mono font-semibold text-emerald-500">+{best.toFixed(1)}%</span>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Additional Metrics Row */}
-              {secondaryMetrics.length > 0 && (
-                <div className="grid grid-cols-4 gap-2 mt-3">
-                  {secondaryMetrics.map(([key, value]) => {
-                    const formattedKey = key.replace(/([A-Z])/g, ' $1').replace(/_/g, ' ').trim();
-                    return (
-                      <button
-                        key={key}
-                        onClick={() => setSelectedMetric({ key, value })}
-                        className="flex flex-col p-2 rounded-lg bg-muted/20 hover:bg-muted/40 transition-colors cursor-pointer"
-                      >
-                        <span className="text-[9px] text-muted-foreground uppercase truncate">{formattedKey}</span>
-                        <span className="text-sm font-bold font-mono">{formatValue(key, value)}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
-            </>
-          );
-        })()}
-      </div>
-
 
       {/* Study Summary - What it tracks */}
       <div className="px-3 py-2 border-b bg-muted/10">
