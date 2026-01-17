@@ -1472,75 +1472,74 @@ function QuantLabContent(props: any) {
                       </Badge>
                     )}
                   </div>
-                  
-                  {/* Category Tabs */}
-                  <div className="px-3 pt-3 overflow-x-auto shrink-0">
-                    <div className="flex gap-2 pb-2">
-                      {STUDY_CATEGORIES.map((cat) => (
-                        <button
-                          key={cat.id}
-                          onClick={() => setActiveCategory(cat.id)}
-                          className={cn(
-                            "flex items-center gap-2 px-3 py-2 rounded-lg text-xs whitespace-nowrap transition-all shrink-0",
-                            activeCategory === cat.id
-                              ? "bg-primary text-primary-foreground font-semibold"
-                              : "bg-muted font-medium"
-                          )}
-                        >
-                          <cat.icon className="h-3.5 w-3.5" />
-                          <span>{cat.name}</span>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
 
-                  {/* Study List */}
+                  {/* Study List - All categories with separators */}
                   <div className="flex-1 overflow-y-auto px-3 py-2">
-                    <div className="space-y-2">
-                      {STUDY_DEFINITIONS
-                        .filter((s) => activeCategory === 'all' || s.category === activeCategory)
-                        .map((study) => {
-                          const isSelected = selectedStudies.includes(study.id);
-                          return (
-                            <button
-                              key={study.id}
-                              onClick={() => isSelected ? removeStudy(study.id) : addStudy(study.id)}
-                              className={cn(
-                                "w-full text-left p-3 rounded-xl border-2 transition-all",
-                                isSelected
-                                  ? "border-primary bg-primary/5"
-                                  : "border-transparent bg-muted/50 active:scale-[0.98]"
-                              )}
-                            >
-                              <div className="flex items-center gap-3">
-                                <div className={cn(
-                                  "p-2 rounded-lg shrink-0",
-                                  isSelected ? "bg-primary text-primary-foreground" : "bg-background"
-                                )}>
-                                  <study.icon className="h-4 w-4" />
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                  <div className="flex items-center gap-2">
-                                    <span className="font-semibold text-sm">{study.name}</span>
-                                    <Badge variant="outline" className={cn(
-                                      "text-[9px] px-1.5",
-                                      study.difficulty === 'beginner' && "border-emerald-500/50 text-emerald-600",
-                                      study.difficulty === 'intermediate' && "border-amber-500/50 text-amber-600",
-                                      study.difficulty === 'advanced' && "border-red-500/50 text-red-600"
+                    {STUDY_CATEGORIES.map((category, catIndex) => {
+                      const categoryStudies = STUDY_DEFINITIONS.filter((s) => s.category === category.id);
+                      if (categoryStudies.length === 0) return null;
+                      
+                      return (
+                        <div key={category.id}>
+                          {/* Category separator line (except first) */}
+                          {catIndex > 0 && (
+                            <div className="my-4 border-t border-border" />
+                          )}
+                          
+                          {/* Category header */}
+                          <div className="flex items-center gap-2 px-1 py-2 mb-2">
+                            <category.icon className="h-4 w-4 text-muted-foreground" />
+                            <span className="text-sm font-semibold text-foreground">{category.name}</span>
+                            <span className="text-xs text-muted-foreground">• {category.description}</span>
+                          </div>
+                          
+                          {/* Studies in this category */}
+                          <div className="space-y-2">
+                            {categoryStudies.map((study) => {
+                              const isSelected = selectedStudies.includes(study.id);
+                              return (
+                                <button
+                                  key={study.id}
+                                  onClick={() => isSelected ? removeStudy(study.id) : addStudy(study.id)}
+                                  className={cn(
+                                    "w-full text-left p-3 rounded-xl border-2 transition-all",
+                                    isSelected
+                                      ? "border-primary bg-primary/5"
+                                      : "border-transparent bg-muted/50 active:scale-[0.98]"
+                                  )}
+                                >
+                                  <div className="flex items-center gap-3">
+                                    <div className={cn(
+                                      "p-2 rounded-lg shrink-0",
+                                      isSelected ? "bg-primary text-primary-foreground" : "bg-background"
                                     )}>
-                                      {study.difficulty}
-                                    </Badge>
+                                      <study.icon className="h-4 w-4" />
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                      <div className="flex items-center gap-2">
+                                        <span className="font-semibold text-sm">{study.name}</span>
+                                        <Badge variant="outline" className={cn(
+                                          "text-[9px] px-1.5",
+                                          study.difficulty === 'beginner' && "border-emerald-500/50 text-emerald-600",
+                                          study.difficulty === 'intermediate' && "border-amber-500/50 text-amber-600",
+                                          study.difficulty === 'advanced' && "border-red-500/50 text-red-600"
+                                        )}>
+                                          {study.difficulty}
+                                        </Badge>
+                                      </div>
+                                      <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">{study.description}</p>
+                                    </div>
+                                    {isSelected && (
+                                      <CheckCircle2 className="h-5 w-5 text-primary shrink-0" />
+                                    )}
                                   </div>
-                                  <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">{study.description}</p>
-                                </div>
-                                {isSelected && (
-                                  <CheckCircle2 className="h-5 w-5 text-primary shrink-0" />
-                                )}
-                              </div>
-                            </button>
-                          );
-                        })}
-                    </div>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
                 
