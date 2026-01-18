@@ -799,9 +799,10 @@ export function QuantLabWelcomeHero({
                 One-click studies that answer real investing questions. No setup required.
               </p>
             </div>
-            <Button onClick={(e) => { e.stopPropagation(); onSignUp(); }} className="gap-2 h-9 sm:h-10 text-xs sm:text-sm">
-              <Zap className="h-3.5 sm:h-4 w-3.5 sm:w-4" />
-              Run Custom Study
+            <Button onClick={(e) => { e.stopPropagation(); onSignUp(); }} className="gap-2 h-8 sm:h-10 text-[10px] sm:text-sm px-2 sm:px-4">
+              <Zap className="h-3 sm:h-4 w-3 sm:w-4" />
+              <span className="hidden sm:inline">Get Started Free</span>
+              <span className="sm:hidden">Start Free</span>
             </Button>
           </div>
 
@@ -834,7 +835,7 @@ export function QuantLabWelcomeHero({
                 <p className="text-[10px] sm:text-xs text-muted-foreground line-clamp-2">{study.question}</p>
                 <div className="flex items-center gap-1 mt-2 text-[10px] sm:text-xs text-primary opacity-0 group-hover:opacity-100 transition-opacity">
                   <Play className="h-3 w-3" />
-                  <span>Run Study</span>
+                  <span>Get Started</span>
                 </div>
               </button>
             ))}
@@ -848,11 +849,12 @@ export function QuantLabWelcomeHero({
               <Button
                 variant="outline"
                 onClick={(e) => { e.stopPropagation(); onSignUp(); }}
-                className="gap-2 text-sm"
+                className="gap-2 text-xs sm:text-sm h-9 sm:h-10"
               >
-                <FlaskConical className="h-4 w-4" />
-                Build Custom Study
-                <ArrowRight className="h-3.5 w-3.5" />
+                <FlaskConical className="h-3.5 sm:h-4 w-3.5 sm:w-4" />
+                <span className="hidden sm:inline">Build Custom Study</span>
+                <span className="sm:hidden">Build Study</span>
+                <ArrowRight className="h-3 sm:h-3.5 w-3 sm:w-3.5" />
               </Button>
             </div>
           </div>
