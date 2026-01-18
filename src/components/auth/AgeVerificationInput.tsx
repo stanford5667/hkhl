@@ -96,41 +96,41 @@ export function AgeVerificationInput({
   };
 
   return (
-    <div className={cn("space-y-2", className)}>
-      {/* 18+ Rating Badge */}
+    <div className={cn("space-y-1", className)}>
+      {/* 18+ Rating Badge + Label inline */}
       <div className="flex items-center justify-between">
-        <Label className="text-xs font-medium flex items-center gap-1.5">
-          <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
+        <Label className="text-[11px] font-medium flex items-center gap-1">
+          <Calendar className="h-3 w-3 text-muted-foreground" />
           Date of Birth
         </Label>
-        <div className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-amber-500/10 border border-amber-500/30">
-          <ShieldCheck className="h-3 w-3 text-amber-500" />
-          <span className="text-[10px] font-semibold text-amber-500">18+</span>
+        <div className="flex items-center gap-0.5 px-1 py-0.5 rounded bg-amber-500/10 border border-amber-500/30">
+          <ShieldCheck className="h-2.5 w-2.5 text-amber-500" />
+          <span className="text-[9px] font-semibold text-amber-500">18+</span>
         </div>
       </div>
 
-      {/* DOB Inputs */}
-      <div className="grid grid-cols-3 gap-2">
+      {/* DOB Inputs - more compact */}
+      <div className="grid grid-cols-3 gap-1.5">
         <Select value={month} onValueChange={handleMonthChange}>
-          <SelectTrigger className="h-9 text-xs">
+          <SelectTrigger className="h-8 text-[11px] px-2">
             <SelectValue placeholder="Month" />
           </SelectTrigger>
           <SelectContent>
             {MONTHS.map((m, idx) => (
-              <SelectItem key={m} value={String(idx + 1)}>
-                {m}
+              <SelectItem key={m} value={String(idx + 1)} className="text-xs">
+                {m.slice(0, 3)}
               </SelectItem>
             ))}
           </SelectContent>
         </Select>
 
         <Select value={day} onValueChange={handleDayChange}>
-          <SelectTrigger className="h-9 text-xs">
+          <SelectTrigger className="h-8 text-[11px] px-2">
             <SelectValue placeholder="Day" />
           </SelectTrigger>
           <SelectContent>
             {days.map((d) => (
-              <SelectItem key={d} value={String(d)}>
+              <SelectItem key={d} value={String(d)} className="text-xs">
                 {d}
               </SelectItem>
             ))}
@@ -138,12 +138,12 @@ export function AgeVerificationInput({
         </Select>
 
         <Select value={year} onValueChange={handleYearChange}>
-          <SelectTrigger className="h-9 text-xs">
+          <SelectTrigger className="h-8 text-[11px] px-2">
             <SelectValue placeholder="Year" />
           </SelectTrigger>
-          <SelectContent className="max-h-[200px]">
+          <SelectContent className="max-h-[180px]">
             {years.map((y) => (
-              <SelectItem key={y} value={String(y)}>
+              <SelectItem key={y} value={String(y)} className="text-xs">
                 {y}
               </SelectItem>
             ))}
@@ -151,34 +151,28 @@ export function AgeVerificationInput({
         </Select>
       </div>
 
-      {/* Status Messages - compact */}
+      {/* Status Messages - ultra compact */}
       {verificationStatus === 'verified' && (
-        <div className="flex items-center gap-1.5 py-1 px-2 rounded bg-emerald-500/10 border border-emerald-500/30">
-          <ShieldCheck className="h-3 w-3 text-emerald-500 flex-shrink-0" />
-          <p className="text-[10px] text-emerald-600 dark:text-emerald-400">
-            Age verified • DOB not stored
-          </p>
+        <div className="flex items-center gap-1 py-0.5 px-1.5 rounded bg-emerald-500/10 border border-emerald-500/30">
+          <ShieldCheck className="h-2.5 w-2.5 text-emerald-500 flex-shrink-0" />
+          <p className="text-[9px] text-emerald-600 dark:text-emerald-400">Verified</p>
         </div>
       )}
 
       {verificationStatus === 'failed' && (
-        <div className="flex items-center gap-1.5 py-1 px-2 rounded bg-destructive/10 border border-destructive/30">
-          <AlertTriangle className="h-3 w-3 text-destructive flex-shrink-0" />
-          <p className="text-[10px] text-destructive">
-            Must be 18+ to use this platform
-          </p>
+        <div className="flex items-center gap-1 py-0.5 px-1.5 rounded bg-destructive/10 border border-destructive/30">
+          <AlertTriangle className="h-2.5 w-2.5 text-destructive flex-shrink-0" />
+          <p className="text-[9px] text-destructive">Must be 18+</p>
         </div>
       )}
 
       {error && verificationStatus === 'pending' && (
-        <p className="text-xs text-destructive">{error}</p>
+        <p className="text-[10px] text-destructive">{error}</p>
       )}
 
-      {/* Legal disclosure - minimal */}
-      <p className="text-[9px] text-muted-foreground leading-snug">
-        By continuing, you confirm you're 18+ and agree to our{" "}
-        <a href="/terms" className="text-primary hover:underline">Terms</a> &{" "}
-        <a href="/privacy" className="text-primary hover:underline">Privacy Policy</a>.
+      {/* Legal disclosure - single line */}
+      <p className="text-[8px] text-muted-foreground leading-tight">
+        By continuing, you confirm you're 18+ and agree to our <a href="/terms" className="text-primary hover:underline">Terms</a> & <a href="/privacy" className="text-primary hover:underline">Privacy</a>.
       </p>
     </div>
   );

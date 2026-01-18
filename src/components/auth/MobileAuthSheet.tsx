@@ -121,35 +121,23 @@ export function MobileAuthSheet({
   ];
 
   const authForm = (
-    <div className="space-y-2 px-1">
-      {/* Asset Labs Branding */}
-      <div className="flex items-center justify-center py-1">
-        <AssetLabsLogo size="md" />
+    <div className="space-y-1.5 px-1">
+      {/* Asset Labs Branding - minimal */}
+      <div className="flex items-center justify-center">
+        <AssetLabsLogo size="sm" />
       </div>
 
-      {/* Value Proposition - compact */}
+      {/* Value Proposition - hidden on very small screens */}
       {mode === 'signup' && (
-        <p className="text-center text-xs text-muted-foreground">
-          Turn hunches into <span className="text-primary font-medium">statistical proof</span> — no code required
+        <p className="hidden xs:block text-center text-[10px] text-muted-foreground">
+          Turn hunches into <span className="text-primary font-medium">statistical proof</span>
         </p>
       )}
 
-      {/* Features list - single row, minimal */}
-      {mode === 'signup' && (
-        <div className="flex justify-center gap-4 py-1.5">
-          {features.map((feature, i) => (
-            <div key={i} className="flex items-center gap-1">
-              <feature.icon className="h-3 w-3 text-primary" />
-              <span className="text-[10px] font-medium text-primary">{feature.text}</span>
-            </div>
-          ))}
-        </div>
-      )}
-
-      <form onSubmit={handleSubmit} className="space-y-2">
+      <form onSubmit={handleSubmit} className="space-y-1.5">
         {mode === 'signup' && (
-          <div className="space-y-1">
-            <Label htmlFor="fullName" className="text-xs font-medium">Full Name</Label>
+          <div className="space-y-0.5">
+            <Label htmlFor="fullName" className="text-[11px] font-medium">Full Name</Label>
             <Input
               ref={fullNameInputRef}
               id="fullName"
@@ -157,14 +145,14 @@ export function MobileAuthSheet({
               onChange={(e) => setFullName(e.target.value)}
               placeholder="John Doe"
               required
-              className="h-10 text-sm"
+              className="h-9 text-sm"
               autoComplete="name"
             />
           </div>
         )}
         
-        <div className="space-y-1">
-          <Label htmlFor="email" className="text-xs font-medium">Email</Label>
+        <div className="space-y-0.5">
+          <Label htmlFor="email" className="text-[11px] font-medium">Email</Label>
           <Input
             ref={emailInputRef}
             id="email"
@@ -173,13 +161,13 @@ export function MobileAuthSheet({
             onChange={(e) => setEmail(e.target.value)}
             placeholder="you@example.com"
             required
-            className="h-10 text-sm"
+            className="h-9 text-sm"
             autoComplete="email"
           />
         </div>
 
-        <div className="space-y-1">
-          <Label htmlFor="password" className="text-xs font-medium">Password</Label>
+        <div className="space-y-0.5">
+          <Label htmlFor="password" className="text-[11px] font-medium">Password</Label>
           <Input
             id="password"
             type="password"
@@ -188,7 +176,7 @@ export function MobileAuthSheet({
             placeholder="••••••••"
             required
             minLength={6}
-            className="h-10 text-sm"
+            className="h-9 text-sm"
             autoComplete={mode === 'signup' ? 'new-password' : 'current-password'}
           />
         </div>
@@ -197,12 +185,13 @@ export function MobileAuthSheet({
           <AgeVerificationInput
             onVerificationChange={setIsAgeVerified}
             error={ageError}
+            className="!space-y-1"
           />
         )}
 
         <Button 
           type="submit" 
-          className="w-full h-11 text-sm font-semibold bg-gradient-to-r from-primary to-primary/80" 
+          className="w-full h-9 text-sm font-semibold mt-1" 
           disabled={isLoading}
         >
           {isLoading ? (
@@ -215,10 +204,10 @@ export function MobileAuthSheet({
         </Button>
       </form>
 
-      <div className="text-center text-xs text-muted-foreground pb-2">
+      <div className="text-center text-[11px] text-muted-foreground">
         {mode === 'signup' ? (
           <>
-            Already have an account?{" "}
+            Have an account?{" "}
             <button
               type="button"
               onClick={() => setMode('signin')}
@@ -229,7 +218,7 @@ export function MobileAuthSheet({
           </>
         ) : (
           <>
-            Don't have an account?{" "}
+            Need an account?{" "}
             <button
               type="button"
               onClick={() => setMode('signup')}
@@ -272,20 +261,20 @@ export function MobileAuthSheet({
 
   return (
     <Drawer open={open} onOpenChange={onOpenChange}>
-      <DrawerContent className="max-h-[90vh]">
+      <DrawerContent className="max-h-[95dvh]">
         {showVerificationPending ? (
-          <div className="px-4 pb-8 overflow-y-auto safe-area-bottom">
+          <div className="px-3 pb-4 safe-area-bottom">
             {verificationContent}
           </div>
         ) : (
           <>
-            <DrawerHeader className="text-center pb-2">
-              <DrawerTitle className="text-xl font-bold">{title}</DrawerTitle>
-              <DrawerDescription className="text-sm">
+            <DrawerHeader className="text-center py-1.5">
+              <DrawerTitle className="text-base font-bold">{title}</DrawerTitle>
+              <DrawerDescription className="text-[11px]">
                 {description}
               </DrawerDescription>
             </DrawerHeader>
-            <div className="px-4 pb-8 overflow-y-auto safe-area-bottom">
+            <div className="px-3 pb-4 safe-area-bottom">
               {authForm}
             </div>
           </>
