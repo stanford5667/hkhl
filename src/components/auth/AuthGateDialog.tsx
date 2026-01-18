@@ -113,39 +113,39 @@ export function AuthGateDialog({
   ];
 
   const authForm = (
-    <div className="space-y-4 px-1">
-      {/* Asset Labs Branding */}
-      <div className="flex items-center justify-center py-2">
-        <AssetLabsLogo size="lg" />
+    <div className="space-y-3 sm:space-y-4 px-1">
+      {/* Asset Labs Branding - smaller on mobile */}
+      <div className="flex items-center justify-center py-1 sm:py-2">
+        <AssetLabsLogo size="md" className="sm:hidden" />
+        <AssetLabsLogo size="lg" className="hidden sm:block" />
       </div>
 
-
-      {/* Value Proposition */}
+      {/* Value Proposition - more compact on mobile */}
       {mode === 'signup' && (
-        <div className="text-center space-y-1 py-2">
-          <p className="text-sm font-semibold text-foreground">
+        <div className="text-center space-y-0.5 sm:space-y-1 py-1 sm:py-2">
+          <p className="text-xs sm:text-sm font-semibold text-foreground">
             Turn market hunches into <span className="text-primary">statistical proof</span>
           </p>
-          <p className="text-xs text-muted-foreground">No coding required. Just pick, click, and discover.</p>
+          <p className="text-[10px] sm:text-xs text-muted-foreground">No coding required. Just pick, click, and discover.</p>
         </div>
       )}
 
-      {/* Features list - horizontal */}
-      <div className="flex justify-center gap-3 py-3 border-y border-border/50 bg-secondary/30 rounded-lg mx-0">
+      {/* Features list - horizontal - hidden on very small screens */}
+      <div className="hidden xs:flex justify-center gap-2 sm:gap-3 py-2 sm:py-3 border-y border-border/50 bg-secondary/30 rounded-lg mx-0">
         {features.map((feature, i) => (
-          <div key={i} className="flex flex-col items-center gap-1.5 text-center px-2">
-            <div className="p-1.5 rounded-full bg-primary/10">
-              <feature.icon className="h-4 w-4 text-primary" />
+          <div key={i} className="flex flex-col items-center gap-1 sm:gap-1.5 text-center px-1 sm:px-2">
+            <div className="p-1 sm:p-1.5 rounded-full bg-primary/10">
+              <feature.icon className="h-3 sm:h-4 w-3 sm:w-4 text-primary" />
             </div>
-            <span className="text-[11px] font-semibold text-primary">{feature.text}</span>
+            <span className="text-[9px] sm:text-[11px] font-semibold text-primary leading-tight">{feature.text}</span>
           </div>
         ))}
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-3">
+      <form onSubmit={handleSubmit} className="space-y-2 sm:space-y-3">
         {mode === 'signup' && (
-          <div className="space-y-1.5">
-            <Label htmlFor="fullName" className="text-sm font-medium">Full Name</Label>
+          <div className="space-y-1">
+            <Label htmlFor="fullName" className="text-xs sm:text-sm font-medium">Full Name</Label>
             <Input
               ref={fullNameInputRef}
               id="fullName"
@@ -153,14 +153,14 @@ export function AuthGateDialog({
               onChange={(e) => setFullName(e.target.value)}
               placeholder="John Doe"
               required
-              className="h-12 text-base"
+              className="h-10 sm:h-12 text-sm sm:text-base"
               autoComplete="name"
             />
           </div>
         )}
         
-        <div className="space-y-1.5">
-          <Label htmlFor="email" className="text-sm font-medium">Email</Label>
+        <div className="space-y-1">
+          <Label htmlFor="email" className="text-xs sm:text-sm font-medium">Email</Label>
           <Input
             ref={emailInputRef}
             id="email"
@@ -169,13 +169,13 @@ export function AuthGateDialog({
             onChange={(e) => setEmail(e.target.value)}
             placeholder="you@example.com"
             required
-            className="h-12 text-base"
+            className="h-10 sm:h-12 text-sm sm:text-base"
             autoComplete="email"
           />
         </div>
 
-        <div className="space-y-1.5">
-          <Label htmlFor="password" className="text-sm font-medium">Password</Label>
+        <div className="space-y-1">
+          <Label htmlFor="password" className="text-xs sm:text-sm font-medium">Password</Label>
           <Input
             id="password"
             type="password"
@@ -184,7 +184,7 @@ export function AuthGateDialog({
             placeholder="••••••••"
             required
             minLength={6}
-            className="h-12 text-base"
+            className="h-10 sm:h-12 text-sm sm:text-base"
             autoComplete={mode === 'signup' ? 'new-password' : 'current-password'}
           />
         </div>
@@ -198,20 +198,20 @@ export function AuthGateDialog({
 
         <Button 
           type="submit" 
-          className="w-full h-12 text-base font-semibold" 
+          className="w-full h-10 sm:h-12 text-sm sm:text-base font-semibold" 
           disabled={isLoading}
         >
           {isLoading ? (
-            <Loader2 className="h-5 w-5 animate-spin" />
+            <Loader2 className="h-4 sm:h-5 w-4 sm:w-5 animate-spin" />
           ) : mode === 'signup' ? (
-            "Create Account"
+            "Get Started Free"
           ) : (
             "Sign In"
           )}
         </Button>
       </form>
 
-      <div className="text-center text-sm text-muted-foreground pb-4">
+      <div className="text-center text-xs sm:text-sm text-muted-foreground pb-2 sm:pb-4">
         {mode === 'signup' ? (
           <>
             Already have an account?{" "}
@@ -268,20 +268,20 @@ export function AuthGateDialog({
 
   return (
     <Drawer open={open} onOpenChange={onOpenChange}>
-      <DrawerContent className="max-h-[90vh]">
+      <DrawerContent className="max-h-[85vh]">
         {showVerificationPending ? (
-          <div className="px-4 pb-8 overflow-y-auto safe-area-bottom">
+          <div className="px-3 pb-6 overflow-y-auto safe-area-bottom">
             {verificationContent}
           </div>
         ) : (
           <>
-            <DrawerHeader className="text-center pb-2">
-              <DrawerTitle className="text-xl font-bold">{title}</DrawerTitle>
-              <DrawerDescription className="text-sm">
+            <DrawerHeader className="text-center py-2">
+              <DrawerTitle className="text-lg font-bold">{title}</DrawerTitle>
+              <DrawerDescription className="text-xs">
                 {description}
               </DrawerDescription>
             </DrawerHeader>
-            <div className="px-4 pb-8 overflow-y-auto safe-area-bottom">
+            <div className="px-3 pb-6 overflow-y-auto safe-area-bottom max-h-[65vh]">
               {authForm}
             </div>
           </>

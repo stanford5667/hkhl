@@ -69,10 +69,11 @@ export function StudySetupCard({
             variant="default"
             disabled={!ticker || isRunning}
             onClick={() => runStudy(study.id)}
-            className="h-9 px-3 gap-2 rounded-xl"
+            className="h-9 px-3 gap-2 rounded-xl whitespace-nowrap"
           >
             {isRunning ? <Activity className="h-4 w-4" /> : <Play className="h-4 w-4" />}
-            Run
+            <span className="hidden sm:inline">Get Started Free</span>
+            <span className="sm:hidden">Start</span>
           </Button>
         </div>
       </div>
@@ -83,7 +84,7 @@ export function StudySetupCard({
           {/* Study explanation */}
           <div className="p-3 rounded-lg bg-primary/5 border border-primary/10">
             <p className="text-sm text-foreground/80 leading-relaxed">
-              Configure the conditions below to customize your analysis. Adjust the variables, then click <span className="font-semibold text-primary">Run</span> to see what historically happens to <span className="font-mono font-semibold">{ticker || 'your ticker'}</span> after these conditions are met.
+              Configure the conditions below to customize your analysis. Adjust the variables, then click <span className="font-semibold text-primary">Start</span> to see what historically happens to <span className="font-mono font-semibold">{ticker || 'your ticker'}</span> after these conditions are met.
             </p>
           </div>
 
