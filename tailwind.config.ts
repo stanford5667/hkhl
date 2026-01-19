@@ -14,8 +14,9 @@ export default {
     },
     extend: {
       fontFamily: {
-        sans: ['Inter', 'system-ui', 'sans-serif'],
-        mono: ['JetBrains Mono', 'monospace'],
+        sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'sans-serif'],
+        mono: ['JetBrains Mono', 'Fira Code', 'monospace'],
+        display: ['Inter', 'sans-serif'],
       },
       colors: {
         border: "hsl(var(--border))",
@@ -38,10 +39,12 @@ export default {
         success: {
           DEFAULT: "hsl(var(--success))",
           foreground: "hsl(var(--success-foreground))",
+          light: "hsl(var(--success-light))",
         },
         warning: {
           DEFAULT: "hsl(var(--warning))",
           foreground: "hsl(var(--warning-foreground))",
+          light: "hsl(var(--warning-light))",
         },
         muted: {
           DEFAULT: "hsl(var(--muted))",
@@ -75,7 +78,11 @@ export default {
           "3": "hsl(var(--chart-3))",
           "4": "hsl(var(--chart-4))",
           "5": "hsl(var(--chart-5))",
+          "6": "hsl(var(--chart-6))",
         },
+        // Semantic Financial Colors
+        profit: "hsl(var(--profit))",
+        loss: "hsl(var(--loss))",
         // Behavioral Design Colors
         surface: {
           "1": "hsl(var(--surface-1))",

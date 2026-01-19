@@ -8,41 +8,41 @@ const cardVariants = cva(
     variants: {
       variant: {
         default:
-          "bg-card/80 backdrop-blur-xl border-border/40 shadow-lg shadow-black/5 dark:shadow-black/20 hover:shadow-xl hover:border-border/60",
+          "bg-card border-border shadow-md hover:shadow-lg hover:border-border/80",
         solid:
-          "bg-card border-border shadow-lg shadow-black/5 dark:shadow-black/20",
+          "bg-card border-border shadow-md",
         glass:
-          "bg-card/20 backdrop-blur-2xl border-white/10 dark:border-white/5 shadow-2xl shadow-black/10 dark:shadow-black/30 ring-1 ring-white/10",
+          "bg-card/80 backdrop-blur-xl border-border/50 shadow-lg",
         gradient:
-          "bg-gradient-to-br from-card via-card/95 to-background border-border/30 shadow-lg shadow-black/5 dark:shadow-black/20",
+          "bg-gradient-to-br from-card via-card to-background border-border/30 shadow-md",
         success:
-          "bg-gradient-to-br from-success/15 via-success/10 to-success/5 border-success/30 shadow-lg shadow-success/10",
+          "border-2 border-success/20 bg-success/5",
         warning:
-          "bg-gradient-to-br from-warning/15 via-warning/10 to-warning/5 border-warning/30 shadow-lg shadow-warning/10",
+          "border-2 border-warning/20 bg-warning/5",
         destructive:
-          "bg-gradient-to-br from-destructive/15 via-destructive/10 to-destructive/5 border-destructive/30 shadow-lg shadow-destructive/10",
+          "border-2 border-destructive/20 bg-destructive/5",
         interactive:
-          "bg-card/60 backdrop-blur-xl border-border/40 shadow-lg shadow-black/5 dark:shadow-black/20 hover:border-primary/40 hover:shadow-xl hover:shadow-primary/5 hover:-translate-y-0.5 cursor-pointer active:translate-y-0 active:shadow-lg",
-        // Market Intel variants
+          "bg-card border-border shadow-md hover:shadow-lg hover:scale-[1.02] hover:border-primary/30 cursor-pointer active:scale-[0.99]",
+        // Surface hierarchy variants
         surface:
-          "bg-surface-3 border-border/20 shadow-lg shadow-black/5 dark:shadow-black/20",
+          "bg-surface-2 border-border/50 shadow-md",
         "accent-positive":
-          "bg-gradient-to-br from-card to-success/5 border-border/40 shadow-lg accent-bar-positive",
+          "bg-card border-border/40 shadow-md accent-bar-positive",
         "accent-negative":
-          "bg-gradient-to-br from-card to-destructive/5 border-border/40 shadow-lg accent-bar-negative",
+          "bg-card border-border/40 shadow-md accent-bar-negative",
         "accent-warning":
-          "bg-gradient-to-br from-card to-warning/5 border-border/40 shadow-lg accent-bar-warning",
+          "bg-card border-border/40 shadow-md accent-bar-warning",
         "accent-primary":
-          "bg-gradient-to-br from-card to-primary/5 border-border/40 shadow-lg accent-bar-primary",
+          "bg-card border-border/40 shadow-md accent-bar-primary",
         glow:
-          "bg-card/60 backdrop-blur-xl border-primary/20 shadow-xl shadow-primary/10 ring-1 ring-primary/10 card-glow",
-        // New premium variants
+          "bg-card border-primary/20 shadow-lg ring-1 ring-primary/10 hover:shadow-[0_0_40px_hsl(220_90%_56%_/_0.1)]",
+        // Additional variants
         elevated:
-          "bg-card border-border/30 shadow-2xl shadow-black/10 dark:shadow-black/40 ring-1 ring-white/5",
+          "bg-card border-border/30 shadow-xl",
         subtle:
-          "bg-muted/30 backdrop-blur-sm border-border/20 shadow-sm hover:bg-muted/50 hover:border-border/30",
+          "bg-muted/30 border-border/20 shadow-sm hover:bg-muted/50",
         outline:
-          "bg-transparent border-2 border-border/60 hover:border-primary/50 hover:bg-primary/5",
+          "bg-transparent border-2 border-border hover:border-primary/50 hover:bg-primary/5",
       },
     },
     defaultVariants: {
