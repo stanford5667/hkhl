@@ -7,9 +7,10 @@ import FOMCImpactStudy from '@/components/quant-lab/FOMCImpactStudy';
 
 interface FundamentalStudiesContentProps {
   defaultTab?: string;
+  selectedTicker?: string;
 }
 
-export function FundamentalStudiesContent({ defaultTab = 'calendar' }: FundamentalStudiesContentProps) {
+export function FundamentalStudiesContent({ defaultTab = 'calendar', selectedTicker }: FundamentalStudiesContentProps) {
   const [activeTab, setActiveTab] = useState(defaultTab);
 
   return (
@@ -31,11 +32,11 @@ export function FundamentalStudiesContent({ defaultTab = 'calendar' }: Fundament
         </TabsList>
 
         <TabsContent value="calendar" className="m-0">
-          <FundamentalEventCalendar />
+          <FundamentalEventCalendar selectedTicker={selectedTicker} />
         </TabsContent>
 
         <TabsContent value="earnings" className="m-0">
-          <EarningsImpactAnalyzer />
+          <EarningsImpactAnalyzer selectedTicker={selectedTicker} />
         </TabsContent>
 
         <TabsContent value="fomc" className="m-0">

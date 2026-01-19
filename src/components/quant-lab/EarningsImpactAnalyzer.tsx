@@ -25,9 +25,20 @@ interface EarningsEvent {
   beatOrMiss: 'beat' | 'miss' | 'meet';
 }
 
-export default function EarningsImpactAnalyzer() {
-  const [symbol, setSymbol] = useState('AAPL');
+interface EarningsImpactAnalyzerProps {
+  selectedTicker?: string;
+}
+
+export default function EarningsImpactAnalyzer({ selectedTicker }: EarningsImpactAnalyzerProps) {
+  const [symbol, setSymbol] = useState(selectedTicker || 'AAPL');
   const [isLoading, setIsLoading] = useState(false);
+  
+  // Update symbol when selectedTicker changes from parent
+  React.useEffect(() => {
+    if (selectedTicker) {
+      setSymbol(selectedTicker);
+    }
+  }, [selectedTicker]);
 
   // Mock data - replace with actual API call
   const earningsHistory: EarningsEvent[] = [

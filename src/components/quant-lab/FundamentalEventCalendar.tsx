@@ -24,9 +24,10 @@ interface FundamentalEvent {
 
 interface FundamentalEventCalendarProps {
   onEventClick?: (event: FundamentalEvent) => void;
+  selectedTicker?: string;
 }
 
-export default function FundamentalEventCalendar({ onEventClick }: FundamentalEventCalendarProps) {
+export default function FundamentalEventCalendar({ onEventClick, selectedTicker }: FundamentalEventCalendarProps) {
   const [selectedFilter, setSelectedFilter] = useState<string>('all');
   const [timeFilter, setTimeFilter] = useState<'today' | 'week' | 'month'>('week');
 
@@ -171,6 +172,9 @@ export default function FundamentalEventCalendar({ onEventClick }: FundamentalEv
 
   const filteredEvents = events.filter((event) => {
     if (selectedFilter !== 'all' && event.type !== selectedFilter) return false;
+    
+    // Filter by selected ticker if provided (only for events with symbols)
+    if (selectedTicker && event.symbol && event.symbol !== selectedTicker) return false;
     
     const now = new Date();
     now.setHours(0, 0, 0, 0); // Start of today
