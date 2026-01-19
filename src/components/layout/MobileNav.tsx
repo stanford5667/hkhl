@@ -27,8 +27,8 @@ import { supabase } from "@/integrations/supabase/client";
 const mobileNavItems = [
   { label: "Studies", href: "/quant-lab", icon: FlaskConical },
   { label: "Builder", href: "/portfolio-visualizer", icon: PieChart },
+  { label: "Academy", href: "/academy", icon: BookOpen },
   { label: "Intel", href: "/market-intel", icon: BarChart3 },
-  { label: "Explorer", href: "/investment-plan", icon: ClipboardList },
   { label: "More", href: "#menu", icon: Menu, isMenu: true },
 ];
 
