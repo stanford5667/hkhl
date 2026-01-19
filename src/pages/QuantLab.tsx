@@ -1696,7 +1696,7 @@ function QuantLabContent(props: any) {
                   </div>
                 </div>
                 {/* Fixed bottom action bar */}
-                <div className="shrink-0 border-t bg-card px-4 pt-3 pb-20 space-y-3">
+                <div className="shrink-0 border-t bg-card px-4 pt-3 pb-6 space-y-3">
                   {/* Run Study Button - Show when ticker and study are selected */}
                   {selectedStudies.length > 0 && selectedTicker && (
                     <Button

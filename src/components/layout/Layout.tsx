@@ -119,8 +119,10 @@ export function Layout({ children }: LayoutProps) {
             hasCompletedAssessment={hasCompletedAssessment}
           />
         )}
-        <main className="flex-1 overflow-auto custom-scrollbar pb-16 md:pb-0">
-          {children}
+        <main className="flex-1 overflow-auto custom-scrollbar pb-16 md:pb-0 flex flex-col">
+          <div className="flex-1">
+            {children}
+          </div>
           <FooterDisclaimer />
         </main>
       </div>
