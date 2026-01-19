@@ -7,7 +7,7 @@
  * USE THESE EVERYWHERE.
  */
 
-import { ReactNode, useState } from 'react';
+import { ReactNode, useState, useEffect } from 'react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -386,6 +386,7 @@ export function AcknowledgmentDialog({
 // ═══════════════════════════════════════════════════════════════════════════════
 // GLOBAL FOOTER DISCLAIMER
 // Use at the bottom of every page
+// On mobile, only shows when user scrolls to bottom
 // ═══════════════════════════════════════════════════════════════════════════════
 
 interface FooterDisclaimerProps {
@@ -395,6 +396,48 @@ interface FooterDisclaimerProps {
 
 export function FooterDisclaimer({ className, expanded = false }: FooterDisclaimerProps) {
   const [isExpanded, setIsExpanded] = useState(expanded);
+  const [isAtBottom, setIsAtBottom] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    // Check if mobile
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+
+    // Find the scrollable container (main element with overflow-auto)
+    const scrollContainer = document.querySelector('main.overflow-auto');
+    
+    const handleScroll = () => {
+      if (!scrollContainer) return;
+      
+      const { scrollTop, scrollHeight, clientHeight } = scrollContainer;
+      // Consider "at bottom" when within 50px of the bottom
+      const atBottom = scrollHeight - scrollTop - clientHeight < 50;
+      setIsAtBottom(atBottom);
+    };
+
+    if (scrollContainer) {
+      scrollContainer.addEventListener('scroll', handleScroll);
+      // Check initial state
+      handleScroll();
+    }
+
+    return () => {
+      window.removeEventListener('resize', checkMobile);
+      if (scrollContainer) {
+        scrollContainer.removeEventListener('scroll', handleScroll);
+      }
+    };
+  }, []);
+
+  // On mobile, don't render until scrolled to bottom
+  if (isMobile && !isAtBottom) {
+    // Return a placeholder with same approximate height to prevent layout shift when it appears
+    return <div className="h-0" />;
+  }
 
   return (
     <div className={cn('border-t bg-muted/30', className)}>
