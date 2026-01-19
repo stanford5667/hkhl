@@ -36,7 +36,7 @@ export default function EarningsImpactAnalyzer({ selectedTicker }: EarningsImpac
   // Update symbol when selectedTicker changes from parent
   React.useEffect(() => {
     if (selectedTicker) {
-      setSymbol(selectedTicker);
+      setSymbol(selectedTicker.toUpperCase());
     }
   }, [selectedTicker]);
 
