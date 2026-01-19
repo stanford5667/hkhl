@@ -117,6 +117,25 @@ export function Sidebar() {
         isPremium: true,
       },
       { 
+        label: "AI Assistant", 
+        subtitle: "Chat & Signals",
+        href: "/prediction-ai", 
+        icon: Sparkles,
+        isPremium: true,
+      },
+      { 
+        label: "Research", 
+        subtitle: "Asset Analysis",
+        href: "/research", 
+        icon: Search 
+      },
+      { 
+        label: "Discovery", 
+        subtitle: "Find Opportunities",
+        href: "/discovery", 
+        icon: Lightbulb 
+      },
+      { 
         label: "Academy", 
         subtitle: "Learn & Grow",
         href: "/academy", 
