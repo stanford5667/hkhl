@@ -19,6 +19,7 @@ import { FooterDisclaimer } from "@/components/legal";
 import { useEventNotifications } from "@/hooks/useEventNotifications";
 import { useActivityHeartbeat } from "@/hooks/useActivityHeartbeat";
 import { useGlobalScrollPersistence } from "@/hooks/useScrollPersistence";
+import { cn } from "@/lib/utils";
 
 interface LayoutProps {
   children: ReactNode;
@@ -30,7 +31,7 @@ export function Layout({ children }: LayoutProps) {
   const location = useLocation();
   const navigate = useNavigate();
   const isMobile = useIsMobile();
-  
+  const isSplitScrollRoute = location.pathname === "/" || location.pathname === "/quant-lab";
   // Onboarding state (we only use the banner; all modals/popups are disabled)
   const { 
     shouldShowBanner,
@@ -123,7 +124,7 @@ export function Layout({ children }: LayoutProps) {
             hasCompletedAssessment={hasCompletedAssessment}
           />
         )}
-        <main className="flex-1 overflow-auto custom-scrollbar pb-16 md:pb-0 flex flex-col">
+        <main className={cn("flex-1 custom-scrollbar pb-16 md:pb-0 flex flex-col", isSplitScrollRoute ? "overflow-hidden" : "overflow-auto")}>
           <div className="flex-1">
             {children}
           </div>
