@@ -64,6 +64,7 @@ import { EnhancedResultView } from '@/components/quant-lab/EnhancedResultViews';
 import { StudyRunningOverlay } from '@/components/quant-lab/StudyRunningOverlay';
 import { QuantLabWelcomeHero } from '@/components/quant-lab/QuantLabWelcomeHero';
 import { FundamentalStudiesContent } from '@/components/quant-lab/FundamentalStudiesContent';
+import { CollapsibleStudyCategories } from '@/components/quant-lab/CollapsibleStudyCategories';
 
 // ===========================================
 // STUDY DEFINITIONS WITH BEGINNER-FRIENDLY EXPLANATIONS
@@ -1454,111 +1455,20 @@ function QuantLabContent(props: any) {
             </div>
           </div>
           
-          {/* Study List - All categories with separators */}
-          <div className="flex-1 overflow-y-auto px-3 py-2">
-            {STUDY_CATEGORIES.map((category, catIndex) => {
-              const categoryStudies = STUDY_DEFINITIONS.filter((s) => s.category === category.id);
-              if (categoryStudies.length === 0) return null;
-              
-              return (
-                <div key={category.id}>
-                  {/* Category separator line (except first) */}
-                  {catIndex > 0 && (
-                    <div className="my-4 border-t border-border" />
-                  )}
-                  
-                  {/* Category header */}
-                  <div className="flex items-center gap-2 px-1 py-2 mb-2">
-                    <category.icon className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-sm font-semibold text-foreground">{category.name}</span>
-                    <span className="text-xs text-muted-foreground">• {category.description}</span>
-                  </div>
-                  
-                  {/* Studies in this category */}
-                  <div className="space-y-2">
-                    {categoryStudies.map((study) => {
-                      const isSelected = selectedStudies.includes(study.id);
-                      return (
-                        <button
-                          key={study.id}
-                          onClick={() => isSelected ? removeStudy(study.id) : addStudy(study.id)}
-                          className={cn(
-                            "w-full text-left p-3 rounded-xl border-2 transition-all duration-200",
-                            isSelected
-                              ? "border-primary bg-primary/5"
-                              : "border-transparent bg-muted/50 hover:bg-muted active:scale-[0.98]"
-                          )}
-                        >
-                          <div className="flex items-center gap-3">
-                            <div className={cn(
-                              "p-2 rounded-lg shrink-0",
-                              isSelected ? "bg-primary text-primary-foreground" : "bg-background"
-                            )}>
-                              <study.icon className="h-4 w-4" />
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2">
-                                <span className="font-semibold text-sm">{study.name}</span>
-                                <Badge variant="outline" className={cn(
-                                  "text-[9px] px-1.5",
-                                  study.difficulty === 'beginner' && "border-emerald-500/50 text-emerald-600",
-                                  study.difficulty === 'intermediate' && "border-amber-500/50 text-amber-600",
-                                  study.difficulty === 'advanced' && "border-red-500/50 text-red-600"
-                                )}>
-                                  {study.difficulty}
-                                </Badge>
-                              </div>
-                              <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">{study.description}</p>
-                            </div>
-                            {isSelected && (
-                              <CheckCircle2 className="h-5 w-5 text-primary shrink-0" />
-                            )}
-                          </div>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              );
-            })}
-            
-            {/* Fundamental Studies Section */}
-            <div className="my-4 border-t border-border" />
-            <button
-              onClick={() => {
-                setShowFundamentalStudies(true);
-                setSelectedStudies([]);
-                setResults({});
-              }}
-              className={cn(
-                "w-full text-left p-3 rounded-xl border-2 transition-all duration-200",
-                showFundamentalStudies
-                  ? "border-primary bg-primary/5"
-                  : "border-transparent bg-muted/50 hover:bg-muted active:scale-[0.98]"
-              )}
-            >
-              <div className="flex items-center gap-3">
-                <div className={cn(
-                  "p-2 rounded-lg shrink-0",
-                  showFundamentalStudies ? "bg-primary text-primary-foreground" : "bg-background"
-                )}>
-                  <Landmark className="h-4 w-4" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <span className="font-semibold text-sm">Fundamental Studies</span>
-                    <Badge variant="outline" className="text-[9px] px-1.5 border-blue-500/50 text-blue-600">
-                      Events
-                    </Badge>
-                  </div>
-                  <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">Earnings, FOMC, economic data impact</p>
-                </div>
-                {showFundamentalStudies && (
-                  <CheckCircle2 className="h-5 w-5 text-primary shrink-0" />
-                )}
-              </div>
-            </button>
-          </div>
+          {/* Study List - Collapsible categories with scroll */}
+          <CollapsibleStudyCategories
+            categories={STUDY_CATEGORIES}
+            studies={STUDY_DEFINITIONS}
+            selectedStudies={selectedStudies}
+            onAddStudy={addStudy}
+            onRemoveStudy={removeStudy}
+            showFundamentalStudies={showFundamentalStudies}
+            onShowFundamentalStudies={() => {
+              setShowFundamentalStudies(true);
+              setSelectedStudies([]);
+              setResults({});
+            }}
+          />
           {/* Run Button at bottom (removed - run per-study from setup cards) */}
           <div className="shrink-0 border-t bg-card px-4 py-3">
             <p className="text-xs text-muted-foreground">
@@ -1622,81 +1532,23 @@ function QuantLabContent(props: any) {
                     )}
                   </div>
 
-                  {/* Study List - All categories with separators */}
-                  <div className="flex-1 overflow-y-auto px-3 py-2">
-                    {STUDY_CATEGORIES.map((category, catIndex) => {
-                      const categoryStudies = STUDY_DEFINITIONS.filter((s) => s.category === category.id);
-                      if (categoryStudies.length === 0) return null;
-                      
-                      return (
-                        <div key={category.id}>
-                          {/* Category separator line (except first) */}
-                          {catIndex > 0 && (
-                            <div className="my-4 border-t border-border" />
-                          )}
-                          
-                          {/* Category header */}
-                          <div className="flex items-center gap-2 px-1 py-2 mb-2">
-                            <category.icon className="h-4 w-4 text-muted-foreground" />
-                            <span className="text-sm font-semibold text-foreground">{category.name}</span>
-                            <span className="text-xs text-muted-foreground">• {category.description}</span>
-                          </div>
-                          
-                          {/* Studies in this category */}
-                          <div className="space-y-2">
-                            {categoryStudies.map((study) => {
-                              const isSelected = selectedStudies.includes(study.id);
-                              return (
-                                <button
-                                  key={study.id}
-                                  onClick={() => {
-                                    if (isSelected) {
-                                      removeStudy(study.id);
-                                    } else {
-                                      addStudy(study.id);
-                                      setShowStudyPanel(false); // Close panel on mobile to show run card
-                                    }
-                                  }}
-                                  className={cn(
-                                    "w-full text-left p-3 rounded-xl border-2 transition-all",
-                                    isSelected
-                                      ? "border-primary bg-primary/5"
-                                      : "border-transparent bg-muted/50 active:scale-[0.98]"
-                                  )}
-                                >
-                                  <div className="flex items-center gap-3">
-                                    <div className={cn(
-                                      "p-2 rounded-lg shrink-0",
-                                      isSelected ? "bg-primary text-primary-foreground" : "bg-background"
-                                    )}>
-                                      <study.icon className="h-4 w-4" />
-                                    </div>
-                                    <div className="flex-1 min-w-0">
-                                      <div className="flex items-center gap-2">
-                                        <span className="font-semibold text-sm">{study.name}</span>
-                                        <Badge variant="outline" className={cn(
-                                          "text-[9px] px-1.5",
-                                          study.difficulty === 'beginner' && "border-emerald-500/50 text-emerald-600",
-                                          study.difficulty === 'intermediate' && "border-amber-500/50 text-amber-600",
-                                          study.difficulty === 'advanced' && "border-red-500/50 text-red-600"
-                                        )}>
-                                          {study.difficulty}
-                                        </Badge>
-                                      </div>
-                                      <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">{study.description}</p>
-                                    </div>
-                                    {isSelected && (
-                                      <CheckCircle2 className="h-5 w-5 text-primary shrink-0" />
-                                    )}
-                                  </div>
-                                </button>
-                              );
-                            })}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
+                  {/* Study List - Collapsible categories with scroll */}
+                  <CollapsibleStudyCategories
+                    categories={STUDY_CATEGORIES}
+                    studies={STUDY_DEFINITIONS}
+                    selectedStudies={selectedStudies}
+                    onAddStudy={addStudy}
+                    onRemoveStudy={removeStudy}
+                    showFundamentalStudies={showFundamentalStudies}
+                    onShowFundamentalStudies={() => {
+                      setShowFundamentalStudies(true);
+                      setSelectedStudies([]);
+                      setResults({});
+                      setShowStudyPanel(false);
+                    }}
+                    closePanelOnSelect
+                    onClosePanel={() => setShowStudyPanel(false)}
+                  />
                 </div>
                 {/* Fixed bottom action bar */}
                 <div className="shrink-0 border-t bg-card px-4 pt-3 pb-6 space-y-3">
