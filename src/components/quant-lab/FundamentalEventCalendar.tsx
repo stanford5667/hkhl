@@ -4,7 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Calendar, TrendingUp, AlertCircle, DollarSign, Building2, LineChart } from 'lucide-react';
-import { format, isToday, isTomorrow, addDays } from 'date-fns';
+import { format, isToday, isTomorrow, isBefore, addDays } from 'date-fns';
 
 interface FundamentalEvent {
   id: string;
@@ -31,86 +31,105 @@ export default function FundamentalEventCalendar({ onEventClick }: FundamentalEv
   const [timeFilter, setTimeFilter] = useState<'today' | 'week' | 'month'>('week');
 
   // Mock data - replace with actual API call
+  // Accurate dates for Jan 2026
   const events: FundamentalEvent[] = [
     {
       id: '1',
-      type: 'earnings',
-      title: 'Apple Q4 Earnings',
-      symbol: 'AAPL',
-      scheduledDate: new Date(),
-      importance: 'high',
-      details: {
-        epsEstimate: 1.54,
-        revenueEstimate: 89.5,
-        historicalImpact: 3.2,
-      },
-    },
-    {
-      id: '2',
       type: 'fed_meeting',
       title: 'FOMC Meeting Decision',
-      scheduledDate: addDays(new Date(), 2),
+      scheduledDate: new Date('2026-01-28'),
       importance: 'high',
       details: {
         historicalImpact: 1.8,
       },
     },
     {
-      id: '3',
-      type: 'economic_data',
-      title: 'CPI Report',
-      scheduledDate: addDays(new Date(), 3),
+      id: '2',
+      type: 'earnings',
+      title: 'Apple Q1 FY26 Earnings',
+      symbol: 'AAPL',
+      scheduledDate: new Date('2026-01-29'),
       importance: 'high',
       details: {
-        previousValue: 3.2,
-        forecastValue: 3.1,
-        historicalImpact: 2.5,
+        epsEstimate: 2.65,
+        revenueEstimate: 123.5,
+        historicalImpact: 3.2,
+      },
+    },
+    {
+      id: '3',
+      type: 'earnings',
+      title: 'Microsoft Q2 FY26 Earnings',
+      symbol: 'MSFT',
+      scheduledDate: new Date('2026-01-29'),
+      importance: 'high',
+      details: {
+        epsEstimate: 3.12,
+        revenueEstimate: 68.2,
+        historicalImpact: 2.8,
       },
     },
     {
       id: '4',
       type: 'earnings',
-      title: 'Microsoft Q4 Earnings',
-      symbol: 'MSFT',
-      scheduledDate: addDays(new Date(), 1),
+      title: 'Meta Q4 Earnings',
+      symbol: 'META',
+      scheduledDate: new Date('2026-01-29'),
       importance: 'high',
       details: {
-        epsEstimate: 2.65,
-        revenueEstimate: 56.2,
-        historicalImpact: 2.8,
+        epsEstimate: 5.22,
+        revenueEstimate: 45.8,
+        historicalImpact: 4.5,
       },
     },
     {
       id: '5',
-      type: 'dividend',
-      title: 'Tesla Dividend (Ex-Date)',
-      symbol: 'TSLA',
-      scheduledDate: addDays(new Date(), 5),
-      importance: 'medium',
+      type: 'earnings',
+      title: 'Alphabet Q4 Earnings',
+      symbol: 'GOOGL',
+      scheduledDate: new Date('2026-02-04'),
+      importance: 'high',
+      details: {
+        epsEstimate: 1.89,
+        revenueEstimate: 92.1,
+        historicalImpact: 3.5,
+      },
     },
     {
       id: '6',
       type: 'earnings',
       title: 'Amazon Q4 Earnings',
       symbol: 'AMZN',
-      scheduledDate: addDays(new Date(), 4),
+      scheduledDate: new Date('2026-02-06'),
       importance: 'high',
       details: {
-        epsEstimate: 0.83,
-        revenueEstimate: 142.0,
+        epsEstimate: 1.45,
+        revenueEstimate: 186.4,
         historicalImpact: 4.1,
       },
     },
     {
       id: '7',
       type: 'economic_data',
-      title: 'NFP Jobs Report',
-      scheduledDate: addDays(new Date(), 6),
+      title: 'January Jobs Report (NFP)',
+      scheduledDate: new Date('2026-02-07'),
       importance: 'high',
       details: {
-        previousValue: 216,
-        forecastValue: 185,
+        previousValue: 256,
+        forecastValue: 170,
         historicalImpact: 1.9,
+      },
+    },
+    {
+      id: '8',
+      type: 'economic_data',
+      title: 'January CPI Report',
+      scheduledDate: new Date('2026-02-12'),
+      importance: 'high',
+      details: {
+        previousValue: 2.9,
+        forecastValue: 2.8,
+        historicalImpact: 2.5,
       },
     },
   ];
@@ -154,6 +173,11 @@ export default function FundamentalEventCalendar({ onEventClick }: FundamentalEv
     if (selectedFilter !== 'all' && event.type !== selectedFilter) return false;
     
     const now = new Date();
+    now.setHours(0, 0, 0, 0); // Start of today
+    
+    // Only show today and future events
+    if (isBefore(event.scheduledDate, now)) return false;
+    
     switch (timeFilter) {
       case 'today':
         return isToday(event.scheduledDate);

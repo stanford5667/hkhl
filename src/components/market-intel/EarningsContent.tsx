@@ -19,14 +19,14 @@ interface EarningsEvent {
 }
 
 const earningsEvents: EarningsEvent[] = [
-  { symbol: 'AAPL', company: 'Apple Inc.', date: '2026-01-23', time: 'AMC', epsEstimate: 2.35, revenueEstimate: '$123.5B', status: 'upcoming' },
-  { symbol: 'MSFT', company: 'Microsoft Corp.', date: '2026-01-28', time: 'AMC', epsEstimate: 3.12, revenueEstimate: '$68.2B', status: 'upcoming' },
-  { symbol: 'GOOGL', company: 'Alphabet Inc.', date: '2026-01-30', time: 'AMC', epsEstimate: 1.89, revenueEstimate: '$92.1B', status: 'upcoming' },
-  { symbol: 'AMZN', company: 'Amazon.com Inc.', date: '2026-01-30', time: 'AMC', epsEstimate: 1.45, revenueEstimate: '$186.4B', status: 'upcoming' },
+  { symbol: 'AAPL', company: 'Apple Inc.', date: '2026-01-29', time: 'AMC', epsEstimate: 2.65, revenueEstimate: '$123.5B', status: 'upcoming' },
+  { symbol: 'MSFT', company: 'Microsoft Corp.', date: '2026-01-29', time: 'AMC', epsEstimate: 3.12, revenueEstimate: '$68.2B', status: 'upcoming' },
   { symbol: 'META', company: 'Meta Platforms', date: '2026-01-29', time: 'AMC', epsEstimate: 5.22, revenueEstimate: '$45.8B', status: 'upcoming' },
-  { symbol: 'NVDA', company: 'NVIDIA Corp.', date: '2026-02-19', time: 'AMC', epsEstimate: 0.85, revenueEstimate: '$38.5B', status: 'upcoming' },
-  { symbol: 'JPM', company: 'JPMorgan Chase', date: '2026-01-14', time: 'BMO', epsEstimate: 4.15, epsActual: 4.81, revenueEstimate: '$42.2B', revenueActual: '$43.7B', surprise: 15.9, status: 'reported' },
-  { symbol: 'UNH', company: 'UnitedHealth', date: '2026-01-15', time: 'BMO', epsEstimate: 6.72, epsActual: 6.89, revenueEstimate: '$100.8B', revenueActual: '$101.5B', surprise: 2.5, status: 'reported' },
+  { symbol: 'GOOGL', company: 'Alphabet Inc.', date: '2026-02-04', time: 'AMC', epsEstimate: 1.89, revenueEstimate: '$92.1B', status: 'upcoming' },
+  { symbol: 'AMZN', company: 'Amazon.com Inc.', date: '2026-02-06', time: 'AMC', epsEstimate: 1.45, revenueEstimate: '$186.4B', status: 'upcoming' },
+  { symbol: 'NVDA', company: 'NVIDIA Corp.', date: '2026-02-26', time: 'AMC', epsEstimate: 0.85, revenueEstimate: '$38.5B', status: 'upcoming' },
+  { symbol: 'JPM', company: 'JPMorgan Chase', date: '2026-01-15', time: 'BMO', epsEstimate: 4.15, epsActual: 4.81, revenueEstimate: '$42.2B', revenueActual: '$43.7B', surprise: 15.9, status: 'reported' },
+  { symbol: 'UNH', company: 'UnitedHealth', date: '2026-01-16', time: 'BMO', epsEstimate: 6.72, epsActual: 6.89, revenueEstimate: '$100.8B', revenueActual: '$101.5B', surprise: 2.5, status: 'reported' },
   { symbol: 'GS', company: 'Goldman Sachs', date: '2026-01-15', time: 'BMO', epsEstimate: 8.25, epsActual: 11.95, revenueEstimate: '$12.4B', revenueActual: '$13.9B', surprise: 44.8, status: 'reported' },
   { symbol: 'BAC', company: 'Bank of America', date: '2026-01-16', time: 'BMO', epsEstimate: 0.77, epsActual: 0.82, revenueEstimate: '$25.1B', revenueActual: '$25.5B', surprise: 6.5, status: 'reported' },
 ];
