@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { AcademyTabs } from '@/components/academy/AcademyTabs';
 import {
   Search,
   FileText,
@@ -102,7 +103,9 @@ export default function StudyMaterials() {
   ];
 
   return (
-    <div className="container mx-auto p-4 md:p-6 max-w-7xl space-y-6">
+    <div className="min-h-screen">
+      <AcademyTabs />
+      <div className="container mx-auto p-4 md:p-6 max-w-7xl space-y-6">
       {/* Hero Section */}
       <div className="text-center space-y-4 py-6">
         <div className="flex justify-center mb-4">
@@ -246,6 +249,7 @@ export default function StudyMaterials() {
           </div>
         </TabsContent>
       </Tabs>
+      </div>
     </div>
   );
 }

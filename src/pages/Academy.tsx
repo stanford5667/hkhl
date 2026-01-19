@@ -9,7 +9,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Progress } from '@/components/ui/progress';
+import { AcademyTabs } from '@/components/academy/AcademyTabs';
 import {
   Search,
   Clock,
@@ -18,7 +18,6 @@ import {
   Play,
   BookOpen,
   GraduationCap,
-  Filter,
   ChevronRight
 } from 'lucide-react';
 
@@ -112,7 +111,9 @@ export default function Academy() {
   };
 
   return (
-    <div className="container mx-auto p-4 md:p-6 max-w-7xl space-y-6">
+    <div className="min-h-screen">
+      <AcademyTabs />
+      <div className="container mx-auto p-4 md:p-6 max-w-7xl space-y-6">
       {/* Hero Section */}
       <div className="text-center space-y-4 py-6">
         <div className="flex justify-center mb-4">
@@ -274,6 +275,7 @@ export default function Academy() {
           </div>
         </TabsContent>
       </Tabs>
+      </div>
     </div>
   );
 }
