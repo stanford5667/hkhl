@@ -131,12 +131,6 @@ export function Sidebar() {
         icon: BookOpen 
       },
       { 
-        label: "Academy", 
-        subtitle: "Learn & Grow",
-        href: "/academy", 
-        icon: BookOpen 
-      },
-      { 
         label: "Strategy Explorer", 
         subtitle: "Educational Tools",
         href: "/investment-plan", 
