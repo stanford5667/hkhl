@@ -5,7 +5,8 @@ import { cn } from '@/lib/utils';
 
 const academyTabs = [
   { id: 'courses', label: 'Courses', href: '/academy', icon: GraduationCap },
-  { id: 'materials', label: 'Study Materials', href: '/academy/materials', icon: FileText },
+  // Study Materials tab hidden per user request
+  // { id: 'materials', label: 'Study Materials', href: '/academy/materials', icon: FileText },
 ];
 
 export function AcademyTabs() {
