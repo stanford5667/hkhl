@@ -117,30 +117,22 @@ export function Sidebar() {
         isPremium: true,
       },
       { 
+        label: "Academy", 
+        subtitle: "Learn & Grow",
+        href: "/academy", 
+        icon: BookOpen 
+      },
+      { 
         label: "Strategy Explorer", 
         subtitle: "Educational Tools",
         href: "/investment-plan", 
         icon: ClipboardList 
       },
-      // Portfolio Tracker hidden for now
-      // { 
-      //   label: "Portfolio Tracker", 
-      //   subtitle: "Holdings Overview",
-      //   href: "/", 
-      //   icon: Briefcase 
-      // },
       { 
         label: "Market Intel", 
         subtitle: "Research & Insights",
         href: "/market-intel", 
         icon: BarChart3 
-      },
-      // Asset Research hidden
-      { 
-        label: "Glossary", 
-        subtitle: "Terms & Definitions",
-        href: "/glossary", 
-        icon: BookOpen 
       },
       { 
         label: "Support", 
