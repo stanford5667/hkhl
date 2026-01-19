@@ -36,7 +36,6 @@ import { IndexesContent } from '@/components/market-intel/IndexesContent';
 import { SharesContent } from '@/components/market-intel/SharesContent';
 import { CryptoContent } from '@/components/market-intel/CryptoContent';
 import { EarningsContent } from '@/components/market-intel/EarningsContent';
-import { StudiesContent } from '@/components/market-intel/StudiesContent';
 
 import { PageHeader, PAGE_ICON_PRESETS } from '@/components/layout/PageHeader';
 
@@ -119,7 +118,6 @@ export default function MarketIntel() {
         {/* Category-based Content with consistent spacing */}
         <div className="mt-4 sm:mt-5 md:mt-6">
           {activeCategory === 'calendar' && <EconomicCalendarTab onPerformanceUpdate={handleCalendarPerformance} />}
-          {activeCategory === 'studies' && <StudiesContent />}
           {activeCategory === 'countries' && <CountriesContent onItemClick={handleItemClick} />}
           {activeCategory === 'indexes' && <IndexesContent onItemClick={handleItemClick} />}
           

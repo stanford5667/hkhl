@@ -1,15 +1,15 @@
 import React, { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Calendar, DollarSign, Building2 } from 'lucide-react';
-import FundamentalEventCalendar from './FundamentalEventCalendar';
-import EarningsImpactAnalyzer from './EarningsImpactAnalyzer';
-import FOMCImpactStudy from './FOMCImpactStudy';
+import FundamentalEventCalendar from '@/components/quant-lab/FundamentalEventCalendar';
+import EarningsImpactAnalyzer from '@/components/quant-lab/EarningsImpactAnalyzer';
+import FOMCImpactStudy from '@/components/quant-lab/FOMCImpactStudy';
 
-interface StudiesContentProps {
+interface FundamentalStudiesContentProps {
   defaultTab?: string;
 }
 
-export function StudiesContent({ defaultTab = 'calendar' }: StudiesContentProps) {
+export function FundamentalStudiesContent({ defaultTab = 'calendar' }: FundamentalStudiesContentProps) {
   const [activeTab, setActiveTab] = useState(defaultTab);
 
   return (

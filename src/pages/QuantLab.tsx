@@ -41,7 +41,7 @@ import {
   Calendar, Zap, Layers, Volume2, Crosshair, LineChart,
   Gauge, ArrowLeftRight, Mountain, ArrowUpDown,
   Target, Shield, Loader2, GitBranch, Lightbulb,
-  CheckCircle2, X, ExternalLink, ChevronLeft, ChevronDown, ChevronRight, Crown, Lock
+  CheckCircle2, X, ExternalLink, ChevronLeft, ChevronDown, ChevronRight, Crown, Lock, Landmark
 } from 'lucide-react';
 import { InlinePrice } from '@/components/shared/PriceDisplay';
 import { supabase } from '@/integrations/supabase/client';
@@ -63,6 +63,7 @@ import { IntegratedQuantStudiesPanel } from '@/components/equity/IntegratedQuant
 import { EnhancedResultView } from '@/components/quant-lab/EnhancedResultViews';
 import { StudyRunningOverlay } from '@/components/quant-lab/StudyRunningOverlay';
 import { QuantLabWelcomeHero } from '@/components/quant-lab/QuantLabWelcomeHero';
+import { FundamentalStudiesContent } from '@/components/quant-lab/FundamentalStudiesContent';
 
 // ===========================================
 // STUDY DEFINITIONS WITH BEGINNER-FRIENDLY EXPLANATIONS
@@ -756,7 +757,8 @@ const STUDY_CATEGORIES = [
   { id: 'volatility', name: 'Risk', icon: Shield, description: 'Volatility and drawdown analysis' },
   { id: 'patterns', name: 'Patterns', icon: Layers, description: 'Gaps, ranges, and breakouts' },
   { id: 'volume', name: 'Volume', icon: Volume2, description: 'Buying and selling pressure' },
-  { id: 'projections', name: 'Targets', icon: Target, description: 'Price projections' }
+  { id: 'projections', name: 'Targets', icon: Target, description: 'Price projections' },
+  { id: 'fundamental', name: 'Fundamentals', icon: Landmark, description: 'Earnings, Fed, economic events' }
 ];
 
 // Time Period Options
@@ -810,6 +812,7 @@ export default function QuantLab() {
   const [showHelp, setShowHelp] = useState(false);
   const [activeCategory, setActiveCategory] = useState(savedState?.activeCategory || 'basic');
   const [isSaving, setIsSaving] = useState<string | null>(null);
+  const [showFundamentalStudies, setShowFundamentalStudies] = useState(false);
 
   // Persist state to localStorage whenever key values change
   useEffect(() => {
@@ -850,6 +853,7 @@ export default function QuantLab() {
     // Replace any existing study with the new one (single study mode)
     setSelectedStudies([studyId]);
     setResults({});
+    setShowFundamentalStudies(false); // Clear fundamental studies view
     initStudyParams(studyId);
   }, [initStudyParams]);
 
@@ -1187,6 +1191,8 @@ export default function QuantLab() {
         getDisplayMetrics={getDisplayMetrics}
         isPro={isPro}
         usage={usage}
+        showFundamentalStudies={showFundamentalStudies}
+        setShowFundamentalStudies={setShowFundamentalStudies}
       />
     </LearningProvider>
   );
@@ -1200,7 +1206,7 @@ function QuantLabContent(props: any) {
     isRunning, runningStudy, showHelp, setShowHelp, activeCategory, setActiveCategory,
     isSaving, initStudyParams, addStudy, removeStudy, updateParam, handleSetTicker,
     runStudy, runAllStudies, saveStudyResult, getStudy, formatValue, getSentimentStyle, getDisplayMetrics,
-    isPro, usage
+    isPro, usage, showFundamentalStudies, setShowFundamentalStudies
   } = props;
 
   const { markStudyCompleted, checkAndUnlockAchievements, addXp } = useLearning();
@@ -1512,6 +1518,43 @@ function QuantLabContent(props: any) {
                 </div>
               );
             })}
+            
+            {/* Fundamental Studies Section */}
+            <div className="my-4 border-t border-border" />
+            <button
+              onClick={() => {
+                setShowFundamentalStudies(true);
+                setSelectedStudies([]);
+                setResults({});
+              }}
+              className={cn(
+                "w-full text-left p-3 rounded-xl border-2 transition-all duration-200",
+                showFundamentalStudies
+                  ? "border-primary bg-primary/5"
+                  : "border-transparent bg-muted/50 hover:bg-muted active:scale-[0.98]"
+              )}
+            >
+              <div className="flex items-center gap-3">
+                <div className={cn(
+                  "p-2 rounded-lg shrink-0",
+                  showFundamentalStudies ? "bg-primary text-primary-foreground" : "bg-background"
+                )}>
+                  <Landmark className="h-4 w-4" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="font-semibold text-sm">Fundamental Studies</span>
+                    <Badge variant="outline" className="text-[9px] px-1.5 border-blue-500/50 text-blue-600">
+                      Events
+                    </Badge>
+                  </div>
+                  <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">Earnings, FOMC, economic data impact</p>
+                </div>
+                {showFundamentalStudies && (
+                  <CheckCircle2 className="h-5 w-5 text-primary shrink-0" />
+                )}
+              </div>
+            </button>
           </div>
           {/* Run Button at bottom (removed - run per-study from setup cards) */}
           <div className="shrink-0 border-t bg-card px-4 py-3">
@@ -1720,7 +1763,11 @@ function QuantLabContent(props: any) {
 
           {/* Results - Compact on mobile, full on desktop */}
           <div className="flex-1 overflow-y-auto p-2 md:p-6">
-            {Object.keys(results).length > 0 ? (
+            {showFundamentalStudies ? (
+              <div className="max-w-5xl mx-auto">
+                <FundamentalStudiesContent />
+              </div>
+            ) : Object.keys(results).length > 0 ? (
               <div className="max-w-3xl mx-auto space-y-4 md:space-y-6">
                 {selectedStudies.map((studyId) => {
                   const study = getStudy(studyId);
