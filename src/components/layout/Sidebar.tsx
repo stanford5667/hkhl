@@ -135,6 +135,12 @@ export function Sidebar() {
         icon: BarChart3 
       },
       { 
+        label: "Glossary", 
+        subtitle: "Terms & Definitions",
+        href: "/glossary", 
+        icon: BookOpen 
+      },
+      { 
         label: "Support", 
         subtitle: "Help & Tickets",
         href: "/support", 
