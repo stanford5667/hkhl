@@ -22,7 +22,7 @@ export default function LessonView() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  const videoRef = useRef<HTMLIFrameElement>(null);
+  const videoRef = useRef<HTMLIFrameElement | HTMLVideoElement>(null);
   const [videoProgress, setVideoProgress] = useState(0);
 
   // Fetch lesson details
@@ -165,6 +165,11 @@ export default function LessonView() {
     completeLessonMutation.mutate();
   };
 
+  const isDirectVideoUrl = (url: string) => {
+    const clean = url.split('?')[0].toLowerCase();
+    return clean.endsWith('.mp4') || clean.endsWith('.mov') || clean.endsWith('.webm') || clean.endsWith('.m4v');
+  };
+
   const getVideoEmbedUrl = (url: string, provider: string) => {
     if (provider === 'youtube') {
       const videoId = url.includes('v=') ? url.split('v=')[1]?.split('&')[0] : url.split('/').pop();
@@ -252,14 +257,25 @@ export default function LessonView() {
             <CardContent className="p-0">
               <div className="aspect-video bg-black rounded-lg overflow-hidden">
                 {lesson.video_url ? (
-                  <iframe
-                    ref={videoRef}
-                    src={getVideoEmbedUrl(lesson.video_url, lesson.video_provider || 'youtube')}
-                    title={lesson.title}
-                    className="w-full h-full"
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                    allowFullScreen
-                  />
+                  (lesson.video_provider === 'custom' && isDirectVideoUrl(lesson.video_url)) ? (
+                    <video
+                      ref={videoRef as React.RefObject<HTMLVideoElement>}
+                      className="w-full h-full"
+                      src={lesson.video_url}
+                      controls
+                      preload="metadata"
+                      onTimeUpdate={(e) => setVideoProgress(Math.floor((e.currentTarget as HTMLVideoElement).currentTime))}
+                    />
+                  ) : (
+                    <iframe
+                      ref={videoRef as React.RefObject<HTMLIFrameElement>}
+                      src={getVideoEmbedUrl(lesson.video_url, lesson.video_provider || 'youtube')}
+                      title={lesson.title}
+                      className="w-full h-full"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                    />
+                  )
                 ) : (
                   <div className="w-full h-full flex items-center justify-center text-white">
                     <div className="text-center">

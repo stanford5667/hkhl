@@ -306,10 +306,13 @@ export function AdminCoursesTab() {
   const saveLesson = async () => {
     if (!selectedModuleId) return;
     setSaving(true);
-    
+
     try {
       const existingLessons = lessons[selectedModuleId] || [];
       const nextOrder = editingLesson ? editingLesson.order_index : existingLessons.length;
+
+      // DB constraint only allows: youtube | vimeo | mux | custom
+      const videoProviderForDb = lessonForm.video_provider === 'upload' ? 'custom' : lessonForm.video_provider;
 
       if (editingLesson) {
         const { error } = await supabase
@@ -319,7 +322,7 @@ export function AdminCoursesTab() {
             description: lessonForm.description,
             content: lessonForm.content,
             video_url: lessonForm.video_url || null,
-            video_provider: lessonForm.video_provider,
+            video_provider: videoProviderForDb,
             video_duration: lessonForm.video_duration || null,
             is_preview: lessonForm.is_preview,
             updated_at: new Date().toISOString(),
@@ -337,7 +340,7 @@ export function AdminCoursesTab() {
             description: lessonForm.description,
             content: lessonForm.content,
             video_url: lessonForm.video_url || null,
-            video_provider: lessonForm.video_provider,
+            video_provider: videoProviderForDb,
             video_duration: lessonForm.video_duration || null,
             is_preview: lessonForm.is_preview,
             order_index: nextOrder,
@@ -435,12 +438,16 @@ export function AdminCoursesTab() {
   const openEditLesson = (lesson: Lesson, moduleId: string) => {
     setSelectedModuleId(moduleId);
     setEditingLesson(lesson);
+
+    const isUploadedVideo = !!lesson.video_url && lesson.video_url.includes('/storage/v1/object/public/course-videos/');
+    const uiProvider = isUploadedVideo ? 'upload' : (lesson.video_provider || 'youtube');
+
     setLessonForm({
       title: lesson.title,
       description: lesson.description || '',
       content: lesson.content || '',
       video_url: lesson.video_url || '',
-      video_provider: lesson.video_provider || 'youtube',
+      video_provider: uiProvider,
       video_duration: lesson.video_duration || 0,
       is_preview: lesson.is_preview || false,
     });
