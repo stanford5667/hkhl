@@ -98,7 +98,8 @@ export function useCommandCenterMetrics(tierFilter: TierFilter = 'all') {
       const [
         profilesRes,
         subscriptionsRes,
-        usageRes,
+        activitiesRes,
+        courseEnrollmentsRes,
         apiLogsCurrentWeek,
         apiLogsPreviousWeek,
         emailsRes,
@@ -106,7 +107,8 @@ export function useCommandCenterMetrics(tierFilter: TierFilter = 'all') {
       ] = await Promise.all([
         supabase.from('profiles').select('user_id, full_name, avatar_url, company, created_at'),
         supabase.from('subscriptions').select('user_id, plan, status, current_period_end'),
-        supabase.from('user_usage').select('user_id, updated_at'),
+        supabase.from('activities').select('user_id, created_at').order('created_at', { ascending: false }),
+        supabase.from('course_enrollments').select('user_id, last_accessed_at, enrolled_at'),
         supabase.from('api_usage_logs').select('*').gte('created_at', oneWeekAgo.toISOString()),
         supabase.from('api_usage_logs').select('*').gte('created_at', twoWeeksAgo.toISOString()).lt('created_at', oneWeekAgo.toISOString()),
         supabase.functions.invoke('get-users-with-emails'),
@@ -115,7 +117,8 @@ export function useCommandCenterMetrics(tierFilter: TierFilter = 'all') {
 
       const profiles = profilesRes.data || [];
       const subscriptions = subscriptionsRes.data || [];
-      const usage = usageRes.data || [];
+      const activities = activitiesRes.data || [];
+      const courseEnrollments = courseEnrollmentsRes.data || [];
       const currentWeekLogs = apiLogsCurrentWeek.data || [];
       const previousWeekLogs = apiLogsPreviousWeek.data || [];
       const emailMap: Record<string, string> = emailsRes.data?.emails || {};
@@ -129,16 +132,54 @@ export function useCommandCenterMetrics(tierFilter: TierFilter = 'all') {
       // Create roles map
       const rolesMap = new Map(roles.map(r => [r.user_id, r.role]));
 
+      // Build last activity map from multiple sources
+      const lastActivityMap = new Map<string, string>();
+      
+      // Add activities
+      activities.forEach(a => {
+        if (a.user_id && a.created_at) {
+          const existing = lastActivityMap.get(a.user_id);
+          if (!existing || new Date(a.created_at) > new Date(existing)) {
+            lastActivityMap.set(a.user_id, a.created_at);
+          }
+        }
+      });
+      
+      // Add course enrollments
+      courseEnrollments.forEach(ce => {
+        if (ce.user_id) {
+          const activityDate = ce.last_accessed_at || ce.enrolled_at;
+          if (activityDate) {
+            const existing = lastActivityMap.get(ce.user_id);
+            if (!existing || new Date(activityDate) > new Date(existing)) {
+              lastActivityMap.set(ce.user_id, activityDate);
+            }
+          }
+        }
+      });
+      
+      // Add API logs with user_id
+      currentWeekLogs.concat(previousWeekLogs).forEach(log => {
+        if (log.user_id && log.created_at) {
+          const existing = lastActivityMap.get(log.user_id);
+          if (!existing || new Date(log.created_at) > new Date(existing)) {
+            lastActivityMap.set(log.user_id, log.created_at);
+          }
+        }
+      });
+
       // Build users with tier info
       const usersWithTier: UserWithTier[] = profiles.map(profile => {
         const sub = subscriptionMap.get(profile.user_id);
-        const userUsage = usage.find(u => u.user_id === profile.user_id);
         
         let tier: 'free' | 'pro' | 'enterprise' = 'free';
         if (sub?.status === 'active') {
           if (sub.plan === 'enterprise') tier = 'enterprise';
           else if (sub.plan === 'pro') tier = 'pro';
         }
+
+        // Get last activity from our combined map, fallback to profile created_at
+        const lastActive = lastActivityMap.get(profile.user_id) || null;
 
         return {
           id: profile.user_id,
@@ -150,7 +191,7 @@ export function useCommandCenterMetrics(tierFilter: TierFilter = 'all') {
           tier,
           subscription_status: sub?.status || null,
           created_at: profile.created_at,
-          last_active: userUsage?.updated_at || null,
+          last_active: lastActive,
         };
       });
 
@@ -173,23 +214,22 @@ export function useCommandCenterMetrics(tierFilter: TierFilter = 'all') {
         new Date(p.created_at) >= twoWeeksAgo && new Date(p.created_at) < oneWeekAgo
       ).length;
 
-      // Calculate active users by tier if filtered
+      // Calculate active users based on lastActivityMap
       const filteredUserIds = new Set(filteredUsers.map(u => u.id));
-      const activeToday = usage.filter(u => 
-        u.updated_at && 
-        new Date(u.updated_at) >= startOfToday &&
-        (tierFilter === 'all' || filteredUserIds.has(u.user_id))
-      ).length;
-      const activeThisWeek = usage.filter(u => 
-        u.updated_at && 
-        new Date(u.updated_at) >= oneWeekAgo &&
-        (tierFilter === 'all' || filteredUserIds.has(u.user_id))
-      ).length;
-      const activeThisMonth = usage.filter(u => 
-        u.updated_at && 
-        new Date(u.updated_at) >= oneMonthAgo &&
-        (tierFilter === 'all' || filteredUserIds.has(u.user_id))
-      ).length;
+      
+      // Count active users from the lastActivityMap
+      let activeToday = 0;
+      let activeThisWeek = 0;
+      let activeThisMonth = 0;
+      
+      lastActivityMap.forEach((activityDate, userId) => {
+        if (tierFilter !== 'all' && !filteredUserIds.has(userId)) return;
+        
+        const date = new Date(activityDate);
+        if (date >= startOfToday) activeToday++;
+        if (date >= oneWeekAgo) activeThisWeek++;
+        if (date >= oneMonthAgo) activeThisMonth++;
+      });
 
       // API metrics
       const currentSuccesses = currentWeekLogs.filter(l => l.status_code && l.status_code >= 200 && l.status_code < 300).length;
