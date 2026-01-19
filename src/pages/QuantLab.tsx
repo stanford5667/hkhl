@@ -1794,7 +1794,7 @@ function QuantLabContent(props: any) {
           <div className="flex-1 overflow-y-auto p-2 md:p-6">
             {showFundamentalStudies ? (
               <div className="max-w-5xl mx-auto">
-                <FundamentalStudiesContent />
+                <FundamentalStudiesContent selectedTicker={selectedTicker} />
               </div>
             ) : Object.keys(results).length > 0 ? (
               <div className="max-w-3xl mx-auto space-y-4 md:space-y-6">
