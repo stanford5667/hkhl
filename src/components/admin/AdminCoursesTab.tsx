@@ -1,0 +1,824 @@
+import { useState, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Switch } from '@/components/ui/switch';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { Badge } from '@/components/ui/badge';
+import {
+  Plus,
+  Pencil,
+  Trash2,
+  Video,
+  GripVertical,
+  Loader2,
+  BookOpen,
+  Layers,
+  FileText,
+  Save,
+  Eye,
+  EyeOff,
+} from 'lucide-react';
+
+interface Course {
+  id: string;
+  title: string;
+  description: string | null;
+  category: string | null;
+  level: string | null;
+  thumbnail_url: string | null;
+  is_published: boolean | null;
+  is_free: boolean | null;
+  price: number | null;
+  duration_hours: number | null;
+  created_at: string | null;
+}
+
+interface Module {
+  id: string;
+  course_id: string | null;
+  title: string;
+  description: string | null;
+  order_index: number;
+}
+
+interface Lesson {
+  id: string;
+  module_id: string | null;
+  title: string;
+  description: string | null;
+  content: string | null;
+  video_url: string | null;
+  video_provider: string | null;
+  video_duration: number | null;
+  order_index: number;
+  is_preview: boolean | null;
+}
+
+export function AdminCoursesTab() {
+  const { toast } = useToast();
+  const [courses, setCourses] = useState<Course[]>([]);
+  const [modules, setModules] = useState<Record<string, Module[]>>({});
+  const [lessons, setLessons] = useState<Record<string, Lesson[]>>({});
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  
+  // Dialog states
+  const [courseDialogOpen, setCourseDialogOpen] = useState(false);
+  const [moduleDialogOpen, setModuleDialogOpen] = useState(false);
+  const [lessonDialogOpen, setLessonDialogOpen] = useState(false);
+  
+  // Edit states
+  const [editingCourse, setEditingCourse] = useState<Course | null>(null);
+  const [editingModule, setEditingModule] = useState<Module | null>(null);
+  const [editingLesson, setEditingLesson] = useState<Lesson | null>(null);
+  const [selectedCourseId, setSelectedCourseId] = useState<string | null>(null);
+  const [selectedModuleId, setSelectedModuleId] = useState<string | null>(null);
+
+  // Form states
+  const [courseForm, setCourseForm] = useState({
+    title: '',
+    description: '',
+    category: '',
+    level: 'beginner',
+    thumbnail_url: '',
+    is_published: false,
+    is_free: true,
+    price: 0,
+  });
+
+  const [moduleForm, setModuleForm] = useState({
+    title: '',
+    description: '',
+  });
+
+  const [lessonForm, setLessonForm] = useState({
+    title: '',
+    description: '',
+    content: '',
+    video_url: '',
+    video_provider: 'youtube',
+    video_duration: 0,
+    is_preview: false,
+  });
+
+  useEffect(() => {
+    fetchCourses();
+  }, []);
+
+  const fetchCourses = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('courses')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setCourses(data || []);
+
+      // Fetch modules for each course
+      for (const course of data || []) {
+        await fetchModules(course.id);
+      }
+    } catch (err) {
+      console.error('Error fetching courses:', err);
+      toast({ title: 'Error', description: 'Failed to load courses', variant: 'destructive' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchModules = async (courseId: string) => {
+    const { data, error } = await supabase
+      .from('course_modules')
+      .select('*')
+      .eq('course_id', courseId)
+      .order('order_index');
+
+    if (!error && data) {
+      setModules(prev => ({ ...prev, [courseId]: data }));
+      
+      // Fetch lessons for each module
+      for (const module of data) {
+        await fetchLessons(module.id);
+      }
+    }
+  };
+
+  const fetchLessons = async (moduleId: string) => {
+    const { data, error } = await supabase
+      .from('course_lessons')
+      .select('*')
+      .eq('module_id', moduleId)
+      .order('order_index');
+
+    if (!error && data) {
+      setLessons(prev => ({ ...prev, [moduleId]: data }));
+    }
+  };
+
+  // Course CRUD
+  const saveCourse = async () => {
+    setSaving(true);
+    try {
+      if (editingCourse) {
+        const { error } = await supabase
+          .from('courses')
+          .update({
+            title: courseForm.title,
+            description: courseForm.description,
+            category: courseForm.category,
+            level: courseForm.level,
+            thumbnail_url: courseForm.thumbnail_url || null,
+            is_published: courseForm.is_published,
+            is_free: courseForm.is_free,
+            price: courseForm.is_free ? null : courseForm.price,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', editingCourse.id);
+
+        if (error) throw error;
+        toast({ title: 'Success', description: 'Course updated' });
+      } else {
+        const { error } = await supabase
+          .from('courses')
+          .insert({
+            title: courseForm.title,
+            description: courseForm.description,
+            category: courseForm.category,
+            level: courseForm.level,
+            thumbnail_url: courseForm.thumbnail_url || null,
+            is_published: courseForm.is_published,
+            is_free: courseForm.is_free,
+            price: courseForm.is_free ? null : courseForm.price,
+          });
+
+        if (error) throw error;
+        toast({ title: 'Success', description: 'Course created' });
+      }
+
+      setCourseDialogOpen(false);
+      resetCourseForm();
+      fetchCourses();
+    } catch (err) {
+      console.error('Error saving course:', err);
+      toast({ title: 'Error', description: 'Failed to save course', variant: 'destructive' });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const deleteCourse = async (courseId: string) => {
+    if (!confirm('Delete this course and all its content?')) return;
+    
+    try {
+      const { error } = await supabase.from('courses').delete().eq('id', courseId);
+      if (error) throw error;
+      toast({ title: 'Success', description: 'Course deleted' });
+      fetchCourses();
+    } catch (err) {
+      console.error('Error deleting course:', err);
+      toast({ title: 'Error', description: 'Failed to delete course', variant: 'destructive' });
+    }
+  };
+
+  // Module CRUD
+  const saveModule = async () => {
+    if (!selectedCourseId) return;
+    setSaving(true);
+    
+    try {
+      const existingModules = modules[selectedCourseId] || [];
+      const nextOrder = editingModule ? editingModule.order_index : existingModules.length;
+
+      if (editingModule) {
+        const { error } = await supabase
+          .from('course_modules')
+          .update({
+            title: moduleForm.title,
+            description: moduleForm.description,
+          })
+          .eq('id', editingModule.id);
+
+        if (error) throw error;
+        toast({ title: 'Success', description: 'Module updated' });
+      } else {
+        const { error } = await supabase
+          .from('course_modules')
+          .insert({
+            course_id: selectedCourseId,
+            title: moduleForm.title,
+            description: moduleForm.description,
+            order_index: nextOrder,
+          });
+
+        if (error) throw error;
+        toast({ title: 'Success', description: 'Module created' });
+      }
+
+      setModuleDialogOpen(false);
+      resetModuleForm();
+      fetchModules(selectedCourseId);
+    } catch (err) {
+      console.error('Error saving module:', err);
+      toast({ title: 'Error', description: 'Failed to save module', variant: 'destructive' });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const deleteModule = async (moduleId: string, courseId: string) => {
+    if (!confirm('Delete this module and all its lessons?')) return;
+    
+    try {
+      const { error } = await supabase.from('course_modules').delete().eq('id', moduleId);
+      if (error) throw error;
+      toast({ title: 'Success', description: 'Module deleted' });
+      fetchModules(courseId);
+    } catch (err) {
+      console.error('Error deleting module:', err);
+      toast({ title: 'Error', description: 'Failed to delete module', variant: 'destructive' });
+    }
+  };
+
+  // Lesson CRUD
+  const saveLesson = async () => {
+    if (!selectedModuleId) return;
+    setSaving(true);
+    
+    try {
+      const existingLessons = lessons[selectedModuleId] || [];
+      const nextOrder = editingLesson ? editingLesson.order_index : existingLessons.length;
+
+      if (editingLesson) {
+        const { error } = await supabase
+          .from('course_lessons')
+          .update({
+            title: lessonForm.title,
+            description: lessonForm.description,
+            content: lessonForm.content,
+            video_url: lessonForm.video_url || null,
+            video_provider: lessonForm.video_provider,
+            video_duration: lessonForm.video_duration || null,
+            is_preview: lessonForm.is_preview,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', editingLesson.id);
+
+        if (error) throw error;
+        toast({ title: 'Success', description: 'Lesson updated' });
+      } else {
+        const { error } = await supabase
+          .from('course_lessons')
+          .insert({
+            module_id: selectedModuleId,
+            title: lessonForm.title,
+            description: lessonForm.description,
+            content: lessonForm.content,
+            video_url: lessonForm.video_url || null,
+            video_provider: lessonForm.video_provider,
+            video_duration: lessonForm.video_duration || null,
+            is_preview: lessonForm.is_preview,
+            order_index: nextOrder,
+          });
+
+        if (error) throw error;
+        toast({ title: 'Success', description: 'Lesson created' });
+      }
+
+      setLessonDialogOpen(false);
+      resetLessonForm();
+      fetchLessons(selectedModuleId);
+    } catch (err) {
+      console.error('Error saving lesson:', err);
+      toast({ title: 'Error', description: 'Failed to save lesson', variant: 'destructive' });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const deleteLesson = async (lessonId: string, moduleId: string) => {
+    if (!confirm('Delete this lesson?')) return;
+    
+    try {
+      const { error } = await supabase.from('course_lessons').delete().eq('id', lessonId);
+      if (error) throw error;
+      toast({ title: 'Success', description: 'Lesson deleted' });
+      fetchLessons(moduleId);
+    } catch (err) {
+      console.error('Error deleting lesson:', err);
+      toast({ title: 'Error', description: 'Failed to delete lesson', variant: 'destructive' });
+    }
+  };
+
+  // Reset forms
+  const resetCourseForm = () => {
+    setEditingCourse(null);
+    setCourseForm({
+      title: '',
+      description: '',
+      category: '',
+      level: 'beginner',
+      thumbnail_url: '',
+      is_published: false,
+      is_free: true,
+      price: 0,
+    });
+  };
+
+  const resetModuleForm = () => {
+    setEditingModule(null);
+    setModuleForm({ title: '', description: '' });
+  };
+
+  const resetLessonForm = () => {
+    setEditingLesson(null);
+    setLessonForm({
+      title: '',
+      description: '',
+      content: '',
+      video_url: '',
+      video_provider: 'youtube',
+      video_duration: 0,
+      is_preview: false,
+    });
+  };
+
+  // Open edit dialogs
+  const openEditCourse = (course: Course) => {
+    setEditingCourse(course);
+    setCourseForm({
+      title: course.title,
+      description: course.description || '',
+      category: course.category || '',
+      level: course.level || 'beginner',
+      thumbnail_url: course.thumbnail_url || '',
+      is_published: course.is_published || false,
+      is_free: course.is_free ?? true,
+      price: course.price || 0,
+    });
+    setCourseDialogOpen(true);
+  };
+
+  const openEditModule = (module: Module, courseId: string) => {
+    setSelectedCourseId(courseId);
+    setEditingModule(module);
+    setModuleForm({
+      title: module.title,
+      description: module.description || '',
+    });
+    setModuleDialogOpen(true);
+  };
+
+  const openEditLesson = (lesson: Lesson, moduleId: string) => {
+    setSelectedModuleId(moduleId);
+    setEditingLesson(lesson);
+    setLessonForm({
+      title: lesson.title,
+      description: lesson.description || '',
+      content: lesson.content || '',
+      video_url: lesson.video_url || '',
+      video_provider: lesson.video_provider || 'youtube',
+      video_duration: lesson.video_duration || 0,
+      is_preview: lesson.is_preview || false,
+    });
+    setLessonDialogOpen(true);
+  };
+
+  const openAddModule = (courseId: string) => {
+    setSelectedCourseId(courseId);
+    resetModuleForm();
+    setModuleDialogOpen(true);
+  };
+
+  const openAddLesson = (moduleId: string) => {
+    setSelectedModuleId(moduleId);
+    resetLessonForm();
+    setLessonDialogOpen(true);
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-xl font-semibold text-foreground">Course Management</h2>
+          <p className="text-sm text-muted-foreground">Create and manage courses, modules, and lessons</p>
+        </div>
+        <Dialog open={courseDialogOpen} onOpenChange={(open) => { setCourseDialogOpen(open); if (!open) resetCourseForm(); }}>
+          <DialogTrigger asChild>
+            <Button className="gap-2">
+              <Plus className="h-4 w-4" />
+              New Course
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>{editingCourse ? 'Edit Course' : 'Create New Course'}</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label>Title</Label>
+                <Input
+                  value={courseForm.title}
+                  onChange={(e) => setCourseForm({ ...courseForm, title: e.target.value })}
+                  placeholder="Course title"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Description</Label>
+                <Textarea
+                  value={courseForm.description}
+                  onChange={(e) => setCourseForm({ ...courseForm, description: e.target.value })}
+                  placeholder="Course description"
+                  rows={3}
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Category</Label>
+                  <Input
+                    value={courseForm.category}
+                    onChange={(e) => setCourseForm({ ...courseForm, category: e.target.value })}
+                    placeholder="e.g., Investing, Trading"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Level</Label>
+                  <Select value={courseForm.level} onValueChange={(v) => setCourseForm({ ...courseForm, level: v })}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="beginner">Beginner</SelectItem>
+                      <SelectItem value="intermediate">Intermediate</SelectItem>
+                      <SelectItem value="advanced">Advanced</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label>Thumbnail URL</Label>
+                <Input
+                  value={courseForm.thumbnail_url}
+                  onChange={(e) => setCourseForm({ ...courseForm, thumbnail_url: e.target.value })}
+                  placeholder="https://..."
+                />
+              </div>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Switch
+                    checked={courseForm.is_published}
+                    onCheckedChange={(v) => setCourseForm({ ...courseForm, is_published: v })}
+                  />
+                  <Label>Published</Label>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Switch
+                    checked={courseForm.is_free}
+                    onCheckedChange={(v) => setCourseForm({ ...courseForm, is_free: v })}
+                  />
+                  <Label>Free Course</Label>
+                </div>
+              </div>
+              {!courseForm.is_free && (
+                <div className="space-y-2">
+                  <Label>Price ($)</Label>
+                  <Input
+                    type="number"
+                    value={courseForm.price}
+                    onChange={(e) => setCourseForm({ ...courseForm, price: parseFloat(e.target.value) || 0 })}
+                  />
+                </div>
+              )}
+              <Button onClick={saveCourse} disabled={saving || !courseForm.title} className="w-full gap-2">
+                {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                {editingCourse ? 'Update Course' : 'Create Course'}
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      </div>
+
+      {/* Module Dialog */}
+      <Dialog open={moduleDialogOpen} onOpenChange={(open) => { setModuleDialogOpen(open); if (!open) resetModuleForm(); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{editingModule ? 'Edit Module' : 'Add Module'}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Title</Label>
+              <Input
+                value={moduleForm.title}
+                onChange={(e) => setModuleForm({ ...moduleForm, title: e.target.value })}
+                placeholder="Module title"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Description</Label>
+              <Textarea
+                value={moduleForm.description}
+                onChange={(e) => setModuleForm({ ...moduleForm, description: e.target.value })}
+                placeholder="Module description"
+                rows={2}
+              />
+            </div>
+            <Button onClick={saveModule} disabled={saving || !moduleForm.title} className="w-full gap-2">
+              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+              {editingModule ? 'Update Module' : 'Add Module'}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Lesson Dialog */}
+      <Dialog open={lessonDialogOpen} onOpenChange={(open) => { setLessonDialogOpen(open); if (!open) resetLessonForm(); }}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{editingLesson ? 'Edit Lesson' : 'Add Lesson'}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Title</Label>
+              <Input
+                value={lessonForm.title}
+                onChange={(e) => setLessonForm({ ...lessonForm, title: e.target.value })}
+                placeholder="Lesson title"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Description</Label>
+              <Textarea
+                value={lessonForm.description}
+                onChange={(e) => setLessonForm({ ...lessonForm, description: e.target.value })}
+                placeholder="Lesson description"
+                rows={2}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Video URL</Label>
+              <Input
+                value={lessonForm.video_url}
+                onChange={(e) => setLessonForm({ ...lessonForm, video_url: e.target.value })}
+                placeholder="YouTube or Vimeo URL"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Video Provider</Label>
+                <Select value={lessonForm.video_provider} onValueChange={(v) => setLessonForm({ ...lessonForm, video_provider: v })}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="youtube">YouTube</SelectItem>
+                    <SelectItem value="vimeo">Vimeo</SelectItem>
+                    <SelectItem value="custom">Custom</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Duration (minutes)</Label>
+                <Input
+                  type="number"
+                  value={lessonForm.video_duration}
+                  onChange={(e) => setLessonForm({ ...lessonForm, video_duration: parseInt(e.target.value) || 0 })}
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Content (Markdown)</Label>
+              <Textarea
+                value={lessonForm.content}
+                onChange={(e) => setLessonForm({ ...lessonForm, content: e.target.value })}
+                placeholder="Lesson content in markdown..."
+                rows={6}
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <Switch
+                checked={lessonForm.is_preview}
+                onCheckedChange={(v) => setLessonForm({ ...lessonForm, is_preview: v })}
+              />
+              <Label>Free Preview (visible to non-enrolled users)</Label>
+            </div>
+            <Button onClick={saveLesson} disabled={saving || !lessonForm.title} className="w-full gap-2">
+              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+              {editingLesson ? 'Update Lesson' : 'Add Lesson'}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Courses List */}
+      {courses.length === 0 ? (
+        <Card className="border-dashed">
+          <CardContent className="flex flex-col items-center justify-center py-12 text-center">
+            <BookOpen className="h-12 w-12 text-muted-foreground/50 mb-4" />
+            <h3 className="text-lg font-medium text-foreground mb-2">No courses yet</h3>
+            <p className="text-sm text-muted-foreground mb-4">Create your first course to get started</p>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="space-y-4">
+          {courses.map((course) => (
+            <Card key={course.id} className="overflow-hidden">
+              <CardHeader className="pb-3">
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-primary/10">
+                      <BookOpen className="h-5 w-5 text-primary" />
+                    </div>
+                    <div>
+                      <CardTitle className="text-lg flex items-center gap-2">
+                        {course.title}
+                        {course.is_published ? (
+                          <Badge variant="default" className="gap-1">
+                            <Eye className="h-3 w-3" /> Published
+                          </Badge>
+                        ) : (
+                          <Badge variant="secondary" className="gap-1">
+                            <EyeOff className="h-3 w-3" /> Draft
+                          </Badge>
+                        )}
+                        {course.is_free && <Badge variant="outline">Free</Badge>}
+                      </CardTitle>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        {course.category} • {course.level}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button variant="ghost" size="icon" onClick={() => openEditCourse(course)}>
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                    <Button variant="ghost" size="icon" onClick={() => deleteCourse(course.id)}>
+                      <Trash2 className="h-4 w-4 text-destructive" />
+                    </Button>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <Accordion type="multiple" className="w-full">
+                  {/* Modules */}
+                  {(modules[course.id] || []).map((module) => (
+                    <AccordionItem key={module.id} value={module.id}>
+                      <AccordionTrigger className="hover:no-underline">
+                        <div className="flex items-center gap-3">
+                          <Layers className="h-4 w-4 text-muted-foreground" />
+                          <span>{module.title}</span>
+                          <Badge variant="outline" className="ml-2">
+                            {(lessons[module.id] || []).length} lessons
+                          </Badge>
+                        </div>
+                      </AccordionTrigger>
+                      <AccordionContent>
+                        <div className="pl-7 space-y-2">
+                          <div className="flex items-center gap-2 mb-3">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => openEditModule(module, course.id)}
+                              className="gap-1"
+                            >
+                              <Pencil className="h-3 w-3" /> Edit Module
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => deleteModule(module.id, course.id)}
+                              className="gap-1 text-destructive hover:text-destructive"
+                            >
+                              <Trash2 className="h-3 w-3" /> Delete
+                            </Button>
+                            <Button
+                              variant="default"
+                              size="sm"
+                              onClick={() => openAddLesson(module.id)}
+                              className="gap-1 ml-auto"
+                            >
+                              <Plus className="h-3 w-3" /> Add Lesson
+                            </Button>
+                          </div>
+                          
+                          {/* Lessons */}
+                          {(lessons[module.id] || []).map((lesson) => (
+                            <div
+                              key={lesson.id}
+                              className="flex items-center justify-between p-3 rounded-lg bg-muted/50 border"
+                            >
+                              <div className="flex items-center gap-3">
+                                <GripVertical className="h-4 w-4 text-muted-foreground cursor-grab" />
+                                {lesson.video_url ? (
+                                  <Video className="h-4 w-4 text-primary" />
+                                ) : (
+                                  <FileText className="h-4 w-4 text-muted-foreground" />
+                                )}
+                                <div>
+                                  <p className="text-sm font-medium">{lesson.title}</p>
+                                  {lesson.video_duration && (
+                                    <p className="text-xs text-muted-foreground">{lesson.video_duration} min</p>
+                                  )}
+                                </div>
+                                {lesson.is_preview && <Badge variant="secondary">Preview</Badge>}
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => openEditLesson(lesson, module.id)}
+                                >
+                                  <Pencil className="h-3 w-3" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => deleteLesson(lesson.id, module.id)}
+                                >
+                                  <Trash2 className="h-3 w-3 text-destructive" />
+                                </Button>
+                              </div>
+                            </div>
+                          ))}
+                          
+                          {(lessons[module.id] || []).length === 0 && (
+                            <p className="text-sm text-muted-foreground py-2">No lessons yet</p>
+                          )}
+                        </div>
+                      </AccordionContent>
+                    </AccordionItem>
+                  ))}
+                </Accordion>
+                
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => openAddModule(course.id)}
+                  className="mt-4 gap-2"
+                >
+                  <Plus className="h-4 w-4" />
+                  Add Module
+                </Button>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
