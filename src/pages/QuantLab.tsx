@@ -13,9 +13,9 @@
  * - No coding required
  */
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -65,7 +65,7 @@ import { StudyRunningOverlay } from '@/components/quant-lab/StudyRunningOverlay'
 import { QuantLabWelcomeHero } from '@/components/quant-lab/QuantLabWelcomeHero';
 import { FundamentalStudiesContent } from '@/components/quant-lab/FundamentalStudiesContent';
 import { CollapsibleStudyCategories } from '@/components/quant-lab/CollapsibleStudyCategories';
-
+import { useScrollPersistence } from '@/hooks/useScrollPersistence';
 // ===========================================
 // STUDY DEFINITIONS WITH BEGINNER-FRIENDLY EXPLANATIONS
 // ===========================================
@@ -1214,7 +1214,16 @@ function QuantLabContent(props: any) {
   const { markStudyCompleted, checkAndUnlockAchievements, addXp } = useLearning();
   const { user } = useAuth();
   const navigate = useNavigate();
-  
+  const location = useLocation();
+
+  // Independent scroll containers (left panel + results panel)
+  const leftPanelScrollRef = useRef<HTMLDivElement>(null);
+  const resultsScrollRef = useRef<HTMLDivElement>(null);
+
+  // Persist scroll for both panels (so you don't lose your place when navigating away)
+  useScrollPersistence(leftPanelScrollRef, `lovable:scroll:quantlab:left:${location.pathname}`);
+  useScrollPersistence(resultsScrollRef, `lovable:scroll:quantlab:results:${location.pathname}`);
+
   // Auth state for prompting sign in/up
   const [showAuthSheet, setShowAuthSheet] = useState(false);
   
@@ -1457,7 +1466,7 @@ function QuantLabContent(props: any) {
           </div>
           
           {/* Study List - Collapsible categories with independent scroll */}
-          <div className="flex-1 overflow-y-auto min-h-0">
+          <div ref={leftPanelScrollRef} className="flex-1 overflow-y-auto min-h-0">
             <CollapsibleStudyCategories
               categories={STUDY_CATEGORIES}
               studies={STUDY_DEFINITIONS}
@@ -1649,7 +1658,7 @@ function QuantLabContent(props: any) {
           )}
 
           {/* Results - Compact on mobile, full on desktop - Independent scroll */}
-          <div className="flex-1 overflow-y-auto p-2 md:p-6 min-h-0">
+          <div ref={resultsScrollRef} className="flex-1 overflow-y-auto p-2 md:p-6 min-h-0">
             {showFundamentalStudies ? (
               <div className="max-w-5xl mx-auto">
                 <FundamentalStudiesContent selectedTicker={ticker} />
