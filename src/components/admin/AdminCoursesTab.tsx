@@ -109,10 +109,11 @@ export function AdminCoursesTab() {
   });
 
   useEffect(() => {
-    fetchCourses();
+    fetchCourses(true);
   }, []);
 
-  const fetchCourses = async () => {
+  const fetchCourses = async (showLoading = false) => {
+    if (showLoading) setLoading(true);
     try {
       const { data, error } = await supabase
         .from('courses')
@@ -130,7 +131,7 @@ export function AdminCoursesTab() {
       console.error('Error fetching courses:', err);
       toast({ title: 'Error', description: 'Failed to load courses', variant: 'destructive' });
     } finally {
-      setLoading(false);
+      if (showLoading) setLoading(false);
     }
   };
 
@@ -186,7 +187,7 @@ export function AdminCoursesTab() {
         if (error) throw error;
         toast({ title: 'Success', description: 'Course updated' });
       } else {
-        const { error } = await supabase
+        const { data, error } = await supabase
           .from('courses')
           .insert({
             title: courseForm.title,
@@ -197,15 +198,23 @@ export function AdminCoursesTab() {
             is_published: courseForm.is_published,
             is_free: courseForm.is_free,
             price: courseForm.is_free ? null : courseForm.price,
-          });
+          })
+          .select();
 
         if (error) throw error;
+        
+        // Add the new course to state immediately
+        if (data && data.length > 0) {
+          setCourses(prev => [data[0], ...prev]);
+        }
         toast({ title: 'Success', description: 'Course created' });
       }
 
       setCourseDialogOpen(false);
       resetCourseForm();
-      fetchCourses();
+      
+      // Re-fetch to ensure sync
+      await fetchCourses();
     } catch (err) {
       console.error('Error saving course:', err);
       toast({ title: 'Error', description: 'Failed to save course', variant: 'destructive' });
@@ -610,15 +619,14 @@ export function AdminCoursesTab() {
                 rows={2}
               />
             </div>
-            <div className="space-y-2">
-              <Label>Video URL</Label>
-              <Input
-                value={lessonForm.video_url}
-                onChange={(e) => setLessonForm({ ...lessonForm, video_url: e.target.value })}
-                placeholder="YouTube or Vimeo URL"
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
+            
+            {/* Video Section */}
+            <div className="border rounded-lg p-4 space-y-4 bg-muted/30">
+              <div className="flex items-center gap-2">
+                <Video className="h-4 w-4 text-primary" />
+                <Label className="text-sm font-medium">Video Settings</Label>
+              </div>
+              
               <div className="space-y-2">
                 <Label>Video Provider</Label>
                 <Select value={lessonForm.video_provider} onValueChange={(v) => setLessonForm({ ...lessonForm, video_provider: v })}>
@@ -628,19 +636,74 @@ export function AdminCoursesTab() {
                   <SelectContent>
                     <SelectItem value="youtube">YouTube</SelectItem>
                     <SelectItem value="vimeo">Vimeo</SelectItem>
-                    <SelectItem value="custom">Custom</SelectItem>
+                    <SelectItem value="custom">Custom URL</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
+              
+              <div className="space-y-2">
+                <Label>Video URL</Label>
+                <Input
+                  value={lessonForm.video_url}
+                  onChange={(e) => setLessonForm({ ...lessonForm, video_url: e.target.value })}
+                  placeholder={
+                    lessonForm.video_provider === 'youtube' 
+                      ? 'https://www.youtube.com/watch?v=...' 
+                      : lessonForm.video_provider === 'vimeo'
+                      ? 'https://vimeo.com/...'
+                      : 'Enter video embed URL'
+                  }
+                />
+                <p className="text-xs text-muted-foreground">
+                  {lessonForm.video_provider === 'youtube' && 'Paste a YouTube video URL (e.g., https://www.youtube.com/watch?v=abc123)'}
+                  {lessonForm.video_provider === 'vimeo' && 'Paste a Vimeo video URL (e.g., https://vimeo.com/123456)'}
+                  {lessonForm.video_provider === 'custom' && 'Paste a direct video embed URL'}
+                </p>
+              </div>
+              
               <div className="space-y-2">
                 <Label>Duration (minutes)</Label>
                 <Input
                   type="number"
                   value={lessonForm.video_duration}
                   onChange={(e) => setLessonForm({ ...lessonForm, video_duration: parseInt(e.target.value) || 0 })}
+                  placeholder="e.g., 15"
                 />
               </div>
+              
+              {/* Video Preview */}
+              {lessonForm.video_url && (
+                <div className="space-y-2">
+                  <Label>Preview</Label>
+                  <div className="aspect-video bg-black/20 rounded-lg overflow-hidden">
+                    {lessonForm.video_provider === 'youtube' && lessonForm.video_url && (
+                      <iframe
+                        className="w-full h-full"
+                        src={`https://www.youtube.com/embed/${lessonForm.video_url.match(/(?:youtu\.be\/|youtube\.com(?:\/embed\/|\/v\/|\/watch\?v=|\/watch\?.+&v=))([^&?#]+)/)?.[1] || ''}`}
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        allowFullScreen
+                      />
+                    )}
+                    {lessonForm.video_provider === 'vimeo' && lessonForm.video_url && (
+                      <iframe
+                        className="w-full h-full"
+                        src={`https://player.vimeo.com/video/${lessonForm.video_url.match(/vimeo\.com\/(\d+)/)?.[1] || ''}`}
+                        allow="autoplay; fullscreen; picture-in-picture"
+                        allowFullScreen
+                      />
+                    )}
+                    {lessonForm.video_provider === 'custom' && lessonForm.video_url && (
+                      <iframe
+                        className="w-full h-full"
+                        src={lessonForm.video_url}
+                        allowFullScreen
+                      />
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
+            
             <div className="space-y-2">
               <Label>Content (Markdown)</Label>
               <Textarea
