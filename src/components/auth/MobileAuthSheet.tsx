@@ -260,8 +260,8 @@ export function MobileAuthSheet({
   }
 
   return (
-    <Drawer open={open} onOpenChange={onOpenChange} handleOnly>
-      <DrawerContent className="max-h-[95dvh] touch-none [&>*]:touch-auto">
+    <Drawer open={open} onOpenChange={onOpenChange} handleOnly modal>
+      <DrawerContent className="max-h-[95dvh]">
         {showVerificationPending ? (
           <div className="px-3 pb-4 safe-area-bottom">
             {verificationContent}

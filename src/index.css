@@ -736,6 +736,18 @@
   overscroll-behavior-y: contain;
 }
 
+/* Fix mobile scroll blocking - ensure touch events propagate */
+@media (hover: none) and (pointer: coarse) {
+  html, body {
+    touch-action: pan-y pan-x;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  main {
+    touch-action: pan-y pan-x;
+  }
+}
+
 /* Touch-friendly tap states */
 @media (hover: none) and (pointer: coarse) {
   button, 
