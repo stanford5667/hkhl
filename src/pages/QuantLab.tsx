@@ -895,8 +895,9 @@ export default function QuantLab() {
   }, []);
 
   // Run a single study
-  const runStudy = useCallback(async (studyId: string) => {
-    if (!selectedTicker) {
+  const runStudy = useCallback(async (studyId: string, tickerOverride?: string) => {
+    const tickerToUse = (tickerOverride ?? selectedTicker)?.toUpperCase().trim();
+    if (!tickerToUse) {
       toast.error('Please enter a ticker symbol');
       return;
     }
@@ -975,7 +976,7 @@ export default function QuantLab() {
 
       const { data, error } = await supabase.functions.invoke('run-asset-study', {
         body: {
-          ticker: selectedTicker,
+          ticker: tickerToUse,
           studyType: studyId,
           startDate: startDate.toISOString().split('T')[0],
           endDate,
@@ -1228,8 +1229,8 @@ function QuantLabContent(props: any) {
   } | null>(null);
 
   // Enhanced run study that tracks learning
-  const handleRunStudy = async (studyId: string) => {
-    await runStudy(studyId);
+  const handleRunStudy = async (studyId: string, tickerOverride?: string) => {
+    await runStudy(studyId, tickerOverride);
     markStudyCompleted(studyId);
     checkAndUnlockAchievements({ studyId });
     addXp(15);
@@ -1297,7 +1298,7 @@ function QuantLabContent(props: any) {
       <StudyRunningOverlay 
         isRunning={!!runningStudy}
         studyName={STUDY_DEFINITIONS.find(s => s.id === runningStudy)?.name || 'Study'}
-        ticker={selectedTicker}
+        ticker={ticker}
         isGuest={!user}
       />
       
@@ -1349,10 +1350,11 @@ function QuantLabContent(props: any) {
                 onBlur={() => { if (ticker.trim()) handleSetTicker(ticker.trim()); }}
                 onKeyDown={(e) => { 
                   if (e.key === 'Enter' && ticker.trim()) {
-                    handleSetTicker(ticker.trim());
-                    // Auto-run current study with new ticker
+                    const nextTicker = ticker.trim();
+                    handleSetTicker(nextTicker);
+                    // Auto-run current study with the new ticker (don't rely on state sync timing)
                     if (selectedStudies.length > 0) {
-                      setTimeout(() => handleRunStudy(selectedStudies[0]), 100);
+                      setTimeout(() => handleRunStudy(selectedStudies[0], nextTicker), 100);
                     }
                   }
                 }}
@@ -1364,9 +1366,10 @@ function QuantLabContent(props: any) {
                 className="absolute right-1 top-1/2 -translate-y-1/2 h-8 px-3 text-xs"
                 onClick={() => {
                   if (ticker.trim()) {
-                    handleSetTicker(ticker.trim());
+                    const nextTicker = ticker.trim();
+                    handleSetTicker(nextTicker);
                     if (selectedStudies.length > 0) {
-                      setTimeout(() => handleRunStudy(selectedStudies[0]), 100);
+                      setTimeout(() => handleRunStudy(selectedStudies[0], nextTicker), 100);
                     }
                   }
                 }}
@@ -1389,7 +1392,7 @@ function QuantLabContent(props: any) {
                   handleSetTicker(t);
                   // Auto-run with new ticker
                   if (selectedStudies.length > 0) {
-                    setTimeout(() => handleRunStudy(selectedStudies[0]), 100);
+                    setTimeout(() => handleRunStudy(selectedStudies[0], t), 100);
                   }
                 }}
               >
@@ -1716,7 +1719,7 @@ function QuantLabContent(props: any) {
                       ) : (
                         <>
                           <Play className="h-5 w-5" />
-                          Run Study on {selectedTicker}
+                          Run Study on {ticker}
                         </>
                       )}
                     </Button>
@@ -1794,7 +1797,7 @@ function QuantLabContent(props: any) {
           <div className="flex-1 overflow-y-auto p-2 md:p-6">
             {showFundamentalStudies ? (
               <div className="max-w-5xl mx-auto">
-                <FundamentalStudiesContent selectedTicker={selectedTicker} />
+                <FundamentalStudiesContent selectedTicker={ticker} />
               </div>
             ) : Object.keys(results).length > 0 ? (
               <div className="max-w-3xl mx-auto space-y-4 md:space-y-6">
@@ -1849,7 +1852,7 @@ function QuantLabContent(props: any) {
                         <StudySetupCard
                           key={studyId}
                           study={study}
-                          ticker={selectedTicker || ticker || ''}
+                          ticker={ticker || selectedTicker || ''}
                           studyParams={studyParams}
                           updateParam={updateParam}
                           runStudy={handleRunStudy}
