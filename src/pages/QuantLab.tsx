@@ -1286,7 +1286,7 @@ function QuantLabContent(props: any) {
 
 
   return (
-    <div className="h-screen bg-background flex flex-col overflow-hidden">
+    <div className="h-[calc(100vh-theme(spacing.28))] md:h-[calc(100vh-theme(spacing.20))] bg-background flex flex-col overflow-hidden">
       {/* Magic Moment: Study Running Overlay */}
       <StudyRunningOverlay 
         isRunning={!!runningStudy}
