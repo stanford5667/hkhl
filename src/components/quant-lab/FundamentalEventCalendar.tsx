@@ -173,8 +173,9 @@ export default function FundamentalEventCalendar({ onEventClick, selectedTicker 
   const filteredEvents = events.filter((event) => {
     if (selectedFilter !== 'all' && event.type !== selectedFilter) return false;
     
-    // Filter by selected ticker if provided (only for events with symbols)
-    if (selectedTicker && event.symbol && event.symbol !== selectedTicker) return false;
+    // Filter by selected ticker if provided
+    // Show events that either: match the ticker, or have no symbol (macro events like FOMC)
+    if (selectedTicker && event.symbol && event.symbol.toUpperCase() !== selectedTicker.toUpperCase()) return false;
     
     const now = new Date();
     now.setHours(0, 0, 0, 0); // Start of today
