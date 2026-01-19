@@ -661,9 +661,9 @@ export function AdminCoursesTab() {
                       const file = e.target.files?.[0];
                       if (!file) return;
                       
-                      // Validate file size (500MB limit)
-                      if (file.size > 524288000) {
-                        toast({ title: 'Error', description: 'Video must be under 500MB', variant: 'destructive' });
+                      // Validate file size (5GB limit)
+                      if (file.size > 5368709120) {
+                        toast({ title: 'Error', description: 'Video must be under 5GB', variant: 'destructive' });
                         return;
                       }
                       
@@ -725,7 +725,7 @@ export function AdminCoursesTab() {
                         <>
                           <Upload className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
                           <p className="text-sm font-medium">Click to upload video</p>
-                          <p className="text-xs text-muted-foreground mt-1">MP4, MOV, WebM up to 500MB</p>
+                          <p className="text-xs text-muted-foreground mt-1">MP4, MOV, WebM up to 5GB</p>
                         </>
                       )}
                     </div>
