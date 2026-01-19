@@ -17,7 +17,7 @@ import { QuickStartBanner } from "@/components/onboarding/QuickStartBanner";
 import { useOnboarding } from "@/hooks/useOnboarding";
 import { FooterDisclaimer } from "@/components/legal";
 import { useEventNotifications } from "@/hooks/useEventNotifications";
-
+import { useActivityHeartbeat } from "@/hooks/useActivityHeartbeat";
 
 interface LayoutProps {
   children: ReactNode;
@@ -44,6 +44,9 @@ export function Layout({ children }: LayoutProps) {
 
   // Enable event notifications (checks for upcoming events and shows toasts)
   useEventNotifications();
+
+  // Keep "Last active" analytics accurate while users are actively using the app
+  useActivityHeartbeat(user?.id ?? null, location.pathname);
 
   // Create handlers - no auth required for navigation
   const handleCreateCompany = () => {
