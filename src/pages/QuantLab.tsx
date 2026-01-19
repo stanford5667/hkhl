@@ -1438,13 +1438,14 @@ function QuantLabContent(props: any) {
       )}
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
+      <div className="flex-1 flex flex-col md:flex-row overflow-hidden min-h-0">
         
         {/* Desktop: Always-visible Study Sidebar - Hidden when showing welcome hero */}
+        {/* IMPORTANT: This sidebar has its own scroll context, separate from the results panel */}
         {!showWelcomeHero && (
-        <div className="hidden md:flex md:w-80 lg:w-96 shrink-0 md:border-r bg-card flex-col overflow-hidden h-full">
+        <div className="hidden md:flex md:w-80 lg:w-96 shrink-0 md:border-r bg-card flex-col h-full overflow-hidden">
           {/* Panel Header */}
-          <div className="px-4 py-3 border-b bg-muted/30">
+          <div className="px-4 py-3 border-b bg-muted/30 shrink-0">
             <div className="flex items-center justify-between mb-3">
               <span className="text-sm font-bold">Select Quant Studies</span>
               {selectedStudies.length > 0 && (
@@ -1455,20 +1456,22 @@ function QuantLabContent(props: any) {
             </div>
           </div>
           
-          {/* Study List - Collapsible categories with scroll */}
-          <CollapsibleStudyCategories
-            categories={STUDY_CATEGORIES}
-            studies={STUDY_DEFINITIONS}
-            selectedStudies={selectedStudies}
-            onAddStudy={addStudy}
-            onRemoveStudy={removeStudy}
-            showFundamentalStudies={showFundamentalStudies}
-            onShowFundamentalStudies={() => {
-              setShowFundamentalStudies(true);
-              setSelectedStudies([]);
-              setResults({});
-            }}
-          />
+          {/* Study List - Collapsible categories with independent scroll */}
+          <div className="flex-1 overflow-y-auto min-h-0">
+            <CollapsibleStudyCategories
+              categories={STUDY_CATEGORIES}
+              studies={STUDY_DEFINITIONS}
+              selectedStudies={selectedStudies}
+              onAddStudy={addStudy}
+              onRemoveStudy={removeStudy}
+              showFundamentalStudies={showFundamentalStudies}
+              onShowFundamentalStudies={() => {
+                setShowFundamentalStudies(true);
+                setSelectedStudies([]);
+                setResults({});
+              }}
+            />
+          </div>
           {/* Run Button at bottom (removed - run per-study from setup cards) */}
           <div className="shrink-0 border-t bg-card px-4 py-3">
             <p className="text-xs text-muted-foreground">
@@ -1603,8 +1606,8 @@ function QuantLabContent(props: any) {
           )}
         </AnimatePresence>
 
-        {/* Results Panel */}
-        <div className="flex-1 flex flex-col overflow-hidden">
+        {/* Results Panel - Has its own independent scroll */}
+        <div className="flex-1 flex flex-col overflow-hidden min-h-0">
           {/* Selected Studies Queue - Mobile optimized */}
           {selectedStudies.length > 0 && (
             <div className="shrink-0 border-b px-3 md:px-4 py-2.5 bg-muted/30">
@@ -1645,8 +1648,8 @@ function QuantLabContent(props: any) {
             </div>
           )}
 
-          {/* Results - Compact on mobile, full on desktop */}
-          <div className="flex-1 overflow-y-auto p-2 md:p-6">
+          {/* Results - Compact on mobile, full on desktop - Independent scroll */}
+          <div className="flex-1 overflow-y-auto p-2 md:p-6 min-h-0">
             {showFundamentalStudies ? (
               <div className="max-w-5xl mx-auto">
                 <FundamentalStudiesContent selectedTicker={ticker} />
