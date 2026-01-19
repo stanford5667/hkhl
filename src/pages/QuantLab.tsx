@@ -1696,9 +1696,41 @@ function QuantLabContent(props: any) {
                   </div>
                 </div>
                 {/* Fixed bottom action bar */}
-                <div className="shrink-0 border-t bg-card px-4 pt-3 pb-20">
+                <div className="shrink-0 border-t bg-card px-4 pt-3 pb-20 space-y-3">
+                  {/* Run Study Button - Show when ticker and study are selected */}
+                  {selectedStudies.length > 0 && selectedTicker && (
+                    <Button
+                      size="lg"
+                      className="w-full h-12 gap-2 text-base font-semibold"
+                      onClick={() => {
+                        setShowStudyPanel(false);
+                        handleRunStudy(selectedStudies[0]);
+                      }}
+                      disabled={isRunning}
+                    >
+                      {isRunning ? (
+                        <>
+                          <Loader2 className="h-5 w-5 animate-spin" />
+                          Running...
+                        </>
+                      ) : (
+                        <>
+                          <Play className="h-5 w-5" />
+                          Run Study on {selectedTicker}
+                        </>
+                      )}
+                    </Button>
+                  )}
+                  
+                  {/* Show helper text when no ticker or study selected */}
+                  {(!selectedStudies.length || !selectedTicker) && (
+                    <p className="text-xs text-muted-foreground text-center">
+                      {!selectedTicker ? "Enter a ticker above, then select a study" : "Select a study to analyze"}
+                    </p>
+                  )}
+                  
                   {!isPro && (
-                    <div className="flex items-center justify-between mb-2 p-2 rounded-lg bg-amber-500/10 border border-amber-500/20">
+                    <div className="flex items-center justify-between p-2 rounded-lg bg-amber-500/10 border border-amber-500/20">
                       <div className="flex items-center gap-2">
                         <FlaskConical className="h-3.5 w-3.5 text-amber-600" />
                         <span className="text-xs text-amber-700 dark:text-amber-400">
@@ -1711,9 +1743,6 @@ function QuantLabContent(props: any) {
                       </Badge>
                     </div>
                   )}
-                  <p className="text-xs text-muted-foreground">
-                    Select a study, set its variables, then run it from the study card.
-                  </p>
                 </div>
               </motion.div>
           )}
