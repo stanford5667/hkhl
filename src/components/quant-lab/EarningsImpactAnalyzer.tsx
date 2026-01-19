@@ -41,7 +41,8 @@ export default function EarningsImpactAnalyzer({ selectedTicker }: EarningsImpac
   }, [selectedTicker]);
 
   // Mock data - replace with actual API call
-  const earningsHistory: EarningsEvent[] = [
+  // Note: for now we derive deterministic (but different) values per ticker so the UI responds.
+  const earningsHistoryBase: EarningsEvent[] = [
     {
       date: '2024-01-31',
       quarter: 'Q1 2024',
@@ -148,6 +149,30 @@ export default function EarningsImpactAnalyzer({ selectedTicker }: EarningsImpac
     },
   ];
 
+  const tickerSeed = symbol
+    .split('')
+    .reduce((sum, ch) => sum + ch.charCodeAt(0), 0);
+
+  // Stable factor in ~[-0.12, +0.12]
+  const factor = ((tickerSeed % 25) - 12) / 100;
+
+  const earningsHistory: EarningsEvent[] = earningsHistoryBase.map((e, idx) => {
+    const wiggle = ((tickerSeed + idx * 17) % 9) / 100; // 0.00..0.08
+    const signed = (idx % 2 === 0 ? 1 : -1) * wiggle;
+
+    return {
+      ...e,
+      epsActual: parseFloat((e.epsActual * (1 + factor * 0.6)).toFixed(2)),
+      epsEstimate: parseFloat((e.epsEstimate * (1 + factor * 0.4)).toFixed(2)),
+      epsSurprise: parseFloat((e.epsSurprise + factor * 10 + signed * 6).toFixed(2)),
+      revenueActual: parseFloat((e.revenueActual * (1 + factor * 0.35)).toFixed(1)),
+      revenueEstimate: parseFloat((e.revenueEstimate * (1 + factor * 0.25)).toFixed(1)),
+      revenueSurprise: parseFloat((e.revenueSurprise + factor * 6 + signed * 3).toFixed(2)),
+      priceReturn5Day: parseFloat((e.priceReturn5Day + factor * 8 + signed * 5).toFixed(2)),
+      priceReturnIntraday: parseFloat((e.priceReturnIntraday + factor * 4 + signed * 2).toFixed(2)),
+    };
+  });
+
   // Calculate summary statistics
   const stats = {
     totalEarnings: earningsHistory.length,
@@ -206,7 +231,7 @@ export default function EarningsImpactAnalyzer({ selectedTicker }: EarningsImpac
       <div>
         <h2 className="text-2xl font-bold">Earnings Impact Analyzer</h2>
         <p className="text-muted-foreground text-sm">
-          Study how stocks perform around earnings announcements
+          Study how <span className="font-mono font-semibold">{symbol}</span> performs around earnings announcements
         </p>
       </div>
 
