@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
 import {
   Plus,
   Pencil,
@@ -24,6 +25,8 @@ import {
   Save,
   Eye,
   EyeOff,
+  Upload,
+  CheckCircle,
 } from 'lucide-react';
 
 interface Course {
@@ -67,6 +70,9 @@ export function AdminCoursesTab() {
   const [modules, setModules] = useState<Record<string, Module[]>>({});
   const [lessons, setLessons] = useState<Record<string, Lesson[]>>({});
   const [loading, setLoading] = useState(true);
+  const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const videoInputRef = useRef<HTMLInputElement>(null);
   const [saving, setSaving] = useState(false);
   
   // Dialog states
@@ -388,6 +394,7 @@ export function AdminCoursesTab() {
 
   const resetLessonForm = () => {
     setEditingLesson(null);
+    setUploadProgress(0);
     setLessonForm({
       title: '',
       description: '',
@@ -628,12 +635,13 @@ export function AdminCoursesTab() {
               </div>
               
               <div className="space-y-2">
-                <Label>Video Provider</Label>
-                <Select value={lessonForm.video_provider} onValueChange={(v) => setLessonForm({ ...lessonForm, video_provider: v })}>
+                <Label>Video Source</Label>
+                <Select value={lessonForm.video_provider} onValueChange={(v) => setLessonForm({ ...lessonForm, video_provider: v, video_url: '' })}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="upload">Upload Video</SelectItem>
                     <SelectItem value="youtube">YouTube</SelectItem>
                     <SelectItem value="vimeo">Vimeo</SelectItem>
                     <SelectItem value="custom">Custom URL</SelectItem>
@@ -641,25 +649,130 @@ export function AdminCoursesTab() {
                 </Select>
               </div>
               
-              <div className="space-y-2">
-                <Label>Video URL</Label>
-                <Input
-                  value={lessonForm.video_url}
-                  onChange={(e) => setLessonForm({ ...lessonForm, video_url: e.target.value })}
-                  placeholder={
-                    lessonForm.video_provider === 'youtube' 
-                      ? 'https://www.youtube.com/watch?v=...' 
-                      : lessonForm.video_provider === 'vimeo'
-                      ? 'https://vimeo.com/...'
-                      : 'Enter video embed URL'
-                  }
-                />
-                <p className="text-xs text-muted-foreground">
-                  {lessonForm.video_provider === 'youtube' && 'Paste a YouTube video URL (e.g., https://www.youtube.com/watch?v=abc123)'}
-                  {lessonForm.video_provider === 'vimeo' && 'Paste a Vimeo video URL (e.g., https://vimeo.com/123456)'}
-                  {lessonForm.video_provider === 'custom' && 'Paste a direct video embed URL'}
-                </p>
-              </div>
+              {/* Direct Upload */}
+              {lessonForm.video_provider === 'upload' && (
+                <div className="space-y-3">
+                  <input
+                    ref={videoInputRef}
+                    type="file"
+                    accept="video/*"
+                    className="hidden"
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      
+                      // Validate file size (500MB limit)
+                      if (file.size > 524288000) {
+                        toast({ title: 'Error', description: 'Video must be under 500MB', variant: 'destructive' });
+                        return;
+                      }
+                      
+                      setUploading(true);
+                      setUploadProgress(0);
+                      
+                      try {
+                        const fileName = `${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
+                        const filePath = `lessons/${fileName}`;
+                        
+                        // Simulate progress (Supabase doesn't provide real progress)
+                        const progressInterval = setInterval(() => {
+                          setUploadProgress(prev => Math.min(prev + 10, 90));
+                        }, 500);
+                        
+                        const { data, error } = await supabase.storage
+                          .from('course-videos')
+                          .upload(filePath, file, {
+                            cacheControl: '3600',
+                            upsert: false,
+                          });
+                        
+                        clearInterval(progressInterval);
+                        
+                        if (error) throw error;
+                        
+                        // Get public URL
+                        const { data: urlData } = supabase.storage
+                          .from('course-videos')
+                          .getPublicUrl(filePath);
+                        
+                        setUploadProgress(100);
+                        setLessonForm(prev => ({ ...prev, video_url: urlData.publicUrl }));
+                        toast({ title: 'Success', description: 'Video uploaded successfully' });
+                      } catch (err) {
+                        console.error('Upload error:', err);
+                        toast({ title: 'Error', description: 'Failed to upload video', variant: 'destructive' });
+                      } finally {
+                        setUploading(false);
+                      }
+                    }}
+                  />
+                  
+                  {!lessonForm.video_url ? (
+                    <div 
+                      onClick={() => !uploading && videoInputRef.current?.click()}
+                      className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors ${
+                        uploading ? 'border-primary bg-primary/5' : 'border-muted-foreground/25 hover:border-primary hover:bg-primary/5'
+                      }`}
+                    >
+                      {uploading ? (
+                        <div className="space-y-3">
+                          <Loader2 className="h-10 w-10 text-primary mx-auto animate-spin" />
+                          <p className="text-sm text-muted-foreground">Uploading video...</p>
+                          <Progress value={uploadProgress} className="w-full max-w-xs mx-auto" />
+                          <p className="text-xs text-muted-foreground">{uploadProgress}%</p>
+                        </div>
+                      ) : (
+                        <>
+                          <Upload className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
+                          <p className="text-sm font-medium">Click to upload video</p>
+                          <p className="text-xs text-muted-foreground mt-1">MP4, MOV, WebM up to 500MB</p>
+                        </>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-3 p-3 bg-green-500/10 border border-green-500/20 rounded-lg">
+                      <CheckCircle className="h-5 w-5 text-green-500" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-green-700 dark:text-green-400">Video uploaded</p>
+                        <p className="text-xs text-muted-foreground truncate">{lessonForm.video_url}</p>
+                      </div>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => {
+                          setLessonForm(prev => ({ ...prev, video_url: '' }));
+                          setUploadProgress(0);
+                        }}
+                      >
+                        Replace
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              )}
+              
+              {/* URL-based providers */}
+              {lessonForm.video_provider !== 'upload' && (
+                <div className="space-y-2">
+                  <Label>Video URL</Label>
+                  <Input
+                    value={lessonForm.video_url}
+                    onChange={(e) => setLessonForm({ ...lessonForm, video_url: e.target.value })}
+                    placeholder={
+                      lessonForm.video_provider === 'youtube' 
+                        ? 'https://www.youtube.com/watch?v=...' 
+                        : lessonForm.video_provider === 'vimeo'
+                        ? 'https://vimeo.com/...'
+                        : 'Enter video embed URL'
+                    }
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    {lessonForm.video_provider === 'youtube' && 'Paste a YouTube video URL (e.g., https://www.youtube.com/watch?v=abc123)'}
+                    {lessonForm.video_provider === 'vimeo' && 'Paste a Vimeo video URL (e.g., https://vimeo.com/123456)'}
+                    {lessonForm.video_provider === 'custom' && 'Paste a direct video embed URL'}
+                  </p>
+                </div>
+              )}
               
               <div className="space-y-2">
                 <Label>Duration (minutes)</Label>
@@ -676,6 +789,13 @@ export function AdminCoursesTab() {
                 <div className="space-y-2">
                   <Label>Preview</Label>
                   <div className="aspect-video bg-black/20 rounded-lg overflow-hidden">
+                    {lessonForm.video_provider === 'upload' && lessonForm.video_url && (
+                      <video
+                        className="w-full h-full"
+                        src={lessonForm.video_url}
+                        controls
+                      />
+                    )}
                     {lessonForm.video_provider === 'youtube' && lessonForm.video_url && (
                       <iframe
                         className="w-full h-full"
