@@ -116,13 +116,14 @@ export function Sidebar() {
         icon: PieChart,
         isPremium: true,
       },
-      { 
-        label: "AI Assistant", 
-        subtitle: "Chat & Signals",
-        href: "/prediction-ai", 
-        icon: Sparkles,
-        isPremium: true,
-      },
+      // AI Assistant hidden per user request
+      // { 
+      //   label: "AI Assistant", 
+      //   subtitle: "Chat & Signals",
+      //   href: "/prediction-ai", 
+      //   icon: Sparkles,
+      //   isPremium: true,
+      // },
       { 
         label: "Academy", 
         subtitle: "Learn & Grow",
