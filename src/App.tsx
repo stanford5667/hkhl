@@ -16,7 +16,7 @@ import { DevModeSyncWrapper } from "@/components/dev/DevModeSyncWrapper";
 import { CompanyRedirect } from "./components/shared/CompanyRedirect";
 import { PageLoader } from "@/components/shared/PageLoader";
 import { ErrorBoundary } from "@/components/shared/ErrorBoundary";
-import { ScrollToTop } from "@/components/ScrollToTop";
+// ScrollToTop removed - using useGlobalScrollPersistence in Layout instead
 import { UpgradeModal } from "@/components/premium/UpgradeModal";
 import { ThemeProvider } from "@/components/theme/ThemeProvider";
 import { FinancialGlossaryProvider } from "@/components/glossary";
@@ -89,7 +89,7 @@ const App = () => {
             <Toaster />
             <Sonner />
             <BrowserRouter>
-              <ScrollToTop />
+              {/* ScrollToTop removed - scroll persistence is now handled in Layout via useGlobalScrollPersistence */}
               <AuthProvider>
               <OrganizationProvider>
                 <UnifiedDataProvider>

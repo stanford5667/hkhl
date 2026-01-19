@@ -18,6 +18,7 @@ import { useOnboarding } from "@/hooks/useOnboarding";
 import { FooterDisclaimer } from "@/components/legal";
 import { useEventNotifications } from "@/hooks/useEventNotifications";
 import { useActivityHeartbeat } from "@/hooks/useActivityHeartbeat";
+import { useGlobalScrollPersistence } from "@/hooks/useScrollPersistence";
 
 interface LayoutProps {
   children: ReactNode;
@@ -44,6 +45,9 @@ export function Layout({ children }: LayoutProps) {
 
   // Enable event notifications (checks for upcoming events and shows toasts)
   useEventNotifications();
+
+  // Persist scroll position across navigation
+  useGlobalScrollPersistence();
 
   // Keep "Last active" analytics accurate while users are actively using the app
   useActivityHeartbeat(user?.id ?? null, location.pathname);
