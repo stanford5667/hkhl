@@ -124,16 +124,10 @@ export function Sidebar() {
         isPremium: true,
       },
       { 
-        label: "Research", 
-        subtitle: "Asset Analysis",
-        href: "/research", 
-        icon: Search 
-      },
-      { 
-        label: "Discovery", 
-        subtitle: "Find Opportunities",
-        href: "/discovery", 
-        icon: Lightbulb 
+        label: "Academy", 
+        subtitle: "Learn & Grow",
+        href: "/academy", 
+        icon: BookOpen 
       },
       { 
         label: "Academy", 
