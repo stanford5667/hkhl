@@ -60,24 +60,24 @@ export function TopBar() {
 
   return (
     <>
-      <header className="sticky top-0 z-40 flex items-center h-12 sm:h-14 px-3 sm:px-4 bg-slate-950/80 backdrop-blur-xl border-b border-slate-800">
+      <header className="sticky top-0 z-40 flex items-center h-12 sm:h-14 px-3 sm:px-4 bg-background/95 backdrop-blur-xl border-b border-border">
         {/* Left: Breadcrumbs */}
         <div className="flex items-center gap-2 min-w-0 flex-1">
           {pageMeta.parent ? (
             <nav className="flex items-center gap-1 text-sm">
               <Link 
                 to={pageMeta.parent.href}
-                className="text-slate-500 hover:text-slate-300 transition-colors"
+                className="text-muted-foreground hover:text-foreground transition-colors"
               >
                 {pageMeta.parent.label}
               </Link>
-              <ChevronRight className="h-3 w-3 text-slate-600" />
-              <span className="text-white font-medium truncate">Detail</span>
+              <ChevronRight className="h-3 w-3 text-muted-foreground/50" />
+              <span className="text-foreground font-medium truncate">Detail</span>
             </nav>
           ) : (
             <div className="flex flex-col">
-              <h1 className="text-white font-semibold text-xs sm:text-sm truncate max-w-[120px] sm:max-w-none">{pageMeta.title}</h1>
-              <p className="text-slate-500 text-xs hidden sm:block">{pageMeta.subtitle}</p>
+              <h1 className="text-foreground font-semibold text-xs sm:text-sm truncate max-w-[120px] sm:max-w-none">{pageMeta.title}</h1>
+              <p className="text-muted-foreground text-xs hidden sm:block">{pageMeta.subtitle}</p>
             </div>
           )}
         </div>
@@ -86,11 +86,11 @@ export function TopBar() {
         <div className="flex-1 max-w-md mx-2 sm:mx-4">
           <button
             onClick={() => setCommandOpen(true)}
-            className="flex items-center gap-2 w-full px-2 sm:px-3 py-1.5 text-sm text-slate-500 bg-slate-900 border border-slate-800 rounded-lg hover:bg-slate-800 hover:border-slate-700 hover:text-slate-400 transition-all duration-200"
+            className="flex items-center gap-2 w-full px-2 sm:px-3 py-1.5 text-sm text-muted-foreground bg-secondary border border-border rounded-lg hover:bg-accent hover:border-primary/30 hover:text-foreground transition-all duration-200"
           >
             <Search className="h-4 w-4" />
             <span className="flex-1 text-left hidden sm:block">Search...</span>
-            <kbd className="hidden md:inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[10px] font-medium text-slate-500 bg-slate-800 rounded">
+            <kbd className="hidden md:inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground bg-background rounded border border-border">
               <Command className="h-2.5 w-2.5" />K
             </kbd>
           </button>
@@ -104,7 +104,7 @@ export function TopBar() {
               <Button 
                 size="sm" 
                 variant="ghost"
-                className="h-7 sm:h-8 text-slate-300 hover:text-white hover:bg-slate-800"
+                className="h-7 sm:h-8 text-muted-foreground hover:text-foreground"
                 onClick={() => setShowAuthDialog(true)}
               >
                 <LogIn className="h-4 w-4 sm:mr-1" />
@@ -112,7 +112,7 @@ export function TopBar() {
               </Button>
               <Button 
                 size="sm" 
-                className="h-7 sm:h-8 bg-primary hover:bg-primary/90 text-white px-2 sm:px-3"
+                className="h-7 sm:h-8 bg-primary hover:bg-primary/90 text-primary-foreground px-2 sm:px-3"
                 onClick={() => setShowAuthDialog(true)}
               >
                 <User className="h-4 w-4 sm:mr-1" />
@@ -127,23 +127,23 @@ export function TopBar() {
               <DropdownMenuTrigger asChild>
                 <Button 
                   size="sm" 
-                  className="h-7 sm:h-8 gap-1 bg-emerald-600 hover:bg-emerald-500 text-white px-2 sm:px-3"
+                  className="h-7 sm:h-8 gap-1 bg-success hover:bg-success/90 text-success-foreground px-2 sm:px-3"
                 >
                   <Plus className="h-4 w-4" />
                   <span className="hidden sm:inline">Add</span>
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48 bg-slate-900 border-slate-800">
-                <DropdownMenuItem className="text-slate-300 hover:text-white hover:bg-slate-800 cursor-pointer">
-                  <Building2 className="mr-2 h-4 w-4 text-slate-500" />
+              <DropdownMenuContent align="end" className="w-48 bg-popover border-border">
+                <DropdownMenuItem className="text-popover-foreground hover:bg-accent cursor-pointer">
+                  <Building2 className="mr-2 h-4 w-4 text-muted-foreground" />
                   New Company
                 </DropdownMenuItem>
-                <DropdownMenuItem className="text-slate-300 hover:text-white hover:bg-slate-800 cursor-pointer">
-                  <FileUp className="mr-2 h-4 w-4 text-slate-500" />
+                <DropdownMenuItem className="text-popover-foreground hover:bg-accent cursor-pointer">
+                  <FileUp className="mr-2 h-4 w-4 text-muted-foreground" />
                   Upload Document
                 </DropdownMenuItem>
-                <DropdownMenuItem className="text-slate-300 hover:text-white hover:bg-slate-800 cursor-pointer">
-                  <Calculator className="mr-2 h-4 w-4 text-slate-500" />
+                <DropdownMenuItem className="text-popover-foreground hover:bg-accent cursor-pointer">
+                  <Calculator className="mr-2 h-4 w-4 text-muted-foreground" />
                   Create Model
                 </DropdownMenuItem>
               </DropdownMenuContent>
@@ -160,58 +160,58 @@ export function TopBar() {
                 <Button 
                   variant="ghost" 
                   size="icon" 
-                  className="relative h-7 w-7 sm:h-8 sm:w-8 text-slate-400 hover:text-white hover:bg-slate-800"
+                  className="relative h-7 w-7 sm:h-8 sm:w-8 text-muted-foreground hover:text-foreground hover:bg-accent"
                 >
                   <Bell className="h-4 w-4" />
                   {notificationCount > 0 && (
-                    <span className="absolute -top-0.5 -right-0.5 flex items-center justify-center min-w-[14px] sm:min-w-[16px] h-3.5 sm:h-4 px-1 text-[9px] sm:text-[10px] font-bold rounded-full bg-rose-500 text-white">
+                    <span className="absolute -top-0.5 -right-0.5 flex items-center justify-center min-w-[14px] sm:min-w-[16px] h-3.5 sm:h-4 px-1 text-[9px] sm:text-[10px] font-bold rounded-full bg-destructive text-destructive-foreground">
                       {notificationCount > 9 ? "9+" : notificationCount}
                     </span>
                   )}
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-80 bg-slate-900 border-slate-800">
-                <DropdownMenuLabel className="text-slate-300">
+              <DropdownMenuContent align="end" className="w-80 bg-popover border-border">
+                <DropdownMenuLabel className="text-popover-foreground">
                   Notifications
-                  <span className="ml-2 text-xs text-slate-500">({notificationCount} new)</span>
+                  <span className="ml-2 text-xs text-muted-foreground">({notificationCount} new)</span>
                 </DropdownMenuLabel>
-                <DropdownMenuSeparator className="bg-slate-800" />
+                <DropdownMenuSeparator className="bg-border" />
                 
                 {/* Critical notification */}
-                <DropdownMenuItem className="flex flex-col items-start gap-1.5 py-3 px-3 hover:bg-slate-800 cursor-pointer">
+                <DropdownMenuItem className="flex flex-col items-start gap-1.5 py-3 px-3 hover:bg-accent cursor-pointer">
                   <div className="flex items-center gap-2">
-                    <Badge className="bg-rose-500/20 text-rose-400 border-rose-500/30 text-[10px] px-1.5">
+                    <Badge className="bg-destructive/20 text-destructive border-destructive/30 text-[10px] px-1.5">
                       Critical
                     </Badge>
-                    <span className="text-[10px] text-slate-500">2 hours ago</span>
+                    <span className="text-[10px] text-muted-foreground">2 hours ago</span>
                   </div>
-                  <p className="text-sm text-slate-300">Acme Corp LOI expires in 3 days</p>
+                  <p className="text-sm text-popover-foreground">Acme Corp LOI expires in 3 days</p>
                 </DropdownMenuItem>
                 
                 {/* Warning notification */}
-                <DropdownMenuItem className="flex flex-col items-start gap-1.5 py-3 px-3 hover:bg-slate-800 cursor-pointer">
+                <DropdownMenuItem className="flex flex-col items-start gap-1.5 py-3 px-3 hover:bg-accent cursor-pointer">
                   <div className="flex items-center gap-2">
-                    <Badge className="bg-amber-500/20 text-amber-400 border-amber-500/30 text-[10px] px-1.5">
+                    <Badge className="bg-warning/20 text-warning border-warning/30 text-[10px] px-1.5">
                       Warning
                     </Badge>
-                    <span className="text-[10px] text-slate-500">5 hours ago</span>
+                    <span className="text-[10px] text-muted-foreground">5 hours ago</span>
                   </div>
-                  <p className="text-sm text-slate-300">TechCo covenant near breach threshold</p>
+                  <p className="text-sm text-popover-foreground">TechCo covenant near breach threshold</p>
                 </DropdownMenuItem>
                 
                 {/* Info notification */}
-                <DropdownMenuItem className="flex flex-col items-start gap-1.5 py-3 px-3 hover:bg-slate-800 cursor-pointer">
+                <DropdownMenuItem className="flex flex-col items-start gap-1.5 py-3 px-3 hover:bg-accent cursor-pointer">
                   <div className="flex items-center gap-2">
-                    <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30 text-[10px] px-1.5">
+                    <Badge className="bg-primary/20 text-primary border-primary/30 text-[10px] px-1.5">
                       Update
                     </Badge>
-                    <span className="text-[10px] text-slate-500">Yesterday</span>
+                    <span className="text-[10px] text-muted-foreground">Yesterday</span>
                   </div>
-                  <p className="text-sm text-slate-300">New model available for Midwest Corp</p>
+                  <p className="text-sm text-popover-foreground">New model available for Midwest Corp</p>
                 </DropdownMenuItem>
                 
-                <DropdownMenuSeparator className="bg-slate-800" />
-                <DropdownMenuItem className="justify-center text-emerald-400 hover:text-emerald-300 hover:bg-slate-800 cursor-pointer">
+                <DropdownMenuSeparator className="bg-border" />
+                <DropdownMenuItem className="justify-center text-primary hover:text-primary/80 hover:bg-accent cursor-pointer">
                   View all notifications
                 </DropdownMenuItem>
               </DropdownMenuContent>

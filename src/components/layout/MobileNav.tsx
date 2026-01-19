@@ -40,7 +40,7 @@ export function MobileNav() {
     <>
       {/* Bottom Navigation Bar */}
       <nav 
-        className="fixed bottom-0 left-0 right-0 bg-slate-950/95 backdrop-blur-xl border-t border-slate-800 md:hidden"
+        className="fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur-xl border-t border-border md:hidden"
         style={{ zIndex: 50, paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
       >
         <div className="flex items-center justify-around h-16 px-2">
@@ -58,14 +58,14 @@ export function MobileNav() {
                     <button
                       className={cn(
                         "flex flex-col items-center justify-center gap-1 px-3 py-2 rounded-lg transition-colors min-w-[60px]",
-                        "text-slate-400 hover:text-white active:bg-slate-800/50"
+                        "text-muted-foreground hover:text-foreground active:bg-accent/50"
                       )}
                     >
                       <Icon className="h-5 w-5" />
                       <span className="text-[10px] font-medium">{item.label}</span>
                     </button>
                   </SheetTrigger>
-                  <SheetContent side="left" className="p-0 w-[280px] bg-slate-950 border-slate-800">
+                  <SheetContent side="left" className="p-0 w-[280px] bg-background border-border">
                     <div className="h-full overflow-y-auto">
                       <MobileSidebarContent onNavigate={() => setOpen(false)} />
                     </div>
@@ -79,19 +79,24 @@ export function MobileNav() {
                 key={item.label}
                 to={item.href}
                 className={cn(
-                  "flex flex-col items-center justify-center gap-1 px-3 py-2 rounded-lg transition-colors min-w-[60px]",
+                  "flex flex-col items-center justify-center gap-1 px-3 py-2 rounded-lg transition-all duration-200 min-w-[60px]",
                   isActive
-                    ? "text-emerald-400"
-                    : "text-slate-400 hover:text-white active:bg-slate-800/50"
+                    ? "text-primary"
+                    : "text-muted-foreground hover:text-foreground active:bg-accent/50"
                 )}
               >
-                <Icon className={cn(
-                  "h-5 w-5",
-                  isActive && "text-emerald-400"
-                )} />
+                <div className={cn(
+                  "p-1.5 rounded-lg transition-all duration-200",
+                  isActive && "bg-primary/15"
+                )}>
+                  <Icon className={cn(
+                    "h-5 w-5",
+                    isActive && "text-primary"
+                  )} />
+                </div>
                 <span className={cn(
                   "text-[10px] font-medium",
-                  isActive && "text-emerald-400"
+                  isActive && "text-primary font-semibold"
                 )}>
                   {item.label}
                 </span>
@@ -145,7 +150,7 @@ function MobileSidebarContent({ onNavigate }: { onNavigate: () => void }) {
       <div className="flex items-center gap-2 mb-6 px-2">
         <img src="/favicon.png" alt="Asset Labs AI" className="w-8 h-8 rounded-lg" />
         <div className="flex items-center gap-1">
-          <span className="font-bold text-white">Asset Labs</span>
+          <span className="font-bold text-foreground">Asset Labs</span>
           <span className="font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">AI</span>
         </div>
       </div>
@@ -161,26 +166,31 @@ function MobileSidebarContent({ onNavigate }: { onNavigate: () => void }) {
             to={item.href}
             onClick={onNavigate}
             className={cn(
-              "flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium transition-colors",
+              "flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium transition-all duration-200",
               isActive
-                ? "bg-slate-800 text-white"
-                : "text-slate-400 hover:bg-slate-800/50 hover:text-white"
+                ? "bg-primary/15 text-foreground"
+                : "text-muted-foreground hover:bg-accent hover:text-foreground"
             )}
           >
-            <Icon className={cn(
-              "h-5 w-5",
-              isActive ? "text-emerald-400" : "text-slate-500"
-            )} />
+            <div className={cn(
+              "flex items-center justify-center w-8 h-8 rounded-lg transition-colors",
+              isActive ? "bg-primary/20 text-primary" : "text-muted-foreground"
+            )}>
+              <Icon className="h-4 w-4" />
+            </div>
             <span>{item.label}</span>
+            {isActive && (
+              <div className="ml-auto w-1.5 h-1.5 rounded-full bg-primary" />
+            )}
           </Link>
         );
       })}
 
       {/* Support Section */}
-      <div className="pt-4 mt-4 border-t border-slate-800">
+      <div className="pt-4 mt-4 border-t border-border">
         <div className="flex items-center gap-2 px-3 mb-2">
-          <HelpCircle className="h-4 w-4 text-slate-500" />
-          <span className="text-xs font-medium text-slate-500 uppercase tracking-wider">Support</span>
+          <HelpCircle className="h-4 w-4 text-muted-foreground" />
+          <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Support</span>
         </div>
         {supportItems.map((item) => {
           const Icon = item.icon;
@@ -188,9 +198,11 @@ function MobileSidebarContent({ onNavigate }: { onNavigate: () => void }) {
             <button
               key={item.label}
               onClick={item.action}
-              className="w-full flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium transition-colors text-slate-400 hover:bg-slate-800/50 hover:text-white"
+              className="w-full flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium transition-colors text-muted-foreground hover:bg-accent hover:text-foreground"
             >
-              <Icon className="h-5 w-5 text-slate-500" />
+              <div className="flex items-center justify-center w-8 h-8 rounded-lg text-muted-foreground">
+                <Icon className="h-4 w-4" />
+              </div>
               <span>{item.label}</span>
             </button>
           );
@@ -198,13 +210,15 @@ function MobileSidebarContent({ onNavigate }: { onNavigate: () => void }) {
       </div>
 
       {/* Account Section */}
-      <div className="pt-4 mt-4 border-t border-slate-800">
+      <div className="pt-4 mt-4 border-t border-border">
         <Link
           to="/settings"
           onClick={onNavigate}
-          className="flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium transition-colors text-slate-400 hover:bg-slate-800/50 hover:text-white"
+          className="flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium transition-colors text-muted-foreground hover:bg-accent hover:text-foreground"
         >
-          <Settings className="h-5 w-5 text-slate-500" />
+          <div className="flex items-center justify-center w-8 h-8 rounded-lg text-muted-foreground">
+            <Settings className="h-4 w-4" />
+          </div>
           <span>Settings</span>
         </Link>
         <button
@@ -216,9 +230,11 @@ function MobileSidebarContent({ onNavigate }: { onNavigate: () => void }) {
               console.error('Sign out failed:', error);
             }
           }}
-          className="w-full flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium transition-colors text-rose-400 hover:bg-rose-500/10 hover:text-rose-300"
+          className="w-full flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium transition-colors text-destructive hover:bg-destructive/10"
         >
-          <LogOut className="h-5 w-5" />
+          <div className="flex items-center justify-center w-8 h-8 rounded-lg">
+            <LogOut className="h-4 w-4" />
+          </div>
           <span>Sign Out</span>
         </button>
       </div>
