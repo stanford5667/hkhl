@@ -8,7 +8,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
-import { Activity, GitBranch, Play, Info } from "lucide-react";
+import { Activity, Play, Info } from "lucide-react";
 
 interface StudyParam {
   key: string;
@@ -80,27 +80,19 @@ export function StudySetupCard({
 
       {/* Conditional Studies - Show editable condition variables */}
       {isConditional && hasParams && (
-        <div className="px-4 py-4 space-y-4">
-          {/* Study explanation */}
-          <div className="p-3 rounded-lg bg-primary/5 border border-primary/10">
-            <p className="text-sm text-foreground/80 leading-relaxed">
-              Configure the conditions below to customize your analysis. Adjust the variables, then click <span className="font-semibold text-primary">Start</span> to see what historically happens to <span className="font-mono font-semibold">{ticker || 'your ticker'}</span> after these conditions are met.
-            </p>
-          </div>
+        <div className="px-3 py-3 md:px-4 md:py-4 space-y-2 md:space-y-4">
+          {/* Study explanation - more compact on mobile */}
+          <p className="text-xs md:text-sm text-muted-foreground leading-snug">
+            Adjust variables, then tap <span className="font-semibold text-primary">Start</span> to analyze <span className="font-mono font-semibold">{ticker || 'ticker'}</span>.
+          </p>
 
-          <div className="flex items-center gap-2">
-            <GitBranch className="h-4 w-4 text-primary" />
-            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-              Condition Variables
-            </span>
-          </div>
-
-          <div className="flex flex-wrap gap-4 items-end">
+          {/* Grid layout - 2 columns on mobile, flexible on larger screens */}
+          <div className="grid grid-cols-2 md:flex md:flex-wrap gap-2 md:gap-4">
             {study.params.map((param) => (
-              <div key={param.key} className="flex-1 min-w-[140px] max-w-[220px]">
-                <div className="flex items-center justify-between mb-1.5">
-                  <span className="text-xs font-medium">{param.label}</span>
-                  <span className="text-xs font-mono font-bold text-primary">
+              <div key={param.key} className="md:flex-1 md:min-w-[140px] md:max-w-[220px]">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-[10px] md:text-xs font-medium truncate">{param.label}</span>
+                  <span className="text-[10px] md:text-xs font-mono font-bold text-primary">
                     {param.type === "select" 
                       ? (param.options?.find(o => String(o.value) === String(studyParams[study.id]?.[param.key] ?? param.default))?.label ?? (studyParams[study.id]?.[param.key] ?? param.default))
                       : (studyParams[study.id]?.[param.key] ?? param.default)}
@@ -124,7 +116,7 @@ export function StudySetupCard({
                     value={String(studyParams[study.id]?.[param.key] ?? param.default)}
                     onValueChange={(val) => updateParam(study.id, param.key, val)}
                   >
-                    <SelectTrigger className="h-8 text-xs">
+                    <SelectTrigger className="h-7 md:h-8 text-[10px] md:text-xs">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -135,10 +127,6 @@ export function StudySetupCard({
                       ))}
                     </SelectContent>
                   </Select>
-                )}
-
-                {param.beginner && (
-                  <p className="text-[10px] text-muted-foreground mt-1 line-clamp-1">{param.beginner}</p>
                 )}
               </div>
             ))}
