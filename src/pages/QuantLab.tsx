@@ -1766,41 +1766,6 @@ function QuantLabContent(props: any) {
                   />
                 ) : selectedStudies.length > 0 ? (
                   <div className="w-full max-w-2xl mx-auto space-y-3">
-                    {/* Compact controls (no giant run button) */}
-                    <div className="rounded-2xl border-2 bg-card p-4 text-left">
-                      <div className="grid gap-3 md:grid-cols-3 md:items-end">
-                        <div>
-                          <p className="text-[10px] text-muted-foreground uppercase tracking-wide font-semibold mb-1">Period</p>
-                          <Select value={period} onValueChange={setPeriod}>
-                            <SelectTrigger className="h-10 w-full rounded-xl border-2">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {PERIOD_OPTIONS.map((p) => (
-                                <SelectItem key={p.value} value={p.value} className="text-sm">
-                                  {p.label}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-
-                        <div className="md:col-span-2">
-                          <p className="text-[10px] text-muted-foreground uppercase tracking-wide font-semibold mb-1">Ticker</p>
-                          <Input
-                            placeholder="AAPL"
-                            value={ticker}
-                            onChange={(e) => setTicker(e.target.value.toUpperCase())}
-                            onBlur={() => ticker.trim() && handleSetTicker(ticker.trim())}
-                            className="h-10 font-mono font-bold tracking-wider rounded-xl border-2"
-                          />
-                        </div>
-                      </div>
-                      <p className="mt-2 text-xs text-muted-foreground">
-                        Set variables below, then run the study.
-                      </p>
-                    </div>
-
                     {selectedStudies.map((studyId) => {
                       const study = getStudy(studyId);
                       if (!study) return null;
@@ -1813,6 +1778,11 @@ function QuantLabContent(props: any) {
                           updateParam={updateParam}
                           runStudy={handleRunStudy}
                           isRunning={isRunning}
+                          period={period}
+                          onPeriodChange={setPeriod}
+                          periodOptions={PERIOD_OPTIONS}
+                          onTickerChange={(val) => setTicker(val.toUpperCase())}
+                          onTickerBlur={() => ticker.trim() && handleSetTicker(ticker.trim())}
                         />
                       );
                     })}
