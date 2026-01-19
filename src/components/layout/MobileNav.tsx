@@ -116,12 +116,9 @@ function MobileSidebarContent({ onNavigate }: { onNavigate: () => void }) {
   const navItems = [
     { label: "Quant Lab", href: "/quant-lab", icon: FlaskConical },
     { label: "Portfolio Builder", href: "/portfolio-visualizer", icon: PieChart },
-    // Portfolio Tracker hidden for now
-    // { label: "Portfolio Tracker", href: "/", icon: Briefcase },
+    { label: "Academy", href: "/academy", icon: BookOpen },
     { label: "Strategy Explorer", href: "/investment-plan", icon: ClipboardList },
     { label: "Market Intel", href: "/market-intel", icon: BarChart3 },
-    { label: "Glossary", href: "/glossary", icon: BookOpen },
-    // Asset Research hidden
     ...(isAdmin ? [{ label: "Admin Portal", href: "/admin", icon: Shield }] : []),
   ];
 

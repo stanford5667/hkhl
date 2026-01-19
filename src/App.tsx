@@ -56,6 +56,11 @@ const Privacy = lazy(() => import('./pages/Privacy'));
 const Glossary = lazy(() => import('./pages/Glossary'));
 const NotFound = lazy(() => import('./pages/NotFound'));
 const VerifyEmail = lazy(() => import('./pages/VerifyEmail'));
+const Academy = lazy(() => import('./pages/Academy'));
+const CourseDetail = lazy(() => import('./pages/CourseDetail'));
+const LessonView = lazy(() => import('./pages/LessonView'));
+const QuizView = lazy(() => import('./pages/QuizView'));
+const StudyMaterials = lazy(() => import('./pages/StudyMaterials'));
 
 // Optimized QueryClient with caching defaults
 const queryClient = new QueryClient({
@@ -129,6 +134,11 @@ const App = () => {
                               <Route path="/admin" element={<AdminPortal />} />
                               <Route path="/quant-lab" element={<QuantLab />} />
                               <Route path="/backtester" element={<BacktesterPage />} />
+                              <Route path="/academy" element={<Academy />} />
+                              <Route path="/academy/course/:courseId" element={<CourseDetail />} />
+                              <Route path="/academy/lesson/:lessonId" element={<LessonView />} />
+                              <Route path="/academy/quiz/:quizId" element={<QuizView />} />
+                              <Route path="/academy/materials" element={<StudyMaterials />} />
                               <Route path="/terms" element={<Terms />} />
                               <Route path="/disclosures" element={<Disclosures />} />
                               <Route path="/privacy" element={<Privacy />} />
