@@ -102,6 +102,7 @@ export function useCommandCenterMetrics(tierFilter: TierFilter = 'all') {
         courseEnrollmentsRes,
         apiLogsCurrentWeek,
         apiLogsPreviousWeek,
+        userUsageRes,
         emailsRes,
         rolesRes,
       ] = await Promise.all([
@@ -111,6 +112,7 @@ export function useCommandCenterMetrics(tierFilter: TierFilter = 'all') {
         supabase.from('course_enrollments').select('user_id, last_accessed_at, enrolled_at'),
         supabase.from('api_usage_logs').select('*').gte('created_at', oneWeekAgo.toISOString()),
         supabase.from('api_usage_logs').select('*').gte('created_at', twoWeeksAgo.toISOString()).lt('created_at', oneWeekAgo.toISOString()),
+        supabase.from('user_usage').select('user_id, updated_at'),
         supabase.functions.invoke('get-users-with-emails'),
         supabase.from('user_roles').select('user_id, role'),
       ]);
@@ -121,9 +123,9 @@ export function useCommandCenterMetrics(tierFilter: TierFilter = 'all') {
       const courseEnrollments = courseEnrollmentsRes.data || [];
       const currentWeekLogs = apiLogsCurrentWeek.data || [];
       const previousWeekLogs = apiLogsPreviousWeek.data || [];
+      const userUsage = userUsageRes.data || [];
       const emailMap: Record<string, string> = emailsRes.data?.emails || {};
       const roles = rolesRes.data || [];
-
       // Create subscription map
       const subscriptionMap = new Map(
         subscriptions.map(s => [s.user_id, { plan: s.plan, status: s.status }])
@@ -164,6 +166,16 @@ export function useCommandCenterMetrics(tierFilter: TierFilter = 'all') {
           const existing = lastActivityMap.get(log.user_id);
           if (!existing || new Date(log.created_at) > new Date(existing)) {
             lastActivityMap.set(log.user_id, log.created_at);
+          }
+        }
+      });
+
+      // Add periodic client heartbeat (user_usage.updated_at)
+      userUsage.forEach(u => {
+        if (u.user_id && u.updated_at) {
+          const existing = lastActivityMap.get(u.user_id);
+          if (!existing || new Date(u.updated_at) > new Date(existing)) {
+            lastActivityMap.set(u.user_id, u.updated_at);
           }
         }
       });
