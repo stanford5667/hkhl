@@ -25,8 +25,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 
 const mobileNavItems = [
-  { label: "Builder", href: "/portfolio-visualizer", icon: PieChart },
   { label: "Studies", href: "/quant-lab", icon: FlaskConical },
+  { label: "Builder", href: "/portfolio-visualizer", icon: PieChart },
   { label: "Intel", href: "/market-intel", icon: BarChart3 },
   { label: "Explorer", href: "/investment-plan", icon: ClipboardList },
   { label: "More", href: "#menu", icon: Menu, isMenu: true },
