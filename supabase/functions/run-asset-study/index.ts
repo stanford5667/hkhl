@@ -228,6 +228,98 @@ async function saveProbabilityScores(supabase: any, ticker: string, results: Pro
   }
 }
 
+// Calculate movement probabilities for directional analysis
+interface MovementProbability {
+  threshold: number;
+  upProbability: number;
+  downProbability: number;
+  upOccurrences: number;
+  downOccurrences: number;
+  avgMoveWhenUp: number;
+  avgMoveWhenDown: number;
+}
+
+interface MovementProbabilities {
+  thresholds: MovementProbability[];
+  overallUpProbability: number;
+  overallDownProbability: number;
+  expectedMove: number;
+  sampleSize: number;
+  volatilityAdjustedExpectedMove: number;
+}
+
+function calculateMovementProbabilities(bars: PriceBar[], forwardDays: number = 5): MovementProbabilities {
+  if (bars.length < forwardDays + 10) {
+    return {
+      thresholds: [],
+      overallUpProbability: 50,
+      overallDownProbability: 50,
+      expectedMove: 0,
+      sampleSize: 0,
+      volatilityAdjustedExpectedMove: 0
+    };
+  }
+
+  // Calculate forward returns
+  const forwardReturns: number[] = [];
+  for (let i = 0; i < bars.length - forwardDays; i++) {
+    const ret = ((bars[i + forwardDays].close - bars[i].close) / bars[i].close) * 100;
+    forwardReturns.push(ret);
+  }
+
+  const sampleSize = forwardReturns.length;
+  if (sampleSize === 0) {
+    return {
+      thresholds: [],
+      overallUpProbability: 50,
+      overallDownProbability: 50,
+      expectedMove: 0,
+      sampleSize: 0,
+      volatilityAdjustedExpectedMove: 0
+    };
+  }
+
+  // Calculate overall stats
+  const upMoves = forwardReturns.filter(r => r > 0);
+  const downMoves = forwardReturns.filter(r => r < 0);
+  const overallUpProbability = (upMoves.length / sampleSize) * 100;
+  const overallDownProbability = (downMoves.length / sampleSize) * 100;
+  const expectedMove = forwardReturns.reduce((a, b) => a + b, 0) / sampleSize;
+  
+  // Calculate volatility (standard deviation)
+  const variance = forwardReturns.reduce((sum, r) => sum + Math.pow(r - expectedMove, 2), 0) / sampleSize;
+  const stdDev = Math.sqrt(variance);
+  const volatilityAdjustedExpectedMove = expectedMove / (stdDev || 1);
+
+  // Calculate probabilities for specific thresholds
+  const thresholdValues = [1, 2, 3, 5, 7, 10];
+  const thresholds: MovementProbability[] = thresholdValues.map(threshold => {
+    const upOccurrences = forwardReturns.filter(r => r >= threshold).length;
+    const downOccurrences = forwardReturns.filter(r => r <= -threshold).length;
+    const movesAboveThreshold = forwardReturns.filter(r => r >= threshold);
+    const movesBelowThreshold = forwardReturns.filter(r => r <= -threshold);
+    
+    return {
+      threshold,
+      upProbability: (upOccurrences / sampleSize) * 100,
+      downProbability: (downOccurrences / sampleSize) * 100,
+      upOccurrences,
+      downOccurrences,
+      avgMoveWhenUp: movesAboveThreshold.length > 0 ? movesAboveThreshold.reduce((a, b) => a + b, 0) / movesAboveThreshold.length : 0,
+      avgMoveWhenDown: movesBelowThreshold.length > 0 ? Math.abs(movesBelowThreshold.reduce((a, b) => a + b, 0) / movesBelowThreshold.length) : 0
+    };
+  });
+
+  return {
+    thresholds,
+    overallUpProbability,
+    overallDownProbability,
+    expectedMove,
+    sampleSize,
+    volatilityAdjustedExpectedMove
+  };
+}
+
 // Get asset metadata from database
 async function getAssetMetadata(supabase: any, ticker: string): Promise<{ name?: string; sector?: string; market_cap_tier?: string } | null> {
   try {
@@ -1342,6 +1434,14 @@ serve(async (req) => {
       savedToDatabase: true
     } : null;
     
+    // Calculate movement probabilities for multiple time horizons
+    const movementProbabilities = {
+      days1: calculateMovementProbabilities(bars, 1),
+      days5: calculateMovementProbabilities(bars, 5),
+      days10: calculateMovementProbabilities(bars, 10),
+      days21: calculateMovementProbabilities(bars, 21),
+    };
+    
     return new Response(JSON.stringify({ 
       success: true, 
       result, 
@@ -1349,7 +1449,8 @@ serve(async (req) => {
       useMockData, 
       computationTimeMs: Date.now() - startTime, 
       dateRange: { start: bars[0].date, end: bars[bars.length - 1].date },
-      probabilitySummary
+      probabilitySummary,
+      movementProbabilities
     }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
   } catch (error: any) {
     console.error('Study error:', error);
