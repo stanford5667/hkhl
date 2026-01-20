@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Calendar, DollarSign, Building2, Target, Globe, Scan } from 'lucide-react';
 import FundamentalEventCalendar from '@/components/quant-lab/FundamentalEventCalendar';
@@ -22,6 +22,10 @@ export function FundamentalStudiesContent({
   onSelectTicker
 }: FundamentalStudiesContentProps) {
   const [activeTab, setActiveTab] = useState(defaultTab);
+
+  useEffect(() => {
+    setActiveTab(defaultTab);
+  }, [defaultTab]);
 
   return (
     <div className="space-y-6">

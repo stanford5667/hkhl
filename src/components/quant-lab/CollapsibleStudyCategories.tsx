@@ -48,7 +48,8 @@ interface CollapsibleStudyCategoriesProps {
   onAddStudy: (studyId: string) => void;
   onRemoveStudy: (studyId: string) => void;
   showFundamentalStudies?: boolean;
-  onShowFundamentalStudies?: () => void;
+  activeFundamentalTab?: string;
+  onShowFundamentalStudies?: (tab?: string) => void;
   className?: string;
   closePanelOnSelect?: boolean;
   onClosePanel?: () => void;
@@ -61,6 +62,7 @@ export function CollapsibleStudyCategories({
   onAddStudy,
   onRemoveStudy,
   showFundamentalStudies,
+  activeFundamentalTab,
   onShowFundamentalStudies,
   className,
   closePanelOnSelect,
@@ -206,8 +208,8 @@ export function CollapsibleStudyCategories({
                 <span className="text-sm font-semibold text-foreground flex-1 text-left">
                   Fundamentals
                 </span>
-                <Badge variant="outline" className="text-[10px] px-1.5 h-5 border-blue-500/50 text-blue-600">
-                  Events
+                <Badge variant="outline" className="text-[10px] px-1.5 h-5">
+                  Screeners
                 </Badge>
                 {expandedCategories['fundamentals'] ? (
                   <ChevronDown className="h-4 w-4 text-muted-foreground" />
@@ -216,40 +218,49 @@ export function CollapsibleStudyCategories({
                 )}
               </div>
             </CollapsibleTrigger>
-            
+
             <CollapsibleContent>
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="pl-3 pb-2"
-              >
-                <button
-                  onClick={onShowFundamentalStudies}
-                  className={cn(
-                    "w-full text-left p-2.5 rounded-lg border transition-all duration-150",
-                    showFundamentalStudies
-                      ? "border-primary bg-primary/5 shadow-sm"
-                      : "border-transparent bg-muted/40 hover:bg-muted active:scale-[0.99]"
-                  )}
-                >
-                  <div className="flex items-center gap-2.5">
-                    <div className={cn(
-                      "p-1.5 rounded-md shrink-0",
-                      showFundamentalStudies ? "bg-primary text-primary-foreground" : "bg-background"
-                    )}>
-                      <Landmark className="h-3.5 w-3.5" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <span className="font-medium text-sm">Earnings, FOMC & Events</span>
-                      <p className="text-[11px] text-muted-foreground line-clamp-1 mt-0.5">
-                        Economic data and earnings impact studies
-                      </p>
-                    </div>
-                    {showFundamentalStudies && (
-                      <CheckCircle2 className="h-4 w-4 text-primary shrink-0" />
-                    )}
-                  </div>
-                </button>
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="pl-3 pb-2 space-y-1.5">
+                {(
+                  [
+                    { id: 'cross-study', label: 'Cross-Study Screener', sub: 'Scan all studies by probability' },
+                    { id: 'universe', label: 'Universe Screen', sub: 'Screen the full ticker universe' },
+                    { id: 'probability', label: 'Events Screen', sub: 'Event-based probabilities' },
+                    { id: 'calendar', label: 'Event Calendar', sub: 'Macro & earnings timeline' },
+                    { id: 'earnings', label: 'Earnings Impact', sub: 'Post-earnings drift analysis' },
+                    { id: 'fomc', label: 'FOMC Impact', sub: 'Fed decision impact study' },
+                  ]
+                ).map((item) => {
+                  const isActive = Boolean(showFundamentalStudies && activeFundamentalTab === item.id);
+                  return (
+                    <button
+                      key={item.id}
+                      onClick={() => onShowFundamentalStudies(item.id)}
+                      className={cn(
+                        "w-full text-left p-2.5 rounded-lg border transition-all duration-150",
+                        isActive
+                          ? "border-primary bg-primary/5 shadow-sm"
+                          : "border-transparent bg-muted/40 hover:bg-muted active:scale-[0.99]"
+                      )}
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <div
+                          className={cn(
+                            "p-1.5 rounded-md shrink-0",
+                            isActive ? "bg-primary text-primary-foreground" : "bg-background"
+                          )}
+                        >
+                          <Landmark className="h-3.5 w-3.5" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <span className="font-medium text-sm">{item.label}</span>
+                          <p className="text-[11px] text-muted-foreground line-clamp-1 mt-0.5">{item.sub}</p>
+                        </div>
+                        {isActive && <CheckCircle2 className="h-4 w-4 text-primary shrink-0" />}
+                      </div>
+                    </button>
+                  );
+                })}
               </motion.div>
             </CollapsibleContent>
           </Collapsible>
