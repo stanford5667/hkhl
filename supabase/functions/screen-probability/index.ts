@@ -431,7 +431,8 @@ async function runRealStudiesForTickers(
 ): Promise<ScreenerResult[]> {
   const results: ScreenerResult[] = [];
   const endDate = new Date().toISOString().split('T')[0];
-  const startDate = new Date(Date.now() - 365 * 2 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]; // 2 years
+  // Match Quant Lab's 3-year default to ensure studies have sufficient data
+  const startDate = new Date(Date.now() - 756 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]; // 756 trading days (~3 years)
 
   // Process tickers in parallel batches
   const batchSize = 5;
