@@ -5239,6 +5239,13 @@ export type Database = {
           ticker: string
         }[]
       }
+      get_distinct_bar_tickers: {
+        Args: { limit_count?: number }
+        Returns: {
+          bar_count: number
+          ticker: string
+        }[]
+      }
       get_portfolio_news: {
         Args: { p_limit?: number; p_user_id: string }
         Returns: {
