@@ -37,19 +37,31 @@ interface ScreenRequest {
   runRealStudies?: boolean;
 }
 
-// Study definitions matching the frontend
-const STUDY_IDS = [
+// Study definitions matching the frontend - organized by category
+const STUDY_BY_CATEGORY: Record<string, string[]> = {
+  'conditional': ['after_down_x', 'after_up_x', 'after_consecutive_days', 'after_high_volume', 'after_gap', 'below_ma'],
+  'basic': ['daily_close_gt_open', 'daily_close_gt_prior', 'daily_return_distribution', 'up_down_streaks'],
+  'technical': ['rsi_analysis', 'moving_average_analysis', 'trend_strength', 'macd_analysis', 'bollinger_analysis', 'stochastic_analysis'],
+  'volatility': ['volatility_analysis', 'drawdown_analysis', 'mean_reversion'],
+  'patterns': ['gap_analysis', 'range_analysis', 'high_low_analysis', 'close_to_open_analysis'],
+  'seasonality': ['day_of_week_returns', 'month_of_year_returns'],
+  'volume': ['volume_analysis'],
+  'projections': ['price_targets'],
+};
+
+// All study IDs flattened
+const ALL_STUDY_IDS = Object.values(STUDY_BY_CATEGORY).flat();
+
+// Default studies to run when nothing selected (most reliable ones)
+const DEFAULT_STUDY_IDS = [
   'daily_close_gt_open',
   'daily_close_gt_prior', 
   'rsi_analysis',
   'moving_average_analysis',
-  'trend_strength',
-  'volatility_analysis',
-  'drawdown_analysis',
-  'mean_reversion',
-  'gap_analysis',
   'after_down_x',
   'after_up_x',
+  'gap_analysis',
+  'volatility_analysis',
 ];
 
 serve(async (req) => {
@@ -93,6 +105,7 @@ serve(async (req) => {
     // -------------------------------------------------
     if (mode === 'cross_study') {
       console.log('Running cross-study screen with real studies');
+      console.log(`Filters: minProb=${minProbability}, maxProb=${maxProbability}, minSample=${minSampleSize}, categories=${studyCategories?.join(',') || 'all'}`);
       
       // Get tickers from universe
       const tickers = await getScreeningTickers(supabase, sectors, marketCapTiers, Math.min(limit * 2, 30));
@@ -104,9 +117,22 @@ serve(async (req) => {
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
-
-      // Select which studies to run
-      const selectedStudies = studyTypes?.length ? studyTypes : STUDY_IDS.slice(0, 6);
+      
+      // Determine which studies to run based on filters
+      let selectedStudies: string[] = [];
+      
+      if (studyTypes?.length) {
+        // Specific study types requested
+        selectedStudies = studyTypes;
+      } else if (studyCategories?.length) {
+        // Map categories to study IDs
+        selectedStudies = studyCategories.flatMap(cat => STUDY_BY_CATEGORY[cat] || []);
+      } else {
+        // Default: run the most reliable studies
+        selectedStudies = DEFAULT_STUDY_IDS;
+      }
+      
+      console.log(`Running ${selectedStudies.length} studies: ${selectedStudies.join(', ')}`);
       
       // Run real studies for each ticker and collect results
       const results = await runRealStudiesForTickers(
@@ -436,36 +462,88 @@ async function runRealStudiesForTickers(
           }
 
           const data = await response.json();
-          
-          // Extract probability from movement probabilities
+          const result = data.result;
           const movementProbs = data.movementProbabilities;
-
-          // run-asset-study returns: { days1, days5, days10, days21 }
-          const horizonKey =
-            filters.lookforwardDays === 1
-              ? 'days1'
-              : filters.lookforwardDays <= 5
-                ? 'days5'
-                : filters.lookforwardDays <= 10
-                  ? 'days10'
-                  : 'days21';
-
-          const probData = movementProbs?.[horizonKey];
-          if (!probData) return null;
-
-          const probabilityScore = probData.overallUpProbability ?? 50;
-          const expectedReturn = probData.expectedMove ?? 0;
-          const sampleSize = probData.sampleSize ?? 0;
-
+          
+          // Extract STUDY-SPECIFIC probability (not generic forward movement)
+          const studyMetrics = extractStudyProbability(studyType, result, filters.lookforwardDays);
+          
+          if (!studyMetrics) {
+            // Fallback to movement probabilities if study doesn't have specific metrics
+            const horizonKey =
+              filters.lookforwardDays === 1 ? 'days1' :
+              filters.lookforwardDays <= 5 ? 'days5' :
+              filters.lookforwardDays <= 10 ? 'days10' : 'days21';
+            
+            const probData = movementProbs?.[horizonKey];
+            if (!probData) {
+              console.log(`No probability data for ${ticker.ticker}/${studyType}`);
+              return null;
+            }
+            
+            // Use general movement probability as fallback
+            const probabilityScore = probData.overallUpProbability ?? 50;
+            const expectedReturn = probData.expectedMove ?? 0;
+            const sampleSize = probData.sampleSize ?? 0;
+            
+            console.log(`${ticker.ticker}/${studyType} (fallback): prob=${probabilityScore.toFixed(1)}%, exp=${expectedReturn.toFixed(2)}%, sample=${sampleSize}`);
+            
+            if (probabilityScore < filters.minProbability || probabilityScore > filters.maxProbability) return null;
+            if (sampleSize < filters.minSampleSize) return null;
+            if (filters.minExpectedReturn !== null && expectedReturn < filters.minExpectedReturn) return null;
+            
+            const signalActive = checkIfSignalActive(studyType, result ?? data);
+            if (filters.onlyActiveSignals && !signalActive) return null;
+            
+            return {
+              symbol: ticker.ticker,
+              name: ticker.name || ticker.ticker,
+              sector: ticker.sector,
+              market_cap_tier: ticker.market_cap_tier,
+              study_id: studyType,
+              study_name: getStudyName(studyType),
+              study_category: getStudyCategory(studyType),
+              probability_score: probabilityScore,
+              expected_return: expectedReturn,
+              sample_size: sampleSize,
+              win_rate: probabilityScore,
+              avg_gain: probData.thresholds?.[0]?.avgMoveWhenUp || expectedReturn,
+              avg_loss: -(probData.thresholds?.[0]?.avgMoveWhenDown || Math.abs(expectedReturn)),
+              confidence_level: sampleSize >= 250 ? 'high' : sampleSize >= 100 ? 'medium' : 'low',
+              signal_active: signalActive,
+              last_signal_date: new Date().toISOString(),
+              movement_probabilities: movementProbs,
+            } as ScreenerResult;
+          }
+          
+          // Use study-specific probability
+          const { probabilityScore, expectedReturn, sampleSize, signalActive: studySignalActive } = studyMetrics;
+          
+          console.log(`${ticker.ticker}/${studyType} (study-specific): prob=${probabilityScore.toFixed(1)}%, exp=${expectedReturn.toFixed(2)}%, sample=${sampleSize}`);
+          
           // Apply filters
-          if (probabilityScore < filters.minProbability || probabilityScore > filters.maxProbability) return null;
-          if (sampleSize < filters.minSampleSize) return null;
-          if (filters.minExpectedReturn !== null && expectedReturn < filters.minExpectedReturn) return null;
-          if (filters.maxExpectedReturn !== null && expectedReturn > filters.maxExpectedReturn) return null;
-
-          // Determine if signal is active
-          const signalActive = checkIfSignalActive(studyType, data.result ?? data);
-          if (filters.onlyActiveSignals && !signalActive) return null;
+          if (probabilityScore < filters.minProbability || probabilityScore > filters.maxProbability) {
+            console.log(`  -> FILTERED: prob ${probabilityScore.toFixed(1)} not in [${filters.minProbability}, ${filters.maxProbability}]`);
+            return null;
+          }
+          if (sampleSize < filters.minSampleSize) {
+            console.log(`  -> FILTERED: sample ${sampleSize} < ${filters.minSampleSize}`);
+            return null;
+          }
+          if (filters.minExpectedReturn !== null && expectedReturn < filters.minExpectedReturn) {
+            console.log(`  -> FILTERED: exp return ${expectedReturn.toFixed(2)} < ${filters.minExpectedReturn}`);
+            return null;
+          }
+          if (filters.maxExpectedReturn !== null && expectedReturn > filters.maxExpectedReturn) {
+            return null;
+          }
+          
+          if (filters.onlyActiveSignals && !studySignalActive) {
+            console.log(`  -> FILTERED: signal not active`);
+            return null;
+          }
+          
+          console.log(`  -> PASSED: ${ticker.ticker}/${studyType}`);
 
           return {
             symbol: ticker.ticker,
@@ -479,10 +557,10 @@ async function runRealStudiesForTickers(
             expected_return: expectedReturn,
             sample_size: sampleSize,
             win_rate: probabilityScore,
-            avg_gain: probData.thresholds?.[0]?.avgMoveWhenUp || expectedReturn,
-            avg_loss: -(probData.thresholds?.[0]?.avgMoveWhenDown || Math.abs(expectedReturn)),
+            avg_gain: expectedReturn > 0 ? expectedReturn : 0,
+            avg_loss: expectedReturn < 0 ? expectedReturn : 0,
             confidence_level: sampleSize >= 250 ? 'high' : sampleSize >= 100 ? 'medium' : 'low',
-            signal_active: signalActive,
+            signal_active: studySignalActive,
             last_signal_date: new Date().toISOString(),
             movement_probabilities: movementProbs,
           } as ScreenerResult;
@@ -498,6 +576,122 @@ async function runRealStudiesForTickers(
   }
 
   return results;
+}
+
+// Extract study-specific probability metrics from the result
+// This is the KEY function that gets the actual study win rate, not just general price movement
+interface StudyMetrics {
+  probabilityScore: number;
+  expectedReturn: number;
+  sampleSize: number;
+  signalActive: boolean;
+}
+
+function extractStudyProbability(studyType: string, result: any, lookforwardDays: number): StudyMetrics | null {
+  if (!result) return null;
+  
+  // Handle conditional studies with analysis array (after_down_x, after_up_x, etc.)
+  if (result.analysis && Array.isArray(result.analysis)) {
+    // Find the analysis entry matching the lookforward days
+    const matchingAnalysis = result.analysis.find((a: any) => a.days === lookforwardDays) 
+      || result.analysis.find((a: any) => a.days <= lookforwardDays)
+      || result.analysis[0];
+    
+    if (matchingAnalysis && matchingAnalysis.occurrences >= 5) {
+      return {
+        probabilityScore: matchingAnalysis.winRate || 0,
+        expectedReturn: matchingAnalysis.avgReturn || 0,
+        sampleSize: matchingAnalysis.occurrences || 0,
+        signalActive: result.totalOccurrences > 0,
+      };
+    }
+  }
+  
+  // Handle basic percentage studies (daily_close_gt_open, daily_close_gt_prior)
+  if (result.percentage !== undefined && result.total_days) {
+    return {
+      probabilityScore: result.percentage,
+      expectedReturn: result.avgReturn || result.avgUpReturn || 0,
+      sampleSize: result.total_days,
+      signalActive: false, // Basic stats don't have active signals
+    };
+  }
+  
+  // Handle RSI analysis - return the more favorable condition
+  if (result.afterOversold || result.afterOverbought) {
+    const oversold = result.afterOversold;
+    const overbought = result.afterOverbought;
+    
+    // Pick the one with higher hit rate
+    if (oversold?.count >= 5 && (!overbought || oversold.hitRate >= (overbought?.hitRate || 0))) {
+      return {
+        probabilityScore: oversold.hitRate || 0,
+        expectedReturn: oversold.avgReturn || 0,
+        sampleSize: oversold.count,
+        signalActive: result.current < 30,
+      };
+    }
+    if (overbought?.count >= 5) {
+      return {
+        probabilityScore: overbought.hitRate || 0,
+        expectedReturn: overbought.avgReturn || 0,
+        sampleSize: overbought.count,
+        signalActive: result.current > 70,
+      };
+    }
+  }
+  
+  // Handle moving average analysis
+  if (result.maStats) {
+    const stats = result.maStats;
+    if (stats.aboveMA?.count >= 5) {
+      return {
+        probabilityScore: stats.aboveMA.winRate || 0,
+        expectedReturn: stats.aboveMA.avgReturn || 0,
+        sampleSize: stats.aboveMA.count,
+        signalActive: result.currentStatus?.includes('above') || false,
+      };
+    }
+  }
+  
+  // Handle gap analysis
+  if (result.gapUp || result.gapDown) {
+    const gapUp = result.gapUp;
+    const gapDown = result.gapDown;
+    
+    if (gapUp?.count >= 5 && (!gapDown || gapUp.fillRate >= (gapDown?.fillRate || 0))) {
+      return {
+        probabilityScore: gapUp.fillRate || 0,
+        expectedReturn: gapUp.avgReturn || 0,
+        sampleSize: gapUp.count,
+        signalActive: false,
+      };
+    }
+    if (gapDown?.count >= 5) {
+      return {
+        probabilityScore: gapDown.fillRate || 0,
+        expectedReturn: gapDown.avgReturn || 0,
+        sampleSize: gapDown.count,
+        signalActive: false,
+      };
+    }
+  }
+  
+  // Handle volatility analysis
+  if (result.volatilityStats) {
+    const stats = result.volatilityStats;
+    if (stats.highVolDays?.count >= 5) {
+      return {
+        probabilityScore: stats.highVolDays.winRate || 0,
+        expectedReturn: stats.highVolDays.avgReturn || 0,
+        sampleSize: stats.highVolDays.count,
+        signalActive: result.currentVolatility === 'high',
+      };
+    }
+  }
+  
+  // No study-specific metrics found
+  return null;
 }
 
 // Get default params for each study type
