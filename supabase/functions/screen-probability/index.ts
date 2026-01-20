@@ -26,16 +26,33 @@ interface ScreenRequest {
 
   // Cross-study screening
   studyCategories?: string[] | null;
-  studyTypes?: string[] | null; // Study IDs (must match Quant Lab study IDs)
+  studyTypes?: string[] | null;
   
-  // NEW: Enhanced filters for study probability screening
-  onlyActiveSignals?: boolean;      // Show only currently triggered conditions
-  lookforwardDays?: number;         // Time horizon: 1, 5, 10, or 20 days
-  minConfluence?: number | null;    // Minimum number of active studies per stock
+  // Enhanced filters
+  onlyActiveSignals?: boolean;
+  lookforwardDays?: number;
+  minConfluence?: number | null;
+  
+  // NEW: Run real studies
+  runRealStudies?: boolean;
 }
 
+// Study definitions matching the frontend
+const STUDY_IDS = [
+  'daily_close_gt_open',
+  'daily_close_gt_prior', 
+  'rsi_analysis',
+  'moving_average_analysis',
+  'trend_strength',
+  'volatility_analysis',
+  'drawdown_analysis',
+  'mean_reversion',
+  'gap_analysis',
+  'after_down_x',
+  'after_up_x',
+];
+
 serve(async (req) => {
-  // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -50,7 +67,6 @@ serve(async (req) => {
 
     const {
       mode = 'universe',
-
       minProbability = 50,
       maxProbability = 100,
       minExpectedReturn = null,
@@ -64,79 +80,68 @@ serve(async (req) => {
       sortOrder = 'DESC',
       limit = 50,
       offset = 0,
-
       studyCategories = null,
       studyTypes = null,
-      
-      // NEW: Enhanced filters
       onlyActiveSignals = false,
-      lookforwardDays = null,
+      lookforwardDays = 5,
       minConfluence = null,
+      runRealStudies = true,
     } = body;
 
     // -------------------------------------------------
-    // Cross-study screening (returns runnable study IDs)
+    // Cross-study screening - Run REAL studies
     // -------------------------------------------------
     if (mode === 'cross_study') {
-      // First, try to query real data from study_probability_scores
-      const realResults = await queryRealStudyProbabilities(supabase, {
-        minProbability,
-        maxProbability,
-        minExpectedReturn,
-        maxExpectedReturn,
-        minSampleSize,
-        sectors,
-        marketCapTiers,
-        sortBy,
-        sortOrder,
-        limit,
-        offset,
-        studyCategories,
-        studyTypes,
-        onlyActiveSignals,
-        lookforwardDays,
-        minConfluence,
-      });
+      console.log('Running cross-study screen with real studies');
       
-      // If we have real results, return them
-      if (realResults && realResults.length > 0) {
-        console.log(`Returning ${realResults.length} real study probability scores`);
+      // Get tickers from universe
+      const tickers = await getScreeningTickers(supabase, sectors, marketCapTiers, Math.min(limit * 2, 30));
+      console.log(`Got ${tickers.length} tickers for screening`);
+      
+      if (tickers.length === 0) {
         return new Response(
-          JSON.stringify({
-            results: realResults,
-            totalCount: realResults.length,
-            source: 'database',
-            filters: body,
-          }),
+          JSON.stringify({ results: [], totalCount: 0, source: 'empty' }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
+
+      // Select which studies to run
+      const selectedStudies = studyTypes?.length ? studyTypes : STUDY_IDS.slice(0, 6);
       
-      // Fallback to synthetic data if no real results
-      console.log('No real study scores found, generating synthetic data');
-      const results = await generateCrossStudyResults(supabase, {
-        minProbability,
-        maxProbability,
-        minExpectedReturn,
-        maxExpectedReturn,
-        minSampleSize,
-        sectors,
-        marketCapTiers,
-        sortBy,
-        sortOrder,
-        limit,
-        offset,
-        studyCategories,
-        studyTypes,
+      // Run real studies for each ticker and collect results
+      const results = await runRealStudiesForTickers(
+        supabaseUrl,
+        supabaseServiceKey,
+        tickers,
+        selectedStudies,
+        {
+          minProbability,
+          maxProbability,
+          minExpectedReturn,
+          maxExpectedReturn,
+          minSampleSize,
+          lookforwardDays,
+          onlyActiveSignals,
+        }
+      );
+
+      // Sort results
+      const ascending = sortOrder === 'ASC';
+      results.sort((a, b) => {
+        const va = a[sortBy as keyof typeof a] ?? 0;
+        const vb = b[sortBy as keyof typeof b] ?? 0;
+        return ascending ? Number(va) - Number(vb) : Number(vb) - Number(va);
       });
+
+      const finalResults = results.slice(0, limit);
+      console.log(`Returning ${finalResults.length} real study results`);
 
       return new Response(
         JSON.stringify({
-          results,
-          totalCount: results.length,
-          source: 'synthetic',
+          results: finalResults,
+          totalCount: finalResults.length,
+          source: 'real_studies',
           filters: body,
-          note: 'Run studies on assets to populate real probability scores',
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
@@ -306,6 +311,257 @@ serve(async (req) => {
     );
   }
 });
+
+// ============================================================
+// HELPER FUNCTIONS FOR REAL STUDY EXECUTION
+// ============================================================
+
+interface TickerInfo {
+  ticker: string;
+  name: string | null;
+  sector: string | null;
+  market_cap_tier: string | null;
+}
+
+interface ScreenerResult {
+  symbol: string;
+  name: string;
+  sector: string | null;
+  market_cap_tier: string | null;
+  study_id: string;
+  study_name: string;
+  study_category: string;
+  probability_score: number;
+  expected_return: number;
+  sample_size: number;
+  win_rate: number;
+  avg_gain: number;
+  avg_loss: number;
+  confidence_level: string;
+  signal_active: boolean;
+  last_signal_date: string | null;
+  movement_probabilities?: any;
+}
+
+// Get tickers for screening from asset_universe
+async function getScreeningTickers(
+  supabase: any,
+  sectors: string[] | null,
+  marketCapTiers: string[] | null,
+  limit: number
+): Promise<TickerInfo[]> {
+  let query = supabase
+    .from('asset_universe')
+    .select('ticker, name, sector, market_cap_tier')
+    .eq('is_active', true)
+    .limit(limit);
+
+  if (sectors?.length) {
+    query = query.in('sector', sectors);
+  }
+  if (marketCapTiers?.length) {
+    query = query.in('market_cap_tier', marketCapTiers);
+  }
+
+  const { data, error } = await query;
+
+  if (error || !data?.length) {
+    // Fallback to hardcoded list
+    return [
+      { ticker: 'AAPL', name: 'Apple Inc.', sector: 'Technology', market_cap_tier: 'mega' },
+      { ticker: 'MSFT', name: 'Microsoft Corp.', sector: 'Technology', market_cap_tier: 'mega' },
+      { ticker: 'GOOGL', name: 'Alphabet Inc.', sector: 'Communication Services', market_cap_tier: 'mega' },
+      { ticker: 'AMZN', name: 'Amazon.com Inc.', sector: 'Consumer Cyclical', market_cap_tier: 'mega' },
+      { ticker: 'NVDA', name: 'NVIDIA Corp.', sector: 'Technology', market_cap_tier: 'mega' },
+      { ticker: 'META', name: 'Meta Platforms Inc.', sector: 'Communication Services', market_cap_tier: 'mega' },
+      { ticker: 'TSLA', name: 'Tesla Inc.', sector: 'Consumer Cyclical', market_cap_tier: 'mega' },
+      { ticker: 'JPM', name: 'JPMorgan Chase', sector: 'Financial Services', market_cap_tier: 'mega' },
+    ].slice(0, limit);
+  }
+
+  return data.map((r: any) => ({
+    ticker: r.ticker,
+    name: r.name || r.ticker,
+    sector: r.sector || null,
+    market_cap_tier: r.market_cap_tier || null,
+  }));
+}
+
+// Run real studies for each ticker by calling the run-asset-study function
+async function runRealStudiesForTickers(
+  supabaseUrl: string,
+  supabaseServiceKey: string,
+  tickers: TickerInfo[],
+  studyTypes: string[],
+  filters: {
+    minProbability: number;
+    maxProbability: number;
+    minExpectedReturn: number | null;
+    maxExpectedReturn: number | null;
+    minSampleSize: number;
+    lookforwardDays: number;
+    onlyActiveSignals: boolean;
+  }
+): Promise<ScreenerResult[]> {
+  const results: ScreenerResult[] = [];
+  const endDate = new Date().toISOString().split('T')[0];
+  const startDate = new Date(Date.now() - 365 * 2 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]; // 2 years
+
+  // Process tickers in parallel batches
+  const batchSize = 5;
+  for (let i = 0; i < tickers.length; i += batchSize) {
+    const batch = tickers.slice(i, i + batchSize);
+    
+    const batchPromises = batch.flatMap(ticker => 
+      studyTypes.map(async studyType => {
+        try {
+          const response = await fetch(`${supabaseUrl}/functions/v1/run-asset-study`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${supabaseServiceKey}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              ticker: ticker.ticker,
+              studyType,
+              startDate,
+              endDate,
+              params: getStudyParams(studyType),
+            }),
+          });
+
+          if (!response.ok) {
+            console.error(`Study failed for ${ticker.ticker}/${studyType}: ${response.status}`);
+            return null;
+          }
+
+          const data = await response.json();
+          
+          // Extract probability from movement probabilities or study result
+          const movementProbs = data.movementProbabilities;
+          const lookforwardKey = filters.lookforwardDays === 1 ? '1' : 
+                                filters.lookforwardDays <= 5 ? '5' : 
+                                filters.lookforwardDays <= 10 ? '10' : '21';
+          
+          const probData = movementProbs?.[lookforwardKey];
+          
+          if (!probData) return null;
+
+          const probabilityScore = probData.overallUpProbability || 50;
+          const expectedReturn = probData.expectedMove || 0;
+          const sampleSize = probData.sampleSize || 0;
+
+          // Apply filters
+          if (probabilityScore < filters.minProbability || probabilityScore > filters.maxProbability) return null;
+          if (sampleSize < filters.minSampleSize) return null;
+          if (filters.minExpectedReturn !== null && expectedReturn < filters.minExpectedReturn) return null;
+          if (filters.maxExpectedReturn !== null && expectedReturn > filters.maxExpectedReturn) return null;
+
+          // Determine if signal is active
+          const signalActive = checkIfSignalActive(studyType, data);
+          if (filters.onlyActiveSignals && !signalActive) return null;
+
+          return {
+            symbol: ticker.ticker,
+            name: ticker.name || ticker.ticker,
+            sector: ticker.sector,
+            market_cap_tier: ticker.market_cap_tier,
+            study_id: studyType,
+            study_name: getStudyName(studyType),
+            study_category: getStudyCategory(studyType),
+            probability_score: probabilityScore,
+            expected_return: expectedReturn,
+            sample_size: sampleSize,
+            win_rate: probabilityScore,
+            avg_gain: probData.thresholds?.[0]?.avgMoveWhenUp || expectedReturn,
+            avg_loss: -(probData.thresholds?.[0]?.avgMoveWhenDown || Math.abs(expectedReturn)),
+            confidence_level: sampleSize >= 250 ? 'high' : sampleSize >= 100 ? 'medium' : 'low',
+            signal_active: signalActive,
+            last_signal_date: new Date().toISOString(),
+            movement_probabilities: movementProbs,
+          } as ScreenerResult;
+        } catch (err) {
+          console.error(`Error running study for ${ticker.ticker}/${studyType}:`, err);
+          return null;
+        }
+      })
+    );
+
+    const batchResults = await Promise.all(batchPromises);
+    results.push(...batchResults.filter((r): r is ScreenerResult => r !== null));
+  }
+
+  return results;
+}
+
+// Get default params for each study type
+function getStudyParams(studyType: string): Record<string, any> {
+  switch (studyType) {
+    case 'after_down_x':
+      return { threshold: 2, direction: 'down' };
+    case 'after_up_x':
+      return { threshold: 2, direction: 'up' };
+    case 'rsi_analysis':
+      return { period: 14 };
+    case 'moving_average_analysis':
+      return { shortPeriod: 20, mediumPeriod: 50, longPeriod: 200 };
+    default:
+      return {};
+  }
+}
+
+// Check if signal is currently active
+function checkIfSignalActive(studyType: string, data: any): boolean {
+  switch (studyType) {
+    case 'rsi_analysis':
+      return (data.current < 30 || data.current > 70);
+    case 'moving_average_analysis':
+      return data.currentStatus?.includes('bullish') || data.currentStatus?.includes('bearish');
+    case 'trend_strength':
+      return Math.abs(data.score || 0) > 50;
+    case 'after_down_x':
+    case 'after_up_x':
+      return data.totalOccurrences > 0 && data.analysis?.length > 0;
+    default:
+      return false;
+  }
+}
+
+// Get human-readable study name
+function getStudyName(studyType: string): string {
+  const names: Record<string, string> = {
+    'daily_close_gt_open': 'Intraday Direction',
+    'daily_close_gt_prior': 'Daily Win Rate',
+    'rsi_analysis': 'RSI Analysis',
+    'moving_average_analysis': 'Moving Averages',
+    'trend_strength': 'Trend Strength',
+    'volatility_analysis': 'Volatility Profile',
+    'drawdown_analysis': 'Drawdown Analysis',
+    'mean_reversion': 'Mean Reversion',
+    'gap_analysis': 'Gap Analysis',
+    'after_down_x': 'After Down X%',
+    'after_up_x': 'After Up X%',
+  };
+  return names[studyType] || studyType;
+}
+
+// Get study category
+function getStudyCategory(studyType: string): string {
+  const categories: Record<string, string> = {
+    'daily_close_gt_open': 'basic',
+    'daily_close_gt_prior': 'basic',
+    'rsi_analysis': 'technical',
+    'moving_average_analysis': 'technical',
+    'trend_strength': 'technical',
+    'volatility_analysis': 'volatility',
+    'drawdown_analysis': 'volatility',
+    'mean_reversion': 'volatility',
+    'gap_analysis': 'patterns',
+    'after_down_x': 'conditional',
+    'after_up_x': 'conditional',
+  };
+  return categories[studyType] || 'basic';
+}
 
 // Generate demo results when database is empty
 function generateDemoResults(
