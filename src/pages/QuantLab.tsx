@@ -895,8 +895,8 @@ export default function QuantLab() {
     }
   }, []);
 
-  // Run a single study
-  const runStudy = useCallback(async (studyId: string, tickerOverride?: string) => {
+  // Run a single study - paramsOverride allows bypassing studyParams state (e.g., from screener)
+  const runStudy = useCallback(async (studyId: string, tickerOverride?: string, paramsOverride?: Record<string, any>) => {
     const tickerToUse = (tickerOverride ?? selectedTicker)?.toUpperCase().trim();
     if (!tickerToUse) {
       toast.error('Please enter a ticker symbol');
@@ -952,8 +952,8 @@ export default function QuantLab() {
       const startDate = new Date();
       startDate.setDate(startDate.getDate() - (periodData?.days || 756));
 
-      // Prepare params - convert forwardDays from single value to array for edge function
-      const rawParams = studyParams[studyId] || {};
+      // Prepare params - use paramsOverride if provided (from screener), else fall back to studyParams state
+      const rawParams = paramsOverride ?? studyParams[studyId] ?? {};
       const formattedParams: Record<string, any> = { ...rawParams };
       
       // Edge function expects forwardDays as an array of numbers [1, 3, 5, 10]
@@ -1239,9 +1239,9 @@ function QuantLabContent(props: any) {
     studyResult: any;
   } | null>(null);
 
-  // Enhanced run study that tracks learning
-  const handleRunStudy = async (studyId: string, tickerOverride?: string) => {
-    await runStudy(studyId, tickerOverride);
+  // Enhanced run study that tracks learning - paramsOverride used when coming from screener
+  const handleRunStudy = async (studyId: string, tickerOverride?: string, paramsOverride?: Record<string, any>) => {
+    await runStudy(studyId, tickerOverride, paramsOverride);
     markStudyCompleted(studyId);
     checkAndUnlockAchievements({ studyId });
     addXp(15);
@@ -1670,23 +1670,23 @@ function QuantLabContent(props: any) {
                     setShowFundamentalStudies(false);
                     addStudy(studyId);
                     
-                    // If screener passed params, use them instead of defaults for consistent results
+                    // Prepare UI-friendly params for display (convert forwardDays array to single value)
+                    let uiParams: Record<string, any> = {};
                     if (screenerParams && Object.keys(screenerParams).length > 0) {
-                      // Convert forwardDays array back to single value for UI (take max value)
-                      const uiParams = { ...screenerParams };
+                      uiParams = { ...screenerParams };
                       if (Array.isArray(uiParams.forwardDays) && uiParams.forwardDays.length > 0) {
                         uiParams.forwardDays = String(Math.max(...uiParams.forwardDays));
                       }
+                      // Update state so the UI shows the correct params
                       setStudyParams(prev => ({
                         ...prev,
                         [studyId]: uiParams
                       }));
                     }
                     
-                    // Run the study with a slight delay to allow state to update
-                    setTimeout(() => {
-                      handleRunStudy(studyId, studyTicker);
-                    }, 100);
+                    // Run the study immediately with params passed directly (no race condition)
+                    // Pass the original screenerParams to ensure exact match with screener results
+                    handleRunStudy(studyId, studyTicker, screenerParams);
                   }}
                   onSelectTicker={(newTicker) => {
                     handleSetTicker(newTicker);
