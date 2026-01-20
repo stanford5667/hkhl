@@ -994,6 +994,7 @@ export default function QuantLab() {
           ...data.result,
           barsAnalyzed: data.barsAnalyzed,
           dateRange: data.dateRange,
+          movementProbabilities: data.movementProbabilities,
         }
       }));
 

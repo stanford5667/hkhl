@@ -28,6 +28,7 @@ import {
 import { StudyVisualizations } from './StudyVisualizations';
 import { EnhancedResultView } from './EnhancedResultViews';
 import { TradingStrategyCard } from './TradingStrategyCard';
+import { MovementProbabilities } from './MovementProbabilities';
 
 interface StudyParam {
   key: string;
@@ -1289,6 +1290,14 @@ export function StudyResultCard({
           {' '}{study.whatItMeasures}
         </p>
       </div>
+
+      {/* Movement Probabilities - Direction & Magnitude Analysis */}
+      {result.movementProbabilities && (
+        <MovementProbabilities 
+          movementProbabilities={result.movementProbabilities} 
+          ticker={ticker} 
+        />
+      )}
 
       {/* Visual Analysis - Always Visible */}
       <div className="border-b">
