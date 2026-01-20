@@ -130,25 +130,33 @@ serve(async (req) => {
         });
 
         if (dbRows && dbRows.length > 0) {
-          const normalized = dbRows.map((r: any) => ({
-            // DB uses `ticker`; UI expects `symbol`
-            symbol: r.symbol ?? r.ticker,
-            name: r.name ?? r.ticker,
-            sector: r.sector ?? null,
-            market_cap_tier: r.market_cap_tier ?? null,
-            study_id: r.study_id,
-            study_name: r.study_name,
-            study_category: r.study_category,
-            probability_score: Number(r.probability_score),
-            expected_return: Number(r.expected_return ?? 0),
-            sample_size: Number(r.sample_size ?? 0),
-            win_rate: Number(r.win_rate ?? r.probability_score ?? 0),
-            avg_gain: Number(r.avg_gain ?? 0),
-            avg_loss: Number(r.avg_loss ?? 0),
-            confidence_level: r.confidence_level ?? 'medium',
-            last_signal_date: r.last_signal_date ?? null,
-            signal_active: Boolean(r.signal_active ?? false),
-          }));
+          const normalized = dbRows.map((r: any) => {
+            // Generate study_params to ensure frontend can reproduce exact results
+            const studyLookforward = r.lookforward_days ?? lookforwardDays ?? 5;
+            const studyParams = getStudyParams(r.study_id, studyLookforward);
+            
+            return {
+              // DB uses `ticker`; UI expects `symbol`
+              symbol: r.symbol ?? r.ticker,
+              name: r.name ?? r.ticker,
+              sector: r.sector ?? null,
+              market_cap_tier: r.market_cap_tier ?? null,
+              study_id: r.study_id,
+              study_name: r.study_name,
+              study_category: r.study_category,
+              probability_score: Number(r.probability_score),
+              expected_return: Number(r.expected_return ?? 0),
+              sample_size: Number(r.sample_size ?? 0),
+              win_rate: Number(r.win_rate ?? r.probability_score ?? 0),
+              avg_gain: Number(r.avg_gain ?? 0),
+              avg_loss: Number(r.avg_loss ?? 0),
+              confidence_level: r.confidence_level ?? 'medium',
+              last_signal_date: r.last_signal_date ?? null,
+              signal_active: Boolean(r.signal_active ?? false),
+              // Include study_params so the frontend can run the study with identical settings
+              study_params: studyParams,
+            };
+          });
 
           return new Response(
             JSON.stringify({
