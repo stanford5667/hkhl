@@ -97,69 +97,135 @@ serve(async (req) => {
       onlyActiveSignals = false,
       lookforwardDays = 5,
       minConfluence = null,
-      runRealStudies = true,
+      runRealStudies = false,
     } = body;
 
     // -------------------------------------------------
     // Cross-study screening - Run REAL studies
     // -------------------------------------------------
     if (mode === 'cross_study') {
-      console.log('Running cross-study screen with real studies');
+      console.log('Running cross-study screener');
       console.log(`Filters: minProb=${minProbability}, maxProb=${maxProbability}, minSample=${minSampleSize}, categories=${studyCategories?.join(',') || 'all'}`);
-      
-      // Get tickers from universe
-      const tickers = await getScreeningTickers(supabase, sectors, marketCapTiers, Math.min(limit * 2, 30));
-      console.log(`Got ${tickers.length} tickers for screening`);
-      
-      if (tickers.length === 0) {
-        return new Response(
-          JSON.stringify({ results: [], totalCount: 0, source: 'empty' }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-      
-      // Determine which studies to run based on filters
-      let selectedStudies: string[] = [];
-      
-      if (studyTypes?.length) {
-        // Specific study types requested
-        selectedStudies = studyTypes;
-      } else if (studyCategories?.length) {
-        // Map categories to study IDs
-        selectedStudies = studyCategories.flatMap(cat => STUDY_BY_CATEGORY[cat] || []);
-      } else {
-        // Default: run the most reliable studies
-        selectedStudies = DEFAULT_STUDY_IDS;
-      }
-      
-      console.log(`Running ${selectedStudies.length} studies: ${selectedStudies.join(', ')}`);
-      
-      // Run real studies for each ticker and collect results
-      const results = await runRealStudiesForTickers(
-        supabaseUrl,
-        supabaseServiceKey,
-        tickers,
-        selectedStudies,
-        {
+
+      // Prefer fast DB-backed screener (precomputed study_probability_scores) for breadth.
+      // If it's unavailable/empty, fall back to live study execution.
+      if (!runRealStudies) {
+        const dbRows = await queryRealStudyProbabilities(supabase, {
           minProbability,
           maxProbability,
           minExpectedReturn,
           maxExpectedReturn,
           minSampleSize,
-          lookforwardDays,
+          sectors,
+          marketCapTiers,
+          sortBy,
+          sortOrder,
+          limit,
+          offset,
+          studyCategories,
+          studyTypes,
           onlyActiveSignals,
+          lookforwardDays,
+          minConfluence,
+        });
+
+        if (dbRows && dbRows.length > 0) {
+          const normalized = dbRows.map((r: any) => ({
+            // DB uses `ticker`; UI expects `symbol`
+            symbol: r.symbol ?? r.ticker,
+            name: r.name ?? r.ticker,
+            sector: r.sector ?? null,
+            market_cap_tier: r.market_cap_tier ?? null,
+            study_id: r.study_id,
+            study_name: r.study_name,
+            study_category: r.study_category,
+            probability_score: Number(r.probability_score),
+            expected_return: Number(r.expected_return ?? 0),
+            sample_size: Number(r.sample_size ?? 0),
+            win_rate: Number(r.win_rate ?? r.probability_score ?? 0),
+            avg_gain: Number(r.avg_gain ?? 0),
+            avg_loss: Number(r.avg_loss ?? 0),
+            confidence_level: r.confidence_level ?? 'medium',
+            last_signal_date: r.last_signal_date ?? null,
+            signal_active: Boolean(r.signal_active ?? false),
+          }));
+
+          return new Response(
+            JSON.stringify({
+              results: normalized,
+              totalCount: normalized.length,
+              source: 'database_scores',
+              filters: body,
+            }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
         }
-      );
+
+        console.log('DB-backed cross-study returned no rows; falling back to live study runs');
+      }
+
+      // Determine which studies to run based on filters
+      let selectedStudies: string[] = [];
+      if (studyTypes?.length) {
+        selectedStudies = studyTypes;
+      } else if (studyCategories?.length) {
+        selectedStudies = studyCategories.flatMap((cat) => STUDY_BY_CATEGORY[cat] || []);
+      } else {
+        selectedStudies = DEFAULT_STUDY_IDS;
+      }
+
+      console.log(`Running ${selectedStudies.length} studies: ${selectedStudies.join(', ')}`);
+
+      // Incrementally scan the universe until we find enough passing setups.
+      // Running real studies is expensive, so we stop early once we have `limit` results.
+      const desiredResults = limit;
+      const pageSize = 50;
+      const maxTickersToScan = 300; // safety cap to avoid timeouts
+
+      const allResults: ScreenerResult[] = [];
+
+      for (
+        let tickerOffset = 0;
+        tickerOffset < maxTickersToScan && allResults.length < desiredResults;
+        tickerOffset += pageSize
+      ) {
+        const tickers = await getScreeningTickers(supabase, sectors, marketCapTiers, pageSize, tickerOffset);
+        console.log(`Got ${tickers.length} tickers for screening (offset ${tickerOffset})`);
+
+        if (tickers.length === 0) break;
+
+        const chunkResults = await runRealStudiesForTickers(
+          supabaseUrl,
+          supabaseServiceKey,
+          tickers,
+          selectedStudies,
+          {
+            minProbability,
+            maxProbability,
+            minExpectedReturn,
+            maxExpectedReturn,
+            minSampleSize,
+            lookforwardDays,
+            onlyActiveSignals,
+          }
+        );
+
+        allResults.push(...chunkResults);
+        console.log(`Accumulated ${allResults.length} passing setups so far`);
+
+        // If the last page was short, we've reached the end
+        if (tickers.length < pageSize) break;
+      }
 
       // Sort results
       const ascending = sortOrder === 'ASC';
-      results.sort((a, b) => {
+      allResults.sort((a, b) => {
         const va = a[sortBy as keyof typeof a] ?? 0;
         const vb = b[sortBy as keyof typeof b] ?? 0;
         return ascending ? Number(va) - Number(vb) : Number(vb) - Number(va);
       });
 
-      const finalResults = results.slice(0, limit);
+      const finalResults = allResults.slice(0, limit);
       console.log(`Returning ${finalResults.length} real study results`);
 
       return new Response(
@@ -171,6 +237,7 @@ serve(async (req) => {
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
+
     }
 
     // Try to use the database function first
@@ -369,18 +436,20 @@ interface ScreenerResult {
   movement_probabilities?: any;
 }
 
-// Get tickers for screening from asset_universe
+// Get tickers for screening from asset_universe (paged)
 async function getScreeningTickers(
   supabase: any,
   sectors: string[] | null,
   marketCapTiers: string[] | null,
-  limit: number
+  limit: number,
+  offset: number = 0
 ): Promise<TickerInfo[]> {
   let query = supabase
     .from('asset_universe')
     .select('ticker, name, sector, market_cap_tier')
     .eq('is_active', true)
-    .limit(limit);
+    .order('ticker', { ascending: true })
+    .range(offset, offset + limit - 1);
 
   if (sectors?.length) {
     query = query.in('sector', sectors);
