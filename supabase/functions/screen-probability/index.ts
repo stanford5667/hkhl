@@ -27,6 +27,11 @@ interface ScreenRequest {
   // Cross-study screening
   studyCategories?: string[] | null;
   studyTypes?: string[] | null; // Study IDs (must match Quant Lab study IDs)
+  
+  // NEW: Enhanced filters for study probability screening
+  onlyActiveSignals?: boolean;      // Show only currently triggered conditions
+  lookforwardDays?: number;         // Time horizon: 1, 5, 10, or 20 days
+  minConfluence?: number | null;    // Minimum number of active studies per stock
 }
 
 serve(async (req) => {
@@ -62,12 +67,53 @@ serve(async (req) => {
 
       studyCategories = null,
       studyTypes = null,
+      
+      // NEW: Enhanced filters
+      onlyActiveSignals = false,
+      lookforwardDays = null,
+      minConfluence = null,
     } = body;
 
     // -------------------------------------------------
     // Cross-study screening (returns runnable study IDs)
     // -------------------------------------------------
     if (mode === 'cross_study') {
+      // First, try to query real data from study_probability_scores
+      const realResults = await queryRealStudyProbabilities(supabase, {
+        minProbability,
+        maxProbability,
+        minExpectedReturn,
+        maxExpectedReturn,
+        minSampleSize,
+        sectors,
+        marketCapTiers,
+        sortBy,
+        sortOrder,
+        limit,
+        offset,
+        studyCategories,
+        studyTypes,
+        onlyActiveSignals,
+        lookforwardDays,
+        minConfluence,
+      });
+      
+      // If we have real results, return them
+      if (realResults && realResults.length > 0) {
+        console.log(`Returning ${realResults.length} real study probability scores`);
+        return new Response(
+          JSON.stringify({
+            results: realResults,
+            totalCount: realResults.length,
+            source: 'database',
+            filters: body,
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      
+      // Fallback to synthetic data if no real results
+      console.log('No real study scores found, generating synthetic data');
       const results = await generateCrossStudyResults(supabase, {
         minProbability,
         maxProbability,
@@ -88,8 +134,9 @@ serve(async (req) => {
         JSON.stringify({
           results,
           totalCount: results.length,
-          source: 'cross_study',
+          source: 'synthetic',
           filters: body,
+          note: 'Run studies on assets to populate real probability scores',
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
@@ -367,7 +414,70 @@ type CrossStudyOptions = {
   offset: number;
   studyCategories: string[] | null;
   studyTypes: string[] | null;
+  onlyActiveSignals?: boolean;
+  lookforwardDays?: number | null;
+  minConfluence?: number | null;
 };
+
+// Query real study probability scores from database
+async function queryRealStudyProbabilities(supabase: any, opts: CrossStudyOptions) {
+  const {
+    minProbability, maxProbability, minExpectedReturn, maxExpectedReturn,
+    minSampleSize, sectors, marketCapTiers, sortBy, sortOrder, limit,
+    studyCategories, studyTypes, onlyActiveSignals, lookforwardDays, minConfluence,
+  } = opts;
+
+  try {
+    // Use the database function if available
+    const { data, error } = await supabase.rpc('screen_study_probabilities', {
+      min_probability: minProbability,
+      max_probability: maxProbability,
+      min_expected_return: minExpectedReturn,
+      max_expected_return: maxExpectedReturn,
+      min_sample_size: minSampleSize,
+      study_categories: studyCategories,
+      study_types: studyTypes,
+      sectors: sectors,
+      market_cap_tiers: marketCapTiers,
+      only_active_signals: onlyActiveSignals || false,
+      lookforward_days_filter: lookforwardDays,
+      sort_by: sortBy,
+      sort_order: sortOrder,
+      result_limit: limit,
+      result_offset: 0,
+    });
+
+    if (error) {
+      console.error('RPC error:', error);
+      return null;
+    }
+
+    if (!data || data.length === 0) {
+      return null;
+    }
+
+    // If minConfluence is set, filter for tickers with multiple studies
+    if (minConfluence && minConfluence > 1) {
+      const { data: confluenceData } = await supabase.rpc('analyze_study_confluence', {
+        min_probability: minProbability,
+        lookforward_days_filter: lookforwardDays || 5,
+        only_active_signals: onlyActiveSignals || false,
+      });
+
+      if (confluenceData) {
+        const highConfluenceTickers = new Set(
+          confluenceData.filter((c: any) => c.study_count >= minConfluence).map((c: any) => c.ticker)
+        );
+        return data.filter((r: any) => highConfluenceTickers.has(r.ticker));
+      }
+    }
+
+    return data;
+  } catch (err) {
+    console.error('Query error:', err);
+    return null;
+  }
+}
 
 // Cross-study results generator.
 // IMPORTANT: We generate deterministic "synthetic" probabilities per (ticker, study_id)

@@ -133,6 +133,10 @@ interface ScreenerFilters {
   sortBy: string;
   sortOrder: 'ASC' | 'DESC';
   limit: number;
+  // NEW: Enhanced filters
+  onlyActiveSignals: boolean;
+  lookforwardDays: number;
+  minConfluence: number | null;
 }
 
 interface ScreenedStudyResult {
@@ -181,6 +185,13 @@ const quickScreens = [
     description: 'Studies with 80%+ historical win rates'
   },
   { 
+    name: '🟢 Active Signals',
+    minProb: 70, 
+    studyCategories: ['conditional'],
+    onlyActiveSignals: true,
+    description: 'Currently triggered conditions'
+  },
+  { 
     name: '📈 Momentum Signals',
     minProb: 70, 
     studyCategories: ['conditional', 'technical'],
@@ -220,6 +231,10 @@ export function CrossStudyScreener({ onRunStudy, onSelectTicker }: CrossStudyScr
     sortBy: 'probability_score',
     sortOrder: 'DESC',
     limit: 50,
+    // NEW: Enhanced filters
+    onlyActiveSignals: false,
+    lookforwardDays: 5,
+    minConfluence: null,
   });
 
   const runScreen = async (customFilters?: Partial<ScreenerFilters>) => {
@@ -242,6 +257,10 @@ export function CrossStudyScreener({ onRunStudy, onSelectTicker }: CrossStudyScr
           sortBy: activeFilters.sortBy,
           sortOrder: activeFilters.sortOrder,
           limit: activeFilters.limit,
+          // NEW: Pass enhanced filters
+          onlyActiveSignals: activeFilters.onlyActiveSignals,
+          lookforwardDays: activeFilters.lookforwardDays,
+          minConfluence: activeFilters.minConfluence,
         }
       });
 

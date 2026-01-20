@@ -3803,6 +3803,90 @@ export type Database = {
           },
         ]
       }
+      study_probability_scores: {
+        Row: {
+          avg_gain: number | null
+          avg_loss: number | null
+          calculated_at: string
+          confidence_level: string | null
+          created_at: string
+          expected_return: number | null
+          expires_at: string | null
+          id: string
+          is_valid: boolean | null
+          last_signal_date: string | null
+          lookforward_days: number
+          market_cap_tier: string | null
+          name: string | null
+          probability_score: number
+          sample_size: number
+          sector: string | null
+          signal_active: boolean | null
+          signal_strength: number | null
+          study_category: string
+          study_id: string
+          study_name: string
+          study_params: Json | null
+          ticker: string
+          updated_at: string
+          win_rate: number | null
+        }
+        Insert: {
+          avg_gain?: number | null
+          avg_loss?: number | null
+          calculated_at?: string
+          confidence_level?: string | null
+          created_at?: string
+          expected_return?: number | null
+          expires_at?: string | null
+          id?: string
+          is_valid?: boolean | null
+          last_signal_date?: string | null
+          lookforward_days?: number
+          market_cap_tier?: string | null
+          name?: string | null
+          probability_score: number
+          sample_size?: number
+          sector?: string | null
+          signal_active?: boolean | null
+          signal_strength?: number | null
+          study_category: string
+          study_id: string
+          study_name: string
+          study_params?: Json | null
+          ticker: string
+          updated_at?: string
+          win_rate?: number | null
+        }
+        Update: {
+          avg_gain?: number | null
+          avg_loss?: number | null
+          calculated_at?: string
+          confidence_level?: string | null
+          created_at?: string
+          expected_return?: number | null
+          expires_at?: string | null
+          id?: string
+          is_valid?: boolean | null
+          last_signal_date?: string | null
+          lookforward_days?: number
+          market_cap_tier?: string | null
+          name?: string | null
+          probability_score?: number
+          sample_size?: number
+          sector?: string | null
+          signal_active?: boolean | null
+          signal_strength?: number | null
+          study_category?: string
+          study_id?: string
+          study_name?: string
+          study_params?: Json | null
+          ticker?: string
+          updated_at?: string
+          win_rate?: number | null
+        }
+        Relationships: []
+      }
       subscriptions: {
         Row: {
           cancel_at_period_end: boolean | null
@@ -5116,6 +5200,22 @@ export type Database = {
       }
     }
     Functions: {
+      analyze_study_confluence: {
+        Args: {
+          lookforward_days_filter?: number
+          min_probability?: number
+          only_active_signals?: boolean
+        }
+        Returns: {
+          avg_probability: number
+          name: string
+          sector: string
+          studies: Json
+          study_count: number
+          ticker: string
+          total_expected_return: number
+        }[]
+      }
       can_view_profile: { Args: { profile_user_id: string }; Returns: boolean }
       find_similar_insights: {
         Args: { p_embedding: string; p_limit?: number; p_threshold?: number }
@@ -5187,6 +5287,46 @@ export type Database = {
       is_org_admin: { Args: { org_id: string }; Returns: boolean }
       is_org_member: { Args: { org_id: string }; Returns: boolean }
       reset_daily_usage: { Args: never; Returns: undefined }
+      screen_study_probabilities: {
+        Args: {
+          lookforward_days_filter?: number
+          market_cap_tiers?: string[]
+          max_expected_return?: number
+          max_probability?: number
+          min_expected_return?: number
+          min_probability?: number
+          min_sample_size?: number
+          only_active_signals?: boolean
+          result_limit?: number
+          result_offset?: number
+          sectors?: string[]
+          sort_by?: string
+          sort_order?: string
+          study_categories?: string[]
+          study_types?: string[]
+        }
+        Returns: {
+          avg_gain: number
+          avg_loss: number
+          calculated_at: string
+          confidence_level: string
+          expected_return: number
+          id: string
+          last_signal_date: string
+          lookforward_days: number
+          market_cap_tier: string
+          name: string
+          probability_score: number
+          sample_size: number
+          sector: string
+          signal_active: boolean
+          study_category: string
+          study_id: string
+          study_name: string
+          ticker: string
+          win_rate: number
+        }[]
+      }
       screen_universe: {
         Args: {
           event_types?: string[]
