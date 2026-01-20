@@ -628,8 +628,12 @@ export function StudyResultCard({
           const worstMove = result.worst ?? result.worst_return ?? result.min ?? result.maxLoss ?? 0;
           const stdDev = result.stdDev ?? result.volatility ?? Math.abs(bestMove - worstMove) / 4;
           
-          // Get analysis data if available
-          const analysisData = result.analysis?.[result.analysis.length - 1];
+          // Get analysis data based on selected forwardDays (match Metrics Display logic for consistency)
+          const selectedForwardDays = studyParams[study.id]?.forwardDays;
+          const parsedForwardDays = selectedForwardDays ? parseInt(String(selectedForwardDays)) : null;
+          const analysisData = (parsedForwardDays && !isNaN(parsedForwardDays))
+            ? result.analysis?.find((a: any) => a.days === parsedForwardDays) || result.analysis?.[0]
+            : result.analysis?.[0]; // Default to first entry (shortest lookback) not last
           const finalAvgMove = analysisData?.avgReturn ?? avgMove;
           const finalWinRate = analysisData?.winRate ?? winRate;
           const finalOccurrences = analysisData?.occurrences ?? occurrences;
@@ -908,9 +912,11 @@ export function StudyResultCard({
       <div className="p-3 border-b bg-gradient-to-b from-background to-muted/10">
         {(() => {
           const selectedForwardDays = studyParams[study.id]?.forwardDays;
-          const analysisData = result.analysis?.find((a: any) => a.days === parseInt(selectedForwardDays))
-            || result.analysis?.[result.analysis.length - 1]
-            || null;
+          const parsedForwardDays = selectedForwardDays ? parseInt(String(selectedForwardDays)) : null;
+          // Find matching analysis entry - default to first (shortest lookback) if no match
+          const analysisData = (parsedForwardDays && !isNaN(parsedForwardDays))
+            ? result.analysis?.find((a: any) => a.days === parsedForwardDays) || result.analysis?.[0]
+            : result.analysis?.[0];
 
           const timelineLabel = analysisData
             ? analysisData.days === 1 ? '1 Day'
