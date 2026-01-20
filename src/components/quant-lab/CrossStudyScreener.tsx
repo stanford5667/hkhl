@@ -243,11 +243,15 @@ export function CrossStudyScreener({ onRunStudy, onSelectTicker }: CrossStudyScr
   const runScreen = async (customFilters?: Partial<ScreenerFilters>) => {
     const activeFilters = { ...filters, ...customFilters };
     setIsScreening(true);
-    
+
     try {
       const { data, error } = await supabase.functions.invoke('screen-probability', {
         body: {
-          mode: 'cross_study', // New mode for cross-study screening
+          mode: 'cross_study',
+          // IMPORTANT: force real study execution so results are never mocked
+          // (the backend will still prefer cached database scores when available)
+          runRealStudies: true,
+
           minProbability: activeFilters.minProbability,
           maxProbability: activeFilters.maxProbability,
           minExpectedReturn: activeFilters.minExpectedReturn,
@@ -260,7 +264,6 @@ export function CrossStudyScreener({ onRunStudy, onSelectTicker }: CrossStudyScr
           sortBy: activeFilters.sortBy,
           sortOrder: activeFilters.sortOrder,
           limit: activeFilters.limit,
-          // NEW: Pass enhanced filters
           onlyActiveSignals: activeFilters.onlyActiveSignals,
           lookforwardDays: activeFilters.lookforwardDays,
           minConfluence: activeFilters.minConfluence,
@@ -268,7 +271,7 @@ export function CrossStudyScreener({ onRunStudy, onSelectTicker }: CrossStudyScr
       });
 
       if (error) throw error;
-      
+
       // Transform results to include study metadata
       const enrichedResults = (data.results || []).map((r: any) => {
         const studyInfo = ALL_STUDIES.find(s => s.id === r.study_id) || {
@@ -282,18 +285,24 @@ export function CrossStudyScreener({ onRunStudy, onSelectTicker }: CrossStudyScr
           study_category: studyInfo.category,
         };
       });
-      
+
       setResults(enrichedResults);
       setTotalCount(data.totalCount || enrichedResults.length);
-      
+
       toast({
         title: 'Cross-Study Screen Complete',
         description: `Found ${enrichedResults.length} high-probability study setups`,
       });
     } catch (err) {
       console.error('Cross-study screening error:', err);
-      // Generate demo data for display
-      generateDemoResults();
+      // CRITICAL: never show random demo results; surface the error instead
+      setResults([]);
+      setTotalCount(0);
+      toast({
+        title: 'Screen failed',
+        description: 'Could not run the cross-study screen. Please retry in a moment.',
+        variant: 'destructive',
+      });
     } finally {
       setIsScreening(false);
     }
