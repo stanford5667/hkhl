@@ -437,19 +437,25 @@ async function runRealStudiesForTickers(
 
           const data = await response.json();
           
-          // Extract probability from movement probabilities or study result
+          // Extract probability from movement probabilities
           const movementProbs = data.movementProbabilities;
-          const lookforwardKey = filters.lookforwardDays === 1 ? '1' : 
-                                filters.lookforwardDays <= 5 ? '5' : 
-                                filters.lookforwardDays <= 10 ? '10' : '21';
-          
-          const probData = movementProbs?.[lookforwardKey];
-          
+
+          // run-asset-study returns: { days1, days5, days10, days21 }
+          const horizonKey =
+            filters.lookforwardDays === 1
+              ? 'days1'
+              : filters.lookforwardDays <= 5
+                ? 'days5'
+                : filters.lookforwardDays <= 10
+                  ? 'days10'
+                  : 'days21';
+
+          const probData = movementProbs?.[horizonKey];
           if (!probData) return null;
 
-          const probabilityScore = probData.overallUpProbability || 50;
-          const expectedReturn = probData.expectedMove || 0;
-          const sampleSize = probData.sampleSize || 0;
+          const probabilityScore = probData.overallUpProbability ?? 50;
+          const expectedReturn = probData.expectedMove ?? 0;
+          const sampleSize = probData.sampleSize ?? 0;
 
           // Apply filters
           if (probabilityScore < filters.minProbability || probabilityScore > filters.maxProbability) return null;
@@ -458,7 +464,7 @@ async function runRealStudiesForTickers(
           if (filters.maxExpectedReturn !== null && expectedReturn > filters.maxExpectedReturn) return null;
 
           // Determine if signal is active
-          const signalActive = checkIfSignalActive(studyType, data);
+          const signalActive = checkIfSignalActive(studyType, data.result ?? data);
           if (filters.onlyActiveSignals && !signalActive) return null;
 
           return {
