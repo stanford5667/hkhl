@@ -1,9 +1,246 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+// ============================================================
+// PROBABILITY CALCULATION AND DATABASE PERSISTENCE
+// ============================================================
+
+interface ProbabilityResult {
+  ticker: string;
+  studyId: string;
+  studyName: string;
+  studyCategory: string;
+  lookforwardDays: number;
+  probabilityScore: number;
+  expectedReturn: number;
+  winRate: number;
+  avgGain: number;
+  avgLoss: number;
+  sampleSize: number;
+  confidenceLevel: 'low' | 'medium' | 'high';
+  signalActive: boolean;
+  lastSignalDate: string | null;
+  studyParams: Record<string, any>;
+}
+
+// Study metadata for categorization
+const STUDY_METADATA: Record<string, { name: string; category: string }> = {
+  'daily_close_gt_open': { name: 'Intraday Direction', category: 'basic' },
+  'daily_close_gt_prior': { name: 'Daily Win Rate', category: 'basic' },
+  'daily_return_distribution': { name: 'Return Profile', category: 'basic' },
+  'up_down_streaks': { name: 'Win & Loss Streaks', category: 'basic' },
+  'day_of_week_returns': { name: 'Best Days of the Week', category: 'seasonality' },
+  'month_of_year_returns': { name: 'Best Months', category: 'seasonality' },
+  'rsi_analysis': { name: 'RSI (Overbought/Oversold)', category: 'technical' },
+  'moving_average_analysis': { name: 'Moving Averages', category: 'technical' },
+  'trend_strength': { name: 'Trend Strength Score', category: 'technical' },
+  'macd_analysis': { name: 'MACD Momentum', category: 'technical' },
+  'bollinger_analysis': { name: 'Bollinger Bands', category: 'technical' },
+  'stochastic_analysis': { name: 'Stochastic Oscillator', category: 'technical' },
+  'volatility_analysis': { name: 'Volatility Profile', category: 'volatility' },
+  'drawdown_analysis': { name: 'Drawdown Analysis', category: 'volatility' },
+  'mean_reversion': { name: 'Mean Reversion', category: 'volatility' },
+  'gap_analysis': { name: 'Gap Analysis', category: 'patterns' },
+  'range_analysis': { name: 'Range Patterns', category: 'patterns' },
+  'high_low_analysis': { name: 'Breakout Analysis', category: 'patterns' },
+  'close_to_open_analysis': { name: 'Close vs Open', category: 'patterns' },
+  'volume_analysis': { name: 'Volume Profile', category: 'volume' },
+  'price_targets': { name: 'Price Targets', category: 'projections' },
+  'after_down_x': { name: 'After Down X%', category: 'conditional' },
+  'after_up_x': { name: 'After Up X%', category: 'conditional' },
+  'after_consecutive_days': { name: 'After Consecutive Days', category: 'conditional' },
+  'after_high_volume': { name: 'After High Volume', category: 'conditional' },
+  'after_gap': { name: 'After Gap', category: 'conditional' },
+  'below_ma': { name: 'Extended from MA', category: 'conditional' },
+  'after_drawdown': { name: 'After Drawdown', category: 'conditional' },
+};
+
+// Extract probability metrics from study results
+function extractProbabilityMetrics(studyType: string, result: any, bars: any[]): ProbabilityResult[] {
+  const metadata = STUDY_METADATA[studyType] || { name: studyType, category: 'other' };
+  const probResults: ProbabilityResult[] = [];
+  
+  // Handle conditional probability studies (have forward analysis)
+  if (result.analysis && Array.isArray(result.analysis)) {
+    for (const a of result.analysis) {
+      if (a.occurrences >= 3) { // Minimum sample size
+        probResults.push({
+          ticker: '', // Will be filled in by caller
+          studyId: studyType,
+          studyName: metadata.name,
+          studyCategory: metadata.category,
+          lookforwardDays: a.days,
+          probabilityScore: a.winRate || 0,
+          expectedReturn: a.avgReturn || 0,
+          winRate: a.winRate || 0,
+          avgGain: a.best || 0,
+          avgLoss: a.worst || 0,
+          sampleSize: a.occurrences || 0,
+          confidenceLevel: a.occurrences >= 30 ? 'high' : a.occurrences >= 15 ? 'medium' : 'low',
+          signalActive: checkSignalActive(studyType, result, bars),
+          lastSignalDate: bars[bars.length - 1]?.date || null,
+          studyParams: result.params || {},
+        });
+      }
+    }
+  }
+  
+  // Handle basic percentage studies
+  if (result.percentage !== undefined && result.total_days) {
+    probResults.push({
+      ticker: '',
+      studyId: studyType,
+      studyName: metadata.name,
+      studyCategory: metadata.category,
+      lookforwardDays: 1,
+      probabilityScore: result.percentage,
+      expectedReturn: 0,
+      winRate: result.percentage,
+      avgGain: 0,
+      avgLoss: 0,
+      sampleSize: result.total_days,
+      confidenceLevel: result.total_days >= 250 ? 'high' : result.total_days >= 100 ? 'medium' : 'low',
+      signalActive: false,
+      lastSignalDate: null,
+      studyParams: {},
+    });
+  }
+  
+  // Handle RSI analysis
+  if (result.afterOversold || result.afterOverbought) {
+    if (result.afterOversold?.count >= 3) {
+      probResults.push({
+        ticker: '',
+        studyId: studyType,
+        studyName: `${metadata.name} - Oversold`,
+        studyCategory: metadata.category,
+        lookforwardDays: 5,
+        probabilityScore: result.afterOversold.hitRate || 0,
+        expectedReturn: result.afterOversold.avgReturn || 0,
+        winRate: result.afterOversold.hitRate || 0,
+        avgGain: result.afterOversold.avgReturn > 0 ? result.afterOversold.avgReturn : 0,
+        avgLoss: result.afterOversold.avgReturn < 0 ? result.afterOversold.avgReturn : 0,
+        sampleSize: result.afterOversold.count,
+        confidenceLevel: result.afterOversold.count >= 20 ? 'high' : 'medium',
+        signalActive: result.current < 30,
+        lastSignalDate: bars[bars.length - 1]?.date || null,
+        studyParams: result.params || {},
+      });
+    }
+    if (result.afterOverbought?.count >= 3) {
+      probResults.push({
+        ticker: '',
+        studyId: studyType,
+        studyName: `${metadata.name} - Overbought`,
+        studyCategory: metadata.category,
+        lookforwardDays: 5,
+        probabilityScore: result.afterOverbought.hitRate || 0,
+        expectedReturn: result.afterOverbought.avgReturn || 0,
+        winRate: result.afterOverbought.hitRate || 0,
+        avgGain: result.afterOverbought.avgReturn > 0 ? result.afterOverbought.avgReturn : 0,
+        avgLoss: result.afterOverbought.avgReturn < 0 ? result.afterOverbought.avgReturn : 0,
+        sampleSize: result.afterOverbought.count,
+        confidenceLevel: result.afterOverbought.count >= 20 ? 'high' : 'medium',
+        signalActive: result.current > 70,
+        lastSignalDate: bars[bars.length - 1]?.date || null,
+        studyParams: result.params || {},
+      });
+    }
+  }
+  
+  return probResults;
+}
+
+// Check if signal is currently active based on latest bar
+function checkSignalActive(studyType: string, result: any, bars: any[]): boolean {
+  if (!bars.length) return false;
+  const lastBar = bars[bars.length - 1];
+  const prevBar = bars.length > 1 ? bars[bars.length - 2] : null;
+  
+  if (!prevBar) return false;
+  
+  const dayReturn = ((lastBar.close - prevBar.close) / prevBar.close) * 100;
+  
+  switch (studyType) {
+    case 'after_down_x':
+      const downThreshold = result.params?.threshold || 2;
+      return dayReturn <= -downThreshold;
+    case 'after_up_x':
+      const upThreshold = result.params?.threshold || 2;
+      return dayReturn >= upThreshold;
+    case 'after_consecutive_days':
+      // Check if we just ended a streak
+      return result.totalOccurrences > 0;
+    default:
+      return false;
+  }
+}
+
+// Save probability scores to database
+async function saveProbabilityScores(supabase: any, ticker: string, results: ProbabilityResult[], assetMetadata?: { name?: string; sector?: string; market_cap_tier?: string }) {
+  if (results.length === 0) return;
+  
+  const records = results.map(r => ({
+    ticker,
+    name: assetMetadata?.name || ticker,
+    sector: assetMetadata?.sector || null,
+    market_cap_tier: assetMetadata?.market_cap_tier || null,
+    study_id: r.studyId,
+    study_name: r.studyName,
+    study_category: r.studyCategory,
+    lookforward_days: r.lookforwardDays,
+    probability_score: r.probabilityScore,
+    expected_return: r.expectedReturn,
+    win_rate: r.winRate,
+    avg_gain: r.avgGain,
+    avg_loss: r.avgLoss,
+    sample_size: r.sampleSize,
+    confidence_level: r.confidenceLevel,
+    signal_active: r.signalActive,
+    last_signal_date: r.lastSignalDate,
+    study_params: r.studyParams,
+    calculated_at: new Date().toISOString(),
+    expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 days
+    is_valid: true,
+  }));
+  
+  try {
+    // Upsert to handle duplicates
+    const { error } = await supabase
+      .from('study_probability_scores')
+      .upsert(records, { 
+        onConflict: 'ticker,study_id,lookforward_days',
+        ignoreDuplicates: false 
+      });
+    
+    if (error) {
+      console.error('Error saving probability scores:', error);
+    } else {
+      console.log(`Saved ${records.length} probability scores for ${ticker}`);
+    }
+  } catch (err) {
+    console.error('Exception saving probability scores:', err);
+  }
+}
+
+// Get asset metadata from database
+async function getAssetMetadata(supabase: any, ticker: string): Promise<{ name?: string; sector?: string; market_cap_tier?: string } | null> {
+  try {
+    const { data } = await supabase
+      .from('asset_universe')
+      .select('name, sector, market_cap_tier')
+      .eq('ticker', ticker)
+      .single();
+    return data;
+  } catch {
+    return null;
+  }
+}
 
 interface StudyRequest {
   ticker: string;
@@ -1035,14 +1272,23 @@ function studyStochasticAnalysis(bars: PriceBar[], params?: Record<string, any>)
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
+  
+  // Initialize Supabase client for probability storage
+  const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+  const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+  const supabase = createClient(supabaseUrl, supabaseServiceKey);
+  
   try {
     const startTime = Date.now();
     const { ticker, studyType, startDate, endDate, params }: StudyRequest = await req.json();
     if (!ticker || !studyType || !startDate || !endDate) return new Response(JSON.stringify({ error: 'Missing required parameters' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
-    let bars = await fetchPolygonBars(ticker.toUpperCase(), startDate, endDate);
+    
+    const normalizedTicker = ticker.toUpperCase();
+    let bars = await fetchPolygonBars(normalizedTicker, startDate, endDate);
     const useMockData = !bars;
-    if (!bars) bars = generateMockBars(ticker.toUpperCase(), startDate, endDate);
+    if (!bars) bars = generateMockBars(normalizedTicker, startDate, endDate);
     if (bars.length < 20) return new Response(JSON.stringify({ error: 'Insufficient data for analysis (need at least 20 bars)' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    
     let result: any;
     switch (studyType) {
       case 'daily_close_gt_open': result = studyCloseAboveOpen(bars); break;
@@ -1077,7 +1323,34 @@ serve(async (req) => {
       case 'after_drawdown': result = studyAfterDrawdown(bars, params); break;
       default: return new Response(JSON.stringify({ error: `Unknown study type: ${studyType}` }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
-    return new Response(JSON.stringify({ success: true, result, barsAnalyzed: bars.length, useMockData, computationTimeMs: Date.now() - startTime, dateRange: { start: bars[0].date, end: bars[bars.length - 1].date } }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    
+    // Extract and save probability metrics (async, don't block response)
+    const probResults = extractProbabilityMetrics(studyType, result, bars);
+    if (probResults.length > 0) {
+      const assetMetadata = await getAssetMetadata(supabase, normalizedTicker);
+      // Fire and forget - don't wait for save to complete
+      saveProbabilityScores(supabase, normalizedTicker, probResults, assetMetadata || undefined).catch(err => {
+        console.error('Background save error:', err);
+      });
+    }
+    
+    // Add probability summary to response
+    const probabilitySummary = probResults.length > 0 ? {
+      scoresCalculated: probResults.length,
+      topScore: Math.max(...probResults.map(p => p.probabilityScore)),
+      signalActive: probResults.some(p => p.signalActive),
+      savedToDatabase: true
+    } : null;
+    
+    return new Response(JSON.stringify({ 
+      success: true, 
+      result, 
+      barsAnalyzed: bars.length, 
+      useMockData, 
+      computationTimeMs: Date.now() - startTime, 
+      dateRange: { start: bars[0].date, end: bars[bars.length - 1].date },
+      probabilitySummary
+    }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
   } catch (error: any) {
     console.error('Study error:', error);
     return new Response(JSON.stringify({ error: error?.message || 'Unknown error' }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
