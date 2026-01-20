@@ -39,16 +39,59 @@ serve(async (req) => {
       `📊 Settings: tickers=${tickerLimit}, batchSize=${batchSize}, forceRecalculate=${forceRecalculate}`,
     );
 
-    // 1) Get liquid tickers
-    const { data: tickers, error: tickerError } = await supabase
+    // 1) Get liquid tickers - try asset_universe first, fallback to market_daily_bars
+    let tickers: any[] = [];
+    
+    // First try asset_universe
+    const { data: universeData, error: universeError } = await supabase
       .from("asset_universe")
       .select("ticker, name, sector, market_cap_tier, avg_daily_volume")
       .eq("is_active", true)
       .order("avg_daily_volume", { ascending: false })
       .limit(tickerLimit);
+    
+    if (!universeError && universeData?.length) {
+      tickers = universeData;
+      console.log(`📊 Found ${tickers.length} tickers from asset_universe`);
+    } else {
+      // Fallback to market_daily_bars distinct tickers using RPC or aggregate query
+      console.log("⚠️ asset_universe empty, falling back to market_daily_bars");
+      
+      // Use a raw query to get distinct tickers ordered by data count
+      const { data: distinctData, error: distinctError } = await supabase
+        .rpc('get_distinct_bar_tickers', { limit_count: tickerLimit });
+      
+      if (distinctError) {
+        console.log("RPC not available, using manual distinct query");
+        // Fallback: just get any sample of tickers
+        const { data: sampleData, error: sampleError } = await supabase
+          .from("market_daily_bars")
+          .select("ticker")
+          .order("bar_date", { ascending: false })
+          .limit(10000);
+        
+        if (sampleError || !sampleData?.length) {
+          throw new Error(`Failed to fetch tickers: ${sampleError?.message || "No tickers in market_daily_bars"}`);
+        }
+        
+        // Get unique tickers manually
+        const uniqueSet = new Set<string>();
+        for (const row of sampleData) {
+          uniqueSet.add(row.ticker);
+          if (uniqueSet.size >= tickerLimit) break;
+        }
+        tickers = [...uniqueSet].map((t: string) => ({ ticker: t, name: t, sector: null, market_cap_tier: null }));
+      } else if (distinctData?.length) {
+        tickers = distinctData.map((d: any) => ({ ticker: d.ticker, name: d.ticker, sector: null, market_cap_tier: null }));
+      } else {
+        throw new Error("No tickers found in market_daily_bars");
+      }
+      
+      console.log(`📊 Found ${tickers.length} unique tickers from market_daily_bars`);
+    }
 
-    if (tickerError || !tickers?.length) {
-      throw new Error(`Failed to fetch tickers: ${tickerError?.message || "No tickers"}`);
+    if (!tickers?.length) {
+      throw new Error(`No tickers found in any source`);
     }
 
     // 2) Decide which studies to run
@@ -73,15 +116,15 @@ serve(async (req) => {
     if (!forceRecalculate) {
       const { data: existingData, error: existingError } = await supabase
         .from("study_probability_scores")
-        .select("symbol")
+        .select("ticker")
         .in(
-          "symbol",
+          "ticker",
           tickers.map((t: any) => t.ticker),
         );
 
       if (!existingError && existingData?.length) {
-        const existingSymbols = new Set(existingData.map((d: any) => d.symbol));
-        tickersToProcess = tickers.filter((t: any) => !existingSymbols.has(t.ticker));
+        const existingTickers = new Set(existingData.map((d: any) => d.ticker));
+        tickersToProcess = tickers.filter((t: any) => !existingTickers.has(t.ticker));
       }
 
       console.log(`⏭️  Skipping ${tickers.length - tickersToProcess.length} tickers with existing data`);
