@@ -966,59 +966,150 @@ type CrossStudyOptions = {
 // Query real study probability scores from database
 async function queryRealStudyProbabilities(supabase: any, opts: CrossStudyOptions) {
   const {
-    minProbability, maxProbability, minExpectedReturn, maxExpectedReturn,
-    minSampleSize, sectors, marketCapTiers, sortBy, sortOrder, limit,
-    studyCategories, studyTypes, onlyActiveSignals, lookforwardDays, minConfluence,
+    minProbability,
+    maxProbability,
+    minExpectedReturn,
+    maxExpectedReturn,
+    minSampleSize,
+    sectors,
+    marketCapTiers,
+    sortBy,
+    sortOrder,
+    limit,
+    offset,
+    studyCategories,
+    studyTypes,
+    onlyActiveSignals,
+    lookforwardDays,
+    minConfluence,
   } = opts;
 
+  // -----------------------------
+  // Attempt 1: RPC (fast path)
+  // -----------------------------
   try {
-    // Use the database function if available
-    const { data, error } = await supabase.rpc('screen_study_probabilities', {
-      min_probability: minProbability,
-      max_probability: maxProbability,
-      min_expected_return: minExpectedReturn,
-      max_expected_return: maxExpectedReturn,
-      min_sample_size: minSampleSize,
-      study_categories: studyCategories,
-      study_types: studyTypes,
-      sectors: sectors,
-      market_cap_tiers: marketCapTiers,
-      only_active_signals: onlyActiveSignals || false,
-      lookforward_days_filter: lookforwardDays,
+    const rpcParams = {
+      min_probability: Number(minProbability),
+      max_probability: Number(maxProbability),
+      min_expected_return: minExpectedReturn !== null ? Number(minExpectedReturn) : null,
+      max_expected_return: maxExpectedReturn !== null ? Number(maxExpectedReturn) : null,
+      min_sample_size: Number(minSampleSize),
+      lookforward_days_filter: Number(lookforwardDays ?? 5),
+
+      // IMPORTANT: pass null for empty arrays
+      study_categories: studyCategories?.length ? studyCategories : null,
+      study_ids: studyTypes?.length ? studyTypes : null,
+      sectors: sectors?.length ? sectors : null,
+      market_cap_tiers: marketCapTiers?.length ? marketCapTiers : null,
+
+      only_active_signals: Boolean(onlyActiveSignals),
       sort_by: sortBy,
       sort_order: sortOrder,
-      result_limit: limit,
-      result_offset: 0,
-    });
+      result_limit: Number(limit),
+      result_offset: Number(offset ?? 0),
+    };
+
+    const { data, error } = await supabase.rpc('screen_study_probabilities', rpcParams);
 
     if (error) {
-      console.error('RPC error:', error);
-      return null;
-    }
+      console.error('RPC error (screen_study_probabilities):', error);
+    } else if (data && data.length > 0) {
+      // Optional: confluence post-filtering (kept as-is, but guarded)
+      if (minConfluence && minConfluence > 1) {
+        try {
+          const { data: confluenceData } = await supabase.rpc('analyze_study_confluence', {
+            min_probability: Number(minProbability),
+            lookforward_days_filter: Number(lookforwardDays ?? 5),
+            only_active_signals: Boolean(onlyActiveSignals),
+          });
 
-    if (!data || data.length === 0) {
-      return null;
-    }
+          if (confluenceData?.length) {
+            const highConfluenceTickers = new Set(
+              confluenceData
+                .filter((c: any) => Number(c.study_count) >= Number(minConfluence))
+                .map((c: any) => c.ticker ?? c.symbol)
+            );
 
-    // If minConfluence is set, filter for tickers with multiple studies
-    if (minConfluence && minConfluence > 1) {
-      const { data: confluenceData } = await supabase.rpc('analyze_study_confluence', {
-        min_probability: minProbability,
-        lookforward_days_filter: lookforwardDays || 5,
-        only_active_signals: onlyActiveSignals || false,
-      });
-
-      if (confluenceData) {
-        const highConfluenceTickers = new Set(
-          confluenceData.filter((c: any) => c.study_count >= minConfluence).map((c: any) => c.ticker)
-        );
-        return data.filter((r: any) => highConfluenceTickers.has(r.ticker));
+            return data.filter((r: any) => highConfluenceTickers.has(r.ticker ?? r.symbol));
+          }
+        } catch (e) {
+          console.warn('Confluence RPC failed; returning unfiltered RPC results:', e);
+        }
       }
+
+      return data;
+    }
+  } catch (err) {
+    console.error('RPC call failed (exception):', err);
+  }
+
+  // -----------------------------
+  // Attempt 2: Direct table query fallback
+  // -----------------------------
+  try {
+    let q = supabase
+      .from('study_probability_scores')
+      .select(
+        [
+          'symbol',
+          'study_id',
+          'study_name',
+          'study_category',
+          'probability_score',
+          'expected_return',
+          'win_rate',
+          'sample_size',
+          'avg_gain',
+          'avg_loss',
+          'confidence_level',
+          'signal_active',
+          'last_signal_date',
+          'lookforward_days',
+          'sector',
+          'market_cap_tier',
+          'is_valid',
+        ].join(',')
+      )
+      .eq('is_valid', true)
+      .gte('probability_score', Number(minProbability))
+      .lte('probability_score', Number(maxProbability))
+      .gte('sample_size', Number(minSampleSize))
+      .eq('lookforward_days', Number(lookforwardDays ?? 5));
+
+    if (minExpectedReturn !== null) q = q.gte('expected_return', Number(minExpectedReturn));
+    if (maxExpectedReturn !== null) q = q.lte('expected_return', Number(maxExpectedReturn));
+
+    if (studyCategories?.length) q = q.in('study_category', studyCategories);
+    if (studyTypes?.length) q = q.in('study_id', studyTypes);
+    if (sectors?.length) q = q.in('sector', sectors);
+    if (marketCapTiers?.length) q = q.in('market_cap_tier', marketCapTiers);
+
+    if (onlyActiveSignals) q = q.eq('signal_active', true);
+
+    // sorting + pagination
+    q = q.order(sortBy, { ascending: sortOrder === 'ASC' }).range(Number(offset ?? 0), Number(offset ?? 0) + Number(limit) - 1);
+
+    const { data: directData, error: directError } = await q;
+
+    if (directError) {
+      console.error('Direct query error (study_probability_scores):', directError);
+      return null;
     }
 
-    return data;
+    if (!directData?.length) return null;
+
+    // Optional confluence post-filter (client-side)
+    if (minConfluence && minConfluence > 1) {
+      const counts = new Map<string, number>();
+      for (const row of directData) {
+        counts.set(row.symbol, (counts.get(row.symbol) ?? 0) + 1);
+      }
+      return directData.filter((row: any) => (counts.get(row.symbol) ?? 0) >= Number(minConfluence));
+    }
+
+    return directData;
   } catch (err) {
-    console.error('Query error:', err);
+    console.error('Direct query fallback failed:', err);
     return null;
   }
 }
