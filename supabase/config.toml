@@ -161,3 +161,6 @@ verify_jwt = false
 
 [functions.polygon-ticker-search]
 verify_jwt = false
+
+[functions.screen-probability]
+verify_jwt = false

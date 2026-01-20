@@ -1837,6 +1837,45 @@ export type Database = {
         }
         Relationships: []
       }
+      event_probability_history: {
+        Row: {
+          actual_return: number | null
+          created_at: string | null
+          days_before_prediction: number | null
+          event_date: string
+          event_type: string
+          id: string
+          predicted_probability: number | null
+          predicted_return: number | null
+          symbol: string
+          was_correct: boolean | null
+        }
+        Insert: {
+          actual_return?: number | null
+          created_at?: string | null
+          days_before_prediction?: number | null
+          event_date: string
+          event_type: string
+          id?: string
+          predicted_probability?: number | null
+          predicted_return?: number | null
+          symbol: string
+          was_correct?: boolean | null
+        }
+        Update: {
+          actual_return?: number | null
+          created_at?: string | null
+          days_before_prediction?: number | null
+          event_date?: string
+          event_type?: string
+          id?: string
+          predicted_probability?: number | null
+          predicted_return?: number | null
+          symbol?: string
+          was_correct?: boolean | null
+        }
+        Relationships: []
+      }
       events: {
         Row: {
           created_at: string | null
@@ -3107,6 +3146,33 @@ export type Database = {
         }
         Relationships: []
       }
+      probability_screen_cache: {
+        Row: {
+          cache_key: string
+          created_at: string | null
+          expires_at: string | null
+          id: string
+          results: Json
+          total_count: number | null
+        }
+        Insert: {
+          cache_key: string
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string
+          results: Json
+          total_count?: number | null
+        }
+        Update: {
+          cache_key?: string
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string
+          results?: Json
+          total_count?: number | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           age_verified_at: string | null
@@ -4237,6 +4303,57 @@ export type Database = {
         }
         Relationships: []
       }
+      ticker_universe: {
+        Row: {
+          asset_type: string | null
+          description: string | null
+          industry: string | null
+          is_active: boolean | null
+          last_updated: string | null
+          logo_url: string | null
+          market_cap: number | null
+          market_cap_tier: string | null
+          metadata: Json | null
+          name: string
+          primary_exchange: string | null
+          sector: string | null
+          symbol: string
+          website_url: string | null
+        }
+        Insert: {
+          asset_type?: string | null
+          description?: string | null
+          industry?: string | null
+          is_active?: boolean | null
+          last_updated?: string | null
+          logo_url?: string | null
+          market_cap?: number | null
+          market_cap_tier?: string | null
+          metadata?: Json | null
+          name: string
+          primary_exchange?: string | null
+          sector?: string | null
+          symbol: string
+          website_url?: string | null
+        }
+        Update: {
+          asset_type?: string | null
+          description?: string | null
+          industry?: string | null
+          is_active?: boolean | null
+          last_updated?: string | null
+          logo_url?: string | null
+          market_cap?: number | null
+          market_cap_tier?: string | null
+          metadata?: Json | null
+          name?: string
+          primary_exchange?: string | null
+          sector?: string | null
+          symbol?: string
+          website_url?: string | null
+        }
+        Relationships: []
+      }
       tickers_map: {
         Row: {
           asset_type: string | null
@@ -4447,6 +4564,68 @@ export type Database = {
           user_id?: string | null
         }
         Relationships: []
+      }
+      universe_probability_scores: {
+        Row: {
+          avg_gain: number | null
+          avg_loss: number | null
+          calculation_method: string | null
+          confidence_level: string | null
+          days_until_event: number | null
+          event_type: string
+          expected_return: number | null
+          id: string
+          last_calculated: string | null
+          metadata: Json | null
+          next_event_date: string | null
+          probability_score: number | null
+          sample_size: number | null
+          symbol: string
+          win_rate: number | null
+        }
+        Insert: {
+          avg_gain?: number | null
+          avg_loss?: number | null
+          calculation_method?: string | null
+          confidence_level?: string | null
+          days_until_event?: number | null
+          event_type: string
+          expected_return?: number | null
+          id?: string
+          last_calculated?: string | null
+          metadata?: Json | null
+          next_event_date?: string | null
+          probability_score?: number | null
+          sample_size?: number | null
+          symbol: string
+          win_rate?: number | null
+        }
+        Update: {
+          avg_gain?: number | null
+          avg_loss?: number | null
+          calculation_method?: string | null
+          confidence_level?: string | null
+          days_until_event?: number | null
+          event_type?: string
+          expected_return?: number | null
+          id?: string
+          last_calculated?: string | null
+          metadata?: Json | null
+          next_event_date?: string | null
+          probability_score?: number | null
+          sample_size?: number | null
+          symbol?: string
+          win_rate?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "universe_probability_scores_symbol_fkey"
+            columns: ["symbol"]
+            isOneToOne: false
+            referencedRelation: "ticker_universe"
+            referencedColumns: ["symbol"]
+          },
+        ]
       }
       user_alerts: {
         Row: {
@@ -5008,6 +5187,37 @@ export type Database = {
       is_org_admin: { Args: { org_id: string }; Returns: boolean }
       is_org_member: { Args: { org_id: string }; Returns: boolean }
       reset_daily_usage: { Args: never; Returns: undefined }
+      screen_universe: {
+        Args: {
+          event_types?: string[]
+          market_cap_tiers?: string[]
+          max_days_until_event?: number
+          max_expected_return?: number
+          max_probability?: number
+          min_expected_return?: number
+          min_probability?: number
+          min_sample_size?: number
+          result_limit?: number
+          result_offset?: number
+          sectors?: string[]
+          sort_by?: string
+          sort_order?: string
+        }
+        Returns: {
+          confidence_level: string
+          days_until_event: number
+          event_type: string
+          expected_return: number
+          market_cap_tier: string
+          name: string
+          next_event_date: string
+          probability_score: number
+          sample_size: number
+          sector: string
+          symbol: string
+          win_rate: number
+        }[]
+      }
       search_markets_semantic: {
         Args: {
           match_count?: number
