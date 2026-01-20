@@ -13,13 +13,14 @@ import {
   Globe, TrendingUp, TrendingDown, Target, Percent, Calendar, Search, Filter, 
   ArrowUpDown, Loader2, BarChart3, Download, Zap, Play, ExternalLink,
   ChevronDown, ChevronUp, Star, Activity, Gauge, LineChart, Volume2,
-  Shield, Layers, Mountain, GitBranch, Landmark
+  Shield, Layers, Mountain, GitBranch
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 
-// All Quant Lab study categories with their study types
+// All Quant Lab study categories - MUST match exactly with STUDY_DEFINITIONS in QuantLab.tsx
+// These are the real, runnable studies in the system
 const STUDY_CATEGORIES = [
   {
     id: 'conditional',
@@ -27,12 +28,12 @@ const STUDY_CATEGORIES = [
     icon: GitBranch,
     color: 'text-purple-500',
     studies: [
-      { id: 'after_down_x', name: 'After Drop', description: 'Performance after X% drops' },
-      { id: 'after_up_x', name: 'After Rally', description: 'Performance after X% gains' },
-      { id: 'after_consecutive_days', name: 'After Streaks', description: 'After N up/down days' },
-      { id: 'after_high_volume', name: 'After Volume Spike', description: 'After high volume days' },
-      { id: 'after_gap', name: 'After Gap', description: 'Gap up/down performance' },
-      { id: 'below_ma', name: 'Below MA', description: 'When extended below MA' },
+      { id: 'after_down_x', name: 'After Down X%', description: 'What happens after X% drops?' },
+      { id: 'after_up_x', name: 'After Up X%', description: 'What happens after X% gains?' },
+      { id: 'after_consecutive_days', name: 'After Consecutive Days', description: 'After N up/down days in a row' },
+      { id: 'after_high_volume', name: 'After High Volume', description: 'After volume spike days' },
+      { id: 'after_gap', name: 'After Gap', description: 'After gap up/down' },
+      { id: 'below_ma', name: 'Extended from MA', description: 'When extended from moving average' },
     ]
   },
   {
@@ -41,10 +42,10 @@ const STUDY_CATEGORIES = [
     icon: BarChart3,
     color: 'text-blue-500',
     studies: [
-      { id: 'daily_close_gt_open', name: 'Intraday Direction', description: 'Up during trading hours' },
-      { id: 'daily_close_gt_prior', name: 'Daily Win Rate', description: '% of positive days' },
+      { id: 'daily_close_gt_open', name: 'Intraday Direction', description: 'How often closes above open?' },
+      { id: 'daily_close_gt_prior', name: 'Daily Win Rate', description: 'How often up vs prior day?' },
       { id: 'daily_return_distribution', name: 'Return Profile', description: 'Daily return distribution' },
-      { id: 'up_down_streaks', name: 'Streaks', description: 'Win/loss streak patterns' },
+      { id: 'up_down_streaks', name: 'Win & Loss Streaks', description: 'Streak patterns' },
     ]
   },
   {
@@ -53,12 +54,12 @@ const STUDY_CATEGORIES = [
     icon: LineChart,
     color: 'text-cyan-500',
     studies: [
-      { id: 'rsi_analysis', name: 'RSI Analysis', description: 'Overbought/oversold signals' },
-      { id: 'moving_average_analysis', name: 'Moving Averages', description: 'Trend analysis' },
-      { id: 'trend_strength', name: 'Trend Strength', description: 'Momentum score' },
-      { id: 'macd_analysis', name: 'MACD', description: 'Momentum changes' },
+      { id: 'rsi_analysis', name: 'RSI (Overbought/Oversold)', description: 'RSI momentum indicator' },
+      { id: 'moving_average_analysis', name: 'Moving Averages', description: 'Price vs MA trend' },
+      { id: 'trend_strength', name: 'Trend Strength Score', description: 'Current trend strength' },
+      { id: 'macd_analysis', name: 'MACD Momentum', description: 'MACD crossovers' },
       { id: 'bollinger_analysis', name: 'Bollinger Bands', description: 'Price extremes' },
-      { id: 'stochastic_analysis', name: 'Stochastic', description: 'Range position' },
+      { id: 'stochastic_analysis', name: 'Stochastic Oscillator', description: 'Range position' },
     ]
   },
   {
@@ -68,8 +69,8 @@ const STUDY_CATEGORIES = [
     color: 'text-orange-500',
     studies: [
       { id: 'volatility_analysis', name: 'Volatility Profile', description: 'How much it moves' },
-      { id: 'drawdown_analysis', name: 'Drawdown', description: 'Max loss from peak' },
-      { id: 'mean_reversion', name: 'Mean Reversion', description: 'Do moves reverse?' },
+      { id: 'drawdown_analysis', name: 'Drawdown Analysis', description: 'Max loss from peak' },
+      { id: 'mean_reversion', name: 'Mean Reversion', description: 'Do big moves reverse?' },
     ]
   },
   {
@@ -78,9 +79,10 @@ const STUDY_CATEGORIES = [
     icon: Layers,
     color: 'text-emerald-500',
     studies: [
-      { id: 'gap_analysis', name: 'Gap Fill', description: 'Do gaps fill?' },
+      { id: 'gap_analysis', name: 'Gap Analysis', description: 'Do gaps fill?' },
       { id: 'range_analysis', name: 'Range Patterns', description: 'Inside/outside days' },
-      { id: 'high_low_analysis', name: 'Breakouts', description: 'After new highs/lows' },
+      { id: 'high_low_analysis', name: 'Breakout Analysis', description: 'After new highs/lows' },
+      { id: 'close_to_open_analysis', name: 'Close vs Open', description: 'Where price closes in range' },
     ]
   },
   {
@@ -89,7 +91,7 @@ const STUDY_CATEGORIES = [
     icon: Calendar,
     color: 'text-pink-500',
     studies: [
-      { id: 'day_of_week_returns', name: 'Best Days', description: 'Weekday patterns' },
+      { id: 'day_of_week_returns', name: 'Best Days of the Week', description: 'Which weekdays perform best?' },
       { id: 'month_of_year_returns', name: 'Best Months', description: 'Monthly patterns' },
     ]
   },
@@ -99,20 +101,16 @@ const STUDY_CATEGORIES = [
     icon: Volume2,
     color: 'text-indigo-500',
     studies: [
-      { id: 'volume_analysis', name: 'Volume Profile', description: 'Buying vs selling' },
+      { id: 'volume_analysis', name: 'Volume Profile', description: 'Accumulation vs distribution' },
     ]
   },
   {
-    id: 'fundamental',
-    name: 'Fundamentals',
-    icon: Landmark,
+    id: 'projections',
+    name: 'Projections',
+    icon: Target,
     color: 'text-amber-500',
     studies: [
-      { id: 'earnings', name: 'Earnings', description: 'Around earnings releases' },
-      { id: 'dividend', name: 'Dividend', description: 'Dividend events' },
-      { id: 'fomc', name: 'FOMC', description: 'Fed meeting impact' },
-      { id: 'cpi', name: 'CPI', description: 'Inflation data impact' },
-      { id: 'gdp', name: 'GDP', description: 'GDP release impact' },
+      { id: 'price_targets', name: 'Price Targets', description: 'Statistical price projections' },
     ]
   },
 ];
@@ -195,10 +193,10 @@ const quickScreens = [
     description: 'Expected return >5%'
   },
   { 
-    name: '🎯 Earnings Plays',
+    name: '📊 Pattern Setups',
     minProb: 70, 
-    studyCategories: ['fundamental'],
-    description: 'Fundamental event setups'
+    studyCategories: ['patterns', 'volatility'],
+    description: 'Price pattern & risk studies'
   },
 ];
 
