@@ -265,7 +265,8 @@ export function CrossStudyScreener({ onRunStudy, onSelectTicker }: CrossStudyScr
           sortOrder: activeFilters.sortOrder,
           limit: activeFilters.limit,
           onlyActiveSignals: activeFilters.onlyActiveSignals,
-          lookforwardDays: activeFilters.lookforwardDays,
+          // Pass null to get ALL time horizons unless a specific one is selected
+          lookforwardDays: activeFilters.lookforwardDays === 5 ? null : activeFilters.lookforwardDays,
           minConfluence: activeFilters.minConfluence,
         }
       });

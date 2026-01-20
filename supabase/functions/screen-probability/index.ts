@@ -107,9 +107,10 @@ serve(async (req) => {
       console.log('Running cross-study screener');
       console.log(`Filters: minProb=${minProbability}, maxProb=${maxProbability}, minSample=${minSampleSize}, categories=${studyCategories?.join(',') || 'all'}`);
 
-      // Prefer fast DB-backed screener (precomputed study_probability_scores) for breadth.
-      // If it's unavailable/empty, fall back to live study execution.
-      if (!runRealStudies) {
+      // ALWAYS try DB-backed screener first (precomputed study_probability_scores).
+      // The DB contains real, pre-calculated study results - use them!
+      // Only fall back to live study execution if DB returns nothing.
+      {
         const dbRows = await queryRealStudyProbabilities(supabase, {
           minProbability,
           maxProbability,
