@@ -156,10 +156,13 @@ interface ScreenedStudyResult {
   confidence_level: string;
   last_signal_date: string | null;
   signal_active: boolean;
+  // Params used in the screener - pass these to the study for consistent results
+  study_params?: Record<string, any>;
 }
 
 interface CrossStudyScreenerProps {
-  onRunStudy?: (studyId: string, ticker: string) => void;
+  // Updated callback signature to include params for reproducible results
+  onRunStudy?: (studyId: string, ticker: string, params?: Record<string, any>) => void;
   onSelectTicker?: (ticker: string) => void;
 }
 
@@ -368,7 +371,8 @@ export function CrossStudyScreener({ onRunStudy, onSelectTicker }: CrossStudyScr
       onSelectTicker(result.symbol);
     }
     if (onRunStudy) {
-      onRunStudy(result.study_id, result.symbol);
+      // Pass the study_params from the screener result so the study runs with identical settings
+      onRunStudy(result.study_id, result.symbol, result.study_params);
     }
   };
 

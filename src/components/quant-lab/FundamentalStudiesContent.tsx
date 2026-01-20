@@ -11,7 +11,8 @@ import { CrossStudyScreener } from '@/components/quant-lab/CrossStudyScreener';
 interface FundamentalStudiesContentProps {
   defaultTab?: string;
   selectedTicker?: string;
-  onRunStudy?: (studyId: string, ticker: string) => void;
+  // Updated callback signature to include params for reproducible results
+  onRunStudy?: (studyId: string, ticker: string, params?: Record<string, any>) => void;
   onSelectTicker?: (ticker: string) => void;
 }
 
