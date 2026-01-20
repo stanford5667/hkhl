@@ -1061,7 +1061,8 @@ async function queryRealStudyProbabilities(supabase: any, opts: CrossStudyOption
       .from('study_probability_scores')
       .select(
         [
-          'symbol',
+          'ticker',  // FIXED: column is 'ticker', not 'symbol'
+          'name',
           'study_id',
           'study_name',
           'study_category',
@@ -1108,13 +1109,13 @@ async function queryRealStudyProbabilities(supabase: any, opts: CrossStudyOption
 
     if (!directData?.length) return null;
 
-    // Optional confluence post-filter (client-side)
+    // Optional confluence post-filter (client-side) - FIXED: use 'ticker' not 'symbol'
     if (minConfluence && minConfluence > 1) {
       const counts = new Map<string, number>();
       for (const row of directData) {
-        counts.set(row.symbol, (counts.get(row.symbol) ?? 0) + 1);
+        counts.set(row.ticker, (counts.get(row.ticker) ?? 0) + 1);
       }
-      return directData.filter((row: any) => (counts.get(row.symbol) ?? 0) >= Number(minConfluence));
+      return directData.filter((row: any) => (counts.get(row.ticker) ?? 0) >= Number(minConfluence));
     }
 
     return directData;
