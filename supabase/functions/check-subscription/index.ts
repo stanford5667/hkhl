@@ -69,6 +69,31 @@ serve(async (req) => {
     const stripe = new Stripe(stripeKey, { apiVersion: "2023-10-16" });
     const customers = await stripe.customers.list({ email: user.email, limit: 1 });
 
+    // First check database for manual/lifetime subscriptions
+    const { data: dbSubscription } = await supabaseClient
+      .from('subscriptions')
+      .select('*')
+      .eq('user_id', user.id)
+      .eq('status', 'active')
+      .single();
+
+    if (dbSubscription && new Date(dbSubscription.current_period_end) > new Date()) {
+      logStep("Found active DB subscription (manual/lifetime)", { 
+        plan: dbSubscription.plan, 
+        endDate: dbSubscription.current_period_end 
+      });
+      return new Response(JSON.stringify({
+        subscribed: true,
+        plan: dbSubscription.plan || 'pro',
+        product_id: null,
+        subscription_end: dbSubscription.current_period_end
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 200,
+      });
+    }
+
+    // Fall back to Stripe check
     if (customers.data.length === 0) {
       logStep("No customer found");
       return new Response(JSON.stringify({ 
@@ -125,11 +150,6 @@ serve(async (req) => {
         }, { onConflict: 'user_id' });
     } else {
       logStep("No active subscription found");
-      // Update to inactive if exists
-      await supabaseClient
-        .from('subscriptions')
-        .update({ status: 'inactive', updated_at: new Date().toISOString() })
-        .eq('user_id', user.id);
     }
 
     return new Response(JSON.stringify({
