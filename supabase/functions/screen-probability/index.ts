@@ -436,7 +436,7 @@ interface ScreenerResult {
   movement_probabilities?: any;
 }
 
-// Get tickers for screening from asset_universe (paged)
+// Get tickers for screening from asset_universe or market_daily_bars (paged)
 async function getScreeningTickers(
   supabase: any,
   sectors: string[] | null,
@@ -444,6 +444,7 @@ async function getScreeningTickers(
   limit: number,
   offset: number = 0
 ): Promise<TickerInfo[]> {
+  // Try asset_universe first
   let query = supabase
     .from('asset_universe')
     .select('ticker, name, sector, market_cap_tier')
@@ -460,9 +461,26 @@ async function getScreeningTickers(
 
   const { data, error } = await query;
 
-  if (error || !data?.length) {
-    // Fallback to hardcoded list
-    return [
+  if (!error && data?.length) {
+    return data.map((r: any) => ({
+      ticker: r.ticker,
+      name: r.name || r.ticker,
+      sector: r.sector || null,
+      market_cap_tier: r.market_cap_tier || null,
+    }));
+  }
+
+  // Fallback: get unique tickers from market_daily_bars
+  console.log('asset_universe empty, falling back to market_daily_bars');
+  const { data: barTickers, error: barError } = await supabase
+    .from('market_daily_bars')
+    .select('ticker')
+    .order('ticker', { ascending: true });
+
+  if (barError || !barTickers?.length) {
+    // Last resort: hardcoded list of common stocks
+    console.log('No data sources available, using hardcoded ticker list');
+    const fallbackTickers = [
       { ticker: 'AAPL', name: 'Apple Inc.', sector: 'Technology', market_cap_tier: 'mega' },
       { ticker: 'MSFT', name: 'Microsoft Corp.', sector: 'Technology', market_cap_tier: 'mega' },
       { ticker: 'GOOGL', name: 'Alphabet Inc.', sector: 'Communication Services', market_cap_tier: 'mega' },
@@ -471,14 +489,35 @@ async function getScreeningTickers(
       { ticker: 'META', name: 'Meta Platforms Inc.', sector: 'Communication Services', market_cap_tier: 'mega' },
       { ticker: 'TSLA', name: 'Tesla Inc.', sector: 'Consumer Cyclical', market_cap_tier: 'mega' },
       { ticker: 'JPM', name: 'JPMorgan Chase', sector: 'Financial Services', market_cap_tier: 'mega' },
-    ].slice(0, limit);
+      { ticker: 'V', name: 'Visa Inc.', sector: 'Financial Services', market_cap_tier: 'mega' },
+      { ticker: 'JNJ', name: 'Johnson & Johnson', sector: 'Healthcare', market_cap_tier: 'mega' },
+      { ticker: 'UNH', name: 'UnitedHealth Group', sector: 'Healthcare', market_cap_tier: 'mega' },
+      { ticker: 'XOM', name: 'Exxon Mobil', sector: 'Energy', market_cap_tier: 'mega' },
+      { ticker: 'SPY', name: 'SPDR S&P 500 ETF', sector: null, market_cap_tier: 'mega' },
+      { ticker: 'QQQ', name: 'Invesco QQQ Trust', sector: null, market_cap_tier: 'mega' },
+      { ticker: 'IWM', name: 'iShares Russell 2000', sector: null, market_cap_tier: 'large' },
+      { ticker: 'GLD', name: 'SPDR Gold Shares', sector: null, market_cap_tier: 'large' },
+      { ticker: 'TLT', name: 'iShares 20+ Year Treasury', sector: null, market_cap_tier: 'large' },
+      { ticker: 'VTI', name: 'Vanguard Total Stock Market', sector: null, market_cap_tier: 'mega' },
+      { ticker: 'VOO', name: 'Vanguard S&P 500', sector: null, market_cap_tier: 'mega' },
+      { ticker: 'XLK', name: 'Technology Select Sector SPDR', sector: 'Technology', market_cap_tier: 'large' },
+    ];
+    return fallbackTickers.slice(offset, offset + limit);
   }
 
-  return data.map((r: any) => ({
-    ticker: r.ticker,
-    name: r.name || r.ticker,
-    sector: r.sector || null,
-    market_cap_tier: r.market_cap_tier || null,
+  // Get unique tickers from bar data
+  const tickerSet = new Set<string>();
+  for (const r of barTickers) {
+    if (r.ticker) tickerSet.add(String(r.ticker));
+  }
+  const uniqueTickers = Array.from(tickerSet).sort();
+  const paged = uniqueTickers.slice(offset, offset + limit);
+
+  return paged.map((ticker) => ({
+    ticker,
+    name: ticker,
+    sector: null,
+    market_cap_tier: null,
   }));
 }
 
@@ -1004,7 +1043,8 @@ async function queryRealStudyProbabilities(supabase: any, opts: CrossStudyOption
       min_expected_return: minExpectedReturn !== null ? Number(minExpectedReturn) : null,
       max_expected_return: maxExpectedReturn !== null ? Number(maxExpectedReturn) : null,
       min_sample_size: Number(minSampleSize),
-      lookforward_days_filter: Number(lookforwardDays ?? 5),
+      // Pass null to get ALL lookforward periods, or specific value if filter is set
+      lookforward_days_filter: lookforwardDays ? Number(lookforwardDays) : null,
 
       // IMPORTANT: pass null for empty arrays
       study_categories: studyCategories?.length ? studyCategories : null,
@@ -1084,8 +1124,12 @@ async function queryRealStudyProbabilities(supabase: any, opts: CrossStudyOption
       .eq('is_valid', true)
       .gte('probability_score', Number(minProbability))
       .lte('probability_score', Number(maxProbability))
-      .gte('sample_size', Number(minSampleSize))
-      .eq('lookforward_days', Number(lookforwardDays ?? 5));
+      .gte('sample_size', Number(minSampleSize));
+    
+    // Only filter by lookforward_days if specifically requested
+    if (lookforwardDays) {
+      q = q.eq('lookforward_days', Number(lookforwardDays));
+    }
 
     if (minExpectedReturn !== null) q = q.gte('expected_return', Number(minExpectedReturn));
     if (maxExpectedReturn !== null) q = q.lte('expected_return', Number(maxExpectedReturn));
