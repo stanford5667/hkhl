@@ -5287,85 +5287,46 @@ export type Database = {
       is_org_admin: { Args: { org_id: string }; Returns: boolean }
       is_org_member: { Args: { org_id: string }; Returns: boolean }
       reset_daily_usage: { Args: never; Returns: undefined }
-      screen_study_probabilities:
-        | {
-            Args: {
-              lookforward_days_filter?: number
-              market_cap_tiers?: string[]
-              max_expected_return?: number
-              max_probability?: number
-              min_expected_return?: number
-              min_probability?: number
-              min_sample_size?: number
-              only_active_signals?: boolean
-              result_limit?: number
-              result_offset?: number
-              sectors?: string[]
-              sort_by?: string
-              sort_order?: string
-              study_categories?: string[]
-              study_types?: string[]
-            }
-            Returns: {
-              avg_gain: number
-              avg_loss: number
-              calculated_at: string
-              confidence_level: string
-              expected_return: number
-              id: string
-              last_signal_date: string
-              lookforward_days: number
-              market_cap_tier: string
-              name: string
-              probability_score: number
-              sample_size: number
-              sector: string
-              signal_active: boolean
-              study_category: string
-              study_id: string
-              study_name: string
-              ticker: string
-              win_rate: number
-            }[]
-          }
-        | {
-            Args: {
-              lookforward_days_filter?: number
-              market_cap_tiers?: string[]
-              max_expected_return?: number
-              max_probability?: number
-              min_confluence?: number
-              min_expected_return?: number
-              min_probability?: number
-              min_sample_size?: number
-              only_active_signals?: boolean
-              result_limit?: number
-              result_offset?: number
-              sectors?: string[]
-              sort_by?: string
-              sort_order?: string
-              study_categories?: string[]
-              study_ids?: string[]
-            }
-            Returns: {
-              avg_gain: number
-              avg_loss: number
-              confidence_level: string
-              expected_return: number
-              last_signal_date: string
-              lookforward_days: number
-              market_cap_tier: string
-              probability_score: number
-              sample_size: number
-              sector: string
-              signal_active: boolean
-              study_category: string
-              study_id: string
-              study_name: string
-              symbol: string
-              win_rate: number
-            }[]
-          }
+      screen_study_probabilities: {
+        Args: {
+          lookforward_days_filter?: number
+          market_cap_tiers?: string[]
+          max_expected_return?: number
+          max_probability?: number
+          min_expected_return?: number
+          min_probability?: number
+          min_sample_size?: number
+          only_active_signals?: boolean
+          result_limit?: number
+          result_offset?: number
+          sectors?: string[]
+          sort_by?: string
+          sort_order?: string
+          study_categories?: string[]
+          study_ids?: string[]
+        }
+        Returns: {
+          avg_gain: number
+          avg_loss: number
+          calculated_at: string
+          confidence_level: string
+          expected_return: number
+          id: string
+          last_signal_date: string
+          lookforward_days: number
+          market_cap_tier: string
+          name: string
+          probability_score: number
+          sample_size: number
+          sector: string
+          signal_active: boolean
+          study_category: string
+          study_id: string
+          study_name: string
+          ticker: string
+          win_rate: number
+        }[]
+      }
       screen_universe: {
         Args: {
           event_types?: string[]
