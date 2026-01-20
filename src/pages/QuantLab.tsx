@@ -1664,11 +1664,25 @@ function QuantLabContent(props: any) {
               <div className="max-w-5xl mx-auto">
                 <FundamentalStudiesContent 
                   selectedTicker={ticker}
-                  onRunStudy={(studyId, studyTicker) => {
+                  onRunStudy={(studyId, studyTicker, screenerParams) => {
                     // Set the ticker and switch to regular study view
                     handleSetTicker(studyTicker);
                     setShowFundamentalStudies(false);
                     addStudy(studyId);
+                    
+                    // If screener passed params, use them instead of defaults for consistent results
+                    if (screenerParams && Object.keys(screenerParams).length > 0) {
+                      // Convert forwardDays array back to single value for UI (take max value)
+                      const uiParams = { ...screenerParams };
+                      if (Array.isArray(uiParams.forwardDays) && uiParams.forwardDays.length > 0) {
+                        uiParams.forwardDays = String(Math.max(...uiParams.forwardDays));
+                      }
+                      setStudyParams(prev => ({
+                        ...prev,
+                        [studyId]: uiParams
+                      }));
+                    }
+                    
                     // Run the study with a slight delay to allow state to update
                     setTimeout(() => {
                       handleRunStudy(studyId, studyTicker);

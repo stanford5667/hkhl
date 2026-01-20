@@ -566,6 +566,9 @@ async function runRealStudiesForTickers(
             const signalActive = checkIfSignalActive(studyType, result ?? data);
             if (filters.onlyActiveSignals && !signalActive) return null;
             
+            // Include the params used so the frontend can reproduce the exact same results
+            const usedParams = getStudyParams(studyType, filters.lookforwardDays);
+            
             return {
               symbol: ticker.ticker,
               name: ticker.name || ticker.ticker,
@@ -584,6 +587,8 @@ async function runRealStudiesForTickers(
               signal_active: signalActive,
               last_signal_date: new Date().toISOString(),
               movement_probabilities: movementProbs,
+              // Include the exact params used so the frontend can reproduce identical results
+              study_params: usedParams,
             } as ScreenerResult;
           }
           
@@ -616,6 +621,9 @@ async function runRealStudiesForTickers(
           
           console.log(`  -> PASSED: ${ticker.ticker}/${studyType}`);
 
+          // Include the params used so the frontend can reproduce the exact same results
+          const usedParams = getStudyParams(studyType, filters.lookforwardDays);
+          
           return {
             symbol: ticker.ticker,
             name: ticker.name || ticker.ticker,
@@ -634,6 +642,8 @@ async function runRealStudiesForTickers(
             signal_active: studySignalActive,
             last_signal_date: new Date().toISOString(),
             movement_probabilities: movementProbs,
+            // Include the exact params used so the frontend can reproduce identical results
+            study_params: usedParams,
           } as ScreenerResult;
         } catch (err) {
           console.error(`Error running study for ${ticker.ticker}/${studyType}:`, err);
