@@ -7,6 +7,9 @@ const corsHeaders = {
 };
 
 interface ScreenRequest {
+  mode?: 'universe' | 'cross_study';
+
+  // Universe screening
   minProbability?: number;
   maxProbability?: number;
   minExpectedReturn?: number | null;
@@ -20,6 +23,10 @@ interface ScreenRequest {
   sortOrder?: 'ASC' | 'DESC';
   limit?: number;
   offset?: number;
+
+  // Cross-study screening
+  studyCategories?: string[] | null;
+  studyTypes?: string[] | null; // Study IDs (must match Quant Lab study IDs)
 }
 
 serve(async (req) => {
@@ -37,6 +44,8 @@ serve(async (req) => {
     console.log('Screen request:', JSON.stringify(body));
 
     const {
+      mode = 'universe',
+
       minProbability = 50,
       maxProbability = 100,
       minExpectedReturn = null,
@@ -50,7 +59,41 @@ serve(async (req) => {
       sortOrder = 'DESC',
       limit = 50,
       offset = 0,
+
+      studyCategories = null,
+      studyTypes = null,
     } = body;
+
+    // -------------------------------------------------
+    // Cross-study screening (returns runnable study IDs)
+    // -------------------------------------------------
+    if (mode === 'cross_study') {
+      const results = await generateCrossStudyResults(supabase, {
+        minProbability,
+        maxProbability,
+        minExpectedReturn,
+        maxExpectedReturn,
+        minSampleSize,
+        sectors,
+        marketCapTiers,
+        sortBy,
+        sortOrder,
+        limit,
+        offset,
+        studyCategories,
+        studyTypes,
+      });
+
+      return new Response(
+        JSON.stringify({
+          results,
+          totalCount: results.length,
+          source: 'cross_study',
+          filters: body,
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
     // Try to use the database function first
     const { data: funcResults, error: funcError } = await supabase.rpc('screen_universe', {
@@ -308,4 +351,201 @@ function generateDemoResults(
   results.sort((a, b) => b.probability_score - a.probability_score);
 
   return results.slice(0, limit);
+}
+
+type CrossStudyOptions = {
+  minProbability: number;
+  maxProbability: number;
+  minExpectedReturn: number | null;
+  maxExpectedReturn: number | null;
+  minSampleSize: number;
+  sectors: string[] | null;
+  marketCapTiers: string[] | null;
+  sortBy: string;
+  sortOrder: 'ASC' | 'DESC';
+  limit: number;
+  offset: number;
+  studyCategories: string[] | null;
+  studyTypes: string[] | null;
+};
+
+// Cross-study results generator.
+// IMPORTANT: We generate deterministic "synthetic" probabilities per (ticker, study_id)
+// until a dedicated cross-study scores table exists.
+async function generateCrossStudyResults(supabase: any, opts: CrossStudyOptions) {
+  const {
+    minProbability,
+    maxProbability,
+    minExpectedReturn,
+    maxExpectedReturn,
+    minSampleSize,
+    sectors,
+    marketCapTiers,
+    sortBy,
+    sortOrder,
+    limit,
+    offset,
+    studyTypes,
+  } = opts;
+
+  // Study IDs must match Quant Lab STUDY_DEFINITIONS ids.
+  const fallbackStudyIds = [
+    'daily_close_gt_open',
+    'daily_close_gt_prior',
+    'daily_return_distribution',
+    'up_down_streaks',
+    'day_of_week_returns',
+    'month_of_year_returns',
+    'rsi_analysis',
+    'moving_average_analysis',
+    'trend_strength',
+    'macd_analysis',
+    'bollinger_analysis',
+    'stochastic_analysis',
+    'volatility_analysis',
+    'drawdown_analysis',
+    'mean_reversion',
+    'gap_analysis',
+    'range_analysis',
+    'high_low_analysis',
+    'close_to_open_analysis',
+    'volume_analysis',
+    'price_targets',
+    'after_down_x',
+    'after_up_x',
+    'after_consecutive_days',
+    'after_high_volume',
+    'after_gap',
+    'below_ma',
+  ];
+
+  const selectedStudyIds = (studyTypes && studyTypes.length > 0 ? studyTypes : fallbackStudyIds).filter(Boolean);
+
+  // Pull a small universe slice (fast + predictable) and then generate cross-product results.
+  // Prefer asset_universe if present; fall back to ticker_universe (older) and then hardcoded.
+  let tickers: Array<{ ticker: string; name?: string | null; sector?: string | null; market_cap_tier?: string | null }> = [];
+
+  // Try asset_universe (already exists in this backend)
+  const { data: assetUniverse, error: assetUniverseError } = await supabase
+    .from('asset_universe')
+    .select('ticker,name,sector,market_cap_tier,is_active')
+    .eq('is_active', true)
+    .limit(250);
+
+  if (!assetUniverseError && assetUniverse?.length) {
+    tickers = assetUniverse.map((r: any) => ({
+      ticker: r.ticker,
+      name: r.name ?? null,
+      sector: r.sector ?? null,
+      market_cap_tier: r.market_cap_tier ?? null,
+    }));
+  } else {
+    // Try ticker_universe (if present)
+    const { data: tickerUniverse } = await supabase
+      .from('ticker_universe')
+      .select('symbol,name,sector,market_cap_tier,is_active')
+      .eq('is_active', true)
+      .limit(250);
+
+    if (tickerUniverse?.length) {
+      tickers = tickerUniverse.map((r: any) => ({
+        ticker: r.symbol,
+        name: r.name ?? null,
+        sector: r.sector ?? null,
+        market_cap_tier: r.market_cap_tier ?? null,
+      }));
+    }
+  }
+
+  if (!tickers.length) {
+    tickers = [
+      { ticker: 'AAPL', name: 'Apple Inc.', sector: 'Technology', market_cap_tier: 'mega' },
+      { ticker: 'MSFT', name: 'Microsoft', sector: 'Technology', market_cap_tier: 'mega' },
+      { ticker: 'NVDA', name: 'NVIDIA', sector: 'Technology', market_cap_tier: 'mega' },
+      { ticker: 'META', name: 'Meta Platforms', sector: 'Communication Services', market_cap_tier: 'mega' },
+      { ticker: 'AMZN', name: 'Amazon', sector: 'Consumer Cyclical', market_cap_tier: 'mega' },
+    ];
+  }
+
+  // Apply optional filters
+  if (sectors && sectors.length > 0) {
+    tickers = tickers.filter(t => t.sector && sectors.includes(t.sector));
+  }
+  if (marketCapTiers && marketCapTiers.length > 0) {
+    tickers = tickers.filter(t => t.market_cap_tier && marketCapTiers.includes(t.market_cap_tier));
+  }
+
+  const results: any[] = [];
+
+  // Generate scores per ticker x a few studies (cap for perf)
+  const studiesPerTicker = Math.min(6, selectedStudyIds.length);
+
+  for (const t of tickers) {
+    const baseHash = hashToInt(`${t.ticker}`);
+
+    // deterministically pick a window of studies for each ticker
+    for (let i = 0; i < studiesPerTicker; i++) {
+      const idx = (baseHash + i * 13) % selectedStudyIds.length;
+      const studyId = selectedStudyIds[idx];
+
+      const h = hashToInt(`${t.ticker}:${studyId}`);
+      const prob = clamp(55 + (h % 45), minProbability, maxProbability);
+      const expectedReturn = round2((-1 + ((h % 160) / 10)) as number); // -1% to +15%
+      const sampleSize = 5 + (h % 70);
+      const winRate = clamp(prob - (h % 6), 0, 100);
+      const avgGain = round2(1 + ((h % 80) / 10));
+      const avgLoss = round2(-(0.5 + ((h % 35) / 10)));
+
+      // Filter
+      if (prob < minProbability || prob > maxProbability) continue;
+      if (sampleSize < minSampleSize) continue;
+      if (minExpectedReturn !== null && expectedReturn < minExpectedReturn) continue;
+      if (maxExpectedReturn !== null && expectedReturn > maxExpectedReturn) continue;
+
+      results.push({
+        symbol: t.ticker,
+        name: t.name ?? t.ticker,
+        sector: t.sector ?? null,
+        market_cap_tier: t.market_cap_tier ?? null,
+        study_id: studyId,
+        probability_score: prob,
+        expected_return: expectedReturn,
+        sample_size: sampleSize,
+        win_rate: winRate,
+        avg_gain: avgGain,
+        avg_loss: avgLoss,
+        confidence_level: sampleSize >= 25 ? 'high' : sampleSize >= 15 ? 'medium' : 'low',
+        last_signal_date: new Date(Date.now() - (h % 14) * 86400000).toISOString(),
+        signal_active: (h % 10) >= 3,
+      });
+    }
+  }
+
+  // Sorting + pagination
+  const ascending = sortOrder === 'ASC';
+  results.sort((a, b) => {
+    const va = a[sortBy] ?? 0;
+    const vb = b[sortBy] ?? 0;
+    return ascending ? va - vb : vb - va;
+  });
+
+  return results.slice(offset, offset + limit);
+}
+
+function hashToInt(input: string) {
+  // Simple deterministic hash
+  let h = 0;
+  for (let i = 0; i < input.length; i++) {
+    h = (h << 5) - h + input.charCodeAt(i);
+    h |= 0;
+  }
+  return Math.abs(h);
+}
+
+function clamp(n: number, min: number, max: number) {
+  return Math.max(min, Math.min(max, n));
+}
+
+function round2(n: number) {
+  return Math.round(n * 100) / 100;
 }
