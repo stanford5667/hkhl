@@ -453,7 +453,8 @@ async function runRealStudiesForTickers(
               studyType,
               startDate,
               endDate,
-              params: getStudyParams(studyType),
+              // IMPORTANT: match Quant Lab default params + forwardDays behavior
+              params: getStudyParams(studyType, filters.lookforwardDays),
             }),
           });
 
@@ -695,19 +696,36 @@ function extractStudyProbability(studyType: string, result: any, lookforwardDays
   return null;
 }
 
-// Get default params for each study type
-function getStudyParams(studyType: string): Record<string, any> {
+// Get default params for each study type (match Quant Lab defaults)
+function getStudyParams(studyType: string, lookforwardDays: number): Record<string, any> {
+  // Quant Lab stores forwardDays as a single value (e.g. "5") but sends an ARRAY to the backend.
+  const allPeriods = [1, 3, 5, 10, 21, 63, 126, 252];
+  const fd = Number.isFinite(lookforwardDays) ? Number(lookforwardDays) : 5;
+  const forwardDays = [...new Set(allPeriods.filter(p => p <= fd || p === 1 || p === fd))].sort((a, b) => a - b);
+
   switch (studyType) {
+    // Conditional
     case 'after_down_x':
-      return { threshold: 2, direction: 'down' };
+      return { threshold: 2, direction: 'down', forwardDays };
     case 'after_up_x':
-      return { threshold: 2, direction: 'up' };
+      return { threshold: 2, direction: 'up', forwardDays };
+    case 'after_consecutive_days':
+      return { days: 3, direction: 'down', forwardDays };
+    case 'after_high_volume':
+      return { multiplier: 2, avgPeriod: 20, forwardDays };
+    case 'after_gap':
+      return { minGap: 1, forwardDays };
+    case 'below_ma':
+      return { maPeriod: 50, threshold: 5, forwardDays };
+
+    // Technical
     case 'rsi_analysis':
-      return { period: 14 };
+      return { period: 14, forwardDays };
     case 'moving_average_analysis':
-      return { shortPeriod: 20, mediumPeriod: 50, longPeriod: 200 };
+      return { shortPeriod: 20, mediumPeriod: 50, longPeriod: 200, forwardDays };
+
     default:
-      return {};
+      return { forwardDays };
   }
 }
 
