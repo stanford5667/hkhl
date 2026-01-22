@@ -11,7 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ArrowLeft, LineChart, TrendingUp, TrendingDown, RefreshCw, Plus, Building2, Globe, BarChart3, LayoutDashboard, FlaskConical, FileText, MessageCircle, Newspaper } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { CandlestickChart } from '@/components/charts/CandlestickChart';
-import { IntegratedQuantStudiesPanel } from '@/components/equity/IntegratedQuantStudiesPanel';
+import { EmbeddedQuantLab } from '@/components/equity/EmbeddedQuantLab';
 import { AssetBacktestPanel } from '@/components/equity/AssetBacktestPanel';
 import { SECFilingsPanel } from '@/components/research/SECFilingsPanel';
 import { AnalystSocialPanel } from '@/components/research/AnalystSocialPanel';
@@ -402,9 +402,9 @@ export default function PublicStockView() {
               <LayoutDashboard className="h-4 w-4 md:h-5 md:w-5" />
               Overview
             </TabsTrigger>
-            <TabsTrigger value="studies" className="gap-1.5 text-sm md:text-base px-3 md:px-5 py-2.5 md:py-3 whitespace-nowrap">
+            <TabsTrigger value="quant-lab" className="gap-1.5 text-sm md:text-base px-3 md:px-5 py-2.5 md:py-3 whitespace-nowrap">
               <FlaskConical className="h-4 w-4 md:h-5 md:w-5" />
-              Studies
+              Quant Lab
             </TabsTrigger>
             <TabsTrigger value="backtest" className="gap-1.5 text-sm md:text-base px-3 md:px-5 py-2.5 md:py-3 whitespace-nowrap">
               <BarChart3 className="h-4 w-4 md:h-5 md:w-5" />
@@ -556,9 +556,9 @@ export default function PublicStockView() {
           )}
         </TabsContent>
 
-        {/* Studies Tab */}
-        <TabsContent value="studies">
-          <IntegratedQuantStudiesPanel ticker={ticker} companyName={details?.name || ticker} />
+        {/* Quant Lab Tab */}
+        <TabsContent value="quant-lab" className="min-h-[600px]">
+          <EmbeddedQuantLab ticker={ticker} companyName={details?.name || ticker} />
         </TabsContent>
 
         {/* Metrics/Backtest Tab */}
