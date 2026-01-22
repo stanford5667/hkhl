@@ -17,7 +17,7 @@ import { ProcessingBanner, ProcessingIndicator, AIAnalyzedBadge } from '@/compon
 import { AISummaryCard } from '@/components/companies/AISummaryCard';
 import { PublicEquityDetailView } from '@/components/equity/PublicEquityDetailView';
 import { AssetBacktestPanel } from '@/components/equity/AssetBacktestPanel';
-import { IntegratedQuantStudiesPanel } from '@/components/equity/IntegratedQuantStudiesPanel';
+import { EmbeddedQuantLab } from '@/components/equity/EmbeddedQuantLab';
 import { SECFilingsPanel } from '@/components/research/SECFilingsPanel';
 import { AnalystSocialPanel } from '@/components/research/AnalystSocialPanel';
 import { MessageCircle } from 'lucide-react';
@@ -352,9 +352,9 @@ export default function CompanyDetail() {
               Overview
             </TabsTrigger>
             {isPublicEquity && (
-              <TabsTrigger value="studies" className="gap-1.5 text-sm md:text-base px-3 md:px-5 py-2.5 md:py-3 whitespace-nowrap">
+              <TabsTrigger value="quant-lab" className="gap-1.5 text-sm md:text-base px-3 md:px-5 py-2.5 md:py-3 whitespace-nowrap">
                 <FlaskConical className="h-4 w-4 md:h-5 md:w-5" />
-                Studies
+                Quant Lab
               </TabsTrigger>
             )}
             <TabsTrigger value="notes-tasks" className="gap-1.5 text-sm md:text-base px-3 md:px-5 py-2.5 md:py-3 whitespace-nowrap">
@@ -703,10 +703,10 @@ export default function CompanyDetail() {
           </TabsContent>
         )}
 
-        {/* Studies Tab - Public Equity Only */}
+        {/* Quant Lab Tab - Public Equity Only */}
         {isPublicEquity && company.ticker_symbol && (
-          <TabsContent value="studies">
-            <IntegratedQuantStudiesPanel 
+          <TabsContent value="quant-lab" className="min-h-[600px]">
+            <EmbeddedQuantLab 
               ticker={company.ticker_symbol}
               companyName={company.name}
             />
