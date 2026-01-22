@@ -317,45 +317,10 @@ function EmbeddedQuantLabContent({
             </Button>
           </div>
           
-          {/* Ticker Search */}
-          <div className="flex-1 max-w-sm">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-              <Input
-                placeholder="Ticker (e.g. AAPL)"
-                value={ticker}
-                onChange={(e) => setTicker(e.target.value.toUpperCase())}
-                onBlur={() => { if (ticker.trim()) handleSetTicker(ticker.trim()); }}
-                onKeyDown={(e) => { 
-                  if (e.key === 'Enter' && ticker.trim()) {
-                    const nextTicker = ticker.trim();
-                    handleSetTicker(nextTicker);
-                    if (selectedStudies.length > 0) {
-                      setTimeout(() => handleRunStudy(selectedStudies[0], nextTicker), 100);
-                    }
-                  }
-                }}
-                className="h-9 pl-9 pr-16 font-mono font-bold bg-background rounded-lg border"
-              />
-              <Button
-                size="sm"
-                variant="default"
-                className="absolute right-1 top-1/2 -translate-y-1/2 h-7 px-2 text-xs"
-                onClick={() => {
-                  if (ticker.trim()) {
-                    const nextTicker = ticker.trim();
-                    handleSetTicker(nextTicker);
-                    if (selectedStudies.length > 0) {
-                      setTimeout(() => handleRunStudy(selectedStudies[0], nextTicker), 100);
-                    }
-                  }
-                }}
-                disabled={!ticker.trim() || isRunning}
-              >
-                {isRunning ? <Loader2 className="h-3 w-3 animate-spin" /> : 'Go'}
-              </Button>
-            </div>
-          </div>
+          {/* Ticker Display (locked to company) */}
+          <Badge variant="outline" className="h-9 px-4 font-mono font-bold text-base border-primary/50 bg-primary/5">
+            {selectedTicker}
+          </Badge>
           
           {/* Saved Studies */}
           <Button
