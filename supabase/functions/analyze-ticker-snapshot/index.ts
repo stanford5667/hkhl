@@ -61,13 +61,17 @@ serve(async (req) => {
       );
     }
 
-    // Run all Tier 1 studies in parallel
-    const studyPromises = AUTO_STUDIES.map(studyId => 
-      runStudyInternal(studyId, bars).then((result: Record<string, unknown>) => ({ studyId, result, success: true }))
-        .catch((error: Error) => ({ studyId, error: error.message, success: false }))
-    );
+    // Run all Tier 1 studies synchronously (they are CPU-bound, not async)
+    const studyResults = AUTO_STUDIES.map(studyId => {
+      try {
+        const result = runStudyInternal(studyId, bars);
+        return { studyId, result, success: true };
+      } catch (error) {
+        return { studyId, error: error instanceof Error ? error.message : 'Unknown error', success: false };
+      }
+    });
 
-    const studyResults = await Promise.all(studyPromises);
+    
 
     // Build results object
     const autoStudies: Record<string, any> = {};
