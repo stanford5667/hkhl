@@ -15,7 +15,7 @@ import { EmbeddedQuantLab } from '@/components/equity/EmbeddedQuantLab';
 import { AssetBacktestPanel } from '@/components/equity/AssetBacktestPanel';
 import { SECFilingsPanel } from '@/components/research/SECFilingsPanel';
 import { AnalystSocialPanel } from '@/components/research/AnalystSocialPanel';
-import { IntegratedResearchView } from '@/components/research';
+import { IntegratedResearchView, ALAOverviewTab } from '@/components/research';
 import { useCompanyNews } from '@/hooks/useCompanyResearch';
 
 interface TickerDetails {
@@ -433,89 +433,18 @@ export default function PublicStockView() {
           </TabsList>
         </div>
 
-        {/* Overview Tab */}
+        {/* Overview Tab - ALA-styled */}
         <TabsContent value="overview" className="space-y-6">
-          {/* Quote Card */}
-          <Card className="bg-card border-border">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-base sm:text-lg">Market Data</CardTitle>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleRefresh}
-                disabled={isRefreshing}
-                className="gap-2"
-              >
-                <RefreshCw className={cn("h-4 w-4", isRefreshing && "animate-spin")} />
-                <span className="hidden sm:inline">Refresh</span>
-              </Button>
-            </CardHeader>
-            <CardContent>
-              {isLoadingQuote ? (
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                  {Array.from({ length: 4 }).map((_, i) => (
-                    <div key={i}>
-                      <Skeleton className="h-4 w-16 mb-2" />
-                      <Skeleton className="h-8 w-24" />
-                    </div>
-                  ))}
-                </div>
-              ) : quote ? (
-                <div className="space-y-4">
-                  <div className="flex items-end gap-4 flex-wrap">
-                    <div>
-                      <p className="text-xs text-muted-foreground uppercase tracking-wider">Price</p>
-                      <p className="text-3xl sm:text-4xl font-bold tabular-nums">{formatCurrency(quote.price)}</p>
-                    </div>
-                    <div className={cn(
-                      "flex items-center gap-1 text-lg sm:text-xl font-semibold pb-1",
-                      isPositive ? "text-emerald-500" : "text-rose-500"
-                    )}>
-                      {isPositive ? <TrendingUp className="h-5 w-5" /> : <TrendingDown className="h-5 w-5" />}
-                      <span className="tabular-nums">
-                        {isPositive ? '+' : ''}{quote.change.toFixed(2)} ({isPositive ? '+' : ''}{quote.changePercent.toFixed(2)}%)
-                      </span>
-                    </div>
-                  </div>
-                  
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-4 border-t border-border">
-                    <div>
-                      <p className="text-xs text-muted-foreground uppercase tracking-wider">Open</p>
-                      <p className="text-lg font-semibold tabular-nums">{formatCurrency(quote.open)}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-muted-foreground uppercase tracking-wider">High</p>
-                      <p className="text-lg font-semibold tabular-nums">{formatCurrency(quote.high)}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-muted-foreground uppercase tracking-wider">Low</p>
-                      <p className="text-lg font-semibold tabular-nums">{formatCurrency(quote.low)}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-muted-foreground uppercase tracking-wider">Market Cap</p>
-                      <p className="text-lg font-semibold tabular-nums">{formatMarketCap(details?.marketCap)}</p>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <p className="text-muted-foreground">Unable to load quote data</p>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Chart */}
-          {ticker && (
-            <Card className="bg-card border-border">
-              <CardHeader>
-                <CardTitle>Price Chart</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="h-[300px] sm:h-[400px]">
-                  <CandlestickChart symbol={ticker} height={400} />
-                </div>
-              </CardContent>
-            </Card>
-          )}
+          <ALAOverviewTab
+            ticker={ticker}
+            companyName={details?.name}
+            exchange={details?.primaryExchange}
+            sector={details?.sector}
+            quote={quote}
+            isLoadingQuote={isLoadingQuote}
+            onRefresh={handleRefresh}
+            isRefreshing={isRefreshing}
+          />
 
           {/* Company Info */}
           {details?.description && (
