@@ -131,6 +131,13 @@ function generateMockSocial(ticker: string) {
 }
 
 // Firecrawl API helpers
+class FirecrawlQuotaError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'FirecrawlQuotaError';
+  }
+}
+
 async function firecrawlSearch(apiKey: string, query: string, limit: number = 5) {
   const response = await fetch('https://api.firecrawl.dev/v1/search', {
     method: 'POST',
@@ -146,6 +153,10 @@ async function firecrawlSearch(apiKey: string, query: string, limit: number = 5)
   });
   
   if (!response.ok) {
+    // 402 = Payment Required (quota exhausted)
+    if (response.status === 402) {
+      throw new FirecrawlQuotaError('Firecrawl quota exhausted - using mock data');
+    }
     throw new Error(`Firecrawl search failed: ${response.status}`);
   }
   
@@ -167,6 +178,10 @@ async function firecrawlScrape(apiKey: string, url: string) {
   });
   
   if (!response.ok) {
+    // 402 = Payment Required (quota exhausted)
+    if (response.status === 402) {
+      throw new FirecrawlQuotaError('Firecrawl quota exhausted - using mock data');
+    }
     throw new Error(`Firecrawl scrape failed: ${response.status}`);
   }
   
@@ -357,7 +372,7 @@ Deno.serve(async (req) => {
     }
     
     const apiKey = Deno.env.get('FIRECRAWL_API_KEY');
-    const useMock = !apiKey;
+    let useMock = !apiKey;
     
     if (useMock) {
       console.log('No FIRECRAWL_API_KEY found, using mock data');
@@ -365,30 +380,65 @@ Deno.serve(async (req) => {
     
     const name = companyName || ticker;
     let result: any;
+    let source: 'mock' | 'firecrawl' = useMock ? 'mock' : 'firecrawl';
+    
+    // Helper to safely run a scraper with quota fallback
+    async function safeRun<T>(
+      scraper: () => Promise<T>,
+      mockGenerator: () => T
+    ): Promise<T> {
+      if (useMock) return mockGenerator();
+      try {
+        return await scraper();
+      } catch (error) {
+        if (error instanceof FirecrawlQuotaError) {
+          console.warn('Firecrawl quota exhausted, falling back to mock data');
+          useMock = true;
+          source = 'mock';
+          return mockGenerator();
+        }
+        throw error;
+      }
+    }
     
     switch (scrapeType) {
       case 'news':
-        result = useMock ? generateMockNews(ticker, limit) : await scrapeNews(apiKey!, ticker, name, limit);
+        result = await safeRun(
+          () => scrapeNews(apiKey!, ticker, name, limit),
+          () => generateMockNews(ticker, limit)
+        );
         break;
       case 'financials':
-        result = useMock ? generateMockFinancials(ticker) : await scrapeFinancials(apiKey!, ticker);
+        result = await safeRun(
+          () => scrapeFinancials(apiKey!, ticker),
+          () => generateMockFinancials(ticker)
+        );
         break;
       case 'sec_filings':
-        result = useMock ? generateMockSecFilings(ticker, limit) : await scrapeSecFilings(apiKey!, ticker, limit);
+        result = await safeRun(
+          () => scrapeSecFilings(apiKey!, ticker, limit),
+          () => generateMockSecFilings(ticker, limit)
+        );
         break;
       case 'analyst':
-        result = useMock ? generateMockAnalyst(ticker) : await scrapeAnalyst(apiKey!, ticker);
+        result = await safeRun(
+          () => scrapeAnalyst(apiKey!, ticker),
+          () => generateMockAnalyst(ticker)
+        );
         break;
       case 'social':
-        result = useMock ? generateMockSocial(ticker) : await scrapeSocial(apiKey!, ticker);
+        result = await safeRun(
+          () => scrapeSocial(apiKey!, ticker),
+          () => generateMockSocial(ticker)
+        );
         break;
       case 'comprehensive':
         const [news, financials, secFilings, analyst, social] = await Promise.all([
-          useMock ? generateMockNews(ticker, limit) : scrapeNews(apiKey!, ticker, name, limit),
-          useMock ? generateMockFinancials(ticker) : scrapeFinancials(apiKey!, ticker),
-          useMock ? generateMockSecFilings(ticker, limit) : scrapeSecFilings(apiKey!, ticker, limit),
-          useMock ? generateMockAnalyst(ticker) : scrapeAnalyst(apiKey!, ticker),
-          useMock ? generateMockSocial(ticker) : scrapeSocial(apiKey!, ticker),
+          safeRun(() => scrapeNews(apiKey!, ticker, name, limit), () => generateMockNews(ticker, limit)),
+          safeRun(() => scrapeFinancials(apiKey!, ticker), () => generateMockFinancials(ticker)),
+          safeRun(() => scrapeSecFilings(apiKey!, ticker, limit), () => generateMockSecFilings(ticker, limit)),
+          safeRun(() => scrapeAnalyst(apiKey!, ticker), () => generateMockAnalyst(ticker)),
+          safeRun(() => scrapeSocial(apiKey!, ticker), () => generateMockSocial(ticker)),
         ]);
         result = { type: 'comprehensive', ticker, news, financials, secFilings, analyst, social, scrapedAt: new Date().toISOString() };
         break;
@@ -400,7 +450,7 @@ Deno.serve(async (req) => {
     }
     
     return new Response(
-      JSON.stringify({ success: true, data: result, source: useMock ? 'mock' : 'firecrawl' }),
+      JSON.stringify({ success: true, data: result, source }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {
