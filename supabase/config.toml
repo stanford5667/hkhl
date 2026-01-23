@@ -164,3 +164,9 @@ verify_jwt = false
 
 [functions.screen-probability]
 verify_jwt = false
+
+[functions.analyze-ticker-snapshot]
+verify_jwt = false
+
+[functions.run-single-study]
+verify_jwt = false
