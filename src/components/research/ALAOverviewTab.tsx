@@ -1,16 +1,17 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Switch } from '@/components/ui/switch';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
-import { TrendingUp, TrendingDown, Layers, Activity, RefreshCw, BarChart3 } from 'lucide-react';
+import { TrendingUp, Layers, Activity, BarChart3 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { ALAStockInfoCard, ALAStockInfoCardProps } from './ALAStockInfoCard';
+import { ALAStockInfoCard } from './ALAStockInfoCard';
 import { QuickHistoricalInsights, StreakData, HistoricalPattern } from './QuickHistoricalInsights';
 import { BasicStatistics, BasicStatsData } from './BasicStatistics';
 import { CandlestickChart } from '@/components/charts/CandlestickChart';
+import { useTickerSnapshot, TickerSnapshotData } from '@/hooks/useTickerSnapshot';
+import { useTickerFundamentals } from '@/hooks/useTickerFundamentals';
 
 interface ALAOverviewTabProps {
   ticker: string;
@@ -33,23 +34,6 @@ interface ALAOverviewTabProps {
   isRefreshing?: boolean;
 }
 
-interface KeyLevel {
-  price: number;
-  winRate: number;
-  type: 'support' | 'resistance';
-}
-
-function generateMockKeyLevels(ticker: string, currentPrice: number): KeyLevel[] {
-  const hash = ticker.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-  
-  return [
-    { price: currentPrice * 0.90, winRate: 52 + (hash % 10), type: 'support' },
-    { price: currentPrice * 0.93, winRate: 60 + (hash % 8), type: 'support' },
-    { price: currentPrice * 0.88, winRate: 82 + (hash % 5), type: 'support' },
-    { price: currentPrice * 0.86, winRate: 82 + (hash % 6), type: 'support' },
-  ];
-}
-
 export function ALAOverviewTab({
   ticker,
   companyName,
@@ -65,22 +49,191 @@ export function ALAOverviewTab({
   const [showProbability, setShowProbability] = useState(false);
   const [statsTimeRange, setStatsTimeRange] = useState<'1Y' | '3Y' | '5Y'>('3Y');
 
-  // Mock data for key levels
-  const keyLevels = useMemo(() => {
-    if (!quote?.price) return [];
-    return generateMockKeyLevels(ticker, quote.price);
-  }, [ticker, quote?.price]);
+  // Fetch real data from edge functions
+  const { data: snapshot, isLoading: snapshotLoading } = useTickerSnapshot(ticker);
+  const { data: fundamentals, isLoading: fundLoading } = useTickerFundamentals(ticker);
 
-  // Chart change calculation (mock)
-  const chartChange = useMemo(() => {
-    const hash = ticker.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+  // Derive streak data from snapshot
+  const streakData: StreakData | null = useMemo(() => {
+    if (!snapshot?.streaks) return null;
+    
+    const streaks = snapshot.streaks;
+    const consecutive = snapshot.consecutive;
+    const currentStreak = streaks.currentStreak;
+    const direction = currentStreak >= 0 ? 'up' : 'down';
+    const absStreak = Math.abs(currentStreak);
+    
+    // Find matching streak analysis
+    const streakAnalysis = streaks.analysis.find(a => a.streak === currentStreak);
+    const continuationRate = streakAnalysis?.continuationRate || 50;
+    const avgNextDayReturn = streakAnalysis?.avgNextDayReturn || 0;
+    
+    // Calculate max streak from analysis
+    const allStreaks = streaks.analysis.map(a => Math.abs(a.streak));
+    const maxStreak = allStreaks.length > 0 ? Math.max(...allStreaks) : absStreak;
+    const avgStreak = allStreaks.length > 0 ? allStreaks.reduce((a, b) => a + b, 0) / allStreaks.length : absStreak;
+    
+    // Total change from daily volatility
+    const totalChange = snapshot.dailyVolatility * absStreak * (direction === 'down' ? -1 : 1);
+    
     return {
-      value: 3 + (hash % 8) + Math.random() * 2,
-      percent: 2 + (hash % 5) + Math.random(),
+      direction,
+      consecutiveDays: absStreak,
+      totalChange,
+      startDate: new Date(Date.now() - absStreak * 24 * 60 * 60 * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+      maxStreak,
+      avgStreak,
+      sampleSize: streakAnalysis?.occurrences || streaks.analysis.reduce((sum, a) => sum + a.occurrences, 0),
+      percentile: Math.round((absStreak / maxStreak) * 100),
+      bounceProbability: 100 - continuationRate,
+      avgRecovery: Math.abs(avgNextDayReturn),
+      recoveryPeriod: '1 week',
     };
-  }, [ticker]);
+  }, [snapshot]);
 
-  const isChartPositive = chartChange.value >= 0;
+  // Derive active patterns from snapshot signals
+  const activePatterns: HistoricalPattern[] = useMemo(() => {
+    if (!snapshot) return [];
+    
+    const patterns: HistoricalPattern[] = [];
+    
+    // RSI patterns
+    if (snapshot.rsi?.signal === 'oversold') {
+      patterns.push({ 
+        id: 'rsi_oversold', 
+        name: 'RSI Oversold', 
+        winRate: snapshot.rsi.oversoldBounces?.winRate || 55 
+      });
+    }
+    if (snapshot.rsi?.signal === 'overbought') {
+      patterns.push({ 
+        id: 'rsi_overbought', 
+        name: 'RSI Overbought', 
+        winRate: snapshot.rsi.overboughtDrops?.winRate || 52 
+      });
+    }
+    
+    // Bollinger patterns
+    if (snapshot.bollinger?.signal === 'oversold') {
+      patterns.push({ 
+        id: 'bollinger_low', 
+        name: 'Near Lower Band', 
+        winRate: snapshot.bollinger.lowerBounceRate || 60 
+      });
+    }
+    if (snapshot.bollinger?.signal === 'overbought') {
+      patterns.push({ 
+        id: 'bollinger_high', 
+        name: 'Near Upper Band', 
+        winRate: snapshot.bollinger.upperRejectionRate || 55 
+      });
+    }
+    
+    // Gap patterns
+    if (snapshot.gaps?.recentGaps?.length > 0) {
+      const recentUnfilled = snapshot.gaps.recentGaps.filter(g => !g.filled);
+      if (recentUnfilled.length > 0) {
+        patterns.push({
+          id: 'unfilled_gap',
+          name: 'Unfilled Gap',
+          winRate: snapshot.gaps.upGapFillRate || snapshot.gaps.downGapFillRate || 65
+        });
+      }
+    }
+    
+    return patterns;
+  }, [snapshot]);
+
+  // Derive basic stats from snapshot
+  const basicStats: BasicStatsData | null = useMemo(() => {
+    if (!snapshot?.extremeDays) return null;
+    
+    const extremes = snapshot.extremeDays;
+    
+    return {
+      avgDailyMove: extremes.avgDailyMove,
+      avgDailyMovePercent: extremes.avgDailyMovePercent,
+      upDays: extremes.upDays,
+      downDays: extremes.downDays,
+      flatDays: extremes.flatDays,
+      totalDays: extremes.totalDays,
+      bestDay: extremes.bestDay,
+      worstDay: extremes.worstDay,
+      topBestDays: extremes.topBest?.map(d => d.change) || [],
+      topWorstDays: extremes.topWorst?.map(d => d.change) || [],
+    };
+  }, [snapshot]);
+
+  // Key levels from real data (gaps + bollinger)
+  const keyLevels = useMemo(() => {
+    if (!snapshot || !quote?.price) return [];
+    
+    const levels: { price: number; winRate: number; type: 'support' | 'resistance'; label?: string }[] = [];
+    
+    // Add Bollinger bands as levels
+    if (snapshot.bollinger) {
+      levels.push({ 
+        price: snapshot.bollinger.lower, 
+        winRate: snapshot.bollinger.lowerBounceRate || 60, 
+        type: 'support',
+        label: 'Bollinger Lower'
+      });
+      levels.push({ 
+        price: snapshot.bollinger.upper, 
+        winRate: snapshot.bollinger.upperRejectionRate || 55, 
+        type: 'resistance',
+        label: 'Bollinger Upper'
+      });
+    }
+    
+    // Add unfilled gaps as levels
+    if (snapshot.gaps?.recentGaps) {
+      snapshot.gaps.recentGaps
+        .filter(g => !g.filled)
+        .slice(0, 2)
+        .forEach((gap, i) => {
+          const gapPrice = quote.price * (1 + gap.gapPercent / 100);
+          levels.push({
+            price: gapPrice,
+            winRate: gap.gapPercent > 0 ? snapshot.gaps.upGapFillRate : snapshot.gaps.downGapFillRate,
+            type: gap.gapPercent > 0 ? 'resistance' : 'support',
+            label: `Gap ${gap.date}`
+          });
+        });
+    }
+    
+    // Add 52-week levels if available
+    if (snapshot.yearRange) {
+      levels.push({
+        price: snapshot.yearRange.week52Low,
+        winRate: 75,
+        type: 'support',
+        label: '52-Week Low'
+      });
+      levels.push({
+        price: snapshot.yearRange.week52High,
+        winRate: 70,
+        type: 'resistance',
+        label: '52-Week High'
+      });
+    }
+    
+    return levels.filter(l => l.price > 0).slice(0, 4);
+  }, [snapshot, quote?.price]);
+
+  // Chart change display from real data
+  const chartChange = useMemo(() => {
+    if (!snapshot?.closeVsPrior) {
+      return { value: quote?.change || 0, percent: quote?.changePercent || 0 };
+    }
+    return { 
+      value: quote?.change || 0, 
+      percent: quote?.changePercent || 0 
+    };
+  }, [quote, snapshot]);
+
+  const isChartPositive = chartChange.percent >= 0;
+  const isDataLoading = snapshotLoading || fundLoading;
 
   return (
     <div className="space-y-6">
@@ -99,19 +252,14 @@ export function ALAOverviewTab({
           high={quote?.high || 0}
           low={quote?.low || 0}
           previousClose={quote?.previousClose}
-          marketCap={quote?.marketCap}
+          marketCap={fundamentals?.marketCap || quote?.marketCap}
           volume={quote?.volume}
-          beta={1.28}
-          peRatio={31.2}
-          forwardPE={28.5}
-          eps={6.36}
-          dividend={0.48}
-          analystRating="Buy"
-          priceTarget={quote?.price ? quote.price * 1.13 : undefined}
-          nextEarnings="Jan 30, 2026"
-          week52High={quote?.price ? quote.price * 1.09 : undefined}
-          week52Low={quote?.price ? quote.price * 0.83 : undefined}
-          isLoading={isLoadingQuote}
+          beta={snapshot?.volatility?.annualizedVolatility ? snapshot.volatility.annualizedVolatility / 15 : undefined}
+          peRatio={fundamentals?.peRatio || undefined}
+          eps={fundamentals?.eps || undefined}
+          week52High={snapshot?.yearRange?.week52High}
+          week52Low={snapshot?.yearRange?.week52Low}
+          isLoading={isLoadingQuote || isDataLoading}
           onRefresh={onRefresh}
           isRefreshing={isRefreshing}
         />
@@ -125,7 +273,7 @@ export function ALAOverviewTab({
                 <div className="flex items-center gap-1">
                   <TrendingUp className={cn("h-4 w-4", isChartPositive ? "text-emerald-400" : "text-rose-400")} />
                   <span className={cn("text-sm font-medium", isChartPositive ? "text-emerald-400" : "text-rose-400")}>
-                    +{chartChange.value.toFixed(2)} ({chartChange.percent.toFixed(2)}%)
+                    {chartChange.percent >= 0 ? '+' : ''}{chartChange.value.toFixed(2)} ({chartChange.percent >= 0 ? '+' : ''}{chartChange.percent.toFixed(2)}%)
                   </span>
                 </div>
                 <Badge variant="secondary" className="text-xs">{chartTimeframe}</Badge>
@@ -199,22 +347,28 @@ export function ALAOverviewTab({
                 />
               )}
               
-              {/* Level Annotations (overlay) */}
-              {showLevels && !isLoadingQuote && (
+              {/* Level Annotations (overlay) - now from real data */}
+              {showLevels && !isLoadingQuote && keyLevels.length > 0 && (
                 <div className="absolute right-2 top-2 space-y-1 pointer-events-none">
-                  {/* These would normally be positioned based on price levels */}
-                  <div className="text-[10px] text-rose-400 bg-rose-500/10 px-1.5 py-0.5 rounded">
-                    Unfilled Gap Up (82%)... ${(quote?.price || 0 * 0.99).toFixed(0)}
-                  </div>
-                  <div className="text-[10px] text-rose-400 bg-rose-500/10 px-1.5 py-0.5 rounded">
-                    Overbought Zone (86%)... ${(quote?.price || 0 * 0.98).toFixed(0)}
-                  </div>
+                  {keyLevels.slice(0, 2).map((level, i) => (
+                    <div 
+                      key={i}
+                      className={cn(
+                        "text-[10px] px-1.5 py-0.5 rounded",
+                        level.type === 'resistance' 
+                          ? "text-rose-400 bg-rose-500/10" 
+                          : "text-emerald-400 bg-emerald-500/10"
+                      )}
+                    >
+                      {level.label || level.type} ({level.winRate}%)... ${level.price.toFixed(0)}
+                    </div>
+                  ))}
                 </div>
               )}
             </div>
             
             {/* Key Levels Footer */}
-            {showLevels && (
+            {showLevels && keyLevels.length > 0 && (
               <div className="mt-3 pt-3 border-t border-border">
                 <div className="flex items-center gap-2 mb-2">
                   <BarChart3 className="h-4 w-4 text-muted-foreground" />
@@ -243,13 +397,20 @@ export function ALAOverviewTab({
       </div>
 
       {/* Quick Historical Insights */}
-      <QuickHistoricalInsights ticker={ticker} />
+      <QuickHistoricalInsights 
+        ticker={ticker} 
+        streakData={streakData}
+        activePatterns={activePatterns}
+        isLoading={snapshotLoading}
+      />
 
       {/* Basic Statistics */}
       <BasicStatistics 
         ticker={ticker} 
+        stats={basicStats}
         timeRange={statsTimeRange}
         onTimeRangeChange={setStatsTimeRange}
+        isLoading={snapshotLoading}
       />
     </div>
   );

@@ -20,6 +20,8 @@ const AUTO_STUDIES = [
   'daily_close_gt_prior',
   'volatility_analysis',
   'bollinger_analysis',
+  'extreme_days',
+  'year_range',
 ];
 
 interface PriceBar {
@@ -179,6 +181,8 @@ function runStudyInternal(studyId: string, bars: PriceBar[]): any {
     case 'daily_close_gt_prior': return studyCloseVsPrior(bars);
     case 'volatility_analysis': return studyVolatility(bars);
     case 'bollinger_analysis': return studyBollinger(bars);
+    case 'extreme_days': return studyExtremeDays(bars);
+    case 'year_range': return studyYearRange(bars);
     default: return { error: 'Unknown study' };
   }
 }
@@ -540,4 +544,80 @@ function calculateSMA(bars: PriceBar[], period: number): number {
   if (bars.length < period) return bars[bars.length - 1].close;
   const slice = bars.slice(-period);
   return slice.reduce((sum, bar) => sum + bar.close, 0) / period;
+}
+
+function studyExtremeDays(bars: PriceBar[]): any {
+  if (bars.length < 10) return { error: 'Insufficient data' };
+  
+  const dailyChanges: { date: string; change: number; changePercent: number }[] = [];
+  let upDays = 0;
+  let downDays = 0;
+  let flatDays = 0;
+  
+  for (let i = 1; i < bars.length; i++) {
+    const change = bars[i].close - bars[i - 1].close;
+    const changePercent = (change / bars[i - 1].close) * 100;
+    dailyChanges.push({ date: bars[i].date, change, changePercent });
+    
+    if (changePercent > 0.05) {
+      upDays++;
+    } else if (changePercent < -0.05) {
+      downDays++;
+    } else {
+      flatDays++;
+    }
+  }
+  
+  // Sort by change percent to find extremes
+  const sorted = [...dailyChanges].sort((a, b) => b.changePercent - a.changePercent);
+  
+  const topBest = sorted.slice(0, 5).map(d => ({ date: d.date, change: Math.round(d.changePercent * 100) / 100 }));
+  const topWorst = sorted.slice(-5).reverse().map(d => ({ date: d.date, change: Math.round(d.changePercent * 100) / 100 }));
+  
+  const avgDailyMovePercent = dailyChanges.reduce((sum, d) => sum + Math.abs(d.changePercent), 0) / dailyChanges.length;
+  const currentPrice = bars[bars.length - 1].close;
+  const avgDailyMove = currentPrice * (avgDailyMovePercent / 100);
+  
+  return {
+    bestDay: topBest[0] || { date: 'N/A', change: 0 },
+    worstDay: topWorst[0] || { date: 'N/A', change: 0 },
+    topBest,
+    topWorst,
+    avgDailyMove: Math.round(avgDailyMove * 100) / 100,
+    avgDailyMovePercent: Math.round(avgDailyMovePercent * 100) / 100,
+    upDays,
+    downDays,
+    flatDays,
+    totalDays: dailyChanges.length
+  };
+}
+
+function studyYearRange(bars: PriceBar[]): any {
+  // Get last 252 trading days (approximately 1 year)
+  const yearBars = bars.slice(-252);
+  
+  if (yearBars.length < 20) return { error: 'Insufficient data for year range' };
+  
+  let week52High = -Infinity;
+  let week52Low = Infinity;
+  
+  for (const bar of yearBars) {
+    if (bar.high > week52High) week52High = bar.high;
+    if (bar.low < week52Low) week52Low = bar.low;
+  }
+  
+  const currentPrice = bars[bars.length - 1].close;
+  const range = week52High - week52Low;
+  const currentPosition = range > 0 ? ((currentPrice - week52Low) / range) * 100 : 50;
+  
+  const distanceFromHigh = ((week52High - currentPrice) / currentPrice) * 100;
+  const distanceFromLow = ((currentPrice - week52Low) / currentPrice) * 100;
+  
+  return {
+    week52High: Math.round(week52High * 100) / 100,
+    week52Low: Math.round(week52Low * 100) / 100,
+    currentPosition: Math.round(currentPosition),
+    distanceFromHigh: Math.round(distanceFromHigh * 100) / 100,
+    distanceFromLow: Math.round(distanceFromLow * 100) / 100
+  };
 }
