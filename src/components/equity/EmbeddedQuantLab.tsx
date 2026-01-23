@@ -27,7 +27,6 @@ import { MobileAuthSheet } from '@/components/auth/MobileAuthSheet';
 import { StudyRunningOverlay } from '@/components/quant-lab/StudyRunningOverlay';
 import { FundamentalStudiesContent } from '@/components/quant-lab/FundamentalStudiesContent';
 import { CollapsibleStudyCategories } from '@/components/quant-lab/CollapsibleStudyCategories';
-import { StudySelectionView } from '@/components/equity/StudySelectionView';
 import { 
   STUDY_DEFINITIONS, 
   STUDY_CATEGORIES, 
@@ -281,9 +280,6 @@ function EmbeddedQuantLabContent({
   // Get study definition
   const getStudy = (id: string) => STUDY_DEFINITIONS.find(s => s.id === id);
 
-  // Check if we're in "starting view" mode - no studies active
-  const isStartingView = selectedStudies.length === 0 && Object.keys(results).length === 0 && !showFundamentalStudies && !isRunning;
-
   return (
     <div className="min-h-[600px] flex flex-col bg-background rounded-lg border">
       {/* Study Running Overlay */}
@@ -294,132 +290,126 @@ function EmbeddedQuantLabContent({
         isGuest={!user}
       />
       
-      {/* Header - Only show when not in starting view */}
-      {!isStartingView && (
-        <div className="shrink-0 border-b bg-card/50 backdrop-blur-sm rounded-t-lg">
-          <div className="flex flex-col md:flex-row md:items-center gap-3 px-3 md:px-4 py-3">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 shadow-lg shrink-0">
-                <FlaskConical className="h-4 w-4 text-white" />
-              </div>
-              <div className="hidden md:block">
-                <h2 className="text-base font-bold">Quant Lab</h2>
-                <p className="text-xs text-muted-foreground">{companyName}</p>
-              </div>
-              <div className="md:hidden">
-                <h2 className="text-sm font-bold">Quant Lab</h2>
-              </div>
-              
-              {/* Mobile toggle */}
-              <Button
-                variant={showStudyPanel ? "default" : "outline"}
-                size="sm"
-                className="md:hidden h-9 gap-2 px-3 ml-auto"
-                onClick={() => setShowStudyPanel(!showStudyPanel)}
-              >
-                <Layers className="h-4 w-4" />
-                Studies
-              </Button>
+      {/* Header */}
+      <div className="shrink-0 border-b bg-card/50 backdrop-blur-sm rounded-t-lg">
+        <div className="flex flex-col md:flex-row md:items-center gap-3 px-3 md:px-4 py-3">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 shadow-lg shrink-0">
+              <FlaskConical className="h-4 w-4 text-white" />
+            </div>
+            <div className="hidden md:block">
+              <h2 className="text-base font-bold">Quant Lab</h2>
+              <p className="text-xs text-muted-foreground">{companyName}</p>
+            </div>
+            <div className="md:hidden">
+              <h2 className="text-sm font-bold">Quant Lab</h2>
             </div>
             
-            {/* Ticker Display (locked to company) */}
-            <Badge variant="outline" className="h-9 px-4 font-mono font-bold text-base border-primary/50 bg-primary/5">
-              {selectedTicker}
-            </Badge>
-            
-            {/* Saved Studies */}
+            {/* Mobile toggle */}
             <Button
-              variant="outline"
+              variant={showStudyPanel ? "default" : "outline"}
               size="sm"
-              onClick={() => setShowSavedStudies(true)}
-              className="hidden md:flex h-9 gap-2 px-3 border-amber-500/50 text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/20"
+              className="md:hidden h-9 gap-2 px-3 ml-auto"
+              onClick={() => setShowStudyPanel(!showStudyPanel)}
             >
-              <Bookmark className="h-4 w-4" />
-              Saved
+              <Layers className="h-4 w-4" />
+              Studies
             </Button>
           </div>
+          
+          {/* Ticker Display (locked to company) */}
+          <Badge variant="outline" className="h-9 px-4 font-mono font-bold text-base border-primary/50 bg-primary/5">
+            {selectedTicker}
+          </Badge>
+          
+          {/* Saved Studies */}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowSavedStudies(true)}
+            className="hidden md:flex h-9 gap-2 px-3 border-amber-500/50 text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/20"
+          >
+            <Bookmark className="h-4 w-4" />
+            Saved
+          </Button>
         </div>
-      )}
+      </div>
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col md:flex-row overflow-hidden min-h-0">
         
-        {/* Desktop Sidebar - Only show when not in starting view */}
-        {!isStartingView && (
-          <div className="hidden md:flex md:w-72 lg:w-80 shrink-0 md:border-r bg-card flex-col h-full overflow-hidden">
-            <div className="px-3 py-2 border-b bg-muted/30 shrink-0">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold">Select Studies</span>
-                {selectedStudies.length > 0 && (
-                  <Badge variant="default" className="text-[10px] px-2 py-0.5">
-                    {selectedStudies.length}
-                  </Badge>
-                )}
-              </div>
-            </div>
-            
-            <div ref={leftPanelScrollRef} className="flex-1 overflow-y-auto min-h-0">
-              <CollapsibleStudyCategories
-                categories={STUDY_CATEGORIES}
-                studies={STUDY_DEFINITIONS}
-                selectedStudies={selectedStudies}
-                onAddStudy={addStudy}
-                onRemoveStudy={removeStudy}
-                showFundamentalStudies={showFundamentalStudies}
-                onShowFundamentalStudies={() => {
-                  setShowFundamentalStudies(true);
-                  setSelectedStudies([]);
-                  setResults({});
-                }}
-              />
+        {/* Desktop Sidebar */}
+        <div className="hidden md:flex md:w-72 lg:w-80 shrink-0 md:border-r bg-card flex-col h-full overflow-hidden">
+          <div className="px-3 py-2 border-b bg-muted/30 shrink-0">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold">Select Studies</span>
+              {selectedStudies.length > 0 && (
+                <Badge variant="default" className="text-[10px] px-2 py-0.5">
+                  {selectedStudies.length}
+                </Badge>
+              )}
             </div>
           </div>
-        )}
+          
+          <div ref={leftPanelScrollRef} className="flex-1 overflow-y-auto min-h-0">
+            <CollapsibleStudyCategories
+              categories={STUDY_CATEGORIES}
+              studies={STUDY_DEFINITIONS}
+              selectedStudies={selectedStudies}
+              onAddStudy={addStudy}
+              onRemoveStudy={removeStudy}
+              showFundamentalStudies={showFundamentalStudies}
+              onShowFundamentalStudies={() => {
+                setShowFundamentalStudies(true);
+                setSelectedStudies([]);
+                setResults({});
+              }}
+            />
+          </div>
+        </div>
 
-        {/* Mobile Study Panel - Only show when not in starting view */}
-        {!isStartingView && (
-          <AnimatePresence>
-            {showStudyPanel && (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="md:hidden fixed inset-0 bg-background z-50 flex flex-col"
-              >
-                <div className="flex items-center justify-between px-4 py-3 border-b bg-card">
-                  <span className="text-base font-bold">Select Study</span>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-9 w-9 p-0"
-                    onClick={() => setShowStudyPanel(false)}
-                  >
-                    <X className="h-5 w-5" />
-                  </Button>
-                </div>
-                
-                <div className="flex-1 overflow-y-auto">
-                  <CollapsibleStudyCategories
-                    categories={STUDY_CATEGORIES}
-                    studies={STUDY_DEFINITIONS}
-                    selectedStudies={selectedStudies}
-                    onAddStudy={addStudy}
-                    onRemoveStudy={removeStudy}
-                    showFundamentalStudies={showFundamentalStudies}
-                    onShowFundamentalStudies={() => {
-                      setShowFundamentalStudies(true);
-                      setSelectedStudies([]);
-                      setResults({});
-                      setShowStudyPanel(false);
-                    }}
-                    closePanelOnSelect
-                    onClosePanel={() => setShowStudyPanel(false)}
-                  />
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        )}
+        {/* Mobile Study Panel */}
+        <AnimatePresence>
+          {showStudyPanel && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="md:hidden fixed inset-0 bg-background z-50 flex flex-col"
+            >
+              <div className="flex items-center justify-between px-4 py-3 border-b bg-card">
+                <span className="text-base font-bold">Select Study</span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-9 w-9 p-0"
+                  onClick={() => setShowStudyPanel(false)}
+                >
+                  <X className="h-5 w-5" />
+                </Button>
+              </div>
+              
+              <div className="flex-1 overflow-y-auto">
+                <CollapsibleStudyCategories
+                  categories={STUDY_CATEGORIES}
+                  studies={STUDY_DEFINITIONS}
+                  selectedStudies={selectedStudies}
+                  onAddStudy={addStudy}
+                  onRemoveStudy={removeStudy}
+                  showFundamentalStudies={showFundamentalStudies}
+                  onShowFundamentalStudies={() => {
+                    setShowFundamentalStudies(true);
+                    setSelectedStudies([]);
+                    setResults({});
+                    setShowStudyPanel(false);
+                  }}
+                  closePanelOnSelect
+                  onClosePanel={() => setShowStudyPanel(false)}
+                />
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Results Panel */}
         <div className="flex-1 flex flex-col overflow-hidden min-h-0">
@@ -552,15 +542,27 @@ function EmbeddedQuantLabContent({
                 })}
               </div>
             ) : (
-              <StudySelectionView
-                ticker={selectedTicker}
-                period={period}
-                onPeriodChange={setPeriod}
-                onSelectStudy={(studyId) => addStudy(studyId)}
-                onRunStudy={(studyId) => handleRunStudy(studyId, selectedTicker)}
-                isRunning={isRunning}
-                onShowFundamentals={() => setShowFundamentalStudies(true)}
-              />
+              <div className="flex flex-col items-center justify-center h-full text-center px-4 py-8">
+                <div className="hidden md:flex items-center gap-3 mb-4 text-primary animate-pulse">
+                  <ChevronLeft className="h-6 w-6" />
+                  <span className="text-base font-semibold">Select a Quant Study</span>
+                </div>
+                <div className="p-6 rounded-2xl bg-gradient-to-br from-primary/10 to-primary/5 border-2 border-primary/30 border-dashed mb-4">
+                  <FlaskConical className="h-12 w-12 text-primary/60" />
+                </div>
+                <p className="text-lg font-bold mb-2 text-primary">No Study Selected</p>
+                <p className="text-sm text-muted-foreground max-w-xs mb-4">
+                  Choose a study from the panel to analyze <span className="font-semibold text-foreground">{ticker}</span>
+                </p>
+                <Button
+                  variant="default"
+                  className="md:hidden h-11 gap-2 text-sm font-semibold"
+                  onClick={() => setShowStudyPanel(true)}
+                >
+                  <Layers className="h-4 w-4" />
+                  Browse Studies
+                </Button>
+              </div>
             )}
           </div>
         </div>
