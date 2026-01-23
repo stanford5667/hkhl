@@ -8,13 +8,14 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ArrowLeft, LineChart, TrendingUp, TrendingDown, RefreshCw, Plus, Building2, Globe, BarChart3, LayoutDashboard, FlaskConical, FileText, MessageCircle, Newspaper } from 'lucide-react';
+import { ArrowLeft, LineChart, TrendingUp, TrendingDown, RefreshCw, Plus, Building2, Globe, BarChart3, LayoutDashboard, FlaskConical, FileText, MessageCircle, Newspaper, Beaker } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { CandlestickChart } from '@/components/charts/CandlestickChart';
 import { EmbeddedQuantLab } from '@/components/equity/EmbeddedQuantLab';
 import { AssetBacktestPanel } from '@/components/equity/AssetBacktestPanel';
 import { SECFilingsPanel } from '@/components/research/SECFilingsPanel';
 import { AnalystSocialPanel } from '@/components/research/AnalystSocialPanel';
+import { IntegratedResearchView } from '@/components/research';
 import { useCompanyNews } from '@/hooks/useCompanyResearch';
 
 interface TickerDetails {
@@ -424,6 +425,11 @@ export default function PublicStockView() {
               <span className="hidden sm:inline">Analyst & Social</span>
               <span className="sm:hidden">Social</span>
             </TabsTrigger>
+            <TabsTrigger value="research-v2" className="gap-1.5 text-sm md:text-base px-3 md:px-5 py-2.5 md:py-3 whitespace-nowrap">
+              <Beaker className="h-4 w-4 md:h-5 md:w-5" />
+              <span className="hidden sm:inline">Research v2</span>
+              <span className="sm:hidden">v2</span>
+            </TabsTrigger>
           </TabsList>
         </div>
 
@@ -579,6 +585,11 @@ export default function PublicStockView() {
         {/* Analyst & Social Tab */}
         <TabsContent value="analyst-social">
           <AnalystSocialPanel ticker={ticker} />
+        </TabsContent>
+
+        {/* Research v2 Tab - Integrated ALA-style view */}
+        <TabsContent value="research-v2" className="min-h-[600px]">
+          <IntegratedResearchView ticker={ticker} currentPrice={quote?.price || 0} />
         </TabsContent>
       </Tabs>
 
