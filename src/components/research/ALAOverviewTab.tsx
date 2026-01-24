@@ -9,7 +9,7 @@ import { cn } from '@/lib/utils';
 import { QuickHistoricalInsights, StreakData, HistoricalPattern } from './QuickHistoricalInsights';
 import { EarningsImpactSection } from './EarningsImpactSection';
 import { AutoStudiesSection } from './AutoStudiesSection';
-import { BasicStatsData } from './BasicStatistics';
+import { BasicStatsData, BasicStatistics } from './BasicStatistics';
 import { CandlestickChart } from '@/components/charts/CandlestickChart';
 import { useTickerSnapshot } from '@/hooks/useTickerSnapshot';
 import { useTickerFundamentals } from '@/hooks/useTickerFundamentals';
@@ -502,6 +502,13 @@ export function ALAOverviewTab({
         />
         <EarningsImpactSection ticker={ticker} nextEarnings={nextEarnings} />
       </div>
+
+      {/* Basic Statistics - Full explanatory version */}
+      <BasicStatistics 
+        ticker={ticker} 
+        stats={basicStats}
+        isLoading={snapshotLoading}
+      />
 
       {/* Auto Studies Section */}
       <AutoStudiesSection ticker={ticker} />
