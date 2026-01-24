@@ -400,16 +400,16 @@ export function ALAOverviewTab({
         </div>
       </div>
 
-      {/* Performance Metrics Section */}
-      <PerformanceMetricsSection ticker={ticker} />
-
-      {/* Quick Historical Insights */}
-      <QuickHistoricalInsights 
-        ticker={ticker} 
-        streakData={streakData}
-        activePatterns={activePatterns}
-        isLoading={snapshotLoading}
-      />
+      {/* Performance Metrics + Quick Insights Row */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-2">
+        <PerformanceMetricsSection ticker={ticker} />
+        <QuickHistoricalInsights 
+          ticker={ticker} 
+          streakData={streakData}
+          activePatterns={activePatterns}
+          isLoading={snapshotLoading}
+        />
+      </div>
     </div>
   );
 }
