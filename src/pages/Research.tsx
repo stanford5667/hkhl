@@ -12,6 +12,7 @@ import { TickerCarousel } from '@/components/research/TickerCarousel';
 import { CategoryCard } from '@/components/research/CategoryCard';
 import { MarketOverviewDashboard } from '@/components/research/MarketOverviewDashboard';
 import { MarketIntelligenceSection } from '@/components/research/MarketIntelligenceSection';
+import { DiscoveryFeed } from '@/components/research/DiscoveryFeed';
 import { cn } from '@/lib/utils';
 // Market caps in billions (approximate for display)
 const POPULAR_TICKERS = [
@@ -240,6 +241,9 @@ export default function ResearchPage() {
 
         {/* Market Intelligence Section - Trending/Most Active, Screener, News */}
         <MarketIntelligenceSection />
+
+        {/* Discovery Feed - Mobile-First Social Style News */}
+        <DiscoveryFeed />
 
         {/* Categories Grid */}
         <section className="space-y-4">
