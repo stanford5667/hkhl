@@ -297,64 +297,69 @@ export function ALAOverviewTab({
             </span>
           </div>
 
-          {/* Trading Stats - connected to chart */}
+          {/* Performance Master Card - Trading Stats + Metrics */}
           {basicStats && (
-            <div className="px-3 pb-3 pt-1 border-t border-border">
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-1 text-[9px] text-muted-foreground">
-                  <span className="w-1.5 h-1.5 rounded-full bg-primary"></span>
-                  Past {basicStats.totalDays} trading days
-                  {snapshotFetching && <RefreshCw className="h-2.5 w-2.5 animate-spin ml-1" />}
-                </div>
-                <Select 
-                  value={lookbackDays?.toString() || 'all'} 
-                  onValueChange={(val) => setLookbackDays(val === 'all' ? undefined : parseInt(val))}
-                >
-                  <SelectTrigger className="h-5 w-[80px] text-[8px] bg-secondary/50 border-border px-1.5">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="bg-card border-border z-50">
-                    {LOOKBACK_OPTIONS.map(opt => (
-                      <SelectItem key={opt.value} value={opt.value} className="text-[10px]">
-                        {opt.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="bg-secondary/30 border border-border rounded p-2">
-                <div className="grid grid-cols-3 gap-x-4 gap-y-1 text-center">
-                  <div>
-                    <span className="text-[7px] text-muted-foreground uppercase">Up Days</span>
-                    <p className="text-xs font-bold text-primary">{basicStats.upDays}</p>
+            <div className="px-3 pb-3 pt-2 border-t border-border">
+              <Card className="bg-secondary/20 border-border">
+                <CardContent className="p-2">
+                  {/* Header */}
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-1 text-[9px] font-medium">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                      Past {basicStats.totalDays} trading days
+                      {snapshotFetching && <RefreshCw className="h-2.5 w-2.5 animate-spin ml-1" />}
+                    </div>
+                    <Select 
+                      value={lookbackDays?.toString() || 'all'} 
+                      onValueChange={(val) => setLookbackDays(val === 'all' ? undefined : parseInt(val))}
+                    >
+                      <SelectTrigger className="h-5 w-[80px] text-[8px] bg-secondary/50 border-border px-1.5">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="bg-card border-border z-50">
+                        {LOOKBACK_OPTIONS.map(opt => (
+                          <SelectItem key={opt.value} value={opt.value} className="text-[10px]">
+                            {opt.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
-                  <div>
-                    <span className="text-[7px] text-muted-foreground uppercase">Down Days</span>
-                    <p className="text-xs font-bold">{basicStats.downDays}</p>
+                  
+                  {/* Trading Day Stats */}
+                  <div className="bg-background/50 border border-border rounded p-2 mb-2">
+                    <div className="grid grid-cols-3 gap-x-4 gap-y-1 text-center">
+                      <div>
+                        <span className="text-[7px] text-muted-foreground uppercase">Up Days</span>
+                        <p className="text-xs font-bold text-emerald-500">{basicStats.upDays}</p>
+                      </div>
+                      <div>
+                        <span className="text-[7px] text-muted-foreground uppercase">Down Days</span>
+                        <p className="text-xs font-bold text-destructive">{basicStats.downDays}</p>
+                      </div>
+                      <div>
+                        <span className="text-[7px] text-muted-foreground uppercase">Flat Days</span>
+                        <p className="text-xs font-bold">{basicStats.flatDays}</p>
+                      </div>
+                      <div>
+                        <span className="text-[7px] text-muted-foreground uppercase">Avg Move</span>
+                        <p className="text-xs font-bold">{basicStats.avgDailyMovePercent.toFixed(2)}%</p>
+                      </div>
+                      <div>
+                        <span className="text-[7px] text-muted-foreground uppercase">Best Day</span>
+                        <p className="text-xs font-bold text-emerald-500">+{basicStats.bestDay.change.toFixed(1)}%</p>
+                      </div>
+                      <div>
+                        <span className="text-[7px] text-muted-foreground uppercase">Worst Day</span>
+                        <p className="text-xs font-bold text-destructive">{basicStats.worstDay.change.toFixed(1)}%</p>
+                      </div>
+                    </div>
                   </div>
-                  <div>
-                    <span className="text-[7px] text-muted-foreground uppercase">Flat Days</span>
-                    <p className="text-xs font-bold">{basicStats.flatDays}</p>
-                  </div>
-                  <div>
-                    <span className="text-[7px] text-muted-foreground uppercase">Avg Move</span>
-                    <p className="text-xs font-bold">{basicStats.avgDailyMovePercent.toFixed(2)}%</p>
-                  </div>
-                  <div>
-                    <span className="text-[7px] text-muted-foreground uppercase">Best Day</span>
-                    <p className="text-xs font-bold text-primary">+{basicStats.bestDay.change.toFixed(1)}%</p>
-                  </div>
-                  <div>
-                    <span className="text-[7px] text-muted-foreground uppercase">Worst Day</span>
-                    <p className="text-xs font-bold text-destructive">{basicStats.worstDay.change.toFixed(1)}%</p>
-                  </div>
-                </div>
-              </div>
-              
-              {/* Performance Metrics inline */}
-              <div className="mt-2">
-                <PerformanceMetricsSection ticker={ticker} compact />
-              </div>
+                  
+                  {/* Performance Metrics */}
+                  <PerformanceMetricsSection ticker={ticker} compact />
+                </CardContent>
+              </Card>
             </div>
           )}
         </Card>
