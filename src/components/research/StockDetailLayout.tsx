@@ -67,7 +67,7 @@ export function StockDetailLayout({
   };
 
   return (
-    <div className="flex h-[calc(100vh-56px)] md:h-[calc(100vh-64px)]">
+    <div className="flex h-[calc(100vh-56px-64px)] md:h-[calc(100vh-64px)]">
       {/* Left Sidebar - Icon tabs, sticky */}
       <div className="hidden md:flex flex-col w-16 lg:w-20 border-r border-border bg-card/50 shrink-0">
         {/* Back button */}
