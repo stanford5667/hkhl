@@ -16,6 +16,7 @@ import { AnalystSocialPanel } from '@/components/research/AnalystSocialPanel';
 import { IntegratedResearchView, ALAOverviewTab } from '@/components/research';
 import { StockDetailLayout, DEFAULT_STOCK_TABS } from '@/components/research/StockDetailLayout';
 import { useCompanyNews } from '@/hooks/useCompanyResearch';
+import { KeyCatalystsSection } from '@/components/research/KeyCatalystsSection';
 
 interface TickerDetails {
   ticker: string;
@@ -427,7 +428,8 @@ export default function PublicStockView() {
       
       case 'news':
         return (
-          <div className="p-3 md:p-4">
+          <div className="p-3 md:p-4 space-y-4">
+            <KeyCatalystsSection ticker={ticker} />
             <StockNewsSection ticker={ticker} companyName={details?.name || ticker} />
           </div>
         );
