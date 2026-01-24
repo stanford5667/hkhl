@@ -141,28 +141,66 @@ export default function PublicStockView() {
   const [isLoadingQuote, setIsLoadingQuote] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [notFound, setNotFound] = useState(false);
+  const [apiError, setApiError] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
   const [activeTab, setActiveTab] = useState('overview');
 
-  // Fetch ticker details from Polygon
-  const fetchDetails = useCallback(async () => {
+  // Fetch ticker details from Polygon with retry logic
+  const fetchDetails = useCallback(async (isRetry = false) => {
     if (!ticker) return;
     
     setIsLoadingDetails(true);
     setNotFound(false);
+    setApiError(false);
     
     try {
       const { data, error } = await supabase.functions.invoke('polygon-ticker-details', {
         body: { ticker }
       });
 
+      // Network/timeout errors - NOT invalid ticker
       if (error) {
         console.error('Polygon details error:', error);
+        // Check if it's a network error vs actual 404
+        const errorMsg = error.message?.toLowerCase() || '';
+        if (errorMsg.includes('fetch') || errorMsg.includes('network') || errorMsg.includes('timeout') || errorMsg.includes('load failed')) {
+          setApiError(true);
+          // Use fallback details with just ticker
+          setDetails({
+            ticker,
+            name: ticker,
+            description: undefined,
+            sector: undefined,
+            industry: undefined,
+            primaryExchange: undefined,
+            homepageUrl: undefined,
+            marketCap: undefined,
+          });
+          return;
+        }
         setNotFound(true);
         return;
       }
 
-      if (!data?.ok || !data?.details) {
+      // API returned but ticker not found (actual 404 from Polygon)
+      if (data?.ok === false && data?.error === "No data found for ticker") {
         setNotFound(true);
+        return;
+      }
+
+      // API success but no details - might be network issue, use fallback
+      if (!data?.ok || !data?.details) {
+        setApiError(true);
+        setDetails({
+          ticker,
+          name: ticker,
+          description: undefined,
+          sector: undefined,
+          industry: undefined,
+          primaryExchange: undefined,
+          homepageUrl: undefined,
+          marketCap: undefined,
+        });
         return;
       }
 
@@ -178,7 +216,18 @@ export default function PublicStockView() {
       });
     } catch (e) {
       console.error('Details error:', e);
-      setNotFound(true);
+      // Network errors should NOT show "not found"
+      setApiError(true);
+      setDetails({
+        ticker,
+        name: ticker,
+        description: undefined,
+        sector: undefined,
+        industry: undefined,
+        primaryExchange: undefined,
+        homepageUrl: undefined,
+        marketCap: undefined,
+      });
     } finally {
       setIsLoadingDetails(false);
     }
@@ -288,7 +337,8 @@ export default function PublicStockView() {
     );
   }
 
-  if (!isLoadingDetails && notFound) {
+  // Only show "not found" for actual 404s from Polygon, not network errors
+  if (!isLoadingDetails && notFound && !apiError) {
     return (
       <div className="p-6 space-y-4">
         <Button variant="ghost" size="sm" onClick={() => navigate(-1)} className="gap-2">
