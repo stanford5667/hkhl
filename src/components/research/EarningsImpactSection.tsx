@@ -3,6 +3,19 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { TrendingUp, TrendingDown, Calendar, Target, BarChart3 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  LineChart,
+  Line,
+  Legend,
+  ReferenceLine,
+} from 'recharts';
 
 interface EarningsEvent {
   date: string;
@@ -94,7 +107,37 @@ export function EarningsImpactSection({ ticker, nextEarnings }: EarningsImpactSe
     };
   }, [earningsHistory]);
 
-  // Show all earnings history instead of just recent 3
+  // Chart data for surprise vs return
+  const surpriseReturnData = useMemo(() => {
+    return [...earningsHistory].reverse().map(e => ({
+      quarter: e.quarter.replace('20', "'"),
+      surprise: parseFloat(e.epsSurprise.toFixed(1)),
+      return: e.priceReturn5Day,
+    }));
+  }, [earningsHistory]);
+
+  // Chart data for beat vs miss comparison
+  const beatMissData = useMemo(() => {
+    const beats = earningsHistory.filter(e => e.beatOrMiss === 'beat');
+    const misses = earningsHistory.filter(e => e.beatOrMiss === 'miss');
+    
+    return [
+      {
+        name: 'On Beats',
+        return: beats.length > 0 
+          ? parseFloat((beats.reduce((sum, e) => sum + e.priceReturn5Day, 0) / beats.length).toFixed(1))
+          : 0,
+        fill: 'hsl(var(--primary))',
+      },
+      {
+        name: 'On Misses',
+        return: misses.length > 0
+          ? parseFloat((misses.reduce((sum, e) => sum + e.priceReturn5Day, 0) / misses.length).toFixed(1))
+          : 0,
+        fill: 'hsl(var(--destructive))',
+      },
+    ];
+  }, [earningsHistory]);
 
   return (
     <Card className="bg-card border-border">
@@ -143,35 +186,98 @@ export function EarningsImpactSection({ ticker, nextEarnings }: EarningsImpactSe
           </div>
         </div>
 
-        {/* Beat vs Miss Performance Comparison */}
-        <div className="py-1.5 border-b border-border">
-          <p className="text-[8px] text-muted-foreground uppercase mb-1.5">Beat vs Miss Performance</p>
-          <div className="grid grid-cols-2 gap-2">
-            <div className="bg-primary/10 rounded p-2 text-center">
-              <div className="flex items-center justify-center gap-1 mb-1">
-                <TrendingUp className="h-3 w-3 text-primary" />
-                <span className="text-[9px] font-medium text-primary">On Beats</span>
-              </div>
-              <p className={cn(
-                "text-sm font-bold",
-                parseFloat(stats.avgReturnOnBeat) >= 0 ? "text-primary" : "text-destructive"
-              )}>
-                {parseFloat(stats.avgReturnOnBeat) >= 0 ? '+' : ''}{stats.avgReturnOnBeat}%
-              </p>
-              <p className="text-[8px] text-muted-foreground">Avg 5-Day Return</p>
+        {/* Charts Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 py-1.5 border-b border-border">
+          {/* Surprise vs Return Chart */}
+          <div>
+            <p className="text-[8px] text-muted-foreground uppercase mb-1">Surprise vs 5-Day Return</p>
+            <div className="h-32">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={surpriseReturnData} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.5} />
+                  <XAxis 
+                    dataKey="quarter" 
+                    tick={{ fontSize: 8, fill: 'hsl(var(--muted-foreground))' }}
+                    axisLine={{ stroke: 'hsl(var(--border))' }}
+                    tickLine={false}
+                  />
+                  <YAxis 
+                    tick={{ fontSize: 8, fill: 'hsl(var(--muted-foreground))' }}
+                    axisLine={false}
+                    tickLine={false}
+                    tickFormatter={(v) => `${v}%`}
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: 'hsl(var(--card))',
+                      border: '1px solid hsl(var(--border))',
+                      borderRadius: '6px',
+                      fontSize: '10px',
+                    }}
+                    formatter={(value: number) => [`${value}%`]}
+                  />
+                  <ReferenceLine y={0} stroke="hsl(var(--muted-foreground))" strokeDasharray="3 3" />
+                  <Line
+                    type="monotone"
+                    dataKey="surprise"
+                    stroke="hsl(var(--primary))"
+                    strokeWidth={2}
+                    dot={{ fill: 'hsl(var(--primary))', r: 3 }}
+                    name="EPS Surprise"
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="return"
+                    stroke="hsl(var(--chart-2))"
+                    strokeWidth={2}
+                    dot={{ fill: 'hsl(var(--chart-2))', r: 3 }}
+                    name="5D Return"
+                  />
+                  <Legend 
+                    wrapperStyle={{ fontSize: '8px' }}
+                    iconSize={8}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
             </div>
-            <div className="bg-destructive/10 rounded p-2 text-center">
-              <div className="flex items-center justify-center gap-1 mb-1">
-                <TrendingDown className="h-3 w-3 text-destructive" />
-                <span className="text-[9px] font-medium text-destructive">On Misses</span>
-              </div>
-              <p className={cn(
-                "text-sm font-bold",
-                parseFloat(stats.avgReturnOnMiss) >= 0 ? "text-primary" : "text-destructive"
-              )}>
-                {parseFloat(stats.avgReturnOnMiss) >= 0 ? '+' : ''}{stats.avgReturnOnMiss}%
-              </p>
-              <p className="text-[8px] text-muted-foreground">Avg 5-Day Return</p>
+          </div>
+
+          {/* Beat vs Miss Bar Chart */}
+          <div>
+            <p className="text-[8px] text-muted-foreground uppercase mb-1">Avg 5-Day Return by Outcome</p>
+            <div className="h-32">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={beatMissData} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.5} />
+                  <XAxis 
+                    dataKey="name" 
+                    tick={{ fontSize: 9, fill: 'hsl(var(--muted-foreground))' }}
+                    axisLine={{ stroke: 'hsl(var(--border))' }}
+                    tickLine={false}
+                  />
+                  <YAxis 
+                    tick={{ fontSize: 8, fill: 'hsl(var(--muted-foreground))' }}
+                    axisLine={false}
+                    tickLine={false}
+                    tickFormatter={(v) => `${v}%`}
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: 'hsl(var(--card))',
+                      border: '1px solid hsl(var(--border))',
+                      borderRadius: '6px',
+                      fontSize: '10px',
+                    }}
+                    formatter={(value: number) => [`${value}%`, 'Avg Return']}
+                  />
+                  <ReferenceLine y={0} stroke="hsl(var(--muted-foreground))" strokeDasharray="3 3" />
+                  <Bar 
+                    dataKey="return" 
+                    radius={[4, 4, 0, 0]}
+                    maxBarSize={60}
+                  />
+                </BarChart>
+              </ResponsiveContainer>
             </div>
           </div>
         </div>
