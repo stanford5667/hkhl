@@ -227,39 +227,37 @@ export default function CompanyDetail() {
   const isPublicEquity = company.asset_class === 'public_equity' && company.ticker_symbol;
 
   // Unified company view for both public and private companies
-  return <div className="p-6 space-y-6 animate-fade-in">
+  return <div className="p-3 md:p-6 space-y-4 md:space-y-6 animate-fade-in">
       {/* Header */}
       <div className="flex items-start justify-between">
-        <div className="flex items-start gap-4">
-          <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
-            <ArrowLeft className="h-5 w-5" />
+        <div className="flex items-start gap-2 md:gap-4">
+          <Button variant="ghost" size="icon" onClick={() => navigate(-1)} className="h-8 w-8 md:h-10 md:w-10">
+            <ArrowLeft className="h-4 w-4 md:h-5 md:w-5" />
           </Button>
           <div>
-            <div className="flex items-center gap-3">
-              {isPublicEquity && <LineChart className="h-6 w-6 text-emerald-400" />}
-              <h1 className="h1 text-xl">{company.name}</h1>
-              {isPublicEquity && company.ticker_symbol && <Badge variant="secondary" className="text-base font-mono">
+            <div className="flex items-center gap-2 md:gap-3 flex-wrap">
+              {isPublicEquity && <LineChart className="h-5 w-5 md:h-6 md:w-6 text-emerald-400" />}
+              <h1 className="text-base md:text-xl font-semibold line-clamp-1">{company.name}</h1>
+              {isPublicEquity && company.ticker_symbol && <Badge variant="secondary" className="text-xs md:text-base font-mono px-1.5 md:px-2">
                   {company.ticker_symbol}
                 </Badge>}
-              {isPublicEquity && company.exchange && <Badge variant="outline">
+              {isPublicEquity && company.exchange && <Badge variant="outline" className="text-[10px] md:text-xs hidden sm:inline-flex">
                   {company.exchange}
                 </Badge>}
               {!isPublicEquity && <CompanyTypeBadge type={company.company_type} />}
-              {!isPublicEquity && company.pipeline_stage && <Badge variant="outline" className="capitalize">
+              {!isPublicEquity && company.pipeline_stage && <Badge variant="outline" className="capitalize text-[10px] md:text-xs">
                   {company.pipeline_stage.replace('-', ' ')}
                 </Badge>}
-              {!isPublicEquity && <ProcessingIndicator companyId={company.id} />}
-              {!isPublicEquity && <AIAnalyzedBadge companyId={company.id} />}
             </div>
-            <div className="flex items-center gap-4 mt-2 text-muted-foreground">
-              {company.industry && <span className="flex items-center gap-1">
-                  <Building2 className="h-4 w-4" />
+            <div className="flex items-center gap-2 md:gap-4 mt-1 md:mt-2 text-xs md:text-sm text-muted-foreground">
+              {company.industry && <span className="flex items-center gap-1 hidden sm:flex">
+                  <Building2 className="h-3 w-3 md:h-4 md:w-4" />
                   {company.industry}
                 </span>}
               {company.website && <a href={company.website} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 hover:text-primary transition-colors">
-                  <Globe className="h-4 w-4" />
-                  {company.website.replace(/^https?:\/\//, '')}
-                  <ExternalLink className="h-3 w-3" />
+                  <Globe className="h-3 w-3 md:h-4 md:w-4" />
+                  <span className="hidden sm:inline">{company.website.replace(/^https?:\/\//, '')}</span>
+                  <ExternalLink className="h-2.5 w-2.5 md:h-3 md:w-3" />
                 </a>}
             </div>
           </div>
@@ -267,77 +265,76 @@ export default function CompanyDetail() {
       </div>
 
       {/* Key Metrics - Different for public vs private companies */}
-      {!isPublicEquity && <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+      {!isPublicEquity && <div className="grid grid-cols-2 md:grid-cols-5 gap-2 md:gap-4">
           <Card className="glass-card">
-            <CardContent className="p-4">
-              <p className="text-xs text-muted-foreground uppercase tracking-wider">Revenue LTM</p>
-              <p className="text-2xl font-bold mt-1">{formatCurrency(company.revenue_ltm)}</p>
+            <CardContent className="p-2.5 md:p-4">
+              <p className="text-[10px] md:text-xs text-muted-foreground uppercase tracking-wider">Revenue</p>
+              <p className="text-lg md:text-2xl font-bold mt-0.5 md:mt-1">{formatCurrency(company.revenue_ltm)}</p>
             </CardContent>
           </Card>
           <Card className="glass-card">
-            <CardContent className="p-4">
-              <p className="text-xs text-muted-foreground uppercase tracking-wider">EBITDA LTM</p>
-              <p className="text-2xl font-bold mt-1">{formatCurrency(company.ebitda_ltm)}</p>
+            <CardContent className="p-2.5 md:p-4">
+              <p className="text-[10px] md:text-xs text-muted-foreground uppercase tracking-wider">EBITDA</p>
+              <p className="text-lg md:text-2xl font-bold mt-0.5 md:mt-1">{formatCurrency(company.ebitda_ltm)}</p>
             </CardContent>
           </Card>
           <Card className="glass-card">
-            <CardContent className="p-4">
-              <p className="text-xs text-muted-foreground uppercase tracking-wider">EV (8x)</p>
-              <p className="text-2xl font-bold mt-1">
+            <CardContent className="p-2.5 md:p-4">
+              <p className="text-[10px] md:text-xs text-muted-foreground uppercase tracking-wider">EV (8x)</p>
+              <p className="text-lg md:text-2xl font-bold mt-0.5 md:mt-1">
                 {company.ebitda_ltm ? formatCurrency(company.ebitda_ltm * 8) : '—'}
               </p>
             </CardContent>
           </Card>
           <Card className="glass-card">
-            <CardContent className="p-4">
-              <p className="text-xs text-muted-foreground uppercase tracking-wider">Health Score</p>
-              <p className={`text-2xl font-bold mt-1 ${getHealthScore() >= 70 ? 'text-emerald-400' : getHealthScore() >= 40 ? 'text-yellow-400' : 'text-rose-400'}`}>
+            <CardContent className="p-2.5 md:p-4">
+              <p className="text-[10px] md:text-xs text-muted-foreground uppercase tracking-wider">Health</p>
+              <p className={`text-lg md:text-2xl font-bold mt-0.5 md:mt-1 ${getHealthScore() >= 70 ? 'text-emerald-400' : getHealthScore() >= 40 ? 'text-yellow-400' : 'text-rose-400'}`}>
                 {getHealthScore()}
               </p>
             </CardContent>
           </Card>
-          <Card className="glass-card">
-            <CardContent className="p-4">
-              <p className="text-xs text-muted-foreground uppercase tracking-wider">Documents</p>
-              <p className="text-2xl font-bold mt-1">{documents.length}</p>
+          <Card className="glass-card col-span-2 md:col-span-1">
+            <CardContent className="p-2.5 md:p-4">
+              <p className="text-[10px] md:text-xs text-muted-foreground uppercase tracking-wider">Docs</p>
+              <p className="text-lg md:text-2xl font-bold mt-0.5 md:mt-1">{documents.length}</p>
             </CardContent>
           </Card>
         </div>}
 
       {/* Tabs */}
-      <Tabs defaultValue="overview" className="space-y-6">
-        <div className="overflow-x-auto -mx-6 px-6 scrollbar-hide">
-          <TabsList className="bg-secondary h-auto min-h-12 w-max min-w-full justify-start gap-1 p-1">
-            <TabsTrigger value="overview" className="gap-1.5 text-sm md:text-base px-3 md:px-5 py-2.5 md:py-3 whitespace-nowrap">
-              <LayoutDashboard className="h-4 w-4 md:h-5 md:w-5" />
+      <Tabs defaultValue="overview" className="space-y-4 md:space-y-6">
+        <div className="overflow-x-auto -mx-3 md:-mx-6 px-3 md:px-6 scrollbar-hide">
+          <TabsList className="bg-secondary h-auto min-h-10 md:min-h-12 w-max min-w-full justify-start gap-0.5 md:gap-1 p-0.5 md:p-1">
+            <TabsTrigger value="overview" className="gap-1 md:gap-1.5 text-xs md:text-base px-2 md:px-5 py-2 md:py-3 whitespace-nowrap">
+              <LayoutDashboard className="h-3.5 w-3.5 md:h-5 md:w-5" />
               Overview
             </TabsTrigger>
-            {isPublicEquity && <TabsTrigger value="quant-lab" className="gap-1.5 text-sm md:text-base px-3 md:px-5 py-2.5 md:py-3 whitespace-nowrap">
-                <FlaskConical className="h-4 w-4 md:h-5 md:w-5" />
-                Quant Lab
+            {isPublicEquity && <TabsTrigger value="quant-lab" className="gap-1 md:gap-1.5 text-xs md:text-base px-2 md:px-5 py-2 md:py-3 whitespace-nowrap">
+                <FlaskConical className="h-3.5 w-3.5 md:h-5 md:w-5" />
+                <span className="hidden sm:inline">Quant Lab</span>
+                <span className="sm:hidden">Quant</span>
               </TabsTrigger>}
-            <TabsTrigger value="notes-tasks" className="gap-1.5 text-sm md:text-base px-3 md:px-5 py-2.5 md:py-3 whitespace-nowrap">
-              <CheckSquare className="h-4 w-4 md:h-5 md:w-5" />
+            <TabsTrigger value="notes-tasks" className="gap-1 md:gap-1.5 text-xs md:text-base px-2 md:px-5 py-2 md:py-3 whitespace-nowrap">
+              <CheckSquare className="h-3.5 w-3.5 md:h-5 md:w-5" />
               <span className="hidden sm:inline">Notes & Tasks</span>
               <span className="sm:hidden">Tasks</span>
             </TabsTrigger>
-            {isPublicEquity && <TabsTrigger value="backtest" className="gap-1.5 text-sm md:text-base px-3 md:px-5 py-2.5 md:py-3 whitespace-nowrap">
-                <BarChart3 className="h-4 w-4 md:h-5 md:w-5" />
+            {isPublicEquity && <TabsTrigger value="backtest" className="gap-1 md:gap-1.5 text-xs md:text-base px-2 md:px-5 py-2 md:py-3 whitespace-nowrap">
+                <BarChart3 className="h-3.5 w-3.5 md:h-5 md:w-5" />
                 Metrics
               </TabsTrigger>}
-            <TabsTrigger value="news" className="gap-1.5 text-sm md:text-base px-3 md:px-5 py-2.5 md:py-3 whitespace-nowrap">
-              <Newspaper className="h-4 w-4 md:h-5 md:w-5" />
-              <span className="hidden sm:inline">{isPublicEquity ? 'News' : 'Industry Intel'}</span>
-              <span className="sm:hidden">{isPublicEquity ? 'News' : 'Intel'}</span>
+            <TabsTrigger value="news" className="gap-1 md:gap-1.5 text-xs md:text-base px-2 md:px-5 py-2 md:py-3 whitespace-nowrap">
+              <Newspaper className="h-3.5 w-3.5 md:h-5 md:w-5" />
+              {isPublicEquity ? 'News' : 'Intel'}
             </TabsTrigger>
-            {isPublicEquity && <TabsTrigger value="sec" className="gap-1.5 text-sm md:text-base px-3 md:px-5 py-2.5 md:py-3 whitespace-nowrap">
-                <FileText className="h-4 w-4 md:h-5 md:w-5" />
-                <span className="hidden sm:inline">SEC Filings</span>
-                <span className="sm:hidden">SEC</span>
+            {isPublicEquity && <TabsTrigger value="sec" className="gap-1 md:gap-1.5 text-xs md:text-base px-2 md:px-5 py-2 md:py-3 whitespace-nowrap">
+                <FileText className="h-3.5 w-3.5 md:h-5 md:w-5" />
+                SEC
               </TabsTrigger>}
-            {isPublicEquity && <TabsTrigger value="analyst-social" className="gap-1.5 text-sm md:text-base px-3 md:px-5 py-2.5 md:py-3 whitespace-nowrap">
-                <MessageCircle className="h-4 w-4 md:h-5 md:w-5" />
-                <span className="hidden sm:inline">Analyst & Social</span>
+            {isPublicEquity && <TabsTrigger value="analyst-social" className="gap-1 md:gap-1.5 text-xs md:text-base px-2 md:px-5 py-2 md:py-3 whitespace-nowrap">
+                <MessageCircle className="h-3.5 w-3.5 md:h-5 md:w-5" />
+                <span className="hidden sm:inline">Analyst</span>
                 <span className="sm:hidden">Social</span>
               </TabsTrigger>}
           </TabsList>
