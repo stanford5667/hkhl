@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
-import { TrendingUp, TrendingDown } from 'lucide-react';
+import { TrendingUp, TrendingDown, Bookmark } from 'lucide-react';
 import {
   Search, 
   LayoutDashboard, 
@@ -28,6 +28,7 @@ export interface StockDetailTab {
 interface StockDetailLayoutProps {
   ticker: string;
   companyName?: string;
+  exchange?: string;
   activeTab: string;
   onTabChange: (tab: string) => void;
   tabs: StockDetailTab[];
@@ -36,11 +37,13 @@ interface StockDetailLayoutProps {
   price?: number;
   change?: number;
   changePercent?: number;
+  onSaveToWatchlist?: () => void;
 }
 
 export function StockDetailLayout({
   ticker,
   companyName,
+  exchange,
   activeTab,
   onTabChange,
   tabs,
@@ -48,7 +51,8 @@ export function StockDetailLayout({
   onBack,
   price,
   change,
-  changePercent
+  changePercent,
+  onSaveToWatchlist
 }: StockDetailLayoutProps) {
   const isPositive = (change || 0) >= 0;
   const navigate = useNavigate();
@@ -163,33 +167,39 @@ export function StockDetailLayout({
               </Button>
             </div>
 
-            {/* Price display with ticker */}
-            <div className="flex items-center gap-3 px-3 py-1.5 bg-secondary/50 rounded-md border border-border shrink-0">
-              <div className="flex items-center gap-2">
-                <span className="font-mono font-bold text-sm md:text-base">{ticker}</span>
-                {companyName && (
-                  <span className="hidden sm:inline text-xs text-muted-foreground truncate max-w-[120px]">
-                    {companyName}
+            {/* Save to Watchlist button */}
+            {onSaveToWatchlist && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={onSaveToWatchlist}
+                className="h-8 md:h-9 gap-1.5 shrink-0"
+              >
+                <Bookmark className="h-4 w-4" />
+                <span className="hidden sm:inline">Save</span>
+              </Button>
+            )}
+
+            {/* Price display with exchange */}
+            {price !== undefined && (
+              <div className="flex items-center gap-2 px-3 py-1.5 bg-secondary/50 rounded-md border border-border shrink-0">
+                {exchange && (
+                  <span className="text-xs text-muted-foreground font-medium">{exchange}</span>
+                )}
+                <span className="font-bold text-sm md:text-lg tabular-nums">${price.toFixed(2)}</span>
+                {change !== undefined && changePercent !== undefined && (
+                  <span className={cn(
+                    "flex items-center gap-0.5 text-xs md:text-sm font-medium",
+                    isPositive ? "text-emerald-400" : "text-rose-400"
+                  )}>
+                    {isPositive ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
+                    <span className="tabular-nums">
+                      {isPositive ? '+' : ''}{change.toFixed(2)} ({isPositive ? '+' : ''}{changePercent.toFixed(2)}%)
+                    </span>
                   </span>
                 )}
               </div>
-              {price !== undefined && (
-                <div className="flex items-center gap-2 border-l border-border pl-3">
-                  <span className="font-bold text-sm md:text-lg tabular-nums">${price.toFixed(2)}</span>
-                  {change !== undefined && changePercent !== undefined && (
-                    <span className={cn(
-                      "flex items-center gap-0.5 text-xs md:text-sm font-medium",
-                      isPositive ? "text-emerald-400" : "text-rose-400"
-                    )}>
-                      {isPositive ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
-                      <span className="tabular-nums">
-                        {isPositive ? '+' : ''}{change.toFixed(2)} ({isPositive ? '+' : ''}{changePercent.toFixed(2)}%)
-                      </span>
-                    </span>
-                  )}
-                </div>
-              )}
-            </div>
+            )}
           </div>
 
           {/* Mobile tab bar */}

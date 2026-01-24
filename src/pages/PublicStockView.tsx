@@ -462,6 +462,7 @@ export default function PublicStockView() {
     <StockDetailLayout
       ticker={ticker}
       companyName={details?.name}
+      exchange={details?.primaryExchange}
       activeTab={activeTab}
       onTabChange={setActiveTab}
       tabs={DEFAULT_STOCK_TABS}
@@ -469,6 +470,7 @@ export default function PublicStockView() {
       price={quote?.price}
       change={quote?.change}
       changePercent={quote?.changePercent}
+      onSaveToWatchlist={handleAddToPortfolio}
     >
       {renderTabContent()}
     </StockDetailLayout>
