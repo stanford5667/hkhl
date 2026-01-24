@@ -1,6 +1,6 @@
 // Manual Portfolio Form - Direct input for experienced investors
 import { useState, useMemo } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -8,7 +8,6 @@ import { Slider } from '@/components/ui/slider';
 import { Label } from '@/components/ui/label';
 import { 
   ArrowLeft, 
-  ArrowRight,
   DollarSign,
   Clock,
   Plus,
@@ -22,6 +21,7 @@ import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
 import { PortfolioAllocation, AssetClass, ASSET_CLASS_ETFS } from '@/types/portfolio';
 import { POLYGON_CONFIG } from '@/config/apiConfig';
+import { TickerInputWithAutocomplete } from './TickerInputWithAutocomplete';
 
 interface ManualPortfolioFormProps {
   onComplete: (data: {
@@ -251,23 +251,21 @@ export function ManualPortfolioForm({ onComplete, onBack }: ManualPortfolioFormP
                     {index + 1}
                   </span>
                   
-                  {/* Ticker Input */}
-                  <Input
+                  {/* Ticker Input with Autocomplete */}
+                  <TickerInputWithAutocomplete
                     value={row.symbol}
-                    onChange={(e) => updateRow(row.id, { symbol: e.target.value })}
+                    onChange={(val) => updateRow(row.id, { symbol: val })}
                     placeholder="TICKER"
-                    className="w-20 h-8 text-xs font-mono uppercase text-center"
-                    maxLength={6}
                   />
                   
-                  {/* Weight Slider */}
-                  <div className="flex-1 px-2">
+                  {/* Weight Slider - smaller */}
+                  <div className="flex-1 min-w-0">
                     <Slider
                       value={[row.weight]}
                       onValueChange={([value]) => updateRow(row.id, { weight: value })}
                       max={100}
                       step={0.5}
-                      className="w-full"
+                      className={cn("w-full h-1", !row.symbol.trim() && "opacity-40")}
                       disabled={!row.symbol.trim()}
                     />
                   </div>
@@ -278,7 +276,7 @@ export function ManualPortfolioForm({ onComplete, onBack }: ManualPortfolioFormP
                       type="number"
                       value={row.weight}
                       onChange={(e) => updateRow(row.id, { weight: parseFloat(e.target.value) || 0 })}
-                      className="w-14 h-8 text-xs text-right"
+                      className="w-12 h-7 text-xs text-right px-1"
                       min={0}
                       max={100}
                       step={0.5}
@@ -291,11 +289,11 @@ export function ManualPortfolioForm({ onComplete, onBack }: ManualPortfolioFormP
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-7 w-7 text-muted-foreground hover:text-destructive flex-shrink-0"
+                    className="h-6 w-6 text-muted-foreground hover:text-destructive flex-shrink-0"
                     onClick={() => removeRow(row.id)}
                     aria-label="Remove row"
                   >
-                    <Trash2 className="h-3.5 w-3.5" />
+                    <Trash2 className="h-3 w-3" />
                   </Button>
                 </div>
               ))}
