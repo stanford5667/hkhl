@@ -7,9 +7,10 @@ interface CategoryCardProps {
   icon: LucideIcon;
   gradient: string;
   onClick: () => void;
+  stockCount?: number;
 }
 
-export function CategoryCard({ title, description, icon: Icon, gradient, onClick }: CategoryCardProps) {
+export function CategoryCard({ title, description, icon: Icon, gradient, onClick, stockCount }: CategoryCardProps) {
   return (
     <button
       onClick={onClick}
@@ -26,16 +27,23 @@ export function CategoryCard({ title, description, icon: Icon, gradient, onClick
         gradient
       )} />
       
-      {/* Icon */}
-      <div className={cn(
-        "w-10 h-10 rounded-lg flex items-center justify-center mb-3",
-        "bg-primary/10 text-primary"
-      )}>
-        <Icon className="h-5 w-5" />
+      {/* Icon + Count Badge */}
+      <div className="flex items-start justify-between">
+        <div className={cn(
+          "w-10 h-10 rounded-lg flex items-center justify-center",
+          "bg-primary/10 text-primary"
+        )}>
+          <Icon className="h-5 w-5" />
+        </div>
+        {stockCount !== undefined && stockCount > 0 && (
+          <span className="text-xs font-medium text-muted-foreground bg-muted/50 px-2 py-0.5 rounded-full">
+            {stockCount.toLocaleString()} stocks
+          </span>
+        )}
       </div>
       
       {/* Content */}
-      <div>
+      <div className="mt-3">
         <h3 className="font-semibold text-foreground mb-1 group-hover:text-primary transition-colors">
           {title}
         </h3>
