@@ -11,6 +11,10 @@ export interface StreakAnalysis {
 export interface StreaksData {
   currentStreak: number;
   analysis: StreakAnalysis[];
+  streakStartDate?: string;
+  actualTotalChange?: number;
+  avgRecoveryDays?: number | null;
+  historicalStreakCount?: number;
 }
 
 export interface ConsecutiveAnalysis {
