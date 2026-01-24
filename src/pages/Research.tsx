@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { TickerSearchAutocomplete } from '@/components/shared/TickerSearchAutocomplete';
 import { useTrendingTickers } from '@/hooks/useTrendingTickers';
+import { useCategoryCounts, useETFCount } from '@/hooks/useCategoryCounts';
 import { TickerCarousel } from '@/components/research/TickerCarousel';
 import { CategoryCard } from '@/components/research/CategoryCard';
 import { MarketOverviewDashboard } from '@/components/research/MarketOverviewDashboard';
@@ -92,6 +93,10 @@ export default function ResearchPage() {
 
   // Fetch trending tickers from database with live quotes
   const { tickers: trendingTickers, isLoading: tickersLoading } = useTrendingTickers(12);
+  
+  // Fetch category stock counts from database
+  const { data: categoryCounts = {} } = useCategoryCounts();
+  const { data: etfCount = 0 } = useETFCount();
 
   const handleSearch = (ticker: string) => {
     const normalized = ticker.toUpperCase().trim();
@@ -263,6 +268,7 @@ export default function ResearchPage() {
                 icon={category.icon}
                 gradient={category.gradient}
                 onClick={() => handleCategoryClick(category.id)}
+                stockCount={category.id === 'etfs' ? etfCount : categoryCounts[category.id]}
               />
             ))}
           </div>
