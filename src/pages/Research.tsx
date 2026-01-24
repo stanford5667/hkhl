@@ -137,23 +137,17 @@ export default function ResearchPage() {
   return (
     <div className="min-h-screen">
       {/* Hero Section */}
-      <div className="relative overflow-hidden bg-gradient-to-b from-primary/5 via-background to-background">
-        {/* Background Pattern */}
-        <div className="absolute inset-0 opacity-30">
-          <div className="absolute top-0 left-1/4 w-96 h-96 bg-primary/20 rounded-full blur-3xl" />
-          <div className="absolute top-20 right-1/4 w-64 h-64 bg-cyan-500/20 rounded-full blur-3xl" />
-        </div>
-        
-        <div className="relative max-w-6xl mx-auto px-4 sm:px-6 pt-8 pb-12">
+      <div className="relative overflow-hidden">
+        <div className="relative max-w-6xl mx-auto px-4 sm:px-6 pt-8 pb-4">
           {/* Hero Text */}
-          <div className="text-center mb-8 animate-fade-in">
-            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-3">
+          <div className="text-center mb-6 animate-fade-in">
+            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-2">
               <span className="bg-gradient-to-r from-primary via-cyan-500 to-primary bg-clip-text text-transparent">
                 Research Any Stock
               </span>
             </h1>
             <p className="text-muted-foreground text-sm sm:text-base max-w-xl mx-auto">
-              Real-time data, technical analysis, and AI-powered insights for smarter investing
+              AI-powered insights for smarter investing
             </p>
           </div>
 
@@ -187,7 +181,7 @@ export default function ResearchPage() {
 
           {/* Recent Searches */}
           {recentSearches.length > 0 && (
-            <div className="max-w-2xl mx-auto mb-8">
+            <div className="max-w-2xl mx-auto">
               <div className="flex items-center justify-center gap-2 flex-wrap">
                 <span className="text-xs text-muted-foreground flex items-center gap-1">
                   <Clock className="h-3 w-3" /> Recent:
