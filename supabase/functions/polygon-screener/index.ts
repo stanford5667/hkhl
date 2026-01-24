@@ -172,17 +172,24 @@ serve(async (req) => {
     console.log(`[polygon-screener] Got ${tickers.length} tickers from snapshot`);
 
     // Step 2: Apply basic filters on snapshot data
+    // Calculate accurate 1-day change from prevDay close to current price
     let filteredTickers = tickers.filter(t => {
       // Must have valid day data
       if (!t.day || !t.day.c || t.day.c <= 0) return false;
+      
+      // Must have valid previous day data for accurate change calculation
+      if (!t.prevDay || !t.prevDay.c || t.prevDay.c <= 0) return false;
       
       // Price filters
       if (filters.minPrice !== undefined && t.day.c < filters.minPrice) return false;
       if (filters.maxPrice !== undefined && t.day.c > filters.maxPrice) return false;
       
-      // Change filters
-      if (filters.minChange1D !== undefined && t.todaysChangePerc < filters.minChange1D) return false;
-      if (filters.maxChange1D !== undefined && t.todaysChangePerc > filters.maxChange1D) return false;
+      // Calculate accurate 1-day percentage change: (current - prevClose) / prevClose * 100
+      const accurateChangePercent = ((t.day.c - t.prevDay.c) / t.prevDay.c) * 100;
+      
+      // Change filters using accurate calculation
+      if (filters.minChange1D !== undefined && accurateChangePercent < filters.minChange1D) return false;
+      if (filters.maxChange1D !== undefined && accurateChangePercent > filters.maxChange1D) return false;
       
       // Volume filters
       if (filters.minVolume !== undefined && t.day.v < filters.minVolume) return false;
@@ -205,10 +212,14 @@ serve(async (req) => {
     filteredTickers.sort((a, b) => {
       let aVal: number, bVal: number;
       
+      // Calculate accurate change percent for sorting
+      const aChangePercent = a.prevDay?.c > 0 ? ((a.day.c - a.prevDay.c) / a.prevDay.c) * 100 : 0;
+      const bChangePercent = b.prevDay?.c > 0 ? ((b.day.c - b.prevDay.c) / b.prevDay.c) * 100 : 0;
+      
       switch (sortBy) {
         case 'change':
-          aVal = a.todaysChangePerc || 0;
-          bVal = b.todaysChangePerc || 0;
+          aVal = aChangePercent;
+          bVal = bChangePercent;
           break;
         case 'price':
           aVal = a.day?.c || 0;
@@ -297,14 +308,20 @@ serve(async (req) => {
       const details = tickerDetails.get(t.ticker);
       const sector = getSectorFromSIC(details?.sic_code || null);
       
+      // Calculate accurate 1-day change from previous close
+      const prevClose = t.prevDay?.c || 0;
+      const currentPrice = t.day?.c || 0;
+      const accurateChange = prevClose > 0 ? currentPrice - prevClose : 0;
+      const accurateChangePercent = prevClose > 0 ? ((currentPrice - prevClose) / prevClose) * 100 : 0;
+      
       return {
         symbol: t.ticker,
         name: details?.name || t.ticker,
         sector,
         sicDescription: details?.sic_description || null,
-        price: t.day?.c || 0,
-        change: t.todaysChange || 0,
-        changePercent: t.todaysChangePerc || 0,
+        price: currentPrice,
+        change: accurateChange,
+        changePercent: accurateChangePercent,
         volume: t.day?.v || 0,
         prevVolume: t.prevDay?.v || 0,
         relativeVolume: t.prevDay?.v > 0 ? t.day.v / t.prevDay.v : null,
