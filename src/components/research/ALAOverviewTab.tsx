@@ -226,9 +226,9 @@ export function ALAOverviewTab({
         {/* Chart Column - 2/3 width */}
         <Card className="bg-card border-border lg:col-span-2 overflow-hidden">
           {/* Price Header */}
-          <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 px-3 pt-3 pb-2">
-            <div className="flex flex-col gap-1 min-w-0">
-              <div className="flex items-center gap-3">
+          <div className="px-3 pt-3 pb-2">
+            <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
+              <div className="flex items-center gap-3 min-w-0">
                 <span className="text-sm md:text-base font-medium text-muted-foreground truncate max-w-[200px]">
                   {companyName || ticker}
                 </span>
@@ -247,39 +247,40 @@ export function ALAOverviewTab({
                   </span>
                 </div>
               </div>
-              {/* Exchange + Sector badges below price */}
-              <div className="flex items-center gap-1.5">
-                {exchange && (
-                  <Badge variant="outline" className="text-[8px] px-1.5 py-0 h-4 bg-secondary/50">
-                    {exchange}
-                  </Badge>
-                )}
-                {sector && (
-                  <Badge variant="outline" className="text-[8px] px-1.5 py-0 h-4 bg-secondary/50">
-                    {sector}
-                  </Badge>
-                )}
+              
+              {/* OHLC + Prev inline */}
+              <div className="flex items-center gap-3 text-[10px] md:text-xs">
+                <div className="flex items-center gap-1">
+                  <span className="text-muted-foreground">O:</span>
+                  <span className="font-medium tabular-nums">{formatCurrency(quote?.open || 0)}</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <span className="text-muted-foreground">H:</span>
+                  <span className="font-medium tabular-nums">{formatCurrency(quote?.high || 0)}</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <span className="text-muted-foreground">L:</span>
+                  <span className="font-medium tabular-nums">{formatCurrency(quote?.low || 0)}</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <span className="text-muted-foreground">Prev:</span>
+                  <span className="font-medium tabular-nums">{quote?.previousClose ? formatCurrency(quote.previousClose) : '—'}</span>
+                </div>
               </div>
             </div>
             
-            {/* OHLC + Prev inline */}
-            <div className="flex items-center gap-3 text-[10px] md:text-xs">
-              <div className="flex items-center gap-1">
-                <span className="text-muted-foreground">O:</span>
-                <span className="font-medium tabular-nums">{formatCurrency(quote?.open || 0)}</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <span className="text-muted-foreground">H:</span>
-                <span className="font-medium tabular-nums">{formatCurrency(quote?.high || 0)}</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <span className="text-muted-foreground">L:</span>
-                <span className="font-medium tabular-nums">{formatCurrency(quote?.low || 0)}</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <span className="text-muted-foreground">Prev:</span>
-                <span className="font-medium tabular-nums">{quote?.previousClose ? formatCurrency(quote.previousClose) : '—'}</span>
-              </div>
+            {/* Exchange + Sector badges below OHLC */}
+            <div className="flex items-center gap-1.5 mt-1.5">
+              {exchange && (
+                <Badge variant="outline" className="text-[8px] px-1.5 py-0 h-4 bg-secondary/50">
+                  {exchange}
+                </Badge>
+              )}
+              {sector && (
+                <Badge variant="outline" className="text-[8px] px-1.5 py-0 h-4 bg-secondary/50">
+                  {sector}
+                </Badge>
+              )}
             </div>
           </div>
 
