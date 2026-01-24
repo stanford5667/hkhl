@@ -1,16 +1,15 @@
 import { useState, useMemo } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Switch } from '@/components/ui/switch';
+import { Button } from '@/components/ui/button';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
-import { TrendingUp, Layers, Activity, BarChart3 } from 'lucide-react';
+import { TrendingUp, TrendingDown, RefreshCw } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { ALAStockInfoCard } from './ALAStockInfoCard';
 import { QuickHistoricalInsights, StreakData, HistoricalPattern } from './QuickHistoricalInsights';
 import { BasicStatistics, BasicStatsData } from './BasicStatistics';
 import { CandlestickChart } from '@/components/charts/CandlestickChart';
-import { useTickerSnapshot, TickerSnapshotData } from '@/hooks/useTickerSnapshot';
+import { useTickerSnapshot } from '@/hooks/useTickerSnapshot';
 import { useTickerFundamentals } from '@/hooks/useTickerFundamentals';
 import { useTickerAnalystData } from '@/hooks/useTickerAnalystData';
 
@@ -46,8 +45,6 @@ export function ALAOverviewTab({
   isRefreshing = false,
 }: ALAOverviewTabProps) {
   const [chartTimeframe, setChartTimeframe] = useState<string>('3M');
-  const [showLevels, setShowLevels] = useState(true);
-  const [showProbability, setShowProbability] = useState(false);
   const [statsTimeRange, setStatsTimeRange] = useState<'1Y' | '3Y' | '5Y'>('3Y');
 
   // Fetch real data from edge functions
@@ -55,7 +52,39 @@ export function ALAOverviewTab({
   const { data: fundamentals, isLoading: fundLoading } = useTickerFundamentals(ticker);
   const { data: analystData, isLoading: analystLoading } = useTickerAnalystData(ticker);
 
-  // Derive streak data from snapshot - now with real data
+  const isPositive = (quote?.change || 0) >= 0;
+
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 2,
+    }).format(value);
+  };
+
+  const formatMarketCap = (value: number | undefined) => {
+    if (!value) return '—';
+    if (value >= 1e12) return `$${(value / 1e12).toFixed(2)}T`;
+    if (value >= 1e9) return `$${(value / 1e9).toFixed(2)}B`;
+    if (value >= 1e6) return `$${(value / 1e6).toFixed(2)}M`;
+    return `$${value.toLocaleString()}`;
+  };
+
+  const formatVolume = (value: number | undefined) => {
+    if (!value) return '—';
+    if (value >= 1e6) return `${(value / 1e6).toFixed(1)}M`;
+    if (value >= 1e3) return `${(value / 1e3).toFixed(1)}K`;
+    return value.toLocaleString();
+  };
+
+  // Calculate 52-week range position
+  const week52High = snapshot?.yearRange?.week52High;
+  const week52Low = snapshot?.yearRange?.week52Low;
+  const rangePosition = week52High && week52Low && quote?.price
+    ? ((quote.price - week52Low) / (week52High - week52Low)) * 100
+    : 50;
+
+  // Derive streak data from snapshot
   const streakData: StreakData | null = useMemo(() => {
     if (!snapshot?.streaks) return null;
     
@@ -64,23 +93,19 @@ export function ALAOverviewTab({
     const direction = currentStreak >= 0 ? 'up' : 'down';
     const absStreak = Math.abs(currentStreak);
     
-    // Find matching streak analysis
     const streakAnalysis = streaks.analysis.find(a => a.streak === currentStreak);
     const continuationRate = streakAnalysis?.continuationRate || 50;
     const avgNextDayReturn = streakAnalysis?.avgNextDayReturn || 0;
     
-    // Calculate max streak from analysis
     const allStreaks = streaks.analysis.map(a => Math.abs(a.streak));
     const maxStreak = allStreaks.length > 0 ? Math.max(...allStreaks) : absStreak;
     const avgStreak = allStreaks.length > 0 ? allStreaks.reduce((a, b) => a + b, 0) / allStreaks.length : absStreak;
     
-    // Use real data from edge function
     const totalChange = streaks.actualTotalChange ?? (snapshot.dailyVolatility * absStreak * (direction === 'down' ? -1 : 1));
     const startDate = streaks.streakStartDate 
       ? new Date(streaks.streakStartDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
       : new Date(Date.now() - absStreak * 24 * 60 * 60 * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
     
-    // Real recovery period from edge function
     const recoveryDays = streaks.avgRecoveryDays;
     const recoveryPeriod = recoveryDays 
       ? (recoveryDays <= 5 ? `${recoveryDays} days` : recoveryDays <= 7 ? '1 week' : `${Math.round(recoveryDays / 7)} weeks`)
@@ -107,39 +132,18 @@ export function ALAOverviewTab({
     
     const patterns: HistoricalPattern[] = [];
     
-    // RSI patterns
     if (snapshot.rsi?.signal === 'oversold') {
-      patterns.push({ 
-        id: 'rsi_oversold', 
-        name: 'RSI Oversold', 
-        winRate: snapshot.rsi.oversoldBounces?.winRate || 55 
-      });
+      patterns.push({ id: 'rsi_oversold', name: 'RSI Oversold', winRate: snapshot.rsi.oversoldBounces?.winRate || 55 });
     }
     if (snapshot.rsi?.signal === 'overbought') {
-      patterns.push({ 
-        id: 'rsi_overbought', 
-        name: 'RSI Overbought', 
-        winRate: snapshot.rsi.overboughtDrops?.winRate || 52 
-      });
+      patterns.push({ id: 'rsi_overbought', name: 'RSI Overbought', winRate: snapshot.rsi.overboughtDrops?.winRate || 52 });
     }
-    
-    // Bollinger patterns
     if (snapshot.bollinger?.signal === 'oversold') {
-      patterns.push({ 
-        id: 'bollinger_low', 
-        name: 'Near Lower Band', 
-        winRate: snapshot.bollinger.lowerBounceRate || 60 
-      });
+      patterns.push({ id: 'bollinger_low', name: 'Near Lower Band', winRate: snapshot.bollinger.lowerBounceRate || 60 });
     }
     if (snapshot.bollinger?.signal === 'overbought') {
-      patterns.push({ 
-        id: 'bollinger_high', 
-        name: 'Near Upper Band', 
-        winRate: snapshot.bollinger.upperRejectionRate || 55 
-      });
+      patterns.push({ id: 'bollinger_high', name: 'Near Upper Band', winRate: snapshot.bollinger.upperRejectionRate || 55 });
     }
-    
-    // Gap patterns
     if (snapshot.gaps?.recentGaps?.length > 0) {
       const recentUnfilled = snapshot.gaps.recentGaps.filter(g => !g.filled);
       if (recentUnfilled.length > 0) {
@@ -174,245 +178,189 @@ export function ALAOverviewTab({
     };
   }, [snapshot]);
 
-  // Key levels from real data (gaps + bollinger)
-  const keyLevels = useMemo(() => {
-    if (!snapshot || !quote?.price) return [];
-    
-    const levels: { price: number; winRate: number; type: 'support' | 'resistance'; label?: string }[] = [];
-    
-    // Add Bollinger bands as levels
-    if (snapshot.bollinger) {
-      levels.push({ 
-        price: snapshot.bollinger.lower, 
-        winRate: snapshot.bollinger.lowerBounceRate || 60, 
-        type: 'support',
-        label: 'Bollinger Lower'
-      });
-      levels.push({ 
-        price: snapshot.bollinger.upper, 
-        winRate: snapshot.bollinger.upperRejectionRate || 55, 
-        type: 'resistance',
-        label: 'Bollinger Upper'
-      });
-    }
-    
-    // Add unfilled gaps as levels
-    if (snapshot.gaps?.recentGaps) {
-      snapshot.gaps.recentGaps
-        .filter(g => !g.filled)
-        .slice(0, 2)
-        .forEach((gap, i) => {
-          const gapPrice = quote.price * (1 + gap.gapPercent / 100);
-          levels.push({
-            price: gapPrice,
-            winRate: gap.gapPercent > 0 ? snapshot.gaps.upGapFillRate : snapshot.gaps.downGapFillRate,
-            type: gap.gapPercent > 0 ? 'resistance' : 'support',
-            label: `Gap ${gap.date}`
-          });
-        });
-    }
-    
-    // Add 52-week levels if available
-    if (snapshot.yearRange) {
-      levels.push({
-        price: snapshot.yearRange.week52Low,
-        winRate: 75,
-        type: 'support',
-        label: '52-Week Low'
-      });
-      levels.push({
-        price: snapshot.yearRange.week52High,
-        winRate: 70,
-        type: 'resistance',
-        label: '52-Week High'
-      });
-    }
-    
-    return levels.filter(l => l.price > 0).slice(0, 4);
-  }, [snapshot, quote?.price]);
-
-  // Chart change display from real data
-  const chartChange = useMemo(() => {
-    if (!snapshot?.closeVsPrior) {
-      return { value: quote?.change || 0, percent: quote?.changePercent || 0 };
-    }
-    return { 
-      value: quote?.change || 0, 
-      percent: quote?.changePercent || 0 
-    };
-  }, [quote, snapshot]);
-
-  const isChartPositive = chartChange.percent >= 0;
   const isDataLoading = snapshotLoading || fundLoading || analystLoading;
+  const analystRating = analystData?.analyst?.rating || 'Buy';
+  const priceTarget = analystData?.priceTarget?.targetMean;
+  const nextEarnings = analystData?.nextEarnings?.formatted;
+  const peRatio = fundamentals?.peRatio;
+  const eps = fundamentals?.eps;
+  const marketCap = fundamentals?.marketCap || quote?.marketCap;
+  const beta = snapshot?.volatility?.annualizedVolatility ? snapshot.volatility.annualizedVolatility / 15 : undefined;
 
-  // Extract analyst data for card
-  const analystRating = analystData?.analyst?.rating || undefined;
-  const priceTarget = analystData?.priceTarget?.targetMean || undefined;
-  const nextEarnings = analystData?.nextEarnings?.formatted || undefined;
-  const dividend = analystData?.financials?.dividendYieldIndicatedAnnual || undefined;
-  const forwardPE = analystData?.financials?.forwardPE || undefined;
-  const realBeta = analystData?.financials?.beta || undefined;
+  const ratingColors: Record<string, string> = {
+    'Strong Buy': 'bg-emerald-500/20 text-emerald-400',
+    'Buy': 'bg-emerald-500/20 text-emerald-400',
+    'Hold': 'bg-amber-500/20 text-amber-400',
+    'Sell': 'bg-rose-500/20 text-rose-400',
+  };
+
+  if (isLoadingQuote || isDataLoading) {
+    return (
+      <div className="space-y-3">
+        <Skeleton className="h-24 w-full" />
+        <Skeleton className="h-[300px] w-full" />
+        <Skeleton className="h-32 w-full" />
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-4 md:space-y-6">
-      {/* Two-Column Layout: Stock Info + Chart */}
-      <div className="grid grid-cols-1 lg:grid-cols-[340px_1fr] gap-4 md:gap-6">
-        {/* Left: Stock Info Card */}
-        <ALAStockInfoCard
-          ticker={ticker}
-          companyName={companyName}
-          exchange={exchange}
-          sector={sector}
-          price={quote?.price || 0}
-          change={quote?.change || 0}
-          changePercent={quote?.changePercent || 0}
-          open={quote?.open || 0}
-          high={quote?.high || 0}
-          low={quote?.low || 0}
-          previousClose={quote?.previousClose}
-          marketCap={fundamentals?.marketCap || quote?.marketCap}
-          volume={quote?.volume}
-          beta={snapshot?.volatility?.annualizedVolatility ? snapshot.volatility.annualizedVolatility / 15 : undefined}
-          peRatio={fundamentals?.peRatio || undefined}
-          eps={fundamentals?.eps || undefined}
-          week52High={snapshot?.yearRange?.week52High}
-          week52Low={snapshot?.yearRange?.week52Low}
-          isLoading={isLoadingQuote || isDataLoading}
-          onRefresh={onRefresh}
-          isRefreshing={isRefreshing}
-        />
-
-        {/* Right: Price Chart */}
-        <Card className="bg-card border-border">
-          <CardHeader className="pb-2 md:pb-3 px-3 md:px-6 pt-3 md:pt-6">
-            <div className="flex items-center justify-between flex-wrap gap-1.5 md:gap-2">
-              <div className="flex items-center gap-1.5 md:gap-3">
-                <CardTitle className="text-sm md:text-base font-medium">Chart</CardTitle>
-                <div className="flex items-center gap-0.5 md:gap-1">
-                  <TrendingUp className={cn("h-3 w-3 md:h-4 md:w-4", isChartPositive ? "text-emerald-400" : "text-rose-400")} />
-                  <span className={cn("text-xs md:text-sm font-medium", isChartPositive ? "text-emerald-400" : "text-rose-400")}>
-                    {chartChange.percent >= 0 ? '+' : ''}{chartChange.percent.toFixed(2)}%
-                  </span>
-                </div>
-                <Badge variant="secondary" className="text-[10px] md:text-xs px-1.5">{chartTimeframe}</Badge>
-              </div>
-              
-              <div className="flex items-center gap-2 md:gap-4 flex-wrap">
-                {/* Toggle Controls - Hidden on mobile */}
-                <div className="hidden md:flex items-center gap-2">
-                  <Switch 
-                    id="levels" 
-                    checked={showLevels} 
-                    onCheckedChange={setShowLevels}
-                    className="data-[state=checked]:bg-primary scale-90"
-                  />
-                  <label htmlFor="levels" className="text-[10px] md:text-xs text-muted-foreground flex items-center gap-1">
-                    <Layers className="h-3 w-3" />
-                    Levels
-                  </label>
-                </div>
-                <div className="hidden md:flex items-center gap-2">
-                  <Switch 
-                    id="probability" 
-                    checked={showProbability} 
-                    onCheckedChange={setShowProbability}
-                    className="data-[state=checked]:bg-primary scale-90"
-                  />
-                  <label htmlFor="probability" className="text-[10px] md:text-xs text-muted-foreground flex items-center gap-1">
-                    <Activity className="h-3 w-3" />
-                    Prob
-                  </label>
-                </div>
-                
-                {/* Timeframe Selector */}
-                <ToggleGroup 
-                  type="single" 
-                  value={chartTimeframe} 
-                  onValueChange={(v) => v && setChartTimeframe(v)}
-                  className="bg-secondary/50 rounded-md p-0.5"
-                >
-                  {['1D', '1W', '1M', '3M', '6M', '1Y', '5Y'].map((tf) => (
-                    <ToggleGroupItem 
-                      key={tf} 
-                      value={tf} 
-                      className={cn(
-                        "text-[10px] md:text-xs px-1.5 md:px-2.5 py-0.5 md:py-1 h-6 md:h-7 data-[state=on]:bg-primary data-[state=on]:text-primary-foreground",
-                        chartTimeframe === tf && "bg-primary text-primary-foreground"
-                      )}
-                    >
-                      {tf}
-                    </ToggleGroupItem>
-                  ))}
-                </ToggleGroup>
-              </div>
+    <div className="space-y-3 md:space-y-4">
+      {/* TOP CARD: Price + OHLC + Key Stats + 52-Week Range */}
+      <Card className="bg-card border-border">
+        <CardContent className="p-2 md:p-4 space-y-2 md:space-y-3">
+          {/* Row 1: Price & Change + Refresh */}
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-baseline gap-2 md:gap-3 min-w-0">
+              <span className="text-xl md:text-2xl font-bold tabular-nums text-foreground">
+                {formatCurrency(quote?.price || 0)}
+              </span>
+              <span className={cn(
+                "flex items-center gap-0.5 text-xs md:text-sm font-medium shrink-0",
+                isPositive ? "text-emerald-400" : "text-rose-400"
+              )}>
+                {isPositive ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
+                <span className="tabular-nums">
+                  {isPositive ? '+' : ''}{(quote?.change || 0).toFixed(2)} ({isPositive ? '+' : ''}{(quote?.changePercent || 0).toFixed(2)}%)
+                </span>
+              </span>
             </div>
-          </CardHeader>
-          
-          <CardContent className="pt-0 px-2 md:px-6 pb-3 md:pb-6">
-            {/* Chart Container */}
-            <div className="h-[250px] md:h-[350px] relative">
-              {isLoadingQuote ? (
-                <div className="w-full h-full flex items-center justify-center">
-                  <Skeleton className="w-full h-full" />
-                </div>
-              ) : (
-                <CandlestickChart 
-                  symbol={ticker} 
-                  height={250}
-                  showVolume={true}
-                  showRangeSelector={false}
-                  defaultRange={chartTimeframe as any}
-                />
-              )}
-              
-              {/* Level Annotations (overlay) - now from real data */}
-              {showLevels && !isLoadingQuote && keyLevels.length > 0 && (
-                <div className="absolute right-2 top-2 space-y-1 pointer-events-none">
-                  {keyLevels.slice(0, 2).map((level, i) => (
-                    <div 
-                      key={i}
-                      className={cn(
-                        "text-[10px] px-1.5 py-0.5 rounded",
-                        level.type === 'resistance' 
-                          ? "text-rose-400 bg-rose-500/10" 
-                          : "text-emerald-400 bg-emerald-500/10"
-                      )}
-                    >
-                      {level.label || level.type} ({level.winRate}%)... ${level.price.toFixed(0)}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-            
-            {/* Key Levels Footer */}
-            {showLevels && keyLevels.length > 0 && (
-              <div className="mt-3 pt-3 border-t border-border">
-                <div className="flex items-center gap-2 mb-2">
-                  <BarChart3 className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-xs text-muted-foreground font-medium">Key Levels</span>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {keyLevels.map((level, i) => (
-                    <Badge 
-                      key={i}
-                      variant="outline" 
-                      className={cn(
-                        "text-xs font-mono",
-                        level.type === 'support' 
-                          ? "border-emerald-500/50 text-emerald-400" 
-                          : "border-rose-500/50 text-rose-400"
-                      )}
-                    >
-                      ● ${level.price.toFixed(2)} ({level.winRate}%)
-                    </Badge>
-                  ))}
-                </div>
-              </div>
+            {onRefresh && (
+              <Button variant="ghost" size="icon" onClick={onRefresh} disabled={isRefreshing} className="h-6 w-6 shrink-0">
+                <RefreshCw className={cn("h-3 w-3", isRefreshing && "animate-spin")} />
+              </Button>
             )}
-          </CardContent>
-        </Card>
-      </div>
+          </div>
+
+          {/* Row 2: OHLC + Key Stats inline */}
+          <div className="grid grid-cols-4 md:grid-cols-8 gap-1.5 md:gap-3 text-center">
+            <div>
+              <p className="text-[8px] md:text-[10px] text-muted-foreground uppercase">Open</p>
+              <p className="text-[10px] md:text-xs font-semibold tabular-nums">{formatCurrency(quote?.open || 0)}</p>
+            </div>
+            <div>
+              <p className="text-[8px] md:text-[10px] text-muted-foreground uppercase">High</p>
+              <p className="text-[10px] md:text-xs font-semibold tabular-nums text-emerald-400">{formatCurrency(quote?.high || 0)}</p>
+            </div>
+            <div>
+              <p className="text-[8px] md:text-[10px] text-muted-foreground uppercase">Low</p>
+              <p className="text-[10px] md:text-xs font-semibold tabular-nums text-rose-400">{formatCurrency(quote?.low || 0)}</p>
+            </div>
+            <div>
+              <p className="text-[8px] md:text-[10px] text-muted-foreground uppercase">Prev</p>
+              <p className="text-[10px] md:text-xs font-semibold tabular-nums">{quote?.previousClose ? formatCurrency(quote.previousClose) : '—'}</p>
+            </div>
+            <div className="hidden md:block">
+              <p className="text-[8px] md:text-[10px] text-muted-foreground uppercase">Mkt Cap</p>
+              <p className="text-[10px] md:text-xs font-semibold">{formatMarketCap(marketCap)}</p>
+            </div>
+            <div className="hidden md:block">
+              <p className="text-[8px] md:text-[10px] text-muted-foreground uppercase">Volume</p>
+              <p className="text-[10px] md:text-xs font-semibold">{formatVolume(quote?.volume)}</p>
+            </div>
+            <div className="hidden md:block">
+              <p className="text-[8px] md:text-[10px] text-muted-foreground uppercase">P/E</p>
+              <p className="text-[10px] md:text-xs font-semibold">{peRatio?.toFixed(1) || '—'}</p>
+            </div>
+            <div className="hidden md:block">
+              <p className="text-[8px] md:text-[10px] text-muted-foreground uppercase">Beta</p>
+              <p className="text-[10px] md:text-xs font-semibold">{beta?.toFixed(2) || '—'}</p>
+            </div>
+          </div>
+
+          {/* Row 3: 52-Week Range */}
+          <div className="space-y-0.5">
+            <div className="flex items-center justify-between text-[8px] md:text-[10px] text-muted-foreground">
+              <span>52W Low: {week52Low ? formatCurrency(week52Low) : '—'}</span>
+              <span>52W High: {week52High ? formatCurrency(week52High) : '—'}</span>
+            </div>
+            <div className="relative h-1.5 bg-secondary rounded-full overflow-hidden">
+              <div className="absolute top-0 left-0 h-full w-full bg-gradient-to-r from-rose-500 via-amber-500 to-emerald-500 rounded-full" />
+              <div 
+                className="absolute top-1/2 -translate-y-1/2 w-2 h-2 bg-white rounded-full border-2 border-primary shadow-md"
+                style={{ left: `calc(${Math.min(100, Math.max(0, rangePosition))}% - 4px)` }}
+              />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* CHART: Full width */}
+      <Card className="bg-card border-border">
+        <CardContent className="p-2 md:p-4">
+          <div className="flex items-center justify-between mb-2">
+            <ToggleGroup 
+              type="single" 
+              value={chartTimeframe} 
+              onValueChange={(v) => v && setChartTimeframe(v)}
+              className="bg-secondary/50 rounded-md p-0.5"
+            >
+              {['1D', '1W', '1M', '3M', '6M', '1Y'].map((tf) => (
+                <ToggleGroupItem 
+                  key={tf} 
+                  value={tf} 
+                  className={cn(
+                    "text-[9px] md:text-xs px-1.5 md:px-2.5 py-0.5 h-5 md:h-7 data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
+                  )}
+                >
+                  {tf}
+                </ToggleGroupItem>
+              ))}
+            </ToggleGroup>
+            <Badge variant="secondary" className="text-[9px] md:text-xs">{chartTimeframe}</Badge>
+          </div>
+          <div className="h-[220px] md:h-[320px]">
+            <CandlestickChart 
+              symbol={ticker} 
+              height={220}
+              showVolume={true}
+              showRangeSelector={false}
+              defaultRange={chartTimeframe as any}
+            />
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* BELOW CHART: Analyst & Financials Card */}
+      <Card className="bg-card border-border">
+        <CardContent className="p-2 md:p-4">
+          <div className="grid grid-cols-3 md:grid-cols-6 gap-2 md:gap-4 text-center">
+            <div>
+              <p className="text-[8px] md:text-[10px] text-muted-foreground uppercase">Rating</p>
+              <Badge className={cn("mt-0.5 text-[9px] md:text-xs px-1.5 py-0", ratingColors[analystRating] || ratingColors['Buy'])}>
+                {analystRating}
+              </Badge>
+            </div>
+            <div>
+              <p className="text-[8px] md:text-[10px] text-muted-foreground uppercase">Target</p>
+              {priceTarget ? (
+                <p className="text-[10px] md:text-xs font-semibold">
+                  {formatCurrency(priceTarget)}
+                  <span className={cn("ml-0.5 text-[8px]", priceTarget > (quote?.price || 0) ? "text-emerald-400" : "text-rose-400")}>
+                    ({priceTarget > (quote?.price || 0) ? '+' : ''}{(((priceTarget - (quote?.price || 0)) / (quote?.price || 1)) * 100).toFixed(0)}%)
+                  </span>
+                </p>
+              ) : <p className="text-[10px] md:text-xs font-semibold">—</p>}
+            </div>
+            <div>
+              <p className="text-[8px] md:text-[10px] text-muted-foreground uppercase">Earnings</p>
+              <p className="text-[10px] md:text-xs font-semibold">{nextEarnings || '—'}</p>
+            </div>
+            <div className="hidden md:block">
+              <p className="text-[8px] md:text-[10px] text-muted-foreground uppercase">EPS</p>
+              <p className="text-[10px] md:text-xs font-semibold">{eps ? `$${eps.toFixed(2)}` : '—'}</p>
+            </div>
+            <div className="hidden md:block">
+              <p className="text-[8px] md:text-[10px] text-muted-foreground uppercase">Mkt Cap</p>
+              <p className="text-[10px] md:text-xs font-semibold">{formatMarketCap(marketCap)}</p>
+            </div>
+            <div className="hidden md:block">
+              <p className="text-[8px] md:text-[10px] text-muted-foreground uppercase">Volume</p>
+              <p className="text-[10px] md:text-xs font-semibold">{formatVolume(quote?.volume)}</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Quick Historical Insights */}
       <QuickHistoricalInsights 
