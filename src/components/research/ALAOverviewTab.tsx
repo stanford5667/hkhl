@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { TrendingUp, TrendingDown, RefreshCw, Building2, ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { QuickHistoricalInsights, StreakData, HistoricalPattern } from './QuickHistoricalInsights';
+import { EarningsImpactSection } from './EarningsImpactSection';
 import { BasicStatsData } from './BasicStatistics';
 import { CandlestickChart } from '@/components/charts/CandlestickChart';
 import { useTickerSnapshot } from '@/hooks/useTickerSnapshot';
@@ -294,6 +295,11 @@ export function ALAOverviewTab({
             <span className="text-[8px] text-muted-foreground tabular-nums">
               ${week52Low?.toFixed(0) || '—'} — ${week52High?.toFixed(0) || '—'}
             </span>
+          </div>
+
+          {/* Earnings Impact Section */}
+          <div className="px-3 pb-2">
+            <EarningsImpactSection ticker={ticker} nextEarnings={nextEarnings} />
           </div>
         </Card>
 
