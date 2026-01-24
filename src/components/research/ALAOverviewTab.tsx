@@ -209,137 +209,140 @@ export function ALAOverviewTab({
 
   return (
     <div className="space-y-2">
-      {/* CHART CARD - Price header + Chart in unified card */}
-      <Card className="bg-card border-border">
-        <CardContent className="p-3">
-          {/* Price Header */}
-          <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 mb-2">
-            <div className="flex items-center gap-3 min-w-0">
-              <span className="text-sm md:text-base font-medium text-muted-foreground truncate max-w-[200px]">
-                {companyName || ticker}
-              </span>
-              <div className="flex items-baseline gap-2">
-                <span className="text-xl md:text-2xl font-bold tabular-nums text-foreground">
-                  {formatCurrency(quote?.price || 0)}
+      {/* Main Grid: Chart + Stats Side by Side */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-2">
+        {/* Chart Column - 2/3 width */}
+        <Card className="bg-card border-border lg:col-span-2">
+          <CardContent className="p-3">
+            {/* Price Header */}
+            <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 mb-2">
+              <div className="flex items-center gap-3 min-w-0">
+                <span className="text-sm md:text-base font-medium text-muted-foreground truncate max-w-[200px]">
+                  {companyName || ticker}
                 </span>
-                <span className={cn(
-                  "flex items-center gap-0.5 text-xs font-medium",
-                  isPositive ? "text-primary" : "text-destructive"
-                )}>
-                  {isPositive ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
-                  <span className="tabular-nums">
-                    {isPositive ? '+' : ''}{(quote?.change || 0).toFixed(2)} ({isPositive ? '+' : ''}{(quote?.changePercent || 0).toFixed(2)}%)
+                <div className="flex items-baseline gap-2">
+                  <span className="text-xl md:text-2xl font-bold tabular-nums text-foreground">
+                    {formatCurrency(quote?.price || 0)}
                   </span>
-                </span>
+                  <span className={cn(
+                    "flex items-center gap-0.5 text-xs font-medium",
+                    isPositive ? "text-primary" : "text-destructive"
+                  )}>
+                    {isPositive ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
+                    <span className="tabular-nums">
+                      {isPositive ? '+' : ''}{(quote?.change || 0).toFixed(2)} ({isPositive ? '+' : ''}{(quote?.changePercent || 0).toFixed(2)}%)
+                    </span>
+                  </span>
+                </div>
               </div>
+              
+              {/* OHLC + Prev inline */}
+              <div className="flex items-center gap-3 text-[10px] md:text-xs">
+                <div className="flex items-center gap-1">
+                  <span className="text-muted-foreground">O:</span>
+                  <span className="font-medium tabular-nums">{formatCurrency(quote?.open || 0)}</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <span className="text-muted-foreground">H:</span>
+                  <span className="font-medium tabular-nums">{formatCurrency(quote?.high || 0)}</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <span className="text-muted-foreground">L:</span>
+                  <span className="font-medium tabular-nums">{formatCurrency(quote?.low || 0)}</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <span className="text-muted-foreground">Prev:</span>
+                  <span className="font-medium tabular-nums">{quote?.previousClose ? formatCurrency(quote.previousClose) : '—'}</span>
+                </div>
+              </div>
+
+              {onRefresh && (
+                <Button variant="ghost" size="icon" onClick={onRefresh} disabled={isRefreshing} className="h-6 w-6 shrink-0">
+                  <RefreshCw className={cn("h-3 w-3", isRefreshing && "animate-spin")} />
+                </Button>
+              )}
             </div>
+
+            {/* Chart */}
+            <CandlestickChart 
+              symbol={ticker} 
+              height={200}
+              showVolume={true}
+              showRangeSelector={true}
+              defaultRange="3M"
+            />
             
-            {/* OHLC + Prev inline */}
-            <div className="flex items-center gap-3 text-[10px] md:text-xs">
-              <div className="flex items-center gap-1">
-                <span className="text-muted-foreground">O:</span>
-                <span className="font-medium tabular-nums">{formatCurrency(quote?.open || 0)}</span>
+            {/* 52-Week Range */}
+            <div className="flex items-center gap-2 mt-2">
+              <span className="text-[8px] text-muted-foreground font-medium">52W</span>
+              <div className="flex-1 relative h-1.5 bg-secondary rounded-full overflow-hidden">
+                <div className="absolute top-0 left-0 h-full w-full bg-gradient-to-r from-primary/20 via-primary/40 to-primary/60 rounded-full" />
+                <div 
+                  className="absolute top-1/2 -translate-y-1/2 w-2 h-2 bg-primary rounded-full shadow-sm shadow-primary/50"
+                  style={{ left: `calc(${Math.min(100, Math.max(0, rangePosition))}% - 4px)` }}
+                />
               </div>
-              <div className="flex items-center gap-1">
-                <span className="text-muted-foreground">H:</span>
-                <span className="font-medium tabular-nums">{formatCurrency(quote?.high || 0)}</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <span className="text-muted-foreground">L:</span>
-                <span className="font-medium tabular-nums">{formatCurrency(quote?.low || 0)}</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <span className="text-muted-foreground">Prev:</span>
-                <span className="font-medium tabular-nums">{quote?.previousClose ? formatCurrency(quote.previousClose) : '—'}</span>
-              </div>
-            </div>
-
-            {onRefresh && (
-              <Button variant="ghost" size="icon" onClick={onRefresh} disabled={isRefreshing} className="h-6 w-6 shrink-0">
-                <RefreshCw className={cn("h-3 w-3", isRefreshing && "animate-spin")} />
-              </Button>
-            )}
-          </div>
-
-          {/* Chart */}
-          <CandlestickChart 
-            symbol={ticker} 
-            height={200}
-            showVolume={true}
-            showRangeSelector={true}
-            defaultRange="3M"
-          />
-          
-          {/* 52-Week Range */}
-          <div className="flex items-center gap-2 mt-2">
-            <span className="text-[8px] text-muted-foreground font-medium">52W</span>
-            <div className="flex-1 relative h-1.5 bg-secondary rounded-full overflow-hidden">
-              <div className="absolute top-0 left-0 h-full w-full bg-gradient-to-r from-primary/20 via-primary/40 to-primary/60 rounded-full" />
-              <div 
-                className="absolute top-1/2 -translate-y-1/2 w-2 h-2 bg-primary rounded-full shadow-sm shadow-primary/50"
-                style={{ left: `calc(${Math.min(100, Math.max(0, rangePosition))}% - 4px)` }}
-              />
-            </div>
-            <span className="text-[8px] text-muted-foreground tabular-nums">
-              ${week52Low?.toFixed(0) || '—'} — ${week52High?.toFixed(0) || '—'}
-            </span>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Trading Days Breakdown */}
-      {basicStats && (
-        <Card className="bg-card border-border">
-          <CardContent className="p-2">
-            {/* Mkt Cap, EPS, Next Earnings Row */}
-            <div className="grid grid-cols-3 gap-1.5 mb-2">
-              <div className="bg-primary/5 border border-primary/20 rounded px-2 py-1 text-center">
-                <span className="text-[7px] text-primary/80 block leading-tight uppercase font-medium">Mkt Cap</span>
-                <p className="text-[10px] font-bold text-foreground">{formatMarketCap(marketCap)}</p>
-              </div>
-              <div className="bg-secondary/50 border border-border rounded px-2 py-1 text-center">
-                <span className="text-[7px] text-muted-foreground block leading-tight uppercase">EPS</span>
-                <p className="text-[10px] font-bold">{eps ? `$${eps.toFixed(2)}` : '—'}</p>
-              </div>
-              <div className="bg-secondary/50 border border-border rounded px-2 py-1 text-center">
-                <span className="text-[7px] text-muted-foreground block leading-tight uppercase">Earnings</span>
-                <p className="text-[10px] font-bold">{nextEarnings || '—'}</p>
-              </div>
-            </div>
-
-            <p className="text-[9px] text-muted-foreground mb-2 flex items-center gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-primary"></span>
-              Past {basicStats.totalDays} trading days
-            </p>
-            <div className="grid grid-cols-3 md:grid-cols-6 gap-1.5">
-              <div className="bg-primary/5 border border-primary/20 rounded px-2 py-1.5 text-center">
-                <span className="text-[7px] text-muted-foreground block leading-tight">Days Closing Higher</span>
-                <p className="text-sm font-bold text-foreground">{basicStats.upDays}</p>
-              </div>
-              <div className="bg-secondary/50 border border-border rounded px-2 py-1.5 text-center">
-                <span className="text-[7px] text-muted-foreground block leading-tight">Days Closing Lower</span>
-                <p className="text-sm font-bold">{basicStats.downDays}</p>
-              </div>
-              <div className="bg-secondary/50 border border-border rounded px-2 py-1.5 text-center">
-                <span className="text-[7px] text-muted-foreground block leading-tight">Unchanged Days</span>
-                <p className="text-sm font-bold">{basicStats.flatDays}</p>
-              </div>
-              <div className="bg-secondary/50 border border-border rounded px-2 py-1.5 text-center">
-                <span className="text-[7px] text-muted-foreground block leading-tight">Avg Daily Move</span>
-                <p className="text-sm font-bold">{basicStats.avgDailyMovePercent.toFixed(2)}%</p>
-              </div>
-              <div className="bg-primary/5 border border-primary/20 rounded px-2 py-1.5 text-center">
-                <span className="text-[7px] text-muted-foreground block leading-tight">Best Day</span>
-                <p className="text-sm font-bold text-foreground">+{basicStats.bestDay.change.toFixed(1)}%</p>
-              </div>
-              <div className="bg-secondary/50 border border-border rounded px-2 py-1.5 text-center">
-                <span className="text-[7px] text-muted-foreground block leading-tight">Worst Day</span>
-                <p className="text-sm font-bold">{basicStats.worstDay.change.toFixed(1)}%</p>
-              </div>
+              <span className="text-[8px] text-muted-foreground tabular-nums">
+                ${week52Low?.toFixed(0) || '—'} — ${week52High?.toFixed(0) || '—'}
+              </span>
             </div>
           </CardContent>
         </Card>
-      )}
+
+        {/* Stats Column - 1/3 width */}
+        {basicStats && (
+          <Card className="bg-card border-border h-fit">
+            <CardContent className="p-2">
+              {/* Mkt Cap, EPS, Next Earnings Row */}
+              <div className="grid grid-cols-3 gap-1.5 mb-2">
+                <div className="bg-primary/5 border border-primary/20 rounded px-2 py-1 text-center">
+                  <span className="text-[7px] text-primary/80 block leading-tight uppercase font-medium">Mkt Cap</span>
+                  <p className="text-[10px] font-bold text-foreground">{formatMarketCap(marketCap)}</p>
+                </div>
+                <div className="bg-secondary/50 border border-border rounded px-2 py-1 text-center">
+                  <span className="text-[7px] text-muted-foreground block leading-tight uppercase">EPS</span>
+                  <p className="text-[10px] font-bold">{eps ? `$${eps.toFixed(2)}` : '—'}</p>
+                </div>
+                <div className="bg-secondary/50 border border-border rounded px-2 py-1 text-center">
+                  <span className="text-[7px] text-muted-foreground block leading-tight uppercase">Earnings</span>
+                  <p className="text-[10px] font-bold">{nextEarnings || '—'}</p>
+                </div>
+              </div>
+
+              <p className="text-[9px] text-muted-foreground mb-2 flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-primary"></span>
+                Past {basicStats.totalDays} trading days
+              </p>
+              <div className="grid grid-cols-2 gap-1.5">
+                <div className="bg-primary/5 border border-primary/20 rounded px-2 py-1.5 text-center">
+                  <span className="text-[7px] text-muted-foreground block leading-tight">Days Closing Higher</span>
+                  <p className="text-sm font-bold text-foreground">{basicStats.upDays}</p>
+                </div>
+                <div className="bg-secondary/50 border border-border rounded px-2 py-1.5 text-center">
+                  <span className="text-[7px] text-muted-foreground block leading-tight">Days Closing Lower</span>
+                  <p className="text-sm font-bold">{basicStats.downDays}</p>
+                </div>
+                <div className="bg-secondary/50 border border-border rounded px-2 py-1.5 text-center">
+                  <span className="text-[7px] text-muted-foreground block leading-tight">Unchanged Days</span>
+                  <p className="text-sm font-bold">{basicStats.flatDays}</p>
+                </div>
+                <div className="bg-secondary/50 border border-border rounded px-2 py-1.5 text-center">
+                  <span className="text-[7px] text-muted-foreground block leading-tight">Avg Daily Move</span>
+                  <p className="text-sm font-bold">{basicStats.avgDailyMovePercent.toFixed(2)}%</p>
+                </div>
+                <div className="bg-primary/5 border border-primary/20 rounded px-2 py-1.5 text-center">
+                  <span className="text-[7px] text-muted-foreground block leading-tight">Best Day</span>
+                  <p className="text-sm font-bold text-foreground">+{basicStats.bestDay.change.toFixed(1)}%</p>
+                </div>
+                <div className="bg-secondary/50 border border-border rounded px-2 py-1.5 text-center">
+                  <span className="text-[7px] text-muted-foreground block leading-tight">Worst Day</span>
+                  <p className="text-sm font-bold">{basicStats.worstDay.change.toFixed(1)}%</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+      </div>
 
       {/* ABOUT SECTION: Compact */}
       {description && (
