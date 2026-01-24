@@ -222,7 +222,6 @@ export function StockDetailLayout({
 export const DEFAULT_STOCK_TABS: StockDetailTab[] = [
   { id: 'overview', label: 'Overview', icon: LayoutDashboard },
   { id: 'quant-lab', label: 'Quant Lab', icon: FlaskConical, shortLabel: 'Quant' },
-  { id: 'backtest', label: 'Metrics', icon: BarChart3 },
   { id: 'news', label: 'News', icon: Newspaper },
   { id: 'sec', label: 'SEC Filings', icon: FileText, shortLabel: 'SEC' },
   { id: 'analyst-social', label: 'Analyst & Social', icon: MessageCircle, shortLabel: 'Social' },
