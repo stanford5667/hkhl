@@ -28,31 +28,9 @@ import { CompanyContactsCard } from '@/components/companies/CompanyContactsCard'
 import { NotesTasksTab } from '@/components/companies/NotesTasksTab';
 import { DataExtractionPanel } from '@/components/companies/DataExtractionPanel';
 import { ExtractedFieldsDisplay } from '@/components/companies/ExtractedFieldsDisplay';
-import {
-  ArrowLeft,
-  Building2,
-  Globe,
-  Users,
-  FolderOpen,
-  Brain,
-  Edit,
-  ExternalLink,
-  FileText,
-  TrendingUp,
-  Newspaper,
-  LayoutDashboard,
-  StickyNote,
-  Mail,
-  Phone,
-  CheckSquare,
-  LineChart,
-  Briefcase,
-  BarChart3,
-  FlaskConical,
-} from 'lucide-react';
+import { ArrowLeft, Building2, Globe, Users, FolderOpen, Brain, Edit, ExternalLink, FileText, TrendingUp, Newspaper, LayoutDashboard, StickyNote, Mail, Phone, CheckSquare, LineChart, Briefcase, BarChart3, FlaskConical } from 'lucide-react';
 import { format } from 'date-fns';
 import { useCompanyTasks } from '@/hooks/useTasks';
-
 interface CompanyDetail {
   id: string;
   name: string;
@@ -76,7 +54,6 @@ interface CompanyDetail {
   current_price: number | null;
   market_value: number | null;
 }
-
 interface Contact {
   id: string;
   first_name: string;
@@ -86,7 +63,6 @@ interface Contact {
   title: string | null;
   category: string;
 }
-
 interface Document {
   id: string;
   name: string;
@@ -99,7 +75,6 @@ interface Document {
   created_at: string;
   updated_at: string;
 }
-
 interface Model {
   id: string;
   name: string;
@@ -107,12 +82,16 @@ interface Model {
   status: string | null;
   created_at: string;
 }
-
-
 export default function CompanyDetail() {
-  const { id } = useParams<{ id: string }>();
+  const {
+    id
+  } = useParams<{
+    id: string;
+  }>();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const {
+    user
+  } = useAuth();
   const [company, setCompany] = useState<CompanyDetail | null>(null);
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [documents, setDocuments] = useState<Document[]>([]);
@@ -121,13 +100,18 @@ export default function CompanyDetail() {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [extractionKey, setExtractionKey] = useState(0);
   const [tickerDetails, setTickerDetails] = useState<TickerDetails | null>(null);
-  
+
   // Get the ticker for public equities
   const ticker = company?.asset_class === 'public_equity' ? company?.ticker_symbol : null;
-  
-  // Use stock quote hook for public equities
-  const { quote, isLoading: isLoadingQuote, refresh: refreshQuote } = useStockQuote(ticker, { enabled: !!ticker });
 
+  // Use stock quote hook for public equities
+  const {
+    quote,
+    isLoading: isLoadingQuote,
+    refresh: refreshQuote
+  } = useStockQuote(ticker, {
+    enabled: !!ticker
+  });
   const fetchData = async () => {
     if (!id) return;
 
@@ -137,17 +121,15 @@ export default function CompanyDetail() {
 
     // If we KNOW it's a synced position route, resolve to ticker and redirect.
     if (isSyncedPositionRoute) {
-      const { data: positionData } = await supabase
-        .from('synced_positions')
-        .select('symbol')
-        .eq('id', lookupId)
-        .maybeSingle();
-
+      const {
+        data: positionData
+      } = await supabase.from('synced_positions').select('symbol').eq('id', lookupId).maybeSingle();
       if (positionData?.symbol) {
-        navigate(`/stock/${positionData.symbol}`, { replace: true });
+        navigate(`/stock/${positionData.symbol}`, {
+          replace: true
+        });
         return;
       }
-
       toast.error('Position not found');
       navigate('/');
       return;
@@ -155,36 +137,30 @@ export default function CompanyDetail() {
 
     // Company IDs are UUIDs; if this isn't a UUID, it's likely an invalid route.
     const isValidUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(lookupId);
-
     if (!isValidUUID) {
       toast.error('Company not found');
       navigate('/');
       return;
     }
-
     setLoading(true);
     try {
       // Fetch company
-      const { data: companyData, error: companyError } = await supabase
-        .from('companies')
-        .select('*')
-        .eq('id', lookupId)
-        .maybeSingle();
-
+      const {
+        data: companyData,
+        error: companyError
+      } = await supabase.from('companies').select('*').eq('id', lookupId).maybeSingle();
       if (companyError) throw companyError;
       if (!companyData) {
         // Fallback: sometimes a UUID may refer to a synced position id
-        const { data: positionData } = await supabase
-          .from('synced_positions')
-          .select('symbol')
-          .eq('id', lookupId)
-          .maybeSingle();
-
+        const {
+          data: positionData
+        } = await supabase.from('synced_positions').select('symbol').eq('id', lookupId).maybeSingle();
         if (positionData?.symbol) {
-          navigate(`/stock/${positionData.symbol}`, { replace: true });
+          navigate(`/stock/${positionData.symbol}`, {
+            replace: true
+          });
           return;
         }
-
         toast.error('Company not found');
         navigate('/');
         return;
@@ -192,26 +168,25 @@ export default function CompanyDetail() {
       setCompany(companyData as CompanyDetail);
 
       // Fetch related contacts
-      const { data: contactsData } = await supabase
-        .from('contacts')
-        .select('id, first_name, last_name, email, phone, title, category')
-        .eq('company_id', id);
+      const {
+        data: contactsData
+      } = await supabase.from('contacts').select('id, first_name, last_name, email, phone, title, category').eq('company_id', id);
       setContacts(contactsData || []);
 
       // Fetch related documents
-      const { data: docsData } = await supabase
-        .from('documents')
-        .select('*')
-        .eq('company_id', id)
-        .order('created_at', { ascending: false });
-      setDocuments((docsData as Document[]) || []);
+      const {
+        data: docsData
+      } = await supabase.from('documents').select('*').eq('company_id', id).order('created_at', {
+        ascending: false
+      });
+      setDocuments(docsData as Document[] || []);
 
       // Fetch related models
-      const { data: modelsData } = await supabase
-        .from('models')
-        .select('id, name, model_type, status, created_at')
-        .eq('company_id', id)
-        .order('created_at', { ascending: false });
+      const {
+        data: modelsData
+      } = await supabase.from('models').select('id, name, model_type, status, created_at').eq('company_id', id).order('created_at', {
+        ascending: false
+      });
       setModels(modelsData || []);
     } catch (error) {
       console.error('Error fetching company:', error);
@@ -220,7 +195,6 @@ export default function CompanyDetail() {
       setLoading(false);
     }
   };
-
   useEffect(() => {
     fetchData();
   }, [id, user, navigate]);
@@ -231,37 +205,29 @@ export default function CompanyDetail() {
       fetchTickerDetails(company.ticker_symbol).then(setTickerDetails);
     }
   }, [company?.asset_class, company?.ticker_symbol]);
-
   if (loading) {
-    return (
-      <div className="flex items-center justify-center h-full">
+    return <div className="flex items-center justify-center h-full">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
-      </div>
-    );
+      </div>;
   }
-
   if (!company) {
     return null;
   }
-
   const formatCurrency = (value: number | null) => {
     if (!value) return '—';
     if (value >= 1000) return `$${(value / 1000).toFixed(1)}B`;
     return `$${value.toFixed(0)}M`;
   };
-
   const getHealthScore = () => {
     if (company.ebitda_ltm && company.revenue_ltm) {
-      return Math.min(100, Math.round((company.ebitda_ltm / company.revenue_ltm) * 100 * 5));
+      return Math.min(100, Math.round(company.ebitda_ltm / company.revenue_ltm * 100 * 5));
     }
     return 75;
   };
-
   const isPublicEquity = company.asset_class === 'public_equity' && company.ticker_symbol;
 
   // Unified company view for both public and private companies
-  return (
-    <div className="p-6 space-y-6 animate-fade-in">
+  return <div className="p-6 space-y-6 animate-fade-in">
       {/* Header */}
       <div className="flex items-start justify-between">
         <div className="flex items-start gap-4">
@@ -271,45 +237,30 @@ export default function CompanyDetail() {
           <div>
             <div className="flex items-center gap-3">
               {isPublicEquity && <LineChart className="h-6 w-6 text-emerald-400" />}
-              <h1 className="h1">{company.name}</h1>
-              {isPublicEquity && company.ticker_symbol && (
-                <Badge variant="secondary" className="text-base font-mono">
+              <h1 className="h1 text-xl">{company.name}</h1>
+              {isPublicEquity && company.ticker_symbol && <Badge variant="secondary" className="text-base font-mono">
                   {company.ticker_symbol}
-                </Badge>
-              )}
-              {isPublicEquity && company.exchange && (
-                <Badge variant="outline">
+                </Badge>}
+              {isPublicEquity && company.exchange && <Badge variant="outline">
                   {company.exchange}
-                </Badge>
-              )}
+                </Badge>}
               {!isPublicEquity && <CompanyTypeBadge type={company.company_type} />}
-              {!isPublicEquity && company.pipeline_stage && (
-                <Badge variant="outline" className="capitalize">
+              {!isPublicEquity && company.pipeline_stage && <Badge variant="outline" className="capitalize">
                   {company.pipeline_stage.replace('-', ' ')}
-                </Badge>
-              )}
+                </Badge>}
               {!isPublicEquity && <ProcessingIndicator companyId={company.id} />}
               {!isPublicEquity && <AIAnalyzedBadge companyId={company.id} />}
             </div>
             <div className="flex items-center gap-4 mt-2 text-muted-foreground">
-              {company.industry && (
-                <span className="flex items-center gap-1">
+              {company.industry && <span className="flex items-center gap-1">
                   <Building2 className="h-4 w-4" />
                   {company.industry}
-                </span>
-              )}
-              {company.website && (
-                <a
-                  href={company.website}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-1 hover:text-primary transition-colors"
-                >
+                </span>}
+              {company.website && <a href={company.website} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 hover:text-primary transition-colors">
                   <Globe className="h-4 w-4" />
                   {company.website.replace(/^https?:\/\//, '')}
                   <ExternalLink className="h-3 w-3" />
-                </a>
-              )}
+                </a>}
             </div>
           </div>
         </div>
@@ -320,8 +271,7 @@ export default function CompanyDetail() {
       </div>
 
       {/* Key Metrics - Different for public vs private companies */}
-      {!isPublicEquity && (
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+      {!isPublicEquity && <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
           <Card className="glass-card">
             <CardContent className="p-4">
               <p className="text-xs text-muted-foreground uppercase tracking-wider">Revenue LTM</p>
@@ -356,8 +306,7 @@ export default function CompanyDetail() {
               <p className="text-2xl font-bold mt-1">{documents.length}</p>
             </CardContent>
           </Card>
-        </div>
-      )}
+        </div>}
 
       {/* Tabs */}
       <Tabs defaultValue="overview" className="space-y-6">
@@ -367,42 +316,34 @@ export default function CompanyDetail() {
               <LayoutDashboard className="h-4 w-4 md:h-5 md:w-5" />
               Overview
             </TabsTrigger>
-            {isPublicEquity && (
-              <TabsTrigger value="quant-lab" className="gap-1.5 text-sm md:text-base px-3 md:px-5 py-2.5 md:py-3 whitespace-nowrap">
+            {isPublicEquity && <TabsTrigger value="quant-lab" className="gap-1.5 text-sm md:text-base px-3 md:px-5 py-2.5 md:py-3 whitespace-nowrap">
                 <FlaskConical className="h-4 w-4 md:h-5 md:w-5" />
                 Quant Lab
-              </TabsTrigger>
-            )}
+              </TabsTrigger>}
             <TabsTrigger value="notes-tasks" className="gap-1.5 text-sm md:text-base px-3 md:px-5 py-2.5 md:py-3 whitespace-nowrap">
               <CheckSquare className="h-4 w-4 md:h-5 md:w-5" />
               <span className="hidden sm:inline">Notes & Tasks</span>
               <span className="sm:hidden">Tasks</span>
             </TabsTrigger>
-            {isPublicEquity && (
-              <TabsTrigger value="backtest" className="gap-1.5 text-sm md:text-base px-3 md:px-5 py-2.5 md:py-3 whitespace-nowrap">
+            {isPublicEquity && <TabsTrigger value="backtest" className="gap-1.5 text-sm md:text-base px-3 md:px-5 py-2.5 md:py-3 whitespace-nowrap">
                 <BarChart3 className="h-4 w-4 md:h-5 md:w-5" />
                 Metrics
-              </TabsTrigger>
-            )}
+              </TabsTrigger>}
             <TabsTrigger value="news" className="gap-1.5 text-sm md:text-base px-3 md:px-5 py-2.5 md:py-3 whitespace-nowrap">
               <Newspaper className="h-4 w-4 md:h-5 md:w-5" />
               <span className="hidden sm:inline">{isPublicEquity ? 'News' : 'Industry Intel'}</span>
               <span className="sm:hidden">{isPublicEquity ? 'News' : 'Intel'}</span>
             </TabsTrigger>
-            {isPublicEquity && (
-              <TabsTrigger value="sec" className="gap-1.5 text-sm md:text-base px-3 md:px-5 py-2.5 md:py-3 whitespace-nowrap">
+            {isPublicEquity && <TabsTrigger value="sec" className="gap-1.5 text-sm md:text-base px-3 md:px-5 py-2.5 md:py-3 whitespace-nowrap">
                 <FileText className="h-4 w-4 md:h-5 md:w-5" />
                 <span className="hidden sm:inline">SEC Filings</span>
                 <span className="sm:hidden">SEC</span>
-              </TabsTrigger>
-            )}
-            {isPublicEquity && (
-              <TabsTrigger value="analyst-social" className="gap-1.5 text-sm md:text-base px-3 md:px-5 py-2.5 md:py-3 whitespace-nowrap">
+              </TabsTrigger>}
+            {isPublicEquity && <TabsTrigger value="analyst-social" className="gap-1.5 text-sm md:text-base px-3 md:px-5 py-2.5 md:py-3 whitespace-nowrap">
                 <MessageCircle className="h-4 w-4 md:h-5 md:w-5" />
                 <span className="hidden sm:inline">Analyst & Social</span>
                 <span className="sm:hidden">Social</span>
-              </TabsTrigger>
-            )}
+              </TabsTrigger>}
           </TabsList>
         </div>
 
@@ -415,29 +356,18 @@ export default function CompanyDetail() {
 
         {/* Overview Tab */}
         <TabsContent value="overview" className="space-y-6">
-          {isPublicEquity && company.ticker_symbol ? (
-            /* Public Equity Overview - Use enhanced ALA UI */
-            <ALAOverviewTab
-              ticker={company.ticker_symbol}
-              companyName={tickerDetails?.name || company.name}
-              exchange={tickerDetails?.primaryExchange || company.exchange || undefined}
-              sector={tickerDetails?.sector || company.industry || undefined}
-              quote={quote ? {
-                price: quote.price,
-                change: quote.change,
-                changePercent: quote.changePercent,
-                open: quote.open,
-                high: quote.high,
-                low: quote.low,
-                previousClose: quote.previousClose,
-                marketCap: tickerDetails?.marketCap ?? undefined,
-              } : undefined}
-              isLoadingQuote={isLoadingQuote}
-              onRefresh={refreshQuote}
-            />
-          ) : (
-            /* Private Company Overview */
-            <>
+          {isPublicEquity && company.ticker_symbol ? (/* Public Equity Overview - Use enhanced ALA UI */
+        <ALAOverviewTab ticker={company.ticker_symbol} companyName={tickerDetails?.name || company.name} exchange={tickerDetails?.primaryExchange || company.exchange || undefined} sector={tickerDetails?.sector || company.industry || undefined} quote={quote ? {
+          price: quote.price,
+          change: quote.change,
+          changePercent: quote.changePercent,
+          open: quote.open,
+          high: quote.high,
+          low: quote.low,
+          previousClose: quote.previousClose,
+          marketCap: tickerDetails?.marketCap ?? undefined
+        } : undefined} isLoadingQuote={isLoadingQuote} onRefresh={refreshQuote} />) : (/* Private Company Overview */
+        <>
               {/* Processing Banner - Shows when documents are being analyzed */}
               <ProcessingBanner companyId={company.id} />
 
@@ -445,10 +375,7 @@ export default function CompanyDetail() {
               <AISummaryCard companyId={company.id} companyName={company.name} />
 
               {/* Data Extraction Panel */}
-              <DataExtractionPanel 
-                company={company} 
-                onComplete={() => setExtractionKey(prev => prev + 1)} 
-              />
+              <DataExtractionPanel company={company} onComplete={() => setExtractionKey(prev => prev + 1)} />
 
               {/* Extracted Fields Display */}
               <ExtractedFieldsDisplay key={extractionKey} companyId={company.id} />
@@ -464,11 +391,7 @@ export default function CompanyDetail() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    {company.description ? (
-                      <p className="text-foreground">{company.description}</p>
-                    ) : (
-                      <p className="text-muted-foreground italic">No description available. Click Edit to add one.</p>
-                    )}
+                    {company.description ? <p className="text-foreground">{company.description}</p> : <p className="text-muted-foreground italic">No description available. Click Edit to add one.</p>}
                     
                     <div className="grid grid-cols-2 gap-4 pt-4 border-t border-border">
                       <div>
@@ -477,19 +400,10 @@ export default function CompanyDetail() {
                       </div>
                       <div>
                         <p className="text-xs text-muted-foreground uppercase tracking-wider">Website</p>
-                        {company.website ? (
-                          <a 
-                            href={company.website} 
-                            target="_blank" 
-                            rel="noopener noreferrer"
-                            className="text-primary hover:underline font-medium mt-1 flex items-center gap-1"
-                          >
+                        {company.website ? <a href={company.website} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline font-medium mt-1 flex items-center gap-1">
                             {company.website.replace(/^https?:\/\//, '')}
                             <ExternalLink className="h-3 w-3" />
-                          </a>
-                        ) : (
-                          <p className="text-foreground font-medium mt-1">—</p>
-                        )}
+                          </a> : <p className="text-foreground font-medium mt-1">—</p>}
                       </div>
                       <div>
                         <p className="text-xs text-muted-foreground uppercase tracking-wider">Status</p>
@@ -522,9 +436,7 @@ export default function CompanyDetail() {
                       <div className="flex justify-between items-center">
                         <span className="text-muted-foreground">EBITDA Margin</span>
                         <span className="text-foreground font-medium">
-                          {company.revenue_ltm && company.ebitda_ltm 
-                            ? `${((company.ebitda_ltm / company.revenue_ltm) * 100).toFixed(1)}%`
-                            : '—'}
+                          {company.revenue_ltm && company.ebitda_ltm ? `${(company.ebitda_ltm / company.revenue_ltm * 100).toFixed(1)}%` : '—'}
                         </span>
                       </div>
                       <div className="flex justify-between items-center">
@@ -585,9 +497,7 @@ export default function CompanyDetail() {
                     <div>
                       <p className="text-xs text-muted-foreground uppercase tracking-wider">EBITDA Margin</p>
                       <p className="text-2xl font-bold mt-1">
-                        {company.revenue_ltm && company.ebitda_ltm 
-                          ? `${((company.ebitda_ltm / company.revenue_ltm) * 100).toFixed(1)}%`
-                          : '—'}
+                        {company.revenue_ltm && company.ebitda_ltm ? `${(company.ebitda_ltm / company.revenue_ltm * 100).toFixed(1)}%` : '—'}
                       </p>
                     </div>
                     <div>
@@ -611,24 +521,16 @@ export default function CompanyDetail() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    {documents.length === 0 ? (
-                      <p className="text-muted-foreground text-sm">No documents uploaded yet</p>
-                    ) : (
-                      <ul className="space-y-2">
-                        {documents.slice(0, 4).map((doc) => (
-                          <li key={doc.id} className="flex items-center gap-2 text-sm">
+                    {documents.length === 0 ? <p className="text-muted-foreground text-sm">No documents uploaded yet</p> : <ul className="space-y-2">
+                        {documents.slice(0, 4).map(doc => <li key={doc.id} className="flex items-center gap-2 text-sm">
                             <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
                             <span className="truncate flex-1 text-foreground">{doc.name}</span>
                             <span className="text-muted-foreground text-xs shrink-0">
                               {format(new Date(doc.created_at), 'MMM d')}
                             </span>
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-                    {documents.length > 4 && (
-                      <p className="text-xs text-muted-foreground mt-3">+{documents.length - 4} more documents</p>
-                    )}
+                          </li>)}
+                      </ul>}
+                    {documents.length > 4 && <p className="text-xs text-muted-foreground mt-3">+{documents.length - 4} more documents</p>}
                   </CardContent>
                 </Card>
 
@@ -641,12 +543,8 @@ export default function CompanyDetail() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    {contacts.length === 0 ? (
-                      <p className="text-muted-foreground text-sm">No contacts assigned yet</p>
-                    ) : (
-                      <ul className="space-y-3">
-                        {contacts.slice(0, 4).map((contact) => (
-                          <li key={contact.id} className="flex items-center gap-2">
+                    {contacts.length === 0 ? <p className="text-muted-foreground text-sm">No contacts assigned yet</p> : <ul className="space-y-3">
+                        {contacts.slice(0, 4).map(contact => <li key={contact.id} className="flex items-center gap-2">
                             <div className="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center text-xs font-medium text-primary shrink-0">
                               {contact.first_name[0]}{contact.last_name[0]}
                             </div>
@@ -658,13 +556,9 @@ export default function CompanyDetail() {
                                 {contact.title || contact.category}
                               </p>
                             </div>
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-                    {contacts.length > 4 && (
-                      <p className="text-xs text-muted-foreground mt-3">+{contacts.length - 4} more contacts</p>
-                    )}
+                          </li>)}
+                      </ul>}
+                    {contacts.length > 4 && <p className="text-xs text-muted-foreground mt-3">+{contacts.length - 4} more contacts</p>}
                   </CardContent>
                 </Card>
 
@@ -677,12 +571,8 @@ export default function CompanyDetail() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    {models.length === 0 ? (
-                      <p className="text-muted-foreground text-sm">No models created yet</p>
-                    ) : (
-                      <ul className="space-y-2">
-                        {models.slice(0, 4).map((model) => (
-                          <li key={model.id} className="flex items-center justify-between gap-2 text-sm">
+                    {models.length === 0 ? <p className="text-muted-foreground text-sm">No models created yet</p> : <ul className="space-y-2">
+                        {models.slice(0, 4).map(model => <li key={model.id} className="flex items-center justify-between gap-2 text-sm">
                             <div className="min-w-0 flex-1">
                               <p className="text-foreground truncate">{model.name}</p>
                               <p className="text-xs text-muted-foreground capitalize">{model.model_type}</p>
@@ -690,13 +580,9 @@ export default function CompanyDetail() {
                             <Badge variant={model.status === 'complete' ? 'default' : 'secondary'} className="shrink-0 text-xs">
                               {model.status || 'Draft'}
                             </Badge>
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-                    {models.length > 4 && (
-                      <p className="text-xs text-muted-foreground mt-3">+{models.length - 4} more models</p>
-                    )}
+                          </li>)}
+                      </ul>}
+                    {models.length > 4 && <p className="text-xs text-muted-foreground mt-3">+{models.length - 4} more models</p>}
                   </CardContent>
                 </Card>
               </div>
@@ -719,52 +605,31 @@ export default function CompanyDetail() {
                   </div>
                 </CardContent>
               </Card>
-            </>
-          )}
+            </>)}
         </TabsContent>
 
         {/* Notes Tab - Moved to combined Notes & Tasks */}
 
 
         {/* Backtest Tab - Public Equity Only */}
-        {isPublicEquity && company.ticker_symbol && (
-          <TabsContent value="backtest">
-            <AssetBacktestPanel 
-              ticker={company.ticker_symbol}
-              companyName={company.name}
-            />
-          </TabsContent>
-        )}
+        {isPublicEquity && company.ticker_symbol && <TabsContent value="backtest">
+            <AssetBacktestPanel ticker={company.ticker_symbol} companyName={company.name} />
+          </TabsContent>}
 
         {/* Quant Lab Tab - Public Equity Only */}
-        {isPublicEquity && company.ticker_symbol && (
-          <TabsContent value="quant-lab" className="min-h-[600px]">
-            <EmbeddedQuantLab 
-              ticker={company.ticker_symbol}
-              companyName={company.name}
-            />
-          </TabsContent>
-        )}
+        {isPublicEquity && company.ticker_symbol && <TabsContent value="quant-lab" className="min-h-[600px]">
+            <EmbeddedQuantLab ticker={company.ticker_symbol} companyName={company.name} />
+          </TabsContent>}
 
         {/* SEC Filings Tab - Public Equity Only */}
-        {isPublicEquity && company.ticker_symbol && (
-          <TabsContent value="sec">
-            <SECFilingsPanel 
-              ticker={company.ticker_symbol}
-              companyName={company.name}
-            />
-          </TabsContent>
-        )}
+        {isPublicEquity && company.ticker_symbol && <TabsContent value="sec">
+            <SECFilingsPanel ticker={company.ticker_symbol} companyName={company.name} />
+          </TabsContent>}
 
         {/* Analyst & Social Tab - Public Equity Only */}
-        {isPublicEquity && company.ticker_symbol && (
-          <TabsContent value="analyst-social">
-            <AnalystSocialPanel 
-              ticker={company.ticker_symbol}
-              companyName={company.name}
-            />
-          </TabsContent>
-        )}
+        {isPublicEquity && company.ticker_symbol && <TabsContent value="analyst-social">
+            <AnalystSocialPanel ticker={company.ticker_symbol} companyName={company.name} />
+          </TabsContent>}
 
         {/* Market Intel / News Tab */}
         <TabsContent value="news">
@@ -775,12 +640,6 @@ export default function CompanyDetail() {
       </Tabs>
 
       {/* Edit Dialog */}
-      <EditCompanyDialog
-        open={editDialogOpen}
-        onOpenChange={setEditDialogOpen}
-        company={company}
-        onSave={fetchData}
-      />
-    </div>
-  );
+      <EditCompanyDialog open={editDialogOpen} onOpenChange={setEditDialogOpen} company={company} onSave={fetchData} />
+    </div>;
 }
