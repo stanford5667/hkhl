@@ -1,10 +1,12 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useMarketIndicesQuery } from '@/hooks/useMarketDataQuery';
+import { useSparklineData } from '@/hooks/useChartData';
+import { useLatestHeadlines } from '@/hooks/useMarketNews';
 import { cn } from '@/lib/utils';
-import { ExternalLink } from 'lucide-react';
+import { ExternalLink, Loader2 } from 'lucide-react';
 import { MiniSparkline } from './MiniSparkline';
-import { getCandlesForRange } from '@/services/candleService';
+import { Skeleton } from '@/components/ui/skeleton';
 
 type TimeRange = '1D' | '1W' | '1M' | '3M' | '6M' | '1Y';
 type MarketCategory = 'US' | 'Commodities' | 'Crypto';
@@ -37,44 +39,15 @@ const CRYPTO: IndexItem[] = [
 
 const TIME_RANGES: TimeRange[] = ['1D', '1W', '1M', '3M', '6M', '1Y'];
 
-const MOCK_NEWS = [
-  { time: '43m', headline: 'U.S. airlines cancel more than 12,000 flights amid wi...' },
-  { time: '1h', headline: 'EV maker BYD aims for 1.3M overseas car sales in 2026' },
-  { time: '2h', headline: 'Trending stocks as Wall Street ends week lower amid...' },
-  { time: '2h', headline: 'Real estate stocks decline amid geopolitical develop...' },
-  { time: '3h', headline: 'Energy markets heat up amid frigid temperatures' },
-  { time: '3h', headline: 'Insider Trades: GameStop, Goldman Sachs and Morg...' },
-];
-
-function useSparklineData(symbol: string, timeRange: TimeRange) {
-  const [data, setData] = useState<number[]>([]);
-  
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const candles = await getCandlesForRange(symbol, timeRange);
-        if (candles && candles.length > 0) {
-          setData(candles.map(c => c.close));
-        }
-      } catch (err) {
-        console.error('Error fetching sparkline data:', err);
-      }
-    };
-    
-    fetchData();
-  }, [symbol, timeRange]);
-  
-  return data;
-}
-
 export function MarketOverviewDashboard() {
   const navigate = useNavigate();
   const [selectedCategory, setSelectedCategory] = useState<MarketCategory>('US');
   const [selectedIndex, setSelectedIndex] = useState<string>('DIA');
   const [selectedTimeRange, setSelectedTimeRange] = useState<TimeRange>('1D');
   
-  const { indices, isLoading } = useMarketIndicesQuery();
-  const sparklineData = useSparklineData(selectedIndex, selectedTimeRange);
+  const { indices, isLoading: indicesLoading } = useMarketIndicesQuery();
+  const { data: sparklineData, isLoading: sparklineLoading } = useSparklineData(selectedIndex, selectedTimeRange);
+  const { data: headlines, isLoading: headlinesLoading } = useLatestHeadlines(6);
 
   // Get current list of indices based on category
   const currentIndices = useMemo(() => {
@@ -190,21 +163,27 @@ export function MarketOverviewDashboard() {
                 </div>
               </div>
               <div className="text-right">
-                <div className="text-xs font-semibold text-foreground tabular-nums">
-                  {formatValue(item.value)}
-                </div>
-                <div className={cn(
-                  'text-[10px] font-medium tabular-nums',
-                  item.change >= 0 ? 'text-emerald-500' : 'text-destructive'
-                )}>
-                  {formatChange(item.change)}
-                </div>
+                {indicesLoading ? (
+                  <Skeleton className="h-4 w-16" />
+                ) : (
+                  <>
+                    <div className="text-xs font-semibold text-foreground tabular-nums">
+                      {formatValue(item.value)}
+                    </div>
+                    <div className={cn(
+                      'text-[10px] font-medium tabular-nums',
+                      item.change >= 0 ? 'text-emerald-500' : 'text-destructive'
+                    )}>
+                      {formatChange(item.change)}
+                    </div>
+                  </>
+                )}
               </div>
               <div className={cn(
                 'text-[10px] font-semibold tabular-nums w-14 text-right',
                 item.changePercent >= 0 ? 'text-emerald-500' : 'text-destructive'
               )}>
-                {formatPercent(item.changePercent)}
+                {indicesLoading ? <Skeleton className="h-3 w-10" /> : formatPercent(item.changePercent)}
               </div>
             </button>
           ))}
@@ -213,13 +192,21 @@ export function MarketOverviewDashboard() {
         {/* Center Panel - Chart */}
         <div className="flex-1 p-3 min-w-[200px] flex items-center justify-center">
           <div className="h-[120px] w-full max-w-[300px]">
-            {sparklineData.length > 0 && selectedIndexData && (
+            {sparklineLoading ? (
+              <div className="w-full h-full flex items-center justify-center">
+                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+              </div>
+            ) : sparklineData && sparklineData.length > 0 && selectedIndexData ? (
               <MiniSparkline 
                 data={sparklineData}
                 height={120} 
                 width={300}
                 isPositive={selectedIndexData.changePercent >= 0}
               />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center text-xs text-muted-foreground">
+                No chart data available
+              </div>
             )}
           </div>
         </div>
@@ -228,41 +215,53 @@ export function MarketOverviewDashboard() {
         <div className="lg:w-[320px] border-t lg:border-t-0 lg:border-l border-border">
           <div className="flex items-center justify-between px-3 py-1.5 border-b border-border">
             <span className="text-xs font-semibold text-foreground">Latest News</span>
-            <button className="text-[10px] text-primary hover:underline flex items-center gap-0.5">
+            <button 
+              onClick={() => navigate('/market-intel')}
+              className="text-[10px] text-primary hover:underline flex items-center gap-0.5"
+            >
               See All News <ExternalLink className="h-2.5 w-2.5" />
             </button>
           </div>
           <div className="divide-y divide-border">
-            {MOCK_NEWS.map((news, idx) => (
-              <button
-                key={idx}
-                className="w-full flex items-start gap-2 px-3 py-1.5 text-left hover:bg-muted/30 transition-colors"
-              >
-                <span className="text-[10px] text-muted-foreground w-6 shrink-0 pt-0.5">
-                  {news.time}
-                </span>
-                <span className="text-[11px] text-foreground line-clamp-1 hover:text-primary transition-colors">
-                  {news.headline}
-                </span>
-              </button>
-            ))}
+            {headlinesLoading ? (
+              Array.from({ length: 6 }).map((_, idx) => (
+                <div key={idx} className="px-3 py-1.5">
+                  <Skeleton className="h-4 w-full" />
+                </div>
+              ))
+            ) : headlines && headlines.length > 0 ? (
+              headlines.map((news) => (
+                <button
+                  key={news.id}
+                  className="w-full flex items-start gap-2 px-3 py-1.5 text-left hover:bg-muted/30 transition-colors"
+                >
+                  <span className="text-[10px] text-muted-foreground w-6 shrink-0 pt-0.5 font-mono">
+                    {news.time}
+                  </span>
+                  <span className="text-[11px] text-foreground line-clamp-1 hover:text-primary transition-colors">
+                    {news.headline}
+                  </span>
+                </button>
+              ))
+            ) : (
+              <div className="py-4 text-center text-xs text-muted-foreground">
+                No recent news
+              </div>
+            )}
           </div>
         </div>
       </div>
 
-      {/* Bottom Ticker Bar */}
+      {/* Bottom Ticker Bar - Real data from news */}
       <div className="flex items-center gap-2 px-3 py-1.5 border-t border-border bg-muted/30 overflow-hidden">
-        <span className="shrink-0 text-[10px] font-bold text-destructive bg-destructive/10 px-1.5 py-0.5 rounded">
-          In Focus
+        <span className="shrink-0 text-[10px] font-bold text-primary bg-primary/10 px-1.5 py-0.5 rounded">
+          Live
         </span>
-        <span className="shrink-0 text-[10px] font-semibold text-foreground">NEWS</span>
+        <span className="shrink-0 text-[10px] font-semibold text-foreground">MARKETS</span>
         <div className="text-[10px] text-muted-foreground truncate">
-          Catalyst Watch: FOMC meeting, fintech IPOs • SA News Quiz
-        </div>
-        <span className="shrink-0 mx-2 text-muted-foreground">|</span>
-        <span className="shrink-0 text-[10px] font-semibold text-foreground">ANALYSIS</span>
-        <div className="text-[10px] text-muted-foreground truncate">
-          Oil May Be Heading For A Breakout • AAPL Bear Case • AAPL Bull Case
+          {headlines && headlines.length > 0 
+            ? headlines.slice(0, 2).map(h => h.headline).join(' • ')
+            : 'Loading market updates...'}
         </div>
       </div>
     </div>

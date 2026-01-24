@@ -4,31 +4,16 @@ import { Button } from '@/components/ui/button';
 import { 
   Search, Clock, X, TrendingUp, Sparkles, Building2, 
   Cpu, Heart, ShoppingCart, Zap, Factory, Landmark, BarChart3,
-  ArrowRight
+  ArrowRight, Loader2
 } from 'lucide-react';
 import { TickerSearchAutocomplete } from '@/components/shared/TickerSearchAutocomplete';
-import { useBatchQuotes } from '@/hooks/useMarketDataQuery';
+import { useTrendingTickers } from '@/hooks/useTrendingTickers';
 import { TickerCarousel } from '@/components/research/TickerCarousel';
 import { CategoryCard } from '@/components/research/CategoryCard';
 import { MarketOverviewDashboard } from '@/components/research/MarketOverviewDashboard';
 import { MarketIntelligenceSection } from '@/components/research/MarketIntelligenceSection';
 import { DiscoveryFeed } from '@/components/research/DiscoveryFeed';
 import { cn } from '@/lib/utils';
-// Market caps in billions (approximate for display)
-const POPULAR_TICKERS = [
-  { symbol: 'AAPL', name: 'Apple Inc.', marketCap: 3.4e12 },
-  { symbol: 'MSFT', name: 'Microsoft Corp.', marketCap: 3.1e12 },
-  { symbol: 'GOOGL', name: 'Alphabet Inc.', marketCap: 2.0e12 },
-  { symbol: 'AMZN', name: 'Amazon.com', marketCap: 1.9e12 },
-  { symbol: 'NVDA', name: 'NVIDIA Corp.', marketCap: 3.0e12 },
-  { symbol: 'TSLA', name: 'Tesla Inc.', marketCap: 800e9 },
-  { symbol: 'META', name: 'Meta Platforms', marketCap: 1.4e12 },
-  { symbol: 'SPY', name: 'S&P 500 ETF', marketCap: 500e9 },
-  { symbol: 'QQQ', name: 'Nasdaq 100 ETF', marketCap: 250e9 },
-  { symbol: 'JPM', name: 'JPMorgan Chase', marketCap: 600e9 },
-  { symbol: 'V', name: 'Visa Inc.', marketCap: 550e9 },
-  { symbol: 'UNH', name: 'UnitedHealth', marketCap: 450e9 },
-];
 
 const CATEGORIES = [
   { 
@@ -105,7 +90,8 @@ export default function ResearchPage() {
     return saved ? JSON.parse(saved) : [];
   });
 
-  const { quotes } = useBatchQuotes(POPULAR_TICKERS.map(t => t.symbol), { enabled: true });
+  // Fetch trending tickers from database with live quotes
+  const { tickers: trendingTickers, isLoading: tickersLoading } = useTrendingTickers(12);
 
   const handleSearch = (ticker: string) => {
     const normalized = ticker.toUpperCase().trim();
@@ -129,11 +115,13 @@ export default function ResearchPage() {
     }
   };
 
-  // Prepare ticker data with quotes
-  const tickersWithQuotes = POPULAR_TICKERS.map(t => ({
-    ...t,
-    price: quotes.get(t.symbol)?.price,
-    changePercent: quotes.get(t.symbol)?.changePercent
+  // Prepare ticker data for carousel
+  const tickersWithQuotes = trendingTickers.map(t => ({
+    symbol: t.symbol,
+    name: t.name,
+    price: t.price,
+    changePercent: t.changePercent ?? undefined,
+    marketCap: t.marketCap ?? undefined,
   }));
 
   return (
@@ -228,15 +216,28 @@ export default function ResearchPage() {
                 <TrendingUp className="h-4 w-4 text-primary" />
               </div>
               <h2 className="text-lg font-semibold text-foreground">Trending Now</h2>
+              {tickersLoading && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
             </div>
             <span className="text-xs text-muted-foreground">
               Swipe to explore →
             </span>
           </div>
-          <TickerCarousel 
-            tickers={tickersWithQuotes} 
-            onTickerClick={handleSearch} 
-          />
+          {tickersWithQuotes.length > 0 ? (
+            <TickerCarousel 
+              tickers={tickersWithQuotes} 
+              onTickerClick={handleSearch} 
+            />
+          ) : tickersLoading ? (
+            <div className="flex gap-4 overflow-hidden">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <div key={i} className="w-[220px] h-[200px] bg-muted/50 rounded-xl animate-pulse shrink-0" />
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-8 text-muted-foreground">
+              No trending tickers available
+            </div>
+          )}
         </section>
 
         {/* Market Intelligence Section - Trending/Most Active, Screener, News */}
