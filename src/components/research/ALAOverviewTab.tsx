@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { TrendingUp, TrendingDown, RefreshCw, Building2, Globe } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { QuickHistoricalInsights, StreakData, HistoricalPattern } from './QuickHistoricalInsights';
-import { BasicStatistics, BasicStatsData } from './BasicStatistics';
+import { BasicStatsData } from './BasicStatistics';
 import { CandlestickChart } from '@/components/charts/CandlestickChart';
 import { useTickerSnapshot } from '@/hooks/useTickerSnapshot';
 import { useTickerFundamentals } from '@/hooks/useTickerFundamentals';
@@ -49,7 +49,6 @@ export function ALAOverviewTab({
   onRefresh,
   isRefreshing = false,
 }: ALAOverviewTabProps) {
-  const [statsTimeRange, setStatsTimeRange] = useState<'1Y' | '3Y' | '5Y'>('3Y');
 
   // Fetch real data from edge functions
   const { data: snapshot, isLoading: snapshotLoading } = useTickerSnapshot(ticker);
@@ -289,14 +288,112 @@ export function ALAOverviewTab({
         </CardContent>
       </Card>
 
-      {/* CHART: Full width with built-in time range selector */}
-      <CandlestickChart 
-        symbol={ticker} 
-        height={320}
-        showVolume={true}
-        showRangeSelector={true}
-        defaultRange="3M"
-      />
+      {/* CHART + QUICK STATS: Side by side on desktop */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 md:gap-4">
+        {/* Chart - takes 2/3 on desktop */}
+        <div className="lg:col-span-2">
+          <CandlestickChart 
+            symbol={ticker} 
+            height={280}
+            showVolume={true}
+            showRangeSelector={true}
+            defaultRange="3M"
+          />
+        </div>
+        
+        {/* Up/Down Day Stats - takes 1/3 on desktop */}
+        <Card className="bg-card border-border">
+          <CardHeader className="pb-2 pt-3">
+            <div className="flex items-center gap-2">
+              <TrendingUp className="h-4 w-4 text-primary" />
+              <CardTitle className="text-sm font-medium">Day Statistics</CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-3 pt-0">
+            {/* Up/Down/Flat Summary */}
+            {basicStats ? (
+              <>
+                <div className="grid grid-cols-3 gap-2">
+                  <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-lg p-2 text-center">
+                    <div className="flex items-center justify-center gap-1 text-emerald-400 mb-0.5">
+                      <TrendingUp className="h-3 w-3" />
+                      <span className="text-[10px]">Up</span>
+                    </div>
+                    <p className="text-lg font-bold text-emerald-400">{basicStats.upDays}</p>
+                    <p className="text-[10px] text-emerald-400/70">
+                      {((basicStats.upDays / basicStats.totalDays) * 100).toFixed(0)}%
+                    </p>
+                  </div>
+                  <div className="bg-rose-500/10 border border-rose-500/20 rounded-lg p-2 text-center">
+                    <div className="flex items-center justify-center gap-1 text-rose-400 mb-0.5">
+                      <TrendingDown className="h-3 w-3" />
+                      <span className="text-[10px]">Down</span>
+                    </div>
+                    <p className="text-lg font-bold text-rose-400">{basicStats.downDays}</p>
+                    <p className="text-[10px] text-rose-400/70">
+                      {((basicStats.downDays / basicStats.totalDays) * 100).toFixed(0)}%
+                    </p>
+                  </div>
+                  <div className="bg-secondary/50 border border-border rounded-lg p-2 text-center">
+                    <div className="flex items-center justify-center gap-1 text-muted-foreground mb-0.5">
+                      <span className="text-[10px]">Flat</span>
+                    </div>
+                    <p className="text-lg font-bold">{basicStats.flatDays}</p>
+                    <p className="text-[10px] text-muted-foreground">
+                      {((basicStats.flatDays / basicStats.totalDays) * 100).toFixed(0)}%
+                    </p>
+                  </div>
+                </div>
+                
+                {/* Stacked Bar */}
+                <div className="h-2 rounded-full overflow-hidden flex">
+                  <div 
+                    className="bg-emerald-500 h-full" 
+                    style={{ width: `${(basicStats.upDays / basicStats.totalDays) * 100}%` }}
+                  />
+                  <div 
+                    className="bg-rose-500 h-full" 
+                    style={{ width: `${(basicStats.downDays / basicStats.totalDays) * 100}%` }}
+                  />
+                  <div 
+                    className="bg-muted h-full" 
+                    style={{ width: `${(basicStats.flatDays / basicStats.totalDays) * 100}%` }}
+                  />
+                </div>
+
+                {/* Best/Worst Days */}
+                <div className="grid grid-cols-2 gap-2 pt-1">
+                  <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-lg p-2">
+                    <p className="text-[10px] text-emerald-400 mb-0.5">Best Day</p>
+                    <p className="text-base font-bold text-emerald-400">+{basicStats.bestDay.change.toFixed(1)}%</p>
+                    <p className="text-[9px] text-muted-foreground">{basicStats.bestDay.date}</p>
+                  </div>
+                  <div className="bg-rose-500/10 border border-rose-500/20 rounded-lg p-2">
+                    <p className="text-[10px] text-rose-400 mb-0.5">Worst Day</p>
+                    <p className="text-base font-bold text-rose-400">{basicStats.worstDay.change.toFixed(1)}%</p>
+                    <p className="text-[9px] text-muted-foreground">{basicStats.worstDay.date}</p>
+                  </div>
+                </div>
+
+                {/* Avg Daily Move */}
+                <div className="bg-primary/5 border border-primary/20 rounded-lg p-2 text-center">
+                  <p className="text-[10px] text-muted-foreground">Avg Daily Move</p>
+                  <p className="text-lg font-bold">${basicStats.avgDailyMove.toFixed(2)}</p>
+                  <p className="text-[10px] text-muted-foreground">({basicStats.avgDailyMovePercent.toFixed(2)}%)</p>
+                </div>
+
+                <p className="text-[10px] text-muted-foreground text-center">
+                  Based on {basicStats.totalDays} trading days
+                </p>
+              </>
+            ) : (
+              <div className="flex items-center justify-center h-32 text-muted-foreground text-sm">
+                Loading statistics...
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
 
       {/* ABOUT SECTION: Below chart */}
       {description && (
@@ -391,14 +488,7 @@ export function ALAOverviewTab({
         isLoading={snapshotLoading}
       />
 
-      {/* Basic Statistics */}
-      <BasicStatistics 
-        ticker={ticker} 
-        stats={basicStats}
-        timeRange={statsTimeRange}
-        onTimeRangeChange={setStatsTimeRange}
-        isLoading={snapshotLoading}
-      />
+      {/* Basic Statistics removed - now shown inline next to chart */}
     </div>
   );
 }
