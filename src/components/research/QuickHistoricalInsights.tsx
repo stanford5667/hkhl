@@ -154,14 +154,14 @@ export function QuickHistoricalInsights({
           </div>
         </div>
 
-        {/* What History Says - Compact */}
-        <div className="p-1.5 bg-secondary/20 rounded border border-border">
-          <div className="flex items-center gap-1 mb-0.5">
-            <Lightbulb className="h-3 w-3 text-primary" />
-            <span className="text-[9px] font-medium">Historical Context</span>
+        {/* What History Says */}
+        <div className="p-2 bg-secondary/20 rounded border border-border">
+          <div className="flex items-center gap-1.5 mb-1">
+            <Lightbulb className="h-3.5 w-3.5 text-primary" />
+            <span className="text-xs font-medium">What History Says</span>
           </div>
-          <p className="text-[9px] text-muted-foreground">
-            After {streakData.consecutiveDays} consecutive {isDownStreak ? 'down' : 'up'} days, {ticker} has historically reversed direction <span className="font-medium text-foreground">{streakData.bounceProbability}%</span> of the time, with an average next-day move of <span className="font-medium text-foreground">{streakData.avgRecovery.toFixed(1)}%</span>.
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            After {streakData.consecutiveDays} {isDownStreak ? 'down' : 'up'} days, {ticker} bounced <span className="font-semibold text-primary">{streakData.bounceProbability}%</span> of the time with avg <span className="font-semibold text-foreground">+{streakData.avgRecovery.toFixed(1)}%</span> return.
           </p>
         </div>
 
