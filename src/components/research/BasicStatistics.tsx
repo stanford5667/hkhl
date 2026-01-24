@@ -97,160 +97,135 @@ export function BasicStatistics({
   const flatPercent = ((stats.flatDays / stats.totalDays) * 100).toFixed(1);
 
   return (
-    <Card className="bg-card border-border">
-      <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <BarChart3 className="h-4 w-4 text-primary" />
-            <CardTitle className="text-base font-medium">Basic Statistics</CardTitle>
-          </div>
-          <Select value={timeRange} onValueChange={(v) => onTimeRangeChange?.(v as any)}>
-            <SelectTrigger className="w-24 h-8 text-xs">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="1Y">1 Year</SelectItem>
-              <SelectItem value="3Y">3 Years</SelectItem>
-              <SelectItem value="5Y">5 Years</SelectItem>
-            </SelectContent>
-          </Select>
+    <Card className="bg-card border-border p-2">
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center gap-1.5">
+          <BarChart3 className="h-3.5 w-3.5 text-primary" />
+          <span className="text-xs font-medium">Basic Statistics</span>
         </div>
-        <p className="text-xs text-muted-foreground mt-1">
-          Key metrics based on {stats.totalDays} trading days of {ticker} data.{' '}
-          <span className="text-primary cursor-pointer hover:underline">Click any metric to learn more.</span>
-        </p>
-      </CardHeader>
+        <Select value={timeRange} onValueChange={(v) => onTimeRangeChange?.(v as any)}>
+          <SelectTrigger className="w-16 h-6 text-[10px] px-2">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="1Y" className="text-xs">1Y</SelectItem>
+            <SelectItem value="3Y" className="text-xs">3Y</SelectItem>
+            <SelectItem value="5Y" className="text-xs">5Y</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
       
-      <CardContent className="space-y-6">
+      <div className="space-y-3">
         {/* Average Daily Move */}
-        <div className="space-y-2">
-          <div className="flex items-center gap-2">
-            <Activity className="h-4 w-4 text-emerald-400" />
-            <span className="text-sm font-medium text-emerald-400">Average Daily Move</span>
-            <Info className="h-3.5 w-3.5 text-muted-foreground" />
+        <div className="p-2 bg-secondary/20 rounded border border-border">
+          <div className="flex items-center gap-1.5 mb-1">
+            <Activity className="h-3.5 w-3.5 text-emerald-400" />
+            <span className="text-xs font-medium text-emerald-400">Average Daily Move</span>
           </div>
-          <div className="flex items-baseline gap-2">
-            <Zap className="h-5 w-5 text-muted-foreground" />
-            <span className="text-3xl font-bold">${stats.avgDailyMove.toFixed(2)}</span>
-            <span className="text-muted-foreground">/ day</span>
-            <span className="text-muted-foreground">({stats.avgDailyMovePercent.toFixed(2)}%)</span>
+          <div className="flex items-baseline gap-1.5 mb-1">
+            <span className="text-xl font-bold">${stats.avgDailyMove.toFixed(2)}</span>
+            <span className="text-[10px] text-muted-foreground">/ day</span>
+            <span className="text-[10px] text-muted-foreground">({stats.avgDailyMovePercent.toFixed(2)}%)</span>
           </div>
-          <p className="text-sm text-muted-foreground">
-            On a typical day, {ticker} moves about ${stats.avgDailyMove.toFixed(2)} (or {stats.avgDailyMovePercent.toFixed(2)}%) 
+          <p className="text-[10px] text-muted-foreground leading-relaxed">
+            On a typical day, {ticker} moves about ${stats.avgDailyMove.toFixed(2)} ({stats.avgDailyMovePercent.toFixed(2)}%) 
             from its opening price. This helps you understand how much daily fluctuation to expect.
           </p>
         </div>
 
         {/* Up Days vs Down Days */}
-        <div className="space-y-3">
-          <div className="flex items-center gap-2">
-            <TrendingUp className="h-4 w-4 text-emerald-400" />
-            <span className="text-sm font-medium text-emerald-400">Up Days vs Down Days</span>
-            <Info className="h-3.5 w-3.5 text-muted-foreground" />
+        <div className="p-2 bg-secondary/20 rounded border border-border">
+          <div className="flex items-center gap-1.5 mb-2">
+            <TrendingUp className="h-3.5 w-3.5 text-emerald-400" />
+            <span className="text-xs font-medium text-emerald-400">Up Days vs Down Days</span>
           </div>
           
-          <div className="grid grid-cols-3 gap-3">
-            {/* Up Days */}
-            <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-lg p-4 text-center">
-              <div className="flex items-center justify-center gap-1 text-emerald-400 mb-1">
-                <TrendingUp className="h-4 w-4" />
-                <span className="text-xs">Up Days</span>
+          <div className="grid grid-cols-3 gap-1.5 mb-2">
+            <div className="bg-emerald-500/10 border border-emerald-500/20 rounded p-2 text-center">
+              <div className="flex items-center justify-center gap-0.5 text-emerald-400 mb-0.5">
+                <TrendingUp className="h-3 w-3" />
+                <span className="text-[9px]">Up</span>
               </div>
-              <p className="text-3xl font-bold text-emerald-400">{stats.upDays}</p>
-              <p className="text-xs text-emerald-400/70">{upPercent}%</p>
+              <p className="text-lg font-bold text-emerald-400">{stats.upDays}</p>
+              <p className="text-[9px] text-emerald-400/70">{upPercent}%</p>
             </div>
             
-            {/* Down Days */}
-            <div className="bg-rose-500/10 border border-rose-500/20 rounded-lg p-4 text-center">
-              <div className="flex items-center justify-center gap-1 text-rose-400 mb-1">
-                <TrendingDown className="h-4 w-4" />
-                <span className="text-xs">Down Days</span>
+            <div className="bg-rose-500/10 border border-rose-500/20 rounded p-2 text-center">
+              <div className="flex items-center justify-center gap-0.5 text-rose-400 mb-0.5">
+                <TrendingDown className="h-3 w-3" />
+                <span className="text-[9px]">Down</span>
               </div>
-              <p className="text-3xl font-bold text-rose-400">{stats.downDays}</p>
-              <p className="text-xs text-rose-400/70">{downPercent}%</p>
+              <p className="text-lg font-bold text-rose-400">{stats.downDays}</p>
+              <p className="text-[9px] text-rose-400/70">{downPercent}%</p>
             </div>
             
-            {/* Flat Days */}
-            <div className="bg-secondary/50 border border-border rounded-lg p-4 text-center">
-              <div className="flex items-center justify-center gap-1 text-muted-foreground mb-1">
-                <Minus className="h-4 w-4" />
-                <span className="text-xs">Flat</span>
+            <div className="bg-secondary/50 border border-border rounded p-2 text-center">
+              <div className="flex items-center justify-center gap-0.5 text-muted-foreground mb-0.5">
+                <Minus className="h-3 w-3" />
+                <span className="text-[9px]">Flat</span>
               </div>
-              <p className="text-3xl font-bold">{stats.flatDays}</p>
-              <p className="text-xs text-muted-foreground">{flatPercent}%</p>
+              <p className="text-lg font-bold">{stats.flatDays}</p>
+              <p className="text-[9px] text-muted-foreground">{flatPercent}%</p>
             </div>
           </div>
           
           {/* Stacked Bar */}
-          <div className="h-3 rounded-full overflow-hidden flex">
-            <div 
-              className="bg-emerald-500 h-full" 
-              style={{ width: `${upPercent}%` }}
-            />
-            <div 
-              className="bg-rose-500 h-full" 
-              style={{ width: `${downPercent}%` }}
-            />
-            <div 
-              className="bg-muted h-full" 
-              style={{ width: `${flatPercent}%` }}
-            />
+          <div className="h-2 rounded-full overflow-hidden flex mb-2">
+            <div className="bg-emerald-500 h-full" style={{ width: `${upPercent}%` }} />
+            <div className="bg-rose-500 h-full" style={{ width: `${downPercent}%` }} />
+            <div className="bg-muted h-full" style={{ width: `${flatPercent}%` }} />
           </div>
           
-          <p className="text-sm text-muted-foreground">
-            {ticker} has closed higher than it opened on {upPercent}% of trading days. 
-            This means for roughly every {Math.round(Number(upPercent) / (100 - Number(upPercent)))} up days, 
-            there has been 1 down day.
+          <p className="text-[10px] text-muted-foreground leading-relaxed">
+            {ticker} has closed higher than it opened on <span className="font-medium text-foreground">{upPercent}%</span> of trading days. 
+            For roughly every {Math.max(1, Math.round(Number(upPercent) / Math.max(1, 100 - Number(upPercent))))} up days, there has been 1 down day.
           </p>
         </div>
 
         {/* Extreme Days */}
-        <div className="space-y-3">
-          <div className="flex items-center gap-2">
-            <Zap className="h-4 w-4 text-amber-400" />
-            <span className="text-sm font-medium text-amber-400">Extreme Days (Best & Worst)</span>
-            <Info className="h-3.5 w-3.5 text-muted-foreground" />
+        <div className="p-2 bg-secondary/20 rounded border border-border">
+          <div className="flex items-center gap-1.5 mb-2">
+            <Zap className="h-3.5 w-3.5 text-amber-400" />
+            <span className="text-xs font-medium text-amber-400">Extreme Days (Best & Worst)</span>
           </div>
           
-          <div className="grid grid-cols-2 gap-3">
-            {/* Best Day */}
-            <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-lg p-4">
-              <div className="flex items-center gap-1 text-emerald-400 mb-2">
-                <TrendingUp className="h-4 w-4" />
-                <span className="text-xs font-medium">Best Day</span>
+          <div className="grid grid-cols-2 gap-1.5 mb-2">
+            <div className="bg-emerald-500/10 border border-emerald-500/20 rounded p-2">
+              <div className="flex items-center gap-1 text-emerald-400 mb-1">
+                <TrendingUp className="h-3 w-3" />
+                <span className="text-[9px] font-medium">Best Day</span>
               </div>
-              <p className="text-2xl font-bold text-emerald-400">+{stats.bestDay.change.toFixed(2)}%</p>
-              <p className="text-xs text-muted-foreground">{stats.bestDay.date}</p>
+              <p className="text-base font-bold text-emerald-400">+{stats.bestDay.change.toFixed(2)}%</p>
+              <p className="text-[9px] text-muted-foreground">{stats.bestDay.date}</p>
             </div>
             
-            {/* Worst Day */}
-            <div className="bg-rose-500/10 border border-rose-500/20 rounded-lg p-4">
-              <div className="flex items-center gap-1 text-rose-400 mb-2">
-                <TrendingDown className="h-4 w-4" />
-                <span className="text-xs font-medium">Worst Day</span>
+            <div className="bg-rose-500/10 border border-rose-500/20 rounded p-2">
+              <div className="flex items-center gap-1 text-rose-400 mb-1">
+                <TrendingDown className="h-3 w-3" />
+                <span className="text-[9px] font-medium">Worst Day</span>
               </div>
-              <p className="text-2xl font-bold text-rose-400">{stats.worstDay.change.toFixed(2)}%</p>
-              <p className="text-xs text-muted-foreground">{stats.worstDay.date}</p>
+              <p className="text-base font-bold text-rose-400">{stats.worstDay.change.toFixed(2)}%</p>
+              <p className="text-[9px] text-muted-foreground">{stats.worstDay.date}</p>
             </div>
           </div>
           
           {/* Top 5 Lists */}
-          <div className="grid grid-cols-2 gap-4 pt-2">
+          <div className="grid grid-cols-2 gap-2 mb-2">
             <div>
-              <p className="text-xs text-muted-foreground mb-2">Top 5 Best Days</p>
-              <div className="flex flex-wrap gap-1.5">
+              <p className="text-[9px] text-muted-foreground mb-1">Top 5 Best</p>
+              <div className="flex flex-wrap gap-1">
                 {stats.topBestDays.map((day, i) => (
-                  <Badge key={i} variant="outline" className="text-emerald-400 border-emerald-500/30 text-xs">
+                  <Badge key={i} variant="outline" className="text-emerald-400 border-emerald-500/30 text-[9px] px-1 py-0">
                     +{day.toFixed(1)}%
                   </Badge>
                 ))}
               </div>
             </div>
             <div>
-              <p className="text-xs text-muted-foreground mb-2">Top 5 Worst Days</p>
-              <div className="flex flex-wrap gap-1.5">
+              <p className="text-[9px] text-muted-foreground mb-1">Top 5 Worst</p>
+              <div className="flex flex-wrap gap-1">
                 {stats.topWorstDays.map((day, i) => (
-                  <Badge key={i} variant="outline" className="text-rose-400 border-rose-500/30 text-xs">
+                  <Badge key={i} variant="outline" className="text-rose-400 border-rose-500/30 text-[9px] px-1 py-0">
                     {day.toFixed(1)}%
                   </Badge>
                 ))}
@@ -258,12 +233,12 @@ export function BasicStatistics({
             </div>
           </div>
           
-          <p className="text-sm text-muted-foreground">
-            The best single day saw a gain of +{stats.bestDay.change.toFixed(2)}%, while the worst day dropped {Math.abs(stats.worstDay.change).toFixed(2)}%. 
+          <p className="text-[10px] text-muted-foreground leading-relaxed">
+            The best single day saw a gain of <span className="font-medium text-emerald-400">+{stats.bestDay.change.toFixed(2)}%</span>, while the worst day dropped <span className="font-medium text-rose-400">{Math.abs(stats.worstDay.change).toFixed(2)}%</span>. 
             These extremes are rare but important to understand when investing.
           </p>
         </div>
-      </CardContent>
+      </div>
     </Card>
   );
 }
