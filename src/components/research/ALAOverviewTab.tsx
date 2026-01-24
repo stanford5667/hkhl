@@ -218,10 +218,7 @@ export function ALAOverviewTab({
               <span className="text-lg md:text-xl font-bold tabular-nums text-foreground">
                 {formatCurrency(quote?.price || 0)}
               </span>
-              <span className={cn(
-                "flex items-center gap-0.5 text-[10px] md:text-xs font-medium shrink-0",
-                isPositive ? "text-emerald-400" : "text-rose-400"
-              )}>
+              <span className="flex items-center gap-0.5 text-[10px] md:text-xs font-medium shrink-0 text-muted-foreground">
                 {isPositive ? <TrendingUp className="h-2.5 w-2.5" /> : <TrendingDown className="h-2.5 w-2.5" />}
                 <span className="tabular-nums">
                   {isPositive ? '+' : ''}{(quote?.change || 0).toFixed(2)} ({isPositive ? '+' : ''}{(quote?.changePercent || 0).toFixed(2)}%)
@@ -243,11 +240,11 @@ export function ALAOverviewTab({
             </div>
             <div>
               <p className="text-[7px] md:text-[8px] text-muted-foreground uppercase">High</p>
-              <p className="text-[9px] md:text-[10px] font-semibold tabular-nums text-emerald-400">{formatCurrency(quote?.high || 0)}</p>
+              <p className="text-[9px] md:text-[10px] font-semibold tabular-nums">{formatCurrency(quote?.high || 0)}</p>
             </div>
             <div>
               <p className="text-[7px] md:text-[8px] text-muted-foreground uppercase">Low</p>
-              <p className="text-[9px] md:text-[10px] font-semibold tabular-nums text-rose-400">{formatCurrency(quote?.low || 0)}</p>
+              <p className="text-[9px] md:text-[10px] font-semibold tabular-nums">{formatCurrency(quote?.low || 0)}</p>
             </div>
             <div>
               <p className="text-[7px] md:text-[8px] text-muted-foreground uppercase">Prev</p>
@@ -285,11 +282,11 @@ export function ALAOverviewTab({
         
         {/* 52-Week Range - Inline bar, no card wrapper */}
         <div className="flex items-center gap-2 px-1">
-          <span className="text-[7px] md:text-[8px] text-muted-foreground">52W</span>
+          <span className="text-[7px] md:text-[8px] text-muted-foreground">52W Range</span>
           <div className="flex-1 relative h-1 bg-secondary rounded-full overflow-hidden">
-            <div className="absolute top-0 left-0 h-full w-full bg-gradient-to-r from-rose-500 via-amber-500 to-emerald-500 rounded-full" />
+            <div className="absolute top-0 left-0 h-full w-full bg-gradient-to-r from-muted-foreground/40 via-muted-foreground/60 to-muted-foreground/80 rounded-full" />
             <div 
-              className="absolute top-1/2 -translate-y-1/2 w-1.5 h-1.5 bg-white rounded-full border border-primary"
+              className="absolute top-1/2 -translate-y-1/2 w-1.5 h-1.5 bg-foreground rounded-full border border-primary"
               style={{ left: `calc(${Math.min(100, Math.max(0, rangePosition))}% - 3px)` }}
             />
           </div>
@@ -299,42 +296,39 @@ export function ALAOverviewTab({
         </div>
       </div>
 
-      {/* Day Statistics - Horizontal compact layout */}
+      {/* Trading Day Summary - Clear descriptive labels */}
       {basicStats && (
-        <div className="grid grid-cols-6 gap-1">
-          {/* Up/Down/Flat inline */}
-          <div className="bg-emerald-500/10 border border-emerald-500/20 rounded px-1 py-0.5 text-center">
-            <div className="flex items-center justify-center gap-0.5 text-emerald-400">
-              <TrendingUp className="h-2 w-2" />
-              <span className="text-[7px]">Up</span>
+        <Card className="bg-card border-border">
+          <CardContent className="p-2">
+            <p className="text-[9px] text-muted-foreground mb-1.5">Past {basicStats.totalDays} trading days breakdown</p>
+            <div className="grid grid-cols-3 md:grid-cols-6 gap-1">
+              <div className="bg-secondary/50 border border-border rounded px-1.5 py-1 text-center">
+                <span className="text-[8px] text-muted-foreground block">Days Closing Higher</span>
+                <p className="text-xs font-bold leading-tight">{basicStats.upDays}</p>
+              </div>
+              <div className="bg-secondary/50 border border-border rounded px-1.5 py-1 text-center">
+                <span className="text-[8px] text-muted-foreground block">Days Closing Lower</span>
+                <p className="text-xs font-bold leading-tight">{basicStats.downDays}</p>
+              </div>
+              <div className="bg-secondary/50 border border-border rounded px-1.5 py-1 text-center">
+                <span className="text-[8px] text-muted-foreground block">Unchanged Days</span>
+                <p className="text-xs font-bold leading-tight">{basicStats.flatDays}</p>
+              </div>
+              <div className="bg-secondary/50 border border-border rounded px-1.5 py-1 text-center">
+                <span className="text-[8px] text-muted-foreground block">Biggest Single-Day Gain</span>
+                <p className="text-xs font-bold leading-tight">+{basicStats.bestDay.change.toFixed(1)}%</p>
+              </div>
+              <div className="bg-secondary/50 border border-border rounded px-1.5 py-1 text-center">
+                <span className="text-[8px] text-muted-foreground block">Biggest Single-Day Loss</span>
+                <p className="text-xs font-bold leading-tight">{basicStats.worstDay.change.toFixed(1)}%</p>
+              </div>
+              <div className="bg-secondary/50 border border-border rounded px-1.5 py-1 text-center">
+                <span className="text-[8px] text-muted-foreground block">Avg Daily Movement</span>
+                <p className="text-xs font-bold leading-tight">{basicStats.avgDailyMovePercent.toFixed(2)}%</p>
+              </div>
             </div>
-            <p className="text-[10px] font-bold text-emerald-400 leading-tight">{basicStats.upDays}</p>
-          </div>
-          <div className="bg-rose-500/10 border border-rose-500/20 rounded px-1 py-0.5 text-center">
-            <div className="flex items-center justify-center gap-0.5 text-rose-400">
-              <TrendingDown className="h-2 w-2" />
-              <span className="text-[7px]">Down</span>
-            </div>
-            <p className="text-[10px] font-bold text-rose-400 leading-tight">{basicStats.downDays}</p>
-          </div>
-          <div className="bg-secondary/50 border border-border rounded px-1 py-0.5 text-center">
-            <span className="text-[7px] text-muted-foreground">Flat</span>
-            <p className="text-[10px] font-bold leading-tight">{basicStats.flatDays}</p>
-          </div>
-          {/* Best/Worst inline */}
-          <div className="bg-emerald-500/10 border border-emerald-500/20 rounded px-1 py-0.5 text-center">
-            <span className="text-[7px] text-emerald-400">Best</span>
-            <p className="text-[10px] font-bold text-emerald-400 leading-tight">+{basicStats.bestDay.change.toFixed(1)}%</p>
-          </div>
-          <div className="bg-rose-500/10 border border-rose-500/20 rounded px-1 py-0.5 text-center">
-            <span className="text-[7px] text-rose-400">Worst</span>
-            <p className="text-[10px] font-bold text-rose-400 leading-tight">{basicStats.worstDay.change.toFixed(1)}%</p>
-          </div>
-          <div className="bg-primary/5 border border-primary/20 rounded px-1 py-0.5 text-center">
-            <span className="text-[7px] text-muted-foreground">Avg</span>
-            <p className="text-[10px] font-bold leading-tight">{basicStats.avgDailyMovePercent.toFixed(2)}%</p>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
       )}
 
       {/* Analyst & Financials Card - Compact */}
@@ -352,7 +346,7 @@ export function ALAOverviewTab({
               {priceTarget ? (
                 <p className="text-[9px] md:text-[10px] font-semibold">
                   {formatCurrency(priceTarget)}
-                  <span className={cn("ml-0.5 text-[7px]", priceTarget > (quote?.price || 0) ? "text-emerald-400" : "text-rose-400")}>
+                  <span className="ml-0.5 text-[7px] text-muted-foreground">
                     ({priceTarget > (quote?.price || 0) ? '+' : ''}{(((priceTarget - (quote?.price || 0)) / (quote?.price || 1)) * 100).toFixed(0)}%)
                   </span>
                 </p>
