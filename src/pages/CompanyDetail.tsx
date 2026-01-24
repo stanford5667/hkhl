@@ -264,10 +264,6 @@ export default function CompanyDetail() {
             </div>
           </div>
         </div>
-        <Button variant="outline" onClick={() => setEditDialogOpen(true)}>
-          <Edit className="h-4 w-4 mr-2" />
-          Edit
-        </Button>
       </div>
 
       {/* Key Metrics - Different for public vs private companies */}
