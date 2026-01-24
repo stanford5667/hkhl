@@ -236,31 +236,21 @@ export function CandlestickChart({
       const data = candleSeriesRef.current.data();
       if (!data || data.length === 0 || !visibleRange) return;
       
-      const fullDataRange = data.length - 1; // 0-indexed logical range
+      const dataLength = data.length;
       const currentRangeSize = visibleRange.to - visibleRange.from;
       
-      // If already showing full range or more, just fit content
-      if (currentRangeSize >= fullDataRange) {
+      // If already showing 90%+ of full range, just fit content perfectly
+      if (currentRangeSize >= dataLength * 0.9) {
         timeScale.fitContent();
         return;
       }
       
-      // Calculate new size, but cap it at full data range
-      const newSize = Math.min(currentRangeSize * 2, fullDataRange);
-      const center = (visibleRange.from + visibleRange.to) / 2;
+      // Calculate new size, but cap it at data length
+      const newSize = Math.min(currentRangeSize * 2, dataLength);
       
-      // Clamp the range to stay within data bounds
-      let newFrom = center - newSize / 2;
-      let newTo = center + newSize / 2;
-      
-      if (newFrom < 0) {
-        newFrom = 0;
-        newTo = newSize;
-      }
-      if (newTo > fullDataRange) {
-        newTo = fullDataRange;
-        newFrom = Math.max(0, fullDataRange - newSize);
-      }
+      // Always anchor to end of data (right side) to prevent white space on right
+      const newTo = dataLength - 1;
+      const newFrom = Math.max(0, newTo - newSize);
       
       timeScale.setVisibleLogicalRange({ from: newFrom, to: newTo });
     }
