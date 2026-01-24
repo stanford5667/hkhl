@@ -254,9 +254,9 @@ export function ALAOverviewTab({
   const realBeta = analystData?.financials?.beta || undefined;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6">
       {/* Two-Column Layout: Stock Info + Chart */}
-      <div className="grid grid-cols-1 lg:grid-cols-[380px_1fr] gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-[340px_1fr] gap-4 md:gap-6">
         {/* Left: Stock Info Card */}
         <ALAStockInfoCard
           ticker={ticker}
@@ -284,43 +284,43 @@ export function ALAOverviewTab({
 
         {/* Right: Price Chart */}
         <Card className="bg-card border-border">
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between flex-wrap gap-2">
-              <div className="flex items-center gap-3">
-                <CardTitle className="text-base font-medium">Price Chart</CardTitle>
-                <div className="flex items-center gap-1">
-                  <TrendingUp className={cn("h-4 w-4", isChartPositive ? "text-emerald-400" : "text-rose-400")} />
-                  <span className={cn("text-sm font-medium", isChartPositive ? "text-emerald-400" : "text-rose-400")}>
-                    {chartChange.percent >= 0 ? '+' : ''}{chartChange.value.toFixed(2)} ({chartChange.percent >= 0 ? '+' : ''}{chartChange.percent.toFixed(2)}%)
+          <CardHeader className="pb-2 md:pb-3 px-3 md:px-6 pt-3 md:pt-6">
+            <div className="flex items-center justify-between flex-wrap gap-1.5 md:gap-2">
+              <div className="flex items-center gap-1.5 md:gap-3">
+                <CardTitle className="text-sm md:text-base font-medium">Chart</CardTitle>
+                <div className="flex items-center gap-0.5 md:gap-1">
+                  <TrendingUp className={cn("h-3 w-3 md:h-4 md:w-4", isChartPositive ? "text-emerald-400" : "text-rose-400")} />
+                  <span className={cn("text-xs md:text-sm font-medium", isChartPositive ? "text-emerald-400" : "text-rose-400")}>
+                    {chartChange.percent >= 0 ? '+' : ''}{chartChange.percent.toFixed(2)}%
                   </span>
                 </div>
-                <Badge variant="secondary" className="text-xs">{chartTimeframe}</Badge>
+                <Badge variant="secondary" className="text-[10px] md:text-xs px-1.5">{chartTimeframe}</Badge>
               </div>
               
-              <div className="flex items-center gap-4">
-                {/* Toggle Controls */}
-                <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 md:gap-4 flex-wrap">
+                {/* Toggle Controls - Hidden on mobile */}
+                <div className="hidden md:flex items-center gap-2">
                   <Switch 
                     id="levels" 
                     checked={showLevels} 
                     onCheckedChange={setShowLevels}
-                    className="data-[state=checked]:bg-primary"
+                    className="data-[state=checked]:bg-primary scale-90"
                   />
-                  <label htmlFor="levels" className="text-xs text-muted-foreground flex items-center gap-1">
-                    <Layers className="h-3.5 w-3.5" />
+                  <label htmlFor="levels" className="text-[10px] md:text-xs text-muted-foreground flex items-center gap-1">
+                    <Layers className="h-3 w-3" />
                     Levels
                   </label>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="hidden md:flex items-center gap-2">
                   <Switch 
                     id="probability" 
                     checked={showProbability} 
                     onCheckedChange={setShowProbability}
-                    className="data-[state=checked]:bg-primary"
+                    className="data-[state=checked]:bg-primary scale-90"
                   />
-                  <label htmlFor="probability" className="text-xs text-muted-foreground flex items-center gap-1">
-                    <Activity className="h-3.5 w-3.5" />
-                    Probability
+                  <label htmlFor="probability" className="text-[10px] md:text-xs text-muted-foreground flex items-center gap-1">
+                    <Activity className="h-3 w-3" />
+                    Prob
                   </label>
                 </div>
                 
@@ -336,7 +336,7 @@ export function ALAOverviewTab({
                       key={tf} 
                       value={tf} 
                       className={cn(
-                        "text-xs px-2.5 py-1 h-7 data-[state=on]:bg-primary data-[state=on]:text-primary-foreground",
+                        "text-[10px] md:text-xs px-1.5 md:px-2.5 py-0.5 md:py-1 h-6 md:h-7 data-[state=on]:bg-primary data-[state=on]:text-primary-foreground",
                         chartTimeframe === tf && "bg-primary text-primary-foreground"
                       )}
                     >
@@ -348,9 +348,9 @@ export function ALAOverviewTab({
             </div>
           </CardHeader>
           
-          <CardContent className="pt-0">
+          <CardContent className="pt-0 px-2 md:px-6 pb-3 md:pb-6">
             {/* Chart Container */}
-            <div className="h-[350px] relative">
+            <div className="h-[250px] md:h-[350px] relative">
               {isLoadingQuote ? (
                 <div className="w-full h-full flex items-center justify-center">
                   <Skeleton className="w-full h-full" />
@@ -358,7 +358,7 @@ export function ALAOverviewTab({
               ) : (
                 <CandlestickChart 
                   symbol={ticker} 
-                  height={350}
+                  height={250}
                   showVolume={true}
                   showRangeSelector={false}
                   defaultRange={chartTimeframe as any}
