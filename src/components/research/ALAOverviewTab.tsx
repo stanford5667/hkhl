@@ -4,7 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { TrendingUp, TrendingDown, RefreshCw, Building2, ChevronDown } from 'lucide-react';
+import { TrendingUp, TrendingDown, RefreshCw, Building2, ChevronDown, Activity } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { QuickHistoricalInsights, StreakData, HistoricalPattern } from './QuickHistoricalInsights';
 import { EarningsImpactSection } from './EarningsImpactSection';
@@ -339,24 +339,27 @@ export function ALAOverviewTab({
         <div className="space-y-2">
           {/* Key Financials Card */}
           <Card className="bg-card border-border">
-            <CardContent className="p-2">
-              <p className="text-[8px] text-muted-foreground uppercase mb-1.5 font-medium">Key Financials</p>
+            <CardContent className="p-2 space-y-2">
+              <div className="flex items-center gap-1">
+                <Building2 className="h-3 w-3 text-primary" />
+                <span className="text-[10px] md:text-xs font-medium">Key Financials</span>
+              </div>
               <div className="grid grid-cols-2 gap-2">
-                <div>
+                <div className="p-1.5 bg-secondary/30 rounded text-center">
                   <p className="text-[7px] md:text-[8px] text-muted-foreground uppercase">Mkt Cap</p>
-                  <p className="text-[9px] md:text-[10px] font-bold text-primary">{formatMarketCap(marketCap)}</p>
+                  <p className="text-[10px] md:text-xs font-bold text-primary">{formatMarketCap(marketCap)}</p>
                 </div>
-                <div>
+                <div className="p-1.5 bg-secondary/30 rounded text-center">
                   <p className="text-[7px] md:text-[8px] text-muted-foreground uppercase">EPS</p>
-                  <p className="text-[9px] md:text-[10px] font-bold">{eps ? `$${eps.toFixed(2)}` : '—'}</p>
+                  <p className="text-[10px] md:text-xs font-bold">{eps ? `$${eps.toFixed(2)}` : '—'}</p>
                 </div>
-                <div>
+                <div className="p-1.5 bg-secondary/30 rounded text-center">
                   <p className="text-[7px] md:text-[8px] text-muted-foreground uppercase">P/E Ratio</p>
-                  <p className="text-[9px] md:text-[10px] font-bold">{peRatio ? peRatio.toFixed(2) : '—'}</p>
+                  <p className="text-[10px] md:text-xs font-bold">{peRatio ? peRatio.toFixed(2) : '—'}</p>
                 </div>
-                <div>
+                <div className="p-1.5 bg-secondary/30 rounded text-center">
                   <p className="text-[7px] md:text-[8px] text-muted-foreground uppercase">Earnings</p>
-                  <p className="text-[9px] md:text-[10px] font-bold">{nextEarnings || '—'}</p>
+                  <p className="text-[10px] md:text-xs font-bold">{nextEarnings || '—'}</p>
                 </div>
               </div>
             </CardContent>
@@ -364,14 +367,16 @@ export function ALAOverviewTab({
 
           {/* Performance + Trading Days Card */}
           {basicStats && (
-            <Card className="bg-secondary/20 border-border">
-              <CardContent className="p-2">
+            <Card className="bg-card border-border">
+              <CardContent className="p-2 space-y-2">
                 {/* Header */}
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-1 text-[9px] font-medium">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                    Past {basicStats.totalDays} trading days
-                    {snapshotFetching && <RefreshCw className="h-2.5 w-2.5 animate-spin ml-1" />}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1">
+                    <Activity className="h-3 w-3 text-primary" />
+                    <span className="text-[10px] md:text-xs font-medium">
+                      Past {basicStats.totalDays} Trading Days
+                    </span>
+                    {snapshotFetching && <RefreshCw className="h-2.5 w-2.5 animate-spin ml-1 text-muted-foreground" />}
                   </div>
                   <Select 
                     value={lookbackDays?.toString() || 'all'} 
@@ -391,32 +396,30 @@ export function ALAOverviewTab({
                 </div>
                 
                 {/* Trading Day Stats */}
-                <div className="bg-background/50 border border-border rounded p-2 mb-2">
-                  <div className="grid grid-cols-3 gap-x-4 gap-y-1 text-center">
-                    <div>
-                      <span className="text-[7px] text-muted-foreground uppercase">Up Days</span>
-                      <p className="text-xs font-bold text-emerald-500">{basicStats.upDays}</p>
-                    </div>
-                    <div>
-                      <span className="text-[7px] text-muted-foreground uppercase">Down Days</span>
-                      <p className="text-xs font-bold text-destructive">{basicStats.downDays}</p>
-                    </div>
-                    <div>
-                      <span className="text-[7px] text-muted-foreground uppercase">Flat Days</span>
-                      <p className="text-xs font-bold">{basicStats.flatDays}</p>
-                    </div>
-                    <div>
-                      <span className="text-[7px] text-muted-foreground uppercase">Avg Move</span>
-                      <p className="text-xs font-bold">{basicStats.avgDailyMovePercent.toFixed(2)}%</p>
-                    </div>
-                    <div>
-                      <span className="text-[7px] text-muted-foreground uppercase">Best Day</span>
-                      <p className="text-xs font-bold text-emerald-500">+{basicStats.bestDay.change.toFixed(1)}%</p>
-                    </div>
-                    <div>
-                      <span className="text-[7px] text-muted-foreground uppercase">Worst Day</span>
-                      <p className="text-xs font-bold text-destructive">{basicStats.worstDay.change.toFixed(1)}%</p>
-                    </div>
+                <div className="grid grid-cols-3 gap-1">
+                  <div className="p-1.5 bg-secondary/30 rounded text-center">
+                    <span className="text-[7px] text-muted-foreground uppercase block">Up Days</span>
+                    <p className="text-xs font-bold text-emerald-500">{basicStats.upDays}</p>
+                  </div>
+                  <div className="p-1.5 bg-secondary/30 rounded text-center">
+                    <span className="text-[7px] text-muted-foreground uppercase block">Down Days</span>
+                    <p className="text-xs font-bold text-destructive">{basicStats.downDays}</p>
+                  </div>
+                  <div className="p-1.5 bg-secondary/30 rounded text-center">
+                    <span className="text-[7px] text-muted-foreground uppercase block">Flat Days</span>
+                    <p className="text-xs font-bold">{basicStats.flatDays}</p>
+                  </div>
+                  <div className="p-1.5 bg-secondary/30 rounded text-center">
+                    <span className="text-[7px] text-muted-foreground uppercase block">Avg Move</span>
+                    <p className="text-xs font-bold">{basicStats.avgDailyMovePercent.toFixed(2)}%</p>
+                  </div>
+                  <div className="p-1.5 bg-secondary/30 rounded text-center">
+                    <span className="text-[7px] text-muted-foreground uppercase block">Best Day</span>
+                    <p className="text-xs font-bold text-emerald-500">+{basicStats.bestDay.change.toFixed(1)}%</p>
+                  </div>
+                  <div className="p-1.5 bg-secondary/30 rounded text-center">
+                    <span className="text-[7px] text-muted-foreground uppercase block">Worst Day</span>
+                    <p className="text-xs font-bold text-destructive">{basicStats.worstDay.change.toFixed(1)}%</p>
                   </div>
                 </div>
                 
