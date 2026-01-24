@@ -368,30 +368,32 @@ export function ALAOverviewTab({
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="grid grid-cols-2 gap-1.5">
-                  <div className="bg-primary/5 border border-primary/20 rounded px-2 py-1.5 text-center">
-                    <span className="text-[7px] text-muted-foreground block leading-tight">Days Closing Higher</span>
-                    <p className="text-sm font-bold text-foreground">{basicStats.upDays}</p>
-                  </div>
-                  <div className="bg-secondary/50 border border-border rounded px-2 py-1.5 text-center">
-                    <span className="text-[7px] text-muted-foreground block leading-tight">Days Closing Lower</span>
-                    <p className="text-sm font-bold">{basicStats.downDays}</p>
-                  </div>
-                  <div className="bg-secondary/50 border border-border rounded px-2 py-1.5 text-center">
-                    <span className="text-[7px] text-muted-foreground block leading-tight">Unchanged Days</span>
-                    <p className="text-sm font-bold">{basicStats.flatDays}</p>
-                  </div>
-                  <div className="bg-secondary/50 border border-border rounded px-2 py-1.5 text-center">
-                    <span className="text-[7px] text-muted-foreground block leading-tight">Avg Daily Move</span>
-                    <p className="text-sm font-bold">{basicStats.avgDailyMovePercent.toFixed(2)}%</p>
-                  </div>
-                  <div className="bg-primary/5 border border-primary/20 rounded px-2 py-1.5 text-center">
-                    <span className="text-[7px] text-muted-foreground block leading-tight">Best Day</span>
-                    <p className="text-sm font-bold text-foreground">+{basicStats.bestDay.change.toFixed(1)}%</p>
-                  </div>
-                  <div className="bg-secondary/50 border border-border rounded px-2 py-1.5 text-center">
-                    <span className="text-[7px] text-muted-foreground block leading-tight">Worst Day</span>
-                    <p className="text-sm font-bold">{basicStats.worstDay.change.toFixed(1)}%</p>
+                <div className="bg-secondary/30 border border-border rounded p-2">
+                  <div className="grid grid-cols-3 gap-x-4 gap-y-1 text-center">
+                    <div>
+                      <span className="text-[7px] text-muted-foreground uppercase">Up Days</span>
+                      <p className="text-xs font-bold text-primary">{basicStats.upDays}</p>
+                    </div>
+                    <div>
+                      <span className="text-[7px] text-muted-foreground uppercase">Down Days</span>
+                      <p className="text-xs font-bold">{basicStats.downDays}</p>
+                    </div>
+                    <div>
+                      <span className="text-[7px] text-muted-foreground uppercase">Flat Days</span>
+                      <p className="text-xs font-bold">{basicStats.flatDays}</p>
+                    </div>
+                    <div>
+                      <span className="text-[7px] text-muted-foreground uppercase">Avg Move</span>
+                      <p className="text-xs font-bold">{basicStats.avgDailyMovePercent.toFixed(2)}%</p>
+                    </div>
+                    <div>
+                      <span className="text-[7px] text-muted-foreground uppercase">Best Day</span>
+                      <p className="text-xs font-bold text-primary">+{basicStats.bestDay.change.toFixed(1)}%</p>
+                    </div>
+                    <div>
+                      <span className="text-[7px] text-muted-foreground uppercase">Worst Day</span>
+                      <p className="text-xs font-bold text-destructive">{basicStats.worstDay.change.toFixed(1)}%</p>
+                    </div>
                   </div>
                 </div>
               </CardContent>
