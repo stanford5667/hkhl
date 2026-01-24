@@ -209,66 +209,33 @@ export function ALAOverviewTab({
 
   return (
     <div className="space-y-2">
-      {/* TOP CARD: Price + OHLC + Key Stats - Ultra Compact */}
-      <Card className="bg-card border-border">
-        <CardContent className="p-1.5 md:p-2">
-          {/* Row 1: Price & Change + Refresh */}
-          <div className="flex items-center justify-between gap-2 mb-1">
-            <div className="flex items-baseline gap-2 min-w-0">
-              <span className="text-lg md:text-xl font-bold tabular-nums text-foreground">
-                {formatCurrency(quote?.price || 0)}
+      {/* PRICE HEADER - Company name + Price above chart */}
+      <div className="flex items-center justify-between gap-2 px-1">
+        <div className="flex items-center gap-3 min-w-0">
+          <span className="text-sm md:text-base font-medium text-muted-foreground truncate max-w-[200px]">
+            {companyName || ticker}
+          </span>
+          <div className="flex items-baseline gap-2">
+            <span className="text-xl md:text-2xl font-bold tabular-nums text-foreground">
+              {formatCurrency(quote?.price || 0)}
+            </span>
+            <span className={cn(
+              "flex items-center gap-0.5 text-xs font-medium",
+              isPositive ? "text-primary" : "text-destructive"
+            )}>
+              {isPositive ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
+              <span className="tabular-nums">
+                {isPositive ? '+' : ''}{(quote?.change || 0).toFixed(2)} ({isPositive ? '+' : ''}{(quote?.changePercent || 0).toFixed(2)}%)
               </span>
-              <span className="flex items-center gap-0.5 text-[10px] md:text-xs font-medium shrink-0 text-muted-foreground">
-                {isPositive ? <TrendingUp className="h-2.5 w-2.5" /> : <TrendingDown className="h-2.5 w-2.5" />}
-                <span className="tabular-nums">
-                  {isPositive ? '+' : ''}{(quote?.change || 0).toFixed(2)} ({isPositive ? '+' : ''}{(quote?.changePercent || 0).toFixed(2)}%)
-                </span>
-              </span>
-            </div>
-            {onRefresh && (
-              <Button variant="ghost" size="icon" onClick={onRefresh} disabled={isRefreshing} className="h-5 w-5 shrink-0">
-                <RefreshCw className={cn("h-2.5 w-2.5", isRefreshing && "animate-spin")} />
-              </Button>
-            )}
+            </span>
           </div>
-
-          {/* Row 2: OHLC + Key Stats inline - compact */}
-          <div className="grid grid-cols-4 md:grid-cols-8 gap-1 text-center">
-            <div>
-              <p className="text-[7px] md:text-[8px] text-muted-foreground uppercase">Open</p>
-              <p className="text-[9px] md:text-[10px] font-semibold tabular-nums">{formatCurrency(quote?.open || 0)}</p>
-            </div>
-            <div>
-              <p className="text-[7px] md:text-[8px] text-muted-foreground uppercase">High</p>
-              <p className="text-[9px] md:text-[10px] font-semibold tabular-nums">{formatCurrency(quote?.high || 0)}</p>
-            </div>
-            <div>
-              <p className="text-[7px] md:text-[8px] text-muted-foreground uppercase">Low</p>
-              <p className="text-[9px] md:text-[10px] font-semibold tabular-nums">{formatCurrency(quote?.low || 0)}</p>
-            </div>
-            <div>
-              <p className="text-[7px] md:text-[8px] text-muted-foreground uppercase">Prev</p>
-              <p className="text-[9px] md:text-[10px] font-semibold tabular-nums">{quote?.previousClose ? formatCurrency(quote.previousClose) : '—'}</p>
-            </div>
-            <div className="hidden md:block">
-              <p className="text-[7px] md:text-[8px] text-muted-foreground uppercase">Mkt Cap</p>
-              <p className="text-[9px] md:text-[10px] font-semibold">{formatMarketCap(marketCap)}</p>
-            </div>
-            <div className="hidden md:block">
-              <p className="text-[7px] md:text-[8px] text-muted-foreground uppercase">Volume</p>
-              <p className="text-[9px] md:text-[10px] font-semibold">{formatVolume(quote?.volume)}</p>
-            </div>
-            <div className="hidden md:block">
-              <p className="text-[7px] md:text-[8px] text-muted-foreground uppercase">P/E</p>
-              <p className="text-[9px] md:text-[10px] font-semibold">{peRatio?.toFixed(1) || '—'}</p>
-            </div>
-            <div className="hidden md:block">
-              <p className="text-[7px] md:text-[8px] text-muted-foreground uppercase">Beta</p>
-              <p className="text-[9px] md:text-[10px] font-semibold">{beta?.toFixed(2) || '—'}</p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+        </div>
+        {onRefresh && (
+          <Button variant="ghost" size="icon" onClick={onRefresh} disabled={isRefreshing} className="h-6 w-6 shrink-0">
+            <RefreshCw className={cn("h-3 w-3", isRefreshing && "animate-spin")} />
+          </Button>
+        )}
+      </div>
 
       {/* CHART + Trading Days Breakdown Side by Side */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-2">
@@ -282,18 +249,18 @@ export function ALAOverviewTab({
             defaultRange="3M"
           />
           
-          {/* 52-Week Range - Inline bar */}
+          {/* 52-Week Range - Inline bar with primary color accent */}
           <div className="flex items-center gap-2 px-1">
-            <span className="text-[7px] md:text-[8px] text-muted-foreground">52W Range</span>
-            <div className="flex-1 relative h-1 bg-secondary rounded-full overflow-hidden">
-              <div className="absolute top-0 left-0 h-full w-full bg-gradient-to-r from-muted-foreground/40 via-muted-foreground/60 to-muted-foreground/80 rounded-full" />
+            <span className="text-[8px] text-muted-foreground font-medium">52W</span>
+            <div className="flex-1 relative h-1.5 bg-secondary rounded-full overflow-hidden">
+              <div className="absolute top-0 left-0 h-full w-full bg-gradient-to-r from-primary/20 via-primary/40 to-primary/60 rounded-full" />
               <div 
-                className="absolute top-1/2 -translate-y-1/2 w-1.5 h-1.5 bg-foreground rounded-full border border-primary"
-                style={{ left: `calc(${Math.min(100, Math.max(0, rangePosition))}% - 3px)` }}
+                className="absolute top-1/2 -translate-y-1/2 w-2 h-2 bg-primary rounded-full shadow-sm shadow-primary/50"
+                style={{ left: `calc(${Math.min(100, Math.max(0, rangePosition))}% - 4px)` }}
               />
             </div>
-            <span className="text-[7px] md:text-[8px] text-muted-foreground tabular-nums">
-              ${week52Low?.toFixed(0) || '—'} - ${week52High?.toFixed(0) || '—'}
+            <span className="text-[8px] text-muted-foreground tabular-nums">
+              ${week52Low?.toFixed(0) || '—'} — ${week52High?.toFixed(0) || '—'}
             </span>
           </div>
         </div>
@@ -302,11 +269,14 @@ export function ALAOverviewTab({
         {basicStats && (
           <Card className="bg-card border-border h-fit">
             <CardContent className="p-2">
-              <p className="text-[9px] text-muted-foreground mb-2">Past {basicStats.totalDays} trading days</p>
+              <p className="text-[9px] text-muted-foreground mb-2 flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-primary"></span>
+                Past {basicStats.totalDays} trading days
+              </p>
               <div className="grid grid-cols-2 gap-1.5">
-                <div className="bg-secondary/50 border border-border rounded px-2 py-1.5 text-center">
+                <div className="bg-primary/5 border border-primary/20 rounded px-2 py-1.5 text-center">
                   <span className="text-[7px] text-muted-foreground block leading-tight">Days Closing Higher</span>
-                  <p className="text-sm font-bold">{basicStats.upDays}</p>
+                  <p className="text-sm font-bold text-foreground">{basicStats.upDays}</p>
                 </div>
                 <div className="bg-secondary/50 border border-border rounded px-2 py-1.5 text-center">
                   <span className="text-[7px] text-muted-foreground block leading-tight">Days Closing Lower</span>
@@ -320,9 +290,9 @@ export function ALAOverviewTab({
                   <span className="text-[7px] text-muted-foreground block leading-tight">Avg Daily Move</span>
                   <p className="text-sm font-bold">{basicStats.avgDailyMovePercent.toFixed(2)}%</p>
                 </div>
-                <div className="bg-secondary/50 border border-border rounded px-2 py-1.5 text-center">
+                <div className="bg-primary/5 border border-primary/20 rounded px-2 py-1.5 text-center">
                   <span className="text-[7px] text-muted-foreground block leading-tight">Best Day</span>
-                  <p className="text-sm font-bold">+{basicStats.bestDay.change.toFixed(1)}%</p>
+                  <p className="text-sm font-bold text-foreground">+{basicStats.bestDay.change.toFixed(1)}%</p>
                 </div>
                 <div className="bg-secondary/50 border border-border rounded px-2 py-1.5 text-center">
                   <span className="text-[7px] text-muted-foreground block leading-tight">Worst Day</span>
@@ -334,42 +304,82 @@ export function ALAOverviewTab({
         )}
       </div>
 
-      {/* Analyst & Financials Card - Compact */}
+      {/* KEY STATS - Below Chart */}
       <Card className="bg-card border-border">
-        <CardContent className="p-1.5 md:p-2">
-          <div className="grid grid-cols-3 md:grid-cols-6 gap-1 md:gap-2 text-center">
-            <div>
-              <p className="text-[7px] md:text-[8px] text-muted-foreground uppercase">Rating</p>
-              <Badge className={cn("text-[8px] md:text-[9px] px-1 py-0", ratingColors[analystRating] || ratingColors['Buy'])}>
+        <CardContent className="p-2">
+          <div className="grid grid-cols-4 md:grid-cols-8 gap-2 text-center">
+            <div className="bg-primary/5 rounded-md px-2 py-1.5">
+              <p className="text-[7px] md:text-[8px] text-primary/80 uppercase font-medium">Open</p>
+              <p className="text-[10px] md:text-xs font-semibold tabular-nums">{formatCurrency(quote?.open || 0)}</p>
+            </div>
+            <div className="bg-secondary/50 rounded-md px-2 py-1.5">
+              <p className="text-[7px] md:text-[8px] text-muted-foreground uppercase">High</p>
+              <p className="text-[10px] md:text-xs font-semibold tabular-nums">{formatCurrency(quote?.high || 0)}</p>
+            </div>
+            <div className="bg-secondary/50 rounded-md px-2 py-1.5">
+              <p className="text-[7px] md:text-[8px] text-muted-foreground uppercase">Low</p>
+              <p className="text-[10px] md:text-xs font-semibold tabular-nums">{formatCurrency(quote?.low || 0)}</p>
+            </div>
+            <div className="bg-secondary/50 rounded-md px-2 py-1.5">
+              <p className="text-[7px] md:text-[8px] text-muted-foreground uppercase">Prev</p>
+              <p className="text-[10px] md:text-xs font-semibold tabular-nums">{quote?.previousClose ? formatCurrency(quote.previousClose) : '—'}</p>
+            </div>
+            <div className="bg-primary/5 rounded-md px-2 py-1.5">
+              <p className="text-[7px] md:text-[8px] text-primary/80 uppercase font-medium">Mkt Cap</p>
+              <p className="text-[10px] md:text-xs font-semibold">{formatMarketCap(marketCap)}</p>
+            </div>
+            <div className="bg-secondary/50 rounded-md px-2 py-1.5">
+              <p className="text-[7px] md:text-[8px] text-muted-foreground uppercase">Volume</p>
+              <p className="text-[10px] md:text-xs font-semibold">{formatVolume(quote?.volume)}</p>
+            </div>
+            <div className="bg-secondary/50 rounded-md px-2 py-1.5">
+              <p className="text-[7px] md:text-[8px] text-muted-foreground uppercase">P/E</p>
+              <p className="text-[10px] md:text-xs font-semibold">{peRatio?.toFixed(1) || '—'}</p>
+            </div>
+            <div className="bg-secondary/50 rounded-md px-2 py-1.5">
+              <p className="text-[7px] md:text-[8px] text-muted-foreground uppercase">Beta</p>
+              <p className="text-[10px] md:text-xs font-semibold">{beta?.toFixed(2) || '—'}</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Analyst & Financials Card - With color accents */}
+      <Card className="bg-card border-border">
+        <CardContent className="p-2">
+          <div className="grid grid-cols-3 md:grid-cols-6 gap-2 text-center">
+            <div className="bg-primary/5 rounded-md px-2 py-1.5">
+              <p className="text-[7px] md:text-[8px] text-primary/80 uppercase font-medium">Rating</p>
+              <Badge className={cn("text-[8px] md:text-[9px] px-1.5 py-0.5", ratingColors[analystRating] || ratingColors['Buy'])}>
                 {analystRating}
               </Badge>
             </div>
-            <div>
+            <div className="bg-secondary/50 rounded-md px-2 py-1.5">
               <p className="text-[7px] md:text-[8px] text-muted-foreground uppercase">Target</p>
               {priceTarget ? (
-                <p className="text-[9px] md:text-[10px] font-semibold">
+                <p className="text-[10px] md:text-xs font-semibold">
                   {formatCurrency(priceTarget)}
                   <span className="ml-0.5 text-[7px] text-muted-foreground">
                     ({priceTarget > (quote?.price || 0) ? '+' : ''}{(((priceTarget - (quote?.price || 0)) / (quote?.price || 1)) * 100).toFixed(0)}%)
                   </span>
                 </p>
-              ) : <p className="text-[9px] md:text-[10px] font-semibold">—</p>}
+              ) : <p className="text-[10px] md:text-xs font-semibold">—</p>}
             </div>
-            <div>
+            <div className="bg-secondary/50 rounded-md px-2 py-1.5">
               <p className="text-[7px] md:text-[8px] text-muted-foreground uppercase">Earnings</p>
-              <p className="text-[9px] md:text-[10px] font-semibold">{nextEarnings || '—'}</p>
+              <p className="text-[10px] md:text-xs font-semibold">{nextEarnings || '—'}</p>
             </div>
-            <div className="hidden md:block">
+            <div className="hidden md:block bg-secondary/50 rounded-md px-2 py-1.5">
               <p className="text-[7px] md:text-[8px] text-muted-foreground uppercase">EPS</p>
-              <p className="text-[9px] md:text-[10px] font-semibold">{eps ? `$${eps.toFixed(2)}` : '—'}</p>
+              <p className="text-[10px] md:text-xs font-semibold">{eps ? `$${eps.toFixed(2)}` : '—'}</p>
             </div>
-            <div className="hidden md:block">
-              <p className="text-[7px] md:text-[8px] text-muted-foreground uppercase">Mkt Cap</p>
-              <p className="text-[9px] md:text-[10px] font-semibold">{formatMarketCap(marketCap)}</p>
+            <div className="hidden md:block bg-primary/5 rounded-md px-2 py-1.5">
+              <p className="text-[7px] md:text-[8px] text-primary/80 uppercase font-medium">Mkt Cap</p>
+              <p className="text-[10px] md:text-xs font-semibold">{formatMarketCap(marketCap)}</p>
             </div>
-            <div className="hidden md:block">
+            <div className="hidden md:block bg-secondary/50 rounded-md px-2 py-1.5">
               <p className="text-[7px] md:text-[8px] text-muted-foreground uppercase">Volume</p>
-              <p className="text-[9px] md:text-[10px] font-semibold">{formatVolume(quote?.volume)}</p>
+              <p className="text-[10px] md:text-xs font-semibold">{formatVolume(quote?.volume)}</p>
             </div>
           </div>
         </CardContent>
