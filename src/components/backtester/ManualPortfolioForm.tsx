@@ -244,57 +244,72 @@ export function ManualPortfolioForm({ onComplete, onBack }: ManualPortfolioFormP
               {rows.map((row, index) => (
                 <div 
                   key={row.id}
-                  className="flex items-center gap-2 p-2 rounded-lg border border-border bg-muted/20"
+                  className="p-2 rounded-lg border border-border bg-muted/20"
                 >
-                  {/* Row number */}
-                  <span className="text-xs text-muted-foreground w-4 text-center flex-shrink-0">
-                    {index + 1}
-                  </span>
+                  {/* Top row: Number + Ticker + Weight + Delete */}
+                  <div className="flex items-center gap-2">
+                    {/* Row number */}
+                    <span className="text-xs text-muted-foreground w-4 text-center flex-shrink-0">
+                      {index + 1}
+                    </span>
+                    
+                    {/* Ticker Input with Autocomplete */}
+                    <TickerInputWithAutocomplete
+                      value={row.symbol}
+                      onChange={(val) => updateRow(row.id, { symbol: val })}
+                      placeholder="TICKER"
+                    />
+                    
+                    {/* Weight Slider - desktop only, inline */}
+                    <div className="hidden sm:flex flex-1 min-w-0">
+                      <Slider
+                        value={[row.weight]}
+                        onValueChange={([value]) => updateRow(row.id, { weight: value })}
+                        max={100}
+                        step={0.5}
+                        className={cn("w-full h-1", !row.symbol.trim() && "opacity-40")}
+                        disabled={!row.symbol.trim()}
+                      />
+                    </div>
+                    
+                    {/* Weight Input */}
+                    <div className="flex items-center gap-1 flex-shrink-0">
+                      <Input
+                        type="number"
+                        value={row.weight}
+                        onChange={(e) => updateRow(row.id, { weight: parseFloat(e.target.value) || 0 })}
+                        className="w-12 h-7 text-xs text-right px-1"
+                        min={0}
+                        max={100}
+                        step={0.5}
+                        disabled={!row.symbol.trim()}
+                      />
+                      <span className="text-xs text-muted-foreground">%</span>
+                    </div>
+                    
+                    {/* Remove Button */}
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6 text-muted-foreground hover:text-destructive flex-shrink-0"
+                      onClick={() => removeRow(row.id)}
+                      aria-label="Remove row"
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </Button>
+                  </div>
                   
-                  {/* Ticker Input with Autocomplete */}
-                  <TickerInputWithAutocomplete
-                    value={row.symbol}
-                    onChange={(val) => updateRow(row.id, { symbol: val })}
-                    placeholder="TICKER"
-                  />
-                  
-                  {/* Weight Slider - smaller */}
-                  <div className="flex-1 min-w-0">
+                  {/* Bottom row: Slider - mobile only, full width underneath */}
+                  <div className="sm:hidden mt-2 pl-6 pr-8">
                     <Slider
                       value={[row.weight]}
                       onValueChange={([value]) => updateRow(row.id, { weight: value })}
                       max={100}
                       step={0.5}
-                      className={cn("w-full h-1", !row.symbol.trim() && "opacity-40")}
+                      className={cn("w-full h-2", !row.symbol.trim() && "opacity-40")}
                       disabled={!row.symbol.trim()}
                     />
                   </div>
-                  
-                  {/* Weight Input */}
-                  <div className="flex items-center gap-1 flex-shrink-0">
-                    <Input
-                      type="number"
-                      value={row.weight}
-                      onChange={(e) => updateRow(row.id, { weight: parseFloat(e.target.value) || 0 })}
-                      className="w-12 h-7 text-xs text-right px-1"
-                      min={0}
-                      max={100}
-                      step={0.5}
-                      disabled={!row.symbol.trim()}
-                    />
-                    <span className="text-xs text-muted-foreground">%</span>
-                  </div>
-                  
-                  {/* Remove Button */}
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-6 w-6 text-muted-foreground hover:text-destructive flex-shrink-0"
-                    onClick={() => removeRow(row.id)}
-                    aria-label="Remove row"
-                  >
-                    <Trash2 className="h-3 w-3" />
-                  </Button>
                 </div>
               ))}
             </div>
