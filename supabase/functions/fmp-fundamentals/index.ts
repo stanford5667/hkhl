@@ -55,6 +55,12 @@ interface CompanyProfile {
   website: string;
 }
 
+interface ProductSegment {
+  name: string;
+  revenue: number;
+  percentage: number;
+}
+
 interface FundamentalsResponse {
   profile: CompanyProfile | null;
   financials: IncomeStatement[];
@@ -140,6 +146,74 @@ async function fetchCompanyProfile(symbol: string, apiKey: string): Promise<Comp
   return result;
 }
 
+async function fetchProductSegments(symbol: string, apiKey: string): Promise<ProductSegment[]> {
+  const cacheKey = `segments_${symbol}`;
+  const cached = getCached(cacheKey);
+  if (cached) {
+    console.log(`[fmp] Cache hit for ${symbol} product segments`);
+    return cached as ProductSegment[];
+  }
+
+  // Use v4 endpoint for product segmentation
+  const url = `https://financialmodelingprep.com/api/v4/revenue-product-segmentation?symbol=${encodeURIComponent(symbol)}&period=annual&structure=flat&apikey=${apiKey}`;
+  
+  try {
+    const response = await fetch(url);
+    
+    if (!response.ok) {
+      console.warn(`[fmp] Product segmentation API returned ${response.status} for ${symbol}`);
+      return [];
+    }
+    
+    const data = await response.json();
+    
+    if (!Array.isArray(data) || data.length === 0) {
+      return [];
+    }
+
+    // Get the most recent year's data
+    const latestData = data[0];
+    const segments: ProductSegment[] = [];
+    let totalRevenue = 0;
+
+    // Parse the flat structure - each entry has a date key with segment data
+    for (const entry of data) {
+      const dateKey = Object.keys(entry).find(k => k.match(/^\d{4}-\d{2}-\d{2}$/));
+      if (dateKey && entry[dateKey]) {
+        const segmentData = entry[dateKey];
+        for (const [name, revenue] of Object.entries(segmentData)) {
+          if (typeof revenue === 'number' && revenue > 0) {
+            const existing = segments.find(s => s.name === name);
+            if (!existing) {
+              segments.push({ name, revenue, percentage: 0 });
+              totalRevenue += revenue;
+            }
+          }
+        }
+        break; // Only use latest year
+      }
+    }
+
+    // Calculate percentages
+    if (totalRevenue > 0) {
+      for (const segment of segments) {
+        segment.percentage = (segment.revenue / totalRevenue) * 100;
+      }
+    }
+
+    // Sort by revenue descending and limit to top 5
+    const results = segments
+      .sort((a, b) => b.revenue - a.revenue)
+      .slice(0, 5);
+
+    setCache(cacheKey, results);
+    return results;
+  } catch (err) {
+    console.error(`[fmp] Error fetching product segments for ${symbol}:`, err);
+    return [];
+  }
+}
+
 async function searchSymbols(query: string, apiKey: string): Promise<any[]> {
   const url = `${BASE_URL}/search?query=${encodeURIComponent(query)}&limit=10&apikey=${apiKey}`;
   const response = await fetch(url);
@@ -217,6 +291,60 @@ function generateMockProfile(symbol: string): CompanyProfile {
     employees: 100000,
     website: `https://${symbol.toLowerCase()}.com`,
   };
+}
+
+function generateMockSegments(symbol: string): ProductSegment[] {
+  const segmentsBySymbol: Record<string, ProductSegment[]> = {
+    'AAPL': [
+      { name: 'iPhone', revenue: 200000000000, percentage: 52 },
+      { name: 'Services', revenue: 85000000000, percentage: 22 },
+      { name: 'Mac', revenue: 35000000000, percentage: 9 },
+      { name: 'iPad', revenue: 30000000000, percentage: 8 },
+      { name: 'Wearables & Accessories', revenue: 33000000000, percentage: 9 },
+    ],
+    'MSFT': [
+      { name: 'Intelligent Cloud', revenue: 87000000000, percentage: 41 },
+      { name: 'Productivity & Business', revenue: 69000000000, percentage: 33 },
+      { name: 'Personal Computing', revenue: 55000000000, percentage: 26 },
+    ],
+    'GOOGL': [
+      { name: 'Google Search & Ads', revenue: 175000000000, percentage: 57 },
+      { name: 'YouTube Ads', revenue: 31000000000, percentage: 10 },
+      { name: 'Google Cloud', revenue: 33000000000, percentage: 11 },
+      { name: 'Google Network', revenue: 32000000000, percentage: 10 },
+      { name: 'Other Bets', revenue: 36000000000, percentage: 12 },
+    ],
+    'AMZN': [
+      { name: 'Online Stores', revenue: 220000000000, percentage: 38 },
+      { name: 'AWS', revenue: 90000000000, percentage: 16 },
+      { name: 'Third-Party Seller Services', revenue: 140000000000, percentage: 24 },
+      { name: 'Advertising', revenue: 47000000000, percentage: 8 },
+      { name: 'Subscriptions', revenue: 40000000000, percentage: 7 },
+    ],
+    'TSLA': [
+      { name: 'Automotive Sales', revenue: 78000000000, percentage: 81 },
+      { name: 'Energy Generation', revenue: 6000000000, percentage: 6 },
+      { name: 'Automotive Leasing', revenue: 2500000000, percentage: 3 },
+      { name: 'Services & Other', revenue: 9500000000, percentage: 10 },
+    ],
+    'META': [
+      { name: 'Advertising', revenue: 131000000000, percentage: 98 },
+      { name: 'Reality Labs', revenue: 2000000000, percentage: 1 },
+      { name: 'Other Revenue', revenue: 1000000000, percentage: 1 },
+    ],
+    'NVDA': [
+      { name: 'Data Center', revenue: 47000000000, percentage: 78 },
+      { name: 'Gaming', revenue: 10000000000, percentage: 17 },
+      { name: 'Professional Visualization', revenue: 1500000000, percentage: 2 },
+      { name: 'Automotive', revenue: 1500000000, percentage: 3 },
+    ],
+  };
+  
+  return segmentsBySymbol[symbol] || [
+    { name: 'Primary Products', revenue: 5000000000, percentage: 60 },
+    { name: 'Services', revenue: 2500000000, percentage: 30 },
+    { name: 'Other', revenue: 800000000, percentage: 10 },
+  ];
 }
 
 serve(async (req) => {
@@ -314,6 +442,44 @@ serve(async (req) => {
       return new Response(JSON.stringify({
         success: true,
         ...response,
+        cachedAt: new Date().toISOString(),
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+    
+    if (action === 'segments') {
+      const symbol = (body.symbol || '').toUpperCase();
+      if (!symbol) {
+        return new Response(JSON.stringify({ 
+          success: false, 
+          error: 'Symbol is required' 
+        }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      
+      let segments: ProductSegment[] = [];
+      let useMockData = !FMP_API_KEY;
+      
+      if (FMP_API_KEY) {
+        segments = await fetchProductSegments(symbol, FMP_API_KEY);
+        
+        // If no segments returned, use mock data
+        if (segments.length === 0) {
+          useMockData = true;
+          segments = generateMockSegments(symbol);
+        }
+      } else {
+        segments = generateMockSegments(symbol);
+      }
+      
+      return new Response(JSON.stringify({
+        success: true,
+        segments,
+        useMockData,
+        source: useMockData ? "Demo Data" : "FMP",
         cachedAt: new Date().toISOString(),
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
