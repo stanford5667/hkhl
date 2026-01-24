@@ -225,26 +225,26 @@ export function ALAOverviewTab({
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-2">
         {/* Chart Column - 2/3 width */}
         <Card className="bg-card border-border lg:col-span-2 overflow-hidden">
-          {/* Price Header */}
-          <div className="px-3 pt-3 pb-2">
-            {/* Row 1: Name, Price, Change + 52W (desktop only) */}
+          {/* Price Header - Refined hierarchy */}
+          <div className="px-3 pt-3 pb-2 space-y-1.5">
+            {/* Row 1: Company name */}
+            <h2 className="text-sm md:text-base font-semibold text-foreground truncate">
+              {companyName || ticker}
+            </h2>
+            
+            {/* Row 2: Price, Change + 52W Range */}
             <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
-              <div className="flex items-center gap-3 min-w-0">
-                <span className="text-sm md:text-base font-medium text-muted-foreground truncate max-w-[200px]">
-                  {companyName || ticker}
+              <div className="flex items-baseline gap-2.5">
+                <span className="text-2xl md:text-3xl font-bold tabular-nums text-foreground">
+                  {formatCurrency(quote?.price || 0)}
                 </span>
-                <div className="flex items-baseline gap-2">
-                  <span className="text-xl md:text-2xl font-bold tabular-nums text-foreground">
-                    {formatCurrency(quote?.price || 0)}
-                  </span>
-                  <span className={cn(
-                    "flex items-center gap-0.5 text-xs font-medium",
-                    isPositive ? "text-emerald-500" : "text-destructive"
-                  )}>
-                    {isPositive ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
-                    <span className="tabular-nums">
-                      {isPositive ? '+' : ''}{(quote?.change || 0).toFixed(2)} ({isPositive ? '+' : ''}{(quote?.changePercent || 0).toFixed(2)}%)
-                    </span>
+                <div className={cn(
+                  "flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-semibold",
+                  isPositive ? "bg-emerald-500/15 text-emerald-500" : "bg-destructive/15 text-destructive"
+                )}>
+                  {isPositive ? <TrendingUp className="h-3.5 w-3.5" /> : <TrendingDown className="h-3.5 w-3.5" />}
+                  <span className="tabular-nums">
+                    {isPositive ? '+' : ''}{(quote?.change || 0).toFixed(2)} ({isPositive ? '+' : ''}{(quote?.changePercent || 0).toFixed(2)}%)
                   </span>
                 </div>
               </div>
@@ -252,61 +252,60 @@ export function ALAOverviewTab({
               {/* 52W Range - Desktop only (right of price) */}
               <div className="hidden lg:flex items-center gap-2 text-[10px]">
                 <span className="text-muted-foreground font-medium">52W:</span>
-                <span className="tabular-nums text-destructive">${week52Low?.toFixed(2) || '—'}</span>
-                <div className="relative w-16 h-1.5 bg-secondary rounded-full overflow-hidden">
-                  <div className="absolute top-0 left-0 h-full w-full bg-gradient-to-r from-destructive/30 via-muted to-emerald-500/30 rounded-full" />
+                <span className="tabular-nums text-destructive font-medium">${week52Low?.toFixed(2) || '—'}</span>
+                <div className="relative w-20 h-1.5 bg-secondary rounded-full overflow-hidden">
+                  <div className="absolute top-0 left-0 h-full w-full bg-gradient-to-r from-destructive/40 via-muted to-emerald-500/40 rounded-full" />
                   <div 
-                    className="absolute top-1/2 -translate-y-1/2 w-2 h-2 bg-primary rounded-full shadow-sm shadow-primary/50"
-                    style={{ left: `calc(${Math.min(100, Math.max(0, rangePosition))}% - 4px)` }}
+                    className="absolute top-1/2 -translate-y-1/2 w-2.5 h-2.5 bg-primary rounded-full shadow-md shadow-primary/50 border border-primary-foreground/20"
+                    style={{ left: `calc(${Math.min(100, Math.max(0, rangePosition))}% - 5px)` }}
                   />
                 </div>
-                <span className="tabular-nums text-emerald-500">${week52High?.toFixed(2) || '—'}</span>
+                <span className="tabular-nums text-emerald-500 font-medium">${week52High?.toFixed(2) || '—'}</span>
+              </div>
+            </div>
+            {/* Row 3: OHLC + Prev inline */}
+            <div className="flex items-center gap-3 md:gap-4 text-[10px] md:text-xs text-muted-foreground">
+              <div className="flex items-center gap-1">
+                <span className="opacity-70">O:</span>
+                <span className="font-medium tabular-nums text-foreground">{formatCurrency(quote?.open || 0)}</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <span className="opacity-70">H:</span>
+                <span className="font-medium tabular-nums text-emerald-500">{formatCurrency(quote?.high || 0)}</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <span className="opacity-70">L:</span>
+                <span className="font-medium tabular-nums text-destructive">{formatCurrency(quote?.low || 0)}</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <span className="opacity-70">Prev:</span>
+                <span className="font-medium tabular-nums text-foreground">{quote?.previousClose ? formatCurrency(quote.previousClose) : '—'}</span>
               </div>
             </div>
             
-            {/* Row 2: OHLC + Prev inline - nowrap to keep on same line */}
-            <div className="flex items-center gap-2 md:gap-3 text-[9px] md:text-xs whitespace-nowrap overflow-x-auto">
-              <div className="flex items-center gap-0.5">
-                <span className="text-muted-foreground">O:</span>
-                <span className="font-medium tabular-nums">{formatCurrency(quote?.open || 0)}</span>
-              </div>
-              <div className="flex items-center gap-0.5">
-                <span className="text-muted-foreground">H:</span>
-                <span className="font-medium tabular-nums">{formatCurrency(quote?.high || 0)}</span>
-              </div>
-              <div className="flex items-center gap-0.5">
-                <span className="text-muted-foreground">L:</span>
-                <span className="font-medium tabular-nums">{formatCurrency(quote?.low || 0)}</span>
-              </div>
-              <div className="flex items-center gap-0.5">
-                <span className="text-muted-foreground">Prev:</span>
-                <span className="font-medium tabular-nums">{quote?.previousClose ? formatCurrency(quote.previousClose) : '—'}</span>
-              </div>
-            </div>
-            
-            {/* 52W Range - Mobile only (below Prev) */}
-            <div className="flex lg:hidden items-center gap-2 text-[10px] mt-1">
+            {/* 52W Range - Mobile only */}
+            <div className="flex lg:hidden items-center gap-2 text-[10px]">
               <span className="text-muted-foreground font-medium">52W:</span>
-              <span className="tabular-nums text-destructive">${week52Low?.toFixed(2) || '—'}</span>
-              <div className="relative flex-1 max-w-[100px] h-1.5 bg-secondary rounded-full overflow-hidden">
-                <div className="absolute top-0 left-0 h-full w-full bg-gradient-to-r from-destructive/30 via-muted to-emerald-500/30 rounded-full" />
+              <span className="tabular-nums text-destructive font-medium">${week52Low?.toFixed(2) || '—'}</span>
+              <div className="relative flex-1 max-w-[120px] h-1.5 bg-secondary rounded-full overflow-hidden">
+                <div className="absolute top-0 left-0 h-full w-full bg-gradient-to-r from-destructive/40 via-muted to-emerald-500/40 rounded-full" />
                 <div 
-                  className="absolute top-1/2 -translate-y-1/2 w-2 h-2 bg-primary rounded-full shadow-sm shadow-primary/50"
-                  style={{ left: `calc(${Math.min(100, Math.max(0, rangePosition))}% - 4px)` }}
+                  className="absolute top-1/2 -translate-y-1/2 w-2.5 h-2.5 bg-primary rounded-full shadow-md shadow-primary/50 border border-primary-foreground/20"
+                  style={{ left: `calc(${Math.min(100, Math.max(0, rangePosition))}% - 5px)` }}
                 />
               </div>
-              <span className="tabular-nums text-emerald-500">${week52High?.toFixed(2) || '—'}</span>
+              <span className="tabular-nums text-emerald-500 font-medium">${week52High?.toFixed(2) || '—'}</span>
             </div>
             
-            {/* Exchange + Sector badges below OHLC */}
-            <div className="flex items-center gap-1.5 mt-1.5">
+            {/* Exchange + Sector badges */}
+            <div className="flex items-center gap-1.5">
               {exchange && (
-                <Badge variant="outline" className="text-[8px] px-1.5 py-0 h-4 bg-secondary/50">
+                <Badge variant="outline" className="text-[8px] px-1.5 py-0.5 h-5 bg-secondary/50 font-medium">
                   {exchange}
                 </Badge>
               )}
               {sector && (
-                <Badge variant="outline" className="text-[8px] px-1.5 py-0 h-4 bg-secondary/50">
+                <Badge variant="outline" className="text-[8px] px-1.5 py-0.5 h-5 bg-secondary/50 font-medium">
                   {sector}
                 </Badge>
               )}
@@ -320,18 +319,17 @@ export function ALAOverviewTab({
             </div>
           )}
 
-          {/* Chart Section */}
+          {/* Chart Section - Larger on desktop */}
           <div className="w-full">
             <CandlestickChart 
               symbol={ticker} 
-              height={200}
+              height={320}
               showVolume={true}
               showRangeSelector={true}
               defaultRange="3M"
               onRefresh={onRefresh}
               isRefreshing={isRefreshing}
             />
-            
           </div>
         </Card>
 
@@ -422,6 +420,9 @@ export function ALAOverviewTab({
                     <p className="text-xs font-bold text-destructive">{basicStats.worstDay.change.toFixed(1)}%</p>
                   </div>
                 </div>
+                
+                {/* Divider */}
+                <div className="border-t border-border my-1" />
                 
                 {/* Performance Metrics */}
                 <PerformanceMetricsSection ticker={ticker} compact />
