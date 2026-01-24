@@ -4,7 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { TrendingUp, TrendingDown, RefreshCw, Building2, ChevronDown, Activity } from 'lucide-react';
+import { TrendingUp, TrendingDown, RefreshCw, Building2, ChevronDown, Activity, Package } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { QuickHistoricalInsights, StreakData, HistoricalPattern } from './QuickHistoricalInsights';
 import { EarningsImpactSection } from './EarningsImpactSection';
@@ -359,6 +359,97 @@ export function ALAOverviewTab({
                   <p className="text-[7px] md:text-[8px] text-muted-foreground uppercase">Earnings</p>
                   <p className="text-[10px] md:text-xs font-bold">{nextEarnings || '—'}</p>
                 </div>
+            </div>
+            </CardContent>
+          </Card>
+
+          {/* Top Products/Services Card */}
+          <Card className="bg-card border-border">
+            <CardContent className="p-2 space-y-2">
+              <div className="flex items-center gap-1">
+                <Package className="h-3 w-3 text-primary" />
+                <span className="text-[10px] md:text-xs font-medium">Top Products & Services</span>
+              </div>
+              <div className="space-y-1.5">
+                {/* Display based on sector/industry */}
+                {sector === 'Technology' && (
+                  <>
+                    <div className="flex items-center justify-between p-1.5 bg-secondary/30 rounded">
+                      <span className="text-[9px] md:text-[10px] font-medium">Hardware & Devices</span>
+                    </div>
+                    <div className="flex items-center justify-between p-1.5 bg-secondary/30 rounded">
+                      <span className="text-[9px] md:text-[10px] font-medium">Software & Services</span>
+                    </div>
+                    <div className="flex items-center justify-between p-1.5 bg-secondary/30 rounded">
+                      <span className="text-[9px] md:text-[10px] font-medium">Subscriptions</span>
+                    </div>
+                  </>
+                )}
+                {sector === 'Financial Services' && (
+                  <>
+                    <div className="flex items-center justify-between p-1.5 bg-secondary/30 rounded">
+                      <span className="text-[9px] md:text-[10px] font-medium">Banking & Lending</span>
+                    </div>
+                    <div className="flex items-center justify-between p-1.5 bg-secondary/30 rounded">
+                      <span className="text-[9px] md:text-[10px] font-medium">Investment Management</span>
+                    </div>
+                    <div className="flex items-center justify-between p-1.5 bg-secondary/30 rounded">
+                      <span className="text-[9px] md:text-[10px] font-medium">Insurance Products</span>
+                    </div>
+                  </>
+                )}
+                {sector === 'Healthcare' && (
+                  <>
+                    <div className="flex items-center justify-between p-1.5 bg-secondary/30 rounded">
+                      <span className="text-[9px] md:text-[10px] font-medium">Pharmaceuticals</span>
+                    </div>
+                    <div className="flex items-center justify-between p-1.5 bg-secondary/30 rounded">
+                      <span className="text-[9px] md:text-[10px] font-medium">Medical Devices</span>
+                    </div>
+                    <div className="flex items-center justify-between p-1.5 bg-secondary/30 rounded">
+                      <span className="text-[9px] md:text-[10px] font-medium">Healthcare Services</span>
+                    </div>
+                  </>
+                )}
+                {sector === 'Consumer Cyclical' && (
+                  <>
+                    <div className="flex items-center justify-between p-1.5 bg-secondary/30 rounded">
+                      <span className="text-[9px] md:text-[10px] font-medium">Retail Products</span>
+                    </div>
+                    <div className="flex items-center justify-between p-1.5 bg-secondary/30 rounded">
+                      <span className="text-[9px] md:text-[10px] font-medium">Consumer Goods</span>
+                    </div>
+                    <div className="flex items-center justify-between p-1.5 bg-secondary/30 rounded">
+                      <span className="text-[9px] md:text-[10px] font-medium">E-commerce</span>
+                    </div>
+                  </>
+                )}
+                {sector === 'Energy' && (
+                  <>
+                    <div className="flex items-center justify-between p-1.5 bg-secondary/30 rounded">
+                      <span className="text-[9px] md:text-[10px] font-medium">Oil & Gas</span>
+                    </div>
+                    <div className="flex items-center justify-between p-1.5 bg-secondary/30 rounded">
+                      <span className="text-[9px] md:text-[10px] font-medium">Renewable Energy</span>
+                    </div>
+                    <div className="flex items-center justify-between p-1.5 bg-secondary/30 rounded">
+                      <span className="text-[9px] md:text-[10px] font-medium">Utilities</span>
+                    </div>
+                  </>
+                )}
+                {!['Technology', 'Financial Services', 'Healthcare', 'Consumer Cyclical', 'Energy'].includes(sector || '') && (
+                  <>
+                    <div className="flex items-center justify-between p-1.5 bg-secondary/30 rounded">
+                      <span className="text-[9px] md:text-[10px] font-medium">Core Products</span>
+                    </div>
+                    <div className="flex items-center justify-between p-1.5 bg-secondary/30 rounded">
+                      <span className="text-[9px] md:text-[10px] font-medium">Services</span>
+                    </div>
+                    <div className="flex items-center justify-between p-1.5 bg-secondary/30 rounded">
+                      <span className="text-[9px] md:text-[10px] font-medium">Other Revenue</span>
+                    </div>
+                  </>
+                )}
               </div>
             </CardContent>
           </Card>
