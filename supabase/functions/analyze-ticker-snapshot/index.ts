@@ -41,7 +41,7 @@ serve(async (req) => {
   const startTime = Date.now();
   
   try {
-    const { ticker } = await req.json();
+    const { ticker, lookbackDays } = await req.json();
     
     if (!ticker) {
       return new Response(
@@ -50,16 +50,24 @@ serve(async (req) => {
       );
     }
 
-    console.log(`[analyze-ticker-snapshot] Starting snapshot for ${ticker}`);
+    // Default to max available data, otherwise limit to requested lookback
+    const requestedLookback = lookbackDays ? Math.min(Math.max(lookbackDays, 30), 1095) : null;
+
+    console.log(`[analyze-ticker-snapshot] Starting snapshot for ${ticker}${requestedLookback ? ` (${requestedLookback} days)` : ' (all data)'}`);
 
     // Fetch historical data from Polygon
-    const bars = await fetchPolygonBars(ticker);
-    if (!bars || bars.length < 50) {
+    const allBars = await fetchPolygonBars(ticker);
+    if (!allBars || allBars.length < 50) {
       return new Response(
         JSON.stringify({ success: false, error: 'Insufficient historical data' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+
+    // Apply lookback filter if specified
+    const bars = requestedLookback && allBars.length > requestedLookback 
+      ? allBars.slice(-requestedLookback) 
+      : allBars;
 
     // Run all Tier 1 studies synchronously (they are CPU-bound, not async)
     const studyResults = AUTO_STUDIES.map(studyId => {

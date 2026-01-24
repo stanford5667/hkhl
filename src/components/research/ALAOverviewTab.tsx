@@ -1,9 +1,10 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
-import { TrendingUp, TrendingDown, RefreshCw, Building2, Globe } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { TrendingUp, TrendingDown, RefreshCw, Building2, ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { QuickHistoricalInsights, StreakData, HistoricalPattern } from './QuickHistoricalInsights';
 import { BasicStatsData } from './BasicStatistics';
@@ -12,6 +13,13 @@ import { useTickerSnapshot } from '@/hooks/useTickerSnapshot';
 import { useTickerFundamentals } from '@/hooks/useTickerFundamentals';
 import { useTickerAnalystData } from '@/hooks/useTickerAnalystData';
 
+const LOOKBACK_OPTIONS = [
+  { value: '90', label: '90 Days' },
+  { value: '180', label: '180 Days' },
+  { value: '365', label: '1 Year' },
+  { value: '730', label: '2 Years' },
+  { value: 'all', label: 'All Data' },
+];
 interface ALAOverviewTabProps {
   ticker: string;
   companyName?: string;
@@ -49,9 +57,11 @@ export function ALAOverviewTab({
   onRefresh,
   isRefreshing = false,
 }: ALAOverviewTabProps) {
+  // Lookback state for trading days stats
+  const [lookbackDays, setLookbackDays] = useState<number | undefined>(undefined);
 
   // Fetch real data from edge functions
-  const { data: snapshot, isLoading: snapshotLoading } = useTickerSnapshot(ticker);
+  const { data: snapshot, isLoading: snapshotLoading, isFetching: snapshotFetching } = useTickerSnapshot(ticker, lookbackDays);
   const { data: fundamentals, isLoading: fundLoading } = useTickerFundamentals(ticker);
   const { data: analystData, isLoading: analystLoading } = useTickerAnalystData(ticker);
 
@@ -335,10 +345,28 @@ export function ALAOverviewTab({
                   </div>
                 </div>
 
-                <p className="text-[9px] text-muted-foreground mb-2 flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-primary"></span>
-                  Past {basicStats.totalDays} trading days
-                </p>
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-1 text-[9px] text-muted-foreground">
+                    <span className="w-1.5 h-1.5 rounded-full bg-primary"></span>
+                    Past {basicStats.totalDays} trading days
+                    {snapshotFetching && <RefreshCw className="h-2.5 w-2.5 animate-spin ml-1" />}
+                  </div>
+                  <Select 
+                    value={lookbackDays?.toString() || 'all'} 
+                    onValueChange={(val) => setLookbackDays(val === 'all' ? undefined : parseInt(val))}
+                  >
+                    <SelectTrigger className="h-5 w-[80px] text-[8px] bg-secondary/50 border-border px-1.5">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="bg-card border-border z-50">
+                      {LOOKBACK_OPTIONS.map(opt => (
+                        <SelectItem key={opt.value} value={opt.value} className="text-[10px]">
+                          {opt.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
                 <div className="grid grid-cols-2 gap-1.5">
                   <div className="bg-primary/5 border border-primary/20 rounded px-2 py-1.5 text-center">
                     <span className="text-[7px] text-muted-foreground block leading-tight">Days Closing Higher</span>

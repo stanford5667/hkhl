@@ -134,14 +134,14 @@ export interface TickerSnapshotData {
   };
 }
 
-export function useTickerSnapshot(ticker: string | undefined) {
+export function useTickerSnapshot(ticker: string | undefined, lookbackDays?: number) {
   return useQuery<TickerSnapshotData | null>({
-    queryKey: ['ticker-snapshot', ticker],
+    queryKey: ['ticker-snapshot', ticker, lookbackDays],
     queryFn: async () => {
       if (!ticker) return null;
       
       const { data, error } = await supabase.functions.invoke('analyze-ticker-snapshot', {
-        body: { ticker }
+        body: { ticker, lookbackDays }
       });
       
       if (error) {
