@@ -1,9 +1,9 @@
 import { useState, useMemo } from 'react';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
-import { TrendingUp, TrendingDown, RefreshCw } from 'lucide-react';
+import { TrendingUp, TrendingDown, RefreshCw, Building2, Globe } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { QuickHistoricalInsights, StreakData, HistoricalPattern } from './QuickHistoricalInsights';
 import { BasicStatistics, BasicStatsData } from './BasicStatistics';
@@ -17,6 +17,9 @@ interface ALAOverviewTabProps {
   companyName?: string;
   exchange?: string;
   sector?: string;
+  industry?: string;
+  description?: string;
+  homepageUrl?: string;
   quote: {
     price: number;
     change: number;
@@ -38,6 +41,9 @@ export function ALAOverviewTab({
   companyName,
   exchange,
   sector,
+  industry,
+  description,
+  homepageUrl,
   quote,
   isLoadingQuote = false,
   onRefresh,
@@ -291,6 +297,50 @@ export function ALAOverviewTab({
         showRangeSelector={true}
         defaultRange="3M"
       />
+
+      {/* ABOUT SECTION: Below chart */}
+      {description && (
+        <Card className="bg-card border-border">
+          <CardHeader className="py-3">
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Building2 className="h-4 w-4" />
+              About {companyName || ticker}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3 pt-0">
+            <p className="text-sm text-muted-foreground leading-relaxed line-clamp-4">{description}</p>
+            
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-3 border-t border-border">
+              <div>
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Sector</p>
+                <p className="text-sm font-medium">{sector || '—'}</p>
+              </div>
+              <div>
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Industry</p>
+                <p className="text-sm font-medium">{industry || '—'}</p>
+              </div>
+              <div>
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Exchange</p>
+                <p className="text-sm font-medium">{exchange || '—'}</p>
+              </div>
+              {homepageUrl && (
+                <div>
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Website</p>
+                  <a 
+                    href={homepageUrl} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="text-sm text-primary hover:underline font-medium flex items-center gap-1"
+                  >
+                    <Globe className="h-3 w-3" />
+                    Visit
+                  </a>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* BELOW CHART: Analyst & Financials Card */}
       <Card className="bg-card border-border">
