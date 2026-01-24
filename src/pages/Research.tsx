@@ -170,7 +170,7 @@ export default function ResearchPage() {
                   value={searchQuery}
                   onChange={setSearchQuery}
                   onSelect={(result) => handleSearch(result.symbol)}
-                  placeholder="Search by ticker or company name..."
+                  placeholder="Find investments..."
                   className="flex-1 border-0 shadow-none focus-visible:ring-0 bg-transparent"
                   autoFocus
                 />
