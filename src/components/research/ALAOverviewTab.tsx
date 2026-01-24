@@ -266,11 +266,6 @@ export function ALAOverviewTab({
               </div>
             </div>
 
-            {onRefresh && (
-              <Button variant="ghost" size="icon" onClick={onRefresh} disabled={isRefreshing} className="h-6 w-6 shrink-0">
-                <RefreshCw className={cn("h-3 w-3", isRefreshing && "animate-spin")} />
-              </Button>
-            )}
           </div>
 
           {/* Chart - full width, no side padding */}
@@ -281,6 +276,8 @@ export function ALAOverviewTab({
               showVolume={true}
               showRangeSelector={true}
               defaultRange="3M"
+              onRefresh={onRefresh}
+              isRefreshing={isRefreshing}
             />
           </div>
           
@@ -306,16 +303,12 @@ export function ALAOverviewTab({
           {description && (
             <Card className="bg-card border-border">
               <CardContent className="p-2">
-                <div className="flex items-center gap-1.5 mb-1">
-                  <Building2 className="h-3 w-3" />
-                  <span className="text-[10px] md:text-xs font-medium">About {companyName || ticker}</span>
-                </div>
                 <p className="text-[9px] md:text-[10px] text-muted-foreground leading-relaxed line-clamp-4 mb-1.5">{description}</p>
                 
                 <div className="grid grid-cols-2 gap-2 pt-1.5 border-t border-border">
-                  <div>
+                  <div className="min-w-0">
                     <p className="text-[7px] md:text-[8px] text-muted-foreground uppercase">Sector</p>
-                    <p className="text-[9px] md:text-[10px] font-medium">{sector || '—'}</p>
+                    <p className="text-[9px] md:text-[10px] font-medium truncate">{sector || '—'}</p>
                   </div>
                   <div>
                     <p className="text-[7px] md:text-[8px] text-muted-foreground uppercase">Exchange</p>
