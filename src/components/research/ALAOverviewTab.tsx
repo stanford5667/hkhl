@@ -322,6 +322,21 @@ export function ALAOverviewTab({
                     <p className="text-[9px] md:text-[10px] font-medium">{exchange || '—'}</p>
                   </div>
                 </div>
+
+                <div className="grid grid-cols-3 gap-2 pt-1.5 border-t border-border mt-1.5">
+                  <div>
+                    <p className="text-[7px] md:text-[8px] text-muted-foreground uppercase">Mkt Cap</p>
+                    <p className="text-[9px] md:text-[10px] font-bold text-primary">{formatMarketCap(marketCap)}</p>
+                  </div>
+                  <div>
+                    <p className="text-[7px] md:text-[8px] text-muted-foreground uppercase">EPS</p>
+                    <p className="text-[9px] md:text-[10px] font-bold">{eps ? `$${eps.toFixed(2)}` : '—'}</p>
+                  </div>
+                  <div>
+                    <p className="text-[7px] md:text-[8px] text-muted-foreground uppercase">Earnings</p>
+                    <p className="text-[9px] md:text-[10px] font-bold">{nextEarnings || '—'}</p>
+                  </div>
+                </div>
               </CardContent>
             </Card>
           )}
@@ -330,21 +345,6 @@ export function ALAOverviewTab({
           {basicStats && (
             <Card className="bg-card border-border">
               <CardContent className="p-2">
-                {/* Mkt Cap, EPS, Next Earnings Row */}
-                <div className="grid grid-cols-3 gap-1.5 mb-2">
-                  <div className="bg-primary/5 border border-primary/20 rounded px-2 py-1 text-center">
-                    <span className="text-[7px] text-primary/80 block leading-tight uppercase font-medium">Mkt Cap</span>
-                    <p className="text-[10px] font-bold text-foreground">{formatMarketCap(marketCap)}</p>
-                  </div>
-                  <div className="bg-secondary/50 border border-border rounded px-2 py-1 text-center">
-                    <span className="text-[7px] text-muted-foreground block leading-tight uppercase">EPS</span>
-                    <p className="text-[10px] font-bold">{eps ? `$${eps.toFixed(2)}` : '—'}</p>
-                  </div>
-                  <div className="bg-secondary/50 border border-border rounded px-2 py-1 text-center">
-                    <span className="text-[7px] text-muted-foreground block leading-tight uppercase">Earnings</span>
-                    <p className="text-[10px] font-bold">{nextEarnings || '—'}</p>
-                  </div>
-                </div>
 
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-1 text-[9px] text-muted-foreground">
