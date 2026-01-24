@@ -551,7 +551,7 @@ export default function CompanyDetail() {
           </TabsContent>}
 
         {/* Quant Lab Tab - Public Equity Only */}
-        {isPublicEquity && company.ticker_symbol && <TabsContent value="quant-lab" className="min-h-[600px]">
+        {isPublicEquity && company.ticker_symbol && <TabsContent value="quant-lab" className="relative min-h-[600px]">
             <EmbeddedQuantLab ticker={company.ticker_symbol} companyName={company.name} />
           </TabsContent>}
 
