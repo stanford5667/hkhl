@@ -227,6 +227,7 @@ export function ALAOverviewTab({
         <Card className="bg-card border-border lg:col-span-2 overflow-hidden">
           {/* Price Header */}
           <div className="px-3 pt-3 pb-2">
+            {/* Row 1: Name, Price, Change + 52W (desktop only) */}
             <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
               <div className="flex items-center gap-3 min-w-0">
                 <span className="text-sm md:text-base font-medium text-muted-foreground truncate max-w-[200px]">
@@ -248,25 +249,53 @@ export function ALAOverviewTab({
                 </div>
               </div>
               
-              {/* OHLC + Prev inline */}
-              <div className="flex items-center gap-3 text-[10px] md:text-xs">
-                <div className="flex items-center gap-1">
-                  <span className="text-muted-foreground">O:</span>
-                  <span className="font-medium tabular-nums">{formatCurrency(quote?.open || 0)}</span>
+              {/* 52W Range - Desktop only (right of price) */}
+              <div className="hidden lg:flex items-center gap-2 text-[10px]">
+                <span className="text-muted-foreground font-medium">52W:</span>
+                <span className="tabular-nums text-destructive">${week52Low?.toFixed(2) || '—'}</span>
+                <div className="relative w-16 h-1.5 bg-secondary rounded-full overflow-hidden">
+                  <div className="absolute top-0 left-0 h-full w-full bg-gradient-to-r from-destructive/30 via-muted to-emerald-500/30 rounded-full" />
+                  <div 
+                    className="absolute top-1/2 -translate-y-1/2 w-2 h-2 bg-primary rounded-full shadow-sm shadow-primary/50"
+                    style={{ left: `calc(${Math.min(100, Math.max(0, rangePosition))}% - 4px)` }}
+                  />
                 </div>
-                <div className="flex items-center gap-1">
-                  <span className="text-muted-foreground">H:</span>
-                  <span className="font-medium tabular-nums">{formatCurrency(quote?.high || 0)}</span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <span className="text-muted-foreground">L:</span>
-                  <span className="font-medium tabular-nums">{formatCurrency(quote?.low || 0)}</span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <span className="text-muted-foreground">Prev:</span>
-                  <span className="font-medium tabular-nums">{quote?.previousClose ? formatCurrency(quote.previousClose) : '—'}</span>
-                </div>
+                <span className="tabular-nums text-emerald-500">${week52High?.toFixed(2) || '—'}</span>
               </div>
+            </div>
+            
+            {/* Row 2: OHLC + Prev inline */}
+            <div className="flex flex-wrap items-center gap-3 text-[10px] md:text-xs">
+              <div className="flex items-center gap-1">
+                <span className="text-muted-foreground">O:</span>
+                <span className="font-medium tabular-nums">{formatCurrency(quote?.open || 0)}</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <span className="text-muted-foreground">H:</span>
+                <span className="font-medium tabular-nums">{formatCurrency(quote?.high || 0)}</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <span className="text-muted-foreground">L:</span>
+                <span className="font-medium tabular-nums">{formatCurrency(quote?.low || 0)}</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <span className="text-muted-foreground">Prev:</span>
+                <span className="font-medium tabular-nums">{quote?.previousClose ? formatCurrency(quote.previousClose) : '—'}</span>
+              </div>
+            </div>
+            
+            {/* 52W Range - Mobile only (below Prev) */}
+            <div className="flex lg:hidden items-center gap-2 text-[10px] mt-1">
+              <span className="text-muted-foreground font-medium">52W:</span>
+              <span className="tabular-nums text-destructive">${week52Low?.toFixed(2) || '—'}</span>
+              <div className="relative flex-1 max-w-[100px] h-1.5 bg-secondary rounded-full overflow-hidden">
+                <div className="absolute top-0 left-0 h-full w-full bg-gradient-to-r from-destructive/30 via-muted to-emerald-500/30 rounded-full" />
+                <div 
+                  className="absolute top-1/2 -translate-y-1/2 w-2 h-2 bg-primary rounded-full shadow-sm shadow-primary/50"
+                  style={{ left: `calc(${Math.min(100, Math.max(0, rangePosition))}% - 4px)` }}
+                />
+              </div>
+              <span className="tabular-nums text-emerald-500">${week52High?.toFixed(2) || '—'}</span>
             </div>
             
             {/* Exchange + Sector badges below OHLC */}
@@ -303,20 +332,6 @@ export function ALAOverviewTab({
               isRefreshing={isRefreshing}
             />
             
-            {/* 52-Week Range */}
-            <div className="flex items-center gap-2 px-3 py-2">
-              <span className="text-[8px] text-muted-foreground font-medium">52W</span>
-              <div className="flex-1 relative h-1.5 bg-secondary rounded-full overflow-hidden">
-                <div className="absolute top-0 left-0 h-full w-full bg-gradient-to-r from-primary/20 via-primary/40 to-primary/60 rounded-full" />
-                <div 
-                  className="absolute top-1/2 -translate-y-1/2 w-2 h-2 bg-primary rounded-full shadow-sm shadow-primary/50"
-                  style={{ left: `calc(${Math.min(100, Math.max(0, rangePosition))}% - 4px)` }}
-                />
-              </div>
-              <span className="text-[8px] text-muted-foreground tabular-nums">
-                ${week52Low?.toFixed(0) || '—'} — ${week52High?.toFixed(0) || '—'}
-              </span>
-            </div>
           </div>
         </Card>
 
