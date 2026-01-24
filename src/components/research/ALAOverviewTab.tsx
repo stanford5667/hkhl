@@ -225,13 +225,6 @@ export function ALAOverviewTab({
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-2">
         {/* Chart Column - 2/3 width */}
         <Card className="bg-card border-border lg:col-span-2 overflow-hidden">
-          {/* About Summary - Above Chart */}
-          {description && (
-            <div className="px-3 pt-3 pb-2 border-b border-border">
-              <p className="text-[9px] md:text-[10px] text-muted-foreground leading-relaxed line-clamp-2">{description}</p>
-            </div>
-          )}
-
           {/* Price Header */}
           <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 px-3 pt-3 pb-2">
             <div className="flex items-center gap-3 min-w-0">
@@ -286,8 +279,14 @@ export function ALAOverviewTab({
                 <span className="font-medium tabular-nums">{quote?.previousClose ? formatCurrency(quote.previousClose) : '—'}</span>
               </div>
             </div>
-
           </div>
+
+          {/* About Summary - Below price header, above chart */}
+          {description && (
+            <div className="px-3 pb-2">
+              <p className="text-[9px] md:text-[10px] text-muted-foreground leading-relaxed line-clamp-2">{description}</p>
+            </div>
+          )}
 
           {/* Chart - full width, no side padding */}
           <div className="w-full">
