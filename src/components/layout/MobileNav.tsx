@@ -25,7 +25,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 
 const mobileNavItems = [
-  { label: "Studies", href: "/quant-lab", icon: FlaskConical },
+  { label: "Research", href: "/research", icon: Search },
   { label: "Builder", href: "/portfolio-visualizer", icon: PieChart },
   { label: "Academy", href: "/academy", icon: BookOpen },
   { label: "Intel", href: "/market-intel", icon: BarChart3 },
@@ -119,7 +119,7 @@ function MobileSidebarContent({ onNavigate }: { onNavigate: () => void }) {
   const { isAdmin } = useAdmin();
   
   const navItems = [
-    { label: "Quant Lab", href: "/quant-lab", icon: FlaskConical },
+    { label: "Research", href: "/research", icon: Search },
     { label: "Portfolio Builder", href: "/portfolio-visualizer", icon: PieChart },
     { label: "Academy", href: "/academy", icon: BookOpen },
     { label: "Strategy Explorer", href: "/investment-plan", icon: ClipboardList },

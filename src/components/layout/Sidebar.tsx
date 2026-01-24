@@ -103,11 +103,11 @@ export function Sidebar() {
   const allNavigation = useMemo<NavItem[]>(() => {
     const items: NavItem[] = [
       { 
-        label: "Quant Lab", 
-        subtitle: "Run Studies",
-        href: "/quant-lab", 
-        icon: FlaskConical,
-        isPremium: true,
+        label: "Research", 
+        subtitle: "Search & Analyze",
+        href: "/research", 
+        icon: Search,
+        isPremium: false,
       },
       { 
         label: "Portfolio Builder", 
