@@ -21,6 +21,7 @@ import { useAssetMetrics, AssetMetrics } from '@/hooks/useAssetMetrics';
 
 interface PerformanceMetricsSectionProps {
   ticker: string;
+  compact?: boolean;
 }
 
 type Period = '1Y' | '3Y' | '5Y' | 'MAX';
@@ -71,12 +72,18 @@ function MetricBox({ label, value, subLabel, variant = 'default', trend }: Metri
   );
 }
 
-export function PerformanceMetricsSection({ ticker }: PerformanceMetricsSectionProps) {
+export function PerformanceMetricsSection({ ticker, compact = false }: PerformanceMetricsSectionProps) {
   const [period, setPeriod] = useState<Period>('3Y');
   const { data: metrics, isLoading, isFetching } = useAssetMetrics(ticker, period);
 
   if (isLoading) {
-    return (
+    return compact ? (
+      <div className="grid grid-cols-3 gap-1">
+        {Array.from({ length: 6 }).map((_, i) => (
+          <Skeleton key={i} className="h-10" />
+        ))}
+      </div>
+    ) : (
       <Card className="bg-card border-border">
         <CardContent className="p-3">
           <div className="flex items-center justify-between mb-3">
@@ -101,6 +108,41 @@ export function PerformanceMetricsSection({ ticker }: PerformanceMetricsSectionP
   };
 
   const formatRatio = (val: number) => val.toFixed(2);
+
+  // Compact mode - render without Card wrapper
+  if (compact) {
+    return (
+      <div>
+        <div className="flex items-center justify-between mb-1.5">
+          <div className="flex items-center gap-1">
+            <BarChart3 className="h-2.5 w-2.5 text-primary" />
+            <span className="text-[8px] font-medium text-muted-foreground">Performance</span>
+            {isFetching && <RefreshCw className="h-2 w-2 animate-spin text-muted-foreground" />}
+          </div>
+          <Select value={period} onValueChange={(v) => setPeriod(v as Period)}>
+            <SelectTrigger className="h-4 w-[50px] text-[6px] bg-secondary/50 border-border px-1">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent className="bg-card border-border z-50">
+              {PERIOD_OPTIONS.map(opt => (
+                <SelectItem key={opt.value} value={opt.value} className="text-[8px]">
+                  {opt.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="grid grid-cols-3 gap-1">
+          <MetricBox label="Total Return" value={formatPercent(metrics.totalReturn)} variant="primary" trend={metrics.totalReturn >= 0 ? 'good' : 'bad'} />
+          <MetricBox label="Annual Return" value={formatPercent(metrics.cagr)} variant="blue" trend={metrics.cagr >= 0 ? 'good' : 'bad'} />
+          <MetricBox label="Risk-Adj" value={formatRatio(metrics.sharpeRatio)} variant="purple" trend={metrics.sharpeRatio >= 1 ? 'good' : metrics.sharpeRatio >= 0.5 ? 'neutral' : 'bad'} />
+          <MetricBox label="Max Loss" value={`-${metrics.maxDrawdown.toFixed(1)}%`} variant="amber" trend="bad" />
+          <MetricBox label="Volatility" value={`${metrics.volatility.toFixed(1)}%`} trend={metrics.volatility < 20 ? 'good' : metrics.volatility > 35 ? 'bad' : 'neutral'} />
+          <MetricBox label="Downside" value={formatRatio(metrics.sortinoRatio)} trend={metrics.sortinoRatio >= 1.5 ? 'good' : metrics.sortinoRatio >= 0.8 ? 'neutral' : 'bad'} />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <Card className="bg-card border-border">
