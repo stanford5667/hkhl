@@ -143,7 +143,7 @@ export default function ResearchPage() {
           <div className="text-center mb-6 animate-fade-in">
             <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-2">
               <span className="bg-gradient-to-r from-primary via-cyan-500 to-primary bg-clip-text text-transparent">
-                Research Any Stock
+                Find Investments
               </span>
             </h1>
             <p className="text-muted-foreground text-sm sm:text-base max-w-xl mx-auto">
@@ -164,7 +164,7 @@ export default function ResearchPage() {
                   value={searchQuery}
                   onChange={setSearchQuery}
                   onSelect={(result) => handleSearch(result.symbol)}
-                  placeholder="Find investments..."
+                  placeholder="Enter ticker..."
                   className="flex-1 border-0 shadow-none focus-visible:ring-0 bg-transparent"
                   autoFocus
                 />
