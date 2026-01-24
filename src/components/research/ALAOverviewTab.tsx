@@ -208,239 +208,253 @@ export function ALAOverviewTab({
   }
 
   return (
-    <div className="space-y-3 md:space-y-4">
-      {/* TOP CARD: Price + OHLC + Key Stats + 52-Week Range */}
+    <div className="space-y-2">
+      {/* TOP CARD: Price + OHLC + Key Stats - Ultra Compact */}
       <Card className="bg-card border-border">
-        <CardContent className="p-2 md:p-4 space-y-2 md:space-y-3">
+        <CardContent className="p-1.5 md:p-2">
           {/* Row 1: Price & Change + Refresh */}
-          <div className="flex items-center justify-between gap-2">
-            <div className="flex items-baseline gap-2 md:gap-3 min-w-0">
-              <span className="text-xl md:text-2xl font-bold tabular-nums text-foreground">
+          <div className="flex items-center justify-between gap-2 mb-1">
+            <div className="flex items-baseline gap-2 min-w-0">
+              <span className="text-lg md:text-xl font-bold tabular-nums text-foreground">
                 {formatCurrency(quote?.price || 0)}
               </span>
               <span className={cn(
-                "flex items-center gap-0.5 text-xs md:text-sm font-medium shrink-0",
+                "flex items-center gap-0.5 text-[10px] md:text-xs font-medium shrink-0",
                 isPositive ? "text-emerald-400" : "text-rose-400"
               )}>
-                {isPositive ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
+                {isPositive ? <TrendingUp className="h-2.5 w-2.5" /> : <TrendingDown className="h-2.5 w-2.5" />}
                 <span className="tabular-nums">
                   {isPositive ? '+' : ''}{(quote?.change || 0).toFixed(2)} ({isPositive ? '+' : ''}{(quote?.changePercent || 0).toFixed(2)}%)
                 </span>
               </span>
             </div>
             {onRefresh && (
-              <Button variant="ghost" size="icon" onClick={onRefresh} disabled={isRefreshing} className="h-6 w-6 shrink-0">
-                <RefreshCw className={cn("h-3 w-3", isRefreshing && "animate-spin")} />
+              <Button variant="ghost" size="icon" onClick={onRefresh} disabled={isRefreshing} className="h-5 w-5 shrink-0">
+                <RefreshCw className={cn("h-2.5 w-2.5", isRefreshing && "animate-spin")} />
               </Button>
             )}
           </div>
 
-          {/* Row 2: OHLC + Key Stats inline */}
-          <div className="grid grid-cols-4 md:grid-cols-8 gap-1.5 md:gap-3 text-center">
+          {/* Row 2: OHLC + Key Stats inline - compact */}
+          <div className="grid grid-cols-4 md:grid-cols-8 gap-1 text-center">
             <div>
-              <p className="text-[8px] md:text-[10px] text-muted-foreground uppercase">Open</p>
-              <p className="text-[10px] md:text-xs font-semibold tabular-nums">{formatCurrency(quote?.open || 0)}</p>
-            </div>
-            <div>
-              <p className="text-[8px] md:text-[10px] text-muted-foreground uppercase">High</p>
-              <p className="text-[10px] md:text-xs font-semibold tabular-nums text-emerald-400">{formatCurrency(quote?.high || 0)}</p>
+              <p className="text-[7px] md:text-[8px] text-muted-foreground uppercase">Open</p>
+              <p className="text-[9px] md:text-[10px] font-semibold tabular-nums">{formatCurrency(quote?.open || 0)}</p>
             </div>
             <div>
-              <p className="text-[8px] md:text-[10px] text-muted-foreground uppercase">Low</p>
-              <p className="text-[10px] md:text-xs font-semibold tabular-nums text-rose-400">{formatCurrency(quote?.low || 0)}</p>
+              <p className="text-[7px] md:text-[8px] text-muted-foreground uppercase">High</p>
+              <p className="text-[9px] md:text-[10px] font-semibold tabular-nums text-emerald-400">{formatCurrency(quote?.high || 0)}</p>
             </div>
             <div>
-              <p className="text-[8px] md:text-[10px] text-muted-foreground uppercase">Prev</p>
-              <p className="text-[10px] md:text-xs font-semibold tabular-nums">{quote?.previousClose ? formatCurrency(quote.previousClose) : '—'}</p>
+              <p className="text-[7px] md:text-[8px] text-muted-foreground uppercase">Low</p>
+              <p className="text-[9px] md:text-[10px] font-semibold tabular-nums text-rose-400">{formatCurrency(quote?.low || 0)}</p>
+            </div>
+            <div>
+              <p className="text-[7px] md:text-[8px] text-muted-foreground uppercase">Prev</p>
+              <p className="text-[9px] md:text-[10px] font-semibold tabular-nums">{quote?.previousClose ? formatCurrency(quote.previousClose) : '—'}</p>
             </div>
             <div className="hidden md:block">
-              <p className="text-[8px] md:text-[10px] text-muted-foreground uppercase">Mkt Cap</p>
-              <p className="text-[10px] md:text-xs font-semibold">{formatMarketCap(marketCap)}</p>
+              <p className="text-[7px] md:text-[8px] text-muted-foreground uppercase">Mkt Cap</p>
+              <p className="text-[9px] md:text-[10px] font-semibold">{formatMarketCap(marketCap)}</p>
             </div>
             <div className="hidden md:block">
-              <p className="text-[8px] md:text-[10px] text-muted-foreground uppercase">Volume</p>
-              <p className="text-[10px] md:text-xs font-semibold">{formatVolume(quote?.volume)}</p>
+              <p className="text-[7px] md:text-[8px] text-muted-foreground uppercase">Volume</p>
+              <p className="text-[9px] md:text-[10px] font-semibold">{formatVolume(quote?.volume)}</p>
             </div>
             <div className="hidden md:block">
-              <p className="text-[8px] md:text-[10px] text-muted-foreground uppercase">P/E</p>
-              <p className="text-[10px] md:text-xs font-semibold">{peRatio?.toFixed(1) || '—'}</p>
+              <p className="text-[7px] md:text-[8px] text-muted-foreground uppercase">P/E</p>
+              <p className="text-[9px] md:text-[10px] font-semibold">{peRatio?.toFixed(1) || '—'}</p>
             </div>
             <div className="hidden md:block">
-              <p className="text-[8px] md:text-[10px] text-muted-foreground uppercase">Beta</p>
-              <p className="text-[10px] md:text-xs font-semibold">{beta?.toFixed(2) || '—'}</p>
+              <p className="text-[7px] md:text-[8px] text-muted-foreground uppercase">Beta</p>
+              <p className="text-[9px] md:text-[10px] font-semibold">{beta?.toFixed(2) || '—'}</p>
             </div>
           </div>
-
         </CardContent>
       </Card>
 
       {/* CHART + QUICK STATS: Side by side on desktop */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 md:gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-2">
         {/* Chart - takes 2/3 on desktop */}
-        <div className="lg:col-span-2 space-y-2">
+        <div className="lg:col-span-2 space-y-1.5">
           <CandlestickChart 
             symbol={ticker} 
-            height={280}
+            height={220}
             showVolume={true}
             showRangeSelector={true}
             defaultRange="3M"
           />
           
-          {/* 52-Week Range - Below Chart */}
+          {/* 52-Week Range - Below Chart - Ultra Compact */}
           <Card className="bg-card border-border">
-            <CardContent className="p-2 md:p-3">
-              <div className="space-y-1">
-                <div className="flex items-center justify-between text-[10px] md:text-xs text-muted-foreground">
-                  <span>52 Week Range</span>
-                  <span className="font-medium text-foreground">
-                    {week52Low ? `$${week52Low.toFixed(2)}` : '—'} - {week52High ? `$${week52High.toFixed(2)}` : '—'}
-                  </span>
-                </div>
-                <div className="relative h-2 bg-secondary rounded-full overflow-hidden">
+            <CardContent className="px-2 py-1.5">
+              <div className="flex items-center gap-2">
+                <span className="text-[8px] md:text-[9px] text-muted-foreground whitespace-nowrap">52W</span>
+                <div className="flex-1 relative h-1.5 bg-secondary rounded-full overflow-hidden">
                   <div className="absolute top-0 left-0 h-full w-full bg-gradient-to-r from-rose-500 via-amber-500 to-emerald-500 rounded-full" />
                   <div 
-                    className="absolute top-1/2 -translate-y-1/2 w-3 h-3 bg-white rounded-full border-2 border-primary shadow-md"
-                    style={{ left: `calc(${Math.min(100, Math.max(0, rangePosition))}% - 6px)` }}
+                    className="absolute top-1/2 -translate-y-1/2 w-2 h-2 bg-white rounded-full border border-primary shadow-sm"
+                    style={{ left: `calc(${Math.min(100, Math.max(0, rangePosition))}% - 4px)` }}
                   />
                 </div>
-                <div className="flex items-center justify-between text-[9px] text-muted-foreground">
-                  <span>Low</span>
-                  <span>High</span>
-                </div>
+                <span className="text-[8px] md:text-[9px] text-muted-foreground tabular-nums whitespace-nowrap">
+                  {week52Low ? `$${week52Low.toFixed(0)}` : '—'} - {week52High ? `$${week52High.toFixed(0)}` : '—'}
+                </span>
               </div>
             </CardContent>
           </Card>
         </div>
         
-        {/* Up/Down Day Stats - takes 1/3 on desktop */}
+        {/* Up/Down Day Stats - takes 1/3 on desktop - Compact */}
         <Card className="bg-card border-border">
-          <CardHeader className="pb-2 pt-3">
-            <div className="flex items-center gap-2">
-              <TrendingUp className="h-4 w-4 text-primary" />
-              <CardTitle className="text-sm font-medium">Day Statistics</CardTitle>
+          <CardContent className="p-2 space-y-1.5">
+            <div className="flex items-center gap-1.5 mb-1">
+              <TrendingUp className="h-3 w-3 text-primary" />
+              <span className="text-[10px] md:text-xs font-medium">Day Statistics</span>
             </div>
-          </CardHeader>
-          <CardContent className="space-y-3 pt-0">
-            {/* Up/Down/Flat Summary */}
+            
             {basicStats ? (
               <>
-                <div className="grid grid-cols-3 gap-2">
-                  <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-lg p-2 text-center">
-                    <div className="flex items-center justify-center gap-1 text-emerald-400 mb-0.5">
-                      <TrendingUp className="h-3 w-3" />
-                      <span className="text-[10px]">Up</span>
+                {/* Up/Down/Flat - Compact Grid */}
+                <div className="grid grid-cols-3 gap-1">
+                  <div className="bg-emerald-500/10 border border-emerald-500/20 rounded p-1 text-center">
+                    <div className="flex items-center justify-center gap-0.5 text-emerald-400">
+                      <TrendingUp className="h-2.5 w-2.5" />
+                      <span className="text-[8px]">Up</span>
                     </div>
-                    <p className="text-lg font-bold text-emerald-400">{basicStats.upDays}</p>
-                    <p className="text-[10px] text-emerald-400/70">
-                      {((basicStats.upDays / basicStats.totalDays) * 100).toFixed(0)}%
-                    </p>
+                    <p className="text-sm font-bold text-emerald-400">{basicStats.upDays}</p>
+                    <p className="text-[8px] text-emerald-400/70">{((basicStats.upDays / basicStats.totalDays) * 100).toFixed(0)}%</p>
                   </div>
-                  <div className="bg-rose-500/10 border border-rose-500/20 rounded-lg p-2 text-center">
-                    <div className="flex items-center justify-center gap-1 text-rose-400 mb-0.5">
-                      <TrendingDown className="h-3 w-3" />
-                      <span className="text-[10px]">Down</span>
+                  <div className="bg-rose-500/10 border border-rose-500/20 rounded p-1 text-center">
+                    <div className="flex items-center justify-center gap-0.5 text-rose-400">
+                      <TrendingDown className="h-2.5 w-2.5" />
+                      <span className="text-[8px]">Down</span>
                     </div>
-                    <p className="text-lg font-bold text-rose-400">{basicStats.downDays}</p>
-                    <p className="text-[10px] text-rose-400/70">
-                      {((basicStats.downDays / basicStats.totalDays) * 100).toFixed(0)}%
-                    </p>
+                    <p className="text-sm font-bold text-rose-400">{basicStats.downDays}</p>
+                    <p className="text-[8px] text-rose-400/70">{((basicStats.downDays / basicStats.totalDays) * 100).toFixed(0)}%</p>
                   </div>
-                  <div className="bg-secondary/50 border border-border rounded-lg p-2 text-center">
-                    <div className="flex items-center justify-center gap-1 text-muted-foreground mb-0.5">
-                      <span className="text-[10px]">Flat</span>
-                    </div>
-                    <p className="text-lg font-bold">{basicStats.flatDays}</p>
-                    <p className="text-[10px] text-muted-foreground">
-                      {((basicStats.flatDays / basicStats.totalDays) * 100).toFixed(0)}%
-                    </p>
+                  <div className="bg-secondary/50 border border-border rounded p-1 text-center">
+                    <span className="text-[8px] text-muted-foreground">Flat</span>
+                    <p className="text-sm font-bold">{basicStats.flatDays}</p>
+                    <p className="text-[8px] text-muted-foreground">{((basicStats.flatDays / basicStats.totalDays) * 100).toFixed(0)}%</p>
                   </div>
                 </div>
                 
-                {/* Stacked Bar */}
-                <div className="h-2 rounded-full overflow-hidden flex">
-                  <div 
-                    className="bg-emerald-500 h-full" 
-                    style={{ width: `${(basicStats.upDays / basicStats.totalDays) * 100}%` }}
-                  />
-                  <div 
-                    className="bg-rose-500 h-full" 
-                    style={{ width: `${(basicStats.downDays / basicStats.totalDays) * 100}%` }}
-                  />
-                  <div 
-                    className="bg-muted h-full" 
-                    style={{ width: `${(basicStats.flatDays / basicStats.totalDays) * 100}%` }}
-                  />
+                {/* Stacked Bar - Thinner */}
+                <div className="h-1 rounded-full overflow-hidden flex">
+                  <div className="bg-emerald-500 h-full" style={{ width: `${(basicStats.upDays / basicStats.totalDays) * 100}%` }} />
+                  <div className="bg-rose-500 h-full" style={{ width: `${(basicStats.downDays / basicStats.totalDays) * 100}%` }} />
+                  <div className="bg-muted h-full" style={{ width: `${(basicStats.flatDays / basicStats.totalDays) * 100}%` }} />
                 </div>
 
-                {/* Best/Worst Days */}
-                <div className="grid grid-cols-2 gap-2 pt-1">
-                  <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-lg p-2">
-                    <p className="text-[10px] text-emerald-400 mb-0.5">Best Day</p>
-                    <p className="text-base font-bold text-emerald-400">+{basicStats.bestDay.change.toFixed(1)}%</p>
-                    <p className="text-[9px] text-muted-foreground">{basicStats.bestDay.date}</p>
+                {/* Best/Worst Days - Compact */}
+                <div className="grid grid-cols-2 gap-1">
+                  <div className="bg-emerald-500/10 border border-emerald-500/20 rounded p-1">
+                    <p className="text-[8px] text-emerald-400">Best Day</p>
+                    <p className="text-xs font-bold text-emerald-400">+{basicStats.bestDay.change.toFixed(1)}%</p>
+                    <p className="text-[7px] text-muted-foreground">{basicStats.bestDay.date}</p>
                   </div>
-                  <div className="bg-rose-500/10 border border-rose-500/20 rounded-lg p-2">
-                    <p className="text-[10px] text-rose-400 mb-0.5">Worst Day</p>
-                    <p className="text-base font-bold text-rose-400">{basicStats.worstDay.change.toFixed(1)}%</p>
-                    <p className="text-[9px] text-muted-foreground">{basicStats.worstDay.date}</p>
+                  <div className="bg-rose-500/10 border border-rose-500/20 rounded p-1">
+                    <p className="text-[8px] text-rose-400">Worst Day</p>
+                    <p className="text-xs font-bold text-rose-400">{basicStats.worstDay.change.toFixed(1)}%</p>
+                    <p className="text-[7px] text-muted-foreground">{basicStats.worstDay.date}</p>
                   </div>
                 </div>
 
-                {/* Avg Daily Move */}
-                <div className="bg-primary/5 border border-primary/20 rounded-lg p-2 text-center">
-                  <p className="text-[10px] text-muted-foreground">Avg Daily Move</p>
-                  <p className="text-lg font-bold">${basicStats.avgDailyMove.toFixed(2)}</p>
-                  <p className="text-[10px] text-muted-foreground">({basicStats.avgDailyMovePercent.toFixed(2)}%)</p>
+                {/* Avg Daily Move - Compact */}
+                <div className="bg-primary/5 border border-primary/20 rounded p-1 text-center">
+                  <p className="text-[8px] text-muted-foreground">Avg Daily Move</p>
+                  <span className="text-sm font-bold">${basicStats.avgDailyMove.toFixed(2)}</span>
+                  <span className="text-[9px] text-muted-foreground ml-1">({basicStats.avgDailyMovePercent.toFixed(2)}%)</span>
                 </div>
 
-                <p className="text-[10px] text-muted-foreground text-center">
+                <p className="text-[7px] text-muted-foreground text-center">
                   Based on {basicStats.totalDays} trading days
                 </p>
               </>
             ) : (
-              <div className="flex items-center justify-center h-32 text-muted-foreground text-sm">
-                Loading statistics...
+              <div className="flex items-center justify-center h-20 text-muted-foreground text-xs">
+                Loading...
               </div>
             )}
           </CardContent>
         </Card>
       </div>
 
-      {/* ABOUT SECTION: Below chart */}
+      {/* Analyst & Financials Card - Compact */}
+      <Card className="bg-card border-border">
+        <CardContent className="p-1.5 md:p-2">
+          <div className="grid grid-cols-3 md:grid-cols-6 gap-1 md:gap-2 text-center">
+            <div>
+              <p className="text-[7px] md:text-[8px] text-muted-foreground uppercase">Rating</p>
+              <Badge className={cn("text-[8px] md:text-[9px] px-1 py-0", ratingColors[analystRating] || ratingColors['Buy'])}>
+                {analystRating}
+              </Badge>
+            </div>
+            <div>
+              <p className="text-[7px] md:text-[8px] text-muted-foreground uppercase">Target</p>
+              {priceTarget ? (
+                <p className="text-[9px] md:text-[10px] font-semibold">
+                  {formatCurrency(priceTarget)}
+                  <span className={cn("ml-0.5 text-[7px]", priceTarget > (quote?.price || 0) ? "text-emerald-400" : "text-rose-400")}>
+                    ({priceTarget > (quote?.price || 0) ? '+' : ''}{(((priceTarget - (quote?.price || 0)) / (quote?.price || 1)) * 100).toFixed(0)}%)
+                  </span>
+                </p>
+              ) : <p className="text-[9px] md:text-[10px] font-semibold">—</p>}
+            </div>
+            <div>
+              <p className="text-[7px] md:text-[8px] text-muted-foreground uppercase">Earnings</p>
+              <p className="text-[9px] md:text-[10px] font-semibold">{nextEarnings || '—'}</p>
+            </div>
+            <div className="hidden md:block">
+              <p className="text-[7px] md:text-[8px] text-muted-foreground uppercase">EPS</p>
+              <p className="text-[9px] md:text-[10px] font-semibold">{eps ? `$${eps.toFixed(2)}` : '—'}</p>
+            </div>
+            <div className="hidden md:block">
+              <p className="text-[7px] md:text-[8px] text-muted-foreground uppercase">Mkt Cap</p>
+              <p className="text-[9px] md:text-[10px] font-semibold">{formatMarketCap(marketCap)}</p>
+            </div>
+            <div className="hidden md:block">
+              <p className="text-[7px] md:text-[8px] text-muted-foreground uppercase">Volume</p>
+              <p className="text-[9px] md:text-[10px] font-semibold">{formatVolume(quote?.volume)}</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* ABOUT SECTION: Compact */}
       {description && (
         <Card className="bg-card border-border">
-          <CardHeader className="py-3">
-            <CardTitle className="flex items-center gap-2 text-base">
-              <Building2 className="h-4 w-4" />
-              About {companyName || ticker}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3 pt-0">
-            <p className="text-sm text-muted-foreground leading-relaxed line-clamp-4">{description}</p>
+          <CardContent className="p-2">
+            <div className="flex items-center gap-1.5 mb-1">
+              <Building2 className="h-3 w-3" />
+              <span className="text-[10px] md:text-xs font-medium">About {companyName || ticker}</span>
+            </div>
+            <p className="text-[9px] md:text-[10px] text-muted-foreground leading-relaxed line-clamp-3 mb-1.5">{description}</p>
             
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-3 border-t border-border">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1.5 border-t border-border">
               <div>
-                <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Sector</p>
-                <p className="text-sm font-medium">{sector || '—'}</p>
+                <p className="text-[7px] md:text-[8px] text-muted-foreground uppercase">Sector</p>
+                <p className="text-[9px] md:text-[10px] font-medium">{sector || '—'}</p>
               </div>
               <div>
-                <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Industry</p>
-                <p className="text-sm font-medium">{industry || '—'}</p>
+                <p className="text-[7px] md:text-[8px] text-muted-foreground uppercase">Industry</p>
+                <p className="text-[9px] md:text-[10px] font-medium">{industry || '—'}</p>
               </div>
               <div>
-                <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Exchange</p>
-                <p className="text-sm font-medium">{exchange || '—'}</p>
+                <p className="text-[7px] md:text-[8px] text-muted-foreground uppercase">Exchange</p>
+                <p className="text-[9px] md:text-[10px] font-medium">{exchange || '—'}</p>
               </div>
               {homepageUrl && (
                 <div>
-                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Website</p>
+                  <p className="text-[7px] md:text-[8px] text-muted-foreground uppercase">Website</p>
                   <a 
                     href={homepageUrl} 
                     target="_blank" 
                     rel="noopener noreferrer"
-                    className="text-sm text-primary hover:underline font-medium flex items-center gap-1"
+                    className="text-[9px] md:text-[10px] text-primary hover:underline font-medium flex items-center gap-0.5"
                   >
-                    <Globe className="h-3 w-3" />
+                    <Globe className="h-2.5 w-2.5" />
                     Visit
                   </a>
                 </div>
@@ -450,47 +464,6 @@ export function ALAOverviewTab({
         </Card>
       )}
 
-      {/* BELOW CHART: Analyst & Financials Card */}
-      <Card className="bg-card border-border">
-        <CardContent className="p-2 md:p-4">
-          <div className="grid grid-cols-3 md:grid-cols-6 gap-2 md:gap-4 text-center">
-            <div>
-              <p className="text-[8px] md:text-[10px] text-muted-foreground uppercase">Rating</p>
-              <Badge className={cn("mt-0.5 text-[9px] md:text-xs px-1.5 py-0", ratingColors[analystRating] || ratingColors['Buy'])}>
-                {analystRating}
-              </Badge>
-            </div>
-            <div>
-              <p className="text-[8px] md:text-[10px] text-muted-foreground uppercase">Target</p>
-              {priceTarget ? (
-                <p className="text-[10px] md:text-xs font-semibold">
-                  {formatCurrency(priceTarget)}
-                  <span className={cn("ml-0.5 text-[8px]", priceTarget > (quote?.price || 0) ? "text-emerald-400" : "text-rose-400")}>
-                    ({priceTarget > (quote?.price || 0) ? '+' : ''}{(((priceTarget - (quote?.price || 0)) / (quote?.price || 1)) * 100).toFixed(0)}%)
-                  </span>
-                </p>
-              ) : <p className="text-[10px] md:text-xs font-semibold">—</p>}
-            </div>
-            <div>
-              <p className="text-[8px] md:text-[10px] text-muted-foreground uppercase">Earnings</p>
-              <p className="text-[10px] md:text-xs font-semibold">{nextEarnings || '—'}</p>
-            </div>
-            <div className="hidden md:block">
-              <p className="text-[8px] md:text-[10px] text-muted-foreground uppercase">EPS</p>
-              <p className="text-[10px] md:text-xs font-semibold">{eps ? `$${eps.toFixed(2)}` : '—'}</p>
-            </div>
-            <div className="hidden md:block">
-              <p className="text-[8px] md:text-[10px] text-muted-foreground uppercase">Mkt Cap</p>
-              <p className="text-[10px] md:text-xs font-semibold">{formatMarketCap(marketCap)}</p>
-            </div>
-            <div className="hidden md:block">
-              <p className="text-[8px] md:text-[10px] text-muted-foreground uppercase">Volume</p>
-              <p className="text-[10px] md:text-xs font-semibold">{formatVolume(quote?.volume)}</p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
       {/* Quick Historical Insights */}
       <QuickHistoricalInsights 
         ticker={ticker} 
@@ -498,8 +471,6 @@ export function ALAOverviewTab({
         activePatterns={activePatterns}
         isLoading={snapshotLoading}
       />
-
-      {/* Basic Statistics removed - now shown inline next to chart */}
     </div>
   );
 }
