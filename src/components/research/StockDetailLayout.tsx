@@ -225,5 +225,4 @@ export const DEFAULT_STOCK_TABS: StockDetailTab[] = [
   { id: 'news', label: 'News', icon: Newspaper },
   { id: 'sec', label: 'SEC Filings', icon: FileText, shortLabel: 'SEC' },
   { id: 'analyst-social', label: 'Analyst & Social', icon: MessageCircle, shortLabel: 'Social' },
-  { id: 'research-v2', label: 'Research v2', icon: Beaker, shortLabel: 'v2' },
 ];
