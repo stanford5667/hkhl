@@ -264,21 +264,21 @@ export function ALAOverviewTab({
               </div>
             </div>
             
-            {/* Row 2: OHLC + Prev inline */}
-            <div className="flex flex-wrap items-center gap-3 text-[10px] md:text-xs">
-              <div className="flex items-center gap-1">
+            {/* Row 2: OHLC + Prev inline - nowrap to keep on same line */}
+            <div className="flex items-center gap-2 md:gap-3 text-[9px] md:text-xs whitespace-nowrap overflow-x-auto">
+              <div className="flex items-center gap-0.5">
                 <span className="text-muted-foreground">O:</span>
                 <span className="font-medium tabular-nums">{formatCurrency(quote?.open || 0)}</span>
               </div>
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-0.5">
                 <span className="text-muted-foreground">H:</span>
                 <span className="font-medium tabular-nums">{formatCurrency(quote?.high || 0)}</span>
               </div>
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-0.5">
                 <span className="text-muted-foreground">L:</span>
                 <span className="font-medium tabular-nums">{formatCurrency(quote?.low || 0)}</span>
               </div>
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-0.5">
                 <span className="text-muted-foreground">Prev:</span>
                 <span className="font-medium tabular-nums">{quote?.previousClose ? formatCurrency(quote.previousClose) : '—'}</span>
               </div>
