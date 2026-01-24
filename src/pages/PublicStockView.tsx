@@ -331,55 +331,14 @@ export default function PublicStockView() {
               companyName={details?.name}
               exchange={details?.primaryExchange}
               sector={details?.sector}
+              industry={details?.industry}
+              description={details?.description}
+              homepageUrl={details?.homepageUrl}
               quote={quote}
               isLoadingQuote={isLoadingQuote}
               onRefresh={handleRefresh}
               isRefreshing={isRefreshing}
             />
-
-            {/* Company Info */}
-            {details?.description && (
-              <Card className="bg-card border-border">
-                <CardHeader className="py-3">
-                  <CardTitle className="flex items-center gap-2 text-base">
-                    <Building2 className="h-4 w-4" />
-                    About {details.name}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3 pt-0">
-                  <p className="text-sm text-muted-foreground leading-relaxed line-clamp-4">{details.description}</p>
-                  
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-3 border-t border-border">
-                    <div>
-                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Sector</p>
-                      <p className="text-sm font-medium">{details.sector || '—'}</p>
-                    </div>
-                    <div>
-                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Industry</p>
-                      <p className="text-sm font-medium">{details.industry || '—'}</p>
-                    </div>
-                    <div>
-                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Exchange</p>
-                      <p className="text-sm font-medium">{details.primaryExchange || '—'}</p>
-                    </div>
-                    {details.homepageUrl && (
-                      <div>
-                        <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Website</p>
-                        <a 
-                          href={details.homepageUrl} 
-                          target="_blank" 
-                          rel="noopener noreferrer"
-                          className="text-sm text-primary hover:underline font-medium flex items-center gap-1"
-                        >
-                          <Globe className="h-3 w-3" />
-                          Visit
-                        </a>
-                      </div>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            )}
 
             {/* Sign In CTA */}
             {!user && (
