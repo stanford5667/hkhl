@@ -1,21 +1,22 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Search, Clock, X, TrendingUp, TrendingDown } from 'lucide-react';
+import { Search, Clock, X, TrendingUp } from 'lucide-react';
 import { TickerSearchAutocomplete } from '@/components/shared/TickerSearchAutocomplete';
 import { useBatchQuotes } from '@/hooks/useMarketDataQuery';
+import { InteractiveTickerCard } from '@/components/research/InteractiveTickerCard';
 
 const POPULAR_TICKERS = [
-  { symbol: 'AAPL', name: 'Apple' },
-  { symbol: 'MSFT', name: 'Microsoft' },
-  { symbol: 'GOOGL', name: 'Alphabet' },
-  { symbol: 'AMZN', name: 'Amazon' },
-  { symbol: 'NVDA', name: 'NVIDIA' },
-  { symbol: 'TSLA', name: 'Tesla' },
-  { symbol: 'META', name: 'Meta' },
-  { symbol: 'SPY', name: 'S&P 500' },
-  { symbol: 'QQQ', name: 'Nasdaq 100' },
-  { symbol: 'JPM', name: 'JPMorgan' },
+  { symbol: 'AAPL', name: 'Apple Inc.' },
+  { symbol: 'MSFT', name: 'Microsoft Corp.' },
+  { symbol: 'GOOGL', name: 'Alphabet Inc.' },
+  { symbol: 'AMZN', name: 'Amazon.com' },
+  { symbol: 'NVDA', name: 'NVIDIA Corp.' },
+  { symbol: 'TSLA', name: 'Tesla Inc.' },
+  { symbol: 'META', name: 'Meta Platforms' },
+  { symbol: 'SPY', name: 'S&P 500 ETF' },
+  { symbol: 'QQQ', name: 'Nasdaq 100 ETF' },
+  { symbol: 'JPM', name: 'JPMorgan Chase' },
 ];
 
 export default function ResearchPage() {
@@ -43,21 +44,6 @@ export default function ResearchPage() {
     localStorage.removeItem('recentAssetSearches');
   };
 
-  const formatPrice = (price: number | undefined) => {
-    if (!price) return '—';
-    return price.toLocaleString('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2 });
-  };
-
-  const formatChange = (change: number | undefined) => {
-    if (change === undefined) return null;
-    const isPositive = change >= 0;
-    return (
-      <span className={`flex items-center gap-0.5 text-xs font-medium ${isPositive ? 'text-emerald-500' : 'text-red-500'}`}>
-        {isPositive ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
-        {isPositive ? '+' : ''}{change.toFixed(2)}%
-      </span>
-    );
-  };
 
   return (
     <div className="p-4 sm:p-6 space-y-4 max-w-3xl mx-auto">
@@ -110,30 +96,24 @@ export default function ResearchPage() {
         </div>
       )}
 
-      {/* Popular Tickers with Prices */}
-      <div className="space-y-2">
+      {/* Popular Tickers with Mini Charts */}
+      <div className="space-y-3">
         <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
           <TrendingUp className="h-3 w-3" />
-          Popular
+          Popular Assets
         </div>
-        <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
           {POPULAR_TICKERS.map(({ symbol, name }) => {
             const quote = quotes.get(symbol);
             return (
-              <button
+              <InteractiveTickerCard
                 key={symbol}
+                symbol={symbol}
+                name={name}
+                price={quote?.price}
+                changePercent={quote?.changePercent}
                 onClick={() => handleSearch(symbol)}
-                className="flex flex-col items-start p-3 rounded-lg bg-card border border-border hover:border-primary/50 hover:bg-accent/50 transition-all text-left"
-              >
-                <div className="flex items-center justify-between w-full">
-                  <span className="font-semibold text-sm text-foreground">{symbol}</span>
-                  {formatChange(quote?.changePercent)}
-                </div>
-                <span className="text-xs text-muted-foreground truncate w-full">{name}</span>
-                <span className="text-sm font-medium text-foreground mt-1">
-                  {formatPrice(quote?.price)}
-                </span>
-              </button>
+              />
             );
           })}
         </div>
