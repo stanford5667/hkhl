@@ -9,6 +9,7 @@ import { cn } from '@/lib/utils';
 import { QuickHistoricalInsights, StreakData, HistoricalPattern } from './QuickHistoricalInsights';
 import { EarningsImpactSection } from './EarningsImpactSection';
 import { AutoStudiesSection } from './AutoStudiesSection';
+import { KeyCatalystsSection } from './KeyCatalystsSection';
 import { BasicStatsData, BasicStatistics } from './BasicStatistics';
 import { CandlestickChart } from '@/components/charts/CandlestickChart';
 import { useTickerSnapshot } from '@/hooks/useTickerSnapshot';
@@ -491,6 +492,9 @@ export function ALAOverviewTab({
           )}
         </div>
       </div>
+
+      {/* Key Catalysts Section */}
+      <KeyCatalystsSection ticker={ticker} />
 
       {/* Quick Insights + Earnings Impact Row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-2">
