@@ -93,8 +93,8 @@ export const SECTORS = [
 export const QUICK_SCREENS: Record<string, { name: string; description: string; filters: ScreenerFilters }> = {
   topGainers: {
     name: 'Top Gainers',
-    description: 'Stocks up 3%+ today',
-    filters: { minChange1D: 3, sortBy: 'change', sortDirection: 'desc', limit: 50 },
+    description: 'Stocks up 3%+ today (min $1, 100K vol)',
+    filters: { minChange1D: 3, minPrice: 1, minVolume: 100000, sortBy: 'change', sortDirection: 'desc', limit: 50 },
   },
   topLosers: {
     name: 'Top Losers',

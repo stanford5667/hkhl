@@ -18,13 +18,16 @@ export function useTrendingTickers(limit: number = 12) {
   const tickersQuery = useQuery({
     queryKey: ['trending-tickers', limit],
     queryFn: async (): Promise<TrendingTicker[]> => {
-      // Get the most active and high-cap tickers from asset_universe
+      // Get tickers with actual daily performance data, sorted by change
       const { data, error } = await supabase
         .from('asset_universe')
         .select('ticker, name, sector, market_cap_tier, avg_daily_volume, change_percent_1d, last_close')
         .eq('is_active', true)
         .not('last_close', 'is', null)
-        .order('avg_daily_volume', { ascending: false, nullsFirst: false })
+        .not('change_percent_1d', 'is', null)
+        .gte('last_close', 2)  // Minimum $2 price to exclude penny stocks
+        .gte('avg_daily_volume', 500000)  // Minimum 500K daily volume
+        .order('change_percent_1d', { ascending: false, nullsFirst: false })
         .limit(limit * 2); // Fetch more to have variety
 
       if (error) {
@@ -37,21 +40,8 @@ export function useTrendingTickers(limit: number = 12) {
         return getDefaultTickers();
       }
 
-      // Prioritize mega-cap and large-cap
-      const sorted = data.sort((a, b) => {
-        const tierOrder: Record<string, number> = {
-          'mega_cap': 4,
-          'large_cap': 3,
-          'mid_cap': 2,
-          'small_cap': 1,
-        };
-        const aOrder = tierOrder[a.market_cap_tier || ''] || 0;
-        const bOrder = tierOrder[b.market_cap_tier || ''] || 0;
-        if (bOrder !== aOrder) return bOrder - aOrder;
-        return (b.avg_daily_volume || 0) - (a.avg_daily_volume || 0);
-      });
-
-      return sorted.slice(0, limit).map(item => ({
+      // Already sorted by daily change from query, just slice
+      return data.slice(0, limit).map(item => ({
         symbol: item.ticker,
         name: item.name,
         marketCap: getMarketCapFromTier(item.market_cap_tier),
