@@ -8,6 +8,7 @@ import { TrendingUp, TrendingDown, RefreshCw, Building2, ChevronDown, Activity, 
 import { cn } from '@/lib/utils';
 import { QuickHistoricalInsights, StreakData, HistoricalPattern } from './QuickHistoricalInsights';
 import { EarningsImpactSection } from './EarningsImpactSection';
+import { AutoStudiesSection } from './AutoStudiesSection';
 import { BasicStatsData } from './BasicStatistics';
 import { CandlestickChart } from '@/components/charts/CandlestickChart';
 import { useTickerSnapshot } from '@/hooks/useTickerSnapshot';
@@ -501,6 +502,9 @@ export function ALAOverviewTab({
         />
         <EarningsImpactSection ticker={ticker} nextEarnings={nextEarnings} />
       </div>
+
+      {/* Auto Studies Section */}
+      <AutoStudiesSection ticker={ticker} />
     </div>
   );
 }
