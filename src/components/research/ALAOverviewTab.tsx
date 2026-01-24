@@ -227,36 +227,38 @@ export function ALAOverviewTab({
         <Card className="bg-card border-border lg:col-span-2 overflow-hidden">
           {/* Price Header */}
           <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 px-3 pt-3 pb-2">
-            <div className="flex items-center gap-3 min-w-0">
-              <span className="text-sm md:text-base font-medium text-muted-foreground truncate max-w-[200px]">
-                {companyName || ticker}
-              </span>
-              <div className="flex items-baseline gap-2">
-                <span className="text-xl md:text-2xl font-bold tabular-nums text-foreground">
-                  {formatCurrency(quote?.price || 0)}
+            <div className="flex flex-col gap-1 min-w-0">
+              <div className="flex items-center gap-3">
+                <span className="text-sm md:text-base font-medium text-muted-foreground truncate max-w-[200px]">
+                  {companyName || ticker}
                 </span>
-                <span className={cn(
-                  "flex items-center gap-0.5 text-xs font-medium",
-                  isPositive ? "text-emerald-500" : "text-destructive"
-                )}>
-                  {isPositive ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
-                  <span className="tabular-nums">
-                    {isPositive ? '+' : ''}{(quote?.change || 0).toFixed(2)} ({isPositive ? '+' : ''}{(quote?.changePercent || 0).toFixed(2)}%)
+                <div className="flex items-baseline gap-2">
+                  <span className="text-xl md:text-2xl font-bold tabular-nums text-foreground">
+                    {formatCurrency(quote?.price || 0)}
                   </span>
-                </span>
-                {/* Exchange + Sector badges next to price */}
-                <div className="flex items-center gap-1.5 ml-2">
-                  {exchange && (
-                    <Badge variant="outline" className="text-[8px] px-1.5 py-0 h-4 bg-secondary/50">
-                      {exchange}
-                    </Badge>
-                  )}
-                  {sector && (
-                    <Badge variant="outline" className="text-[8px] px-1.5 py-0 h-4 bg-secondary/50">
-                      {sector}
-                    </Badge>
-                  )}
+                  <span className={cn(
+                    "flex items-center gap-0.5 text-xs font-medium",
+                    isPositive ? "text-emerald-500" : "text-destructive"
+                  )}>
+                    {isPositive ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
+                    <span className="tabular-nums">
+                      {isPositive ? '+' : ''}{(quote?.change || 0).toFixed(2)} ({isPositive ? '+' : ''}{(quote?.changePercent || 0).toFixed(2)}%)
+                    </span>
+                  </span>
                 </div>
+              </div>
+              {/* Exchange + Sector badges below price */}
+              <div className="flex items-center gap-1.5">
+                {exchange && (
+                  <Badge variant="outline" className="text-[8px] px-1.5 py-0 h-4 bg-secondary/50">
+                    {exchange}
+                  </Badge>
+                )}
+                {sector && (
+                  <Badge variant="outline" className="text-[8px] px-1.5 py-0 h-4 bg-secondary/50">
+                    {sector}
+                  </Badge>
+                )}
               </div>
             </div>
             
