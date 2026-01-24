@@ -1668,7 +1668,6 @@ export default function PortfolioVisualizer() {
       <div className="min-h-screen bg-background">
         <ManualPortfolioForm
           onComplete={handleManualComplete}
-          onBack={() => setCurrentFlow('choose')}
         />
         <AuthGateDialog
           open={showAuthDialog}
