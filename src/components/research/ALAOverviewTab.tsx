@@ -270,66 +270,69 @@ export function ALAOverviewTab({
         </CardContent>
       </Card>
 
-      {/* CHART with 52W Range inline */}
-      <div className="space-y-1">
-        <CandlestickChart 
-          symbol={ticker} 
-          height={200}
-          showVolume={true}
-          showRangeSelector={true}
-          defaultRange="3M"
-        />
-        
-        {/* 52-Week Range - Inline bar, no card wrapper */}
-        <div className="flex items-center gap-2 px-1">
-          <span className="text-[7px] md:text-[8px] text-muted-foreground">52W Range</span>
-          <div className="flex-1 relative h-1 bg-secondary rounded-full overflow-hidden">
-            <div className="absolute top-0 left-0 h-full w-full bg-gradient-to-r from-muted-foreground/40 via-muted-foreground/60 to-muted-foreground/80 rounded-full" />
-            <div 
-              className="absolute top-1/2 -translate-y-1/2 w-1.5 h-1.5 bg-foreground rounded-full border border-primary"
-              style={{ left: `calc(${Math.min(100, Math.max(0, rangePosition))}% - 3px)` }}
-            />
-          </div>
-          <span className="text-[7px] md:text-[8px] text-muted-foreground tabular-nums">
-            ${week52Low?.toFixed(0) || '—'} - ${week52High?.toFixed(0) || '—'}
-          </span>
-        </div>
-      </div>
-
-      {/* Trading Day Summary - Clear descriptive labels */}
-      {basicStats && (
-        <Card className="bg-card border-border">
-          <CardContent className="p-2">
-            <p className="text-[9px] text-muted-foreground mb-1.5">Past {basicStats.totalDays} trading days breakdown</p>
-            <div className="grid grid-cols-3 md:grid-cols-6 gap-1">
-              <div className="bg-secondary/50 border border-border rounded px-1.5 py-1 text-center">
-                <span className="text-[8px] text-muted-foreground block">Days Closing Higher</span>
-                <p className="text-xs font-bold leading-tight">{basicStats.upDays}</p>
-              </div>
-              <div className="bg-secondary/50 border border-border rounded px-1.5 py-1 text-center">
-                <span className="text-[8px] text-muted-foreground block">Days Closing Lower</span>
-                <p className="text-xs font-bold leading-tight">{basicStats.downDays}</p>
-              </div>
-              <div className="bg-secondary/50 border border-border rounded px-1.5 py-1 text-center">
-                <span className="text-[8px] text-muted-foreground block">Unchanged Days</span>
-                <p className="text-xs font-bold leading-tight">{basicStats.flatDays}</p>
-              </div>
-              <div className="bg-secondary/50 border border-border rounded px-1.5 py-1 text-center">
-                <span className="text-[8px] text-muted-foreground block">Biggest Single-Day Gain</span>
-                <p className="text-xs font-bold leading-tight">+{basicStats.bestDay.change.toFixed(1)}%</p>
-              </div>
-              <div className="bg-secondary/50 border border-border rounded px-1.5 py-1 text-center">
-                <span className="text-[8px] text-muted-foreground block">Biggest Single-Day Loss</span>
-                <p className="text-xs font-bold leading-tight">{basicStats.worstDay.change.toFixed(1)}%</p>
-              </div>
-              <div className="bg-secondary/50 border border-border rounded px-1.5 py-1 text-center">
-                <span className="text-[8px] text-muted-foreground block">Avg Daily Movement</span>
-                <p className="text-xs font-bold leading-tight">{basicStats.avgDailyMovePercent.toFixed(2)}%</p>
-              </div>
+      {/* CHART + Trading Days Breakdown Side by Side */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-2">
+        {/* Chart Column - 2/3 width */}
+        <div className="lg:col-span-2 space-y-1">
+          <CandlestickChart 
+            symbol={ticker} 
+            height={200}
+            showVolume={true}
+            showRangeSelector={true}
+            defaultRange="3M"
+          />
+          
+          {/* 52-Week Range - Inline bar */}
+          <div className="flex items-center gap-2 px-1">
+            <span className="text-[7px] md:text-[8px] text-muted-foreground">52W Range</span>
+            <div className="flex-1 relative h-1 bg-secondary rounded-full overflow-hidden">
+              <div className="absolute top-0 left-0 h-full w-full bg-gradient-to-r from-muted-foreground/40 via-muted-foreground/60 to-muted-foreground/80 rounded-full" />
+              <div 
+                className="absolute top-1/2 -translate-y-1/2 w-1.5 h-1.5 bg-foreground rounded-full border border-primary"
+                style={{ left: `calc(${Math.min(100, Math.max(0, rangePosition))}% - 3px)` }}
+              />
             </div>
-          </CardContent>
-        </Card>
-      )}
+            <span className="text-[7px] md:text-[8px] text-muted-foreground tabular-nums">
+              ${week52Low?.toFixed(0) || '—'} - ${week52High?.toFixed(0) || '—'}
+            </span>
+          </div>
+        </div>
+
+        {/* Trading Day Breakdown - 1/3 width */}
+        {basicStats && (
+          <Card className="bg-card border-border h-fit">
+            <CardContent className="p-2">
+              <p className="text-[9px] text-muted-foreground mb-2">Past {basicStats.totalDays} trading days</p>
+              <div className="grid grid-cols-2 gap-1.5">
+                <div className="bg-secondary/50 border border-border rounded px-2 py-1.5 text-center">
+                  <span className="text-[7px] text-muted-foreground block leading-tight">Days Closing Higher</span>
+                  <p className="text-sm font-bold">{basicStats.upDays}</p>
+                </div>
+                <div className="bg-secondary/50 border border-border rounded px-2 py-1.5 text-center">
+                  <span className="text-[7px] text-muted-foreground block leading-tight">Days Closing Lower</span>
+                  <p className="text-sm font-bold">{basicStats.downDays}</p>
+                </div>
+                <div className="bg-secondary/50 border border-border rounded px-2 py-1.5 text-center">
+                  <span className="text-[7px] text-muted-foreground block leading-tight">Unchanged Days</span>
+                  <p className="text-sm font-bold">{basicStats.flatDays}</p>
+                </div>
+                <div className="bg-secondary/50 border border-border rounded px-2 py-1.5 text-center">
+                  <span className="text-[7px] text-muted-foreground block leading-tight">Avg Daily Move</span>
+                  <p className="text-sm font-bold">{basicStats.avgDailyMovePercent.toFixed(2)}%</p>
+                </div>
+                <div className="bg-secondary/50 border border-border rounded px-2 py-1.5 text-center">
+                  <span className="text-[7px] text-muted-foreground block leading-tight">Best Day</span>
+                  <p className="text-sm font-bold">+{basicStats.bestDay.change.toFixed(1)}%</p>
+                </div>
+                <div className="bg-secondary/50 border border-border rounded px-2 py-1.5 text-center">
+                  <span className="text-[7px] text-muted-foreground block leading-tight">Worst Day</span>
+                  <p className="text-sm font-bold">{basicStats.worstDay.change.toFixed(1)}%</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+      </div>
 
       {/* Analyst & Financials Card - Compact */}
       <Card className="bg-card border-border">
