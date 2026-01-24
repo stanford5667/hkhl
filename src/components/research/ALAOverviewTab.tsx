@@ -12,6 +12,7 @@ import { CandlestickChart } from '@/components/charts/CandlestickChart';
 import { useTickerSnapshot } from '@/hooks/useTickerSnapshot';
 import { useTickerFundamentals } from '@/hooks/useTickerFundamentals';
 import { useTickerAnalystData } from '@/hooks/useTickerAnalystData';
+import { PerformanceMetricsSection } from './PerformanceMetricsSection';
 
 const LOOKBACK_OPTIONS = [
   { value: '90', label: '90 Days' },
@@ -398,6 +399,9 @@ export function ALAOverviewTab({
           )}
         </div>
       </div>
+
+      {/* Performance Metrics Section */}
+      <PerformanceMetricsSection ticker={ticker} />
 
       {/* Quick Historical Insights */}
       <QuickHistoricalInsights 
