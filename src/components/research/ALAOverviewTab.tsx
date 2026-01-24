@@ -273,113 +273,69 @@ export function ALAOverviewTab({
         </CardContent>
       </Card>
 
-      {/* CHART + QUICK STATS: Side by side on desktop */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-2">
-        {/* Chart - takes 2/3 on desktop */}
-        <div className="lg:col-span-2 space-y-1.5">
-          <CandlestickChart 
-            symbol={ticker} 
-            height={220}
-            showVolume={true}
-            showRangeSelector={true}
-            defaultRange="3M"
-          />
-          
-          {/* 52-Week Range - Below Chart - Ultra Compact */}
-          <Card className="bg-card border-border">
-            <CardContent className="px-2 py-1.5">
-              <div className="flex items-center gap-2">
-                <span className="text-[8px] md:text-[9px] text-muted-foreground whitespace-nowrap">52W</span>
-                <div className="flex-1 relative h-1.5 bg-secondary rounded-full overflow-hidden">
-                  <div className="absolute top-0 left-0 h-full w-full bg-gradient-to-r from-rose-500 via-amber-500 to-emerald-500 rounded-full" />
-                  <div 
-                    className="absolute top-1/2 -translate-y-1/2 w-2 h-2 bg-white rounded-full border border-primary shadow-sm"
-                    style={{ left: `calc(${Math.min(100, Math.max(0, rangePosition))}% - 4px)` }}
-                  />
-                </div>
-                <span className="text-[8px] md:text-[9px] text-muted-foreground tabular-nums whitespace-nowrap">
-                  {week52Low ? `$${week52Low.toFixed(0)}` : '—'} - {week52High ? `$${week52High.toFixed(0)}` : '—'}
-                </span>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+      {/* CHART with 52W Range inline */}
+      <div className="space-y-1">
+        <CandlestickChart 
+          symbol={ticker} 
+          height={200}
+          showVolume={true}
+          showRangeSelector={true}
+          defaultRange="3M"
+        />
         
-        {/* Up/Down Day Stats - takes 1/3 on desktop - Compact */}
-        <Card className="bg-card border-border">
-          <CardContent className="p-2 space-y-1.5">
-            <div className="flex items-center gap-1.5 mb-1">
-              <TrendingUp className="h-3 w-3 text-primary" />
-              <span className="text-[10px] md:text-xs font-medium">Day Statistics</span>
-            </div>
-            
-            {basicStats ? (
-              <>
-                {/* Up/Down/Flat - Compact Grid */}
-                <div className="grid grid-cols-3 gap-1">
-                  <div className="bg-emerald-500/10 border border-emerald-500/20 rounded p-1 text-center">
-                    <div className="flex items-center justify-center gap-0.5 text-emerald-400">
-                      <TrendingUp className="h-2.5 w-2.5" />
-                      <span className="text-[8px]">Up</span>
-                    </div>
-                    <p className="text-sm font-bold text-emerald-400">{basicStats.upDays}</p>
-                    <p className="text-[8px] text-emerald-400/70">{((basicStats.upDays / basicStats.totalDays) * 100).toFixed(0)}%</p>
-                  </div>
-                  <div className="bg-rose-500/10 border border-rose-500/20 rounded p-1 text-center">
-                    <div className="flex items-center justify-center gap-0.5 text-rose-400">
-                      <TrendingDown className="h-2.5 w-2.5" />
-                      <span className="text-[8px]">Down</span>
-                    </div>
-                    <p className="text-sm font-bold text-rose-400">{basicStats.downDays}</p>
-                    <p className="text-[8px] text-rose-400/70">{((basicStats.downDays / basicStats.totalDays) * 100).toFixed(0)}%</p>
-                  </div>
-                  <div className="bg-secondary/50 border border-border rounded p-1 text-center">
-                    <span className="text-[8px] text-muted-foreground">Flat</span>
-                    <p className="text-sm font-bold">{basicStats.flatDays}</p>
-                    <p className="text-[8px] text-muted-foreground">{((basicStats.flatDays / basicStats.totalDays) * 100).toFixed(0)}%</p>
-                  </div>
-                </div>
-                
-                {/* Stacked Bar - Thinner */}
-                <div className="h-1 rounded-full overflow-hidden flex">
-                  <div className="bg-emerald-500 h-full" style={{ width: `${(basicStats.upDays / basicStats.totalDays) * 100}%` }} />
-                  <div className="bg-rose-500 h-full" style={{ width: `${(basicStats.downDays / basicStats.totalDays) * 100}%` }} />
-                  <div className="bg-muted h-full" style={{ width: `${(basicStats.flatDays / basicStats.totalDays) * 100}%` }} />
-                </div>
-
-                {/* Best/Worst Days - Compact */}
-                <div className="grid grid-cols-2 gap-1">
-                  <div className="bg-emerald-500/10 border border-emerald-500/20 rounded p-1">
-                    <p className="text-[8px] text-emerald-400">Best Day</p>
-                    <p className="text-xs font-bold text-emerald-400">+{basicStats.bestDay.change.toFixed(1)}%</p>
-                    <p className="text-[7px] text-muted-foreground">{basicStats.bestDay.date}</p>
-                  </div>
-                  <div className="bg-rose-500/10 border border-rose-500/20 rounded p-1">
-                    <p className="text-[8px] text-rose-400">Worst Day</p>
-                    <p className="text-xs font-bold text-rose-400">{basicStats.worstDay.change.toFixed(1)}%</p>
-                    <p className="text-[7px] text-muted-foreground">{basicStats.worstDay.date}</p>
-                  </div>
-                </div>
-
-                {/* Avg Daily Move - Compact */}
-                <div className="bg-primary/5 border border-primary/20 rounded p-1 text-center">
-                  <p className="text-[8px] text-muted-foreground">Avg Daily Move</p>
-                  <span className="text-sm font-bold">${basicStats.avgDailyMove.toFixed(2)}</span>
-                  <span className="text-[9px] text-muted-foreground ml-1">({basicStats.avgDailyMovePercent.toFixed(2)}%)</span>
-                </div>
-
-                <p className="text-[7px] text-muted-foreground text-center">
-                  Based on {basicStats.totalDays} trading days
-                </p>
-              </>
-            ) : (
-              <div className="flex items-center justify-center h-20 text-muted-foreground text-xs">
-                Loading...
-              </div>
-            )}
-          </CardContent>
-        </Card>
+        {/* 52-Week Range - Inline bar, no card wrapper */}
+        <div className="flex items-center gap-2 px-1">
+          <span className="text-[7px] md:text-[8px] text-muted-foreground">52W</span>
+          <div className="flex-1 relative h-1 bg-secondary rounded-full overflow-hidden">
+            <div className="absolute top-0 left-0 h-full w-full bg-gradient-to-r from-rose-500 via-amber-500 to-emerald-500 rounded-full" />
+            <div 
+              className="absolute top-1/2 -translate-y-1/2 w-1.5 h-1.5 bg-white rounded-full border border-primary"
+              style={{ left: `calc(${Math.min(100, Math.max(0, rangePosition))}% - 3px)` }}
+            />
+          </div>
+          <span className="text-[7px] md:text-[8px] text-muted-foreground tabular-nums">
+            ${week52Low?.toFixed(0) || '—'} - ${week52High?.toFixed(0) || '—'}
+          </span>
+        </div>
       </div>
+
+      {/* Day Statistics - Horizontal compact layout */}
+      {basicStats && (
+        <div className="grid grid-cols-6 gap-1">
+          {/* Up/Down/Flat inline */}
+          <div className="bg-emerald-500/10 border border-emerald-500/20 rounded px-1 py-0.5 text-center">
+            <div className="flex items-center justify-center gap-0.5 text-emerald-400">
+              <TrendingUp className="h-2 w-2" />
+              <span className="text-[7px]">Up</span>
+            </div>
+            <p className="text-[10px] font-bold text-emerald-400 leading-tight">{basicStats.upDays}</p>
+          </div>
+          <div className="bg-rose-500/10 border border-rose-500/20 rounded px-1 py-0.5 text-center">
+            <div className="flex items-center justify-center gap-0.5 text-rose-400">
+              <TrendingDown className="h-2 w-2" />
+              <span className="text-[7px]">Down</span>
+            </div>
+            <p className="text-[10px] font-bold text-rose-400 leading-tight">{basicStats.downDays}</p>
+          </div>
+          <div className="bg-secondary/50 border border-border rounded px-1 py-0.5 text-center">
+            <span className="text-[7px] text-muted-foreground">Flat</span>
+            <p className="text-[10px] font-bold leading-tight">{basicStats.flatDays}</p>
+          </div>
+          {/* Best/Worst inline */}
+          <div className="bg-emerald-500/10 border border-emerald-500/20 rounded px-1 py-0.5 text-center">
+            <span className="text-[7px] text-emerald-400">Best</span>
+            <p className="text-[10px] font-bold text-emerald-400 leading-tight">+{basicStats.bestDay.change.toFixed(1)}%</p>
+          </div>
+          <div className="bg-rose-500/10 border border-rose-500/20 rounded px-1 py-0.5 text-center">
+            <span className="text-[7px] text-rose-400">Worst</span>
+            <p className="text-[10px] font-bold text-rose-400 leading-tight">{basicStats.worstDay.change.toFixed(1)}%</p>
+          </div>
+          <div className="bg-primary/5 border border-primary/20 rounded px-1 py-0.5 text-center">
+            <span className="text-[7px] text-muted-foreground">Avg</span>
+            <p className="text-[10px] font-bold leading-tight">{basicStats.avgDailyMovePercent.toFixed(2)}%</p>
+          </div>
+        </div>
+      )}
 
       {/* Analyst & Financials Card - Compact */}
       <Card className="bg-card border-border">
