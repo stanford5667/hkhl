@@ -269,7 +269,7 @@ export function ALAOverviewTab({
               </div>
             </div>
             
-            {/* Exchange + Sector badges */}
+            {/* Exchange + Sector badges below OHLC */}
             <div className="flex items-center gap-1.5 mt-1.5">
               {exchange && (
                 <Badge variant="outline" className="text-[8px] px-1.5 py-0 h-4 bg-secondary/50">
@@ -281,21 +281,6 @@ export function ALAOverviewTab({
                   {sector}
                 </Badge>
               )}
-            </div>
-            
-            {/* 52-Week Range */}
-            <div className="flex items-center gap-2 mt-2">
-              <span className="text-[8px] text-muted-foreground font-medium">52W</span>
-              <div className="flex-1 relative h-1.5 bg-secondary rounded-full overflow-hidden">
-                <div className="absolute top-0 left-0 h-full w-full bg-gradient-to-r from-primary/20 via-primary/40 to-primary/60 rounded-full" />
-                <div 
-                  className="absolute top-1/2 -translate-y-1/2 w-2 h-2 bg-primary rounded-full shadow-sm shadow-primary/50"
-                  style={{ left: `calc(${Math.min(100, Math.max(0, rangePosition))}% - 4px)` }}
-                />
-              </div>
-              <span className="text-[8px] text-muted-foreground tabular-nums">
-                ${week52Low?.toFixed(0) || '—'} — ${week52High?.toFixed(0) || '—'}
-              </span>
             </div>
           </div>
 
@@ -317,6 +302,21 @@ export function ALAOverviewTab({
               onRefresh={onRefresh}
               isRefreshing={isRefreshing}
             />
+            
+            {/* 52-Week Range */}
+            <div className="flex items-center gap-2 px-3 py-2">
+              <span className="text-[8px] text-muted-foreground font-medium">52W</span>
+              <div className="flex-1 relative h-1.5 bg-secondary rounded-full overflow-hidden">
+                <div className="absolute top-0 left-0 h-full w-full bg-gradient-to-r from-primary/20 via-primary/40 to-primary/60 rounded-full" />
+                <div 
+                  className="absolute top-1/2 -translate-y-1/2 w-2 h-2 bg-primary rounded-full shadow-sm shadow-primary/50"
+                  style={{ left: `calc(${Math.min(100, Math.max(0, rangePosition))}% - 4px)` }}
+                />
+              </div>
+              <span className="text-[8px] text-muted-foreground tabular-nums">
+                ${week52Low?.toFixed(0) || '—'} — ${week52High?.toFixed(0) || '—'}
+              </span>
+            </div>
           </div>
         </Card>
 
@@ -347,10 +347,65 @@ export function ALAOverviewTab({
             </CardContent>
           </Card>
 
-          {/* Performance Metrics Card */}
+          {/* Performance + Trading Days Card */}
           {basicStats && (
             <Card className="bg-secondary/20 border-border">
               <CardContent className="p-2">
+                {/* Header */}
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-1 text-[9px] font-medium">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                    Past {basicStats.totalDays} trading days
+                    {snapshotFetching && <RefreshCw className="h-2.5 w-2.5 animate-spin ml-1" />}
+                  </div>
+                  <Select 
+                    value={lookbackDays?.toString() || 'all'} 
+                    onValueChange={(val) => setLookbackDays(val === 'all' ? undefined : parseInt(val))}
+                  >
+                    <SelectTrigger className="h-5 w-[80px] text-[8px] bg-secondary/50 border-border px-1.5">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="bg-card border-border z-50">
+                      {LOOKBACK_OPTIONS.map(opt => (
+                        <SelectItem key={opt.value} value={opt.value} className="text-[10px]">
+                          {opt.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                {/* Trading Day Stats */}
+                <div className="bg-background/50 border border-border rounded p-2 mb-2">
+                  <div className="grid grid-cols-3 gap-x-4 gap-y-1 text-center">
+                    <div>
+                      <span className="text-[7px] text-muted-foreground uppercase">Up Days</span>
+                      <p className="text-xs font-bold text-emerald-500">{basicStats.upDays}</p>
+                    </div>
+                    <div>
+                      <span className="text-[7px] text-muted-foreground uppercase">Down Days</span>
+                      <p className="text-xs font-bold text-destructive">{basicStats.downDays}</p>
+                    </div>
+                    <div>
+                      <span className="text-[7px] text-muted-foreground uppercase">Flat Days</span>
+                      <p className="text-xs font-bold">{basicStats.flatDays}</p>
+                    </div>
+                    <div>
+                      <span className="text-[7px] text-muted-foreground uppercase">Avg Move</span>
+                      <p className="text-xs font-bold">{basicStats.avgDailyMovePercent.toFixed(2)}%</p>
+                    </div>
+                    <div>
+                      <span className="text-[7px] text-muted-foreground uppercase">Best Day</span>
+                      <p className="text-xs font-bold text-emerald-500">+{basicStats.bestDay.change.toFixed(1)}%</p>
+                    </div>
+                    <div>
+                      <span className="text-[7px] text-muted-foreground uppercase">Worst Day</span>
+                      <p className="text-xs font-bold text-destructive">{basicStats.worstDay.change.toFixed(1)}%</p>
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Performance Metrics */}
                 <PerformanceMetricsSection ticker={ticker} compact />
               </CardContent>
             </Card>
