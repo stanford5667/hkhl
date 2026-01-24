@@ -15,7 +15,9 @@ import { CompanyTeamPanel } from '@/components/companies/CompanyTeamPanel';
 import { CompanyTasksTab } from '@/components/companies/CompanyTasksTab';
 import { ProcessingBanner, ProcessingIndicator, AIAnalyzedBadge } from '@/components/companies/ProcessingBanner';
 import { AISummaryCard } from '@/components/companies/AISummaryCard';
-import { PublicEquityDetailView } from '@/components/equity/PublicEquityDetailView';
+import { ALAOverviewTab } from '@/components/research/ALAOverviewTab';
+import { useStockQuote } from '@/hooks/useMarketData';
+import { fetchTickerDetails, TickerDetails } from '@/services/tickerDetailsService';
 import { AssetBacktestPanel } from '@/components/equity/AssetBacktestPanel';
 import { EmbeddedQuantLab } from '@/components/equity/EmbeddedQuantLab';
 import { SECFilingsPanel } from '@/components/research/SECFilingsPanel';
@@ -118,6 +120,13 @@ export default function CompanyDetail() {
   const [loading, setLoading] = useState(true);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [extractionKey, setExtractionKey] = useState(0);
+  const [tickerDetails, setTickerDetails] = useState<TickerDetails | null>(null);
+  
+  // Get the ticker for public equities
+  const ticker = company?.asset_class === 'public_equity' ? company?.ticker_symbol : null;
+  
+  // Use stock quote hook for public equities
+  const { quote, isLoading: isLoadingQuote, refresh: refreshQuote } = useStockQuote(ticker, { enabled: !!ticker });
 
   const fetchData = async () => {
     if (!id) return;
@@ -215,6 +224,13 @@ export default function CompanyDetail() {
   useEffect(() => {
     fetchData();
   }, [id, user, navigate]);
+
+  // Fetch ticker details for public equities
+  useEffect(() => {
+    if (company?.asset_class === 'public_equity' && company?.ticker_symbol) {
+      fetchTickerDetails(company.ticker_symbol).then(setTickerDetails);
+    }
+  }, [company?.asset_class, company?.ticker_symbol]);
 
   if (loading) {
     return (
@@ -399,9 +415,26 @@ export default function CompanyDetail() {
 
         {/* Overview Tab */}
         <TabsContent value="overview" className="space-y-6">
-          {isPublicEquity ? (
-            /* Public Equity Overview */
-            <PublicEquityDetailView company={company} onUpdate={fetchData} />
+          {isPublicEquity && company.ticker_symbol ? (
+            /* Public Equity Overview - Use enhanced ALA UI */
+            <ALAOverviewTab
+              ticker={company.ticker_symbol}
+              companyName={tickerDetails?.name || company.name}
+              exchange={tickerDetails?.primaryExchange || company.exchange || undefined}
+              sector={tickerDetails?.sector || company.industry || undefined}
+              quote={quote ? {
+                price: quote.price,
+                change: quote.change,
+                changePercent: quote.changePercent,
+                open: quote.open,
+                high: quote.high,
+                low: quote.low,
+                previousClose: quote.previousClose,
+                marketCap: tickerDetails?.marketCap ?? undefined,
+              } : undefined}
+              isLoadingQuote={isLoadingQuote}
+              onRefresh={refreshQuote}
+            />
           ) : (
             /* Private Company Overview */
             <>
