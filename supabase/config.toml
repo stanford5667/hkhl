@@ -170,3 +170,6 @@ verify_jwt = false
 
 [functions.run-single-study]
 verify_jwt = false
+
+[functions.finnhub-ticker-fundamentals]
+verify_jwt = false

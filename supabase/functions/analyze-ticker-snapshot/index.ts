@@ -324,15 +324,47 @@ function studyAfterMove(bars: PriceBar[], direction: 'up' | 'down'): any {
 
 function studyStreaks(bars: PriceBar[]): any {
   let currentStreak = 0;
+  let streakStartIndex = bars.length - 1;
   const streakStats: Record<number, { wins: number; total: number; returns: number[] }> = {};
+  
+  // Track all streaks with their start/end indices for historical analysis
+  const allStreaks: { streak: number; startIdx: number; endIdx: number; totalChange: number }[] = [];
+  let tempStreakStart = 1;
+  let tempStreak = 0;
   
   for (let i = 1; i < bars.length; i++) {
     const isUp = bars[i].close > bars[i - 1].close;
+    const prevStreak = currentStreak;
     
     if (isUp) {
       currentStreak = currentStreak > 0 ? currentStreak + 1 : 1;
     } else {
       currentStreak = currentStreak < 0 ? currentStreak - 1 : -1;
+    }
+    
+    // Detect streak changes to record completed streaks
+    if (i > 1) {
+      const wasUp = tempStreak > 0;
+      const nowUp = currentStreak > 0;
+      
+      if ((wasUp && !nowUp) || (!wasUp && nowUp && tempStreak !== 0)) {
+        // Streak ended, record it
+        const streakEndIdx = i - 1;
+        const streakTotalChange = ((bars[streakEndIdx].close - bars[tempStreakStart - 1].close) / bars[tempStreakStart - 1].close) * 100;
+        allStreaks.push({
+          streak: tempStreak,
+          startIdx: tempStreakStart,
+          endIdx: streakEndIdx,
+          totalChange: streakTotalChange
+        });
+        tempStreakStart = i;
+      }
+    }
+    tempStreak = currentStreak;
+    
+    // Update streak start for current streak
+    if (Math.abs(currentStreak) === 1) {
+      streakStartIndex = i;
     }
     
     // Record stats for this streak length
@@ -351,6 +383,34 @@ function studyStreaks(bars: PriceBar[]): any {
     }
   }
   
+  // Calculate actual total change for current streak
+  const streakStartBar = bars[streakStartIndex - 1] || bars[0];
+  const currentBar = bars[bars.length - 1];
+  const actualTotalChange = ((currentBar.close - streakStartBar.close) / streakStartBar.close) * 100;
+  const streakStartDate = bars[streakStartIndex]?.date || bars[bars.length - 1].date;
+  
+  // Calculate average recovery time after similar streaks
+  const similarStreaks = allStreaks.filter(s => s.streak === currentStreak);
+  let avgRecoveryDays = 0;
+  let recoveryCount = 0;
+  
+  for (const streak of similarStreaks) {
+    // Find how many days until price returned to pre-streak level
+    const preStreakPrice = bars[streak.startIdx - 1]?.close || bars[streak.startIdx].close;
+    for (let j = streak.endIdx + 1; j < Math.min(streak.endIdx + 20, bars.length); j++) {
+      const recovered = streak.streak < 0 
+        ? bars[j].close >= preStreakPrice 
+        : bars[j].close <= preStreakPrice;
+      if (recovered) {
+        avgRecoveryDays += (j - streak.endIdx);
+        recoveryCount++;
+        break;
+      }
+    }
+  }
+  
+  const avgRecovery = recoveryCount > 0 ? Math.round(avgRecoveryDays / recoveryCount) : null;
+  
   const analysis = Object.entries(streakStats)
     .filter(([_, v]) => v.total >= 5)
     .map(([streak, stats]) => ({
@@ -361,7 +421,15 @@ function studyStreaks(bars: PriceBar[]): any {
     }))
     .sort((a, b) => Math.abs(b.streak) - Math.abs(a.streak));
   
-  return { currentStreak, analysis };
+  return { 
+    currentStreak, 
+    analysis,
+    // New fields for real data
+    streakStartDate,
+    actualTotalChange: Math.round(actualTotalChange * 100) / 100,
+    avgRecoveryDays: avgRecovery,
+    historicalStreakCount: allStreaks.filter(s => s.streak === currentStreak).length
+  };
 }
 
 function studyGaps(bars: PriceBar[]): any {

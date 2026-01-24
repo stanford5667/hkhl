@@ -12,6 +12,7 @@ import { BasicStatistics, BasicStatsData } from './BasicStatistics';
 import { CandlestickChart } from '@/components/charts/CandlestickChart';
 import { useTickerSnapshot, TickerSnapshotData } from '@/hooks/useTickerSnapshot';
 import { useTickerFundamentals } from '@/hooks/useTickerFundamentals';
+import { useTickerAnalystData } from '@/hooks/useTickerAnalystData';
 
 interface ALAOverviewTabProps {
   ticker: string;
@@ -52,13 +53,13 @@ export function ALAOverviewTab({
   // Fetch real data from edge functions
   const { data: snapshot, isLoading: snapshotLoading } = useTickerSnapshot(ticker);
   const { data: fundamentals, isLoading: fundLoading } = useTickerFundamentals(ticker);
+  const { data: analystData, isLoading: analystLoading } = useTickerAnalystData(ticker);
 
-  // Derive streak data from snapshot
+  // Derive streak data from snapshot - now with real data
   const streakData: StreakData | null = useMemo(() => {
     if (!snapshot?.streaks) return null;
     
     const streaks = snapshot.streaks;
-    const consecutive = snapshot.consecutive;
     const currentStreak = streaks.currentStreak;
     const direction = currentStreak >= 0 ? 'up' : 'down';
     const absStreak = Math.abs(currentStreak);
@@ -73,21 +74,30 @@ export function ALAOverviewTab({
     const maxStreak = allStreaks.length > 0 ? Math.max(...allStreaks) : absStreak;
     const avgStreak = allStreaks.length > 0 ? allStreaks.reduce((a, b) => a + b, 0) / allStreaks.length : absStreak;
     
-    // Total change from daily volatility
-    const totalChange = snapshot.dailyVolatility * absStreak * (direction === 'down' ? -1 : 1);
+    // Use real data from edge function
+    const totalChange = streaks.actualTotalChange ?? (snapshot.dailyVolatility * absStreak * (direction === 'down' ? -1 : 1));
+    const startDate = streaks.streakStartDate 
+      ? new Date(streaks.streakStartDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+      : new Date(Date.now() - absStreak * 24 * 60 * 60 * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    
+    // Real recovery period from edge function
+    const recoveryDays = streaks.avgRecoveryDays;
+    const recoveryPeriod = recoveryDays 
+      ? (recoveryDays <= 5 ? `${recoveryDays} days` : recoveryDays <= 7 ? '1 week' : `${Math.round(recoveryDays / 7)} weeks`)
+      : 'N/A';
     
     return {
       direction,
       consecutiveDays: absStreak,
       totalChange,
-      startDate: new Date(Date.now() - absStreak * 24 * 60 * 60 * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+      startDate,
       maxStreak,
       avgStreak,
-      sampleSize: streakAnalysis?.occurrences || streaks.analysis.reduce((sum, a) => sum + a.occurrences, 0),
+      sampleSize: streaks.historicalStreakCount || streakAnalysis?.occurrences || streaks.analysis.reduce((sum, a) => sum + a.occurrences, 0),
       percentile: Math.round((absStreak / maxStreak) * 100),
       bounceProbability: 100 - continuationRate,
       avgRecovery: Math.abs(avgNextDayReturn),
-      recoveryPeriod: '1 week',
+      recoveryPeriod,
     };
   }, [snapshot]);
 
@@ -233,7 +243,15 @@ export function ALAOverviewTab({
   }, [quote, snapshot]);
 
   const isChartPositive = chartChange.percent >= 0;
-  const isDataLoading = snapshotLoading || fundLoading;
+  const isDataLoading = snapshotLoading || fundLoading || analystLoading;
+
+  // Extract analyst data for card
+  const analystRating = analystData?.analyst?.rating || undefined;
+  const priceTarget = analystData?.priceTarget?.targetMean || undefined;
+  const nextEarnings = analystData?.nextEarnings?.formatted || undefined;
+  const dividend = analystData?.financials?.dividendYieldIndicatedAnnual || undefined;
+  const forwardPE = analystData?.financials?.forwardPE || undefined;
+  const realBeta = analystData?.financials?.beta || undefined;
 
   return (
     <div className="space-y-6">
