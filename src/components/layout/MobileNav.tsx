@@ -28,7 +28,6 @@ const mobileNavItems = [
   { label: "Research", href: "/research", icon: Search },
   { label: "Builder", href: "/portfolio-visualizer", icon: PieChart },
   { label: "Academy", href: "/academy", icon: BookOpen },
-  { label: "Intel", href: "/market-intel", icon: BarChart3 },
   { label: "More", href: "#menu", icon: Menu, isMenu: true },
 ];
 
@@ -123,7 +122,6 @@ function MobileSidebarContent({ onNavigate }: { onNavigate: () => void }) {
     { label: "Portfolio Builder", href: "/portfolio-visualizer", icon: PieChart },
     { label: "Academy", href: "/academy", icon: BookOpen },
     { label: "Strategy Explorer", href: "/investment-plan", icon: ClipboardList },
-    { label: "Market Intel", href: "/market-intel", icon: BarChart3 },
     ...(isAdmin ? [{ label: "Admin Portal", href: "/admin", icon: Shield }] : []),
   ];
 

@@ -137,12 +137,6 @@ export function Sidebar() {
         icon: ClipboardList 
       },
       { 
-        label: "Market Intel", 
-        subtitle: "Research & Insights",
-        href: "/market-intel", 
-        icon: BarChart3 
-      },
-      { 
         label: "Glossary", 
         subtitle: "Terms & Definitions",
         href: "/glossary", 
