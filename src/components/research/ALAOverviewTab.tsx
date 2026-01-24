@@ -3,7 +3,6 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
-import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { TrendingUp, TrendingDown, RefreshCw } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { QuickHistoricalInsights, StreakData, HistoricalPattern } from './QuickHistoricalInsights';
@@ -44,7 +43,6 @@ export function ALAOverviewTab({
   onRefresh,
   isRefreshing = false,
 }: ALAOverviewTabProps) {
-  const [chartTimeframe, setChartTimeframe] = useState<string>('3M');
   const [statsTimeRange, setStatsTimeRange] = useState<'1Y' | '3Y' | '5Y'>('3Y');
 
   // Fetch real data from edge functions
@@ -285,39 +283,17 @@ export function ALAOverviewTab({
         </CardContent>
       </Card>
 
-      {/* CHART: Full width */}
+      {/* CHART: Full width with built-in time range selector */}
       <Card className="bg-card border-border">
         <CardContent className="p-2 md:p-4">
-          <div className="flex items-center justify-between mb-2">
-            <ToggleGroup 
-              type="single" 
-              value={chartTimeframe} 
-              onValueChange={(v) => v && setChartTimeframe(v)}
-              className="bg-secondary/50 rounded-md p-0.5"
-            >
-              {['1D', '1W', '1M', '3M', '6M', '1Y'].map((tf) => (
-                <ToggleGroupItem 
-                  key={tf} 
-                  value={tf} 
-                  className={cn(
-                    "text-[9px] md:text-xs px-1.5 md:px-2.5 py-0.5 h-5 md:h-7 data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
-                  )}
-                >
-                  {tf}
-                </ToggleGroupItem>
-              ))}
-            </ToggleGroup>
-            <Badge variant="secondary" className="text-[9px] md:text-xs">{chartTimeframe}</Badge>
-          </div>
-          <div className="h-[220px] md:h-[320px]">
-            <CandlestickChart 
-              symbol={ticker} 
-              height={220}
-              showVolume={true}
-              showRangeSelector={false}
-              defaultRange={chartTimeframe as any}
-            />
-          </div>
+          <CandlestickChart 
+            symbol={ticker} 
+            height={280}
+            className="md:[&>div:last-child]:h-[380px]"
+            showVolume={true}
+            showRangeSelector={true}
+            defaultRange="3M"
+          />
         </CardContent>
       </Card>
 
