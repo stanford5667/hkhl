@@ -4,7 +4,7 @@ import { getCandlesForRange, CandleData } from '@/services/candleService';
 import { fetchTickerDetails, TickerDetails } from '@/services/tickerDetailsService';
 import { cn } from '@/lib/utils';
 
-type Period = '1W' | '1M' | '3M' | '1Y';
+type Period = '1D' | '1W' | '1M' | '3M' | '1Y';
 
 interface EnhancedTickerCardProps {
   symbol: string;
@@ -16,6 +16,7 @@ interface EnhancedTickerCardProps {
 }
 
 const PERIODS: { label: string; value: Period }[] = [
+  { label: '1D', value: '1D' },
   { label: '1W', value: '1W' },
   { label: '1M', value: '1M' },
   { label: '3M', value: '3M' },
@@ -30,7 +31,7 @@ export function EnhancedTickerCard({
   marketCap,
   onClick,
 }: EnhancedTickerCardProps) {
-  const [selectedPeriod, setSelectedPeriod] = useState<Period>('1M');
+  const [selectedPeriod, setSelectedPeriod] = useState<Period>('1D');
   const [chartData, setChartData] = useState<{ time: number; price: number }[]>([]);
   const [periodChange, setPeriodChange] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -131,6 +132,9 @@ export function EnhancedTickerCard({
     const endTime = chartData[chartData.length - 1]?.time;
     const formatLabel = (ts: number) => {
       const date = new Date(ts * 1000);
+      if (selectedPeriod === '1D') {
+        return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+      }
       return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
     };
 

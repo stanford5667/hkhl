@@ -23,18 +23,18 @@ export interface PolygonNewsArticle {
 }
 
 /**
- * Fetches news from the news_events table.
+ * Fetches news from the real_world_events table.
  * This is REAL data from the database - no mocks.
  */
 export function usePolygonNews(ticker?: string, limit: number = 20) {
   return useQuery({
     queryKey: ['polygon-news', ticker, limit],
     queryFn: async (): Promise<PolygonNewsArticle[]> => {
-      // Fetch from news_events table
+      // Fetch from real_world_events table (has actual data)
       const { data, error } = await supabase
-        .from('news_events')
-        .select('*')
-        .order('published_at', { ascending: false })
+        .from('real_world_events')
+        .select('id, title, description, source, source_url, category, detected_at, entities, related_markets')
+        .order('detected_at', { ascending: false })
         .limit(limit);
 
       if (error) {
@@ -43,26 +43,28 @@ export function usePolygonNews(ticker?: string, limit: number = 20) {
       }
 
       if (!data || data.length === 0) {
+        console.log('[usePolygonNews] No data from real_world_events');
         return [];
       }
 
-      // Transform news_events to PolygonNewsArticle format
+      // Transform real_world_events to PolygonNewsArticle format
       return data.map((item) => {
-        const rawConcepts = item.raw_concepts as Record<string, unknown> | null;
-        const tickers: string[] = Array.isArray(rawConcepts?.tickers) 
-          ? (rawConcepts.tickers as string[]) 
-          : [];
+        // Extract tickers from entities or related_markets
+        const entities = item.entities as string[] | null;
+        const relatedMarkets = item.related_markets as string[] | null;
+        const tickers: string[] = relatedMarkets || entities?.filter(e => /^[A-Z]{1,5}$/.test(e)) || [];
         
         return {
           id: item.id,
           title: item.title,
-          description: item.summary || '',
-          published_utc: item.published_at,
-          article_url: item.url || '#',
+          description: item.description || '',
+          published_utc: item.detected_at,
+          article_url: item.source_url || '#',
           publisher: {
-            name: item.source_id || 'Market News',
+            name: item.source || item.category || 'Market News',
           },
           tickers,
+          keywords: [item.category].filter(Boolean) as string[],
           insights: tickers.map((t: string) => ({
             ticker: t,
             sentiment: 'neutral' as const,

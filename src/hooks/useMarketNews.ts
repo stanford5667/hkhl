@@ -13,26 +13,28 @@ export interface MarketNewsItem {
 }
 
 /**
- * Fetches market news from news_events table with AI insights.
+ * Fetches market news from real_world_events table with AI insights.
  * This is REAL data from the database, no mocks.
  */
 export function useMarketNews(limit: number = 20) {
   return useQuery({
     queryKey: ['market-news', limit],
     queryFn: async (): Promise<MarketNewsItem[]> => {
-      // Fetch news from news_events table
+      // Fetch news from real_world_events table (has actual data)
       const { data: newsData, error: newsError } = await supabase
-        .from('news_events')
+        .from('real_world_events')
         .select(`
           id,
           title,
-          summary,
-          published_at,
-          source_id,
-          url,
-          raw_concepts
+          description,
+          detected_at,
+          source,
+          source_url,
+          entities,
+          related_markets,
+          sentiment_score
         `)
-        .order('published_at', { ascending: false, nullsFirst: false })
+        .order('detected_at', { ascending: false, nullsFirst: false })
         .limit(limit);
 
       if (newsError) {
@@ -45,24 +47,23 @@ export function useMarketNews(limit: number = 20) {
       }
 
       return newsData.map(item => {
-        // Extract tickers from raw_concepts
-        const rawConcepts = item.raw_concepts as Record<string, unknown> | null;
-        
-        let tickers: string[] = [];
-        if (rawConcepts?.tickers && Array.isArray(rawConcepts.tickers)) {
-          tickers = rawConcepts.tickers as string[];
-        }
+        // Extract tickers from related_markets or entities
+        const relatedMarkets = item.related_markets as string[] | null;
+        const entities = item.entities as string[] | null;
+        const tickers: string[] = relatedMarkets || entities?.filter(e => /^[A-Z]{1,5}$/.test(e)) || [];
 
-        // Default sentiment - can be enhanced with AI insights later
-        const sentiment: 'positive' | 'negative' | 'neutral' = 'neutral';
+        // Determine sentiment from score
+        const score = item.sentiment_score ?? 0;
+        const sentiment: 'positive' | 'negative' | 'neutral' = 
+          score > 0.2 ? 'positive' : score < -0.2 ? 'negative' : 'neutral';
 
         return {
           id: item.id,
           title: item.title,
-          summary: item.summary,
-          publishedAt: item.published_at,
-          source: item.source_id || 'Market News',
-          url: item.url,
+          summary: item.description,
+          publishedAt: item.detected_at,
+          source: item.source || 'Market News',
+          url: item.source_url,
           tickers,
           sentiment,
         };
