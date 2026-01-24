@@ -128,7 +128,6 @@ export function Layout({ children }: LayoutProps) {
           <div className="flex-1">
             {children}
           </div>
-          <FooterDisclaimer />
         </main>
       </div>
       
