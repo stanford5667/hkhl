@@ -212,58 +212,58 @@ export function ALAOverviewTab({
       {/* Main Grid: Chart + Stats Side by Side */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-2">
         {/* Chart Column - 2/3 width */}
-        <Card className="bg-card border-border lg:col-span-2">
-          <CardContent className="p-3">
-            {/* Price Header */}
-            <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 mb-2">
-              <div className="flex items-center gap-3 min-w-0">
-                <span className="text-sm md:text-base font-medium text-muted-foreground truncate max-w-[200px]">
-                  {companyName || ticker}
+        <Card className="bg-card border-border lg:col-span-2 overflow-hidden">
+          {/* Price Header */}
+          <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 px-3 pt-3 pb-2">
+            <div className="flex items-center gap-3 min-w-0">
+              <span className="text-sm md:text-base font-medium text-muted-foreground truncate max-w-[200px]">
+                {companyName || ticker}
+              </span>
+              <div className="flex items-baseline gap-2">
+                <span className="text-xl md:text-2xl font-bold tabular-nums text-foreground">
+                  {formatCurrency(quote?.price || 0)}
                 </span>
-                <div className="flex items-baseline gap-2">
-                  <span className="text-xl md:text-2xl font-bold tabular-nums text-foreground">
-                    {formatCurrency(quote?.price || 0)}
+                <span className={cn(
+                  "flex items-center gap-0.5 text-xs font-medium",
+                  isPositive ? "text-primary" : "text-destructive"
+                )}>
+                  {isPositive ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
+                  <span className="tabular-nums">
+                    {isPositive ? '+' : ''}{(quote?.change || 0).toFixed(2)} ({isPositive ? '+' : ''}{(quote?.changePercent || 0).toFixed(2)}%)
                   </span>
-                  <span className={cn(
-                    "flex items-center gap-0.5 text-xs font-medium",
-                    isPositive ? "text-primary" : "text-destructive"
-                  )}>
-                    {isPositive ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
-                    <span className="tabular-nums">
-                      {isPositive ? '+' : ''}{(quote?.change || 0).toFixed(2)} ({isPositive ? '+' : ''}{(quote?.changePercent || 0).toFixed(2)}%)
-                    </span>
-                  </span>
-                </div>
+                </span>
               </div>
-              
-              {/* OHLC + Prev inline */}
-              <div className="flex items-center gap-3 text-[10px] md:text-xs">
-                <div className="flex items-center gap-1">
-                  <span className="text-muted-foreground">O:</span>
-                  <span className="font-medium tabular-nums">{formatCurrency(quote?.open || 0)}</span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <span className="text-muted-foreground">H:</span>
-                  <span className="font-medium tabular-nums">{formatCurrency(quote?.high || 0)}</span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <span className="text-muted-foreground">L:</span>
-                  <span className="font-medium tabular-nums">{formatCurrency(quote?.low || 0)}</span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <span className="text-muted-foreground">Prev:</span>
-                  <span className="font-medium tabular-nums">{quote?.previousClose ? formatCurrency(quote.previousClose) : '—'}</span>
-                </div>
+            </div>
+            
+            {/* OHLC + Prev inline */}
+            <div className="flex items-center gap-3 text-[10px] md:text-xs">
+              <div className="flex items-center gap-1">
+                <span className="text-muted-foreground">O:</span>
+                <span className="font-medium tabular-nums">{formatCurrency(quote?.open || 0)}</span>
               </div>
-
-              {onRefresh && (
-                <Button variant="ghost" size="icon" onClick={onRefresh} disabled={isRefreshing} className="h-6 w-6 shrink-0">
-                  <RefreshCw className={cn("h-3 w-3", isRefreshing && "animate-spin")} />
-                </Button>
-              )}
+              <div className="flex items-center gap-1">
+                <span className="text-muted-foreground">H:</span>
+                <span className="font-medium tabular-nums">{formatCurrency(quote?.high || 0)}</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <span className="text-muted-foreground">L:</span>
+                <span className="font-medium tabular-nums">{formatCurrency(quote?.low || 0)}</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <span className="text-muted-foreground">Prev:</span>
+                <span className="font-medium tabular-nums">{quote?.previousClose ? formatCurrency(quote.previousClose) : '—'}</span>
+              </div>
             </div>
 
-            {/* Chart */}
+            {onRefresh && (
+              <Button variant="ghost" size="icon" onClick={onRefresh} disabled={isRefreshing} className="h-6 w-6 shrink-0">
+                <RefreshCw className={cn("h-3 w-3", isRefreshing && "animate-spin")} />
+              </Button>
+            )}
+          </div>
+
+          {/* Chart - full width, no side padding */}
+          <div className="w-full">
             <CandlestickChart 
               symbol={ticker} 
               height={200}
@@ -271,22 +271,22 @@ export function ALAOverviewTab({
               showRangeSelector={true}
               defaultRange="3M"
             />
-            
-            {/* 52-Week Range */}
-            <div className="flex items-center gap-2 mt-2">
-              <span className="text-[8px] text-muted-foreground font-medium">52W</span>
-              <div className="flex-1 relative h-1.5 bg-secondary rounded-full overflow-hidden">
-                <div className="absolute top-0 left-0 h-full w-full bg-gradient-to-r from-primary/20 via-primary/40 to-primary/60 rounded-full" />
-                <div 
-                  className="absolute top-1/2 -translate-y-1/2 w-2 h-2 bg-primary rounded-full shadow-sm shadow-primary/50"
-                  style={{ left: `calc(${Math.min(100, Math.max(0, rangePosition))}% - 4px)` }}
-                />
-              </div>
-              <span className="text-[8px] text-muted-foreground tabular-nums">
-                ${week52Low?.toFixed(0) || '—'} — ${week52High?.toFixed(0) || '—'}
-              </span>
+          </div>
+          
+          {/* 52-Week Range */}
+          <div className="flex items-center gap-2 px-3 py-2">
+            <span className="text-[8px] text-muted-foreground font-medium">52W</span>
+            <div className="flex-1 relative h-1.5 bg-secondary rounded-full overflow-hidden">
+              <div className="absolute top-0 left-0 h-full w-full bg-gradient-to-r from-primary/20 via-primary/40 to-primary/60 rounded-full" />
+              <div 
+                className="absolute top-1/2 -translate-y-1/2 w-2 h-2 bg-primary rounded-full shadow-sm shadow-primary/50"
+                style={{ left: `calc(${Math.min(100, Math.max(0, rangePosition))}% - 4px)` }}
+              />
             </div>
-          </CardContent>
+            <span className="text-[8px] text-muted-foreground tabular-nums">
+              ${week52Low?.toFixed(0) || '—'} — ${week52High?.toFixed(0) || '—'}
+            </span>
+          </div>
         </Card>
 
         {/* Stats Column - 1/3 width */}
