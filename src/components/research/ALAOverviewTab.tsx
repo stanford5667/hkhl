@@ -307,27 +307,9 @@ export function ALAOverviewTab({
                     <p className="text-[9px] md:text-[10px] font-medium">{sector || '—'}</p>
                   </div>
                   <div>
-                    <p className="text-[7px] md:text-[8px] text-muted-foreground uppercase">Industry</p>
-                    <p className="text-[9px] md:text-[10px] font-medium">{industry || '—'}</p>
-                  </div>
-                  <div>
                     <p className="text-[7px] md:text-[8px] text-muted-foreground uppercase">Exchange</p>
                     <p className="text-[9px] md:text-[10px] font-medium">{exchange || '—'}</p>
                   </div>
-                  {homepageUrl && (
-                    <div>
-                      <p className="text-[7px] md:text-[8px] text-muted-foreground uppercase">Website</p>
-                      <a 
-                        href={homepageUrl} 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        className="text-[9px] md:text-[10px] text-primary hover:underline font-medium flex items-center gap-0.5"
-                      >
-                        <Globe className="h-2.5 w-2.5" />
-                        Visit
-                      </a>
-                    </div>
-                  )}
                 </div>
               </CardContent>
             </Card>
