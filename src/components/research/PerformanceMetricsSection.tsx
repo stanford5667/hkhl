@@ -33,23 +33,13 @@ const PERIOD_OPTIONS = [
   { value: 'MAX', label: 'Max' },
 ];
 
-interface MetricBoxProps {
+interface MetricItemProps {
   label: string;
   value: string;
-  subLabel?: string;
-  variant?: 'primary' | 'blue' | 'purple' | 'amber' | 'default';
   trend?: 'good' | 'bad' | 'neutral';
 }
 
-function MetricBox({ label, value, subLabel, variant = 'default', trend }: MetricBoxProps) {
-  const variantStyles = {
-    primary: 'bg-emerald-500/10 border-emerald-500/20',
-    blue: 'bg-blue-500/10 border-blue-500/20',
-    purple: 'bg-purple-500/10 border-purple-500/20',
-    amber: 'bg-amber-500/10 border-amber-500/20',
-    default: 'bg-secondary/50 border-border',
-  };
-
+function MetricItem({ label, value, trend }: MetricItemProps) {
   const trendStyles = {
     good: 'text-emerald-500',
     bad: 'text-destructive',
@@ -57,10 +47,7 @@ function MetricBox({ label, value, subLabel, variant = 'default', trend }: Metri
   };
 
   return (
-    <div className={cn(
-      "rounded px-1.5 py-1 text-center border",
-      variantStyles[variant]
-    )}>
+    <div className="text-center">
       <span className="text-[6px] text-muted-foreground block leading-tight uppercase">{label}</span>
       <p className={cn(
         "text-xs font-bold tabular-nums leading-tight",
@@ -132,13 +119,13 @@ export function PerformanceMetricsSection({ ticker, compact = false }: Performan
             </SelectContent>
           </Select>
         </div>
-        <div className="grid grid-cols-3 gap-1">
-          <MetricBox label="Total Return" value={formatPercent(metrics.totalReturn)} variant="primary" trend={metrics.totalReturn >= 0 ? 'good' : 'bad'} />
-          <MetricBox label="Annual Return" value={formatPercent(metrics.cagr)} variant="blue" trend={metrics.cagr >= 0 ? 'good' : 'bad'} />
-          <MetricBox label="Risk-Adj" value={formatRatio(metrics.sharpeRatio)} variant="purple" trend={metrics.sharpeRatio >= 1 ? 'good' : metrics.sharpeRatio >= 0.5 ? 'neutral' : 'bad'} />
-          <MetricBox label="Max Loss" value={`-${metrics.maxDrawdown.toFixed(1)}%`} variant="amber" trend="bad" />
-          <MetricBox label="Volatility" value={`${metrics.volatility.toFixed(1)}%`} trend={metrics.volatility < 20 ? 'good' : metrics.volatility > 35 ? 'bad' : 'neutral'} />
-          <MetricBox label="Downside" value={formatRatio(metrics.sortinoRatio)} trend={metrics.sortinoRatio >= 1.5 ? 'good' : metrics.sortinoRatio >= 0.8 ? 'neutral' : 'bad'} />
+        <div className="grid grid-cols-3 gap-x-4 gap-y-2">
+          <MetricItem label="Total Return" value={formatPercent(metrics.totalReturn)} trend={metrics.totalReturn >= 0 ? 'good' : 'bad'} />
+          <MetricItem label="Annual Return" value={formatPercent(metrics.cagr)} trend={metrics.cagr >= 0 ? 'good' : 'bad'} />
+          <MetricItem label="Risk-Adj" value={formatRatio(metrics.sharpeRatio)} trend={metrics.sharpeRatio >= 1 ? 'good' : metrics.sharpeRatio >= 0.5 ? 'neutral' : 'bad'} />
+          <MetricItem label="Max Loss" value={`-${metrics.maxDrawdown.toFixed(1)}%`} trend="bad" />
+          <MetricItem label="Volatility" value={`${metrics.volatility.toFixed(1)}%`} trend={metrics.volatility < 20 ? 'good' : metrics.volatility > 35 ? 'bad' : 'neutral'} />
+          <MetricItem label="Downside" value={formatRatio(metrics.sortinoRatio)} trend={metrics.sortinoRatio >= 1.5 ? 'good' : metrics.sortinoRatio >= 0.8 ? 'neutral' : 'bad'} />
         </div>
       </div>
     );
@@ -168,57 +155,17 @@ export function PerformanceMetricsSection({ ticker, compact = false }: Performan
           </Select>
         </div>
 
-        {/* Metrics Grid - Compact 3x3 */}
-        <div className="grid grid-cols-3 gap-1">
-          <MetricBox
-            label="Total Return"
-            value={formatPercent(metrics.totalReturn)}
-            variant="primary"
-            trend={metrics.totalReturn >= 0 ? 'good' : 'bad'}
-          />
-          <MetricBox
-            label="Annual Return"
-            value={formatPercent(metrics.cagr)}
-            variant="blue"
-            trend={metrics.cagr >= 0 ? 'good' : 'bad'}
-          />
-          <MetricBox
-            label="Risk-Adj Return"
-            value={formatRatio(metrics.sharpeRatio)}
-            variant="purple"
-            trend={metrics.sharpeRatio >= 1 ? 'good' : metrics.sharpeRatio >= 0.5 ? 'neutral' : 'bad'}
-          />
-          <MetricBox
-            label="Max Loss"
-            value={`-${metrics.maxDrawdown.toFixed(1)}%`}
-            variant="amber"
-            trend="bad"
-          />
-          <MetricBox
-            label="Mkt Sensitivity"
-            value={formatRatio(metrics.beta)}
-            trend={metrics.beta > 1.3 ? 'bad' : 'neutral'}
-          />
-          <MetricBox
-            label="Volatility"
-            value={`${metrics.volatility.toFixed(1)}%`}
-            trend={metrics.volatility < 20 ? 'good' : metrics.volatility > 35 ? 'bad' : 'neutral'}
-          />
-          <MetricBox
-            label="Downside Risk"
-            value={formatRatio(metrics.sortinoRatio)}
-            trend={metrics.sortinoRatio >= 1.5 ? 'good' : metrics.sortinoRatio >= 0.8 ? 'neutral' : 'bad'}
-          />
-          <MetricBox
-            label="Best Month"
-            value={formatPercent(metrics.bestMonth)}
-            trend="good"
-          />
-          <MetricBox
-            label="Worst Month"
-            value={formatPercent(metrics.worstMonth, false)}
-            trend="bad"
-          />
+        {/* Metrics Grid - Unified 3x3 */}
+        <div className="grid grid-cols-3 gap-x-4 gap-y-2">
+          <MetricItem label="Total Return" value={formatPercent(metrics.totalReturn)} trend={metrics.totalReturn >= 0 ? 'good' : 'bad'} />
+          <MetricItem label="Annual Return" value={formatPercent(metrics.cagr)} trend={metrics.cagr >= 0 ? 'good' : 'bad'} />
+          <MetricItem label="Risk-Adj Return" value={formatRatio(metrics.sharpeRatio)} trend={metrics.sharpeRatio >= 1 ? 'good' : metrics.sharpeRatio >= 0.5 ? 'neutral' : 'bad'} />
+          <MetricItem label="Max Loss" value={`-${metrics.maxDrawdown.toFixed(1)}%`} trend="bad" />
+          <MetricItem label="Mkt Sensitivity" value={formatRatio(metrics.beta)} trend={metrics.beta > 1.3 ? 'bad' : 'neutral'} />
+          <MetricItem label="Volatility" value={`${metrics.volatility.toFixed(1)}%`} trend={metrics.volatility < 20 ? 'good' : metrics.volatility > 35 ? 'bad' : 'neutral'} />
+          <MetricItem label="Downside Risk" value={formatRatio(metrics.sortinoRatio)} trend={metrics.sortinoRatio >= 1.5 ? 'good' : metrics.sortinoRatio >= 0.8 ? 'neutral' : 'bad'} />
+          <MetricItem label="Best Month" value={formatPercent(metrics.bestMonth)} trend="good" />
+          <MetricItem label="Worst Month" value={formatPercent(metrics.worstMonth, false)} trend="bad" />
         </div>
       </CardContent>
     </Card>
