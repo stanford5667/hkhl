@@ -303,14 +303,15 @@ function MarketNewsPanel() {
   const { data: newsItems, isLoading } = useQuery({
     queryKey: ['market-news-research'],
     queryFn: async () => {
+      // Use real_world_events which has actual data
       const { data, error } = await supabase
-        .from('news_events')
-        .select('id, title, summary, source_id, published_at, url')
-        .order('published_at', { ascending: false, nullsFirst: false })
+        .from('real_world_events')
+        .select('id, title, description, source, detected_at, source_url')
+        .order('detected_at', { ascending: false, nullsFirst: false })
         .limit(12);
       
       if (error) throw error;
-      return data as NewsEvent[];
+      return data;
     },
     staleTime: 60000,
   });
@@ -357,21 +358,21 @@ function MarketNewsPanel() {
             newsItems.map(item => (
               <a
                 key={item.id}
-                href={item.url || '#'}
+                href={item.source_url || '#'}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-start gap-3 px-4 py-2.5 hover:bg-muted/50 transition-colors group"
               >
                 <Badge variant="outline" className="shrink-0 text-[10px] mt-0.5">
-                  {formatTime(item.published_at)}
+                  {formatTime(item.detected_at)}
                 </Badge>
                 <div className="min-w-0 flex-1">
                   <p className="text-sm text-foreground group-hover:text-primary transition-colors line-clamp-2">
                     {item.title}
                   </p>
-                  {item.summary && (
+                  {item.description && (
                     <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">
-                      {item.summary}
+                      {item.description}
                     </p>
                   )}
                 </div>
