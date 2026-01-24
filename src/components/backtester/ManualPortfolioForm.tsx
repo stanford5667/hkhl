@@ -145,30 +145,40 @@ export function ManualPortfolioForm({ onComplete }: ManualPortfolioFormProps) {
   };
 
   return (
-    <div className="max-w-4xl mx-auto px-6 py-8">
+    <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3 }}
-        className="space-y-8"
+        className="space-y-6"
       >
-        {/* Header */}
-        <div className="text-center">
-          <h1 className="text-2xl sm:text-3xl font-bold mb-2">Build Your Portfolio</h1>
-          <p className="text-sm text-muted-foreground">
-            Add assets and set what percentage of your portfolio each should represent
+        {/* Header with gradient accent */}
+        <div className="text-center relative">
+          <div className="absolute inset-0 -z-10 overflow-hidden">
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-32 bg-primary/10 rounded-full blur-3xl" />
+          </div>
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20 mb-3">
+            <div className="h-2 w-2 rounded-full bg-primary animate-pulse" />
+            <span className="text-xs font-medium text-primary">Portfolio Builder</span>
+          </div>
+          <h1 className="text-2xl sm:text-3xl font-bold mb-2 bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
+            Build Your Portfolio
+          </h1>
+          <p className="text-sm text-muted-foreground max-w-md mx-auto">
+            Add your assets and allocate what percentage of your portfolio each should represent
           </p>
         </div>
 
-        {/* Settings + Ticker Input in one card */}
-        <Card>
+        {/* Settings Card with colored accents */}
+        <Card className="overflow-hidden border-border/50 bg-card/80 backdrop-blur-sm">
+          <div className="h-1 bg-gradient-to-r from-primary via-cyan-500 to-primary" />
           <CardContent className="p-4 space-y-4">
             {/* Settings row */}
             <div className="grid grid-cols-2 gap-4">
               {/* Portfolio Total */}
-              <div>
-                <Label className="text-xs mb-1.5 flex items-center gap-1.5">
-                  <DollarSign className="h-3.5 w-3.5 text-primary" />
+              <div className="p-3 rounded-lg bg-primary/5 border border-primary/10">
+                <Label className="text-xs mb-1.5 flex items-center gap-1.5 text-primary font-medium">
+                  <DollarSign className="h-3.5 w-3.5" />
                   Portfolio Total
                 </Label>
                 <div className="relative">
@@ -180,19 +190,19 @@ export function ManualPortfolioForm({ onComplete }: ManualPortfolioFormProps) {
                       const value = e.target.value.replace(/[^0-9]/g, '');
                       setCapital(parseInt(value) || 0);
                     }}
-                    className="pl-8 h-9 text-sm"
+                    className="pl-8 h-9 text-sm bg-background/50"
                   />
                 </div>
               </div>
 
               {/* Time Horizon */}
-              <div>
-                <Label className="text-xs mb-1.5 flex items-center justify-between">
+              <div className="p-3 rounded-lg bg-cyan-500/5 border border-cyan-500/10">
+                <Label className="text-xs mb-1.5 flex items-center justify-between text-cyan-500 font-medium">
                   <span className="flex items-center gap-1.5">
-                    <Clock className="h-3.5 w-3.5 text-primary" />
+                    <Clock className="h-3.5 w-3.5" />
                     Time Horizon
                   </span>
-                  <Badge variant="outline" className="text-xs h-5">{horizon}y</Badge>
+                  <Badge className="text-xs h-5 bg-cyan-500/20 text-cyan-400 border-cyan-500/30">{horizon} years</Badge>
                 </Label>
                 <Slider
                   value={[horizon]}
@@ -205,55 +215,79 @@ export function ManualPortfolioForm({ onComplete }: ManualPortfolioFormProps) {
               </div>
             </div>
 
-            {/* Divider */}
-            <div className="border-t border-border" />
+            {/* Divider with label */}
+            <div className="relative">
+              <div className="border-t border-border" />
+              <span className="absolute left-1/2 -translate-x-1/2 -translate-y-1/2 bg-card px-3 text-[10px] text-muted-foreground uppercase tracking-wider">
+                Allocations
+              </span>
+            </div>
 
             {/* Assets Header with instructions */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-primary to-cyan-500 flex items-center justify-center">
+                  <Scale className="h-4 w-4 text-white" />
+                </div>
                 <div>
-                  <Label className="text-xs flex items-center gap-1.5">
-                    <Scale className="h-3.5 w-3.5 text-primary" />
-                    Your Assets
-                  </Label>
-                  <p className="text-[10px] text-muted-foreground mt-0.5">
-                    Enter a ticker, then use the slider to set its % of your portfolio
+                  <Label className="text-sm font-semibold">Your Assets</Label>
+                  <p className="text-[10px] text-muted-foreground">
+                    Use slider to set each asset's % of portfolio
                   </p>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    onClick={equalizeWeights} 
-                    disabled={validAllocations.length === 0}
-                    className="text-xs h-7"
-                  >
-                    <Scale className="h-3 w-3 mr-1" />
-                    Equal Weight
-                  </Button>
-                  <Badge 
-                    variant={isValidAllocation ? 'default' : validAllocations.length > 0 ? 'destructive' : 'secondary'}
-                    className="whitespace-nowrap text-xs"
-                  >
-                    {totalWeight.toFixed(1)}% / 100%
-                  </Badge>
-                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={equalizeWeights} 
+                  disabled={validAllocations.length === 0}
+                  className="text-xs h-7 border-primary/30 hover:bg-primary/10 hover:text-primary"
+                >
+                  <Scale className="h-3 w-3 mr-1" />
+                  Equal Weight
+                </Button>
+                <Badge 
+                  className={cn(
+                    "whitespace-nowrap text-xs px-2.5",
+                    isValidAllocation 
+                      ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/30" 
+                      : validAllocations.length > 0 
+                        ? "bg-destructive/20 text-destructive border-destructive/30" 
+                        : "bg-muted text-muted-foreground"
+                  )}
+                >
+                  {totalWeight.toFixed(1)}% / 100%
+                </Badge>
               </div>
             </div>
 
             {/* Inline Ticker + Slider Rows */}
             <div className="space-y-2">
               {rows.map((row, index) => (
-                <div 
+                <motion.div 
                   key={row.id}
-                  className="p-2 rounded-lg border border-border bg-muted/20"
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: index * 0.05 }}
+                  className={cn(
+                    "p-3 rounded-lg border transition-all",
+                    row.symbol.trim() 
+                      ? "border-primary/30 bg-primary/5" 
+                      : "border-border bg-muted/20"
+                  )}
                 >
                   {/* Top row: Number + Ticker + Weight + Delete */}
                   <div className="flex items-center gap-2">
-                    {/* Row number */}
-                    <span className="text-xs text-muted-foreground w-4 text-center flex-shrink-0">
+                    {/* Row number with colored background */}
+                    <div className={cn(
+                      "h-6 w-6 rounded-full flex items-center justify-center flex-shrink-0 text-xs font-medium",
+                      row.symbol.trim() 
+                        ? "bg-primary text-primary-foreground" 
+                        : "bg-muted text-muted-foreground"
+                    )}>
                       {index + 1}
-                    </span>
+                    </div>
                     
                     {/* Ticker Input with Autocomplete */}
                     <TickerInputWithAutocomplete
@@ -263,37 +297,39 @@ export function ManualPortfolioForm({ onComplete }: ManualPortfolioFormProps) {
                     />
                     
                     {/* Weight Slider - desktop only, inline */}
-                    <div className="hidden sm:flex flex-1 min-w-0">
+                    <div className="hidden sm:flex flex-1 min-w-0 items-center gap-2">
+                      <span className="text-[10px] text-muted-foreground shrink-0">0%</span>
                       <Slider
                         value={[row.weight]}
                         onValueChange={([value]) => updateRow(row.id, { weight: value })}
                         max={100}
                         step={0.5}
-                        className={cn("w-full h-1", !row.symbol.trim() && "opacity-40")}
+                        className={cn("w-full h-1.5", !row.symbol.trim() && "opacity-40")}
                         disabled={!row.symbol.trim()}
                       />
+                      <span className="text-[10px] text-muted-foreground shrink-0">100%</span>
                     </div>
                     
                     {/* Weight Input */}
-                    <div className="flex items-center gap-1 flex-shrink-0">
+                    <div className="flex items-center gap-1.5 flex-shrink-0 bg-background/50 rounded-md px-2 py-1">
                       <Input
                         type="number"
                         value={row.weight}
                         onChange={(e) => updateRow(row.id, { weight: parseFloat(e.target.value) || 0 })}
-                        className="w-14 h-7 text-xs text-right px-1"
+                        className="w-12 h-6 text-xs text-center px-1 border-0 bg-transparent"
                         min={0}
                         max={100}
                         step={0.5}
                         disabled={!row.symbol.trim()}
                       />
-                      <span className="text-[10px] text-muted-foreground w-8">% own</span>
+                      <span className="text-[10px] text-muted-foreground">%</span>
                     </div>
                     
                     {/* Remove Button */}
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-6 w-6 text-muted-foreground hover:text-destructive flex-shrink-0"
+                      className="h-6 w-6 text-muted-foreground hover:text-destructive hover:bg-destructive/10 flex-shrink-0"
                       onClick={() => removeRow(row.id)}
                       aria-label="Remove row"
                     >
@@ -302,7 +338,12 @@ export function ManualPortfolioForm({ onComplete }: ManualPortfolioFormProps) {
                   </div>
                   
                   {/* Bottom row: Slider - mobile only, full width underneath */}
-                  <div className="sm:hidden mt-2 pl-6 pr-8">
+                  <div className="sm:hidden mt-3 px-1">
+                    <div className="flex items-center justify-between text-[10px] text-muted-foreground mb-1">
+                      <span>0%</span>
+                      <span className="text-primary font-medium">% of portfolio</span>
+                      <span>100%</span>
+                    </div>
                     <Slider
                       value={[row.weight]}
                       onValueChange={([value]) => updateRow(row.id, { weight: value })}
@@ -312,7 +353,7 @@ export function ManualPortfolioForm({ onComplete }: ManualPortfolioFormProps) {
                       disabled={!row.symbol.trim()}
                     />
                   </div>
-                </div>
+                </motion.div>
               ))}
             </div>
 
@@ -321,27 +362,29 @@ export function ManualPortfolioForm({ onComplete }: ManualPortfolioFormProps) {
               variant="outline"
               size="sm"
               onClick={addRow}
-              className="w-full text-xs h-8"
+              className="w-full text-xs h-9 border-dashed border-primary/30 hover:bg-primary/5 hover:border-primary/50"
             >
-              <Plus className="h-3.5 w-3.5 mr-1" />
-              Add Asset Row
+              <Plus className="h-3.5 w-3.5 mr-1.5 text-primary" />
+              Add Another Asset
             </Button>
 
             {/* Status Messages */}
             {!isValidAllocation && validAllocations.length > 0 && (
               <motion.div 
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="p-2.5 rounded-lg bg-destructive/10 border border-destructive/30 flex items-center gap-2"
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="p-3 rounded-lg bg-destructive/10 border border-destructive/30 flex items-center gap-3"
               >
-                <AlertTriangle className="h-4 w-4 text-destructive flex-shrink-0" />
+                <div className="h-8 w-8 rounded-full bg-destructive/20 flex items-center justify-center shrink-0">
+                  <AlertTriangle className="h-4 w-4 text-destructive" />
+                </div>
                 <div>
                   <p className="text-xs font-medium text-destructive">
                     Allocations must sum to 100%
                   </p>
                   <p className="text-[10px] text-destructive/80">
-                    Current total: {totalWeight.toFixed(1)}%. 
-                    {totalWeight < 100 ? ` Add ${(100 - totalWeight).toFixed(1)}%` : ` Remove ${(totalWeight - 100).toFixed(1)}%`}
+                    Current: {totalWeight.toFixed(1)}% — 
+                    {totalWeight < 100 ? ` add ${(100 - totalWeight).toFixed(1)}% more` : ` remove ${(totalWeight - 100).toFixed(1)}%`}
                   </p>
                 </div>
               </motion.div>
@@ -349,17 +392,19 @@ export function ManualPortfolioForm({ onComplete }: ManualPortfolioFormProps) {
             
             {isValidAllocation && validAllocations.length > 0 && (
               <motion.div 
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="p-2.5 rounded-lg bg-emerald-500/10 border border-emerald-500/30 flex items-center gap-2"
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/30 flex items-center gap-3"
               >
-                <CheckCircle2 className="h-4 w-4 text-emerald-500 flex-shrink-0" />
+                <div className="h-8 w-8 rounded-full bg-emerald-500/20 flex items-center justify-center shrink-0">
+                  <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+                </div>
                 <div>
-                  <p className="text-xs font-medium text-emerald-500">
-                    Portfolio ready for analysis
+                  <p className="text-xs font-medium text-emerald-400">
+                    Portfolio ready for analysis!
                   </p>
                   <p className="text-[10px] text-emerald-500/80">
-                    {formatCurrency(capital)} across {validAllocations.length} assets over {horizon} years
+                    {formatCurrency(capital)} across {validAllocations.length} asset{validAllocations.length > 1 ? 's' : ''} • {horizon} year horizon
                   </p>
                 </div>
               </motion.div>
@@ -368,15 +413,25 @@ export function ManualPortfolioForm({ onComplete }: ManualPortfolioFormProps) {
         </Card>
 
         {/* Analyze Button - Always visible, sticky on mobile */}
-        <div className="sticky bottom-0 bg-background/95 backdrop-blur-sm pt-4 pb-2 -mx-6 px-6 border-t border-border">
+        <div className="sticky bottom-0 bg-gradient-to-t from-background via-background to-background/80 pt-4 pb-3 -mx-4 sm:-mx-6 px-4 sm:px-6">
           <Button 
             onClick={handleSubmit} 
             disabled={!canProceed}
-            className="w-full bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 h-12 text-base font-semibold"
+            className={cn(
+              "w-full h-12 text-base font-semibold shadow-lg transition-all",
+              canProceed 
+                ? "bg-gradient-to-r from-primary via-cyan-500 to-primary hover:shadow-primary/25 hover:shadow-xl" 
+                : "bg-muted"
+            )}
           >
             <Play className="h-5 w-5 mr-2" />
             Analyze Portfolio
           </Button>
+          {!canProceed && validAllocations.length === 0 && (
+            <p className="text-[10px] text-center text-muted-foreground mt-2">
+              Add at least one asset and set allocations to 100%
+            </p>
+          )}
         </div>
       </motion.div>
     </div>
