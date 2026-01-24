@@ -397,7 +397,7 @@ export default function PortfolioVisualizer() {
   const [portfolioDescription, setPortfolioDescription] = useState('');
   
   // Flow state
-  const [currentFlow, setCurrentFlow] = useState<AppFlow>('choose');
+  const [currentFlow, setCurrentFlow] = useState<AppFlow>('manual');
   const [portfolioMode, setPortfolioMode] = useState<PortfolioMode | null>(null);
   const [investorProfile, setInvestorProfile] = useState<InvestorProfile>(DEFAULT_PROFILE);
   const [allocations, setAllocations] = useState<PortfolioAllocation[]>([]);
