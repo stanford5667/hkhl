@@ -95,8 +95,9 @@ export function QuickHistoricalInsights({
 
   const isDownStreak = streakData.direction === 'down';
   const StreakIcon = isDownStreak ? TrendingDown : TrendingUp;
-  const streakColor = isDownStreak ? 'text-rose-400' : 'text-emerald-400';
-  const streakBgColor = isDownStreak ? 'bg-rose-500/10' : 'bg-emerald-500/10';
+  // Use neutral colors for consistency
+  const streakColor = 'text-foreground';
+  const streakBgColor = 'bg-secondary/50';
 
   return (
     <Card className="bg-card border-border">
@@ -113,16 +114,16 @@ export function QuickHistoricalInsights({
         {/* Main Streak Alert - Compact */}
         <div className={cn("p-1.5 rounded", streakBgColor)}>
           <div className="flex items-center gap-2">
-            <div className={cn("p-1 rounded-full", isDownStreak ? "bg-rose-500/20" : "bg-emerald-500/20")}>
-              <StreakIcon className={cn("h-3 w-3", streakColor)} />
+            <div className="p-1 rounded-full bg-secondary">
+              <StreakIcon className="h-3 w-3 text-foreground" />
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-baseline gap-1 flex-wrap">
-                <span className={cn("text-sm font-bold", streakColor)}>
-                  {streakData.consecutiveDays} {isDownStreak ? 'Down' : 'Up'} Days
+                <span className="text-sm font-bold text-foreground">
+                  {streakData.consecutiveDays} Consecutive {isDownStreak ? 'Down' : 'Up'} Days
                 </span>
-                <span className={cn("text-[10px]", streakColor)}>
-                  ({streakData.totalChange > 0 ? '+' : ''}{streakData.totalChange.toFixed(1)}%)
+                <span className="text-[10px] text-muted-foreground">
+                  ({streakData.totalChange > 0 ? '+' : ''}{streakData.totalChange.toFixed(1)}% total)
                 </span>
               </div>
               <p className="text-[9px] text-muted-foreground">
@@ -140,27 +141,27 @@ export function QuickHistoricalInsights({
         {/* Key Metrics - Single row */}
         <div className="grid grid-cols-3 gap-1">
           <div className="p-1 bg-secondary/30 rounded text-center">
-            <p className="text-[8px] text-muted-foreground">Streak</p>
-            <p className={cn("text-xs font-bold", streakColor)}>{streakData.consecutiveDays}d {isDownStreak ? '↓' : '↑'}</p>
+            <p className="text-[8px] text-muted-foreground">Current Streak</p>
+            <p className="text-xs font-bold">{streakData.consecutiveDays} days {isDownStreak ? 'down' : 'up'}</p>
           </div>
           <div className="p-1 bg-secondary/30 rounded text-center">
-            <p className="text-[8px] text-muted-foreground">Percentile</p>
+            <p className="text-[8px] text-muted-foreground">Streak Rarity</p>
             <p className="text-xs font-bold">Top {streakData.percentile}%</p>
           </div>
           <div className="p-1 bg-secondary/30 rounded text-center">
-            <p className="text-[8px] text-muted-foreground">Bounce %</p>
-            <p className={cn("text-xs font-bold", streakData.bounceProbability >= 55 ? "text-emerald-400" : "")}>{streakData.bounceProbability}%</p>
+            <p className="text-[8px] text-muted-foreground">Historical Reversal Rate</p>
+            <p className="text-xs font-bold">{streakData.bounceProbability}%</p>
           </div>
         </div>
 
         {/* What History Says - Compact */}
         <div className="p-1.5 bg-secondary/20 rounded border border-border">
           <div className="flex items-center gap-1 mb-0.5">
-            <Lightbulb className="h-3 w-3 text-amber-400" />
-            <span className="text-[9px] font-medium">What History Says</span>
+            <Lightbulb className="h-3 w-3 text-primary" />
+            <span className="text-[9px] font-medium">Historical Context</span>
           </div>
           <p className="text-[9px] text-muted-foreground">
-            After {streakData.consecutiveDays} {isDownStreak ? 'down' : 'up'} days, {ticker} bounced <span className="text-emerald-400 font-medium">{streakData.bounceProbability}%</span> of the time with avg <span className="text-emerald-400 font-medium">+{streakData.avgRecovery.toFixed(1)}%</span> return.
+            After {streakData.consecutiveDays} consecutive {isDownStreak ? 'down' : 'up'} days, {ticker} has historically reversed direction <span className="font-medium text-foreground">{streakData.bounceProbability}%</span> of the time, with an average next-day move of <span className="font-medium text-foreground">{streakData.avgRecovery.toFixed(1)}%</span>.
           </p>
         </div>
 
@@ -168,17 +169,14 @@ export function QuickHistoricalInsights({
         {activePatterns.length > 0 && (
           <div className="flex items-center gap-1 flex-wrap">
             <Zap className="h-3 w-3 text-primary" />
-            <span className="text-[9px] font-medium mr-1">Patterns:</span>
+            <span className="text-[9px] font-medium mr-1">Active Patterns:</span>
             {activePatterns.map((pattern) => (
               <Badge 
                 key={pattern.id}
                 variant="outline" 
-                className={cn(
-                  "text-[8px] px-1 py-0",
-                  pattern.winRate >= 60 ? "border-emerald-500/50 text-emerald-400" : "border-amber-500/50 text-amber-400"
-                )}
+                className="text-[8px] px-1 py-0 border-border text-muted-foreground"
               >
-                {pattern.name} ({pattern.winRate}%)
+                {pattern.name} ({pattern.winRate}% historical win rate)
               </Badge>
             ))}
           </div>

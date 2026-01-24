@@ -78,10 +78,7 @@ export function TickerStream({ className }: { className?: string }) {
             <span className="font-mono text-sm text-foreground">
               ${ticker.price.toFixed(2)}
             </span>
-            <span className={cn(
-              "flex items-center gap-0.5 text-xs font-medium font-mono",
-              ticker.change >= 0 ? "text-emerald-400" : "text-rose-400"
-            )}>
+            <span className="flex items-center gap-0.5 text-xs font-medium font-mono text-muted-foreground">
               {ticker.change >= 0 ? (
                 <TrendingUp className="h-3 w-3" />
               ) : (
