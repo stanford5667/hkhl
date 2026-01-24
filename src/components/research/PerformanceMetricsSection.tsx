@@ -43,7 +43,7 @@ interface MetricBoxProps {
 
 function MetricBox({ label, value, subLabel, variant = 'default', trend }: MetricBoxProps) {
   const variantStyles = {
-    primary: 'bg-primary/5 border-primary/20',
+    primary: 'bg-emerald-500/10 border-emerald-500/20',
     blue: 'bg-blue-500/10 border-blue-500/20',
     purple: 'bg-purple-500/10 border-purple-500/20',
     amber: 'bg-amber-500/10 border-amber-500/20',
@@ -51,7 +51,7 @@ function MetricBox({ label, value, subLabel, variant = 'default', trend }: Metri
   };
 
   const trendStyles = {
-    good: 'text-primary',
+    good: 'text-emerald-500',
     bad: 'text-destructive',
     neutral: 'text-foreground',
   };
