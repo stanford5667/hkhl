@@ -57,7 +57,7 @@ export function StockDetailLayout({
   return (
     <div className="flex h-[calc(100vh-56px)] md:h-[calc(100vh-64px)]">
       {/* Left Sidebar - Icon tabs, sticky */}
-      <div className="hidden md:flex flex-col w-12 border-r border-border bg-card/50 shrink-0">
+      <div className="hidden md:flex flex-col w-16 lg:w-20 border-r border-border bg-card/50 shrink-0">
         {/* Back button */}
         {onBack && (
           <TooltipProvider delayDuration={0}>
@@ -65,9 +65,9 @@ export function StockDetailLayout({
               <TooltipTrigger asChild>
                 <button
                   onClick={onBack}
-                  className="w-12 h-10 flex items-center justify-center hover:bg-accent text-muted-foreground hover:text-foreground transition-colors border-b border-border"
+                  className="w-full h-12 lg:h-14 flex items-center justify-center hover:bg-accent text-muted-foreground hover:text-foreground transition-colors border-b border-border"
                 >
-                  <ArrowLeft className="h-4 w-4" />
+                  <ArrowLeft className="h-5 w-5 lg:h-6 lg:w-6" />
                 </button>
               </TooltipTrigger>
               <TooltipContent side="right">
@@ -78,7 +78,7 @@ export function StockDetailLayout({
         )}
         
         {/* Tab icons */}
-        <nav className="flex-1 py-2">
+        <nav className="flex-1 py-3">
           <TooltipProvider delayDuration={0}>
             {tabs.map((tab) => {
               const Icon = tab.icon;
@@ -90,16 +90,16 @@ export function StockDetailLayout({
                     <button
                       onClick={() => onTabChange(tab.id)}
                       className={cn(
-                        "w-12 h-10 flex items-center justify-center transition-colors relative",
+                        "w-full h-12 lg:h-14 flex items-center justify-center transition-colors relative",
                         isActive 
                           ? "text-primary bg-primary/10" 
                           : "text-muted-foreground hover:text-foreground hover:bg-accent"
                       )}
                     >
                       {isActive && (
-                        <div className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-6 bg-primary rounded-r" />
+                        <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-primary rounded-r" />
                       )}
-                      <Icon className="h-4 w-4" />
+                      <Icon className="h-5 w-5 lg:h-6 lg:w-6" />
                     </button>
                   </TooltipTrigger>
                   <TooltipContent side="right">
