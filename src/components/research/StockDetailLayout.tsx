@@ -180,26 +180,6 @@ export function StockDetailLayout({
               </Button>
             )}
 
-            {/* Price display with exchange */}
-            {price !== undefined && (
-              <div className="flex items-center gap-2 px-3 py-1.5 bg-secondary/50 rounded-md border border-border shrink-0">
-                {exchange && (
-                  <span className="text-xs text-muted-foreground font-medium">{exchange}</span>
-                )}
-                <span className="font-bold text-sm md:text-lg tabular-nums">${price.toFixed(2)}</span>
-                {change !== undefined && changePercent !== undefined && (
-                  <span className={cn(
-                    "flex items-center gap-0.5 text-xs md:text-sm font-medium",
-                    isPositive ? "text-emerald-400" : "text-rose-400"
-                  )}>
-                    {isPositive ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
-                    <span className="tabular-nums">
-                      {isPositive ? '+' : ''}{change.toFixed(2)} ({isPositive ? '+' : ''}{changePercent.toFixed(2)}%)
-                    </span>
-                  </span>
-                )}
-              </div>
-            )}
           </div>
 
           {/* Mobile tab bar */}
