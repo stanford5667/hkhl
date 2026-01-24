@@ -284,18 +284,13 @@ export function ALAOverviewTab({
       </Card>
 
       {/* CHART: Full width with built-in time range selector */}
-      <Card className="bg-card border-border">
-        <CardContent className="p-2 md:p-4">
-          <CandlestickChart 
-            symbol={ticker} 
-            height={280}
-            className="md:[&>div:last-child]:h-[380px]"
-            showVolume={true}
-            showRangeSelector={true}
-            defaultRange="3M"
-          />
-        </CardContent>
-      </Card>
+      <CandlestickChart 
+        symbol={ticker} 
+        height={320}
+        showVolume={true}
+        showRangeSelector={true}
+        defaultRange="3M"
+      />
 
       {/* BELOW CHART: Analyst & Financials Card */}
       <Card className="bg-card border-border">
