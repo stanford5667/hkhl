@@ -1,9 +1,7 @@
 import React, { useState } from 'react';
-import { Newspaper, RefreshCw, Filter, Loader2 } from 'lucide-react';
+import { Newspaper, RefreshCw, Loader2, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { usePolygonNews } from '@/hooks/usePolygonNews';
 import { NewsCard } from './NewsCard';
@@ -15,17 +13,17 @@ interface DiscoveryFeedProps {
 
 function NewsCardSkeleton() {
   return (
-    <div className="rounded-xl bg-slate-900/50 border border-slate-800 p-4 space-y-3 animate-pulse">
+    <div className="rounded-xl bg-card border border-border p-4 space-y-3 animate-pulse">
       <div className="flex justify-between">
-        <Skeleton className="h-3 w-20 bg-slate-800" />
-        <Skeleton className="h-3 w-12 bg-slate-800" />
+        <div className="h-3 w-20 bg-muted rounded" />
+        <div className="h-3 w-12 bg-muted rounded" />
       </div>
-      <Skeleton className="h-6 w-full bg-slate-800" />
-      <Skeleton className="h-4 w-3/4 bg-slate-800" />
+      <div className="h-6 w-full bg-muted rounded" />
+      <div className="h-4 w-3/4 bg-muted rounded" />
       <div className="flex gap-2 pt-2">
-        <Skeleton className="h-10 w-16 rounded-full bg-slate-800" />
-        <Skeleton className="h-10 w-16 rounded-full bg-slate-800" />
-        <Skeleton className="h-10 w-16 rounded-full bg-slate-800" />
+        <div className="h-10 w-16 rounded-full bg-muted" />
+        <div className="h-10 w-16 rounded-full bg-muted" />
+        <div className="h-10 w-16 rounded-full bg-muted" />
       </div>
     </div>
   );
@@ -35,7 +33,7 @@ export function DiscoveryFeed({ className }: DiscoveryFeedProps) {
   const [selectedTicker, setSelectedTicker] = useState<string | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
   
-  const { data: articles, isLoading, isRefetching, refetch } = usePolygonNews(undefined, 20);
+  const { data: articles, isLoading, isRefetching, refetch, error } = usePolygonNews(undefined, 20);
 
   const handleTickerClick = (ticker: string) => {
     setSelectedTicker(ticker);
@@ -61,7 +59,7 @@ export function DiscoveryFeed({ className }: DiscoveryFeedProps) {
         </div>
         
         <div className="flex items-center gap-2">
-          <Badge variant="outline" className="font-mono text-xs border-slate-700 text-slate-400">
+          <Badge variant="outline" className="font-mono text-xs border-border text-muted-foreground">
             {articles?.length ?? 0} stories
           </Badge>
           <Button
@@ -86,6 +84,22 @@ export function DiscoveryFeed({ className }: DiscoveryFeedProps) {
             <NewsCardSkeleton />
             <NewsCardSkeleton />
           </>
+        ) : error ? (
+          // Error State
+          <div className="flex flex-col items-center justify-center py-16 text-center">
+            <AlertCircle className="h-12 w-12 text-destructive/50 mb-4" />
+            <p className="text-sm font-medium text-muted-foreground">Failed to load news</p>
+            <p className="text-xs text-muted-foreground/70 mt-1">Please try again later</p>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleRefresh}
+              className="mt-4 min-h-[44px]"
+            >
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Retry
+            </Button>
+          </div>
         ) : articles && articles.length > 0 ? (
           // News Cards
           articles.map((article, index) => (
