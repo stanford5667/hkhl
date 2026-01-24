@@ -11,6 +11,7 @@ import { useBatchQuotes } from '@/hooks/useMarketDataQuery';
 import { TickerCarousel } from '@/components/research/TickerCarousel';
 import { CategoryCard } from '@/components/research/CategoryCard';
 import { MarketOverviewDashboard } from '@/components/research/MarketOverviewDashboard';
+import { MarketIntelligenceSection } from '@/components/research/MarketIntelligenceSection';
 import { cn } from '@/lib/utils';
 // Market caps in billions (approximate for display)
 const POPULAR_TICKERS = [
@@ -236,6 +237,9 @@ export default function ResearchPage() {
             onTickerClick={handleSearch} 
           />
         </section>
+
+        {/* Market Intelligence Section - Trending/Most Active, Screener, News */}
+        <MarketIntelligenceSection />
 
         {/* Categories Grid */}
         <section className="space-y-4">
