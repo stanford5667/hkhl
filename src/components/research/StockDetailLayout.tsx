@@ -155,11 +155,11 @@ export function StockDetailLayout({
               </Button>
             </div>
 
-            {/* Current ticker display */}
-            <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-secondary/50 rounded-md border border-border">
-              <span className="font-mono font-bold text-sm">{ticker}</span>
+            {/* Current ticker display - always visible */}
+            <div className="flex items-center gap-1.5 px-2 sm:px-3 py-1 sm:py-1.5 bg-secondary/50 rounded-md border border-border shrink-0">
+              <span className="font-mono font-bold text-xs sm:text-sm">{ticker}</span>
               {companyName && (
-                <span className="text-xs text-muted-foreground truncate max-w-[150px]">
+                <span className="text-[10px] sm:text-xs text-muted-foreground truncate max-w-[80px] sm:max-w-[150px]">
                   {companyName}
                 </span>
               )}
