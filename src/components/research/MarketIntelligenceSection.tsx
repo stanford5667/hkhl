@@ -77,19 +77,35 @@ function StockRow({ stock, onClick }: { stock: ScreenerResult; onClick: () => vo
 function TrendingMostActivePanel() {
   const navigate = useNavigate();
   
+  // Top Gainers: Real daily performance sorted by % change, filtered for quality
   const { data: gainers, isLoading: loadingGainers } = useQuery({
-    queryKey: ['screener', 'topGainers'],
+    queryKey: ['screener', 'topGainers-quality'],
     queryFn: async () => {
-      const result = await screenStocksFromPolygon(QUICK_SCREENS.topGainers.filters);
+      // Fetch top gainers with quality filters to exclude penny stocks
+      const result = await screenStocksFromPolygon({
+        minChange1D: 2,        // Stocks up at least 2% today
+        minPrice: 2,           // Minimum $2 price (excludes penny stocks)
+        minVolume: 500000,     // Minimum 500K volume (ensures liquidity)
+        sortBy: 'change',
+        sortDirection: 'desc',
+        limit: 25,
+      });
       return result.results.slice(0, 10);
     },
     staleTime: 60000,
   });
 
+  // Most Active: Highest volume stocks today
   const { data: mostActive, isLoading: loadingActive } = useQuery({
-    queryKey: ['screener', 'mostActive'],
+    queryKey: ['screener', 'mostActive-quality'],
     queryFn: async () => {
-      const result = await screenStocksFromPolygon(QUICK_SCREENS.mostActive.filters);
+      const result = await screenStocksFromPolygon({
+        minPrice: 1,           // Minimum $1 price
+        minVolume: 1000000,    // Minimum 1M volume
+        sortBy: 'volume',
+        sortDirection: 'desc',
+        limit: 25,
+      });
       return result.results.slice(0, 10);
     },
     staleTime: 60000,
@@ -105,7 +121,7 @@ function TrendingMostActivePanel() {
         <div className="flex items-center justify-between">
           <CardTitle className="text-base font-semibold flex items-center gap-2">
             <TrendingUp className="h-4 w-4 text-primary" />
-            Trending & Most Active
+            Today's Market Movers
           </CardTitle>
           <Button 
             variant="ghost" 
@@ -117,21 +133,21 @@ function TrendingMostActivePanel() {
           </Button>
         </div>
         <p className="text-xs text-muted-foreground">
-          Top movers and highest volume stocks today
+          Stocks sorted by actual daily performance (min $2 price, 500K+ volume)
         </p>
       </CardHeader>
       <CardContent className="p-0">
         <div className="grid md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-border">
-          {/* Trending (Top Gainers) */}
+          {/* Top Gainers - Sorted by actual daily % change */}
           <div>
             <div className="flex items-center justify-between px-3 py-2 bg-muted/30 border-b border-border">
               <span className="text-xs font-semibold text-foreground flex items-center gap-1.5">
-                <Flame className="h-3.5 w-3.5 text-orange-500" />
-                Trending
+                <TrendingUp className="h-3.5 w-3.5 text-success" />
+                Top Gainers Today
               </span>
               <div className="flex gap-4 text-[10px] text-muted-foreground">
                 <span className="w-16 text-right">Price</span>
-                <span className="w-16 text-right">1D Chg</span>
+                <span className="w-16 text-right">Change</span>
               </div>
             </div>
             <div className="max-h-[300px] overflow-y-auto">
