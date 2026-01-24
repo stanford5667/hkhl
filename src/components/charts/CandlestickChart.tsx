@@ -228,14 +228,14 @@ export function CandlestickChart({
     <div className={cn("relative", className)}>
       {/* Range Selector */}
       {showRangeSelector && (
-        <div className="flex items-center gap-1 mb-2">
+        <div className="flex items-center gap-0.5 md:gap-1 mb-2">
           {(Object.keys(TIME_RANGES) as TimeRange[]).map((range) => (
             <Button
               key={range}
               variant={selectedRange === range ? "secondary" : "ghost"}
               size="sm"
               className={cn(
-                "h-7 px-2 text-xs",
+                "h-6 md:h-7 px-1.5 md:px-2 text-[10px] md:text-xs",
                 selectedRange === range && "bg-primary/10 text-primary"
               )}
               onClick={() => handleRangeChange(range)}
