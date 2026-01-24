@@ -290,101 +290,103 @@ export function ALAOverviewTab({
         </Card>
 
         {/* Stats Column - 1/3 width */}
-        {basicStats && (
-          <Card className="bg-card border-border h-fit">
-            <CardContent className="p-2">
-              {/* Mkt Cap, EPS, Next Earnings Row */}
-              <div className="grid grid-cols-3 gap-1.5 mb-2">
-                <div className="bg-primary/5 border border-primary/20 rounded px-2 py-1 text-center">
-                  <span className="text-[7px] text-primary/80 block leading-tight uppercase font-medium">Mkt Cap</span>
-                  <p className="text-[10px] font-bold text-foreground">{formatMarketCap(marketCap)}</p>
+        <div className="space-y-2">
+          {basicStats && (
+            <Card className="bg-card border-border">
+              <CardContent className="p-2">
+                {/* Mkt Cap, EPS, Next Earnings Row */}
+                <div className="grid grid-cols-3 gap-1.5 mb-2">
+                  <div className="bg-primary/5 border border-primary/20 rounded px-2 py-1 text-center">
+                    <span className="text-[7px] text-primary/80 block leading-tight uppercase font-medium">Mkt Cap</span>
+                    <p className="text-[10px] font-bold text-foreground">{formatMarketCap(marketCap)}</p>
+                  </div>
+                  <div className="bg-secondary/50 border border-border rounded px-2 py-1 text-center">
+                    <span className="text-[7px] text-muted-foreground block leading-tight uppercase">EPS</span>
+                    <p className="text-[10px] font-bold">{eps ? `$${eps.toFixed(2)}` : '—'}</p>
+                  </div>
+                  <div className="bg-secondary/50 border border-border rounded px-2 py-1 text-center">
+                    <span className="text-[7px] text-muted-foreground block leading-tight uppercase">Earnings</span>
+                    <p className="text-[10px] font-bold">{nextEarnings || '—'}</p>
+                  </div>
                 </div>
-                <div className="bg-secondary/50 border border-border rounded px-2 py-1 text-center">
-                  <span className="text-[7px] text-muted-foreground block leading-tight uppercase">EPS</span>
-                  <p className="text-[10px] font-bold">{eps ? `$${eps.toFixed(2)}` : '—'}</p>
-                </div>
-                <div className="bg-secondary/50 border border-border rounded px-2 py-1 text-center">
-                  <span className="text-[7px] text-muted-foreground block leading-tight uppercase">Earnings</span>
-                  <p className="text-[10px] font-bold">{nextEarnings || '—'}</p>
-                </div>
-              </div>
 
-              <p className="text-[9px] text-muted-foreground mb-2 flex items-center gap-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-primary"></span>
-                Past {basicStats.totalDays} trading days
-              </p>
-              <div className="grid grid-cols-2 gap-1.5">
-                <div className="bg-primary/5 border border-primary/20 rounded px-2 py-1.5 text-center">
-                  <span className="text-[7px] text-muted-foreground block leading-tight">Days Closing Higher</span>
-                  <p className="text-sm font-bold text-foreground">{basicStats.upDays}</p>
+                <p className="text-[9px] text-muted-foreground mb-2 flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-primary"></span>
+                  Past {basicStats.totalDays} trading days
+                </p>
+                <div className="grid grid-cols-2 gap-1.5">
+                  <div className="bg-primary/5 border border-primary/20 rounded px-2 py-1.5 text-center">
+                    <span className="text-[7px] text-muted-foreground block leading-tight">Days Closing Higher</span>
+                    <p className="text-sm font-bold text-foreground">{basicStats.upDays}</p>
+                  </div>
+                  <div className="bg-secondary/50 border border-border rounded px-2 py-1.5 text-center">
+                    <span className="text-[7px] text-muted-foreground block leading-tight">Days Closing Lower</span>
+                    <p className="text-sm font-bold">{basicStats.downDays}</p>
+                  </div>
+                  <div className="bg-secondary/50 border border-border rounded px-2 py-1.5 text-center">
+                    <span className="text-[7px] text-muted-foreground block leading-tight">Unchanged Days</span>
+                    <p className="text-sm font-bold">{basicStats.flatDays}</p>
+                  </div>
+                  <div className="bg-secondary/50 border border-border rounded px-2 py-1.5 text-center">
+                    <span className="text-[7px] text-muted-foreground block leading-tight">Avg Daily Move</span>
+                    <p className="text-sm font-bold">{basicStats.avgDailyMovePercent.toFixed(2)}%</p>
+                  </div>
+                  <div className="bg-primary/5 border border-primary/20 rounded px-2 py-1.5 text-center">
+                    <span className="text-[7px] text-muted-foreground block leading-tight">Best Day</span>
+                    <p className="text-sm font-bold text-foreground">+{basicStats.bestDay.change.toFixed(1)}%</p>
+                  </div>
+                  <div className="bg-secondary/50 border border-border rounded px-2 py-1.5 text-center">
+                    <span className="text-[7px] text-muted-foreground block leading-tight">Worst Day</span>
+                    <p className="text-sm font-bold">{basicStats.worstDay.change.toFixed(1)}%</p>
+                  </div>
                 </div>
-                <div className="bg-secondary/50 border border-border rounded px-2 py-1.5 text-center">
-                  <span className="text-[7px] text-muted-foreground block leading-tight">Days Closing Lower</span>
-                  <p className="text-sm font-bold">{basicStats.downDays}</p>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* ABOUT SECTION */}
+          {description && (
+            <Card className="bg-card border-border">
+              <CardContent className="p-2">
+                <div className="flex items-center gap-1.5 mb-1">
+                  <Building2 className="h-3 w-3" />
+                  <span className="text-[10px] md:text-xs font-medium">About {companyName || ticker}</span>
                 </div>
-                <div className="bg-secondary/50 border border-border rounded px-2 py-1.5 text-center">
-                  <span className="text-[7px] text-muted-foreground block leading-tight">Unchanged Days</span>
-                  <p className="text-sm font-bold">{basicStats.flatDays}</p>
+                <p className="text-[9px] md:text-[10px] text-muted-foreground leading-relaxed line-clamp-4 mb-1.5">{description}</p>
+                
+                <div className="grid grid-cols-2 gap-2 pt-1.5 border-t border-border">
+                  <div>
+                    <p className="text-[7px] md:text-[8px] text-muted-foreground uppercase">Sector</p>
+                    <p className="text-[9px] md:text-[10px] font-medium">{sector || '—'}</p>
+                  </div>
+                  <div>
+                    <p className="text-[7px] md:text-[8px] text-muted-foreground uppercase">Industry</p>
+                    <p className="text-[9px] md:text-[10px] font-medium">{industry || '—'}</p>
+                  </div>
+                  <div>
+                    <p className="text-[7px] md:text-[8px] text-muted-foreground uppercase">Exchange</p>
+                    <p className="text-[9px] md:text-[10px] font-medium">{exchange || '—'}</p>
+                  </div>
+                  {homepageUrl && (
+                    <div>
+                      <p className="text-[7px] md:text-[8px] text-muted-foreground uppercase">Website</p>
+                      <a 
+                        href={homepageUrl} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="text-[9px] md:text-[10px] text-primary hover:underline font-medium flex items-center gap-0.5"
+                      >
+                        <Globe className="h-2.5 w-2.5" />
+                        Visit
+                      </a>
+                    </div>
+                  )}
                 </div>
-                <div className="bg-secondary/50 border border-border rounded px-2 py-1.5 text-center">
-                  <span className="text-[7px] text-muted-foreground block leading-tight">Avg Daily Move</span>
-                  <p className="text-sm font-bold">{basicStats.avgDailyMovePercent.toFixed(2)}%</p>
-                </div>
-                <div className="bg-primary/5 border border-primary/20 rounded px-2 py-1.5 text-center">
-                  <span className="text-[7px] text-muted-foreground block leading-tight">Best Day</span>
-                  <p className="text-sm font-bold text-foreground">+{basicStats.bestDay.change.toFixed(1)}%</p>
-                </div>
-                <div className="bg-secondary/50 border border-border rounded px-2 py-1.5 text-center">
-                  <span className="text-[7px] text-muted-foreground block leading-tight">Worst Day</span>
-                  <p className="text-sm font-bold">{basicStats.worstDay.change.toFixed(1)}%</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        )}
+              </CardContent>
+            </Card>
+          )}
+        </div>
       </div>
-
-      {/* ABOUT SECTION: Compact */}
-      {description && (
-        <Card className="bg-card border-border">
-          <CardContent className="p-2">
-            <div className="flex items-center gap-1.5 mb-1">
-              <Building2 className="h-3 w-3" />
-              <span className="text-[10px] md:text-xs font-medium">About {companyName || ticker}</span>
-            </div>
-            <p className="text-[9px] md:text-[10px] text-muted-foreground leading-relaxed line-clamp-3 mb-1.5">{description}</p>
-            
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1.5 border-t border-border">
-              <div>
-                <p className="text-[7px] md:text-[8px] text-muted-foreground uppercase">Sector</p>
-                <p className="text-[9px] md:text-[10px] font-medium">{sector || '—'}</p>
-              </div>
-              <div>
-                <p className="text-[7px] md:text-[8px] text-muted-foreground uppercase">Industry</p>
-                <p className="text-[9px] md:text-[10px] font-medium">{industry || '—'}</p>
-              </div>
-              <div>
-                <p className="text-[7px] md:text-[8px] text-muted-foreground uppercase">Exchange</p>
-                <p className="text-[9px] md:text-[10px] font-medium">{exchange || '—'}</p>
-              </div>
-              {homepageUrl && (
-                <div>
-                  <p className="text-[7px] md:text-[8px] text-muted-foreground uppercase">Website</p>
-                  <a 
-                    href={homepageUrl} 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="text-[9px] md:text-[10px] text-primary hover:underline font-medium flex items-center gap-0.5"
-                  >
-                    <Globe className="h-2.5 w-2.5" />
-                    Visit
-                  </a>
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      )}
 
       {/* Quick Historical Insights */}
       <QuickHistoricalInsights 
