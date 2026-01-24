@@ -154,12 +154,9 @@ export function ManualPortfolioForm({ onComplete }: ManualPortfolioFormProps) {
       >
         {/* Header */}
         <div className="text-center">
-          <Badge className="mb-4 bg-blue-500/10 text-blue-500 border-blue-500/30">
-            Manual Mode
-          </Badge>
-          <h1 className="text-3xl font-bold mb-2">Build Your Portfolio</h1>
-          <p className="text-muted-foreground">
-            Enter your portfolio details and we'll analyze it using Black-Litterman optimization
+          <h1 className="text-2xl sm:text-3xl font-bold mb-2">Build Your Portfolio</h1>
+          <p className="text-sm text-muted-foreground">
+            Add assets and set what percentage of your portfolio each should represent
           </p>
         </div>
 
@@ -211,29 +208,36 @@ export function ManualPortfolioForm({ onComplete }: ManualPortfolioFormProps) {
             {/* Divider */}
             <div className="border-t border-border" />
 
-            {/* Assets Header with Equal Weight button */}
-            <div className="flex items-center justify-between">
-              <Label className="text-xs flex items-center gap-1.5">
-                <Scale className="h-3.5 w-3.5 text-primary" />
-                Portfolio Assets
-              </Label>
-              <div className="flex items-center gap-2">
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={equalizeWeights} 
-                  disabled={validAllocations.length === 0}
-                  className="text-xs h-7"
-                >
-                  <Scale className="h-3 w-3 mr-1" />
-                  Equal Weight
-                </Button>
-                <Badge 
-                  variant={isValidAllocation ? 'default' : validAllocations.length > 0 ? 'destructive' : 'secondary'}
-                  className="whitespace-nowrap text-xs"
-                >
-                  {totalWeight.toFixed(1)}%
-                </Badge>
+            {/* Assets Header with instructions */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label className="text-xs flex items-center gap-1.5">
+                    <Scale className="h-3.5 w-3.5 text-primary" />
+                    Your Assets
+                  </Label>
+                  <p className="text-[10px] text-muted-foreground mt-0.5">
+                    Enter a ticker, then use the slider to set its % of your portfolio
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={equalizeWeights} 
+                    disabled={validAllocations.length === 0}
+                    className="text-xs h-7"
+                  >
+                    <Scale className="h-3 w-3 mr-1" />
+                    Equal Weight
+                  </Button>
+                  <Badge 
+                    variant={isValidAllocation ? 'default' : validAllocations.length > 0 ? 'destructive' : 'secondary'}
+                    className="whitespace-nowrap text-xs"
+                  >
+                    {totalWeight.toFixed(1)}% / 100%
+                  </Badge>
+                </div>
               </div>
             </div>
 
@@ -276,13 +280,13 @@ export function ManualPortfolioForm({ onComplete }: ManualPortfolioFormProps) {
                         type="number"
                         value={row.weight}
                         onChange={(e) => updateRow(row.id, { weight: parseFloat(e.target.value) || 0 })}
-                        className="w-12 h-7 text-xs text-right px-1"
+                        className="w-14 h-7 text-xs text-right px-1"
                         min={0}
                         max={100}
                         step={0.5}
                         disabled={!row.symbol.trim()}
                       />
-                      <span className="text-xs text-muted-foreground">%</span>
+                      <span className="text-[10px] text-muted-foreground w-8">% own</span>
                     </div>
                     
                     {/* Remove Button */}
