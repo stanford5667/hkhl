@@ -7,7 +7,6 @@ import { Badge } from '@/components/ui/badge';
 import { Slider } from '@/components/ui/slider';
 import { Label } from '@/components/ui/label';
 import { 
-  ArrowLeft, 
   DollarSign,
   Clock,
   Plus,
@@ -29,7 +28,6 @@ interface ManualPortfolioFormProps {
     horizon: number;
     allocations: PortfolioAllocation[];
   }) => void;
-  onBack: () => void;
 }
 
 // Row type for inline ticker + weight input
@@ -47,11 +45,11 @@ const createEmptyRow = (): TickerRow => ({
   assetClass: 'stocks'
 });
 
-export function ManualPortfolioForm({ onComplete, onBack }: ManualPortfolioFormProps) {
+export function ManualPortfolioForm({ onComplete }: ManualPortfolioFormProps) {
   const [capital, setCapital] = useState(100000);
   const [horizon, setHorizon] = useState(5);
   const [rows, setRows] = useState<TickerRow[]>(() => 
-    Array.from({ length: 5 }, createEmptyRow)
+    Array.from({ length: 3 }, createEmptyRow)
   );
 
   // Filter to only rows with valid tickers for calculations
@@ -365,18 +363,14 @@ export function ManualPortfolioForm({ onComplete, onBack }: ManualPortfolioFormP
           </CardContent>
         </Card>
 
-        {/* Navigation */}
-        <div className="flex justify-between pt-6 border-t border-border">
-          <Button variant="outline" onClick={onBack}>
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Choose Path
-          </Button>
+        {/* Analyze Button - Always visible, sticky on mobile */}
+        <div className="sticky bottom-0 bg-background/95 backdrop-blur-sm pt-4 pb-2 -mx-6 px-6 border-t border-border">
           <Button 
             onClick={handleSubmit} 
             disabled={!canProceed}
-            className="bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600"
+            className="w-full bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 h-12 text-base font-semibold"
           >
-            <Play className="h-4 w-4 mr-2" />
+            <Play className="h-5 w-5 mr-2" />
             Analyze Portfolio
           </Button>
         </div>
