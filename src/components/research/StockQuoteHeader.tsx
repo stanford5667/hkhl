@@ -101,11 +101,11 @@ export function StockQuoteHeader({ ticker }: StockQuoteHeaderProps) {
         {/* Price & Change */}
         <div className="flex items-center gap-6">
           <div>
-            <div className="flex items-center gap-2 sm:gap-3">
-              <span className="text-xs sm:text-sm text-muted-foreground truncate max-w-[80px] sm:max-w-[160px]">
+            <div className="flex items-baseline gap-2">
+              <span className="text-xs sm:text-sm text-muted-foreground truncate max-w-[100px] sm:max-w-[180px]">
                 {quote.companyName}
               </span>
-              <span className="text-2xl sm:text-3xl font-bold text-foreground">${quote.price.toFixed(2)}</span>
+              <p className="text-2xl sm:text-3xl font-bold text-foreground">${quote.price.toFixed(2)}</p>
             </div>
             <div className={cn(
               "flex items-center gap-1 text-sm font-medium",
