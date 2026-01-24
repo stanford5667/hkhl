@@ -8,6 +8,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { getCandlesForRange, TIME_RANGES, type TimeRange, type CandleData } from '@/services/candleService';
+import { ZoomIn, ZoomOut, Maximize2 } from 'lucide-react';
 
 interface CandlestickChartProps {
   symbol: string;
@@ -209,6 +210,45 @@ export function CandlestickChart({
     fetchData();
   }, [chartReady, symbol, selectedRange, showVolume]);
 
+  // Zoom controls
+  const handleZoomIn = useCallback(() => {
+    if (chartRef.current) {
+      const timeScale = chartRef.current.timeScale();
+      const visibleRange = timeScale.getVisibleLogicalRange();
+      if (visibleRange) {
+        const rangeSize = visibleRange.to - visibleRange.from;
+        const newSize = rangeSize * 0.5;
+        const center = (visibleRange.from + visibleRange.to) / 2;
+        timeScale.setVisibleLogicalRange({
+          from: center - newSize / 2,
+          to: center + newSize / 2,
+        });
+      }
+    }
+  }, []);
+
+  const handleZoomOut = useCallback(() => {
+    if (chartRef.current) {
+      const timeScale = chartRef.current.timeScale();
+      const visibleRange = timeScale.getVisibleLogicalRange();
+      if (visibleRange) {
+        const rangeSize = visibleRange.to - visibleRange.from;
+        const newSize = rangeSize * 2;
+        const center = (visibleRange.from + visibleRange.to) / 2;
+        timeScale.setVisibleLogicalRange({
+          from: center - newSize / 2,
+          to: center + newSize / 2,
+        });
+      }
+    }
+  }, []);
+
+  const handleFitContent = useCallback(() => {
+    if (chartRef.current) {
+      chartRef.current.timeScale().fitContent();
+    }
+  }, []);
+
   // Handle range change
   const handleRangeChange = (range: TimeRange) => {
     setSelectedRange(range);
@@ -226,25 +266,58 @@ export function CandlestickChart({
 
   return (
     <div className={cn("relative", className)}>
-      {/* Range Selector */}
-      {showRangeSelector && (
-        <div className="flex items-center gap-0.5 md:gap-1 mb-2">
-          {(Object.keys(TIME_RANGES) as TimeRange[]).map((range) => (
-            <Button
-              key={range}
-              variant={selectedRange === range ? "secondary" : "ghost"}
-              size="sm"
-              className={cn(
-                "h-6 md:h-7 px-1.5 md:px-2 text-[10px] md:text-xs",
-                selectedRange === range && "bg-primary/10 text-primary"
-              )}
-              onClick={() => handleRangeChange(range)}
-            >
-              {range}
-            </Button>
-          ))}
+      {/* Range Selector & Zoom Controls */}
+      <div className="flex items-center justify-between mb-2">
+        {showRangeSelector && (
+          <div className="flex items-center gap-0.5 md:gap-1">
+            {(Object.keys(TIME_RANGES) as TimeRange[]).map((range) => (
+              <Button
+                key={range}
+                variant={selectedRange === range ? "secondary" : "ghost"}
+                size="sm"
+                className={cn(
+                  "h-6 md:h-7 px-1.5 md:px-2 text-[10px] md:text-xs",
+                  selectedRange === range && "bg-primary/10 text-primary"
+                )}
+                onClick={() => handleRangeChange(range)}
+              >
+                {range}
+              </Button>
+            ))}
+          </div>
+        )}
+        
+        {/* Zoom Controls */}
+        <div className="flex items-center gap-1">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-6 w-6 md:h-7 md:w-7 p-0"
+            onClick={handleZoomOut}
+            title="Zoom out"
+          >
+            <ZoomOut className="h-3.5 w-3.5 md:h-4 md:w-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-6 w-6 md:h-7 md:w-7 p-0"
+            onClick={handleZoomIn}
+            title="Zoom in"
+          >
+            <ZoomIn className="h-3.5 w-3.5 md:h-4 md:w-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-6 w-6 md:h-7 md:w-7 p-0"
+            onClick={handleFitContent}
+            title="Fit to screen"
+          >
+            <Maximize2 className="h-3.5 w-3.5 md:h-4 md:w-4" />
+          </Button>
         </div>
-      )}
+      </div>
 
       {/* Chart Container */}
       <div className="relative">
