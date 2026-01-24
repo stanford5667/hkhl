@@ -503,13 +503,6 @@ export function ALAOverviewTab({
         <EarningsImpactSection ticker={ticker} nextEarnings={nextEarnings} />
       </div>
 
-      {/* Basic Statistics - Full explanatory version */}
-      <BasicStatistics 
-        ticker={ticker} 
-        stats={basicStats}
-        isLoading={snapshotLoading}
-      />
-
       {/* Auto Studies Section */}
       <AutoStudiesSection ticker={ticker} />
     </div>
