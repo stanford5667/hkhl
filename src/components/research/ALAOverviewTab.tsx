@@ -271,27 +271,13 @@ export function ALAOverviewTab({
             </div>
           </div>
 
-          {/* Row 3: 52-Week Range */}
-          <div className="space-y-0.5">
-            <div className="flex items-center justify-between text-[8px] md:text-[10px] text-muted-foreground">
-              <span>52W Low: {week52Low ? formatCurrency(week52Low) : '—'}</span>
-              <span>52W High: {week52High ? formatCurrency(week52High) : '—'}</span>
-            </div>
-            <div className="relative h-1.5 bg-secondary rounded-full overflow-hidden">
-              <div className="absolute top-0 left-0 h-full w-full bg-gradient-to-r from-rose-500 via-amber-500 to-emerald-500 rounded-full" />
-              <div 
-                className="absolute top-1/2 -translate-y-1/2 w-2 h-2 bg-white rounded-full border-2 border-primary shadow-md"
-                style={{ left: `calc(${Math.min(100, Math.max(0, rangePosition))}% - 4px)` }}
-              />
-            </div>
-          </div>
         </CardContent>
       </Card>
 
       {/* CHART + QUICK STATS: Side by side on desktop */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 md:gap-4">
         {/* Chart - takes 2/3 on desktop */}
-        <div className="lg:col-span-2">
+        <div className="lg:col-span-2 space-y-2">
           <CandlestickChart 
             symbol={ticker} 
             height={280}
@@ -299,6 +285,31 @@ export function ALAOverviewTab({
             showRangeSelector={true}
             defaultRange="3M"
           />
+          
+          {/* 52-Week Range - Below Chart */}
+          <Card className="bg-card border-border">
+            <CardContent className="p-2 md:p-3">
+              <div className="space-y-1">
+                <div className="flex items-center justify-between text-[10px] md:text-xs text-muted-foreground">
+                  <span>52 Week Range</span>
+                  <span className="font-medium text-foreground">
+                    {week52Low ? `$${week52Low.toFixed(2)}` : '—'} - {week52High ? `$${week52High.toFixed(2)}` : '—'}
+                  </span>
+                </div>
+                <div className="relative h-2 bg-secondary rounded-full overflow-hidden">
+                  <div className="absolute top-0 left-0 h-full w-full bg-gradient-to-r from-rose-500 via-amber-500 to-emerald-500 rounded-full" />
+                  <div 
+                    className="absolute top-1/2 -translate-y-1/2 w-3 h-3 bg-white rounded-full border-2 border-primary shadow-md"
+                    style={{ left: `calc(${Math.min(100, Math.max(0, rangePosition))}% - 6px)` }}
+                  />
+                </div>
+                <div className="flex items-center justify-between text-[9px] text-muted-foreground">
+                  <span>Low</span>
+                  <span>High</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
         
         {/* Up/Down Day Stats - takes 1/3 on desktop */}

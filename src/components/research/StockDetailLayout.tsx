@@ -4,7 +4,8 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
-import { 
+import { TrendingUp, TrendingDown } from 'lucide-react';
+import {
   Search, 
   LayoutDashboard, 
   FlaskConical, 
@@ -32,6 +33,9 @@ interface StockDetailLayoutProps {
   tabs: StockDetailTab[];
   children: ReactNode;
   onBack?: () => void;
+  price?: number;
+  change?: number;
+  changePercent?: number;
 }
 
 export function StockDetailLayout({
@@ -41,8 +45,12 @@ export function StockDetailLayout({
   onTabChange,
   tabs,
   children,
-  onBack
+  onBack,
+  price,
+  change,
+  changePercent
 }: StockDetailLayoutProps) {
+  const isPositive = (change || 0) >= 0;
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearchFocused, setIsSearchFocused] = useState(false);
@@ -155,13 +163,31 @@ export function StockDetailLayout({
               </Button>
             </div>
 
-            {/* Current ticker display - always visible */}
-            <div className="flex items-center gap-1.5 px-2 sm:px-3 py-1 sm:py-1.5 bg-secondary/50 rounded-md border border-border shrink-0">
-              <span className="font-mono font-bold text-xs sm:text-sm">{ticker}</span>
-              {companyName && (
-                <span className="text-[10px] sm:text-xs text-muted-foreground truncate max-w-[80px] sm:max-w-[150px]">
-                  {companyName}
-                </span>
+            {/* Price display with ticker */}
+            <div className="flex items-center gap-3 px-3 py-1.5 bg-secondary/50 rounded-md border border-border shrink-0">
+              <div className="flex items-center gap-2">
+                <span className="font-mono font-bold text-sm md:text-base">{ticker}</span>
+                {companyName && (
+                  <span className="hidden sm:inline text-xs text-muted-foreground truncate max-w-[120px]">
+                    {companyName}
+                  </span>
+                )}
+              </div>
+              {price !== undefined && (
+                <div className="flex items-center gap-2 border-l border-border pl-3">
+                  <span className="font-bold text-sm md:text-lg tabular-nums">${price.toFixed(2)}</span>
+                  {change !== undefined && changePercent !== undefined && (
+                    <span className={cn(
+                      "flex items-center gap-0.5 text-xs md:text-sm font-medium",
+                      isPositive ? "text-emerald-400" : "text-rose-400"
+                    )}>
+                      {isPositive ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
+                      <span className="tabular-nums">
+                        {isPositive ? '+' : ''}{change.toFixed(2)} ({isPositive ? '+' : ''}{changePercent.toFixed(2)}%)
+                      </span>
+                    </span>
+                  )}
+                </div>
               )}
             </div>
           </div>

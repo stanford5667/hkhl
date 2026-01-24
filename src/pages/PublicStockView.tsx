@@ -416,6 +416,9 @@ export default function PublicStockView() {
       onTabChange={setActiveTab}
       tabs={DEFAULT_STOCK_TABS}
       onBack={() => navigate(-1)}
+      price={quote?.price}
+      change={quote?.change}
+      changePercent={quote?.changePercent}
     >
       {renderTabContent()}
     </StockDetailLayout>
