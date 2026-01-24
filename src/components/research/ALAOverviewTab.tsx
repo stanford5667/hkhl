@@ -209,8 +209,8 @@ export function ALAOverviewTab({
 
   return (
     <div className="space-y-2">
-      {/* PRICE HEADER - Company name + Price above chart */}
-      <div className="flex items-center justify-between gap-2 px-1">
+      {/* PRICE HEADER - Price + OHLC + Prev above chart */}
+      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 px-1">
         <div className="flex items-center gap-3 min-w-0">
           <span className="text-sm md:text-base font-medium text-muted-foreground truncate max-w-[200px]">
             {companyName || ticker}
@@ -230,6 +230,27 @@ export function ALAOverviewTab({
             </span>
           </div>
         </div>
+        
+        {/* OHLC + Prev inline */}
+        <div className="flex items-center gap-3 text-[10px] md:text-xs">
+          <div className="flex items-center gap-1">
+            <span className="text-muted-foreground">O:</span>
+            <span className="font-medium tabular-nums">{formatCurrency(quote?.open || 0)}</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <span className="text-muted-foreground">H:</span>
+            <span className="font-medium tabular-nums">{formatCurrency(quote?.high || 0)}</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <span className="text-muted-foreground">L:</span>
+            <span className="font-medium tabular-nums">{formatCurrency(quote?.low || 0)}</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <span className="text-muted-foreground">Prev:</span>
+            <span className="font-medium tabular-nums">{quote?.previousClose ? formatCurrency(quote.previousClose) : '—'}</span>
+          </div>
+        </div>
+
         {onRefresh && (
           <Button variant="ghost" size="icon" onClick={onRefresh} disabled={isRefreshing} className="h-6 w-6 shrink-0">
             <RefreshCw className={cn("h-3 w-3", isRefreshing && "animate-spin")} />
@@ -269,6 +290,22 @@ export function ALAOverviewTab({
         {basicStats && (
           <Card className="bg-card border-border h-fit">
             <CardContent className="p-2">
+              {/* Mkt Cap, EPS, Next Earnings Row */}
+              <div className="grid grid-cols-3 gap-1.5 mb-2">
+                <div className="bg-primary/5 border border-primary/20 rounded px-2 py-1 text-center">
+                  <span className="text-[7px] text-primary/80 block leading-tight uppercase font-medium">Mkt Cap</span>
+                  <p className="text-[10px] font-bold text-foreground">{formatMarketCap(marketCap)}</p>
+                </div>
+                <div className="bg-secondary/50 border border-border rounded px-2 py-1 text-center">
+                  <span className="text-[7px] text-muted-foreground block leading-tight uppercase">EPS</span>
+                  <p className="text-[10px] font-bold">{eps ? `$${eps.toFixed(2)}` : '—'}</p>
+                </div>
+                <div className="bg-secondary/50 border border-border rounded px-2 py-1 text-center">
+                  <span className="text-[7px] text-muted-foreground block leading-tight uppercase">Earnings</span>
+                  <p className="text-[10px] font-bold">{nextEarnings || '—'}</p>
+                </div>
+              </div>
+
               <p className="text-[9px] text-muted-foreground mb-2 flex items-center gap-1">
                 <span className="w-1.5 h-1.5 rounded-full bg-primary"></span>
                 Past {basicStats.totalDays} trading days
@@ -304,47 +341,7 @@ export function ALAOverviewTab({
         )}
       </div>
 
-      {/* KEY STATS - Below Chart */}
-      <Card className="bg-card border-border">
-        <CardContent className="p-2">
-          <div className="grid grid-cols-4 md:grid-cols-8 gap-2 text-center">
-            <div className="bg-primary/5 rounded-md px-2 py-1.5">
-              <p className="text-[7px] md:text-[8px] text-primary/80 uppercase font-medium">Open</p>
-              <p className="text-[10px] md:text-xs font-semibold tabular-nums">{formatCurrency(quote?.open || 0)}</p>
-            </div>
-            <div className="bg-secondary/50 rounded-md px-2 py-1.5">
-              <p className="text-[7px] md:text-[8px] text-muted-foreground uppercase">High</p>
-              <p className="text-[10px] md:text-xs font-semibold tabular-nums">{formatCurrency(quote?.high || 0)}</p>
-            </div>
-            <div className="bg-secondary/50 rounded-md px-2 py-1.5">
-              <p className="text-[7px] md:text-[8px] text-muted-foreground uppercase">Low</p>
-              <p className="text-[10px] md:text-xs font-semibold tabular-nums">{formatCurrency(quote?.low || 0)}</p>
-            </div>
-            <div className="bg-secondary/50 rounded-md px-2 py-1.5">
-              <p className="text-[7px] md:text-[8px] text-muted-foreground uppercase">Prev</p>
-              <p className="text-[10px] md:text-xs font-semibold tabular-nums">{quote?.previousClose ? formatCurrency(quote.previousClose) : '—'}</p>
-            </div>
-            <div className="bg-primary/5 rounded-md px-2 py-1.5">
-              <p className="text-[7px] md:text-[8px] text-primary/80 uppercase font-medium">Mkt Cap</p>
-              <p className="text-[10px] md:text-xs font-semibold">{formatMarketCap(marketCap)}</p>
-            </div>
-            <div className="bg-secondary/50 rounded-md px-2 py-1.5">
-              <p className="text-[7px] md:text-[8px] text-muted-foreground uppercase">Volume</p>
-              <p className="text-[10px] md:text-xs font-semibold">{formatVolume(quote?.volume)}</p>
-            </div>
-            <div className="bg-secondary/50 rounded-md px-2 py-1.5">
-              <p className="text-[7px] md:text-[8px] text-muted-foreground uppercase">P/E</p>
-              <p className="text-[10px] md:text-xs font-semibold">{peRatio?.toFixed(1) || '—'}</p>
-            </div>
-            <div className="bg-secondary/50 rounded-md px-2 py-1.5">
-              <p className="text-[7px] md:text-[8px] text-muted-foreground uppercase">Beta</p>
-              <p className="text-[10px] md:text-xs font-semibold">{beta?.toFixed(2) || '—'}</p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Analyst & Financials Card - With color accents */}
+      {/* Analyst Card */}
       <Card className="bg-card border-border">
         <CardContent className="p-2">
           <div className="grid grid-cols-3 md:grid-cols-6 gap-2 text-center">
