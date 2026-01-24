@@ -228,18 +228,41 @@ export function CandlestickChart({
   }, []);
 
   const handleZoomOut = useCallback(() => {
-    if (chartRef.current) {
+    if (chartRef.current && candleSeriesRef.current) {
       const timeScale = chartRef.current.timeScale();
       const visibleRange = timeScale.getVisibleLogicalRange();
-      if (visibleRange) {
-        const rangeSize = visibleRange.to - visibleRange.from;
-        const newSize = rangeSize * 2;
-        const center = (visibleRange.from + visibleRange.to) / 2;
-        timeScale.setVisibleLogicalRange({
-          from: center - newSize / 2,
-          to: center + newSize / 2,
-        });
+      
+      // Get the full data range from the candle series
+      const data = candleSeriesRef.current.data();
+      if (!data || data.length === 0 || !visibleRange) return;
+      
+      const fullDataRange = data.length - 1; // 0-indexed logical range
+      const currentRangeSize = visibleRange.to - visibleRange.from;
+      
+      // If already showing full range or more, just fit content
+      if (currentRangeSize >= fullDataRange) {
+        timeScale.fitContent();
+        return;
       }
+      
+      // Calculate new size, but cap it at full data range
+      const newSize = Math.min(currentRangeSize * 2, fullDataRange);
+      const center = (visibleRange.from + visibleRange.to) / 2;
+      
+      // Clamp the range to stay within data bounds
+      let newFrom = center - newSize / 2;
+      let newTo = center + newSize / 2;
+      
+      if (newFrom < 0) {
+        newFrom = 0;
+        newTo = newSize;
+      }
+      if (newTo > fullDataRange) {
+        newTo = fullDataRange;
+        newFrom = Math.max(0, fullDataRange - newSize);
+      }
+      
+      timeScale.setVisibleLogicalRange({ from: newFrom, to: newTo });
     }
   }, []);
 
