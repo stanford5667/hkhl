@@ -8,7 +8,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { getCandlesForRange, TIME_RANGES, type TimeRange, type CandleData } from '@/services/candleService';
-import { ZoomIn, ZoomOut, Maximize2 } from 'lucide-react';
+import { ZoomIn, ZoomOut, Maximize2, RefreshCw } from 'lucide-react';
 
 interface CandlestickChartProps {
   symbol: string;
@@ -18,6 +18,8 @@ interface CandlestickChartProps {
   showRangeSelector?: boolean;
   defaultRange?: TimeRange;
   onPriceChange?: (price: number, change: number, changePercent: number) => void;
+  onRefresh?: () => void;
+  isRefreshing?: boolean;
 }
 
 export function CandlestickChart({
@@ -28,6 +30,8 @@ export function CandlestickChart({
   showRangeSelector = true,
   defaultRange = '3M',
   onPriceChange,
+  onRefresh,
+  isRefreshing = false,
 }: CandlestickChartProps) {
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<any>(null);
@@ -309,6 +313,18 @@ export function CandlestickChart({
                 {range}
               </Button>
             ))}
+            {onRefresh && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-6 w-6 md:h-7 md:w-7 p-0 ml-1"
+                onClick={onRefresh}
+                disabled={isRefreshing}
+                title="Refresh data"
+              >
+                <RefreshCw className={cn("h-3 w-3 md:h-3.5 md:w-3.5", isRefreshing && "animate-spin")} />
+              </Button>
+            )}
           </div>
         )}
         
