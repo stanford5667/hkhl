@@ -335,8 +335,8 @@ function EmbeddedQuantLabContent({
         </div>
       </div>
 
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col md:flex-row overflow-hidden min-h-0">
+      {/* Main Content - relative for absolute positioned mobile panel */}
+      <div className="flex-1 flex flex-col md:flex-row overflow-hidden min-h-0 relative">
         
         {/* Desktop Sidebar */}
         <div className="hidden md:flex md:w-72 lg:w-80 shrink-0 md:border-r bg-card flex-col h-full overflow-hidden">
@@ -368,16 +368,16 @@ function EmbeddedQuantLabContent({
           </div>
         </div>
 
-        {/* Mobile Study Panel */}
+        {/* Mobile Study Panel - Uses absolute within parent to keep layout header visible */}
         <AnimatePresence>
           {showStudyPanel && (
             <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="md:hidden fixed inset-0 bg-background z-50 flex flex-col"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 20 }}
+              className="md:hidden absolute inset-0 bg-background z-40 flex flex-col"
             >
-              <div className="flex items-center justify-between px-4 py-3 border-b bg-card">
+              <div className="flex items-center justify-between px-4 py-3 border-b bg-card shrink-0">
                 <span className="text-base font-bold">Select Study</span>
                 <Button
                   variant="ghost"

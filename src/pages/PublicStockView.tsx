@@ -404,7 +404,7 @@ export default function PublicStockView() {
       
       case 'quant-lab':
         return (
-          <div className="p-3 md:p-4 min-h-[600px]">
+          <div className="relative h-full min-h-[600px]">
             <EmbeddedQuantLab ticker={ticker} companyName={details?.name || ticker} />
           </div>
         );
