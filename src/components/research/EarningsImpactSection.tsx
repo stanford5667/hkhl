@@ -94,7 +94,7 @@ export function EarningsImpactSection({ ticker, nextEarnings }: EarningsImpactSe
     };
   }, [earningsHistory]);
 
-  const recentEarnings = earningsHistory.slice(0, 3);
+  // Show all earnings history instead of just recent 3
 
   return (
     <Card className="bg-card border-border">
@@ -114,7 +114,7 @@ export function EarningsImpactSection({ ticker, nextEarnings }: EarningsImpactSe
         </div>
 
         {/* Summary Stats Row */}
-        <div className="grid grid-cols-4 gap-2 py-1.5 border-y border-border">
+        <div className="grid grid-cols-4 gap-2 py-1.5 border-b border-border">
           <div className="text-center">
             <p className="text-[7px] md:text-[8px] text-muted-foreground uppercase">Reports</p>
             <p className="text-xs md:text-sm font-bold">{stats.totalReports}</p>
@@ -143,11 +143,44 @@ export function EarningsImpactSection({ ticker, nextEarnings }: EarningsImpactSe
           </div>
         </div>
 
-        {/* Recent Earnings History */}
+        {/* Beat vs Miss Performance Comparison */}
+        <div className="py-1.5 border-b border-border">
+          <p className="text-[8px] text-muted-foreground uppercase mb-1.5">Beat vs Miss Performance</p>
+          <div className="grid grid-cols-2 gap-2">
+            <div className="bg-primary/10 rounded p-2 text-center">
+              <div className="flex items-center justify-center gap-1 mb-1">
+                <TrendingUp className="h-3 w-3 text-primary" />
+                <span className="text-[9px] font-medium text-primary">On Beats</span>
+              </div>
+              <p className={cn(
+                "text-sm font-bold",
+                parseFloat(stats.avgReturnOnBeat) >= 0 ? "text-primary" : "text-destructive"
+              )}>
+                {parseFloat(stats.avgReturnOnBeat) >= 0 ? '+' : ''}{stats.avgReturnOnBeat}%
+              </p>
+              <p className="text-[8px] text-muted-foreground">Avg 5-Day Return</p>
+            </div>
+            <div className="bg-destructive/10 rounded p-2 text-center">
+              <div className="flex items-center justify-center gap-1 mb-1">
+                <TrendingDown className="h-3 w-3 text-destructive" />
+                <span className="text-[9px] font-medium text-destructive">On Misses</span>
+              </div>
+              <p className={cn(
+                "text-sm font-bold",
+                parseFloat(stats.avgReturnOnMiss) >= 0 ? "text-primary" : "text-destructive"
+              )}>
+                {parseFloat(stats.avgReturnOnMiss) >= 0 ? '+' : ''}{stats.avgReturnOnMiss}%
+              </p>
+              <p className="text-[8px] text-muted-foreground">Avg 5-Day Return</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Full Earnings History */}
         <div className="space-y-1">
-          <p className="text-[8px] text-muted-foreground uppercase">Recent Quarters</p>
-          <div className="space-y-1">
-            {recentEarnings.map((earning, idx) => (
+          <p className="text-[8px] text-muted-foreground uppercase">Earnings History</p>
+          <div className="space-y-1 max-h-40 overflow-y-auto">
+            {earningsHistory.map((earning, idx) => (
               <div 
                 key={idx} 
                 className="flex items-center justify-between py-1 px-1.5 bg-secondary/30 rounded text-[9px] md:text-[10px]"
