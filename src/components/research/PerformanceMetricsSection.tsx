@@ -57,17 +57,16 @@ function MetricBox({ label, value, subLabel, variant = 'default', trend }: Metri
 
   return (
     <div className={cn(
-      "rounded px-2 py-1.5 text-center border",
+      "rounded px-1.5 py-1 text-center border",
       variantStyles[variant]
     )}>
-      <span className="text-[7px] text-muted-foreground block leading-tight uppercase">{label}</span>
+      <span className="text-[6px] text-muted-foreground block leading-tight uppercase">{label}</span>
       <p className={cn(
-        "text-sm font-bold tabular-nums",
+        "text-xs font-bold tabular-nums leading-tight",
         trend ? trendStyles[trend] : 'text-foreground'
       )}>
         {value}
       </p>
-      {subLabel && <span className="text-[7px] text-muted-foreground">{subLabel}</span>}
     </div>
   );
 }
@@ -105,21 +104,21 @@ export function PerformanceMetricsSection({ ticker }: PerformanceMetricsSectionP
 
   return (
     <Card className="bg-card border-border">
-      <CardContent className="p-3">
+      <CardContent className="p-2">
         {/* Header */}
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-2">
-            <BarChart3 className="h-3.5 w-3.5 text-primary" />
-            <span className="text-xs font-medium">Performance Metrics</span>
-            {isFetching && <RefreshCw className="h-2.5 w-2.5 animate-spin text-muted-foreground" />}
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-1.5">
+            <BarChart3 className="h-3 w-3 text-primary" />
+            <span className="text-[10px] font-medium">Performance</span>
+            {isFetching && <RefreshCw className="h-2 w-2 animate-spin text-muted-foreground" />}
           </div>
           <Select value={period} onValueChange={(v) => setPeriod(v as Period)}>
-            <SelectTrigger className="h-5 w-[70px] text-[8px] bg-secondary/50 border-border px-1.5">
+            <SelectTrigger className="h-4 w-[60px] text-[7px] bg-secondary/50 border-border px-1">
               <SelectValue />
             </SelectTrigger>
             <SelectContent className="bg-card border-border z-50">
               {PERIOD_OPTIONS.map(opt => (
-                <SelectItem key={opt.value} value={opt.value} className="text-[10px]">
+                <SelectItem key={opt.value} value={opt.value} className="text-[9px]">
                   {opt.label}
                 </SelectItem>
               ))}
@@ -127,73 +126,46 @@ export function PerformanceMetricsSection({ ticker }: PerformanceMetricsSectionP
           </Select>
         </div>
 
-        {/* Primary Performance Row */}
-        <div className="grid grid-cols-4 gap-1.5 mb-2">
+        {/* Metrics Grid - Compact 3x3 */}
+        <div className="grid grid-cols-3 gap-1">
           <MetricBox
             label="Total Return"
             value={formatPercent(metrics.totalReturn)}
-            subLabel={period}
             variant="primary"
             trend={metrics.totalReturn >= 0 ? 'good' : 'bad'}
           />
           <MetricBox
-            label="CAGR"
+            label="Annual Return"
             value={formatPercent(metrics.cagr)}
-            subLabel="Annualized"
             variant="blue"
             trend={metrics.cagr >= 0 ? 'good' : 'bad'}
           />
           <MetricBox
-            label="Sharpe"
+            label="Risk-Adj Return"
             value={formatRatio(metrics.sharpeRatio)}
-            subLabel="Risk-adj"
             variant="purple"
             trend={metrics.sharpeRatio >= 1 ? 'good' : metrics.sharpeRatio >= 0.5 ? 'neutral' : 'bad'}
           />
           <MetricBox
-            label="Max DD"
+            label="Max Loss"
             value={`-${metrics.maxDrawdown.toFixed(1)}%`}
-            subLabel="Peak-trough"
             variant="amber"
             trend="bad"
           />
-        </div>
-
-        {/* Benchmark & Risk Row */}
-        <div className="grid grid-cols-4 gap-1.5 mb-2">
           <MetricBox
-            label="Alpha"
-            value={formatPercent(metrics.alpha)}
-            trend={metrics.alpha > 0 ? 'good' : metrics.alpha < -2 ? 'bad' : 'neutral'}
-          />
-          <MetricBox
-            label="Beta"
+            label="Mkt Sensitivity"
             value={formatRatio(metrics.beta)}
             trend={metrics.beta > 1.3 ? 'bad' : 'neutral'}
-          />
-          <MetricBox
-            label="Sortino"
-            value={formatRatio(metrics.sortinoRatio)}
-            trend={metrics.sortinoRatio >= 1.5 ? 'good' : metrics.sortinoRatio >= 0.8 ? 'neutral' : 'bad'}
           />
           <MetricBox
             label="Volatility"
             value={`${metrics.volatility.toFixed(1)}%`}
             trend={metrics.volatility < 20 ? 'good' : metrics.volatility > 35 ? 'bad' : 'neutral'}
           />
-        </div>
-
-        {/* Tail Risk Row */}
-        <div className="grid grid-cols-4 gap-1.5">
           <MetricBox
-            label="VaR 95%"
-            value={`-${metrics.var95.toFixed(2)}%`}
-            trend="bad"
-          />
-          <MetricBox
-            label="CVaR 95%"
-            value={`-${metrics.cvar95.toFixed(2)}%`}
-            trend="bad"
+            label="Downside Risk"
+            value={formatRatio(metrics.sortinoRatio)}
+            trend={metrics.sortinoRatio >= 1.5 ? 'good' : metrics.sortinoRatio >= 0.8 ? 'neutral' : 'bad'}
           />
           <MetricBox
             label="Best Month"
