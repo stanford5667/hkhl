@@ -225,6 +225,13 @@ export function ALAOverviewTab({
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-2">
         {/* Chart Column - 2/3 width */}
         <Card className="bg-card border-border lg:col-span-2 overflow-hidden">
+          {/* About Summary - Above Chart */}
+          {description && (
+            <div className="px-3 pt-3 pb-2 border-b border-border">
+              <p className="text-[9px] md:text-[10px] text-muted-foreground leading-relaxed line-clamp-2">{description}</p>
+            </div>
+          )}
+
           {/* Price Header */}
           <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 px-3 pt-3 pb-2">
             <div className="flex items-center gap-3 min-w-0">
@@ -237,13 +244,26 @@ export function ALAOverviewTab({
                 </span>
                 <span className={cn(
                   "flex items-center gap-0.5 text-xs font-medium",
-                  isPositive ? "text-primary" : "text-destructive"
+                  isPositive ? "text-emerald-500" : "text-destructive"
                 )}>
                   {isPositive ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
                   <span className="tabular-nums">
                     {isPositive ? '+' : ''}{(quote?.change || 0).toFixed(2)} ({isPositive ? '+' : ''}{(quote?.changePercent || 0).toFixed(2)}%)
                   </span>
                 </span>
+                {/* Exchange + Sector badges next to price */}
+                <div className="flex items-center gap-1.5 ml-2">
+                  {exchange && (
+                    <Badge variant="outline" className="text-[8px] px-1.5 py-0 h-4 bg-secondary/50">
+                      {exchange}
+                    </Badge>
+                  )}
+                  {sector && (
+                    <Badge variant="outline" className="text-[8px] px-1.5 py-0 h-4 bg-secondary/50">
+                      {sector}
+                    </Badge>
+                  )}
+                </div>
               </div>
             </div>
             
@@ -364,42 +384,32 @@ export function ALAOverviewTab({
           )}
         </Card>
 
-        {/* About Column - 1/3 width */}
+        {/* Stats Column - 1/3 width */}
         <div className="space-y-2">
-          {/* ABOUT SECTION */}
-          {description && (
-            <Card className="bg-card border-border">
-              <CardContent className="p-2">
-                <p className="text-[9px] md:text-[10px] text-muted-foreground leading-relaxed line-clamp-4 mb-1.5">{description}</p>
-                
-                <div className="grid grid-cols-2 gap-2 pt-1.5 border-t border-border">
-                  <div className="min-w-0">
-                    <p className="text-[7px] md:text-[8px] text-muted-foreground uppercase">Sector</p>
-                    <p className="text-[9px] md:text-[10px] font-medium truncate">{sector || '—'}</p>
-                  </div>
-                  <div>
-                    <p className="text-[7px] md:text-[8px] text-muted-foreground uppercase">Exchange</p>
-                    <p className="text-[9px] md:text-[10px] font-medium">{exchange || '—'}</p>
-                  </div>
+          {/* Key Financials Card */}
+          <Card className="bg-card border-border">
+            <CardContent className="p-2">
+              <p className="text-[8px] text-muted-foreground uppercase mb-1.5 font-medium">Key Financials</p>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <p className="text-[7px] md:text-[8px] text-muted-foreground uppercase">Mkt Cap</p>
+                  <p className="text-[9px] md:text-[10px] font-bold text-primary">{formatMarketCap(marketCap)}</p>
                 </div>
-
-                <div className="grid grid-cols-3 gap-2 pt-1.5 border-t border-border mt-1.5">
-                  <div>
-                    <p className="text-[7px] md:text-[8px] text-muted-foreground uppercase">Mkt Cap</p>
-                    <p className="text-[9px] md:text-[10px] font-bold text-primary">{formatMarketCap(marketCap)}</p>
-                  </div>
-                  <div>
-                    <p className="text-[7px] md:text-[8px] text-muted-foreground uppercase">EPS</p>
-                    <p className="text-[9px] md:text-[10px] font-bold">{eps ? `$${eps.toFixed(2)}` : '—'}</p>
-                  </div>
-                  <div>
-                    <p className="text-[7px] md:text-[8px] text-muted-foreground uppercase">Earnings</p>
-                    <p className="text-[9px] md:text-[10px] font-bold">{nextEarnings || '—'}</p>
-                  </div>
+                <div>
+                  <p className="text-[7px] md:text-[8px] text-muted-foreground uppercase">EPS</p>
+                  <p className="text-[9px] md:text-[10px] font-bold">{eps ? `$${eps.toFixed(2)}` : '—'}</p>
                 </div>
-              </CardContent>
-            </Card>
-          )}
+                <div>
+                  <p className="text-[7px] md:text-[8px] text-muted-foreground uppercase">P/E Ratio</p>
+                  <p className="text-[9px] md:text-[10px] font-bold">{peRatio ? peRatio.toFixed(2) : '—'}</p>
+                </div>
+                <div>
+                  <p className="text-[7px] md:text-[8px] text-muted-foreground uppercase">Earnings</p>
+                  <p className="text-[9px] md:text-[10px] font-bold">{nextEarnings || '—'}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
 
