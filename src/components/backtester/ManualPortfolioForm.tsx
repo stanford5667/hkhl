@@ -217,137 +217,139 @@ export function ManualPortfolioForm({ onComplete, onBack }: ManualPortfolioFormP
                 ))}
               </div>
             )}
-          </CardContent>
-        </Card>
 
-        {/* Allocations */}
-        <Card>
-          <CardHeader className="pb-3 space-y-3">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-              <div className="min-w-0">
-                <CardTitle className="text-sm">Asset Weights</CardTitle>
-                <CardDescription className="text-xs sm:text-sm">
-                  Assign target weights (must sum to 100%)
-                </CardDescription>
-              </div>
-              <div className="flex items-center gap-2 sm:gap-3 flex-wrap sm:flex-nowrap">
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={equalizeWeights} 
-                  disabled={allocations.length === 0}
-                  className="text-xs sm:text-sm"
-                >
-                  <Scale className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-                  Equal Weight
-                </Button>
-                <Badge 
-                  variant={isValidAllocation ? 'default' : 'destructive'}
-                  className="whitespace-nowrap text-xs sm:text-sm"
-                >
-                  {totalWeight.toFixed(1)}% / 100%
-                </Badge>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent>
-            {allocations.length === 0 ? (
-              <div className="text-center py-12 text-muted-foreground">
-                <Scale className="h-10 w-10 mx-auto mb-3 opacity-50" />
-                <p className="font-medium">No assets added yet</p>
-                <p className="text-sm">Add tickers above to build your portfolio</p>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {allocations.map((allocation) => (
-                  <motion.div 
-                    key={allocation.symbol}
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: 'auto' }}
-                    exit={{ opacity: 0, height: 0 }}
-                    className="p-4 rounded-lg border border-border bg-muted/30"
+            {/* Divider before Asset Weights */}
+            <div className="border-t border-border pt-4">
+              {/* Asset Weights Header */}
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3">
+                <div className="min-w-0">
+                  <Label className="text-xs flex items-center gap-1.5">
+                    <Scale className="h-3.5 w-3.5 text-primary" />
+                    Asset Weights
+                  </Label>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Assign target weights (must sum to 100%)
+                  </p>
+                </div>
+                <div className="flex items-center gap-2 sm:gap-3 flex-wrap sm:flex-nowrap">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={equalizeWeights} 
+                    disabled={allocations.length === 0}
+                    className="text-xs sm:text-sm"
                   >
-                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3">
-                      <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
-                        <Badge variant="outline" className="font-mono text-sm sm:text-base">
-                          {allocation.symbol}
-                        </Badge>
-                        <Badge variant="secondary" className="text-xs">
-                          {allocation.assetClass}
-                        </Badge>
-                      </div>
-                      <div className="flex items-center gap-2 sm:gap-3">
-                        <Input
-                          type="number"
-                          value={allocation.weight}
-                          onChange={(e) => updateWeight(allocation.symbol, parseFloat(e.target.value) || 0)}
-                          className="w-16 sm:w-20 text-right text-sm"
-                          min={0}
-                          max={100}
-                          step={0.5}
-                        />
-                        <span className="text-base sm:text-lg font-bold">%</span>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 text-destructive hover:text-destructive focus-visible:ring-2 focus-visible:ring-destructive"
-                          onClick={() => removeAllocation(allocation.symbol)}
-                          aria-label={`Remove ${allocation.symbol}`}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
-                    
-                    <Slider
-                      value={[allocation.weight]}
-                      onValueChange={([value]) => updateWeight(allocation.symbol, value)}
-                      max={100}
-                      step={0.5}
-                      className="w-full"
-                    />
-                  </motion.div>
-                ))}
+                    <Scale className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                    Equal Weight
+                  </Button>
+                  <Badge 
+                    variant={isValidAllocation ? 'default' : 'destructive'}
+                    className="whitespace-nowrap text-xs sm:text-sm"
+                  >
+                    {totalWeight.toFixed(1)}% / 100%
+                  </Badge>
+                </div>
               </div>
-            )}
 
-            {/* Status Messages */}
-            {!isValidAllocation && allocations.length > 0 && (
-              <motion.div 
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="mt-4 p-3 rounded-lg bg-destructive/10 border border-destructive/30 flex items-center gap-3"
-              >
-                <AlertTriangle className="h-5 w-5 text-destructive" />
-                <div>
-                  <p className="text-sm font-medium text-destructive">
-                    Allocations must sum to 100%
-                  </p>
-                  <p className="text-xs text-destructive/80">
-                    Current total: {totalWeight.toFixed(1)}%. 
-                    {totalWeight < 100 ? ` Add ${(100 - totalWeight).toFixed(1)}%` : ` Remove ${(totalWeight - 100).toFixed(1)}%`}
-                  </p>
+              {/* Allocations List */}
+              {allocations.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground bg-muted/20 rounded-lg border border-dashed border-border">
+                  <Scale className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                  <p className="font-medium text-sm">No assets added yet</p>
+                  <p className="text-xs">Add tickers above to build your portfolio</p>
                 </div>
-              </motion.div>
-            )}
-            
-            {isValidAllocation && allocations.length > 0 && (
-              <motion.div 
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="mt-4 p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/30 flex items-center gap-3"
-              >
-                <CheckCircle2 className="h-5 w-5 text-emerald-500" />
-                <div>
-                  <p className="text-sm font-medium text-emerald-500">
-                    Portfolio ready for analysis
-                  </p>
-                  <p className="text-xs text-emerald-500/80">
-                    {formatCurrency(capital)} across {allocations.length} assets over {horizon} years
-                  </p>
+              ) : (
+                <div className="space-y-2">
+                  {allocations.map((allocation) => (
+                    <motion.div 
+                      key={allocation.symbol}
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: 'auto' }}
+                      exit={{ opacity: 0, height: 0 }}
+                      className="p-3 rounded-lg border border-border bg-muted/30"
+                    >
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-2">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <Badge variant="outline" className="font-mono text-sm">
+                            {allocation.symbol}
+                          </Badge>
+                          <Badge variant="secondary" className="text-xs">
+                            {allocation.assetClass}
+                          </Badge>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Input
+                            type="number"
+                            value={allocation.weight}
+                            onChange={(e) => updateWeight(allocation.symbol, parseFloat(e.target.value) || 0)}
+                            className="w-16 text-right text-sm"
+                            min={0}
+                            max={100}
+                            step={0.5}
+                          />
+                          <span className="text-sm font-bold">%</span>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 text-destructive hover:text-destructive"
+                            onClick={() => removeAllocation(allocation.symbol)}
+                            aria-label={`Remove ${allocation.symbol}`}
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                      </div>
+                      
+                      <Slider
+                        value={[allocation.weight]}
+                        onValueChange={([value]) => updateWeight(allocation.symbol, value)}
+                        max={100}
+                        step={0.5}
+                        className="w-full"
+                      />
+                    </motion.div>
+                  ))}
                 </div>
-              </motion.div>
-            )}
+              )}
+
+              {/* Status Messages */}
+              {!isValidAllocation && allocations.length > 0 && (
+                <motion.div 
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="mt-3 p-2.5 rounded-lg bg-destructive/10 border border-destructive/30 flex items-center gap-2"
+                >
+                  <AlertTriangle className="h-4 w-4 text-destructive flex-shrink-0" />
+                  <div>
+                    <p className="text-xs font-medium text-destructive">
+                      Allocations must sum to 100%
+                    </p>
+                    <p className="text-[10px] text-destructive/80">
+                      Current total: {totalWeight.toFixed(1)}%. 
+                      {totalWeight < 100 ? ` Add ${(100 - totalWeight).toFixed(1)}%` : ` Remove ${(totalWeight - 100).toFixed(1)}%`}
+                    </p>
+                  </div>
+                </motion.div>
+              )}
+              
+              {isValidAllocation && allocations.length > 0 && (
+                <motion.div 
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="mt-3 p-2.5 rounded-lg bg-emerald-500/10 border border-emerald-500/30 flex items-center gap-2"
+                >
+                  <CheckCircle2 className="h-4 w-4 text-emerald-500 flex-shrink-0" />
+                  <div>
+                    <p className="text-xs font-medium text-emerald-500">
+                      Portfolio ready for analysis
+                    </p>
+                    <p className="text-[10px] text-emerald-500/80">
+                      {formatCurrency(capital)} across {allocations.length} assets over {horizon} years
+                    </p>
+                  </div>
+                </motion.div>
+              )}
+            </div>
           </CardContent>
         </Card>
 
