@@ -2,10 +2,11 @@
  * Multi-layer Quote Cache Service
  * Layer 1: In-memory cache (instant, survives within session)
  * Layer 2: LocalStorage cache (survives page refresh)
- * Layer 3: Mock data fallback when API unavailable
+ * Layer 3: Polygon API fallback when Finnhub unavailable
  */
 
 import { getQuote, getBatchQuotes, getCompanyProfile, type StockQuote } from './finnhubService';
+import { supabase } from '@/integrations/supabase/client';
 
 
 interface CachedQuote {
@@ -106,7 +107,41 @@ function isProfileCacheValid(cached: CachedProfile): boolean {
 }
 
 /**
- * Get a single quote with multi-layer caching + mock fallback
+ * Fetch quote from Polygon API as fallback
+ */
+async function fetchPolygonQuote(symbol: string): Promise<StockQuote | null> {
+  try {
+    console.log(`[Polygon Fallback] Fetching: ${symbol}`);
+    const { data, error } = await supabase.functions.invoke('polygon-stock-quotes', {
+      body: { symbols: [symbol] }
+    });
+    
+    if (error || !data?.success || !data.quotes?.length) {
+      console.warn('[Polygon Fallback] Failed:', error || 'No data');
+      return null;
+    }
+    
+    const q = data.quotes[0];
+    return {
+      symbol: q.symbol,
+      price: q.price,
+      change: q.change,
+      changePercent: q.changePercent,
+      high: q.high,
+      low: q.low,
+      open: q.open,
+      previousClose: q.previousClose,
+      timestamp: new Date(q.timestamp).getTime(),
+      companyName: q.name || symbol,
+    };
+  } catch (e) {
+    console.error('[Polygon Fallback] Error:', e);
+    return null;
+  }
+}
+
+/**
+ * Get a single quote with multi-layer caching + Polygon fallback
  */
 export async function getCachedQuote(symbol: string): Promise<StockQuote | null> {
   const upperSymbol = symbol.toUpperCase();
@@ -128,9 +163,15 @@ export async function getCachedQuote(symbol: string): Promise<StockQuote | null>
     return localCached.quote;
   }
 
-  // Try Finnhub first (service will transparently use backend proxy if needed)
+  // Try Finnhub first
   console.log(`[CACHE MISS] Fetching from Finnhub: ${upperSymbol}`);
-  const quote = await getQuote(upperSymbol);
+  let quote = await getQuote(upperSymbol);
+
+  // If Finnhub fails, try Polygon as fallback
+  if (!quote) {
+    console.log(`[Finnhub Failed] Trying Polygon fallback for: ${upperSymbol}`);
+    quote = await fetchPolygonQuote(upperSymbol);
+  }
 
   if (quote) {
     const cached = { quote, fetchedAt: Date.now(), isMock: false };
@@ -140,7 +181,7 @@ export async function getCachedQuote(symbol: string): Promise<StockQuote | null>
     return quote;
   }
 
-  // No mock fallback - return null if API fails
+  // No data available from any source
   console.log(`[NO DATA] No quote available for: ${upperSymbol}`);
   return null;
 }
