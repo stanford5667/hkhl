@@ -1,23 +1,21 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { 
-  Search, TrendingUp, ArrowRight, Sparkles, Clock, X
-} from 'lucide-react';
+import { Search, Clock, X, TrendingUp, TrendingDown } from 'lucide-react';
+import { TickerSearchAutocomplete } from '@/components/shared/TickerSearchAutocomplete';
+import { useBatchQuotes } from '@/hooks/useMarketDataQuery';
 
 const POPULAR_TICKERS = [
-  { symbol: 'AAPL', name: 'Apple Inc.' },
+  { symbol: 'AAPL', name: 'Apple' },
   { symbol: 'MSFT', name: 'Microsoft' },
   { symbol: 'GOOGL', name: 'Alphabet' },
   { symbol: 'AMZN', name: 'Amazon' },
   { symbol: 'NVDA', name: 'NVIDIA' },
   { symbol: 'TSLA', name: 'Tesla' },
-  { symbol: 'META', name: 'Meta Platforms' },
-  { symbol: 'JPM', name: 'JPMorgan Chase' },
-  { symbol: 'SPY', name: 'S&P 500 ETF' },
-  { symbol: 'QQQ', name: 'Nasdaq 100 ETF' },
+  { symbol: 'META', name: 'Meta' },
+  { symbol: 'SPY', name: 'S&P 500' },
+  { symbol: 'QQQ', name: 'Nasdaq 100' },
+  { symbol: 'JPM', name: 'JPMorgan' },
 ];
 
 export default function ResearchPage() {
@@ -28,16 +26,15 @@ export default function ResearchPage() {
     return saved ? JSON.parse(saved) : [];
   });
 
+  const { quotes } = useBatchQuotes(POPULAR_TICKERS.map(t => t.symbol), { enabled: true });
+
   const handleSearch = (ticker: string) => {
     const normalized = ticker.toUpperCase().trim();
     if (!normalized) return;
     
-    // Save to recent searches
     const updated = [normalized, ...recentSearches.filter(t => t !== normalized)].slice(0, 10);
     setRecentSearches(updated);
     localStorage.setItem('recentAssetSearches', JSON.stringify(updated));
-    
-    // Navigate to stock detail page
     navigate(`/stock/${normalized}`);
   };
 
@@ -46,120 +43,99 @@ export default function ResearchPage() {
     localStorage.removeItem('recentAssetSearches');
   };
 
+  const formatPrice = (price: number | undefined) => {
+    if (!price) return '—';
+    return price.toLocaleString('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2 });
+  };
+
+  const formatChange = (change: number | undefined) => {
+    if (change === undefined) return null;
+    const isPositive = change >= 0;
+    return (
+      <span className={`flex items-center gap-0.5 text-xs font-medium ${isPositive ? 'text-emerald-500' : 'text-red-500'}`}>
+        {isPositive ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
+        {isPositive ? '+' : ''}{change.toFixed(2)}%
+      </span>
+    );
+  };
+
   return (
-    <div className="min-h-[80vh] flex flex-col items-center justify-center p-6">
-      <div className="w-full max-w-2xl space-y-8">
-        {/* Header */}
-        <div className="text-center space-y-3">
-          <div className="flex items-center justify-center gap-2 mb-4">
-            <div className="p-3 rounded-2xl bg-primary/10">
-              <Search className="h-8 w-8 text-primary" />
-            </div>
-          </div>
-          <h1 className="text-4xl font-bold text-foreground">Research</h1>
-          <p className="text-muted-foreground text-lg">
-            Search for any stock or ETF to analyze historical patterns
-          </p>
+    <div className="p-4 sm:p-6 space-y-4 max-w-3xl mx-auto">
+      {/* Search Section */}
+      <div className="space-y-2">
+        <div className="flex items-center gap-2 text-muted-foreground">
+          <Search className="h-4 w-4" />
+          <span className="text-sm font-medium">Search for any asset</span>
         </div>
+        <TickerSearchAutocomplete
+          value={searchQuery}
+          onChange={setSearchQuery}
+          onSelect={(result) => handleSearch(result.symbol)}
+          placeholder="Enter ticker symbol..."
+          className="w-full"
+          autoFocus
+        />
+      </div>
 
-        {/* Search Input */}
-        <div className="relative">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-          <Input
-            value={searchQuery}
-            onChange={e => setSearchQuery(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && handleSearch(searchQuery)}
-            placeholder="Enter ticker symbol (e.g., AAPL, MSFT, SPY)"
-            className="pl-12 pr-28 py-6 text-lg bg-card border-border"
-          />
-          <Button
-            onClick={() => handleSearch(searchQuery)}
-            disabled={!searchQuery.trim()}
-            className="absolute right-2 top-1/2 -translate-y-1/2"
-          >
-            <ArrowRight className="h-4 w-4 mr-2" />
-            Go
-          </Button>
-        </div>
-
-        {/* Recent Searches */}
-        {recentSearches.length > 0 && (
-          <Card className="p-4 bg-card border-border">
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Clock className="h-4 w-4" />
-                Recent Searches
-              </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={clearRecentSearches}
-                className="text-xs text-muted-foreground hover:text-foreground"
-              >
-                <X className="h-3 w-3 mr-1" />
-                Clear
-              </Button>
+      {/* Recent Searches */}
+      {recentSearches.length > 0 && (
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <Clock className="h-3 w-3" />
+              Recent
             </div>
-            <div className="flex flex-wrap gap-2">
-              {recentSearches.slice(0, 8).map(ticker => (
-                <Button
-                  key={ticker}
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleSearch(ticker)}
-                  className="border-border hover:bg-accent"
-                >
-                  {ticker}
-                </Button>
-              ))}
-            </div>
-          </Card>
-        )}
-
-        {/* Popular Tickers */}
-        <Card className="p-6 bg-card border-border">
-          <div className="flex items-center gap-2 mb-4">
-            <TrendingUp className="h-5 w-5 text-primary" />
-            <h3 className="text-lg font-semibold text-foreground">Popular Tickers</h3>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={clearRecentSearches}
+              className="h-6 px-2 text-xs text-muted-foreground hover:text-foreground"
+            >
+              <X className="h-3 w-3" />
+            </Button>
           </div>
-          <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-            {POPULAR_TICKERS.map(({ symbol, name }) => (
+          <div className="flex flex-wrap gap-1.5">
+            {recentSearches.slice(0, 6).map(ticker => (
               <Button
-                key={symbol}
+                key={ticker}
                 variant="outline"
-                onClick={() => handleSearch(symbol)}
-                className="flex flex-col items-start h-auto py-3 px-4 border-border hover:bg-accent hover:border-primary/50 transition-all"
+                size="sm"
+                onClick={() => handleSearch(ticker)}
+                className="h-7 px-2 text-xs border-border"
               >
-                <span className="font-bold text-foreground">{symbol}</span>
-                <span className="text-xs text-muted-foreground truncate w-full text-left">{name}</span>
+                {ticker}
               </Button>
             ))}
           </div>
-        </Card>
+        </div>
+      )}
 
-        {/* Feature Highlights */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div className="flex items-center gap-3 p-4 rounded-xl bg-card/50 border border-border">
-            <Sparkles className="h-5 w-5 text-amber-500" />
-            <div>
-              <p className="text-sm font-medium text-foreground">Price Patterns</p>
-              <p className="text-xs text-muted-foreground">Historical streaks & signals</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-3 p-4 rounded-xl bg-card/50 border border-border">
-            <TrendingUp className="h-5 w-5 text-emerald-500" />
-            <div>
-              <p className="text-sm font-medium text-foreground">Technical Analysis</p>
-              <p className="text-xs text-muted-foreground">RSI, Bollinger & more</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-3 p-4 rounded-xl bg-card/50 border border-border">
-            <Search className="h-5 w-5 text-blue-500" />
-            <div>
-              <p className="text-sm font-medium text-foreground">Deep Research</p>
-              <p className="text-xs text-muted-foreground">AI-powered insights</p>
-            </div>
-          </div>
+      {/* Popular Tickers with Prices */}
+      <div className="space-y-2">
+        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+          <TrendingUp className="h-3 w-3" />
+          Popular
+        </div>
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+          {POPULAR_TICKERS.map(({ symbol, name }) => {
+            const quote = quotes.get(symbol);
+            return (
+              <button
+                key={symbol}
+                onClick={() => handleSearch(symbol)}
+                className="flex flex-col items-start p-3 rounded-lg bg-card border border-border hover:border-primary/50 hover:bg-accent/50 transition-all text-left"
+              >
+                <div className="flex items-center justify-between w-full">
+                  <span className="font-semibold text-sm text-foreground">{symbol}</span>
+                  {formatChange(quote?.changePercent)}
+                </div>
+                <span className="text-xs text-muted-foreground truncate w-full">{name}</span>
+                <span className="text-sm font-medium text-foreground mt-1">
+                  {formatPrice(quote?.price)}
+                </span>
+              </button>
+            );
+          })}
         </div>
       </div>
     </div>
