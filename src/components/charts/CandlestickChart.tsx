@@ -91,6 +91,10 @@ export function CandlestickChart({
           borderColor: 'rgba(255, 255, 255, 0.1)',
           timeVisible: true,
           secondsVisible: false,
+          rightOffset: 0,
+          fixRightEdge: true,
+          // Prevent “extra” whitespace on resize/fit operations
+          lockVisibleTimeRangeOnResize: true,
         },
         handleScroll: {
           mouseWheel: true,
@@ -195,8 +199,10 @@ export function CandlestickChart({
             }));
             volumeSeriesRef.current.setData(volumeData);
           }
-          
-          chartRef.current?.timeScale().fitContent();
+
+          // Snap view to the most recent candle (furthest right)
+          // and avoid any right-side whitespace.
+          chartRef.current?.timeScale().scrollToRealTime();
         }
       } catch (err) {
         console.error('[CandlestickChart] Error:', err);
@@ -242,6 +248,7 @@ export function CandlestickChart({
       // If already showing 90%+ of full range, just fit content perfectly
       if (currentRangeSize >= dataLength * 0.9) {
         timeScale.fitContent();
+        timeScale.scrollToRealTime();
         return;
       }
       
@@ -249,16 +256,21 @@ export function CandlestickChart({
       const newSize = Math.min(currentRangeSize * 2, dataLength);
       
       // Always anchor to end of data (right side) to prevent white space on right
-      const newTo = dataLength - 1;
+      // Note: lightweight-charts logical range uses a continuous axis; using `dataLength`
+      // keeps the last bar flush to the right edge without leaving a gap.
+      const newTo = dataLength;
       const newFrom = Math.max(0, newTo - newSize);
       
       timeScale.setVisibleLogicalRange({ from: newFrom, to: newTo });
+      timeScale.scrollToRealTime();
     }
   }, []);
 
   const handleFitContent = useCallback(() => {
     if (chartRef.current) {
-      chartRef.current.timeScale().fitContent();
+      const timeScale = chartRef.current.timeScale();
+      timeScale.fitContent();
+      timeScale.scrollToRealTime();
     }
   }, []);
 
