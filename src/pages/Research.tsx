@@ -10,8 +10,8 @@ import { TickerSearchAutocomplete } from '@/components/shared/TickerSearchAutoco
 import { useBatchQuotes } from '@/hooks/useMarketDataQuery';
 import { TickerCarousel } from '@/components/research/TickerCarousel';
 import { CategoryCard } from '@/components/research/CategoryCard';
+import { MarketOverviewDashboard } from '@/components/research/MarketOverviewDashboard';
 import { cn } from '@/lib/utils';
-
 // Market caps in billions (approximate for display)
 const POPULAR_TICKERS = [
   { symbol: 'AAPL', name: 'Apple Inc.', marketCap: 3.4e12 },
@@ -212,7 +212,12 @@ export default function ResearchPage() {
       </div>
 
       {/* Main Content */}
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 pb-12 space-y-10">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 pb-12 space-y-8">
+        {/* Market Overview Dashboard */}
+        <section>
+          <MarketOverviewDashboard />
+        </section>
+
         {/* Trending Tickers Carousel */}
         <section className="space-y-4">
           <div className="flex items-center justify-between">
