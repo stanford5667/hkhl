@@ -7,15 +7,14 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ArrowLeft, LineChart, TrendingUp, TrendingDown, RefreshCw, Plus, Building2, Globe, BarChart3, LayoutDashboard, FlaskConical, FileText, MessageCircle, Newspaper, Beaker } from 'lucide-react';
+import { LineChart, TrendingUp, TrendingDown, Plus, Building2, Globe, BarChart3, Newspaper } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { CandlestickChart } from '@/components/charts/CandlestickChart';
 import { EmbeddedQuantLab } from '@/components/equity/EmbeddedQuantLab';
 import { AssetBacktestPanel } from '@/components/equity/AssetBacktestPanel';
 import { SECFilingsPanel } from '@/components/research/SECFilingsPanel';
 import { AnalystSocialPanel } from '@/components/research/AnalystSocialPanel';
 import { IntegratedResearchView, ALAOverviewTab } from '@/components/research';
+import { StockDetailLayout, DEFAULT_STOCK_TABS } from '@/components/research/StockDetailLayout';
 import { useCompanyNews } from '@/hooks/useCompanyResearch';
 
 interface TickerDetails {
@@ -142,6 +141,7 @@ export default function PublicStockView() {
   const [isLoadingQuote, setIsLoadingQuote] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [notFound, setNotFound] = useState(false);
+  const [activeTab, setActiveTab] = useState('overview');
 
   // Fetch ticker details from Polygon
   const fetchDetails = useCallback(async () => {
@@ -277,23 +277,6 @@ export default function PublicStockView() {
     navigate(`/portfolio/${newCompany.id}`);
   };
 
-  // Format helpers
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 2,
-    }).format(value);
-  };
-
-  const formatMarketCap = (value: number | undefined) => {
-    if (!value) return '—';
-    if (value >= 1e12) return `$${(value / 1e12).toFixed(2)}T`;
-    if (value >= 1e9) return `$${(value / 1e9).toFixed(2)}B`;
-    if (value >= 1e6) return `$${(value / 1e6).toFixed(2)}M`;
-    return `$${value.toLocaleString()}`;
-  };
-
   if (!ticker) {
     return (
       <div className="p-6 text-center">
@@ -309,7 +292,7 @@ export default function PublicStockView() {
     return (
       <div className="p-6 space-y-4">
         <Button variant="ghost" size="sm" onClick={() => navigate(-1)} className="gap-2">
-          <ArrowLeft className="h-4 w-4" />
+          <LineChart className="h-4 w-4" />
           Back
         </Button>
         <Card className="max-w-md mx-auto">
@@ -337,209 +320,145 @@ export default function PublicStockView() {
     );
   }
 
-  const isPositive = (quote?.change || 0) >= 0;
+  // Render tab content based on active tab
+  const renderTabContent = () => {
+    switch (activeTab) {
+      case 'overview':
+        return (
+          <div className="p-3 md:p-4 space-y-4">
+            <ALAOverviewTab
+              ticker={ticker}
+              companyName={details?.name}
+              exchange={details?.primaryExchange}
+              sector={details?.sector}
+              quote={quote}
+              isLoadingQuote={isLoadingQuote}
+              onRefresh={handleRefresh}
+              isRefreshing={isRefreshing}
+            />
 
-  return (
-    <div className="p-4 sm:p-6 space-y-6 animate-fade-in">
-      {/* Header */}
-      <div className="flex items-start justify-between gap-4 flex-wrap">
-        <div className="flex items-start gap-3 sm:gap-4">
-          <Button variant="ghost" size="icon" onClick={() => navigate(-1)} className="shrink-0">
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-          <div className="min-w-0">
-            {isLoadingDetails ? (
-              <div className="space-y-2">
-                <Skeleton className="h-8 w-48" />
-                <Skeleton className="h-4 w-32" />
-              </div>
-            ) : (
-              <>
-                <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
-                  <LineChart className="h-5 w-5 sm:h-6 sm:w-6 text-emerald-400 shrink-0" />
-                  <h1 className="text-xl sm:text-3xl font-bold truncate">{details?.name || ticker}</h1>
-                  <Badge variant="secondary" className="text-sm sm:text-lg font-mono px-2 py-0.5">
-                    {ticker}
-                  </Badge>
-                  {details?.primaryExchange && (
-                    <Badge variant="outline" className="hidden sm:inline-flex">
-                      {details.primaryExchange}
-                    </Badge>
-                  )}
-                </div>
-                <div className="flex items-center gap-3 mt-1 text-sm text-muted-foreground">
-                  {details?.sector && (
-                    <span className="flex items-center gap-1">
-                      <Building2 className="h-3.5 w-3.5" />
-                      {details.sector}
-                    </span>
-                  )}
-                  {details?.industry && (
-                    <span className="hidden sm:flex items-center gap-1">
-                      <BarChart3 className="h-3.5 w-3.5" />
-                      {details.industry}
-                    </span>
-                  )}
-                </div>
-              </>
+            {/* Company Info */}
+            {details?.description && (
+              <Card className="bg-card border-border">
+                <CardHeader className="py-3">
+                  <CardTitle className="flex items-center gap-2 text-base">
+                    <Building2 className="h-4 w-4" />
+                    About {details.name}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3 pt-0">
+                  <p className="text-sm text-muted-foreground leading-relaxed line-clamp-4">{details.description}</p>
+                  
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-3 border-t border-border">
+                    <div>
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Sector</p>
+                      <p className="text-sm font-medium">{details.sector || '—'}</p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Industry</p>
+                      <p className="text-sm font-medium">{details.industry || '—'}</p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Exchange</p>
+                      <p className="text-sm font-medium">{details.primaryExchange || '—'}</p>
+                    </div>
+                    {details.homepageUrl && (
+                      <div>
+                        <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Website</p>
+                        <a 
+                          href={details.homepageUrl} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="text-sm text-primary hover:underline font-medium flex items-center gap-1"
+                        >
+                          <Globe className="h-3 w-3" />
+                          Visit
+                        </a>
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Sign In CTA */}
+            {!user && (
+              <Card className="bg-gradient-to-r from-primary/10 to-secondary/30 border-primary/20">
+                <CardContent className="py-4">
+                  <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+                    <div>
+                      <h3 className="font-semibold text-sm">Track this stock in your portfolio</h3>
+                      <p className="text-xs text-muted-foreground">
+                        Sign in to add stocks, track performance, and access educational insights
+                      </p>
+                    </div>
+                    <Button size="sm" onClick={() => navigate('/auth', { state: { returnTo: `/stock/${ticker}` } })}>
+                      Sign In
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
             )}
           </div>
-        </div>
-        
-        <div className="flex gap-2">
-          <Button onClick={handleAddToPortfolio} className="gap-2">
-            <Plus className="h-4 w-4" />
-            <span className="hidden sm:inline">Add to Portfolio</span>
-            <span className="sm:hidden">Add</span>
-          </Button>
-        </div>
-      </div>
+        );
+      
+      case 'quant-lab':
+        return (
+          <div className="p-3 md:p-4 min-h-[600px]">
+            <EmbeddedQuantLab ticker={ticker} companyName={details?.name || ticker} />
+          </div>
+        );
+      
+      case 'backtest':
+        return (
+          <div className="p-3 md:p-4">
+            <AssetBacktestPanel ticker={ticker} companyName={details?.name || ticker} />
+          </div>
+        );
+      
+      case 'news':
+        return (
+          <div className="p-3 md:p-4">
+            <StockNewsSection ticker={ticker} companyName={details?.name || ticker} />
+          </div>
+        );
+      
+      case 'sec':
+        return (
+          <div className="p-3 md:p-4">
+            <SECFilingsPanel ticker={ticker} />
+          </div>
+        );
+      
+      case 'analyst-social':
+        return (
+          <div className="p-3 md:p-4">
+            <AnalystSocialPanel ticker={ticker} />
+          </div>
+        );
+      
+      case 'research-v2':
+        return (
+          <div className="p-3 md:p-4 min-h-[600px]">
+            <IntegratedResearchView ticker={ticker} currentPrice={quote?.price || 0} />
+          </div>
+        );
+      
+      default:
+        return null;
+    }
+  };
 
-      {/* Full Tabbed Interface */}
-      <Tabs defaultValue="overview" className="space-y-6">
-        <div className="overflow-x-auto -mx-6 px-6 scrollbar-hide">
-          <TabsList className="bg-secondary h-auto min-h-12 w-max min-w-full justify-start gap-1 p-1">
-            <TabsTrigger value="overview" className="gap-1.5 text-sm md:text-base px-3 md:px-5 py-2.5 md:py-3 whitespace-nowrap">
-              <LayoutDashboard className="h-4 w-4 md:h-5 md:w-5" />
-              Overview
-            </TabsTrigger>
-            <TabsTrigger value="quant-lab" className="gap-1.5 text-sm md:text-base px-3 md:px-5 py-2.5 md:py-3 whitespace-nowrap">
-              <FlaskConical className="h-4 w-4 md:h-5 md:w-5" />
-              Quant Lab
-            </TabsTrigger>
-            <TabsTrigger value="backtest" className="gap-1.5 text-sm md:text-base px-3 md:px-5 py-2.5 md:py-3 whitespace-nowrap">
-              <BarChart3 className="h-4 w-4 md:h-5 md:w-5" />
-              Metrics
-            </TabsTrigger>
-            <TabsTrigger value="news" className="gap-1.5 text-sm md:text-base px-3 md:px-5 py-2.5 md:py-3 whitespace-nowrap">
-              <Newspaper className="h-4 w-4 md:h-5 md:w-5" />
-              News
-            </TabsTrigger>
-            <TabsTrigger value="sec" className="gap-1.5 text-sm md:text-base px-3 md:px-5 py-2.5 md:py-3 whitespace-nowrap">
-              <FileText className="h-4 w-4 md:h-5 md:w-5" />
-              <span className="hidden sm:inline">SEC Filings</span>
-              <span className="sm:hidden">SEC</span>
-            </TabsTrigger>
-            <TabsTrigger value="analyst-social" className="gap-1.5 text-sm md:text-base px-3 md:px-5 py-2.5 md:py-3 whitespace-nowrap">
-              <MessageCircle className="h-4 w-4 md:h-5 md:w-5" />
-              <span className="hidden sm:inline">Analyst & Social</span>
-              <span className="sm:hidden">Social</span>
-            </TabsTrigger>
-            <TabsTrigger value="research-v2" className="gap-1.5 text-sm md:text-base px-3 md:px-5 py-2.5 md:py-3 whitespace-nowrap">
-              <Beaker className="h-4 w-4 md:h-5 md:w-5" />
-              <span className="hidden sm:inline">Research v2</span>
-              <span className="sm:hidden">v2</span>
-            </TabsTrigger>
-          </TabsList>
-        </div>
-
-        {/* Overview Tab - ALA-styled */}
-        <TabsContent value="overview" className="space-y-6">
-          <ALAOverviewTab
-            ticker={ticker}
-            companyName={details?.name}
-            exchange={details?.primaryExchange}
-            sector={details?.sector}
-            quote={quote}
-            isLoadingQuote={isLoadingQuote}
-            onRefresh={handleRefresh}
-            isRefreshing={isRefreshing}
-          />
-
-          {/* Company Info */}
-          {details?.description && (
-            <Card className="bg-card border-border">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Building2 className="h-5 w-5" />
-                  About {details.name}
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <p className="text-muted-foreground leading-relaxed">{details.description}</p>
-                
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-4 border-t border-border">
-                  <div>
-                    <p className="text-xs text-muted-foreground uppercase tracking-wider">Sector</p>
-                    <p className="font-medium">{details.sector || '—'}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground uppercase tracking-wider">Industry</p>
-                    <p className="font-medium">{details.industry || '—'}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground uppercase tracking-wider">Exchange</p>
-                    <p className="font-medium">{details.primaryExchange || '—'}</p>
-                  </div>
-                  {details.homepageUrl && (
-                    <div>
-                      <p className="text-xs text-muted-foreground uppercase tracking-wider">Website</p>
-                      <a 
-                        href={details.homepageUrl} 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        className="text-primary hover:underline font-medium flex items-center gap-1"
-                      >
-                        <Globe className="h-3.5 w-3.5" />
-                        Visit
-                      </a>
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          )}
-        </TabsContent>
-
-        {/* Quant Lab Tab */}
-        <TabsContent value="quant-lab" className="min-h-[600px]">
-          <EmbeddedQuantLab ticker={ticker} companyName={details?.name || ticker} />
-        </TabsContent>
-
-        {/* Metrics/Backtest Tab */}
-        <TabsContent value="backtest">
-          <AssetBacktestPanel ticker={ticker} companyName={details?.name || ticker} />
-        </TabsContent>
-
-        {/* News Tab */}
-        <TabsContent value="news">
-          <StockNewsSection ticker={ticker} companyName={details?.name || ticker} />
-        </TabsContent>
-
-        {/* SEC Filings Tab */}
-        <TabsContent value="sec">
-          <SECFilingsPanel ticker={ticker} />
-        </TabsContent>
-
-        {/* Analyst & Social Tab */}
-        <TabsContent value="analyst-social">
-          <AnalystSocialPanel ticker={ticker} />
-        </TabsContent>
-
-        {/* Research v2 Tab - Integrated ALA-style view */}
-        <TabsContent value="research-v2" className="min-h-[600px]">
-          <IntegratedResearchView ticker={ticker} currentPrice={quote?.price || 0} />
-        </TabsContent>
-      </Tabs>
-
-      {/* Sign In CTA */}
-      {!user && (
-        <Card className="bg-gradient-to-r from-primary/10 to-secondary/30 border-primary/20">
-          <CardContent className="py-6">
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-              <div>
-                <h3 className="font-semibold text-lg">Track this stock in your portfolio</h3>
-                <p className="text-sm text-muted-foreground">
-                  Sign in to add stocks, track performance, and access educational insights
-                </p>
-              </div>
-              <Button onClick={() => navigate('/auth', { state: { returnTo: `/stock/${ticker}` } })}>
-                Sign In
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-    </div>
+  return (
+    <StockDetailLayout
+      ticker={ticker}
+      companyName={details?.name}
+      activeTab={activeTab}
+      onTabChange={setActiveTab}
+      tabs={DEFAULT_STOCK_TABS}
+      onBack={() => navigate(-1)}
+    >
+      {renderTabContent()}
+    </StockDetailLayout>
   );
 }

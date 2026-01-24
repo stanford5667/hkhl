@@ -8,3 +8,5 @@ export { ALAOverviewTab } from './ALAOverviewTab';
 export { ALAStockInfoCard } from './ALAStockInfoCard';
 export { QuickHistoricalInsights } from './QuickHistoricalInsights';
 export { BasicStatistics } from './BasicStatistics';
+export { StockDetailLayout, DEFAULT_STOCK_TABS } from './StockDetailLayout';
+export type { StockDetailTab } from './StockDetailLayout';
