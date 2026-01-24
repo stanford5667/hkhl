@@ -14,6 +14,7 @@ import { useTickerSnapshot } from '@/hooks/useTickerSnapshot';
 import { useTickerFundamentals } from '@/hooks/useTickerFundamentals';
 import { useTickerAnalystData } from '@/hooks/useTickerAnalystData';
 import { PerformanceMetricsSection } from './PerformanceMetricsSection';
+import { useProductSegments } from '@/hooks/useProductSegments';
 
 const LOOKBACK_OPTIONS = [
   { value: '90', label: '90 Days' },
@@ -66,6 +67,7 @@ export function ALAOverviewTab({
   const { data: snapshot, isLoading: snapshotLoading, isFetching: snapshotFetching } = useTickerSnapshot(ticker, lookbackDays);
   const { data: fundamentals, isLoading: fundLoading } = useTickerFundamentals(ticker);
   const { data: analystData, isLoading: analystLoading } = useTickerAnalystData(ticker);
+  const { data: segmentsData, isLoading: segmentsLoading } = useProductSegments(ticker);
 
   const isPositive = (quote?.change || 0) >= 0;
 
@@ -366,91 +368,57 @@ export function ALAOverviewTab({
           {/* Top Products/Services Card */}
           <Card className="bg-card border-border">
             <CardContent className="p-2 space-y-2">
-              <div className="flex items-center gap-1">
-                <Package className="h-3 w-3 text-primary" />
-                <span className="text-[10px] md:text-xs font-medium">Top Products & Services</span>
-              </div>
-              <div className="space-y-1.5">
-                {/* Display based on sector/industry */}
-                {sector === 'Technology' && (
-                  <>
-                    <div className="flex items-center justify-between p-1.5 bg-secondary/30 rounded">
-                      <span className="text-[9px] md:text-[10px] font-medium">Hardware & Devices</span>
-                    </div>
-                    <div className="flex items-center justify-between p-1.5 bg-secondary/30 rounded">
-                      <span className="text-[9px] md:text-[10px] font-medium">Software & Services</span>
-                    </div>
-                    <div className="flex items-center justify-between p-1.5 bg-secondary/30 rounded">
-                      <span className="text-[9px] md:text-[10px] font-medium">Subscriptions</span>
-                    </div>
-                  </>
-                )}
-                {sector === 'Financial Services' && (
-                  <>
-                    <div className="flex items-center justify-between p-1.5 bg-secondary/30 rounded">
-                      <span className="text-[9px] md:text-[10px] font-medium">Banking & Lending</span>
-                    </div>
-                    <div className="flex items-center justify-between p-1.5 bg-secondary/30 rounded">
-                      <span className="text-[9px] md:text-[10px] font-medium">Investment Management</span>
-                    </div>
-                    <div className="flex items-center justify-between p-1.5 bg-secondary/30 rounded">
-                      <span className="text-[9px] md:text-[10px] font-medium">Insurance Products</span>
-                    </div>
-                  </>
-                )}
-                {sector === 'Healthcare' && (
-                  <>
-                    <div className="flex items-center justify-between p-1.5 bg-secondary/30 rounded">
-                      <span className="text-[9px] md:text-[10px] font-medium">Pharmaceuticals</span>
-                    </div>
-                    <div className="flex items-center justify-between p-1.5 bg-secondary/30 rounded">
-                      <span className="text-[9px] md:text-[10px] font-medium">Medical Devices</span>
-                    </div>
-                    <div className="flex items-center justify-between p-1.5 bg-secondary/30 rounded">
-                      <span className="text-[9px] md:text-[10px] font-medium">Healthcare Services</span>
-                    </div>
-                  </>
-                )}
-                {sector === 'Consumer Cyclical' && (
-                  <>
-                    <div className="flex items-center justify-between p-1.5 bg-secondary/30 rounded">
-                      <span className="text-[9px] md:text-[10px] font-medium">Retail Products</span>
-                    </div>
-                    <div className="flex items-center justify-between p-1.5 bg-secondary/30 rounded">
-                      <span className="text-[9px] md:text-[10px] font-medium">Consumer Goods</span>
-                    </div>
-                    <div className="flex items-center justify-between p-1.5 bg-secondary/30 rounded">
-                      <span className="text-[9px] md:text-[10px] font-medium">E-commerce</span>
-                    </div>
-                  </>
-                )}
-                {sector === 'Energy' && (
-                  <>
-                    <div className="flex items-center justify-between p-1.5 bg-secondary/30 rounded">
-                      <span className="text-[9px] md:text-[10px] font-medium">Oil & Gas</span>
-                    </div>
-                    <div className="flex items-center justify-between p-1.5 bg-secondary/30 rounded">
-                      <span className="text-[9px] md:text-[10px] font-medium">Renewable Energy</span>
-                    </div>
-                    <div className="flex items-center justify-between p-1.5 bg-secondary/30 rounded">
-                      <span className="text-[9px] md:text-[10px] font-medium">Utilities</span>
-                    </div>
-                  </>
-                )}
-                {!['Technology', 'Financial Services', 'Healthcare', 'Consumer Cyclical', 'Energy'].includes(sector || '') && (
-                  <>
-                    <div className="flex items-center justify-between p-1.5 bg-secondary/30 rounded">
-                      <span className="text-[9px] md:text-[10px] font-medium">Core Products</span>
-                    </div>
-                    <div className="flex items-center justify-between p-1.5 bg-secondary/30 rounded">
-                      <span className="text-[9px] md:text-[10px] font-medium">Services</span>
-                    </div>
-                    <div className="flex items-center justify-between p-1.5 bg-secondary/30 rounded">
-                      <span className="text-[9px] md:text-[10px] font-medium">Other Revenue</span>
-                    </div>
-                  </>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-1">
+                  <Package className="h-3 w-3 text-primary" />
+                  <span className="text-[10px] md:text-xs font-medium">Revenue by Segment</span>
+                </div>
+                {segmentsData?.useMockData && (
+                  <span className="text-[7px] text-muted-foreground">Demo</span>
                 )}
               </div>
+              
+              {segmentsLoading ? (
+                <div className="space-y-1.5">
+                  <Skeleton className="h-8 w-full" />
+                  <Skeleton className="h-8 w-full" />
+                  <Skeleton className="h-8 w-full" />
+                </div>
+              ) : segmentsData?.segments && segmentsData.segments.length > 0 ? (
+                <div className="space-y-1.5">
+                  {segmentsData.segments.map((segment, index) => (
+                    <div key={index} className="p-1.5 bg-secondary/30 rounded">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-[9px] md:text-[10px] font-medium truncate flex-1 pr-2">
+                          {segment.name}
+                        </span>
+                        <span className="text-[9px] md:text-[10px] font-bold text-primary tabular-nums">
+                          {segment.percentage.toFixed(0)}%
+                        </span>
+                      </div>
+                      {/* Revenue bar */}
+                      <div className="relative w-full h-1 bg-secondary rounded-full overflow-hidden">
+                        <div 
+                          className="absolute top-0 left-0 h-full bg-primary/60 rounded-full"
+                          style={{ width: `${Math.min(100, segment.percentage)}%` }}
+                        />
+                      </div>
+                      <div className="text-[7px] text-muted-foreground mt-0.5">
+                        {segment.revenue >= 1e9 
+                          ? `$${(segment.revenue / 1e9).toFixed(1)}B`
+                          : segment.revenue >= 1e6 
+                            ? `$${(segment.revenue / 1e6).toFixed(0)}M`
+                            : `$${segment.revenue.toLocaleString()}`
+                        }
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="p-2 text-center">
+                  <p className="text-[9px] text-muted-foreground">Segment data not available</p>
+                </div>
+              )}
             </CardContent>
           </Card>
 
