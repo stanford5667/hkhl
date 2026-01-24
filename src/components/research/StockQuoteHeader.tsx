@@ -101,7 +101,12 @@ export function StockQuoteHeader({ ticker }: StockQuoteHeaderProps) {
         {/* Price & Change */}
         <div className="flex items-center gap-6">
           <div>
-            <p className="text-3xl font-bold text-white">${quote.price.toFixed(2)}</p>
+            <div className="flex items-baseline gap-2">
+              <span className="text-xs sm:text-sm text-muted-foreground truncate max-w-[100px] sm:max-w-[180px]">
+                {quote.companyName}
+              </span>
+              <p className="text-2xl sm:text-3xl font-bold text-foreground">${quote.price.toFixed(2)}</p>
+            </div>
             <div className={cn(
               "flex items-center gap-1 text-sm font-medium",
               isPositive ? "text-emerald-400" : "text-rose-400"
@@ -110,7 +115,6 @@ export function StockQuoteHeader({ ticker }: StockQuoteHeaderProps) {
               <span>{isPositive ? '+' : ''}{quote.change.toFixed(2)}</span>
               <span>({isPositive ? '+' : ''}{quote.changePercent.toFixed(2)}%)</span>
             </div>
-            <p className="text-xs text-slate-500 mt-1">{quote.companyName}</p>
           </div>
 
           {/* Key Stats */}
