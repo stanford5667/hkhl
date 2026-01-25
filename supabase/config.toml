@@ -173,3 +173,6 @@ verify_jwt = false
 
 [functions.finnhub-ticker-fundamentals]
 verify_jwt = false
+
+[functions.scrape-sec-financials]
+verify_jwt = false
