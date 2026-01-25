@@ -246,6 +246,7 @@ export const DEFAULT_STOCK_TABS: StockDetailTab[] = [
   { id: 'overview', label: 'Overview', icon: LayoutDashboard, color: 'blue' },
   { id: 'financials', label: 'Financials', icon: BarChart3, color: 'emerald' },
   { id: 'quant-lab', label: 'Quant Lab', icon: FlaskConical, shortLabel: 'Quant', color: 'violet' },
+  { id: 'backtest', label: 'Backtest', icon: Beaker, color: 'primary' },
   { id: 'news', label: 'News', icon: Newspaper, color: 'amber' },
   { id: 'sec', label: 'SEC Filings', icon: FileText, shortLabel: 'SEC', color: 'cyan' },
   { id: 'analyst-social', label: 'Analyst & Social', icon: MessageCircle, shortLabel: 'Social', color: 'rose' },

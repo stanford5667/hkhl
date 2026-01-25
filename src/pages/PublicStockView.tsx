@@ -10,7 +10,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { LineChart, TrendingUp, TrendingDown, Plus, Building2, Globe, BarChart3, Newspaper } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { EmbeddedQuantLab } from '@/components/equity/EmbeddedQuantLab';
-import { AssetBacktestPanel } from '@/components/equity/AssetBacktestPanel';
+import { StrategyBacktester } from '@/components/backtester/StrategyBacktester';
 import { SECFilingsPanel } from '@/components/research/SECFilingsPanel';
 import { AnalystSocialPanel } from '@/components/research/AnalystSocialPanel';
 import { IntegratedResearchView, ALAOverviewTab } from '@/components/research';
@@ -430,7 +430,7 @@ export default function PublicStockView() {
       case 'backtest':
         return (
           <div className="p-3 md:p-4">
-            <AssetBacktestPanel ticker={ticker} companyName={details?.name || ticker} />
+            <StrategyBacktester ticker={ticker} companyName={details?.name || ticker} />
           </div>
         );
       
