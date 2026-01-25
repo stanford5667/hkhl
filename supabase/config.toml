@@ -176,3 +176,6 @@ verify_jwt = false
 
 [functions.scrape-sec-financials]
 verify_jwt = false
+
+[functions.strategy-backtest]
+verify_jwt = false
