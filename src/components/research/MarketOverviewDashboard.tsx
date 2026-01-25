@@ -265,7 +265,7 @@ export function MarketOverviewDashboard() {
             </div>
           )}
           
-          <div className="h-[120px] w-full max-w-[380px] overflow-hidden">
+          <div className="h-[120px] w-full">
             {sparklineLoading ? (
               <div className="w-full h-full flex items-center justify-center">
                 <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
@@ -277,6 +277,7 @@ export function MarketOverviewDashboard() {
                 width={380}
                 isPositive={selectedIndexData.changePercent >= 0}
                 showPriceScale={true}
+                className="w-full h-full"
               />
             ) : (
               <div className="w-full h-full flex items-center justify-center text-[10px] text-muted-foreground bg-muted/10 rounded-lg">
