@@ -87,6 +87,12 @@ interface Trade {
   entryReason: string;
   exitReason: string;
   holdingDays: number;
+  // Data Inspector fields
+  entryBarRaw?: Bar;
+  exitBarRaw?: Bar;
+  indicatorValueAtEntry?: number;
+  indicatorValueAtExit?: number;
+  indicatorName?: string;
 }
 
 interface PortfolioSnapshot {
@@ -128,6 +134,11 @@ interface BacktestResult {
   trades: Trade[];
   portfolioHistory: PortfolioSnapshot[];
   tradingDays: number;
+  // Data Inspector fields
+  dataSource: 'database' | 'polygon';
+  dataSourceUrl: string;
+  barsCount: number;
+  rawBarsPreview: Bar[];
 }
 
 interface StrategyParams {
@@ -361,7 +372,9 @@ function runBacktest(
   bars: Bar[],
   strategy: string,
   initialCapital: number,
-  params: StrategyParams
+  params: StrategyParams,
+  dataSource: 'database' | 'polygon',
+  dataSourceUrl: string
 ): Omit<BacktestResult, 'success' | 'ticker' | 'startDate' | 'endDate'> {
   const trades: Trade[] = [];
   const portfolioHistory: PortfolioSnapshot[] = [];
@@ -373,6 +386,8 @@ function runBacktest(
   let entryDate: string | null = null;
   let entryIndex: number | null = null;
   let entryReason = '';
+  let entryBarRaw: Bar | null = null;
+  let entryIndicatorValue: number | null = null;
   
   const positionSize = (params.positionSizePercent ?? 100) / 100;
   const stopLoss = params.stopLossPercent ?? null;
@@ -387,6 +402,38 @@ function runBacktest(
   const rsiValues = calculateRSI(closes, rsiPeriod);
   const fastMa = calculateEMA(closes, fastPeriod);
   const slowMa = calculateSMA(closes, slowPeriod);
+  
+  // Determine indicator name based on strategy
+  const getIndicatorName = (strat: string): string => {
+    switch (strat) {
+      case 'rsi': return 'RSI';
+      case 'ma-crossover': return 'Fast EMA';
+      case 'gap-fill': return 'Gap %';
+      case 'consecutive-days': return 'Down Days';
+      default: return 'Indicator';
+    }
+  };
+  
+  const getIndicatorValue = (strat: string, idx: number): number | null => {
+    switch (strat) {
+      case 'rsi': return rsiValues[idx];
+      case 'ma-crossover': return fastMa[idx];
+      case 'gap-fill': 
+        if (idx < 1) return null;
+        return ((bars[idx].open - bars[idx - 1].close) / bars[idx - 1].close) * 100;
+      case 'consecutive-days':
+        let count = 0;
+        for (let j = 0; j < Math.min(idx + 1, 5); j++) {
+          const dayRet = (bars[idx - j].close - bars[idx - j].open) / bars[idx - j].open;
+          if (dayRet < 0) count++;
+          else break;
+        }
+        return count;
+      default: return null;
+    }
+  };
+  
+  const indicatorName = getIndicatorName(strategy);
   
   // Process each bar
   for (let i = 0; i < bars.length; i++) {
@@ -420,7 +467,12 @@ function runBacktest(
           type: 'LONG',
           entryReason,
           exitReason: `Stop loss triggered at -${stopLoss}%`,
-          holdingDays: i - entryIndex!
+          holdingDays: i - entryIndex!,
+          entryBarRaw: entryBarRaw || undefined,
+          exitBarRaw: { ...bar },
+          indicatorValueAtEntry: entryIndicatorValue ?? undefined,
+          indicatorValueAtExit: getIndicatorValue(strategy, i) ?? undefined,
+          indicatorName
         });
         
         cash += shares * bar.close;
@@ -429,6 +481,8 @@ function runBacktest(
         entryPrice = null;
         entryDate = null;
         entryIndex = null;
+        entryBarRaw = null;
+        entryIndicatorValue = null;
         continue;
       }
       
@@ -446,7 +500,12 @@ function runBacktest(
           type: 'LONG',
           entryReason,
           exitReason: `Take profit triggered at +${takeProfit}%`,
-          holdingDays: i - entryIndex!
+          holdingDays: i - entryIndex!,
+          entryBarRaw: entryBarRaw || undefined,
+          exitBarRaw: { ...bar },
+          indicatorValueAtEntry: entryIndicatorValue ?? undefined,
+          indicatorValueAtExit: getIndicatorValue(strategy, i) ?? undefined,
+          indicatorName
         });
         
         cash += shares * bar.close;
@@ -455,6 +514,8 @@ function runBacktest(
         entryPrice = null;
         entryDate = null;
         entryIndex = null;
+        entryBarRaw = null;
+        entryIndicatorValue = null;
         continue;
       }
     }
@@ -490,6 +551,8 @@ function runBacktest(
         entryDate = bar.date;
         entryIndex = i;
         entryReason = signal.reason;
+        entryBarRaw = { ...bar };
+        entryIndicatorValue = getIndicatorValue(strategy, i);
       }
     } else if (signal.action === 'SELL' && inPosition && entryPrice !== null) {
       const pnl = shares * (bar.close - entryPrice);
@@ -506,7 +569,12 @@ function runBacktest(
         type: 'LONG',
         entryReason,
         exitReason: signal.reason,
-        holdingDays: i - entryIndex!
+        holdingDays: i - entryIndex!,
+        entryBarRaw: entryBarRaw || undefined,
+        exitBarRaw: { ...bar },
+        indicatorValueAtEntry: entryIndicatorValue ?? undefined,
+        indicatorValueAtExit: getIndicatorValue(strategy, i) ?? undefined,
+        indicatorName
       });
       
       cash += shares * bar.close;
@@ -515,6 +583,8 @@ function runBacktest(
       entryPrice = null;
       entryDate = null;
       entryIndex = null;
+      entryBarRaw = null;
+      entryIndicatorValue = null;
     }
   }
   
@@ -535,7 +605,12 @@ function runBacktest(
       type: 'LONG',
       entryReason,
       exitReason: 'End of backtest period',
-      holdingDays: bars.length - 1 - entryIndex!
+      holdingDays: bars.length - 1 - entryIndex!,
+      entryBarRaw: entryBarRaw || undefined,
+      exitBarRaw: { ...lastBar },
+      indicatorValueAtEntry: entryIndicatorValue ?? undefined,
+      indicatorValueAtExit: getIndicatorValue(strategy, bars.length - 1) ?? undefined,
+      indicatorName
     });
     
     cash += shares * lastBar.close;
@@ -646,7 +721,12 @@ function runBacktest(
     avgHoldingDays: Math.round(avgHoldingDays * 10) / 10,
     trades,
     portfolioHistory,
-    tradingDays: bars.length
+    tradingDays: bars.length,
+    // Data Inspector fields
+    dataSource,
+    dataSourceUrl,
+    barsCount: bars.length,
+    rawBarsPreview: bars.slice(0, 10) // First 10 bars for inspection
   };
 }
 
@@ -676,7 +756,8 @@ Deno.serve(async (req) => {
 
     // Fetch OHLCV data from market_daily_bars first
     let bars: Bar[] = [];
-    let dataSource = 'database';
+    let dataSource: 'database' | 'polygon' = 'database';
+    let dataSourceUrl = '';
 
     const { data: priceData, error } = await supabase
       .from('market_daily_bars')
@@ -692,6 +773,7 @@ Deno.serve(async (req) => {
 
     if (priceData && priceData.length >= 50) {
       console.log(`[strategy-backtest] Using ${priceData.length} bars from database for ${normalizedTicker}`);
+      dataSourceUrl = `Lovable Cloud DB: market_daily_bars (ticker=${normalizedTicker})`;
       bars = priceData.map(row => ({
         date: row.bar_date,
         open: row.open,
@@ -709,6 +791,7 @@ Deno.serve(async (req) => {
       if (polygonBars && polygonBars.length >= 50) {
         bars = polygonBars;
         dataSource = 'polygon';
+        dataSourceUrl = `https://api.polygon.io/v2/aggs/ticker/${normalizedTicker}/range/1/day/${startDate}/${endDate}`;
         console.log(`[strategy-backtest] Using ${bars.length} bars from Polygon for ${normalizedTicker}`);
       } else {
         return new Response(
@@ -726,7 +809,7 @@ Deno.serve(async (req) => {
     console.log(`[strategy-backtest] Proceeding with ${bars.length} bars from ${dataSource}`);
 
     // Run backtest
-    const result = runBacktest(bars, strategy, initialCapital, params);
+    const result = runBacktest(bars, strategy, initialCapital, params, dataSource, dataSourceUrl);
 
     console.log(`[strategy-backtest] Complete: ${result.totalTrades} trades, ${result.totalReturn.toFixed(2)}% return`);
 

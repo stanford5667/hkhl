@@ -2,18 +2,16 @@
  * Strategy Backtester Component
  * 
  * Professional backtesting interface with prebuilt strategies,
- * real historical data, and institutional-grade metrics.
+ * real historical data, institutional-grade metrics, and Data Inspector.
  */
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Skeleton } from '@/components/ui/skeleton';
 import { Separator } from '@/components/ui/separator';
 import {
   Select,
@@ -46,6 +44,9 @@ import {
   ReferenceLine,
   BarChart,
   Bar,
+  Scatter,
+  ComposedChart,
+  Cell,
 } from 'recharts';
 import {
   Play,
@@ -56,19 +57,33 @@ import {
   Target,
   AlertTriangle,
   Shield,
-  Award,
-  Info,
-  Calendar,
   DollarSign,
-  BarChart3,
   Zap,
   BookOpen,
   ChevronRight,
+  TriangleIcon,
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
-import { format, subYears, subMonths } from 'date-fns';
+import { format } from 'date-fns';
+import {
+  InspectModeToggle,
+  AuditableStat,
+  TradeSourceModal,
+  ExecutionLog,
+  getChartMarkers,
+} from './DataInspector';
+
+interface Bar {
+  date: string;
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+  volume: number;
+  dailyReturn?: number;
+}
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // TYPES
@@ -99,6 +114,8 @@ interface ParamConfig {
   suffix?: string;
 }
 
+// Bar type imported from DataInspector
+
 interface Trade {
   entryDate: string;
   exitDate: string;
@@ -111,6 +128,11 @@ interface Trade {
   entryReason: string;
   exitReason: string;
   holdingDays: number;
+  entryBarRaw?: Bar;
+  exitBarRaw?: Bar;
+  indicatorValueAtEntry?: number;
+  indicatorValueAtExit?: number;
+  indicatorName?: string;
 }
 
 interface PortfolioSnapshot {
@@ -152,6 +174,10 @@ interface BacktestResult {
   trades: Trade[];
   portfolioHistory: PortfolioSnapshot[];
   tradingDays: number;
+  dataSource: 'database' | 'polygon';
+  dataSourceUrl: string;
+  barsCount: number;
+  rawBarsPreview: Bar[];
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -217,40 +243,6 @@ const STRATEGIES: StrategyOption[] = [
 // HELPER COMPONENTS
 // ═══════════════════════════════════════════════════════════════════════════════
 
-function MetricCard({ 
-  label, 
-  value, 
-  description, 
-  trend 
-}: { 
-  label: string; 
-  value: string; 
-  description: string; 
-  trend?: 'good' | 'bad' | 'neutral';
-}) {
-  return (
-    <TooltipProvider>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <div className="p-3 rounded-lg bg-secondary/50 border border-border cursor-help">
-            <p className="text-xs text-muted-foreground mb-1">{label}</p>
-            <p className={cn(
-              "text-xl font-bold tabular-nums font-mono",
-              trend === 'good' && 'text-emerald-400',
-              trend === 'bad' && 'text-rose-400'
-            )}>
-              {value}
-            </p>
-          </div>
-        </TooltipTrigger>
-        <TooltipContent>
-          <p className="max-w-xs text-xs">{description}</p>
-        </TooltipContent>
-      </Tooltip>
-    </TooltipProvider>
-  );
-}
-
 function SmoothnessScore({ sharpe }: { sharpe: number }) {
   const stars = Math.min(5, Math.max(0, Math.floor(sharpe * 2)));
   const labels = ['Rough Ride', 'Bumpy', 'Smooth', 'Very Smooth', 'Extremely Smooth'];
@@ -301,6 +293,29 @@ function ExpectedValueCard({ winRate, avgWin, avgLoss, ev }: { winRate: number; 
   );
 }
 
+// Custom chart marker shape
+function TradeMarker(props: { cx?: number; cy?: number; payload?: { type: string; indicatorValue?: number; indicatorName?: string; reason: string } }) {
+  const { cx, cy, payload } = props;
+  if (!cx || !cy || !payload) return null;
+  
+  const isBuy = payload.type === 'BUY';
+  const color = isBuy ? '#10b981' : '#f43f5e';
+  
+  return (
+    <g>
+      <polygon
+        points={isBuy 
+          ? `${cx},${cy - 8} ${cx - 6},${cy + 4} ${cx + 6},${cy + 4}` // Up triangle
+          : `${cx},${cy + 8} ${cx - 6},${cy - 4} ${cx + 6},${cy - 4}`  // Down triangle
+        }
+        fill={color}
+        stroke={color}
+        strokeWidth={1}
+      />
+    </g>
+  );
+}
+
 // ═══════════════════════════════════════════════════════════════════════════════
 // MAIN COMPONENT
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -319,6 +334,10 @@ export function StrategyBacktester({ ticker, companyName }: StrategyBacktesterPr
   
   const [selectedTrade, setSelectedTrade] = useState<Trade | null>(null);
   const [showEducation, setShowEducation] = useState(false);
+  
+  // Data Inspector state
+  const [inspectMode, setInspectMode] = useState(false);
+  const [viewSourceTrade, setViewSourceTrade] = useState<Trade | null>(null);
 
   const handleSelectStrategy = useCallback((strategy: StrategyOption) => {
     setSelectedStrategy(strategy);
@@ -379,16 +398,30 @@ export function StrategyBacktester({ ticker, companyName }: StrategyBacktesterPr
     }
   }, [selectedStrategy, ticker, period, initialCapital, params, stopLoss, takeProfit]);
 
-  // Prepare chart data
-  const chartData = result?.portfolioHistory.map((p, i) => {
-    const buyHoldValue = result.portfolioHistory[0]?.value * 
-      (1 + (result.buyHoldReturn / 100) * (i / (result.portfolioHistory.length - 1)));
-    return {
-      date: p.date,
-      value: p.value,
-      buyHold: buyHoldValue,
-    };
-  }) || [];
+  // Prepare chart data with trade markers
+  const chartData = useMemo(() => {
+    if (!result) return [];
+    
+    const markers = getChartMarkers(result.trades);
+    const markerMap = new Map(markers.map(m => [m.date, m]));
+    
+    return result.portfolioHistory.map((p, i) => {
+      const buyHoldValue = result.portfolioHistory[0]?.value * 
+        (1 + (result.buyHoldReturn / 100) * (i / (result.portfolioHistory.length - 1)));
+      const marker = markerMap.get(p.date);
+      
+      return {
+        date: p.date,
+        value: p.value,
+        buyHold: buyHoldValue,
+        markerValue: marker ? p.value : null,
+        markerType: marker?.type,
+        indicatorValue: marker?.indicatorValue,
+        indicatorName: marker?.indicatorName,
+        reason: marker?.reason,
+      };
+    });
+  }, [result]);
 
   // Distribution histogram data
   const distributionData = result?.trades.reduce((acc, trade) => {
@@ -403,6 +436,16 @@ export function StrategyBacktester({ ticker, companyName }: StrategyBacktesterPr
     return acc;
   }, [] as { bucket: string; bucketValue: number; count: number; isPositive: boolean }[])
     .sort((a, b) => a.bucketValue - b.bucketValue) || [];
+
+  // Data provenance helper
+  const getProvenance = (metricName: string, logic: string, formula?: string) => ({
+    dataSource: result?.dataSource === 'polygon' 
+      ? `Polygon.io v2/aggs/ticker/${ticker}` 
+      : `Lovable Cloud DB (market_daily_bars)`,
+    dateRange: result ? `${result.startDate} to ${result.endDate} (${result.barsCount} bars)` : 'N/A',
+    logic,
+    formula
+  });
 
   return (
     <div className="space-y-6">
@@ -486,15 +529,18 @@ export function StrategyBacktester({ ticker, companyName }: StrategyBacktesterPr
                     <CardDescription className="text-xs">{selectedStrategy.description}</CardDescription>
                   </div>
                 </div>
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  onClick={() => setShowEducation(true)}
-                  className="text-primary"
-                >
-                  <BookOpen className="h-4 w-4 mr-1" />
-                  Why It Works
-                </Button>
+                <div className="flex items-center gap-2">
+                  {result && <InspectModeToggle inspectMode={inspectMode} onToggle={setInspectMode} />}
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={() => setShowEducation(true)}
+                    className="text-primary"
+                  >
+                    <BookOpen className="h-4 w-4 mr-1" />
+                    Why It Works
+                  </Button>
+                </div>
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -628,8 +674,28 @@ export function StrategyBacktester({ ticker, companyName }: StrategyBacktesterPr
           {/* Results Dashboard */}
           {result && !isRunning && (
             <div className="space-y-6">
+              {/* Data Source Banner (Inspect Mode) */}
+              {inspectMode && (
+                <Card className="border-dashed border-amber-500/50 bg-amber-500/5">
+                  <CardContent className="py-3">
+                    <div className="flex items-center gap-3">
+                      <Shield className="h-5 w-5 text-amber-400" />
+                      <div className="flex-1">
+                        <p className="text-sm font-medium text-amber-400">Data Inspector Active</p>
+                        <p className="text-xs text-muted-foreground">
+                          Source: <span className="font-mono text-amber-300">{result.dataSourceUrl}</span>
+                        </p>
+                      </div>
+                      <Badge variant="outline" className="border-amber-500/50 text-amber-400">
+                        {result.barsCount} bars
+                      </Badge>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
               {/* Performance Overview */}
-              <Card>
+              <Card className={inspectMode ? "border-dashed border-amber-500/30" : ""}>
                 <CardHeader className="pb-3">
                   <div className="flex items-center justify-between">
                     <CardTitle className="text-base">📊 Backtest Results</CardTitle>
@@ -640,36 +706,56 @@ export function StrategyBacktester({ ticker, companyName }: StrategyBacktesterPr
                 </CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-                    <MetricCard
+                    <AuditableStat
                       label="Starting Capital"
                       value={`$${result.initialCapital.toLocaleString()}`}
-                      description="The amount of capital used to start the backtest"
+                      inspectMode={inspectMode}
+                      provenance={getProvenance(
+                        'Starting Capital',
+                        'User-defined input parameter',
+                        `initialCapital = ${result.initialCapital}`
+                      )}
                       trend="neutral"
                     />
-                    <MetricCard
+                    <AuditableStat
                       label="Ending Value"
                       value={`$${result.finalValue.toLocaleString()}`}
-                      description="The final portfolio value at the end of the backtest"
+                      inspectMode={inspectMode}
+                      provenance={getProvenance(
+                        'Ending Value',
+                        'Final portfolio value after all trades closed',
+                        `cash + (shares × lastClose)`
+                      )}
                       trend={result.finalValue > result.initialCapital ? 'good' : 'bad'}
                     />
-                    <MetricCard
-                      label="Annualized Return"
-                      value={`${result.annualizedReturn >= 0 ? '+' : ''}${result.annualizedReturn.toFixed(2)}%`}
-                      description="The compound annual growth rate (CAGR) of the strategy"
-                      trend={result.annualizedReturn >= 0 ? 'good' : 'bad'}
+                    <AuditableStat
+                      label="Total Return"
+                      value={`${result.totalReturn >= 0 ? '+' : ''}${result.totalReturn.toFixed(2)}%`}
+                      inspectMode={inspectMode}
+                      provenance={getProvenance(
+                        'Total Return',
+                        `Profit from ${result.totalTrades} trades / Initial Capital`,
+                        `((${result.finalValue.toFixed(2)} - ${result.initialCapital}) / ${result.initialCapital}) × 100`
+                      )}
+                      trend={result.totalReturn >= 0 ? 'good' : 'bad'}
                     />
-                    <MetricCard
+                    <AuditableStat
                       label="vs Buy & Hold"
                       value={`${result.outperformance >= 0 ? '+' : ''}${result.outperformance.toFixed(2)}%`}
-                      description={`Strategy ${result.outperformance >= 0 ? 'outperformed' : 'underperformed'} simple buy-and-hold by this amount`}
+                      inspectMode={inspectMode}
+                      provenance={getProvenance(
+                        'Outperformance',
+                        'Strategy return minus simple buy-and-hold return',
+                        `${result.totalReturn.toFixed(2)}% - ${result.buyHoldReturn.toFixed(2)}%`
+                      )}
                       trend={result.outperformance >= 0 ? 'good' : 'bad'}
                     />
                   </div>
 
-                  {/* Equity Curve */}
-                  <div className="h-64">
+                  {/* Equity Curve with Trade Markers */}
+                  <div className="h-72">
                     <ResponsiveContainer width="100%" height="100%">
-                      <AreaChart data={chartData}>
+                      <ComposedChart data={chartData}>
                         <defs>
                           <linearGradient id="strategyGradient" x1="0" y1="0" x2="0" y2="1">
                             <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3}/>
@@ -695,8 +781,28 @@ export function StrategyBacktester({ ticker, companyName }: StrategyBacktesterPr
                             borderRadius: '8px',
                             fontSize: '12px'
                           }}
-                          formatter={(value: number) => [`$${value.toFixed(2)}`, '']}
-                          labelFormatter={(label) => format(new Date(label), 'MMM dd, yyyy')}
+                          content={({ active, payload, label }) => {
+                            if (!active || !payload?.length) return null;
+                            const data = payload[0]?.payload;
+                            return (
+                              <div className="p-2 bg-card border rounded-lg shadow-lg text-xs space-y-1">
+                                <p className="font-medium">{format(new Date(label), 'MMM dd, yyyy')}</p>
+                                <p>Portfolio: <span className="font-mono">${data?.value?.toFixed(2)}</span></p>
+                                {data?.markerType && (
+                                  <div className={cn(
+                                    "p-1.5 rounded mt-1",
+                                    data.markerType === 'BUY' ? "bg-emerald-500/20 text-emerald-400" : "bg-rose-500/20 text-rose-400"
+                                  )}>
+                                    <p className="font-semibold">{data.markerType === 'BUY' ? '▲ BUY' : '▼ SELL'}</p>
+                                    {data.indicatorValue !== undefined && (
+                                      <p className="text-[10px]">{data.indicatorName}: {data.indicatorValue.toFixed(2)}</p>
+                                    )}
+                                    <p className="text-[10px] text-muted-foreground">{data.reason}</p>
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          }}
                         />
                         <Area
                           type="monotone"
@@ -715,8 +821,13 @@ export function StrategyBacktester({ ticker, companyName }: StrategyBacktesterPr
                           strokeDasharray="4 4"
                           name="Buy & Hold"
                         />
+                        <Scatter
+                          dataKey="markerValue"
+                          shape={(props: unknown) => <TradeMarker {...(props as { cx?: number; cy?: number; payload?: { type: string; indicatorValue?: number; indicatorName?: string; reason: string } })} />}
+                          isAnimationActive={false}
+                        />
                         <ReferenceLine y={result.initialCapital} stroke="hsl(var(--muted-foreground))" strokeDasharray="2 2" />
-                      </AreaChart>
+                      </ComposedChart>
                     </ResponsiveContainer>
                   </div>
                   <div className="flex justify-center gap-6 mt-2 text-xs text-muted-foreground">
@@ -727,6 +838,10 @@ export function StrategyBacktester({ ticker, companyName }: StrategyBacktesterPr
                     <div className="flex items-center gap-2">
                       <div className="w-3 h-0.5 bg-muted-foreground border-dashed" />
                       <span>Buy & Hold: {result.buyHoldReturn >= 0 ? '+' : ''}{result.buyHoldReturn.toFixed(2)}%</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-emerald-400">▲</span> Buy
+                      <span className="text-rose-400">▼</span> Sell
                     </div>
                   </div>
                 </CardContent>
@@ -761,46 +876,76 @@ export function StrategyBacktester({ ticker, companyName }: StrategyBacktesterPr
               </div>
 
               {/* Trade Statistics */}
-              <Card>
+              <Card className={inspectMode ? "border-dashed border-amber-500/30" : ""}>
                 <CardHeader className="pb-3">
                   <CardTitle className="text-base">Trade Statistics</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-3 md:grid-cols-6 gap-3">
-                    <MetricCard
+                    <AuditableStat
                       label="Total Trades"
                       value={result.totalTrades.toString()}
-                      description="Number of completed round-trip trades"
+                      inspectMode={inspectMode}
+                      provenance={getProvenance(
+                        'Total Trades',
+                        'Number of completed round-trip trades',
+                        `trades.length = ${result.totalTrades}`
+                      )}
                       trend="neutral"
                     />
-                    <MetricCard
+                    <AuditableStat
                       label="Win Rate"
                       value={`${result.winRate.toFixed(1)}%`}
-                      description="Percentage of trades that were profitable"
+                      inspectMode={inspectMode}
+                      provenance={getProvenance(
+                        'Win Rate',
+                        'Percentage of trades that were profitable',
+                        `(${result.winningTrades} winning / ${result.totalTrades} total) × 100`
+                      )}
                       trend={result.winRate >= 50 ? 'good' : 'bad'}
                     />
-                    <MetricCard
+                    <AuditableStat
                       label="Avg Win"
                       value={`+${result.avgWin.toFixed(2)}%`}
-                      description="Average return on winning trades"
+                      inspectMode={inspectMode}
+                      provenance={getProvenance(
+                        'Average Win',
+                        'Mean return on winning trades',
+                        `Sum of winning trade returns / ${result.winningTrades}`
+                      )}
                       trend="good"
                     />
-                    <MetricCard
+                    <AuditableStat
                       label="Avg Loss"
                       value={`-${result.avgLoss.toFixed(2)}%`}
-                      description="Average return on losing trades"
+                      inspectMode={inspectMode}
+                      provenance={getProvenance(
+                        'Average Loss',
+                        'Mean return on losing trades',
+                        `Sum of losing trade returns / ${result.losingTrades}`
+                      )}
                       trend="bad"
                     />
-                    <MetricCard
+                    <AuditableStat
                       label="Best Trade"
                       value={`+${result.bestTrade.toFixed(2)}%`}
-                      description="The most profitable single trade"
+                      inspectMode={inspectMode}
+                      provenance={getProvenance(
+                        'Best Trade',
+                        'The most profitable single trade',
+                        `max(trades.map(t => t.pnlPercent))`
+                      )}
                       trend="good"
                     />
-                    <MetricCard
+                    <AuditableStat
                       label="Worst Trade"
                       value={`${result.worstTrade.toFixed(2)}%`}
-                      description="The least profitable single trade"
+                      inspectMode={inspectMode}
+                      provenance={getProvenance(
+                        'Worst Trade',
+                        'The least profitable single trade',
+                        `min(trades.map(t => t.pnlPercent))`
+                      )}
                       trend="bad"
                     />
                   </div>
@@ -837,9 +982,15 @@ export function StrategyBacktester({ ticker, companyName }: StrategyBacktesterPr
                           />
                           <Bar 
                             dataKey="count" 
-                            fill="hsl(var(--primary))"
                             radius={[4, 4, 0, 0]}
-                          />
+                          >
+                            {distributionData.map((entry, index) => (
+                              <Cell 
+                                key={`cell-${index}`} 
+                                fill={entry.isPositive ? 'hsl(142 76% 36%)' : 'hsl(0 84% 60%)'} 
+                              />
+                            ))}
+                          </Bar>
                         </BarChart>
                       </ResponsiveContainer>
                     </div>
@@ -847,56 +998,67 @@ export function StrategyBacktester({ ticker, companyName }: StrategyBacktesterPr
                 </Card>
               )}
 
-              {/* Trade Table */}
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-base">Trade History ({result.trades.length} trades)</CardTitle>
-                </CardHeader>
-                <CardContent className="p-0">
-                  <ScrollArea className="h-[300px]">
-                    <table className="w-full text-xs">
-                      <thead className="sticky top-0 bg-card border-b">
-                        <tr>
-                          <th className="text-left p-3 font-medium">#</th>
-                          <th className="text-left p-3 font-medium">Entry</th>
-                          <th className="text-left p-3 font-medium">Exit</th>
-                          <th className="text-right p-3 font-medium">Entry $</th>
-                          <th className="text-right p-3 font-medium">Exit $</th>
-                          <th className="text-right p-3 font-medium">Return</th>
-                          <th className="text-right p-3 font-medium">P&L</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {result.trades.map((trade, i) => (
-                          <tr 
-                            key={i} 
-                            className="border-b cursor-pointer hover:bg-secondary/50 transition-colors"
-                            onClick={() => setSelectedTrade(trade)}
-                          >
-                            <td className="p-3 font-mono">{i + 1}</td>
-                            <td className="p-3">{format(new Date(trade.entryDate), 'MMM dd, yy')}</td>
-                            <td className="p-3">{format(new Date(trade.exitDate), 'MMM dd, yy')}</td>
-                            <td className="p-3 text-right font-mono">${trade.entryPrice.toFixed(2)}</td>
-                            <td className="p-3 text-right font-mono">${trade.exitPrice.toFixed(2)}</td>
-                            <td className={cn(
-                              "p-3 text-right font-mono font-semibold",
-                              trade.pnlPercent >= 0 ? 'text-emerald-400' : 'text-rose-400'
-                            )}>
-                              {trade.pnlPercent >= 0 ? '+' : ''}{trade.pnlPercent.toFixed(2)}%
-                            </td>
-                            <td className={cn(
-                              "p-3 text-right font-mono",
-                              trade.pnl >= 0 ? 'text-emerald-400' : 'text-rose-400'
-                            )}>
-                              {trade.pnl >= 0 ? '+' : ''}${trade.pnl.toFixed(2)}
-                            </td>
+              {/* Detailed Execution Log */}
+              <ExecutionLog
+                trades={result.trades}
+                ticker={result.ticker}
+                dataSource={result.dataSource}
+                inspectMode={inspectMode}
+                onViewSource={setViewSourceTrade}
+              />
+
+              {/* Simple Trade Table (when not in inspect mode) */}
+              {!inspectMode && (
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-base">Trade History ({result.trades.length} trades)</CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-0">
+                    <ScrollArea className="h-[300px]">
+                      <table className="w-full text-xs">
+                        <thead className="sticky top-0 bg-card border-b">
+                          <tr>
+                            <th className="text-left p-3 font-medium">#</th>
+                            <th className="text-left p-3 font-medium">Entry</th>
+                            <th className="text-left p-3 font-medium">Exit</th>
+                            <th className="text-right p-3 font-medium">Entry $</th>
+                            <th className="text-right p-3 font-medium">Exit $</th>
+                            <th className="text-right p-3 font-medium">Return</th>
+                            <th className="text-right p-3 font-medium">P&L</th>
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </ScrollArea>
-                </CardContent>
-              </Card>
+                        </thead>
+                        <tbody>
+                          {result.trades.map((trade, i) => (
+                            <tr 
+                              key={i} 
+                              className="border-b cursor-pointer hover:bg-secondary/50 transition-colors"
+                              onClick={() => setSelectedTrade(trade)}
+                            >
+                              <td className="p-3 font-mono">{i + 1}</td>
+                              <td className="p-3">{format(new Date(trade.entryDate), 'MMM dd, yy')}</td>
+                              <td className="p-3">{format(new Date(trade.exitDate), 'MMM dd, yy')}</td>
+                              <td className="p-3 text-right font-mono">${trade.entryPrice.toFixed(2)}</td>
+                              <td className="p-3 text-right font-mono">${trade.exitPrice.toFixed(2)}</td>
+                              <td className={cn(
+                                "p-3 text-right font-mono font-semibold",
+                                trade.pnlPercent >= 0 ? 'text-emerald-400' : 'text-rose-400'
+                              )}>
+                                {trade.pnlPercent >= 0 ? '+' : ''}{trade.pnlPercent.toFixed(2)}%
+                              </td>
+                              <td className={cn(
+                                "p-3 text-right font-mono",
+                                trade.pnl >= 0 ? 'text-emerald-400' : 'text-rose-400'
+                              )}>
+                                {trade.pnl >= 0 ? '+' : ''}${trade.pnl.toFixed(2)}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </ScrollArea>
+                  </CardContent>
+                </Card>
+              )}
             </div>
           )}
         </div>
@@ -958,6 +1120,14 @@ export function StrategyBacktester({ ticker, companyName }: StrategyBacktesterPr
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Trade Source Modal (Data Inspector) */}
+      <TradeSourceModal
+        trade={viewSourceTrade}
+        ticker={ticker}
+        dataSource={result?.dataSource || 'database'}
+        onClose={() => setViewSourceTrade(null)}
+      />
 
       {/* Educational Modal */}
       <Dialog open={showEducation} onOpenChange={setShowEducation}>
