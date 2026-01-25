@@ -265,7 +265,7 @@ export function MarketOverviewDashboard() {
             </div>
           )}
           
-          <div className="h-[100px] w-full max-w-[400px]">
+          <div className="h-[120px] w-full max-w-[380px] overflow-hidden">
             {sparklineLoading ? (
               <div className="w-full h-full flex items-center justify-center">
                 <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
@@ -273,8 +273,8 @@ export function MarketOverviewDashboard() {
             ) : sparklineData && sparklineData.length > 0 && selectedIndexData ? (
               <MiniSparkline 
                 data={sparklineData}
-                height={100} 
-                width={400}
+                height={120} 
+                width={380}
                 isPositive={selectedIndexData.changePercent >= 0}
                 showPriceScale={true}
               />

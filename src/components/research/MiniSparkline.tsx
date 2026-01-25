@@ -27,40 +27,42 @@ export function MiniSparkline({
     return { min, max, range: max - min || 1 };
   }, [data]);
 
+  // Use larger vertical padding to prevent price labels from clipping
+  const verticalPadding = showPriceScale ? 10 : 2;
+  const horizontalPadding = 4;
+
   const pathD = useMemo(() => {
     if (!data || data.length < 2) return '';
     
-    const padding = 2;
-    const effectiveChartWidth = chartWidth - padding * 2;
-    const chartHeight = height - padding * 2;
+    const effectiveChartWidth = chartWidth - horizontalPadding * 2;
+    const chartHeight = height - verticalPadding * 2;
     
     const points = data.map((value, i) => {
-      const x = priceScaleWidth + padding + (i / (data.length - 1)) * effectiveChartWidth;
-      const y = padding + chartHeight - ((value - min) / range) * chartHeight;
+      const x = priceScaleWidth + horizontalPadding + (i / (data.length - 1)) * effectiveChartWidth;
+      const y = verticalPadding + chartHeight - ((value - min) / range) * chartHeight;
       return `${x},${y}`;
     });
     
     return `M${points.join(' L')}`;
-  }, [data, chartWidth, height, min, range, priceScaleWidth]);
+  }, [data, chartWidth, height, min, range, priceScaleWidth, verticalPadding, horizontalPadding]);
 
   const areaPathD = useMemo(() => {
     if (!data || data.length < 2) return '';
     
-    const padding = 2;
-    const effectiveChartWidth = chartWidth - padding * 2;
-    const chartHeight = height - padding * 2;
+    const effectiveChartWidth = chartWidth - horizontalPadding * 2;
+    const chartHeight = height - verticalPadding * 2;
     
     const points = data.map((value, i) => {
-      const x = priceScaleWidth + padding + (i / (data.length - 1)) * effectiveChartWidth;
-      const y = padding + chartHeight - ((value - min) / range) * chartHeight;
+      const x = priceScaleWidth + horizontalPadding + (i / (data.length - 1)) * effectiveChartWidth;
+      const y = verticalPadding + chartHeight - ((value - min) / range) * chartHeight;
       return `${x},${y}`;
     });
     
-    const startX = priceScaleWidth + padding;
-    const endX = priceScaleWidth + padding + effectiveChartWidth;
+    const startX = priceScaleWidth + horizontalPadding;
+    const endX = priceScaleWidth + horizontalPadding + effectiveChartWidth;
     
-    return `M${startX},${height - padding} L${points.join(' L')} L${endX},${height - padding} Z`;
-  }, [data, chartWidth, height, min, range, priceScaleWidth]);
+    return `M${startX},${height - verticalPadding} L${points.join(' L')} L${endX},${height - verticalPadding} Z`;
+  }, [data, chartWidth, height, min, range, priceScaleWidth, verticalPadding, horizontalPadding]);
 
   const gradientId = useMemo(() => `sparkline-gradient-${Math.random().toString(36).substr(2, 9)}`, []);
 
@@ -74,11 +76,12 @@ export function MiniSparkline({
   const priceTicks = useMemo(() => {
     if (!showPriceScale) return [];
     const ticks = [min, min + range / 2, max];
+    const chartHeight = height - verticalPadding * 2;
     return ticks.map(price => ({
       price,
-      y: 2 + (height - 4) - ((price - min) / range) * (height - 4)
+      y: verticalPadding + chartHeight - ((price - min) / range) * chartHeight
     }));
-  }, [showPriceScale, min, max, range, height]);
+  }, [showPriceScale, min, max, range, height, verticalPadding]);
 
   if (!data || data.length < 2) {
     return <div className={`${className}`} style={{ width, height }} />;
