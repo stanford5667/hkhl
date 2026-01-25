@@ -23,6 +23,7 @@ export interface StockDetailTab {
   label: string;
   icon: React.ElementType;
   shortLabel?: string;
+  color?: string; // Tailwind color class (e.g., 'blue', 'emerald', 'violet')
 }
 
 interface StockDetailLayoutProps {
@@ -95,6 +96,20 @@ export function StockDetailLayout({
             {tabs.map((tab) => {
               const Icon = tab.icon;
               const isActive = activeTab === tab.id;
+              const color = tab.color || 'primary';
+              
+              // Color mappings for active states
+              const colorClasses: Record<string, { text: string; bg: string; indicator: string }> = {
+                blue: { text: 'text-blue-500', bg: 'bg-blue-500/10', indicator: 'bg-blue-500' },
+                emerald: { text: 'text-emerald-500', bg: 'bg-emerald-500/10', indicator: 'bg-emerald-500' },
+                violet: { text: 'text-violet-500', bg: 'bg-violet-500/10', indicator: 'bg-violet-500' },
+                amber: { text: 'text-amber-500', bg: 'bg-amber-500/10', indicator: 'bg-amber-500' },
+                rose: { text: 'text-rose-500', bg: 'bg-rose-500/10', indicator: 'bg-rose-500' },
+                cyan: { text: 'text-cyan-500', bg: 'bg-cyan-500/10', indicator: 'bg-cyan-500' },
+                primary: { text: 'text-primary', bg: 'bg-primary/10', indicator: 'bg-primary' },
+              };
+              
+              const activeColor = colorClasses[color] || colorClasses.primary;
               
               return (
                 <Tooltip key={tab.id}>
@@ -104,12 +119,12 @@ export function StockDetailLayout({
                       className={cn(
                         "w-full h-14 lg:h-16 flex flex-col items-center justify-center gap-1 transition-all relative group",
                         isActive 
-                          ? "text-primary bg-primary/10" 
+                          ? `${activeColor.text} ${activeColor.bg}` 
                           : "text-muted-foreground hover:text-foreground hover:bg-accent"
                       )}
                     >
                       {isActive && (
-                        <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-10 bg-primary rounded-r" />
+                        <div className={cn("absolute left-0 top-1/2 -translate-y-1/2 w-1 h-10 rounded-r", activeColor.indicator)} />
                       )}
                       <Icon className={cn(
                         "h-5 w-5 lg:h-6 lg:w-6 transition-transform",
@@ -117,7 +132,7 @@ export function StockDetailLayout({
                       )} />
                       <span className={cn(
                         "text-[9px] lg:text-[10px] font-medium leading-tight text-center px-1",
-                        isActive ? "text-primary" : "text-muted-foreground group-hover:text-foreground"
+                        isActive ? activeColor.text : "text-muted-foreground group-hover:text-foreground"
                       )}>
                         {tab.shortLabel || tab.label.split(' ')[0]}
                       </span>
@@ -197,6 +212,19 @@ export function StockDetailLayout({
               {tabs.map((tab) => {
                 const Icon = tab.icon;
                 const isActive = activeTab === tab.id;
+                const color = tab.color || 'primary';
+                
+                const colorClasses: Record<string, { text: string; indicator: string }> = {
+                  blue: { text: 'text-blue-500', indicator: 'bg-blue-500' },
+                  emerald: { text: 'text-emerald-500', indicator: 'bg-emerald-500' },
+                  violet: { text: 'text-violet-500', indicator: 'bg-violet-500' },
+                  amber: { text: 'text-amber-500', indicator: 'bg-amber-500' },
+                  rose: { text: 'text-rose-500', indicator: 'bg-rose-500' },
+                  cyan: { text: 'text-cyan-500', indicator: 'bg-cyan-500' },
+                  primary: { text: 'text-primary', indicator: 'bg-primary' },
+                };
+                
+                const activeColor = colorClasses[color] || colorClasses.primary;
                 
                 return (
                   <button
@@ -205,7 +233,7 @@ export function StockDetailLayout({
                     className={cn(
                       "flex flex-col items-center gap-0.5 px-3 py-2.5 text-[10px] font-semibold whitespace-nowrap transition-all relative",
                       isActive 
-                        ? "text-primary" 
+                        ? activeColor.text 
                         : "text-muted-foreground hover:text-foreground"
                     )}
                   >
@@ -215,7 +243,7 @@ export function StockDetailLayout({
                     )} />
                     <span>{tab.shortLabel || tab.label.split(' ')[0]}</span>
                     {isActive && (
-                      <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-8 h-0.5 bg-primary rounded-t" />
+                      <div className={cn("absolute bottom-0 left-1/2 -translate-x-1/2 w-8 h-0.5 rounded-t", activeColor.indicator)} />
                     )}
                   </button>
                 );
@@ -235,10 +263,10 @@ export function StockDetailLayout({
 
 // Default tabs for public stock view
 export const DEFAULT_STOCK_TABS: StockDetailTab[] = [
-  { id: 'overview', label: 'Overview', icon: LayoutDashboard },
-  { id: 'financials', label: 'Financials', icon: BarChart3 },
-  { id: 'quant-lab', label: 'Quant Lab', icon: FlaskConical, shortLabel: 'Quant' },
-  { id: 'news', label: 'News', icon: Newspaper },
-  { id: 'sec', label: 'SEC Filings', icon: FileText, shortLabel: 'SEC' },
-  { id: 'analyst-social', label: 'Analyst & Social', icon: MessageCircle, shortLabel: 'Social' },
+  { id: 'overview', label: 'Overview', icon: LayoutDashboard, color: 'blue' },
+  { id: 'financials', label: 'Financials', icon: BarChart3, color: 'emerald' },
+  { id: 'quant-lab', label: 'Quant Lab', icon: FlaskConical, shortLabel: 'Quant', color: 'violet' },
+  { id: 'news', label: 'News', icon: Newspaper, color: 'amber' },
+  { id: 'sec', label: 'SEC Filings', icon: FileText, shortLabel: 'SEC', color: 'cyan' },
+  { id: 'analyst-social', label: 'Analyst & Social', icon: MessageCircle, shortLabel: 'Social', color: 'rose' },
 ];
