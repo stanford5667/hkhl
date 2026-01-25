@@ -161,53 +161,53 @@ const STRATEGIES: StrategyOption[] = [
   {
     id: 'rsi',
     name: 'RSI Oversold Bounce',
-    description: 'Buy when RSI < 30 (oversold), sell when RSI > 70 (overbought)',
-    whyItWorks: 'Stocks become oversold due to panic selling, then snap back to fair value when fear subsides.',
+    description: 'Buy when a stock is heavily sold off (RSI < 30), sell when it becomes overpriced (RSI > 70)',
+    whyItWorks: 'When investors panic and sell too aggressively, stocks often drop below their true value. This strategy buys during fear and sells when optimism returns—catching the "bounce back" (mean reversion).',
     riskLevel: 'Moderate',
     icon: Activity,
     defaultParams: { rsiPeriod: 14, rsiOversold: 30, rsiOverbought: 70 },
     paramConfig: [
-      { key: 'rsiPeriod', label: 'RSI Period', min: 5, max: 30, step: 1 },
-      { key: 'rsiOversold', label: 'Oversold Level', min: 10, max: 40, step: 5 },
-      { key: 'rsiOverbought', label: 'Overbought Level', min: 60, max: 90, step: 5 },
+      { key: 'rsiPeriod', label: 'Lookback Window (RSI Period)', min: 5, max: 30, step: 1 },
+      { key: 'rsiOversold', label: 'Buy Signal Level (Oversold)', min: 10, max: 40, step: 5 },
+      { key: 'rsiOverbought', label: 'Sell Signal Level (Overbought)', min: 60, max: 90, step: 5 },
     ]
   },
   {
     id: 'ma-crossover',
     name: 'Moving Average Crossover',
-    description: 'Buy when fast MA crosses above slow MA, sell on death cross',
-    whyItWorks: 'Trend following - the trend is your friend. Captures momentum when it shifts direction.',
+    description: 'Buy when short-term momentum overtakes the long-term trend (Golden Cross), sell when it reverses (Death Cross)',
+    whyItWorks: 'Follows the principle that "the trend is your friend." When recent prices climb above the longer-term average, it often signals the start of an uptrend—momentum investors ride this wave (trend following).',
     riskLevel: 'Moderate',
     icon: TrendingUp,
     defaultParams: { fastMaPeriod: 10, slowMaPeriod: 50 },
     paramConfig: [
-      { key: 'fastMaPeriod', label: 'Fast MA Period', min: 5, max: 30, step: 1 },
-      { key: 'slowMaPeriod', label: 'Slow MA Period', min: 20, max: 200, step: 10 },
+      { key: 'fastMaPeriod', label: 'Short-Term Average (Fast MA)', min: 5, max: 30, step: 1 },
+      { key: 'slowMaPeriod', label: 'Long-Term Average (Slow MA)', min: 20, max: 200, step: 10 },
     ]
   },
   {
     id: 'gap-fill',
     name: 'Gap Fill Strategy',
-    description: 'Buy gap downs larger than 2%, sell when price returns to previous close',
-    whyItWorks: 'Gaps tend to fill 70%+ of the time. Opening gaps often represent overreaction.',
+    description: 'Buy when a stock opens sharply lower (gap down > 2%), sell when it recovers to yesterday\'s close',
+    whyItWorks: 'When stocks gap down at market open, it\'s often an emotional overreaction to overnight news. Historically, these gaps "fill" (recover) over 70% of the time as cooler heads prevail (gap reversion).',
     riskLevel: 'Aggressive',
     icon: Zap,
     defaultParams: { gapThreshold: 2 },
     paramConfig: [
-      { key: 'gapThreshold', label: 'Gap Threshold', min: 1, max: 5, step: 0.5, suffix: '%' },
+      { key: 'gapThreshold', label: 'Minimum Drop to Trigger Buy (Gap Threshold)', min: 1, max: 5, step: 0.5, suffix: '%' },
     ]
   },
   {
     id: 'consecutive-days',
     name: 'Consecutive Days Reversal',
-    description: 'Buy after N consecutive down days, sell after M days holding',
-    whyItWorks: 'Mean reversion - extreme moves tend to bounce back. Markets overcorrect in the short term.',
+    description: 'Buy after several losing days in a row, hold for a set number of days',
+    whyItWorks: 'Markets tend to overcorrect in the short term. After multiple down days, stocks are often "oversold" and primed for a bounce. This approach bets on a return to normal (mean reversion).',
     riskLevel: 'Conservative',
     icon: Target,
     defaultParams: { consecutiveDays: 3, holdingPeriod: 5 },
     paramConfig: [
-      { key: 'consecutiveDays', label: 'Down Days Required', min: 2, max: 5, step: 1 },
-      { key: 'holdingPeriod', label: 'Holding Period (days)', min: 3, max: 15, step: 1 },
+      { key: 'consecutiveDays', label: 'Losing Days Before Buying', min: 2, max: 5, step: 1 },
+      { key: 'holdingPeriod', label: 'Days to Hold Investment', min: 3, max: 15, step: 1 },
     ]
   },
 ];
