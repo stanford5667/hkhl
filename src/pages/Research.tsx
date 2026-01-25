@@ -15,10 +15,7 @@ import { MarketOverviewDashboard } from '@/components/research/MarketOverviewDas
 import { MarketIntelligenceSection } from '@/components/research/MarketIntelligenceSection';
 import { DiscoveryFeed } from '@/components/research/DiscoveryFeed';
 import { MarketThemesSection } from '@/components/research/MarketThemesSection';
-import { MarketSentimentGauge } from '@/components/research/MarketSentimentGauge';
 import { SectorHeatmap } from '@/components/research/SectorHeatmap';
-import { LiveMarketStatsBar } from '@/components/research/LiveMarketStatsBar';
-import { AggregatedPerformanceChart } from '@/components/research/AggregatedPerformanceChart';
 import { StockOfTheDay } from '@/components/research/StockOfTheDay';
 import { AnimatedBackground } from '@/components/research/AnimatedBackground';
 import { cn } from '@/lib/utils';
@@ -219,15 +216,8 @@ export default function ResearchPage() {
 
       {/* Main Content */}
       <div className="max-w-6xl mx-auto px-4 sm:px-6 pb-12 space-y-6">
-        {/* Live Market Stats Bar */}
-        <LiveMarketStatsBar />
-
-        {/* Market Intelligence Dashboard - 3 Column Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <MarketSentimentGauge />
-          <AggregatedPerformanceChart />
-          <SectorHeatmap />
-        </div>
+        {/* Sector Heatmap */}
+        <SectorHeatmap />
 
         {/* Stock of the Day Spotlight */}
         <StockOfTheDay />
