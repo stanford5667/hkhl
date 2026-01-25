@@ -151,11 +151,6 @@ export function MarketOverviewDashboard() {
     return value.toFixed(2);
   };
 
-  const formatChange = (change: number) => {
-    const sign = change >= 0 ? '+' : '';
-    return `${sign}${change.toFixed(2)}`;
-  };
-
   const formatPercent = (percent: number) => {
     const sign = percent >= 0 ? '+' : '';
     return `${sign}${percent.toFixed(2)}%`;
@@ -164,7 +159,7 @@ export function MarketOverviewDashboard() {
   return (
     <div className="bg-gradient-to-br from-card via-card to-card/80 border border-border/60 rounded-xl overflow-hidden shadow-lg">
       {/* Header: Category Tabs + Time Range */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-border/50 bg-muted/20">
+      <div className="flex items-center justify-between px-4 py-2 border-b border-border/50 bg-muted/20">
         <div className="flex items-center gap-1 bg-muted/40 rounded-lg p-0.5">
           {(['US', 'Commodities', 'Crypto'] as MarketCategory[]).map((cat) => (
             <button
@@ -176,7 +171,7 @@ export function MarketOverviewDashboard() {
                 else setSelectedIndex('BTC-USD');
               }}
               className={cn(
-                'text-xs font-medium px-3 py-1.5 rounded-md transition-all',
+                'text-xs font-medium px-3 py-1 rounded-md transition-all',
                 selectedCategory === cat 
                   ? 'bg-primary text-primary-foreground shadow-sm' 
                   : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
@@ -206,129 +201,116 @@ export function MarketOverviewDashboard() {
         </div>
       </div>
 
-      {/* Main Content: Indexes + Chart side by side on desktop */}
-      <div className="flex flex-col">
-        {/* Top Row: Indexes list + Chart (side by side on desktop) */}
-        <div className="flex flex-col lg:flex-row">
-          {/* Left Panel - Index List (compact on desktop) */}
-          <div className="lg:w-[220px] shrink-0 border-b lg:border-b-0 lg:border-r border-border/50 bg-muted/10">
-            {currentIndices.map(item => (
-              <button
-                key={item.symbol}
-                onClick={() => setSelectedIndex(item.symbol)}
-                className={cn(
-                  'w-full flex items-center gap-2 px-3 py-2.5 text-left transition-all',
-                  selectedIndex === item.symbol 
-                    ? 'bg-primary/10 border-l-2 border-l-primary' 
-                    : 'border-l-2 border-l-transparent hover:bg-muted/30'
-                )}
-              >
-                <div 
-                  className={cn('w-1 h-8 rounded-full shrink-0', item.color)}
-                />
-                <div className="flex-1 min-w-0">
-                  <div className="text-xs font-semibold text-foreground truncate">
-                    {item.name}
+      {/* Main Content: Indexes + Chart + News all in one row on desktop */}
+      <div className="flex flex-col lg:flex-row lg:divide-x divide-border/50">
+        {/* Left Panel - Index List */}
+        <div className="lg:w-[180px] shrink-0 border-b lg:border-b-0 border-border/50 bg-muted/10">
+          {currentIndices.map(item => (
+            <button
+              key={item.symbol}
+              onClick={() => setSelectedIndex(item.symbol)}
+              className={cn(
+                'w-full flex items-center gap-2 px-3 py-2 text-left transition-all',
+                selectedIndex === item.symbol 
+                  ? 'bg-primary/10 border-l-2 border-l-primary' 
+                  : 'border-l-2 border-l-transparent hover:bg-muted/30'
+              )}
+            >
+              <div className={cn('w-1 h-6 rounded-full shrink-0', item.color)} />
+              <div className="flex-1 min-w-0">
+                <div className="text-[11px] font-semibold text-foreground truncate">
+                  {item.name}
+                </div>
+                {isLoadingData ? (
+                  <Skeleton className="h-3 w-12 mt-0.5" />
+                ) : (
+                  <div className="text-[10px] text-muted-foreground tabular-nums">
+                    {formatValue(item.value)}
                   </div>
-                  {isLoadingData ? (
-                    <Skeleton className="h-3 w-14 mt-0.5" />
-                  ) : (
-                    <div className="text-[11px] text-muted-foreground tabular-nums">
-                      {formatValue(item.value)}
-                    </div>
-                  )}
-                </div>
-                <div className="text-right shrink-0">
-                  {isLoadingData ? (
-                    <Skeleton className="h-4 w-12" />
-                  ) : (
-                    <>
-                      <div className={cn(
-                        'text-xs font-bold tabular-nums',
-                        item.changePercent >= 0 ? 'text-emerald-400' : 'text-red-400'
-                      )}>
-                        {formatPercent(item.changePercent)}
-                      </div>
-                      <div className={cn(
-                        'text-[9px] font-medium tabular-nums',
-                        item.change >= 0 ? 'text-emerald-400/70' : 'text-red-400/70'
-                      )}>
-                        {formatChange(item.change)}
-                      </div>
-                    </>
-                  )}
-                </div>
-              </button>
-            ))}
-          </div>
-
-          {/* Center Panel - Chart with Price Scale (larger on desktop) */}
-          <div className="flex-1 p-4 min-w-0 flex flex-col justify-center items-center bg-gradient-to-br from-transparent to-muted/10">
-            {/* Selected Index Info */}
-            {selectedIndexData && (
-              <div className="text-center mb-2">
-                <span className="text-xs font-medium text-muted-foreground">{selectedIndexData.name}</span>
-                <div className="flex items-center justify-center gap-2 mt-0.5">
-                  <span className="text-xl font-bold tabular-nums">{formatValue(selectedIndexData.value)}</span>
-                  <span className={cn(
-                    'text-xs font-semibold px-1.5 py-0.5 rounded',
-                    selectedIndexData.changePercent >= 0 
-                      ? 'text-emerald-400 bg-emerald-500/10' 
-                      : 'text-red-400 bg-red-500/10'
+                )}
+              </div>
+              <div className="text-right shrink-0">
+                {isLoadingData ? (
+                  <Skeleton className="h-4 w-10" />
+                ) : (
+                  <div className={cn(
+                    'text-[10px] font-bold tabular-nums',
+                    item.changePercent >= 0 ? 'text-emerald-400' : 'text-red-400'
                   )}>
-                    {formatPercent(selectedIndexData.changePercent)}
-                  </span>
-                </div>
+                    {formatPercent(item.changePercent)}
+                  </div>
+                )}
+              </div>
+            </button>
+          ))}
+        </div>
+
+        {/* Center Panel - Chart */}
+        <div className="flex-1 p-3 min-w-0 flex flex-col justify-center items-center bg-gradient-to-br from-transparent to-muted/10 border-b lg:border-b-0 border-border/50">
+          {/* Selected Index Info */}
+          {selectedIndexData && (
+            <div className="text-center mb-1">
+              <span className="text-[10px] font-medium text-muted-foreground">{selectedIndexData.name}</span>
+              <div className="flex items-center justify-center gap-2">
+                <span className="text-lg font-bold tabular-nums">{formatValue(selectedIndexData.value)}</span>
+                <span className={cn(
+                  'text-[10px] font-semibold px-1.5 py-0.5 rounded',
+                  selectedIndexData.changePercent >= 0 
+                    ? 'text-emerald-400 bg-emerald-500/10' 
+                    : 'text-red-400 bg-red-500/10'
+                )}>
+                  {formatPercent(selectedIndexData.changePercent)}
+                </span>
+              </div>
+            </div>
+          )}
+          
+          <div className="h-[100px] w-full max-w-[400px]">
+            {sparklineLoading ? (
+              <div className="w-full h-full flex items-center justify-center">
+                <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+              </div>
+            ) : sparklineData && sparklineData.length > 0 && selectedIndexData ? (
+              <MiniSparkline 
+                data={sparklineData}
+                height={100} 
+                width={400}
+                isPositive={selectedIndexData.changePercent >= 0}
+                showPriceScale={true}
+              />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center text-[10px] text-muted-foreground bg-muted/10 rounded-lg">
+                No chart data
               </div>
             )}
-            
-            <div className="h-[120px] w-full max-w-[500px]">
-              {sparklineLoading ? (
-                <div className="w-full h-full flex items-center justify-center">
-                  <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-                </div>
-              ) : sparklineData && sparklineData.length > 0 && selectedIndexData ? (
-                <MiniSparkline 
-                  data={sparklineData}
-                  height={120} 
-                  width={500}
-                  isPositive={selectedIndexData.changePercent >= 0}
-                  showPriceScale={true}
-                />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center text-xs text-muted-foreground bg-muted/10 rounded-lg">
-                  No chart data available
-                </div>
-              )}
-            </div>
           </div>
         </div>
 
-        {/* Bottom Row: Latest News (full width) */}
-        <div className="border-t border-border/50 bg-muted/10">
-          <div className="flex items-center justify-between px-4 py-2 border-b border-border/50">
-            <span className="text-xs font-semibold text-foreground">Latest News</span>
+        {/* Right Panel - Latest News */}
+        <div className="lg:w-[280px] shrink-0 bg-muted/10">
+          <div className="flex items-center justify-between px-3 py-2 border-b border-border/50">
+            <span className="text-[11px] font-semibold text-foreground">Latest News</span>
             <button 
               onClick={() => navigate('/market-intel')}
-              className="text-[10px] text-primary hover:underline flex items-center gap-0.5"
+              className="text-[9px] text-primary hover:underline flex items-center gap-0.5"
             >
               See All <ChevronRight className="h-3 w-3" />
             </button>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 divide-y md:divide-y-0 divide-border/30">
+          <div className="max-h-[160px] overflow-y-auto">
             {headlinesLoading ? (
-              Array.from({ length: 5 }).map((_, idx) => (
-                <div key={idx} className="px-4 py-2 border-r border-border/30 last:border-r-0">
-                  <Skeleton className="h-4 w-full" />
+              Array.from({ length: 4 }).map((_, idx) => (
+                <div key={idx} className="px-3 py-2 border-b border-border/30 last:border-b-0">
+                  <Skeleton className="h-3 w-full" />
                 </div>
               ))
             ) : headlines && headlines.length > 0 ? (
-              headlines.map((news) => (
+              headlines.slice(0, 5).map((news) => (
                 <button
                   key={news.id}
-                  className="w-full flex items-start gap-2 px-3 py-2 text-left hover:bg-muted/30 transition-colors group border-r border-border/30 last:border-r-0"
+                  className="w-full flex items-start gap-2 px-3 py-2 text-left hover:bg-muted/30 transition-colors group border-b border-border/30 last:border-b-0"
                 >
-                  <span className="text-[9px] text-primary font-mono shrink-0 pt-0.5">
+                  <span className="text-[8px] text-primary font-mono shrink-0 pt-0.5">
                     {news.time}
                   </span>
                   <span className="text-[10px] text-muted-foreground group-hover:text-foreground transition-colors line-clamp-2">
@@ -337,7 +319,7 @@ export function MarketOverviewDashboard() {
                 </button>
               ))
             ) : (
-              <div className="col-span-full py-4 text-center text-xs text-muted-foreground">
+              <div className="py-4 text-center text-[10px] text-muted-foreground">
                 No recent news
               </div>
             )}
