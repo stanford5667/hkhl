@@ -588,21 +588,20 @@ export function StrategyBacktester({ ticker, companyName }: StrategyBacktesterPr
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-xs">Take Profit %</Label>
-                  <Select 
-                    value={takeProfit?.toString() || 'none'} 
-                    onValueChange={(v) => setTakeProfit(v === 'none' ? null : Number(v))}
-                  >
-                    <SelectTrigger className="h-9">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">None</SelectItem>
-                      <SelectItem value="10">+10%</SelectItem>
-                      <SelectItem value="20">+20%</SelectItem>
-                      <SelectItem value="30">+30%</SelectItem>
-                    </SelectContent>
-                  </Select>
+                <Label className="text-xs">Take Profit %</Label>
+                  <div className="flex items-center gap-2">
+                    <Slider
+                      value={[takeProfit ?? 0]}
+                      onValueChange={([value]) => setTakeProfit(value === 0 ? null : value)}
+                      min={0}
+                      max={100}
+                      step={1}
+                      className="flex-1"
+                    />
+                    <span className="text-sm w-12 text-right font-mono">
+                      {takeProfit === null || takeProfit === 0 ? 'Off' : `+${takeProfit}%`}
+                    </span>
+                  </div>
                 </div>
                 <div className="flex items-end">
                   <Button 
