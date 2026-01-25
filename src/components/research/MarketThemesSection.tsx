@@ -23,6 +23,7 @@ interface ThemeTicker {
   name: string;
   change: number;
   sentiment: 'bullish' | 'bearish' | 'neutral';
+  themeRelevance?: string;
 }
 
 interface ThemeNews {
@@ -56,12 +57,12 @@ const MARKET_THEMES: MarketTheme[] = [
     icon: Sparkles,
     category: 'Technology',
     tickers: [
-      { symbol: 'NVDA', name: 'NVIDIA Corporation', change: 4.2, sentiment: 'bullish' },
-      { symbol: 'VRT', name: 'Vertiv Holdings', change: 8.1, sentiment: 'bullish' },
-      { symbol: 'ETN', name: 'Eaton Corporation', change: 3.5, sentiment: 'bullish' },
-      { symbol: 'DELL', name: 'Dell Technologies', change: 2.1, sentiment: 'neutral' },
-      { symbol: 'SMCI', name: 'Super Micro Computer', change: -1.2, sentiment: 'bearish' },
-      { symbol: 'AMD', name: 'Advanced Micro Devices', change: 3.8, sentiment: 'bullish' },
+      { symbol: 'NVDA', name: 'NVIDIA Corporation', change: 4.2, sentiment: 'bullish', themeRelevance: 'Dominant GPU supplier powering AI training and inference workloads across all major hyperscalers.' },
+      { symbol: 'VRT', name: 'Vertiv Holdings', change: 8.1, sentiment: 'bullish', themeRelevance: 'Leading provider of liquid cooling and power management solutions for high-density AI data centers.' },
+      { symbol: 'ETN', name: 'Eaton Corporation', change: 3.5, sentiment: 'bullish', themeRelevance: 'Critical electrical infrastructure supplier for data center power distribution and backup systems.' },
+      { symbol: 'DELL', name: 'Dell Technologies', change: 2.1, sentiment: 'neutral', themeRelevance: 'Major server manufacturer benefiting from AI server demand, though facing margin pressure.' },
+      { symbol: 'SMCI', name: 'Super Micro Computer', change: -1.2, sentiment: 'bearish', themeRelevance: 'High-performance server specialist, though recent accounting concerns weigh on sentiment.' },
+      { symbol: 'AMD', name: 'Advanced Micro Devices', change: 3.8, sentiment: 'bullish', themeRelevance: 'Growing challenger in AI accelerators with MI300 series, gaining enterprise adoption.' },
     ],
     headlines: [
       { title: 'NVIDIA announces next-gen Blackwell architecture with 4x performance gains', source: 'Reuters', time: '2h ago' },
@@ -80,11 +81,11 @@ const MARKET_THEMES: MarketTheme[] = [
     icon: Leaf,
     category: 'Energy',
     tickers: [
-      { symbol: 'ENPH', name: 'Enphase Energy', change: 5.3, sentiment: 'bullish' },
-      { symbol: 'FSLR', name: 'First Solar', change: 3.9, sentiment: 'bullish' },
-      { symbol: 'NEE', name: 'NextEra Energy', change: 1.2, sentiment: 'neutral' },
-      { symbol: 'PLUG', name: 'Plug Power', change: -2.4, sentiment: 'bearish' },
-      { symbol: 'RUN', name: 'Sunrun Inc', change: 4.1, sentiment: 'bullish' },
+      { symbol: 'ENPH', name: 'Enphase Energy', change: 5.3, sentiment: 'bullish', themeRelevance: 'Market leader in residential solar microinverters with strong recurring software revenue.' },
+      { symbol: 'FSLR', name: 'First Solar', change: 3.9, sentiment: 'bullish', themeRelevance: 'Only US-based utility-scale solar manufacturer, benefiting from IRA domestic content provisions.' },
+      { symbol: 'NEE', name: 'NextEra Energy', change: 1.2, sentiment: 'neutral', themeRelevance: 'Largest renewable energy generator in North America with diversified wind and solar portfolio.' },
+      { symbol: 'PLUG', name: 'Plug Power', change: -2.4, sentiment: 'bearish', themeRelevance: 'Green hydrogen fuel cell provider facing profitability challenges despite growing demand.' },
+      { symbol: 'RUN', name: 'Sunrun Inc', change: 4.1, sentiment: 'bullish', themeRelevance: 'Leading residential solar installer with expanding battery storage and virtual power plant capabilities.' },
     ],
     headlines: [
       { title: 'US solar installations hit record high in Q4 2025', source: 'CNBC', time: '3h ago' },
@@ -102,10 +103,10 @@ const MARKET_THEMES: MarketTheme[] = [
     icon: TrendingUp,
     category: 'Macro',
     tickers: [
-      { symbol: 'TLT', name: 'iShares 20+ Year Treasury', change: 1.8, sentiment: 'bullish' },
-      { symbol: 'XLF', name: 'Financial Select Sector', change: 2.1, sentiment: 'bullish' },
-      { symbol: 'KRE', name: 'SPDR Regional Banking', change: 3.4, sentiment: 'bullish' },
-      { symbol: 'JPM', name: 'JPMorgan Chase', change: 1.1, sentiment: 'neutral' },
+      { symbol: 'TLT', name: 'iShares 20+ Year Treasury', change: 1.8, sentiment: 'bullish', themeRelevance: 'Long-duration bond ETF that benefits most from falling interest rates due to high duration sensitivity.' },
+      { symbol: 'XLF', name: 'Financial Select Sector', change: 2.1, sentiment: 'bullish', themeRelevance: 'Broad financial sector exposure, positioned for improved loan demand as rates normalize.' },
+      { symbol: 'KRE', name: 'SPDR Regional Banking', change: 3.4, sentiment: 'bullish', themeRelevance: 'Regional banks see deposit stabilization and improved net interest margins with rate cuts.' },
+      { symbol: 'JPM', name: 'JPMorgan Chase', change: 1.1, sentiment: 'neutral', themeRelevance: 'Diversified banking leader with strong trading revenue partially offsetting NIM compression.' },
     ],
     headlines: [
       { title: 'Fed signals openness to rate cuts if inflation continues cooling', source: 'WSJ', time: '1h ago' },
@@ -123,11 +124,11 @@ const MARKET_THEMES: MarketTheme[] = [
     icon: Shield,
     category: 'Industrials',
     tickers: [
-      { symbol: 'LMT', name: 'Lockheed Martin', change: 2.8, sentiment: 'bullish' },
-      { symbol: 'RTX', name: 'RTX Corporation', change: 1.9, sentiment: 'bullish' },
-      { symbol: 'NOC', name: 'Northrop Grumman', change: 2.2, sentiment: 'bullish' },
-      { symbol: 'PLTR', name: 'Palantir Technologies', change: 4.5, sentiment: 'bullish' },
-      { symbol: 'GD', name: 'General Dynamics', change: 1.5, sentiment: 'neutral' },
+      { symbol: 'LMT', name: 'Lockheed Martin', change: 2.8, sentiment: 'bullish', themeRelevance: 'F-35 program leader with strong backlog and growing hypersonics development contracts.' },
+      { symbol: 'RTX', name: 'RTX Corporation', change: 1.9, sentiment: 'bullish', themeRelevance: 'Diversified defense and aerospace with Patriot missile systems seeing unprecedented demand.' },
+      { symbol: 'NOC', name: 'Northrop Grumman', change: 2.2, sentiment: 'bullish', themeRelevance: 'B-21 bomber and nuclear modernization programs driving multi-decade revenue visibility.' },
+      { symbol: 'PLTR', name: 'Palantir Technologies', change: 4.5, sentiment: 'bullish', themeRelevance: 'AI-powered defense analytics platform with expanding DOD adoption and AIP momentum.' },
+      { symbol: 'GD', name: 'General Dynamics', change: 1.5, sentiment: 'neutral', themeRelevance: 'Gulfstream business jets offset defense segment, nuclear submarine backlog remains strong.' },
     ],
     headlines: [
       { title: 'Pentagon awards $15B in new defense contracts', source: 'Defense News', time: '2h ago' },
@@ -145,10 +146,10 @@ const MARKET_THEMES: MarketTheme[] = [
     icon: Pill,
     category: 'Healthcare',
     tickers: [
-      { symbol: 'LLY', name: 'Eli Lilly', change: 6.2, sentiment: 'bullish' },
-      { symbol: 'NVO', name: 'Novo Nordisk', change: 4.8, sentiment: 'bullish' },
-      { symbol: 'VKTX', name: 'Viking Therapeutics', change: 12.3, sentiment: 'bullish' },
-      { symbol: 'AMGN', name: 'Amgen', change: 2.1, sentiment: 'neutral' },
+      { symbol: 'LLY', name: 'Eli Lilly', change: 6.2, sentiment: 'bullish', themeRelevance: 'Mounjaro/Zepbound leader with superior efficacy data and rapidly expanding manufacturing capacity.' },
+      { symbol: 'NVO', name: 'Novo Nordisk', change: 4.8, sentiment: 'bullish', themeRelevance: 'First-mover with Wegovy/Ozempic, dominating global GLP-1 market with proven cardiovascular benefits.' },
+      { symbol: 'VKTX', name: 'Viking Therapeutics', change: 12.3, sentiment: 'bullish', themeRelevance: 'Promising Phase 2 oral GLP-1 candidate with potential best-in-class efficacy profile.' },
+      { symbol: 'AMGN', name: 'Amgen', change: 2.1, sentiment: 'neutral', themeRelevance: 'Late entrant developing MariTide with potential for monthly dosing convenience advantage.' },
     ],
     headlines: [
       { title: 'Eli Lilly weight loss drug shows 25% reduction in cardiovascular events', source: 'NEJM', time: '1h ago' },
@@ -166,11 +167,11 @@ const MARKET_THEMES: MarketTheme[] = [
     icon: Car,
     category: 'Automotive',
     tickers: [
-      { symbol: 'TSLA', name: 'Tesla Inc', change: 3.1, sentiment: 'bullish' },
-      { symbol: 'ALB', name: 'Albemarle Corporation', change: -2.5, sentiment: 'bearish' },
-      { symbol: 'RIVN', name: 'Rivian Automotive', change: 5.2, sentiment: 'bullish' },
-      { symbol: 'QS', name: 'QuantumScape', change: 8.4, sentiment: 'bullish' },
-      { symbol: 'CHPT', name: 'ChargePoint Holdings', change: 2.1, sentiment: 'neutral' },
+      { symbol: 'TSLA', name: 'Tesla Inc', change: 3.1, sentiment: 'bullish', themeRelevance: 'Vertically integrated EV leader with in-house battery production and massive charging network.' },
+      { symbol: 'ALB', name: 'Albemarle Corporation', change: -2.5, sentiment: 'bearish', themeRelevance: 'Leading lithium producer facing price pressure from oversupply despite long-term demand growth.' },
+      { symbol: 'RIVN', name: 'Rivian Automotive', change: 5.2, sentiment: 'bullish', themeRelevance: 'Premium EV truck maker with Amazon delivery van partnership providing production visibility.' },
+      { symbol: 'QS', name: 'QuantumScape', change: 8.4, sentiment: 'bullish', themeRelevance: 'Solid-state battery pioneer with VW partnership, targeting superior energy density and safety.' },
+      { symbol: 'CHPT', name: 'ChargePoint Holdings', change: 2.1, sentiment: 'neutral', themeRelevance: 'Largest EV charging network operator in North America with growing commercial fleet focus.' },
     ],
     headlines: [
       { title: 'Tesla battery day reveals 30% cost reduction pathway', source: 'Electrek', time: '2h ago' },
@@ -188,11 +189,11 @@ const MARKET_THEMES: MarketTheme[] = [
     icon: Cloud,
     category: 'Technology',
     tickers: [
-      { symbol: 'MSFT', name: 'Microsoft', change: 2.3, sentiment: 'bullish' },
-      { symbol: 'AMZN', name: 'Amazon', change: 1.8, sentiment: 'bullish' },
-      { symbol: 'GOOGL', name: 'Alphabet', change: 1.5, sentiment: 'neutral' },
-      { symbol: 'SNOW', name: 'Snowflake', change: 4.2, sentiment: 'bullish' },
-      { symbol: 'NET', name: 'Cloudflare', change: 3.8, sentiment: 'bullish' },
+      { symbol: 'MSFT', name: 'Microsoft', change: 2.3, sentiment: 'bullish', themeRelevance: 'Azure cloud platform gaining enterprise market share with strong AI services integration.' },
+      { symbol: 'AMZN', name: 'Amazon', change: 1.8, sentiment: 'bullish', themeRelevance: 'AWS remains cloud market leader with expanding suite of enterprise services and custom chips.' },
+      { symbol: 'GOOGL', name: 'Alphabet', change: 1.5, sentiment: 'neutral', themeRelevance: 'Google Cloud gaining ground in data analytics and AI workloads, improving profitability.' },
+      { symbol: 'SNOW', name: 'Snowflake', change: 4.2, sentiment: 'bullish', themeRelevance: 'Cloud data platform enabling enterprises to unify and analyze data across multiple clouds.' },
+      { symbol: 'NET', name: 'Cloudflare', change: 3.8, sentiment: 'bullish', themeRelevance: 'Edge computing leader with expanding security and developer platform capabilities.' },
     ],
     headlines: [
       { title: 'Microsoft Azure revenue grows 29% as enterprise adoption accelerates', source: 'CNBC', time: '3h ago' },
@@ -210,11 +211,11 @@ const MARKET_THEMES: MarketTheme[] = [
     icon: Lock,
     category: 'Technology',
     tickers: [
-      { symbol: 'CRWD', name: 'CrowdStrike', change: 5.4, sentiment: 'bullish' },
-      { symbol: 'PANW', name: 'Palo Alto Networks', change: 3.9, sentiment: 'bullish' },
-      { symbol: 'ZS', name: 'Zscaler', change: 4.1, sentiment: 'bullish' },
-      { symbol: 'FTNT', name: 'Fortinet', change: 2.2, sentiment: 'neutral' },
-      { symbol: 'OKTA', name: 'Okta', change: 3.5, sentiment: 'bullish' },
+      { symbol: 'CRWD', name: 'CrowdStrike', change: 5.4, sentiment: 'bullish', themeRelevance: 'Leading cloud-native endpoint security platform with AI-powered threat detection.' },
+      { symbol: 'PANW', name: 'Palo Alto Networks', change: 3.9, sentiment: 'bullish', themeRelevance: 'Comprehensive cybersecurity platform consolidating point solutions for enterprises.' },
+      { symbol: 'ZS', name: 'Zscaler', change: 4.1, sentiment: 'bullish', themeRelevance: 'Pioneer in zero-trust network access, replacing legacy VPN and firewall architectures.' },
+      { symbol: 'FTNT', name: 'Fortinet', change: 2.2, sentiment: 'neutral', themeRelevance: 'Integrated security appliance leader with strong mid-market and SD-WAN presence.' },
+      { symbol: 'OKTA', name: 'Okta', change: 3.5, sentiment: 'bullish', themeRelevance: 'Identity and access management leader enabling secure zero-trust authentication.' },
     ],
     headlines: [
       { title: 'CrowdStrike reports 40% growth in enterprise subscriptions', source: 'Bloomberg', time: '2h ago' },
@@ -232,10 +233,10 @@ const MARKET_THEMES: MarketTheme[] = [
     icon: Factory,
     category: 'Industrials',
     tickers: [
-      { symbol: 'ROK', name: 'Rockwell Automation', change: 3.2, sentiment: 'bullish' },
-      { symbol: 'EMR', name: 'Emerson Electric', change: 2.1, sentiment: 'neutral' },
-      { symbol: 'CAT', name: 'Caterpillar', change: 1.8, sentiment: 'neutral' },
-      { symbol: 'FANUY', name: 'Fanuc Corporation', change: 4.5, sentiment: 'bullish' },
+      { symbol: 'ROK', name: 'Rockwell Automation', change: 3.2, sentiment: 'bullish', themeRelevance: 'Industrial automation leader benefiting from reshoring manufacturing investment.' },
+      { symbol: 'EMR', name: 'Emerson Electric', change: 2.1, sentiment: 'neutral', themeRelevance: 'Automation and software provider serving industrial manufacturing modernization.' },
+      { symbol: 'CAT', name: 'Caterpillar', change: 1.8, sentiment: 'neutral', themeRelevance: 'Heavy equipment manufacturer supporting manufacturing facility construction.' },
+      { symbol: 'FANUY', name: 'Fanuc Corporation', change: 4.5, sentiment: 'bullish', themeRelevance: 'Global robotics leader with expanding presence in US manufacturing automation.' },
     ],
     headlines: [
       { title: 'CHIPS Act drives $200B in semiconductor fab investments', source: 'WSJ', time: '3h ago' },
@@ -253,10 +254,10 @@ const MARKET_THEMES: MarketTheme[] = [
     icon: Atom,
     category: 'Technology',
     tickers: [
-      { symbol: 'IBM', name: 'IBM', change: 2.8, sentiment: 'bullish' },
-      { symbol: 'GOOGL', name: 'Alphabet', change: 1.9, sentiment: 'neutral' },
-      { symbol: 'IONQ', name: 'IonQ', change: 15.2, sentiment: 'bullish' },
-      { symbol: 'RGTI', name: 'Rigetti Computing', change: 12.1, sentiment: 'bullish' },
+      { symbol: 'IBM', name: 'IBM', change: 2.8, sentiment: 'bullish', themeRelevance: 'Quantum computing leader with most qubits deployed and strong enterprise partnerships.' },
+      { symbol: 'GOOGL', name: 'Alphabet', change: 1.9, sentiment: 'neutral', themeRelevance: 'Sycamore quantum processor achieved quantum supremacy, advancing error correction.' },
+      { symbol: 'IONQ', name: 'IonQ', change: 15.2, sentiment: 'bullish', themeRelevance: 'Trapped-ion quantum computing pioneer with cloud-accessible quantum systems.' },
+      { symbol: 'RGTI', name: 'Rigetti Computing', change: 12.1, sentiment: 'bullish', themeRelevance: 'Full-stack quantum computing company with hybrid classical-quantum approach.' },
     ],
     headlines: [
       { title: 'Google achieves quantum error correction breakthrough', source: 'Nature', time: '1h ago' },
@@ -274,10 +275,10 @@ const MARKET_THEMES: MarketTheme[] = [
     icon: Dna,
     category: 'Healthcare',
     tickers: [
-      { symbol: 'RXRX', name: 'Recursion Pharmaceuticals', change: 8.4, sentiment: 'bullish' },
-      { symbol: 'EXAI', name: 'Exscientia', change: 6.2, sentiment: 'bullish' },
-      { symbol: 'DNA', name: 'Ginkgo Bioworks', change: 5.1, sentiment: 'bullish' },
-      { symbol: 'SDGR', name: 'Schrodinger', change: 4.3, sentiment: 'bullish' },
+      { symbol: 'RXRX', name: 'Recursion Pharmaceuticals', change: 8.4, sentiment: 'bullish', themeRelevance: 'AI-native drug discovery platform using machine learning and robotics for rapid compound screening.' },
+      { symbol: 'EXAI', name: 'Exscientia', change: 6.2, sentiment: 'bullish', themeRelevance: 'Pioneer in AI-designed drugs with multiple candidates in clinical trials.' },
+      { symbol: 'DNA', name: 'Ginkgo Bioworks', change: 5.1, sentiment: 'bullish', themeRelevance: 'Synthetic biology platform enabling engineered cells for pharmaceutical production.' },
+      { symbol: 'SDGR', name: 'Schrodinger', change: 4.3, sentiment: 'bullish', themeRelevance: 'Physics-based molecular simulation software used by major pharma for drug design.' },
     ],
     headlines: [
       { title: 'AI-designed drug enters Phase 3 trials in record time', source: 'STAT News', time: '2h ago' },
@@ -295,10 +296,10 @@ const MARKET_THEMES: MarketTheme[] = [
     icon: Globe,
     category: 'Aerospace',
     tickers: [
-      { symbol: 'RKLB', name: 'Rocket Lab', change: 9.2, sentiment: 'bullish' },
-      { symbol: 'ASTS', name: 'AST SpaceMobile', change: 14.5, sentiment: 'bullish' },
-      { symbol: 'SPCE', name: 'Virgin Galactic', change: 3.2, sentiment: 'neutral' },
-      { symbol: 'LUNR', name: 'Intuitive Machines', change: 11.3, sentiment: 'bullish' },
+      { symbol: 'RKLB', name: 'Rocket Lab', change: 9.2, sentiment: 'bullish', themeRelevance: 'Leading small launch provider expanding into satellite manufacturing and space systems.' },
+      { symbol: 'ASTS', name: 'AST SpaceMobile', change: 14.5, sentiment: 'bullish', themeRelevance: 'Building first space-based cellular broadband network for direct-to-smartphone connectivity.' },
+      { symbol: 'SPCE', name: 'Virgin Galactic', change: 3.2, sentiment: 'neutral', themeRelevance: 'Space tourism pioneer with suborbital flights, facing execution challenges.' },
+      { symbol: 'LUNR', name: 'Intuitive Machines', change: 11.3, sentiment: 'bullish', themeRelevance: 'NASA contractor for lunar lander missions, first private company to land on Moon.' },
     ],
     headlines: [
       { title: 'SpaceX Starship achieves full orbital flight success', source: 'SpaceNews', time: '1h ago' },
@@ -316,10 +317,10 @@ const MARKET_THEMES: MarketTheme[] = [
     icon: Zap,
     category: 'Energy',
     tickers: [
-      { symbol: 'CCJ', name: 'Cameco Corporation', change: 6.8, sentiment: 'bullish' },
-      { symbol: 'LEU', name: 'Centrus Energy', change: 12.4, sentiment: 'bullish' },
-      { symbol: 'NNE', name: 'Nano Nuclear Energy', change: 18.2, sentiment: 'bullish' },
-      { symbol: 'CEG', name: 'Constellation Energy', change: 4.5, sentiment: 'bullish' },
+      { symbol: 'CCJ', name: 'Cameco Corporation', change: 6.8, sentiment: 'bullish', themeRelevance: 'World\'s largest publicly traded uranium producer with long-term supply contracts.' },
+      { symbol: 'LEU', name: 'Centrus Energy', change: 12.4, sentiment: 'bullish', themeRelevance: 'Only US-licensed producer of high-assay low-enriched uranium for advanced reactors.' },
+      { symbol: 'NNE', name: 'Nano Nuclear Energy', change: 18.2, sentiment: 'bullish', themeRelevance: 'Developing portable micro-reactors for remote power and disaster response.' },
+      { symbol: 'CEG', name: 'Constellation Energy', change: 4.5, sentiment: 'bullish', themeRelevance: 'Largest US nuclear fleet operator with tech company power purchase agreements.' },
     ],
     headlines: [
       { title: 'Microsoft signs 20-year nuclear power agreement for AI data centers', source: 'Bloomberg', time: '1h ago' },
@@ -337,10 +338,10 @@ const MARKET_THEMES: MarketTheme[] = [
     icon: Building2,
     category: 'Emerging Markets',
     tickers: [
-      { symbol: 'INDA', name: 'iShares MSCI India', change: 2.3, sentiment: 'bullish' },
-      { symbol: 'INFY', name: 'Infosys', change: 1.8, sentiment: 'neutral' },
-      { symbol: 'HDB', name: 'HDFC Bank', change: 3.1, sentiment: 'bullish' },
-      { symbol: 'WIT', name: 'Wipro Limited', change: 2.5, sentiment: 'bullish' },
+      { symbol: 'INDA', name: 'iShares MSCI India', change: 2.3, sentiment: 'bullish', themeRelevance: 'Broad India equity exposure capturing the full economic growth story.' },
+      { symbol: 'INFY', name: 'Infosys', change: 1.8, sentiment: 'neutral', themeRelevance: 'IT services leader benefiting from global digital transformation spending.' },
+      { symbol: 'HDB', name: 'HDFC Bank', change: 3.1, sentiment: 'bullish', themeRelevance: 'Premier Indian bank with strong retail franchise and credit quality.' },
+      { symbol: 'WIT', name: 'Wipro Limited', change: 2.5, sentiment: 'bullish', themeRelevance: 'Global IT consulting and services firm with expanding AI capabilities.' },
     ],
     headlines: [
       { title: 'India GDP growth accelerates to 7.5% in Q4', source: 'Bloomberg', time: '2h ago' },
@@ -358,10 +359,10 @@ const MARKET_THEMES: MarketTheme[] = [
     icon: Heart,
     category: 'Healthcare',
     tickers: [
-      { symbol: 'SENS', name: 'SenesTech', change: 8.9, sentiment: 'bullish' },
-      { symbol: 'AGEN', name: 'Agenus', change: 5.2, sentiment: 'bullish' },
-      { symbol: 'LIFE', name: 'aTyr Pharma', change: 4.1, sentiment: 'neutral' },
-      { symbol: 'CORT', name: 'Corcept Therapeutics', change: 3.8, sentiment: 'bullish' },
+      { symbol: 'SENS', name: 'SenesTech', change: 8.9, sentiment: 'bullish', themeRelevance: 'Biotech developing novel approaches to cellular senescence and aging intervention.' },
+      { symbol: 'AGEN', name: 'Agenus', change: 5.2, sentiment: 'bullish', themeRelevance: 'Immuno-oncology company with aging-related disease applications in pipeline.' },
+      { symbol: 'LIFE', name: 'aTyr Pharma', change: 4.1, sentiment: 'neutral', themeRelevance: 'Developing therapeutics targeting immunological diseases with aging implications.' },
+      { symbol: 'CORT', name: 'Corcept Therapeutics', change: 3.8, sentiment: 'bullish', themeRelevance: 'Cortisol modulator with applications in metabolic and age-related conditions.' },
     ],
     headlines: [
       { title: 'Altos Labs raises $3B for cellular reprogramming research', source: 'STAT News', time: '3h ago' },
@@ -379,10 +380,10 @@ const MARKET_THEMES: MarketTheme[] = [
     icon: CreditCard,
     category: 'Financials',
     tickers: [
-      { symbol: 'AFRM', name: 'Affirm Holdings', change: 7.2, sentiment: 'bullish' },
-      { symbol: 'BILL', name: 'Bill.com Holdings', change: 4.5, sentiment: 'bullish' },
-      { symbol: 'SQ', name: 'Block Inc', change: 3.8, sentiment: 'bullish' },
-      { symbol: 'PYPL', name: 'PayPal Holdings', change: 1.2, sentiment: 'neutral' },
+      { symbol: 'AFRM', name: 'Affirm Holdings', change: 7.2, sentiment: 'bullish', themeRelevance: 'Buy-now-pay-later leader with expanding merchant network and improving unit economics.' },
+      { symbol: 'BILL', name: 'Bill.com Holdings', change: 4.5, sentiment: 'bullish', themeRelevance: 'B2B payments automation platform serving SMBs with AP/AR solutions.' },
+      { symbol: 'SQ', name: 'Block Inc', change: 3.8, sentiment: 'bullish', themeRelevance: 'Integrated payments ecosystem with Square merchant services and Cash App consumer platform.' },
+      { symbol: 'PYPL', name: 'PayPal Holdings', change: 1.2, sentiment: 'neutral', themeRelevance: 'Digital payments incumbent facing competition but executing turnaround strategy.' },
     ],
     headlines: [
       { title: 'Embedded finance market to reach $7T by 2030', source: 'McKinsey', time: '2h ago' },
@@ -400,10 +401,10 @@ const MARKET_THEMES: MarketTheme[] = [
     icon: Users,
     category: 'Technology',
     tickers: [
-      { symbol: 'TSLA', name: 'Tesla (Optimus)', change: 5.2, sentiment: 'bullish' },
-      { symbol: 'ISRG', name: 'Intuitive Surgical', change: 3.1, sentiment: 'bullish' },
-      { symbol: 'GRAB', name: 'Symbotic', change: 8.4, sentiment: 'bullish' },
-      { symbol: 'PATH', name: 'UiPath', change: 4.2, sentiment: 'bullish' },
+      { symbol: 'TSLA', name: 'Tesla (Optimus)', change: 5.2, sentiment: 'bullish', themeRelevance: 'Developing Optimus humanoid robot leveraging Tesla AI and manufacturing scale.' },
+      { symbol: 'ISRG', name: 'Intuitive Surgical', change: 3.1, sentiment: 'bullish', themeRelevance: 'Surgical robotics leader with transferable technology for humanoid manipulation.' },
+      { symbol: 'GRAB', name: 'Symbotic', change: 8.4, sentiment: 'bullish', themeRelevance: 'Warehouse automation systems with AI-powered robotic picking and sorting.' },
+      { symbol: 'PATH', name: 'UiPath', change: 4.2, sentiment: 'bullish', themeRelevance: 'RPA software platform enabling software robots to automate business processes.' },
     ],
     headlines: [
       { title: 'Tesla demonstrates Optimus robots working in factory production', source: 'Electrek', time: '1h ago' },
@@ -421,10 +422,10 @@ const MARKET_THEMES: MarketTheme[] = [
     icon: Coins,
     category: 'Crypto',
     tickers: [
-      { symbol: 'COIN', name: 'Coinbase', change: 12.5, sentiment: 'bullish' },
-      { symbol: 'MSTR', name: 'MicroStrategy', change: 15.8, sentiment: 'bullish' },
-      { symbol: 'IBIT', name: 'iShares Bitcoin Trust', change: 8.2, sentiment: 'bullish' },
-      { symbol: 'MARA', name: 'Marathon Digital', change: 9.4, sentiment: 'bullish' },
+      { symbol: 'COIN', name: 'Coinbase', change: 12.5, sentiment: 'bullish', themeRelevance: 'Leading US crypto exchange and custodian benefiting from institutional adoption.' },
+      { symbol: 'MSTR', name: 'MicroStrategy', change: 15.8, sentiment: 'bullish', themeRelevance: 'Corporate Bitcoin accumulation strategy providing leveraged crypto exposure.' },
+      { symbol: 'IBIT', name: 'iShares Bitcoin Trust', change: 8.2, sentiment: 'bullish', themeRelevance: 'BlackRock spot Bitcoin ETF with institutional-grade structure and liquidity.' },
+      { symbol: 'MARA', name: 'Marathon Digital', change: 9.4, sentiment: 'bullish', themeRelevance: 'Largest US Bitcoin miner with growing hash rate and operational efficiency.' },
     ],
     headlines: [
       { title: 'Bitcoin ETFs see $10B inflows in first month of trading', source: 'Bloomberg', time: '1h ago' },
@@ -442,10 +443,10 @@ const MARKET_THEMES: MarketTheme[] = [
     icon: Wheat,
     category: 'Agriculture',
     tickers: [
-      { symbol: 'DE', name: 'Deere & Company', change: 2.8, sentiment: 'bullish' },
-      { symbol: 'AGCO', name: 'AGCO Corporation', change: 1.9, sentiment: 'neutral' },
-      { symbol: 'FMC', name: 'FMC Corporation', change: 2.1, sentiment: 'neutral' },
-      { symbol: 'CTVA', name: 'Corteva', change: 1.5, sentiment: 'neutral' },
+      { symbol: 'DE', name: 'Deere & Company', change: 2.8, sentiment: 'bullish', themeRelevance: 'Agricultural equipment leader with autonomous tractors and precision ag technology.' },
+      { symbol: 'AGCO', name: 'AGCO Corporation', change: 1.9, sentiment: 'neutral', themeRelevance: 'Global farm equipment manufacturer with growing precision agriculture solutions.' },
+      { symbol: 'FMC', name: 'FMC Corporation', change: 2.1, sentiment: 'neutral', themeRelevance: 'Crop protection chemicals company transitioning to biologicals and precision products.' },
+      { symbol: 'CTVA', name: 'Corteva', change: 1.5, sentiment: 'neutral', themeRelevance: 'Seed and crop protection leader with gene editing and digital agriculture platforms.' },
     ],
     headlines: [
       { title: 'John Deere autonomous tractors now farming 10M acres', source: 'Farm Journal', time: '2h ago' },
@@ -463,10 +464,10 @@ const MARKET_THEMES: MarketTheme[] = [
     icon: Tv,
     category: 'Media',
     tickers: [
-      { symbol: 'NFLX', name: 'Netflix', change: 3.2, sentiment: 'bullish' },
-      { symbol: 'DIS', name: 'Walt Disney', change: -1.5, sentiment: 'bearish' },
-      { symbol: 'WBD', name: 'Warner Bros Discovery', change: 2.8, sentiment: 'neutral' },
-      { symbol: 'PARA', name: 'Paramount Global', change: 5.2, sentiment: 'bullish' },
+      { symbol: 'NFLX', name: 'Netflix', change: 3.2, sentiment: 'bullish', themeRelevance: 'Streaming leader with strong content slate and successful paid sharing monetization.' },
+      { symbol: 'DIS', name: 'Walt Disney', change: -1.5, sentiment: 'bearish', themeRelevance: 'Disney+ reaching profitability but facing cord-cutting pressure on linear networks.' },
+      { symbol: 'WBD', name: 'Warner Bros Discovery', change: 2.8, sentiment: 'neutral', themeRelevance: 'Merging Max streaming with strong content library, pursuing cost synergies.' },
+      { symbol: 'PARA', name: 'Paramount Global', change: 5.2, sentiment: 'bullish', themeRelevance: 'M&A speculation driving interest, attractive content assets for potential acquirers.' },
     ],
     headlines: [
       { title: 'Netflix adds 13M subscribers on password crackdown success', source: 'Variety', time: '2h ago' },
@@ -484,10 +485,10 @@ const MARKET_THEMES: MarketTheme[] = [
     icon: Home,
     category: 'Real Estate',
     tickers: [
-      { symbol: 'DHI', name: 'D.R. Horton', change: 2.4, sentiment: 'bullish' },
-      { symbol: 'LEN', name: 'Lennar Corporation', change: 1.9, sentiment: 'neutral' },
-      { symbol: 'INVH', name: 'Invitation Homes', change: 3.1, sentiment: 'bullish' },
-      { symbol: 'AMH', name: 'American Homes 4 Rent', change: 2.8, sentiment: 'bullish' },
+      { symbol: 'DHI', name: 'D.R. Horton', change: 2.4, sentiment: 'bullish', themeRelevance: 'Largest US homebuilder with entry-level focus addressing affordability with smaller homes.' },
+      { symbol: 'LEN', name: 'Lennar Corporation', change: 1.9, sentiment: 'neutral', themeRelevance: 'Major homebuilder pivoting to asset-light model, spinning off land holdings.' },
+      { symbol: 'INVH', name: 'Invitation Homes', change: 3.1, sentiment: 'bullish', themeRelevance: 'Largest single-family rental REIT benefiting from home purchase unaffordability.' },
+      { symbol: 'AMH', name: 'American Homes 4 Rent', change: 2.8, sentiment: 'bullish', themeRelevance: 'Build-to-rent leader with newly constructed single-family rental communities.' },
     ],
     headlines: [
       { title: 'US housing starts surge to highest level in two years', source: 'Census Bureau', time: '1h ago' },
@@ -505,10 +506,10 @@ const MARKET_THEMES: MarketTheme[] = [
     icon: Gamepad2,
     category: 'Consumer',
     tickers: [
-      { symbol: 'DKNG', name: 'DraftKings', change: 7.8, sentiment: 'bullish' },
-      { symbol: 'FLUT', name: 'Flutter Entertainment', change: 4.2, sentiment: 'bullish' },
-      { symbol: 'MGM', name: 'MGM Resorts', change: 2.9, sentiment: 'neutral' },
-      { symbol: 'PENN', name: 'Penn Entertainment', change: 5.1, sentiment: 'bullish' },
+      { symbol: 'DKNG', name: 'DraftKings', change: 7.8, sentiment: 'bullish', themeRelevance: 'Leading US sportsbook with improving unit economics and iGaming expansion.' },
+      { symbol: 'FLUT', name: 'Flutter Entertainment', change: 4.2, sentiment: 'bullish', themeRelevance: 'Global gaming leader owning FanDuel, with diversified international revenue.' },
+      { symbol: 'MGM', name: 'MGM Resorts', change: 2.9, sentiment: 'neutral', themeRelevance: 'Integrated casino operator with BetMGM online sports betting joint venture.' },
+      { symbol: 'PENN', name: 'Penn Entertainment', change: 5.1, sentiment: 'bullish', themeRelevance: 'ESPN Bet partnership providing brand advantage and customer acquisition.' },
     ],
     headlines: [
       { title: 'DraftKings achieves profitability as market matures', source: 'Bloomberg', time: '2h ago' },
@@ -526,10 +527,10 @@ const MARKET_THEMES: MarketTheme[] = [
     icon: Mountain,
     category: 'Commodities',
     tickers: [
-      { symbol: 'FCX', name: 'Freeport-McMoRan', change: 4.8, sentiment: 'bullish' },
-      { symbol: 'SCCO', name: 'Southern Copper', change: 3.9, sentiment: 'bullish' },
-      { symbol: 'TECK', name: 'Teck Resources', change: 3.2, sentiment: 'bullish' },
-      { symbol: 'RIO', name: 'Rio Tinto', change: 2.5, sentiment: 'neutral' },
+      { symbol: 'FCX', name: 'Freeport-McMoRan', change: 4.8, sentiment: 'bullish', themeRelevance: 'Largest US copper producer with world-class Grasberg mine in Indonesia.' },
+      { symbol: 'SCCO', name: 'Southern Copper', change: 3.9, sentiment: 'bullish', themeRelevance: 'Lowest-cost copper producer with largest copper reserves in the world.' },
+      { symbol: 'TECK', name: 'Teck Resources', change: 3.2, sentiment: 'bullish', themeRelevance: 'Transforming to pure-play copper company with QB2 ramp-up in Chile.' },
+      { symbol: 'RIO', name: 'Rio Tinto', change: 2.5, sentiment: 'neutral', themeRelevance: 'Diversified miner with growing copper exposure through acquisitions.' },
     ],
     headlines: [
       { title: 'Copper prices hit all-time high on supply concerns', source: 'Bloomberg', time: '1h ago' },
@@ -547,10 +548,10 @@ const MARKET_THEMES: MarketTheme[] = [
     icon: Landmark,
     category: 'Financials',
     tickers: [
-      { symbol: 'ARCC', name: 'Ares Capital', change: 1.8, sentiment: 'neutral' },
-      { symbol: 'MAIN', name: 'Main Street Capital', change: 2.1, sentiment: 'bullish' },
-      { symbol: 'BX', name: 'Blackstone', change: 3.4, sentiment: 'bullish' },
-      { symbol: 'APO', name: 'Apollo Global', change: 2.9, sentiment: 'bullish' },
+      { symbol: 'ARCC', name: 'Ares Capital', change: 1.8, sentiment: 'neutral', themeRelevance: 'Largest BDC providing direct loans to middle-market companies with consistent dividends.' },
+      { symbol: 'MAIN', name: 'Main Street Capital', change: 2.1, sentiment: 'bullish', themeRelevance: 'Internally managed BDC with lower middle-market focus and monthly dividends.' },
+      { symbol: 'BX', name: 'Blackstone', change: 3.4, sentiment: 'bullish', themeRelevance: 'Alternative asset manager with largest private credit AUM and diversified strategies.' },
+      { symbol: 'APO', name: 'Apollo Global', change: 2.9, sentiment: 'bullish', themeRelevance: 'Growing credit origination platform with Athene insurance partnership for capital.' },
     ],
     headlines: [
       { title: 'Private credit AUM surpasses $1.7T as institutional demand grows', source: 'Preqin', time: '2h ago' },
@@ -568,10 +569,10 @@ const MARKET_THEMES: MarketTheme[] = [
     icon: LineChart,
     category: 'International',
     tickers: [
-      { symbol: 'EWJ', name: 'iShares MSCI Japan', change: 2.7, sentiment: 'bullish' },
-      { symbol: 'DXJ', name: 'WisdomTree Japan Hedged', change: 3.2, sentiment: 'bullish' },
-      { symbol: 'TM', name: 'Toyota Motor', change: 1.9, sentiment: 'neutral' },
-      { symbol: 'SONY', name: 'Sony Group', change: 2.4, sentiment: 'bullish' },
+      { symbol: 'EWJ', name: 'iShares MSCI Japan', change: 2.7, sentiment: 'bullish', themeRelevance: 'Broad Japan equity exposure with currency risk capturing yen weakness benefits.' },
+      { symbol: 'DXJ', name: 'WisdomTree Japan Hedged', change: 3.2, sentiment: 'bullish', themeRelevance: 'Currency-hedged Japan ETF isolating equity returns from yen movements.' },
+      { symbol: 'TM', name: 'Toyota Motor', change: 1.9, sentiment: 'neutral', themeRelevance: 'World\'s largest automaker benefiting from hybrid leadership and yen weakness.' },
+      { symbol: 'SONY', name: 'Sony Group', change: 2.4, sentiment: 'bullish', themeRelevance: 'Entertainment and technology conglomerate with gaming, music, and sensor businesses.' },
     ],
     headlines: [
       { title: 'Nikkei 225 reaches all-time high after 34 years', source: 'Nikkei Asia', time: '1h ago' },
@@ -589,10 +590,10 @@ const MARKET_THEMES: MarketTheme[] = [
     icon: Brain,
     category: 'Healthcare',
     tickers: [
-      { symbol: 'TDOC', name: 'Teladoc Health', change: 4.2, sentiment: 'bullish' },
-      { symbol: 'TALK', name: 'Talkspace', change: 6.8, sentiment: 'bullish' },
-      { symbol: 'MNMD', name: 'Mind Medicine', change: 9.4, sentiment: 'bullish' },
-      { symbol: 'CMPS', name: 'COMPASS Pathways', change: 7.2, sentiment: 'bullish' },
+      { symbol: 'TDOC', name: 'Teladoc Health', change: 4.2, sentiment: 'bullish', themeRelevance: 'Telehealth leader with integrated mental health platform through BetterHelp acquisition.' },
+      { symbol: 'TALK', name: 'Talkspace', change: 6.8, sentiment: 'bullish', themeRelevance: 'Online therapy platform with B2B employer partnerships driving growth.' },
+      { symbol: 'MNMD', name: 'Mind Medicine', change: 9.4, sentiment: 'bullish', themeRelevance: 'Psychedelic medicine developer with LSD and MDMA therapeutics in clinical trials.' },
+      { symbol: 'CMPS', name: 'COMPASS Pathways', change: 7.2, sentiment: 'bullish', themeRelevance: 'Psilocybin therapy pioneer with FDA breakthrough designation for depression.' },
     ],
     headlines: [
       { title: 'Workplace mental health spending to reach $100B globally', source: 'Forbes', time: '2h ago' },
@@ -610,10 +611,10 @@ const MARKET_THEMES: MarketTheme[] = [
     icon: Droplets,
     category: 'Utilities',
     tickers: [
-      { symbol: 'AWK', name: 'American Water Works', change: 1.9, sentiment: 'neutral' },
-      { symbol: 'XYL', name: 'Xylem', change: 2.5, sentiment: 'bullish' },
-      { symbol: 'WTR', name: 'Essential Utilities', change: 1.4, sentiment: 'neutral' },
-      { symbol: 'FBIN', name: 'Fortune Brands Innovations', change: 2.1, sentiment: 'neutral' },
+      { symbol: 'AWK', name: 'American Water Works', change: 1.9, sentiment: 'neutral', themeRelevance: 'Largest US water utility with regulated returns and acquisition-driven growth.' },
+      { symbol: 'XYL', name: 'Xylem', change: 2.5, sentiment: 'bullish', themeRelevance: 'Water technology leader with pumps, treatment, and smart water solutions.' },
+      { symbol: 'WTR', name: 'Essential Utilities', change: 1.4, sentiment: 'neutral', themeRelevance: 'Combined water and wastewater utility with Sunbelt growth strategy.' },
+      { symbol: 'FBIN', name: 'Fortune Brands Innovations', change: 2.1, sentiment: 'neutral', themeRelevance: 'Water products manufacturer with Moen faucets and smart water monitoring.' },
     ],
     headlines: [
       { title: 'EPA announces $50B water infrastructure funding program', source: 'WSJ', time: '3h ago' },
@@ -631,10 +632,10 @@ const MARKET_THEMES: MarketTheme[] = [
     icon: Package,
     category: 'Industrials',
     tickers: [
-      { symbol: 'AMZN', name: 'Amazon (Robotics)', change: 2.1, sentiment: 'bullish' },
-      { symbol: 'SYM', name: 'Symbotic', change: 8.9, sentiment: 'bullish' },
-      { symbol: 'ZBRA', name: 'Zebra Technologies', change: 3.4, sentiment: 'bullish' },
-      { symbol: 'GWRE', name: 'Dematic (KION)', change: 2.8, sentiment: 'neutral' },
+      { symbol: 'AMZN', name: 'Amazon (Robotics)', change: 2.1, sentiment: 'bullish', themeRelevance: 'Internal robotics development and acquisitions driving fulfillment automation.' },
+      { symbol: 'SYM', name: 'Symbotic', change: 8.9, sentiment: 'bullish', themeRelevance: 'AI-powered warehouse automation with major Walmart and other retailer contracts.' },
+      { symbol: 'ZBRA', name: 'Zebra Technologies', change: 3.4, sentiment: 'bullish', themeRelevance: 'Enterprise mobile computing and scanning solutions for warehouse operations.' },
+      { symbol: 'GWRE', name: 'Dematic (KION)', change: 2.8, sentiment: 'neutral', themeRelevance: 'Intralogistics automation provider with conveyor and automated storage systems.' },
     ],
     headlines: [
       { title: 'Amazon deploys 750,000 robots across fulfillment network', source: 'TechCrunch', time: '2h ago' },
@@ -652,10 +653,10 @@ const MARKET_THEMES: MarketTheme[] = [
     icon: Heart,
     category: 'Consumer',
     tickers: [
-      { symbol: 'CHWY', name: 'Chewy', change: 5.2, sentiment: 'bullish' },
-      { symbol: 'IDXX', name: 'IDEXX Laboratories', change: 2.8, sentiment: 'bullish' },
-      { symbol: 'ZTS', name: 'Zoetis', change: 1.9, sentiment: 'neutral' },
-      { symbol: 'TRUP', name: 'Trupanion', change: 4.1, sentiment: 'bullish' },
+      { symbol: 'CHWY', name: 'Chewy', change: 5.2, sentiment: 'bullish', themeRelevance: 'Leading pet e-commerce with expanding pharmacy, insurance, and telehealth services.' },
+      { symbol: 'IDXX', name: 'IDEXX Laboratories', change: 2.8, sentiment: 'bullish', themeRelevance: 'Veterinary diagnostics leader with consumable-driven recurring revenue model.' },
+      { symbol: 'ZTS', name: 'Zoetis', change: 1.9, sentiment: 'neutral', themeRelevance: 'Animal health leader with companion animal medicines and vaccines portfolio.' },
+      { symbol: 'TRUP', name: 'Trupanion', change: 4.1, sentiment: 'bullish', themeRelevance: 'Pet insurance disruptor with direct veterinary payment integration and growing penetration.' },
     ],
     headlines: [
       { title: 'US pet spending exceeds $150B for first time', source: 'American Pet Products', time: '3h ago' },
@@ -673,10 +674,10 @@ const MARKET_THEMES: MarketTheme[] = [
     icon: Plane,
     category: 'Consumer',
     tickers: [
-      { symbol: 'MAR', name: 'Marriott International', change: 2.4, sentiment: 'bullish' },
-      { symbol: 'RCL', name: 'Royal Caribbean', change: 4.8, sentiment: 'bullish' },
-      { symbol: 'BKNG', name: 'Booking Holdings', change: 2.1, sentiment: 'neutral' },
-      { symbol: 'ABNB', name: 'Airbnb', change: 3.5, sentiment: 'bullish' },
+      { symbol: 'MAR', name: 'Marriott International', change: 2.4, sentiment: 'bullish', themeRelevance: 'Largest hotel company with asset-light franchise model and luxury portfolio expansion.' },
+      { symbol: 'RCL', name: 'Royal Caribbean', change: 4.8, sentiment: 'bullish', themeRelevance: 'Premium cruise operator with record pricing power and new ship deliveries.' },
+      { symbol: 'BKNG', name: 'Booking Holdings', change: 2.1, sentiment: 'neutral', themeRelevance: 'Online travel agency with global reach and connected trip strategy.' },
+      { symbol: 'ABNB', name: 'Airbnb', change: 3.5, sentiment: 'bullish', themeRelevance: 'Alternative accommodations leader expanding into experiences and long-term stays.' },
     ],
     headlines: [
       { title: 'Royal Caribbean books best year ever with record pricing', source: 'Skift', time: '2h ago' },
@@ -694,10 +695,10 @@ const MARKET_THEMES: MarketTheme[] = [
     icon: Coffee,
     category: 'Consumer',
     tickers: [
-      { symbol: 'TOST', name: 'Toast', change: 6.2, sentiment: 'bullish' },
-      { symbol: 'RAVE', name: 'Rave Restaurant Group', change: 3.1, sentiment: 'neutral' },
-      { symbol: 'CMG', name: 'Chipotle', change: 2.8, sentiment: 'bullish' },
-      { symbol: 'SBUX', name: 'Starbucks', change: 1.5, sentiment: 'neutral' },
+      { symbol: 'TOST', name: 'Toast', change: 6.2, sentiment: 'bullish', themeRelevance: 'Restaurant technology platform with POS, payments, and workforce management solutions.' },
+      { symbol: 'RAVE', name: 'Rave Restaurant Group', change: 3.1, sentiment: 'neutral', themeRelevance: 'Pizza franchise operator testing kiosk ordering and kitchen automation.' },
+      { symbol: 'CMG', name: 'Chipotle', change: 2.8, sentiment: 'bullish', themeRelevance: 'Fast-casual pioneer with digital ordering leadership and kitchen robotics pilots.' },
+      { symbol: 'SBUX', name: 'Starbucks', change: 1.5, sentiment: 'neutral', themeRelevance: 'Mobile ordering leader facing execution challenges but investing in automation.' },
     ],
     headlines: [
       { title: 'Toast expands to 100,000 restaurant locations', source: 'Restaurant Business', time: '2h ago' },
@@ -715,10 +716,10 @@ const MARKET_THEMES: MarketTheme[] = [
     icon: Database,
     category: 'Real Estate',
     tickers: [
-      { symbol: 'EQIX', name: 'Equinix', change: 3.8, sentiment: 'bullish' },
-      { symbol: 'DLR', name: 'Digital Realty', change: 4.2, sentiment: 'bullish' },
-      { symbol: 'AMT', name: 'American Tower', change: 2.1, sentiment: 'neutral' },
-      { symbol: 'SBAC', name: 'SBA Communications', change: 1.8, sentiment: 'neutral' },
+      { symbol: 'EQIX', name: 'Equinix', change: 3.8, sentiment: 'bullish', themeRelevance: 'Global data center REIT with interconnection-focused strategy and premium pricing.' },
+      { symbol: 'DLR', name: 'Digital Realty', change: 4.2, sentiment: 'bullish', themeRelevance: 'Hyperscale data center specialist with PlatformDIGITAL enterprise platform.' },
+      { symbol: 'AMT', name: 'American Tower', change: 2.1, sentiment: 'neutral', themeRelevance: 'Tower REIT expanding into data centers through CoreSite acquisition.' },
+      { symbol: 'SBAC', name: 'SBA Communications', change: 1.8, sentiment: 'neutral', themeRelevance: 'Tower operator benefiting from 5G densification and edge computing buildout.' },
     ],
     headlines: [
       { title: 'Equinix reports 100% occupancy in Northern Virginia campus', source: 'Data Center Dynamics', time: '2h ago' },
@@ -736,10 +737,10 @@ const MARKET_THEMES: MarketTheme[] = [
     icon: Microscope,
     category: 'Healthcare',
     tickers: [
-      { symbol: 'CRSP', name: 'CRISPR Therapeutics', change: 7.5, sentiment: 'bullish' },
-      { symbol: 'BEAM', name: 'Beam Therapeutics', change: 8.2, sentiment: 'bullish' },
-      { symbol: 'NTLA', name: 'Intellia Therapeutics', change: 6.9, sentiment: 'bullish' },
-      { symbol: 'VRTX', name: 'Vertex Pharmaceuticals', change: 3.4, sentiment: 'bullish' },
+      { symbol: 'CRSP', name: 'CRISPR Therapeutics', change: 7.5, sentiment: 'bullish', themeRelevance: 'First FDA-approved CRISPR therapy for sickle cell with expanding pipeline.' },
+      { symbol: 'BEAM', name: 'Beam Therapeutics', change: 8.2, sentiment: 'bullish', themeRelevance: 'Base editing pioneer with precision gene modification without double-strand breaks.' },
+      { symbol: 'NTLA', name: 'Intellia Therapeutics', change: 6.9, sentiment: 'bullish', themeRelevance: 'In-vivo CRISPR leader with systemic editing for transthyretin amyloidosis.' },
+      { symbol: 'VRTX', name: 'Vertex Pharmaceuticals', change: 3.4, sentiment: 'bullish', themeRelevance: 'Casgevy gene therapy partner with CF franchise and pain pipeline.' },
     ],
     headlines: [
       { title: 'Vertex/CRISPR sickle cell therapy shows 100% response rate at 2 years', source: 'NEJM', time: '1h ago' },
@@ -757,10 +758,10 @@ const MARKET_THEMES: MarketTheme[] = [
     icon: Smartphone,
     category: 'Technology',
     tickers: [
-      { symbol: 'META', name: 'Meta Platforms', change: 3.2, sentiment: 'bullish' },
-      { symbol: 'SNAP', name: 'Snap Inc', change: 4.8, sentiment: 'bullish' },
-      { symbol: 'PINS', name: 'Pinterest', change: 5.1, sentiment: 'bullish' },
-      { symbol: 'SHOP', name: 'Shopify', change: 3.9, sentiment: 'bullish' },
+      { symbol: 'META', name: 'Meta Platforms', change: 3.2, sentiment: 'bullish', themeRelevance: 'Instagram and Facebook Shops enabling embedded commerce at massive scale.' },
+      { symbol: 'SNAP', name: 'Snap Inc', change: 4.8, sentiment: 'bullish', themeRelevance: 'AR try-on features and creator commerce tools driving shopping engagement.' },
+      { symbol: 'PINS', name: 'Pinterest', change: 5.1, sentiment: 'bullish', themeRelevance: 'Visual discovery platform with high purchase intent and shoppable content.' },
+      { symbol: 'SHOP', name: 'Shopify', change: 3.9, sentiment: 'bullish', themeRelevance: 'E-commerce infrastructure powering social commerce integrations for brands.' },
     ],
     headlines: [
       { title: 'TikTok Shop GMV exceeds $20B in first full year', source: 'The Information', time: '2h ago' },
@@ -778,10 +779,10 @@ const MARKET_THEMES: MarketTheme[] = [
     icon: Wifi,
     category: 'Technology',
     tickers: [
-      { symbol: 'AKAM', name: 'Akamai Technologies', change: 3.5, sentiment: 'bullish' },
-      { symbol: 'FSLY', name: 'Fastly', change: 6.2, sentiment: 'bullish' },
-      { symbol: 'NET', name: 'Cloudflare', change: 4.8, sentiment: 'bullish' },
-      { symbol: 'LLNW', name: 'Limelight Networks', change: 2.9, sentiment: 'neutral' },
+      { symbol: 'AKAM', name: 'Akamai Technologies', change: 3.5, sentiment: 'bullish', themeRelevance: 'CDN pioneer expanding into edge computing and security services.' },
+      { symbol: 'FSLY', name: 'Fastly', change: 6.2, sentiment: 'bullish', themeRelevance: 'Developer-focused edge platform with serverless compute capabilities.' },
+      { symbol: 'NET', name: 'Cloudflare', change: 4.8, sentiment: 'bullish', themeRelevance: 'Edge computing platform with Workers enabling distributed application logic.' },
+      { symbol: 'LLNW', name: 'Limelight Networks', change: 2.9, sentiment: 'neutral', themeRelevance: 'CDN provider with growing edge computing focus after Edgecast merger.' },
     ],
     headlines: [
       { title: 'Edge computing market to reach $200B by 2028', source: 'Gartner', time: '3h ago' },
@@ -799,10 +800,10 @@ const MARKET_THEMES: MarketTheme[] = [
     icon: Beef,
     category: 'Consumer',
     tickers: [
-      { symbol: 'BYND', name: 'Beyond Meat', change: -4.2, sentiment: 'bearish' },
-      { symbol: 'OTLY', name: 'Oatly Group', change: 2.1, sentiment: 'neutral' },
-      { symbol: 'TSN', name: 'Tyson Foods', change: 1.5, sentiment: 'neutral' },
-      { symbol: 'ADM', name: 'Archer-Daniels-Midland', change: 1.8, sentiment: 'neutral' },
+      { symbol: 'BYND', name: 'Beyond Meat', change: -4.2, sentiment: 'bearish', themeRelevance: 'Plant-based meat pioneer facing demand normalization and margin pressure.' },
+      { symbol: 'OTLY', name: 'Oatly Group', change: 2.1, sentiment: 'neutral', themeRelevance: 'Oat milk leader with foodservice expansion and improving manufacturing.' },
+      { symbol: 'TSN', name: 'Tyson Foods', change: 1.5, sentiment: 'neutral', themeRelevance: 'Meat giant with alternative protein investments hedging long-term shift.' },
+      { symbol: 'ADM', name: 'Archer-Daniels-Midland', change: 1.8, sentiment: 'neutral', themeRelevance: 'Agricultural processor supplying plant-based protein ingredients at scale.' },
     ],
     headlines: [
       { title: 'USDA approves second cultivated meat producer for sale', source: 'Food Navigator', time: '2h ago' },
@@ -820,10 +821,10 @@ const MARKET_THEMES: MarketTheme[] = [
     icon: Music,
     category: 'Media',
     tickers: [
-      { symbol: 'SPOT', name: 'Spotify', change: 4.5, sentiment: 'bullish' },
-      { symbol: 'WMG', name: 'Warner Music Group', change: 2.3, sentiment: 'neutral' },
-      { symbol: 'UMG', name: 'Universal Music Group', change: 1.9, sentiment: 'neutral' },
-      { symbol: 'LYV', name: 'Live Nation', change: 3.1, sentiment: 'bullish' },
+      { symbol: 'SPOT', name: 'Spotify', change: 4.5, sentiment: 'bullish', themeRelevance: 'Streaming leader with improving margins through cost discipline and price increases.' },
+      { symbol: 'WMG', name: 'Warner Music Group', change: 2.3, sentiment: 'neutral', themeRelevance: 'Major record label benefiting from streaming growth and catalog value.' },
+      { symbol: 'UMG', name: 'Universal Music Group', change: 1.9, sentiment: 'neutral', themeRelevance: 'Largest music company with dominant market share and artist roster.' },
+      { symbol: 'LYV', name: 'Live Nation', change: 3.1, sentiment: 'bullish', themeRelevance: 'Live entertainment leader with concert promotion, venues, and Ticketmaster.' },
     ],
     headlines: [
       { title: 'Spotify achieves sustained profitability for first time', source: 'Billboard', time: '2h ago' },
@@ -841,10 +842,10 @@ const MARKET_THEMES: MarketTheme[] = [
     icon: Home,
     category: 'Real Estate',
     tickers: [
-      { symbol: 'WELL', name: 'Welltower', change: 2.8, sentiment: 'bullish' },
-      { symbol: 'VTR', name: 'Ventas', change: 2.4, sentiment: 'bullish' },
-      { symbol: 'OHI', name: 'Omega Healthcare', change: 1.9, sentiment: 'neutral' },
-      { symbol: 'SBRA', name: 'Sabra Health Care REIT', change: 2.1, sentiment: 'neutral' },
+      { symbol: 'WELL', name: 'Welltower', change: 2.8, sentiment: 'bullish', themeRelevance: 'Largest senior housing REIT with premium operator partnerships and tech investment.' },
+      { symbol: 'VTR', name: 'Ventas', change: 2.4, sentiment: 'bullish', themeRelevance: 'Diversified healthcare REIT with senior housing and life science exposure.' },
+      { symbol: 'OHI', name: 'Omega Healthcare', change: 1.9, sentiment: 'neutral', themeRelevance: 'Skilled nursing focused REIT with high dividend yield and tenant improvement.' },
+      { symbol: 'SBRA', name: 'Sabra Health Care REIT', change: 2.1, sentiment: 'neutral', themeRelevance: 'Senior care REIT diversifying from skilled nursing into senior housing.' },
     ],
     headlines: [
       { title: 'Senior housing occupancy reaches 85%, highest since 2020', source: 'NIC', time: '3h ago' },
@@ -862,10 +863,10 @@ const MARKET_THEMES: MarketTheme[] = [
     icon: GraduationCap,
     category: 'Technology',
     tickers: [
-      { symbol: 'DUOL', name: 'Duolingo', change: 5.8, sentiment: 'bullish' },
-      { symbol: 'COUR', name: 'Coursera', change: 3.2, sentiment: 'neutral' },
-      { symbol: '2U', name: '2U Inc', change: -2.4, sentiment: 'bearish' },
-      { symbol: 'CHGG', name: 'Chegg', change: 1.9, sentiment: 'neutral' },
+      { symbol: 'DUOL', name: 'Duolingo', change: 5.8, sentiment: 'bullish', themeRelevance: 'Language learning app with AI features driving engagement and monetization.' },
+      { symbol: 'COUR', name: 'Coursera', change: 3.2, sentiment: 'neutral', themeRelevance: 'Online learning platform with university partnerships and enterprise training.' },
+      { symbol: '2U', name: '2U Inc', change: -2.4, sentiment: 'bearish', themeRelevance: 'Online degree provider struggling with enrollment and margin pressure.' },
+      { symbol: 'CHGG', name: 'Chegg', change: 1.9, sentiment: 'neutral', themeRelevance: 'Student services platform adapting to AI disruption with new products.' },
     ],
     headlines: [
       { title: 'Duolingo AI features drive 50% increase in engagement', source: 'EdSurge', time: '2h ago' },
@@ -883,10 +884,10 @@ const MARKET_THEMES: MarketTheme[] = [
     icon: Truck,
     category: 'Industrials',
     tickers: [
-      { symbol: 'MLM', name: 'Martin Marietta', change: 2.6, sentiment: 'bullish' },
-      { symbol: 'VMC', name: 'Vulcan Materials', change: 2.3, sentiment: 'bullish' },
-      { symbol: 'URI', name: 'United Rentals', change: 3.1, sentiment: 'bullish' },
-      { symbol: 'PWR', name: 'Quanta Services', change: 2.8, sentiment: 'bullish' },
+      { symbol: 'MLM', name: 'Martin Marietta', change: 2.6, sentiment: 'bullish', themeRelevance: 'Aggregates producer with infrastructure exposure and pricing power.' },
+      { symbol: 'VMC', name: 'Vulcan Materials', change: 2.3, sentiment: 'bullish', themeRelevance: 'Largest US aggregates company with strong Sunbelt presence.' },
+      { symbol: 'URI', name: 'United Rentals', change: 3.1, sentiment: 'bullish', themeRelevance: 'Equipment rental leader benefiting from infrastructure project activity.' },
+      { symbol: 'PWR', name: 'Quanta Services', change: 2.8, sentiment: 'bullish', themeRelevance: 'Specialty contractor for electric grid and communications infrastructure.' },
     ],
     headlines: [
       { title: 'DOT announces $20B in highway project awards', source: 'ENR', time: '2h ago' },
@@ -904,9 +905,9 @@ const MARKET_THEMES: MarketTheme[] = [
     icon: ShoppingCart,
     category: 'Consumer',
     tickers: [
-      { symbol: 'LVMHF', name: 'LVMH', change: 2.1, sentiment: 'neutral' },
-      { symbol: 'CFRUY', name: 'Richemont', change: 2.8, sentiment: 'bullish' },
-      { symbol: 'TPR', name: 'Tapestry', change: 3.4, sentiment: 'bullish' },
+      { symbol: 'LVMHF', name: 'LVMH', change: 2.1, sentiment: 'neutral', themeRelevance: 'Largest luxury conglomerate with Louis Vuitton, Dior, and diverse brand portfolio.' },
+      { symbol: 'CFRUY', name: 'Richemont', change: 2.8, sentiment: 'bullish', themeRelevance: 'Luxury jewelry and watch leader with Cartier and Van Cleef & Arpels.' },
+      { symbol: 'TPR', name: 'Tapestry', change: 3.4, sentiment: 'bullish', themeRelevance: 'Accessible luxury with Coach, Kate Spade, and Capri acquisition.' },
       { symbol: 'RL', name: 'Ralph Lauren', change: 1.9, sentiment: 'neutral' },
     ],
     headlines: [
