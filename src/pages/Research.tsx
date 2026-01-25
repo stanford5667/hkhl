@@ -12,8 +12,6 @@ import { useCategoryCounts, useETFCount } from '@/hooks/useCategoryCounts';
 import { TickerCarousel } from '@/components/research/TickerCarousel';
 import { CategoryCard } from '@/components/research/CategoryCard';
 import { MarketOverviewDashboard } from '@/components/research/MarketOverviewDashboard';
-import { MarketIntelligenceSection } from '@/components/research/MarketIntelligenceSection';
-import { DiscoveryFeed } from '@/components/research/DiscoveryFeed';
 import { MarketThemesSection } from '@/components/research/MarketThemesSection';
 
 
@@ -254,12 +252,6 @@ export default function ResearchPage() {
 
         {/* Major Market Themes */}
         <MarketThemesSection />
-
-        {/* Market Intelligence Section */}
-        <MarketIntelligenceSection />
-
-        {/* Discovery Feed */}
-        <DiscoveryFeed />
 
         {/* Categories Grid */}
         <section className="space-y-3">
