@@ -49,7 +49,7 @@ import { cn } from '@/lib/utils';
 // TYPES
 // ═══════════════════════════════════════════════════════════════════════════════
 
-interface Bar {
+export interface OHLCBar {
   date: string;
   open: number;
   high: number;
@@ -59,7 +59,7 @@ interface Bar {
   dailyReturn?: number;
 }
 
-interface Trade {
+export interface Trade {
   entryDate: string;
   exitDate: string;
   entryPrice: number;
@@ -71,14 +71,14 @@ interface Trade {
   entryReason: string;
   exitReason: string;
   holdingDays: number;
-  entryBarRaw?: Bar;
-  exitBarRaw?: Bar;
+  entryBarRaw?: OHLCBar;
+  exitBarRaw?: OHLCBar;
   indicatorValueAtEntry?: number;
   indicatorValueAtExit?: number;
   indicatorName?: string;
 }
 
-interface BacktestResult {
+export interface BacktestResult {
   strategy: string;
   ticker: string;
   startDate: string;
@@ -86,7 +86,7 @@ interface BacktestResult {
   dataSource: 'database' | 'polygon';
   dataSourceUrl: string;
   barsCount: number;
-  rawBarsPreview: Bar[];
+  rawBarsPreview: OHLCBar[];
   totalReturn: number;
   winRate: number;
   sharpeRatio: number;
@@ -259,7 +259,7 @@ export function AuditableStat({
 export function TradeSourceModal({ trade, ticker, dataSource, onClose }: TradeSourceModalProps) {
   if (!trade) return null;
 
-  const formatBarJson = (bar: Bar | undefined, label: string) => {
+  const formatBarJson = (bar: OHLCBar | undefined, label: string) => {
     if (!bar) return null;
     return {
       [`${label}_date`]: bar.date,

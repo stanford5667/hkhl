@@ -73,17 +73,9 @@ import {
   TradeSourceModal,
   ExecutionLog,
   getChartMarkers,
+  OHLCBar,
+  Trade,
 } from './DataInspector';
-
-interface Bar {
-  date: string;
-  open: number;
-  high: number;
-  low: number;
-  close: number;
-  volume: number;
-  dailyReturn?: number;
-}
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // TYPES
@@ -114,26 +106,7 @@ interface ParamConfig {
   suffix?: string;
 }
 
-// Bar type imported from DataInspector
-
-interface Trade {
-  entryDate: string;
-  exitDate: string;
-  entryPrice: number;
-  exitPrice: number;
-  shares: number;
-  pnl: number;
-  pnlPercent: number;
-  type: 'LONG' | 'SHORT';
-  entryReason: string;
-  exitReason: string;
-  holdingDays: number;
-  entryBarRaw?: Bar;
-  exitBarRaw?: Bar;
-  indicatorValueAtEntry?: number;
-  indicatorValueAtExit?: number;
-  indicatorName?: string;
-}
+// Trade and OHLCBar types imported from DataInspector
 
 interface PortfolioSnapshot {
   date: string;
@@ -177,7 +150,7 @@ interface BacktestResult {
   dataSource: 'database' | 'polygon';
   dataSourceUrl: string;
   barsCount: number;
-  rawBarsPreview: Bar[];
+  rawBarsPreview: OHLCBar[];
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
