@@ -4,9 +4,62 @@ const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
-
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+const POLYGON_API_KEY = Deno.env.get('POLYGON_API_KEY');
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// POLYGON API FALLBACK
+// ═══════════════════════════════════════════════════════════════════════════════
+
+async function fetchPolygonBars(ticker: string, startDate: string, endDate: string): Promise<Bar[] | null> {
+  if (!POLYGON_API_KEY) {
+    console.log('[strategy-backtest] No POLYGON_API_KEY configured');
+    return null;
+  }
+  
+  try {
+    const url = `https://api.polygon.io/v2/aggs/ticker/${encodeURIComponent(ticker)}/range/1/day/${startDate}/${endDate}?adjusted=true&sort=asc&limit=50000&apiKey=${POLYGON_API_KEY}`;
+    console.log(`[strategy-backtest] Fetching from Polygon API for ${ticker}`);
+    
+    const response = await fetch(url);
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`[strategy-backtest] Polygon API error: ${response.status} - ${errorText}`);
+      return null;
+    }
+    
+    const data = await response.json();
+    if (!data.results || data.results.length === 0) {
+      console.log(`[strategy-backtest] No results from Polygon for ${ticker}`);
+      return null;
+    }
+    
+    console.log(`[strategy-backtest] Got ${data.results.length} bars from Polygon for ${ticker}`);
+    
+    // Convert Polygon format to Bar format
+    const bars: Bar[] = data.results.map((r: { t: number; o: number; h: number; l: number; c: number; v: number }, idx: number, arr: { c: number }[]) => {
+      const date = new Date(r.t).toISOString().split('T')[0];
+      const prevClose = idx > 0 ? arr[idx - 1].c : r.o;
+      const dailyReturn = prevClose ? ((r.c - prevClose) / prevClose) * 100 : 0;
+      
+      return {
+        date,
+        open: r.o,
+        high: r.h,
+        low: r.l,
+        close: r.c,
+        volume: r.v,
+        dailyReturn
+      };
+    });
+    
+    return bars;
+  } catch (error) {
+    console.error('[strategy-backtest] Polygon fetch error:', error);
+    return null;
+  }
+}
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // TYPES
@@ -621,7 +674,10 @@ Deno.serve(async (req) => {
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
     const normalizedTicker = ticker.toUpperCase().trim();
 
-    // Fetch OHLCV data from market_daily_bars
+    // Fetch OHLCV data from market_daily_bars first
+    let bars: Bar[] = [];
+    let dataSource = 'database';
+
     const { data: priceData, error } = await supabase
       .from('market_daily_bars')
       .select('bar_date, open, high, low, close, volume, daily_return')
@@ -632,35 +688,42 @@ Deno.serve(async (req) => {
 
     if (error) {
       console.error('[strategy-backtest] Database error:', error);
-      return new Response(
-        JSON.stringify({ success: false, error: `Database error: ${error.message}` }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
-      );
     }
 
-    if (!priceData || priceData.length < 50) {
-      return new Response(
-        JSON.stringify({ 
-          success: false, 
-          error: `Insufficient data for ${normalizedTicker}. Found ${priceData?.length || 0} bars, need at least 50.`,
-          availableBars: priceData?.length || 0
-        }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
-      );
+    if (priceData && priceData.length >= 50) {
+      console.log(`[strategy-backtest] Using ${priceData.length} bars from database for ${normalizedTicker}`);
+      bars = priceData.map(row => ({
+        date: row.bar_date,
+        open: row.open,
+        high: row.high,
+        low: row.low,
+        close: row.close,
+        volume: row.volume,
+        dailyReturn: row.daily_return
+      }));
+    } else {
+      // Fallback to Polygon API
+      console.log(`[strategy-backtest] Insufficient database data (${priceData?.length || 0} bars), trying Polygon API...`);
+      const polygonBars = await fetchPolygonBars(normalizedTicker, startDate, endDate);
+      
+      if (polygonBars && polygonBars.length >= 50) {
+        bars = polygonBars;
+        dataSource = 'polygon';
+        console.log(`[strategy-backtest] Using ${bars.length} bars from Polygon for ${normalizedTicker}`);
+      } else {
+        return new Response(
+          JSON.stringify({ 
+            success: false, 
+            error: `Insufficient data for ${normalizedTicker}. Database: ${priceData?.length || 0} bars, Polygon: ${polygonBars?.length || 0} bars. Need at least 50.`,
+            availableBars: priceData?.length || 0,
+            polygonBars: polygonBars?.length || 0
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+        );
+      }
     }
 
-    console.log(`[strategy-backtest] Fetched ${priceData.length} bars for ${normalizedTicker}`);
-
-    // Convert to Bar format
-    const bars: Bar[] = priceData.map(row => ({
-      date: row.bar_date,
-      open: row.open,
-      high: row.high,
-      low: row.low,
-      close: row.close,
-      volume: row.volume,
-      dailyReturn: row.daily_return
-    }));
+    console.log(`[strategy-backtest] Proceeding with ${bars.length} bars from ${dataSource}`);
 
     // Run backtest
     const result = runBacktest(bars, strategy, initialCapital, params);
