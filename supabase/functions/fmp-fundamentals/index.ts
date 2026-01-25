@@ -67,9 +67,33 @@ interface ProductSegment {
   percentage: number;
 }
 
+interface AnalystEstimate {
+  date: string;
+  symbol: string;
+  estimatedRevenueLow: number;
+  estimatedRevenueHigh: number;
+  estimatedRevenueAvg: number;
+  estimatedEbitdaLow: number;
+  estimatedEbitdaHigh: number;
+  estimatedEbitdaAvg: number;
+  estimatedEbitLow: number;
+  estimatedEbitHigh: number;
+  estimatedEbitAvg: number;
+  estimatedNetIncomeLow: number;
+  estimatedNetIncomeHigh: number;
+  estimatedNetIncomeAvg: number;
+  estimatedEpsAvg: number;
+  estimatedEpsHigh: number;
+  estimatedEpsLow: number;
+  numberAnalystEstimatedRevenue: number;
+  numberAnalystsEstimatedEps: number;
+  isEstimate: boolean;
+}
+
 interface FundamentalsResponse {
   profile: CompanyProfile | null;
   financials: IncomeStatement[];
+  estimates: AnalystEstimate[];
   useMockData: boolean;
   source: string;
 }
@@ -156,6 +180,73 @@ async function fetchCompanyProfile(symbol: string, apiKey: string): Promise<Comp
   
   setCache(cacheKey, result);
   return result;
+}
+
+// Fetch analyst estimates from FMP
+async function fetchAnalystEstimates(symbol: string, apiKey: string): Promise<AnalystEstimate[]> {
+  const cacheKey = `estimates_${symbol}`;
+  const cached = getCached(cacheKey);
+  if (cached) {
+    console.log(`[fmp] Cache hit for ${symbol} analyst estimates`);
+    return cached as AnalystEstimate[];
+  }
+
+  const url = `${BASE_URL}/analyst-estimates/${encodeURIComponent(symbol)}?period=annual&limit=5&apikey=${apiKey}`;
+  
+  try {
+    const response = await fetch(url);
+    
+    if (!response.ok) {
+      console.warn(`[fmp] Analyst estimates API returned ${response.status} for ${symbol}`);
+      return [];
+    }
+    
+    const data = await response.json();
+    
+    if (!Array.isArray(data) || data.length === 0) {
+      return [];
+    }
+    
+    // Filter to only future estimates (dates after today)
+    const today = new Date();
+    const currentYear = today.getFullYear();
+    
+    const results: AnalystEstimate[] = data
+      .filter((item: any) => {
+        const estimateYear = parseInt(item.date?.split('-')[0] || '0');
+        return estimateYear >= currentYear;
+      })
+      .slice(0, 3) // Limit to 3 years of estimates
+      .map((item: any) => ({
+        date: item.date,
+        symbol: item.symbol,
+        estimatedRevenueLow: item.estimatedRevenueLow || 0,
+        estimatedRevenueHigh: item.estimatedRevenueHigh || 0,
+        estimatedRevenueAvg: item.estimatedRevenueAvg || 0,
+        estimatedEbitdaLow: item.estimatedEbitdaLow || 0,
+        estimatedEbitdaHigh: item.estimatedEbitdaHigh || 0,
+        estimatedEbitdaAvg: item.estimatedEbitdaAvg || 0,
+        estimatedEbitLow: item.estimatedEbitLow || 0,
+        estimatedEbitHigh: item.estimatedEbitHigh || 0,
+        estimatedEbitAvg: item.estimatedEbitAvg || 0,
+        estimatedNetIncomeLow: item.estimatedNetIncomeLow || 0,
+        estimatedNetIncomeHigh: item.estimatedNetIncomeHigh || 0,
+        estimatedNetIncomeAvg: item.estimatedNetIncomeAvg || 0,
+        estimatedEpsAvg: item.estimatedEpsAvg || 0,
+        estimatedEpsHigh: item.estimatedEpsHigh || 0,
+        estimatedEpsLow: item.estimatedEpsLow || 0,
+        numberAnalystEstimatedRevenue: item.numberAnalystEstimatedRevenue || 0,
+        numberAnalystsEstimatedEps: item.numberAnalystsEstimatedEps || 0,
+        isEstimate: true,
+      }));
+    
+    console.log(`[fmp] Got ${results.length} analyst estimates for ${symbol}`);
+    setCache(cacheKey, results);
+    return results;
+  } catch (err) {
+    console.error(`[fmp] Error fetching analyst estimates for ${symbol}:`, err);
+    return [];
+  }
 }
 
 async function fetchProductSegments(symbol: string, apiKey: string): Promise<ProductSegment[]> {
@@ -594,13 +685,15 @@ serve(async (req) => {
       let useSECData = false;
       let profile: CompanyProfile | null = null;
       let financials: IncomeStatement[] = [];
+      let estimates: AnalystEstimate[] = [];
       let source = 'FMP';
       
       if (FMP_API_KEY) {
         try {
-          [profile, financials] = await Promise.all([
+          [profile, financials, estimates] = await Promise.all([
             fetchCompanyProfile(symbol, FMP_API_KEY),
             fetchIncomeStatements(symbol, FMP_API_KEY).then(r => r || []),
+            fetchAnalystEstimates(symbol, FMP_API_KEY),
           ]);
           
           if (!profile && financials.length === 0) {
@@ -638,6 +731,7 @@ serve(async (req) => {
       const response: FundamentalsResponse = {
         profile,
         financials,
+        estimates,
         useMockData: false,
         source,
       };
