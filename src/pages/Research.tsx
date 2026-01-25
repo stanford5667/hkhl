@@ -212,6 +212,9 @@ export default function ResearchPage() {
         {/* Market Overview Dashboard */}
         <MarketOverviewDashboard />
 
+        {/* Market Intelligence Section */}
+        <MarketIntelligenceSection />
+
         {/* Trending Tickers */}
         <section className="space-y-3">
           <div className="flex items-center justify-between">
@@ -240,9 +243,6 @@ export default function ResearchPage() {
             </div>
           )}
         </section>
-
-        {/* Market Intelligence Section */}
-        <MarketIntelligenceSection />
 
         {/* Discovery Feed */}
         <DiscoveryFeed />
