@@ -2,16 +2,90 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { 
-  Search, Clock, X, TrendingUp,
+  Search, Clock, X, TrendingUp, Sparkles, Building2, 
+  Cpu, Heart, ShoppingCart, Zap, Factory, Landmark, BarChart3,
   ArrowRight, Loader2
 } from 'lucide-react';
 import { TickerSearchAutocomplete } from '@/components/shared/TickerSearchAutocomplete';
 import { useTrendingTickers } from '@/hooks/useTrendingTickers';
+import { useCategoryCounts, useETFCount } from '@/hooks/useCategoryCounts';
 import { TickerCarousel } from '@/components/research/TickerCarousel';
+import { CategoryCard } from '@/components/research/CategoryCard';
+import { MarketOverviewDashboard } from '@/components/research/MarketOverviewDashboard';
+import { MarketIntelligenceSection } from '@/components/research/MarketIntelligenceSection';
+import { DiscoveryFeed } from '@/components/research/DiscoveryFeed';
 import { MarketThemesSection } from '@/components/research/MarketThemesSection';
+
+
 import { AnimatedBackground } from '@/components/research/AnimatedBackground';
 import { cn } from '@/lib/utils';
 
+const CATEGORIES = [
+  { 
+    id: 'technology', 
+    title: 'Technology', 
+    description: 'Software, semiconductors, and hardware companies', 
+    icon: Cpu,
+    gradient: 'bg-blue-500',
+    tickers: ['AAPL', 'MSFT', 'NVDA', 'GOOGL']
+  },
+  { 
+    id: 'healthcare', 
+    title: 'Healthcare', 
+    description: 'Pharma, biotech, and medical devices', 
+    icon: Heart,
+    gradient: 'bg-rose-500',
+    tickers: ['UNH', 'JNJ', 'LLY', 'PFE']
+  },
+  { 
+    id: 'financials', 
+    title: 'Financial Services', 
+    description: 'Banks, insurance, and asset management', 
+    icon: Landmark,
+    gradient: 'bg-emerald-500',
+    tickers: ['JPM', 'V', 'MA', 'BAC']
+  },
+  { 
+    id: 'consumer', 
+    title: 'Consumer', 
+    description: 'Retail, e-commerce, and consumer goods', 
+    icon: ShoppingCart,
+    gradient: 'bg-orange-500',
+    tickers: ['AMZN', 'WMT', 'HD', 'NKE']
+  },
+  { 
+    id: 'energy', 
+    title: 'Energy', 
+    description: 'Oil, gas, and renewable energy companies', 
+    icon: Zap,
+    gradient: 'bg-yellow-500',
+    tickers: ['XOM', 'CVX', 'COP', 'SLB']
+  },
+  { 
+    id: 'industrials', 
+    title: 'Industrials', 
+    description: 'Manufacturing, aerospace, and logistics', 
+    icon: Factory,
+    gradient: 'bg-slate-500',
+    tickers: ['CAT', 'GE', 'UPS', 'BA']
+  },
+  { 
+    id: 'etfs', 
+    title: 'Popular ETFs', 
+    description: 'Index funds and sector ETFs', 
+    icon: BarChart3,
+    gradient: 'bg-purple-500',
+    tickers: ['SPY', 'QQQ', 'IWM', 'VTI']
+  },
+  { 
+    id: 'mag7', 
+    title: 'Magnificent 7', 
+    description: 'The mega-cap tech leaders', 
+    icon: Sparkles,
+    gradient: 'bg-cyan-500',
+    tickers: ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'NVDA', 'META', 'TSLA']
+  },
+];
 
 export default function ResearchPage() {
   const navigate = useNavigate();
@@ -24,6 +98,9 @@ export default function ResearchPage() {
   // Fetch trending tickers from database with live quotes
   const { tickers: trendingTickers, isLoading: tickersLoading } = useTrendingTickers(12);
   
+  // Fetch category stock counts from database
+  const { data: categoryCounts = {} } = useCategoryCounts();
+  const { data: etfCount = 0 } = useETFCount();
 
   const handleSearch = (ticker: string) => {
     const normalized = ticker.toUpperCase().trim();
@@ -38,6 +115,13 @@ export default function ResearchPage() {
   const clearRecentSearches = () => {
     setRecentSearches([]);
     localStorage.removeItem('recentAssetSearches');
+  };
+
+  const handleCategoryClick = (categoryId: string) => {
+    const category = CATEGORIES.find(c => c.id === categoryId);
+    if (category && category.tickers.length > 0) {
+      handleSearch(category.tickers[0]);
+    }
   };
 
   // Prepare ticker data for carousel
@@ -165,8 +249,43 @@ export default function ResearchPage() {
           )}
         </section>
 
+        {/* Market Overview Dashboard - Hidden */}
+        {/* <MarketOverviewDashboard /> */}
+
         {/* Major Market Themes */}
         <MarketThemesSection />
+
+        {/* Market Intelligence Section */}
+        <MarketIntelligenceSection />
+
+        {/* Discovery Feed */}
+        <DiscoveryFeed />
+
+        {/* Categories Grid */}
+        <section className="space-y-3">
+          <div className="flex items-center gap-2">
+            <div className="p-1.5 rounded-lg bg-primary/10 border border-primary/20">
+              <Building2 className="h-4 w-4 text-primary" />
+            </div>
+            <div>
+              <h2 className="text-base font-semibold text-foreground">Explore by Category</h2>
+              <p className="text-[10px] text-muted-foreground">Select a category to browse stocks</p>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+            {CATEGORIES.map(category => (
+              <CategoryCard
+                key={category.id}
+                title={category.title}
+                description={category.description}
+                icon={category.icon}
+                gradient={category.gradient}
+                onClick={() => handleCategoryClick(category.id)}
+                stockCount={category.id === 'etfs' ? etfCount : categoryCounts[category.id]}
+              />
+            ))}
+          </div>
+        </section>
       </div>
     </div>
   );
