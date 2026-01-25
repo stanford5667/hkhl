@@ -110,12 +110,10 @@ export function Layout({ children }: LayoutProps) {
       </div>
       
       <div className="flex flex-col flex-1 min-w-0">
-        {/* Ticker stream - hidden on mobile and on Research page (has its own Market Pulse) */}
-        {location.pathname !== '/' && (
-          <div className="hidden sm:block">
-            <TickerStream />
-          </div>
-        )}
+        {/* Ticker stream - hidden on mobile */}
+        <div className="hidden sm:block">
+          <TickerStream />
+        </div>
         <TopBar />
         
         {/* Quick Start Banner for new users */}
