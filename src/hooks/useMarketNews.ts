@@ -78,10 +78,11 @@ export function useLatestHeadlines(limit: number = 6) {
   return useQuery({
     queryKey: ['latest-headlines', limit],
     queryFn: async () => {
+      // Query real_world_events which has actual data (news_events is empty)
       const { data, error } = await supabase
-        .from('news_events')
-        .select('id, title, published_at')
-        .order('published_at', { ascending: false, nullsFirst: false })
+        .from('real_world_events')
+        .select('id, title, detected_at')
+        .order('detected_at', { ascending: false, nullsFirst: false })
         .limit(limit);
 
       if (error) {
@@ -92,7 +93,7 @@ export function useLatestHeadlines(limit: number = 6) {
       return data?.map(item => ({
         id: item.id,
         headline: item.title,
-        time: formatRelativeTime(item.published_at),
+        time: formatRelativeTime(item.detected_at),
       })) || [];
     },
     staleTime: 60 * 1000,
