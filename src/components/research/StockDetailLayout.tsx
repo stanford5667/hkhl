@@ -69,7 +69,7 @@ export function StockDetailLayout({
   return (
     <div className="flex h-[calc(100vh-56px-64px)] md:h-[calc(100vh-64px)]">
       {/* Left Sidebar - Icon tabs, sticky */}
-      <div className="hidden md:flex flex-col w-16 lg:w-20 border-r border-border bg-card/50 shrink-0">
+      <div className="hidden md:flex flex-col w-16 lg:w-24 border-r border-border bg-card shrink-0 shadow-sm">
         {/* Back button */}
         {onBack && (
           <TooltipProvider delayDuration={0}>
@@ -77,7 +77,7 @@ export function StockDetailLayout({
               <TooltipTrigger asChild>
                 <button
                   onClick={onBack}
-                  className="w-full h-12 lg:h-14 flex items-center justify-center hover:bg-accent text-muted-foreground hover:text-foreground transition-colors border-b border-border"
+                  className="w-full h-14 lg:h-16 flex items-center justify-center hover:bg-accent text-muted-foreground hover:text-foreground transition-colors border-b border-border"
                 >
                   <ArrowLeft className="h-5 w-5 lg:h-6 lg:w-6" />
                 </button>
@@ -90,7 +90,7 @@ export function StockDetailLayout({
         )}
         
         {/* Tab icons */}
-        <nav className="flex-1 py-3">
+        <nav className="flex-1 py-4">
           <TooltipProvider delayDuration={0}>
             {tabs.map((tab) => {
               const Icon = tab.icon;
@@ -102,16 +102,25 @@ export function StockDetailLayout({
                     <button
                       onClick={() => onTabChange(tab.id)}
                       className={cn(
-                        "w-full h-12 lg:h-14 flex items-center justify-center transition-colors relative",
+                        "w-full h-14 lg:h-16 flex flex-col items-center justify-center gap-1 transition-all relative group",
                         isActive 
                           ? "text-primary bg-primary/10" 
                           : "text-muted-foreground hover:text-foreground hover:bg-accent"
                       )}
                     >
                       {isActive && (
-                        <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-primary rounded-r" />
+                        <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-10 bg-primary rounded-r" />
                       )}
-                      <Icon className="h-5 w-5 lg:h-6 lg:w-6" />
+                      <Icon className={cn(
+                        "h-5 w-5 lg:h-6 lg:w-6 transition-transform",
+                        isActive && "scale-110"
+                      )} />
+                      <span className={cn(
+                        "text-[9px] lg:text-[10px] font-medium leading-tight text-center px-1",
+                        isActive ? "text-primary" : "text-muted-foreground group-hover:text-foreground"
+                      )}>
+                        {tab.shortLabel || tab.label.split(' ')[0]}
+                      </span>
                     </button>
                   </TooltipTrigger>
                   <TooltipContent side="right">
@@ -183,8 +192,8 @@ export function StockDetailLayout({
           </div>
 
           {/* Mobile tab bar */}
-          <div className="md:hidden overflow-x-auto scrollbar-hide border-t border-border/50">
-            <div className="flex min-w-max">
+          <div className="md:hidden overflow-x-auto scrollbar-hide bg-card/80 shadow-sm">
+            <div className="flex min-w-max px-1">
               {tabs.map((tab) => {
                 const Icon = tab.icon;
                 const isActive = activeTab === tab.id;
@@ -194,14 +203,20 @@ export function StockDetailLayout({
                     key={tab.id}
                     onClick={() => onTabChange(tab.id)}
                     className={cn(
-                      "flex items-center gap-1.5 px-3 py-2 text-xs font-medium whitespace-nowrap transition-colors border-b-2",
+                      "flex flex-col items-center gap-0.5 px-3 py-2.5 text-[10px] font-semibold whitespace-nowrap transition-all relative",
                       isActive 
-                        ? "text-primary border-primary bg-primary/5" 
-                        : "text-muted-foreground border-transparent hover:text-foreground hover:bg-accent/50"
+                        ? "text-primary" 
+                        : "text-muted-foreground hover:text-foreground"
                     )}
                   >
-                    <Icon className="h-3.5 w-3.5" />
-                    {tab.shortLabel || tab.label}
+                    <Icon className={cn(
+                      "h-4 w-4 transition-transform",
+                      isActive && "scale-110"
+                    )} />
+                    <span>{tab.shortLabel || tab.label.split(' ')[0]}</span>
+                    {isActive && (
+                      <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-8 h-0.5 bg-primary rounded-t" />
+                    )}
                   </button>
                 );
               })}
