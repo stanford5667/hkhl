@@ -73,16 +73,17 @@ export function InteractiveTickerCard({
       {/* Company Name */}
       <span className="text-xs text-muted-foreground truncate w-full mb-2">{name}</span>
       
-      {/* Sparkline Chart */}
-      <div className="w-full h-8 mb-2">
+      {/* Sparkline Chart with Price Scale */}
+      <div className="w-full h-12 mb-2">
         {isLoading ? (
           <div className="w-full h-full bg-muted/30 animate-pulse rounded" />
         ) : sparklineData.length > 0 ? (
           <MiniSparkline 
             data={sparklineData} 
-            width={120} 
-            height={32} 
+            width={160} 
+            height={48} 
             isPositive={isPositive}
+            showPriceScale={true}
             className="w-full"
           />
         ) : (

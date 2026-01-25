@@ -189,9 +189,9 @@ export function MarketOverviewDashboard() {
           ))}
         </div>
 
-        {/* Center Panel - Chart */}
-        <div className="flex-1 p-3 min-w-[200px] flex items-center justify-center">
-          <div className="h-[120px] w-full max-w-[300px]">
+        {/* Center Panel - Chart with Price Scale */}
+        <div className="flex-1 p-3 min-w-0 flex items-center justify-center">
+          <div className="h-[120px] w-full max-w-[350px]">
             {sparklineLoading ? (
               <div className="w-full h-full flex items-center justify-center">
                 <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -200,8 +200,9 @@ export function MarketOverviewDashboard() {
               <MiniSparkline 
                 data={sparklineData}
                 height={120} 
-                width={300}
+                width={350}
                 isPositive={selectedIndexData.changePercent >= 0}
+                showPriceScale={true}
               />
             ) : (
               <div className="w-full h-full flex items-center justify-center text-xs text-muted-foreground">

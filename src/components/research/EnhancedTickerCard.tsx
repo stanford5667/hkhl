@@ -94,18 +94,26 @@ export function EnhancedTickerCard({
     return `$${cap.toLocaleString()}`;
   };
 
+  const formatPriceLabel = (p: number) => {
+    if (p >= 1000) return `$${(p / 1000).toFixed(1)}k`;
+    if (p >= 100) return `$${p.toFixed(0)}`;
+    if (p >= 10) return `$${p.toFixed(1)}`;
+    return `$${p.toFixed(2)}`;
+  };
+
   const handlePeriodClick = (e: React.MouseEvent, period: Period) => {
     e.stopPropagation();
     setSelectedPeriod(period);
   };
 
-  // Build SVG chart with proper axes
+  // Build SVG chart with price scale
   const renderChart = () => {
     if (chartData.length < 2) return null;
 
     const width = 200;
-    const height = 60;
-    const padding = { top: 4, right: 4, bottom: 14, left: 4 };
+    const height = 70;
+    const priceScaleWidth = 40;
+    const padding = { top: 4, right: 4, bottom: 14, left: priceScaleWidth };
     const chartWidth = width - padding.left - padding.right;
     const chartHeight = height - padding.top - padding.bottom;
 
@@ -114,10 +122,15 @@ export function EnhancedTickerCard({
     const maxPrice = Math.max(...prices);
     const priceRange = maxPrice - minPrice || 1;
 
+    // Add 5% padding to price range
+    const paddedMin = minPrice - priceRange * 0.05;
+    const paddedMax = maxPrice + priceRange * 0.05;
+    const paddedRange = paddedMax - paddedMin;
+
     // Build line path
     const points = chartData.map((d, i) => {
       const x = padding.left + (i / (chartData.length - 1)) * chartWidth;
-      const y = padding.top + chartHeight - ((d.price - minPrice) / priceRange) * chartHeight;
+      const y = padding.top + chartHeight - ((d.price - paddedMin) / paddedRange) * chartHeight;
       return { x, y };
     });
 
@@ -138,16 +151,49 @@ export function EnhancedTickerCard({
       return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
     };
 
+    // Price ticks (3 levels: low, mid, high)
+    const priceTicks = [paddedMin, paddedMin + paddedRange / 2, paddedMax];
+
     return (
-      <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-full" preserveAspectRatio="none">
+      <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-full" preserveAspectRatio="xMidYMid meet">
         <defs>
           <linearGradient id={gradientId} x1="0%" y1="0%" x2="0%" y2="100%">
             <stop offset="0%" stopColor={lineColor} stopOpacity="0.3" />
             <stop offset="100%" stopColor={lineColor} stopOpacity="0" />
           </linearGradient>
         </defs>
+        
+        {/* Price Scale (Y-axis) */}
+        {priceTicks.map((tick, i) => {
+          const y = padding.top + chartHeight - ((tick - paddedMin) / paddedRange) * chartHeight;
+          return (
+            <g key={i}>
+              <text 
+                x={padding.left - 4} 
+                y={y + 3} 
+                fontSize="7" 
+                fill="hsl(var(--muted-foreground))" 
+                textAnchor="end"
+              >
+                {formatPriceLabel(tick)}
+              </text>
+              <line
+                x1={padding.left}
+                y1={y}
+                x2={width - padding.right}
+                y2={y}
+                stroke="hsl(var(--border))"
+                strokeWidth="0.5"
+                strokeDasharray="2,2"
+                opacity="0.4"
+              />
+            </g>
+          );
+        })}
+        
         <path d={areaD} fill={`url(#${gradientId})`} />
         <path d={pathD} fill="none" stroke={lineColor} strokeWidth="1.5" strokeLinecap="round" />
+        
         {/* Time axis labels */}
         <text x={padding.left} y={height - 2} fontSize="7" fill="hsl(var(--muted-foreground))" textAnchor="start">
           {formatLabel(startTime)}
@@ -168,24 +214,24 @@ export function EnhancedTickerCard({
         "flex flex-col p-3 rounded-xl bg-card border border-border",
         "hover:border-primary/50 hover:shadow-lg hover:shadow-primary/5",
         "transition-all duration-300 group cursor-pointer",
-        "w-[220px] h-[200px]"
+        "w-full min-w-0"
       )}
       onClick={onClick}
     >
       {/* Row 1: Symbol + Price */}
       <div className="flex items-center justify-between mb-1">
-        <span className="font-bold text-base text-foreground group-hover:text-primary transition-colors">
+        <span className="font-bold text-base text-foreground group-hover:text-primary transition-colors truncate">
           {symbol}
         </span>
-        <span className="font-bold text-base text-foreground">
+        <span className="font-bold text-base text-foreground flex-shrink-0">
           {formatPrice(price)}
         </span>
       </div>
 
       {/* Row 2: Name + Market Cap */}
       <div className="flex items-center justify-between mb-2">
-        <span className="text-[11px] text-muted-foreground truncate max-w-[120px]">{name}</span>
-        <span className="text-[10px] text-muted-foreground">{formatMarketCap(effectiveMarketCap)}</span>
+        <span className="text-[11px] text-muted-foreground truncate flex-1 min-w-0">{name}</span>
+        <span className="text-[10px] text-muted-foreground flex-shrink-0 ml-2">{formatMarketCap(effectiveMarketCap)}</span>
       </div>
 
       {/* Period Selector */}
@@ -207,7 +253,7 @@ export function EnhancedTickerCard({
       </div>
       
       {/* Chart Area */}
-      <div className="flex-1 min-h-0 mb-2">
+      <div className="h-[70px] min-h-0 mb-2">
         {isLoading ? (
           <div className="w-full h-full bg-muted/30 animate-pulse rounded" />
         ) : chartData.length > 1 ? (
