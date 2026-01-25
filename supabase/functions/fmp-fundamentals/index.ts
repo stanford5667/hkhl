@@ -231,36 +231,63 @@ async function searchSymbols(query: string, apiKey: string): Promise<any[]> {
   })) : [];
 }
 
-// Generate mock data for demo purposes
-function generateMockFinancials(symbol: string): IncomeStatement[] {
-  const baseRevenue = {
-    'AAPL': 383000000000,
-    'MSFT': 211000000000,
-    'GOOGL': 307000000000,
-    'AMZN': 574000000000,
-    'META': 134000000000,
-    'TSLA': 96000000000,
-    'NVDA': 60000000000,
-    'JPM': 128000000000,
-  }[symbol] || 10000000000;
+// Generate mock data for demo purposes with ALL income statement fields
+function generateMockFinancials(symbol: string): any[] {
+  // Base revenue and margins by ticker for realistic data
+  const tickerData: Record<string, { revenue: number; grossMargin: number; opMargin: number; netMargin: number }> = {
+    'AAPL': { revenue: 383000000000, grossMargin: 0.44, opMargin: 0.30, netMargin: 0.25 },
+    'MSFT': { revenue: 211000000000, grossMargin: 0.69, opMargin: 0.42, netMargin: 0.36 },
+    'GOOGL': { revenue: 307000000000, grossMargin: 0.56, opMargin: 0.26, netMargin: 0.22 },
+    'AMZN': { revenue: 574000000000, grossMargin: 0.44, opMargin: 0.06, netMargin: 0.05 },
+    'META': { revenue: 134000000000, grossMargin: 0.81, opMargin: 0.34, netMargin: 0.29 },
+    'TSLA': { revenue: 96000000000, grossMargin: 0.25, opMargin: 0.12, netMargin: 0.10 },
+    'NVDA': { revenue: 60000000000, grossMargin: 0.73, opMargin: 0.54, netMargin: 0.49 },
+    'JPM': { revenue: 128000000000, grossMargin: 0.65, opMargin: 0.38, netMargin: 0.28 },
+    'INTC': { revenue: 54000000000, grossMargin: 0.43, opMargin: 0.05, netMargin: 0.03 },
+    'AMD': { revenue: 23000000000, grossMargin: 0.50, opMargin: 0.15, netMargin: 0.12 },
+    'NFLX': { revenue: 33000000000, grossMargin: 0.42, opMargin: 0.21, netMargin: 0.17 },
+    'DIS': { revenue: 89000000000, grossMargin: 0.35, opMargin: 0.08, netMargin: 0.05 },
+  };
   
-  const years = ['2025', '2024', '2023', '2022', '2021'];
-  const growthRates = [0.08, 0.12, 0.15, 0.10, 0.20];
+  const defaults = tickerData[symbol] || { revenue: 10000000000, grossMargin: 0.40, opMargin: 0.15, netMargin: 0.10 };
   
-  let revenue = baseRevenue;
+  const years = ['2024', '2023', '2022', '2021', '2020'];
+  const growthRates = [0.05, 0.08, 0.12, 0.15, 0.10];
+  
+  let revenue = defaults.revenue;
+  const sharesOutstanding = revenue / 50; // Rough approximation for EPS calculation
+  
   return years.map((year, i) => {
-    const netMargin = 0.15 + Math.random() * 0.10;
+    const grossProfit = Math.round(revenue * defaults.grossMargin);
+    const costOfRevenue = Math.round(revenue - grossProfit);
+    const operatingIncome = Math.round(revenue * defaults.opMargin);
+    const operatingExpenses = Math.round(grossProfit - operatingIncome);
+    const interestExpense = Math.round(revenue * 0.015);
+    const otherIncome = Math.round(revenue * 0.005);
+    const incomeBeforeTax = operatingIncome - interestExpense + otherIncome;
+    const incomeTax = Math.round(incomeBeforeTax * 0.21);
+    const netIncome = incomeBeforeTax - incomeTax;
+    const eps = Math.round((netIncome / sharesOutstanding) * 100) / 100;
+    
     const result = {
       date: `${year}-12-31`,
       symbol,
       revenue,
-      netIncome: Math.round(revenue * netMargin),
-      grossProfit: Math.round(revenue * 0.40),
-      operatingIncome: Math.round(revenue * 0.25),
-      ebitda: Math.round(revenue * 0.30),
-      eps: Math.round(revenue * netMargin / 1000000000 * 10) / 10,
+      costOfRevenue,
+      grossProfit,
+      operatingExpenses,
+      operatingIncome,
+      interestExpense,
+      otherIncome,
+      incomeBeforeTax,
+      incomeTax,
+      netIncome,
+      ebitda: Math.round(operatingIncome * 1.15),
+      eps,
       period: 'FY',
     };
+    
+    // Decrease revenue for older years
     revenue = Math.round(revenue / (1 + growthRates[i]));
     return result;
   });
@@ -273,6 +300,10 @@ function generateMockProfile(symbol: string): CompanyProfile {
     'GOOGL': { companyName: 'Alphabet Inc.', industry: 'Internet Content & Information', sector: 'Communication Services', marketCap: 2300000000000 },
     'AMZN': { companyName: 'Amazon.com Inc.', industry: 'Internet Retail', sector: 'Consumer Cyclical', marketCap: 2100000000000 },
     'TSLA': { companyName: 'Tesla Inc.', industry: 'Auto Manufacturers', sector: 'Consumer Cyclical', marketCap: 750000000000 },
+    'INTC': { companyName: 'Intel Corporation', industry: 'Semiconductors', sector: 'Technology', marketCap: 225000000000 },
+    'AMD': { companyName: 'Advanced Micro Devices, Inc.', industry: 'Semiconductors', sector: 'Technology', marketCap: 195000000000 },
+    'NVDA': { companyName: 'NVIDIA Corporation', industry: 'Semiconductors', sector: 'Technology', marketCap: 4500000000000 },
+    'META': { companyName: 'Meta Platforms, Inc.', industry: 'Internet Content & Information', sector: 'Communication Services', marketCap: 1500000000000 },
   };
   
   const profile = profiles[symbol] || { companyName: symbol, industry: 'Unknown', sector: 'Unknown', marketCap: 10000000000 };
@@ -313,6 +344,13 @@ function generateMockSegments(symbol: string): ProductSegment[] {
       { name: 'Google Cloud', revenue: 33000000000, percentage: 11 },
       { name: 'Google Network', revenue: 32000000000, percentage: 10 },
       { name: 'Other Bets', revenue: 36000000000, percentage: 12 },
+    ],
+    'INTC': [
+      { name: 'Client Computing Group', revenue: 29000000000, percentage: 54 },
+      { name: 'Data Center & AI', revenue: 15000000000, percentage: 28 },
+      { name: 'Network & Edge', revenue: 5800000000, percentage: 11 },
+      { name: 'Mobileye', revenue: 2100000000, percentage: 4 },
+      { name: 'Intel Foundry', revenue: 1600000000, percentage: 3 },
     ],
     'AMZN': [
       { name: 'Online Stores', revenue: 220000000000, percentage: 38 },
