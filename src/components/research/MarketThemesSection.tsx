@@ -1318,19 +1318,25 @@ export function MarketThemesSection() {
                   </h4>
                   <div className="space-y-2">
                     {selectedTheme.headlines.map((headline, idx) => (
-                      <div 
+                      <a 
                         key={idx}
-                        className="p-3 rounded-lg bg-muted/20 border border-border/30 hover:bg-muted/30 transition-colors cursor-pointer"
+                        href={headline.url || `https://www.google.com/search?q=${encodeURIComponent(headline.title)}&tbm=nws`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="block p-3 rounded-lg bg-muted/20 border border-border/30 hover:bg-muted/30 hover:border-primary/30 transition-colors group"
                       >
-                        <p className="text-sm text-foreground leading-snug mb-2">
-                          {headline.title}
-                        </p>
+                        <div className="flex items-start justify-between gap-2">
+                          <p className="text-sm text-foreground leading-snug mb-2 group-hover:text-primary transition-colors">
+                            {headline.title}
+                          </p>
+                          <ExternalLink className="h-3 w-3 text-muted-foreground group-hover:text-primary shrink-0 mt-1 transition-colors" />
+                        </div>
                         <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
                           <span className="font-medium">{headline.source}</span>
                           <span>•</span>
                           <span>{headline.time}</span>
                         </div>
-                      </div>
+                      </a>
                     ))}
                   </div>
                 </div>
