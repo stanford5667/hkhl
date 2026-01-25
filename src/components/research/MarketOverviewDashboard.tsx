@@ -204,7 +204,7 @@ export function MarketOverviewDashboard() {
       {/* Main Content: Indexes + Chart + News all in one row on desktop */}
       <div className="flex flex-col lg:flex-row lg:divide-x divide-border/50">
         {/* Left Panel - Index List */}
-        <div className="lg:w-[180px] shrink-0 border-b lg:border-b-0 border-border/50 bg-muted/10">
+        <div className="lg:w-[240px] shrink-0 border-b lg:border-b-0 border-border/50 bg-muted/10">
           {currentIndices.map(item => (
             <button
               key={item.symbol}
