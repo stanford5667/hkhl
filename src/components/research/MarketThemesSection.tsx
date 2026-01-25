@@ -1,50 +1,12 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { 
-  TrendingUp, Sparkles, Zap, Leaf, ArrowRight, Plus, 
-  Cpu, Heart, ShoppingCart, Factory, Landmark, Building2,
-  Globe, Shield, Wifi, Car, Plane, Home, Coffee, Pill,
-  Smartphone, Cloud, Database, Lock, Truck, Package,
-  Banknote, CreditCard, Coins, BarChart3, LineChart,
-  Megaphone, Users, GraduationCap, Gamepad2, Music,
-  Camera, Tv, Radio, Newspaper, BookOpen, Microscope,
-  Atom, Beaker, Dna, Brain, Eye, Ear, Bone,
-  Wheat, Droplets, Sun, Moon, Wind, Thermometer,
-  Mountain, TreePine, Fish, Beef, ExternalLink
-} from 'lucide-react';
+import { ArrowRight, Plus, ExternalLink, Layers } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
-
-interface ThemeTicker {
-  symbol: string;
-  name: string;
-  change: number;
-  sentiment: 'bullish' | 'bearish' | 'neutral';
-  themeRelevance?: string;
-}
-
-interface ThemeNews {
-  title: string;
-  source: string;
-  time: string;
-  url?: string;
-}
-
-interface MarketTheme {
-  id: string;
-  title: string;
-  summary: string;
-  detailedSummary: string;
-  impactPercent: number;
-  sentimentScore: number;
-  icon: React.ElementType;
-  category: string;
-  tickers: ThemeTicker[];
-  headlines: ThemeNews[];
-}
+import { getTrulyRandomThemes, MARKET_THEMES, type MarketTheme } from '@/data/marketThemes';
 
 const MARKET_THEMES: MarketTheme[] = [
   {
