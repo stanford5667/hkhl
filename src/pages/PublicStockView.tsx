@@ -17,6 +17,7 @@ import { IntegratedResearchView, ALAOverviewTab } from '@/components/research';
 import { StockDetailLayout, DEFAULT_STOCK_TABS } from '@/components/research/StockDetailLayout';
 import { useCompanyNews } from '@/hooks/useCompanyResearch';
 import { KeyCatalystsSection } from '@/components/research/KeyCatalystsSection';
+import { FinancialsSection } from '@/components/financials/FinancialsSection';
 
 interface TickerDetails {
   ticker: string;
@@ -409,6 +410,13 @@ export default function PublicStockView() {
                 </CardContent>
               </Card>
             )}
+          </div>
+        );
+      
+      case 'financials':
+        return (
+          <div className="p-3 md:p-4">
+            <FinancialsSection ticker={ticker} companyName={details?.name || ticker} />
           </div>
         );
       
