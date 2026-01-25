@@ -289,30 +289,37 @@ export function MarketThemesSection() {
                       <button 
                         key={ticker.symbol}
                         onClick={() => handleTickerClick(ticker.symbol)}
-                        className="flex items-center justify-between w-full p-3 rounded-lg bg-muted/30 border border-border/50 hover:bg-muted/50 hover:border-primary/30 transition-all group"
+                        className="flex flex-col w-full p-3 rounded-lg bg-muted/30 border border-border/50 hover:bg-muted/50 hover:border-primary/30 transition-all group text-left"
                       >
-                        <div className="flex items-center gap-3">
-                          <div className={cn(
-                            'w-2 h-2 rounded-full',
-                            ticker.sentiment === 'bullish' ? 'bg-emerald-500' :
-                            ticker.sentiment === 'bearish' ? 'bg-red-500' : 'bg-amber-500'
-                          )} />
-                          <div className="text-left">
-                            <span className="font-mono font-medium text-sm group-hover:text-primary transition-colors">
-                              {ticker.symbol}
+                        <div className="flex items-center justify-between w-full mb-2">
+                          <div className="flex items-center gap-3">
+                            <div className={cn(
+                              'w-2 h-2 rounded-full shrink-0',
+                              ticker.sentiment === 'bullish' ? 'bg-emerald-500' :
+                              ticker.sentiment === 'bearish' ? 'bg-red-500' : 'bg-amber-500'
+                            )} />
+                            <div>
+                              <span className="font-mono font-medium text-sm group-hover:text-primary transition-colors">
+                                {ticker.symbol}
+                              </span>
+                              <span className="text-xs text-muted-foreground ml-2">{ticker.name}</span>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className={cn(
+                              "font-mono text-sm font-medium",
+                              ticker.change >= 0 ? "text-emerald-400" : "text-red-400"
+                            )}>
+                              {ticker.change >= 0 ? '+' : ''}{ticker.change.toFixed(1)}%
                             </span>
-                            <p className="text-xs text-muted-foreground">{ticker.name}</p>
+                            <ExternalLink className="h-3 w-3 text-muted-foreground group-hover:text-primary transition-colors" />
                           </div>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <span className={cn(
-                            "font-mono text-sm font-medium",
-                            ticker.change >= 0 ? "text-emerald-400" : "text-red-400"
-                          )}>
-                            {ticker.change >= 0 ? '+' : ''}{ticker.change.toFixed(1)}%
-                          </span>
-                          <ExternalLink className="h-3 w-3 text-muted-foreground group-hover:text-primary transition-colors" />
-                        </div>
+                        {ticker.themeRelevance && (
+                          <p className="text-xs text-muted-foreground leading-relaxed pl-5 border-l-2 border-primary/20 ml-1">
+                            {ticker.themeRelevance}
+                          </p>
+                        )}
                       </button>
                     ))}
                   </div>
