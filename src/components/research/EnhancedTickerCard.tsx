@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { TrendingUp, TrendingDown } from 'lucide-react';
+import { TrendingUp, TrendingDown, ArrowRight } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { getCandlesForRange, CandleData } from '@/services/candleService';
 import { fetchTickerDetails, TickerDetails } from '@/services/tickerDetailsService';
@@ -327,13 +327,21 @@ export function EnhancedTickerCard({
           <span className="text-xs text-muted-foreground">—</span>
         )}
         
-        {/* Sector Badge */}
-        {sectorDisplay ? (
+        {/* Click to explore hint */}
+        <div className="flex items-center gap-1 text-[10px] text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity">
+          <span>View details</span>
+          <ArrowRight className="h-3 w-3 group-hover:translate-x-0.5 transition-transform" />
+        </div>
+      </div>
+      
+      {/* Sector Badge - moved to separate row */}
+      {sectorDisplay && (
+        <div className="mt-2 pt-2 border-t border-border/30">
           <span className="text-[10px] text-muted-foreground bg-muted/30 px-2 py-0.5 rounded-full truncate max-w-[90px]" title={sectorDisplay}>
             {sectorDisplay}
           </span>
-        ) : null}
-      </div>
+        </div>
+      )}
     </div>
   );
 }

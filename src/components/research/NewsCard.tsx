@@ -72,6 +72,10 @@ export function NewsCard({ article, onTickerClick, index }: NewsCardProps) {
         {/* Impact Strip - Ticker Pills with Sentiment Glow */}
         {article.tickers && article.tickers.length > 0 && (
           <div className="pt-2 border-t border-slate-800/50">
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Related tickers</span>
+              <span className="text-[10px] text-primary/60 font-medium">• Click to explore</span>
+            </div>
             <div className="flex flex-wrap gap-2">
               {article.tickers.slice(0, 5).map((ticker) => {
                 const insight = article.insights?.find((i) => i.ticker === ticker);
