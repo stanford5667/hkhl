@@ -310,6 +310,7 @@ function gapFillStrategy(
   const todayOpen = bars[index].open;
   const todayClose = bars[index].close;
   const threshold = params.gapThreshold ?? 2; // 2% gap
+  const takeProfit = params.takeProfitPercent ?? null;
   
   const gapPercent = ((todayOpen - prevClose) / prevClose) * 100;
   
@@ -318,8 +319,16 @@ function gapFillStrategy(
     return { action: 'BUY', reason: `Gap down of ${gapPercent.toFixed(2)}% (below -${threshold}%)` };
   }
   
-  // Exit when gap fills or at end of day
+  // Exit conditions when in position
   if (inPosition && entryPrice !== null) {
+    const currentReturn = ((todayClose - entryPrice) / entryPrice) * 100;
+    
+    // Take profit takes priority if set and reached
+    if (takeProfit !== null && currentReturn >= takeProfit) {
+      return { action: 'SELL', reason: `Take profit triggered at +${takeProfit}% (current: +${currentReturn.toFixed(2)}%)` };
+    }
+    
+    // Default gap-fill exit: price returned to entry
     if (todayClose >= entryPrice) {
       return { action: 'SELL', reason: `Gap filled - price returned to entry ($${entryPrice.toFixed(2)})` };
     }
