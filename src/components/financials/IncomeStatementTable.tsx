@@ -323,10 +323,10 @@ export function IncomeStatementTable({ ticker, companyName }: IncomeStatementTab
       
       <CardContent className="p-0">
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className="w-full text-sm table-fixed">
             <thead>
               <tr className="border-b border-border/50">
-                <th className="sticky left-0 bg-card z-10 text-left px-4 py-2.5 font-medium text-muted-foreground text-xs">
+                <th className="sticky left-0 bg-card z-10 text-left px-4 py-2.5 font-medium text-muted-foreground text-xs w-[140px] min-w-[140px]">
                   Line Item
                 </th>
                 {displayYears.map((yearData, idx) => {
@@ -339,7 +339,7 @@ export function IncomeStatementTable({ ticker, companyName }: IncomeStatementTab
                     <th 
                       key={idx} 
                       className={cn(
-                        "text-right px-3 py-2.5 font-medium text-xs min-w-[80px]",
+                        "text-right px-3 py-2.5 font-medium text-xs w-[80px] min-w-[80px]",
                         isEstimate && "bg-primary/5"
                       )}
                     >
@@ -403,12 +403,13 @@ export function IncomeStatementTable({ ticker, companyName }: IncomeStatementTab
                     )}
                   >
                     <td className={cn(
-                      "sticky left-0 z-10 px-4 py-2.5 text-xs",
+                      "sticky left-0 z-10 px-4 py-2.5 text-xs w-[140px] min-w-[140px]",
                       row.isHighlight ? "bg-primary/5" : "bg-card",
                       row.isSubItem && "pl-8 text-muted-foreground"
                     )}>
-                      <div className="flex items-center gap-1.5">
+                      <div className="flex items-center gap-1.5 whitespace-nowrap">
                         <span className={cn(
+                          "truncate",
                           row.isHighlight && "text-primary",
                           row.key === 'revenue' && "text-primary font-medium"
                         )}>
@@ -417,7 +418,7 @@ export function IncomeStatementTable({ ticker, companyName }: IncomeStatementTab
                         {row.tooltip && (
                           <Tooltip>
                             <TooltipTrigger>
-                              <HelpCircle className="h-3 w-3 text-muted-foreground/50 hover:text-muted-foreground" />
+                              <HelpCircle className="h-3 w-3 text-muted-foreground/50 hover:text-muted-foreground flex-shrink-0" />
                             </TooltipTrigger>
                             <TooltipContent side="right" className="max-w-[200px]">
                               <p className="text-xs">{row.tooltip}</p>
@@ -431,11 +432,11 @@ export function IncomeStatementTable({ ticker, companyName }: IncomeStatementTab
                       const value = yearData[row.key];
                       const isEPS = row.key === 'eps';
                       
-                      return (
+                        return (
                         <td 
                           key={idx}
                           className={cn(
-                            "text-right px-3 py-2.5 text-xs tabular-nums",
+                            "text-right px-3 py-2.5 text-xs tabular-nums whitespace-nowrap w-[80px] min-w-[80px]",
                             yearData.isEstimate && "bg-primary/5",
                             row.isHighlight && yearData.isEstimate && "text-primary font-semibold",
                             row.isHighlight && !yearData.isEstimate && "font-semibold"
