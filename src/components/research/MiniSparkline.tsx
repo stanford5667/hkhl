@@ -17,8 +17,8 @@ export function MiniSparkline({
   className = '',
   showPriceScale = false
 }: MiniSparklineProps) {
-  const priceScaleWidth = showPriceScale ? 45 : 0;
-  const chartWidth = width - priceScaleWidth;
+  const priceScaleWidth = showPriceScale ? 52 : 0;
+  const chartWidth = width - priceScaleWidth - 4; // Add right padding
   
   const { min, max, range } = useMemo(() => {
     if (!data || data.length < 2) return { min: 0, max: 0, range: 1 };
@@ -104,9 +104,9 @@ export function MiniSparkline({
       {showPriceScale && priceTicks.map((tick, i) => (
         <g key={i}>
           <text
-            x={priceScaleWidth - 4}
+            x={priceScaleWidth - 6}
             y={tick.y + 3}
-            fontSize="8"
+            fontSize="9"
             fill="hsl(var(--muted-foreground))"
             textAnchor="end"
           >
