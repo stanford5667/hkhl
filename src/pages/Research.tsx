@@ -238,8 +238,8 @@ export default function ResearchPage() {
           )}
         </section>
 
-        {/* Market Overview Dashboard */}
-        <MarketOverviewDashboard />
+        {/* Market Overview Dashboard - Hidden */}
+        {/* <MarketOverviewDashboard /> */}
 
         {/* Market Intelligence Section */}
         <MarketIntelligenceSection />
