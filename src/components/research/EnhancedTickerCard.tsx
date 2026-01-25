@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { TrendingUp, TrendingDown } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 import { getCandlesForRange, CandleData } from '@/services/candleService';
 import { fetchTickerDetails, TickerDetails } from '@/services/tickerDetailsService';
 import { cn } from '@/lib/utils';
@@ -23,6 +24,15 @@ const PERIODS: { label: string; value: Period }[] = [
   { label: '1Y', value: '1Y' },
 ];
 
+// Period to days mapping
+const PERIOD_DAYS: Record<Period, number> = {
+  '1D': 1,
+  '1W': 7,
+  '1M': 30,
+  '3M': 90,
+  '1Y': 365,
+};
+
 export function EnhancedTickerCard({
   symbol,
   name,
@@ -42,13 +52,43 @@ export function EnhancedTickerCard({
     fetchTickerDetails(symbol).then(setDetails).catch(() => {});
   }, [symbol]);
 
-  // Fetch price data for chart
+  // Fetch price data for chart - prioritize database, fallback to candle service
   useEffect(() => {
     let mounted = true;
     
     async function fetchData() {
       setIsLoading(true);
       try {
+        // First try to get data from market_daily_bars table (more reliable)
+        const days = PERIOD_DAYS[selectedPeriod];
+        const startDate = new Date();
+        startDate.setDate(startDate.getDate() - days);
+        
+        const { data: dbBars, error } = await supabase
+          .from('market_daily_bars')
+          .select('bar_date, close')
+          .eq('ticker', symbol.toUpperCase())
+          .gte('bar_date', startDate.toISOString().split('T')[0])
+          .order('bar_date', { ascending: true });
+        
+        if (!error && dbBars && dbBars.length > 1 && mounted) {
+          const data = dbBars.map((bar) => ({
+            time: new Date(bar.bar_date).getTime() / 1000,
+            price: bar.close,
+          }));
+          setChartData(data);
+          
+          const firstClose = dbBars[0].close;
+          const lastClose = dbBars[dbBars.length - 1].close;
+          if (firstClose && lastClose) {
+            const change = ((lastClose - firstClose) / firstClose) * 100;
+            setPeriodChange(change);
+          }
+          setIsLoading(false);
+          return;
+        }
+        
+        // Fallback to candle service if database doesn't have data
         const candles = await getCandlesForRange(symbol, selectedPeriod);
         if (mounted && candles.length > 0) {
           const data = candles.map((c: CandleData) => ({
