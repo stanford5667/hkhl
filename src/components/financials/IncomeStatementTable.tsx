@@ -29,6 +29,24 @@ interface FinancialRow {
   tooltip?: string;
 }
 
+// Analyst estimate from FMP API
+interface AnalystEstimate {
+  date: string;
+  estimatedRevenueAvg: number;
+  estimatedRevenueLow: number;
+  estimatedRevenueHigh: number;
+  estimatedNetIncomeAvg: number;
+  estimatedNetIncomeLow: number;
+  estimatedNetIncomeHigh: number;
+  estimatedEpsAvg: number;
+  estimatedEpsLow: number;
+  estimatedEpsHigh: number;
+  estimatedEbitdaAvg: number;
+  numberAnalystEstimatedRevenue: number;
+  numberAnalystsEstimatedEps: number;
+  isEstimate: boolean;
+}
+
 type EstimateScenario = 'bear' | 'base' | 'bull';
 
 // Format number to abbreviated form (e.g., 260.2B, 161.8B, 34.5B, etc.)
@@ -88,8 +106,82 @@ function useFinancialData(ticker: string) {
   });
 }
 
-// Generate estimates based on historical data
-function generateEstimates(historicalData: any[], scenario: EstimateScenario) {
+// Convert analyst estimates to display format based on scenario
+function convertEstimatesToDisplayFormat(
+  estimates: AnalystEstimate[], 
+  historicalData: any[], 
+  scenario: EstimateScenario
+) {
+  if (!estimates?.length) {
+    // Fallback to generated estimates if no real data
+    return generateFallbackEstimates(historicalData, scenario);
+  }
+  
+  const latestHistorical = historicalData?.[0];
+  
+  return estimates.map((est) => {
+    const year = parseInt(est.date?.split('-')[0] || '2025');
+    
+    // Select values based on scenario
+    let revenue: number, netIncome: number, eps: number;
+    
+    switch (scenario) {
+      case 'bear':
+        revenue = est.estimatedRevenueLow || est.estimatedRevenueAvg * 0.9;
+        netIncome = est.estimatedNetIncomeLow || est.estimatedNetIncomeAvg * 0.85;
+        eps = est.estimatedEpsLow || est.estimatedEpsAvg * 0.85;
+        break;
+      case 'bull':
+        revenue = est.estimatedRevenueHigh || est.estimatedRevenueAvg * 1.1;
+        netIncome = est.estimatedNetIncomeHigh || est.estimatedNetIncomeAvg * 1.15;
+        eps = est.estimatedEpsHigh || est.estimatedEpsAvg * 1.15;
+        break;
+      default: // base
+        revenue = est.estimatedRevenueAvg;
+        netIncome = est.estimatedNetIncomeAvg;
+        eps = est.estimatedEpsAvg;
+    }
+    
+    // Calculate derived values based on historical margins
+    const historicalGrossMargin = latestHistorical?.grossProfit && latestHistorical?.revenue
+      ? latestHistorical.grossProfit / latestHistorical.revenue
+      : 0.4;
+    const historicalOpMargin = latestHistorical?.operatingIncome && latestHistorical?.revenue
+      ? latestHistorical.operatingIncome / latestHistorical.revenue
+      : 0.15;
+    
+    const grossProfit = revenue * historicalGrossMargin;
+    const costOfRevenue = revenue - grossProfit;
+    const operatingIncome = revenue * historicalOpMargin;
+    const operatingExpenses = grossProfit - operatingIncome;
+    const interestExpense = latestHistorical?.interestExpense || revenue * 0.01;
+    const otherIncome = latestHistorical?.otherIncome || revenue * 0.005;
+    const incomeBeforeTax = netIncome / 0.79; // Assume ~21% effective tax rate
+    const incomeTax = incomeBeforeTax - netIncome;
+    
+    return {
+      date: `${year}E`,
+      year,
+      isEstimate: true,
+      revenue,
+      costOfRevenue,
+      grossProfit,
+      operatingExpenses,
+      operatingIncome,
+      interestExpense,
+      otherIncome,
+      incomeBeforeTax,
+      incomeTax,
+      netIncome,
+      eps,
+      ebitda: est.estimatedEbitdaAvg || operatingIncome * 1.15,
+      analystCount: Math.max(est.numberAnalystEstimatedRevenue || 0, est.numberAnalystsEstimatedEps || 0),
+    };
+  });
+}
+
+// Fallback estimates when no analyst data available
+function generateFallbackEstimates(historicalData: any[], scenario: EstimateScenario) {
   if (!historicalData?.length) return [];
   
   const latestYear = historicalData[0];
@@ -121,6 +213,7 @@ function generateEstimates(historicalData: any[], scenario: EstimateScenario) {
       date: `${year}E`,
       year: year,
       isEstimate: true,
+      isFallback: true, // Flag to show this is generated, not from analysts
       revenue,
       costOfRevenue: revenue * (1 - grossMargin),
       grossProfit: revenue * grossMargin,
@@ -141,7 +234,10 @@ export function IncomeStatementTable({ ticker, companyName }: IncomeStatementTab
   const { data, isLoading, error, refetch, isRefetching } = useFinancialData(ticker);
   
   const historicalData = data?.financials || [];
-  const estimates = generateEstimates(historicalData, selectedScenario);
+  const analystEstimates = data?.estimates || [];
+  const hasRealEstimates = analystEstimates.length > 0;
+  
+  const estimates = convertEstimatesToDisplayFormat(analystEstimates, historicalData, selectedScenario);
   
   // Prepare display data - historical (reversed to show oldest first) + estimates
   const displayYears = [
@@ -359,10 +455,12 @@ export function IncomeStatementTable({ ticker, companyName }: IncomeStatementTab
         {/* Data source indicator */}
         <div className="px-4 py-2 border-t border-border/30 flex items-center justify-between">
           <span className="text-[10px] text-muted-foreground">
-            Source: {data?.useMockData ? 'Demo Data' : 'Financial Modeling Prep'}
+            Source: {data?.useMockData ? 'Demo Data' : data?.source || 'Financial Modeling Prep'}
           </span>
           <span className="text-[10px] text-muted-foreground">
-            Estimates are projections based on historical trends
+            {hasRealEstimates 
+              ? `Estimates from ${(estimates[0] as any)?.analystCount || 'Wall Street'} analysts` 
+              : 'Estimates based on historical trends'}
           </span>
         </div>
       </CardContent>
