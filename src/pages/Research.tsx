@@ -11,6 +11,9 @@ import { useTrendingTickers } from '@/hooks/useTrendingTickers';
 import { useCategoryCounts, useETFCount } from '@/hooks/useCategoryCounts';
 import { TickerCarousel } from '@/components/research/TickerCarousel';
 import { CategoryCard } from '@/components/research/CategoryCard';
+import { MarketOverviewDashboard } from '@/components/research/MarketOverviewDashboard';
+import { MarketIntelligenceSection } from '@/components/research/MarketIntelligenceSection';
+import { DiscoveryFeed } from '@/components/research/DiscoveryFeed';
 import { MarketThemesSection } from '@/components/research/MarketThemesSection';
 
 
@@ -251,6 +254,38 @@ export default function ResearchPage() {
 
         {/* Major Market Themes */}
         <MarketThemesSection />
+
+        {/* Market Intelligence Section */}
+        <MarketIntelligenceSection />
+
+        {/* Discovery Feed */}
+        <DiscoveryFeed />
+
+        {/* Categories Grid */}
+        <section className="space-y-3">
+          <div className="flex items-center gap-2">
+            <div className="p-1.5 rounded-lg bg-primary/10 border border-primary/20">
+              <Building2 className="h-4 w-4 text-primary" />
+            </div>
+            <div>
+              <h2 className="text-base font-semibold text-foreground">Explore by Category</h2>
+              <p className="text-[10px] text-muted-foreground">Select a category to browse stocks</p>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+            {CATEGORIES.map(category => (
+              <CategoryCard
+                key={category.id}
+                title={category.title}
+                description={category.description}
+                icon={category.icon}
+                gradient={category.gradient}
+                onClick={() => handleCategoryClick(category.id)}
+                stockCount={category.id === 'etfs' ? etfCount : categoryCounts[category.id]}
+              />
+            ))}
+          </div>
+        </section>
       </div>
     </div>
   );
