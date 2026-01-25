@@ -14,6 +14,7 @@ import { CategoryCard } from '@/components/research/CategoryCard';
 import { MarketOverviewDashboard } from '@/components/research/MarketOverviewDashboard';
 import { MarketIntelligenceSection } from '@/components/research/MarketIntelligenceSection';
 import { DiscoveryFeed } from '@/components/research/DiscoveryFeed';
+import { MarketThemesSection } from '@/components/research/MarketThemesSection';
 import { cn } from '@/lib/utils';
 
 const CATEGORIES = [
@@ -240,6 +241,9 @@ export default function ResearchPage() {
 
         {/* Market Overview Dashboard - Hidden */}
         {/* <MarketOverviewDashboard /> */}
+
+        {/* Major Market Themes */}
+        <MarketThemesSection />
 
         {/* Market Intelligence Section */}
         <MarketIntelligenceSection />
