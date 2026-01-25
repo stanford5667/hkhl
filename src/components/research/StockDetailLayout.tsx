@@ -70,7 +70,7 @@ export function StockDetailLayout({
   return (
     <div className="flex h-[calc(100vh-56px-64px)] md:h-[calc(100vh-64px)]">
       {/* Left Sidebar - Icon tabs, sticky */}
-      <div className="hidden md:flex flex-col w-16 lg:w-24 border-r border-border bg-card shrink-0 shadow-sm">
+      <div className="hidden md:flex flex-col w-16 lg:w-24 border-r-2 border-primary/20 bg-card shrink-0 shadow-lg">
         {/* Back button */}
         {onBack && (
           <TooltipProvider delayDuration={0}>
@@ -91,25 +91,11 @@ export function StockDetailLayout({
         )}
         
         {/* Tab icons */}
-        <nav className="flex-1 py-4">
+        <nav className="flex-1 py-2">
           <TooltipProvider delayDuration={0}>
             {tabs.map((tab) => {
               const Icon = tab.icon;
               const isActive = activeTab === tab.id;
-              const color = tab.color || 'primary';
-              
-              // Color mappings for active states
-              const colorClasses: Record<string, { text: string; bg: string; indicator: string }> = {
-                blue: { text: 'text-blue-500', bg: 'bg-blue-500/10', indicator: 'bg-blue-500' },
-                emerald: { text: 'text-emerald-500', bg: 'bg-emerald-500/10', indicator: 'bg-emerald-500' },
-                violet: { text: 'text-violet-500', bg: 'bg-violet-500/10', indicator: 'bg-violet-500' },
-                amber: { text: 'text-amber-500', bg: 'bg-amber-500/10', indicator: 'bg-amber-500' },
-                rose: { text: 'text-rose-500', bg: 'bg-rose-500/10', indicator: 'bg-rose-500' },
-                cyan: { text: 'text-cyan-500', bg: 'bg-cyan-500/10', indicator: 'bg-cyan-500' },
-                primary: { text: 'text-primary', bg: 'bg-primary/10', indicator: 'bg-primary' },
-              };
-              
-              const activeColor = colorClasses[color] || colorClasses.primary;
               
               return (
                 <Tooltip key={tab.id}>
@@ -117,22 +103,19 @@ export function StockDetailLayout({
                     <button
                       onClick={() => onTabChange(tab.id)}
                       className={cn(
-                        "w-full h-14 lg:h-16 flex flex-col items-center justify-center gap-1 transition-all relative group",
+                        "w-full h-16 lg:h-[72px] flex flex-col items-center justify-center gap-1.5 transition-all relative group",
                         isActive 
-                          ? `${activeColor.text} ${activeColor.bg}` 
+                          ? "text-primary-foreground bg-primary shadow-md" 
                           : "text-muted-foreground hover:text-foreground hover:bg-accent"
                       )}
                     >
-                      {isActive && (
-                        <div className={cn("absolute left-0 top-1/2 -translate-y-1/2 w-1 h-10 rounded-r", activeColor.indicator)} />
-                      )}
                       <Icon className={cn(
                         "h-5 w-5 lg:h-6 lg:w-6 transition-transform",
                         isActive && "scale-110"
                       )} />
                       <span className={cn(
-                        "text-[9px] lg:text-[10px] font-medium leading-tight text-center px-1",
-                        isActive ? activeColor.text : "text-muted-foreground group-hover:text-foreground"
+                        "text-[9px] lg:text-[10px] font-semibold leading-tight text-center px-1 uppercase tracking-wide",
+                        isActive ? "text-primary-foreground" : "text-muted-foreground group-hover:text-foreground"
                       )}>
                         {tab.shortLabel || tab.label.split(' ')[0]}
                       </span>
@@ -207,34 +190,21 @@ export function StockDetailLayout({
           </div>
 
           {/* Mobile tab bar */}
-          <div className="md:hidden overflow-x-auto scrollbar-hide bg-card/80 shadow-sm">
-            <div className="flex min-w-max px-1">
+          <div className="md:hidden overflow-x-auto scrollbar-hide bg-card border-b-2 border-primary/20 shadow-md">
+            <div className="flex min-w-max">
               {tabs.map((tab) => {
                 const Icon = tab.icon;
                 const isActive = activeTab === tab.id;
-                const color = tab.color || 'primary';
-                
-                const colorClasses: Record<string, { text: string; indicator: string }> = {
-                  blue: { text: 'text-blue-500', indicator: 'bg-blue-500' },
-                  emerald: { text: 'text-emerald-500', indicator: 'bg-emerald-500' },
-                  violet: { text: 'text-violet-500', indicator: 'bg-violet-500' },
-                  amber: { text: 'text-amber-500', indicator: 'bg-amber-500' },
-                  rose: { text: 'text-rose-500', indicator: 'bg-rose-500' },
-                  cyan: { text: 'text-cyan-500', indicator: 'bg-cyan-500' },
-                  primary: { text: 'text-primary', indicator: 'bg-primary' },
-                };
-                
-                const activeColor = colorClasses[color] || colorClasses.primary;
                 
                 return (
                   <button
                     key={tab.id}
                     onClick={() => onTabChange(tab.id)}
                     className={cn(
-                      "flex flex-col items-center gap-0.5 px-3 py-2.5 text-[10px] font-semibold whitespace-nowrap transition-all relative",
+                      "flex flex-col items-center gap-0.5 px-4 py-3 text-[10px] font-semibold whitespace-nowrap transition-all relative uppercase tracking-wide",
                       isActive 
-                        ? activeColor.text 
-                        : "text-muted-foreground hover:text-foreground"
+                        ? "text-primary-foreground bg-primary" 
+                        : "text-muted-foreground hover:text-foreground hover:bg-accent"
                     )}
                   >
                     <Icon className={cn(
@@ -242,9 +212,6 @@ export function StockDetailLayout({
                       isActive && "scale-110"
                     )} />
                     <span>{tab.shortLabel || tab.label.split(' ')[0]}</span>
-                    {isActive && (
-                      <div className={cn("absolute bottom-0 left-1/2 -translate-x-1/2 w-8 h-0.5 rounded-t", activeColor.indicator)} />
-                    )}
                   </button>
                 );
               })}
