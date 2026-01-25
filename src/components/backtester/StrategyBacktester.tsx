@@ -338,6 +338,12 @@ export function StrategyBacktester({ ticker, companyName }: StrategyBacktesterPr
         case '5Y': startDate.setFullYear(endDate.getFullYear() - 5); break;
       }
 
+      console.log('[Backtest] Running with params:', { 
+        stopLoss, 
+        takeProfit, 
+        strategy: selectedStrategy.id 
+      });
+
       const { data, error: fnError } = await supabase.functions.invoke('strategy-backtest', {
         body: {
           ticker,
