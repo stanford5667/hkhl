@@ -38,8 +38,18 @@ async function fetchPolygonBars(ticker: string, startDate: string, endDate: stri
     console.log(`[strategy-backtest] Got ${data.results.length} bars from Polygon for ${ticker}`);
     
     // Convert Polygon format to Bar format
+    // Polygon timestamps are midnight UTC of the trading day
+    // We need to add a few hours to ensure we get the correct trading day
     const bars: Bar[] = data.results.map((r: { t: number; o: number; h: number; l: number; c: number; v: number }, idx: number, arr: { c: number }[]) => {
-      const date = new Date(r.t).toISOString().split('T')[0];
+      // Polygon timestamps are in ms, representing start of day UTC
+      // Add 12 hours to ensure we're firmly in the trading day regardless of timezone
+      const adjustedTimestamp = r.t + (12 * 60 * 60 * 1000);
+      const dateObj = new Date(adjustedTimestamp);
+      const year = dateObj.getUTCFullYear();
+      const month = String(dateObj.getUTCMonth() + 1).padStart(2, '0');
+      const day = String(dateObj.getUTCDate()).padStart(2, '0');
+      const date = `${year}-${month}-${day}`;
+      
       const prevClose = idx > 0 ? arr[idx - 1].c : r.o;
       const dailyReturn = prevClose ? ((r.c - prevClose) / prevClose) * 100 : 0;
       
@@ -314,7 +324,12 @@ function gapFillStrategy(
   
   const gapPercent = ((todayOpen - prevClose) / prevClose) * 100;
   
-  // Gap down detected
+  // Log significant gaps for debugging
+  if (Math.abs(gapPercent) > threshold) {
+    console.log(`[Gap Strategy] ${bars[index].date}: Gap ${gapPercent.toFixed(2)}%, threshold: ${threshold}%, inPosition: ${inPosition}`);
+  }
+  
+  // Gap down detected - only enter if not already in position
   if (!inPosition && gapPercent < -threshold) {
     return { action: 'BUY', reason: `Gap down of ${gapPercent.toFixed(2)}% (below -${threshold}%)` };
   }
