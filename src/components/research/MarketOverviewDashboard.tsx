@@ -202,9 +202,9 @@ export function MarketOverviewDashboard() {
       </div>
 
       {/* Main Content: Indexes + Chart + News all in one row on desktop */}
-      <div className="flex flex-col lg:flex-row lg:divide-x divide-border/50">
+      <div className="flex flex-row divide-x divide-border/50">
         {/* Left Panel - Index List */}
-        <div className="lg:w-[240px] shrink-0 border-b lg:border-b-0 border-border/50 bg-muted/10">
+        <div className="w-[140px] sm:w-[180px] lg:w-[240px] shrink-0 bg-muted/10">
           {currentIndices.map(item => (
             <button
               key={item.symbol}
@@ -246,7 +246,7 @@ export function MarketOverviewDashboard() {
         </div>
 
         {/* Center Panel - Chart */}
-        <div className="flex-1 p-3 min-w-0 flex flex-col justify-center items-center bg-gradient-to-br from-transparent to-muted/10 border-b lg:border-b-0 border-border/50">
+        <div className="flex-1 p-2 sm:p-3 min-w-0 flex flex-col justify-center items-center bg-gradient-to-br from-transparent to-muted/10">
           {/* Selected Index Info */}
           {selectedIndexData && (
             <div className="text-center mb-1">
@@ -288,7 +288,7 @@ export function MarketOverviewDashboard() {
         </div>
 
         {/* Right Panel - Latest News */}
-        <div className="lg:w-[280px] shrink-0 bg-muted/10">
+        <div className="hidden lg:block lg:w-[280px] shrink-0 bg-muted/10">
           <div className="flex items-center justify-between px-3 py-2 border-b border-border/50">
             <span className="text-[11px] font-semibold text-foreground">Latest News</span>
             <button 
