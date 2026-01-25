@@ -1,5 +1,7 @@
 import { useMemo } from 'react';
 
+import { cn } from '@/lib/utils';
+
 interface MiniSparklineProps {
   data: number[];
   width?: number;
@@ -93,8 +95,9 @@ export function MiniSparkline({
     <svg 
       width={width} 
       height={height} 
-      className={className}
+      className={cn('block max-w-full', className)}
       viewBox={`0 0 ${width} ${height}`}
+      preserveAspectRatio="xMidYMid meet"
     >
       <defs>
         <linearGradient id={gradientId} x1="0%" y1="0%" x2="0%" y2="100%">

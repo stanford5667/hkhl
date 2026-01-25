@@ -130,7 +130,7 @@ export default function ResearchPage() {
   }));
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background via-background to-muted/20">
+    <div className="min-h-screen bg-gradient-to-b from-background via-background to-muted/20 overflow-x-hidden">
       {/* Hero Section - More compact */}
       <div className="relative">
         <div className="relative max-w-6xl mx-auto px-4 sm:px-6 pt-6 pb-4">
