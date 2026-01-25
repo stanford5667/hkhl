@@ -322,6 +322,12 @@ function gapFillStrategy(
   const threshold = params.gapThreshold ?? 2; // 2% gap
   const takeProfit = params.takeProfitPercent ?? null;
   
+  // Log params on first call for debugging
+  if (index === 1) {
+    console.log('[Gap Strategy] Params received:', JSON.stringify(params));
+    console.log('[Gap Strategy] Threshold set to:', threshold, 'Take Profit:', takeProfit);
+  }
+  
   const gapPercent = ((todayOpen - prevClose) / prevClose) * 100;
   
   // Log significant gaps for debugging
@@ -765,6 +771,8 @@ Deno.serve(async (req) => {
 
   try {
     const { ticker, strategy, startDate, endDate, initialCapital = 10000, params = {} } = await req.json();
+    
+    console.log('[strategy-backtest] Received params:', JSON.stringify(params));
 
     if (!ticker || !strategy) {
       return new Response(
