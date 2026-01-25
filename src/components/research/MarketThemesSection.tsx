@@ -139,6 +139,12 @@ function ThemeCard({
           </div>
         )}
       </div>
+
+      {/* Click hint */}
+      <div className="flex items-center gap-1 mt-2 pt-2 border-t border-white/5 text-[10px] text-muted-foreground opacity-60 group-hover:opacity-100 transition-opacity">
+        <span>Click to explore theme</span>
+        <ArrowRight className="h-3 w-3 group-hover:translate-x-0.5 transition-transform" />
+      </div>
     </button>
   );
 }

@@ -217,7 +217,10 @@ export default function ResearchPage() {
               <div className="p-1.5 rounded-lg bg-primary/10 border border-primary/20">
                 <TrendingUp className="h-4 w-4 text-primary" />
               </div>
-              <h2 className="text-base font-semibold text-foreground">Trending Now</h2>
+              <div>
+                <h2 className="text-base font-semibold text-foreground">Trending Now</h2>
+                <p className="text-[10px] text-muted-foreground">Click any card to view full analysis</p>
+              </div>
               {tickersLoading && <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />}
             </div>
           </div>
@@ -257,7 +260,10 @@ export default function ResearchPage() {
             <div className="p-1.5 rounded-lg bg-primary/10 border border-primary/20">
               <Building2 className="h-4 w-4 text-primary" />
             </div>
-            <h2 className="text-base font-semibold text-foreground">Explore by Category</h2>
+            <div>
+              <h2 className="text-base font-semibold text-foreground">Explore by Category</h2>
+              <p className="text-[10px] text-muted-foreground">Select a category to browse stocks</p>
+            </div>
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
             {CATEGORIES.map(category => (

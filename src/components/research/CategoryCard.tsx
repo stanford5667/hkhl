@@ -51,9 +51,15 @@ export function CategoryCard({ title, description, icon: Icon, gradient, onClick
             </span>
           )}
         </div>
-        <p className="text-[10px] text-muted-foreground line-clamp-2 leading-relaxed">
+        <p className="text-[10px] text-muted-foreground line-clamp-2 leading-relaxed mb-2">
           {description}
         </p>
+        
+        {/* Click hint */}
+        <div className="flex items-center gap-1 text-[9px] text-primary/70 opacity-0 group-hover:opacity-100 transition-opacity">
+          <span>Explore stocks</span>
+          <ChevronRight className="h-3 w-3" />
+        </div>
       </div>
     </button>
   );
