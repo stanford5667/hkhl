@@ -130,42 +130,43 @@ export default function ResearchPage() {
   }));
 
   return (
-    <div className="min-h-screen">
-      {/* Hero Section */}
-      <div className="relative overflow-hidden">
-        <div className="relative max-w-6xl mx-auto px-4 sm:px-6 pt-8 pb-4">
-          {/* Hero Text */}
-          <div className="text-center mb-6 animate-fade-in">
-            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-2">
-              <span className="bg-gradient-to-r from-primary via-cyan-500 to-primary bg-clip-text text-transparent">
+    <div className="min-h-screen bg-gradient-to-b from-background via-background to-muted/20">
+      {/* Hero Section - More compact */}
+      <div className="relative">
+        <div className="relative max-w-6xl mx-auto px-4 sm:px-6 pt-6 pb-4">
+          {/* Hero Text - More compact */}
+          <div className="text-center mb-4">
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-1">
+              <span className="bg-gradient-to-r from-primary via-cyan-400 to-primary bg-clip-text text-transparent">
                 Find Investments
               </span>
             </h1>
-            <p className="text-muted-foreground text-sm sm:text-base max-w-xl mx-auto">
+            <p className="text-muted-foreground text-xs sm:text-sm">
               AI-powered insights for smarter investing
             </p>
           </div>
 
-          {/* Search Section - Prominent */}
-          <div className="max-w-2xl mx-auto mb-6">
+          {/* Search Section */}
+          <div className="max-w-xl mx-auto mb-4">
             <div className={cn(
               "relative rounded-xl overflow-hidden",
-              "bg-card border border-border shadow-lg shadow-primary/5",
+              "bg-card/80 backdrop-blur-sm border border-border/60",
+              "shadow-lg shadow-primary/5",
               "focus-within:border-primary/50 focus-within:shadow-primary/10 transition-all"
             )}>
-              <div className="flex items-center gap-3 p-1">
-                <Search className="h-5 w-5 text-muted-foreground ml-3" />
+              <div className="flex items-center gap-2 p-1">
+                <Search className="h-4 w-4 text-muted-foreground ml-3" />
                 <TickerSearchAutocomplete
                   value={searchQuery}
                   onChange={setSearchQuery}
                   onSelect={(result) => handleSearch(result.symbol)}
-                  placeholder="Enter ticker..."
-                  className="flex-1 border-0 shadow-none focus-visible:ring-0 bg-transparent"
+                  placeholder="Search stocks, ETFs..."
+                  className="flex-1 border-0 shadow-none focus-visible:ring-0 bg-transparent text-sm"
                   autoFocus
                 />
                 <Button 
                   size="sm" 
-                  className="mr-1 bg-primary hover:bg-primary/90"
+                  className="mr-1 bg-primary hover:bg-primary/90 h-8"
                   onClick={() => searchQuery && handleSearch(searchQuery)}
                 >
                   <ArrowRight className="h-4 w-4" />
@@ -174,29 +175,29 @@ export default function ResearchPage() {
             </div>
           </div>
 
-          {/* Recent Searches */}
+          {/* Recent Searches - Inline */}
           {recentSearches.length > 0 && (
-            <div className="max-w-2xl mx-auto">
-              <div className="flex items-center justify-center gap-2 flex-wrap">
-                <span className="text-xs text-muted-foreground flex items-center gap-1">
+            <div className="max-w-xl mx-auto">
+              <div className="flex items-center justify-center gap-1.5 flex-wrap">
+                <span className="text-[10px] text-muted-foreground flex items-center gap-1">
                   <Clock className="h-3 w-3" /> Recent:
                 </span>
-                {recentSearches.slice(0, 5).map(ticker => (
+                {recentSearches.slice(0, 4).map(ticker => (
                   <Button
                     key={ticker}
                     variant="outline"
                     size="sm"
                     onClick={() => handleSearch(ticker)}
-                    className="h-6 px-2 text-xs"
+                    className="h-6 px-2 text-[10px] border-border/60"
                   >
                     {ticker}
                   </Button>
                 ))}
                 <Button
                   variant="ghost"
-                  size="sm"
+                  size="icon"
                   onClick={clearRecentSearches}
-                  className="h-6 px-1 text-xs text-muted-foreground"
+                  className="h-6 w-6 text-muted-foreground"
                 >
                   <X className="h-3 w-3" />
                 </Button>
@@ -207,25 +208,20 @@ export default function ResearchPage() {
       </div>
 
       {/* Main Content */}
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 pb-12 space-y-8">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 pb-12 space-y-6">
         {/* Market Overview Dashboard */}
-        <section>
-          <MarketOverviewDashboard />
-        </section>
+        <MarketOverviewDashboard />
 
-        {/* Trending Tickers Carousel */}
-        <section className="space-y-4">
+        {/* Trending Tickers */}
+        <section className="space-y-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <div className="p-1.5 rounded-lg bg-primary/10">
+              <div className="p-1.5 rounded-lg bg-primary/10 border border-primary/20">
                 <TrendingUp className="h-4 w-4 text-primary" />
               </div>
-              <h2 className="text-lg font-semibold text-foreground">Trending Now</h2>
-              {tickersLoading && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
+              <h2 className="text-base font-semibold text-foreground">Trending Now</h2>
+              {tickersLoading && <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />}
             </div>
-            <span className="text-xs text-muted-foreground">
-              Swipe to explore →
-            </span>
           </div>
           {tickersWithQuotes.length > 0 ? (
             <TickerCarousel 
@@ -233,33 +229,33 @@ export default function ResearchPage() {
               onTickerClick={handleSearch} 
             />
           ) : tickersLoading ? (
-            <div className="flex gap-4 overflow-hidden">
-              {Array.from({ length: 6 }).map((_, i) => (
-                <div key={i} className="w-[220px] h-[200px] bg-muted/50 rounded-xl animate-pulse shrink-0" />
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+              {Array.from({ length: 8 }).map((_, i) => (
+                <div key={i} className="h-[200px] bg-muted/30 rounded-xl animate-pulse" />
               ))}
             </div>
           ) : (
-            <div className="text-center py-8 text-muted-foreground">
+            <div className="text-center py-8 text-muted-foreground bg-card rounded-xl border border-border/60">
               No trending tickers available
             </div>
           )}
         </section>
 
-        {/* Market Intelligence Section - Trending/Most Active, Screener, News */}
+        {/* Market Intelligence Section */}
         <MarketIntelligenceSection />
 
-        {/* Discovery Feed - Mobile-First Social Style News */}
+        {/* Discovery Feed */}
         <DiscoveryFeed />
 
         {/* Categories Grid */}
-        <section className="space-y-4">
+        <section className="space-y-3">
           <div className="flex items-center gap-2">
-            <div className="p-1.5 rounded-lg bg-primary/10">
+            <div className="p-1.5 rounded-lg bg-primary/10 border border-primary/20">
               <Building2 className="h-4 w-4 text-primary" />
             </div>
-            <h2 className="text-lg font-semibold text-foreground">Explore by Category</h2>
+            <h2 className="text-base font-semibold text-foreground">Explore by Category</h2>
           </div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
             {CATEGORIES.map(category => (
               <CategoryCard
                 key={category.id}

@@ -31,7 +31,7 @@ export function EnhancedTickerCard({
   marketCap,
   onClick,
 }: EnhancedTickerCardProps) {
-  const [selectedPeriod, setSelectedPeriod] = useState<Period>('1D');
+  const [selectedPeriod, setSelectedPeriod] = useState<Period>('1M');
   const [chartData, setChartData] = useState<{ time: number; price: number }[]>([]);
   const [periodChange, setPeriodChange] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -87,10 +87,10 @@ export function EnhancedTickerCard({
   };
 
   const formatMarketCap = (cap: number | undefined) => {
-    if (!cap) return '—';
+    if (!cap) return '';
     if (cap >= 1e12) return `$${(cap / 1e12).toFixed(2)}T`;
     if (cap >= 1e9) return `$${(cap / 1e9).toFixed(1)}B`;
-    if (cap >= 1e6) return `$${(cap / 1e6).toFixed(1)}M`;
+    if (cap >= 1e6) return `$${(cap / 1e6).toFixed(0)}M`;
     return `$${cap.toLocaleString()}`;
   };
 
@@ -111,9 +111,9 @@ export function EnhancedTickerCard({
     if (chartData.length < 2) return null;
 
     const width = 200;
-    const height = 70;
-    const priceScaleWidth = 40;
-    const padding = { top: 4, right: 4, bottom: 14, left: priceScaleWidth };
+    const height = 80;
+    const priceScaleWidth = 38;
+    const padding = { top: 8, right: 4, bottom: 16, left: priceScaleWidth };
     const chartWidth = width - padding.left - padding.right;
     const chartHeight = height - padding.top - padding.bottom;
 
@@ -158,7 +158,7 @@ export function EnhancedTickerCard({
       <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-full" preserveAspectRatio="xMidYMid meet">
         <defs>
           <linearGradient id={gradientId} x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" stopColor={lineColor} stopOpacity="0.3" />
+            <stop offset="0%" stopColor={lineColor} stopOpacity="0.25" />
             <stop offset="100%" stopColor={lineColor} stopOpacity="0" />
           </linearGradient>
         </defs>
@@ -174,6 +174,7 @@ export function EnhancedTickerCard({
                 fontSize="7" 
                 fill="hsl(var(--muted-foreground))" 
                 textAnchor="end"
+                opacity="0.7"
               >
                 {formatPriceLabel(tick)}
               </text>
@@ -185,7 +186,7 @@ export function EnhancedTickerCard({
                 stroke="hsl(var(--border))"
                 strokeWidth="0.5"
                 strokeDasharray="2,2"
-                opacity="0.4"
+                opacity="0.3"
               />
             </g>
           );
@@ -195,56 +196,60 @@ export function EnhancedTickerCard({
         <path d={pathD} fill="none" stroke={lineColor} strokeWidth="1.5" strokeLinecap="round" />
         
         {/* Time axis labels */}
-        <text x={padding.left} y={height - 2} fontSize="7" fill="hsl(var(--muted-foreground))" textAnchor="start">
+        <text x={padding.left} y={height - 2} fontSize="7" fill="hsl(var(--muted-foreground))" textAnchor="start" opacity="0.7">
           {formatLabel(startTime)}
         </text>
-        <text x={width - padding.right} y={height - 2} fontSize="7" fill="hsl(var(--muted-foreground))" textAnchor="end">
+        <text x={width - padding.right} y={height - 2} fontSize="7" fill="hsl(var(--muted-foreground))" textAnchor="end" opacity="0.7">
           {formatLabel(endTime)}
         </text>
       </svg>
     );
   };
 
-  const sectorDisplay = details?.industry || details?.sector || null;
+  const sectorDisplay = details?.sector || null;
   const effectiveMarketCap = details?.marketCap || marketCap;
 
   return (
     <div
       className={cn(
-        "flex flex-col p-3 rounded-xl bg-card border border-border",
-        "hover:border-primary/50 hover:shadow-lg hover:shadow-primary/5",
+        "flex flex-col p-4 rounded-xl",
+        "bg-gradient-to-br from-card to-card/80",
+        "border border-border/60",
+        "hover:border-primary/40 hover:shadow-xl hover:shadow-primary/5",
         "transition-all duration-300 group cursor-pointer",
-        "w-full min-w-0"
+        "backdrop-blur-sm"
       )}
       onClick={onClick}
     >
-      {/* Row 1: Symbol + Price */}
-      <div className="flex items-center justify-between mb-1">
-        <span className="font-bold text-base text-foreground group-hover:text-primary transition-colors truncate">
-          {symbol}
-        </span>
-        <span className="font-bold text-base text-foreground flex-shrink-0">
-          {formatPrice(price)}
-        </span>
+      {/* Header: Symbol + Price */}
+      <div className="flex items-start justify-between mb-1">
+        <div className="flex flex-col">
+          <span className="font-bold text-lg text-foreground group-hover:text-primary transition-colors tracking-tight">
+            {symbol}
+          </span>
+          <span className="text-[10px] text-muted-foreground truncate max-w-[100px]">{name}</span>
+        </div>
+        <div className="text-right">
+          <span className="font-bold text-lg text-foreground tabular-nums">
+            {formatPrice(price)}
+          </span>
+          {effectiveMarketCap && (
+            <div className="text-[10px] text-muted-foreground">{formatMarketCap(effectiveMarketCap)}</div>
+          )}
+        </div>
       </div>
 
-      {/* Row 2: Name + Market Cap */}
-      <div className="flex items-center justify-between mb-2">
-        <span className="text-[11px] text-muted-foreground truncate flex-1 min-w-0">{name}</span>
-        <span className="text-[10px] text-muted-foreground flex-shrink-0 ml-2">{formatMarketCap(effectiveMarketCap)}</span>
-      </div>
-
-      {/* Period Selector */}
-      <div className="flex gap-1 mb-2">
+      {/* Period Selector - More compact */}
+      <div className="flex gap-0.5 mb-2 bg-muted/30 rounded-lg p-0.5">
         {PERIODS.map(({ label, value }) => (
           <button
             key={value}
             onClick={(e) => handlePeriodClick(e, value)}
             className={cn(
-              "flex-1 text-[9px] font-medium py-0.5 rounded transition-all",
+              "flex-1 text-[9px] font-medium py-1 rounded-md transition-all",
               selectedPeriod === value
-                ? "bg-primary text-primary-foreground"
-                : "bg-muted/50 text-muted-foreground hover:bg-muted"
+                ? "bg-primary text-primary-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
             )}
           >
             {label}
@@ -253,42 +258,41 @@ export function EnhancedTickerCard({
       </div>
       
       {/* Chart Area */}
-      <div className="h-[70px] min-h-0 mb-2">
+      <div className="h-[80px] min-h-0 mb-2">
         {isLoading ? (
-          <div className="w-full h-full bg-muted/30 animate-pulse rounded" />
+          <div className="w-full h-full bg-muted/20 animate-pulse rounded-lg" />
         ) : chartData.length > 1 ? (
           renderChart()
         ) : (
-          <div className="w-full h-full bg-muted/20 rounded flex items-center justify-center text-[10px] text-muted-foreground">
+          <div className="w-full h-full bg-muted/10 rounded-lg flex items-center justify-center text-[10px] text-muted-foreground">
             No data
           </div>
         )}
       </div>
 
-      {/* Footer: Performance + Sector */}
-      <div className="flex items-center justify-between pt-1.5 border-t border-border/50">
+      {/* Footer: Performance Badge + Sector */}
+      <div className="flex items-center justify-between">
         {/* Period Performance */}
         {periodChange !== null ? (
           <div className={cn(
-            "flex items-center gap-1 text-xs font-semibold px-1.5 py-0.5 rounded",
-            isPositive ? 'text-emerald-500 bg-emerald-500/10' : 'text-red-500 bg-red-500/10'
+            "flex items-center gap-1.5 text-sm font-semibold px-2 py-1 rounded-lg",
+            isPositive 
+              ? 'text-emerald-400 bg-emerald-500/10 border border-emerald-500/20' 
+              : 'text-red-400 bg-red-500/10 border border-red-500/20'
           )}>
-            {isPositive ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
-            <span>{isPositive ? '+' : ''}{periodChange.toFixed(2)}%</span>
-            <span className="text-[9px] text-muted-foreground font-normal ml-0.5">{selectedPeriod}</span>
+            {isPositive ? <TrendingUp className="h-3.5 w-3.5" /> : <TrendingDown className="h-3.5 w-3.5" />}
+            <span className="tabular-nums">{isPositive ? '+' : ''}{periodChange.toFixed(2)}%</span>
           </div>
         ) : (
-          <span className="text-[10px] text-muted-foreground">—</span>
+          <span className="text-xs text-muted-foreground">—</span>
         )}
         
-        {/* Sector/Industry */}
+        {/* Sector Badge */}
         {sectorDisplay ? (
-          <span className="text-[9px] text-muted-foreground truncate max-w-[80px]" title={sectorDisplay}>
+          <span className="text-[10px] text-muted-foreground bg-muted/30 px-2 py-0.5 rounded-full truncate max-w-[90px]" title={sectorDisplay}>
             {sectorDisplay}
           </span>
-        ) : (
-          <span className="text-[9px] text-muted-foreground">—</span>
-        )}
+        ) : null}
       </div>
     </div>
   );

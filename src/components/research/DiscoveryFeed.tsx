@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Newspaper, RefreshCw, Loader2, AlertCircle } from 'lucide-react';
+import { Newspaper, RefreshCw, Loader2, AlertCircle, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
@@ -13,18 +13,13 @@ interface DiscoveryFeedProps {
 
 function NewsCardSkeleton() {
   return (
-    <div className="rounded-xl bg-card border border-border p-4 space-y-3 animate-pulse">
+    <div className="rounded-xl bg-card border border-border/60 p-4 space-y-3 animate-pulse">
       <div className="flex justify-between">
         <div className="h-3 w-20 bg-muted rounded" />
         <div className="h-3 w-12 bg-muted rounded" />
       </div>
-      <div className="h-6 w-full bg-muted rounded" />
+      <div className="h-5 w-full bg-muted rounded" />
       <div className="h-4 w-3/4 bg-muted rounded" />
-      <div className="flex gap-2 pt-2">
-        <div className="h-10 w-16 rounded-full bg-muted" />
-        <div className="h-10 w-16 rounded-full bg-muted" />
-        <div className="h-10 w-16 rounded-full bg-muted" />
-      </div>
     </div>
   );
 }
@@ -32,6 +27,7 @@ function NewsCardSkeleton() {
 export function DiscoveryFeed({ className }: DiscoveryFeedProps) {
   const [selectedTicker, setSelectedTicker] = useState<string | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [showAll, setShowAll] = useState(false);
   
   const { data: articles, isLoading, isRefetching, refetch, error } = usePolygonNews(undefined, 20);
 
@@ -44,6 +40,9 @@ export function DiscoveryFeed({ className }: DiscoveryFeedProps) {
     refetch();
   };
 
+  // Show only 4 articles initially, then all on expand
+  const displayArticles = showAll ? articles : articles?.slice(0, 4);
+
   return (
     <section className={cn('space-y-4', className)}>
       {/* Header */}
@@ -53,13 +52,13 @@ export function DiscoveryFeed({ className }: DiscoveryFeedProps) {
             <Newspaper className="h-5 w-5 text-primary" />
           </div>
           <div>
-            <h2 className="text-xl font-bold text-foreground">Market Feed</h2>
+            <h2 className="text-lg font-bold text-foreground">Market Feed</h2>
             <p className="text-xs text-muted-foreground">Real-time market-moving news</p>
           </div>
         </div>
         
         <div className="flex items-center gap-2">
-          <Badge variant="outline" className="font-mono text-xs border-border text-muted-foreground">
+          <Badge variant="outline" className="font-mono text-xs border-border/60 text-muted-foreground">
             {articles?.length ?? 0} stories
           </Badge>
           <Button
@@ -67,17 +66,16 @@ export function DiscoveryFeed({ className }: DiscoveryFeedProps) {
             size="icon"
             onClick={handleRefresh}
             disabled={isRefetching}
-            className="h-10 w-10 text-muted-foreground hover:text-foreground"
+            className="h-9 w-9 text-muted-foreground hover:text-foreground"
           >
             <RefreshCw className={cn('h-4 w-4', isRefetching && 'animate-spin')} />
           </Button>
         </div>
       </div>
 
-      {/* Feed - Vertical Social Style */}
-      <div className="space-y-4">
+      {/* Feed Grid - 2 columns on larger screens */}
+      <div className="grid md:grid-cols-2 gap-3">
         {isLoading ? (
-          // Loading Skeletons
           <>
             <NewsCardSkeleton />
             <NewsCardSkeleton />
@@ -85,24 +83,21 @@ export function DiscoveryFeed({ className }: DiscoveryFeedProps) {
             <NewsCardSkeleton />
           </>
         ) : error ? (
-          // Error State
-          <div className="flex flex-col items-center justify-center py-16 text-center">
-            <AlertCircle className="h-12 w-12 text-destructive/50 mb-4" />
+          <div className="md:col-span-2 flex flex-col items-center justify-center py-12 text-center bg-card rounded-xl border border-border/60">
+            <AlertCircle className="h-10 w-10 text-destructive/50 mb-3" />
             <p className="text-sm font-medium text-muted-foreground">Failed to load news</p>
-            <p className="text-xs text-muted-foreground/70 mt-1">Please try again later</p>
             <Button
               variant="outline"
               size="sm"
               onClick={handleRefresh}
-              className="mt-4 min-h-[44px]"
+              className="mt-3"
             >
               <RefreshCw className="h-4 w-4 mr-2" />
               Retry
             </Button>
           </div>
-        ) : articles && articles.length > 0 ? (
-          // News Cards
-          articles.map((article, index) => (
+        ) : displayArticles && displayArticles.length > 0 ? (
+          displayArticles.map((article, index) => (
             <NewsCard
               key={article.id}
               article={article}
@@ -111,23 +106,27 @@ export function DiscoveryFeed({ className }: DiscoveryFeedProps) {
             />
           ))
         ) : (
-          // Empty State
-          <div className="flex flex-col items-center justify-center py-16 text-center">
-            <Newspaper className="h-12 w-12 text-muted-foreground/30 mb-4" />
+          <div className="md:col-span-2 flex flex-col items-center justify-center py-12 text-center bg-card rounded-xl border border-border/60">
+            <Newspaper className="h-10 w-10 text-muted-foreground/30 mb-3" />
             <p className="text-sm font-medium text-muted-foreground">No news available</p>
-            <p className="text-xs text-muted-foreground/70 mt-1">Check back soon for updates</p>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleRefresh}
-              className="mt-4 min-h-[44px]"
-            >
-              <RefreshCw className="h-4 w-4 mr-2" />
-              Refresh
-            </Button>
           </div>
         )}
       </div>
+
+      {/* Show More Button */}
+      {articles && articles.length > 4 && !showAll && (
+        <div className="flex justify-center">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowAll(true)}
+            className="text-xs"
+          >
+            Show More
+            <ChevronDown className="h-3 w-3 ml-1" />
+          </Button>
+        </div>
+      )}
 
       {/* Asset Details Bottom Sheet */}
       <AssetBottomSheet
