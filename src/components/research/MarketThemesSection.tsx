@@ -171,7 +171,9 @@ export function MarketThemesSection() {
     navigate(`/stock/${symbol}`);
   };
 
-  const displayedThemes = showAll ? MARKET_THEMES : MARKET_THEMES.slice(0, 12);
+  // Randomize themes on each page load for a fresh experience
+  const [randomizedThemes] = useState(() => getTrulyRandomThemes(12));
+  const displayedThemes = showAll ? MARKET_THEMES : randomizedThemes;
 
   return (
     <section className="space-y-3">
