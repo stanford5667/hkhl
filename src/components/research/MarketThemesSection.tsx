@@ -1140,6 +1140,13 @@ export function MarketThemesSection() {
   const navigate = useNavigate();
   const [selectedTheme, setSelectedTheme] = useState<MarketTheme | null>(null);
   const [showAll, setShowAll] = useState(false);
+  const [sheetExpanded, setSheetExpanded] = useState(false);
+
+  // Reset expansion when theme changes
+  const handleThemeSelect = (theme: MarketTheme) => {
+    setSheetExpanded(false);
+    setSelectedTheme(theme);
+  };
 
   const handleAddToWatchlist = () => {
     if (!selectedTheme) return;
@@ -1187,7 +1194,7 @@ export function MarketThemesSection() {
             <div key={theme.id} className="w-full">
               <ThemeCard 
                 theme={theme} 
-                onClick={() => setSelectedTheme(theme)}
+                onClick={() => handleThemeSelect(theme)}
                 onTickerClick={handleTickerClick}
               />
             </div>
@@ -1198,7 +1205,7 @@ export function MarketThemesSection() {
               <ThemeCard 
                 key={theme.id} 
                 theme={theme} 
-                onClick={() => setSelectedTheme(theme)}
+                onClick={() => handleThemeSelect(theme)}
                 onTickerClick={handleTickerClick}
               />
             ))}
@@ -1237,14 +1244,32 @@ export function MarketThemesSection() {
               </SheetHeader>
 
               <ScrollArea className="h-[calc(100vh-240px)] mt-4 pr-4">
-                {/* Detailed Summary */}
+                {/* Detailed Summary - Collapsible */}
                 <div className="mb-6">
                   <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">
                     Theme Analysis
                   </h4>
-                  <p className="text-sm text-foreground leading-relaxed">
-                    {selectedTheme.detailedSummary}
-                  </p>
+                  <div className="relative">
+                    <p className={cn(
+                      "text-sm text-foreground leading-relaxed transition-all duration-200",
+                      !sheetExpanded && "line-clamp-3"
+                    )}>
+                      {selectedTheme.detailedSummary}
+                    </p>
+                    <button
+                      onClick={() => setSheetExpanded(!sheetExpanded)}
+                      className={cn(
+                        "mt-2 text-xs font-medium text-primary hover:text-primary/80",
+                        "flex items-center gap-1 transition-colors"
+                      )}
+                    >
+                      {sheetExpanded ? 'See less' : 'See more'}
+                      <ArrowRight className={cn(
+                        "h-3 w-3 transition-transform duration-200",
+                        sheetExpanded && "rotate-90"
+                      )} />
+                    </button>
+                  </div>
                 </div>
 
                 {/* Related Tickers */}
