@@ -41,6 +41,17 @@ interface StockDetailLayoutProps {
   onSaveToWatchlist?: () => void;
 }
 
+// Color classes for each tab category
+const tabColorClasses: Record<string, { active: string; indicator: string }> = {
+  blue: { active: 'bg-blue-600 text-white', indicator: 'bg-blue-500' },
+  emerald: { active: 'bg-emerald-600 text-white', indicator: 'bg-emerald-500' },
+  violet: { active: 'bg-violet-600 text-white', indicator: 'bg-violet-500' },
+  amber: { active: 'bg-amber-600 text-white', indicator: 'bg-amber-500' },
+  cyan: { active: 'bg-cyan-600 text-white', indicator: 'bg-cyan-500' },
+  rose: { active: 'bg-rose-600 text-white', indicator: 'bg-rose-500' },
+  primary: { active: 'bg-primary text-primary-foreground', indicator: 'bg-primary' },
+};
+
 export function StockDetailLayout({
   ticker,
   companyName,
@@ -96,6 +107,7 @@ export function StockDetailLayout({
             {tabs.map((tab) => {
               const Icon = tab.icon;
               const isActive = activeTab === tab.id;
+              const colors = tabColorClasses[tab.color || 'primary'];
               
               return (
                 <Tooltip key={tab.id}>
@@ -105,7 +117,7 @@ export function StockDetailLayout({
                       className={cn(
                         "w-full h-16 lg:h-[72px] flex flex-col items-center justify-center gap-1.5 transition-all relative group",
                         isActive 
-                          ? "text-primary-foreground bg-primary shadow-md" 
+                          ? `${colors.active} shadow-md` 
                           : "text-muted-foreground hover:text-foreground hover:bg-accent"
                       )}
                     >
@@ -115,7 +127,7 @@ export function StockDetailLayout({
                       )} />
                       <span className={cn(
                         "text-[9px] lg:text-[10px] font-semibold leading-tight text-center px-1 uppercase tracking-wide",
-                        isActive ? "text-primary-foreground" : "text-muted-foreground group-hover:text-foreground"
+                        isActive ? "text-white" : "text-muted-foreground group-hover:text-foreground"
                       )}>
                         {tab.shortLabel || tab.label.split(' ')[0]}
                       </span>
@@ -195,6 +207,7 @@ export function StockDetailLayout({
               {tabs.map((tab) => {
                 const Icon = tab.icon;
                 const isActive = activeTab === tab.id;
+                const colors = tabColorClasses[tab.color || 'primary'];
                 
                 return (
                   <button
@@ -203,7 +216,7 @@ export function StockDetailLayout({
                     className={cn(
                       "flex flex-col items-center gap-0.5 px-4 py-3 text-[10px] font-semibold whitespace-nowrap transition-all relative uppercase tracking-wide",
                       isActive 
-                        ? "text-primary-foreground bg-primary" 
+                        ? `${colors.active}` 
                         : "text-muted-foreground hover:text-foreground hover:bg-accent"
                     )}
                   >
