@@ -1039,8 +1039,14 @@ function ThemeCard({
   onClick: () => void;
   onTickerClick: (symbol: string) => void;
 }) {
+  const [expanded, setExpanded] = useState(false);
   const Icon = theme.icon;
   const isPositive = theme.impactPercent >= 0;
+
+  const handleSeeMoreClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setExpanded(!expanded);
+  };
 
   return (
     <button
@@ -1087,10 +1093,29 @@ function ThemeCard({
         </div>
       </div>
 
-      {/* Summary */}
-      <p className="text-xs text-muted-foreground line-clamp-3 mb-3 leading-relaxed">
-        {theme.summary}
-      </p>
+      {/* Summary with See More */}
+      <div className="mb-3">
+        <p className={cn(
+          "text-xs text-muted-foreground leading-relaxed transition-all duration-200",
+          !expanded && "line-clamp-2"
+        )}>
+          {expanded ? theme.detailedSummary : theme.summary}
+        </p>
+        <span
+          onClick={handleSeeMoreClick}
+          className={cn(
+            "inline-flex items-center gap-1 mt-1.5 text-[11px] font-medium text-primary",
+            "hover:text-primary/80 cursor-pointer transition-colors",
+            "focus:outline-none focus:underline"
+          )}
+        >
+          {expanded ? 'See less' : 'See more'}
+          <ArrowRight className={cn(
+            "h-3 w-3 transition-transform duration-200",
+            expanded && "rotate-90"
+          )} />
+        </span>
+      </div>
 
       {/* Ticker Ribbon */}
       <div className="flex gap-1.5 overflow-x-auto scrollbar-hide pb-1">
@@ -1106,11 +1131,6 @@ function ThemeCard({
             +{theme.tickers.length - 3}
           </div>
         )}
-      </div>
-
-      {/* Hover indicator */}
-      <div className="absolute bottom-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity">
-        <ArrowRight className="h-4 w-4 text-primary" />
       </div>
     </button>
   );
