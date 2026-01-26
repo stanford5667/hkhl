@@ -589,6 +589,13 @@ function runBacktest(
         entryIndicatorValue = getIndicatorValue(strategy, i);
       }
     } else if (signal.action === 'SELL' && inPosition && entryPrice !== null) {
+      // CRITICAL: When take profit is set, ignore strategy-specific exits
+      // Only TP/SL (checked above) should trigger exits to respect user's risk/reward settings
+      if (takeProfit !== null) {
+        // Skip this sell signal - wait for take profit or stop loss
+        continue;
+      }
+      
       const pnl = shares * (bar.close - entryPrice);
       const pnlPercent = ((bar.close - entryPrice) / entryPrice) * 100;
       
