@@ -267,11 +267,12 @@ function ExpectedValueCard({ winRate, avgWin, avgLoss, ev }: { winRate: number; 
 }
 
 // Custom chart marker shape
-function TradeMarker(props: { cx?: number; cy?: number; payload?: { type: string; indicatorValue?: number; indicatorName?: string; reason: string } }) {
+function TradeMarker(props: { cx?: number; cy?: number; payload?: { markerType?: string; type?: string; indicatorValue?: number; indicatorName?: string; reason?: string } }) {
   const { cx, cy, payload } = props;
   if (!cx || !cy || !payload) return null;
   
-  const isBuy = payload.type === 'BUY';
+  // Check both markerType (from chartData) and type (fallback) for compatibility
+  const isBuy = (payload.markerType || payload.type) === 'BUY';
   const color = isBuy ? '#10b981' : '#f43f5e';
   
   return (
