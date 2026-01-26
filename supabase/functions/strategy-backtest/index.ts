@@ -823,6 +823,14 @@ Deno.serve(async (req) => {
     let bars: Bar[] = [];
     let dataSource: 'database' | 'polygon' = 'database';
     let dataSourceUrl = '';
+    
+    // Calculate expected bars for the date range (approx 252 trading days/year)
+    const requestedStartMs = new Date(startDate).getTime();
+    const requestedEndMs = new Date(endDate).getTime();
+    const daysDiff = Math.floor((requestedEndMs - requestedStartMs) / (1000 * 60 * 60 * 24));
+    const expectedBars = Math.floor(daysDiff * 0.7); // ~70% are trading days
+    
+    console.log(`[strategy-backtest] Date range: ${startDate} to ${endDate} (${daysDiff} days, expecting ~${expectedBars} bars)`);
 
     const { data: priceData, error } = await supabase
       .from('market_daily_bars')
@@ -836,7 +844,11 @@ Deno.serve(async (req) => {
       console.error('[strategy-backtest] Database error:', error);
     }
 
-    if (priceData && priceData.length >= 50) {
+    // Check if database has enough coverage (at least 80% of expected data)
+    const dbCoverage = priceData ? priceData.length / Math.max(expectedBars, 50) : 0;
+    console.log(`[strategy-backtest] Database has ${priceData?.length || 0} bars, coverage: ${(dbCoverage * 100).toFixed(1)}%`);
+
+    if (priceData && priceData.length >= 50 && dbCoverage >= 0.8) {
       console.log(`[strategy-backtest] Using ${priceData.length} bars from database for ${normalizedTicker}`);
       dataSourceUrl = `Cloud DB: market_daily_bars (ticker=${normalizedTicker})`;
       bars = priceData.map(row => ({
@@ -849,8 +861,8 @@ Deno.serve(async (req) => {
         dailyReturn: row.daily_return
       }));
     } else {
-      // Fallback to Polygon API
-      console.log(`[strategy-backtest] Insufficient database data (${priceData?.length || 0} bars), trying Polygon API...`);
+      // Database doesn't have enough data - fetch from Polygon for full range
+      console.log(`[strategy-backtest] Database coverage insufficient (${priceData?.length || 0} bars, ${(dbCoverage * 100).toFixed(1)}% coverage), fetching from Polygon...`);
       const polygonBars = await fetchPolygonBars(normalizedTicker, startDate, endDate);
       
       if (polygonBars && polygonBars.length >= 50) {
@@ -858,6 +870,19 @@ Deno.serve(async (req) => {
         dataSource = 'polygon';
         dataSourceUrl = `https://api.polygon.io/v2/aggs/ticker/${normalizedTicker}/range/1/day/${startDate}/${endDate}`;
         console.log(`[strategy-backtest] Using ${bars.length} bars from Polygon for ${normalizedTicker}`);
+      } else if (priceData && priceData.length >= 20) {
+        // Fallback: use whatever database has even if incomplete
+        console.log(`[strategy-backtest] Polygon failed, using limited database data (${priceData.length} bars)`);
+        dataSourceUrl = `Cloud DB: market_daily_bars (ticker=${normalizedTicker}) [PARTIAL]`;
+        bars = priceData.map(row => ({
+          date: row.bar_date,
+          open: row.open,
+          high: row.high,
+          low: row.low,
+          close: row.close,
+          volume: row.volume,
+          dailyReturn: row.daily_return
+        }));
       } else {
         return new Response(
           JSON.stringify({ 
