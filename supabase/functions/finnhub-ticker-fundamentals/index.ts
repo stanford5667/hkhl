@@ -111,10 +111,25 @@ serve(async (req) => {
   }
 });
 
+// Fast timeout fetch helper - fail fast to prevent blocking UI
+async function fetchWithTimeout(url: string, timeoutMs = 5000): Promise<Response> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  
+  try {
+    const response = await fetch(url, { signal: controller.signal });
+    clearTimeout(timeoutId);
+    return response;
+  } catch (error) {
+    clearTimeout(timeoutId);
+    throw error;
+  }
+}
+
 async function fetchRecommendations(apiKey: string, ticker: string): Promise<AnalystRecommendation[]> {
   try {
     const url = `${FINNHUB_BASE_URL}/stock/recommendation?symbol=${ticker}&token=${apiKey}`;
-    const response = await fetch(url);
+    const response = await fetchWithTimeout(url, 4000);
     
     if (!response.ok) {
       console.error(`Finnhub recommendations error: ${response.status}`);
@@ -131,7 +146,7 @@ async function fetchRecommendations(apiKey: string, ticker: string): Promise<Ana
 async function fetchPriceTarget(apiKey: string, ticker: string): Promise<PriceTarget | null> {
   try {
     const url = `${FINNHUB_BASE_URL}/stock/price-target?symbol=${ticker}&token=${apiKey}`;
-    const response = await fetch(url);
+    const response = await fetchWithTimeout(url, 4000);
     
     if (!response.ok) {
       console.error(`Finnhub price target error: ${response.status}`);
@@ -162,7 +177,7 @@ async function fetchEarningsCalendar(apiKey: string, ticker: string): Promise<Ea
     const to = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
     
     const url = `${FINNHUB_BASE_URL}/calendar/earnings?from=${from}&to=${to}&symbol=${ticker}&token=${apiKey}`;
-    const response = await fetch(url);
+    const response = await fetchWithTimeout(url, 4000);
     
     if (!response.ok) {
       console.error(`Finnhub earnings calendar error: ${response.status}`);
@@ -180,7 +195,7 @@ async function fetchEarningsCalendar(apiKey: string, ticker: string): Promise<Ea
 async function fetchBasicFinancials(apiKey: string, ticker: string): Promise<BasicFinancials | null> {
   try {
     const url = `${FINNHUB_BASE_URL}/stock/metric?symbol=${ticker}&metric=all&token=${apiKey}`;
-    const response = await fetch(url);
+    const response = await fetchWithTimeout(url, 4000);
     
     if (!response.ok) {
       console.error(`Finnhub basic financials error: ${response.status}`);
