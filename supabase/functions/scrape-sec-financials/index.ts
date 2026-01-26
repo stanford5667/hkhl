@@ -51,7 +51,7 @@ async function get10KFilingUrl(cik: string): Promise<string | null> {
   try {
     const url = `https://data.sec.gov/submissions/CIK${cik}.json`;
     const response = await fetch(url, {
-      headers: { 'User-Agent': 'Lovable Research/1.0 (research@lovable.dev)' }
+      headers: { 'User-Agent': 'AssetLabs Research/1.0' }
     });
     
     if (!response.ok) return null;
@@ -145,7 +145,7 @@ async function fetchSECXBRLData(ticker: string): Promise<SECFinancials[]> {
     // Fetch company facts from SEC XBRL API
     const factsUrl = `https://data.sec.gov/api/xbrl/companyfacts/CIK${cik}.json`;
     const response = await fetch(factsUrl, {
-      headers: { 'User-Agent': 'Lovable Research/1.0 (research@lovable.dev)' }
+      headers: { 'User-Agent': 'AssetLabs Research/1.0' }
     });
 
     if (!response.ok) {
