@@ -518,16 +518,19 @@ function runBacktest(
       }
       
       if (takeProfit !== null && currentReturn >= takeProfit) {
-        // Take profit triggered
-        const pnl = shares * (bar.close - entryPrice);
+        // Take profit triggered - cap the return at the take profit target
+        // In real trading, a limit order would execute at the target price, not the closing price
+        const cappedReturn = takeProfit;
+        const targetExitPrice = entryPrice * (1 + takeProfit / 100);
+        const pnl = shares * (targetExitPrice - entryPrice);
         trades.push({
           entryDate: entryDate!,
           exitDate: bar.date,
           entryPrice,
-          exitPrice: bar.close,
+          exitPrice: targetExitPrice,
           shares,
           pnl,
-          pnlPercent: currentReturn,
+          pnlPercent: cappedReturn,
           type: 'LONG',
           entryReason,
           exitReason: `Take profit triggered at +${takeProfit}%`,
@@ -539,7 +542,7 @@ function runBacktest(
           indicatorName
         });
         
-        cash += shares * bar.close;
+        cash += shares * targetExitPrice;
         shares = 0;
         inPosition = false;
         entryPrice = null;
