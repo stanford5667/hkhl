@@ -420,7 +420,7 @@ export function StrategyBacktester({ ticker, companyName }: StrategyBacktesterPr
   const getProvenance = (metricName: string, logic: string, formula?: string) => ({
     dataSource: result?.dataSource === 'polygon' 
       ? `Polygon.io v2/aggs/ticker/${ticker}` 
-      : `Lovable Cloud DB (market_daily_bars)`,
+      : `Cloud DB (market_daily_bars)`,
     dateRange: result ? `${result.startDate} to ${result.endDate} (${result.barsCount} bars)` : 'N/A',
     logic,
     formula

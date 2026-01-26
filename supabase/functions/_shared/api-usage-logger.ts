@@ -24,7 +24,7 @@ export const API_COST_RATES: Record<string, number> = {
   'perplexity': 0.001,
   'finnhub': 0, // Free tier
   'polygon': 0.0001, // Estimated per request
-  'lovable-ai': 0.0002, // Equivalent market value (actually free via Lovable)
+  'platform-ai': 0.0002, // Equivalent market value
 };
 
 export function estimateCost(tokensUsed: number, apiType: string): number {

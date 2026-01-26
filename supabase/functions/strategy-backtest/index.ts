@@ -805,7 +805,7 @@ Deno.serve(async (req) => {
 
     if (priceData && priceData.length >= 50) {
       console.log(`[strategy-backtest] Using ${priceData.length} bars from database for ${normalizedTicker}`);
-      dataSourceUrl = `Lovable Cloud DB: market_daily_bars (ticker=${normalizedTicker})`;
+      dataSourceUrl = `Cloud DB: market_daily_bars (ticker=${normalizedTicker})`;
       bars = priceData.map(row => ({
         date: row.bar_date,
         open: row.open,

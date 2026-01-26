@@ -27,7 +27,7 @@ interface SECFinancials {
 async function getCIKFromTicker(ticker: string): Promise<string | null> {
   try {
     const response = await fetch('https://www.sec.gov/files/company_tickers.json', {
-      headers: { 'User-Agent': 'Lovable Research/1.0 (research@lovable.dev)' }
+      headers: { 'User-Agent': 'AssetLabs Research/1.0' }
     });
     
     if (!response.ok) return null;

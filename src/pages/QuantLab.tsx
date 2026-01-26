@@ -524,8 +524,8 @@ function QuantLabContent(props: any) {
   const resultsScrollRef = useRef<HTMLDivElement>(null);
 
   // Persist scroll for both panels (so you don't lose your place when navigating away)
-  useScrollPersistence(leftPanelScrollRef, `lovable:scroll:quantlab:left:${location.pathname}`);
-  useScrollPersistence(resultsScrollRef, `lovable:scroll:quantlab:results:${location.pathname}`);
+  useScrollPersistence(leftPanelScrollRef, `app:scroll:quantlab:left:${location.pathname}`);
+  useScrollPersistence(resultsScrollRef, `app:scroll:quantlab:results:${location.pathname}`);
 
   // Auth state for prompting sign in/up
   const [showAuthSheet, setShowAuthSheet] = useState(false);

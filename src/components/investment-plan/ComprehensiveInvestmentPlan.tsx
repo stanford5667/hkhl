@@ -2,7 +2,7 @@
  * ENHANCED INVESTMENT PLAN RESULTS
  * 
  * Beautiful visual rendering with:
- * - AI-generated personalized strategy (Lovable AI)
+ * - AI-generated personalized strategy
  * - Myers-Briggs style investor archetypes
  * - Animated donut charts
  * - Combined Strategy & Profile tab (shown first)
