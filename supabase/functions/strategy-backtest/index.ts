@@ -663,10 +663,15 @@ function runBacktest(
   const years = bars.length / 252;
   const annualizedReturn = years > 0 ? (Math.pow(finalValue / initialCapital, 1 / years) - 1) * 100 : 0;
   
-  // Buy and hold comparison
+  // Buy and hold comparison - simulate buying with full capital at start
   const firstClose = bars[0]?.close || 1;
   const lastClose = bars[bars.length - 1]?.close || firstClose;
-  const buyHoldReturn = ((lastClose - firstClose) / firstClose) * 100;
+  // Calculate how many shares we could buy with initial capital at first close
+  const buyHoldShares = initialCapital / firstClose;
+  // Final value if we held those shares
+  const buyHoldFinalValue = buyHoldShares * lastClose;
+  // Buy and hold return as percentage of initial capital
+  const buyHoldReturn = ((buyHoldFinalValue - initialCapital) / initialCapital) * 100;
   
   // Calculate daily returns for Sharpe/Sortino
   const dailyReturns: number[] = [];
