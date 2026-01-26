@@ -324,7 +324,7 @@ async function fetchSECFinancials(ticker: string): Promise<IncomeStatement[]> {
   try {
     // Get CIK from ticker
     const cikResponse = await fetch('https://www.sec.gov/files/company_tickers.json', {
-      headers: { 'User-Agent': 'Lovable Research/1.0 (research@lovable.dev)' }
+      headers: { 'User-Agent': 'AssetLabs Research/1.0' }
     });
     
     if (!cikResponse.ok) {
@@ -350,7 +350,7 @@ async function fetchSECFinancials(ticker: string): Promise<IncomeStatement[]> {
     // Fetch company facts from SEC XBRL API
     const factsUrl = `https://data.sec.gov/api/xbrl/companyfacts/CIK${cik}.json`;
     const response = await fetch(factsUrl, {
-      headers: { 'User-Agent': 'Lovable Research/1.0 (research@lovable.dev)' }
+      headers: { 'User-Agent': 'AssetLabs Research/1.0' }
     });
 
     if (!response.ok) {
