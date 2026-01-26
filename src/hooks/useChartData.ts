@@ -52,7 +52,29 @@ export function useChartData(symbol: string, timeRange: TimeRange) {
         console.warn('[useChartData] DB query failed:', dbErr);
       }
 
-      // PRIORITY 2: Fallback to candleService (may hit Finnhub API)
+      // PRIORITY 2: Fallback to Polygon API (preferred over Finnhub)
+      try {
+        console.log(`[useChartData] DB empty for ${symbol}, trying Polygon API`);
+        const { data: polygonData, error: polygonError } = await supabase.functions.invoke('polygon-daily-bars', {
+          body: { ticker: symbol.toUpperCase(), days }
+        });
+        
+        if (!polygonError && polygonData?.ok && polygonData?.bars?.length > 0) {
+          console.log(`[useChartData] Got ${polygonData.bars.length} bars from Polygon for ${symbol}`);
+          return polygonData.bars.map((bar: { date: string; open: number; high: number; low: number; close: number; volume: number }) => ({
+            time: new Date(bar.date).getTime() / 1000,
+            price: bar.close,
+            volume: bar.volume,
+            open: bar.open,
+            high: bar.high,
+            low: bar.low,
+          }));
+        }
+      } catch (polygonErr) {
+        console.warn('[useChartData] Polygon fallback failed:', polygonErr);
+      }
+
+      // PRIORITY 3: Last resort - candleService (Finnhub)
       try {
         const rangeMap: Record<TimeRange, CandleTimeRange> = {
           '1D': '1D', '1W': '1W', '1M': '1M', '3M': '3M', '6M': '6M', '1Y': '1Y'
@@ -69,7 +91,7 @@ export function useChartData(symbol: string, timeRange: TimeRange) {
           }));
         }
       } catch (apiErr) {
-        console.warn('[useChartData] candleService fallback failed:', apiErr);
+        console.warn('[useChartData] Finnhub fallback failed:', apiErr);
       }
 
       return [];
