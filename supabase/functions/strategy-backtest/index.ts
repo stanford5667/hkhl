@@ -325,15 +325,10 @@ function gapFillStrategy(
   // Log params on first call for debugging
   if (index === 1) {
     console.log('[Gap Strategy] Params received:', JSON.stringify(params));
-    console.log('[Gap Strategy] Threshold set to:', threshold, 'Take Profit:', takeProfit);
+    console.log('[Gap Strategy] Threshold:', threshold, '%, Take Profit:', takeProfit, '%');
   }
   
   const gapPercent = ((todayOpen - prevClose) / prevClose) * 100;
-  
-  // Log significant gaps for debugging
-  if (Math.abs(gapPercent) > threshold) {
-    console.log(`[Gap Strategy] ${bars[index].date}: Gap ${gapPercent.toFixed(2)}%, threshold: ${threshold}%, inPosition: ${inPosition}`);
-  }
   
   // Gap down detected - only enter if not already in position
   if (!inPosition && gapPercent < -threshold) {
@@ -344,12 +339,18 @@ function gapFillStrategy(
   if (inPosition && entryPrice !== null) {
     const currentReturn = ((todayClose - entryPrice) / entryPrice) * 100;
     
-    // Take profit takes priority if set and reached
-    if (takeProfit !== null && currentReturn >= takeProfit) {
-      return { action: 'SELL', reason: `Take profit triggered at +${takeProfit}% (current: +${currentReturn.toFixed(2)}%)` };
+    // CRITICAL: When take profit is set, ONLY exit on take profit (or stop loss handled elsewhere)
+    // Do NOT exit early on gap-fill completion
+    if (takeProfit !== null) {
+      if (currentReturn >= takeProfit) {
+        console.log(`[Gap Strategy] Take profit HIT: target ${takeProfit}%, current ${currentReturn.toFixed(2)}%`);
+        return { action: 'SELL', reason: `Take profit triggered at +${takeProfit}% (current: +${currentReturn.toFixed(2)}%)` };
+      }
+      // Hold position - waiting for take profit target
+      return { action: 'HOLD', reason: `Waiting for +${takeProfit}% target (current: +${currentReturn.toFixed(2)}%)` };
     }
     
-    // Default gap-fill exit: price returned to entry
+    // Default gap-fill exit ONLY when NO take profit is specified
     if (todayClose >= entryPrice) {
       return { action: 'SELL', reason: `Gap filled - price returned to entry ($${entryPrice.toFixed(2)})` };
     }
@@ -770,9 +771,26 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { ticker, strategy, startDate, endDate, initialCapital = 10000, params = {} } = await req.json();
+    const body = await req.json();
+    const { ticker, strategy, startDate, endDate, initialCapital = 10000 } = body;
     
-    console.log('[strategy-backtest] Received params:', JSON.stringify(params));
+    // Support both nested params object and flat parameters at root level
+    const params: StrategyParams = body.params || {};
+    
+    // Merge root-level parameters into params (root level takes precedence for backwards compat)
+    if (body.stopLossPercent !== undefined) params.stopLossPercent = body.stopLossPercent;
+    if (body.takeProfitPercent !== undefined) params.takeProfitPercent = body.takeProfitPercent;
+    if (body.rsiPeriod !== undefined) params.rsiPeriod = body.rsiPeriod;
+    if (body.rsiOversold !== undefined) params.rsiOversold = body.rsiOversold;
+    if (body.rsiOverbought !== undefined) params.rsiOverbought = body.rsiOverbought;
+    if (body.fastMaPeriod !== undefined) params.fastMaPeriod = body.fastMaPeriod;
+    if (body.slowMaPeriod !== undefined) params.slowMaPeriod = body.slowMaPeriod;
+    if (body.gapThreshold !== undefined) params.gapThreshold = body.gapThreshold;
+    if (body.consecutiveDays !== undefined) params.consecutiveDays = body.consecutiveDays;
+    if (body.holdingPeriod !== undefined) params.holdingPeriod = body.holdingPeriod;
+    if (body.positionSizePercent !== undefined) params.positionSizePercent = body.positionSizePercent;
+    
+    console.log('[strategy-backtest] Merged params:', JSON.stringify(params));
 
     if (!ticker || !strategy) {
       return new Response(
