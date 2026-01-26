@@ -14,9 +14,8 @@ export interface ChartPoint {
 export type TimeRange = '1D' | '1W' | '1M' | '3M' | '6M' | '1Y';
 
 /**
- * Fetches chart data with intraday support for 1D view.
- * - 1D: Uses Finnhub intraday bars (5-minute candles)
- * - Other ranges: Uses market_daily_bars from database
+ * Fetches chart data with database-first priority for fast loading.
+ * Falls back to candleService (Finnhub) only when DB has no data.
  */
 export function useChartData(symbol: string, timeRange: TimeRange) {
   return useQuery({
@@ -24,48 +23,42 @@ export function useChartData(symbol: string, timeRange: TimeRange) {
     queryFn: async (): Promise<ChartPoint[]> => {
       if (!symbol) return [];
 
-      // For 1D view, use intraday candles from Finnhub
-      if (timeRange === '1D') {
-        try {
-          const candles = await getCandlesForRange(symbol, '1D' as CandleTimeRange);
-          
-          if (candles && candles.length > 0) {
-            return candles.map(candle => ({
-              time: candle.time,
-              price: candle.close,
-              volume: candle.volume,
-              open: candle.open,
-              high: candle.high,
-              low: candle.low,
-            }));
-          }
-        } catch (err) {
-          console.warn('[useChartData] Intraday fetch failed, falling back to daily:', err);
-        }
-      }
-
-      // For other ranges, use daily bars from database
       const days = getTimeRangeDays(timeRange);
       const startDate = new Date();
       startDate.setDate(startDate.getDate() - days);
       const startDateStr = startDate.toISOString().split('T')[0];
 
-      const { data, error } = await supabase
-        .from('market_daily_bars')
-        .select('bar_date, open, high, low, close, volume')
-        .eq('ticker', symbol.toUpperCase())
-        .gte('bar_date', startDateStr)
-        .order('bar_date', { ascending: true })
-        .limit(500);
+      // PRIORITY 1: Always try database first (fast, reliable)
+      try {
+        const { data, error } = await supabase
+          .from('market_daily_bars')
+          .select('bar_date, open, high, low, close, volume')
+          .eq('ticker', symbol.toUpperCase())
+          .gte('bar_date', startDateStr)
+          .order('bar_date', { ascending: true })
+          .limit(500);
 
-      if (error) {
-        console.error('[useChartData] Error:', error);
-        // Fallback to candleService for any range if DB fails
-        try {
-          const rangeMap: Record<TimeRange, CandleTimeRange> = {
-            '1D': '1D', '1W': '1W', '1M': '1M', '3M': '3M', '6M': '6M', '1Y': '1Y'
-          };
-          const candles = await getCandlesForRange(symbol, rangeMap[timeRange]);
+        if (!error && data && data.length > 0) {
+          return data.map(bar => ({
+            time: new Date(bar.bar_date).getTime() / 1000,
+            price: bar.close,
+            volume: bar.volume,
+            open: bar.open,
+            high: bar.high,
+            low: bar.low,
+          }));
+        }
+      } catch (dbErr) {
+        console.warn('[useChartData] DB query failed:', dbErr);
+      }
+
+      // PRIORITY 2: Fallback to candleService (may hit Finnhub API)
+      try {
+        const rangeMap: Record<TimeRange, CandleTimeRange> = {
+          '1D': '1D', '1W': '1W', '1M': '1M', '3M': '3M', '6M': '6M', '1Y': '1Y'
+        };
+        const candles = await getCandlesForRange(symbol, rangeMap[timeRange]);
+        if (candles && candles.length > 0) {
           return candles.map(c => ({
             time: c.time,
             price: c.close,
@@ -74,42 +67,16 @@ export function useChartData(symbol: string, timeRange: TimeRange) {
             high: c.high,
             low: c.low,
           }));
-        } catch {
-          return [];
         }
+      } catch (apiErr) {
+        console.warn('[useChartData] candleService fallback failed:', apiErr);
       }
 
-      if (!data || data.length === 0) {
-        // Try candleService as fallback
-        try {
-          const rangeMap: Record<TimeRange, CandleTimeRange> = {
-            '1D': '1D', '1W': '1W', '1M': '1M', '3M': '3M', '6M': '6M', '1Y': '1Y'
-          };
-          const candles = await getCandlesForRange(symbol, rangeMap[timeRange]);
-          return candles.map(c => ({
-            time: c.time,
-            price: c.close,
-            volume: c.volume,
-            open: c.open,
-            high: c.high,
-            low: c.low,
-          }));
-        } catch {
-          return [];
-        }
-      }
-
-      return data.map(bar => ({
-        time: new Date(bar.bar_date).getTime() / 1000,
-        price: bar.close,
-        volume: bar.volume,
-        open: bar.open,
-        high: bar.high,
-        low: bar.low,
-      }));
+      return [];
     },
     enabled: !!symbol,
-    staleTime: timeRange === '1D' ? 60 * 1000 : 5 * 60 * 1000, // 1 min for intraday, 5 min for daily
+    staleTime: 5 * 60 * 1000, // 5 min cache for all ranges
+    gcTime: 30 * 60 * 1000, // Keep in cache for 30 min
   });
 }
 
