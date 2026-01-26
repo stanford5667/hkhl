@@ -298,7 +298,7 @@ export function TradeSourceModal({ trade, ticker, dataSource, onClose }: TradeSo
             <p className="text-xs text-muted-foreground font-mono break-all">
               {dataSource === 'polygon' 
                 ? `https://api.polygon.io/v2/aggs/ticker/${ticker}/range/1/day/...`
-                : `Lovable Cloud DB: market_daily_bars (ticker=${ticker})`
+                : `Cloud DB: market_daily_bars (ticker=${ticker})`
               }
             </p>
           </div>

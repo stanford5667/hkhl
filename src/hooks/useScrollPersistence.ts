@@ -1,7 +1,7 @@
 import { useEffect, useRef, useCallback } from 'react';
 import { useLocation } from 'react-router-dom';
 
-const STORAGE_KEY_ROUTE = 'lovable:scroll:route';
+const STORAGE_KEY_ROUTE = 'app:scroll:route';
 
 type PositionsMap = Record<string, number>;
 
