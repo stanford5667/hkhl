@@ -47,9 +47,12 @@ import {
   Scatter,
   ComposedChart,
   Cell,
+  ReferenceArea,
 } from 'recharts';
 import {
   Play,
+  ZoomIn,
+  RotateCcw,
   Loader2,
   TrendingUp,
   TrendingDown,
@@ -312,6 +315,55 @@ export function StrategyBacktester({ ticker, companyName }: StrategyBacktesterPr
   // Data Inspector state
   const [inspectMode, setInspectMode] = useState(false);
   const [viewSourceTrade, setViewSourceTrade] = useState<Trade | null>(null);
+  
+  // Chart zoom state
+  const [zoomLeft, setZoomLeft] = useState<string | null>(null);
+  const [zoomRight, setZoomRight] = useState<string | null>(null);
+  const [refAreaLeft, setRefAreaLeft] = useState<string>('');
+  const [refAreaRight, setRefAreaRight] = useState<string>('');
+  const [isZooming, setIsZooming] = useState(false);
+
+  // Reset zoom when new backtest runs
+  const resetZoom = useCallback(() => {
+    setZoomLeft(null);
+    setZoomRight(null);
+    setRefAreaLeft('');
+    setRefAreaRight('');
+  }, []);
+
+  // Zoom event handlers
+  const handleMouseDown = useCallback((e: { activeLabel?: string }) => {
+    if (e?.activeLabel) {
+      setRefAreaLeft(e.activeLabel);
+      setIsZooming(true);
+    }
+  }, []);
+
+  const handleMouseMove = useCallback((e: { activeLabel?: string }) => {
+    if (isZooming && e?.activeLabel) {
+      setRefAreaRight(e.activeLabel);
+    }
+  }, [isZooming]);
+
+  const handleMouseUp = useCallback(() => {
+    if (!isZooming || !refAreaLeft || !refAreaRight) {
+      setIsZooming(false);
+      setRefAreaLeft('');
+      setRefAreaRight('');
+      return;
+    }
+
+    // Ensure left < right
+    const left = refAreaLeft < refAreaRight ? refAreaLeft : refAreaRight;
+    const right = refAreaLeft < refAreaRight ? refAreaRight : refAreaLeft;
+    
+    setZoomLeft(left);
+    setZoomRight(right);
+    setRefAreaLeft('');
+    setRefAreaRight('');
+    setIsZooming(false);
+  }, [isZooming, refAreaLeft, refAreaRight]);
+
 
   const handleSelectStrategy = useCallback((strategy: StrategyOption) => {
     setSelectedStrategy(strategy);
@@ -402,6 +454,12 @@ export function StrategyBacktester({ ticker, companyName }: StrategyBacktesterPr
       };
     });
   }, [result]);
+
+  // Get zoomed data for the chart
+  const zoomedChartData = useMemo(() => {
+    if (!zoomLeft || !zoomRight) return chartData;
+    return chartData.filter(d => d.date >= zoomLeft && d.date <= zoomRight);
+  }, [chartData, zoomLeft, zoomRight]);
 
   // Distribution histogram data
   const distributionData = result?.trades.reduce((acc, trade) => {
@@ -732,82 +790,118 @@ export function StrategyBacktester({ ticker, companyName }: StrategyBacktesterPr
                   </div>
 
                   {/* Equity Curve with Trade Markers */}
-                  <div className="h-72">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <ComposedChart data={chartData}>
-                        <defs>
-                          <linearGradient id="strategyGradient" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3}/>
-                            <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0}/>
-                          </linearGradient>
-                        </defs>
-                        <CartesianGrid strokeDasharray="3 3" className="stroke-muted/30" />
-                        <XAxis 
-                          dataKey="date" 
-                          tick={{ fontSize: 10 }}
-                          tickFormatter={(v) => format(new Date(v), 'MMM yy')}
-                          className="text-muted-foreground"
-                        />
-                        <YAxis 
-                          tick={{ fontSize: 10 }}
-                          tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`}
-                          className="text-muted-foreground"
-                        />
-                        <RechartsTooltip
-                          contentStyle={{ 
-                            backgroundColor: 'hsl(var(--card))', 
-                            border: '1px solid hsl(var(--border))',
-                            borderRadius: '8px',
-                            fontSize: '12px'
-                          }}
-                          content={({ active, payload, label }) => {
-                            if (!active || !payload?.length) return null;
-                            const data = payload[0]?.payload;
-                            return (
-                              <div className="p-2 bg-card border rounded-lg shadow-lg text-xs space-y-1">
-                                <p className="font-medium">{format(new Date(label), 'MMM dd, yyyy')}</p>
-                                <p>Portfolio: <span className="font-mono">${data?.value?.toFixed(2)}</span></p>
-                                {data?.markerType && (
-                                  <div className={cn(
-                                    "p-1.5 rounded mt-1",
-                                    data.markerType === 'BUY' ? "bg-emerald-500/20 text-emerald-400" : "bg-rose-500/20 text-rose-400"
-                                  )}>
-                                    <p className="font-semibold">{data.markerType === 'BUY' ? '▲ BUY' : '▼ SELL'}</p>
-                                    {data.indicatorValue !== undefined && (
-                                      <p className="text-[10px]">{data.indicatorName}: {data.indicatorValue.toFixed(2)}</p>
-                                    )}
-                                    <p className="text-[10px] text-muted-foreground">{data.reason}</p>
-                                  </div>
-                                )}
-                              </div>
-                            );
-                          }}
-                        />
-                        <Area
-                          type="monotone"
-                          dataKey="value"
-                          stroke="hsl(var(--primary))"
-                          fill="url(#strategyGradient)"
-                          strokeWidth={2}
-                          name="Strategy"
-                        />
-                        <Area
-                          type="monotone"
-                          dataKey="buyHold"
-                          stroke="hsl(var(--muted-foreground))"
-                          fill="none"
-                          strokeWidth={1}
-                          strokeDasharray="4 4"
-                          name="Buy & Hold"
-                        />
-                        <Scatter
-                          dataKey="markerValue"
-                          shape={(props: unknown) => <TradeMarker {...(props as { cx?: number; cy?: number; payload?: { type: string; indicatorValue?: number; indicatorName?: string; reason: string } })} />}
-                          isAnimationActive={false}
-                        />
-                        <ReferenceLine y={result.initialCapital} stroke="hsl(var(--muted-foreground))" strokeDasharray="2 2" />
-                      </ComposedChart>
-                    </ResponsiveContainer>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <ZoomIn className="h-3.5 w-3.5" />
+                        <span>Drag to zoom • {zoomLeft ? 'Viewing subset' : 'Full range'}</span>
+                      </div>
+                      {(zoomLeft || zoomRight) && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={resetZoom}
+                          className="h-7 text-xs gap-1"
+                        >
+                          <RotateCcw className="h-3 w-3" />
+                          Reset Zoom
+                        </Button>
+                      )}
+                    </div>
+                    <div className="h-72 select-none">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <ComposedChart 
+                          data={zoomedChartData}
+                          onMouseDown={handleMouseDown}
+                          onMouseMove={handleMouseMove}
+                          onMouseUp={handleMouseUp}
+                          onMouseLeave={handleMouseUp}
+                        >
+                          <defs>
+                            <linearGradient id="strategyGradient" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3}/>
+                              <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0}/>
+                            </linearGradient>
+                          </defs>
+                          <CartesianGrid strokeDasharray="3 3" className="stroke-muted/30" />
+                          <XAxis 
+                            dataKey="date" 
+                            tick={{ fontSize: 10 }}
+                            tickFormatter={(v) => format(new Date(v), 'MMM yy')}
+                            className="text-muted-foreground"
+                            allowDataOverflow
+                          />
+                          <YAxis 
+                            tick={{ fontSize: 10 }}
+                            tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`}
+                            className="text-muted-foreground"
+                            domain={['auto', 'auto']}
+                          />
+                          <RechartsTooltip
+                            contentStyle={{ 
+                              backgroundColor: 'hsl(var(--card))', 
+                              border: '1px solid hsl(var(--border))',
+                              borderRadius: '8px',
+                              fontSize: '12px'
+                            }}
+                            content={({ active, payload, label }) => {
+                              if (!active || !payload?.length) return null;
+                              const data = payload[0]?.payload;
+                              return (
+                                <div className="p-2 bg-card border rounded-lg shadow-lg text-xs space-y-1">
+                                  <p className="font-medium">{format(new Date(label), 'MMM dd, yyyy')}</p>
+                                  <p>Portfolio: <span className="font-mono">${data?.value?.toFixed(2)}</span></p>
+                                  {data?.markerType && (
+                                    <div className={cn(
+                                      "p-1.5 rounded mt-1",
+                                      data.markerType === 'BUY' ? "bg-emerald-500/20 text-emerald-400" : "bg-rose-500/20 text-rose-400"
+                                    )}>
+                                      <p className="font-semibold">{data.markerType === 'BUY' ? '▲ BUY' : '▼ SELL'}</p>
+                                      {data.indicatorValue !== undefined && (
+                                        <p className="text-[10px]">{data.indicatorName}: {data.indicatorValue.toFixed(2)}</p>
+                                      )}
+                                      <p className="text-[10px] text-muted-foreground">{data.reason}</p>
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            }}
+                          />
+                          <Area
+                            type="monotone"
+                            dataKey="value"
+                            stroke="hsl(var(--primary))"
+                            fill="url(#strategyGradient)"
+                            strokeWidth={2}
+                            name="Strategy"
+                          />
+                          <Area
+                            type="monotone"
+                            dataKey="buyHold"
+                            stroke="hsl(var(--muted-foreground))"
+                            fill="none"
+                            strokeWidth={1}
+                            strokeDasharray="4 4"
+                            name="Buy & Hold"
+                          />
+                          <Scatter
+                            dataKey="markerValue"
+                            shape={(props: unknown) => <TradeMarker {...(props as { cx?: number; cy?: number; payload?: { type: string; indicatorValue?: number; indicatorName?: string; reason: string } })} />}
+                            isAnimationActive={false}
+                          />
+                          <ReferenceLine y={result.initialCapital} stroke="hsl(var(--muted-foreground))" strokeDasharray="2 2" />
+                          {refAreaLeft && refAreaRight && (
+                            <ReferenceArea
+                              x1={refAreaLeft}
+                              x2={refAreaRight}
+                              strokeOpacity={0.3}
+                              fill="hsl(var(--primary))"
+                              fillOpacity={0.2}
+                            />
+                          )}
+                        </ComposedChart>
+                      </ResponsiveContainer>
+                    </div>
                   </div>
                   <div className="flex justify-center gap-6 mt-2 text-xs text-muted-foreground">
                     <div className="flex items-center gap-2">
