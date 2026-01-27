@@ -9,6 +9,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { BarChart3, Scale, Coins, GraduationCap, MessageCircle } from 'lucide-react';
 import { IncomeStatementTable } from './IncomeStatementTable';
+import { RevenueSegmentsCard } from '@/components/research/RevenueSegmentsCard';
+import { useProductSegments } from '@/hooks/useProductSegments';
 import { cn } from '@/lib/utils';
 
 interface FinancialsSectionProps {
@@ -18,6 +20,7 @@ interface FinancialsSectionProps {
 
 export function FinancialsSection({ ticker, companyName }: FinancialsSectionProps) {
   const [activeStatement, setActiveStatement] = useState('income');
+  const { data: segmentsData, isLoading: segmentsLoading } = useProductSegments(ticker);
   
   return (
     <div className="space-y-6">
@@ -90,8 +93,18 @@ export function FinancialsSection({ ticker, companyName }: FinancialsSectionProp
         </TabsContent>
       </Tabs>
       
-      {/* Learning Center Sidebar could go here in future */}
+      {/* Revenue Segmentation & Earnings Overview */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        {/* Revenue Segments */}
+        <div className="lg:col-span-1">
+          <RevenueSegmentsCard 
+            segments={segmentsData?.segments}
+            isLoading={segmentsLoading}
+            useMockData={segmentsData?.useMockData}
+            ticker={ticker}
+          />
+        </div>
+        
         <div className="lg:col-span-2">
           {/* Earnings Overview */}
           <Card className="bg-card/50 border-border/50">
@@ -123,34 +136,34 @@ export function FinancialsSection({ ticker, companyName }: FinancialsSectionProp
             </CardContent>
           </Card>
         </div>
-        
-        {/* Learning Center Quick Links */}
-        <Card className="bg-card/50 border-border/50">
-          <CardHeader className="pb-3">
-            <div className="flex items-center gap-2">
-              <GraduationCap className="h-4 w-4 text-primary" />
-              <CardTitle className="text-base">Learning Center</CardTitle>
-            </div>
-            <p className="text-xs text-muted-foreground mt-1">
-              Click on any highlighted term to learn what it means
-            </p>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            <div className="p-2 rounded-lg bg-secondary/30 hover:bg-secondary/50 cursor-pointer transition-colors">
-              <p className="text-xs font-medium">📈 Stock Price</p>
-            </div>
-            <div className="p-2 rounded-lg bg-secondary/30 hover:bg-secondary/50 cursor-pointer transition-colors">
-              <p className="text-xs font-medium">📊 P/E Ratio (Price-to-Earnings)</p>
-            </div>
-            <div className="p-2 rounded-lg bg-secondary/30 hover:bg-secondary/50 cursor-pointer transition-colors">
-              <p className="text-xs font-medium">🔥 Consecutive Up/Down Days</p>
-            </div>
-            <div className="p-2 rounded-lg bg-secondary/30 hover:bg-secondary/50 cursor-pointer transition-colors">
-              <p className="text-xs font-medium">📉 Beta</p>
-            </div>
-          </CardContent>
-        </Card>
       </div>
+      
+      {/* Learning Center Quick Links */}
+      <Card className="bg-card/50 border-border/50">
+        <CardHeader className="pb-3">
+          <div className="flex items-center gap-2">
+            <GraduationCap className="h-4 w-4 text-primary" />
+            <CardTitle className="text-base">Learning Center</CardTitle>
+          </div>
+          <p className="text-xs text-muted-foreground mt-1">
+            Click on any highlighted term to learn what it means
+          </p>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          <div className="p-2 rounded-lg bg-secondary/30 hover:bg-secondary/50 cursor-pointer transition-colors">
+            <p className="text-xs font-medium">📈 Stock Price</p>
+          </div>
+          <div className="p-2 rounded-lg bg-secondary/30 hover:bg-secondary/50 cursor-pointer transition-colors">
+            <p className="text-xs font-medium">📊 P/E Ratio (Price-to-Earnings)</p>
+          </div>
+          <div className="p-2 rounded-lg bg-secondary/30 hover:bg-secondary/50 cursor-pointer transition-colors">
+            <p className="text-xs font-medium">🔥 Consecutive Up/Down Days</p>
+          </div>
+          <div className="p-2 rounded-lg bg-secondary/30 hover:bg-secondary/50 cursor-pointer transition-colors">
+            <p className="text-xs font-medium">📉 Beta</p>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }
