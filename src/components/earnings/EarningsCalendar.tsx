@@ -18,7 +18,8 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 export const EarningsCalendar = () => {
   const [activeTab, setActiveTab] = useState<'calendar' | 'screener'>('calendar');
   const [filters, setFilters] = useState<EarningsCalendarFilters>({
-    dateRange: 'week',
+    // Default to a broader window so users see upcoming events even if the next week is quiet.
+    dateRange: 'month',
     timeOfDay: 'all',
   });
   const hasAutoFetched = useRef(false);
