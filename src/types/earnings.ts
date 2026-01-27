@@ -17,6 +17,7 @@ export interface EarningsEvent {
   analyst_count: number | null;
   eps_surprise_pct: number | null;
   revenue_surprise_pct: number | null;
+  market_cap: number | null;
   updated_at: string;
   created_at: string;
 }

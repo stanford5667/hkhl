@@ -1628,6 +1628,7 @@ export type Database = {
           fiscal_period: string | null
           fiscal_year: number | null
           id: string
+          market_cap: number | null
           report_date: string
           revenue_actual: number | null
           revenue_estimate: number | null
@@ -1648,6 +1649,7 @@ export type Database = {
           fiscal_period?: string | null
           fiscal_year?: number | null
           id?: string
+          market_cap?: number | null
           report_date: string
           revenue_actual?: number | null
           revenue_estimate?: number | null
@@ -1668,6 +1670,7 @@ export type Database = {
           fiscal_period?: string | null
           fiscal_year?: number | null
           id?: string
+          market_cap?: number | null
           report_date?: string
           revenue_actual?: number | null
           revenue_estimate?: number | null

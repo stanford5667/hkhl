@@ -16,6 +16,7 @@ interface EarningsEvent {
   revenueEstimate?: number;
   analystCount?: number;
   timeOfDay?: string;
+  marketCap?: number | null;
 }
 
 serve(async (req) => {
@@ -59,8 +60,34 @@ serve(async (req) => {
         if (response.ok) {
           const data = await response.json();
           
-          if (Array.isArray(data) && data.length > 0) {
+        if (Array.isArray(data) && data.length > 0) {
             console.log(`[EARNINGS] FMP returned ${data.length} events`);
+            
+            // Collect unique symbols to fetch market caps
+            const uniqueSymbols = [...new Set(data.map((item: any) => item.symbol).filter(Boolean))];
+            
+            // Fetch market caps in batch (up to 100 at a time)
+            const marketCapMap: Record<string, number> = {};
+            for (let i = 0; i < uniqueSymbols.length; i += 100) {
+              const batch = uniqueSymbols.slice(i, i + 100).join(',');
+              try {
+                const mcUrl = `https://financialmodelingprep.com/api/v3/quote/${batch}?apikey=${fmpKey}`;
+                const mcResp = await fetch(mcUrl);
+                if (mcResp.ok) {
+                  const mcData = await mcResp.json();
+                  if (Array.isArray(mcData)) {
+                    mcData.forEach((q: any) => {
+                      if (q.symbol && q.marketCap) {
+                        marketCapMap[q.symbol] = q.marketCap;
+                      }
+                    });
+                  }
+                }
+              } catch (mcErr) {
+                console.error('[EARNINGS] Market cap fetch error:', mcErr);
+              }
+            }
+            console.log(`[EARNINGS] Fetched market caps for ${Object.keys(marketCapMap).length} symbols`);
             
             allEarnings = data.map((item: any) => ({
               symbol: item.symbol,
@@ -71,6 +98,7 @@ serve(async (req) => {
               epsEstimate: item.epsEstimated,
               revenueEstimate: item.revenueEstimated,
               timeOfDay: item.time === 'bmo' ? 'BMO' : item.time === 'amc' ? 'AMC' : 'DMT',
+              marketCap: marketCapMap[item.symbol] || null,
             }));
           } else {
             console.log('[EARNINGS] FMP returned no data or empty array');
@@ -99,6 +127,40 @@ serve(async (req) => {
           if (data.earningsCalendar && data.earningsCalendar.length > 0) {
             console.log(`[EARNINGS] Finnhub returned ${data.earningsCalendar.length} events`);
             
+            // Collect unique symbols to fetch market caps via Polygon
+            const uniqueSymbols: string[] = [...new Set(data.earningsCalendar.map((item: any) => item.symbol).filter(Boolean))] as string[];
+            const marketCapMap: Record<string, number> = {};
+            
+            if (polygonKey) {
+              console.log(`[EARNINGS] Fetching market caps for ${uniqueSymbols.length} symbols via Polygon`);
+              // Polygon requires one call per ticker for market cap, so batch in parallel (max 20 concurrent)
+              const batchSize = 20;
+              for (let i = 0; i < Math.min(uniqueSymbols.length, 200); i += batchSize) {
+                const batch = uniqueSymbols.slice(i, i + batchSize);
+                const results = await Promise.all(
+                  batch.map(async (symbol: string) => {
+                    try {
+                      const url = `https://api.polygon.io/v3/reference/tickers/${symbol}?apiKey=${polygonKey}`;
+                      const resp = await fetch(url);
+                      if (resp.ok) {
+                        const d = await resp.json();
+                        if (d.results?.market_cap) {
+                          return { symbol, marketCap: d.results.market_cap };
+                        }
+                      }
+                    } catch {
+                      // ignore
+                    }
+                    return null;
+                  })
+                );
+                results.filter(Boolean).forEach((r: any) => {
+                  marketCapMap[r.symbol] = r.marketCap;
+                });
+              }
+              console.log(`[EARNINGS] Fetched market caps for ${Object.keys(marketCapMap).length} symbols`);
+            }
+            
             allEarnings = data.earningsCalendar.map((item: any) => ({
               symbol: item.symbol,
               companyName: item.symbol,
@@ -108,6 +170,7 @@ serve(async (req) => {
               epsEstimate: item.epsEstimate,
               revenueEstimate: item.revenueEstimate,
               timeOfDay: item.hour === 'bmo' ? 'BMO' : item.hour === 'amc' ? 'AMC' : 'DMT',
+              marketCap: marketCapMap[item.symbol] || null,
             }));
           } else {
             console.log('[EARNINGS] Finnhub returned no data');
@@ -170,6 +233,7 @@ serve(async (req) => {
       revenue_estimate: e.revenueEstimate,
       analyst_count: e.analystCount,
       time_of_day: e.timeOfDay,
+      market_cap: e.marketCap,
       updated_at: new Date().toISOString(),
     }));
 
