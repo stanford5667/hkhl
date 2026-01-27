@@ -2,18 +2,20 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { format, isToday, isTomorrow, parseISO } from 'date-fns';
-import { Calendar, RefreshCw, Sparkles } from 'lucide-react';
+import { Calendar, RefreshCw, Sparkles, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useEarningsCalendar, useFetchEarningsData, useGeneratePredictions } from '@/hooks/useEarningsCalendar';
-import { EarningsCalendarFilters } from '@/types/earnings';
+import { EarningsCalendarFilters, EarningsWithPrediction } from '@/types/earnings';
 import { EarningsFilters } from './EarningsFilters';
 import { EarningsTable } from './EarningsTable';
 import { EarningsScreener } from './EarningsScreener';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+
+const ITEMS_PER_PAGE = 20;
 
 export const EarningsCalendar = () => {
   const [activeTab, setActiveTab] = useState<'calendar' | 'screener'>('calendar');
@@ -22,11 +24,17 @@ export const EarningsCalendar = () => {
     dateRange: 'month',
     timeOfDay: 'all',
   });
+  const [currentPage, setCurrentPage] = useState(1);
   const hasAutoFetched = useRef(false);
 
   const { data: earnings, isLoading, error, isFetched } = useEarningsCalendar(filters);
   const fetchEarnings = useFetchEarningsData();
   const generatePredictions = useGeneratePredictions();
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filters]);
 
   // Auto-fetch earnings data on first load if empty
   useEffect(() => {
@@ -61,13 +69,20 @@ export const EarningsCalendar = () => {
     generatePredictions.mutate({ symbols, useBulkPrediction: true });
   };
 
-  // Group earnings by date
-  const earningsByDate = earnings?.reduce((acc, event) => {
+  // Pagination logic - sorted data is already from hook (by market cap)
+  const totalItems = earnings?.length || 0;
+  const totalPages = Math.ceil(totalItems / ITEMS_PER_PAGE);
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+  const endIndex = startIndex + ITEMS_PER_PAGE;
+  const paginatedEarnings = earnings?.slice(startIndex, endIndex) || [];
+
+  // Group paginated earnings by date for display
+  const earningsByDate = paginatedEarnings.reduce((acc, event) => {
     const date = event.report_date;
     if (!acc[date]) acc[date] = [];
     acc[date].push(event);
     return acc;
-  }, {} as Record<string, typeof earnings>);
+  }, {} as Record<string, EarningsWithPrediction[]>);
 
   const getDateLabel = (dateStr: string) => {
     const date = parseISO(dateStr);
@@ -77,10 +92,18 @@ export const EarningsCalendar = () => {
   };
 
   const stats = {
-    total: earnings?.length || 0,
+    total: totalItems,
     withPredictions: earnings?.filter(e => e.prediction).length || 0,
     expectedBeats: earnings?.filter(e => e.prediction?.predicted_outcome === 'beat').length || 0,
     expectedMisses: earnings?.filter(e => e.prediction?.predicted_outcome === 'miss').length || 0,
+  };
+
+  const formatMarketCap = (cap: number | null) => {
+    if (!cap) return null;
+    if (cap >= 1e12) return `$${(cap / 1e12).toFixed(1)}T`;
+    if (cap >= 1e9) return `$${(cap / 1e9).toFixed(1)}B`;
+    if (cap >= 1e6) return `$${(cap / 1e6).toFixed(1)}M`;
+    return `$${cap.toLocaleString()}`;
   };
 
   return (
@@ -90,7 +113,7 @@ export const EarningsCalendar = () => {
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Earnings Calendar</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Track upcoming earnings and predict beats/misses
+            Track upcoming earnings and predict beats/misses • Sorted by market cap
           </p>
         </div>
         <div className="flex gap-2">
@@ -205,6 +228,38 @@ export const EarningsCalendar = () => {
                   </CardContent>
                 </Card>
               ))}
+
+              {/* Pagination Controls */}
+              {totalPages > 1 && (
+                <div className="flex items-center justify-between pt-4 border-t border-border/50">
+                  <p className="text-sm text-muted-foreground">
+                    Showing {startIndex + 1}-{Math.min(endIndex, totalItems)} of {totalItems} companies
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                      disabled={currentPage === 1}
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                      Previous
+                    </Button>
+                    <span className="text-sm px-2">
+                      Page {currentPage} of {totalPages}
+                    </span>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                      disabled={currentPage === totalPages}
+                    >
+                      Next
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              )}
             </div>
           ) : (
             <Card className="bg-card/50 border-border/50">

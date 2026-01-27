@@ -22,6 +22,7 @@ export const useEarningsCalendar = (filters?: EarningsCalendarFilters) => {
         .from('earnings_calendar')
         .select('*')
         .gte('report_date', today)
+        .order('market_cap', { ascending: false, nullsFirst: false })
         .order('report_date', { ascending: true });
 
       // Apply filters
