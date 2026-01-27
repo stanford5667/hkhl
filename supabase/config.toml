@@ -179,3 +179,9 @@ verify_jwt = false
 
 [functions.strategy-backtest]
 verify_jwt = false
+
+[functions.fetch-earnings-calendar]
+verify_jwt = false
+
+[functions.predict-earnings]
+verify_jwt = false

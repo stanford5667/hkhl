@@ -1615,6 +1615,170 @@ export type Database = {
           },
         ]
       }
+      earnings_calendar: {
+        Row: {
+          actual_report_time: string | null
+          analyst_count: number | null
+          company_name: string | null
+          created_at: string | null
+          eps_actual: number | null
+          eps_estimate: number | null
+          eps_surprise_pct: number | null
+          estimated_time: string | null
+          fiscal_period: string | null
+          fiscal_year: number | null
+          id: string
+          report_date: string
+          revenue_actual: number | null
+          revenue_estimate: number | null
+          revenue_surprise_pct: number | null
+          symbol: string
+          time_of_day: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          actual_report_time?: string | null
+          analyst_count?: number | null
+          company_name?: string | null
+          created_at?: string | null
+          eps_actual?: number | null
+          eps_estimate?: number | null
+          eps_surprise_pct?: number | null
+          estimated_time?: string | null
+          fiscal_period?: string | null
+          fiscal_year?: number | null
+          id?: string
+          report_date: string
+          revenue_actual?: number | null
+          revenue_estimate?: number | null
+          revenue_surprise_pct?: number | null
+          symbol: string
+          time_of_day?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          actual_report_time?: string | null
+          analyst_count?: number | null
+          company_name?: string | null
+          created_at?: string | null
+          eps_actual?: number | null
+          eps_estimate?: number | null
+          eps_surprise_pct?: number | null
+          estimated_time?: string | null
+          fiscal_period?: string | null
+          fiscal_year?: number | null
+          id?: string
+          report_date?: string
+          revenue_actual?: number | null
+          revenue_estimate?: number | null
+          revenue_surprise_pct?: number | null
+          symbol?: string
+          time_of_day?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      earnings_history: {
+        Row: {
+          created_at: string | null
+          eps_actual: number | null
+          eps_estimate: number | null
+          eps_surprise_pct: number | null
+          fiscal_period: string | null
+          id: string
+          price_after: number | null
+          price_before: number | null
+          price_change_pct: number | null
+          report_date: string
+          revenue_actual: number | null
+          revenue_estimate: number | null
+          revenue_surprise_pct: number | null
+          symbol: string
+        }
+        Insert: {
+          created_at?: string | null
+          eps_actual?: number | null
+          eps_estimate?: number | null
+          eps_surprise_pct?: number | null
+          fiscal_period?: string | null
+          id?: string
+          price_after?: number | null
+          price_before?: number | null
+          price_change_pct?: number | null
+          report_date: string
+          revenue_actual?: number | null
+          revenue_estimate?: number | null
+          revenue_surprise_pct?: number | null
+          symbol: string
+        }
+        Update: {
+          created_at?: string | null
+          eps_actual?: number | null
+          eps_estimate?: number | null
+          eps_surprise_pct?: number | null
+          fiscal_period?: string | null
+          id?: string
+          price_after?: number | null
+          price_before?: number | null
+          price_change_pct?: number | null
+          report_date?: string
+          revenue_actual?: number | null
+          revenue_estimate?: number | null
+          revenue_surprise_pct?: number | null
+          symbol?: string
+        }
+        Relationships: []
+      }
+      earnings_predictions: {
+        Row: {
+          confidence_score: number | null
+          created_at: string | null
+          earnings_calendar_id: string | null
+          generated_at: string | null
+          id: string
+          model_version: string | null
+          predicted_outcome: string | null
+          report_date: string
+          signals: Json | null
+          symbol: string
+          user_id: string | null
+        }
+        Insert: {
+          confidence_score?: number | null
+          created_at?: string | null
+          earnings_calendar_id?: string | null
+          generated_at?: string | null
+          id?: string
+          model_version?: string | null
+          predicted_outcome?: string | null
+          report_date: string
+          signals?: Json | null
+          symbol: string
+          user_id?: string | null
+        }
+        Update: {
+          confidence_score?: number | null
+          created_at?: string | null
+          earnings_calendar_id?: string | null
+          generated_at?: string | null
+          id?: string
+          model_version?: string | null
+          predicted_outcome?: string | null
+          report_date?: string
+          signals?: Json | null
+          symbol?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "earnings_predictions_earnings_calendar_id_fkey"
+            columns: ["earnings_calendar_id"]
+            isOneToOne: false
+            referencedRelation: "earnings_calendar"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       economic_calendar: {
         Row: {
           actual_value: string | null
