@@ -1,6 +1,6 @@
 // src/components/earnings/EarningsCalendar.tsx
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { format, isToday, isTomorrow, parseISO } from 'date-fns';
 import { Calendar, RefreshCw, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -21,10 +21,26 @@ export const EarningsCalendar = () => {
     dateRange: 'week',
     timeOfDay: 'all',
   });
+  const hasAutoFetched = useRef(false);
 
-  const { data: earnings, isLoading, error } = useEarningsCalendar(filters);
+  const { data: earnings, isLoading, error, isFetched } = useEarningsCalendar(filters);
   const fetchEarnings = useFetchEarningsData();
   const generatePredictions = useGeneratePredictions();
+
+  // Auto-fetch earnings data on first load if empty
+  useEffect(() => {
+    if (isFetched && !isLoading && !hasAutoFetched.current && (!earnings || earnings.length === 0)) {
+      hasAutoFetched.current = true;
+      const today = new Date().toISOString().split('T')[0];
+      const monthAhead = new Date();
+      monthAhead.setDate(monthAhead.getDate() + 30);
+      
+      fetchEarnings.mutate({
+        startDate: today,
+        endDate: monthAhead.toISOString().split('T')[0],
+      });
+    }
+  }, [isFetched, isLoading, earnings, fetchEarnings]);
 
   const handleRefresh = () => {
     const today = new Date().toISOString().split('T')[0];
