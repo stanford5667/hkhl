@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { 
   Search, Clock, X, TrendingUp, Sparkles, Building2, 
   Cpu, Heart, ShoppingCart, Zap, Factory, Landmark, BarChart3,
-  ArrowRight, Loader2
+  ArrowRight, Loader2, FileText
 } from 'lucide-react';
 import { TickerSearchAutocomplete } from '@/components/shared/TickerSearchAutocomplete';
 import { useTrendingTickers } from '@/hooks/useTrendingTickers';
@@ -14,6 +14,7 @@ import { CategoryCard } from '@/components/research/CategoryCard';
 import { MarketOverviewDashboard } from '@/components/research/MarketOverviewDashboard';
 import { MarketIntelligenceSection } from '@/components/research/MarketIntelligenceSection';
 import { MarketThemesSection } from '@/components/research/MarketThemesSection';
+import { EarningsCalendar } from '@/components/earnings';
 
 
 import { AnimatedBackground } from '@/components/research/AnimatedBackground';
@@ -256,6 +257,20 @@ export default function ResearchPage() {
 
         {/* Market Intelligence - Top Gainers, Most Active */}
         <MarketIntelligenceSection />
+
+        {/* Earnings Calendar Section */}
+        <section className="space-y-3">
+          <div className="flex items-center gap-2">
+            <div className="p-1.5 rounded-lg bg-primary/10 border border-primary/20">
+              <FileText className="h-4 w-4 text-primary" />
+            </div>
+            <div>
+              <h2 className="text-base font-semibold text-foreground">Earnings Calendar</h2>
+              <p className="text-[10px] text-muted-foreground">Upcoming earnings with AI predictions</p>
+            </div>
+          </div>
+          <EarningsCalendar />
+        </section>
 
         {/* Categories Grid */}
         <section className="space-y-3">
