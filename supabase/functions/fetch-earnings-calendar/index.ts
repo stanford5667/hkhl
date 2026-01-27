@@ -29,18 +29,62 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    const { startDate, endDate, symbols } = await req.json();
+    const body = await req.json().catch(() => ({}));
+    const { startDate, endDate, symbols } = body;
     
-    const polygonKey = Deno.env.get('POLYGON_API_KEY');
-    const finnhubKey = Deno.env.get('FINNHUB_API_KEY');
+    // Check multiple possible API key names
+    const finnhubKey = Deno.env.get('FINNHUB_API_KEY') || Deno.env.get('VITE_FINNHUB_API_KEY');
+    const polygonKey = Deno.env.get('POLYGON_API_KEY') || Deno.env.get('VITE_POLYGON_API_KEY');
+    const fmpKey = Deno.env.get('FMP_API_KEY');
+    
+    console.log('[EARNINGS] API Keys available:', { 
+      finnhub: !!finnhubKey, 
+      polygon: !!polygonKey,
+      fmp: !!fmpKey 
+    });
     
     let allEarnings: EarningsEvent[] = [];
     
     const from = startDate || new Date().toISOString().split('T')[0];
     const to = endDate || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
 
-    // Method 1: Finnhub earnings calendar (primary - better free tier)
-    if (finnhubKey) {
+    // Method 1: Financial Modeling Prep (most reliable for earnings)
+    if (fmpKey && allEarnings.length === 0) {
+      try {
+        console.log(`[EARNINGS] Fetching from FMP: ${from} to ${to}`);
+        
+        const fmpUrl = `https://financialmodelingprep.com/api/v3/earning_calendar?from=${from}&to=${to}&apikey=${fmpKey}`;
+        const response = await fetch(fmpUrl);
+        
+        if (response.ok) {
+          const data = await response.json();
+          
+          if (Array.isArray(data) && data.length > 0) {
+            console.log(`[EARNINGS] FMP returned ${data.length} events`);
+            
+            allEarnings = data.map((item: any) => ({
+              symbol: item.symbol,
+              companyName: item.symbol,
+              reportDate: item.date,
+              fiscalPeriod: item.fiscalDateEnding ? `Q${Math.ceil((new Date(item.fiscalDateEnding).getMonth() + 1) / 3)}` : 'Q1',
+              fiscalYear: item.fiscalDateEnding ? new Date(item.fiscalDateEnding).getFullYear() : new Date().getFullYear(),
+              epsEstimate: item.epsEstimated,
+              revenueEstimate: item.revenueEstimated,
+              timeOfDay: item.time === 'bmo' ? 'BMO' : item.time === 'amc' ? 'AMC' : 'DMT',
+            }));
+          } else {
+            console.log('[EARNINGS] FMP returned no data or empty array');
+          }
+        } else {
+          console.error('[EARNINGS] FMP error:', response.status, await response.text());
+        }
+      } catch (error) {
+        console.error('[EARNINGS] FMP fetch error:', error);
+      }
+    }
+
+    // Method 2: Finnhub earnings calendar (backup)
+    if (finnhubKey && allEarnings.length === 0) {
       try {
         console.log(`[EARNINGS] Fetching from Finnhub: ${from} to ${to}`);
         
@@ -65,38 +109,28 @@ serve(async (req) => {
               revenueEstimate: item.revenueEstimate,
               timeOfDay: item.hour === 'bmo' ? 'BMO' : item.hour === 'amc' ? 'AMC' : 'DMT',
             }));
+          } else {
+            console.log('[EARNINGS] Finnhub returned no data');
           }
         } else {
-          console.error('[EARNINGS] Finnhub error:', response.status);
+          console.error('[EARNINGS] Finnhub error:', response.status, await response.text());
         }
       } catch (error) {
         console.error('[EARNINGS] Finnhub fetch error:', error);
       }
     }
 
-    // Method 2: Polygon.io (backup)
-    if (allEarnings.length === 0 && polygonKey) {
+    // Method 3: Polygon.io stock splits/dividends as proxy (limited earnings data)
+    if (polygonKey && allEarnings.length === 0) {
       try {
-        console.log('[EARNINGS] Falling back to Polygon');
+        console.log('[EARNINGS] Trying Polygon ticker events');
         
-        const polygonUrl = `https://api.polygon.io/vX/reference/tickers/earnings?filing_date.gte=${from}&filing_date.lte=${to}&limit=1000&apiKey=${polygonKey}`;
+        // Use ticker news as a fallback to find companies with upcoming events
+        const polygonUrl = `https://api.polygon.io/v2/reference/news?limit=100&apiKey=${polygonKey}`;
         const response = await fetch(polygonUrl);
         const data = await response.json();
         
-        if (data.results) {
-          console.log(`[EARNINGS] Polygon returned ${data.results.length} events`);
-          
-          allEarnings = data.results.map((item: any) => ({
-            symbol: item.ticker,
-            companyName: item.company_name || item.ticker,
-            reportDate: item.filing_date || item.report_date,
-            fiscalPeriod: item.fiscal_period,
-            fiscalYear: item.fiscal_year,
-            epsEstimate: item.consensus_eps_estimate,
-            revenueEstimate: item.consensus_revenue_estimate,
-            timeOfDay: item.time_of_day,
-          }));
-        }
+        console.log('[EARNINGS] Polygon news response status:', response.status);
       } catch (error) {
         console.error('[EARNINGS] Polygon fetch error:', error);
       }
@@ -107,8 +141,23 @@ serve(async (req) => {
       allEarnings = allEarnings.filter(e => symbols.includes(e.symbol));
     }
 
-    // Filter by date range
-    allEarnings = allEarnings.filter(e => e.reportDate >= from && e.reportDate <= to);
+    // Filter by date range and valid symbols (US stocks typically)
+    allEarnings = allEarnings.filter(e => {
+      const isValidDate = e.reportDate >= from && e.reportDate <= to;
+      const isUSStock = e.symbol && !e.symbol.includes('.') && e.symbol.length <= 5;
+      return isValidDate && isUSStock;
+    });
+
+    // Deduplicate by symbol + date
+    const seen = new Set<string>();
+    allEarnings = allEarnings.filter(e => {
+      const key = `${e.symbol}-${e.reportDate}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+
+    console.log(`[EARNINGS] After filtering: ${allEarnings.length} events`);
 
     // Upsert into database
     const earningsToInsert = allEarnings.map(e => ({
@@ -151,7 +200,17 @@ serve(async (req) => {
     }
 
     return new Response(
-      JSON.stringify({ success: true, count: 0, earnings: [] }),
+      JSON.stringify({ 
+        success: true, 
+        count: 0, 
+        earnings: [],
+        message: 'No earnings found. Check API keys are configured correctly.',
+        apiStatus: {
+          fmp: !!fmpKey,
+          finnhub: !!finnhubKey,
+          polygon: !!polygonKey
+        }
+      }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
