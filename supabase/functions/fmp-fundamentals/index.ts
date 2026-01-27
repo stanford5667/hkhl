@@ -7,6 +7,81 @@ const corsHeaders = {
 
 const BASE_URL = "https://financialmodelingprep.com/api/v3";
 
+// SEC requires a descriptive User-Agent (ideally with contact info)
+const SEC_HEADERS = {
+  'User-Agent': 'AssetLabs Research (support@assetlabs.ai)',
+  'Accept': 'application/json',
+};
+
+// Cache SEC ticker->CIK mapping for 24h to avoid re-downloading a large JSON on every request
+let secCompanyTickersCache: { data: any[]; fetchedAt: number } | null = null;
+const SEC_COMPANY_TICKERS_TTL_MS = 24 * 60 * 60 * 1000;
+
+async function fetchWithTimeout(url: string, options: RequestInit = {}, timeoutMs = 8000): Promise<Response> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const res = await fetch(url, { ...options, signal: controller.signal });
+    return res;
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
+async function fetchWithRetry(
+  url: string,
+  options: RequestInit,
+  {
+    attempts = 3,
+    timeoutMs = 8000,
+    baseDelayMs = 350,
+  }: { attempts?: number; timeoutMs?: number; baseDelayMs?: number } = {}
+): Promise<Response> {
+  let lastErr: unknown;
+
+  for (let i = 0; i < attempts; i++) {
+    try {
+      const res = await fetchWithTimeout(url, options, timeoutMs);
+      // Retry on SEC throttling / transient server errors
+      if ([429, 500, 502, 503, 504].includes(res.status) && i < attempts - 1) {
+        const delay = baseDelayMs * Math.pow(2, i);
+        await new Promise((r) => setTimeout(r, delay));
+        continue;
+      }
+      return res;
+    } catch (e) {
+      lastErr = e;
+      if (i < attempts - 1) {
+        const delay = baseDelayMs * Math.pow(2, i);
+        await new Promise((r) => setTimeout(r, delay));
+        continue;
+      }
+    }
+  }
+
+  throw lastErr instanceof Error ? lastErr : new Error('Network error');
+}
+
+async function getSecCompanyTickers(): Promise<any[]> {
+  const now = Date.now();
+  if (secCompanyTickersCache && now - secCompanyTickersCache.fetchedAt < SEC_COMPANY_TICKERS_TTL_MS) {
+    return secCompanyTickersCache.data;
+  }
+
+  const url = 'https://www.sec.gov/files/company_tickers.json';
+  const res = await fetchWithRetry(url, { headers: SEC_HEADERS }, { attempts: 3, timeoutMs: 10000 });
+
+  if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    throw new Error(`SEC ticker mapping fetch failed (${res.status}): ${text.slice(0, 200)}`);
+  }
+
+  const json = await res.json();
+  const data = Object.values(json) as any[];
+  secCompanyTickersCache = { data, fetchedAt: now };
+  return data;
+}
+
 // Cache for 1 hour (fundamentals don't change frequently)
 const cache = new Map<string, { data: unknown; timestamp: number }>();
 const CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
@@ -322,20 +397,11 @@ async function fetchSECFinancials(ticker: string): Promise<IncomeStatement[]> {
   console.log(`[SEC XBRL] Fetching company facts for ${ticker}...`);
   
   try {
-    // Get CIK from ticker
-    const cikResponse = await fetch('https://www.sec.gov/files/company_tickers.json', {
-      headers: { 'User-Agent': 'AssetLabs Research/1.0' }
-    });
-    
-    if (!cikResponse.ok) {
-      console.error('[SEC XBRL] Failed to fetch CIK mapping');
-      return [];
-    }
-    
-    const cikData = await cikResponse.json();
+    // Get CIK from ticker (cached)
+    const cikData = await getSecCompanyTickers();
     let cik: string | null = null;
-    
-    for (const entry of Object.values(cikData) as any[]) {
+
+    for (const entry of cikData) {
       if (entry.ticker?.toUpperCase() === ticker.toUpperCase()) {
         cik = String(entry.cik_str).padStart(10, '0');
         break;
@@ -349,9 +415,7 @@ async function fetchSECFinancials(ticker: string): Promise<IncomeStatement[]> {
 
     // Fetch company facts from SEC XBRL API
     const factsUrl = `https://data.sec.gov/api/xbrl/companyfacts/CIK${cik}.json`;
-    const response = await fetch(factsUrl, {
-      headers: { 'User-Agent': 'AssetLabs Research/1.0' }
-    });
+    const response = await fetchWithRetry(factsUrl, { headers: SEC_HEADERS }, { attempts: 3, timeoutMs: 10000 });
 
     if (!response.ok) {
       console.error(`[SEC XBRL] API error: ${response.status}`);
@@ -683,6 +747,7 @@ serve(async (req) => {
       }
       
       let useSECData = false;
+      let useMockData = false;
       let profile: CompanyProfile | null = null;
       let financials: IncomeStatement[] = [];
       let estimates: AnalystEstimate[] = [];
@@ -717,6 +782,12 @@ serve(async (req) => {
             financials = secData;
             source = 'SEC XBRL';
             console.log(`[fmp] Got ${secData.length} years from SEC for ${symbol}`);
+          } else {
+            // Last resort: avoid blank financials UI if both real sources fail
+            useMockData = true;
+            financials = generateMockFinancials(symbol) as IncomeStatement[];
+            source = 'Demo Data';
+            console.warn(`[fmp] SEC returned no data for ${symbol}; using demo fallback to avoid empty state`);
           }
           if (!profile) {
             profile = generateMockProfile(symbol);
@@ -724,7 +795,11 @@ serve(async (req) => {
         } catch (err) {
           console.error(`[fmp] SEC fetch error for ${symbol}:`, err);
           if (!profile) profile = generateMockProfile(symbol);
-          if (financials.length === 0) financials = [];
+          if (financials.length === 0) {
+            useMockData = true;
+            financials = generateMockFinancials(symbol) as IncomeStatement[];
+            source = 'Demo Data';
+          }
         }
       }
       
@@ -732,7 +807,7 @@ serve(async (req) => {
         profile,
         financials,
         estimates,
-        useMockData: false,
+        useMockData,
         source,
       };
       
