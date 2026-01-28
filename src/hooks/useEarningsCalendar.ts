@@ -277,19 +277,22 @@ export const useEarningsScreen = (criteria: EarningsScreenCriteria) => {
         } as EarningsWithPrediction;
       });
 
-      // Apply filters
+      // Apply filters - only filter by prediction criteria if explicitly set
+      // When minConfidence > 0, filter to only those with predictions meeting threshold
       if (criteria.minConfidence > 0) {
         results = results.filter(e => 
           e.prediction && e.prediction.confidence_score >= criteria.minConfidence
         );
       }
 
+      // When specific outcome selected, filter to those predictions only
       if (criteria.expectedOutcome !== 'all') {
         results = results.filter(e => 
           e.prediction?.predicted_outcome === criteria.expectedOutcome
         );
       }
 
+      // Beat rate filter only applies if explicitly set
       if (criteria.minBeatRate) {
         results = results.filter(e => {
           if (!e.beat_count_2y || !e.total_reports_2y) return false;
@@ -298,11 +301,19 @@ export const useEarningsScreen = (criteria: EarningsScreenCriteria) => {
         });
       }
 
+      // Analyst count filter
       if (criteria.minAnalystCount) {
         results = results.filter(e => 
           e.analyst_count && e.analyst_count >= criteria.minAnalystCount!
         );
       }
+
+      // Sort by report_date, then by market_cap (largest first)
+      results.sort((a, b) => {
+        const dateCompare = a.report_date.localeCompare(b.report_date);
+        if (dateCompare !== 0) return dateCompare;
+        return (b.market_cap || 0) - (a.market_cap || 0);
+      });
 
       return results;
     },
