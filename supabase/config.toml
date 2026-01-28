@@ -194,3 +194,6 @@ verify_jwt = false
 
 [functions.fmp-fundamentals]
 verify_jwt = false
+
+[functions.backfill-earnings-history]
+verify_jwt = false

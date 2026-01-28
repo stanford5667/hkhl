@@ -1,9 +1,9 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { TrendingUp, TrendingDown, Calendar, Target, BarChart3, DollarSign } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Skeleton } from '@/components/ui/skeleton';
 import { format, parseISO } from 'date-fns';
@@ -97,6 +97,46 @@ function useNextEarningsFromCalendar(symbol: string) {
 export function EarningsImpactSection({ ticker, nextEarnings: fallbackNextEarnings }: EarningsImpactSectionProps) {
   const { data: historyData, isLoading: historyLoading } = useEarningsHistoryData(ticker);
   const { data: nextEarningsData } = useNextEarningsFromCalendar(ticker);
+  const queryClient = useQueryClient();
+  const backfillStartedRef = useRef(false);
+  const tickerKey = (ticker || '').toUpperCase();
+
+  const backfillMutation = useMutation({
+    mutationFn: async () => {
+      const { data, error } = await supabase.functions.invoke('backfill-earnings-history', {
+        body: { symbol: ticker, years: 4 },
+      });
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['earnings-history-impact', ticker] });
+      queryClient.invalidateQueries({ queryKey: ['earnings-history', ticker] });
+    },
+  });
+
+  // Auto-backfill when we have history rows but no estimates/returns populated.
+  const needsBackfill = useMemo(() => {
+    if (!historyData || historyData.length === 0) return false;
+    const hasAnyEstimate = historyData.some(r => r.eps_estimate !== null);
+    const hasAnyReturn = historyData.some(r => r.price_change_pct !== null);
+    return !hasAnyEstimate || !hasAnyReturn;
+  }, [historyData]);
+
+  useEffect(() => {
+    backfillStartedRef.current = false;
+  }, [tickerKey]);
+
+  // Fire once per ticker view.
+  useEffect(() => {
+    if (!tickerKey) return;
+    if (!needsBackfill) return;
+    if (historyLoading) return;
+    if (backfillMutation.isPending) return;
+    if (backfillStartedRef.current) return;
+    backfillStartedRef.current = true;
+    backfillMutation.mutate();
+  }, [tickerKey, needsBackfill, historyLoading, backfillMutation]);
 
   // Format next earnings date from DB (preferred) or fallback
   const nextEarningsDisplay = useMemo(() => {
