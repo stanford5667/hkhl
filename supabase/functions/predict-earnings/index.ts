@@ -63,22 +63,51 @@ serve(async (req) => {
         Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
       );
 
-      const { data: savedPrediction, error: saveError } = await serviceSupabase
+      // Check if prediction already exists for this earnings_calendar_id
+      const { data: existing } = await serviceSupabase
         .from('earnings_predictions')
-        .upsert({
-          earnings_calendar_id: earnings.id,
-          symbol: earnings.symbol,
-          report_date: earnings.report_date,
-          predicted_outcome: prediction.outcome,
-          confidence_score: prediction.confidence,
-          signals: prediction.signals,
-          model_version: prediction.modelVersion,
-          user_id: userId,
-        }, {
-          onConflict: 'earnings_calendar_id,user_id',
-        })
-        .select()
-        .single();
+        .select('id')
+        .eq('earnings_calendar_id', earnings.id)
+        .maybeSingle();
+
+      let savedPrediction;
+      let saveError;
+
+      if (existing) {
+        // Update existing prediction
+        const result = await serviceSupabase
+          .from('earnings_predictions')
+          .update({
+            predicted_outcome: prediction.outcome,
+            confidence_score: prediction.confidence,
+            signals: prediction.signals,
+            model_version: prediction.modelVersion,
+            generated_at: new Date().toISOString(),
+          })
+          .eq('id', existing.id)
+          .select()
+          .single();
+        savedPrediction = result.data;
+        saveError = result.error;
+      } else {
+        // Insert new prediction
+        const result = await serviceSupabase
+          .from('earnings_predictions')
+          .insert({
+            earnings_calendar_id: earnings.id,
+            symbol: earnings.symbol,
+            report_date: earnings.report_date,
+            predicted_outcome: prediction.outcome,
+            confidence_score: prediction.confidence,
+            signals: prediction.signals,
+            model_version: prediction.modelVersion,
+            user_id: userId,
+          })
+          .select()
+          .single();
+        savedPrediction = result.data;
+        saveError = result.error;
+      }
 
       if (saveError) {
         console.error('[PREDICT] Error saving prediction:', saveError);
