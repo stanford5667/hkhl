@@ -148,7 +148,7 @@ export function useAssetMetrics(ticker: string | undefined, period: Period = '3Y
 
       const sharpe = calculateSharpeRatio(returns);
       const sortino = calculateSortinoRatio(returns);
-      const { maxDrawdown } = calculateMaxDrawdown(portfolioValues);
+      const { maxDrawdownPercent } = calculateMaxDrawdown(portfolioValues);
       const volatility = standardDeviation(returns) * Math.sqrt(252) * 100;
 
       // VaR/CVaR calculations
@@ -165,7 +165,7 @@ export function useAssetMetrics(ticker: string | undefined, period: Period = '3Y
         cagr,
         sharpeRatio: sharpe,
         sortinoRatio: sortino,
-        maxDrawdown,
+        maxDrawdown: maxDrawdownPercent,
         volatility,
         beta,
         alpha: alpha * 100,

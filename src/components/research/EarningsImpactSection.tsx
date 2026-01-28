@@ -127,7 +127,8 @@ export function EarningsImpactSection({ ticker, nextEarnings: fallbackNextEarnin
       }
 
       // Determine beat/miss based on surprise or comparison
-      let beatOrMiss: 'beat' | 'miss' = 'beat';
+      // If no estimate available, we can't determine beat/miss - mark as null
+      let beatOrMiss: 'beat' | 'miss' | null = null;
       if (epsSurprise !== null) {
         beatOrMiss = epsSurprise >= 0 ? 'beat' : 'miss';
       } else if (record.eps_actual !== null && record.eps_estimate !== null) {
@@ -139,9 +140,10 @@ export function EarningsImpactSection({ ticker, nextEarnings: fallbackNextEarnin
         quarter: record.fiscal_period || format(parseISO(record.report_date), "'Q'Q yyyy"),
         epsActual: record.eps_actual,
         epsEstimate: record.eps_estimate,
-        epsSurprise: epsSurprise ?? 0,
+        epsSurprise: epsSurprise,
         priceReturn5Day: record.price_change_pct ?? 0,
         beatOrMiss,
+        hasEstimate: record.eps_estimate !== null,
       };
     });
   }, [historyData]);
@@ -151,35 +153,44 @@ export function EarningsImpactSection({ ticker, nextEarnings: fallbackNextEarnin
       return {
         totalReports: 0,
         beatCount: 0,
-        beatRate: '0',
-        avgSurprise: '0.0',
-        avgReturnOnBeat: '0.0',
-        avgReturnOnMiss: '0.0',
+        beatRate: null,
+        avgSurprise: null,
+        avgReturnOnBeat: null,
+        avgReturnOnMiss: null,
+        hasEstimates: false,
       };
     }
 
+    const withEstimates = earningsHistory.filter(e => e.hasEstimate);
     const beats = earningsHistory.filter(e => e.beatOrMiss === 'beat');
     const misses = earningsHistory.filter(e => e.beatOrMiss === 'miss');
+    const hasEstimates = withEstimates.length > 0;
     
     return {
       totalReports: earningsHistory.length,
       beatCount: beats.length,
-      beatRate: ((beats.length / earningsHistory.length) * 100).toFixed(0),
-      avgSurprise: (earningsHistory.reduce((sum, e) => sum + e.epsSurprise, 0) / earningsHistory.length).toFixed(1),
-      avgReturnOnBeat: beats.length > 0 
+      beatRate: hasEstimates ? ((beats.length / withEstimates.length) * 100).toFixed(0) : null,
+      avgSurprise: hasEstimates 
+        ? (withEstimates.reduce((sum, e) => sum + (e.epsSurprise || 0), 0) / withEstimates.length).toFixed(1) 
+        : null,
+      avgReturnOnBeat: beats.length > 0 && beats.some(e => e.priceReturn5Day !== 0)
         ? (beats.reduce((sum, e) => sum + e.priceReturn5Day, 0) / beats.length).toFixed(1) 
-        : '0.0',
-      avgReturnOnMiss: misses.length > 0
+        : null,
+      avgReturnOnMiss: misses.length > 0 && misses.some(e => e.priceReturn5Day !== 0)
         ? (misses.reduce((sum, e) => sum + e.priceReturn5Day, 0) / misses.length).toFixed(1)
-        : '0.0',
+        : null,
+      hasEstimates,
     };
   }, [earningsHistory]);
 
-  // Chart data for surprise vs return
+  // Chart data for surprise vs return - only show if we have estimates
   const surpriseReturnData = useMemo(() => {
-    return [...earningsHistory].reverse().slice(-6).map(e => ({
+    const withEstimates = earningsHistory.filter(e => e.hasEstimate);
+    if (withEstimates.length === 0) return [];
+    
+    return [...withEstimates].reverse().slice(-6).map(e => ({
       quarter: e.quarter.replace('20', "'").replace(' ', ' '),
-      surprise: parseFloat(e.epsSurprise.toFixed(1)),
+      surprise: parseFloat((e.epsSurprise || 0).toFixed(1)),
       return: e.priceReturn5Day,
     }));
   }, [earningsHistory]);
@@ -271,24 +282,32 @@ export function EarningsImpactSection({ ticker, nextEarnings: fallbackNextEarnin
           </div>
           <div className="text-center">
             <p className="text-[7px] md:text-[8px] text-muted-foreground uppercase">Beat Rate</p>
-            <p className="text-xs md:text-sm font-bold text-primary">{stats.beatRate}%</p>
+            <p className="text-xs md:text-sm font-bold text-primary">
+              {stats.beatRate !== null ? `${stats.beatRate}%` : '—'}
+            </p>
           </div>
           <div className="text-center">
             <p className="text-[7px] md:text-[8px] text-muted-foreground uppercase">Avg Surprise</p>
             <p className={cn(
               "text-xs md:text-sm font-bold",
-              parseFloat(stats.avgSurprise) >= 0 ? "text-primary" : "text-destructive"
+              stats.avgSurprise !== null && parseFloat(stats.avgSurprise) >= 0 ? "text-primary" : "text-destructive"
             )}>
-              {parseFloat(stats.avgSurprise) >= 0 ? '+' : ''}{stats.avgSurprise}%
+              {stats.avgSurprise !== null 
+                ? `${parseFloat(stats.avgSurprise) >= 0 ? '+' : ''}${stats.avgSurprise}%`
+                : '—'
+              }
             </p>
           </div>
           <div className="text-center">
             <p className="text-[7px] md:text-[8px] text-muted-foreground uppercase">5D on Beat</p>
             <p className={cn(
               "text-xs md:text-sm font-bold",
-              parseFloat(stats.avgReturnOnBeat) >= 0 ? "text-primary" : "text-destructive"
+              stats.avgReturnOnBeat !== null && parseFloat(stats.avgReturnOnBeat) >= 0 ? "text-primary" : "text-destructive"
             )}>
-              {parseFloat(stats.avgReturnOnBeat) >= 0 ? '+' : ''}{stats.avgReturnOnBeat}%
+              {stats.avgReturnOnBeat !== null 
+                ? `${parseFloat(stats.avgReturnOnBeat) >= 0 ? '+' : ''}${stats.avgReturnOnBeat}%`
+                : '—'
+              }
             </p>
           </div>
         </div>
@@ -400,12 +419,18 @@ export function EarningsImpactSection({ ticker, nextEarnings: fallbackNextEarnin
               >
                 <div className="flex items-center gap-2">
                   <span className="font-medium text-muted-foreground w-16">{earning.quarter}</span>
-                  <Badge 
-                    variant={earning.beatOrMiss === 'beat' ? 'default' : 'destructive'} 
-                    className="h-4 px-1.5 text-[8px]"
-                  >
-                    {earning.beatOrMiss === 'beat' ? 'BEAT' : 'MISS'}
-                  </Badge>
+                  {earning.beatOrMiss !== null ? (
+                    <Badge 
+                      variant={earning.beatOrMiss === 'beat' ? 'default' : 'destructive'} 
+                      className="h-4 px-1.5 text-[8px]"
+                    >
+                      {earning.beatOrMiss === 'beat' ? 'BEAT' : 'MISS'}
+                    </Badge>
+                  ) : (
+                    <Badge variant="outline" className="h-4 px-1.5 text-[8px] text-muted-foreground">
+                      N/A
+                    </Badge>
+                  )}
                 </div>
                 <div className="flex items-center gap-2">
                   {/* Actual EPS */}
@@ -415,16 +440,18 @@ export function EarningsImpactSection({ ticker, nextEarnings: fallbackNextEarnin
                       {earning.epsActual !== null ? `$${earning.epsActual.toFixed(2)}` : '—'}
                     </span>
                   </div>
-                  {/* EPS Surprise % */}
-                  <div className="flex items-center gap-0.5 min-w-[50px]" title="EPS Surprise %">
-                    <Target className="h-2.5 w-2.5 text-muted-foreground" />
-                    <span className={cn(
-                      "font-medium tabular-nums",
-                      earning.epsSurprise >= 0 ? "text-primary" : "text-destructive"
-                    )}>
-                      {earning.epsSurprise >= 0 ? '+' : ''}{earning.epsSurprise.toFixed(1)}%
-                    </span>
-                  </div>
+                  {/* EPS Surprise % - only show if we have estimates */}
+                  {earning.hasEstimate && earning.epsSurprise !== null && (
+                    <div className="flex items-center gap-0.5 min-w-[50px]" title="EPS Surprise %">
+                      <Target className="h-2.5 w-2.5 text-muted-foreground" />
+                      <span className={cn(
+                        "font-medium tabular-nums",
+                        earning.epsSurprise >= 0 ? "text-primary" : "text-destructive"
+                      )}>
+                        {earning.epsSurprise >= 0 ? '+' : ''}{earning.epsSurprise.toFixed(1)}%
+                      </span>
+                    </div>
+                  )}
                   {/* 5D Price Return */}
                   {earning.priceReturn5Day !== 0 && (
                     <div className="flex items-center gap-0.5 min-w-[50px]" title="5-Day Price Return">
