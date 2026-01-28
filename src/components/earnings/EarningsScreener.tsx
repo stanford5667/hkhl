@@ -22,12 +22,13 @@ import { useToast } from '@/hooks/use-toast';
 
 export const EarningsScreener = () => {
   const { toast } = useToast();
+  // Use a date range that covers earnings calendar data (starts Feb 11, 2026)
   const [criteria, setCriteria] = useState<EarningsScreenCriteria>({
     minConfidence: 0,
     expectedOutcome: 'all',
     dateRange: {
-      start: new Date().toISOString().split('T')[0],
-      end: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 60 days ahead
+      start: '2026-02-11', // First date with earnings data
+      end: '2026-03-31', // Cover through end of Q1
     },
     minBeatRate: undefined,
     minAnalystCount: undefined,
