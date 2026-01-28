@@ -50,8 +50,6 @@ serve(async (req) => {
       const today = new Date().toISOString().split('T')[0];
       const maxDate = new Date(Date.now() + 120 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
       
-      // Use RPC or raw SQL to get earnings without predictions efficiently
-      // Since we can't run raw SQL directly, we'll fetch in batches and check
       const { data: allEarnings, error: earningsError } = await serviceSupabase
         .from('earnings_calendar')
         .select('*')
@@ -220,30 +218,77 @@ async function gatherSignals(supabase: any, earnings: any): Promise<Signal[]> {
   const signals: Signal[] = [];
   const symbol = earnings.symbol;
 
-  // 1. Historical earnings surprise pattern
+  // 1. Historical earnings surprise pattern with standard deviation analysis
   const { data: history } = await supabase
     .from('earnings_history')
-    .select('eps_surprise_pct')
+    .select('eps_surprise_pct, report_date')
     .eq('symbol', symbol)
     .order('report_date', { ascending: false })
-    .limit(8);
+    .limit(12); // Get more history for better std dev calculation
 
-  if (history && history.length > 0) {
-    const avgSurprise = history.reduce((sum: number, h: any) => sum + (h.eps_surprise_pct || 0), 0) / history.length;
-    const beatRate = history.filter((h: any) => (h.eps_surprise_pct || 0) > 0).length / history.length;
+  if (history && history.length >= 4) {
+    const surprises = history.map((h: any) => h.eps_surprise_pct || 0);
+    
+    // Basic metrics
+    const avgSurprise = surprises.reduce((sum: number, val: number) => sum + val, 0) / surprises.length;
+    const beatRate = surprises.filter((val: number) => val > 0).length / surprises.length;
+    
+    // Standard deviation calculation
+    const variance = surprises.reduce((sum: number, val: number) => 
+      sum + Math.pow(val - avgSurprise, 2), 0) / surprises.length;
+    const stdDev = Math.sqrt(variance);
+    
+    // Consistency score: lower std dev = more consistent = higher score
+    // Normalize to 0-1 scale (assume 20% std dev is very volatile, 2% is very consistent)
+    const consistencyScore = Math.max(0, Math.min(1, 1 - (stdDev / 20)));
+    
+    // Recent vs historical deviation (last 4 vs all)
+    const recentSurprises = surprises.slice(0, 4);
+    const recentAvg = recentSurprises.reduce((sum: number, val: number) => sum + val, 0) / recentSurprises.length;
+    const trendStrength = (recentAvg - avgSurprise) / (stdDev + 0.01); // Normalized by volatility
+    
+    // Detect regime change (recent volatility vs historical)
+    let recentVolatility = 0;
+    if (recentSurprises.length >= 4) {
+      const recentVariance = recentSurprises.reduce((sum: number, val: number) => 
+        sum + Math.pow(val - recentAvg, 2), 0) / recentSurprises.length;
+      recentVolatility = Math.sqrt(recentVariance);
+    }
+    const volatilityChange = (recentVolatility - stdDev) / (stdDev + 0.01);
     
     signals.push({
       type: 'historical_beat_rate',
       value: beatRate,
-      weight: 0.30,
+      weight: 0.20,
       description: `${(beatRate * 100).toFixed(0)}% beat rate over last ${history.length} quarters`,
     });
 
     signals.push({
       type: 'avg_surprise',
       value: Math.max(-1, Math.min(1, avgSurprise / 10)),
-      weight: 0.20,
+      weight: 0.15,
       description: `Average surprise: ${avgSurprise.toFixed(2)}%`,
+    });
+    
+    signals.push({
+      type: 'surprise_consistency',
+      value: consistencyScore,
+      weight: 0.18,
+      description: `Consistency score: ${(consistencyScore * 100).toFixed(0)}% (StdDev: ${stdDev.toFixed(2)}%)`,
+    });
+    
+    signals.push({
+      type: 'trend_strength',
+      value: Math.max(-1, Math.min(1, trendStrength)),
+      weight: 0.12,
+      description: `Trend: ${trendStrength > 0 ? 'improving' : 'declining'} (${Math.abs(trendStrength).toFixed(2)}σ)`,
+    });
+    
+    signals.push({
+      type: 'volatility_regime',
+      value: -Math.max(-1, Math.min(1, volatilityChange)), // Negative because increasing volatility = less reliable
+      weight: 0.10,
+      description: `Volatility ${volatilityChange > 0.2 ? 'increasing' : volatilityChange < -0.2 ? 'decreasing' : 'stable'}`,
     });
   }
 
@@ -267,7 +312,7 @@ async function gatherSignals(supabase: any, earnings: any): Promise<Signal[]> {
     signals.push({
       type: 'market_cap_tier',
       value: marketCapScore,
-      weight: 0.15,
+      weight: 0.05,
       description: `Market cap: $${marketCapBillions.toFixed(1)}B`,
     });
   }
@@ -278,7 +323,7 @@ async function gatherSignals(supabase: any, earnings: any): Promise<Signal[]> {
     signals.push({
       type: 'eps_estimate_sign',
       value: epsScore,
-      weight: 0.10,
+      weight: 0.03,
       description: `EPS estimate: $${earnings.eps_estimate.toFixed(2)}`,
     });
   }
@@ -290,22 +335,24 @@ async function gatherSignals(supabase: any, earnings: any): Promise<Signal[]> {
     signals.push({
       type: 'report_timing',
       value: timeScore,
-      weight: 0.05,
+      weight: 0.02,
       description: `Reports ${earnings.time_of_day}`,
     });
   }
 
-  // Add symbol-based baseline for variation
-  const symbolHash = hashSymbol(symbol);
-  const hashMod = symbolHash % 100;
-  const baselineScore = 0.38 + (hashMod / 100) * 0.24;
-  
-  signals.push({
-    type: 'baseline_estimate',
-    value: baselineScore,
-    weight: signals.length < 3 ? 0.40 : 0.20,
-    description: 'Model baseline estimate',
-  });
+  // Add symbol-based baseline for variation when no historical data
+  if (signals.length < 5) {
+    const symbolHash = hashSymbol(symbol);
+    const hashMod = symbolHash % 100;
+    const baselineScore = 0.38 + (hashMod / 100) * 0.24;
+    
+    signals.push({
+      type: 'baseline_estimate',
+      value: baselineScore,
+      weight: signals.length < 3 ? 0.40 : 0.15,
+      description: 'Model baseline estimate',
+    });
+  }
 
   return signals;
 }
@@ -324,34 +371,62 @@ function generatePrediction(
   earnings: any,
   signals: Signal[]
 ): { outcome: string; confidence: number; signals: any; modelVersion: string } {
+  // Calculate weighted score from all signals
+  let score = 0.50; // Start at neutral (0.50)
   let totalWeight = 0;
-  let weightedSum = 0;
   
   signals.forEach(signal => {
-    weightedSum += signal.value * signal.weight;
+    // Convert signal value to contribution (-1 to 1 range for most signals, 0-1 for beat_rate/consistency)
+    let contribution = signal.value;
+    
+    // For beat rate and consistency, map 0-1 to -0.5 to +0.5 around neutral
+    if (signal.type === 'historical_beat_rate' || signal.type === 'surprise_consistency') {
+      contribution = (signal.value - 0.5);
+    }
+    
+    score += contribution * signal.weight;
     totalWeight += signal.weight;
   });
 
-  const normalizedScore = totalWeight > 0 ? weightedSum / totalWeight : 0.5;
-  
-  let outcome = 'inline';
-  if (normalizedScore > 0.54) {
-    outcome = 'beat';
-  } else if (normalizedScore < 0.46) {
-    outcome = 'miss';
-  }
+  // Normalize score to reasonable range (0.3 to 0.7)
+  score = Math.max(0.30, Math.min(0.70, score));
 
-  const distanceFromNeutral = Math.abs(normalizedScore - 0.5);
-  const signalCountBonus = Math.min(signals.length / 5, 1) * 0.15;
-  const confidence = Math.min(0.95, distanceFromNeutral * 2 + 0.35 + signalCountBonus);
+  // Determine outcome using thresholds
+  let outcome = 'inline';
+  if (score > 0.54) outcome = 'beat';
+  else if (score < 0.46) outcome = 'miss';
+
+  // Calculate confidence based on:
+  // 1. Distance from neutral (0.50) - further = more confident
+  // 2. Signal quality bonus - more signals with low volatility = higher confidence
+  const distanceFromNeutral = Math.abs(score - 0.50);
+  let baseConfidence = distanceFromNeutral * 2; // 0.0 to 0.4 becomes 0.0 to 0.8
+
+  // Signal quality multiplier
+  const signalCount = signals.length;
+  const consistencySignal = signals.find(s => s.type === 'surprise_consistency');
+  const consistencyBonus = consistencySignal ? consistencySignal.value * 0.15 : 0;
+  
+  // More signals = more confidence (up to 10% bonus)
+  const signalCountBonus = Math.min(0.10, signalCount * 0.02);
+  
+  const confidence = Math.min(0.95, baseConfidence + 0.35 + consistencyBonus + signalCountBonus);
 
   return {
     outcome,
     confidence: Math.round(confidence * 100) / 100,
-    signals: signals.reduce((acc, s) => {
-      acc[s.type] = { value: s.value, weight: s.weight, description: s.description };
-      return acc;
-    }, {} as Record<string, any>),
-    modelVersion: 'rule-based-v2',
+    signals: {
+      score: Math.round(score * 1000) / 1000,
+      totalWeight: Math.round(totalWeight * 100) / 100,
+      signalBreakdown: signals.reduce((acc, s) => {
+        acc[s.type] = { value: s.value, weight: s.weight, description: s.description };
+        return acc;
+      }, {} as Record<string, any>),
+      thresholds: {
+        beat: 0.54,
+        miss: 0.46,
+      },
+    },
+    modelVersion: 'rule-based-v2-stddev',
   };
 }

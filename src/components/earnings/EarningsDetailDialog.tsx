@@ -11,7 +11,7 @@ import {
 } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { EarningsWithPrediction } from '@/types/earnings';
@@ -19,6 +19,7 @@ import { useEarningsHistory } from '@/hooks/useEarningsCalendar';
 import { formatEarningsCurrency } from '@/lib/earningsUtils';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useNavigate } from 'react-router-dom';
+import { EarningsVolatilityChart } from './EarningsVolatilityChart';
 
 interface Props {
   earning: EarningsWithPrediction;
@@ -221,70 +222,140 @@ export const EarningsDetailDialog = ({ earning, open, onClose }: Props) => {
           </TabsContent>
 
           <TabsContent value="history" className="space-y-4">
-            <div className="grid gap-4 md:grid-cols-2">
-              <Card className="bg-card/50 border-border/50">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-sm font-medium">Historical Performance</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Beat Rate (2Y):</span>
-                    <span className="font-medium">{historicalBeatRate.toFixed(0)}%</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Avg Surprise:</span>
-                    <span className="font-medium">{avgSurprise.toFixed(2)}%</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Reports Analyzed:</span>
-                    <span className="font-medium">{history?.length || 0}</span>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-
             {historyLoading ? (
               <div className="space-y-2">
                 {[1, 2, 3].map(i => (
                   <Skeleton key={i} className="h-16 w-full" />
                 ))}
               </div>
-            ) : history && history.length > 0 ? (
-              <Card className="bg-card/50 border-border/50">
-                <CardHeader>
-                  <CardTitle className="text-sm font-medium">Recent Earnings</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    {history.slice(0, 8).map((h) => (
-                      <div key={h.id} className="flex items-center justify-between py-2 border-b border-border/50 last:border-0">
-                        <div>
-                          <p className="text-sm font-medium">
-                            {format(parseISO(h.report_date), 'MMM d, yyyy')}
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            {h.fiscal_period}
-                          </p>
-                        </div>
-                        <div className="text-right">
-                          <p className="text-sm font-mono">
-                            {h.eps_actual !== null ? `$${h.eps_actual.toFixed(2)}` : 'N/A'}
-                          </p>
-                          {h.eps_surprise_pct !== null && (
-                            <Badge
-                              variant={h.eps_surprise_pct > 0 ? 'default' : 'destructive'}
-                              className="text-xs mt-1"
-                            >
-                              {h.eps_surprise_pct > 0 ? '+' : ''}
-                              {h.eps_surprise_pct.toFixed(1)}%
-                            </Badge>
-                          )}
-                        </div>
+            ) : history && history.length >= 4 ? (
+              <>
+                {/* Volatility Analysis Chart */}
+                <EarningsVolatilityChart history={history} />
+                
+                {/* Summary Stats */}
+                <div className="grid gap-4 md:grid-cols-3">
+                  <Card className="bg-card/50 border-border/50">
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-sm font-medium">Historical Performance</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-2 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Beat Rate (2Y):</span>
+                        <span className="font-medium">{historicalBeatRate.toFixed(0)}%</span>
                       </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Avg Surprise:</span>
+                        <span className="font-medium">{avgSurprise.toFixed(2)}%</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Reports Analyzed:</span>
+                        <span className="font-medium">{history?.length || 0}</span>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* Recent Earnings Table */}
+                <Card className="bg-card/50 border-border/50">
+                  <CardHeader>
+                    <CardTitle className="text-sm font-medium">Recent Earnings</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      {history.slice(0, 8).map((h) => (
+                        <div key={h.id} className="flex items-center justify-between py-2 border-b border-border/50 last:border-0">
+                          <div>
+                            <p className="text-sm font-medium">
+                              {format(parseISO(h.report_date), 'MMM d, yyyy')}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {h.fiscal_period}
+                            </p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-sm font-mono">
+                              {h.eps_actual !== null ? `$${h.eps_actual.toFixed(2)}` : 'N/A'}
+                            </p>
+                            {h.eps_surprise_pct !== null && (
+                              <Badge
+                                variant={h.eps_surprise_pct > 0 ? 'default' : 'destructive'}
+                                className="text-xs mt-1"
+                              >
+                                {h.eps_surprise_pct > 0 ? '+' : ''}
+                                {h.eps_surprise_pct.toFixed(1)}%
+                              </Badge>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              </>
+            ) : history && history.length > 0 && history.length < 4 ? (
+              <>
+                {/* Basic Stats - Not Enough for Volatility Analysis */}
+                <Card className="bg-card/50 border-border/50">
+                  <CardHeader>
+                    <CardTitle className="text-sm font-medium">Historical Performance</CardTitle>
+                    <CardDescription>
+                      Limited history available (minimum 4 quarters needed for volatility analysis)
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Beat Rate:</span>
+                      <span className="font-medium">{historicalBeatRate.toFixed(0)}%</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Avg Surprise:</span>
+                      <span className="font-medium">{avgSurprise.toFixed(2)}%</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Reports:</span>
+                      <span className="font-medium">{history.length}</span>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Recent Earnings Table */}
+                <Card className="bg-card/50 border-border/50">
+                  <CardHeader>
+                    <CardTitle className="text-sm font-medium">Recent Earnings</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      {history.map((h) => (
+                        <div key={h.id} className="flex items-center justify-between py-2 border-b border-border/50 last:border-0">
+                          <div>
+                            <p className="text-sm font-medium">
+                              {format(parseISO(h.report_date), 'MMM d, yyyy')}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {h.fiscal_period}
+                            </p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-sm font-mono">
+                              {h.eps_actual !== null ? `$${h.eps_actual.toFixed(2)}` : 'N/A'}
+                            </p>
+                            {h.eps_surprise_pct !== null && (
+                              <Badge
+                                variant={h.eps_surprise_pct > 0 ? 'default' : 'destructive'}
+                                className="text-xs mt-1"
+                              >
+                                {h.eps_surprise_pct > 0 ? '+' : ''}
+                                {h.eps_surprise_pct.toFixed(1)}%
+                              </Badge>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              </>
             ) : (
               <Card className="bg-card/50 border-border/50">
                 <CardContent className="py-12 text-center text-muted-foreground">
