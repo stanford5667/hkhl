@@ -27,25 +27,85 @@ serve(async (req) => {
       authHeader ? { global: { headers: { Authorization: authHeader } } } : {}
     );
 
+    const serviceSupabase = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    );
+
     let userId: string | null = null;
     if (authHeader && !authHeader.includes('anon')) {
       const { data: { user } } = await supabase.auth.getUser();
       userId = user?.id || null;
     }
 
-    const { symbols, useBulkPrediction = false } = await req.json();
+    const body = await req.json().catch(() => ({}));
+    const { symbols, generateMissing = false, limit = 500 } = body;
 
-    const { data: upcomingEarnings, error: earningsError } = await supabase
-      .from('earnings_calendar')
-      .select('*')
-      .in('symbol', symbols)
-      .gte('report_date', new Date().toISOString().split('T')[0])
-      .order('report_date');
+    let upcomingEarnings: any[] = [];
 
-    if (earningsError) throw earningsError;
-    if (!upcomingEarnings || upcomingEarnings.length === 0) {
+    // If generateMissing mode, get earnings without predictions using SQL
+    if (generateMissing) {
+      console.log('[PREDICT] Generating predictions for records missing them...');
+      
+      const today = new Date().toISOString().split('T')[0];
+      const maxDate = new Date(Date.now() + 120 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+      
+      // Use RPC or raw SQL to get earnings without predictions efficiently
+      // Since we can't run raw SQL directly, we'll fetch in batches and check
+      const { data: allEarnings, error: earningsError } = await serviceSupabase
+        .from('earnings_calendar')
+        .select('*')
+        .gte('report_date', today)
+        .lte('report_date', maxDate)
+        .order('report_date')
+        .limit(10000);
+      
+      if (earningsError) throw earningsError;
+      
+      console.log(`[PREDICT] Fetched ${allEarnings?.length || 0} total earnings`);
+      
+      // Get ALL prediction IDs efficiently by fetching in pages
+      const existingIds = new Set<string>();
+      let offset = 0;
+      const pageSize = 1000;
+      
+      while (true) {
+        const { data: predPage } = await serviceSupabase
+          .from('earnings_predictions')
+          .select('earnings_calendar_id')
+          .range(offset, offset + pageSize - 1);
+        
+        if (!predPage || predPage.length === 0) break;
+        
+        predPage.forEach((p: any) => existingIds.add(p.earnings_calendar_id));
+        offset += pageSize;
+        
+        if (predPage.length < pageSize) break;
+      }
+      
+      console.log(`[PREDICT] Found ${existingIds.size} existing predictions`);
+      
+      // Filter to those without predictions
+      upcomingEarnings = (allEarnings || []).filter(e => !existingIds.has(e.id)).slice(0, limit);
+      
+      console.log(`[PREDICT] Found ${upcomingEarnings.length} earnings without predictions`);
+      
+    } else if (symbols && symbols.length > 0) {
+      // Original mode - get by symbols
+      const { data, error: earningsError } = await supabase
+        .from('earnings_calendar')
+        .select('*')
+        .in('symbol', symbols)
+        .gte('report_date', new Date().toISOString().split('T')[0])
+        .order('report_date');
+
+      if (earningsError) throw earningsError;
+      upcomingEarnings = data || [];
+    }
+
+    if (upcomingEarnings.length === 0) {
       return new Response(
-        JSON.stringify({ error: 'No upcoming earnings found for these symbols' }),
+        JSON.stringify({ error: 'No upcoming earnings found to predict' }),
         { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -53,73 +113,97 @@ serve(async (req) => {
     console.log(`[PREDICT] Generating predictions for ${upcomingEarnings.length} earnings`);
 
     const predictions = [];
+    const errors: string[] = [];
 
-    for (const earnings of upcomingEarnings) {
-      const signals = await gatherSignals(supabase, earnings);
-      const prediction = generatePrediction(earnings, signals);
+    // Process in batches to avoid timeouts
+    const batchSize = 50;
+    
+    for (let i = 0; i < upcomingEarnings.length; i += batchSize) {
+      const batch = upcomingEarnings.slice(i, i + batchSize);
+      
+      // Process batch in parallel
+      const batchResults = await Promise.allSettled(
+        batch.map(async (earnings) => {
+          try {
+            const signals = await gatherSignals(serviceSupabase, earnings);
+            const prediction = generatePrediction(earnings, signals);
 
-      const serviceSupabase = createClient(
-        Deno.env.get('SUPABASE_URL') ?? '',
-        Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+            // Check if prediction already exists
+            const { data: existing } = await serviceSupabase
+              .from('earnings_predictions')
+              .select('id')
+              .eq('earnings_calendar_id', earnings.id)
+              .maybeSingle();
+
+            let savedPrediction;
+            let saveError;
+
+            if (existing) {
+              const result = await serviceSupabase
+                .from('earnings_predictions')
+                .update({
+                  predicted_outcome: prediction.outcome,
+                  confidence_score: prediction.confidence,
+                  signals: prediction.signals,
+                  model_version: prediction.modelVersion,
+                  generated_at: new Date().toISOString(),
+                })
+                .eq('id', existing.id)
+                .select()
+                .single();
+              savedPrediction = result.data;
+              saveError = result.error;
+            } else {
+              const result = await serviceSupabase
+                .from('earnings_predictions')
+                .insert({
+                  earnings_calendar_id: earnings.id,
+                  symbol: earnings.symbol,
+                  report_date: earnings.report_date,
+                  predicted_outcome: prediction.outcome,
+                  confidence_score: prediction.confidence,
+                  signals: prediction.signals,
+                  model_version: prediction.modelVersion,
+                  user_id: userId,
+                })
+                .select()
+                .single();
+              savedPrediction = result.data;
+              saveError = result.error;
+            }
+
+            if (saveError) {
+              throw new Error(`Save error for ${earnings.symbol}: ${saveError.message}`);
+            }
+            
+            return savedPrediction;
+          } catch (err) {
+            throw new Error(`${earnings.symbol}: ${err instanceof Error ? err.message : 'Unknown error'}`);
+          }
+        })
       );
 
-      // Check if prediction already exists for this earnings_calendar_id
-      const { data: existing } = await serviceSupabase
-        .from('earnings_predictions')
-        .select('id')
-        .eq('earnings_calendar_id', earnings.id)
-        .maybeSingle();
-
-      let savedPrediction;
-      let saveError;
-
-      if (existing) {
-        // Update existing prediction
-        const result = await serviceSupabase
-          .from('earnings_predictions')
-          .update({
-            predicted_outcome: prediction.outcome,
-            confidence_score: prediction.confidence,
-            signals: prediction.signals,
-            model_version: prediction.modelVersion,
-            generated_at: new Date().toISOString(),
-          })
-          .eq('id', existing.id)
-          .select()
-          .single();
-        savedPrediction = result.data;
-        saveError = result.error;
-      } else {
-        // Insert new prediction
-        const result = await serviceSupabase
-          .from('earnings_predictions')
-          .insert({
-            earnings_calendar_id: earnings.id,
-            symbol: earnings.symbol,
-            report_date: earnings.report_date,
-            predicted_outcome: prediction.outcome,
-            confidence_score: prediction.confidence,
-            signals: prediction.signals,
-            model_version: prediction.modelVersion,
-            user_id: userId,
-          })
-          .select()
-          .single();
-        savedPrediction = result.data;
-        saveError = result.error;
+      // Collect results
+      for (const result of batchResults) {
+        if (result.status === 'fulfilled' && result.value) {
+          predictions.push(result.value);
+        } else if (result.status === 'rejected') {
+          errors.push(result.reason?.message || 'Unknown error');
+        }
       }
-
-      if (saveError) {
-        console.error('[PREDICT] Error saving prediction:', saveError);
-      } else {
-        predictions.push(savedPrediction);
-      }
+      
+      console.log(`[PREDICT] Batch ${Math.floor(i / batchSize) + 1}: ${predictions.length} predictions saved`);
     }
 
-    console.log(`[PREDICT] Generated ${predictions.length} predictions`);
+    console.log(`[PREDICT] Generated ${predictions.length} predictions, ${errors.length} errors`);
 
     return new Response(
-      JSON.stringify({ success: true, predictions }),
+      JSON.stringify({ 
+        success: true, 
+        generated: predictions.length,
+        errors: errors.length,
+        errorDetails: errors.slice(0, 10) // Return first 10 errors for debugging
+      }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
@@ -163,21 +247,21 @@ async function gatherSignals(supabase: any, earnings: any): Promise<Signal[]> {
     });
   }
 
-  // 2. Market cap tier signal - larger companies tend to have more predictable earnings
+  // 2. Market cap tier signal
   if (earnings.market_cap) {
     const marketCapBillions = earnings.market_cap / 1e9;
     let marketCapScore = 0.5;
     
     if (marketCapBillions > 100) {
-      marketCapScore = 0.7; // Mega cap - more stable, slight beat tendency
+      marketCapScore = 0.7;
     } else if (marketCapBillions > 10) {
-      marketCapScore = 0.6; // Large cap
+      marketCapScore = 0.6;
     } else if (marketCapBillions > 2) {
-      marketCapScore = 0.5; // Mid cap - neutral
+      marketCapScore = 0.5;
     } else if (marketCapBillions > 0.3) {
-      marketCapScore = 0.4; // Small cap - less predictable
+      marketCapScore = 0.4;
     } else {
-      marketCapScore = 0.35; // Micro cap - volatile
+      marketCapScore = 0.35;
     }
 
     signals.push({
@@ -188,37 +272,8 @@ async function gatherSignals(supabase: any, earnings: any): Promise<Signal[]> {
     });
   }
 
-  // 3. Price momentum from market_daily_bars
-  const thirtyDaysAgo = new Date();
-  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-  
-  const { data: priceData } = await supabase
-    .from('market_daily_bars')
-    .select('close')
-    .eq('ticker', symbol)
-    .gte('bar_date', thirtyDaysAgo.toISOString().split('T')[0])
-    .order('bar_date', { ascending: false })
-    .limit(30);
-
-  if (priceData && priceData.length >= 5) {
-    const recent = priceData[0].close;
-    const older = priceData[priceData.length - 1].close;
-    const momentum = (recent - older) / older;
-    
-    // Positive momentum slightly favors beat, negative slightly favors miss
-    const momentumScore = 0.5 + Math.max(-0.3, Math.min(0.3, momentum));
-    
-    signals.push({
-      type: 'price_momentum',
-      value: momentumScore,
-      weight: 0.15,
-      description: `30-day momentum: ${(momentum * 100).toFixed(2)}%`,
-    });
-  }
-
-  // 4. EPS estimate trend signal
+  // 3. EPS estimate trend signal
   if (earnings.eps_estimate !== null && earnings.eps_estimate !== undefined) {
-    // Positive EPS estimates tend to have higher beat rates
     const epsScore = earnings.eps_estimate > 0 ? 0.55 : 0.45;
     signals.push({
       type: 'eps_estimate_sign',
@@ -228,7 +283,7 @@ async function gatherSignals(supabase: any, earnings: any): Promise<Signal[]> {
     });
   }
 
-  // 5. Time of day signal - BMO tends to have slightly different patterns than AMC
+  // 4. Time of day signal
   if (earnings.time_of_day) {
     const timeScore = earnings.time_of_day === 'BMO' ? 0.52 : 
                       earnings.time_of_day === 'AMC' ? 0.48 : 0.50;
@@ -240,26 +295,21 @@ async function gatherSignals(supabase: any, earnings: any): Promise<Signal[]> {
     });
   }
 
-  // Always add a symbol-based baseline to create varied predictions
-  // Use symbol hash for consistent "randomness" per symbol
+  // Add symbol-based baseline for variation
   const symbolHash = hashSymbol(symbol);
-  
-  // Create distribution: ~33% beat, ~33% miss, ~33% inline
-  // Hash mod 100 gives 0-99, map to 0.38 - 0.62 range
   const hashMod = symbolHash % 100;
-  const baselineScore = 0.38 + (hashMod / 100) * 0.24; // Range: 0.38 to 0.62
+  const baselineScore = 0.38 + (hashMod / 100) * 0.24;
   
   signals.push({
     type: 'baseline_estimate',
     value: baselineScore,
-    weight: signals.length < 3 ? 0.40 : 0.20, // Higher weight when we have fewer real signals
+    weight: signals.length < 3 ? 0.40 : 0.20,
     description: 'Model baseline estimate',
   });
 
   return signals;
 }
 
-// Simple hash function for consistent symbol-based variation
 function hashSymbol(symbol: string): number {
   let hash = 0;
   for (let i = 0; i < symbol.length; i++) {
@@ -274,7 +324,6 @@ function generatePrediction(
   earnings: any,
   signals: Signal[]
 ): { outcome: string; confidence: number; signals: any; modelVersion: string } {
-  // Calculate weighted score
   let totalWeight = 0;
   let weightedSum = 0;
   
@@ -285,8 +334,6 @@ function generatePrediction(
 
   const normalizedScore = totalWeight > 0 ? weightedSum / totalWeight : 0.5;
   
-  // Map score to prediction with adjusted thresholds
-  // Score > 0.55 = beat, < 0.45 = miss, otherwise inline
   let outcome = 'inline';
   if (normalizedScore > 0.54) {
     outcome = 'beat';
@@ -294,7 +341,6 @@ function generatePrediction(
     outcome = 'miss';
   }
 
-  // Confidence based on how far from 0.5 (neutral) and signal count
   const distanceFromNeutral = Math.abs(normalizedScore - 0.5);
   const signalCountBonus = Math.min(signals.length / 5, 1) * 0.15;
   const confidence = Math.min(0.95, distanceFromNeutral * 2 + 0.35 + signalCountBonus);
