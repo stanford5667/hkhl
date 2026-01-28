@@ -20,19 +20,20 @@ serve(async (req) => {
 
   try {
     const authHeader = req.headers.get('Authorization');
-    if (!authHeader) throw new Error('Missing authorization header');
-
+    
+    // Create client - auth is optional for predictions
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      { global: { headers: { Authorization: authHeader } } }
+      authHeader ? { global: { headers: { Authorization: authHeader } } } : {}
     );
 
-    // Get user
-    const { data: { user }, error: userError } = await supabase.auth.getUser();
-    if (userError || !user) throw new Error('Unauthorized');
-    
-    const userId = user.id;
+    // Try to get user if authenticated (optional)
+    let userId: string | null = null;
+    if (authHeader && !authHeader.includes('anon')) {
+      const { data: { user } } = await supabase.auth.getUser();
+      userId = user?.id || null;
+    }
 
     const { symbols, useBulkPrediction = false } = await req.json();
 
