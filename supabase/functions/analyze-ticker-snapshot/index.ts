@@ -57,10 +57,27 @@ serve(async (req) => {
 
     // Fetch historical data from Polygon
     const allBars = await fetchPolygonBars(ticker);
-    if (!allBars || allBars.length < 50) {
+    
+    // Gracefully handle stocks with limited history - require only 15 bars minimum
+    if (!allBars || allBars.length < 15) {
+      // Return success with empty studies rather than error - UI will handle gracefully
       return new Response(
-        JSON.stringify({ success: false, error: 'Insufficient historical data' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({
+          success: true,
+          ticker,
+          currentPrice: allBars?.[allBars.length - 1]?.close || 0,
+          dailyVolatility: 0,
+          autoStudies: {},
+          meta: {
+            studiesRun: 0,
+            studiesSucceeded: 0,
+            executionTimeMs: Date.now() - startTime,
+            tier: 'AUTO',
+            limitedData: true,
+            barsAvailable: allBars?.length || 0
+          }
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
