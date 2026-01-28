@@ -23,11 +23,11 @@ import { useToast } from '@/hooks/use-toast';
 export const EarningsScreener = () => {
   const { toast } = useToast();
   const [criteria, setCriteria] = useState<EarningsScreenCriteria>({
-    minConfidence: 0.6,
+    minConfidence: 0,
     expectedOutcome: 'all',
     dateRange: {
       start: new Date().toISOString().split('T')[0],
-      end: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      end: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 60 days ahead
     },
     minBeatRate: undefined,
     minAnalystCount: undefined,
