@@ -29,11 +29,10 @@ serve(async (req) => {
     );
 
     // Get user
-    const token = authHeader.replace('Bearer ', '');
-    const { data: claimsData, error: claimsError } = await supabase.auth.getClaims(token);
-    if (claimsError || !claimsData?.claims) throw new Error('Unauthorized');
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    if (userError || !user) throw new Error('Unauthorized');
     
-    const userId = claimsData.claims.sub;
+    const userId = user.id;
 
     const { symbols, useBulkPrediction = false } = await req.json();
 

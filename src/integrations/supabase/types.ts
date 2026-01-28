@@ -1776,7 +1776,7 @@ export type Database = {
           {
             foreignKeyName: "earnings_predictions_earnings_calendar_id_fkey"
             columns: ["earnings_calendar_id"]
-            isOneToOne: false
+            isOneToOne: true
             referencedRelation: "earnings_calendar"
             referencedColumns: ["id"]
           },
