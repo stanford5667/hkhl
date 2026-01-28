@@ -1,8 +1,12 @@
 import { useMemo } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { TrendingUp, TrendingDown, Calendar, Target, BarChart3 } from 'lucide-react';
+import { TrendingUp, TrendingDown, Calendar, Target, BarChart3, DollarSign } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { Skeleton } from '@/components/ui/skeleton';
+import { format, parseISO } from 'date-fns';
 import {
   BarChart,
   Bar,
@@ -17,79 +21,143 @@ import {
   ReferenceLine,
 } from 'recharts';
 
-interface EarningsEvent {
-  date: string;
-  quarter: string;
-  epsActual: number;
-  epsEstimate: number;
-  epsSurprise: number;
-  priceReturn5Day: number;
-  beatOrMiss: 'beat' | 'miss';
+interface EarningsHistoryRecord {
+  id: string;
+  symbol: string;
+  report_date: string;
+  fiscal_period: string | null;
+  eps_actual: number | null;
+  eps_estimate: number | null;
+  eps_surprise_pct: number | null;
+  revenue_actual: number | null;
+  revenue_estimate: number | null;
+  revenue_surprise_pct: number | null;
+  price_before: number | null;
+  price_after: number | null;
+  price_change_pct: number | null;
+}
+
+interface EarningsCalendarRecord {
+  id: string;
+  symbol: string;
+  report_date: string;
+  time_of_day: string | null;
+  eps_estimate: number | null;
+  fiscal_period: string | null;
 }
 
 interface EarningsImpactSectionProps {
   ticker: string;
-  nextEarnings?: string;
+  nextEarnings?: string; // Fallback from Finnhub
 }
 
-// Historical earnings data for major tickers
-const tickerEarningsData: Record<string, EarningsEvent[]> = {
-  AAPL: [
-    { date: '2024-05-02', quarter: 'Q2 2024', epsActual: 1.53, epsEstimate: 1.50, epsSurprise: 2.00, priceReturn5Day: 6.0, beatOrMiss: 'beat' },
-    { date: '2024-02-01', quarter: 'Q1 2024', epsActual: 2.18, epsEstimate: 2.10, epsSurprise: 3.81, priceReturn5Day: 4.2, beatOrMiss: 'beat' },
-    { date: '2023-11-02', quarter: 'Q4 2023', epsActual: 1.46, epsEstimate: 1.39, epsSurprise: 5.04, priceReturn5Day: -2.1, beatOrMiss: 'beat' },
-    { date: '2023-08-03', quarter: 'Q3 2023', epsActual: 1.26, epsEstimate: 1.19, epsSurprise: 5.88, priceReturn5Day: -4.8, beatOrMiss: 'beat' },
-    { date: '2023-04-27', quarter: 'Q2 2023', epsActual: 1.52, epsEstimate: 1.43, epsSurprise: 6.29, priceReturn5Day: 4.7, beatOrMiss: 'beat' },
-    { date: '2023-02-02', quarter: 'Q1 2023', epsActual: 1.88, epsEstimate: 1.94, epsSurprise: -3.09, priceReturn5Day: -2.5, beatOrMiss: 'miss' },
-  ],
-  META: [
-    { date: '2024-04-24', quarter: 'Q1 2024', epsActual: 4.71, epsEstimate: 4.32, epsSurprise: 9.03, priceReturn5Day: -10.6, beatOrMiss: 'beat' },
-    { date: '2024-02-01', quarter: 'Q4 2023', epsActual: 5.33, epsEstimate: 4.96, epsSurprise: 7.46, priceReturn5Day: 20.3, beatOrMiss: 'beat' },
-    { date: '2023-10-25', quarter: 'Q3 2023', epsActual: 4.39, epsEstimate: 3.63, epsSurprise: 20.94, priceReturn5Day: 3.8, beatOrMiss: 'beat' },
-    { date: '2023-07-26', quarter: 'Q2 2023', epsActual: 2.98, epsEstimate: 2.91, epsSurprise: 2.41, priceReturn5Day: 5.2, beatOrMiss: 'beat' },
-  ],
-  MSFT: [
-    { date: '2024-04-25', quarter: 'Q3 2024', epsActual: 2.94, epsEstimate: 2.82, epsSurprise: 4.26, priceReturn5Day: 2.1, beatOrMiss: 'beat' },
-    { date: '2024-01-30', quarter: 'Q2 2024', epsActual: 2.93, epsEstimate: 2.78, epsSurprise: 5.40, priceReturn5Day: 1.8, beatOrMiss: 'beat' },
-    { date: '2023-10-24', quarter: 'Q1 2024', epsActual: 2.99, epsEstimate: 2.65, epsSurprise: 12.83, priceReturn5Day: -3.8, beatOrMiss: 'beat' },
-  ],
-  GOOGL: [
-    { date: '2024-04-25', quarter: 'Q1 2024', epsActual: 1.89, epsEstimate: 1.51, epsSurprise: 25.17, priceReturn5Day: 10.2, beatOrMiss: 'beat' },
-    { date: '2024-01-30', quarter: 'Q4 2023', epsActual: 1.64, epsEstimate: 1.59, epsSurprise: 3.14, priceReturn5Day: -7.5, beatOrMiss: 'beat' },
-  ],
-  NVDA: [
-    { date: '2024-05-22', quarter: 'Q1 2025', epsActual: 6.12, epsEstimate: 5.59, epsSurprise: 9.48, priceReturn5Day: 15.1, beatOrMiss: 'beat' },
-    { date: '2024-02-21', quarter: 'Q4 2024', epsActual: 5.16, epsEstimate: 4.64, epsSurprise: 11.21, priceReturn5Day: 8.5, beatOrMiss: 'beat' },
-  ],
-  TSLA: [
-    { date: '2024-04-23', quarter: 'Q1 2024', epsActual: 0.45, epsEstimate: 0.52, epsSurprise: -13.46, priceReturn5Day: 12.1, beatOrMiss: 'miss' },
-    { date: '2024-01-24', quarter: 'Q4 2023', epsActual: 0.71, epsEstimate: 0.74, epsSurprise: -4.05, priceReturn5Day: -12.1, beatOrMiss: 'miss' },
-  ],
-  AMZN: [
-    { date: '2024-04-30', quarter: 'Q1 2024', epsActual: 0.98, epsEstimate: 0.83, epsSurprise: 18.07, priceReturn5Day: 3.2, beatOrMiss: 'beat' },
-    { date: '2024-02-01', quarter: 'Q4 2023', epsActual: 1.00, epsEstimate: 0.80, epsSurprise: 25.00, priceReturn5Day: 8.1, beatOrMiss: 'beat' },
-  ],
-};
+// Hook to fetch earnings history from DB
+function useEarningsHistoryData(symbol: string) {
+  return useQuery({
+    queryKey: ['earnings-history-impact', symbol],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('earnings_history')
+        .select('*')
+        .eq('symbol', symbol.toUpperCase())
+        .order('report_date', { ascending: false })
+        .limit(12);
 
-function generatePlaceholderData(ticker: string): EarningsEvent[] {
-  const seed = ticker.split('').reduce((sum, ch) => sum + ch.charCodeAt(0), 0);
-  const factor = ((seed % 25) - 12) / 100;
-  
-  return [
-    { date: '2024-04-25', quarter: 'Q1 2024', epsActual: 2.50 * (1 + factor), epsEstimate: 2.40, epsSurprise: 4.17 + factor * 10, priceReturn5Day: 3.5 + factor * 5, beatOrMiss: 'beat' },
-    { date: '2024-01-25', quarter: 'Q4 2023', epsActual: 2.35 * (1 + factor), epsEstimate: 2.30, epsSurprise: 2.17 + factor * 8, priceReturn5Day: 2.1 + factor * 4, beatOrMiss: 'beat' },
-    { date: '2023-10-25', quarter: 'Q3 2023', epsActual: 2.20 * (1 + factor), epsEstimate: 2.25, epsSurprise: -2.22, priceReturn5Day: -3.2, beatOrMiss: 'miss' },
-    { date: '2023-07-25', quarter: 'Q2 2023', epsActual: 2.10 * (1 + factor), epsEstimate: 2.05, epsSurprise: 2.44 + factor * 6, priceReturn5Day: 4.0 + factor * 3, beatOrMiss: 'beat' },
-  ];
+      if (error) throw error;
+      return data as EarningsHistoryRecord[];
+    },
+    enabled: !!symbol,
+    staleTime: 5 * 60 * 1000,
+  });
 }
 
-export function EarningsImpactSection({ ticker, nextEarnings }: EarningsImpactSectionProps) {
+// Hook to fetch next earnings from calendar
+function useNextEarningsFromCalendar(symbol: string) {
+  return useQuery({
+    queryKey: ['next-earnings-calendar', symbol],
+    queryFn: async () => {
+      const today = new Date().toISOString().split('T')[0];
+      
+      const { data, error } = await supabase
+        .from('earnings_calendar')
+        .select('*')
+        .eq('symbol', symbol.toUpperCase())
+        .gte('report_date', today)
+        .order('report_date', { ascending: true })
+        .limit(1);
+
+      if (error) throw error;
+      return data?.[0] as EarningsCalendarRecord | undefined;
+    },
+    enabled: !!symbol,
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+export function EarningsImpactSection({ ticker, nextEarnings: fallbackNextEarnings }: EarningsImpactSectionProps) {
+  const { data: historyData, isLoading: historyLoading } = useEarningsHistoryData(ticker);
+  const { data: nextEarningsData } = useNextEarningsFromCalendar(ticker);
+
+  // Format next earnings date from DB (preferred) or fallback
+  const nextEarningsDisplay = useMemo(() => {
+    if (nextEarningsData?.report_date) {
+      try {
+        const date = parseISO(nextEarningsData.report_date);
+        const formatted = format(date, 'MMM d, yyyy');
+        const timeOfDay = nextEarningsData.time_of_day === 'BMO' ? ' (Pre-market)' 
+          : nextEarningsData.time_of_day === 'AMC' ? ' (After-close)' 
+          : '';
+        return formatted + timeOfDay;
+      } catch {
+        return fallbackNextEarnings;
+      }
+    }
+    return fallbackNextEarnings;
+  }, [nextEarningsData, fallbackNextEarnings]);
+
+  // Process earnings history for display
   const earningsHistory = useMemo(() => {
-    const upperSymbol = ticker.toUpperCase();
-    return tickerEarningsData[upperSymbol] || generatePlaceholderData(upperSymbol);
-  }, [ticker]);
+    if (!historyData || historyData.length === 0) return [];
+
+    return historyData.map(record => {
+      // Calculate surprise % if we have both actual and estimate
+      let epsSurprise = record.eps_surprise_pct;
+      if (epsSurprise === null && record.eps_actual !== null && record.eps_estimate !== null && record.eps_estimate !== 0) {
+        epsSurprise = ((record.eps_actual - record.eps_estimate) / Math.abs(record.eps_estimate)) * 100;
+      }
+
+      // Determine beat/miss based on surprise or comparison
+      let beatOrMiss: 'beat' | 'miss' = 'beat';
+      if (epsSurprise !== null) {
+        beatOrMiss = epsSurprise >= 0 ? 'beat' : 'miss';
+      } else if (record.eps_actual !== null && record.eps_estimate !== null) {
+        beatOrMiss = record.eps_actual >= record.eps_estimate ? 'beat' : 'miss';
+      }
+
+      return {
+        date: record.report_date,
+        quarter: record.fiscal_period || format(parseISO(record.report_date), "'Q'Q yyyy"),
+        epsActual: record.eps_actual,
+        epsEstimate: record.eps_estimate,
+        epsSurprise: epsSurprise ?? 0,
+        priceReturn5Day: record.price_change_pct ?? 0,
+        beatOrMiss,
+      };
+    });
+  }, [historyData]);
 
   const stats = useMemo(() => {
+    if (earningsHistory.length === 0) {
+      return {
+        totalReports: 0,
+        beatCount: 0,
+        beatRate: '0',
+        avgSurprise: '0.0',
+        avgReturnOnBeat: '0.0',
+        avgReturnOnMiss: '0.0',
+      };
+    }
+
     const beats = earningsHistory.filter(e => e.beatOrMiss === 'beat');
     const misses = earningsHistory.filter(e => e.beatOrMiss === 'miss');
     
@@ -109,8 +177,8 @@ export function EarningsImpactSection({ ticker, nextEarnings }: EarningsImpactSe
 
   // Chart data for surprise vs return
   const surpriseReturnData = useMemo(() => {
-    return [...earningsHistory].reverse().map(e => ({
-      quarter: e.quarter.replace('20', "'"),
+    return [...earningsHistory].reverse().slice(-6).map(e => ({
+      quarter: e.quarter.replace('20', "'").replace(' ', ' '),
       surprise: parseFloat(e.epsSurprise.toFixed(1)),
       return: e.priceReturn5Day,
     }));
@@ -139,6 +207,45 @@ export function EarningsImpactSection({ ticker, nextEarnings }: EarningsImpactSe
     ];
   }, [earningsHistory]);
 
+  if (historyLoading) {
+    return (
+      <Card className="bg-card border-border">
+        <CardContent className="p-2 space-y-2">
+          <div className="flex items-center gap-1.5">
+            <BarChart3 className="h-3 w-3 text-primary" />
+            <span className="text-[10px] md:text-xs font-medium">Earnings Impact</span>
+          </div>
+          <Skeleton className="h-32 w-full" />
+          <Skeleton className="h-20 w-full" />
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (earningsHistory.length === 0) {
+    return (
+      <Card className="bg-card border-border">
+        <CardContent className="p-2 space-y-2">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-1.5">
+              <BarChart3 className="h-3 w-3 text-primary" />
+              <span className="text-[10px] md:text-xs font-medium">Earnings Impact</span>
+            </div>
+            {nextEarningsDisplay && (
+              <div className="flex items-center gap-1 text-[9px] text-muted-foreground">
+                <Calendar className="h-2.5 w-2.5" />
+                <span>Next: {nextEarningsDisplay}</span>
+              </div>
+            )}
+          </div>
+          <div className="py-6 text-center text-muted-foreground text-xs">
+            No earnings history available for {ticker.toUpperCase()}
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <Card className="bg-card border-border">
       <CardContent className="p-2 space-y-2">
@@ -148,10 +255,10 @@ export function EarningsImpactSection({ ticker, nextEarnings }: EarningsImpactSe
             <BarChart3 className="h-3 w-3 text-primary" />
             <span className="text-[10px] md:text-xs font-medium">Earnings Impact</span>
           </div>
-          {nextEarnings && (
+          {nextEarningsDisplay && (
             <div className="flex items-center gap-1 text-[9px] text-muted-foreground">
               <Calendar className="h-2.5 w-2.5" />
-              <span>Next: {nextEarnings}</span>
+              <span>Next: {nextEarningsDisplay}</span>
             </div>
           )}
         </div>
@@ -282,17 +389,17 @@ export function EarningsImpactSection({ ticker, nextEarnings }: EarningsImpactSe
           </div>
         </div>
 
-        {/* Full Earnings History */}
+        {/* Full Earnings History - Now with actual EPS values */}
         <div className="space-y-1">
           <p className="text-[8px] text-muted-foreground uppercase">Earnings History</p>
           <div className="space-y-1 max-h-40 overflow-y-auto">
-            {earningsHistory.map((earning, idx) => (
+            {earningsHistory.slice(0, 8).map((earning, idx) => (
               <div 
                 key={idx} 
                 className="flex items-center justify-between py-1 px-1.5 bg-secondary/30 rounded text-[9px] md:text-[10px]"
               >
                 <div className="flex items-center gap-2">
-                  <span className="font-medium text-muted-foreground w-14">{earning.quarter}</span>
+                  <span className="font-medium text-muted-foreground w-16">{earning.quarter}</span>
                   <Badge 
                     variant={earning.beatOrMiss === 'beat' ? 'default' : 'destructive'} 
                     className="h-4 px-1.5 text-[8px]"
@@ -300,8 +407,16 @@ export function EarningsImpactSection({ ticker, nextEarnings }: EarningsImpactSe
                     {earning.beatOrMiss === 'beat' ? 'BEAT' : 'MISS'}
                   </Badge>
                 </div>
-                <div className="flex items-center gap-3">
-                  <div className="flex items-center gap-1">
+                <div className="flex items-center gap-2">
+                  {/* Actual EPS */}
+                  <div className="flex items-center gap-0.5" title="Actual EPS">
+                    <DollarSign className="h-2.5 w-2.5 text-muted-foreground" />
+                    <span className="font-semibold tabular-nums text-foreground">
+                      {earning.epsActual !== null ? `$${earning.epsActual.toFixed(2)}` : '—'}
+                    </span>
+                  </div>
+                  {/* EPS Surprise % */}
+                  <div className="flex items-center gap-0.5 min-w-[50px]" title="EPS Surprise %">
                     <Target className="h-2.5 w-2.5 text-muted-foreground" />
                     <span className={cn(
                       "font-medium tabular-nums",
@@ -310,19 +425,22 @@ export function EarningsImpactSection({ ticker, nextEarnings }: EarningsImpactSe
                       {earning.epsSurprise >= 0 ? '+' : ''}{earning.epsSurprise.toFixed(1)}%
                     </span>
                   </div>
-                  <div className="flex items-center gap-0.5">
-                    {earning.priceReturn5Day >= 0 ? (
-                      <TrendingUp className="h-2.5 w-2.5 text-primary" />
-                    ) : (
-                      <TrendingDown className="h-2.5 w-2.5 text-destructive" />
-                    )}
-                    <span className={cn(
-                      "font-medium tabular-nums",
-                      earning.priceReturn5Day >= 0 ? "text-primary" : "text-destructive"
-                    )}>
-                      {earning.priceReturn5Day >= 0 ? '+' : ''}{earning.priceReturn5Day.toFixed(1)}%
-                    </span>
-                  </div>
+                  {/* 5D Price Return */}
+                  {earning.priceReturn5Day !== 0 && (
+                    <div className="flex items-center gap-0.5 min-w-[50px]" title="5-Day Price Return">
+                      {earning.priceReturn5Day >= 0 ? (
+                        <TrendingUp className="h-2.5 w-2.5 text-primary" />
+                      ) : (
+                        <TrendingDown className="h-2.5 w-2.5 text-destructive" />
+                      )}
+                      <span className={cn(
+                        "font-medium tabular-nums",
+                        earning.priceReturn5Day >= 0 ? "text-primary" : "text-destructive"
+                      )}>
+                        {earning.priceReturn5Day >= 0 ? '+' : ''}{earning.priceReturn5Day.toFixed(1)}%
+                      </span>
+                    </div>
+                  )}
                 </div>
               </div>
             ))}
