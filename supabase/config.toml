@@ -185,3 +185,12 @@ verify_jwt = false
 
 [functions.predict-earnings]
 verify_jwt = false
+
+[functions.fetch-sec-earnings-history]
+verify_jwt = false
+
+[functions.populate-earnings-history]
+verify_jwt = false
+
+[functions.fmp-fundamentals]
+verify_jwt = false
