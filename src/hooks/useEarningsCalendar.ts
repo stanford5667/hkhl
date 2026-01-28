@@ -54,17 +54,27 @@ export const useEarningsCalendar = (filters?: EarningsCalendarFilters) => {
 
       if (error) throw error;
 
-      // Now fetch predictions for these earnings
+      // Now fetch predictions for these earnings (batch to avoid URL length limits)
       const earningsIds = (data || []).map(e => e.id);
       
       let predictions: EarningsPrediction[] = [];
       if (earningsIds.length > 0) {
-        const { data: predData } = await supabase
-          .from('earnings_predictions')
-          .select('*')
-          .in('earnings_calendar_id', earningsIds);
+        const BATCH_SIZE = 50;
+        const batches = [];
+        for (let i = 0; i < earningsIds.length; i += BATCH_SIZE) {
+          batches.push(earningsIds.slice(i, i + BATCH_SIZE));
+        }
         
-        predictions = (predData || []) as EarningsPrediction[];
+        const batchResults = await Promise.all(
+          batches.map(batch =>
+            supabase
+              .from('earnings_predictions')
+              .select('*')
+              .in('earnings_calendar_id', batch)
+          )
+        );
+        
+        predictions = batchResults.flatMap(r => (r.data || [])) as EarningsPrediction[];
       }
 
       // Merge predictions with earnings
@@ -197,20 +207,30 @@ export const useEarningsScreen = (criteria: EarningsScreenCriteria) => {
       const { data: earningsData, error } = await query;
       if (error) throw error;
 
-      // Fetch predictions
+      // Fetch predictions (batch to avoid URL length limits)
       const earningsIds = (earningsData || []).map(e => e.id);
       let predictions: EarningsPrediction[] = [];
       
       if (earningsIds.length > 0) {
-        const { data: predData } = await supabase
-          .from('earnings_predictions')
-          .select('*')
-          .in('earnings_calendar_id', earningsIds);
+        const BATCH_SIZE = 50;
+        const batches = [];
+        for (let i = 0; i < earningsIds.length; i += BATCH_SIZE) {
+          batches.push(earningsIds.slice(i, i + BATCH_SIZE));
+        }
         
-        predictions = (predData || []) as EarningsPrediction[];
+        const batchResults = await Promise.all(
+          batches.map(batch =>
+            supabase
+              .from('earnings_predictions')
+              .select('*')
+              .in('earnings_calendar_id', batch)
+          )
+        );
+        
+        predictions = batchResults.flatMap(r => (r.data || [])) as EarningsPrediction[];
       }
 
-      // Fetch historical stats for each symbol
+      // Fetch historical stats for each symbol (batch to avoid URL length limits)
       const symbols = [...new Set((earningsData || []).map(e => e.symbol))];
       const historyStats: Record<string, { beatCount: number; totalReports: number }> = {};
       
@@ -218,13 +238,23 @@ export const useEarningsScreen = (criteria: EarningsScreenCriteria) => {
         const twoYearsAgo = new Date();
         twoYearsAgo.setFullYear(twoYearsAgo.getFullYear() - 2);
         
-        const { data: histData } = await supabase
-          .from('earnings_history')
-          .select('symbol, eps_surprise_pct')
-          .in('symbol', symbols)
-          .gte('report_date', twoYearsAgo.toISOString().split('T')[0]);
+        const SYMBOL_BATCH_SIZE = 100;
+        const symbolBatches = [];
+        for (let i = 0; i < symbols.length; i += SYMBOL_BATCH_SIZE) {
+          symbolBatches.push(symbols.slice(i, i + SYMBOL_BATCH_SIZE));
+        }
         
-        (histData || []).forEach(h => {
+        const historyResults = await Promise.all(
+          symbolBatches.map(batch =>
+            supabase
+              .from('earnings_history')
+              .select('symbol, eps_surprise_pct')
+              .in('symbol', batch)
+              .gte('report_date', twoYearsAgo.toISOString().split('T')[0])
+          )
+        );
+        
+        historyResults.flatMap(r => r.data || []).forEach(h => {
           if (!historyStats[h.symbol]) {
             historyStats[h.symbol] = { beatCount: 0, totalReports: 0 };
           }
