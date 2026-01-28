@@ -143,46 +143,6 @@ export const EarningsScreener = () => {
               />
             </div>
 
-            {/* Minimum Analyst Count */}
-            <div className="space-y-2">
-              <Label className="text-xs">Min. Analyst Coverage</Label>
-              <Input
-                type="number"
-                className="h-9"
-                placeholder="Optional"
-                value={criteria.minAnalystCount || ''}
-                onChange={(e) => updateCriteria({ 
-                  minAnalystCount: e.target.value ? parseInt(e.target.value) : undefined 
-                })}
-              />
-            </div>
-
-            {/* Start Date */}
-            <div className="space-y-2">
-              <Label className="text-xs">Start Date</Label>
-              <Input
-                type="date"
-                className="h-9"
-                value={criteria.dateRange.start}
-                onChange={(e) => updateCriteria({
-                  dateRange: { ...criteria.dateRange, start: e.target.value }
-                })}
-              />
-            </div>
-
-            {/* End Date */}
-            <div className="space-y-2">
-              <Label className="text-xs">End Date</Label>
-              <Input
-                type="date"
-                className="h-9"
-                value={criteria.dateRange.end}
-                onChange={(e) => updateCriteria({
-                  dateRange: { ...criteria.dateRange, end: e.target.value }
-                })}
-              />
-            </div>
-
             {/* Historical Beat Rate */}
             <div className="space-y-2">
               <div className="flex justify-between items-center">
