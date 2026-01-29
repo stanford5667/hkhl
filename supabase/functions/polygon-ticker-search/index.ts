@@ -70,7 +70,7 @@ serve(async (req) => {
       console.warn(`[polygon-ticker-search] Non-OK status: ${data.status}`);
     }
 
-    const results: TickerResult[] = (data.results || []).map((r: any) => ({
+    const rawResults: TickerResult[] = (data.results || []).map((r: any) => ({
       ticker: r.ticker,
       name: r.name || r.ticker,
       market: r.market || market,
@@ -79,9 +79,40 @@ serve(async (req) => {
       active: r.active !== false,
     }));
 
-    console.log(`[polygon-ticker-search] Found ${results.length} results for "${query}"`);
+    // Sort results to prioritize:
+    // 1. Exact ticker match
+    // 2. Ticker starts with query
+    // 3. Name starts with query
+    // 4. Everything else
+    const sortedResults = rawResults.sort((a, b) => {
+      const tickerA = a.ticker.toUpperCase();
+      const tickerB = b.ticker.toUpperCase();
+      const nameA = (a.name || "").toUpperCase();
+      const nameB = (b.name || "").toUpperCase();
+      const q = query.toUpperCase();
 
-    return json({ ok: true, query, results, count: results.length }, 200);
+      // Exact ticker match comes first
+      const aExact = tickerA === q ? 0 : 1;
+      const bExact = tickerB === q ? 0 : 1;
+      if (aExact !== bExact) return aExact - bExact;
+
+      // Ticker starts with query
+      const aTickerPrefix = tickerA.startsWith(q) ? 0 : 1;
+      const bTickerPrefix = tickerB.startsWith(q) ? 0 : 1;
+      if (aTickerPrefix !== bTickerPrefix) return aTickerPrefix - bTickerPrefix;
+
+      // Name starts with query
+      const aNamePrefix = nameA.startsWith(q) ? 0 : 1;
+      const bNamePrefix = nameB.startsWith(q) ? 0 : 1;
+      if (aNamePrefix !== bNamePrefix) return aNamePrefix - bNamePrefix;
+
+      // Alphabetical by ticker for consistency
+      return tickerA.localeCompare(tickerB);
+    });
+
+    console.log(`[polygon-ticker-search] Found ${sortedResults.length} results for "${query}"`);
+
+    return json({ ok: true, query, results: sortedResults, count: sortedResults.length }, 200);
   } catch (error) {
     console.error("[polygon-ticker-search] Error:", error);
     const message = error instanceof Error ? error.message : "Unknown error";
