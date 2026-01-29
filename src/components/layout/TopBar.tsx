@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Bell, Search, Command, Plus, Building2, FileUp, Calculator, ChevronRight, User, LogIn } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { CommandDialog } from "./CommandPalette";
+
 import { TaskQuickAccess } from "@/components/tasks/TaskQuickAccess";
 import { useAuth } from "@/contexts/AuthContext";
 import { AuthGateDialog } from "@/components/auth/AuthGateDialog";
@@ -32,8 +32,11 @@ const pageMetadata: Record<string, { title: string; subtitle: string; parent?: {
 // Mock notification count
 const notificationCount = 3;
 
-export function TopBar() {
-  const [commandOpen, setCommandOpen] = useState(false);
+interface TopBarProps {
+  onOpenSearch?: () => void;
+}
+
+export function TopBar({ onOpenSearch }: TopBarProps) {
   const [showAuthDialog, setShowAuthDialog] = useState(false);
   const location = useLocation();
   const { user } = useAuth();
@@ -85,7 +88,7 @@ export function TopBar() {
         {/* Center: Search - compact on mobile */}
         <div className="flex-1 max-w-md mx-2 sm:mx-4">
           <button
-            onClick={() => setCommandOpen(true)}
+            onClick={onOpenSearch}
             className="flex items-center gap-2 w-full px-2 sm:px-3 py-1.5 text-sm text-muted-foreground bg-secondary border border-border rounded-lg hover:bg-accent hover:border-primary/30 hover:text-foreground transition-all duration-200"
           >
             <Search className="h-4 w-4" />
@@ -220,7 +223,7 @@ export function TopBar() {
         </div>
       </header>
 
-      <CommandDialog open={commandOpen} onOpenChange={setCommandOpen} />
+      
       
       {/* Auth Dialog */}
       <AuthGateDialog
