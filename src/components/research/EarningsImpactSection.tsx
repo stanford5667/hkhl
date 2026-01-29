@@ -395,7 +395,7 @@ export function EarningsImpactSection({ ticker, nextEarnings: fallbackNextEarnin
             <p className="text-[7px] md:text-[8px] text-muted-foreground uppercase">Avg Surprise</p>
             <p className={cn(
               "text-xs md:text-sm font-bold",
-              stats.avgSurprise !== null && parseFloat(stats.avgSurprise) >= 0 ? "text-primary" : "text-destructive"
+              stats.avgSurprise !== null && parseFloat(stats.avgSurprise) >= 0 ? "text-emerald-600" : "text-destructive"
             )}>
               {stats.avgSurprise !== null 
                 ? `${parseFloat(stats.avgSurprise) >= 0 ? '+' : ''}${stats.avgSurprise}%`
@@ -407,7 +407,7 @@ export function EarningsImpactSection({ ticker, nextEarnings: fallbackNextEarnin
             <p className="text-[7px] md:text-[8px] text-muted-foreground uppercase">{getPeriodLabel(returnPeriod)} on Beat</p>
             <p className={cn(
               "text-xs md:text-sm font-bold",
-              stats.avgReturnOnBeat !== null && parseFloat(stats.avgReturnOnBeat) >= 0 ? "text-primary" : "text-destructive"
+              stats.avgReturnOnBeat !== null && parseFloat(stats.avgReturnOnBeat) >= 0 ? "text-emerald-600" : "text-destructive"
             )}>
               {stats.avgReturnOnBeat !== null 
                 ? `${parseFloat(stats.avgReturnOnBeat) >= 0 ? '+' : ''}${stats.avgReturnOnBeat}%`
@@ -578,7 +578,7 @@ export function EarningsImpactSection({ ticker, nextEarnings: fallbackNextEarnin
                         <Target className="h-2.5 w-2.5 text-muted-foreground" />
                         <span className={cn(
                           "font-medium tabular-nums",
-                          earning.epsSurprise >= 0 ? "text-primary" : "text-destructive"
+                          earning.epsSurprise >= 0 ? "text-emerald-600" : "text-destructive"
                         )}>
                           {earning.epsSurprise >= 0 ? '+' : ''}{earning.epsSurprise.toFixed(1)}%
                         </span>
@@ -592,13 +592,13 @@ export function EarningsImpactSection({ ticker, nextEarnings: fallbackNextEarnin
                     {earning.priceReturnAvailable ? (
                       <>
                         {earning.priceReturn >= 0 ? (
-                          <TrendingUp className="h-2.5 w-2.5 text-primary" />
+                          <TrendingUp className="h-2.5 w-2.5 text-emerald-600" />
                         ) : (
                           <TrendingDown className="h-2.5 w-2.5 text-destructive" />
                         )}
                         <span className={cn(
                           "font-medium tabular-nums",
-                          earning.priceReturn >= 0 ? "text-primary" : "text-destructive"
+                          earning.priceReturn >= 0 ? "text-emerald-600" : "text-destructive"
                         )}>
                           {earning.priceReturn >= 0 ? '+' : ''}{earning.priceReturn.toFixed(1)}%
                         </span>
