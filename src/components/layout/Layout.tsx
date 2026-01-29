@@ -1,4 +1,4 @@
-import { ReactNode, useState } from "react";
+import { ReactNode, useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Sidebar } from "./Sidebar";
 import { TopBar } from "./TopBar";
@@ -8,7 +8,7 @@ import { FloatingHelpWidget } from "@/components/support/FloatingHelpWidget";
 import { useAuth } from "@/contexts/AuthContext";
 import { Loader2 } from "lucide-react";
 import { UniversalCreateMenu } from "@/components/shared/UniversalCreateMenu";
-import { EnhancedGlobalSearch, useSearchShortcut } from "@/components/shared/EnhancedGlobalSearch";
+import { GlobalSearch } from "@/components/shared/GlobalSearch";
 import { toast } from "sonner";
 import { AuthGateDialog } from "@/components/auth/AuthGateDialog";
 import { useRequireAuth } from "@/hooks/useRequireAuth";
@@ -41,8 +41,17 @@ export function Layout({ children }: LayoutProps) {
   const [createMenuOpen, setCreateMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
 
-  // Use the search shortcut hook
-  useSearchShortcut(() => setSearchOpen(true));
+  // Keyboard shortcut for search (Cmd+K / Ctrl+K)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        setSearchOpen(true);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   // Enable event notifications (checks for upcoming events and shows toasts)
   useEventNotifications();
@@ -114,7 +123,7 @@ export function Layout({ children }: LayoutProps) {
         <div className="hidden sm:block">
           <TickerStream />
         </div>
-        <TopBar />
+        <TopBar onOpenSearch={() => setSearchOpen(true)} />
         
         {/* Quick Start Banner for new users */}
         {!isMobile && (
@@ -144,7 +153,7 @@ export function Layout({ children }: LayoutProps) {
         onCreateTask={handleCreateTask}
         onUploadDocument={handleUploadDocument}
       />
-      <EnhancedGlobalSearch
+      <GlobalSearch
         open={searchOpen}
         onOpenChange={setSearchOpen}
       />
