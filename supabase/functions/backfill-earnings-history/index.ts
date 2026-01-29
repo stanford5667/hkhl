@@ -23,6 +23,62 @@ const RETURN_PERIODS = {
   return_3m: 63,
 };
 
+interface PolygonEarningsResult {
+  fiscal_period: string;
+  fiscal_year: string;
+  report_date: string;
+  eps?: number;
+  eps_estimated?: number;
+}
+
+// Fetch actual earnings dates from Polygon API
+async function fetchPolygonEarningsDates(symbol: string, polygonApiKey: string): Promise<Map<string, string>> {
+  const fiscalPeriodToReportDate = new Map<string, string>();
+  
+  try {
+    // Polygon stock financials endpoint has actual filing dates
+    const url = `https://api.polygon.io/vX/reference/financials?ticker=${symbol}&limit=20&apiKey=${polygonApiKey}`;
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 8000);
+    
+    const response = await fetch(url, { signal: controller.signal });
+    clearTimeout(timeout);
+    
+    if (!response.ok) {
+      console.log(`[backfill-earnings-history] Polygon financials API returned ${response.status}`);
+      return fiscalPeriodToReportDate;
+    }
+    
+    const data = await response.json();
+    
+    if (data.results && Array.isArray(data.results)) {
+      for (const result of data.results) {
+        // filing_date is the actual report date
+        const filingDate = result.filing_date || result.acceptance_datetime?.split('T')[0];
+        const fiscalPeriod = result.fiscal_period; // "Q1", "Q2", "FY", etc.
+        const fiscalYear = result.fiscal_year;
+        
+        if (filingDate && fiscalPeriod && fiscalYear) {
+          const key = `${fiscalPeriod} ${fiscalYear}`;
+          fiscalPeriodToReportDate.set(key, filingDate);
+          console.log(`[backfill-earnings-history] Polygon: ${symbol} ${key} reported on ${filingDate}`);
+          
+          // Also map FY (annual) to Q4 since our DB stores Q4 for annual reports
+          if (fiscalPeriod === 'FY') {
+            const q4Key = `Q4 ${fiscalYear}`;
+            fiscalPeriodToReportDate.set(q4Key, filingDate);
+            console.log(`[backfill-earnings-history] Polygon: Also mapping ${q4Key} -> ${filingDate}`);
+          }
+        }
+      }
+    }
+  } catch (err) {
+    console.error('[backfill-earnings-history] Error fetching Polygon earnings dates:', err);
+  }
+  
+  return fiscalPeriodToReportDate;
+}
+
 // Compute multiple return periods around an earnings report date
 async function computeMultiPeriodReturns(
   supabase: any,
@@ -62,6 +118,7 @@ async function computeMultiPeriodReturns(
   };
 
   if (error || !bars || bars.length < 8) {
+    console.log(`[backfill-earnings-history] Insufficient bars for ${symbol} around ${reportDate}: ${bars?.length || 0} bars`);
     return result;
   }
 
@@ -75,6 +132,7 @@ async function computeMultiPeriodReturns(
   })();
 
   if (idxBefore < 0) {
+    console.log(`[backfill-earnings-history] No bar found on or before ${reportDate} for ${symbol}`);
     return result;
   }
 
@@ -125,16 +183,26 @@ serve(async (req) => {
 
     const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    const POLYGON_API_KEY = Deno.env.get('POLYGON_API_KEY');
 
     if (!SUPABASE_URL) throw new Error('SUPABASE_URL is not configured');
     if (!SUPABASE_SERVICE_ROLE_KEY) throw new Error('SUPABASE_SERVICE_ROLE_KEY is not configured');
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
+    // Fetch actual earnings report dates from Polygon
+    let polygonDates = new Map<string, string>();
+    if (POLYGON_API_KEY) {
+      polygonDates = await fetchPolygonEarningsDates(symbol, POLYGON_API_KEY);
+      console.log(`[backfill-earnings-history] Got ${polygonDates.size} actual report dates from Polygon for ${symbol}`);
+    } else {
+      console.log('[backfill-earnings-history] POLYGON_API_KEY not configured, using stored dates');
+    }
+
     // Get existing earnings history records for this symbol
     const { data: existingHistory, error: fetchError } = await supabase
       .from('earnings_history')
-      .select('id, symbol, report_date, eps_actual, eps_estimate, price_change_pct, return_1w, return_2w, return_1m, return_3m')
+      .select('id, symbol, report_date, fiscal_period, eps_actual, eps_estimate, price_change_pct, return_1w, return_2w, return_1m, return_3m')
       .eq('symbol', symbol)
       .order('report_date', { ascending: false })
       .limit(20);
@@ -162,11 +230,35 @@ serve(async (req) => {
     console.log(`[backfill-earnings-history] Found ${existingHistory.length} records for ${symbol}, enriching with multi-period returns...`);
 
     let enrichedCount = 0;
+    let datesCorrected = 0;
 
     // Enrich each record with price change data from market_daily_bars
     for (const record of existingHistory) {
-      // Check if any return period is missing
+      // First, check if we have a corrected date from Polygon
+      let actualReportDate = record.report_date;
+      
+      if (record.fiscal_period && polygonDates.size > 0) {
+        const polygonDate = polygonDates.get(record.fiscal_period);
+        if (polygonDate && polygonDate !== record.report_date) {
+          console.log(`[backfill-earnings-history] Correcting ${symbol} ${record.fiscal_period} date: ${record.report_date} -> ${polygonDate}`);
+          actualReportDate = polygonDate;
+          
+          // Update the stored date in earnings_history
+          const { error: dateUpdateError } = await supabase
+            .from('earnings_history')
+            .update({ report_date: polygonDate })
+            .eq('id', record.id);
+          
+          if (!dateUpdateError) {
+            datesCorrected++;
+          }
+        }
+      }
+
+      // Now compute returns using the (possibly corrected) date
+      // Force recompute if date was corrected or if any return is missing
       const needsEnrichment = 
+        actualReportDate !== record.report_date ||
         record.return_1w === null || 
         record.return_2w === null || 
         record.return_1m === null || 
@@ -176,7 +268,7 @@ serve(async (req) => {
         continue;
       }
 
-      const returns = await computeMultiPeriodReturns(supabase, symbol, record.report_date);
+      const returns = await computeMultiPeriodReturns(supabase, symbol, actualReportDate);
 
       // Build update object with only non-null values
       const updateData: Record<string, number | null> = {};
@@ -196,7 +288,7 @@ serve(async (req) => {
 
         if (!updateError) {
           enrichedCount++;
-          console.log(`[backfill-earnings-history] Enriched ${symbol} ${record.report_date}: 1W=${returns.return_1w?.toFixed(2)}%, 1M=${returns.return_1m?.toFixed(2)}%, 3M=${returns.return_3m?.toFixed(2)}%`);
+          console.log(`[backfill-earnings-history] Enriched ${symbol} ${record.fiscal_period} (${actualReportDate}): 1W=${returns.return_1w?.toFixed(2)}%, 2W=${returns.return_2w?.toFixed(2)}%, 1M=${returns.return_1m?.toFixed(2)}%, 3M=${returns.return_3m?.toFixed(2)}%`);
         } else {
           console.error(`[backfill-earnings-history] Update error for ${record.id}:`, updateError.message);
         }
@@ -206,25 +298,35 @@ serve(async (req) => {
     // Also try to pull estimates from earnings_calendar for matching quarters
     const { data: calendarData } = await supabase
       .from('earnings_calendar')
-      .select('report_date, eps_estimate, revenue_estimate')
+      .select('report_date, eps_estimate, revenue_estimate, fiscal_period')
       .eq('symbol', symbol)
       .not('eps_estimate', 'is', null);
 
     if (calendarData && calendarData.length > 0) {
-      // Create a map of estimates by date
-      const estimatesMap = new Map<string, { eps_estimate: number; revenue_estimate: number | null }>();
+      // Create maps by both date and fiscal period
+      const estimatesByDate = new Map<string, { eps_estimate: number; revenue_estimate: number | null }>();
+      const estimatesByPeriod = new Map<string, { eps_estimate: number; revenue_estimate: number | null }>();
+      
       for (const cal of calendarData) {
-        estimatesMap.set(cal.report_date, {
+        estimatesByDate.set(cal.report_date, {
           eps_estimate: cal.eps_estimate,
           revenue_estimate: cal.revenue_estimate,
         });
+        if (cal.fiscal_period) {
+          estimatesByPeriod.set(cal.fiscal_period, {
+            eps_estimate: cal.eps_estimate,
+            revenue_estimate: cal.revenue_estimate,
+          });
+        }
       }
 
       // Update earnings_history records with estimates where available
       for (const record of existingHistory) {
         if (record.eps_estimate !== null) continue; // Already has estimate
 
-        const estimate = estimatesMap.get(record.report_date);
+        // Try matching by fiscal period first, then by date
+        const estimate = estimatesByPeriod.get(record.fiscal_period || '') || estimatesByDate.get(record.report_date);
+        
         if (estimate && estimate.eps_estimate !== null) {
           const epsSurprisePct = record.eps_actual !== null && estimate.eps_estimate !== 0
             ? ((record.eps_actual - estimate.eps_estimate) / Math.abs(estimate.eps_estimate)) * 100
@@ -240,7 +342,7 @@ serve(async (req) => {
             .eq('id', record.id);
 
           if (!updateError) {
-            console.log(`[backfill-earnings-history] Added estimate for ${symbol} ${record.report_date}`);
+            console.log(`[backfill-earnings-history] Added estimate for ${symbol} ${record.fiscal_period}`);
           }
         }
       }
@@ -252,7 +354,8 @@ serve(async (req) => {
         symbol,
         recordsFound: existingHistory.length,
         enrichedWithPrices: enrichedCount,
-        source: 'market_daily_bars + earnings_calendar',
+        datesCorrected,
+        source: 'polygon_financials + market_daily_bars',
         periods: ['1W', '2W', '1M', '3M'],
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
