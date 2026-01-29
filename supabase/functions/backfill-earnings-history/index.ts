@@ -15,16 +15,32 @@ function calcPctChange(before: number, after: number): number {
   return ((after - before) / before) * 100;
 }
 
-// Compute 5-trading-day price return around an earnings report date
-async function computeFiveTradingDayReturn(
+// Return periods: 1W (5 days), 2W (10 days), 1M (21 days), 3M (63 days)
+const RETURN_PERIODS = {
+  return_1w: 5,
+  return_2w: 10,
+  return_1m: 21,
+  return_3m: 63,
+};
+
+// Compute multiple return periods around an earnings report date
+async function computeMultiPeriodReturns(
   supabase: any,
   symbol: string,
   reportDate: string,
-): Promise<{ price_before: number | null; price_after: number | null; price_change_pct: number | null }> {
+): Promise<{
+  price_before: number | null;
+  price_after: number | null;
+  price_change_pct: number | null;
+  return_1w: number | null;
+  return_2w: number | null;
+  return_1m: number | null;
+  return_3m: number | null;
+}> {
   const start = new Date(reportDate + 'T00:00:00Z');
   start.setUTCDate(start.getUTCDate() - 15);
   const end = new Date(reportDate + 'T00:00:00Z');
-  end.setUTCDate(end.getUTCDate() + 25);
+  end.setUTCDate(end.getUTCDate() + 90); // Extended to cover 3 months
 
   const { data: bars, error } = await supabase
     .from('market_daily_bars')
@@ -33,10 +49,20 @@ async function computeFiveTradingDayReturn(
     .gte('bar_date', isoDate(start))
     .lte('bar_date', isoDate(end))
     .order('bar_date', { ascending: true })
-    .limit(200);
+    .limit(300);
+
+  const result = {
+    price_before: null as number | null,
+    price_after: null as number | null,
+    price_change_pct: null as number | null,
+    return_1w: null as number | null,
+    return_2w: null as number | null,
+    return_1m: null as number | null,
+    return_3m: null as number | null,
+  };
 
   if (error || !bars || bars.length < 8) {
-    return { price_before: null, price_after: null, price_change_pct: null };
+    return result;
   }
 
   // Find the last trading day on or before report date
@@ -49,25 +75,34 @@ async function computeFiveTradingDayReturn(
   })();
 
   if (idxBefore < 0) {
-    return { price_before: null, price_after: null, price_change_pct: null };
-  }
-
-  const idxAfter = idxBefore + 5;
-  if (idxAfter >= bars.length) {
-    return { price_before: null, price_after: null, price_change_pct: null };
+    return result;
   }
 
   const before = Number(bars[idxBefore].close);
-  const after = Number(bars[idxAfter].close);
-  if (!Number.isFinite(before) || !Number.isFinite(after) || before <= 0) {
-    return { price_before: null, price_after: null, price_change_pct: null };
+  if (!Number.isFinite(before) || before <= 0) {
+    return result;
   }
 
-  return {
-    price_before: before,
-    price_after: after,
-    price_change_pct: calcPctChange(before, after),
-  };
+  result.price_before = before;
+
+  // Calculate returns for each period
+  for (const [key, days] of Object.entries(RETURN_PERIODS)) {
+    const idxAfter = idxBefore + days;
+    if (idxAfter < bars.length) {
+      const after = Number(bars[idxAfter].close);
+      if (Number.isFinite(after)) {
+        result[key as keyof typeof RETURN_PERIODS] = calcPctChange(before, after);
+        
+        // Set price_after and price_change_pct for 1W (backwards compatibility)
+        if (key === 'return_1w') {
+          result.price_after = after;
+          result.price_change_pct = result.return_1w;
+        }
+      }
+    }
+  }
+
+  return result;
 }
 
 serve(async (req) => {
@@ -96,10 +131,10 @@ serve(async (req) => {
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-    // Get existing earnings history records for this symbol that need price enrichment
+    // Get existing earnings history records for this symbol
     const { data: existingHistory, error: fetchError } = await supabase
       .from('earnings_history')
-      .select('id, symbol, report_date, eps_actual, eps_estimate, price_change_pct')
+      .select('id, symbol, report_date, eps_actual, eps_estimate, price_change_pct, return_1w, return_2w, return_1m, return_3m')
       .eq('symbol', symbol)
       .order('report_date', { ascending: false })
       .limit(20);
@@ -124,32 +159,44 @@ serve(async (req) => {
       });
     }
 
-    console.log(`[backfill-earnings-history] Found ${existingHistory.length} records for ${symbol}, enriching with price data...`);
+    console.log(`[backfill-earnings-history] Found ${existingHistory.length} records for ${symbol}, enriching with multi-period returns...`);
 
     let enrichedCount = 0;
 
     // Enrich each record with price change data from market_daily_bars
     for (const record of existingHistory) {
-      // Skip if already has price data
-      if (record.price_change_pct !== null) {
+      // Check if any return period is missing
+      const needsEnrichment = 
+        record.return_1w === null || 
+        record.return_2w === null || 
+        record.return_1m === null || 
+        record.return_3m === null;
+
+      if (!needsEnrichment) {
         continue;
       }
 
-      const price = await computeFiveTradingDayReturn(supabase, symbol, record.report_date);
+      const returns = await computeMultiPeriodReturns(supabase, symbol, record.report_date);
 
-      if (price.price_change_pct !== null) {
+      // Build update object with only non-null values
+      const updateData: Record<string, number | null> = {};
+      if (returns.price_before !== null) updateData.price_before = returns.price_before;
+      if (returns.price_after !== null) updateData.price_after = returns.price_after;
+      if (returns.price_change_pct !== null) updateData.price_change_pct = returns.price_change_pct;
+      if (returns.return_1w !== null) updateData.return_1w = returns.return_1w;
+      if (returns.return_2w !== null) updateData.return_2w = returns.return_2w;
+      if (returns.return_1m !== null) updateData.return_1m = returns.return_1m;
+      if (returns.return_3m !== null) updateData.return_3m = returns.return_3m;
+
+      if (Object.keys(updateData).length > 0) {
         const { error: updateError } = await supabase
           .from('earnings_history')
-          .update({
-            price_before: price.price_before,
-            price_after: price.price_after,
-            price_change_pct: price.price_change_pct,
-          })
+          .update(updateData)
           .eq('id', record.id);
 
         if (!updateError) {
           enrichedCount++;
-          console.log(`[backfill-earnings-history] Enriched ${symbol} ${record.report_date}: ${price.price_change_pct?.toFixed(2)}%`);
+          console.log(`[backfill-earnings-history] Enriched ${symbol} ${record.report_date}: 1W=${returns.return_1w?.toFixed(2)}%, 1M=${returns.return_1m?.toFixed(2)}%, 3M=${returns.return_3m?.toFixed(2)}%`);
         } else {
           console.error(`[backfill-earnings-history] Update error for ${record.id}:`, updateError.message);
         }
@@ -206,6 +253,7 @@ serve(async (req) => {
         recordsFound: existingHistory.length,
         enrichedWithPrices: enrichedCount,
         source: 'market_daily_bars + earnings_calendar',
+        periods: ['1W', '2W', '1M', '3M'],
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
     );
