@@ -104,7 +104,7 @@ export function EarningsImpactSection({ ticker, nextEarnings: fallbackNextEarnin
   const { data: historyData, isLoading: historyLoading } = useEarningsHistoryData(ticker);
   const { data: nextEarningsData } = useNextEarningsFromCalendar(ticker);
   const queryClient = useQueryClient();
-  const backfillStartedRef = useRef(false);
+  const backfillStartedRef = useRef<Set<string>>(new Set());
   const tickerKey = (ticker || '').toUpperCase();
 
   const backfillMutation = useMutation({
@@ -121,28 +121,50 @@ export function EarningsImpactSection({ ticker, nextEarnings: fallbackNextEarnin
     },
   });
 
-  // Auto-backfill when we have history rows but no estimates/returns populated.
+  // State for return period selector
+  const [returnPeriod, setReturnPeriod] = useState<ReturnPeriod>('1W');
+
+  // Auto-backfill when we have history rows but are missing estimates OR the selected return period.
   const needsBackfill = useMemo(() => {
     if (!historyData || historyData.length === 0) return false;
+
     const hasAnyEstimate = historyData.some(r => r.eps_estimate !== null);
-    const hasAnyReturn = historyData.some(r => r.price_change_pct !== null);
-    return !hasAnyEstimate || !hasAnyReturn;
-  }, [historyData]);
+
+    const missingSelectedReturn = historyData.some(r => {
+      switch (returnPeriod) {
+        case '1W':
+          return (r.return_1w ?? r.price_change_pct) === null;
+        case '2W':
+          return r.return_2w === null;
+        case '1M':
+          return r.return_1m === null;
+        case '3M':
+          return r.return_3m === null;
+        default:
+          return true;
+      }
+    });
+
+    return !hasAnyEstimate || missingSelectedReturn;
+  }, [historyData, returnPeriod]);
 
   useEffect(() => {
-    backfillStartedRef.current = false;
+    backfillStartedRef.current = new Set();
   }, [tickerKey]);
 
-  // Fire once per ticker view.
+  // Fire once per ticker + selected period.
   useEffect(() => {
     if (!tickerKey) return;
     if (!needsBackfill) return;
     if (historyLoading) return;
     if (backfillMutation.isPending) return;
-    if (backfillStartedRef.current) return;
-    backfillStartedRef.current = true;
+
+    const runKey = `${tickerKey}:${returnPeriod}`;
+    if (backfillStartedRef.current.has(runKey)) return;
+    backfillStartedRef.current.add(runKey);
+
     backfillMutation.mutate();
-  }, [tickerKey, needsBackfill, historyLoading, backfillMutation]);
+  }, [tickerKey, returnPeriod, needsBackfill, historyLoading, backfillMutation]);
 
   // Format next earnings date from DB (preferred) or fallback
   const nextEarningsDisplay = useMemo(() => {
@@ -160,9 +182,6 @@ export function EarningsImpactSection({ ticker, nextEarnings: fallbackNextEarnin
     }
     return fallbackNextEarnings;
   }, [nextEarningsData, fallbackNextEarnings]);
-
-  // State for return period selector
-  const [returnPeriod, setReturnPeriod] = useState<ReturnPeriod>('1W');
 
   // Get label for selected period
   const getPeriodLabel = (period: ReturnPeriod): string => {
