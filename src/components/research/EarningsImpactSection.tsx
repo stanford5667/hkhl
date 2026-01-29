@@ -164,6 +164,16 @@ export function EarningsImpactSection({ ticker, nextEarnings: fallbackNextEarnin
   // State for return period selector
   const [returnPeriod, setReturnPeriod] = useState<ReturnPeriod>('1W');
 
+  // Get label for selected period
+  const getPeriodLabel = (period: ReturnPeriod): string => {
+    switch (period) {
+      case '1W': return '5D';
+      case '2W': return '2W';
+      case '1M': return '1M';
+      case '3M': return '3M';
+    }
+  };
+
   // Helper to get return value based on selected period
   const getReturnForPeriod = (record: EarningsHistoryRecord, period: ReturnPeriod): number | null => {
     switch (period) {
@@ -361,7 +371,7 @@ export function EarningsImpactSection({ ticker, nextEarnings: fallbackNextEarnin
             </p>
           </div>
           <div className="text-center">
-            <p className="text-[7px] md:text-[8px] text-muted-foreground uppercase">5D on Beat</p>
+            <p className="text-[7px] md:text-[8px] text-muted-foreground uppercase">{getPeriodLabel(returnPeriod)} on Beat</p>
             <p className={cn(
               "text-xs md:text-sm font-bold",
               stats.avgReturnOnBeat !== null && parseFloat(stats.avgReturnOnBeat) >= 0 ? "text-primary" : "text-destructive"
@@ -378,7 +388,7 @@ export function EarningsImpactSection({ ticker, nextEarnings: fallbackNextEarnin
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 py-1.5 border-b border-border">
           {/* Surprise vs Return Chart */}
           <div>
-            <p className="text-[8px] text-muted-foreground uppercase mb-1">Surprise vs 5-Day Return</p>
+            <p className="text-[8px] text-muted-foreground uppercase mb-1">Surprise vs {getPeriodLabel(returnPeriod)} Return</p>
             <div className="h-32">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={surpriseReturnData} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
@@ -419,7 +429,7 @@ export function EarningsImpactSection({ ticker, nextEarnings: fallbackNextEarnin
                     stroke="hsl(var(--chart-2))"
                     strokeWidth={2}
                     dot={{ fill: 'hsl(var(--chart-2))', r: 3 }}
-                    name="5D Return"
+                    name={`${getPeriodLabel(returnPeriod)} Return`}
                   />
                   <Legend 
                     wrapperStyle={{ fontSize: '8px' }}
@@ -432,7 +442,7 @@ export function EarningsImpactSection({ ticker, nextEarnings: fallbackNextEarnin
 
           {/* Beat vs Miss Bar Chart */}
           <div>
-            <p className="text-[8px] text-muted-foreground uppercase mb-1">Avg 5-Day Return by Outcome</p>
+            <p className="text-[8px] text-muted-foreground uppercase mb-1">Avg {getPeriodLabel(returnPeriod)} Return by Outcome</p>
             <div className="h-32">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={beatMissData} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
