@@ -31,6 +31,50 @@ interface PolygonEarningsResult {
   eps_estimated?: number;
 }
 
+// Fetch earnings release dates ("date") from Polygon's Benzinga earnings endpoint.
+// This is preferred over SEC filing dates because filings can occur weeks after the earnings event.
+async function fetchPolygonBenzingaEarningsReleaseDates(symbol: string, polygonApiKey: string): Promise<Map<string, string>> {
+  const fiscalPeriodToReportDate = new Map<string, string>();
+
+  try {
+    const url = `https://api.polygon.io/benzinga/v1/earnings?ticker=${symbol}&limit=100&sort=date.desc&apiKey=${polygonApiKey}`;
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 8000);
+
+    const response = await fetch(url, { signal: controller.signal });
+    clearTimeout(timeout);
+
+    if (!response.ok) {
+      console.log(`[backfill-earnings-history] Polygon Benzinga earnings API returned ${response.status}`);
+      return fiscalPeriodToReportDate;
+    }
+
+    const data = await response.json();
+
+    if (data.results && Array.isArray(data.results)) {
+      for (const result of data.results) {
+        const reportDate = result.date;
+        const fiscalPeriod = result.fiscal_period;
+        const fiscalYear = result.fiscal_year;
+
+        if (reportDate && fiscalPeriod && fiscalYear) {
+          const key = `${fiscalPeriod} ${fiscalYear}`;
+          fiscalPeriodToReportDate.set(key, reportDate);
+          console.log(`[backfill-earnings-history] Polygon Benzinga earnings: ${symbol} ${key} reported on ${reportDate}`);
+
+          if (fiscalPeriod === 'FY') {
+            fiscalPeriodToReportDate.set(`Q4 ${fiscalYear}`, reportDate);
+          }
+        }
+      }
+    }
+  } catch (err) {
+    console.error('[backfill-earnings-history] Error fetching Polygon Benzinga earnings release dates:', err);
+  }
+
+  return fiscalPeriodToReportDate;
+}
+
 // Fetch actual earnings dates from Polygon API
 async function fetchPolygonEarningsDates(symbol: string, polygonApiKey: string): Promise<Map<string, string>> {
   const fiscalPeriodToReportDate = new Map<string, string>();
@@ -93,10 +137,14 @@ async function computeMultiPeriodReturns(
   return_1m: number | null;
   return_3m: number | null;
 }> {
+  // NOTE:
+  // - We calculate returns in *trading days*, but fetch bars using a calendar-day window.
+  // - 63 trading days can be > 90 calendar days due to weekends/holidays.
+  // Use a larger post window so 1M/3M don't end up null just because we didn't fetch enough bars.
   const start = new Date(reportDate + 'T00:00:00Z');
-  start.setUTCDate(start.getUTCDate() - 15);
+  start.setUTCDate(start.getUTCDate() - 30);
   const end = new Date(reportDate + 'T00:00:00Z');
-  end.setUTCDate(end.getUTCDate() + 90); // Extended to cover 3 months
+  end.setUTCDate(end.getUTCDate() + 180);
 
   const { data: bars, error } = await supabase
     .from('market_daily_bars')
@@ -190,13 +238,53 @@ serve(async (req) => {
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-    // Fetch actual earnings report dates from Polygon
-    let polygonDates = new Map<string, string>();
+    // Fetch earnings dates from Polygon
+    // - Earnings endpoint: actual earnings event date (preferred)
+    // - Financials endpoint: SEC filing date (fallback)
+    let polygonReleaseDates = new Map<string, string>();
+    let polygonFilingDates = new Map<string, string>();
     if (POLYGON_API_KEY) {
-      polygonDates = await fetchPolygonEarningsDates(symbol, POLYGON_API_KEY);
-      console.log(`[backfill-earnings-history] Got ${polygonDates.size} actual report dates from Polygon for ${symbol}`);
+      polygonReleaseDates = await fetchPolygonBenzingaEarningsReleaseDates(symbol, POLYGON_API_KEY);
+      polygonFilingDates = await fetchPolygonEarningsDates(symbol, POLYGON_API_KEY);
+      console.log(`[backfill-earnings-history] Got ${polygonReleaseDates.size} earnings release dates and ${polygonFilingDates.size} filing dates from Polygon for ${symbol}`);
     } else {
       console.log('[backfill-earnings-history] POLYGON_API_KEY not configured, using stored dates');
+    }
+
+    // Fetch earnings release dates from our calendar (preferred over SEC filing dates).
+    // Polygon financials filing_date can be weeks after the earnings release, which breaks return windows.
+    const { data: calendarRows, error: calendarErr } = await supabase
+      .from('earnings_calendar')
+      .select('report_date, fiscal_period, fiscal_year')
+      .eq('symbol', symbol)
+      .not('fiscal_period', 'is', null)
+      .not('fiscal_year', 'is', null)
+      .order('report_date', { ascending: false })
+      .limit(40);
+
+    if (calendarErr) {
+      console.log(`[backfill-earnings-history] earnings_calendar fetch error for ${symbol}: ${calendarErr.message}`);
+    }
+
+    const calendarDates = new Map<string, string>();
+    if (calendarRows && Array.isArray(calendarRows)) {
+      for (const row of calendarRows) {
+        const fiscalPeriod = row.fiscal_period;
+        const fiscalYear = row.fiscal_year;
+        const reportDate = row.report_date;
+
+        if (fiscalPeriod && fiscalYear && reportDate) {
+          // earnings_history.fiscal_period is stored like "Q4 2025".
+          const key = `${fiscalPeriod} ${fiscalYear}`;
+          calendarDates.set(key, reportDate);
+
+          // Align annual records too: FY -> Q4
+          if (fiscalPeriod === 'FY') {
+            calendarDates.set(`Q4 ${fiscalYear}`, reportDate);
+          }
+        }
+      }
+      console.log(`[backfill-earnings-history] Got ${calendarDates.size} earnings release dates from earnings_calendar for ${symbol}`);
     }
 
     // Get existing earnings history records for this symbol
@@ -234,24 +322,27 @@ serve(async (req) => {
 
     // Enrich each record with price change data from market_daily_bars
     for (const record of existingHistory) {
-      // First, check if we have a corrected date from Polygon
+      // Choose the best "event date" for computing returns.
+      // Priority: earnings_calendar release date (event date) -> Polygon filing date (fallback) -> stored date.
       let actualReportDate = record.report_date;
-      
-      if (record.fiscal_period && polygonDates.size > 0) {
-        const polygonDate = polygonDates.get(record.fiscal_period);
-        if (polygonDate && polygonDate !== record.report_date) {
-          console.log(`[backfill-earnings-history] Correcting ${symbol} ${record.fiscal_period} date: ${record.report_date} -> ${polygonDate}`);
-          actualReportDate = polygonDate;
-          
-          // Update the stored date in earnings_history
-          const { error: dateUpdateError } = await supabase
-            .from('earnings_history')
-            .update({ report_date: polygonDate })
-            .eq('id', record.id);
-          
-          if (!dateUpdateError) {
-            datesCorrected++;
-          }
+
+      const calendarDate = record.fiscal_period ? calendarDates.get(record.fiscal_period) : undefined;
+      const polygonDate = record.fiscal_period
+        ? (polygonReleaseDates.get(record.fiscal_period) || polygonFilingDates.get(record.fiscal_period))
+        : undefined;
+
+      const preferredDate = calendarDate || polygonDate || record.report_date;
+      if (preferredDate && preferredDate !== record.report_date) {
+        console.log(`[backfill-earnings-history] Correcting ${symbol} ${record.fiscal_period} date: ${record.report_date} -> ${preferredDate} (${calendarDate ? 'earnings_calendar' : 'polygon'})`);
+        actualReportDate = preferredDate;
+
+        const { error: dateUpdateError } = await supabase
+          .from('earnings_history')
+          .update({ report_date: preferredDate })
+          .eq('id', record.id);
+
+        if (!dateUpdateError) {
+          datesCorrected++;
         }
       }
 
