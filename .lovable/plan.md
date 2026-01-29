@@ -1,264 +1,156 @@
 
 
-# Enhance Firecrawl Integration for Earnings History Data
+# Simplify Earnings History to Use SEC EDGAR Directly
 
 ## Overview
 
-The current architecture already has Firecrawl integrated, but it's underutilized. When a ticker is searched, the `backfill-earnings-history` edge function runs, but it primarily relies on:
-1. Polygon API for filing dates
-2. FMP API for historical estimates
-3. SEC XBRL API for EPS actuals
+Replace the complex multi-source data pipeline in `backfill-earnings-history` with a streamlined approach that fetches quarterly earnings data directly from the SEC EDGAR XBRL API. The existing `fetch-sec-earnings-history` function already has the correct logic - we just need to make it the primary data source.
 
-The Firecrawl integration in `fetch-sec-earnings-history` is a secondary fallback that's only invoked when the backfill function explicitly calls it. This plan enhances the architecture to **always use Firecrawl as a primary enrichment source** when a ticker is searched.
+## Current State vs. Target State
 
-## Current Data Flow
+| Current | Target |
+|---------|--------|
+| Polygon → FMP → Firecrawl → SEC (fallback) | SEC XBRL (primary) → Firecrawl for estimates (optional) |
+| Complex 1000+ line function | Simple, focused function |
+| Multiple API dependencies | Single official source |
+| Inconsistent data quality | Authoritative SEC data |
 
-```text
-User searches "MS" (Morgan Stanley)
-        ↓
-EarningsImpactSection loads
-        ↓
-useEarningsHistoryData fetches from DB
-        ↓
-backfill-earnings-history triggers
-        ↓
-Polygon → FMP → (but NOT Firecrawl)
-```
+## Changes Required
 
-## Proposed Data Flow
-
-```text
-User searches "MS" (Morgan Stanley)
-        ↓
-EarningsImpactSection loads
-        ↓
-useEarningsHistoryData fetches from DB
-        ↓
-backfill-earnings-history triggers
-        ↓
-1. Polygon (filing dates)
-2. FMP (historical estimates)
-3. SEC XBRL (if empty) via fetch-sec-earnings-history
-4. Firecrawl (scrape Yahoo/Nasdaq/Zacks for missing estimates)
-        ↓
-Complete earnings data with EPS estimates
-```
-
-## Implementation Plan
-
-### Step 1: Add Firecrawl Scraping Function to backfill-earnings-history
-
-Add a new function that uses Firecrawl to scrape historical earnings estimates from reliable financial sites.
+### 1. Refactor `backfill-earnings-history` to Use SEC Directly
 
 **File**: `supabase/functions/backfill-earnings-history/index.ts`
 
-Add new function after the existing `fetchFMPHistoricalEstimates`:
+Replace the Polygon/FMP data fetching with direct SEC XBRL calls using the pattern from `fetch-sec-earnings-history`:
+
+```text
+New Flow:
+1. Convert ticker to CIK (use KNOWN_CIKS or SEC lookup)
+2. Fetch from data.sec.gov/api/xbrl/companyfacts/CIK{CIK}.json
+3. Extract EarningsPerShareDiluted + Revenues from us-gaap
+4. Filter for 10-Q filings (quarterly data)
+5. Store in earnings_history table
+6. (Optional) Enhance with Firecrawl for analyst estimates
+7. Calculate price returns using existing return logic
+```
+
+Key code to add:
 
 ```typescript
-// Scrape earnings history from Yahoo Finance or Zacks via Firecrawl
-async function fetchFirecrawlEarningsEstimates(
-  symbol: string,
-  firecrawlApiKey: string
-): Promise<Map<string, EstimateData>> {
-  const estimates = new Map<string, EstimateData>();
-  
-  // Target URLs to scrape (in order of reliability)
-  const sources = [
-    `https://finance.yahoo.com/quote/${symbol}/analysis`,
-    `https://www.nasdaq.com/market-activity/stocks/${symbol.toLowerCase()}/earnings`,
-    `https://www.zacks.com/stock/quote/${symbol}/earnings-surprises`,
-  ];
-  
-  for (const url of sources) {
-    try {
-      const response = await fetch('https://api.firecrawl.dev/v1/scrape', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${firecrawlApiKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          url,
-          formats: ['markdown'],
-          onlyMainContent: true,
-          waitFor: 2000,
-        }),
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
-        const markdown = data.data?.markdown || '';
-        
-        // Parse earnings data from markdown
-        // Look for patterns like "Q2 2025: EPS $1.23 vs $1.20 est"
-        const parsed = parseEarningsFromMarkdown(markdown, symbol);
-        for (const [key, value] of parsed) {
-          if (!estimates.has(key)) {
-            estimates.set(key, value);
-          }
-        }
-        
-        if (estimates.size >= 8) break; // Have enough data
-      }
-    } catch (err) {
-      console.error(`[Firecrawl] Error scraping ${url}:`, err);
-    }
-  }
-  
-  return estimates;
-}
+// SEC XBRL fetch with mandatory User-Agent
+const factsUrl = `https://data.sec.gov/api/xbrl/companyfacts/CIK${cik}.json`;
+const response = await fetch(factsUrl, {
+  headers: { 'User-Agent': 'Asset Labs AI (chris@assetlabs.ai)' }
+});
+```
 
-function parseEarningsFromMarkdown(markdown: string, symbol: string): Map<string, EstimateData> {
-  const estimates = new Map<string, EstimateData>();
-  
-  // Multiple regex patterns for different site formats
-  const patterns = [
-    // Yahoo Finance format: "Q2 2025 | $1.23 | $1.20 | +2.5%"
-    /Q([1-4])\s*(?:'?|FY)?(\d{2,4}).*?\$?([\d.]+).*?(?:estimate|est\.?)[:\s]*\$?([\d.]+)/gi,
-    // Zacks format: "Reported: $1.23 Estimate: $1.20"
-    /Q([1-4]).*?(\d{4}).*?reported[:\s]*\$?([\d.]+).*?estimate[:\s]*\$?([\d.]+)/gi,
-    // Generic: "EPS of $1.23 vs. consensus of $1.20"
-    /Q([1-4])\s*(\d{4}).*?eps.*?\$?([\d.]+).*?(?:vs\.?|versus|consensus)[:\s]*\$?([\d.]+)/gi,
-  ];
-  
-  for (const pattern of patterns) {
-    let match;
-    while ((match = pattern.exec(markdown)) !== null) {
-      const quarter = parseInt(match[1]);
-      const yearStr = match[2];
-      const year = yearStr.length === 2 ? 2000 + parseInt(yearStr) : parseInt(yearStr);
-      const epsEstimate = parseFloat(match[4] || match[3]);
-      
-      if (isNaN(quarter) || isNaN(year) || isNaN(epsEstimate)) continue;
-      
-      const key = `Q${quarter} ${year}`;
-      if (!estimates.has(key)) {
-        estimates.set(key, {
-          eps_estimate: epsEstimate,
-          revenue_estimate: null,
-          fiscal_year: year,
-        });
-        console.log(`[Firecrawl] Parsed ${symbol} ${key}: EPS Est $${epsEstimate}`);
-      }
-    }
-  }
-  
-  return estimates;
+### 2. Add KNOWN_CIKS to backfill-earnings-history
+
+Copy the comprehensive CIK mapping from `fetch-sec-earnings-history/index.ts` (lines 22-70) which includes 100+ common tickers:
+
+```typescript
+const KNOWN_CIKS: Record<string, string> = {
+  'AAPL': '0000320193', 'MSFT': '0000789019', 'GOOGL': '0001652044',
+  'MS': '0000895421', // Morgan Stanley
+  // ... 100+ more mappings
+};
+```
+
+### 3. Reuse SEC Parsing Logic
+
+Extract and reuse the XBRL parsing logic from `fetch-sec-earnings-history`:
+
+```typescript
+// EPS concepts to try (in priority order)
+const epsConcepts = [
+  'EarningsPerShareDiluted',
+  'EarningsPerShareBasic',
+  'EarningsPerShareBasicAndDiluted'
+];
+
+// Revenue concepts to try
+const revenueConcepts = [
+  'Revenues',
+  'RevenueFromContractWithCustomerExcludingAssessedTax',
+  'SalesRevenueNet',
+  'TotalRevenuesAndOtherIncome'
+];
+
+// Filter for 10-Q filings only
+for (const entry of epsData) {
+  if (entry.form !== '10-Q') continue;
+  // ... extract quarterly data
 }
 ```
 
-### Step 2: Integrate Firecrawl into the Main Backfill Flow
+### 4. Keep Return Calculation Logic
 
-**File**: `supabase/functions/backfill-earnings-history/index.ts`
+The existing `computeMultiPeriodReturns` function is still needed - it calculates 1W, 2W, 1M, 3M returns around earnings dates. Keep this logic intact.
 
-Update the main serve function to fetch Firecrawl estimates:
+### 5. Simplify the Main Serve Function
 
-```typescript
-// After FMP_API_KEY check (around line 459)
-const FIRECRAWL_API_KEY = Deno.env.get('FIRECRAWL_API_KEY');
+Remove:
+- `fetchPolygonBenzingaEarningsReleaseDates` calls
+- `fetchPolygonEarningsDates` calls  
+- `fetchFMPHistoricalEstimates` calls
+- Complex date reconciliation logic
 
-// After line 481 (FMP estimates fetch)
-let firecrawlEstimates = new Map<string, EstimateData>();
-if (FIRECRAWL_API_KEY) {
-  firecrawlEstimates = await fetchFirecrawlEarningsEstimates(symbol, FIRECRAWL_API_KEY);
-  console.log(`[backfill-earnings-history] Got ${firecrawlEstimates.size} estimates from Firecrawl for ${symbol}`);
-}
+Replace with:
+- Direct SEC XBRL fetch
+- Simple quarterly data extraction
+- Optional Firecrawl estimate enhancement
+
+## File Changes
+
+| File | Action |
+|------|--------|
+| `supabase/functions/backfill-earnings-history/index.ts` | Major refactor: replace Polygon/FMP with direct SEC XBRL |
+
+## Code Structure After Refactor
+
+```text
+backfill-earnings-history/index.ts (~400 lines instead of 1000+)
+├── KNOWN_CIKS mapping
+├── getCIKFromTicker() - CIK lookup
+├── fetchSECQuarterlyData() - SEC XBRL fetch + parse
+├── computeMultiPeriodReturns() - price return calculation (keep existing)
+├── fetchFirecrawlEarningsEstimates() - optional estimates (keep existing)
+└── serve() - main handler
 ```
 
-Update `findMatchingEstimate` to include Firecrawl data (add as 4th parameter):
+## Expected Data Flow After Implementation
 
-```typescript
-function findMatchingEstimate(
-  record: { fiscal_period: string | null; report_date: string },
-  estimatesByPeriod: Map<string, EstimateData>,
-  estimatesByDate: Map<string, EstimateData>,
-  fmpEstimates: Map<string, EstimateData>,
-  firecrawlEstimates: Map<string, EstimateData>  // NEW
-): EstimateData | null {
-  // ... existing logic ...
-  
-  // After FMP fallback, add Firecrawl fallback
-  for (const key of keysToTry) {
-    const fcEstimate = firecrawlEstimates.get(key);
-    if (fcEstimate) {
-      console.log(`[backfill-earnings-history] Matched Firecrawl estimate by key "${key}"`);
-      return fcEstimate;
-    }
-  }
-  
-  return null;
-}
+```text
+User searches "MS"
+        ↓
+EarningsImpactSection loads
+        ↓
+Triggers backfill-earnings-history
+        ↓
+1. Get CIK for MS → "0000895421"
+2. Fetch data.sec.gov/api/xbrl/companyfacts/CIK0000895421.json
+3. Parse us-gaap EPS + Revenue from 10-Q filings
+4. Get last 12 quarters of data
+5. (Optional) Enhance with Firecrawl estimates
+6. Calculate price returns
+7. Store in earnings_history table
+        ↓
+UI displays complete earnings impact data
 ```
 
-### Step 3: Add SEC Fallback for Empty Data
+## Benefits of This Approach
 
-When Polygon returns no filing dates, invoke the SEC function:
+1. **Single Source of Truth**: SEC EDGAR is the official, authoritative source
+2. **Simpler Code**: ~400 lines instead of 1000+ lines
+3. **No API Key Dependencies**: SEC API is free and requires no authentication
+4. **Better Data Quality**: Official filings, not scraped/estimated data
+5. **Faster Execution**: One API call instead of multiple parallel calls
+6. **Reliable**: No rate limits or payment issues like with FMP/Firecrawl
 
-```typescript
-// In the section starting at line 569 (after allDates.size === 0 check)
-if (allDates.size === 0 && POLYGON_API_KEY) {
-  console.log(`[backfill-earnings-history] No earnings dates from Polygon, trying SEC XBRL...`);
-  
-  try {
-    const secResponse = await supabase.functions.invoke('fetch-sec-earnings-history', {
-      body: { symbols: [symbol] }
-    });
-    
-    if (secResponse.data?.results?.[symbol]?.success) {
-      // SEC function already stores data - invalidate cache and return
-      return new Response(JSON.stringify({
-        success: true,
-        symbol,
-        created: secResponse.data.results[symbol].quartersStored || 0,
-        reason: 'created_from_sec_xbrl'
-      }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-  } catch (err) {
-    console.error('[backfill-earnings-history] SEC fallback failed:', err);
-  }
-}
-```
+## Technical Notes
 
-## Files to Modify
-
-| File | Changes |
-|------|---------|
-| `supabase/functions/backfill-earnings-history/index.ts` | Add Firecrawl scraping functions, integrate into main flow, add SEC fallback |
-
-## Data Sources Hierarchy (After Implementation)
-
-| Priority | Source | Data Provided | Reliability |
-|----------|--------|---------------|-------------|
-| 1 | earnings_calendar (DB) | EPS estimates, dates | High (already validated) |
-| 2 | FMP API | Historical EPS estimates | High (structured API) |
-| 3 | Polygon Benzinga | Actual report dates | High |
-| 4 | SEC XBRL | EPS actuals, revenue | High (official filings) |
-| 5 | Firecrawl (Yahoo/Nasdaq/Zacks) | Missing EPS estimates | Medium (web scraping) |
-
-## Expected Results
-
-After implementation:
-
-1. **MS (Morgan Stanley)**: Currently shows "—" for beat rate → Will show actual beat/miss percentages
-2. **LLY (Eli Lilly)**: Only 3 records → Will have 16 quarters of data with estimates
-3. **Any new ticker search**: Will automatically trigger Firecrawl enrichment if FMP/Polygon data is incomplete
-
-## Firecrawl Usage Details
-
-| Feature | Usage |
-|---------|-------|
-| Endpoint | `/v1/scrape` |
-| Format | `markdown` (cleanest for parsing) |
-| Target Sites | Yahoo Finance, Nasdaq, Zacks |
-| Rate Limiting | Sequential scraping with early exit on success |
-| Fallback | Only used when FMP estimates are missing |
-
-## Technical Considerations
-
-1. **Caching**: Firecrawl results are stored in `earnings_history` table, so subsequent loads don't re-scrape
-2. **Rate Limits**: Limited to 3 sites max, with early exit when enough data is found
-3. **Error Handling**: Firecrawl failures don't block the main flow - data from other sources is still returned
-4. **API Key**: Uses existing `FIRECRAWL_API_KEY` secret (already configured)
+- **User-Agent Header**: Required by SEC - use `Asset Labs AI (chris@assetlabs.ai)`
+- **10-Q Filter**: Only quarterly filings, not annual (10-K) to avoid double-counting
+- **Date Handling**: SEC uses fiscal quarter end dates, which we'll store as `report_date`
+- **CIK Fallback**: If not in KNOWN_CIKS, fetch from `sec.gov/files/company_tickers.json`
 
