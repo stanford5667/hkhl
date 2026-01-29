@@ -69,7 +69,7 @@ export function GlobalSearch({ open, onOpenChange }: GlobalSearchProps) {
                   key={result.symbol}
                   value={`${result.symbol} ${result.name}`}
                   onSelect={() => {
-                    runCommand(() => navigate(`/research/${result.symbol}`));
+                    runCommand(() => navigate(`/stock/${result.symbol}`));
                   }}
                   className="text-slate-300 hover:bg-slate-800"
                 >
