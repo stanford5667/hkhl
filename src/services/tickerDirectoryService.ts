@@ -54,56 +54,76 @@ async function searchPolygonTickers(query: string): Promise<SearchResult[]> {
     return [];
   }
 }
+// Track in-flight requests to cancel stale ones
+let currentSearchController: AbortController | null = null;
 
 /**
  * Search tickers - local database first, then Polygon API fallback
  * This enables access to ALL Polygon-supported tickers (10,000+)
  */
-export async function searchTickers(query: string): Promise<SearchResult[]> {
+export async function searchTickers(query: string, signal?: AbortSignal): Promise<SearchResult[]> {
   if (!query || query.length < 1) return [];
 
   const upperQuery = query.toUpperCase().trim();
 
   // First, search local database (instant, free)
+  // Improved query: prioritize exact symbol match, then prefix, then name contains
   const { data: localResults, error } = await supabase
     .from('ticker_directory')
     .select('symbol, name, exchange, sector')
-    .or(`symbol.ilike.${upperQuery}%,name.ilike.%${query}%`)
+    .or(`symbol.eq.${upperQuery},symbol.ilike.${upperQuery}%,name.ilike.%${query}%`)
     .eq('is_active', true)
     .order('market_cap_tier', { ascending: true }) // mega first
-    .limit(10);
+    .limit(15);
+
+  // Check if this search was cancelled
+  if (signal?.aborted) {
+    console.log('[TickerDirectory] Search cancelled for:', query);
+    return [];
+  }
 
   if (error) {
     console.error('[TickerDirectory] Local search error:', error);
   }
 
-  const localMapped: SearchResult[] = (localResults || []).map(r => ({
-    symbol: r.symbol,
-    name: r.name,
-    exchange: r.exchange,
-    sector: r.sector,
-    source: 'local' as const,
-  }));
+  // Sort local results: exact match first, then prefix match, then others
+  const localMapped: SearchResult[] = (localResults || [])
+    .sort((a, b) => {
+      const aExact = a.symbol === upperQuery ? 0 : 1;
+      const bExact = b.symbol === upperQuery ? 0 : 1;
+      if (aExact !== bExact) return aExact - bExact;
+      
+      const aPrefix = a.symbol.startsWith(upperQuery) ? 0 : 1;
+      const bPrefix = b.symbol.startsWith(upperQuery) ? 0 : 1;
+      return aPrefix - bPrefix;
+    })
+    .map(r => ({
+      symbol: r.symbol,
+      name: r.name,
+      exchange: r.exchange,
+      sector: r.sector,
+      source: 'local' as const,
+    }));
 
-  // If we found enough locally (5+), don't call external API
-  if (localMapped.length >= 5) {
-    console.log(`[TickerDirectory] Found ${localMapped.length} local results, skipping API`);
-    return localMapped;
-  }
-
-  // Check for exact symbol match in local results
+  // If we found enough locally (5+) or have exact match, skip API
   const hasExactMatch = localMapped.some(r => r.symbol === upperQuery);
-  if (hasExactMatch && localMapped.length >= 1) {
-    console.log(`[TickerDirectory] Exact match found locally: ${upperQuery}`);
+  if (localMapped.length >= 5 || (hasExactMatch && localMapped.length >= 1)) {
+    console.log(`[TickerDirectory] Using ${localMapped.length} local results for: ${query}`);
     return localMapped;
   }
 
-  // Fallback to Polygon API for comprehensive ticker search (10,000+ tickers)
+  // Check cancellation before API call
+  if (signal?.aborted) return [];
+
+  // Fallback to Polygon API for comprehensive ticker search
   console.log(`[TickerDirectory] Only ${localMapped.length} local results, searching Polygon for: ${query}`);
   
   const polygonResults = await searchPolygonTickers(query);
   
-  // Merge and deduplicate
+  // Check cancellation after API call
+  if (signal?.aborted) return [];
+  
+  // Merge and deduplicate - prioritize local results
   const merged: SearchResult[] = [...localMapped];
   for (const pr of polygonResults) {
     if (!merged.some(m => m.symbol === pr.symbol)) {
@@ -111,7 +131,41 @@ export async function searchTickers(query: string): Promise<SearchResult[]> {
     }
   }
 
-  return merged.slice(0, 15);
+  // Final sort: exact matches first
+  return merged
+    .sort((a, b) => {
+      const aExact = a.symbol === upperQuery ? 0 : 1;
+      const bExact = b.symbol === upperQuery ? 0 : 1;
+      if (aExact !== bExact) return aExact - bExact;
+      
+      const aPrefix = a.symbol.startsWith(upperQuery) ? 0 : 1;
+      const bPrefix = b.symbol.startsWith(upperQuery) ? 0 : 1;
+      return aPrefix - bPrefix;
+    })
+    .slice(0, 15);
+}
+
+/**
+ * Cancellable search - cancels previous in-flight request
+ */
+export async function searchTickersCancellable(query: string): Promise<SearchResult[]> {
+  // Cancel previous search
+  if (currentSearchController) {
+    currentSearchController.abort();
+  }
+  
+  // Create new controller for this search
+  currentSearchController = new AbortController();
+  const signal = currentSearchController.signal;
+  
+  try {
+    return await searchTickers(query, signal);
+  } catch (e) {
+    if (e instanceof Error && e.name === 'AbortError') {
+      return [];
+    }
+    throw e;
+  }
 }
 
 /**
