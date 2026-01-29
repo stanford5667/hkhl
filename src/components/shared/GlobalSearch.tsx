@@ -38,7 +38,7 @@ export function GlobalSearch({ open, onOpenChange }: GlobalSearchProps) {
     <CommandDialog open={open} onOpenChange={onOpenChange}>
       <div className="bg-slate-900 border-slate-800 rounded-xl overflow-hidden">
         <CommandInput
-          placeholder="Search tickers... (e.g., AAPL, MSFT)"
+          placeholder="Search tickers or company names... (e.g., AAPL, Microsoft)"
           value={query}
           onValueChange={setQuery}
           className="border-b border-slate-800"
@@ -67,6 +67,7 @@ export function GlobalSearch({ open, onOpenChange }: GlobalSearchProps) {
               {results.map((result) => (
                 <CommandItem
                   key={result.symbol}
+                  value={`${result.symbol} ${result.name}`}
                   onSelect={() => runCommand(() => navigate(`/research/${result.symbol}`))}
                   className="text-slate-300 hover:bg-slate-800"
                 >
