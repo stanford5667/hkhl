@@ -72,6 +72,8 @@ interface QuarterlyEarnings {
   price_before?: number | null;
   price_after?: number | null;
   price_change_pct?: number | null;
+  return_1d?: number | null;
+  return_5d?: number | null;
   return_1w?: number | null;
   return_2w?: number | null;
   return_1m?: number | null;
@@ -83,8 +85,10 @@ interface PriceBar {
   close: number;
 }
 
-// Return periods: 1W (5 days), 2W (10 days), 1M (21 days), 3M (63 days)
+// Return periods: 1D (1 day), 5D (5 days), 1W (5 days alias), 2W (10 days), 1M (21 days), 3M (63 days)
 const RETURN_PERIODS = {
+  return_1d: 1,
+  return_5d: 5,
   return_1w: 5,
   return_2w: 10,
   return_1m: 21,
@@ -334,6 +338,8 @@ async function computeReturns(
   price_before: number | null;
   price_after: number | null;
   price_change_pct: number | null;
+  return_1d: number | null;
+  return_5d: number | null;
   return_1w: number | null;
   return_2w: number | null;
   return_1m: number | null;
@@ -343,6 +349,8 @@ async function computeReturns(
     price_before: null as number | null,
     price_after: null as number | null,
     price_change_pct: null as number | null,
+    return_1d: null as number | null,
+    return_5d: null as number | null,
     return_1w: null as number | null,
     return_2w: null as number | null,
     return_1m: null as number | null,

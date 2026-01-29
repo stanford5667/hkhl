@@ -21,7 +21,7 @@ import {
   ReferenceLine,
 } from 'recharts';
 
-type ReturnPeriod = '1W' | '2W' | '1M' | '3M';
+type ReturnPeriod = '1D' | '5D' | '1W' | '2W' | '1M' | '3M';
 
 interface EarningsHistoryRecord {
   id: string;
@@ -37,6 +37,8 @@ interface EarningsHistoryRecord {
   price_before: number | null;
   price_after: number | null;
   price_change_pct: number | null;
+  return_1d: number | null;
+  return_5d: number | null;
   return_1w: number | null;
   return_2w: number | null;
   return_1m: number | null;
@@ -122,7 +124,7 @@ export function EarningsImpactSection({ ticker, nextEarnings: fallbackNextEarnin
   });
 
   // State for return period selector
-  const [returnPeriod, setReturnPeriod] = useState<ReturnPeriod>('1W');
+  const [returnPeriod, setReturnPeriod] = useState<ReturnPeriod>('5D');
 
   // Reset backfill tracker when ticker changes
   useEffect(() => {
@@ -149,6 +151,8 @@ export function EarningsImpactSection({ ticker, nextEarnings: fallbackNextEarnin
     if (!historyData || historyData.length === 0) return false;
     return historyData.some(r => {
       switch (returnPeriod) {
+        case '1D': return r.return_1d === null;
+        case '5D': return r.return_5d === null;
         case '1W': return (r.return_1w ?? r.price_change_pct) === null;
         case '2W': return r.return_2w === null;
         case '1M': return r.return_1m === null;
@@ -191,6 +195,8 @@ export function EarningsImpactSection({ ticker, nextEarnings: fallbackNextEarnin
   // Get label for selected period
   const getPeriodLabel = (period: ReturnPeriod): string => {
     switch (period) {
+      case '1D': return '1D';
+      case '5D': return '5D';
       case '1W': return '5D';
       case '2W': return '2W';
       case '1M': return '1M';
@@ -201,6 +207,8 @@ export function EarningsImpactSection({ ticker, nextEarnings: fallbackNextEarnin
   // Helper to get return value based on selected period
   const getReturnForPeriod = (record: EarningsHistoryRecord, period: ReturnPeriod): number | null => {
     switch (period) {
+      case '1D': return record.return_1d;
+      case '5D': return record.return_5d;
       case '1W': return record.return_1w ?? record.price_change_pct;
       case '2W': return record.return_2w;
       case '1M': return record.return_1m;
@@ -520,7 +528,7 @@ export function EarningsImpactSection({ ticker, nextEarnings: fallbackNextEarnin
             <div className="flex items-center gap-2">
               {/* Period selector */}
               <div className="flex items-center gap-0.5 text-[7px]">
-                {(['1W', '2W', '1M', '3M'] as ReturnPeriod[]).map((period) => (
+                {(['1D', '5D', '2W', '1M', '3M'] as ReturnPeriod[]).map((period) => (
                   <button
                     key={period}
                     onClick={() => setReturnPeriod(period)}
