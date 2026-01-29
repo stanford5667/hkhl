@@ -1,113 +1,223 @@
 
-# Earnings History Data Not Working - Root Cause Analysis & Fix Plan
 
-## Problem Summary
+# Enhance Firecrawl Integration for Earnings History Data
 
-The Earnings Impact section shows data for some tickers but is missing critical data (EPS estimates, beat/miss indicators) for most tickers. This results in:
-- "Beat Rate" showing "—" instead of a percentage
-- "Avg Surprise" showing "—" instead of actual values
-- The surprise vs return chart not displaying properly
+## Overview
 
-## Root Causes Identified
+The current architecture already has Firecrawl integrated, but it's underutilized. When a ticker is searched, the `backfill-earnings-history` edge function runs, but it primarily relies on:
+1. Polygon API for filing dates
+2. FMP API for historical estimates
+3. SEC XBRL API for EPS actuals
 
-### Issue 1: Fiscal Period Format Mismatch
-The `backfill-earnings-history` function tries to match estimates from `earnings_calendar` to `earnings_history`, but the formats don't match:
+The Firecrawl integration in `fetch-sec-earnings-history` is a secondary fallback that's only invoked when the backfill function explicitly calls it. This plan enhances the architecture to **always use Firecrawl as a primary enrichment source** when a ticker is searched.
 
-| Table | fiscal_period Format | Example |
-|-------|---------------------|---------|
-| `earnings_calendar` | `Q1`, `Q2`, `Q3`, `Q4` | "Q2" |
-| `earnings_history` | `Q1 YYYY`, `Q2 YYYY` | "Q2 2025" |
-
-**Result**: The matching logic at line 552 never finds matches because `"Q2"` !== `"Q2 2025"`
-
-### Issue 2: Report Date Mismatch
-The `earnings_history` table stores fiscal quarter-end dates (from SEC filings) while `earnings_calendar` stores actual earnings announcement dates:
-
-| Table | report_date Meaning | AAPL Q2 Example |
-|-------|-------------------|-----------------|
-| `earnings_calendar` | Earnings call date | 2026-04-29 |
-| `earnings_history` | Fiscal quarter-end | 2025-06-28 |
-
-**Result**: Date-based matching (`estimatesByDate.get(record.report_date)`) also fails
-
-### Issue 3: Missing Analyst Estimates for Historical Data
-The `earnings_calendar` table only contains upcoming/recent earnings events (4,967 with estimates out of 6,476 total). Historical quarters in `earnings_history` have no corresponding records in `earnings_calendar`.
-
-### Issue 4: EPS Actuals Missing for Some Tickers
-Tickers with unusual fiscal years or those not in `KNOWN_CIKS` fail to get data from SEC XBRL API. Examples: LLY (3 records), TXN (4 records), CVX (4 records).
-
-## Solution Plan
-
-### Step 1: Fix Fiscal Period Matching Logic
-**File**: `supabase/functions/backfill-earnings-history/index.ts`
-
-Enhance the matching to handle format differences:
+## Current Data Flow
 
 ```text
-Current (line 552):
-  const estimate = estimatesByPeriod.get(record.fiscal_period || '') 
-                || estimatesByDate.get(record.report_date);
+User searches "MS" (Morgan Stanley)
+        ↓
+EarningsImpactSection loads
+        ↓
+useEarningsHistoryData fetches from DB
+        ↓
+backfill-earnings-history triggers
+        ↓
+Polygon → FMP → (but NOT Firecrawl)
+```
 
-Fixed:
-  // Try multiple fiscal period formats
-  const periodFormats = [
-    record.fiscal_period,                           // "Q2 2025"
-    record.fiscal_period?.split(' ')[0],            // "Q2"
-    record.fiscal_period?.replace(' ', ' FY'),      // "Q2 FY2025" (rare)
-  ].filter(Boolean);
+## Proposed Data Flow
+
+```text
+User searches "MS" (Morgan Stanley)
+        ↓
+EarningsImpactSection loads
+        ↓
+useEarningsHistoryData fetches from DB
+        ↓
+backfill-earnings-history triggers
+        ↓
+1. Polygon (filing dates)
+2. FMP (historical estimates)
+3. SEC XBRL (if empty) via fetch-sec-earnings-history
+4. Firecrawl (scrape Yahoo/Nasdaq/Zacks for missing estimates)
+        ↓
+Complete earnings data with EPS estimates
+```
+
+## Implementation Plan
+
+### Step 1: Add Firecrawl Scraping Function to backfill-earnings-history
+
+Add a new function that uses Firecrawl to scrape historical earnings estimates from reliable financial sites.
+
+**File**: `supabase/functions/backfill-earnings-history/index.ts`
+
+Add new function after the existing `fetchFMPHistoricalEstimates`:
+
+```typescript
+// Scrape earnings history from Yahoo Finance or Zacks via Firecrawl
+async function fetchFirecrawlEarningsEstimates(
+  symbol: string,
+  firecrawlApiKey: string
+): Promise<Map<string, EstimateData>> {
+  const estimates = new Map<string, EstimateData>();
   
-  let estimate = null;
-  for (const format of periodFormats) {
-    estimate = estimatesByPeriod.get(format);
-    if (estimate) break;
+  // Target URLs to scrape (in order of reliability)
+  const sources = [
+    `https://finance.yahoo.com/quote/${symbol}/analysis`,
+    `https://www.nasdaq.com/market-activity/stocks/${symbol.toLowerCase()}/earnings`,
+    `https://www.zacks.com/stock/quote/${symbol}/earnings-surprises`,
+  ];
+  
+  for (const url of sources) {
+    try {
+      const response = await fetch('https://api.firecrawl.dev/v1/scrape', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${firecrawlApiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          url,
+          formats: ['markdown'],
+          onlyMainContent: true,
+          waitFor: 2000,
+        }),
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        const markdown = data.data?.markdown || '';
+        
+        // Parse earnings data from markdown
+        // Look for patterns like "Q2 2025: EPS $1.23 vs $1.20 est"
+        const parsed = parseEarningsFromMarkdown(markdown, symbol);
+        for (const [key, value] of parsed) {
+          if (!estimates.has(key)) {
+            estimates.set(key, value);
+          }
+        }
+        
+        if (estimates.size >= 8) break; // Have enough data
+      }
+    } catch (err) {
+      console.error(`[Firecrawl] Error scraping ${url}:`, err);
+    }
   }
-  if (!estimate) estimate = estimatesByDate.get(record.report_date);
-```
+  
+  return estimates;
+}
 
-### Step 2: Add FMP Historical Estimates Fallback
-When earnings_calendar doesn't have estimates, fetch from Financial Modeling Prep's historical earnings endpoint:
-
-**File**: `supabase/functions/backfill-earnings-history/index.ts`
-
-Add a new function to fetch historical estimates:
-
-```text
-async function fetchHistoricalEstimatesFromFMP(
-  symbol: string, 
-  fmpApiKey: string
-): Promise<Map<string, { eps_estimate: number; revenue_estimate: number | null }>>
-```
-
-This will call FMP's `/api/v3/historical/earning_calendar/{symbol}` endpoint to get past earnings with estimates.
-
-### Step 3: Trigger SEC Data Fetch for Missing Tickers
-Update the backfill flow to call `fetch-sec-earnings-history` when a ticker has no records:
-
-**File**: `supabase/functions/backfill-earnings-history/index.ts`
-
-Before returning "no_earnings_data_from_polygon", invoke `fetch-sec-earnings-history`:
-
-```text
-// If Polygon has no data, try SEC XBRL as fallback
-if (allDates.size === 0) {
-  const secResponse = await supabase.functions.invoke('fetch-sec-earnings-history', {
-    body: { symbols: [symbol] }
-  });
-  // Process SEC response...
+function parseEarningsFromMarkdown(markdown: string, symbol: string): Map<string, EstimateData> {
+  const estimates = new Map<string, EstimateData>();
+  
+  // Multiple regex patterns for different site formats
+  const patterns = [
+    // Yahoo Finance format: "Q2 2025 | $1.23 | $1.20 | +2.5%"
+    /Q([1-4])\s*(?:'?|FY)?(\d{2,4}).*?\$?([\d.]+).*?(?:estimate|est\.?)[:\s]*\$?([\d.]+)/gi,
+    // Zacks format: "Reported: $1.23 Estimate: $1.20"
+    /Q([1-4]).*?(\d{4}).*?reported[:\s]*\$?([\d.]+).*?estimate[:\s]*\$?([\d.]+)/gi,
+    // Generic: "EPS of $1.23 vs. consensus of $1.20"
+    /Q([1-4])\s*(\d{4}).*?eps.*?\$?([\d.]+).*?(?:vs\.?|versus|consensus)[:\s]*\$?([\d.]+)/gi,
+  ];
+  
+  for (const pattern of patterns) {
+    let match;
+    while ((match = pattern.exec(markdown)) !== null) {
+      const quarter = parseInt(match[1]);
+      const yearStr = match[2];
+      const year = yearStr.length === 2 ? 2000 + parseInt(yearStr) : parseInt(yearStr);
+      const epsEstimate = parseFloat(match[4] || match[3]);
+      
+      if (isNaN(quarter) || isNaN(year) || isNaN(epsEstimate)) continue;
+      
+      const key = `Q${quarter} ${year}`;
+      if (!estimates.has(key)) {
+        estimates.set(key, {
+          eps_estimate: epsEstimate,
+          revenue_estimate: null,
+          fiscal_year: year,
+        });
+        console.log(`[Firecrawl] Parsed ${symbol} ${key}: EPS Est $${epsEstimate}`);
+      }
+    }
+  }
+  
+  return estimates;
 }
 ```
 
-### Step 4: Update Matching to Use Fiscal Year + Quarter
-Improve matching by extracting and comparing quarter + year explicitly:
+### Step 2: Integrate Firecrawl into the Main Backfill Flow
 
-```text
-function parseFiscalPeriod(fp: string): { quarter: number; year: number } | null {
-  const match = fp?.match(/Q(\d)\s*(\d{4})?/i);
-  if (!match) return null;
-  return { 
-    quarter: parseInt(match[1]), 
-    year: match[2] ? parseInt(match[2]) : null 
-  };
+**File**: `supabase/functions/backfill-earnings-history/index.ts`
+
+Update the main serve function to fetch Firecrawl estimates:
+
+```typescript
+// After FMP_API_KEY check (around line 459)
+const FIRECRAWL_API_KEY = Deno.env.get('FIRECRAWL_API_KEY');
+
+// After line 481 (FMP estimates fetch)
+let firecrawlEstimates = new Map<string, EstimateData>();
+if (FIRECRAWL_API_KEY) {
+  firecrawlEstimates = await fetchFirecrawlEarningsEstimates(symbol, FIRECRAWL_API_KEY);
+  console.log(`[backfill-earnings-history] Got ${firecrawlEstimates.size} estimates from Firecrawl for ${symbol}`);
+}
+```
+
+Update `findMatchingEstimate` to include Firecrawl data (add as 4th parameter):
+
+```typescript
+function findMatchingEstimate(
+  record: { fiscal_period: string | null; report_date: string },
+  estimatesByPeriod: Map<string, EstimateData>,
+  estimatesByDate: Map<string, EstimateData>,
+  fmpEstimates: Map<string, EstimateData>,
+  firecrawlEstimates: Map<string, EstimateData>  // NEW
+): EstimateData | null {
+  // ... existing logic ...
+  
+  // After FMP fallback, add Firecrawl fallback
+  for (const key of keysToTry) {
+    const fcEstimate = firecrawlEstimates.get(key);
+    if (fcEstimate) {
+      console.log(`[backfill-earnings-history] Matched Firecrawl estimate by key "${key}"`);
+      return fcEstimate;
+    }
+  }
+  
+  return null;
+}
+```
+
+### Step 3: Add SEC Fallback for Empty Data
+
+When Polygon returns no filing dates, invoke the SEC function:
+
+```typescript
+// In the section starting at line 569 (after allDates.size === 0 check)
+if (allDates.size === 0 && POLYGON_API_KEY) {
+  console.log(`[backfill-earnings-history] No earnings dates from Polygon, trying SEC XBRL...`);
+  
+  try {
+    const secResponse = await supabase.functions.invoke('fetch-sec-earnings-history', {
+      body: { symbols: [symbol] }
+    });
+    
+    if (secResponse.data?.results?.[symbol]?.success) {
+      // SEC function already stores data - invalidate cache and return
+      return new Response(JSON.stringify({
+        success: true,
+        symbol,
+        created: secResponse.data.results[symbol].quartersStored || 0,
+        reason: 'created_from_sec_xbrl'
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+  } catch (err) {
+    console.error('[backfill-earnings-history] SEC fallback failed:', err);
+  }
 }
 ```
 
@@ -115,33 +225,40 @@ function parseFiscalPeriod(fp: string): { quarter: number; year: number } | null
 
 | File | Changes |
 |------|---------|
-| `supabase/functions/backfill-earnings-history/index.ts` | Fix fiscal period matching, add FMP fallback, add SEC fallback |
+| `supabase/functions/backfill-earnings-history/index.ts` | Add Firecrawl scraping functions, integrate into main flow, add SEC fallback |
 
-## Expected Outcome
+## Data Sources Hierarchy (After Implementation)
+
+| Priority | Source | Data Provided | Reliability |
+|----------|--------|---------------|-------------|
+| 1 | earnings_calendar (DB) | EPS estimates, dates | High (already validated) |
+| 2 | FMP API | Historical EPS estimates | High (structured API) |
+| 3 | Polygon Benzinga | Actual report dates | High |
+| 4 | SEC XBRL | EPS actuals, revenue | High (official filings) |
+| 5 | Firecrawl (Yahoo/Nasdaq/Zacks) | Missing EPS estimates | Medium (web scraping) |
+
+## Expected Results
 
 After implementation:
-1. Tickers will show accurate beat/miss indicators based on EPS estimates
-2. Beat rate percentages will be calculated correctly
-3. The "Surprise vs Return" chart will display properly
-4. Historical data will be enriched from multiple sources (earnings_calendar, FMP, SEC)
 
-## Technical Details
+1. **MS (Morgan Stanley)**: Currently shows "—" for beat rate → Will show actual beat/miss percentages
+2. **LLY (Eli Lilly)**: Only 3 records → Will have 16 quarters of data with estimates
+3. **Any new ticker search**: Will automatically trigger Firecrawl enrichment if FMP/Polygon data is incomplete
 
-**Data Flow After Fix:**
-```text
-1. User loads /stock/AAPL
-2. EarningsImpactSection triggers backfill-earnings-history
-3. Backfill function:
-   a. Checks earnings_history for existing records
-   b. If empty → fetch from Polygon + SEC XBRL
-   c. For each record without eps_estimate:
-      i.  Try matching from earnings_calendar (with flexible period format)
-      ii. If no match → fetch from FMP historical earnings
-   d. Calculate eps_surprise_pct when both actual and estimate exist
-4. Return enriched data to UI
-```
+## Firecrawl Usage Details
 
-**API Dependencies:**
-- Polygon API: Filing dates (already configured)
-- SEC XBRL API: EPS actuals from 10-Q filings (free, no key needed)
-- FMP API: Historical estimates (requires FMP_API_KEY secret)
+| Feature | Usage |
+|---------|-------|
+| Endpoint | `/v1/scrape` |
+| Format | `markdown` (cleanest for parsing) |
+| Target Sites | Yahoo Finance, Nasdaq, Zacks |
+| Rate Limiting | Sequential scraping with early exit on success |
+| Fallback | Only used when FMP estimates are missing |
+
+## Technical Considerations
+
+1. **Caching**: Firecrawl results are stored in `earnings_history` table, so subsequent loads don't re-scrape
+2. **Rate Limits**: Limited to 3 sites max, with early exit when enough data is found
+3. **Error Handling**: Firecrawl failures don't block the main flow - data from other sources is still returned
+4. **API Key**: Uses existing `FIRECRAWL_API_KEY` secret (already configured)
+
