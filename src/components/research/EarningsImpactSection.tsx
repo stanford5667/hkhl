@@ -315,13 +315,21 @@ export function EarningsImpactSection({ ticker, nextEarnings: fallbackNextEarnin
     ];
   }, [earningsHistory]);
 
-  if (historyLoading) {
+  // Show loading state while fetching data OR while backfill is running with no data yet
+  const isLoadingData = historyLoading || (backfillMutation.isPending && earningsHistory.length === 0);
+
+  if (isLoadingData) {
     return (
       <Card className="bg-card border-border">
         <CardContent className="p-2 space-y-2">
           <div className="flex items-center gap-1.5">
             <BarChart3 className="h-3 w-3 text-primary" />
             <span className="text-[10px] md:text-xs font-medium">Earnings Impact</span>
+            {backfillMutation.isPending && (
+              <span className="text-[8px] text-muted-foreground animate-pulse ml-1">
+                Loading earnings data...
+              </span>
+            )}
           </div>
           <Skeleton className="h-32 w-full" />
           <Skeleton className="h-20 w-full" />
