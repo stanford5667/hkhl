@@ -5,7 +5,7 @@ import {
   getCachedQuotes,
   clearQuoteCache as clearFinnhubCache,
 } from '@/services/quoteCacheService';
-import { searchTickers } from '@/services/tickerDirectoryService';
+import { searchTickersCancellable } from '@/services/tickerDirectoryService';
 
 // Types compatible with existing usage
 export interface QuoteData {
@@ -28,7 +28,7 @@ export interface TickerSearchResult {
   symbol: string;
   name: string;
   exchange?: string;
-  source?: 'live' | 'cache' | 'local';
+  source?: 'live' | 'cache' | 'local' | 'polygon' | 'api';
 }
 
 export interface MarketIndex {
@@ -128,69 +128,100 @@ export function useStockQuote(ticker: string | null, options: { enabled?: boolea
   };
 }
 
-// Hook for debounced ticker search - uses local database first
+// Hook for debounced ticker search - uses local database first with cancellation
 export function useTickerSearchHook(query: string, options: { enabled?: boolean; debounceMs?: number } = {}) {
-  const { enabled = true, debounceMs = 300 } = options;
+  const { enabled = true, debounceMs = 250 } = options;
   
   const [results, setResults] = useState<TickerSearchResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const mountedRef = useRef(true);
+  const lastQueryRef = useRef<string>('');
+  const searchIdRef = useRef(0);
 
   useEffect(() => {
-    mountedRef.current = true;
-    
-    if (!enabled || !query || query.length < 1) {
-      setResults([]);
-      setIsSearching(false);
+    // Skip if same query or disabled
+    const trimmedQuery = query.trim();
+    if (!enabled || trimmedQuery === lastQueryRef.current) {
       return;
     }
     
+    // Clear results for empty query
+    if (!trimmedQuery || trimmedQuery.length < 1) {
+      setResults([]);
+      setIsSearching(false);
+      setError(null);
+      lastQueryRef.current = '';
+      return;
+    }
+    
+    // Clear previous debounce
     if (debounceRef.current) {
       clearTimeout(debounceRef.current);
     }
     
     setIsSearching(true);
     
+    // Generate unique ID for this search
+    const searchId = ++searchIdRef.current;
+    
     debounceRef.current = setTimeout(async () => {
+      // Check if this search is still the latest
+      if (searchId !== searchIdRef.current) {
+        return;
+      }
+      
       try {
-        const data = await searchTickers(query);
-        if (mountedRef.current) {
+        const data = await searchTickersCancellable(trimmedQuery);
+        
+        // Only update if this is still the latest search
+        if (searchId === searchIdRef.current) {
+          lastQueryRef.current = trimmedQuery;
           setResults(data.map(r => ({
             symbol: r.symbol,
             name: r.name,
-            exchange: r.exchange,
-            source: 'local' as const,
+            exchange: r.exchange ?? undefined,
+            source: r.source,
           })));
           setError(null);
         }
       } catch (err) {
-        if (mountedRef.current) {
+        // Only update error if this is still the latest search
+        if (searchId === searchIdRef.current) {
+          console.error('[useTickerSearchHook] Search error:', err);
           setError(err instanceof Error ? err.message : 'Search failed');
-          setResults([]);
+          // Keep existing results on error rather than clearing
         }
       } finally {
-        if (mountedRef.current) {
+        if (searchId === searchIdRef.current) {
           setIsSearching(false);
         }
       }
     }, debounceMs);
     
     return () => {
-      mountedRef.current = false;
       if (debounceRef.current) {
         clearTimeout(debounceRef.current);
       }
     };
   }, [query, enabled, debounceMs]);
 
+  // Clear function for external use
+  const clear = useCallback(() => {
+    setResults([]);
+    setError(null);
+    setIsSearching(false);
+    lastQueryRef.current = '';
+    searchIdRef.current++;
+  }, []);
+
   return {
     results,
     isSearching,
     error,
     hasResults: results.length > 0,
+    clear,
   };
 }
 
