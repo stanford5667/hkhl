@@ -68,7 +68,9 @@ export function GlobalSearch({ open, onOpenChange }: GlobalSearchProps) {
                 <CommandItem
                   key={result.symbol}
                   value={`${result.symbol} ${result.name}`}
-                  onSelect={() => runCommand(() => navigate(`/research/${result.symbol}`))}
+                  onSelect={() => {
+                    runCommand(() => navigate(`/research/${result.symbol}`));
+                  }}
                   className="text-slate-300 hover:bg-slate-800"
                 >
                   <div className="flex items-center justify-between w-full">
