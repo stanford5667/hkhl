@@ -356,13 +356,98 @@ serve(async (req) => {
       });
     }
 
+    // If no records exist, CREATE them from Polygon filing dates
     if (!existingHistory || existingHistory.length === 0) {
-      console.log(`[backfill-earnings-history] No existing earnings_history records for ${symbol}`);
+      console.log(`[backfill-earnings-history] No existing earnings_history records for ${symbol}, creating from Polygon data...`);
+      
+      // Merge all available dates (prefer release dates over filing dates)
+      const allDates = new Map<string, string>();
+      for (const [key, date] of polygonFilingDates) {
+        allDates.set(key, date);
+      }
+      for (const [key, date] of polygonReleaseDates) {
+        allDates.set(key, date); // Release dates override filing dates
+      }
+      for (const [key, date] of calendarDates) {
+        allDates.set(key, date); // Calendar dates take priority
+      }
+      
+      if (allDates.size === 0) {
+        console.log(`[backfill-earnings-history] No earnings dates found for ${symbol}`);
+        return new Response(JSON.stringify({ 
+          success: true, 
+          symbol, 
+          created: 0, 
+          reason: 'no_earnings_data_from_polygon' 
+        }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      
+      // Create earnings_history records from Polygon data
+      let createdCount = 0;
+      const recordsToInsert: Array<{
+        symbol: string;
+        report_date: string;
+        fiscal_period: string;
+        price_before?: number | null;
+        price_after?: number | null;
+        price_change_pct?: number | null;
+        return_1w?: number | null;
+        return_2w?: number | null;
+        return_1m?: number | null;
+        return_3m?: number | null;
+      }> = [];
+      
+      for (const [fiscalPeriod, reportDate] of allDates) {
+        // Skip FY entries (we use Q4 for those)
+        if (fiscalPeriod.startsWith('FY')) continue;
+        
+        // Only process historical dates (not future)
+        if (new Date(reportDate) > new Date()) continue;
+        
+        // Compute returns for this earnings date
+        const returns = await computeMultiPeriodReturns(supabase, symbol, reportDate, POLYGON_API_KEY);
+        
+        recordsToInsert.push({
+          symbol,
+          report_date: reportDate,
+          fiscal_period: fiscalPeriod,
+          price_before: returns.price_before,
+          price_after: returns.price_after,
+          price_change_pct: returns.price_change_pct,
+          return_1w: returns.return_1w,
+          return_2w: returns.return_2w,
+          return_1m: returns.return_1m,
+          return_3m: returns.return_3m,
+        });
+        
+        console.log(`[backfill-earnings-history] Prepared ${symbol} ${fiscalPeriod} (${reportDate}): 1W=${returns.return_1w?.toFixed(2) ?? 'N/A'}%`);
+      }
+      
+      if (recordsToInsert.length > 0) {
+        // Insert all records (use upsert to handle duplicates)
+        const { error: insertError, data: insertedData } = await supabase
+          .from('earnings_history')
+          .upsert(recordsToInsert, { 
+            onConflict: 'symbol,report_date',
+            ignoreDuplicates: false 
+          })
+          .select('id');
+        
+        if (insertError) {
+          console.error(`[backfill-earnings-history] Insert error:`, insertError.message);
+        } else {
+          createdCount = insertedData?.length || recordsToInsert.length;
+          console.log(`[backfill-earnings-history] Created ${createdCount} earnings_history records for ${symbol}`);
+        }
+      }
+      
       return new Response(JSON.stringify({ 
         success: true, 
         symbol, 
-        updated: 0, 
-        reason: 'no_existing_records' 
+        created: createdCount,
+        reason: 'created_from_polygon' 
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
