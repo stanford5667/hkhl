@@ -391,12 +391,28 @@ async function computeReturns(
   return result;
 }
 
-// Store earnings in database
+// Store earnings in database - delete old data first to avoid duplicates
 async function storeEarnings(
   supabase: any,
   earnings: QuarterlyEarnings[]
 ): Promise<number> {
   if (earnings.length === 0) return 0;
+
+  // Get unique symbols from earnings
+  const symbols = [...new Set(earnings.map(e => e.symbol))];
+  
+  // Delete existing records for these symbols to start fresh with SEC data
+  for (const symbol of symbols) {
+    try {
+      await supabase
+        .from('earnings_history')
+        .delete()
+        .eq('symbol', symbol);
+      console.log(`[backfill-earnings-history] Cleared old data for ${symbol}`);
+    } catch (err) {
+      console.warn(`[backfill-earnings-history] Failed to clear old data for ${symbol}:`, err);
+    }
+  }
 
   let stored = 0;
   
@@ -404,7 +420,7 @@ async function storeEarnings(
     try {
       const { error } = await supabase
         .from('earnings_history')
-        .upsert({
+        .insert({
           symbol: earning.symbol,
           report_date: earning.report_date,
           fiscal_period: earning.fiscal_period,
@@ -421,14 +437,12 @@ async function storeEarnings(
           return_2w: earning.return_2w,
           return_1m: earning.return_1m,
           return_3m: earning.return_3m,
-        }, {
-          onConflict: 'symbol,report_date',
-          ignoreDuplicates: false
         });
 
       if (!error) stored++;
-    } catch {
-      // Continue on error
+      else console.warn(`[backfill-earnings-history] Insert error for ${earning.symbol} ${earning.fiscal_period}:`, error.message);
+    } catch (err) {
+      console.warn(`[backfill-earnings-history] Insert exception:`, err);
     }
   }
 
