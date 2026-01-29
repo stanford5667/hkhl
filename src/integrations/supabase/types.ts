@@ -1693,6 +1693,10 @@ export type Database = {
           price_before: number | null
           price_change_pct: number | null
           report_date: string
+          return_1m: number | null
+          return_1w: number | null
+          return_2w: number | null
+          return_3m: number | null
           revenue_actual: number | null
           revenue_estimate: number | null
           revenue_surprise_pct: number | null
@@ -1709,6 +1713,10 @@ export type Database = {
           price_before?: number | null
           price_change_pct?: number | null
           report_date: string
+          return_1m?: number | null
+          return_1w?: number | null
+          return_2w?: number | null
+          return_3m?: number | null
           revenue_actual?: number | null
           revenue_estimate?: number | null
           revenue_surprise_pct?: number | null
@@ -1725,6 +1733,10 @@ export type Database = {
           price_before?: number | null
           price_change_pct?: number | null
           report_date?: string
+          return_1m?: number | null
+          return_1w?: number | null
+          return_2w?: number | null
+          return_3m?: number | null
           revenue_actual?: number | null
           revenue_estimate?: number | null
           revenue_surprise_pct?: number | null

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { TrendingUp, TrendingDown, Calendar, Target, BarChart3, DollarSign } from 'lucide-react';
@@ -21,6 +21,8 @@ import {
   ReferenceLine,
 } from 'recharts';
 
+type ReturnPeriod = '1W' | '2W' | '1M' | '3M';
+
 interface EarningsHistoryRecord {
   id: string;
   symbol: string;
@@ -35,6 +37,10 @@ interface EarningsHistoryRecord {
   price_before: number | null;
   price_after: number | null;
   price_change_pct: number | null;
+  return_1w: number | null;
+  return_2w: number | null;
+  return_1m: number | null;
+  return_3m: number | null;
 }
 
 interface EarningsCalendarRecord {
@@ -155,6 +161,20 @@ export function EarningsImpactSection({ ticker, nextEarnings: fallbackNextEarnin
     return fallbackNextEarnings;
   }, [nextEarningsData, fallbackNextEarnings]);
 
+  // State for return period selector
+  const [returnPeriod, setReturnPeriod] = useState<ReturnPeriod>('1W');
+
+  // Helper to get return value based on selected period
+  const getReturnForPeriod = (record: EarningsHistoryRecord, period: ReturnPeriod): number | null => {
+    switch (period) {
+      case '1W': return record.return_1w ?? record.price_change_pct;
+      case '2W': return record.return_2w;
+      case '1M': return record.return_1m;
+      case '3M': return record.return_3m;
+      default: return record.return_1w ?? record.price_change_pct;
+    }
+  };
+
   // Process earnings history for display
   const earningsHistory = useMemo(() => {
     if (!historyData || historyData.length === 0) return [];
@@ -175,18 +195,20 @@ export function EarningsImpactSection({ ticker, nextEarnings: fallbackNextEarnin
         beatOrMiss = record.eps_actual >= record.eps_estimate ? 'beat' : 'miss';
       }
 
+      const priceReturn = getReturnForPeriod(record, returnPeriod);
+
       return {
         date: record.report_date,
         quarter: record.fiscal_period || format(parseISO(record.report_date), "'Q'Q yyyy"),
         epsActual: record.eps_actual,
         epsEstimate: record.eps_estimate,
         epsSurprise: epsSurprise,
-        priceReturn5Day: record.price_change_pct ?? 0,
+        priceReturn: priceReturn ?? 0,
         beatOrMiss,
         hasEstimate: record.eps_estimate !== null,
       };
     });
-  }, [historyData]);
+  }, [historyData, returnPeriod]);
 
   const stats = useMemo(() => {
     if (earningsHistory.length === 0) {
@@ -213,11 +235,11 @@ export function EarningsImpactSection({ ticker, nextEarnings: fallbackNextEarnin
       avgSurprise: hasEstimates 
         ? (withEstimates.reduce((sum, e) => sum + (e.epsSurprise || 0), 0) / withEstimates.length).toFixed(1) 
         : null,
-      avgReturnOnBeat: beats.length > 0 && beats.some(e => e.priceReturn5Day !== 0)
-        ? (beats.reduce((sum, e) => sum + e.priceReturn5Day, 0) / beats.length).toFixed(1) 
+      avgReturnOnBeat: beats.length > 0 && beats.some(e => e.priceReturn !== 0)
+        ? (beats.reduce((sum, e) => sum + e.priceReturn, 0) / beats.length).toFixed(1) 
         : null,
-      avgReturnOnMiss: misses.length > 0 && misses.some(e => e.priceReturn5Day !== 0)
-        ? (misses.reduce((sum, e) => sum + e.priceReturn5Day, 0) / misses.length).toFixed(1)
+      avgReturnOnMiss: misses.length > 0 && misses.some(e => e.priceReturn !== 0)
+        ? (misses.reduce((sum, e) => sum + e.priceReturn, 0) / misses.length).toFixed(1)
         : null,
       hasEstimates,
     };
@@ -231,7 +253,7 @@ export function EarningsImpactSection({ ticker, nextEarnings: fallbackNextEarnin
     return [...withEstimates].reverse().slice(-6).map(e => ({
       quarter: e.quarter.replace('20', "'").replace(' ', ' '),
       surprise: parseFloat((e.epsSurprise || 0).toFixed(1)),
-      return: e.priceReturn5Day,
+      return: e.priceReturn,
     }));
   }, [earningsHistory]);
 
@@ -244,14 +266,14 @@ export function EarningsImpactSection({ ticker, nextEarnings: fallbackNextEarnin
       {
         name: 'On Beats',
         return: beats.length > 0 
-          ? parseFloat((beats.reduce((sum, e) => sum + e.priceReturn5Day, 0) / beats.length).toFixed(1))
+          ? parseFloat((beats.reduce((sum, e) => sum + e.priceReturn, 0) / beats.length).toFixed(1))
           : 0,
         fill: 'hsl(var(--primary))',
       },
       {
         name: 'On Misses',
         return: misses.length > 0
-          ? parseFloat((misses.reduce((sum, e) => sum + e.priceReturn5Day, 0) / misses.length).toFixed(1))
+          ? parseFloat((misses.reduce((sum, e) => sum + e.priceReturn, 0) / misses.length).toFixed(1))
           : 0,
         fill: 'hsl(var(--destructive))',
       },
@@ -452,10 +474,29 @@ export function EarningsImpactSection({ ticker, nextEarnings: fallbackNextEarnin
         <div className="space-y-1">
           <div className="flex items-center justify-between px-1.5">
             <p className="text-[8px] text-muted-foreground uppercase">Earnings History</p>
-            <div className="flex items-center gap-2 text-[7px] text-muted-foreground uppercase">
-              <span className="w-10 text-right">EPS</span>
-              <span className="w-12 text-right">Surprise</span>
-              <span className="w-12 text-right">5D Ret</span>
+            <div className="flex items-center gap-2">
+              {/* Period selector */}
+              <div className="flex items-center gap-0.5 text-[7px]">
+                {(['1W', '2W', '1M', '3M'] as ReturnPeriod[]).map((period) => (
+                  <button
+                    key={period}
+                    onClick={() => setReturnPeriod(period)}
+                    className={cn(
+                      "px-1.5 py-0.5 rounded transition-colors",
+                      returnPeriod === period 
+                        ? "bg-primary text-primary-foreground" 
+                        : "text-muted-foreground hover:bg-secondary"
+                    )}
+                  >
+                    {period}
+                  </button>
+                ))}
+              </div>
+              <div className="flex items-center gap-2 text-[7px] text-muted-foreground uppercase">
+                <span className="w-10 text-right">EPS</span>
+                <span className="w-12 text-right">Surprise</span>
+                <span className="w-12 text-right">Return</span>
+              </div>
             </div>
           </div>
           <div className="space-y-1 max-h-40 overflow-y-auto">
@@ -499,19 +540,19 @@ export function EarningsImpactSection({ ticker, nextEarnings: fallbackNextEarnin
                       </span>
                     </div>
                   )}
-                  {/* 5D Price Return */}
-                  {earning.priceReturn5Day !== 0 && (
-                    <div className="flex items-center gap-0.5 min-w-[50px]" title="5-Day Price Return">
-                      {earning.priceReturn5Day >= 0 ? (
+                  {/* Price Return for selected period */}
+                  {earning.priceReturn !== 0 && (
+                    <div className="flex items-center gap-0.5 min-w-[50px]" title={`${returnPeriod} Price Return`}>
+                      {earning.priceReturn >= 0 ? (
                         <TrendingUp className="h-2.5 w-2.5 text-primary" />
                       ) : (
                         <TrendingDown className="h-2.5 w-2.5 text-destructive" />
                       )}
                       <span className={cn(
                         "font-medium tabular-nums",
-                        earning.priceReturn5Day >= 0 ? "text-primary" : "text-destructive"
+                        earning.priceReturn >= 0 ? "text-primary" : "text-destructive"
                       )}>
-                        {earning.priceReturn5Day >= 0 ? '+' : ''}{earning.priceReturn5Day.toFixed(1)}%
+                        {earning.priceReturn >= 0 ? '+' : ''}{earning.priceReturn.toFixed(1)}%
                       </span>
                     </div>
                   )}
