@@ -295,14 +295,20 @@ async function fetchPriceBars(
     .limit(300);
 
   if (!error && dbBars && dbBars.length > 20) {
+    console.log(`[fetchPriceBars] Found ${dbBars.length} bars in DB for ${symbol}`);
     return dbBars.map((b: { bar_date: string; close: number }) => ({
       date: b.bar_date,
       close: Number(b.close),
     }));
   }
 
+  console.log(`[fetchPriceBars] DB has ${dbBars?.length || 0} bars for ${symbol}, trying Polygon API...`);
+
   // Fallback to Polygon API
-  if (!polygonApiKey) return [];
+  if (!polygonApiKey) {
+    console.warn(`[fetchPriceBars] No Polygon API key available, cannot fetch price data`);
+    return [];
+  }
 
   try {
     const url = `https://api.polygon.io/v2/aggs/ticker/${symbol}/range/1/day/${startDate}/${endDate}?adjusted=true&sort=asc&limit=500&apiKey=${polygonApiKey}`;
@@ -313,17 +319,26 @@ async function fetchPriceBars(
     const response = await fetch(url, { signal: controller.signal });
     clearTimeout(timeout);
     
-    if (!response.ok) return [];
+    if (!response.ok) {
+      console.warn(`[fetchPriceBars] Polygon API returned ${response.status} for ${symbol}`);
+      return [];
+    }
     
     const data = await response.json();
     
-    if (!data.results || !Array.isArray(data.results)) return [];
+    if (!data.results || !Array.isArray(data.results)) {
+      console.warn(`[fetchPriceBars] Polygon returned no results for ${symbol}`);
+      return [];
+    }
+    
+    console.log(`[fetchPriceBars] Got ${data.results.length} bars from Polygon for ${symbol}`);
     
     return data.results.map((bar: { t: number; c: number }) => ({
       date: new Date(bar.t).toISOString().split('T')[0],
       close: bar.c,
     }));
-  } catch {
+  } catch (err) {
+    console.error(`[fetchPriceBars] Polygon API error for ${symbol}:`, err);
     return [];
   }
 }
@@ -386,12 +401,19 @@ async function computeReturns(
     if (idxAfter < bars.length) {
       const after = Number(bars[idxAfter].close);
       if (Number.isFinite(after)) {
-        result[key as keyof typeof RETURN_PERIODS] = calcPctChange(before, after);
+        const returnValue = calcPctChange(before, after);
         
-        if (key === 'return_1w') {
+        // Explicitly set each return period
+        if (key === 'return_1d') result.return_1d = returnValue;
+        else if (key === 'return_5d') result.return_5d = returnValue;
+        else if (key === 'return_1w') {
+          result.return_1w = returnValue;
           result.price_after = after;
-          result.price_change_pct = result.return_1w;
+          result.price_change_pct = returnValue;
         }
+        else if (key === 'return_2w') result.return_2w = returnValue;
+        else if (key === 'return_1m') result.return_1m = returnValue;
+        else if (key === 'return_3m') result.return_3m = returnValue;
       }
     }
   }
@@ -441,6 +463,8 @@ async function storeEarnings(
           price_before: earning.price_before,
           price_after: earning.price_after,
           price_change_pct: earning.price_change_pct,
+          return_1d: earning.return_1d,
+          return_5d: earning.return_5d,
           return_1w: earning.return_1w,
           return_2w: earning.return_2w,
           return_1m: earning.return_1m,
@@ -520,12 +544,14 @@ serve(async (req) => {
       earning.price_before = returns.price_before;
       earning.price_after = returns.price_after;
       earning.price_change_pct = returns.price_change_pct;
+      earning.return_1d = returns.return_1d;
+      earning.return_5d = returns.return_5d;
       earning.return_1w = returns.return_1w;
       earning.return_2w = returns.return_2w;
       earning.return_1m = returns.return_1m;
       earning.return_3m = returns.return_3m;
       
-      console.log(`[backfill-earnings-history] ${symbol} ${earning.fiscal_period}: EPS=${earning.eps_actual?.toFixed(2)}, 1W=${returns.return_1w?.toFixed(1)}%`);
+      console.log(`[backfill-earnings-history] ${symbol} ${earning.fiscal_period}: EPS=${earning.eps_actual?.toFixed(2)}, 1D=${returns.return_1d?.toFixed(1)}%, 5D=${returns.return_5d?.toFixed(1)}%`);
     }
 
     // Step 4: Store in database
