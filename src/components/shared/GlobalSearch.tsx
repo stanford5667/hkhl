@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
 import {
   CommandDialog,
   CommandEmpty,
@@ -8,19 +7,9 @@ import {
   CommandInput,
   CommandItem,
   CommandList,
-  CommandSeparator,
 } from '@/components/ui/command';
-import {
-  Building2,
-  User,
-  CheckSquare,
-  Search,
-  Clock,
-  FileText,
-  Loader2,
-} from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts/AuthContext';
+import { Search, Loader2, TrendingUp, TrendingDown } from 'lucide-react';
+import { useTickerSearch } from '@/hooks/useTickerSearch';
 
 interface GlobalSearchProps {
   open: boolean;
@@ -29,229 +18,102 @@ interface GlobalSearchProps {
 
 export function GlobalSearch({ open, onOpenChange }: GlobalSearchProps) {
   const navigate = useNavigate();
-  const { user } = useAuth();
-  const [query, setQuery] = useState('');
+  const { query, setQuery, results, isSearching, clear } = useTickerSearch(200);
 
   // Reset query when closing
   useEffect(() => {
-    if (!open) setQuery('');
-  }, [open]);
-
-  const { data: results, isLoading } = useQuery({
-    queryKey: ['global-search', query, user?.id],
-    queryFn: async () => {
-      if (!query.trim() || query.length < 2) {
-        return { companies: [], contacts: [], tasks: [] };
-      }
-
-      const searchTerm = `%${query}%`;
-
-      const [companiesRes, contactsRes, tasksRes] = await Promise.all([
-        supabase
-          .from('companies')
-          .select('id, name, company_type, industry')
-          .ilike('name', searchTerm)
-          .limit(5),
-        supabase
-          .from('contacts')
-          .select('id, first_name, last_name, title, company_id')
-          .or(`first_name.ilike.${searchTerm},last_name.ilike.${searchTerm}`)
-          .limit(5),
-        supabase
-          .from('tasks')
-          .select('id, title, due_date, status, company_id')
-          .ilike('title', searchTerm)
-          .eq('status', 'todo')
-          .limit(5),
-      ]);
-
-      return {
-        companies: companiesRes.data || [],
-        contacts: contactsRes.data || [],
-        tasks: tasksRes.data || [],
-      };
-    },
-    enabled: query.length >= 2 && open,
-    staleTime: 1000,
-  });
-
-  // Fetch recent items when no query
-  const { data: recentItems } = useQuery({
-    queryKey: ['recent-items', user?.id],
-    queryFn: async () => {
-      const [companiesRes, tasksRes] = await Promise.all([
-        supabase
-          .from('companies')
-          .select('id, name, company_type, industry')
-          .order('updated_at', { ascending: false })
-          .limit(3),
-        supabase
-          .from('tasks')
-          .select('id, title, due_date, status')
-          .eq('status', 'todo')
-          .order('created_at', { ascending: false })
-          .limit(3),
-      ]);
-
-      return {
-        companies: companiesRes.data || [],
-        tasks: tasksRes.data || [],
-      };
-    },
-    enabled: open && !query,
-    staleTime: 30000,
-  });
+    if (!open) {
+      clear();
+    }
+  }, [open, clear]);
 
   const runCommand = (command: () => void) => {
     onOpenChange(false);
     command();
   };
 
-  const hasResults = results && (
-    results.companies.length > 0 ||
-    results.contacts.length > 0 ||
-    results.tasks.length > 0
-  );
+  const hasResults = results.length > 0;
 
   return (
     <CommandDialog open={open} onOpenChange={onOpenChange}>
       <div className="bg-slate-900 border-slate-800 rounded-xl overflow-hidden">
         <CommandInput
-          placeholder="Search companies, contacts, tasks..."
+          placeholder="Search tickers... (e.g., AAPL, MSFT)"
           value={query}
           onValueChange={setQuery}
           className="border-b border-slate-800"
         />
         <CommandList className="max-h-[400px]">
           {/* Loading state */}
-          {isLoading && query.length >= 2 && (
+          {isSearching && (
             <div className="py-6 text-center">
               <Loader2 className="h-6 w-6 animate-spin mx-auto text-muted-foreground" />
-              <p className="text-sm text-muted-foreground mt-2">Searching...</p>
+              <p className="text-sm text-muted-foreground mt-2">Searching tickers...</p>
             </div>
           )}
 
           {/* Empty state */}
-          {!isLoading && query.length >= 2 && !hasResults && (
+          {!isSearching && query.length >= 1 && !hasResults && (
             <CommandEmpty className="py-6 text-center">
               <Search className="h-10 w-10 text-slate-600 mx-auto mb-3" />
-              <p className="text-muted-foreground">No results for "{query}"</p>
-              <p className="text-sm text-slate-500 mt-1">Try a different search term</p>
+              <p className="text-muted-foreground">No tickers found for "{query}"</p>
+              <p className="text-sm text-slate-500 mt-1">Try a different symbol</p>
             </CommandEmpty>
           )}
 
-          {/* Search results */}
-          {!isLoading && hasResults && (
-            <>
-              {results.companies.length > 0 && (
-                <CommandGroup heading="Companies">
-                  {results.companies.map((company) => (
-                    <CommandItem
-                      key={company.id}
-                      onSelect={() => runCommand(() => navigate(`/portfolio/${company.id}`))}
-                      className="text-slate-300 hover:bg-slate-800"
-                    >
-                      <Building2 className="mr-2 h-4 w-4 text-blue-400" />
+          {/* Ticker results */}
+          {!isSearching && hasResults && (
+            <CommandGroup heading="Tickers">
+              {results.map((result) => (
+                <CommandItem
+                  key={result.symbol}
+                  onSelect={() => runCommand(() => navigate(`/research/${result.symbol}`))}
+                  className="text-slate-300 hover:bg-slate-800"
+                >
+                  <div className="flex items-center justify-between w-full">
+                    <div className="flex items-center gap-3">
+                      <div className="w-12 font-mono font-semibold text-primary">
+                        {result.symbol}
+                      </div>
                       <div className="flex-1 min-w-0">
-                        <p className="truncate">{company.name}</p>
+                        <p className="truncate text-sm">{result.name}</p>
                         <p className="text-xs text-muted-foreground truncate">
-                          {company.company_type} • {company.industry || 'No industry'}
+                          {result.exchange || result.type || 'Stock'}
                         </p>
                       </div>
-                    </CommandItem>
-                  ))}
-                </CommandGroup>
-              )}
-
-              {results.contacts.length > 0 && (
-                <>
-                  <CommandSeparator className="bg-slate-800" />
-                  <CommandGroup heading="Contacts">
-                    {results.contacts.map((contact) => (
-                      <CommandItem
-                        key={contact.id}
-                        onSelect={() => runCommand(() => navigate(`/contacts?id=${contact.id}`))}
-                        className="text-slate-300 hover:bg-slate-800"
-                      >
-                        <User className="mr-2 h-4 w-4 text-emerald-400" />
-                        <div className="flex-1 min-w-0">
-                          <p className="truncate">{contact.first_name} {contact.last_name}</p>
-                          {contact.title && (
-                            <p className="text-xs text-muted-foreground truncate">{contact.title}</p>
-                          )}
-                        </div>
-                      </CommandItem>
-                    ))}
-                  </CommandGroup>
-                </>
-              )}
-
-              {results.tasks.length > 0 && (
-                <>
-                  <CommandSeparator className="bg-slate-800" />
-                  <CommandGroup heading="Tasks">
-                    {results.tasks.map((task) => (
-                      <CommandItem
-                        key={task.id}
-                        onSelect={() => runCommand(() => navigate('/tasks'))}
-                        className="text-slate-300 hover:bg-slate-800"
-                      >
-                        <CheckSquare className="mr-2 h-4 w-4 text-purple-400" />
-                        <div className="flex-1 min-w-0">
-                          <p className="truncate">{task.title}</p>
-                          {task.due_date && (
-                            <p className="text-xs text-muted-foreground">
-                              Due: {new Date(task.due_date).toLocaleDateString()}
-                            </p>
-                          )}
-                        </div>
-                      </CommandItem>
-                    ))}
-                  </CommandGroup>
-                </>
-              )}
-            </>
+                    </div>
+                    {result.quote && (
+                      <div className="flex items-center gap-2 text-right">
+                        <span className="font-mono text-sm">
+                          ${result.quote.price?.toFixed(2) || '—'}
+                        </span>
+                        {result.quote.changePercent !== undefined && (
+                          <span className={`flex items-center text-xs ${
+                            result.quote.changePercent >= 0 ? 'text-emerald-500' : 'text-destructive'
+                          }`}>
+                            {result.quote.changePercent >= 0 ? (
+                              <TrendingUp className="h-3 w-3 mr-0.5" />
+                            ) : (
+                              <TrendingDown className="h-3 w-3 mr-0.5" />
+                            )}
+                            {result.quote.changePercent >= 0 ? '+' : ''}{result.quote.changePercent.toFixed(2)}%
+                          </span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </CommandItem>
+              ))}
+            </CommandGroup>
           )}
 
-          {/* Recent items when no query */}
-          {!query && recentItems && (
-            <>
-              {recentItems.companies.length > 0 && (
-                <CommandGroup heading="Recent Companies">
-                  {recentItems.companies.map((company) => (
-                    <CommandItem
-                      key={company.id}
-                      onSelect={() => runCommand(() => navigate(`/portfolio/${company.id}`))}
-                      className="text-slate-300 hover:bg-slate-800"
-                    >
-                      <Clock className="mr-2 h-4 w-4 text-slate-500" />
-                      <span>{company.name}</span>
-                      <span className="ml-auto text-xs text-muted-foreground capitalize">
-                        {company.company_type}
-                      </span>
-                    </CommandItem>
-                  ))}
-                </CommandGroup>
-              )}
-
-              {recentItems.tasks.length > 0 && (
-                <>
-                  <CommandSeparator className="bg-slate-800" />
-                  <CommandGroup heading="Open Tasks">
-                    {recentItems.tasks.map((task) => (
-                      <CommandItem
-                        key={task.id}
-                        onSelect={() => runCommand(() => navigate('/tasks'))}
-                        className="text-slate-300 hover:bg-slate-800"
-                      >
-                        <CheckSquare className="mr-2 h-4 w-4 text-purple-400" />
-                        <span className="truncate">{task.title}</span>
-                      </CommandItem>
-                    ))}
-                  </CommandGroup>
-                </>
-              )}
-            </>
+          {/* Initial state - prompt to search */}
+          {!query && (
+            <div className="py-8 text-center">
+              <Search className="h-8 w-8 text-slate-600 mx-auto mb-3" />
+              <p className="text-muted-foreground">Start typing to search tickers</p>
+              <p className="text-xs text-slate-500 mt-1">e.g., AAPL, MSFT, GOOGL</p>
+            </div>
           )}
         </CommandList>
 
