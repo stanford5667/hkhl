@@ -214,6 +214,7 @@ export function EarningsImpactSection({ ticker, nextEarnings: fallbackNextEarnin
         epsEstimate: record.eps_estimate,
         epsSurprise: epsSurprise,
         priceReturn: priceReturn ?? 0,
+        priceReturnAvailable: priceReturn !== null,
         beatOrMiss,
         hasEstimate: record.eps_estimate !== null,
       };
@@ -538,34 +539,42 @@ export function EarningsImpactSection({ ticker, nextEarnings: fallbackNextEarnin
                       {earning.epsActual !== null ? `$${earning.epsActual.toFixed(2)}` : '—'}
                     </span>
                   </div>
-                  {/* EPS Surprise % - only show if we have estimates */}
-                  {earning.hasEstimate && earning.epsSurprise !== null && (
-                    <div className="flex items-center gap-0.5 min-w-[50px]" title="EPS Surprise %">
-                      <Target className="h-2.5 w-2.5 text-muted-foreground" />
-                      <span className={cn(
-                        "font-medium tabular-nums",
-                        earning.epsSurprise >= 0 ? "text-primary" : "text-destructive"
-                      )}>
-                        {earning.epsSurprise >= 0 ? '+' : ''}{earning.epsSurprise.toFixed(1)}%
-                      </span>
-                    </div>
-                  )}
-                  {/* Price Return for selected period */}
-                  {earning.priceReturn !== 0 && (
-                    <div className="flex items-center gap-0.5 min-w-[50px]" title={`${returnPeriod} Price Return`}>
-                      {earning.priceReturn >= 0 ? (
-                        <TrendingUp className="h-2.5 w-2.5 text-primary" />
-                      ) : (
-                        <TrendingDown className="h-2.5 w-2.5 text-destructive" />
-                      )}
-                      <span className={cn(
-                        "font-medium tabular-nums",
-                        earning.priceReturn >= 0 ? "text-primary" : "text-destructive"
-                      )}>
-                        {earning.priceReturn >= 0 ? '+' : ''}{earning.priceReturn.toFixed(1)}%
-                      </span>
-                    </div>
-                  )}
+                  {/* EPS Surprise % - always show column for alignment */}
+                  <div className="flex items-center gap-0.5 min-w-[50px] justify-end" title="EPS Surprise %">
+                    {earning.hasEstimate && earning.epsSurprise !== null ? (
+                      <>
+                        <Target className="h-2.5 w-2.5 text-muted-foreground" />
+                        <span className={cn(
+                          "font-medium tabular-nums",
+                          earning.epsSurprise >= 0 ? "text-primary" : "text-destructive"
+                        )}>
+                          {earning.epsSurprise >= 0 ? '+' : ''}{earning.epsSurprise.toFixed(1)}%
+                        </span>
+                      </>
+                    ) : (
+                      <span className="text-muted-foreground">—</span>
+                    )}
+                  </div>
+                  {/* Price Return for selected period - always show column for alignment */}
+                  <div className="flex items-center gap-0.5 min-w-[50px] justify-end" title={`${getPeriodLabel(returnPeriod)} Price Return`}>
+                    {earning.priceReturnAvailable ? (
+                      <>
+                        {earning.priceReturn >= 0 ? (
+                          <TrendingUp className="h-2.5 w-2.5 text-primary" />
+                        ) : (
+                          <TrendingDown className="h-2.5 w-2.5 text-destructive" />
+                        )}
+                        <span className={cn(
+                          "font-medium tabular-nums",
+                          earning.priceReturn >= 0 ? "text-primary" : "text-destructive"
+                        )}>
+                          {earning.priceReturn >= 0 ? '+' : ''}{earning.priceReturn.toFixed(1)}%
+                        </span>
+                      </>
+                    ) : (
+                      <span className="text-muted-foreground">—</span>
+                    )}
+                  </div>
                 </div>
               </div>
             ))}
