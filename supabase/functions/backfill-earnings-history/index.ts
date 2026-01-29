@@ -23,16 +23,53 @@ const RETURN_PERIODS = {
   return_3m: 63,
 };
 
-interface PolygonEarningsResult {
-  fiscal_period: string;
-  fiscal_year: string;
-  report_date: string;
-  eps?: number;
-  eps_estimated?: number;
+interface PriceBar {
+  date: string;
+  close: number;
 }
 
-// Fetch earnings release dates ("date") from Polygon's Benzinga earnings endpoint.
-// This is preferred over SEC filing dates because filings can occur weeks after the earnings event.
+// Fetch price bars directly from Polygon API
+async function fetchPriceBarsFromPolygon(
+  symbol: string,
+  startDate: string,
+  endDate: string,
+  polygonApiKey: string
+): Promise<PriceBar[]> {
+  try {
+    const url = `https://api.polygon.io/v2/aggs/ticker/${symbol}/range/1/day/${startDate}/${endDate}?adjusted=true&sort=asc&limit=500&apiKey=${polygonApiKey}`;
+    
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 15000);
+    
+    const response = await fetch(url, { signal: controller.signal });
+    clearTimeout(timeout);
+    
+    if (!response.ok) {
+      console.log(`[backfill-earnings-history] Polygon bars API returned ${response.status} for ${symbol}`);
+      return [];
+    }
+    
+    const data = await response.json();
+    
+    if (!data.results || !Array.isArray(data.results)) {
+      console.log(`[backfill-earnings-history] No price bars returned from Polygon for ${symbol}`);
+      return [];
+    }
+    
+    const bars: PriceBar[] = data.results.map((bar: { t: number; c: number }) => ({
+      date: new Date(bar.t).toISOString().split('T')[0],
+      close: bar.c,
+    }));
+    
+    console.log(`[backfill-earnings-history] Fetched ${bars.length} price bars from Polygon for ${symbol} (${startDate} to ${endDate})`);
+    return bars;
+  } catch (err) {
+    console.error(`[backfill-earnings-history] Error fetching price bars from Polygon:`, err);
+    return [];
+  }
+}
+
+// Fetch earnings release dates from Polygon's Benzinga earnings endpoint
 async function fetchPolygonBenzingaEarningsReleaseDates(symbol: string, polygonApiKey: string): Promise<Map<string, string>> {
   const fiscalPeriodToReportDate = new Map<string, string>();
 
@@ -75,12 +112,11 @@ async function fetchPolygonBenzingaEarningsReleaseDates(symbol: string, polygonA
   return fiscalPeriodToReportDate;
 }
 
-// Fetch actual earnings dates from Polygon API
+// Fetch actual earnings dates from Polygon API (filing dates)
 async function fetchPolygonEarningsDates(symbol: string, polygonApiKey: string): Promise<Map<string, string>> {
   const fiscalPeriodToReportDate = new Map<string, string>();
   
   try {
-    // Polygon stock financials endpoint has actual filing dates
     const url = `https://api.polygon.io/vX/reference/financials?ticker=${symbol}&limit=20&apiKey=${polygonApiKey}`;
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 8000);
@@ -97,9 +133,8 @@ async function fetchPolygonEarningsDates(symbol: string, polygonApiKey: string):
     
     if (data.results && Array.isArray(data.results)) {
       for (const result of data.results) {
-        // filing_date is the actual report date
         const filingDate = result.filing_date || result.acceptance_datetime?.split('T')[0];
-        const fiscalPeriod = result.fiscal_period; // "Q1", "Q2", "FY", etc.
+        const fiscalPeriod = result.fiscal_period;
         const fiscalYear = result.fiscal_year;
         
         if (filingDate && fiscalPeriod && fiscalYear) {
@@ -107,7 +142,6 @@ async function fetchPolygonEarningsDates(symbol: string, polygonApiKey: string):
           fiscalPeriodToReportDate.set(key, filingDate);
           console.log(`[backfill-earnings-history] Polygon: ${symbol} ${key} reported on ${filingDate}`);
           
-          // Also map FY (annual) to Q4 since our DB stores Q4 for annual reports
           if (fiscalPeriod === 'FY') {
             const q4Key = `Q4 ${fiscalYear}`;
             fiscalPeriodToReportDate.set(q4Key, filingDate);
@@ -128,6 +162,7 @@ async function computeMultiPeriodReturns(
   supabase: any,
   symbol: string,
   reportDate: string,
+  polygonApiKey: string | undefined,
 ): Promise<{
   price_before: number | null;
   price_after: number | null;
@@ -137,23 +172,14 @@ async function computeMultiPeriodReturns(
   return_1m: number | null;
   return_3m: number | null;
 }> {
-  // NOTE:
-  // - We calculate returns in *trading days*, but fetch bars using a calendar-day window.
-  // - 63 trading days can be > 90 calendar days due to weekends/holidays.
-  // Use a larger post window so 1M/3M don't end up null just because we didn't fetch enough bars.
+  // Calculate date range: 30 days before to 180 days after (to cover 3M = 63 trading days)
   const start = new Date(reportDate + 'T00:00:00Z');
   start.setUTCDate(start.getUTCDate() - 30);
   const end = new Date(reportDate + 'T00:00:00Z');
   end.setUTCDate(end.getUTCDate() + 180);
 
-  const { data: bars, error } = await supabase
-    .from('market_daily_bars')
-    .select('bar_date, close')
-    .eq('ticker', symbol)
-    .gte('bar_date', isoDate(start))
-    .lte('bar_date', isoDate(end))
-    .order('bar_date', { ascending: true })
-    .limit(300);
+  const startStr = isoDate(start);
+  const endStr = isoDate(end);
 
   const result = {
     price_before: null as number | null,
@@ -165,8 +191,40 @@ async function computeMultiPeriodReturns(
     return_3m: null as number | null,
   };
 
-  if (error || !bars || bars.length < 8) {
-    console.log(`[backfill-earnings-history] Insufficient bars for ${symbol} around ${reportDate}: ${bars?.length || 0} bars`);
+  // First try to get bars from our database
+  let bars: PriceBar[] = [];
+  
+  const { data: dbBars, error } = await supabase
+    .from('market_daily_bars')
+    .select('bar_date, close')
+    .eq('ticker', symbol)
+    .gte('bar_date', startStr)
+    .lte('bar_date', endStr)
+    .order('bar_date', { ascending: true })
+    .limit(300);
+
+  if (!error && dbBars && dbBars.length > 0) {
+    bars = dbBars.map((b: { bar_date: string; close: number }) => ({
+      date: b.bar_date,
+      close: Number(b.close),
+    }));
+    console.log(`[backfill-earnings-history] Got ${bars.length} bars from database for ${symbol} around ${reportDate}`);
+  }
+
+  // Check if we have any bar on or before report date
+  const hasBarOnOrBeforeReport = bars.some(b => b.date <= reportDate);
+  
+  // If insufficient bars OR no bar on/before report date, fetch from Polygon API
+  if ((bars.length < 8 || !hasBarOnOrBeforeReport) && polygonApiKey) {
+    console.log(`[backfill-earnings-history] Need Polygon data for ${symbol} (DB bars: ${bars.length}, has bar on/before ${reportDate}: ${hasBarOnOrBeforeReport})`);
+    const polygonBars = await fetchPriceBarsFromPolygon(symbol, startStr, endStr, polygonApiKey);
+    if (polygonBars.length > bars.length || (!hasBarOnOrBeforeReport && polygonBars.some(b => b.date <= reportDate))) {
+      bars = polygonBars;
+    }
+  }
+
+  if (bars.length < 8) {
+    console.log(`[backfill-earnings-history] Still insufficient bars for ${symbol} around ${reportDate}: ${bars.length} bars`);
     return result;
   }
 
@@ -174,7 +232,7 @@ async function computeMultiPeriodReturns(
   const idxBefore = (() => {
     let idx = -1;
     for (let i = 0; i < bars.length; i++) {
-      if (bars[i].bar_date <= reportDate) idx = i;
+      if (bars[i].date <= reportDate) idx = i;
     }
     return idx;
   })();
@@ -239,8 +297,6 @@ serve(async (req) => {
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
     // Fetch earnings dates from Polygon
-    // - Earnings endpoint: actual earnings event date (preferred)
-    // - Financials endpoint: SEC filing date (fallback)
     let polygonReleaseDates = new Map<string, string>();
     let polygonFilingDates = new Map<string, string>();
     if (POLYGON_API_KEY) {
@@ -248,11 +304,10 @@ serve(async (req) => {
       polygonFilingDates = await fetchPolygonEarningsDates(symbol, POLYGON_API_KEY);
       console.log(`[backfill-earnings-history] Got ${polygonReleaseDates.size} earnings release dates and ${polygonFilingDates.size} filing dates from Polygon for ${symbol}`);
     } else {
-      console.log('[backfill-earnings-history] POLYGON_API_KEY not configured, using stored dates');
+      console.log('[backfill-earnings-history] POLYGON_API_KEY not configured, using stored dates only');
     }
 
-    // Fetch earnings release dates from our calendar (preferred over SEC filing dates).
-    // Polygon financials filing_date can be weeks after the earnings release, which breaks return windows.
+    // Fetch earnings release dates from our calendar
     const { data: calendarRows, error: calendarErr } = await supabase
       .from('earnings_calendar')
       .select('report_date, fiscal_period, fiscal_year')
@@ -274,11 +329,9 @@ serve(async (req) => {
         const reportDate = row.report_date;
 
         if (fiscalPeriod && fiscalYear && reportDate) {
-          // earnings_history.fiscal_period is stored like "Q4 2025".
           const key = `${fiscalPeriod} ${fiscalYear}`;
           calendarDates.set(key, reportDate);
 
-          // Align annual records too: FY -> Q4
           if (fiscalPeriod === 'FY') {
             calendarDates.set(`Q4 ${fiscalYear}`, reportDate);
           }
@@ -320,10 +373,9 @@ serve(async (req) => {
     let enrichedCount = 0;
     let datesCorrected = 0;
 
-    // Enrich each record with price change data from market_daily_bars
+    // Enrich each record with price change data
     for (const record of existingHistory) {
-      // Choose the best "event date" for computing returns.
-      // Priority: earnings_calendar release date (event date) -> Polygon filing date (fallback) -> stored date.
+      // Choose the best "event date" for computing returns
       let actualReportDate = record.report_date;
 
       const calendarDate = record.fiscal_period ? calendarDates.get(record.fiscal_period) : undefined;
@@ -346,7 +398,6 @@ serve(async (req) => {
         }
       }
 
-      // Now compute returns using the (possibly corrected) date
       // Force recompute if date was corrected or if any return is missing
       const needsEnrichment = 
         actualReportDate !== record.report_date ||
@@ -359,7 +410,7 @@ serve(async (req) => {
         continue;
       }
 
-      const returns = await computeMultiPeriodReturns(supabase, symbol, actualReportDate);
+      const returns = await computeMultiPeriodReturns(supabase, symbol, actualReportDate, POLYGON_API_KEY);
 
       // Build update object with only non-null values
       const updateData: Record<string, number | null> = {};
@@ -394,7 +445,6 @@ serve(async (req) => {
       .not('eps_estimate', 'is', null);
 
     if (calendarData && calendarData.length > 0) {
-      // Create maps by both date and fiscal period
       const estimatesByDate = new Map<string, { eps_estimate: number; revenue_estimate: number | null }>();
       const estimatesByPeriod = new Map<string, { eps_estimate: number; revenue_estimate: number | null }>();
       
@@ -411,11 +461,9 @@ serve(async (req) => {
         }
       }
 
-      // Update earnings_history records with estimates where available
       for (const record of existingHistory) {
-        if (record.eps_estimate !== null) continue; // Already has estimate
+        if (record.eps_estimate !== null) continue;
 
-        // Try matching by fiscal period first, then by date
         const estimate = estimatesByPeriod.get(record.fiscal_period || '') || estimatesByDate.get(record.report_date);
         
         if (estimate && estimate.eps_estimate !== null) {
@@ -446,16 +494,14 @@ serve(async (req) => {
         recordsFound: existingHistory.length,
         enrichedWithPrices: enrichedCount,
         datesCorrected,
-        source: 'polygon_financials + market_daily_bars',
-        periods: ['1W', '2W', '1M', '3M'],
       }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (err) {
     console.error('[backfill-earnings-history] Error:', err);
     return new Response(
       JSON.stringify({ success: false, error: err instanceof Error ? err.message : 'Unknown error' }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
 });
