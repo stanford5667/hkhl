@@ -98,7 +98,6 @@ async function fetchFMPHistoricalEstimates(
         
         // Store by multiple key formats for flexible matching
         const keyWithYear = `Q${quarter} ${fiscalYear}`;
-        const keyQuarterOnly = `Q${quarter}`;
         const keyByDate = reportDate;
         
         const estimateData: EstimateData = {
@@ -121,6 +120,172 @@ async function fetchFMPHistoricalEstimates(
     console.error('[backfill-earnings-history] Error fetching FMP historical estimates:', err);
   }
   
+  return estimates;
+}
+
+// Parse earnings data from markdown content (Firecrawl scraping)
+function parseEarningsFromMarkdown(markdown: string, symbol: string): Map<string, EstimateData> {
+  const estimates = new Map<string, EstimateData>();
+  
+  if (!markdown || markdown.length < 100) return estimates;
+  
+  // Pattern 1: Yahoo Finance table format - "Q2 2025 | $1.23 | $1.20"
+  const yahooPattern = /(?:Q(\d)|(\d{1,2})\/(\d{2,4}))\s*\|?\s*\$?([\d.]+)\s*\|?\s*\$?([\d.]+)/gi;
+  
+  // Pattern 2: Zacks format - "12/2024 | 1.25 | 1.20 | 4.17%"
+  const zacksPattern = /(\d{1,2})\/(\d{4})\s*\|?\s*\$?([\d.]+)\s*\|?\s*\$?([\d.]+)/gi;
+  
+  // Pattern 3: Generic earnings table - captures EPS actual and estimate
+  const genericPattern = /Q([1-4])\s*(?:FY\s*)?'?(\d{2,4}).*?(?:actual|reported)?[:\s]*\$?([\d.-]+).*?(?:estimate|est\.?|consensus)[:\s]*\$?([\d.-]+)/gi;
+  
+  // Pattern 4: Simple quarterly format
+  const simplePattern = /Q([1-4])\s+(\d{4})\s+\$?([\d.]+)\s+\$?([\d.]+)/gi;
+  
+  // Try Zacks pattern first (most structured)
+  let match;
+  while ((match = zacksPattern.exec(markdown)) !== null) {
+    const month = parseInt(match[1]);
+    const year = parseInt(match[2]);
+    const actual = parseFloat(match[3]);
+    const estimate = parseFloat(match[4]);
+    
+    // Determine quarter from month (fiscal quarter end)
+    let quarter: number;
+    if (month >= 1 && month <= 3) quarter = 1;
+    else if (month >= 4 && month <= 6) quarter = 2;
+    else if (month >= 7 && month <= 9) quarter = 3;
+    else quarter = 4;
+    
+    if (!isNaN(estimate) && estimate !== 0) {
+      const key = `Q${quarter} ${year}`;
+      if (!estimates.has(key)) {
+        estimates.set(key, {
+          eps_estimate: estimate,
+          revenue_estimate: null,
+          fiscal_year: year,
+        });
+        console.log(`[Firecrawl] Parsed ${symbol} ${key}: EPS Est $${estimate}`);
+      }
+    }
+  }
+  
+  // Try simple quarterly pattern
+  while ((match = simplePattern.exec(markdown)) !== null) {
+    const quarter = parseInt(match[1]);
+    const yearStr = match[2];
+    const year = yearStr.length === 2 ? 2000 + parseInt(yearStr) : parseInt(yearStr);
+    const estimate = parseFloat(match[4]); // 4th group is estimate
+    
+    if (!isNaN(quarter) && !isNaN(year) && !isNaN(estimate) && estimate !== 0) {
+      const key = `Q${quarter} ${year}`;
+      if (!estimates.has(key)) {
+        estimates.set(key, {
+          eps_estimate: estimate,
+          revenue_estimate: null,
+          fiscal_year: year,
+        });
+        console.log(`[Firecrawl] Parsed ${symbol} ${key}: EPS Est $${estimate}`);
+      }
+    }
+  }
+  
+  // Try generic pattern
+  while ((match = genericPattern.exec(markdown)) !== null) {
+    const quarter = parseInt(match[1]);
+    const yearStr = match[2];
+    const year = yearStr.length === 2 ? 2000 + parseInt(yearStr) : parseInt(yearStr);
+    const estimate = parseFloat(match[4]); // 4th group is estimate
+    
+    if (!isNaN(quarter) && !isNaN(year) && !isNaN(estimate) && estimate !== 0) {
+      const key = `Q${quarter} ${year}`;
+      if (!estimates.has(key)) {
+        estimates.set(key, {
+          eps_estimate: estimate,
+          revenue_estimate: null,
+          fiscal_year: year,
+        });
+        console.log(`[Firecrawl] Parsed ${symbol} ${key}: EPS Est $${estimate}`);
+      }
+    }
+  }
+  
+  return estimates;
+}
+
+// Scrape earnings history from financial sites via Firecrawl
+async function fetchFirecrawlEarningsEstimates(
+  symbol: string,
+  firecrawlApiKey: string
+): Promise<Map<string, EstimateData>> {
+  const estimates = new Map<string, EstimateData>();
+  
+  // Target URLs to scrape (in order of reliability)
+  const sources = [
+    `https://www.zacks.com/stock/quote/${symbol}/earnings-surprises`,
+    `https://finance.yahoo.com/quote/${symbol}/analysis`,
+    `https://www.nasdaq.com/market-activity/stocks/${symbol.toLowerCase()}/earnings`,
+  ];
+  
+  for (const url of sources) {
+    try {
+      console.log(`[Firecrawl] Scraping ${url} for ${symbol}...`);
+      
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 15000);
+      
+      const response = await fetch('https://api.firecrawl.dev/v1/scrape', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${firecrawlApiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          url,
+          formats: ['markdown'],
+          onlyMainContent: true,
+          waitFor: 3000,
+        }),
+        signal: controller.signal,
+      });
+      
+      clearTimeout(timeout);
+      
+      if (!response.ok) {
+        console.log(`[Firecrawl] ${url} returned status ${response.status}`);
+        continue;
+      }
+      
+      const data = await response.json();
+      const markdown = data.data?.markdown || data.markdown || '';
+      
+      if (markdown.length < 100) {
+        console.log(`[Firecrawl] ${url} returned insufficient content (${markdown.length} chars)`);
+        continue;
+      }
+      
+      // Parse earnings data from markdown
+      const parsed = parseEarningsFromMarkdown(markdown, symbol);
+      
+      for (const [key, value] of parsed) {
+        if (!estimates.has(key)) {
+          estimates.set(key, value);
+        }
+      }
+      
+      console.log(`[Firecrawl] Parsed ${parsed.size} estimates from ${url}`);
+      
+      // Early exit if we have enough data (8+ quarters)
+      if (estimates.size >= 8) {
+        console.log(`[Firecrawl] Have ${estimates.size} estimates, stopping early`);
+        break;
+      }
+      
+    } catch (err) {
+      console.error(`[Firecrawl] Error scraping ${url}:`, err);
+    }
+  }
+  
+  console.log(`[Firecrawl] Total: Got ${estimates.size} estimates for ${symbol}`);
   return estimates;
 }
 
@@ -365,12 +530,13 @@ async function computeMultiPeriodReturns(
   return result;
 }
 
-// Find matching estimate using flexible matching logic
+// Find matching estimate using flexible matching logic with multiple sources
 function findMatchingEstimate(
   record: { fiscal_period: string | null; report_date: string },
   estimatesByPeriod: Map<string, EstimateData>,
   estimatesByDate: Map<string, EstimateData>,
-  fmpEstimates: Map<string, EstimateData>
+  fmpEstimates: Map<string, EstimateData>,
+  firecrawlEstimates: Map<string, EstimateData>
 ): EstimateData | null {
   const fiscalPeriod = record.fiscal_period;
   const reportDate = record.report_date;
@@ -432,6 +598,15 @@ function findMatchingEstimate(
     return fmpDateEstimate;
   }
   
+  // Try Firecrawl estimates as last fallback
+  for (const key of keysToTry) {
+    const fcEstimate = firecrawlEstimates.get(key);
+    if (fcEstimate) {
+      console.log(`[backfill-earnings-history] Matched Firecrawl estimate by key "${key}"`);
+      return fcEstimate;
+    }
+  }
+  
   return null;
 }
 
@@ -457,6 +632,7 @@ serve(async (req) => {
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
     const POLYGON_API_KEY = Deno.env.get('POLYGON_API_KEY');
     const FMP_API_KEY = Deno.env.get('FMP_API_KEY');
+    const FIRECRAWL_API_KEY = Deno.env.get('FIRECRAWL_API_KEY') || Deno.env.get('FIRECRAWL_API_KEY_1');
 
     if (!SUPABASE_URL) throw new Error('SUPABASE_URL is not configured');
     if (!SUPABASE_SERVICE_ROLE_KEY) throw new Error('SUPABASE_SERVICE_ROLE_KEY is not configured');
@@ -478,6 +654,13 @@ serve(async (req) => {
     let fmpEstimates = new Map<string, EstimateData>();
     if (FMP_API_KEY) {
       fmpEstimates = await fetchFMPHistoricalEstimates(symbol, FMP_API_KEY);
+    }
+
+    // Fetch Firecrawl estimates if API key is available
+    let firecrawlEstimates = new Map<string, EstimateData>();
+    if (FIRECRAWL_API_KEY) {
+      firecrawlEstimates = await fetchFirecrawlEarningsEstimates(symbol, FIRECRAWL_API_KEY);
+      console.log(`[backfill-earnings-history] Got ${firecrawlEstimates.size} estimates from Firecrawl for ${symbol}`);
     }
 
     // Fetch earnings release dates from our calendar
@@ -566,13 +749,38 @@ serve(async (req) => {
         allDates.set(key, date); // Calendar dates take priority
       }
       
+      // If no dates from Polygon, try SEC XBRL as fallback
       if (allDates.size === 0) {
+        console.log(`[backfill-earnings-history] No earnings dates from Polygon for ${symbol}, trying SEC XBRL fallback...`);
+        
+        try {
+          const secResponse = await supabase.functions.invoke('fetch-sec-earnings-history', {
+            body: { symbols: [symbol] }
+          });
+          
+          if (secResponse.data?.results?.[symbol]?.success) {
+            const quartersStored = secResponse.data.results[symbol].quartersStored || 0;
+            console.log(`[backfill-earnings-history] SEC XBRL fallback created ${quartersStored} records for ${symbol}`);
+            
+            return new Response(JSON.stringify({
+              success: true,
+              symbol,
+              created: quartersStored,
+              reason: 'created_from_sec_xbrl'
+            }), {
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            });
+          }
+        } catch (secErr) {
+          console.error('[backfill-earnings-history] SEC fallback failed:', secErr);
+        }
+        
         console.log(`[backfill-earnings-history] No earnings dates found for ${symbol}`);
         return new Response(JSON.stringify({ 
           success: true, 
           symbol, 
           created: 0, 
-          reason: 'no_earnings_data_from_polygon' 
+          reason: 'no_earnings_data_available' 
         }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
@@ -606,12 +814,13 @@ serve(async (req) => {
         // Compute returns for this earnings date
         const returns = await computeMultiPeriodReturns(supabase, symbol, reportDate, POLYGON_API_KEY);
         
-        // Try to find an estimate for this record
+        // Try to find an estimate for this record (now includes Firecrawl)
         const estimate = findMatchingEstimate(
           { fiscal_period: fiscalPeriod, report_date: reportDate },
           estimatesByPeriod,
           estimatesByDate,
-          fmpEstimates
+          fmpEstimates,
+          firecrawlEstimates
         );
         
         recordsToInsert.push({
@@ -741,13 +950,14 @@ serve(async (req) => {
         }
       }
 
-      // Add estimates if missing using flexible matching
+      // Add estimates if missing using flexible matching (now includes Firecrawl)
       if (record.eps_estimate === null) {
         const estimate = findMatchingEstimate(
           { fiscal_period: record.fiscal_period, report_date: record.report_date },
           estimatesByPeriod,
           estimatesByDate,
-          fmpEstimates
+          fmpEstimates,
+          firecrawlEstimates
         );
         
         if (estimate && estimate.eps_estimate !== null) {
@@ -780,6 +990,7 @@ serve(async (req) => {
         enrichedWithPrices: enrichedCount,
         datesCorrected,
         estimatesAdded,
+        firecrawlEstimatesAvailable: firecrawlEstimates.size,
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
