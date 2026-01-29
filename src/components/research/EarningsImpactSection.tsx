@@ -450,7 +450,14 @@ export function EarningsImpactSection({ ticker, nextEarnings: fallbackNextEarnin
 
         {/* Full Earnings History - Now with actual EPS values */}
         <div className="space-y-1">
-          <p className="text-[8px] text-muted-foreground uppercase">Earnings History</p>
+          <div className="flex items-center justify-between px-1.5">
+            <p className="text-[8px] text-muted-foreground uppercase">Earnings History</p>
+            <div className="flex items-center gap-2 text-[7px] text-muted-foreground uppercase">
+              <span className="w-10 text-right">EPS</span>
+              <span className="w-12 text-right">Surprise</span>
+              <span className="w-12 text-right">5D Ret</span>
+            </div>
+          </div>
           <div className="space-y-1 max-h-40 overflow-y-auto">
             {earningsHistory.slice(0, 8).map((earning, idx) => (
               <div 
