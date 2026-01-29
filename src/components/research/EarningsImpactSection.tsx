@@ -124,38 +124,43 @@ export function EarningsImpactSection({ ticker, nextEarnings: fallbackNextEarnin
   // State for return period selector
   const [returnPeriod, setReturnPeriod] = useState<ReturnPeriod>('1W');
 
-  // Auto-backfill when we have history rows but are missing estimates OR the selected return period.
-  const needsBackfill = useMemo(() => {
-    if (!historyData || historyData.length === 0) return false;
-
-    const hasAnyEstimate = historyData.some(r => r.eps_estimate !== null);
-
-    const missingSelectedReturn = historyData.some(r => {
-      switch (returnPeriod) {
-        case '1W':
-          return (r.return_1w ?? r.price_change_pct) === null;
-        case '2W':
-          return r.return_2w === null;
-        case '1M':
-          return r.return_1m === null;
-        case '3M':
-          return r.return_3m === null;
-        default:
-          return true;
-      }
-    });
-
-    return !hasAnyEstimate || missingSelectedReturn;
-  }, [historyData, returnPeriod]);
-
+  // Reset backfill tracker when ticker changes
   useEffect(() => {
     backfillStartedRef.current = new Set();
   }, [tickerKey]);
 
-  // Fire once per ticker + selected period.
+  // ALWAYS trigger backfill on ticker load to ensure data is populated
+  // This runs once per ticker, regardless of existing data state
   useEffect(() => {
     if (!tickerKey) return;
-    if (!needsBackfill) return;
+    if (historyLoading) return;
+    if (backfillMutation.isPending) return;
+
+    const runKey = `${tickerKey}:initial`;
+    if (backfillStartedRef.current.has(runKey)) return;
+    backfillStartedRef.current.add(runKey);
+
+    // Always trigger backfill to ensure earnings data + returns are calculated
+    backfillMutation.mutate();
+  }, [tickerKey, historyLoading, backfillMutation]);
+
+  // Also trigger when user switches return period if that period has missing data
+  const needsPeriodBackfill = useMemo(() => {
+    if (!historyData || historyData.length === 0) return false;
+    return historyData.some(r => {
+      switch (returnPeriod) {
+        case '1W': return (r.return_1w ?? r.price_change_pct) === null;
+        case '2W': return r.return_2w === null;
+        case '1M': return r.return_1m === null;
+        case '3M': return r.return_3m === null;
+        default: return true;
+      }
+    });
+  }, [historyData, returnPeriod]);
+
+  useEffect(() => {
+    if (!tickerKey) return;
+    if (!needsPeriodBackfill) return;
     if (historyLoading) return;
     if (backfillMutation.isPending) return;
 
@@ -164,7 +169,7 @@ export function EarningsImpactSection({ ticker, nextEarnings: fallbackNextEarnin
     backfillStartedRef.current.add(runKey);
 
     backfillMutation.mutate();
-  }, [tickerKey, returnPeriod, needsBackfill, historyLoading, backfillMutation]);
+  }, [tickerKey, returnPeriod, needsPeriodBackfill, historyLoading, backfillMutation]);
 
   // Format next earnings date from DB (preferred) or fallback
   const nextEarningsDisplay = useMemo(() => {
