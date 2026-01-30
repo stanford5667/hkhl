@@ -68,6 +68,7 @@ function json(data: unknown, status = 200) {
 }
 
 // Fetch fundamentals from Polygon for a single ticker
+// NOTE: Prefer the newer "financials v1" + "ratios" endpoints for consistency with the rest of the app.
 async function fetchTickerFundamentals(ticker: string, apiKey: string, price: number, marketCap: number | null): Promise<TickerFundamentals> {
   const cached = getCachedFundamentals(ticker);
   if (cached) return cached;
@@ -85,96 +86,60 @@ async function fetchTickerFundamentals(ticker: string, apiKey: string, price: nu
   };
 
   try {
-    // Fetch quarterly financials for the most recent data
-    const url = `${BASE_URL}/vX/reference/financials?ticker=${encodeURIComponent(ticker)}&timeframe=annual&limit=2&sort=period_of_report_date&order=desc&apiKey=${apiKey}`;
-    const res = await fetchWithTimeout(url, {}, 6000);
-    
-    if (!res.ok) {
-      setCachedFundamentals(ticker, fundamentals);
-      return fundamentals;
+    // (A) Daily ratios endpoint (fast + precomputed)
+    // Docs refer to this as "financials ratios" (daily-refreshed snapshot)
+    // Example fields: price_to_earnings, price_to_book, debt_to_equity, quick, ev_to_ebitda
+    try {
+      const ratiosUrl = `${BASE_URL}/stocks/financials/v1/ratios?ticker=${encodeURIComponent(ticker)}&limit=1&apiKey=${apiKey}`;
+      const ratiosRes = await fetchWithTimeout(ratiosUrl, {}, 6000);
+      if (ratiosRes.ok) {
+        const ratiosJson = await ratiosRes.json();
+        const r0 = (ratiosJson?.results || [])[0] || null;
+        if (r0) {
+          fundamentals.pe = typeof r0.price_to_earnings === "number" ? r0.price_to_earnings : fundamentals.pe;
+          fundamentals.pb = typeof r0.price_to_book === "number" ? r0.price_to_book : fundamentals.pb;
+          fundamentals.debtEquity = typeof r0.debt_to_equity === "number" ? r0.debt_to_equity : fundamentals.debtEquity;
+          fundamentals.quickRatio = typeof r0.quick === "number" ? r0.quick : fundamentals.quickRatio;
+          fundamentals.evEbitda = typeof r0.ev_to_ebitda === "number" ? r0.ev_to_ebitda : fundamentals.evEbitda;
+        }
+      }
+    } catch (_err) {
+      // ignore, we'll fall back to statements
     }
-    
-    const data = await res.json();
-    const results = data.results || [];
-    
-    if (results.length === 0) {
-      setCachedFundamentals(ticker, fundamentals);
-      return fundamentals;
-    }
 
-    const latest = results[0].financials;
-    const previous = results.length > 1 ? results[1].financials : null;
+    // (B) Income statements (for Operating Margin + YoY growth)
+    const incomeUrl = `${BASE_URL}/stocks/financials/v1/income-statements?tickers=${encodeURIComponent(ticker)}&timeframe=annual&limit=2&sort=period_end&order=desc&apiKey=${apiKey}`;
+    const incomeRes = await fetchWithTimeout(incomeUrl, {}, 6000);
+    if (incomeRes.ok) {
+      const incomeJson = await incomeRes.json();
+      const results = incomeJson?.results || [];
+      const latest = results[0] || null;
+      const previous = results.length > 1 ? results[1] : null;
 
-    // Income statement metrics
-    const income = latest?.income_statement;
-    const balance = latest?.balance_sheet;
-    const prevIncome = previous?.income_statement;
+      const revenue = typeof latest?.revenue === "number" ? latest.revenue : null;
+      const opIncome = typeof latest?.operating_income === "number" ? latest.operating_income : null;
+      const dilutedEps = typeof latest?.diluted_earnings_per_share === "number" ? latest.diluted_earnings_per_share : null;
 
-    if (income) {
-      const revenue = income.revenues?.value || 0;
-      const operatingIncome = income.operating_income?.value || 0;
-      const netIncome = income.net_income_loss?.value || 0;
-      const dilutedEPS = income.diluted_earnings_per_share?.value;
-
-      // Operating Margin
-      if (revenue > 0 && operatingIncome) {
-        fundamentals.opMargin = Math.round((operatingIncome / revenue) * 10000) / 100;
+      if (revenue && revenue > 0 && opIncome !== null) {
+        fundamentals.opMargin = Math.round((opIncome / revenue) * 10000) / 100;
       }
 
-      // P/E Ratio
-      if (price > 0 && dilutedEPS && dilutedEPS > 0) {
-        fundamentals.pe = Math.round((price / dilutedEPS) * 100) / 100;
+      // If ratios endpoint isn't available, compute a simple P/E from EPS + price
+      if (fundamentals.pe == null && price > 0 && dilutedEps && dilutedEps > 0) {
+        fundamentals.pe = Math.round((price / dilutedEps) * 100) / 100;
       }
 
-      // Revenue Growth YoY
-      if (prevIncome) {
-        const prevRevenue = prevIncome.revenues?.value || 0;
-        if (prevRevenue > 0 && revenue > 0) {
+      if (previous) {
+        const prevRevenue = typeof previous?.revenue === "number" ? previous.revenue : null;
+        const prevEps = typeof previous?.diluted_earnings_per_share === "number" ? previous.diluted_earnings_per_share : null;
+
+        if (prevRevenue && prevRevenue > 0 && revenue && revenue > 0) {
           fundamentals.revenueGrowth = Math.round(((revenue - prevRevenue) / prevRevenue) * 10000) / 100;
         }
 
-        // EPS Growth YoY
-        const prevEPS = prevIncome.diluted_earnings_per_share?.value;
-        if (prevEPS && prevEPS > 0 && dilutedEPS && dilutedEPS > 0) {
-          fundamentals.epsGrowth = Math.round(((dilutedEPS - prevEPS) / Math.abs(prevEPS)) * 10000) / 100;
+        if (prevEps && prevEps > 0 && dilutedEps && dilutedEps > 0) {
+          fundamentals.epsGrowth = Math.round(((dilutedEps - prevEps) / Math.abs(prevEps)) * 10000) / 100;
         }
-      }
-
-      // EV/EBITDA
-      const ebitda = income.ebitda?.value || 
-        ((income.operating_income?.value || 0) + (income.depreciation_and_amortization?.value || 0));
-      
-      if (marketCap && marketCap > 0 && balance && ebitda > 0) {
-        const totalDebt = (balance.long_term_debt?.value || 0) + (balance.short_term_debt?.value || 0);
-        const cash = balance.cash_and_cash_equivalents?.value || balance.cash?.value || 0;
-        const enterpriseValue = marketCap + totalDebt - cash;
-        fundamentals.evEbitda = Math.round((enterpriseValue / ebitda) * 100) / 100;
-      }
-    }
-
-    if (balance) {
-      const totalEquity = balance.equity?.value || balance.equity_attributable_to_parent?.value || 0;
-      const currentAssets = balance.current_assets?.value || 0;
-      const currentLiabilities = balance.current_liabilities?.value || 0;
-      const inventory = balance.inventory?.value || 0;
-      const longTermDebt = balance.long_term_debt?.value || balance.noncurrent_liabilities?.value || 0;
-      const shortTermDebt = balance.short_term_debt?.value || 0;
-      const totalDebt = longTermDebt + shortTermDebt;
-
-      // Price to Book
-      if (marketCap && marketCap > 0 && totalEquity > 0) {
-        fundamentals.pb = Math.round((marketCap / totalEquity) * 100) / 100;
-      }
-
-      // Debt to Equity
-      if (totalEquity > 0 && totalDebt > 0) {
-        fundamentals.debtEquity = Math.round((totalDebt / totalEquity) * 100) / 100;
-      }
-
-      // Quick Ratio
-      if (currentLiabilities > 0) {
-        const quickAssets = currentAssets - inventory;
-        fundamentals.quickRatio = Math.round((quickAssets / currentLiabilities) * 100) / 100;
       }
     }
 
@@ -477,7 +442,8 @@ serve(async (req) => {
       const { count } = await supabase
         .from("asset_universe")
         .select("*", { count: "exact", head: true })
-        .eq("is_active", true);
+        // is_active is nullable in schema; treat NULL as active
+        .or("is_active.is.null,is_active.eq.true");
 
       if (count && count > 100) {
         console.log(`[polygon-screener] Using database-first approach with ${count} tickers`);
@@ -503,11 +469,21 @@ async function screenFromDatabase(
 ) {
   console.log("[polygon-screener] Screening from database...");
 
-  // Build query - include fundamental metrics available in database
+  const metricFiltersActive = hasMetricFilters(filters);
+  // When metric filters are active, scan a larger slice of the universe, then filter AFTER we enrich
+  // with fundamentals. Keep bounded to avoid timeouts.
+  const SCAN_LIMIT = metricFiltersActive ? 600 : limit;
+
+  // Build query - include fields needed for result mapping
   let query = supabase
     .from("asset_universe")
-    .select("ticker, name, sector, market_cap_tier, last_close, change_percent_1d, avg_daily_volume, volatility_30d, beta_spy, metadata")
-    .eq("is_active", true);
+    .select(
+      "ticker, name, sector, market_cap_tier, last_close, change_percent_1d, avg_daily_volume, avg_daily_dollar_volume, volatility_30d, beta_spy, primary_exchange, asset_type, metadata",
+      { count: "exact" }
+    )
+    // is_active is nullable in schema; treat NULL as active
+    .or("is_active.is.null,is_active.eq.true")
+    .range(metricFiltersActive ? 0 : offset, (metricFiltersActive ? SCAN_LIMIT : limit) + (metricFiltersActive ? 0 : offset) - 1);
 
   // Apply market cap filter using tier
   if (filters.minMarketCap !== undefined) {
@@ -583,27 +559,19 @@ async function screenFromDatabase(
       break;
   }
 
-  // Fetch all matching for count, then paginate
-  const { data: allData, error: countError } = await query;
+  const { data: rows, error: queryError, count: baseCount } = await query;
 
-  if (countError) {
-    console.error("[polygon-screener] Database query error:", countError);
-    return json({ ok: false, error: countError.message }, 500);
+  if (queryError) {
+    console.error("[polygon-screener] Database query error:", queryError);
+    return json({ ok: false, error: queryError.message }, 500);
   }
 
-  // Check if metric filters are active - if so, we need to fetch fundamentals before filtering
-  const metricFiltersActive = hasMetricFilters(filters);
-  
-  // When metric filters are active, we need to fetch fundamentals for more tickers
-  // to ensure we have enough results after filtering
-  const fetchLimit = metricFiltersActive ? Math.min(allData?.length || 0, 100) : limit;
-  const dataToProcess = metricFiltersActive 
-    ? (allData || []).slice(0, fetchLimit)
-    : (allData || []).slice(offset, offset + limit);
+  const dataToProcess = rows || [];
+  console.log(
+    `[polygon-screener] Base matches: ${baseCount ?? dataToProcess.length}. Processing ${dataToProcess.length} (metric filters: ${metricFiltersActive})`
+  );
 
-  console.log(`[polygon-screener] Found ${allData?.length || 0} matches, processing ${dataToProcess.length} for fundamentals`);
-
-  // Now fetch fresh price data from Polygon for the data to process
+  // Fetch fresh price data from Polygon for the rows we're processing
   const tickersToFetch = dataToProcess.map((r: any) => r.ticker);
 
   // Fetch live snapshots for these tickers
@@ -630,12 +598,9 @@ async function screenFromDatabase(
     }
   }
 
-  // Build initial results with price data
-  const initialResults = dataToProcess.map((row: any) => {
+  const buildBaseResult = (row: any) => {
     const snapshot = snapshotMap.get(row.ticker);
     const marketCap = row.metadata?.market_cap || null;
-    
-    // Extract available fundamental metrics from database
     const volatility = row.volatility_30d != null ? Number(row.volatility_30d) : null;
     const beta = row.beta_spy != null ? Number(row.beta_spy) : null;
 
@@ -668,7 +633,6 @@ async function screenFromDatabase(
       };
     }
 
-    // Fallback to database values
     return {
       symbol: row.ticker,
       name: row.name,
@@ -685,68 +649,101 @@ async function screenFromDatabase(
       low: 0,
       open: 0,
       vwap: null,
-      exchange: null,
-      type: null,
+      exchange: row.primary_exchange || null,
+      type: row.asset_type || null,
       volatility,
       beta,
     };
-  });
+  };
 
-  // Fetch fundamentals for the results (parallel, limited to avoid rate limits)
-  // Fetch more when metric filters are active
-  const fundamentalFetchCount = metricFiltersActive ? Math.min(initialResults.length, 50) : Math.min(initialResults.length, 20);
-  console.log(`[polygon-screener] Fetching fundamentals for ${fundamentalFetchCount} tickers (metric filters: ${metricFiltersActive})...`);
-  
-  const fundamentalsMap = await fetchBatchFundamentals(
-    initialResults.slice(0, fundamentalFetchCount).map((r: any) => ({ symbol: r.symbol, price: r.price, marketCap: r.marketCap })),
-    apiKey,
-    fundamentalFetchCount
-  );
+  // Enrich + filter
+  const enrichedMatches: any[] = [];
+  const baseResults = dataToProcess.map(buildBaseResult);
 
-  // Merge fundamentals into results
-  let resultsWithFundamentals = initialResults.map((r: any) => {
-    const fundamentals = fundamentalsMap.get(r.symbol) || {
-      pe: null,
-      forwardPE: null,
-      pb: null,
-      evEbitda: null,
-      debtEquity: null,
-      quickRatio: null,
-      opMargin: null,
-      epsGrowth: null,
-      revenueGrowth: null,
-    };
+  if (!metricFiltersActive) {
+    // No metric filters: enrich only what's needed for the page
+    const fundamentalsMap = await fetchBatchFundamentals(
+      baseResults.map((r: any) => ({ symbol: r.symbol, price: r.price, marketCap: r.marketCap })),
+      apiKey,
+      Math.min(baseResults.length, 20)
+    );
 
-    return {
-      ...r,
-      pe: fundamentals.pe,
-      forwardPE: fundamentals.forwardPE,
-      peg: null, // Would need additional calculation
-      pb: fundamentals.pb,
-      pCash: null, // Would need additional data
-      evEbitda: fundamentals.evEbitda,
-      opMargin: fundamentals.opMargin,
-      epsGrowth: fundamentals.epsGrowth,
-      revenueGrowth: fundamentals.revenueGrowth,
-      debtEquity: fundamentals.debtEquity,
-      quickRatio: fundamentals.quickRatio,
-      sharpe: null, // Would need historical return calculation
-      maxDrawdown: null, // Would need historical price data
-    };
-  });
+    const results = baseResults.map((r: any) => {
+      const f = fundamentalsMap.get(r.symbol);
+      return {
+        ...r,
+        pe: f?.pe ?? null,
+        forwardPE: f?.forwardPE ?? null,
+        peg: null,
+        pb: f?.pb ?? null,
+        pCash: null,
+        evEbitda: f?.evEbitda ?? null,
+        opMargin: f?.opMargin ?? null,
+        epsGrowth: f?.epsGrowth ?? null,
+        revenueGrowth: f?.revenueGrowth ?? null,
+        debtEquity: f?.debtEquity ?? null,
+        quickRatio: f?.quickRatio ?? null,
+        sharpe: null,
+        maxDrawdown: null,
+      };
+    });
 
-  // Apply fundamental filters if active
-  if (metricFiltersActive) {
-    const beforeCount = resultsWithFundamentals.length;
-    resultsWithFundamentals = applyFundamentalFilters(resultsWithFundamentals, filters);
-    console.log(`[polygon-screener] After fundamental filters: ${resultsWithFundamentals.length} (was ${beforeCount})`);
+    return json({
+      ok: true,
+      count: baseCount ?? results.length,
+      results,
+      pagination: {
+        offset,
+        limit,
+        hasMore: (baseCount ?? results.length) > offset + limit,
+        total: baseCount ?? results.length,
+      },
+      source: "database",
+    });
   }
 
-  // For metric-filtered results, paginate AFTER filtering
-  const totalCount = metricFiltersActive ? resultsWithFundamentals.length : (allData?.length || 0);
-  const results = metricFiltersActive 
-    ? resultsWithFundamentals.slice(offset, offset + limit)
-    : resultsWithFundamentals;
+  // Metric filters active: scan through a bounded set and fetch fundamentals in chunks,
+  // accumulating matches so filters don't return empty just because the first chunk lacked fundamentals.
+  const CHUNK_SIZE = 25;
+  for (let i = 0; i < baseResults.length; i += CHUNK_SIZE) {
+    const chunkResults = baseResults.slice(i, i + CHUNK_SIZE);
+
+    const fundamentalsMap = await fetchBatchFundamentals(
+      chunkResults.map((r: any) => ({ symbol: r.symbol, price: r.price, marketCap: r.marketCap })),
+      apiKey,
+      chunkResults.length
+    );
+
+    const enrichedChunk = chunkResults.map((r: any) => {
+      const f = fundamentalsMap.get(r.symbol);
+      return {
+        ...r,
+        pe: f?.pe ?? null,
+        forwardPE: f?.forwardPE ?? null,
+        peg: null,
+        pb: f?.pb ?? null,
+        pCash: null,
+        evEbitda: f?.evEbitda ?? null,
+        opMargin: f?.opMargin ?? null,
+        epsGrowth: f?.epsGrowth ?? null,
+        revenueGrowth: f?.revenueGrowth ?? null,
+        debtEquity: f?.debtEquity ?? null,
+        quickRatio: f?.quickRatio ?? null,
+        sharpe: null,
+        maxDrawdown: null,
+      };
+    });
+
+    const matching = applyFundamentalFilters(enrichedChunk, filters);
+    enrichedMatches.push(...matching);
+
+    // Stop early once we have enough to satisfy the requested page
+    if (enrichedMatches.length >= offset + limit) break;
+  }
+
+  const results = enrichedMatches.slice(offset, offset + limit);
+  const totalCount = enrichedMatches.length;
+  const mayHaveMore = (baseCount ?? 0) > SCAN_LIMIT;
 
   return json({
     ok: true,
@@ -755,7 +752,7 @@ async function screenFromDatabase(
     pagination: {
       offset,
       limit,
-      hasMore: offset + limit < totalCount,
+      hasMore: offset + limit < totalCount || mayHaveMore,
       total: totalCount,
     },
     source: "database",
