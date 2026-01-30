@@ -54,17 +54,15 @@ serve(async (req) => {
 
     if (!res.ok) {
       console.error(`[polygon-ticker-details] Polygon API error ${res.status}: ${text}`);
-      return json(
-        { ok: false, error: "Polygon API error", status: res.status, details: text },
-        res.status
-      );
+      // Return 200 with ok: false so frontend can handle gracefully (not a server error)
+      return json({ ok: false, error: "No data found for ticker", ticker, notFound: true }, 200);
     }
 
     const data = JSON.parse(text);
 
     if (data.status !== "OK" || !data.results) {
       console.warn(`[polygon-ticker-details] No data for ${ticker}`);
-      return json({ ok: false, error: "No data found for ticker", ticker }, 404);
+      return json({ ok: false, error: "No data found for ticker", ticker, notFound: true }, 200);
     }
 
     const r = data.results;
