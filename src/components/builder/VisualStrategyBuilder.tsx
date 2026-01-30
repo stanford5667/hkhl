@@ -15,19 +15,27 @@ import { canConnect } from '@/lib/strategyBuilder/types';
 import { ALL_PALETTE_BLOCKS, type StrategyTemplate } from '@/lib/strategyBuilder/templates';
 import { BlockPalette } from './BlockPalette';
 import { StrategyCanvas } from './StrategyCanvas';
-import { StrategySummary } from './StrategySummary';
+import { StrategySummary, type SerializedStrategy } from './StrategySummary';
 
 interface VisualStrategyBuilderProps {
   embedded?: boolean;
+  /** Callback for inline backtest execution (instead of navigating to /backtester) */
+  onRunBacktest?: (serialized: SerializedStrategy) => void;
+  /** Initial ticker for embedded mode */
+  initialTicker?: string;
 }
 
-export function VisualStrategyBuilder({ embedded = false }: VisualStrategyBuilderProps) {
+export function VisualStrategyBuilder({ 
+  embedded = false, 
+  onRunBacktest,
+  initialTicker = 'AAPL',
+}: VisualStrategyBuilderProps) {
   // State
   const [blocks, setBlocks] = useState<CanvasBlock[]>([]);
   const [connections, setConnections] = useState<Connection[]>([]);
   const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null);
   const [strategyName, setStrategyName] = useState('My Visual Strategy');
-  const [ticker, setTicker] = useState('AAPL');
+  const [ticker, setTicker] = useState(initialTicker);
 
   // Generate unique ID
   const generateId = () => `block-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
@@ -225,6 +233,7 @@ export function VisualStrategyBuilder({ embedded = false }: VisualStrategyBuilde
               onNameChange={setStrategyName}
               onTickerChange={setTicker}
               onLoadTemplate={handleLoadTemplate}
+              onRunBacktest={onRunBacktest}
               className="border-t border-[rgb(33,38,45)] shrink-0"
               compact
             />
@@ -280,6 +289,7 @@ export function VisualStrategyBuilder({ embedded = false }: VisualStrategyBuilde
             onNameChange={setStrategyName}
             onTickerChange={setTicker}
             onLoadTemplate={handleLoadTemplate}
+            onRunBacktest={onRunBacktest}
             className="w-72 shrink-0"
           />
         </div>

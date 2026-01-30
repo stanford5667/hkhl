@@ -468,6 +468,87 @@ export function StrategyBacktester({ ticker, companyName }: StrategyBacktesterPr
     }
   }, [selectedStrategy, ticker, period, initialCapital, params, stopLoss, takeProfit]);
 
+  // Handle backtest from Visual Strategy Builder
+  const handleVisualBuilderBacktest = useCallback(async (serialized: { 
+    strategy: string; 
+    ticker: string; 
+    params: Record<string, number | string | undefined> 
+  }) => {
+    // Find matching strategy
+    const strategy = STRATEGIES.find(s => s.id === serialized.strategy);
+    if (!strategy) {
+      toast.error(`Strategy "${serialized.strategy}" not supported`);
+      return;
+    }
+
+    // Update state to match the visual builder's configuration  
+    setSelectedStrategy(strategy);
+    
+    // Extract numeric params
+    const numericParams: Record<string, number> = {};
+    Object.entries(serialized.params).forEach(([key, value]) => {
+      if (typeof value === 'number') {
+        numericParams[key] = value;
+      }
+    });
+    setParams({ ...strategy.defaultParams, ...numericParams });
+    
+    // Set stop loss and take profit if provided
+    if (typeof serialized.params.stopLossPercent === 'number') {
+      setStopLoss(serialized.params.stopLossPercent);
+    }
+    if (typeof serialized.params.takeProfitPercent === 'number') {
+      setTakeProfit(serialized.params.takeProfitPercent);
+    }
+
+    // Run the backtest with the visual builder's config
+    setIsRunning(true);
+    setError(null);
+    setResult(null);
+
+    try {
+      const endDate = new Date();
+      const startDate = new Date();
+      switch (period) {
+        case '1Y': startDate.setFullYear(endDate.getFullYear() - 1); break;
+        case '3Y': startDate.setFullYear(endDate.getFullYear() - 3); break;
+        case '5Y': startDate.setFullYear(endDate.getFullYear() - 5); break;
+      }
+
+      const { data, error: fnError } = await supabase.functions.invoke('strategy-backtest', {
+        body: {
+          ticker,
+          strategy: serialized.strategy,
+          startDate: format(startDate, 'yyyy-MM-dd'),
+          endDate: format(endDate, 'yyyy-MM-dd'),
+          initialCapital,
+          params: {
+            ...strategy.defaultParams,
+            ...numericParams,
+            stopLossPercent: serialized.params.stopLossPercent,
+            takeProfitPercent: serialized.params.takeProfitPercent,
+          }
+        }
+      });
+
+      if (fnError) throw fnError;
+
+      if (!data.success) {
+        throw new Error(data.error || 'Backtest failed');
+      }
+
+      setResult(data as BacktestResult);
+      toast.success(`Backtest complete: ${data.totalTrades} trades, ${data.totalReturn.toFixed(2)}% return`);
+
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Backtest failed';
+      setError(message);
+      toast.error(message);
+    } finally {
+      setIsRunning(false);
+    }
+  }, [ticker, period, initialCapital]);
+
   // Prepare chart data with trade markers
   const chartData = useMemo(() => {
     if (!result) return [];
@@ -1188,9 +1269,50 @@ export function StrategyBacktester({ ticker, companyName }: StrategyBacktesterPr
         <TabsContent value="visual" className="mt-4">
           <Card className="min-h-[600px]">
             <CardContent className="p-0 h-[600px]">
-              <VisualStrategyBuilder embedded />
+              <VisualStrategyBuilder 
+                embedded 
+                initialTicker={ticker}
+                onRunBacktest={handleVisualBuilderBacktest}
+              />
             </CardContent>
           </Card>
+          
+          {/* Show results from visual builder backtest */}
+          {result && isRunning === false && (
+            <Card className="mt-4">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Activity className="h-5 w-5" />
+                  Backtest Results
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="p-3 rounded-lg bg-muted/50">
+                    <p className="text-xs text-muted-foreground">Total Return</p>
+                    <p className={cn(
+                      "text-xl font-bold",
+                      result.totalReturn >= 0 ? "text-emerald-500" : "text-rose-500"
+                    )}>
+                      {result.totalReturn >= 0 ? '+' : ''}{result.totalReturn.toFixed(2)}%
+                    </p>
+                  </div>
+                  <div className="p-3 rounded-lg bg-muted/50">
+                    <p className="text-xs text-muted-foreground">Win Rate</p>
+                    <p className="text-xl font-bold">{result.winRate.toFixed(0)}%</p>
+                  </div>
+                  <div className="p-3 rounded-lg bg-muted/50">
+                    <p className="text-xs text-muted-foreground">Total Trades</p>
+                    <p className="text-xl font-bold">{result.totalTrades}</p>
+                  </div>
+                  <div className="p-3 rounded-lg bg-muted/50">
+                    <p className="text-xs text-muted-foreground">Sharpe Ratio</p>
+                    <p className="text-xl font-bold">{result.sharpeRatio.toFixed(2)}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
       </Tabs>
 

@@ -35,6 +35,16 @@ import type { CanvasBlock } from '@/lib/strategyBuilder/types';
 import { serializeStrategy, encodeStrategyToURL } from '@/lib/strategyBuilder/serializer';
 import { STRATEGY_TEMPLATES, type StrategyTemplate } from '@/lib/strategyBuilder/templates';
 
+export interface SerializedStrategy {
+  strategy: string;
+  ticker: string;
+  params: Record<string, number | string | undefined>;
+  summary: {
+    entryCondition: string;
+    exitCondition: string;
+  };
+}
+
 export interface StrategySummaryProps {
   blocks: CanvasBlock[];
   strategyName: string;
@@ -42,6 +52,8 @@ export interface StrategySummaryProps {
   onNameChange: (name: string) => void;
   onTickerChange: (ticker: string) => void;
   onLoadTemplate: (template: StrategyTemplate) => void;
+  /** Optional callback for inline backtest execution (instead of navigating) */
+  onRunBacktest?: (serialized: SerializedStrategy) => void;
   className?: string;
   compact?: boolean;
 }
@@ -53,6 +65,7 @@ export const StrategySummary = memo(function StrategySummary({
   onNameChange,
   onTickerChange,
   onLoadTemplate,
+  onRunBacktest,
   className,
   compact = false,
 }: StrategySummaryProps) {
@@ -89,6 +102,14 @@ export const StrategySummary = memo(function StrategySummary({
       return;
     }
 
+    // If parent provides a callback, run inline instead of navigating
+    if (onRunBacktest) {
+      onRunBacktest(serialized);
+      toast.success('Running backtest...');
+      return;
+    }
+
+    // Fallback to navigation for standalone use
     const queryString = encodeStrategyToURL(serialized);
     navigate(`/backtester?${queryString}`);
     toast.success('Opening backtester with your strategy');
