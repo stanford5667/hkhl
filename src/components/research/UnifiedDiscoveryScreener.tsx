@@ -351,7 +351,39 @@ function formatMarketCap(value: number | null): string {
 // Components
 // =====================
 
-function StockRow({ stock, onClick }: { stock: ScreenerResult; onClick: () => void }) {
+// Sortable column definitions - maps filter keys to stock properties
+type SortableColumn = {
+  key: string;
+  label: string;
+  filterKey?: keyof FilterState;
+  getValue: (stock: ScreenerResult) => number | null;
+  format: (value: number | null) => string;
+  width: string;
+  alwaysShow?: boolean;
+};
+
+const SORTABLE_COLUMNS: SortableColumn[] = [
+  { key: 'symbol', label: 'Symbol', getValue: () => null, format: () => '', width: 'w-14', alwaysShow: true },
+  { key: 'name', label: 'Name', getValue: () => null, format: () => '', width: 'flex-1', alwaysShow: true },
+  { key: 'price', label: 'Price', getValue: (s) => s.price, format: (v) => v != null ? `$${v.toFixed(2)}` : '—', width: 'w-16', alwaysShow: true },
+  { key: 'marketCap', label: 'Mkt Cap', filterKey: 'marketCap', getValue: (s) => s.marketCap, format: (v) => formatMarketCap(v), width: 'w-16' },
+  { key: 'volume', label: 'Volume', filterKey: 'avgVolume', getValue: (s) => s.volume, format: (v) => v != null ? formatVolume(v) : '—', width: 'w-14' },
+  { key: 'relativeVolume', label: 'Rel Vol', getValue: (s) => s.relativeVolume, format: (v) => v != null ? `${v.toFixed(1)}x` : '—', width: 'w-14' },
+  { key: 'change', label: 'Change', getValue: (s) => s.changePercent, format: (v) => v != null ? `${v >= 0 ? '+' : ''}${v.toFixed(2)}%` : '—', width: 'w-16', alwaysShow: true },
+  { key: 'high', label: 'High', getValue: (s) => s.high, format: (v) => v != null ? `$${v.toFixed(2)}` : '—', width: 'w-16' },
+  { key: 'low', label: 'Low', getValue: (s) => s.low, format: (v) => v != null ? `$${v.toFixed(2)}` : '—', width: 'w-16' },
+  { key: 'vwap', label: 'VWAP', getValue: (s) => s.vwap, format: (v) => v != null ? `$${v.toFixed(2)}` : '—', width: 'w-16' },
+];
+
+function StockRow({ 
+  stock, 
+  onClick,
+  visibleColumns 
+}: { 
+  stock: ScreenerResult; 
+  onClick: () => void;
+  visibleColumns: SortableColumn[];
+}) {
   const isPositive = stock.changePercent >= 0;
   
   return (
@@ -359,36 +391,58 @@ function StockRow({ stock, onClick }: { stock: ScreenerResult; onClick: () => vo
       onClick={onClick}
       className="w-full flex items-center gap-2 py-2.5 px-3 hover:bg-muted/50 transition-colors text-left border-b border-border last:border-b-0"
     >
-      <div className="w-14">
-        <span className="text-sm font-semibold text-primary">{stock.symbol}</span>
-      </div>
-      <div className="flex-1 min-w-0">
-        <span className="text-xs text-muted-foreground truncate block">{stock.name}</span>
-      </div>
-      <div className="w-16 text-right">
-        <span className="text-xs font-medium text-foreground tabular-nums">
-          ${stock.price.toFixed(2)}
-        </span>
-      </div>
-      <div className="w-16 text-right hidden sm:block">
-        <span className="text-[10px] text-muted-foreground tabular-nums">
-          {formatMarketCap(stock.marketCap)}
-        </span>
-      </div>
-      <div className="w-14 text-right">
-        <span className="text-[10px] text-muted-foreground tabular-nums">
-          {formatVolume(stock.volume)}
-        </span>
-      </div>
-      <div className={cn(
-        'w-16 text-right text-xs font-semibold tabular-nums',
-        isPositive ? 'text-emerald-500' : 'text-destructive'
-      )}>
-        {isPositive ? '+' : ''}{stock.changePercent.toFixed(2)}%
-      </div>
+      {visibleColumns.map(col => {
+        if (col.key === 'symbol') {
+          return (
+            <div key={col.key} className={col.width}>
+              <span className="text-sm font-semibold text-primary">{stock.symbol}</span>
+            </div>
+          );
+        }
+        if (col.key === 'name') {
+          return (
+            <div key={col.key} className={cn(col.width, 'min-w-0')}>
+              <span className="text-xs text-muted-foreground truncate block">{stock.name}</span>
+            </div>
+          );
+        }
+        if (col.key === 'price') {
+          return (
+            <div key={col.key} className={cn(col.width, 'text-right')}>
+              <span className="text-xs font-medium text-foreground tabular-nums">
+                ${stock.price.toFixed(2)}
+              </span>
+            </div>
+          );
+        }
+        if (col.key === 'change') {
+          return (
+            <div key={col.key} className={cn(
+              col.width, 'text-right text-xs font-semibold tabular-nums',
+              isPositive ? 'text-emerald-500' : 'text-destructive'
+            )}>
+              {isPositive ? '+' : ''}{stock.changePercent.toFixed(2)}%
+            </div>
+          );
+        }
+        // Generic column rendering
+        const value = col.getValue(stock);
+        return (
+          <div key={col.key} className={cn(col.width, 'text-right')}>
+            <span className="text-[10px] text-muted-foreground tabular-nums">
+              {col.format(value)}
+            </span>
+          </div>
+        );
+      })}
     </button>
   );
 }
+
+type SortConfig = {
+  column: string;
+  direction: 'asc' | 'desc';
+};
 
 function StockList({ 
   stocks, 
@@ -397,7 +451,10 @@ function StockList({
   currentPage,
   totalCount,
   onPageChange,
-  hasMore
+  hasMore,
+  activeFilters,
+  sortConfig,
+  onSortChange,
 }: { 
   stocks: ScreenerResult[] | undefined; 
   isLoading: boolean;
@@ -406,10 +463,53 @@ function StockList({
   totalCount: number;
   onPageChange: (page: number) => void;
   hasMore: boolean;
+  activeFilters: Set<keyof FilterState>;
+  sortConfig: SortConfig;
+  onSortChange: (column: string) => void;
 }) {
   const totalPages = Math.ceil(totalCount / ITEMS_PER_PAGE);
   const startItem = currentPage * ITEMS_PER_PAGE + 1;
   const endItem = Math.min((currentPage + 1) * ITEMS_PER_PAGE, totalCount);
+
+  // Determine which columns to show based on active filters
+  const visibleColumns = useMemo(() => {
+    const columns: SortableColumn[] = [];
+    
+    // Always show base columns
+    SORTABLE_COLUMNS.forEach(col => {
+      if (col.alwaysShow) {
+        columns.push(col);
+      } else if (col.filterKey && activeFilters.has(col.filterKey)) {
+        // Show column if its filter is active
+        columns.push(col);
+      } else if (!col.filterKey && (col.key === 'marketCap' || col.key === 'volume')) {
+        // Always show marketCap and volume as defaults
+        columns.push(col);
+      }
+    });
+    
+    return columns;
+  }, [activeFilters]);
+
+  // Sort stocks locally
+  const sortedStocks = useMemo(() => {
+    if (!stocks) return [];
+    const col = SORTABLE_COLUMNS.find(c => c.key === sortConfig.column);
+    if (!col || col.key === 'symbol' || col.key === 'name') return stocks;
+    
+    return [...stocks].sort((a, b) => {
+      const aVal = col.getValue(a);
+      const bVal = col.getValue(b);
+      
+      // Handle nulls - push to end
+      if (aVal === null && bVal === null) return 0;
+      if (aVal === null) return 1;
+      if (bVal === null) return -1;
+      
+      const diff = aVal - bVal;
+      return sortConfig.direction === 'asc' ? diff : -diff;
+    });
+  }, [stocks, sortConfig]);
 
   if (isLoading) {
     return (
@@ -431,23 +531,46 @@ function StockList({
 
   return (
     <div>
-      {/* Header */}
+      {/* Header with sortable columns */}
       <div className="flex items-center gap-2 px-3 py-2 bg-muted/30 border-b border-border">
-        <span className="w-14 text-[10px] font-medium text-muted-foreground">Symbol</span>
-        <span className="flex-1 text-[10px] font-medium text-muted-foreground">Name</span>
-        <span className="w-16 text-right text-[10px] font-medium text-muted-foreground">Price</span>
-        <span className="w-16 text-right text-[10px] font-medium text-muted-foreground hidden sm:block">Mkt Cap</span>
-        <span className="w-14 text-right text-[10px] font-medium text-muted-foreground">Volume</span>
-        <span className="w-16 text-right text-[10px] font-medium text-muted-foreground">Change</span>
+        {visibleColumns.map(col => {
+          const isSorted = sortConfig.column === col.key;
+          const canSort = col.key !== 'symbol' && col.key !== 'name';
+          
+          return (
+            <button
+              key={col.key}
+              onClick={() => canSort && onSortChange(col.key)}
+              disabled={!canSort}
+              className={cn(
+                col.width,
+                col.key !== 'symbol' && col.key !== 'name' && 'text-right',
+                'text-[10px] font-medium text-muted-foreground flex items-center gap-0.5',
+                col.key !== 'symbol' && col.key !== 'name' && 'justify-end',
+                canSort && 'hover:text-foreground cursor-pointer transition-colors',
+                isSorted && 'text-primary',
+                col.filterKey && activeFilters.has(col.filterKey) && 'text-primary font-semibold'
+              )}
+            >
+              {col.label}
+              {isSorted && (
+                sortConfig.direction === 'desc' 
+                  ? <ChevronDown className="h-3 w-3" />
+                  : <ChevronUp className="h-3 w-3" />
+              )}
+            </button>
+          );
+        })}
       </div>
       
       {/* Stock rows */}
       <div className="max-h-[500px] overflow-y-auto">
-        {stocks.map(stock => (
+        {sortedStocks.map(stock => (
           <StockRow 
             key={stock.symbol} 
             stock={stock} 
-            onClick={() => onStockClick(stock.symbol)} 
+            onClick={() => onStockClick(stock.symbol)}
+            visibleColumns={visibleColumns}
           />
         ))}
       </div>
@@ -677,6 +800,18 @@ export function UnifiedDiscoveryScreener() {
   const [showFilters, setShowFilters] = useState(false);
   const [expandedCategory, setExpandedCategory] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(0);
+  const [sortConfig, setSortConfig] = useState<SortConfig>({ column: 'change', direction: 'desc' });
+
+  // Compute active filter keys as a Set for StockList
+  const activeFilterKeys = useMemo(() => {
+    const keys = new Set<keyof FilterState>();
+    Object.entries(filters).forEach(([key, value]) => {
+      if (value !== 'all') {
+        keys.add(key as keyof FilterState);
+      }
+    });
+    return keys;
+  }, [filters]);
 
   const activeFilterCount = useMemo(() => 
     Object.values(filters).filter(v => v !== 'all').length,
@@ -960,6 +1095,14 @@ export function UnifiedDiscoveryScreener() {
           totalCount={totalCount}
           onPageChange={handlePageChange}
           hasMore={hasMore}
+          activeFilters={activeFilterKeys}
+          sortConfig={sortConfig}
+          onSortChange={(column) => {
+            setSortConfig(prev => ({
+              column,
+              direction: prev.column === column && prev.direction === 'desc' ? 'asc' : 'desc'
+            }));
+          }}
         />
       </CardContent>
     </Card>
