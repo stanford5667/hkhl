@@ -14,6 +14,7 @@ import { Coins, RefreshCw, HelpCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { FinancialDataCell } from './FinancialDataCell';
 
 interface CashFlowTableProps {
   ticker: string;
@@ -222,18 +223,28 @@ export function CashFlowTable({ ticker, companyName }: CashFlowTableProps) {
                       
                       {displayYears.map((yearData: any, idx: number) => {
                         const value = yearData[row.key];
+                        const prevValue = idx > 0 ? displayYears[idx - 1]?.[row.key] : null;
+                        const yoyChange = prevValue && value ? ((value - prevValue) / Math.abs(prevValue)) * 100 : undefined;
                         
                         return (
                           <td
                             key={idx}
                             className={cn(
-                              "text-right px-3 py-2.5 font-mono text-xs tabular-nums w-[80px] min-w-[80px]",
-                              row.isHighlight && "bg-primary/5 font-medium",
-                              row.isHighlight && "text-primary",
-                              row.key === 'freeCashFlow' && value != null && value > 0 && "text-emerald-500"
+                              "p-0 w-[80px] min-w-[80px]",
+                              row.isHighlight && "bg-primary/5"
                             )}
                           >
-                            {formatValue(value)}
+                            <FinancialDataCell
+                              value={formatValue(value)}
+                              rawValue={value}
+                              label={row.label}
+                              tooltip={row.tooltip}
+                              source="SEC"
+                              sourceDetail={`10-K Filing ${yearData.date?.split('-')[0] || yearData.year}`}
+                              isHighlight={row.isHighlight}
+                              yoyChange={yoyChange}
+                              className={row.key === 'freeCashFlow' && value != null && value > 0 ? "text-emerald-500" : undefined}
+                            />
                           </td>
                         );
                       })}

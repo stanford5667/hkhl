@@ -230,12 +230,20 @@ export function BalanceSheetTable({ ticker, companyName }: BalanceSheetTableProp
                           <td
                             key={idx}
                             className={cn(
-                              "text-right px-3 py-2.5 font-mono text-xs tabular-nums w-[80px] min-w-[80px]",
-                              row.isHighlight && "bg-primary/5 font-medium",
-                              row.isHighlight && "text-primary"
+                              "p-0 w-[80px] min-w-[80px]",
+                              row.isHighlight && "bg-primary/5"
                             )}
                           >
-                            {formatValue(value)}
+                            <FinancialDataCell
+                              value={formatValue(value)}
+                              rawValue={value}
+                              label={row.label}
+                              tooltip={row.tooltip}
+                              source="SEC"
+                              sourceDetail={`10-K Filing ${yearData.date?.split('-')[0] || yearData.year}`}
+                              isHighlight={row.isHighlight}
+                              yoyChange={yoyChange}
+                            />
                           </td>
                         );
                       })}
