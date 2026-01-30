@@ -1282,6 +1282,7 @@ export function StrategyBacktester({ ticker, companyName }: StrategyBacktesterPr
             </div>
           )}
         </div>
+        )}
         </TabsContent>
 
         {/* Visual Builder Tab */}
