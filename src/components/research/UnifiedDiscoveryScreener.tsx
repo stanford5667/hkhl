@@ -703,37 +703,40 @@ export function UnifiedDiscoveryScreener() {
   }, [filters]);
 
   // Build query filters based on active tab + fundamental filters
-  const buildQueryFilters = (tabFilters: ScreenerFilters, offset: number = 0): ScreenerFilters => {
-    // When fundamental filters are active, remove the tab-specific change requirements
-    // to allow more stocks through for filtering by fundamentals
-    const combined: ScreenerFilters = { ...tabFilters };
-    
-    if (hasFundamentalFilters) {
-      // Remove change requirements when filtering by fundamentals
-      delete combined.minChange1D;
-      delete combined.maxChange1D;
-      delete combined.minRelativeVolume;
-    }
-    
-    // Market Cap filter
-    const mcOption = MARKET_CAP_OPTIONS.find(o => o.value === filters.marketCap);
-    if (mcOption && filters.marketCap !== 'all') {
-      if (mcOption.min !== undefined) combined.minMarketCap = mcOption.min;
-      if (mcOption.max !== undefined) combined.maxMarketCap = mcOption.max;
-    }
+  // Must be stable with useCallback to avoid stale closures in useQuery
+  const buildQueryFilters = useMemo(() => {
+    return (tabFilters: ScreenerFilters, offset: number = 0): ScreenerFilters => {
+      // When fundamental filters are active, remove the tab-specific change requirements
+      // to allow more stocks through for filtering by fundamentals
+      const combined: ScreenerFilters = { ...tabFilters };
+      
+      if (hasFundamentalFilters) {
+        // Remove change requirements when filtering by fundamentals
+        delete combined.minChange1D;
+        delete combined.maxChange1D;
+        delete combined.minRelativeVolume;
+      }
+      
+      // Market Cap filter
+      const mcOption = MARKET_CAP_OPTIONS.find(o => o.value === filters.marketCap);
+      if (mcOption && filters.marketCap !== 'all') {
+        if (mcOption.min !== undefined) combined.minMarketCap = mcOption.min;
+        if (mcOption.max !== undefined) combined.maxMarketCap = mcOption.max;
+      }
 
-    // Volume filter
-    const volOption = AVG_VOLUME_OPTIONS.find(o => o.value === filters.avgVolume);
-    if (volOption && filters.avgVolume !== 'all') {
-      if (volOption.min !== undefined) combined.minVolume = volOption.min;
-    }
-    
-    // Pagination
-    combined.limit = ITEMS_PER_PAGE;
-    combined.offset = offset;
-    
-    return combined;
-  };
+      // Volume filter
+      const volOption = AVG_VOLUME_OPTIONS.find(o => o.value === filters.avgVolume);
+      if (volOption && filters.avgVolume !== 'all') {
+        if (volOption.min !== undefined) combined.minVolume = volOption.min;
+      }
+      
+      // Pagination
+      combined.limit = ITEMS_PER_PAGE;
+      combined.offset = offset;
+      
+      return combined;
+    };
+  }, [filters, hasFundamentalFilters]);
 
   // Top Gainers query
   const { data: gainersData, isLoading: loadingGainers } = useQuery({
@@ -798,6 +801,7 @@ export function UnifiedDiscoveryScreener() {
 
   const handleFilterChange = (key: keyof FilterState) => (value: string) => {
     setFilters(prev => ({ ...prev, [key]: value }));
+    setCurrentPage(0); // Reset to first page when filters change
   };
 
   const handleClearFilter = (key: keyof FilterState) => {
