@@ -690,9 +690,30 @@ export function UnifiedDiscoveryScreener() {
     setCurrentPage(0);
   };
 
+  // Check if fundamental filters are active - this affects how we apply tab filters
+  const hasFundamentalFilters = useMemo(() => {
+    return filters.marketCap !== 'all' || 
+           filters.peRatio !== 'all' || 
+           filters.forwardPE !== 'all' ||
+           filters.peg !== 'all' ||
+           filters.priceToBook !== 'all' ||
+           filters.evEbitda !== 'all' ||
+           filters.beta !== 'all' ||
+           filters.avgVolume !== 'all';
+  }, [filters]);
+
   // Build query filters based on active tab + fundamental filters
   const buildQueryFilters = (tabFilters: ScreenerFilters, offset: number = 0): ScreenerFilters => {
+    // When fundamental filters are active, remove the tab-specific change requirements
+    // to allow more stocks through for filtering by fundamentals
     const combined: ScreenerFilters = { ...tabFilters };
+    
+    if (hasFundamentalFilters) {
+      // Remove change requirements when filtering by fundamentals
+      delete combined.minChange1D;
+      delete combined.maxChange1D;
+      delete combined.minRelativeVolume;
+    }
     
     // Market Cap filter
     const mcOption = MARKET_CAP_OPTIONS.find(o => o.value === filters.marketCap);
