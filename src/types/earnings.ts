@@ -86,10 +86,9 @@ export interface EarningsSignal {
 }
 
 export interface EarningsCalendarFilters {
-  dateRange: 'today' | 'week' | 'month' | 'custom';
+  dateRange: 'today' | 'week' | 'month' | 'quarter' | 'year' | 'custom';
   customStart?: string;
   customEnd?: string;
   symbols?: string[];
   hasPrediction?: boolean;
-  timeOfDay?: 'BMO' | 'AMC' | 'DMT' | 'all';
 }

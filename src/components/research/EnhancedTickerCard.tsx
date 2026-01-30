@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { TrendingUp, TrendingDown, ArrowRight } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import { getCandlesForRange, CandleData } from '@/services/candleService';
+import { getCandlesForRange, CandleData, TimeRange } from '@/services/candleService';
 import { fetchTickerDetails, TickerDetails } from '@/services/tickerDetailsService';
 import { cn } from '@/lib/utils';
 
@@ -24,7 +24,7 @@ const PERIODS: { label: string; value: Period }[] = [
   { label: '1Y', value: '1Y' },
 ];
 
-// Period to days mapping
+// Period to days mapping for DB fallback
 const PERIOD_DAYS: Record<Period, number> = {
   '1D': 1,
   '1W': 7,
@@ -41,7 +41,7 @@ export function EnhancedTickerCard({
   marketCap,
   onClick,
 }: EnhancedTickerCardProps) {
-  const [selectedPeriod, setSelectedPeriod] = useState<Period>('1M');
+  const [selectedPeriod, setSelectedPeriod] = useState<Period>('1D');
   const [chartData, setChartData] = useState<{ time: number; price: number }[]>([]);
   const [periodChange, setPeriodChange] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -52,14 +52,39 @@ export function EnhancedTickerCard({
     fetchTickerDetails(symbol).then(setDetails).catch(() => {});
   }, [symbol]);
 
-  // Fetch price data for chart - prioritize database, fallback to candle service
+  // Fetch price data for chart
   useEffect(() => {
     let mounted = true;
     
     async function fetchData() {
       setIsLoading(true);
+      setPeriodChange(null);
+      
       try {
-        // First try to get data from market_daily_bars table (more reliable)
+        // For 1D, use candle service which provides intraday data
+        // For longer periods, try DB first, then fall back to candle service
+        if (selectedPeriod === '1D') {
+          // Use candle service for intraday data
+          const candles = await getCandlesForRange(symbol, selectedPeriod as TimeRange);
+          if (mounted && candles.length > 1) {
+            const data = candles.map((c: CandleData) => ({
+              time: c.time,
+              price: c.close,
+            }));
+            setChartData(data);
+            
+            const firstClose = candles[0].close;
+            const lastClose = candles[candles.length - 1].close;
+            if (firstClose && lastClose && firstClose > 0) {
+              const change = ((lastClose - firstClose) / firstClose) * 100;
+              setPeriodChange(change);
+            }
+            setIsLoading(false);
+            return;
+          }
+        }
+        
+        // For longer periods, try database first (more reliable for daily data)
         const days = PERIOD_DAYS[selectedPeriod];
         const startDate = new Date();
         startDate.setDate(startDate.getDate() - days);
@@ -80,7 +105,7 @@ export function EnhancedTickerCard({
           
           const firstClose = dbBars[0].close;
           const lastClose = dbBars[dbBars.length - 1].close;
-          if (firstClose && lastClose) {
+          if (firstClose && lastClose && firstClose > 0) {
             const change = ((lastClose - firstClose) / firstClose) * 100;
             setPeriodChange(change);
           }
@@ -89,8 +114,8 @@ export function EnhancedTickerCard({
         }
         
         // Fallback to candle service if database doesn't have data
-        const candles = await getCandlesForRange(symbol, selectedPeriod);
-        if (mounted && candles.length > 0) {
+        const candles = await getCandlesForRange(symbol, selectedPeriod as TimeRange);
+        if (mounted && candles.length > 1) {
           const data = candles.map((c: CandleData) => ({
             time: c.time,
             price: c.close,
@@ -99,13 +124,21 @@ export function EnhancedTickerCard({
           
           const firstClose = candles[0].close;
           const lastClose = candles[candles.length - 1].close;
-          if (firstClose && lastClose) {
+          if (firstClose && lastClose && firstClose > 0) {
             const change = ((lastClose - firstClose) / firstClose) * 100;
             setPeriodChange(change);
           }
+        } else if (mounted) {
+          // No data available - clear chart
+          setChartData([]);
+          setPeriodChange(null);
         }
       } catch (err) {
         console.warn(`[EnhancedCard] Failed for ${symbol}:`, err);
+        if (mounted) {
+          setChartData([]);
+          setPeriodChange(null);
+        }
       } finally {
         if (mounted) setIsLoading(false);
       }

@@ -2,22 +2,19 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { 
-  TrendingUp, Activity, Newspaper, Zap, ChevronRight, 
-  ExternalLink, Flame, BarChart3
+  TrendingUp, Activity, Zap, ChevronRight, 
+  Flame, BarChart3
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { screenStocksFromPolygon, QUICK_SCREENS, type ScreenerResult } from '@/services/polygonScreenerService';
-import { supabase } from '@/integrations/supabase/client';
 
 const SCREENER_TABS = [
   { id: 'topGainers', label: 'Top Gainers', icon: TrendingUp },
   { id: 'mostActive', label: 'Most Active', icon: Activity },
   { id: 'momentum', label: 'Momentum', icon: Flame },
   { id: 'unusualVolume', label: 'Unusual Vol', icon: Zap },
-  { id: 'news', label: 'News', icon: Newspaper },
 ] as const;
 
 type TabId = typeof SCREENER_TABS[number]['id'];
@@ -111,81 +108,6 @@ function StockList({
   );
 }
 
-function NewsContent({ onNavigate }: { onNavigate: () => void }) {
-  const { data: newsItems, isLoading } = useQuery({
-    queryKey: ['market-news-research'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('real_world_events')
-        .select('id, title, description, source, detected_at, source_url')
-        .order('detected_at', { ascending: false, nullsFirst: false })
-        .limit(12);
-      
-      if (error) throw error;
-      return data;
-    },
-    staleTime: 60000,
-  });
-
-  const formatTime = (date: string) => {
-    const now = new Date();
-    const published = new Date(date);
-    const diffMs = now.getTime() - published.getTime();
-    const diffMins = Math.floor(diffMs / 60000);
-    
-    if (diffMins < 60) return `${diffMins}m`;
-    const diffHours = Math.floor(diffMins / 60);
-    if (diffHours < 24) return `${diffHours}h`;
-    const diffDays = Math.floor(diffHours / 24);
-    return `${diffDays}d`;
-  };
-
-  if (isLoading) {
-    return (
-      <div className="space-y-2 p-3">
-        {Array.from({ length: 6 }).map((_, i) => (
-          <div key={i} className="h-14 bg-muted/40 rounded animate-pulse" />
-        ))}
-      </div>
-    );
-  }
-
-  if (!newsItems || newsItems.length === 0) {
-    return (
-      <div className="py-12 text-center text-sm text-muted-foreground">
-        No recent news available
-      </div>
-    );
-  }
-
-  return (
-    <div className="max-h-[400px] overflow-y-auto divide-y divide-border">
-      {newsItems.map(item => (
-        <a
-          key={item.id}
-          href={item.source_url || '#'}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex items-start gap-3 px-4 py-3 hover:bg-muted/50 transition-colors group"
-        >
-          <Badge variant="outline" className="shrink-0 text-[10px] mt-0.5">
-            {formatTime(item.detected_at)}
-          </Badge>
-          <div className="min-w-0 flex-1">
-            <p className="text-sm text-foreground group-hover:text-primary transition-colors line-clamp-2">
-              {item.title}
-            </p>
-            {item.description && (
-              <p className="text-xs text-muted-foreground mt-1 line-clamp-1">
-                {item.description}
-              </p>
-            )}
-          </div>
-        </a>
-      ))}
-    </div>
-  );
-}
 
 export function UnifiedDiscoveryScreener() {
   const navigate = useNavigate();
@@ -286,9 +208,9 @@ export function UnifiedDiscoveryScreener() {
             variant="ghost" 
             size="sm" 
             className="text-xs h-7"
-            onClick={() => navigate(activeTab === 'news' ? '/market-intel' : '/screener')}
+            onClick={() => navigate('/screener')}
           >
-            {activeTab === 'news' ? 'All News' : 'Full Screener'} 
+            Full Screener
             <ChevronRight className="h-3 w-3 ml-1" />
           </Button>
         </div>
@@ -320,15 +242,11 @@ export function UnifiedDiscoveryScreener() {
       </CardHeader>
       
       <CardContent className="p-0 pt-0">
-        {activeTab === 'news' ? (
-          <NewsContent onNavigate={() => navigate('/market-intel')} />
-        ) : (
-          <StockList 
-            stocks={stocks} 
-            isLoading={isLoading} 
-            onStockClick={handleStockClick} 
-          />
-        )}
+        <StockList 
+          stocks={stocks} 
+          isLoading={isLoading} 
+          onStockClick={handleStockClick} 
+        />
       </CardContent>
     </Card>
   );

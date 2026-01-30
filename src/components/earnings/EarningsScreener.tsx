@@ -22,16 +22,18 @@ import { useToast } from '@/hooks/use-toast';
 
 export const EarningsScreener = () => {
   const { toast } = useToast();
-  // Dynamic date range - today through 90 days out
+  // Dynamic date range - today through 1 year out
   const today = new Date().toISOString().split('T')[0];
-  const ninetyDaysOut = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+  const oneYearOut = new Date();
+  oneYearOut.setFullYear(oneYearOut.getFullYear() + 1);
+  const yearEndDate = oneYearOut.toISOString().split('T')[0];
   
   const [criteria, setCriteria] = useState<EarningsScreenCriteria>({
     minConfidence: 0,
     expectedOutcome: 'all',
     dateRange: {
       start: today,
-      end: ninetyDaysOut,
+      end: yearEndDate,
     },
     minBeatRate: undefined,
     minAnalystCount: undefined,
