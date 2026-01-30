@@ -5,7 +5,8 @@
  * real historical data, institutional-grade metrics, and Data Inspector.
  */
 
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -298,12 +299,14 @@ function TradeMarker(props: { cx?: number; cy?: number; payload?: { markerType?:
 // ═══════════════════════════════════════════════════════════════════════════════
 
 export function StrategyBacktester({ ticker, companyName }: StrategyBacktesterProps) {
+  const [searchParams] = useSearchParams();
   const [selectedStrategy, setSelectedStrategy] = useState<StrategyOption | null>(null);
   const [params, setParams] = useState<Record<string, number>>({});
   const [period, setPeriod] = useState<'1Y' | '3Y' | '5Y'>('3Y');
   const [initialCapital, setInitialCapital] = useState(10000);
   const [stopLoss, setStopLoss] = useState<number | null>(null);
   const [takeProfit, setTakeProfit] = useState<number | null>(null);
+  const [fromBuilder, setFromBuilder] = useState(false);
   
   const [isRunning, setIsRunning] = useState(false);
   const [result, setResult] = useState<BacktestResult | null>(null);
@@ -322,6 +325,39 @@ export function StrategyBacktester({ ticker, companyName }: StrategyBacktesterPr
   const [refAreaLeft, setRefAreaLeft] = useState<string>('');
   const [refAreaRight, setRefAreaRight] = useState<string>('');
   const [isZooming, setIsZooming] = useState(false);
+
+  // Handle URL parameters from Visual Strategy Builder
+  useEffect(() => {
+    if (searchParams.get('source') === 'builder') {
+      const strategyId = searchParams.get('strategy');
+      const builderParams = searchParams.get('params');
+      
+      if (strategyId && builderParams) {
+        try {
+          const parsedParams = JSON.parse(builderParams);
+          const strategy = STRATEGIES.find(s => s.id === strategyId);
+          
+          if (strategy) {
+            setSelectedStrategy(strategy);
+            setParams({ ...strategy.defaultParams, ...parsedParams });
+            setFromBuilder(true);
+            
+            // Set stop loss and take profit if provided
+            if (parsedParams.stopLossPercent !== undefined) {
+              setStopLoss(parsedParams.stopLossPercent);
+            }
+            if (parsedParams.takeProfitPercent !== undefined) {
+              setTakeProfit(parsedParams.takeProfitPercent);
+            }
+            
+            toast.success('Strategy loaded from Visual Builder');
+          }
+        } catch (e) {
+          console.error('Failed to parse builder params:', e);
+        }
+      }
+    }
+  }, [searchParams]);
 
   // Reset zoom when new backtest runs
   const resetZoom = useCallback(() => {
