@@ -19,8 +19,9 @@ import {
 } from '@/lib/strategyBuilder/templates';
 import type { PaletteBlock } from '@/lib/strategyBuilder/types';
 
-interface BlockPaletteProps {
+export interface BlockPaletteProps {
   className?: string;
+  compact?: boolean;
 }
 
 interface BlockCategoryProps {
@@ -28,15 +29,19 @@ interface BlockCategoryProps {
   icon: string;
   blocks: PaletteBlock[];
   droppableId: string;
+  compact?: boolean;
 }
 
-const BlockCategory = memo(function BlockCategory({ title, icon, blocks, droppableId }: BlockCategoryProps) {
+const BlockCategory = memo(function BlockCategory({ title, icon, blocks, droppableId, compact }: BlockCategoryProps) {
   return (
-    <Collapsible defaultOpen className="border-b border-border/50 last:border-b-0">
-      <CollapsibleTrigger className="flex items-center gap-2 w-full px-3 py-2 hover:bg-accent/50 transition-colors">
-        <span>{icon}</span>
-        <span className="text-sm font-medium flex-1 text-left">{title}</span>
-        <ChevronDown className="h-4 w-4 transition-transform duration-200 [[data-state=open]>&]:rotate-180" />
+    <Collapsible defaultOpen={!compact} className="border-b border-border/50 last:border-b-0">
+      <CollapsibleTrigger className={cn(
+        "flex items-center gap-2 w-full hover:bg-accent/50 transition-colors",
+        compact ? "px-2 py-1.5" : "px-3 py-2"
+      )}>
+        <span className={compact ? "text-sm" : ""}>{icon}</span>
+        <span className={cn("font-medium flex-1 text-left", compact ? "text-xs" : "text-sm")}>{title}</span>
+        <ChevronDown className={cn("transition-transform duration-200 [[data-state=open]>&]:rotate-180", compact ? "h-3 w-3" : "h-4 w-4")} />
       </CollapsibleTrigger>
       <CollapsibleContent>
         <Droppable droppableId={droppableId} isDropDisabled>
@@ -44,7 +49,7 @@ const BlockCategory = memo(function BlockCategory({ title, icon, blocks, droppab
             <div
               ref={provided.innerRef}
               {...provided.droppableProps}
-              className="px-2 pb-2 space-y-1"
+              className={cn("space-y-1", compact ? "px-1.5 pb-1.5" : "px-2 pb-2")}
             >
               {blocks.map((block, index) => (
                 <Draggable
@@ -58,16 +63,19 @@ const BlockCategory = memo(function BlockCategory({ title, icon, blocks, droppab
                       {...provided.draggableProps}
                       {...provided.dragHandleProps}
                       className={cn(
-                        "flex items-center gap-2 px-3 py-2 rounded-md border cursor-grab",
+                        "flex items-center gap-2 rounded-md border cursor-grab",
                         "transition-all duration-150",
                         block.color,
-                        snapshot.isDragging && "shadow-lg ring-2 ring-primary opacity-90"
+                        snapshot.isDragging && "shadow-lg ring-2 ring-primary opacity-90",
+                        compact ? "px-2 py-1" : "px-3 py-2"
                       )}
                     >
-                      <span className="text-base">{block.icon}</span>
+                      <span className={compact ? "text-sm" : "text-base"}>{block.icon}</span>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium truncate">{block.label}</p>
-                        <p className="text-xs text-muted-foreground truncate">{block.description}</p>
+                        <p className={cn("font-medium truncate", compact ? "text-xs" : "text-sm")}>{block.label}</p>
+                        {!compact && (
+                          <p className="text-xs text-muted-foreground truncate">{block.description}</p>
+                        )}
                       </div>
                     </div>
                   )}
@@ -82,12 +90,16 @@ const BlockCategory = memo(function BlockCategory({ title, icon, blocks, droppab
   );
 });
 
-export const BlockPalette = memo(function BlockPalette({ className }: BlockPaletteProps) {
+export const BlockPalette = memo(function BlockPalette({ className, compact }: BlockPaletteProps) {
   return (
-    <div className={cn("flex flex-col h-full border-r border-border bg-card/50", className)}>
-      <div className="px-4 py-3 border-b border-border">
-        <h2 className="text-sm font-semibold">Strategy Blocks</h2>
-        <p className="text-xs text-muted-foreground">Drag blocks to canvas</p>
+    <div className={cn(
+      "flex flex-col border-r border-border bg-card/50",
+      compact ? "max-h-48" : "h-full",
+      className
+    )}>
+      <div className={cn("border-b border-border", compact ? "px-2 py-1.5" : "px-4 py-3")}>
+        <h2 className={cn("font-semibold", compact ? "text-xs" : "text-sm")}>Strategy Blocks</h2>
+        {!compact && <p className="text-xs text-muted-foreground">Drag blocks to canvas</p>}
       </div>
       
       <ScrollArea className="flex-1">
@@ -97,30 +109,35 @@ export const BlockPalette = memo(function BlockPalette({ className }: BlockPalet
             icon="📊"
             blocks={INDICATOR_BLOCKS}
             droppableId="palette-indicators"
+            compact={compact}
           />
           <BlockCategory
             title="Conditions"
             icon="🎯"
             blocks={CONDITION_BLOCKS}
             droppableId="palette-conditions"
+            compact={compact}
           />
           <BlockCategory
             title="Logic"
             icon="🔗"
             blocks={LOGIC_BLOCKS}
             droppableId="palette-logic"
+            compact={compact}
           />
           <BlockCategory
             title="Exit Conditions"
             icon="🛑"
             blocks={EXIT_BLOCKS}
             droppableId="palette-exits"
+            compact={compact}
           />
           <BlockCategory
             title="Actions"
             icon="✅"
             blocks={ACTION_BLOCKS}
             droppableId="palette-actions"
+            compact={compact}
           />
         </div>
       </ScrollArea>

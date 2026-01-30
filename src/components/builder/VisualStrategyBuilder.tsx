@@ -2,6 +2,7 @@
  * Visual Strategy Builder
  * 
  * Main 3-panel layout component for drag-and-drop strategy creation.
+ * When embedded=true, uses compact layout suitable for side panel.
  */
 
 import { useState, useCallback } from 'react';
@@ -16,7 +17,11 @@ import { BlockPalette } from './BlockPalette';
 import { StrategyCanvas } from './StrategyCanvas';
 import { StrategySummary } from './StrategySummary';
 
-export function VisualStrategyBuilder() {
+interface VisualStrategyBuilderProps {
+  embedded?: boolean;
+}
+
+export function VisualStrategyBuilder({ embedded = false }: VisualStrategyBuilderProps) {
   // State
   const [blocks, setBlocks] = useState<CanvasBlock[]>([]);
   const [connections, setConnections] = useState<Connection[]>([]);
@@ -172,6 +177,64 @@ export function VisualStrategyBuilder() {
     setSelectedBlockId(null);
   }, []);
 
+  // Embedded compact layout (for side panel in Backtester)
+  if (embedded) {
+    return (
+      <DragDropContext onDragEnd={handleDragEnd}>
+        <div className="flex flex-col h-full overflow-hidden">
+          {/* Compact toolbar */}
+          <div className="flex items-center justify-between px-3 py-2 border-b border-[rgb(33,38,45)] bg-[rgb(13,17,23)]">
+            <span className="text-xs font-medium text-[rgb(139,148,158)]">
+              Strategy Builder
+            </span>
+            <div className="flex items-center gap-1">
+              <span className="text-[10px] text-[rgb(87,96,106)]">
+                {blocks.length} blocks
+              </span>
+              {blocks.length > 0 && (
+                <Button variant="ghost" size="sm" onClick={handleClear} className="h-6 px-2 text-[10px]">
+                  <Trash2 className="h-3 w-3" />
+                </Button>
+              )}
+            </div>
+          </div>
+          
+          {/* Stacked layout for embedded mode */}
+          <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+            {/* Palette (compact) */}
+            <BlockPalette className="border-b border-[rgb(33,38,45)]" compact />
+            
+            {/* Canvas */}
+            <StrategyCanvas
+              blocks={blocks}
+              connections={connections}
+              selectedBlockId={selectedBlockId}
+              onSelectBlock={setSelectedBlockId}
+              onDeleteBlock={handleDeleteBlock}
+              onUpdateBlockPosition={handleUpdateBlockPosition}
+              onUpdateBlockParameter={handleUpdateBlockParameter}
+              onConnect={handleConnect}
+              className="flex-1 min-h-[200px]"
+            />
+            
+            {/* Summary */}
+            <StrategySummary
+              blocks={blocks}
+              strategyName={strategyName}
+              ticker={ticker}
+              onNameChange={setStrategyName}
+              onTickerChange={setTicker}
+              onLoadTemplate={handleLoadTemplate}
+              className="border-t border-[rgb(33,38,45)]"
+              compact
+            />
+          </div>
+        </div>
+      </DragDropContext>
+    );
+  }
+
+  // Full-page layout
   return (
     <DragDropContext onDragEnd={handleDragEnd}>
       <div className="flex flex-col h-full">
