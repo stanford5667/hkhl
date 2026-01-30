@@ -904,6 +904,278 @@ async function fetchSECBalanceSheet(ticker: string): Promise<BalanceSheetData | 
   }
 }
 
+// NEW: Fetch multi-year balance sheet history from SEC
+async function fetchSECBalanceSheetHistory(ticker: string): Promise<any[]> {
+  const cacheKey = `sec_balance_history_${ticker}`;
+  const cached = getCached(cacheKey);
+  if (cached) {
+    return cached as any[];
+  }
+
+  try {
+    const cikData = await getSecCompanyTickers();
+    let cik: string | null = null;
+
+    for (const entry of cikData) {
+      if (entry.ticker?.toUpperCase() === ticker.toUpperCase()) {
+        cik = String(entry.cik_str).padStart(10, '0');
+        break;
+      }
+    }
+    
+    if (!cik) return [];
+
+    const factsUrl = `https://data.sec.gov/api/xbrl/companyfacts/CIK${cik}.json`;
+    const response = await fetchWithRetry(factsUrl, { headers: SEC_HEADERS }, { attempts: 2, timeoutMs: 10000 });
+
+    if (!response.ok) return [];
+
+    const data = await response.json();
+    const facts = data.facts?.['us-gaap'];
+    
+    if (!facts) return [];
+
+    // Get annual values for balance sheet concepts
+    const getAnnualValues = (concepts: string[]): Map<string, number> => {
+      for (const concept of concepts) {
+        const entries = facts[concept]?.units?.USD;
+        if (entries && entries.length > 0) {
+          const yearValues = new Map<string, { val: number; date: string }>();
+          
+          for (const entry of entries) {
+            if (entry.form === '10-K' && entry.fy && entry.val != null) {
+              const year = String(entry.fy);
+              const existing = yearValues.get(year);
+              const entryDate = entry.end || entry.filed;
+              if (!existing || (entryDate && new Date(entryDate) > new Date(existing.date))) {
+                yearValues.set(year, { val: entry.val, date: entryDate || '' });
+              }
+            }
+          }
+          
+          if (yearValues.size > 0) {
+            const result = new Map<string, number>();
+            for (const [y, d] of yearValues) result.set(y, d.val);
+            return result;
+          }
+        }
+      }
+      return new Map();
+    };
+
+    const totalAssets = getAnnualValues(['Assets']);
+    const totalLiabilities = getAnnualValues(['Liabilities']);
+    const totalEquity = getAnnualValues(['StockholdersEquity', 'StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest']);
+    const currentAssets = getAnnualValues(['AssetsCurrent']);
+    const currentLiabilities = getAnnualValues(['LiabilitiesCurrent']);
+    const cashAndEquivalents = getAnnualValues(['CashAndCashEquivalentsAtCarryingValue', 'Cash']);
+    const inventory = getAnnualValues(['InventoryNet', 'Inventories']);
+    const accountsReceivable = getAnnualValues(['AccountsReceivableNetCurrent', 'AccountsReceivableNet']);
+    const longTermDebt = getAnnualValues(['LongTermDebt', 'LongTermDebtNoncurrent']);
+    const shortTermDebt = getAnnualValues(['ShortTermBorrowings', 'DebtCurrent']);
+    const retainedEarnings = getAnnualValues(['RetainedEarningsAccumulatedDeficit']);
+    const propertyPlantEquipment = getAnnualValues(['PropertyPlantAndEquipmentNet']);
+    const goodwillAndIntangibles = getAnnualValues(['Goodwill', 'IntangibleAssetsNetExcludingGoodwill']);
+
+    // Get all years from totalAssets
+    const years = [...totalAssets.keys()]
+      .sort((a, b) => parseInt(b) - parseInt(a))
+      .slice(0, 5);
+
+    const balanceSheets = years.map(year => ({
+      date: `${year}-12-31`,
+      year: parseInt(year),
+      totalAssets: totalAssets.get(year) || null,
+      totalLiabilities: totalLiabilities.get(year) || null,
+      totalEquity: totalEquity.get(year) || null,
+      currentAssets: currentAssets.get(year) || null,
+      currentLiabilities: currentLiabilities.get(year) || null,
+      cashAndEquivalents: cashAndEquivalents.get(year) || null,
+      inventory: inventory.get(year) || null,
+      accountsReceivable: accountsReceivable.get(year) || null,
+      longTermDebt: longTermDebt.get(year) || null,
+      shortTermDebt: shortTermDebt.get(year) || null,
+      retainedEarnings: retainedEarnings.get(year) || null,
+      propertyPlantEquipment: propertyPlantEquipment.get(year) || null,
+      goodwillAndIntangibles: goodwillAndIntangibles.get(year) || null,
+      nonCurrentAssets: totalAssets.get(year) && currentAssets.get(year) 
+        ? (totalAssets.get(year)! - currentAssets.get(year)!) 
+        : null,
+    }));
+
+    console.log(`[SEC XBRL] Balance sheet history for ${ticker}: ${balanceSheets.length} years`);
+    setCache(cacheKey, balanceSheets);
+    return balanceSheets;
+  } catch (err) {
+    console.error('[SEC XBRL] Balance sheet history error:', err);
+    return [];
+  }
+}
+
+// NEW: Fetch multi-year cash flow history from SEC
+async function fetchSECCashFlowHistory(ticker: string): Promise<any[]> {
+  const cacheKey = `sec_cashflow_history_${ticker}`;
+  const cached = getCached(cacheKey);
+  if (cached) {
+    return cached as any[];
+  }
+
+  try {
+    const cikData = await getSecCompanyTickers();
+    let cik: string | null = null;
+
+    for (const entry of cikData) {
+      if (entry.ticker?.toUpperCase() === ticker.toUpperCase()) {
+        cik = String(entry.cik_str).padStart(10, '0');
+        break;
+      }
+    }
+    
+    if (!cik) return [];
+
+    const factsUrl = `https://data.sec.gov/api/xbrl/companyfacts/CIK${cik}.json`;
+    const response = await fetchWithRetry(factsUrl, { headers: SEC_HEADERS }, { attempts: 2, timeoutMs: 10000 });
+
+    if (!response.ok) return [];
+
+    const data = await response.json();
+    const facts = data.facts?.['us-gaap'];
+    
+    if (!facts) return [];
+
+    // Get annual values (full-year only, not quarterly)
+    const getAnnualValues = (concepts: string[]): Map<string, number> => {
+      for (const concept of concepts) {
+        const entries = facts[concept]?.units?.USD;
+        if (entries && entries.length > 0) {
+          const yearValues = new Map<string, { val: number; duration: number }>();
+          
+          for (const entry of entries) {
+            if (entry.form === '10-K' && entry.fy && entry.val != null) {
+              const year = String(entry.fy);
+              
+              let duration = 0;
+              if (entry.start && entry.end) {
+                const startDate = new Date(entry.start);
+                const endDate = new Date(entry.end);
+                duration = Math.round((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+              }
+              
+              const existing = yearValues.get(year);
+              const isAnnualDuration = duration >= 350 && duration <= 380;
+              const existingIsAnnual = existing && existing.duration >= 350 && existing.duration <= 380;
+              
+              if (!existing || 
+                  (isAnnualDuration && !existingIsAnnual) ||
+                  duration > existing.duration) {
+                yearValues.set(year, { val: entry.val, duration });
+              }
+            }
+          }
+          
+          if (yearValues.size > 0) {
+            const result = new Map<string, number>();
+            for (const [y, d] of yearValues) result.set(y, d.val);
+            return result;
+          }
+        }
+      }
+      return new Map();
+    };
+
+    // Operating activities
+    const operatingCashFlow = getAnnualValues([
+      'NetCashProvidedByUsedInOperatingActivities',
+      'CashFlowsFromUsedInOperatingActivities'
+    ]);
+    const netIncome = getAnnualValues(['NetIncomeLoss', 'ProfitLoss']);
+    const depreciationAmortization = getAnnualValues([
+      'DepreciationDepletionAndAmortization',
+      'Depreciation',
+      'AmortizationOfIntangibleAssets'
+    ]);
+    const stockBasedCompensation = getAnnualValues(['ShareBasedCompensation', 'StockBasedCompensation']);
+    
+    // Investing activities
+    const investingCashFlow = getAnnualValues([
+      'NetCashProvidedByUsedInInvestingActivities',
+      'CashFlowsFromUsedInInvestingActivities'
+    ]);
+    const capitalExpenditures = getAnnualValues([
+      'PaymentsToAcquirePropertyPlantAndEquipment',
+      'PaymentsForCapitalImprovements'
+    ]);
+    const acquisitions = getAnnualValues([
+      'PaymentsToAcquireBusinessesNetOfCashAcquired',
+      'BusinessCombinationConsiderationTransferred'
+    ]);
+    
+    // Financing activities
+    const financingCashFlow = getAnnualValues([
+      'NetCashProvidedByUsedInFinancingActivities',
+      'CashFlowsFromUsedInFinancingActivities'
+    ]);
+    const dividendsPaid = getAnnualValues([
+      'PaymentsOfDividendsCommonStock',
+      'Dividends',
+      'PaymentsOfDividends'
+    ]);
+    const shareRepurchases = getAnnualValues([
+      'PaymentsForRepurchaseOfCommonStock',
+      'StockRepurchasedDuringPeriodValue'
+    ]);
+    const debtRepayment = getAnnualValues([
+      'RepaymentsOfLongTermDebt',
+      'RepaymentsOfDebt'
+    ]);
+    const debtIssuance = getAnnualValues([
+      'ProceedsFromIssuanceOfLongTermDebt',
+      'ProceedsFromDebtNetOfIssuanceCosts'
+    ]);
+
+    // Get all years
+    const years = [...operatingCashFlow.keys()]
+      .sort((a, b) => parseInt(b) - parseInt(a))
+      .slice(0, 5);
+
+    const cashFlows = years.map(year => {
+      const opCF = operatingCashFlow.get(year) || null;
+      const capex = capitalExpenditures.get(year) || null;
+      const fcf = opCF !== null && capex !== null ? opCF - Math.abs(capex) : null;
+      
+      const invCF = investingCashFlow.get(year) || null;
+      const finCF = financingCashFlow.get(year) || null;
+      const netChange = (opCF || 0) + (invCF || 0) + (finCF || 0);
+
+      return {
+        date: `${year}-12-31`,
+        year: parseInt(year),
+        netIncome: netIncome.get(year) || null,
+        depreciationAmortization: depreciationAmortization.get(year) || null,
+        stockBasedCompensation: stockBasedCompensation.get(year) || null,
+        operatingCashFlow: opCF,
+        capitalExpenditures: capex ? -Math.abs(capex) : null,
+        acquisitions: acquisitions.get(year) ? -Math.abs(acquisitions.get(year)!) : null,
+        investingCashFlow: invCF,
+        dividendsPaid: dividendsPaid.get(year) ? -Math.abs(dividendsPaid.get(year)!) : null,
+        shareRepurchases: shareRepurchases.get(year) ? -Math.abs(shareRepurchases.get(year)!) : null,
+        debtRepayment: debtRepayment.get(year) ? -Math.abs(debtRepayment.get(year)!) : null,
+        debtIssuance: debtIssuance.get(year) || null,
+        financingCashFlow: finCF,
+        netCashChange: netChange !== 0 ? netChange : null,
+        freeCashFlow: fcf,
+      };
+    });
+
+    console.log(`[SEC XBRL] Cash flow history for ${ticker}: ${cashFlows.length} years`);
+    setCache(cacheKey, cashFlows);
+    return cashFlows;
+  } catch (err) {
+    console.error('[SEC XBRL] Cash flow history error:', err);
+    return [];
+  }
+}
+
 async function searchSymbols(query: string, apiKey: string): Promise<any[]> {
   const url = `${BASE_URL}/search?query=${encodeURIComponent(query)}&limit=10&apikey=${apiKey}`;
   const response = await fetch(url);
@@ -1354,6 +1626,60 @@ serve(async (req) => {
         segments,
         useMockData,
         source: useMockData ? "Demo Data" : "FMP",
+        cachedAt: new Date().toISOString(),
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+    
+    // NEW: Balance Sheet action
+    if (action === 'balance-sheet') {
+      const symbol = (body.symbol || '').toUpperCase();
+      if (!symbol) {
+        return new Response(JSON.stringify({ 
+          success: false, 
+          error: 'Symbol is required' 
+        }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      
+      console.log(`[fmp-fundamentals] Fetching balance sheet for ${symbol}`);
+      
+      const balanceSheets = await fetchSECBalanceSheetHistory(symbol);
+      
+      return new Response(JSON.stringify({
+        success: true,
+        balanceSheets,
+        source: 'SEC XBRL',
+        cachedAt: new Date().toISOString(),
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+    
+    // NEW: Cash Flow action
+    if (action === 'cash-flow') {
+      const symbol = (body.symbol || '').toUpperCase();
+      if (!symbol) {
+        return new Response(JSON.stringify({ 
+          success: false, 
+          error: 'Symbol is required' 
+        }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      
+      console.log(`[fmp-fundamentals] Fetching cash flow for ${symbol}`);
+      
+      const cashFlows = await fetchSECCashFlowHistory(symbol);
+      
+      return new Response(JSON.stringify({
+        success: true,
+        cashFlows,
+        source: 'SEC XBRL',
         cachedAt: new Date().toISOString(),
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
