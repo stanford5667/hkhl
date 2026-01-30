@@ -1,6 +1,7 @@
 /**
  * CashFlowTable - Display cash flow statement from SEC pipeline
  * Shows Operating, Investing, and Financing activities
+ * Matches Income Statement visual format
  */
 
 import React from 'react';
@@ -8,11 +9,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Coins, RefreshCw } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Coins, RefreshCw, HelpCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { FinancialDataCell } from './FinancialDataCell';
 
 interface CashFlowTableProps {
   ticker: string;
@@ -31,27 +32,27 @@ interface CashFlowRow {
 const CASH_FLOW_ROWS: CashFlowRow[] = [
   // Operating Activities
   { label: 'Net Income', key: 'netIncome', section: 'operating', tooltip: 'Starting point for operating cash flow.' },
-  { label: 'Depreciation & Amortization', key: 'depreciationAmortization', isSubItem: true, section: 'operating', tooltip: 'Non-cash expense added back.' },
-  { label: 'Stock-based Compensation', key: 'stockBasedCompensation', isSubItem: true, section: 'operating', tooltip: 'Non-cash expense for equity awards.' },
-  { label: 'Changes in Working Capital', key: 'workingCapitalChanges', isSubItem: true, section: 'operating', tooltip: 'Cash impact from changes in current assets/liabilities.' },
-  { label: 'Operating Cash Flow', key: 'operatingCashFlow', isHighlight: true, section: 'operating', tooltip: 'Cash generated from core business operations.' },
+  { label: 'D&A', key: 'depreciationAmortization', isSubItem: true, section: 'operating', tooltip: 'Non-cash expense added back.' },
+  { label: 'Stock Comp', key: 'stockBasedCompensation', isSubItem: true, section: 'operating', tooltip: 'Non-cash expense for equity awards.' },
+  { label: 'Working Capital', key: 'workingCapitalChanges', isSubItem: true, section: 'operating', tooltip: 'Cash impact from changes in current assets/liabilities.' },
+  { label: 'Operating CF', key: 'operatingCashFlow', isHighlight: true, section: 'operating', tooltip: 'Cash generated from core business operations.' },
   
   // Investing Activities
-  { label: 'Capital Expenditures', key: 'capitalExpenditures', section: 'investing', tooltip: 'Investments in property, plant, and equipment.' },
+  { label: 'CapEx', key: 'capitalExpenditures', section: 'investing', tooltip: 'Investments in property, plant, and equipment.' },
   { label: 'Acquisitions', key: 'acquisitions', isSubItem: true, section: 'investing', tooltip: 'Cash spent to acquire other companies.' },
-  { label: 'Investment Purchases', key: 'investmentPurchases', isSubItem: true, section: 'investing', tooltip: 'Cash spent on marketable securities.' },
-  { label: 'Investment Sales', key: 'investmentSales', isSubItem: true, section: 'investing', tooltip: 'Cash received from selling investments.' },
-  { label: 'Investing Cash Flow', key: 'investingCashFlow', isHighlight: true, section: 'investing', tooltip: 'Cash used for investments and asset purchases.' },
+  { label: 'Invest Purchases', key: 'investmentPurchases', isSubItem: true, section: 'investing', tooltip: 'Cash spent on marketable securities.' },
+  { label: 'Invest Sales', key: 'investmentSales', isSubItem: true, section: 'investing', tooltip: 'Cash received from selling investments.' },
+  { label: 'Investing CF', key: 'investingCashFlow', isHighlight: true, section: 'investing', tooltip: 'Cash used for investments and asset purchases.' },
   
   // Financing Activities
-  { label: 'Dividends Paid', key: 'dividendsPaid', section: 'financing', tooltip: 'Cash returned to shareholders as dividends.' },
-  { label: 'Share Repurchases', key: 'shareRepurchases', isSubItem: true, section: 'financing', tooltip: 'Cash spent buying back company stock.' },
+  { label: 'Dividends', key: 'dividendsPaid', section: 'financing', tooltip: 'Cash returned to shareholders as dividends.' },
+  { label: 'Buybacks', key: 'shareRepurchases', isSubItem: true, section: 'financing', tooltip: 'Cash spent buying back company stock.' },
   { label: 'Debt Repayment', key: 'debtRepayment', isSubItem: true, section: 'financing', tooltip: 'Cash used to pay down loans.' },
   { label: 'Debt Issuance', key: 'debtIssuance', isSubItem: true, section: 'financing', tooltip: 'Cash received from new borrowings.' },
-  { label: 'Financing Cash Flow', key: 'financingCashFlow', isHighlight: true, section: 'financing', tooltip: 'Cash from debt and equity transactions.' },
+  { label: 'Financing CF', key: 'financingCashFlow', isHighlight: true, section: 'financing', tooltip: 'Cash from debt and equity transactions.' },
   
   // Summary
-  { label: 'Net Change in Cash', key: 'netCashChange', isHighlight: true, tooltip: 'Total change in cash position for the period.' },
+  { label: 'Net Cash Change', key: 'netCashChange', isHighlight: true, tooltip: 'Total change in cash position for the period.' },
   { label: 'Free Cash Flow', key: 'freeCashFlow', isHighlight: true, tooltip: 'Operating Cash Flow minus CapEx. Cash available for dividends, buybacks, or debt reduction.' },
 ];
 
@@ -145,7 +146,7 @@ export function CashFlowTable({ ticker, companyName }: CashFlowTableProps) {
           </div>
           
           <div className="flex items-center gap-2">
-            <span className="text-xs text-muted-foreground">Click any value for details</span>
+            <span className="text-xs text-muted-foreground">Values in millions USD</span>
             <Button 
               variant="ghost" 
               size="sm" 
@@ -164,13 +165,13 @@ export function CashFlowTable({ ticker, companyName }: CashFlowTableProps) {
           <table className="w-full text-sm border-collapse" style={{ tableLayout: 'fixed' }}>
             <thead>
               <tr className="border-b border-border/50">
-                <th className="sticky left-0 bg-card z-20 text-left px-4 py-2.5 font-medium text-muted-foreground text-xs w-[200px] min-w-[200px]">
-                  Line Item
+                <th className="sticky left-0 bg-card z-20 text-left px-4 py-2.5 font-medium text-muted-foreground text-xs w-[140px] min-w-[140px] overflow-hidden after:absolute after:right-0 after:top-0 after:bottom-0 after:w-px after:bg-border/50">
+                  <span className="block truncate">Line Item</span>
                 </th>
                 {displayYears.map((yearData: any, idx: number) => {
                   const yearLabel = yearData.date?.split('-')[0] || yearData.year;
                   return (
-                    <th key={idx} className="text-right px-3 py-2.5 font-medium text-xs w-[100px] min-w-[100px]">
+                    <th key={idx} className="text-right px-3 py-2.5 font-medium text-xs w-[80px] min-w-[80px]">
                       {yearLabel}
                     </th>
                   );
@@ -184,51 +185,60 @@ export function CashFlowTable({ ticker, companyName }: CashFlowTableProps) {
                 if (!hasData && row.isSubItem) return null;
                 
                 return (
-                  <tr 
-                    key={row.key}
-                    className={cn(
-                      "border-b border-border/30 hover:bg-accent/30 transition-colors",
-                      row.isHighlight && "bg-primary/5 font-semibold"
-                    )}
-                  >
-                    <td className={cn(
-                      "sticky left-0 z-20 px-4 py-2.5 text-xs",
-                      row.isHighlight ? "bg-primary/5" : "bg-card",
-                      row.isSubItem && "pl-8 text-muted-foreground"
-                    )}>
-                      <span className={cn(
-                        row.isHighlight && "text-primary",
-                        row.key === 'freeCashFlow' && "text-emerald-500"
+                  <TooltipProvider key={row.key} delayDuration={0}>
+                    <tr 
+                      className={cn(
+                        "border-b border-border/30 hover:bg-accent/30 transition-colors",
+                        row.isHighlight && "bg-primary/5 font-semibold"
+                      )}
+                    >
+                      <td className={cn(
+                        "sticky left-0 z-20 px-4 py-2.5 text-xs w-[140px] min-w-[140px] overflow-hidden",
+                        row.isHighlight ? "bg-primary/5" : "bg-card",
+                        row.isSubItem && "pl-8 text-muted-foreground"
                       )}>
-                        {row.label}
-                      </span>
-                    </td>
-                    
-                    {displayYears.map((yearData: any, idx: number) => {
-                      const value = yearData[row.key];
-                      const prevValue = idx > 0 ? displayYears[idx - 1]?.[row.key] : null;
-                      const yoyChange = prevValue && value && prevValue !== 0 
-                        ? ((value - prevValue) / Math.abs(prevValue)) * 100 
-                        : undefined;
-                      
-                      return (
-                        <FinancialDataCell
-                          key={idx}
-                          value={formatValue(value)}
-                          rawValue={value}
-                          label={row.label}
-                          tooltip={row.tooltip}
-                          source="SEC"
-                          sourceDetail={`${ticker} 10-K Filing`}
-                          isHighlight={row.isHighlight}
-                          yoyChange={yoyChange}
-                          className={cn(
-                            row.key === 'freeCashFlow' && value != null && value > 0 && "text-emerald-500"
+                        <div className="flex items-center gap-1.5 max-w-full">
+                          <span className={cn(
+                            "truncate flex-1 min-w-0",
+                            row.isHighlight && "text-primary",
+                            row.key === 'freeCashFlow' && "text-emerald-500"
+                          )}>
+                            {row.label}
+                          </span>
+                          {row.tooltip && (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <span className="flex-shrink-0 cursor-help">
+                                  <HelpCircle className="h-3 w-3 text-muted-foreground/50 hover:text-muted-foreground" />
+                                </span>
+                              </TooltipTrigger>
+                              <TooltipContent side="right" className="max-w-[200px]">
+                                <p className="text-xs">{row.tooltip}</p>
+                              </TooltipContent>
+                            </Tooltip>
                           )}
-                        />
-                      );
-                    })}
-                  </tr>
+                        </div>
+                      </td>
+                      
+                      {displayYears.map((yearData: any, idx: number) => {
+                        const value = yearData[row.key];
+                        
+                        return (
+                          <td
+                            key={idx}
+                            className={cn(
+                              "text-right px-3 py-2.5 font-mono text-xs tabular-nums w-[80px] min-w-[80px]",
+                              row.isHighlight && "bg-primary/5 font-medium",
+                              row.isHighlight && "text-primary",
+                              row.key === 'freeCashFlow' && value != null && value > 0 && "text-emerald-500"
+                            )}
+                          >
+                            {formatValue(value)}
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  </TooltipProvider>
                 );
               })}
             </tbody>

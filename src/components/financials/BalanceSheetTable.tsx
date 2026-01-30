@@ -1,6 +1,7 @@
 /**
  * BalanceSheetTable - Display balance sheet data from SEC pipeline
  * Shows Assets, Liabilities, and Equity breakdown
+ * Matches Income Statement visual format
  */
 
 import React from 'react';
@@ -8,7 +9,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Scale, RefreshCw, TrendingUp, TrendingDown } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Scale, RefreshCw, HelpCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -49,7 +51,7 @@ const BALANCE_SHEET_ROWS: BalanceSheetRow[] = [
   { label: 'Other Liabilities', key: 'otherLiabilities', isSubItem: true, section: 'liabilities', tooltip: 'Other obligations like deferred taxes and lease obligations.' },
   
   // Equity
-  { label: "Total Stockholders' Equity", key: 'totalEquity', isHighlight: true, section: 'equity', tooltip: 'Net worth of the company (Assets - Liabilities).' },
+  { label: "Stockholders' Equity", key: 'totalEquity', isHighlight: true, section: 'equity', tooltip: 'Net worth of the company (Assets - Liabilities).' },
   { label: 'Common Stock', key: 'commonStock', isSubItem: true, section: 'equity', tooltip: 'Par value of issued common shares.' },
   { label: 'Retained Earnings', key: 'retainedEarnings', isSubItem: true, section: 'equity', tooltip: 'Accumulated profits not paid out as dividends.' },
   { label: 'Treasury Stock', key: 'treasuryStock', isSubItem: true, section: 'equity', tooltip: 'Company stock that has been repurchased.' },
@@ -145,7 +147,7 @@ export function BalanceSheetTable({ ticker, companyName }: BalanceSheetTableProp
           </div>
           
           <div className="flex items-center gap-2">
-            <span className="text-xs text-muted-foreground">Click any value for details</span>
+            <span className="text-xs text-muted-foreground">Values in millions USD</span>
             <Button 
               variant="ghost" 
               size="sm" 
@@ -164,13 +166,13 @@ export function BalanceSheetTable({ ticker, companyName }: BalanceSheetTableProp
           <table className="w-full text-sm border-collapse" style={{ tableLayout: 'fixed' }}>
             <thead>
               <tr className="border-b border-border/50">
-                <th className="sticky left-0 bg-card z-20 text-left px-4 py-2.5 font-medium text-muted-foreground text-xs w-[180px] min-w-[180px]">
-                  Line Item
+                <th className="sticky left-0 bg-card z-20 text-left px-4 py-2.5 font-medium text-muted-foreground text-xs w-[140px] min-w-[140px] overflow-hidden after:absolute after:right-0 after:top-0 after:bottom-0 after:w-px after:bg-border/50">
+                  <span className="block truncate">Line Item</span>
                 </th>
                 {displayYears.map((yearData: any, idx: number) => {
                   const yearLabel = yearData.date?.split('-')[0] || yearData.year;
                   return (
-                    <th key={idx} className="text-right px-3 py-2.5 font-medium text-xs w-[100px] min-w-[100px]">
+                    <th key={idx} className="text-right px-3 py-2.5 font-medium text-xs w-[80px] min-w-[80px]">
                       {yearLabel}
                     </th>
                   );
@@ -185,43 +187,60 @@ export function BalanceSheetTable({ ticker, companyName }: BalanceSheetTableProp
                 if (!hasData && row.isSubItem) return null;
                 
                 return (
-                  <tr 
-                    key={row.key}
-                    className={cn(
-                      "border-b border-border/30 hover:bg-accent/30 transition-colors",
-                      row.isHighlight && "bg-primary/5 font-semibold"
-                    )}
-                  >
-                    <td className={cn(
-                      "sticky left-0 z-20 px-4 py-2.5 text-xs",
-                      row.isHighlight ? "bg-primary/5" : "bg-card",
-                      row.isSubItem && "pl-8 text-muted-foreground"
-                    )}>
-                      <span className={cn(row.isHighlight && "text-primary")}>
-                        {row.label}
-                      </span>
-                    </td>
-                    
-                    {displayYears.map((yearData: any, idx: number) => {
-                      const value = yearData[row.key];
-                      const prevValue = idx > 0 ? displayYears[idx - 1]?.[row.key] : null;
-                      const yoyChange = prevValue && value ? ((value - prevValue) / Math.abs(prevValue)) * 100 : undefined;
+                  <TooltipProvider key={row.key} delayDuration={0}>
+                    <tr 
+                      className={cn(
+                        "border-b border-border/30 hover:bg-accent/30 transition-colors",
+                        row.isHighlight && "bg-primary/5 font-semibold"
+                      )}
+                    >
+                      <td className={cn(
+                        "sticky left-0 z-20 px-4 py-2.5 text-xs w-[140px] min-w-[140px] overflow-hidden",
+                        row.isHighlight ? "bg-primary/5" : "bg-card",
+                        row.isSubItem && "pl-8 text-muted-foreground"
+                      )}>
+                        <div className="flex items-center gap-1.5 max-w-full">
+                          <span className={cn(
+                            "truncate flex-1 min-w-0",
+                            row.isHighlight && "text-primary"
+                          )}>
+                            {row.label}
+                          </span>
+                          {row.tooltip && (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <span className="flex-shrink-0 cursor-help">
+                                  <HelpCircle className="h-3 w-3 text-muted-foreground/50 hover:text-muted-foreground" />
+                                </span>
+                              </TooltipTrigger>
+                              <TooltipContent side="right" className="max-w-[200px]">
+                                <p className="text-xs">{row.tooltip}</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          )}
+                        </div>
+                      </td>
                       
-                      return (
-                        <FinancialDataCell
-                          key={idx}
-                          value={formatValue(value)}
-                          rawValue={value}
-                          label={row.label}
-                          tooltip={row.tooltip}
-                          source="SEC"
-                          sourceDetail={`${ticker} 10-K Filing`}
-                          isHighlight={row.isHighlight}
-                          yoyChange={yoyChange}
-                        />
-                      );
-                    })}
-                  </tr>
+                      {displayYears.map((yearData: any, idx: number) => {
+                        const value = yearData[row.key];
+                        const prevValue = idx > 0 ? displayYears[idx - 1]?.[row.key] : null;
+                        const yoyChange = prevValue && value ? ((value - prevValue) / Math.abs(prevValue)) * 100 : undefined;
+                        
+                        return (
+                          <td
+                            key={idx}
+                            className={cn(
+                              "text-right px-3 py-2.5 font-mono text-xs tabular-nums w-[80px] min-w-[80px]",
+                              row.isHighlight && "bg-primary/5 font-medium",
+                              row.isHighlight && "text-primary"
+                            )}
+                          >
+                            {formatValue(value)}
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  </TooltipProvider>
                 );
               })}
             </tbody>
