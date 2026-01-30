@@ -22,6 +22,7 @@ import {
 } from './types'
 import { validateBacktestRequest, formatValidationErrors } from './validation'
 import { TechnicalIndicators } from './indicators'
+import { isTradingDay, getHolidayName } from './marketHolidays'
 
 export class BacktestEngine {
   private request: BacktestRequest
