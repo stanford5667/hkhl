@@ -514,8 +514,6 @@ export function IncomeStatementTable({ ticker, companyName }: IncomeStatementTab
                         {displayYears.map((yearData, idx) => {
                           const value = yearData[row.key];
                           const isEPS = row.key === 'eps';
-                          const prevValue = idx > 0 ? displayYears[idx - 1]?.[row.key] : null;
-                          const yoyChange = prevValue && value ? ((value - prevValue) / Math.abs(prevValue)) * 100 : undefined;
                           
                           return (
                             <td 
@@ -537,7 +535,6 @@ export function IncomeStatementTable({ ticker, companyName }: IncomeStatementTab
                                 }
                                 isEstimate={yearData.isEstimate}
                                 isHighlight={row.isHighlight}
-                                yoyChange={yoyChange}
                               />
                             </td>
                           );
