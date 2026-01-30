@@ -9,6 +9,17 @@ const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 const POLYGON_API_KEY = Deno.env.get('POLYGON_API_KEY');
 
 // ═══════════════════════════════════════════════════════════════════════════════
+// PING HANDLER - Fast response for edge function warm-up
+// ═══════════════════════════════════════════════════════════════════════════════
+
+async function handlePing(): Promise<Response> {
+  return new Response(JSON.stringify({ ok: true, timestamp: Date.now() }), {
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    status: 200,
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
 // MARKET HOLIDAYS - US Market Holiday Validation
 // ═══════════════════════════════════════════════════════════════════════════════
 
@@ -885,6 +896,13 @@ Deno.serve(async (req) => {
 
   try {
     const body = await req.json();
+    
+    // Handle ping requests for edge function warm-up (fast response)
+    if (body.ping === true) {
+      console.log('[strategy-backtest] Ping received - function is warm');
+      return handlePing();
+    }
+    
     const { ticker, strategy, startDate, endDate, initialCapital = 10000 } = body;
     
     // Support both nested params object and flat parameters at root level
