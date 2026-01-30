@@ -42,6 +42,7 @@ import {
   BarChart3,
   Activity,
   Layers,
+  Workflow,
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
@@ -67,6 +68,7 @@ import {
   SectionDivider,
 } from './TerminalDesignSystem';
 import { AllocationDonut, RiskScore } from './AdvancedAnalytics';
+import { VisualStrategyBuilder } from '@/components/builder/VisualStrategyBuilder';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // TYPES
@@ -224,7 +226,8 @@ export function ProfessionalBacktester() {
   
   // UI state
   const [activeTab, setActiveTab] = useState('overview');
-  const [activeLeftTab, setActiveLeftTab] = useState<'portfolio' | 'templates'>('portfolio');
+  const [activeLeftTab, setActiveLeftTab] = useState<'portfolio' | 'templates' | 'strategy-builder'>('portfolio');
+  const [showStrategyBuilder, setShowStrategyBuilder] = useState(false);
   const [showShortcuts, setShowShortcuts] = useState(false);
   
   // Refs
@@ -835,6 +838,21 @@ export function ProfessionalBacktester() {
               )}
               <BarChart3 className="h-4 w-4" />
             </button>
+            <button
+              onClick={() => setActiveLeftTab('strategy-builder')}
+              className={cn(
+                "w-full aspect-square flex items-center justify-center transition-all relative",
+                activeLeftTab === 'strategy-builder'
+                  ? "text-[rgb(56,139,253)]"
+                  : "text-[rgb(87,96,106)] hover:text-[rgb(139,148,158)]"
+              )}
+              title="Visual Strategy Builder"
+            >
+              {activeLeftTab === 'strategy-builder' && (
+                <div className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-6 bg-[rgb(56,139,253)] rounded-r" />
+              )}
+              <Workflow className="h-4 w-4" />
+            </button>
           </div>
           
           {/* Tab Content */}
@@ -1058,7 +1076,7 @@ export function ProfessionalBacktester() {
                   </div>
                 )}
               </>
-            ) : (
+            ) : activeLeftTab === 'templates' ? (
               /* Templates Tab */
               <ScrollArea className="flex-1">
                 <div className="p-3">
@@ -1097,6 +1115,11 @@ export function ProfessionalBacktester() {
                   </div>
                 </div>
               </ScrollArea>
+            ) : (
+              /* Visual Strategy Builder Tab */
+              <div className="flex-1 flex flex-col min-h-0 bg-[rgb(8,12,16)]">
+                <VisualStrategyBuilder embedded />
+              </div>
             )}
           </div>
         </div>

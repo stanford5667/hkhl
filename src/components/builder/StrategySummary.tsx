@@ -35,7 +35,7 @@ import type { CanvasBlock } from '@/lib/strategyBuilder/types';
 import { serializeStrategy, encodeStrategyToURL } from '@/lib/strategyBuilder/serializer';
 import { STRATEGY_TEMPLATES, type StrategyTemplate } from '@/lib/strategyBuilder/templates';
 
-interface StrategySummaryProps {
+export interface StrategySummaryProps {
   blocks: CanvasBlock[];
   strategyName: string;
   ticker: string;
@@ -43,6 +43,7 @@ interface StrategySummaryProps {
   onTickerChange: (ticker: string) => void;
   onLoadTemplate: (template: StrategyTemplate) => void;
   className?: string;
+  compact?: boolean;
 }
 
 export const StrategySummary = memo(function StrategySummary({
@@ -53,6 +54,7 @@ export const StrategySummary = memo(function StrategySummary({
   onTickerChange,
   onLoadTemplate,
   className,
+  compact = false,
 }: StrategySummaryProps) {
   const navigate = useNavigate();
   const [copied, setCopied] = useState(false);
@@ -122,6 +124,77 @@ export const StrategySummary = memo(function StrategySummary({
     localStorage.setItem('visual_strategies', JSON.stringify(saved));
     toast.success('Strategy saved locally');
   };
+
+  // Compact mode for embedded use
+  if (compact) {
+    return (
+      <div className={cn("flex flex-col bg-[rgb(13,17,23)]", className)}>
+        <ScrollArea className="max-h-48">
+          <div className="p-2 space-y-2">
+            {/* Ticker + Template row */}
+            <div className="flex gap-2">
+              <Input
+                value={ticker}
+                onChange={(e) => onTickerChange(e.target.value.toUpperCase())}
+                placeholder="AAPL"
+                className="h-7 text-xs uppercase flex-1 bg-[rgb(17,21,28)] border-[rgb(33,38,45)]"
+              />
+              <Select onValueChange={(id) => {
+                const template = STRATEGY_TEMPLATES.find(t => t.id === id);
+                if (template) onLoadTemplate(template);
+              }}>
+                <SelectTrigger className="h-7 text-xs w-32 bg-[rgb(17,21,28)] border-[rgb(33,38,45)]">
+                  <SelectValue placeholder="Template" />
+                </SelectTrigger>
+                <SelectContent>
+                  {STRATEGY_TEMPLATES.map(template => (
+                    <SelectItem key={template.id} value={template.id}>
+                      {template.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Conditions Summary (compact) */}
+            {serialized && (
+              <div className="text-[10px] space-y-1 p-2 rounded bg-[rgb(17,21,28)] border border-[rgb(33,38,45)]">
+                <div className="flex items-center gap-1">
+                  <TrendingUp className="h-3 w-3 text-emerald-500" />
+                  <span className="text-[rgb(139,148,158)]">BUY:</span>
+                  <span className="font-mono truncate">{serialized.summary.entryCondition}</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <TrendingDown className="h-3 w-3 text-rose-500" />
+                  <span className="text-[rgb(139,148,158)]">EXIT:</span>
+                  <span className="font-mono truncate">{serialized.summary.exitCondition}</span>
+                </div>
+              </div>
+            )}
+
+            {/* Validation errors (compact) */}
+            {validation.errors.length > 0 && (
+              <div className="text-[10px] text-destructive flex items-center gap-1">
+                <AlertCircle className="h-3 w-3" />
+                {validation.errors[0]}
+              </div>
+            )}
+
+            {/* Actions */}
+            <Button
+              size="sm"
+              className="w-full h-7 text-xs"
+              onClick={handleTestInBacktest}
+              disabled={!validation.isValid}
+            >
+              <FlaskConical className="h-3 w-3 mr-1" />
+              Test Strategy
+            </Button>
+          </div>
+        </ScrollArea>
+      </div>
+    );
+  }
 
   return (
     <div className={cn("flex flex-col h-full border-l border-border bg-card/50", className)}>
