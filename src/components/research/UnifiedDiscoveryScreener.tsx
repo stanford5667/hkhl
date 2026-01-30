@@ -2,12 +2,15 @@ import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { 
-  TrendingUp, Activity, Zap, Flame, BarChart3, Filter, X, ChevronDown,
-  Building2, DollarSign, Percent, Scale, Target
+  TrendingUp, Activity, Zap, Flame, BarChart3, Filter, X, ChevronDown, ChevronUp,
+  Building2, DollarSign, Percent, Scale, Target, LineChart, AlertTriangle,
+  Clock, Volume2, Gauge, TrendingDown, Calculator, Ratio
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import {
   Select,
   SelectContent,
@@ -15,13 +18,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
-import { screenStocksFromPolygon, QUICK_SCREENS, MARKET_CAP_TIERS, type ScreenerResult, type ScreenerFilters } from '@/services/polygonScreenerService';
+import { screenStocksFromPolygon, QUICK_SCREENS, type ScreenerResult, type ScreenerFilters } from '@/services/polygonScreenerService';
 
 // =====================
 // Tab Configuration
@@ -37,11 +35,11 @@ const SCREENER_TABS = [
 type TabId = typeof SCREENER_TABS[number]['id'];
 
 // =====================
-// Filter Configurations
+// Filter Configurations - All 19 Metrics
 // =====================
 
 const MARKET_CAP_OPTIONS = [
-  { value: 'all', label: 'Any Market Cap' },
+  { value: 'all', label: 'Any' },
   { value: 'mega', label: 'Mega ($200B+)', min: 200_000_000_000, max: undefined },
   { value: 'large', label: 'Large ($10B-$200B)', min: 10_000_000_000, max: 200_000_000_000 },
   { value: 'mid', label: 'Mid ($2B-$10B)', min: 2_000_000_000, max: 10_000_000_000 },
@@ -50,53 +48,283 @@ const MARKET_CAP_OPTIONS = [
 ];
 
 const PE_RATIO_OPTIONS = [
-  { value: 'all', label: 'Any P/E' },
-  { value: 'under10', label: 'Under 10', max: 10 },
+  { value: 'all', label: 'Any' },
+  { value: 'under10', label: '<10', max: 10 },
   { value: '10to20', label: '10-20', min: 10, max: 20 },
   { value: '20to35', label: '20-35', min: 20, max: 35 },
-  { value: 'over35', label: 'Over 35', min: 35 },
-  { value: 'negative', label: 'Negative (Loss)', max: 0 },
+  { value: 'over35', label: '>35', min: 35 },
+  { value: 'negative', label: 'Negative', max: 0 },
+];
+
+const FORWARD_PE_OPTIONS = [
+  { value: 'all', label: 'Any' },
+  { value: 'under15', label: '<15', max: 15 },
+  { value: '15to25', label: '15-25', min: 15, max: 25 },
+  { value: '25to40', label: '25-40', min: 25, max: 40 },
+  { value: 'over40', label: '>40', min: 40 },
+];
+
+const PEG_OPTIONS = [
+  { value: 'all', label: 'Any' },
+  { value: 'under1', label: '<1 (Undervalued)', max: 1 },
+  { value: '1to2', label: '1-2 (Fair)', min: 1, max: 2 },
+  { value: 'over2', label: '>2 (Expensive)', min: 2 },
+];
+
+const PRICE_TO_BOOK_OPTIONS = [
+  { value: 'all', label: 'Any' },
+  { value: 'under1', label: '<1 (Below Book)', max: 1 },
+  { value: '1to3', label: '1-3', min: 1, max: 3 },
+  { value: '3to10', label: '3-10', min: 3, max: 10 },
+  { value: 'over10', label: '>10', min: 10 },
+];
+
+const PRICE_TO_CASH_OPTIONS = [
+  { value: 'all', label: 'Any' },
+  { value: 'under5', label: '<5', max: 5 },
+  { value: '5to15', label: '5-15', min: 5, max: 15 },
+  { value: '15to30', label: '15-30', min: 15, max: 30 },
+  { value: 'over30', label: '>30', min: 30 },
 ];
 
 const OP_MARGIN_OPTIONS = [
-  { value: 'all', label: 'Any Margin' },
-  { value: 'over30', label: '30%+ (Excellent)', min: 30 },
+  { value: 'all', label: 'Any' },
+  { value: 'over30', label: '>30% (Excellent)', min: 30 },
   { value: '20to30', label: '20-30% (Strong)', min: 20, max: 30 },
   { value: '10to20', label: '10-20% (Good)', min: 10, max: 20 },
   { value: '0to10', label: '0-10% (Fair)', min: 0, max: 10 },
   { value: 'negative', label: 'Negative', max: 0 },
 ];
 
+const EPS_GROWTH_OPTIONS = [
+  { value: 'all', label: 'Any' },
+  { value: 'over50', label: '>50%', min: 50 },
+  { value: '20to50', label: '20-50%', min: 20, max: 50 },
+  { value: '0to20', label: '0-20%', min: 0, max: 20 },
+  { value: 'negative', label: 'Negative', max: 0 },
+];
+
+const REVENUE_GROWTH_OPTIONS = [
+  { value: 'all', label: 'Any' },
+  { value: 'over30', label: '>30%', min: 30 },
+  { value: '15to30', label: '15-30%', min: 15, max: 30 },
+  { value: '0to15', label: '0-15%', min: 0, max: 15 },
+  { value: 'negative', label: 'Declining', max: 0 },
+];
+
+const EPS_STDDEV_OPTIONS = [
+  { value: 'all', label: 'Any' },
+  { value: 'low', label: 'Low (<$0.10)', max: 0.10 },
+  { value: 'medium', label: 'Medium ($0.10-$0.30)', min: 0.10, max: 0.30 },
+  { value: 'high', label: 'High (>$0.30)', min: 0.30 },
+];
+
 const DEBT_EQUITY_OPTIONS = [
-  { value: 'all', label: 'Any D/E' },
-  { value: 'under0.5', label: 'Under 0.5 (Low)', max: 0.5 },
+  { value: 'all', label: 'Any' },
+  { value: 'under0.5', label: '<0.5 (Low)', max: 0.5 },
   { value: '0.5to1', label: '0.5-1.0 (Moderate)', min: 0.5, max: 1 },
   { value: '1to2', label: '1.0-2.0 (High)', min: 1, max: 2 },
-  { value: 'over2', label: 'Over 2.0 (Very High)', min: 2 },
+  { value: 'over2', label: '>2.0 (Very High)', min: 2 },
+];
+
+const QUICK_RATIO_OPTIONS = [
+  { value: 'all', label: 'Any' },
+  { value: 'over2', label: '>2 (Strong)', min: 2 },
+  { value: '1to2', label: '1-2 (Healthy)', min: 1, max: 2 },
+  { value: 'under1', label: '<1 (Weak)', max: 1 },
+];
+
+const EV_EBITDA_OPTIONS = [
+  { value: 'all', label: 'Any' },
+  { value: 'under10', label: '<10 (Cheap)', max: 10 },
+  { value: '10to15', label: '10-15 (Fair)', min: 10, max: 15 },
+  { value: '15to25', label: '15-25 (Pricey)', min: 15, max: 25 },
+  { value: 'over25', label: '>25 (Expensive)', min: 25 },
+];
+
+const VOLATILITY_OPTIONS = [
+  { value: 'all', label: 'Any' },
+  { value: 'under20', label: '<20% (Low)', max: 20 },
+  { value: '20to40', label: '20-40% (Medium)', min: 20, max: 40 },
+  { value: '40to60', label: '40-60% (High)', min: 40, max: 60 },
+  { value: 'over60', label: '>60% (Very High)', min: 60 },
+];
+
+const MAX_DRAWDOWN_OPTIONS = [
+  { value: 'all', label: 'Any' },
+  { value: 'under10', label: '<-10% (Minimal)', max: -10 },
+  { value: '10to25', label: '-10 to -25%', max: -25, min: -10 },
+  { value: '25to50', label: '-25 to -50%', max: -50, min: -25 },
+  { value: 'over50', label: '>-50% (Severe)', min: -50 },
+];
+
+const SHARPE_OPTIONS = [
+  { value: 'all', label: 'Any' },
+  { value: 'over2', label: '>2 (Excellent)', min: 2 },
+  { value: '1to2', label: '1-2 (Good)', min: 1, max: 2 },
+  { value: '0to1', label: '0-1 (Fair)', min: 0, max: 1 },
+  { value: 'negative', label: '<0 (Poor)', max: 0 },
+];
+
+const BETA_OPTIONS = [
+  { value: 'all', label: 'Any' },
+  { value: 'under0.5', label: '<0.5 (Defensive)', max: 0.5 },
+  { value: '0.5to1', label: '0.5-1.0 (Low Vol)', min: 0.5, max: 1 },
+  { value: '1to1.5', label: '1.0-1.5 (Market)', min: 1, max: 1.5 },
+  { value: 'over1.5', label: '>1.5 (Aggressive)', min: 1.5 },
+];
+
+const AVG_VOLUME_OPTIONS = [
+  { value: 'all', label: 'Any' },
+  { value: 'over10m', label: '>10M', min: 10_000_000 },
+  { value: '5to10m', label: '5-10M', min: 5_000_000, max: 10_000_000 },
+  { value: '1to5m', label: '1-5M', min: 1_000_000, max: 5_000_000 },
+  { value: '500kto1m', label: '500K-1M', min: 500_000, max: 1_000_000 },
+  { value: 'under500k', label: '<500K', max: 500_000 },
 ];
 
 const BEAT_PROBABILITY_OPTIONS = [
-  { value: 'all', label: 'Any Probability' },
+  { value: 'all', label: 'Any' },
   { value: 'high', label: 'High (70%+)', min: 70 },
   { value: 'medium', label: 'Medium (50-70%)', min: 50, max: 70 },
   { value: 'low', label: 'Low (<50%)', max: 50 },
 ];
 
+const PERFORMANCE_PERIOD_OPTIONS = [
+  { value: 'all', label: 'Any' },
+  { value: '1d', label: '1 Day' },
+  { value: '1w', label: '1 Week' },
+  { value: '2w', label: '2 Weeks' },
+  { value: '1m', label: '1 Month' },
+  { value: '3m', label: '3 Months' },
+  { value: '6m', label: '6 Months' },
+  { value: '1y', label: '1 Year' },
+  { value: '2y', label: '2 Years' },
+  { value: '3y', label: '3 Years' },
+  { value: '5y', label: '5 Years' },
+];
+
+const PERFORMANCE_DIRECTION_OPTIONS = [
+  { value: 'all', label: 'Any' },
+  { value: 'up50', label: '>+50%', min: 50 },
+  { value: 'up20', label: '>+20%', min: 20 },
+  { value: 'up10', label: '>+10%', min: 10 },
+  { value: 'up0', label: 'Positive', min: 0 },
+  { value: 'down0', label: 'Negative', max: 0 },
+  { value: 'down10', label: '<-10%', max: -10 },
+  { value: 'down20', label: '<-20%', max: -20 },
+];
+
+// =====================
+// Filter State Interface
+// =====================
+
 interface FilterState {
+  // Valuation
   marketCap: string;
   peRatio: string;
+  forwardPE: string;
+  peg: string;
+  priceToBook: string;
+  priceToCash: string;
+  evEbitda: string;
+  // Profitability & Growth
   opMargin: string;
+  epsGrowth: string;
+  revenueGrowth: string;
+  epsStdDev: string;
+  // Stability
   debtEquity: string;
+  quickRatio: string;
+  // Risk
+  volatility: string;
+  maxDrawdown: string;
+  sharpe: string;
+  beta: string;
+  // Volume & Earnings
+  avgVolume: string;
   beatProbability: string;
+  // Performance
+  performancePeriod: string;
+  performanceDirection: string;
 }
 
 const DEFAULT_FILTERS: FilterState = {
   marketCap: 'all',
   peRatio: 'all',
+  forwardPE: 'all',
+  peg: 'all',
+  priceToBook: 'all',
+  priceToCash: 'all',
+  evEbitda: 'all',
   opMargin: 'all',
+  epsGrowth: 'all',
+  revenueGrowth: 'all',
+  epsStdDev: 'all',
   debtEquity: 'all',
+  quickRatio: 'all',
+  volatility: 'all',
+  maxDrawdown: 'all',
+  sharpe: 'all',
+  beta: 'all',
+  avgVolume: 'all',
   beatProbability: 'all',
+  performancePeriod: 'all',
+  performanceDirection: 'all',
 };
+
+// Filter metadata for display
+const FILTER_CONFIG: Record<keyof FilterState, { label: string; options: { value: string; label: string; min?: number; max?: number }[]; icon: React.ElementType; category: string }> = {
+  marketCap: { label: 'Market Cap', options: MARKET_CAP_OPTIONS, icon: Building2, category: 'Valuation' },
+  peRatio: { label: 'P/E', options: PE_RATIO_OPTIONS, icon: DollarSign, category: 'Valuation' },
+  forwardPE: { label: 'Forward P/E', options: FORWARD_PE_OPTIONS, icon: DollarSign, category: 'Valuation' },
+  peg: { label: 'PEG', options: PEG_OPTIONS, icon: Ratio, category: 'Valuation' },
+  priceToBook: { label: 'P/B', options: PRICE_TO_BOOK_OPTIONS, icon: Calculator, category: 'Valuation' },
+  priceToCash: { label: 'P/Cash', options: PRICE_TO_CASH_OPTIONS, icon: DollarSign, category: 'Valuation' },
+  evEbitda: { label: 'EV/EBITDA', options: EV_EBITDA_OPTIONS, icon: Calculator, category: 'Valuation' },
+  opMargin: { label: 'Op Margin', options: OP_MARGIN_OPTIONS, icon: Percent, category: 'Profitability' },
+  epsGrowth: { label: 'EPS Growth', options: EPS_GROWTH_OPTIONS, icon: TrendingUp, category: 'Growth' },
+  revenueGrowth: { label: 'Rev Growth', options: REVENUE_GROWTH_OPTIONS, icon: TrendingUp, category: 'Growth' },
+  epsStdDev: { label: 'EPS Std Dev', options: EPS_STDDEV_OPTIONS, icon: Gauge, category: 'Stability' },
+  debtEquity: { label: 'D/E', options: DEBT_EQUITY_OPTIONS, icon: Scale, category: 'Stability' },
+  quickRatio: { label: 'Quick Ratio', options: QUICK_RATIO_OPTIONS, icon: Gauge, category: 'Stability' },
+  volatility: { label: 'Volatility', options: VOLATILITY_OPTIONS, icon: Activity, category: 'Risk' },
+  maxDrawdown: { label: 'Max DD', options: MAX_DRAWDOWN_OPTIONS, icon: TrendingDown, category: 'Risk' },
+  sharpe: { label: 'Sharpe', options: SHARPE_OPTIONS, icon: LineChart, category: 'Risk' },
+  beta: { label: 'Beta', options: BETA_OPTIONS, icon: Activity, category: 'Risk' },
+  avgVolume: { label: 'Avg Volume', options: AVG_VOLUME_OPTIONS, icon: Volume2, category: 'Volume' },
+  beatProbability: { label: 'Beat Prob', options: BEAT_PROBABILITY_OPTIONS, icon: Target, category: 'Earnings' },
+  performancePeriod: { label: 'Perf Period', options: PERFORMANCE_PERIOD_OPTIONS, icon: Clock, category: 'Performance' },
+  performanceDirection: { label: 'Perf Range', options: PERFORMANCE_DIRECTION_OPTIONS, icon: TrendingUp, category: 'Performance' },
+};
+
+// Group filters by category
+const FILTER_CATEGORIES = [
+  { 
+    name: 'Valuation', 
+    filters: ['marketCap', 'peRatio', 'forwardPE', 'peg', 'priceToBook', 'priceToCash', 'evEbitda'] as (keyof FilterState)[]
+  },
+  { 
+    name: 'Profitability & Growth', 
+    filters: ['opMargin', 'epsGrowth', 'revenueGrowth'] as (keyof FilterState)[]
+  },
+  { 
+    name: 'Stability', 
+    filters: ['debtEquity', 'quickRatio', 'epsStdDev'] as (keyof FilterState)[]
+  },
+  { 
+    name: 'Risk', 
+    filters: ['volatility', 'maxDrawdown', 'sharpe', 'beta'] as (keyof FilterState)[]
+  },
+  { 
+    name: 'Volume & Earnings', 
+    filters: ['avgVolume', 'beatProbability'] as (keyof FilterState)[]
+  },
+  { 
+    name: 'Performance', 
+    filters: ['performancePeriod', 'performanceDirection'] as (keyof FilterState)[]
+  },
+];
 
 // =====================
 // Utility Functions
@@ -226,26 +454,31 @@ function FilterDropdown({
   const isFiltered = value !== 'all';
   
   return (
-    <Select value={value} onValueChange={onChange}>
-      <SelectTrigger className={cn(
-        "h-8 text-xs gap-1.5 min-w-[120px]",
-        isFiltered && "border-primary bg-primary/5"
-      )}>
-        <Icon className="h-3 w-3 text-muted-foreground" />
-        <SelectValue placeholder={label}>
-          <span className={cn(isFiltered && "text-primary font-medium")}>
-            {selectedLabel}
-          </span>
-        </SelectValue>
-      </SelectTrigger>
-      <SelectContent>
-        {options.map(option => (
-          <SelectItem key={option.value} value={option.value} className="text-xs">
-            {option.label}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
+    <div className="flex flex-col gap-1">
+      <Label className="text-[10px] text-muted-foreground flex items-center gap-1">
+        <Icon className="h-3 w-3" />
+        {label}
+      </Label>
+      <Select value={value} onValueChange={onChange}>
+        <SelectTrigger className={cn(
+          "h-7 text-[11px] w-full min-w-[100px]",
+          isFiltered && "border-primary bg-primary/5"
+        )}>
+          <SelectValue placeholder={label}>
+            <span className={cn(isFiltered && "text-primary font-medium")}>
+              {selectedLabel}
+            </span>
+          </SelectValue>
+        </SelectTrigger>
+        <SelectContent>
+          {options.map(option => (
+            <SelectItem key={option.value} value={option.value} className="text-xs">
+              {option.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
   );
 }
 
@@ -260,33 +493,25 @@ function ActiveFilterBadges({
 }) {
   const activeFilters: { key: keyof FilterState; label: string }[] = [];
   
-  if (filters.marketCap !== 'all') {
-    const opt = MARKET_CAP_OPTIONS.find(o => o.value === filters.marketCap);
-    if (opt) activeFilters.push({ key: 'marketCap', label: opt.label });
-  }
-  if (filters.peRatio !== 'all') {
-    const opt = PE_RATIO_OPTIONS.find(o => o.value === filters.peRatio);
-    if (opt) activeFilters.push({ key: 'peRatio', label: `P/E: ${opt.label}` });
-  }
-  if (filters.opMargin !== 'all') {
-    const opt = OP_MARGIN_OPTIONS.find(o => o.value === filters.opMargin);
-    if (opt) activeFilters.push({ key: 'opMargin', label: `Margin: ${opt.label}` });
-  }
-  if (filters.debtEquity !== 'all') {
-    const opt = DEBT_EQUITY_OPTIONS.find(o => o.value === filters.debtEquity);
-    if (opt) activeFilters.push({ key: 'debtEquity', label: `D/E: ${opt.label}` });
-  }
-  if (filters.beatProbability !== 'all') {
-    const opt = BEAT_PROBABILITY_OPTIONS.find(o => o.value === filters.beatProbability);
-    if (opt) activeFilters.push({ key: 'beatProbability', label: `Beat: ${opt.label}` });
-  }
+  Object.entries(filters).forEach(([key, value]) => {
+    if (value !== 'all') {
+      const config = FILTER_CONFIG[key as keyof FilterState];
+      const opt = config.options.find(o => o.value === value);
+      if (opt) {
+        activeFilters.push({ 
+          key: key as keyof FilterState, 
+          label: `${config.label}: ${opt.label}` 
+        });
+      }
+    }
+  });
 
   if (activeFilters.length === 0) return null;
 
   return (
     <div className="flex items-center gap-1.5 flex-wrap px-3 py-2 border-b border-border bg-muted/20">
-      <span className="text-[10px] text-muted-foreground mr-1">Active:</span>
-      {activeFilters.map(({ key, label }) => (
+      <span className="text-[10px] text-muted-foreground mr-1">Active ({activeFilters.length}):</span>
+      {activeFilters.slice(0, 5).map(({ key, label }) => (
         <Badge 
           key={key} 
           variant="secondary" 
@@ -297,16 +522,52 @@ function ActiveFilterBadges({
           <X className="h-2.5 w-2.5" />
         </Badge>
       ))}
-      {activeFilters.length > 1 && (
-        <Button 
-          variant="ghost" 
-          size="sm" 
-          className="h-5 text-[10px] px-2"
-          onClick={onClearAll}
-        >
-          Clear All
-        </Button>
+      {activeFilters.length > 5 && (
+        <Badge variant="outline" className="h-5 text-[10px]">
+          +{activeFilters.length - 5} more
+        </Badge>
       )}
+      <Button 
+        variant="ghost" 
+        size="sm" 
+        className="h-5 text-[10px] px-2 ml-auto"
+        onClick={onClearAll}
+      >
+        Clear All
+      </Button>
+    </div>
+  );
+}
+
+function FilterCategory({ 
+  name, 
+  filterKeys, 
+  filters, 
+  onFilterChange 
+}: { 
+  name: string;
+  filterKeys: (keyof FilterState)[];
+  filters: FilterState;
+  onFilterChange: (key: keyof FilterState) => (value: string) => void;
+}) {
+  return (
+    <div className="space-y-2">
+      <h4 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">{name}</h4>
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-2">
+        {filterKeys.map(key => {
+          const config = FILTER_CONFIG[key];
+          return (
+            <FilterDropdown
+              key={key}
+              label={config.label}
+              value={filters[key]}
+              options={config.options}
+              onChange={onFilterChange(key)}
+              icon={config.icon}
+            />
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -320,11 +581,14 @@ export function UnifiedDiscoveryScreener() {
   const [activeTab, setActiveTab] = useState<TabId>('topGainers');
   const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTERS);
   const [showFilters, setShowFilters] = useState(false);
+  const [expandedCategory, setExpandedCategory] = useState<string | null>(null);
 
-  const hasActiveFilters = useMemo(() => 
-    Object.values(filters).some(v => v !== 'all'),
+  const activeFilterCount = useMemo(() => 
+    Object.values(filters).filter(v => v !== 'all').length,
     [filters]
   );
+
+  const hasActiveFilters = activeFilterCount > 0;
 
   // Build query filters based on active tab + fundamental filters
   const buildQueryFilters = (tabFilters: ScreenerFilters): ScreenerFilters => {
@@ -335,6 +599,12 @@ export function UnifiedDiscoveryScreener() {
     if (mcOption && filters.marketCap !== 'all') {
       if (mcOption.min !== undefined) combined.minMarketCap = mcOption.min;
       if (mcOption.max !== undefined) combined.maxMarketCap = mcOption.max;
+    }
+
+    // Volume filter
+    const volOption = AVG_VOLUME_OPTIONS.find(o => o.value === filters.avgVolume);
+    if (volOption && filters.avgVolume !== 'all') {
+      if (volOption.min !== undefined) combined.minVolume = volOption.min;
     }
     
     return combined;
@@ -442,7 +712,7 @@ export function UnifiedDiscoveryScreener() {
         <div className="flex items-center justify-between">
           <CardTitle className="text-base font-semibold flex items-center gap-2">
             <BarChart3 className="h-4 w-4 text-primary" />
-            Market Discovery
+            Market Screener
           </CardTitle>
           <Button 
             variant={showFilters ? 'secondary' : 'ghost'}
@@ -456,10 +726,11 @@ export function UnifiedDiscoveryScreener() {
             <Filter className="h-3 w-3" />
             Filters
             {hasActiveFilters && (
-              <Badge variant="secondary" className="h-4 w-4 p-0 text-[9px] flex items-center justify-center">
-                {Object.values(filters).filter(v => v !== 'all').length}
+              <Badge variant="secondary" className="h-4 min-w-4 p-0 text-[9px] flex items-center justify-center">
+                {activeFilterCount}
               </Badge>
             )}
+            {showFilters ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
           </Button>
         </div>
         
@@ -488,46 +759,32 @@ export function UnifiedDiscoveryScreener() {
           })}
         </div>
 
-        {/* Filter Panel */}
+        {/* Filter Panel - Expanded with all 19 filters */}
         {showFilters && (
-          <div className="pt-3 border-t border-border mt-3">
-            <div className="flex flex-wrap gap-2">
-              <FilterDropdown
-                label="Market Cap"
-                value={filters.marketCap}
-                options={MARKET_CAP_OPTIONS}
-                onChange={handleFilterChange('marketCap')}
-                icon={Building2}
+          <div className="pt-3 border-t border-border mt-3 space-y-4">
+            {FILTER_CATEGORIES.map(category => (
+              <FilterCategory
+                key={category.name}
+                name={category.name}
+                filterKeys={category.filters}
+                filters={filters}
+                onFilterChange={handleFilterChange}
               />
-              <FilterDropdown
-                label="P/E Ratio"
-                value={filters.peRatio}
-                options={PE_RATIO_OPTIONS}
-                onChange={handleFilterChange('peRatio')}
-                icon={DollarSign}
-              />
-              <FilterDropdown
-                label="Op Margin"
-                value={filters.opMargin}
-                options={OP_MARGIN_OPTIONS}
-                onChange={handleFilterChange('opMargin')}
-                icon={Percent}
-              />
-              <FilterDropdown
-                label="Debt/Equity"
-                value={filters.debtEquity}
-                options={DEBT_EQUITY_OPTIONS}
-                onChange={handleFilterChange('debtEquity')}
-                icon={Scale}
-              />
-              <FilterDropdown
-                label="Beat Prob"
-                value={filters.beatProbability}
-                options={BEAT_PROBABILITY_OPTIONS}
-                onChange={handleFilterChange('beatProbability')}
-                icon={Target}
-              />
-            </div>
+            ))}
+            
+            {hasActiveFilters && (
+              <div className="flex justify-end pt-2">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="text-xs h-7"
+                  onClick={handleClearAllFilters}
+                >
+                  <X className="h-3 w-3 mr-1" />
+                  Clear All Filters
+                </Button>
+              </div>
+            )}
           </div>
         )}
       </CardHeader>
