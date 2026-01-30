@@ -370,14 +370,31 @@ const SORTABLE_COLUMNS: SortableColumn[] = [
   { key: 'marketCap', label: 'Mkt Cap', filterKey: 'marketCap', getValue: (s) => s.marketCap, format: (v) => formatMarketCap(v), width: 'w-16', alwaysShow: true },
   { key: 'change', label: '% Chg', getValue: (s) => s.changePercent, format: (v) => v != null ? `${v >= 0 ? '+' : ''}${v.toFixed(2)}%` : '—', width: 'w-16', alwaysShow: true },
   
+  // Valuation metrics - shown when their filters are active
+  { key: 'pe', label: 'P/E', filterKey: 'peRatio', getValue: (s) => s.pe, format: (v) => v != null ? v.toFixed(1) : '—', width: 'w-12' },
+  { key: 'forwardPE', label: 'Fwd P/E', filterKey: 'forwardPE', getValue: (s) => s.forwardPE, format: (v) => v != null ? v.toFixed(1) : '—', width: 'w-14' },
+  { key: 'peg', label: 'PEG', filterKey: 'peg', getValue: (s) => s.peg, format: (v) => v != null ? v.toFixed(2) : '—', width: 'w-12' },
+  { key: 'pb', label: 'P/B', filterKey: 'priceToBook', getValue: (s) => s.pb, format: (v) => v != null ? v.toFixed(2) : '—', width: 'w-12' },
+  { key: 'pCash', label: 'P/Cash', filterKey: 'priceToCash', getValue: (s) => s.pCash, format: (v) => v != null ? v.toFixed(1) : '—', width: 'w-14' },
+  { key: 'evEbitda', label: 'EV/EBITDA', filterKey: 'evEbitda', getValue: (s) => s.evEbitda, format: (v) => v != null ? v.toFixed(1) : '—', width: 'w-16' },
+  
+  // Profitability & Growth - shown when their filters are active
+  { key: 'opMargin', label: 'Op Margin', filterKey: 'opMargin', getValue: (s) => s.opMargin, format: (v) => v != null ? `${v.toFixed(1)}%` : '—', width: 'w-16' },
+  { key: 'epsGrowth', label: 'EPS Grw', filterKey: 'epsGrowth', getValue: (s) => s.epsGrowth, format: (v) => v != null ? `${v >= 0 ? '+' : ''}${v.toFixed(1)}%` : '—', width: 'w-14' },
+  { key: 'revenueGrowth', label: 'Rev Grw', filterKey: 'revenueGrowth', getValue: (s) => s.revenueGrowth, format: (v) => v != null ? `${v >= 0 ? '+' : ''}${v.toFixed(1)}%` : '—', width: 'w-14' },
+  
+  // Stability metrics
+  { key: 'debtEquity', label: 'D/E', filterKey: 'debtEquity', getValue: (s) => s.debtEquity, format: (v) => v != null ? v.toFixed(2) : '—', width: 'w-12' },
+  { key: 'quickRatio', label: 'Quick', filterKey: 'quickRatio', getValue: (s) => s.quickRatio, format: (v) => v != null ? v.toFixed(2) : '—', width: 'w-12' },
+  
+  // Risk metrics
+  { key: 'volatility', label: 'Vol', filterKey: 'volatility', getValue: (s) => s.volatility, format: (v) => v != null ? `${v.toFixed(1)}%` : '—', width: 'w-12' },
+  { key: 'beta', label: 'Beta', filterKey: 'beta', getValue: (s) => s.beta, format: (v) => v != null ? v.toFixed(2) : '—', width: 'w-12' },
+  { key: 'sharpe', label: 'Sharpe', filterKey: 'sharpe', getValue: (s) => s.sharpe, format: (v) => v != null ? v.toFixed(2) : '—', width: 'w-12' },
+  { key: 'maxDrawdown', label: 'Max DD', filterKey: 'maxDrawdown', getValue: (s) => s.maxDrawdown, format: (v) => v != null ? `${v.toFixed(1)}%` : '—', width: 'w-14' },
+  
   // Volume - shown when volume filter is active
   { key: 'volume', label: 'Volume', filterKey: 'avgVolume', getValue: (s) => s.volume, format: (v) => v != null ? formatVolume(v) : '—', width: 'w-14' },
-  { key: 'relativeVolume', label: 'Rel Vol', getValue: (s) => s.relativeVolume, format: (v) => v != null ? `${v.toFixed(1)}x` : '—', width: 'w-14' },
-  
-  // Price range - always available
-  { key: 'high', label: 'High', getValue: (s) => s.high, format: (v) => v != null ? `$${v.toFixed(2)}` : '—', width: 'w-14' },
-  { key: 'low', label: 'Low', getValue: (s) => s.low, format: (v) => v != null ? `$${v.toFixed(2)}` : '—', width: 'w-14' },
-  { key: 'vwap', label: 'VWAP', getValue: (s) => s.vwap, format: (v) => v != null ? `$${v.toFixed(2)}` : '—', width: 'w-14' },
 ];
 
 function StockRow({ 

@@ -40,6 +40,29 @@ export interface ScreenerResult {
   exchange: string | null;
   type: string | null;
   matchScore?: number;
+  
+  // Valuation metrics
+  pe: number | null;
+  forwardPE: number | null;
+  peg: number | null;
+  pb: number | null;
+  pCash: number | null;
+  evEbitda: number | null;
+  
+  // Profitability & Growth
+  opMargin: number | null;
+  epsGrowth: number | null;
+  revenueGrowth: number | null;
+  
+  // Stability
+  debtEquity: number | null;
+  quickRatio: number | null;
+  
+  // Risk
+  volatility: number | null;
+  beta: number | null;
+  sharpe: number | null;
+  maxDrawdown: number | null;
 }
 
 export interface ScreenerResponse {
