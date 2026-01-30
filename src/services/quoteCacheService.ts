@@ -3,11 +3,24 @@
  * Layer 1: In-memory cache (instant, survives within session)
  * Layer 2: LocalStorage cache (survives page refresh)
  * Layer 3: Polygon API fallback when Finnhub unavailable
+ * Layer 4: Request deduplication (prevents duplicate in-flight requests)
  */
 
 import { getQuote, getBatchQuotes, getCompanyProfile, type StockQuote } from './finnhubService';
 import { supabase } from '@/integrations/supabase/client';
+import { requestDeduplicator, createCacheKey } from '@/lib/requestDeduplicator';
+import { BatchAccumulator } from '@/lib/batchAccumulator';
 
+// Batch accumulator for individual quote requests
+// Collects requests over 50ms and fires them as a single batch
+const quoteBatchAccumulator = new BatchAccumulator<string, StockQuote>(
+  async (symbols: string[]) => {
+    const results = await getBatchQuotes(symbols);
+    return results;
+  },
+  50, // 50ms delay to accumulate requests
+  30  // Max 30 symbols per batch
+);
 
 interface CachedQuote {
   quote: StockQuote;
@@ -141,49 +154,55 @@ async function fetchPolygonQuote(symbol: string): Promise<StockQuote | null> {
 }
 
 /**
- * Get a single quote with multi-layer caching + Polygon fallback
+ * Get a single quote with multi-layer caching + Polygon fallback + deduplication
  */
 export async function getCachedQuote(symbol: string): Promise<StockQuote | null> {
   const upperSymbol = symbol.toUpperCase();
 
-  // Check memory cache first
+  // Check memory cache first (synchronous, fastest)
   const memCached = memoryCache.get(upperSymbol);
   if (memCached && isCacheValid(memCached)) {
-    console.log(`[CACHE HIT] Memory: ${upperSymbol}${memCached.isMock ? ' (mock)' : ''}`);
     return memCached.quote;
   }
 
-  // Check localStorage
+  // Check localStorage (synchronous)
   const localCache = getLocalCache();
   const localCached = localCache[upperSymbol];
   if (localCached && isCacheValid(localCached)) {
-    console.log(`[CACHE HIT] Local: ${upperSymbol}${localCached.isMock ? ' (mock)' : ''}`);
     // Promote to memory cache
     memoryCache.set(upperSymbol, localCached);
     return localCached.quote;
   }
 
-  // Try Finnhub first
-  console.log(`[CACHE MISS] Fetching from Finnhub: ${upperSymbol}`);
-  let quote = await getQuote(upperSymbol);
+  // Use deduplicator to prevent duplicate in-flight requests
+  const cacheKey = createCacheKey('quote', upperSymbol);
+  
+  return requestDeduplicator.dedupe(cacheKey, async () => {
+    // Double-check cache after acquiring dedupe slot (another request may have just finished)
+    const freshMemCached = memoryCache.get(upperSymbol);
+    if (freshMemCached && isCacheValid(freshMemCached)) {
+      return freshMemCached.quote;
+    }
 
-  // If Finnhub fails, try Polygon as fallback
-  if (!quote) {
-    console.log(`[Finnhub Failed] Trying Polygon fallback for: ${upperSymbol}`);
-    quote = await fetchPolygonQuote(upperSymbol);
-  }
+    // Try Finnhub first
+    let quote = await getQuote(upperSymbol);
 
-  if (quote) {
-    const cached = { quote, fetchedAt: Date.now(), isMock: false };
-    memoryCache.set(upperSymbol, cached);
-    localCache[upperSymbol] = cached;
-    setLocalCache(localCache);
-    return quote;
-  }
+    // If Finnhub fails, try Polygon as fallback
+    if (!quote) {
+      quote = await fetchPolygonQuote(upperSymbol);
+    }
 
-  // No data available from any source
-  console.log(`[NO DATA] No quote available for: ${upperSymbol}`);
-  return null;
+    if (quote) {
+      const cached = { quote, fetchedAt: Date.now(), isMock: false };
+      memoryCache.set(upperSymbol, cached);
+      const updatedLocalCache = getLocalCache();
+      updatedLocalCache[upperSymbol] = cached;
+      setLocalCache(updatedLocalCache);
+      return quote;
+    }
+
+    return null;
+  });
 }
 
 /**
@@ -242,14 +261,14 @@ export async function getCachedFullQuote(symbol: string): Promise<StockQuote | n
 }
 
 /**
- * Batch fetch with cache awareness + mock fallback
+ * Batch fetch with cache awareness + deduplication
  */
 export async function getCachedQuotes(symbols: string[]): Promise<Map<string, StockQuote>> {
   const results = new Map<string, StockQuote>();
   const toFetch: string[] = [];
   const localCache = getLocalCache();
 
-  // Check cache for each symbol
+  // Check cache for each symbol (synchronous)
   for (const symbol of symbols) {
     const upperSymbol = symbol.toUpperCase();
     
@@ -271,32 +290,35 @@ export async function getCachedQuotes(symbols: string[]): Promise<Map<string, St
     toFetch.push(symbol);
   }
 
-  // Fetch only what we need
-  if (toFetch.length > 0) {
-    console.log(`[BATCH FETCH] ${toFetch.length} symbols (${symbols.length - toFetch.length} cached)`);
-
-    const updatedLocalCache = getLocalCache();
-
-    let fetched = new Map<string, StockQuote>();
-    try {
-      fetched = await getBatchQuotes(toFetch);
-    } catch (e) {
-      console.warn('[BATCH FETCH] Finnhub fetch failed, falling back to mock for missing', e);
-    }
-
-    fetched.forEach((quote, symbol) => {
-      results.set(symbol, quote);
-      const cached = { quote, fetchedAt: Date.now(), isMock: false };
-      memoryCache.set(symbol.toUpperCase(), cached);
-      updatedLocalCache[symbol.toUpperCase()] = cached;
-    });
-
-    // No mock fallback for batch - symbols without data just won't be in results
-
-    setLocalCache(updatedLocalCache);
-  } else {
-    console.log(`[BATCH CACHE HIT] All ${symbols.length} symbols from cache`);
+  // If nothing to fetch, return immediately
+  if (toFetch.length === 0) {
+    return results;
   }
+
+  // Create a stable key for this batch request
+  const sortedSymbols = [...toFetch].sort();
+  const batchKey = createCacheKey('batch-quotes', ...sortedSymbols);
+  
+  // Use deduplicator for the entire batch
+  const fetched = await requestDeduplicator.dedupe(batchKey, async () => {
+    try {
+      return await getBatchQuotes(toFetch);
+    } catch (e) {
+      console.warn('[BATCH FETCH] Failed:', e);
+      return new Map<string, StockQuote>();
+    }
+  });
+
+  const updatedLocalCache = getLocalCache();
+  
+  fetched.forEach((quote, symbol) => {
+    results.set(symbol, quote);
+    const cached = { quote, fetchedAt: Date.now(), isMock: false };
+    memoryCache.set(symbol.toUpperCase(), cached);
+    updatedLocalCache[symbol.toUpperCase()] = cached;
+  });
+
+  setLocalCache(updatedLocalCache);
 
   return results;
 }
