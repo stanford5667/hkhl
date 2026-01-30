@@ -8,13 +8,13 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { BarChart3, HelpCircle, TrendingUp, RefreshCw } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { FinancialDataCell } from './FinancialDataCell';
 
 interface IncomeStatementTableProps {
   ticker: string;
@@ -433,18 +433,31 @@ export function IncomeStatementTable({ ticker, companyName }: IncomeStatementTab
                     {displayYears.map((yearData, idx) => {
                       const value = yearData[row.key];
                       const isEPS = row.key === 'eps';
+                      const prevValue = idx > 0 ? displayYears[idx - 1]?.[row.key] : null;
+                      const yoyChange = prevValue && value ? ((value - prevValue) / Math.abs(prevValue)) * 100 : undefined;
                       
-                        return (
+                      return (
                         <td 
                           key={idx}
                           className={cn(
-                            "text-right px-3 py-2.5 text-xs tabular-nums whitespace-nowrap w-[80px] min-w-[80px]",
-                            yearData.isEstimate && "bg-primary/5",
-                            row.isHighlight && yearData.isEstimate && "text-primary font-semibold",
-                            row.isHighlight && !yearData.isEstimate && "font-semibold"
+                            "p-0 w-[80px] min-w-[80px]",
+                            yearData.isEstimate && "bg-primary/5"
                           )}
                         >
-                          {formatValue(value, isEPS)}
+                          <FinancialDataCell
+                            value={formatValue(value, isEPS)}
+                            rawValue={value}
+                            label={row.label}
+                            tooltip={row.tooltip}
+                            source={yearData.isEstimate ? 'Estimate' : (data?.useMockData ? 'FMP' : 'SEC')}
+                            sourceDetail={yearData.isEstimate 
+                              ? `Analyst consensus for ${yearData.year}` 
+                              : `Annual Report ${yearData.year || yearData.date?.split('-')[0]}`
+                            }
+                            isEstimate={yearData.isEstimate}
+                            isHighlight={row.isHighlight}
+                            yoyChange={yoyChange}
+                          />
                         </td>
                       );
                     })}
