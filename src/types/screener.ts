@@ -223,14 +223,22 @@ export interface ScreenerResult {
   peg: number | null;
   ps: number | null;
   pb: number | null;
+  pCash: number | null;
   evEbitda: number | null;
 
   // Financial
   dividendYield: number | null;
   roe: number | null;
   roa: number | null;
+  opMargin: number | null;
   netMargin: number | null;
   debtEquity: number | null;
+  quickRatio: number | null;
+  epsGrowth: number | null;
+  revenueGrowth: number | null;
+  
+  // Risk
+  volatility: number | null;
 
   // Technical
   sma20: number | null;
