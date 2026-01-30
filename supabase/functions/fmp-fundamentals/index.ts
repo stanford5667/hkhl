@@ -13,6 +13,9 @@ const SEC_HEADERS = {
   'Accept': 'application/json',
 };
 
+// Polygon API base URL
+const POLYGON_BASE_URL = "https://api.polygon.io";
+
 // Cache SEC ticker->CIK mapping for 24h to avoid re-downloading a large JSON on every request
 let secCompanyTickersCache: { data: any[]; fetchedAt: number } | null = null;
 const SEC_COMPANY_TICKERS_TTL_MS = 24 * 60 * 60 * 1000;
@@ -255,6 +258,106 @@ async function fetchCompanyProfile(symbol: string, apiKey: string): Promise<Comp
   
   setCache(cacheKey, result);
   return result;
+}
+
+// Fetch real-time profile data from Polygon.io
+async function fetchPolygonProfile(symbol: string, apiKey: string): Promise<Partial<CompanyProfile> | null> {
+  const cacheKey = `polygon_profile_${symbol}`;
+  const cached = getCached(cacheKey);
+  if (cached) {
+    console.log(`[polygon] Cache hit for ${symbol} profile`);
+    return cached as Partial<CompanyProfile>;
+  }
+
+  try {
+    // Fetch ticker details for company info
+    const detailsUrl = `${POLYGON_BASE_URL}/v3/reference/tickers/${encodeURIComponent(symbol)}?apiKey=${apiKey}`;
+    const detailsRes = await fetchWithTimeout(detailsUrl, {}, 5000);
+    
+    if (!detailsRes.ok) {
+      console.warn(`[polygon] Ticker details failed for ${symbol}: ${detailsRes.status}`);
+      return null;
+    }
+    
+    const detailsData = await detailsRes.json();
+    const details = detailsData.results;
+    
+    if (!details) {
+      return null;
+    }
+
+    // Fetch current price from previous day close
+    const priceUrl = `${POLYGON_BASE_URL}/v2/aggs/ticker/${encodeURIComponent(symbol)}/prev?adjusted=true&apiKey=${apiKey}`;
+    const priceRes = await fetchWithTimeout(priceUrl, {}, 5000);
+    
+    let currentPrice = 0;
+    let marketCap = details.market_cap || 0;
+    
+    if (priceRes.ok) {
+      const priceData = await priceRes.json();
+      if (priceData.results && priceData.results.length > 0) {
+        currentPrice = priceData.results[0].c || 0;
+        
+        // Calculate market cap from price * shares if not available
+        if (!marketCap && details.share_class_shares_outstanding && currentPrice) {
+          marketCap = currentPrice * details.share_class_shares_outstanding;
+        } else if (!marketCap && details.weighted_shares_outstanding && currentPrice) {
+          marketCap = currentPrice * details.weighted_shares_outstanding;
+        }
+      }
+    }
+
+    const profile: Partial<CompanyProfile> = {
+      symbol: details.ticker,
+      companyName: details.name,
+      industry: details.sic_description || 'Unknown',
+      sector: details.sic_description?.split(' ')[0] || 'Unknown',
+      marketCap: marketCap,
+      price: currentPrice,
+      description: details.description || '',
+      country: details.locale?.toUpperCase() || 'US',
+      exchange: details.primary_exchange || 'Unknown',
+      website: details.homepage_url || '',
+    };
+
+    console.log(`[polygon] Got profile for ${symbol}: price=$${currentPrice?.toFixed(2)}, marketCap=$${(marketCap/1e9).toFixed(1)}B`);
+    
+    setCache(cacheKey, profile);
+    return profile;
+  } catch (err) {
+    console.error(`[polygon] Error fetching profile for ${symbol}:`, err);
+    return null;
+  }
+}
+
+// Fetch shares outstanding from Polygon for EPS calculation
+async function fetchSharesOutstanding(symbol: string, apiKey: string): Promise<number | null> {
+  const cacheKey = `shares_outstanding_${symbol}`;
+  const cached = getCached(cacheKey);
+  if (cached) {
+    return cached as number;
+  }
+
+  try {
+    const url = `${POLYGON_BASE_URL}/v3/reference/tickers/${encodeURIComponent(symbol)}?apiKey=${apiKey}`;
+    const res = await fetchWithTimeout(url, {}, 5000);
+    
+    if (!res.ok) return null;
+    
+    const data = await res.json();
+    const shares = data.results?.share_class_shares_outstanding || 
+                   data.results?.weighted_shares_outstanding || 
+                   null;
+    
+    if (shares) {
+      setCache(cacheKey, shares);
+      console.log(`[polygon] Shares outstanding for ${symbol}: ${(shares/1e9).toFixed(2)}B`);
+    }
+    
+    return shares;
+  } catch {
+    return null;
+  }
 }
 
 // Fetch analyst estimates from FMP
@@ -883,8 +986,17 @@ serve(async (req) => {
       // Fetch from SEC XBRL if FMP failed
       if (useSECData) {
         console.log(`[fmp] Fetching SEC data for ${symbol}...`);
+        
+        // Get Polygon API key for profile and shares data
+        const POLYGON_API_KEY = Deno.env.get("POLYGON_API_KEY") || Deno.env.get("VITE_POLYGON_API_KEY");
+        
         try {
-          const secData = await fetchSECFinancials(symbol);
+          // Fetch SEC financials and Polygon profile in parallel
+          const [secData, polygonProfile, sharesOutstanding] = await Promise.all([
+            fetchSECFinancials(symbol),
+            POLYGON_API_KEY ? fetchPolygonProfile(symbol, POLYGON_API_KEY) : null,
+            POLYGON_API_KEY ? fetchSharesOutstanding(symbol, POLYGON_API_KEY) : null,
+          ]);
           
           // Check if SEC data is current (has data from the last 2 years)
           const currentYear = new Date().getFullYear();
@@ -900,6 +1012,16 @@ serve(async (req) => {
             financials = secData;
             source = 'SEC XBRL';
             console.log(`[fmp] Got ${secData.length} years from SEC for ${symbol} (recent data available)`);
+            
+            // Calculate EPS from net income if missing and we have shares outstanding
+            if (sharesOutstanding) {
+              for (const f of financials) {
+                if ((!f.eps || f.eps === 0) && f.netIncome) {
+                  f.eps = Math.round((f.netIncome / sharesOutstanding) * 100) / 100;
+                  console.log(`[fmp] Calculated EPS for ${symbol} ${f.date}: $${f.eps.toFixed(2)}`);
+                }
+              }
+            }
           } else if (hasAccurateMockData) {
             // Use curated mock data for major tickers when SEC is outdated
             useMockData = true;
@@ -911,6 +1033,15 @@ serve(async (req) => {
             financials = secData;
             source = 'SEC XBRL (Historical)';
             console.log(`[fmp] Using historical SEC data for ${symbol}`);
+            
+            // Calculate EPS from net income if missing
+            if (sharesOutstanding) {
+              for (const f of financials) {
+                if ((!f.eps || f.eps === 0) && f.netIncome) {
+                  f.eps = Math.round((f.netIncome / sharesOutstanding) * 100) / 100;
+                }
+              }
+            }
           } else {
             // Last resort: generate estimated data
             useMockData = true;
@@ -919,11 +1050,29 @@ serve(async (req) => {
             console.warn(`[fmp] SEC returned no data for ${symbol}; using demo fallback`);
           }
           
-          if (!profile) {
+          // Use Polygon profile data if available, otherwise fall back to mock
+          if (polygonProfile && polygonProfile.marketCap && polygonProfile.price) {
+            profile = {
+              symbol: polygonProfile.symbol || symbol,
+              companyName: polygonProfile.companyName || symbol,
+              industry: polygonProfile.industry || 'Unknown',
+              sector: polygonProfile.sector || 'Unknown',
+              marketCap: polygonProfile.marketCap,
+              price: polygonProfile.price,
+              description: polygonProfile.description || '',
+              country: polygonProfile.country || 'US',
+              exchange: polygonProfile.exchange || 'Unknown',
+              ceo: '',
+              employees: 0,
+              website: polygonProfile.website || '',
+            };
+            console.log(`[fmp] Using Polygon profile for ${symbol}: price=$${profile.price?.toFixed(2)}, marketCap=$${(profile.marketCap/1e9).toFixed(1)}B`);
+          } else if (!profile) {
             profile = generateMockProfile(symbol);
+            console.warn(`[fmp] Using mock profile for ${symbol} - no Polygon data available`);
           }
         } catch (err) {
-          console.error(`[fmp] SEC fetch error for ${symbol}:`, err);
+          console.error(`[fmp] SEC/Polygon fetch error for ${symbol}:`, err);
           if (!profile) profile = generateMockProfile(symbol);
           if (financials.length === 0) {
             useMockData = true;
