@@ -2,10 +2,29 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
 const BASE_URL = "https://api.polygon.io";
+
+const EXTERNAL_TIMEOUT_MS = 4000;
+
+async function fetchWithTimeout(url: string, init?: RequestInit, timeoutMs = EXTERNAL_TIMEOUT_MS) {
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { ...init, signal: controller.signal });
+  } finally {
+    clearTimeout(id);
+  }
+}
+
+function chunk<T>(arr: T[], size: number): T[][] {
+  const out: T[][] = [];
+  for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
+  return out;
+}
 
 function json(data: unknown, status = 200) {
   return new Response(JSON.stringify(data), {
@@ -124,9 +143,19 @@ interface TickerDetails {
   description?: string;
 }
 
+type RefTicker = {
+  ticker: string;
+  name?: string;
+  market_cap?: number;
+  sic_code?: string;
+  sic_description?: string;
+  primary_exchange?: string;
+  type?: string;
+};
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+    return new Response("ok", { headers: corsHeaders });
   }
 
   try {
@@ -145,187 +174,169 @@ serve(async (req) => {
 
     // Step 1: Fetch all ticker snapshots
     const snapshotUrl = `${BASE_URL}/v2/snapshot/locale/us/markets/stocks/tickers?apiKey=${POLYGON_API_KEY}`;
-    
+
     console.log(`[polygon-screener] Fetching snapshot for all US tickers...`);
-    
-    const snapshotRes = await fetch(snapshotUrl);
-    
+
+    const snapshotRes = await fetchWithTimeout(snapshotUrl);
+
     if (!snapshotRes.ok) {
       const errorText = await snapshotRes.text();
       console.error(`[polygon-screener] Snapshot API error:`, errorText);
-      
-      // If snapshot fails (requires paid plan), fallback to ticker search
+
+      // If snapshot fails (requires paid plan), surface the limitation.
       if (snapshotRes.status === 403 || snapshotRes.status === 401) {
-        return json({ 
-          ok: false, 
-          error: "Polygon Snapshot API requires Stocks Starter plan or higher. Falling back to limited results.",
-          fallback: true
-        }, 403);
+        return json(
+          {
+            ok: false,
+            error:
+              "Polygon Snapshot API requires Stocks Starter plan or higher. Falling back to limited results.",
+            fallback: true,
+          },
+          403,
+        );
       }
-      
+
       return json({ ok: false, error: `Polygon API error: ${snapshotRes.status}` }, snapshotRes.status);
     }
 
     const snapshotData = await snapshotRes.json();
     const tickers: TickerSnapshot[] = snapshotData.tickers || [];
-    
+
     console.log(`[polygon-screener] Got ${tickers.length} tickers from snapshot`);
 
     // Check if we have fundamental filters that require ticker details
-    const hasFundamentalFilters = filters.minMarketCap !== undefined || 
-                                   filters.maxMarketCap !== undefined || 
-                                   (filters.sectors && filters.sectors.length > 0);
+    const hasFundamentalFilters =
+      filters.minMarketCap !== undefined ||
+      filters.maxMarketCap !== undefined ||
+      (filters.sectors && filters.sectors.length > 0);
 
     // Step 2: Apply basic filters on snapshot data
-    // Calculate accurate 1-day change from prevDay close to current price
-    let filteredTickers = tickers.filter(t => {
-      // Must have valid day data
+    let filteredTickers = tickers.filter((t) => {
       if (!t.day || !t.day.c || t.day.c <= 0) return false;
-      
-      // Must have valid previous day data for accurate change calculation
       if (!t.prevDay || !t.prevDay.c || t.prevDay.c <= 0) return false;
-      
-      // Price filters - always apply
+
       if (filters.minPrice !== undefined && t.day.c < filters.minPrice) return false;
       if (filters.maxPrice !== undefined && t.day.c > filters.maxPrice) return false;
-      
-      // Calculate accurate 1-day percentage change: (current - prevClose) / prevClose * 100
+
       const accurateChangePercent = ((t.day.c - t.prevDay.c) / t.prevDay.c) * 100;
-      
-      // Change filters - only apply if NOT using fundamental filters (let more stocks through for fundamental filtering)
+
+      // Change filters - only apply if NOT using fundamental filters
       if (!hasFundamentalFilters) {
         if (filters.minChange1D !== undefined && accurateChangePercent < filters.minChange1D) return false;
         if (filters.maxChange1D !== undefined && accurateChangePercent > filters.maxChange1D) return false;
       }
-      
-      // Volume filters - always apply basic volume filter
+
       if (filters.minVolume !== undefined && t.day.v < filters.minVolume) return false;
-      
-      // Relative volume (today vs previous day) - only apply if NOT using fundamental filters
+
       if (!hasFundamentalFilters && filters.minRelativeVolume !== undefined && t.prevDay?.v > 0) {
         const relativeVol = t.day.v / t.prevDay.v;
         if (relativeVol < filters.minRelativeVolume) return false;
       }
-      
+
       return true;
     });
 
     console.log(`[polygon-screener] After basic filters: ${filteredTickers.length} tickers`);
 
     // Step 3: Sort and determine how many to fetch details for
-    // IMPORTANT: When fundamental filters are active (market cap / sector), we must NOT
-    // choose the candidate universe based on the requested sort (e.g., 'change').
-    // Doing so would pre-trim to the “top gainers” set before we even know market caps,
-    // which can exclude many mega-caps and lead to incomplete results.
-    const sortBy = filters.sortBy || 'volume';
-    const sortDir = filters.sortDirection || 'desc';
+    const sortBy = filters.sortBy || "volume";
+    const sortDir = filters.sortDirection || "desc";
+    const candidateSortBy = hasFundamentalFilters ? "volume" : sortBy;
+    const candidateSortDir = hasFundamentalFilters ? "desc" : sortDir;
 
-    // Candidate selection sort: bias towards liquidity when fundamentals are requested.
-    // Final results are still sorted by the requested sortBy below.
-    const candidateSortBy = hasFundamentalFilters ? 'volume' : sortBy;
-    const candidateSortDir = hasFundamentalFilters ? 'desc' : sortDir;
-    
     filteredTickers.sort((a, b) => {
       let aVal: number, bVal: number;
-      
-      // Calculate accurate change percent for sorting
       const aChangePercent = a.prevDay?.c > 0 ? ((a.day.c - a.prevDay.c) / a.prevDay.c) * 100 : 0;
       const bChangePercent = b.prevDay?.c > 0 ? ((b.day.c - b.prevDay.c) / b.prevDay.c) * 100 : 0;
-      
+
       switch (candidateSortBy) {
-        case 'change':
+        case "change":
           aVal = aChangePercent;
           bVal = bChangePercent;
           break;
-        case 'price':
+        case "price":
           aVal = a.day?.c || 0;
           bVal = b.day?.c || 0;
           break;
-        case 'volume':
+        case "volume":
         default:
           aVal = a.day?.v || 0;
           bVal = b.day?.v || 0;
           break;
       }
-      
-      return candidateSortDir === 'desc' ? bVal - aVal : aVal - bVal;
+
+      return candidateSortDir === "desc" ? bVal - aVal : aVal - bVal;
     });
 
-    // When fundamental filters are active, fetch details for MORE tickers to ensure we capture all matching stocks
-    // Without fundamental filters, limit to 500 for performance
     const maxCandidates = hasFundamentalFilters ? 3000 : 500;
     const candidateTickers = filteredTickers.slice(0, Math.min(filteredTickers.length, maxCandidates));
-    
-    console.log(`[polygon-screener] Fetching details for ${candidateTickers.length} tickers (fundamental filters: ${hasFundamentalFilters})...`);
+
+    console.log(
+      `[polygon-screener] Fetching details for ${candidateTickers.length} tickers (fundamental filters: ${hasFundamentalFilters})...`,
+    );
 
     // Step 4: Fetch ticker details in batches
-    const batchSize = 100; // Increased batch size for efficiency
+    const batchSize = 100;
     const tickerDetails: Map<string, TickerDetails> = new Map();
-    
+
     for (let i = 0; i < candidateTickers.length; i += batchSize) {
       const batch = candidateTickers.slice(i, i + batchSize);
-      
+
       const detailPromises = batch.map(async (t) => {
         try {
           const detailUrl = `${BASE_URL}/v3/reference/tickers/${encodeURIComponent(t.ticker)}?apiKey=${POLYGON_API_KEY}`;
-          const detailRes = await fetch(detailUrl);
-          
-          if (detailRes.ok) {
-            const data = await detailRes.json();
-            if (data.results) {
-              return { ticker: t.ticker, details: data.results as TickerDetails };
-            }
+          const detailRes = await fetchWithTimeout(detailUrl);
+          const text = await detailRes.text();
+          if (!detailRes.ok) return null;
+          const data = JSON.parse(text);
+          if (data.results) {
+            return { ticker: t.ticker, details: data.results as TickerDetails };
           }
         } catch (err) {
           console.warn(`[polygon-screener] Failed to fetch details for ${t.ticker}:`, err);
         }
         return null;
       });
-      
+
       const results = await Promise.all(detailPromises);
-      results.forEach(r => {
+      results.forEach((r) => {
         if (r) tickerDetails.set(r.ticker, r.details);
       });
-      
-      // Rate limiting - small delay between batches
+
       if (i + batchSize < candidateTickers.length) {
-        await new Promise(resolve => setTimeout(resolve, 50));
+        await new Promise((resolve) => setTimeout(resolve, 50));
       }
     }
 
     console.log(`[polygon-screener] Got details for ${tickerDetails.size} tickers`);
 
     // Step 5: Apply market cap and sector filters
-    let finalResults = candidateTickers.filter(t => {
+    let finalResults = candidateTickers.filter((t) => {
       const details = tickerDetails.get(t.ticker);
-      
-      // Market cap filters
+
       if (filters.minMarketCap !== undefined) {
         if (!details?.market_cap || details.market_cap < filters.minMarketCap) return false;
       }
       if (filters.maxMarketCap !== undefined) {
         if (details?.market_cap && details.market_cap > filters.maxMarketCap) return false;
       }
-      
-      // Sector filters
+
       if (filters.sectors && filters.sectors.length > 0) {
         const sector = getSectorFromSIC(details?.sic_code || null);
         if (!filters.sectors.includes(sector)) return false;
       }
-      
-      // If fundamental filters were used, now apply the change filters that were skipped earlier
+
       if (hasFundamentalFilters) {
         const accurateChangePercent = t.prevDay?.c > 0 ? ((t.day.c - t.prevDay.c) / t.prevDay.c) * 100 : 0;
         if (filters.minChange1D !== undefined && accurateChangePercent < filters.minChange1D) return false;
         if (filters.maxChange1D !== undefined && accurateChangePercent > filters.maxChange1D) return false;
-        
-        // Also apply relative volume filter now
+
         if (filters.minRelativeVolume !== undefined && t.prevDay?.v > 0) {
           const relativeVol = t.day.v / t.prevDay.v;
           if (relativeVol < filters.minRelativeVolume) return false;
         }
       }
-      
+
       return true;
     });
 
@@ -336,44 +347,42 @@ serve(async (req) => {
       let aVal: number, bVal: number;
       const aChangePercent = a.prevDay?.c > 0 ? ((a.day.c - a.prevDay.c) / a.prevDay.c) * 100 : 0;
       const bChangePercent = b.prevDay?.c > 0 ? ((b.day.c - b.prevDay.c) / b.prevDay.c) * 100 : 0;
-      
+
       switch (sortBy) {
-        case 'change':
+        case "change":
           aVal = aChangePercent;
           bVal = bChangePercent;
           break;
-        case 'price':
+        case "price":
           aVal = a.day?.c || 0;
           bVal = b.day?.c || 0;
           break;
-        case 'marketCap':
+        case "marketCap":
           aVal = tickerDetails.get(a.ticker)?.market_cap || 0;
           bVal = tickerDetails.get(b.ticker)?.market_cap || 0;
           break;
-        case 'volume':
+        case "volume":
         default:
           aVal = a.day?.v || 0;
           bVal = b.day?.v || 0;
           break;
       }
-      
-      return sortDir === 'desc' ? bVal - aVal : aVal - bVal;
+
+      return sortDir === "desc" ? bVal - aVal : aVal - bVal;
     });
 
     // Step 7: Apply pagination
     const paginatedResults = finalResults.slice(offset, offset + limit);
 
-    // Step 7: Build response
-    const results = paginatedResults.map(t => {
+    const results = paginatedResults.map((t) => {
       const details = tickerDetails.get(t.ticker);
       const sector = getSectorFromSIC(details?.sic_code || null);
-      
-      // Calculate accurate 1-day change from previous close
+
       const prevClose = t.prevDay?.c || 0;
       const currentPrice = t.day?.c || 0;
       const accurateChange = prevClose > 0 ? currentPrice - prevClose : 0;
       const accurateChangePercent = prevClose > 0 ? ((currentPrice - prevClose) / prevClose) * 100 : 0;
-      
+
       return {
         symbol: t.ticker,
         name: details?.name || t.ticker,
