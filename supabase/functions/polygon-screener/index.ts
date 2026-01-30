@@ -213,8 +213,17 @@ serve(async (req) => {
     console.log(`[polygon-screener] After basic filters: ${filteredTickers.length} tickers`);
 
     // Step 3: Sort and determine how many to fetch details for
+    // IMPORTANT: When fundamental filters are active (market cap / sector), we must NOT
+    // choose the candidate universe based on the requested sort (e.g., 'change').
+    // Doing so would pre-trim to the “top gainers” set before we even know market caps,
+    // which can exclude many mega-caps and lead to incomplete results.
     const sortBy = filters.sortBy || 'volume';
     const sortDir = filters.sortDirection || 'desc';
+
+    // Candidate selection sort: bias towards liquidity when fundamentals are requested.
+    // Final results are still sorted by the requested sortBy below.
+    const candidateSortBy = hasFundamentalFilters ? 'volume' : sortBy;
+    const candidateSortDir = hasFundamentalFilters ? 'desc' : sortDir;
     
     filteredTickers.sort((a, b) => {
       let aVal: number, bVal: number;
@@ -223,7 +232,7 @@ serve(async (req) => {
       const aChangePercent = a.prevDay?.c > 0 ? ((a.day.c - a.prevDay.c) / a.prevDay.c) * 100 : 0;
       const bChangePercent = b.prevDay?.c > 0 ? ((b.day.c - b.prevDay.c) / b.prevDay.c) * 100 : 0;
       
-      switch (sortBy) {
+      switch (candidateSortBy) {
         case 'change':
           aVal = aChangePercent;
           bVal = bChangePercent;
@@ -239,7 +248,7 @@ serve(async (req) => {
           break;
       }
       
-      return sortDir === 'desc' ? bVal - aVal : aVal - bVal;
+      return candidateSortDir === 'desc' ? bVal - aVal : aVal - bVal;
     });
 
     // When fundamental filters are active, fetch details for MORE tickers to ensure we capture all matching stocks
