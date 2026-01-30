@@ -62,14 +62,17 @@ const LessonView = lazy(() => import('./pages/LessonView'));
 const QuizView = lazy(() => import('./pages/QuizView'));
 const StudyMaterials = lazy(() => import('./pages/StudyMaterials'));
 
-// Optimized QueryClient with caching defaults
+// Optimized QueryClient with aggressive caching and deduplication
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 5 * 60 * 1000, // 5 minutes default
-      gcTime: 30 * 60 * 1000, // Keep unused data for 30 min
+      staleTime: 5 * 60 * 1000, // 5 minutes - data stays "fresh" and won't refetch
+      gcTime: 30 * 60 * 1000, // Keep unused data in cache for 30 min
       retry: 1, // Only retry once on failure
       refetchOnWindowFocus: false, // Don't refetch when tab gets focus
+      refetchOnMount: false, // Don't refetch when component remounts
+      refetchOnReconnect: false, // Don't refetch on network reconnect
+      networkMode: 'offlineFirst', // Use cache first, then network
     },
   },
 });
