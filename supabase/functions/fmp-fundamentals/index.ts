@@ -360,6 +360,64 @@ async function fetchSharesOutstanding(symbol: string, apiKey: string): Promise<n
   }
 }
 
+// Fetch TTM EPS from Polygon financials API
+async function fetchTTMEPS(symbol: string, apiKey: string): Promise<number | null> {
+  const cacheKey = `ttm_eps_${symbol}`;
+  const cached = getCached(cacheKey);
+  if (cached) {
+    return cached as number;
+  }
+
+  try {
+    // Try to get quarterly financials for TTM calculation
+    const url = `${POLYGON_BASE_URL}/vX/reference/financials?ticker=${encodeURIComponent(symbol)}&timeframe=quarterly&limit=4&sort=period_of_report_date&order=desc&apiKey=${apiKey}`;
+    const res = await fetchWithTimeout(url, {}, 8000);
+    
+    if (!res.ok) {
+      console.warn(`[polygon] TTM EPS API returned ${res.status} for ${symbol}`);
+      return null;
+    }
+    
+    const data = await res.json();
+    const results = data.results;
+    
+    if (!results || results.length === 0) {
+      console.warn(`[polygon] No quarterly financials for ${symbol}`);
+      return null;
+    }
+
+    // Sum up diluted EPS from last 4 quarters for TTM
+    let ttmEPS = 0;
+    let quartersFound = 0;
+    
+    for (const quarter of results) {
+      const eps = quarter.financials?.income_statement?.diluted_earnings_per_share?.value;
+      if (eps !== undefined && eps !== null) {
+        ttmEPS += eps;
+        quartersFound++;
+        console.log(`[polygon] ${symbol} Q${quartersFound}: EPS=$${eps.toFixed(2)}, period=${quarter.fiscal_period}`);
+      }
+    }
+    
+    if (quartersFound >= 4) {
+      console.log(`[polygon] TTM EPS for ${symbol}: $${ttmEPS.toFixed(2)} (from ${quartersFound} quarters)`);
+      setCache(cacheKey, ttmEPS);
+      return Math.round(ttmEPS * 100) / 100;
+    } else if (quartersFound > 0) {
+      // If we have fewer than 4 quarters, annualize what we have
+      const annualizedEPS = (ttmEPS / quartersFound) * 4;
+      console.log(`[polygon] Annualized EPS for ${symbol}: $${annualizedEPS.toFixed(2)} (from ${quartersFound} quarters)`);
+      setCache(cacheKey, annualizedEPS);
+      return Math.round(annualizedEPS * 100) / 100;
+    }
+    
+    return null;
+  } catch (err) {
+    console.error(`[polygon] Error fetching TTM EPS for ${symbol}:`, err);
+    return null;
+  }
+}
+
 // Fetch analyst estimates from FMP
 async function fetchAnalystEstimates(symbol: string, apiKey: string): Promise<AnalystEstimate[]> {
   const cacheKey = `estimates_${symbol}`;
@@ -990,13 +1048,19 @@ serve(async (req) => {
         // Get Polygon API key for profile and shares data
         const POLYGON_API_KEY = Deno.env.get("POLYGON_API_KEY") || Deno.env.get("VITE_POLYGON_API_KEY");
         
+        let ttmEPS: number | null = null;
+        
         try {
-          // Fetch SEC financials and Polygon profile in parallel
-          const [secData, polygonProfile, sharesOutstanding] = await Promise.all([
+          // Fetch SEC financials, Polygon profile, shares, and TTM EPS in parallel
+          const [secData, polygonProfile, sharesOutstanding, polygonTTMEPS] = await Promise.all([
             fetchSECFinancials(symbol),
             POLYGON_API_KEY ? fetchPolygonProfile(symbol, POLYGON_API_KEY) : null,
             POLYGON_API_KEY ? fetchSharesOutstanding(symbol, POLYGON_API_KEY) : null,
+            POLYGON_API_KEY ? fetchTTMEPS(symbol, POLYGON_API_KEY) : null,
           ]);
+          
+          // Store TTM EPS from Polygon
+          ttmEPS = polygonTTMEPS;
           
           // Check if SEC data is current (has data from the last 2 years)
           const currentYear = new Date().getFullYear();
@@ -1022,12 +1086,24 @@ serve(async (req) => {
                 }
               }
             }
+            
+            // Use TTM EPS for the most recent financial entry (for accurate P/E calculation)
+            if (ttmEPS && financials.length > 0) {
+              financials[0].eps = ttmEPS;
+              console.log(`[fmp] Using TTM EPS for ${symbol}: $${ttmEPS.toFixed(2)}`);
+            }
           } else if (hasAccurateMockData) {
             // Use curated mock data for major tickers when SEC is outdated
             useMockData = true;
             financials = generateMockFinancials(symbol) as IncomeStatement[];
             source = 'Curated Data';
             console.log(`[fmp] SEC data outdated for ${symbol}; using curated financials`);
+            
+            // Override with TTM EPS if available
+            if (ttmEPS && financials.length > 0) {
+              financials[0].eps = ttmEPS;
+              console.log(`[fmp] Using TTM EPS for ${symbol}: $${ttmEPS.toFixed(2)}`);
+            }
           } else if (secData && secData.length > 0) {
             // Use SEC data even if old for unknown tickers
             financials = secData;
@@ -1042,12 +1118,22 @@ serve(async (req) => {
                 }
               }
             }
+            
+            // Override with TTM EPS if available
+            if (ttmEPS && financials.length > 0) {
+              financials[0].eps = ttmEPS;
+            }
           } else {
             // Last resort: generate estimated data
             useMockData = true;
             financials = generateMockFinancials(symbol) as IncomeStatement[];
             source = 'Demo Data';
             console.warn(`[fmp] SEC returned no data for ${symbol}; using demo fallback`);
+            
+            // Override with TTM EPS if available
+            if (ttmEPS && financials.length > 0) {
+              financials[0].eps = ttmEPS;
+            }
           }
           
           // Use Polygon profile data if available, otherwise fall back to mock
