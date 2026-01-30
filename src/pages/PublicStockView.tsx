@@ -185,8 +185,18 @@ export default function PublicStockView() {
       }
 
       // API returned but ticker not found (actual 404 from Polygon)
-      if (data?.ok === false && data?.error === "No data found for ticker") {
-        setNotFound(true);
+      if (data?.ok === false && (data?.notFound || data?.error === "No data found for ticker")) {
+        // Use fallback details with just ticker name so page still renders
+        setDetails({
+          ticker,
+          name: ticker,
+          description: undefined,
+          sector: undefined,
+          industry: undefined,
+          primaryExchange: undefined,
+          homepageUrl: undefined,
+          marketCap: undefined,
+        });
         return;
       }
 
