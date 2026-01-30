@@ -10,6 +10,40 @@ const BASE_URL = "https://api.polygon.io";
 
 const EXTERNAL_TIMEOUT_MS = 4000;
 
+// Simple in-memory cache for fundamentals (1 hour TTL)
+const fundamentalsCache = new Map<string, { data: TickerFundamentals; timestamp: number }>();
+const CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
+
+interface TickerFundamentals {
+  pe: number | null;
+  forwardPE: number | null;
+  pb: number | null;
+  evEbitda: number | null;
+  debtEquity: number | null;
+  quickRatio: number | null;
+  opMargin: number | null;
+  epsGrowth: number | null;
+  revenueGrowth: number | null;
+}
+
+function getCachedFundamentals(ticker: string): TickerFundamentals | null {
+  const entry = fundamentalsCache.get(ticker);
+  if (entry && Date.now() - entry.timestamp < CACHE_TTL_MS) {
+    return entry.data;
+  }
+  fundamentalsCache.delete(ticker);
+  return null;
+}
+
+function setCachedFundamentals(ticker: string, data: TickerFundamentals): void {
+  fundamentalsCache.set(ticker, { data, timestamp: Date.now() });
+  // Limit cache size
+  if (fundamentalsCache.size > 500) {
+    const oldest = [...fundamentalsCache.entries()].sort((a, b) => a[1].timestamp - b[1].timestamp)[0];
+    if (oldest) fundamentalsCache.delete(oldest[0]);
+  }
+}
+
 async function fetchWithTimeout(url: string, init?: RequestInit, timeoutMs = EXTERNAL_TIMEOUT_MS) {
   const controller = new AbortController();
   const id = setTimeout(() => controller.abort(), timeoutMs);
@@ -31,6 +65,146 @@ function json(data: unknown, status = 200) {
     status,
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
+}
+
+// Fetch fundamentals from Polygon for a single ticker
+async function fetchTickerFundamentals(ticker: string, apiKey: string, price: number, marketCap: number | null): Promise<TickerFundamentals> {
+  const cached = getCachedFundamentals(ticker);
+  if (cached) return cached;
+
+  const fundamentals: TickerFundamentals = {
+    pe: null,
+    forwardPE: null,
+    pb: null,
+    evEbitda: null,
+    debtEquity: null,
+    quickRatio: null,
+    opMargin: null,
+    epsGrowth: null,
+    revenueGrowth: null,
+  };
+
+  try {
+    // Fetch quarterly financials for the most recent data
+    const url = `${BASE_URL}/vX/reference/financials?ticker=${encodeURIComponent(ticker)}&timeframe=annual&limit=2&sort=period_of_report_date&order=desc&apiKey=${apiKey}`;
+    const res = await fetchWithTimeout(url, {}, 6000);
+    
+    if (!res.ok) {
+      setCachedFundamentals(ticker, fundamentals);
+      return fundamentals;
+    }
+    
+    const data = await res.json();
+    const results = data.results || [];
+    
+    if (results.length === 0) {
+      setCachedFundamentals(ticker, fundamentals);
+      return fundamentals;
+    }
+
+    const latest = results[0].financials;
+    const previous = results.length > 1 ? results[1].financials : null;
+
+    // Income statement metrics
+    const income = latest?.income_statement;
+    const balance = latest?.balance_sheet;
+    const prevIncome = previous?.income_statement;
+
+    if (income) {
+      const revenue = income.revenues?.value || 0;
+      const operatingIncome = income.operating_income?.value || 0;
+      const netIncome = income.net_income_loss?.value || 0;
+      const dilutedEPS = income.diluted_earnings_per_share?.value;
+
+      // Operating Margin
+      if (revenue > 0 && operatingIncome) {
+        fundamentals.opMargin = Math.round((operatingIncome / revenue) * 10000) / 100;
+      }
+
+      // P/E Ratio
+      if (price > 0 && dilutedEPS && dilutedEPS > 0) {
+        fundamentals.pe = Math.round((price / dilutedEPS) * 100) / 100;
+      }
+
+      // Revenue Growth YoY
+      if (prevIncome) {
+        const prevRevenue = prevIncome.revenues?.value || 0;
+        if (prevRevenue > 0 && revenue > 0) {
+          fundamentals.revenueGrowth = Math.round(((revenue - prevRevenue) / prevRevenue) * 10000) / 100;
+        }
+
+        // EPS Growth YoY
+        const prevEPS = prevIncome.diluted_earnings_per_share?.value;
+        if (prevEPS && prevEPS > 0 && dilutedEPS && dilutedEPS > 0) {
+          fundamentals.epsGrowth = Math.round(((dilutedEPS - prevEPS) / Math.abs(prevEPS)) * 10000) / 100;
+        }
+      }
+
+      // EV/EBITDA
+      const ebitda = income.ebitda?.value || 
+        ((income.operating_income?.value || 0) + (income.depreciation_and_amortization?.value || 0));
+      
+      if (marketCap && marketCap > 0 && balance && ebitda > 0) {
+        const totalDebt = (balance.long_term_debt?.value || 0) + (balance.short_term_debt?.value || 0);
+        const cash = balance.cash_and_cash_equivalents?.value || balance.cash?.value || 0;
+        const enterpriseValue = marketCap + totalDebt - cash;
+        fundamentals.evEbitda = Math.round((enterpriseValue / ebitda) * 100) / 100;
+      }
+    }
+
+    if (balance) {
+      const totalEquity = balance.equity?.value || balance.equity_attributable_to_parent?.value || 0;
+      const currentAssets = balance.current_assets?.value || 0;
+      const currentLiabilities = balance.current_liabilities?.value || 0;
+      const inventory = balance.inventory?.value || 0;
+      const longTermDebt = balance.long_term_debt?.value || balance.noncurrent_liabilities?.value || 0;
+      const shortTermDebt = balance.short_term_debt?.value || 0;
+      const totalDebt = longTermDebt + shortTermDebt;
+
+      // Price to Book
+      if (marketCap && marketCap > 0 && totalEquity > 0) {
+        fundamentals.pb = Math.round((marketCap / totalEquity) * 100) / 100;
+      }
+
+      // Debt to Equity
+      if (totalEquity > 0 && totalDebt > 0) {
+        fundamentals.debtEquity = Math.round((totalDebt / totalEquity) * 100) / 100;
+      }
+
+      // Quick Ratio
+      if (currentLiabilities > 0) {
+        const quickAssets = currentAssets - inventory;
+        fundamentals.quickRatio = Math.round((quickAssets / currentLiabilities) * 100) / 100;
+      }
+    }
+
+    setCachedFundamentals(ticker, fundamentals);
+    return fundamentals;
+  } catch (err) {
+    console.warn(`[polygon-screener] Error fetching fundamentals for ${ticker}:`, err);
+    setCachedFundamentals(ticker, fundamentals);
+    return fundamentals;
+  }
+}
+
+// Fetch fundamentals for multiple tickers in parallel (limited batch)
+async function fetchBatchFundamentals(
+  tickers: { symbol: string; price: number; marketCap: number | null }[],
+  apiKey: string
+): Promise<Map<string, TickerFundamentals>> {
+  const results = new Map<string, TickerFundamentals>();
+  
+  // Process in parallel, but limit to first 20 tickers to avoid rate limits
+  const tickersToFetch = tickers.slice(0, 20);
+  
+  const promises = tickersToFetch.map(async (t) => {
+    const fundamentals = await fetchTickerFundamentals(t.symbol, apiKey, t.price, t.marketCap);
+    results.set(t.symbol, fundamentals);
+  });
+
+  await Promise.allSettled(promises);
+  
+  return results;
 }
 
 // SIC code to sector mapping
@@ -335,8 +509,8 @@ async function screenFromDatabase(
     }
   }
 
-  // Build results
-  const results = paginatedData.map((row: any) => {
+  // Build initial results with price data
+  const initialResults = paginatedData.map((row: any) => {
     const snapshot = snapshotMap.get(row.ticker);
     const marketCap = row.metadata?.market_cap || null;
     
@@ -368,22 +542,8 @@ async function screenFromDatabase(
         vwap: snapshot.day?.vw || null,
         exchange: row.primary_exchange || null,
         type: row.asset_type || null,
-        // Fundamental metrics from database
         volatility,
         beta,
-        pe: null,
-        forwardPE: null,
-        peg: null,
-        pb: null,
-        pCash: null,
-        evEbitda: null,
-        opMargin: null,
-        epsGrowth: null,
-        revenueGrowth: null,
-        debtEquity: null,
-        quickRatio: null,
-        sharpe: null,
-        maxDrawdown: null,
       };
     }
 
@@ -406,22 +566,47 @@ async function screenFromDatabase(
       vwap: null,
       exchange: null,
       type: null,
-      // Fundamental metrics from database
       volatility,
       beta,
+    };
+  });
+
+  // Fetch fundamentals for the displayed results (parallel, limited to avoid rate limits)
+  console.log(`[polygon-screener] Fetching fundamentals for ${Math.min(initialResults.length, 20)} tickers...`);
+  const fundamentalsMap = await fetchBatchFundamentals(
+    initialResults.map((r: any) => ({ symbol: r.symbol, price: r.price, marketCap: r.marketCap })),
+    apiKey
+  );
+
+  // Merge fundamentals into results
+  const results = initialResults.map((r: any) => {
+    const fundamentals = fundamentalsMap.get(r.symbol) || {
       pe: null,
       forwardPE: null,
-      peg: null,
       pb: null,
-      pCash: null,
       evEbitda: null,
+      debtEquity: null,
+      quickRatio: null,
       opMargin: null,
       epsGrowth: null,
       revenueGrowth: null,
-      debtEquity: null,
-      quickRatio: null,
-      sharpe: null,
-      maxDrawdown: null,
+    };
+
+    return {
+      ...r,
+      pe: fundamentals.pe,
+      forwardPE: fundamentals.forwardPE,
+      peg: null, // Would need additional calculation
+      pb: fundamentals.pb,
+      pCash: null, // Would need additional data
+      evEbitda: fundamentals.evEbitda,
+      opMargin: fundamentals.opMargin,
+      epsGrowth: fundamentals.epsGrowth,
+      revenueGrowth: fundamentals.revenueGrowth,
+      debtEquity: fundamentals.debtEquity,
+      quickRatio: fundamentals.quickRatio,
+      sharpe: null, // Would need historical return calculation
+      maxDrawdown: null, // Would need historical price data
     };
   });
 
@@ -637,7 +822,8 @@ async function screenFromPolygonAPI(
   // Step 7: Apply pagination
   const paginatedResults = finalResults.slice(offset, offset + limit);
 
-  const results = paginatedResults.map((t) => {
+  // Build initial results
+  const initialResults = paginatedResults.map((t) => {
     const details = tickerDetails.get(t.ticker);
     const sector = getSectorFromSIC(details?.sic_code || null);
 
@@ -664,20 +850,45 @@ async function screenFromPolygonAPI(
       vwap: t.day?.vw || null,
       exchange: details?.primary_exchange || null,
       type: details?.type || null,
-      // Fundamental metrics - not available in API-only mode
       volatility: null,
       beta: null,
+    };
+  });
+
+  // Fetch fundamentals for the displayed results
+  console.log(`[polygon-screener] Fetching fundamentals for ${Math.min(initialResults.length, 20)} tickers (API mode)...`);
+  const fundamentalsMap = await fetchBatchFundamentals(
+    initialResults.map((r: any) => ({ symbol: r.symbol, price: r.price, marketCap: r.marketCap })),
+    apiKey
+  );
+
+  // Merge fundamentals into results
+  const results = initialResults.map((r: any) => {
+    const fundamentals = fundamentalsMap.get(r.symbol) || {
       pe: null,
       forwardPE: null,
-      peg: null,
       pb: null,
-      pCash: null,
       evEbitda: null,
+      debtEquity: null,
+      quickRatio: null,
       opMargin: null,
       epsGrowth: null,
       revenueGrowth: null,
-      debtEquity: null,
-      quickRatio: null,
+    };
+
+    return {
+      ...r,
+      pe: fundamentals.pe,
+      forwardPE: fundamentals.forwardPE,
+      peg: null,
+      pb: fundamentals.pb,
+      pCash: null,
+      evEbitda: fundamentals.evEbitda,
+      opMargin: fundamentals.opMargin,
+      epsGrowth: fundamentals.epsGrowth,
+      revenueGrowth: fundamentals.revenueGrowth,
+      debtEquity: fundamentals.debtEquity,
+      quickRatio: fundamentals.quickRatio,
       sharpe: null,
       maxDrawdown: null,
     };
