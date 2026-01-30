@@ -57,17 +57,28 @@
    StrategyContext,
  } from './types'
  
- // Export constants
- export { PREBUILT_STRATEGIES } from './types'
- 
- // Export validation functions
- export {
-   validateBacktestRequest,
-   formatValidationErrors,
- } from './validation'
- 
- // Export technical indicators
- export { TechnicalIndicators } from './indicators'
- 
- // Export backtesting engine
- export { BacktestEngine } from './engine'
+// Export constants
+export { PREBUILT_STRATEGIES } from './types'
+
+// Export validation functions
+export {
+  validateBacktestRequest,
+  formatValidationErrors,
+} from './validation'
+
+// Export technical indicators
+export { TechnicalIndicators } from './indicators'
+
+// Export backtesting engine
+export { BacktestEngine } from './engine'
+
+// Export market holiday utilities
+export {
+  isTradingDay,
+  isMarketHoliday,
+  isWeekend,
+  getMarketHolidays,
+  getNextTradingDay,
+  getPreviousTradingDay,
+  getHolidayName,
+} from './marketHolidays'

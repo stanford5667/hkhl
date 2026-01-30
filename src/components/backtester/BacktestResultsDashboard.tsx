@@ -890,26 +890,46 @@ export function BacktestResultsDashboard({ result, compact = false }: BacktestRe
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm">Trade History</CardTitle>
+              <CardDescription className="text-xs text-muted-foreground">
+                Detailed execution log with fill prices and signals
+              </CardDescription>
             </CardHeader>
             <CardContent className="p-0">
-              <ScrollArea className="h-[250px]">
+              <ScrollArea className="h-[300px]">
                 <table className="w-full text-xs">
-                  <thead className="sticky top-0 bg-card border-b">
+                  <thead className="sticky top-0 bg-card border-b z-10">
                     <tr>
                       <th className="text-left p-2 font-medium">#</th>
-                      <th className="text-left p-2 font-medium">Entry</th>
-                      <th className="text-left p-2 font-medium">Exit</th>
+                      <th className="text-left p-2 font-medium">Entry Date</th>
+                      <th className="text-right p-2 font-medium">Fill $</th>
+                      <th className="text-left p-2 font-medium">Exit Date</th>
+                      <th className="text-right p-2 font-medium">Fill $</th>
+                      <th className="text-right p-2 font-medium">Shares</th>
                       <th className="text-right p-2 font-medium">Days</th>
                       <th className="text-right p-2 font-medium">Return</th>
                       <th className="text-right p-2 font-medium">P&L</th>
+                      <th className="text-left p-2 font-medium">Signal</th>
                     </tr>
                   </thead>
                   <tbody>
                     {result.trades.map((trade, i) => (
                       <tr key={i} className="border-b hover:bg-secondary/30">
-                        <td className="p-2 font-mono">{i + 1}</td>
-                        <td className="p-2">{format(new Date(trade.entryDate), 'MMM dd, yy')}</td>
-                        <td className="p-2">{format(new Date(trade.exitDate), 'MMM dd, yy')}</td>
+                        <td className="p-2 font-mono text-muted-foreground">{i + 1}</td>
+                        <td className="p-2">
+                          <span className="font-medium">{format(new Date(trade.entryDate), 'MMM dd, yy')}</span>
+                        </td>
+                        <td className="p-2 text-right font-mono text-cyan-400">
+                          ${trade.entryPrice.toFixed(2)}
+                        </td>
+                        <td className="p-2">
+                          <span className="font-medium">{format(new Date(trade.exitDate), 'MMM dd, yy')}</span>
+                        </td>
+                        <td className="p-2 text-right font-mono text-cyan-400">
+                          ${trade.exitPrice.toFixed(2)}
+                        </td>
+                        <td className="p-2 text-right font-mono text-muted-foreground">
+                          {trade.shares.toLocaleString()}
+                        </td>
                         <td className="p-2 text-right font-mono">{trade.holdingDays}</td>
                         <td className={cn(
                           "p-2 text-right font-mono font-semibold",
@@ -921,7 +941,24 @@ export function BacktestResultsDashboard({ result, compact = false }: BacktestRe
                           "p-2 text-right font-mono",
                           trade.pnl >= 0 ? 'text-emerald-400' : 'text-rose-400'
                         )}>
-                          ${trade.pnl.toFixed(0)}
+                          ${trade.pnl >= 0 ? '+' : ''}{trade.pnl.toFixed(0)}
+                        </td>
+                        <td className="p-2 max-w-[120px]">
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <span className="text-muted-foreground truncate block cursor-help">
+                                  {trade.exitReason || 'Strategy signal'}
+                                </span>
+                              </TooltipTrigger>
+                              <TooltipContent side="left" className="max-w-[250px]">
+                                <div className="text-xs space-y-1">
+                                  <p><span className="text-emerald-400">Entry:</span> {trade.entryReason || 'Strategy signal'}</p>
+                                  <p><span className="text-rose-400">Exit:</span> {trade.exitReason || 'Strategy signal'}</p>
+                                </div>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
                         </td>
                       </tr>
                     ))}

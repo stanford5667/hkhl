@@ -9,6 +9,99 @@ const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 const POLYGON_API_KEY = Deno.env.get('POLYGON_API_KEY');
 
 // ═══════════════════════════════════════════════════════════════════════════════
+// MARKET HOLIDAYS - US Market Holiday Validation
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// Fixed US holidays (month, day) - 0-indexed months
+const FIXED_HOLIDAYS = [
+  { month: 0, day: 1 },   // New Year's Day
+  { month: 6, day: 4 },   // Independence Day
+  { month: 11, day: 25 }, // Christmas Day
+];
+
+// Get nth occurrence of a day in a month (e.g., 3rd Monday)
+function getNthDayOfMonth(year: number, month: number, dayOfWeek: number, n: number): Date {
+  const firstDay = new Date(year, month, 1);
+  let dayOffset = dayOfWeek - firstDay.getDay();
+  if (dayOffset < 0) dayOffset += 7;
+  return new Date(year, month, 1 + dayOffset + (n - 1) * 7);
+}
+
+// Get last occurrence of a day in a month
+function getLastDayOfMonth(year: number, month: number, dayOfWeek: number): Date {
+  const lastDay = new Date(year, month + 1, 0);
+  let dayOffset = lastDay.getDay() - dayOfWeek;
+  if (dayOffset < 0) dayOffset += 7;
+  return new Date(year, month + 1, -dayOffset);
+}
+
+// Get observed holiday (Friday if Saturday, Monday if Sunday)
+function getObservedHoliday(date: Date): Date {
+  const day = date.getDay();
+  if (day === 6) return new Date(date.getTime() - 24 * 60 * 60 * 1000);
+  if (day === 0) return new Date(date.getTime() + 24 * 60 * 60 * 1000);
+  return date;
+}
+
+// Easter Sunday calculation
+function getEasterSunday(year: number): Date {
+  const a = year % 19;
+  const b = Math.floor(year / 100);
+  const c = year % 100;
+  const d = Math.floor(b / 4);
+  const e = b % 4;
+  const f = Math.floor((b + 8) / 25);
+  const g = Math.floor((b - f + 1) / 3);
+  const h = (19 * a + b - d - g + 15) % 30;
+  const i = Math.floor(c / 4);
+  const k = c % 4;
+  const l = (32 + 2 * e + 2 * i - h - k) % 7;
+  const m = Math.floor((a + 11 * h + 22 * l) / 451);
+  const month = Math.floor((h + l - 7 * m + 114) / 31) - 1;
+  const day = ((h + l - 7 * m + 114) % 31) + 1;
+  return new Date(year, month, day);
+}
+
+// Get all US market holidays for a given year
+function getMarketHolidays(year: number): string[] {
+  const holidays: Date[] = [];
+  
+  // Fixed holidays with observed adjustments
+  for (const { month, day } of FIXED_HOLIDAYS) {
+    holidays.push(getObservedHoliday(new Date(year, month, day)));
+  }
+  
+  // Juneteenth (observed)
+  holidays.push(getObservedHoliday(new Date(year, 5, 19)));
+  
+  // Floating holidays
+  holidays.push(getNthDayOfMonth(year, 0, 1, 3)); // MLK Day
+  holidays.push(getNthDayOfMonth(year, 1, 1, 3)); // Presidents Day
+  const easter = getEasterSunday(year);
+  holidays.push(new Date(easter.getTime() - 2 * 24 * 60 * 60 * 1000)); // Good Friday
+  holidays.push(getLastDayOfMonth(year, 4, 1)); // Memorial Day
+  holidays.push(getNthDayOfMonth(year, 8, 1, 1)); // Labor Day
+  holidays.push(getNthDayOfMonth(year, 10, 4, 4)); // Thanksgiving
+  
+  return holidays.map(d => d.toISOString().split('T')[0]);
+}
+
+// Check if date is a weekend
+function isWeekend(dateStr: string): boolean {
+  const d = new Date(dateStr + 'T12:00:00Z');
+  const day = d.getUTCDay();
+  return day === 0 || day === 6;
+}
+
+// Check if date is a valid trading day
+function isTradingDay(dateStr: string): boolean {
+  if (isWeekend(dateStr)) return false;
+  const year = parseInt(dateStr.split('-')[0]);
+  const holidays = getMarketHolidays(year);
+  return !holidays.includes(dateStr);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
 // POLYGON API FALLBACK
 // ═══════════════════════════════════════════════════════════════════════════════
 
@@ -39,12 +132,10 @@ async function fetchPolygonBars(ticker: string, startDate: string, endDate: stri
     
     // Convert Polygon format to Bar format
     // Polygon timestamps are midnight UTC of the trading day
-    // We need to add a few hours to ensure we get the correct trading day
     const bars: Bar[] = data.results.map((r: { t: number; o: number; h: number; l: number; c: number; v: number }, idx: number, arr: { c: number }[]) => {
       // Polygon timestamps are in ms, representing start of day UTC
-      // Add 12 hours to ensure we're firmly in the trading day regardless of timezone
-      const adjustedTimestamp = r.t + (12 * 60 * 60 * 1000);
-      const dateObj = new Date(adjustedTimestamp);
+      // Use the timestamp directly without offset to get the actual trading day
+      const dateObj = new Date(r.t);
       const year = dateObj.getUTCFullYear();
       const month = String(dateObj.getUTCMonth() + 1).padStart(2, '0');
       const day = String(dateObj.getUTCDate()).padStart(2, '0');
@@ -64,7 +155,14 @@ async function fetchPolygonBars(ticker: string, startDate: string, endDate: stri
       };
     });
     
-    return bars;
+    // Filter out any bars that landed on non-trading days (data quality check)
+    const validBars = bars.filter(bar => isTradingDay(bar.date));
+    
+    if (validBars.length !== bars.length) {
+      console.log(`[strategy-backtest] Filtered ${bars.length - validBars.length} non-trading day bars`);
+    }
+    
+    return validBars;
   } catch (error) {
     console.error('[strategy-backtest] Polygon fetch error:', error);
     return null;
