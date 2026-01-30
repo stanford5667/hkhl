@@ -2,7 +2,7 @@
  * Strategy Canvas Component
  * 
  * Center panel with grid background for dropping and connecting blocks.
- * Now includes enhanced empty state and connection hints.
+ * Includes enhanced connection lines with click-to-delete.
  */
 
 import { memo, useCallback, useRef, useState, useEffect } from 'react';
@@ -10,7 +10,7 @@ import { Droppable } from '@hello-pangea/dnd';
 import { cn } from '@/lib/utils';
 import type { CanvasBlock, Connection } from '@/lib/strategyBuilder/types';
 import { CanvasBlockComponent } from './blocks/CanvasBlockComponent';
-import { ConnectionLine } from './ConnectionLine';
+import { EnhancedConnectionLine } from './EnhancedConnectionLine';
 import { CanvasEmptyState } from './CanvasEmptyState';
 import { STRATEGY_TEMPLATES } from '@/lib/strategyBuilder/templates';
 import type { StrategyTemplate } from '@/lib/strategyBuilder/templates';
@@ -21,6 +21,7 @@ interface StrategyCanvasProps {
   selectedBlockId: string | null;
   onSelectBlock: (id: string | null) => void;
   onDeleteBlock: (id: string) => void;
+  onDeleteConnection?: (id: string) => void;
   onUpdateBlockPosition: (id: string, position: { x: number; y: number }) => void;
   onUpdateBlockParameter: (blockId: string, key: string, value: number | string) => void;
   onConnect: (fromId: string, toId: string) => void;
@@ -35,6 +36,7 @@ export const StrategyCanvas = memo(function StrategyCanvas({
   selectedBlockId,
   onSelectBlock,
   onDeleteBlock,
+  onDeleteConnection,
   onUpdateBlockPosition,
   onUpdateBlockParameter,
   onConnect,
@@ -141,8 +143,8 @@ export const StrategyCanvas = memo(function StrategyCanvas({
     const block = blocks.find(b => b.id === blockId);
     if (!block) return { x: 0, y: 0 };
     
-    const blockWidth = 140;
-    const blockHeight = 60; // Approximate
+    const blockWidth = 160;
+    const blockHeight = 70; // Approximate
     
     return {
       x: block.position.x + (port === 'output' ? blockWidth : 0),
@@ -156,6 +158,13 @@ export const StrategyCanvas = memo(function StrategyCanvas({
       onLoadTemplate(template);
     }
   }, [onLoadTemplate]);
+
+  // Handle connection delete
+  const handleConnectionDelete = useCallback((connectionId: string) => {
+    if (onDeleteConnection) {
+      onDeleteConnection(connectionId);
+    }
+  }, [onDeleteConnection]);
 
   return (
     <Droppable droppableId="canvas">
@@ -176,25 +185,30 @@ export const StrategyCanvas = memo(function StrategyCanvas({
           onClick={handleCanvasClick}
         >
           {/* SVG layer for connection lines */}
-          <svg className="absolute inset-0 w-full h-full pointer-events-none">
-            {/* Existing connections */}
-            {connections.map(conn => {
-              const from = getBlockCenter(conn.fromBlockId, 'output');
-              const to = getBlockCenter(conn.toBlockId, 'input');
-              return (
-                <ConnectionLine
-                  key={conn.id}
-                  x1={from.x}
-                  y1={from.y}
-                  x2={to.x}
-                  y2={to.y}
-                />
-              );
-            })}
+          <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ pointerEvents: 'none' }}>
+            <g style={{ pointerEvents: 'auto' }}>
+              {/* Existing connections */}
+              {connections.map(conn => {
+                const from = getBlockCenter(conn.fromBlockId, 'output');
+                const to = getBlockCenter(conn.toBlockId, 'input');
+                return (
+                  <EnhancedConnectionLine
+                    key={conn.id}
+                    id={conn.id}
+                    x1={from.x}
+                    y1={from.y}
+                    x2={to.x}
+                    y2={to.y}
+                    onDelete={handleConnectionDelete}
+                  />
+                );
+              })}
+            </g>
             
             {/* Active connection being drawn */}
             {isConnecting && connectingFromId && (
-              <ConnectionLine
+              <EnhancedConnectionLine
+                id="active-connection"
                 x1={getBlockCenter(connectingFromId, 'output').x}
                 y1={getBlockCenter(connectingFromId, 'output').y}
                 x2={mousePos.x}
@@ -236,7 +250,7 @@ export const StrategyCanvas = memo(function StrategyCanvas({
 
           {/* Connection hint when dragging */}
           {isConnecting && (
-            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 px-3 py-1.5 bg-primary text-primary-foreground text-xs rounded-full shadow-lg animate-pulse">
+            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 px-4 py-2 bg-primary text-primary-foreground text-sm rounded-full shadow-lg animate-pulse">
               Click on a block's input port to connect
             </div>
           )}

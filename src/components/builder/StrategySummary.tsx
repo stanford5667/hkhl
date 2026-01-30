@@ -1,7 +1,8 @@
 /**
  * Strategy Summary Component
  * 
- * Right panel showing auto-generated strategy summary and export options.
+ * Right panel showing auto-generated strategy summary with plain English descriptions,
+ * complexity scoring, validation status, and export options.
  */
 
 import { memo, useMemo, useState } from 'react';
@@ -13,6 +14,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
+import { Progress } from '@/components/ui/progress';
 import {
   Select,
   SelectContent,
@@ -28,10 +30,14 @@ import {
   AlertCircle,
   TrendingUp,
   TrendingDown,
+  CheckCircle2,
+  Shield,
+  Zap,
+  Target,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
-import type { CanvasBlock } from '@/lib/strategyBuilder/types';
+import type { CanvasBlock, Connection } from '@/lib/strategyBuilder/types';
 import { serializeStrategy, encodeStrategyToURL } from '@/lib/strategyBuilder/serializer';
 import { STRATEGY_TEMPLATES, type StrategyTemplate } from '@/lib/strategyBuilder/templates';
 
@@ -47,6 +53,7 @@ export interface SerializedStrategy {
 
 export interface StrategySummaryProps {
   blocks: CanvasBlock[];
+  connections?: Connection[];
   strategyName: string;
   ticker: string;
   onNameChange: (name: string) => void;
@@ -58,8 +65,109 @@ export interface StrategySummaryProps {
   compact?: boolean;
 }
 
+// Generate plain English description of strategy
+function generatePlainEnglishSummary(blocks: CanvasBlock[], connections: Connection[]): { entry: string; exit: string } {
+  const indicators = blocks.filter(b => b.type === 'indicator');
+  const conditions = blocks.filter(b => b.type === 'condition');
+  const exits = blocks.filter(b => b.type === 'exit');
+  const actions = blocks.filter(b => b.type === 'action');
+
+  let entryParts: string[] = [];
+  let exitParts: string[] = [];
+
+  // Build entry description
+  indicators.forEach(ind => {
+    const connectedCondition = conditions.find(c => 
+      connections.some(conn => conn.fromBlockId === ind.id && conn.toBlockId === c.id)
+    );
+
+    let indDesc = '';
+    switch (ind.subtype) {
+      case 'RSI':
+        indDesc = `RSI(${ind.parameters.period || 14})`;
+        break;
+      case 'SMA':
+        indDesc = `SMA(${ind.parameters.period || 20})`;
+        break;
+      case 'EMA':
+        indDesc = `EMA(${ind.parameters.period || 12})`;
+        break;
+      case 'GAP_DOWN':
+        indDesc = `Gap Down`;
+        break;
+      case 'CONSECUTIVE_DOWN':
+        indDesc = `${ind.parameters.days || 3} down days`;
+        break;
+      case 'VOLUME':
+        indDesc = `Volume`;
+        break;
+      default:
+        indDesc = ind.subtype;
+    }
+
+    if (connectedCondition) {
+      const op = connectedCondition.subtype === 'LESS_THAN' ? '<' : 
+                 connectedCondition.subtype === 'GREATER_THAN' ? '>' :
+                 connectedCondition.subtype === 'CROSSES_ABOVE' ? 'crosses above' :
+                 connectedCondition.subtype === 'CROSSES_BELOW' ? 'crosses below' : '=';
+      const val = connectedCondition.parameters.value ?? connectedCondition.parameters.threshold ?? '?';
+      
+      if (ind.subtype === 'GAP_DOWN') {
+        entryParts.push(`stock gaps down ${op} ${val}%`);
+      } else if (ind.subtype === 'CONSECUTIVE_DOWN') {
+        entryParts.push(`after ${ind.parameters.days || 3} consecutive down days`);
+      } else {
+        entryParts.push(`${indDesc} ${op} ${val}`);
+      }
+    } else {
+      entryParts.push(indDesc);
+    }
+  });
+
+  // Build exit description
+  exits.forEach(exit => {
+    switch (exit.subtype) {
+      case 'TAKE_PROFIT':
+        exitParts.push(`take profit at +${exit.parameters.percent || 5}%`);
+        break;
+      case 'STOP_LOSS':
+        exitParts.push(`stop loss at -${exit.parameters.percent || 3}%`);
+        break;
+      case 'TIME_EXIT':
+        exitParts.push(`hold for ${exit.parameters.days || 5} days`);
+        break;
+    }
+  });
+
+  const hasAction = actions.some(a => a.subtype === 'BUY');
+  const actionVerb = hasAction ? 'BUY' : 'Enter';
+
+  return {
+    entry: entryParts.length > 0 
+      ? `${actionVerb} when ${entryParts.join(' AND ')}`
+      : 'Add indicators and conditions to define entry',
+    exit: exitParts.length > 0 
+      ? exitParts.join(', ')
+      : 'Add exit rules (take profit, stop loss)',
+  };
+}
+
+// Calculate strategy complexity score
+function calculateComplexity(blocks: CanvasBlock[], connections: Connection[]): { score: number; label: string; color: string } {
+  const blockScore = blocks.length * 10;
+  const connectionScore = connections.length * 5;
+  const typeBonus = new Set(blocks.map(b => b.type)).size * 5;
+  
+  const total = Math.min(100, blockScore + connectionScore + typeBonus);
+  
+  if (total < 30) return { score: total, label: 'Simple', color: 'text-emerald-500' };
+  if (total < 60) return { score: total, label: 'Moderate', color: 'text-amber-500' };
+  return { score: total, label: 'Complex', color: 'text-rose-500' };
+}
+
 export const StrategySummary = memo(function StrategySummary({
   blocks,
+  connections = [],
   strategyName,
   ticker,
   onNameChange,
@@ -78,6 +186,18 @@ export const StrategySummary = memo(function StrategySummary({
     return serializeStrategy(blocks, ticker);
   }, [blocks, ticker]);
 
+  // Plain English summary
+  const plainEnglish = useMemo(() => 
+    generatePlainEnglishSummary(blocks, connections),
+    [blocks, connections]
+  );
+
+  // Complexity score
+  const complexity = useMemo(() => 
+    calculateComplexity(blocks, connections),
+    [blocks, connections]
+  );
+
   // Validation
   const validation = useMemo(() => {
     const errors: string[] = [];
@@ -86,14 +206,26 @@ export const StrategySummary = memo(function StrategySummary({
     const hasIndicator = blocks.some(b => b.type === 'indicator');
     const hasAction = blocks.some(b => b.type === 'action');
     const hasExit = blocks.some(b => b.type === 'exit');
+    const hasCondition = blocks.some(b => b.type === 'condition');
 
     if (!hasIndicator) errors.push('Add at least one indicator');
     if (!hasAction) errors.push('Add a BUY action');
+    if (!hasCondition && hasIndicator) warnings.push('Add conditions to define entry rules');
     if (!hasExit) warnings.push('Consider adding exit conditions');
     if (!ticker) errors.push('Enter a ticker symbol');
+    
+    // Check connections
+    if (blocks.length > 1 && connections.length === 0) {
+      warnings.push('Connect your blocks to create a strategy flow');
+    }
 
-    return { errors, warnings, isValid: errors.length === 0 };
-  }, [blocks, ticker]);
+    return { 
+      errors, 
+      warnings, 
+      isValid: errors.length === 0,
+      isComplete: errors.length === 0 && warnings.length === 0,
+    };
+  }, [blocks, connections, ticker]);
 
   // Handle test in backtest
   const handleTestInBacktest = () => {
@@ -139,6 +271,7 @@ export const StrategySummary = memo(function StrategySummary({
       name: strategyName,
       createdAt: new Date().toISOString(),
       blocks,
+      connections,
       serialized,
     };
     saved.push(strategy);
@@ -177,27 +310,39 @@ export const StrategySummary = memo(function StrategySummary({
               </Select>
             </div>
 
-            {/* Conditions Summary (compact) */}
-            {serialized && (
+            {/* Plain English Summary (compact) */}
+            {blocks.length > 0 && (
               <div className="text-[10px] space-y-1 p-2 rounded bg-[rgb(17,21,28)] border border-[rgb(33,38,45)]">
-                <div className="flex items-center gap-1">
-                  <TrendingUp className="h-3 w-3 text-emerald-500" />
-                  <span className="text-[rgb(139,148,158)]">BUY:</span>
-                  <span className="font-mono truncate">{serialized.summary.entryCondition}</span>
+                <div className="flex items-start gap-1">
+                  <TrendingUp className="h-3 w-3 text-emerald-500 mt-0.5 shrink-0" />
+                  <span className="text-[rgb(200,210,220)]">{plainEnglish.entry}</span>
                 </div>
-                <div className="flex items-center gap-1">
-                  <TrendingDown className="h-3 w-3 text-rose-500" />
-                  <span className="text-[rgb(139,148,158)]">EXIT:</span>
-                  <span className="font-mono truncate">{serialized.summary.exitCondition}</span>
+                <div className="flex items-start gap-1">
+                  <TrendingDown className="h-3 w-3 text-rose-500 mt-0.5 shrink-0" />
+                  <span className="text-[rgb(200,210,220)]">{plainEnglish.exit}</span>
                 </div>
               </div>
             )}
 
-            {/* Validation errors (compact) */}
-            {validation.errors.length > 0 && (
-              <div className="text-[10px] text-destructive flex items-center gap-1">
-                <AlertCircle className="h-3 w-3" />
-                {validation.errors[0]}
+            {/* Validation status (compact) */}
+            {blocks.length > 0 && (
+              <div className="flex items-center gap-2">
+                {validation.isComplete ? (
+                  <Badge variant="outline" className="text-[10px] bg-emerald-500/10 text-emerald-400 border-emerald-500/30">
+                    <CheckCircle2 className="h-2.5 w-2.5 mr-1" />
+                    Ready to test
+                  </Badge>
+                ) : validation.isValid ? (
+                  <Badge variant="outline" className="text-[10px] bg-amber-500/10 text-amber-400 border-amber-500/30">
+                    <AlertCircle className="h-2.5 w-2.5 mr-1" />
+                    {validation.warnings.length} suggestion{validation.warnings.length !== 1 ? 's' : ''}
+                  </Badge>
+                ) : (
+                  <Badge variant="outline" className="text-[10px] bg-rose-500/10 text-rose-400 border-rose-500/30">
+                    <AlertCircle className="h-2.5 w-2.5 mr-1" />
+                    {validation.errors[0]}
+                  </Badge>
+                )}
               </div>
             )}
 
@@ -272,43 +417,85 @@ export const StrategySummary = memo(function StrategySummary({
 
           <Separator />
 
-          {/* Conditions Summary */}
-          <Card className="bg-muted/30">
+          {/* Plain English Strategy Description */}
+          <Card className="bg-gradient-to-br from-primary/5 to-transparent border-primary/20">
             <CardHeader className="py-3 px-4">
               <CardTitle className="text-sm flex items-center gap-2">
-                🔍 Conditions Summary
+                <Target className="h-4 w-4 text-primary" />
+                Your Strategy
               </CardTitle>
             </CardHeader>
-            <CardContent className="px-4 pb-3 space-y-2">
-              {serialized ? (
-                <>
-                  <div className="flex items-start gap-2">
-                    <TrendingUp className="h-4 w-4 mt-0.5 text-emerald-500" />
-                    <div>
-                      <p className="text-xs text-muted-foreground">BUY when:</p>
-                      <p className="text-sm font-mono">{serialized.summary.entryCondition}</p>
-                    </div>
+            <CardContent className="px-4 pb-3 space-y-3">
+              <div className="space-y-2">
+                <div className="flex items-start gap-2">
+                  <TrendingUp className="h-4 w-4 mt-0.5 text-emerald-500 shrink-0" />
+                  <div>
+                    <p className="text-xs text-muted-foreground mb-0.5">Entry Signal</p>
+                    <p className="text-sm font-medium">{plainEnglish.entry}</p>
                   </div>
-                  <div className="flex items-start gap-2">
-                    <TrendingDown className="h-4 w-4 mt-0.5 text-rose-500" />
-                    <div>
-                      <p className="text-xs text-muted-foreground">EXIT when:</p>
-                      <p className="text-sm font-mono">{serialized.summary.exitCondition}</p>
-                    </div>
+                </div>
+                <div className="flex items-start gap-2">
+                  <TrendingDown className="h-4 w-4 mt-0.5 text-rose-500 shrink-0" />
+                  <div>
+                    <p className="text-xs text-muted-foreground mb-0.5">Exit Rules</p>
+                    <p className="text-sm font-medium">{plainEnglish.exit}</p>
                   </div>
-                </>
-              ) : (
-                <p className="text-sm text-muted-foreground">
-                  Add blocks to see summary
-                </p>
-              )}
+                </div>
+              </div>
             </CardContent>
           </Card>
+
+          {/* Complexity & Status */}
+          {blocks.length > 0 && (
+            <div className="grid grid-cols-2 gap-2">
+              {/* Complexity Score */}
+              <Card className="bg-muted/30">
+                <CardContent className="p-3">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Zap className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-xs text-muted-foreground">Complexity</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className={cn("text-lg font-bold", complexity.color)}>
+                      {complexity.label}
+                    </span>
+                  </div>
+                  <Progress value={complexity.score} className="h-1 mt-2" />
+                </CardContent>
+              </Card>
+
+              {/* Validation Status */}
+              <Card className="bg-muted/30">
+                <CardContent className="p-3">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Shield className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-xs text-muted-foreground">Status</span>
+                  </div>
+                  {validation.isComplete ? (
+                    <div className="flex items-center gap-1 text-emerald-500">
+                      <CheckCircle2 className="h-4 w-4" />
+                      <span className="text-sm font-medium">Ready</span>
+                    </div>
+                  ) : validation.isValid ? (
+                    <div className="flex items-center gap-1 text-amber-500">
+                      <AlertCircle className="h-4 w-4" />
+                      <span className="text-sm font-medium">{validation.warnings.length} tip{validation.warnings.length !== 1 ? 's' : ''}</span>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-1 text-rose-500">
+                      <AlertCircle className="h-4 w-4" />
+                      <span className="text-sm font-medium">{validation.errors.length} issue{validation.errors.length !== 1 ? 's' : ''}</span>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          )}
 
           {/* Detected Strategy */}
           {serialized && (
             <div className="flex items-center gap-2">
-              <span className="text-xs text-muted-foreground">Detected:</span>
+              <span className="text-xs text-muted-foreground">Detected type:</span>
               <Badge variant="outline">{serialized.strategy}</Badge>
             </div>
           )}
@@ -336,18 +523,18 @@ export const StrategySummary = memo(function StrategySummary({
             </Card>
           )}
 
-          {/* Validation */}
+          {/* Validation Errors/Warnings */}
           {(validation.errors.length > 0 || validation.warnings.length > 0) && (
             <div className="space-y-2">
               {validation.errors.map((error, i) => (
-                <div key={i} className="flex items-center gap-2 text-destructive text-sm">
-                  <AlertCircle className="h-4 w-4" />
+                <div key={i} className="flex items-center gap-2 text-rose-500 text-sm p-2 rounded bg-rose-500/10">
+                  <AlertCircle className="h-4 w-4 shrink-0" />
                   {error}
                 </div>
               ))}
               {validation.warnings.map((warning, i) => (
-                <div key={i} className="flex items-center gap-2 text-amber-500 text-sm">
-                  <AlertCircle className="h-4 w-4" />
+                <div key={i} className="flex items-center gap-2 text-amber-500 text-sm p-2 rounded bg-amber-500/10">
+                  <AlertCircle className="h-4 w-4 shrink-0" />
                   {warning}
                 </div>
               ))}
