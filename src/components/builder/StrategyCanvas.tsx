@@ -2,6 +2,7 @@
  * Strategy Canvas Component
  * 
  * Center panel with grid background for dropping and connecting blocks.
+ * Now includes enhanced empty state and connection hints.
  */
 
 import { memo, useCallback, useRef, useState, useEffect } from 'react';
@@ -10,6 +11,9 @@ import { cn } from '@/lib/utils';
 import type { CanvasBlock, Connection } from '@/lib/strategyBuilder/types';
 import { CanvasBlockComponent } from './blocks/CanvasBlockComponent';
 import { ConnectionLine } from './ConnectionLine';
+import { CanvasEmptyState } from './CanvasEmptyState';
+import { STRATEGY_TEMPLATES } from '@/lib/strategyBuilder/templates';
+import type { StrategyTemplate } from '@/lib/strategyBuilder/templates';
 
 interface StrategyCanvasProps {
   blocks: CanvasBlock[];
@@ -20,7 +24,9 @@ interface StrategyCanvasProps {
   onUpdateBlockPosition: (id: string, position: { x: number; y: number }) => void;
   onUpdateBlockParameter: (blockId: string, key: string, value: number | string) => void;
   onConnect: (fromId: string, toId: string) => void;
+  onLoadTemplate?: (template: StrategyTemplate) => void;
   className?: string;
+  compact?: boolean;
 }
 
 export const StrategyCanvas = memo(function StrategyCanvas({
@@ -32,7 +38,9 @@ export const StrategyCanvas = memo(function StrategyCanvas({
   onUpdateBlockPosition,
   onUpdateBlockParameter,
   onConnect,
+  onLoadTemplate,
   className,
+  compact = false,
 }: StrategyCanvasProps) {
   const canvasRef = useRef<HTMLDivElement>(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -142,6 +150,13 @@ export const StrategyCanvas = memo(function StrategyCanvas({
     };
   }, [blocks]);
 
+  // Handle template load from empty state
+  const handleLoadTemplate = useCallback((template: StrategyTemplate) => {
+    if (onLoadTemplate) {
+      onLoadTemplate(template);
+    }
+  }, [onLoadTemplate]);
+
   return (
     <Droppable droppableId="canvas">
       {(provided, snapshot) => (
@@ -210,13 +225,19 @@ export const StrategyCanvas = memo(function StrategyCanvas({
             </div>
           ))}
 
-          {/* Empty state */}
+          {/* Enhanced empty state */}
           {blocks.length === 0 && (
-            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-              <div className="text-center text-muted-foreground">
-                <p className="text-lg font-medium">Drag blocks here</p>
-                <p className="text-sm">Build your trading strategy visually</p>
-              </div>
+            <CanvasEmptyState
+              templates={STRATEGY_TEMPLATES}
+              onLoadTemplate={handleLoadTemplate}
+              compact={compact}
+            />
+          )}
+
+          {/* Connection hint when dragging */}
+          {isConnecting && (
+            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 px-3 py-1.5 bg-primary text-primary-foreground text-xs rounded-full shadow-lg animate-pulse">
+              Click on a block's input port to connect
             </div>
           )}
 

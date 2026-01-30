@@ -3,19 +3,21 @@
  * 
  * Main 3-panel layout component for drag-and-drop strategy creation.
  * When embedded=true, uses compact layout suitable for side panel.
+ * Now includes onboarding and guided UX for first-time users.
  */
 
 import { useState, useCallback } from 'react';
 import { DragDropContext, type DropResult } from '@hello-pangea/dnd';
 import { Button } from '@/components/ui/button';
-import { RotateCcw, Trash2 } from 'lucide-react';
+import { Trash2, HelpCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { CanvasBlock, Connection, BlockSubtype } from '@/lib/strategyBuilder/types';
 import { canConnect } from '@/lib/strategyBuilder/types';
-import { ALL_PALETTE_BLOCKS, type StrategyTemplate } from '@/lib/strategyBuilder/templates';
+import { ALL_PALETTE_BLOCKS, STRATEGY_TEMPLATES, type StrategyTemplate } from '@/lib/strategyBuilder/templates';
 import { BlockPalette } from './BlockPalette';
 import { StrategyCanvas } from './StrategyCanvas';
 import { StrategySummary, type SerializedStrategy } from './StrategySummary';
+import { BuilderOnboarding } from './BuilderOnboarding';
 
 interface VisualStrategyBuilderProps {
   embedded?: boolean;
@@ -36,13 +38,17 @@ export function VisualStrategyBuilder({
   const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null);
   const [strategyName, setStrategyName] = useState('My Visual Strategy');
   const [ticker, setTicker] = useState(initialTicker);
+  
+  // Onboarding state
+  const [showOnboarding, setShowOnboarding] = useState(true);
+  const [showHelp, setShowHelp] = useState(false);
 
   // Generate unique ID
   const generateId = () => `block-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
   // Handle drag end from palette to canvas
   const handleDragEnd = useCallback((result: DropResult) => {
-    const { source, destination, draggableId } = result;
+    const { destination, draggableId } = result;
 
     // Dropped outside
     if (!destination) return;
@@ -70,6 +76,7 @@ export function VisualStrategyBuilder({
     };
 
     setBlocks(prev => [...prev, newBlock]);
+    setShowOnboarding(false); // Hide onboarding once user starts building
   }, [blocks.length]);
 
   // Update block position
@@ -176,6 +183,7 @@ export function VisualStrategyBuilder({
     setBlocks(newBlocks);
     setConnections(newConnections);
     setStrategyName(template.name);
+    setShowOnboarding(false);
   }, []);
 
   // Clear all
@@ -207,8 +215,18 @@ export function VisualStrategyBuilder({
             </div>
           </div>
           
-          {/* Stacked layout for embedded mode - avoid overflow:hidden to prevent nested scroll issues */}
+          {/* Stacked layout for embedded mode */}
           <div className="flex-1 flex flex-col min-h-0">
+            {/* Onboarding (compact) - shown when no blocks */}
+            {blocks.length === 0 && showOnboarding && (
+              <BuilderOnboarding
+                templates={STRATEGY_TEMPLATES}
+                onLoadTemplate={handleLoadTemplate}
+                onDismiss={() => setShowOnboarding(false)}
+                compact
+              />
+            )}
+            
             {/* Palette (compact) */}
             <BlockPalette className="border-b border-[rgb(33,38,45)] shrink-0" compact />
             
@@ -222,7 +240,9 @@ export function VisualStrategyBuilder({
               onUpdateBlockPosition={handleUpdateBlockPosition}
               onUpdateBlockParameter={handleUpdateBlockParameter}
               onConnect={handleConnect}
+              onLoadTemplate={handleLoadTemplate}
               className="flex-1 min-h-[200px]"
+              compact
             />
             
             {/* Summary */}
@@ -256,6 +276,15 @@ export function VisualStrategyBuilder({
             </span>
           </div>
           <div className="flex items-center gap-2">
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={() => setShowHelp(true)}
+              className="gap-1"
+            >
+              <HelpCircle className="h-4 w-4" />
+              Help
+            </Button>
             <Button variant="outline" size="sm" onClick={handleClear}>
               <Trash2 className="h-4 w-4 mr-1" />
               Clear
@@ -268,18 +297,34 @@ export function VisualStrategyBuilder({
           {/* Left: Block Palette */}
           <BlockPalette className="w-64 shrink-0" />
 
-          {/* Center: Strategy Canvas */}
-          <StrategyCanvas
-            blocks={blocks}
-            connections={connections}
-            selectedBlockId={selectedBlockId}
-            onSelectBlock={setSelectedBlockId}
-            onDeleteBlock={handleDeleteBlock}
-            onUpdateBlockPosition={handleUpdateBlockPosition}
-            onUpdateBlockParameter={handleUpdateBlockParameter}
-            onConnect={handleConnect}
-            className="flex-1"
-          />
+          {/* Center: Strategy Canvas OR Onboarding */}
+          <div className="flex-1 flex flex-col relative">
+            {/* Onboarding overlay */}
+            {blocks.length === 0 && (showOnboarding || showHelp) && (
+              <div className="absolute inset-0 z-10 p-6 bg-background/95 backdrop-blur-sm overflow-auto">
+                <BuilderOnboarding
+                  templates={STRATEGY_TEMPLATES}
+                  onLoadTemplate={handleLoadTemplate}
+                  onDismiss={() => {
+                    setShowOnboarding(false);
+                    setShowHelp(false);
+                  }}
+                />
+              </div>
+            )}
+            
+            <StrategyCanvas
+              blocks={blocks}
+              connections={connections}
+              selectedBlockId={selectedBlockId}
+              onSelectBlock={setSelectedBlockId}
+              onDeleteBlock={handleDeleteBlock}
+              onUpdateBlockPosition={handleUpdateBlockPosition}
+              onUpdateBlockParameter={handleUpdateBlockParameter}
+              onConnect={handleConnect}
+              onLoadTemplate={handleLoadTemplate}
+            />
+          </div>
 
           {/* Right: Strategy Summary */}
           <StrategySummary
