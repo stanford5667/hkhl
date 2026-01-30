@@ -551,12 +551,18 @@ serve(async (req) => {
     // Step 1: Get CIK for ticker
     const cik = await getCIKFromTicker(symbol);
     if (!cik) {
+      // Return success with empty data - this is valid for OTC stocks, recent IPOs, or non-SEC filers
+      console.log(`[backfill-earnings-history] No CIK found for ${symbol} - this is normal for OTC stocks, recent IPOs, or non-US companies`);
       return new Response(JSON.stringify({ 
-        success: false, 
-        error: 'CIK not found for ticker',
-        symbol 
+        success: true, 
+        symbol,
+        quartersFound: 0,
+        quartersStored: 0,
+        message: 'No SEC CIK found for this ticker. This company may be OTC, newly listed, or a non-US filer.',
+        source: 'SEC XBRL API',
+        fetchedAt: new Date().toISOString(),
       }), {
-        status: 404,
+        status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
