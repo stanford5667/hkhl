@@ -14,6 +14,8 @@ import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { VisualStrategyBuilder } from '@/components/builder/VisualStrategyBuilder';
 import {
   Select,
   SelectContent,
@@ -523,19 +525,28 @@ export function StrategyBacktester({ ticker, companyName }: StrategyBacktesterPr
 
   return (
     <div className="space-y-6">
-      {/* Strategy Selection */}
-      {!selectedStrategy ? (
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-xl font-bold">Strategy Backtester</h2>
-              <p className="text-sm text-muted-foreground">
-                Test trading strategies on {companyName} ({ticker}) with real historical data
-              </p>
-            </div>
-          </div>
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-xl font-bold">Strategy Backtester</h2>
+          <p className="text-sm text-muted-foreground">
+            Test trading strategies on {companyName} ({ticker}) with real historical data
+          </p>
+        </div>
+      </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      {/* Tabs for Preset vs Visual Builder */}
+      <Tabs defaultValue="preset" className="w-full">
+        <TabsList className="grid w-full max-w-md grid-cols-2">
+          <TabsTrigger value="preset">Preset Strategies</TabsTrigger>
+          <TabsTrigger value="visual">Visual Builder</TabsTrigger>
+        </TabsList>
+
+        {/* Preset Strategies Tab */}
+        <TabsContent value="preset" className="mt-4">
+          {/* Strategy Selection */}
+          {!selectedStrategy ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {STRATEGIES.map((strategy) => {
               const Icon = strategy.icon;
               return (
@@ -574,9 +585,8 @@ export function StrategyBacktester({ ticker, companyName }: StrategyBacktesterPr
               );
             })}
           </div>
-        </div>
-      ) : (
-        <div className="space-y-6">
+          ) : (
+            <div className="space-y-6">
           {/* Configuration Panel */}
           <Card>
             <CardHeader className="pb-3">
@@ -1171,7 +1181,18 @@ export function StrategyBacktester({ ticker, companyName }: StrategyBacktesterPr
             </div>
           )}
         </div>
-      )}
+        )}
+        </TabsContent>
+
+        {/* Visual Builder Tab */}
+        <TabsContent value="visual" className="mt-4">
+          <Card className="min-h-[600px]">
+            <CardContent className="p-0 h-[600px]">
+              <VisualStrategyBuilder embedded />
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
 
       {/* Trade Detail Modal */}
       <Dialog open={!!selectedTrade} onOpenChange={() => setSelectedTrade(null)}>
