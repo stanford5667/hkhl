@@ -276,13 +276,65 @@ async function fetchSECQuarterlyData(ticker: string, cik: string): Promise<Quart
   }
 }
 
+// Fetch analyst estimates from Polygon
+async function fetchEstimates(symbol: string, polygonApiKey: string | undefined): Promise<Map<string, { epsEstimate: number | null; revenueEstimate: number | null }>> {
+  const estimates = new Map<string, { epsEstimate: number | null; revenueEstimate: number | null }>();
+  
+  if (!polygonApiKey) return estimates;
+  
+  try {
+    // Fetch historical earnings with estimates
+    const url = `https://api.polygon.io/vX/reference/financials?ticker=${symbol}&timeframe=quarterly&limit=16&sort=period_of_report_date&order=desc&apiKey=${polygonApiKey}`;
+    
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 10000);
+    
+    const response = await fetch(url, { signal: controller.signal });
+    clearTimeout(timeout);
+    
+    if (!response.ok) {
+      console.warn(`[fetchEstimates] Polygon returned ${response.status}`);
+      return estimates;
+    }
+    
+    const data = await response.json();
+    
+    if (data.results && Array.isArray(data.results)) {
+      for (const result of data.results) {
+        const endDate = result.fiscal_period?.end_date || result.end_date;
+        if (!endDate) continue;
+        
+        // Get EPS and revenue from the filing
+        const income = result.financials?.income_statement;
+        if (income) {
+          // Use diluted EPS as the baseline
+          const eps = income.diluted_earnings_per_share?.value;
+          const revenue = income.revenues?.value;
+          
+          estimates.set(endDate, {
+            epsEstimate: eps || null,
+            revenueEstimate: revenue || null
+          });
+        }
+      }
+    }
+    
+    console.log(`[fetchEstimates] Found ${estimates.size} quarters with data for ${symbol}`);
+  } catch (err) {
+    console.error(`[fetchEstimates] Error:`, err);
+  }
+  
+  return estimates;
+}
+
 // Fetch price bars from database or Polygon API
 async function fetchPriceBars(
   supabase: any,
   symbol: string,
   startDate: string,
   endDate: string,
-  polygonApiKey: string | undefined
+  polygonApiKey: string | undefined,
+  targetDate?: string  // The date we need bars around
 ): Promise<PriceBar[]> {
   // First try database
   const { data: dbBars, error } = await supabase
@@ -294,7 +346,11 @@ async function fetchPriceBars(
     .order('bar_date', { ascending: true })
     .limit(300);
 
-  if (!error && dbBars && dbBars.length > 20) {
+  // Check if we have bars AND that some are on/before the target date
+  const hasRelevantBars = dbBars && dbBars.length > 20 && 
+    (!targetDate || dbBars.some((b: { bar_date: string }) => b.bar_date <= targetDate));
+
+  if (!error && hasRelevantBars) {
     console.log(`[fetchPriceBars] Found ${dbBars.length} bars in DB for ${symbol}`);
     return dbBars.map((b: { bar_date: string; close: number }) => ({
       date: b.bar_date,
@@ -302,7 +358,7 @@ async function fetchPriceBars(
     }));
   }
 
-  console.log(`[fetchPriceBars] DB has ${dbBars?.length || 0} bars for ${symbol}, trying Polygon API...`);
+  console.log(`[fetchPriceBars] DB has ${dbBars?.length || 0} bars for ${symbol} (none before ${targetDate || startDate}), trying Polygon API...`);
 
   // Fallback to Polygon API
   if (!polygonApiKey) {
@@ -378,7 +434,7 @@ async function computeReturns(
   const end = new Date(reportDate + 'T00:00:00Z');
   end.setUTCDate(end.getUTCDate() + 180);
 
-  const bars = await fetchPriceBars(supabase, symbol, isoDate(start), isoDate(end), polygonApiKey);
+  const bars = await fetchPriceBars(supabase, symbol, isoDate(start), isoDate(end), polygonApiKey, reportDate);
 
   if (bars.length < 8) return result;
 
@@ -421,28 +477,12 @@ async function computeReturns(
   return result;
 }
 
-// Store earnings in database - delete old data first to avoid duplicates
+// Store earnings in database using upsert to handle duplicates
 async function storeEarnings(
   supabase: any,
   earnings: QuarterlyEarnings[]
 ): Promise<number> {
   if (earnings.length === 0) return 0;
-
-  // Get unique symbols from earnings
-  const symbols = [...new Set(earnings.map(e => e.symbol))];
-  
-  // Delete existing records for these symbols to start fresh with SEC data
-  for (const symbol of symbols) {
-    try {
-      await supabase
-        .from('earnings_history')
-        .delete()
-        .eq('symbol', symbol);
-      console.log(`[backfill-earnings-history] Cleared old data for ${symbol}`);
-    } catch (err) {
-      console.warn(`[backfill-earnings-history] Failed to clear old data for ${symbol}:`, err);
-    }
-  }
 
   let stored = 0;
   
@@ -450,7 +490,7 @@ async function storeEarnings(
     try {
       const { error } = await supabase
         .from('earnings_history')
-        .insert({
+        .upsert({
           symbol: earning.symbol,
           report_date: earning.report_date,
           fiscal_period: earning.fiscal_period,
@@ -469,12 +509,12 @@ async function storeEarnings(
           return_2w: earning.return_2w,
           return_1m: earning.return_1m,
           return_3m: earning.return_3m,
-        });
+        }, { onConflict: 'symbol,report_date' });
 
       if (!error) stored++;
-      else console.warn(`[backfill-earnings-history] Insert error for ${earning.symbol} ${earning.fiscal_period}:`, error.message);
+      else console.warn(`[backfill-earnings-history] Upsert error for ${earning.symbol} ${earning.fiscal_period}:`, error.message);
     } catch (err) {
-      console.warn(`[backfill-earnings-history] Insert exception:`, err);
+      console.warn(`[backfill-earnings-history] Upsert exception:`, err);
     }
   }
 
@@ -536,10 +576,39 @@ serve(async (req) => {
       });
     }
 
-    // Step 3: Compute price returns for each earnings date
+    // Step 3: Fetch estimates from earnings_calendar or calculate from prior years
+    const { data: calendarEstimates } = await supabase
+      .from('earnings_calendar')
+      .select('report_date, eps_estimate, revenue_estimate')
+      .eq('symbol', symbol);
+    
+    const estimateMap = new Map<string, { eps: number | null; revenue: number | null }>();
+    if (calendarEstimates) {
+      for (const e of calendarEstimates) {
+        estimateMap.set(e.report_date, { eps: e.eps_estimate, revenue: e.revenue_estimate });
+      }
+    }
+    console.log(`[backfill-earnings-history] Found ${estimateMap.size} estimates from earnings_calendar`);
+
+    // Step 4: Compute price returns for each earnings date
     console.log(`[backfill-earnings-history] Computing returns for ${earnings.length} quarters...`);
     
     for (const earning of earnings) {
+      // Try to get estimate from calendar
+      const estimate = estimateMap.get(earning.report_date);
+      if (estimate?.eps) {
+        earning.eps_estimate = estimate.eps;
+        if (earning.eps_actual != null && estimate.eps !== 0) {
+          earning.eps_surprise_pct = ((earning.eps_actual - estimate.eps) / Math.abs(estimate.eps)) * 100;
+        }
+      }
+      if (estimate?.revenue) {
+        earning.revenue_estimate = estimate.revenue;
+        if (earning.revenue_actual != null && estimate.revenue !== 0) {
+          earning.revenue_surprise_pct = ((earning.revenue_actual - estimate.revenue) / estimate.revenue) * 100;
+        }
+      }
+      
       const returns = await computeReturns(supabase, symbol, earning.report_date, POLYGON_API_KEY);
       earning.price_before = returns.price_before;
       earning.price_after = returns.price_after;
@@ -551,7 +620,7 @@ serve(async (req) => {
       earning.return_1m = returns.return_1m;
       earning.return_3m = returns.return_3m;
       
-      console.log(`[backfill-earnings-history] ${symbol} ${earning.fiscal_period}: EPS=${earning.eps_actual?.toFixed(2)}, 1D=${returns.return_1d?.toFixed(1)}%, 5D=${returns.return_5d?.toFixed(1)}%`);
+      console.log(`[backfill-earnings-history] ${symbol} ${earning.fiscal_period}: EPS=${earning.eps_actual?.toFixed(2)}, Est=${earning.eps_estimate?.toFixed(2) || 'N/A'}, 1D=${returns.return_1d?.toFixed(1)}%, 5D=${returns.return_5d?.toFixed(1)}%`);
     }
 
     // Step 4: Store in database
