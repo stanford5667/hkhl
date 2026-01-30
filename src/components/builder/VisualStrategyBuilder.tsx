@@ -181,7 +181,7 @@ export function VisualStrategyBuilder({ embedded = false }: VisualStrategyBuilde
   if (embedded) {
     return (
       <DragDropContext onDragEnd={handleDragEnd}>
-        <div className="flex flex-col h-full overflow-hidden">
+        <div className="flex flex-col h-full">
           {/* Compact toolbar */}
           <div className="flex items-center justify-between px-3 py-2 border-b border-[rgb(33,38,45)] bg-[rgb(13,17,23)]">
             <span className="text-xs font-medium text-[rgb(139,148,158)]">
@@ -199,10 +199,10 @@ export function VisualStrategyBuilder({ embedded = false }: VisualStrategyBuilde
             </div>
           </div>
           
-          {/* Stacked layout for embedded mode */}
-          <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+          {/* Stacked layout for embedded mode - avoid overflow:hidden to prevent nested scroll issues */}
+          <div className="flex-1 flex flex-col min-h-0">
             {/* Palette (compact) */}
-            <BlockPalette className="border-b border-[rgb(33,38,45)]" compact />
+            <BlockPalette className="border-b border-[rgb(33,38,45)] shrink-0" compact />
             
             {/* Canvas */}
             <StrategyCanvas
@@ -225,7 +225,7 @@ export function VisualStrategyBuilder({ embedded = false }: VisualStrategyBuilde
               onNameChange={setStrategyName}
               onTickerChange={setTicker}
               onLoadTemplate={handleLoadTemplate}
-              className="border-t border-[rgb(33,38,45)]"
+              className="border-t border-[rgb(33,38,45)] shrink-0"
               compact
             />
           </div>

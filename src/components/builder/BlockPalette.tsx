@@ -91,6 +91,47 @@ const BlockCategory = memo(function BlockCategory({ title, icon, blocks, droppab
 });
 
 export const BlockPalette = memo(function BlockPalette({ className, compact }: BlockPaletteProps) {
+  // In compact mode, avoid nested ScrollArea to fix @hello-pangea/dnd issues
+  const content = (
+    <div className="divide-y divide-border/50">
+      <BlockCategory
+        title="Indicators"
+        icon="📊"
+        blocks={INDICATOR_BLOCKS}
+        droppableId="palette-indicators"
+        compact={compact}
+      />
+      <BlockCategory
+        title="Conditions"
+        icon="🎯"
+        blocks={CONDITION_BLOCKS}
+        droppableId="palette-conditions"
+        compact={compact}
+      />
+      <BlockCategory
+        title="Logic"
+        icon="🔗"
+        blocks={LOGIC_BLOCKS}
+        droppableId="palette-logic"
+        compact={compact}
+      />
+      <BlockCategory
+        title="Exit Conditions"
+        icon="🛑"
+        blocks={EXIT_BLOCKS}
+        droppableId="palette-exits"
+        compact={compact}
+      />
+      <BlockCategory
+        title="Actions"
+        icon="✅"
+        blocks={ACTION_BLOCKS}
+        droppableId="palette-actions"
+        compact={compact}
+      />
+    </div>
+  );
+
   return (
     <div className={cn(
       "flex flex-col border-r border-border bg-card/50",
@@ -102,45 +143,16 @@ export const BlockPalette = memo(function BlockPalette({ className, compact }: B
         {!compact && <p className="text-xs text-muted-foreground">Drag blocks to canvas</p>}
       </div>
       
-      <ScrollArea className="flex-1">
-        <div className="divide-y divide-border/50">
-          <BlockCategory
-            title="Indicators"
-            icon="📊"
-            blocks={INDICATOR_BLOCKS}
-            droppableId="palette-indicators"
-            compact={compact}
-          />
-          <BlockCategory
-            title="Conditions"
-            icon="🎯"
-            blocks={CONDITION_BLOCKS}
-            droppableId="palette-conditions"
-            compact={compact}
-          />
-          <BlockCategory
-            title="Logic"
-            icon="🔗"
-            blocks={LOGIC_BLOCKS}
-            droppableId="palette-logic"
-            compact={compact}
-          />
-          <BlockCategory
-            title="Exit Conditions"
-            icon="🛑"
-            blocks={EXIT_BLOCKS}
-            droppableId="palette-exits"
-            compact={compact}
-          />
-          <BlockCategory
-            title="Actions"
-            icon="✅"
-            blocks={ACTION_BLOCKS}
-            droppableId="palette-actions"
-            compact={compact}
-          />
+      {/* In compact mode, use simple overflow-y-auto to avoid nested scroll issues with dnd */}
+      {compact ? (
+        <div className="flex-1 overflow-y-auto">
+          {content}
         </div>
-      </ScrollArea>
+      ) : (
+        <ScrollArea className="flex-1">
+          {content}
+        </ScrollArea>
+      )}
     </div>
   );
 });
