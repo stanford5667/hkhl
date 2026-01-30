@@ -967,7 +967,7 @@ Deno.serve(async (req) => {
     if (priceData && priceData.length >= 50 && dbCoverage >= 0.8) {
       console.log(`[strategy-backtest] Using ${priceData.length} bars from database for ${normalizedTicker}`);
       dataSourceUrl = `Cloud DB: market_daily_bars (ticker=${normalizedTicker})`;
-      bars = priceData.map(row => ({
+      const rawBars = priceData.map(row => ({
         date: row.bar_date,
         open: row.open,
         high: row.high,
@@ -976,6 +976,11 @@ Deno.serve(async (req) => {
         volume: row.volume,
         dailyReturn: row.daily_return
       }));
+      // Filter out any weekend/holiday bars that may have been stored incorrectly
+      bars = rawBars.filter(bar => isTradingDay(bar.date));
+      if (bars.length !== rawBars.length) {
+        console.log(`[strategy-backtest] Filtered ${rawBars.length - bars.length} non-trading day bars from database`);
+      }
     } else {
       // Database doesn't have enough data - fetch from Polygon for full range
       console.log(`[strategy-backtest] Database coverage insufficient (${priceData?.length || 0} bars, ${(dbCoverage * 100).toFixed(1)}% coverage), fetching from Polygon...`);
@@ -990,7 +995,7 @@ Deno.serve(async (req) => {
         // Fallback: use whatever database has even if incomplete
         console.log(`[strategy-backtest] Polygon failed, using limited database data (${priceData.length} bars)`);
         dataSourceUrl = `Cloud DB: market_daily_bars (ticker=${normalizedTicker}) [PARTIAL]`;
-        bars = priceData.map(row => ({
+        const rawBars = priceData.map(row => ({
           date: row.bar_date,
           open: row.open,
           high: row.high,
@@ -999,6 +1004,11 @@ Deno.serve(async (req) => {
           volume: row.volume,
           dailyReturn: row.daily_return
         }));
+        // Filter out any weekend/holiday bars
+        bars = rawBars.filter(bar => isTradingDay(bar.date));
+        if (bars.length !== rawBars.length) {
+          console.log(`[strategy-backtest] Filtered ${rawBars.length - bars.length} non-trading day bars from fallback database data`);
+        }
       } else {
         return new Response(
           JSON.stringify({ 
