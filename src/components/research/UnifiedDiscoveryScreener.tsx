@@ -363,17 +363,21 @@ type SortableColumn = {
 };
 
 const SORTABLE_COLUMNS: SortableColumn[] = [
+  // Always-show columns
   { key: 'symbol', label: 'Symbol', getValue: () => null, format: () => '', width: 'w-14', alwaysShow: true },
   { key: 'name', label: 'Name', getValue: () => null, format: () => '', width: 'flex-1', alwaysShow: true },
   { key: 'price', label: 'Price', getValue: (s) => s.price, format: (v) => v != null ? `$${v.toFixed(2)}` : '—', width: 'w-16', alwaysShow: true },
   { key: 'marketCap', label: 'Mkt Cap', filterKey: 'marketCap', getValue: (s) => s.marketCap, format: (v) => formatMarketCap(v), width: 'w-16', alwaysShow: true },
   { key: 'change', label: '% Chg', getValue: (s) => s.changePercent, format: (v) => v != null ? `${v >= 0 ? '+' : ''}${v.toFixed(2)}%` : '—', width: 'w-16', alwaysShow: true },
-  { key: 'performance', label: 'Perf', getValue: (s) => s.changePercent, format: (v) => v != null ? `${v >= 0 ? '+' : ''}${v.toFixed(2)}%` : '—', width: 'w-14', alwaysShow: true },
+  
+  // Volume - shown when volume filter is active
   { key: 'volume', label: 'Volume', filterKey: 'avgVolume', getValue: (s) => s.volume, format: (v) => v != null ? formatVolume(v) : '—', width: 'w-14' },
   { key: 'relativeVolume', label: 'Rel Vol', getValue: (s) => s.relativeVolume, format: (v) => v != null ? `${v.toFixed(1)}x` : '—', width: 'w-14' },
-  { key: 'high', label: 'High', getValue: (s) => s.high, format: (v) => v != null ? `$${v.toFixed(2)}` : '—', width: 'w-16' },
-  { key: 'low', label: 'Low', getValue: (s) => s.low, format: (v) => v != null ? `$${v.toFixed(2)}` : '—', width: 'w-16' },
-  { key: 'vwap', label: 'VWAP', getValue: (s) => s.vwap, format: (v) => v != null ? `$${v.toFixed(2)}` : '—', width: 'w-16' },
+  
+  // Price range - always available
+  { key: 'high', label: 'High', getValue: (s) => s.high, format: (v) => v != null ? `$${v.toFixed(2)}` : '—', width: 'w-14' },
+  { key: 'low', label: 'Low', getValue: (s) => s.low, format: (v) => v != null ? `$${v.toFixed(2)}` : '—', width: 'w-14' },
+  { key: 'vwap', label: 'VWAP', getValue: (s) => s.vwap, format: (v) => v != null ? `$${v.toFixed(2)}` : '—', width: 'w-14' },
 ];
 
 function StockRow({ 
