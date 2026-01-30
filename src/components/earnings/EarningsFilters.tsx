@@ -1,6 +1,6 @@
 // src/components/earnings/EarningsFilters.tsx
 
-import { Filter } from 'lucide-react';
+import { Filter, CalendarDays } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import {
   Select,
@@ -11,7 +11,6 @@ import {
 } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Switch } from '@/components/ui/switch';
 import { EarningsCalendarFilters } from '@/types/earnings';
 
 interface Props {
@@ -36,7 +35,7 @@ export const EarningsFilters = ({ filters, onFiltersChange }: Props) => {
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-5">
+        <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-4">
           {/* Date Range */}
           <div className="space-y-2">
             <Label className="text-xs">Time Period</Label>
@@ -51,29 +50,31 @@ export const EarningsFilters = ({ filters, onFiltersChange }: Props) => {
                 <SelectItem value="today">Today</SelectItem>
                 <SelectItem value="week">Next 7 Days</SelectItem>
                 <SelectItem value="month">Next 30 Days</SelectItem>
-                <SelectItem value="custom">Custom Range</SelectItem>
+                <SelectItem value="quarter">Next 3 Months</SelectItem>
+                <SelectItem value="year">Next 12 Months</SelectItem>
+                <SelectItem value="custom">Select Date</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
-          {/* Time of Day */}
-          <div className="space-y-2">
-            <Label className="text-xs">Report Time</Label>
-            <Select
-              value={filters.timeOfDay || 'all'}
-              onValueChange={(value) => updateFilter('timeOfDay', value as EarningsCalendarFilters['timeOfDay'])}
-            >
-              <SelectTrigger className="h-9">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Times</SelectItem>
-                <SelectItem value="BMO">Before Market</SelectItem>
-                <SelectItem value="AMC">After Market</SelectItem>
-                <SelectItem value="DMT">During Market</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+          {/* Specific Date Selector */}
+          {filters.dateRange === 'custom' && (
+            <div className="space-y-2">
+              <Label className="text-xs flex items-center gap-1.5">
+                <CalendarDays className="h-3 w-3" />
+                Select Date
+              </Label>
+              <Input
+                type="date"
+                className="h-9"
+                value={filters.customStart || ''}
+                onChange={(e) => {
+                  updateFilter('customStart', e.target.value);
+                  updateFilter('customEnd', e.target.value);
+                }}
+              />
+            </div>
+          )}
 
           {/* Symbols Filter */}
           <div className="space-y-2">
@@ -91,45 +92,7 @@ export const EarningsFilters = ({ filters, onFiltersChange }: Props) => {
               }}
             />
           </div>
-
-          {/* Show Only With Predictions */}
-          <div className="space-y-2">
-            <Label className="text-xs">Has Prediction</Label>
-            <div className="flex items-center h-9">
-              <Switch
-                checked={filters.hasPrediction || false}
-                onCheckedChange={(checked) => updateFilter('hasPrediction', checked ? true : undefined)}
-              />
-              <span className="ml-2 text-xs text-muted-foreground">
-                Only predictions
-              </span>
-            </div>
-          </div>
         </div>
-
-        {/* Custom Date Range */}
-        {filters.dateRange === 'custom' && (
-          <div className="grid gap-4 md:grid-cols-2 pt-2 border-t border-border/50">
-            <div className="space-y-2">
-              <Label className="text-xs">Start Date</Label>
-              <Input
-                type="date"
-                className="h-9"
-                value={filters.customStart || ''}
-                onChange={(e) => updateFilter('customStart', e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label className="text-xs">End Date</Label>
-              <Input
-                type="date"
-                className="h-9"
-                value={filters.customEnd || ''}
-                onChange={(e) => updateFilter('customEnd', e.target.value)}
-              />
-            </div>
-          </div>
-        )}
       </CardContent>
     </Card>
   );

@@ -36,18 +36,21 @@ export const useEarningsCalendar = (filters?: EarningsCalendarFilters) => {
         const monthAhead = new Date();
         monthAhead.setMonth(monthAhead.getMonth() + 1);
         query = query.lte('report_date', monthAhead.toISOString().split('T')[0]);
-      } else if (filters?.dateRange === 'custom' && filters.customStart && filters.customEnd) {
-        query = query
-          .gte('report_date', filters.customStart)
-          .lte('report_date', filters.customEnd);
+      } else if (filters?.dateRange === 'quarter') {
+        const quarterAhead = new Date();
+        quarterAhead.setMonth(quarterAhead.getMonth() + 3);
+        query = query.lte('report_date', quarterAhead.toISOString().split('T')[0]);
+      } else if (filters?.dateRange === 'year') {
+        const yearAhead = new Date();
+        yearAhead.setFullYear(yearAhead.getFullYear() + 1);
+        query = query.lte('report_date', yearAhead.toISOString().split('T')[0]);
+      } else if (filters?.dateRange === 'custom' && filters.customStart) {
+        // For custom, filter to specific date
+        query = query.eq('report_date', filters.customStart);
       }
 
       if (filters?.symbols && filters.symbols.length > 0) {
         query = query.in('symbol', filters.symbols);
-      }
-
-      if (filters?.timeOfDay && filters.timeOfDay !== 'all') {
-        query = query.eq('time_of_day', filters.timeOfDay);
       }
 
       const { data, error } = await query;

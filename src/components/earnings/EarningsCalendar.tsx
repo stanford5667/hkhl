@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { format, isToday, isTomorrow, parseISO } from 'date-fns';
-import { Calendar, RefreshCw, Sparkles, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Calendar, Sparkles, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -20,9 +20,8 @@ const ITEMS_PER_PAGE = 20;
 export const EarningsCalendar = () => {
   const [activeTab, setActiveTab] = useState<'calendar' | 'screener'>('calendar');
   const [filters, setFilters] = useState<EarningsCalendarFilters>({
-    // Default to a broader window so users see upcoming events even if the next week is quiet.
+    // Default to month view so users see upcoming events
     dateRange: 'month',
-    timeOfDay: 'all',
   });
   const [currentPage, setCurrentPage] = useState(1);
   const hasAutoFetched = useRef(false);
@@ -36,38 +35,34 @@ export const EarningsCalendar = () => {
     setCurrentPage(1);
   }, [filters]);
 
-  // Auto-fetch earnings data on first load if empty
+  // Auto-fetch earnings data on first load if empty - fetch 1 year ahead
   useEffect(() => {
     if (isFetched && !isLoading && !hasAutoFetched.current && (!earnings || earnings.length === 0)) {
       hasAutoFetched.current = true;
       const today = new Date().toISOString().split('T')[0];
-      const monthAhead = new Date();
-      monthAhead.setDate(monthAhead.getDate() + 30);
+      const yearAhead = new Date();
+      yearAhead.setFullYear(yearAhead.getFullYear() + 1);
       
       fetchEarnings.mutate({
         startDate: today,
-        endDate: monthAhead.toISOString().split('T')[0],
+        endDate: yearAhead.toISOString().split('T')[0],
       });
     }
   }, [isFetched, isLoading, earnings, fetchEarnings]);
 
-  const handleRefresh = () => {
-    const today = new Date().toISOString().split('T')[0];
-    const monthAhead = new Date();
-    monthAhead.setDate(monthAhead.getDate() + 30);
-    
-    fetchEarnings.mutate({
-      startDate: today,
-      endDate: monthAhead.toISOString().split('T')[0],
-    });
-  };
-
-  const handleGeneratePredictions = () => {
-    if (!earnings || earnings.length === 0) return;
-    
-    const symbols = [...new Set(earnings.map(e => e.symbol))];
-    generatePredictions.mutate({ symbols, useBulkPrediction: true });
-  };
+  // Also auto-generate predictions when we have earnings but no predictions
+  useEffect(() => {
+    if (earnings && earnings.length > 0) {
+      const withoutPredictions = earnings.filter(e => !e.prediction);
+      if (withoutPredictions.length > 0 && withoutPredictions.length === earnings.length) {
+        // No predictions at all - auto-generate for current view
+        const symbols = [...new Set(earnings.slice(0, 50).map(e => e.symbol))];
+        if (symbols.length > 0) {
+          generatePredictions.mutate({ symbols, useBulkPrediction: true });
+        }
+      }
+    }
+  }, [earnings?.length]);
 
   // Pagination logic - sorted data is already from hook (by market cap)
   const totalItems = earnings?.length || 0;
@@ -89,21 +84,6 @@ export const EarningsCalendar = () => {
     if (isToday(date)) return 'Today';
     if (isTomorrow(date)) return 'Tomorrow';
     return format(date, 'EEEE, MMMM d, yyyy');
-  };
-
-  const stats = {
-    total: totalItems,
-    withPredictions: earnings?.filter(e => e.prediction).length || 0,
-    expectedBeats: earnings?.filter(e => e.prediction?.predicted_outcome === 'beat').length || 0,
-    expectedMisses: earnings?.filter(e => e.prediction?.predicted_outcome === 'miss').length || 0,
-  };
-
-  const formatMarketCap = (cap: number | null) => {
-    if (!cap) return null;
-    if (cap >= 1e12) return `$${(cap / 1e12).toFixed(1)}T`;
-    if (cap >= 1e9) return `$${(cap / 1e9).toFixed(1)}B`;
-    if (cap >= 1e6) return `$${(cap / 1e6).toFixed(1)}M`;
-    return `$${cap.toLocaleString()}`;
   };
 
   return (
@@ -133,7 +113,7 @@ export const EarningsCalendar = () => {
             </Alert>
           )}
 
-          {isLoading ? (
+          {isLoading || fetchEarnings.isPending ? (
             <div className="space-y-4">
               {[1, 2, 3].map(i => (
                 <Card key={i} className="bg-card/50 border-border/50">
@@ -197,7 +177,7 @@ export const EarningsCalendar = () => {
           ) : (
             <Card className="bg-card/50 border-border/50">
               <CardContent className="py-12 text-center text-muted-foreground">
-                No earnings events found. Click "Refresh Data" to fetch upcoming earnings.
+                {fetchEarnings.isPending ? 'Loading earnings data...' : 'No earnings events found for this period.'}
               </CardContent>
             </Card>
           )}

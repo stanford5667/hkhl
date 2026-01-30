@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
-import { getTrulyRandomThemes, MARKET_THEMES, type MarketTheme, type ThemeTicker } from '@/data/marketThemes';
+import { getRandomizedThemes, MARKET_THEMES, type MarketTheme, type ThemeTicker } from '@/data/marketThemes';
 
 function TickerPill({ ticker, onClick }: { ticker: ThemeTicker; onClick: () => void }) {
   const sentimentColor = {
@@ -171,8 +171,8 @@ export function MarketThemesSection() {
     navigate(`/stock/${symbol}`);
   };
 
-  // Randomize themes on each page load for a fresh experience
-  const [randomizedThemes] = useState(() => getTrulyRandomThemes(12));
+  // Use date-seeded randomization so users see different themes each day
+  const [randomizedThemes] = useState(() => getRandomizedThemes(12));
   const displayedThemes = showAll ? MARKET_THEMES : randomizedThemes;
 
   return (
