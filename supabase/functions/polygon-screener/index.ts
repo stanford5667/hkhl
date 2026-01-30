@@ -190,19 +190,24 @@ async function fetchTickerFundamentals(ticker: string, apiKey: string, price: nu
 // Fetch fundamentals for multiple tickers in parallel (limited batch)
 async function fetchBatchFundamentals(
   tickers: { symbol: string; price: number; marketCap: number | null }[],
-  apiKey: string
+  apiKey: string,
+  maxTickers: number = 20
 ): Promise<Map<string, TickerFundamentals>> {
   const results = new Map<string, TickerFundamentals>();
   
-  // Process in parallel, but limit to first 20 tickers to avoid rate limits
-  const tickersToFetch = tickers.slice(0, 20);
+  // Process in batches to avoid rate limits
+  const tickersToFetch = tickers.slice(0, maxTickers);
   
-  const promises = tickersToFetch.map(async (t) => {
-    const fundamentals = await fetchTickerFundamentals(t.symbol, apiKey, t.price, t.marketCap);
-    results.set(t.symbol, fundamentals);
-  });
-
-  await Promise.allSettled(promises);
+  // Process in smaller chunks to avoid overwhelming the API
+  const chunkSize = 10;
+  for (let i = 0; i < tickersToFetch.length; i += chunkSize) {
+    const chunk = tickersToFetch.slice(i, i + chunkSize);
+    const promises = chunk.map(async (t) => {
+      const fundamentals = await fetchTickerFundamentals(t.symbol, apiKey, t.price, t.marketCap);
+      results.set(t.symbol, fundamentals);
+    });
+    await Promise.allSettled(promises);
+  }
   
   return results;
 }
@@ -273,6 +278,32 @@ interface ScreenerFilters {
   sortDirection?: 'asc' | 'desc';
   limit?: number;
   offset?: number;
+  
+  // Fundamental filters
+  minPE?: number;
+  maxPE?: number;
+  minForwardPE?: number;
+  maxForwardPE?: number;
+  minPEG?: number;
+  maxPEG?: number;
+  minPB?: number;
+  maxPB?: number;
+  minEvEbitda?: number;
+  maxEvEbitda?: number;
+  minOpMargin?: number;
+  maxOpMargin?: number;
+  minDebtEquity?: number;
+  maxDebtEquity?: number;
+  minQuickRatio?: number;
+  maxQuickRatio?: number;
+  minVolatility?: number;
+  maxVolatility?: number;
+  minBeta?: number;
+  maxBeta?: number;
+  minEpsGrowth?: number;
+  maxEpsGrowth?: number;
+  minRevenueGrowth?: number;
+  maxRevenueGrowth?: number;
 }
 
 interface TickerSnapshot {
@@ -327,6 +358,77 @@ type RefTicker = {
   type?: string;
 };
 
+// Helper to apply fundamental filters to results
+function applyFundamentalFilters(results: any[], filters: ScreenerFilters): any[] {
+  return results.filter(r => {
+    // P/E filter
+    if (filters.minPE !== undefined && (r.pe === null || r.pe < filters.minPE)) return false;
+    if (filters.maxPE !== undefined && r.pe !== null && r.pe > filters.maxPE) return false;
+    
+    // Forward P/E filter
+    if (filters.minForwardPE !== undefined && (r.forwardPE === null || r.forwardPE < filters.minForwardPE)) return false;
+    if (filters.maxForwardPE !== undefined && r.forwardPE !== null && r.forwardPE > filters.maxForwardPE) return false;
+    
+    // PEG filter
+    if (filters.minPEG !== undefined && (r.peg === null || r.peg < filters.minPEG)) return false;
+    if (filters.maxPEG !== undefined && r.peg !== null && r.peg > filters.maxPEG) return false;
+    
+    // P/B filter
+    if (filters.minPB !== undefined && (r.pb === null || r.pb < filters.minPB)) return false;
+    if (filters.maxPB !== undefined && r.pb !== null && r.pb > filters.maxPB) return false;
+    
+    // EV/EBITDA filter
+    if (filters.minEvEbitda !== undefined && (r.evEbitda === null || r.evEbitda < filters.minEvEbitda)) return false;
+    if (filters.maxEvEbitda !== undefined && r.evEbitda !== null && r.evEbitda > filters.maxEvEbitda) return false;
+    
+    // Operating Margin filter
+    if (filters.minOpMargin !== undefined && (r.opMargin === null || r.opMargin < filters.minOpMargin)) return false;
+    if (filters.maxOpMargin !== undefined && r.opMargin !== null && r.opMargin > filters.maxOpMargin) return false;
+    
+    // Debt/Equity filter
+    if (filters.minDebtEquity !== undefined && (r.debtEquity === null || r.debtEquity < filters.minDebtEquity)) return false;
+    if (filters.maxDebtEquity !== undefined && r.debtEquity !== null && r.debtEquity > filters.maxDebtEquity) return false;
+    
+    // Quick Ratio filter
+    if (filters.minQuickRatio !== undefined && (r.quickRatio === null || r.quickRatio < filters.minQuickRatio)) return false;
+    if (filters.maxQuickRatio !== undefined && r.quickRatio !== null && r.quickRatio > filters.maxQuickRatio) return false;
+    
+    // Volatility filter
+    if (filters.minVolatility !== undefined && (r.volatility === null || r.volatility < filters.minVolatility)) return false;
+    if (filters.maxVolatility !== undefined && r.volatility !== null && r.volatility > filters.maxVolatility) return false;
+    
+    // Beta filter
+    if (filters.minBeta !== undefined && (r.beta === null || r.beta < filters.minBeta)) return false;
+    if (filters.maxBeta !== undefined && r.beta !== null && r.beta > filters.maxBeta) return false;
+    
+    // EPS Growth filter
+    if (filters.minEpsGrowth !== undefined && (r.epsGrowth === null || r.epsGrowth < filters.minEpsGrowth)) return false;
+    if (filters.maxEpsGrowth !== undefined && r.epsGrowth !== null && r.epsGrowth > filters.maxEpsGrowth) return false;
+    
+    // Revenue Growth filter
+    if (filters.minRevenueGrowth !== undefined && (r.revenueGrowth === null || r.revenueGrowth < filters.minRevenueGrowth)) return false;
+    if (filters.maxRevenueGrowth !== undefined && r.revenueGrowth !== null && r.revenueGrowth > filters.maxRevenueGrowth) return false;
+    
+    return true;
+  });
+}
+
+// Check if any metric-level filters are active
+function hasMetricFilters(filters: ScreenerFilters): boolean {
+  return filters.minPE !== undefined || filters.maxPE !== undefined ||
+    filters.minForwardPE !== undefined || filters.maxForwardPE !== undefined ||
+    filters.minPEG !== undefined || filters.maxPEG !== undefined ||
+    filters.minPB !== undefined || filters.maxPB !== undefined ||
+    filters.minEvEbitda !== undefined || filters.maxEvEbitda !== undefined ||
+    filters.minOpMargin !== undefined || filters.maxOpMargin !== undefined ||
+    filters.minDebtEquity !== undefined || filters.maxDebtEquity !== undefined ||
+    filters.minQuickRatio !== undefined || filters.maxQuickRatio !== undefined ||
+    filters.minVolatility !== undefined || filters.maxVolatility !== undefined ||
+    filters.minBeta !== undefined || filters.maxBeta !== undefined ||
+    filters.minEpsGrowth !== undefined || filters.maxEpsGrowth !== undefined ||
+    filters.minRevenueGrowth !== undefined || filters.maxRevenueGrowth !== undefined;
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -352,7 +454,19 @@ serve(async (req) => {
     const hasFundamentalFilters =
       filters.minMarketCap !== undefined ||
       filters.maxMarketCap !== undefined ||
-      (filters.sectors && filters.sectors.length > 0);
+      (filters.sectors && filters.sectors.length > 0) ||
+      filters.minPE !== undefined || filters.maxPE !== undefined ||
+      filters.minForwardPE !== undefined || filters.maxForwardPE !== undefined ||
+      filters.minPEG !== undefined || filters.maxPEG !== undefined ||
+      filters.minPB !== undefined || filters.maxPB !== undefined ||
+      filters.minEvEbitda !== undefined || filters.maxEvEbitda !== undefined ||
+      filters.minOpMargin !== undefined || filters.maxOpMargin !== undefined ||
+      filters.minDebtEquity !== undefined || filters.maxDebtEquity !== undefined ||
+      filters.minQuickRatio !== undefined || filters.maxQuickRatio !== undefined ||
+      filters.minVolatility !== undefined || filters.maxVolatility !== undefined ||
+      filters.minBeta !== undefined || filters.maxBeta !== undefined ||
+      filters.minEpsGrowth !== undefined || filters.maxEpsGrowth !== undefined ||
+      filters.minRevenueGrowth !== undefined || filters.maxRevenueGrowth !== undefined;
 
     // Try database-first approach for fundamental filters
     if (hasFundamentalFilters) {
@@ -477,13 +591,20 @@ async function screenFromDatabase(
     return json({ ok: false, error: countError.message }, 500);
   }
 
-  const totalCount = allData?.length || 0;
-  const paginatedData = (allData || []).slice(offset, offset + limit);
+  // Check if metric filters are active - if so, we need to fetch fundamentals before filtering
+  const metricFiltersActive = hasMetricFilters(filters);
+  
+  // When metric filters are active, we need to fetch fundamentals for more tickers
+  // to ensure we have enough results after filtering
+  const fetchLimit = metricFiltersActive ? Math.min(allData?.length || 0, 100) : limit;
+  const dataToProcess = metricFiltersActive 
+    ? (allData || []).slice(0, fetchLimit)
+    : (allData || []).slice(offset, offset + limit);
 
-  console.log(`[polygon-screener] Found ${totalCount} matches, returning ${paginatedData.length}`);
+  console.log(`[polygon-screener] Found ${allData?.length || 0} matches, processing ${dataToProcess.length} for fundamentals`);
 
-  // Now fetch fresh price data from Polygon for the paginated results
-  const tickersToFetch = paginatedData.map((r: any) => r.ticker);
+  // Now fetch fresh price data from Polygon for the data to process
+  const tickersToFetch = dataToProcess.map((r: any) => r.ticker);
 
   // Fetch live snapshots for these tickers
   const snapshotMap = new Map<string, any>();
@@ -510,7 +631,7 @@ async function screenFromDatabase(
   }
 
   // Build initial results with price data
-  const initialResults = paginatedData.map((row: any) => {
+  const initialResults = dataToProcess.map((row: any) => {
     const snapshot = snapshotMap.get(row.ticker);
     const marketCap = row.metadata?.market_cap || null;
     
@@ -571,15 +692,19 @@ async function screenFromDatabase(
     };
   });
 
-  // Fetch fundamentals for the displayed results (parallel, limited to avoid rate limits)
-  console.log(`[polygon-screener] Fetching fundamentals for ${Math.min(initialResults.length, 20)} tickers...`);
+  // Fetch fundamentals for the results (parallel, limited to avoid rate limits)
+  // Fetch more when metric filters are active
+  const fundamentalFetchCount = metricFiltersActive ? Math.min(initialResults.length, 50) : Math.min(initialResults.length, 20);
+  console.log(`[polygon-screener] Fetching fundamentals for ${fundamentalFetchCount} tickers (metric filters: ${metricFiltersActive})...`);
+  
   const fundamentalsMap = await fetchBatchFundamentals(
-    initialResults.map((r: any) => ({ symbol: r.symbol, price: r.price, marketCap: r.marketCap })),
-    apiKey
+    initialResults.slice(0, fundamentalFetchCount).map((r: any) => ({ symbol: r.symbol, price: r.price, marketCap: r.marketCap })),
+    apiKey,
+    fundamentalFetchCount
   );
 
   // Merge fundamentals into results
-  const results = initialResults.map((r: any) => {
+  let resultsWithFundamentals = initialResults.map((r: any) => {
     const fundamentals = fundamentalsMap.get(r.symbol) || {
       pe: null,
       forwardPE: null,
@@ -609,6 +734,19 @@ async function screenFromDatabase(
       maxDrawdown: null, // Would need historical price data
     };
   });
+
+  // Apply fundamental filters if active
+  if (metricFiltersActive) {
+    const beforeCount = resultsWithFundamentals.length;
+    resultsWithFundamentals = applyFundamentalFilters(resultsWithFundamentals, filters);
+    console.log(`[polygon-screener] After fundamental filters: ${resultsWithFundamentals.length} (was ${beforeCount})`);
+  }
+
+  // For metric-filtered results, paginate AFTER filtering
+  const totalCount = metricFiltersActive ? resultsWithFundamentals.length : (allData?.length || 0);
+  const results = metricFiltersActive 
+    ? resultsWithFundamentals.slice(offset, offset + limit)
+    : resultsWithFundamentals;
 
   return json({
     ok: true,
