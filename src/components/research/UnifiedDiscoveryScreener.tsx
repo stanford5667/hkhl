@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { 
   TrendingUp, Activity, Zap, Flame, BarChart3, Filter, X, ChevronDown, ChevronUp,
   Building2, DollarSign, Percent, Scale, Target, LineChart, AlertTriangle,
@@ -671,6 +671,7 @@ function FilterCategory({
 
 export function UnifiedDiscoveryScreener() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<TabId>('topGainers');
   const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTERS);
   const [showFilters, setShowFilters] = useState(false);
@@ -802,16 +803,23 @@ export function UnifiedDiscoveryScreener() {
   const handleFilterChange = (key: keyof FilterState) => (value: string) => {
     setFilters(prev => ({ ...prev, [key]: value }));
     setCurrentPage(0); // Reset to first page when filters change
+
+    // Ensure we actually refetch from the backend when a filter changes.
+    // (We’ve seen cases where the UI selection changes but the previous query result
+    // stays rendered due to caching/stale query state.)
+    queryClient.invalidateQueries({ queryKey: ['screener'] });
   };
 
   const handleClearFilter = (key: keyof FilterState) => {
     setFilters(prev => ({ ...prev, [key]: 'all' }));
     setCurrentPage(0);
+    queryClient.invalidateQueries({ queryKey: ['screener'] });
   };
 
   const handleClearAllFilters = () => {
     setFilters(DEFAULT_FILTERS);
     setCurrentPage(0);
+    queryClient.invalidateQueries({ queryKey: ['screener'] });
   };
 
   const handlePageChange = (page: number) => {
