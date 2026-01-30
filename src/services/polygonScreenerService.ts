@@ -19,6 +19,32 @@ export interface ScreenerFilters {
   sortDirection?: 'asc' | 'desc';
   limit?: number;
   offset?: number;
+  
+  // Fundamental filters - server will filter results based on these
+  minPE?: number;
+  maxPE?: number;
+  minForwardPE?: number;
+  maxForwardPE?: number;
+  minPEG?: number;
+  maxPEG?: number;
+  minPB?: number;
+  maxPB?: number;
+  minEvEbitda?: number;
+  maxEvEbitda?: number;
+  minOpMargin?: number;
+  maxOpMargin?: number;
+  minDebtEquity?: number;
+  maxDebtEquity?: number;
+  minQuickRatio?: number;
+  maxQuickRatio?: number;
+  minVolatility?: number;
+  maxVolatility?: number;
+  minBeta?: number;
+  maxBeta?: number;
+  minEpsGrowth?: number;
+  maxEpsGrowth?: number;
+  minRevenueGrowth?: number;
+  maxRevenueGrowth?: number;
 }
 
 export interface ScreenerResult {

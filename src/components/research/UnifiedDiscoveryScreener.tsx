@@ -884,6 +884,90 @@ export function UnifiedDiscoveryScreener() {
       if (volOption && filters.avgVolume !== 'all') {
         if (volOption.min !== undefined) combined.minVolume = volOption.min;
       }
+
+      // P/E Ratio filter
+      const peOption = PE_RATIO_OPTIONS.find(o => o.value === filters.peRatio);
+      if (peOption && filters.peRatio !== 'all') {
+        if (peOption.min !== undefined) combined.minPE = peOption.min;
+        if (peOption.max !== undefined) combined.maxPE = peOption.max;
+      }
+
+      // Forward P/E filter
+      const fwdPEOption = FORWARD_PE_OPTIONS.find(o => o.value === filters.forwardPE);
+      if (fwdPEOption && filters.forwardPE !== 'all') {
+        if (fwdPEOption.min !== undefined) combined.minForwardPE = fwdPEOption.min;
+        if (fwdPEOption.max !== undefined) combined.maxForwardPE = fwdPEOption.max;
+      }
+
+      // PEG filter
+      const pegOption = PEG_OPTIONS.find(o => o.value === filters.peg);
+      if (pegOption && filters.peg !== 'all') {
+        if (pegOption.min !== undefined) combined.minPEG = pegOption.min;
+        if (pegOption.max !== undefined) combined.maxPEG = pegOption.max;
+      }
+
+      // P/B filter
+      const pbOption = PRICE_TO_BOOK_OPTIONS.find(o => o.value === filters.priceToBook);
+      if (pbOption && filters.priceToBook !== 'all') {
+        if (pbOption.min !== undefined) combined.minPB = pbOption.min;
+        if (pbOption.max !== undefined) combined.maxPB = pbOption.max;
+      }
+
+      // EV/EBITDA filter
+      const evOption = EV_EBITDA_OPTIONS.find(o => o.value === filters.evEbitda);
+      if (evOption && filters.evEbitda !== 'all') {
+        if (evOption.min !== undefined) combined.minEvEbitda = evOption.min;
+        if (evOption.max !== undefined) combined.maxEvEbitda = evOption.max;
+      }
+
+      // Operating Margin filter
+      const opOption = OP_MARGIN_OPTIONS.find(o => o.value === filters.opMargin);
+      if (opOption && filters.opMargin !== 'all') {
+        if (opOption.min !== undefined) combined.minOpMargin = opOption.min;
+        if (opOption.max !== undefined) combined.maxOpMargin = opOption.max;
+      }
+
+      // Debt/Equity filter
+      const deOption = DEBT_EQUITY_OPTIONS.find(o => o.value === filters.debtEquity);
+      if (deOption && filters.debtEquity !== 'all') {
+        if (deOption.min !== undefined) combined.minDebtEquity = deOption.min;
+        if (deOption.max !== undefined) combined.maxDebtEquity = deOption.max;
+      }
+
+      // Quick Ratio filter
+      const qrOption = QUICK_RATIO_OPTIONS.find(o => o.value === filters.quickRatio);
+      if (qrOption && filters.quickRatio !== 'all') {
+        if (qrOption.min !== undefined) combined.minQuickRatio = qrOption.min;
+        if (qrOption.max !== undefined) combined.maxQuickRatio = qrOption.max;
+      }
+
+      // Volatility filter
+      const volOption2 = VOLATILITY_OPTIONS.find(o => o.value === filters.volatility);
+      if (volOption2 && filters.volatility !== 'all') {
+        if (volOption2.min !== undefined) combined.minVolatility = volOption2.min;
+        if (volOption2.max !== undefined) combined.maxVolatility = volOption2.max;
+      }
+
+      // Beta filter
+      const betaOption = BETA_OPTIONS.find(o => o.value === filters.beta);
+      if (betaOption && filters.beta !== 'all') {
+        if (betaOption.min !== undefined) combined.minBeta = betaOption.min;
+        if (betaOption.max !== undefined) combined.maxBeta = betaOption.max;
+      }
+
+      // EPS Growth filter
+      const epsOption = EPS_GROWTH_OPTIONS.find(o => o.value === filters.epsGrowth);
+      if (epsOption && filters.epsGrowth !== 'all') {
+        if (epsOption.min !== undefined) combined.minEpsGrowth = epsOption.min;
+        if (epsOption.max !== undefined) combined.maxEpsGrowth = epsOption.max;
+      }
+
+      // Revenue Growth filter
+      const revOption = REVENUE_GROWTH_OPTIONS.find(o => o.value === filters.revenueGrowth);
+      if (revOption && filters.revenueGrowth !== 'all') {
+        if (revOption.min !== undefined) combined.minRevenueGrowth = revOption.min;
+        if (revOption.max !== undefined) combined.maxRevenueGrowth = revOption.max;
+      }
       
       // Pagination
       combined.limit = ITEMS_PER_PAGE;
