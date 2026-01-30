@@ -139,6 +139,13 @@ export interface ComprehensiveFundamentals {
   price: number | null;
   eps: number | null;
   
+  // Raw Financial Data (for expense breakdown)
+  revenue: number | null;
+  costOfRevenue: number | null;
+  operatingExpenses: number | null;
+  interestExpense: number | null;
+  incomeTax: number | null;
+  
   // Earnings Intelligence
   beatProbability: number | null;
   confidenceLevel: 'high' | 'medium' | 'low' | null;
@@ -418,6 +425,13 @@ export function useComprehensiveFundamentals(ticker: string | undefined) {
       enterpriseValue: ratios?.enterpriseValue || null,
       price: profile?.price || null,
       eps: financials[0]?.eps || null,
+      
+      // Raw Financial Data (for expense breakdown)
+      revenue: financials[0]?.revenue || null,
+      costOfRevenue: (financials[0] as any)?.costOfRevenue || null,
+      operatingExpenses: (financials[0] as any)?.operatingExpenses || null,
+      interestExpense: (financials[0] as any)?.interestExpense || null,
+      incomeTax: (financials[0] as any)?.incomeTax || null,
       
       // Earnings Intelligence
       beatProbability,
