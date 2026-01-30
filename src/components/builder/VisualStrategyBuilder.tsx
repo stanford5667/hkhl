@@ -3,13 +3,13 @@
  * 
  * Main 3-panel layout component for drag-and-drop strategy creation.
  * When embedded=true, uses compact layout suitable for side panel.
- * Now includes onboarding and guided UX for first-time users.
+ * Includes undo/redo, mobile responsive design, and enhanced UX.
  */
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { DragDropContext, type DropResult } from '@hello-pangea/dnd';
 import { Button } from '@/components/ui/button';
-import { Trash2, HelpCircle } from 'lucide-react';
+import { Trash2, HelpCircle, Undo2, Redo2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { CanvasBlock, Connection, BlockSubtype } from '@/lib/strategyBuilder/types';
 import { canConnect } from '@/lib/strategyBuilder/types';
@@ -18,6 +18,9 @@ import { BlockPalette } from './BlockPalette';
 import { StrategyCanvas } from './StrategyCanvas';
 import { StrategySummary, type SerializedStrategy } from './StrategySummary';
 import { BuilderOnboarding } from './BuilderOnboarding';
+import { MobileBuilder } from './MobileBuilder';
+import { useBuilderHistory } from '@/hooks/useBuilderHistory';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface VisualStrategyBuilderProps {
   embedded?: boolean;
@@ -32,9 +35,21 @@ export function VisualStrategyBuilder({
   onRunBacktest,
   initialTicker = 'AAPL',
 }: VisualStrategyBuilderProps) {
-  // State
-  const [blocks, setBlocks] = useState<CanvasBlock[]>([]);
-  const [connections, setConnections] = useState<Connection[]>([]);
+  const isMobile = useIsMobile();
+  
+  // Use history hook for undo/redo
+  const {
+    blocks,
+    connections,
+    setBlocks,
+    setConnections,
+    undo,
+    redo,
+    canUndo,
+    canRedo,
+    historyLength,
+  } = useBuilderHistory();
+
   const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null);
   const [strategyName, setStrategyName] = useState('My Visual Strategy');
   const [ticker, setTicker] = useState(initialTicker);
@@ -77,21 +92,21 @@ export function VisualStrategyBuilder({
 
     setBlocks(prev => [...prev, newBlock]);
     setShowOnboarding(false); // Hide onboarding once user starts building
-  }, [blocks.length]);
+  }, [blocks.length, setBlocks]);
 
   // Update block position
   const handleUpdateBlockPosition = useCallback((id: string, position: { x: number; y: number }) => {
     setBlocks(prev => prev.map(b => 
       b.id === id ? { ...b, position } : b
     ));
-  }, []);
+  }, [setBlocks]);
 
   // Update block parameter
   const handleUpdateBlockParameter = useCallback((blockId: string, key: string, value: number | string) => {
     setBlocks(prev => prev.map(b => 
       b.id === blockId ? { ...b, parameters: { ...b.parameters, [key]: value } } : b
     ));
-  }, []);
+  }, [setBlocks]);
 
   // Delete block
   const handleDeleteBlock = useCallback((id: string) => {
@@ -101,7 +116,38 @@ export function VisualStrategyBuilder({
     if (selectedBlockId === id) {
       setSelectedBlockId(null);
     }
-  }, [selectedBlockId]);
+  }, [selectedBlockId, setBlocks, setConnections]);
+
+  // Delete connection
+  const handleDeleteConnection = useCallback((connectionId: string) => {
+    const conn = connections.find(c => c.id === connectionId);
+    if (!conn) return;
+
+    setConnections(prev => prev.filter(c => c.id !== connectionId));
+
+    // Update block connection references
+    setBlocks(prev => prev.map(b => {
+      if (b.id === conn.fromBlockId) {
+        return { 
+          ...b, 
+          connections: { 
+            ...b.connections, 
+            outputs: b.connections.outputs.filter(id => id !== conn.toBlockId) 
+          } 
+        };
+      }
+      if (b.id === conn.toBlockId) {
+        return { 
+          ...b, 
+          connections: { 
+            ...b.connections, 
+            inputs: b.connections.inputs.filter(id => id !== conn.fromBlockId) 
+          } 
+        };
+      }
+      return b;
+    }));
+  }, [connections, setBlocks, setConnections]);
 
   // Connect blocks
   const handleConnect = useCallback((fromId: string, toId: string) => {
@@ -139,7 +185,7 @@ export function VisualStrategyBuilder({
       }
       return b;
     }));
-  }, [blocks, connections]);
+  }, [blocks, connections, setBlocks, setConnections]);
 
   // Load template
   const handleLoadTemplate = useCallback((template: StrategyTemplate) => {
@@ -184,14 +230,24 @@ export function VisualStrategyBuilder({
     setConnections(newConnections);
     setStrategyName(template.name);
     setShowOnboarding(false);
-  }, []);
+  }, [setBlocks, setConnections]);
 
   // Clear all
   const handleClear = useCallback(() => {
     setBlocks([]);
     setConnections([]);
     setSelectedBlockId(null);
-  }, []);
+  }, [setBlocks, setConnections]);
+
+  // Use mobile builder for mobile devices
+  if (isMobile && !embedded) {
+    return (
+      <MobileBuilder
+        onRunBacktest={onRunBacktest}
+        initialTicker={initialTicker}
+      />
+    );
+  }
 
   // Embedded compact layout (for side panel in Backtester)
   if (embedded) {
@@ -204,6 +260,26 @@ export function VisualStrategyBuilder({
               Strategy Builder
             </span>
             <div className="flex items-center gap-1">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={undo}
+                disabled={!canUndo}
+                className="h-6 w-6 p-0"
+                title="Undo (Ctrl+Z)"
+              >
+                <Undo2 className="h-3 w-3" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={redo}
+                disabled={!canRedo}
+                className="h-6 w-6 p-0"
+                title="Redo (Ctrl+Y)"
+              >
+                <Redo2 className="h-3 w-3" />
+              </Button>
               <span className="text-[10px] text-[rgb(87,96,106)]">
                 {blocks.length} blocks
               </span>
@@ -237,6 +313,7 @@ export function VisualStrategyBuilder({
               selectedBlockId={selectedBlockId}
               onSelectBlock={setSelectedBlockId}
               onDeleteBlock={handleDeleteBlock}
+              onDeleteConnection={handleDeleteConnection}
               onUpdateBlockPosition={handleUpdateBlockPosition}
               onUpdateBlockParameter={handleUpdateBlockParameter}
               onConnect={handleConnect}
@@ -248,6 +325,7 @@ export function VisualStrategyBuilder({
             {/* Summary */}
             <StrategySummary
               blocks={blocks}
+              connections={connections}
               strategyName={strategyName}
               ticker={ticker}
               onNameChange={setStrategyName}
@@ -274,8 +352,35 @@ export function VisualStrategyBuilder({
             <span className="text-sm text-muted-foreground">
               {blocks.length} blocks
             </span>
+            {historyLength > 0 && (
+              <span className="text-xs text-muted-foreground/60">
+                ({historyLength} in history)
+              </span>
+            )}
           </div>
           <div className="flex items-center gap-2">
+            <div className="flex items-center border rounded-md bg-muted/30">
+              <Button 
+                variant="ghost" 
+                size="sm"
+                onClick={undo}
+                disabled={!canUndo}
+                className="h-8 px-2 rounded-r-none"
+                title="Undo (Ctrl+Z)"
+              >
+                <Undo2 className="h-4 w-4" />
+              </Button>
+              <Button 
+                variant="ghost" 
+                size="sm"
+                onClick={redo}
+                disabled={!canRedo}
+                className="h-8 px-2 rounded-l-none border-l"
+                title="Redo (Ctrl+Y)"
+              >
+                <Redo2 className="h-4 w-4" />
+              </Button>
+            </div>
             <Button 
               variant="ghost" 
               size="sm" 
@@ -319,6 +424,7 @@ export function VisualStrategyBuilder({
               selectedBlockId={selectedBlockId}
               onSelectBlock={setSelectedBlockId}
               onDeleteBlock={handleDeleteBlock}
+              onDeleteConnection={handleDeleteConnection}
               onUpdateBlockPosition={handleUpdateBlockPosition}
               onUpdateBlockParameter={handleUpdateBlockParameter}
               onConnect={handleConnect}
@@ -329,6 +435,7 @@ export function VisualStrategyBuilder({
           {/* Right: Strategy Summary */}
           <StrategySummary
             blocks={blocks}
+            connections={connections}
             strategyName={strategyName}
             ticker={ticker}
             onNameChange={setStrategyName}
