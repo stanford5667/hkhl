@@ -21,32 +21,34 @@ export const useEarningsCalendar = (filters?: EarningsCalendarFilters) => {
       let query = supabase
         .from('earnings_calendar')
         .select('*')
-        .gte('report_date', today)
         .order('market_cap', { ascending: false, nullsFirst: false })
         .order('report_date', { ascending: true });
 
-      // Apply filters
-      if (filters?.dateRange === 'today') {
+      // Apply date filters - custom date allows viewing any specific day
+      if (filters?.dateRange === 'custom' && filters.customStart) {
+        // For custom date, show exactly that date (past or future)
+        query = query.eq('report_date', filters.customStart);
+      } else if (filters?.dateRange === 'today') {
         query = query.eq('report_date', today);
       } else if (filters?.dateRange === 'week') {
         const weekAhead = new Date();
         weekAhead.setDate(weekAhead.getDate() + 7);
-        query = query.lte('report_date', weekAhead.toISOString().split('T')[0]);
+        query = query.gte('report_date', today).lte('report_date', weekAhead.toISOString().split('T')[0]);
       } else if (filters?.dateRange === 'month') {
         const monthAhead = new Date();
         monthAhead.setMonth(monthAhead.getMonth() + 1);
-        query = query.lte('report_date', monthAhead.toISOString().split('T')[0]);
+        query = query.gte('report_date', today).lte('report_date', monthAhead.toISOString().split('T')[0]);
       } else if (filters?.dateRange === 'quarter') {
         const quarterAhead = new Date();
         quarterAhead.setMonth(quarterAhead.getMonth() + 3);
-        query = query.lte('report_date', quarterAhead.toISOString().split('T')[0]);
+        query = query.gte('report_date', today).lte('report_date', quarterAhead.toISOString().split('T')[0]);
       } else if (filters?.dateRange === 'year') {
         const yearAhead = new Date();
         yearAhead.setFullYear(yearAhead.getFullYear() + 1);
-        query = query.lte('report_date', yearAhead.toISOString().split('T')[0]);
-      } else if (filters?.dateRange === 'custom' && filters.customStart) {
-        // For custom, filter to specific date
-        query = query.eq('report_date', filters.customStart);
+        query = query.gte('report_date', today).lte('report_date', yearAhead.toISOString().split('T')[0]);
+      } else {
+        // Default: show from today forward
+        query = query.gte('report_date', today);
       }
 
       if (filters?.symbols && filters.symbols.length > 0) {
