@@ -565,13 +565,19 @@ serve(async (req) => {
     const earnings = await fetchSECQuarterlyData(symbol, cik);
     
     if (earnings.length === 0) {
+      // Return success with empty data - this is valid for newer/smaller companies
+      console.log(`[backfill-earnings-history] No SEC 10-Q filings found for ${symbol} (CIK: ${cik}) - this is normal for newer or smaller companies`);
       return new Response(JSON.stringify({ 
-        success: false, 
-        error: 'No quarterly earnings found in SEC filings',
+        success: true, 
         symbol,
-        cik 
+        cik,
+        quartersFound: 0,
+        quartersStored: 0,
+        message: 'No quarterly earnings data available in SEC filings. This company may be newly listed or file different report types.',
+        source: 'SEC XBRL API',
+        fetchedAt: new Date().toISOString(),
       }), {
-        status: 404,
+        status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
