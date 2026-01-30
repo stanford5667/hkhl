@@ -215,10 +215,10 @@ async function screenFromDatabase(
 ) {
   console.log("[polygon-screener] Screening from database...");
 
-  // Build query
+  // Build query - include fundamental metrics available in database
   let query = supabase
     .from("asset_universe")
-    .select("ticker, name, sector, market_cap_tier, last_close, change_percent_1d, avg_daily_volume, metadata")
+    .select("ticker, name, sector, market_cap_tier, last_close, change_percent_1d, avg_daily_volume, volatility_30d, beta_spy, metadata")
     .eq("is_active", true);
 
   // Apply market cap filter using tier
@@ -339,6 +339,10 @@ async function screenFromDatabase(
   const results = paginatedData.map((row: any) => {
     const snapshot = snapshotMap.get(row.ticker);
     const marketCap = row.metadata?.market_cap || null;
+    
+    // Extract available fundamental metrics from database
+    const volatility = row.volatility_30d != null ? Number(row.volatility_30d) : null;
+    const beta = row.beta_spy != null ? Number(row.beta_spy) : null;
 
     if (snapshot) {
       const prevClose = snapshot.prevDay?.c || 0;
@@ -364,6 +368,22 @@ async function screenFromDatabase(
         vwap: snapshot.day?.vw || null,
         exchange: row.primary_exchange || null,
         type: row.asset_type || null,
+        // Fundamental metrics from database
+        volatility,
+        beta,
+        pe: null,
+        forwardPE: null,
+        peg: null,
+        pb: null,
+        pCash: null,
+        evEbitda: null,
+        opMargin: null,
+        epsGrowth: null,
+        revenueGrowth: null,
+        debtEquity: null,
+        quickRatio: null,
+        sharpe: null,
+        maxDrawdown: null,
       };
     }
 
@@ -386,6 +406,22 @@ async function screenFromDatabase(
       vwap: null,
       exchange: null,
       type: null,
+      // Fundamental metrics from database
+      volatility,
+      beta,
+      pe: null,
+      forwardPE: null,
+      peg: null,
+      pb: null,
+      pCash: null,
+      evEbitda: null,
+      opMargin: null,
+      epsGrowth: null,
+      revenueGrowth: null,
+      debtEquity: null,
+      quickRatio: null,
+      sharpe: null,
+      maxDrawdown: null,
     };
   });
 
@@ -628,6 +664,22 @@ async function screenFromPolygonAPI(
       vwap: t.day?.vw || null,
       exchange: details?.primary_exchange || null,
       type: details?.type || null,
+      // Fundamental metrics - not available in API-only mode
+      volatility: null,
+      beta: null,
+      pe: null,
+      forwardPE: null,
+      peg: null,
+      pb: null,
+      pCash: null,
+      evEbitda: null,
+      opMargin: null,
+      epsGrowth: null,
+      revenueGrowth: null,
+      debtEquity: null,
+      quickRatio: null,
+      sharpe: null,
+      maxDrawdown: null,
     };
   });
 
