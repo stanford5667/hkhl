@@ -107,74 +107,7 @@ export const EarningsCalendar = () => {
   };
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex justify-between items-start">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Earnings Calendar</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Track upcoming earnings and predict beats/misses • Sorted by market cap
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleRefresh}
-            disabled={fetchEarnings.isPending}
-          >
-            <RefreshCw className={`h-4 w-4 mr-2 ${fetchEarnings.isPending ? 'animate-spin' : ''}`} />
-            Refresh Data
-          </Button>
-          <Button
-            size="sm"
-            onClick={handleGeneratePredictions}
-            disabled={generatePredictions.isPending || !earnings || earnings.length === 0}
-          >
-            <Sparkles className={`h-4 w-4 mr-2 ${generatePredictions.isPending ? 'animate-pulse' : ''}`} />
-            Generate Predictions
-          </Button>
-        </div>
-      </div>
-
-      {/* Stats */}
-      <div className="grid gap-4 md:grid-cols-4">
-        <Card className="bg-card/50 border-border/50">
-          <CardHeader className="pb-2">
-            <p className="text-xs text-muted-foreground">Upcoming Earnings</p>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.total}</div>
-          </CardContent>
-        </Card>
-        <Card className="bg-card/50 border-border/50">
-          <CardHeader className="pb-2">
-            <p className="text-xs text-muted-foreground">With Predictions</p>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.withPredictions}</div>
-            <p className="text-xs text-muted-foreground mt-1">
-              {stats.total > 0 ? Math.round((stats.withPredictions / stats.total) * 100) : 0}% coverage
-            </p>
-          </CardContent>
-        </Card>
-        <Card className="bg-card/50 border-border/50">
-          <CardHeader className="pb-2">
-            <p className="text-xs text-muted-foreground">Expected Beats</p>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-emerald-600">{stats.expectedBeats}</div>
-          </CardContent>
-        </Card>
-        <Card className="bg-card/50 border-border/50">
-          <CardHeader className="pb-2">
-            <p className="text-xs text-muted-foreground">Expected Misses</p>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-destructive">{stats.expectedMisses}</div>
-          </CardContent>
-        </Card>
-      </div>
+    <div className="space-y-4">
 
       {/* Main Content */}
       <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'calendar' | 'screener')}>
