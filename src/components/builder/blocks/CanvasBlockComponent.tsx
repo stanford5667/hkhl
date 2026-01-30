@@ -2,15 +2,16 @@
  * Canvas Block Component
  * 
  * Renders a block on the strategy canvas with parameters and connection ports.
+ * Now uses popover-based parameter editor for better UX.
  */
 
 import { memo, useCallback } from 'react';
-import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { X, GripVertical } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import type { CanvasBlock, PaletteBlock } from '@/lib/strategyBuilder/types';
+import type { CanvasBlock } from '@/lib/strategyBuilder/types';
 import { getPaletteBlock } from '@/lib/strategyBuilder/templates';
+import { BlockParameterEditor } from './BlockParameterEditor';
 
 interface CanvasBlockComponentProps {
   block: CanvasBlock;
@@ -59,15 +60,11 @@ export const CanvasBlockComponent = memo(function CanvasBlockComponent({
     }
   }, [block.id, isConnecting, connectingFromId, onEndConnection]);
 
-  const handleParamChange = useCallback((key: string, value: string) => {
-    const numValue = parseFloat(value);
-    onParameterChange(block.id, key, isNaN(numValue) ? value : numValue);
-  }, [block.id, onParameterChange]);
-
   if (!paletteBlock) return null;
 
   const showInputPort = block.type !== 'indicator' && block.type !== 'exit';
   const showOutputPort = block.type !== 'action' && block.type !== 'exit';
+  const hasParameters = paletteBlock.parameterConfig && paletteBlock.parameterConfig.length > 0;
 
   return (
     <div
@@ -82,7 +79,7 @@ export const CanvasBlockComponent = memo(function CanvasBlockComponent({
       style={{
         left: block.position.x,
         top: block.position.y,
-        minWidth: 140,
+        minWidth: 160,
       }}
       onClick={handleClick}
     >
@@ -90,44 +87,27 @@ export const CanvasBlockComponent = memo(function CanvasBlockComponent({
       <div className="flex items-center gap-2 px-3 py-2 border-b border-border/50">
         <GripVertical className="h-3 w-3 text-muted-foreground cursor-grab" />
         <span className="text-lg">{paletteBlock.icon}</span>
-        <span className="text-sm font-medium flex-1">{paletteBlock.label}</span>
+        <span className="text-sm font-medium flex-1 truncate">{paletteBlock.label}</span>
         <Button
           variant="ghost"
           size="icon"
-          className="h-5 w-5 hover:bg-destructive/20"
+          className="h-5 w-5 hover:bg-destructive/20 shrink-0"
           onClick={handleDelete}
         >
           <X className="h-3 w-3" />
         </Button>
       </div>
 
-      {/* Parameters */}
-      {paletteBlock.parameterConfig && paletteBlock.parameterConfig.length > 0 && (
-        <div className="p-2 space-y-2">
-          {paletteBlock.parameterConfig.map(config => (
-            <div key={config.key} className="flex items-center gap-2">
-              <span className="text-xs text-muted-foreground w-16 truncate">
-                {config.label}
-              </span>
-              <div className="relative flex-1">
-                <Input
-                  type="number"
-                  value={block.parameters[config.key] ?? config.min}
-                  onChange={(e) => handleParamChange(config.key, e.target.value)}
-                  min={config.min}
-                  max={config.max}
-                  step={config.step}
-                  className="h-7 text-xs pr-6"
-                  onClick={(e) => e.stopPropagation()}
-                />
-                {config.suffix && (
-                  <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
-                    {config.suffix}
-                  </span>
-                )}
-              </div>
-            </div>
-          ))}
+      {/* Parameters - Now using popover-based editor */}
+      {hasParameters && (
+        <div className="p-2">
+          <BlockParameterEditor
+            blockId={block.id}
+            blockLabel={paletteBlock.label}
+            parameters={block.parameters}
+            parameterConfig={paletteBlock.parameterConfig!}
+            onParameterChange={onParameterChange}
+          />
         </div>
       )}
 
@@ -136,10 +116,11 @@ export const CanvasBlockComponent = memo(function CanvasBlockComponent({
         <div
           className={cn(
             "absolute left-0 top-1/2 -translate-x-1/2 -translate-y-1/2",
-            "w-3 h-3 rounded-full border-2 cursor-pointer",
+            "w-4 h-4 rounded-full border-2 cursor-pointer",
             "bg-background border-muted-foreground/50",
-            "hover:border-primary hover:bg-primary/20",
-            isConnecting && connectingFromId !== block.id && "border-primary bg-primary/30 animate-pulse"
+            "hover:border-primary hover:bg-primary/20 hover:scale-125",
+            "transition-all duration-150",
+            isConnecting && connectingFromId !== block.id && "border-primary bg-primary/30 animate-pulse scale-125"
           )}
           onClick={handleInputClick}
           title="Connect input"
@@ -150,10 +131,11 @@ export const CanvasBlockComponent = memo(function CanvasBlockComponent({
         <div
           className={cn(
             "absolute right-0 top-1/2 translate-x-1/2 -translate-y-1/2",
-            "w-3 h-3 rounded-full border-2 cursor-pointer",
+            "w-4 h-4 rounded-full border-2 cursor-pointer",
             "bg-background border-muted-foreground/50",
-            "hover:border-primary hover:bg-primary/20",
-            connectingFromId === block.id && "border-primary bg-primary"
+            "hover:border-primary hover:bg-primary/20 hover:scale-125",
+            "transition-all duration-150",
+            connectingFromId === block.id && "border-primary bg-primary scale-125"
           )}
           onClick={handleOutputClick}
           title="Connect output"
