@@ -82,6 +82,7 @@ import {
   OHLCBar,
   Trade,
 } from './DataInspector';
+import { BacktestResultsDashboard } from './BacktestResultsDashboard';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // TYPES
@@ -316,6 +317,7 @@ export function StrategyBacktester({ ticker, companyName }: StrategyBacktesterPr
   
   const [selectedTrade, setSelectedTrade] = useState<Trade | null>(null);
   const [showEducation, setShowEducation] = useState(false);
+  const [showFullDashboard, setShowFullDashboard] = useState(false);
   
   // Data Inspector state
   const [inspectMode, setInspectMode] = useState(false);
@@ -837,7 +839,23 @@ export function StrategyBacktester({ ticker, companyName }: StrategyBacktesterPr
 
           {/* Results Dashboard */}
           {result && !isRunning && (
-            <div className="space-y-6">
+            <div className="space-y-4">
+              {/* Toggle between simple and full dashboard */}
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-medium">Backtest Results</h3>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => setShowFullDashboard(!showFullDashboard)}
+                >
+                  {showFullDashboard ? 'Simple View' : 'Full Dashboard'}
+                </Button>
+              </div>
+
+              {showFullDashboard ? (
+                <BacktestResultsDashboard result={result} />
+              ) : (
+                <>
               {/* Data Source Banner (Inspect Mode) */}
               {inspectMode && (
                 <Card className="border-dashed border-amber-500/50 bg-amber-500/5">
@@ -1259,10 +1277,11 @@ export function StrategyBacktester({ ticker, companyName }: StrategyBacktesterPr
                   </CardContent>
                 </Card>
               )}
+              </>
+            )}
             </div>
           )}
         </div>
-        )}
         </TabsContent>
 
         {/* Visual Builder Tab */}
@@ -1277,41 +1296,11 @@ export function StrategyBacktester({ ticker, companyName }: StrategyBacktesterPr
             </CardContent>
           </Card>
           
-          {/* Show results from visual builder backtest */}
+          {/* Show full results dashboard from visual builder backtest */}
           {result && isRunning === false && (
-            <Card className="mt-4">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <Activity className="h-5 w-5" />
-                  Backtest Results
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <div className="p-3 rounded-lg bg-muted/50">
-                    <p className="text-xs text-muted-foreground">Total Return</p>
-                    <p className={cn(
-                      "text-xl font-bold",
-                      result.totalReturn >= 0 ? "text-emerald-500" : "text-rose-500"
-                    )}>
-                      {result.totalReturn >= 0 ? '+' : ''}{result.totalReturn.toFixed(2)}%
-                    </p>
-                  </div>
-                  <div className="p-3 rounded-lg bg-muted/50">
-                    <p className="text-xs text-muted-foreground">Win Rate</p>
-                    <p className="text-xl font-bold">{result.winRate.toFixed(0)}%</p>
-                  </div>
-                  <div className="p-3 rounded-lg bg-muted/50">
-                    <p className="text-xs text-muted-foreground">Total Trades</p>
-                    <p className="text-xl font-bold">{result.totalTrades}</p>
-                  </div>
-                  <div className="p-3 rounded-lg bg-muted/50">
-                    <p className="text-xs text-muted-foreground">Sharpe Ratio</p>
-                    <p className="text-xl font-bold">{result.sharpeRatio.toFixed(2)}</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+            <div className="mt-4">
+              <BacktestResultsDashboard result={result} />
+            </div>
           )}
         </TabsContent>
       </Tabs>
