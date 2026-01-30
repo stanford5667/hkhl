@@ -73,6 +73,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { format, parseISO } from 'date-fns';
+import { retryWithBackoff, prewarmEdgeFunction } from '@/utils/retryWithBackoff';
 import {
   InspectModeToggle,
   AuditableStat,
@@ -410,6 +411,9 @@ export function StrategyBacktester({ ticker, companyName }: StrategyBacktesterPr
     setParams(strategy.defaultParams);
     setResult(null);
     setError(null);
+    
+    // Pre-warm the edge function when a strategy is selected
+    prewarmEdgeFunction(supabase, 'strategy-backtest');
   }, []);
 
   const handleRunBacktest = useCallback(async () => {
@@ -437,26 +441,39 @@ export function StrategyBacktester({ ticker, companyName }: StrategyBacktesterPr
         strategy: selectedStrategy.id 
       });
 
-      const { data, error: fnError } = await supabase.functions.invoke('strategy-backtest', {
-        body: {
-          ticker,
-          strategy: selectedStrategy.id,
-          startDate: format(startDate, 'yyyy-MM-dd'),
-          endDate: format(endDate, 'yyyy-MM-dd'),
-          initialCapital,
-          params: {
-            ...params,
-            stopLossPercent: stopLoss,
-            takeProfitPercent: takeProfit,
+      // Wrap in retry logic to handle edge function cold starts
+      const data = await retryWithBackoff(
+        async () => {
+          const response = await supabase.functions.invoke('strategy-backtest', {
+            body: {
+              ticker,
+              strategy: selectedStrategy.id,
+              startDate: format(startDate, 'yyyy-MM-dd'),
+              endDate: format(endDate, 'yyyy-MM-dd'),
+              initialCapital,
+              params: {
+                ...params,
+                stopLossPercent: stopLoss,
+                takeProfitPercent: takeProfit,
+              }
+            }
+          });
+
+          if (response.error) throw response.error;
+          if (!response.data.success) {
+            throw new Error(response.data.error || 'Backtest failed');
+          }
+          
+          return response.data;
+        },
+        {
+          maxAttempts: 3,
+          initialDelayMs: 200,
+          onRetry: (attempt) => {
+            console.log(`[Backtest] Retry attempt ${attempt + 1}...`);
           }
         }
-      });
-
-      if (fnError) throw fnError;
-
-      if (!data.success) {
-        throw new Error(data.error || 'Backtest failed');
-      }
+      );
 
       setResult(data as BacktestResult);
       toast.success(`Backtest complete: ${data.totalTrades} trades, ${data.totalReturn.toFixed(2)}% return`);
@@ -517,27 +534,40 @@ export function StrategyBacktester({ ticker, companyName }: StrategyBacktesterPr
         case '5Y': startDate.setFullYear(endDate.getFullYear() - 5); break;
       }
 
-      const { data, error: fnError } = await supabase.functions.invoke('strategy-backtest', {
-        body: {
-          ticker,
-          strategy: serialized.strategy,
-          startDate: format(startDate, 'yyyy-MM-dd'),
-          endDate: format(endDate, 'yyyy-MM-dd'),
-          initialCapital,
-          params: {
-            ...strategy.defaultParams,
-            ...numericParams,
-            stopLossPercent: serialized.params.stopLossPercent,
-            takeProfitPercent: serialized.params.takeProfitPercent,
+      // Wrap in retry logic to handle edge function cold starts
+      const data = await retryWithBackoff(
+        async () => {
+          const response = await supabase.functions.invoke('strategy-backtest', {
+            body: {
+              ticker,
+              strategy: serialized.strategy,
+              startDate: format(startDate, 'yyyy-MM-dd'),
+              endDate: format(endDate, 'yyyy-MM-dd'),
+              initialCapital,
+              params: {
+                ...strategy.defaultParams,
+                ...numericParams,
+                stopLossPercent: serialized.params.stopLossPercent,
+                takeProfitPercent: serialized.params.takeProfitPercent,
+              }
+            }
+          });
+
+          if (response.error) throw response.error;
+          if (!response.data.success) {
+            throw new Error(response.data.error || 'Backtest failed');
+          }
+          
+          return response.data;
+        },
+        {
+          maxAttempts: 3,
+          initialDelayMs: 200,
+          onRetry: (attempt) => {
+            console.log(`[Visual Builder Backtest] Retry attempt ${attempt + 1}...`);
           }
         }
-      });
-
-      if (fnError) throw fnError;
-
-      if (!data.success) {
-        throw new Error(data.error || 'Backtest failed');
-      }
+      );
 
       setResult(data as BacktestResult);
       toast.success(`Backtest complete: ${data.totalTrades} trades, ${data.totalReturn.toFixed(2)}% return`);
