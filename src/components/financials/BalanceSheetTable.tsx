@@ -57,6 +57,61 @@ const BALANCE_SHEET_ROWS: BalanceSheetRow[] = [
   { label: 'Treasury Stock', key: 'treasuryStock', isSubItem: true, section: 'equity', tooltip: 'Company stock that has been repurchased.' },
 ];
 
+// Derived metrics for balance sheet
+interface DerivedMetricRow {
+  label: string;
+  parentKey: string;
+  compute: (current: any, prev: any) => number | null;
+  format: (value: number | null) => string;
+  tooltip: string;
+  colorize?: boolean;
+}
+
+const DERIVED_METRICS: DerivedMetricRow[] = [
+  {
+    label: 'Assets Growth %',
+    parentKey: 'totalAssets',
+    compute: (current, prev) => {
+      if (!prev?.totalAssets || !current?.totalAssets) return null;
+      return ((current.totalAssets - prev.totalAssets) / Math.abs(prev.totalAssets)) * 100;
+    },
+    format: (v) => v != null ? `${v >= 0 ? '+' : ''}${v.toFixed(1)}%` : '—',
+    tooltip: 'Year-over-year total assets growth',
+    colorize: true,
+  },
+  {
+    label: 'Current Ratio',
+    parentKey: 'currentAssets',
+    compute: (current) => {
+      if (!current?.currentAssets || !current?.currentLiabilities) return null;
+      return current.currentAssets / current.currentLiabilities;
+    },
+    format: (v) => v != null ? `${v.toFixed(2)}x` : '—',
+    tooltip: 'Current Assets / Current Liabilities. Measures short-term liquidity.',
+  },
+  {
+    label: 'Debt/Equity',
+    parentKey: 'totalLiabilities',
+    compute: (current) => {
+      if (!current?.totalLiabilities || !current?.totalEquity) return null;
+      return current.totalLiabilities / current.totalEquity;
+    },
+    format: (v) => v != null ? `${v.toFixed(2)}x` : '—',
+    tooltip: 'Total Liabilities / Equity. Measures financial leverage.',
+  },
+  {
+    label: 'Equity Growth %',
+    parentKey: 'totalEquity',
+    compute: (current, prev) => {
+      if (!prev?.totalEquity || !current?.totalEquity) return null;
+      return ((current.totalEquity - prev.totalEquity) / Math.abs(prev.totalEquity)) * 100;
+    },
+    format: (v) => v != null ? `${v >= 0 ? '+' : ''}${v.toFixed(1)}%` : '—',
+    tooltip: 'Year-over-year stockholders equity change',
+    colorize: true,
+  },
+];
+
 function formatValue(value: number | null | undefined): string {
   if (value == null || isNaN(value)) return '—';
   
@@ -186,69 +241,120 @@ export function BalanceSheetTable({ ticker, companyName }: BalanceSheetTableProp
                 const hasData = displayYears.some((y: any) => y[row.key] != null);
                 if (!hasData && row.isSubItem) return null;
                 
+                // Get derived metrics for this row
+                const derivedMetricsForRow = DERIVED_METRICS.filter(m => m.parentKey === row.key);
+                
                 return (
-                  <TooltipProvider key={row.key} delayDuration={0}>
-                    <tr 
-                      className={cn(
-                        "border-b border-border/30 hover:bg-accent/30 transition-colors",
-                        row.isHighlight && "bg-primary/5 font-semibold"
-                      )}
-                    >
-                      <td className={cn(
-                        "sticky left-0 z-20 px-4 py-2.5 text-xs w-[140px] min-w-[140px] overflow-hidden",
-                        row.isHighlight ? "bg-primary/5" : "bg-card",
-                        row.isSubItem && "pl-8 text-muted-foreground"
-                      )}>
-                        <div className="flex items-center gap-1.5 max-w-full">
-                          <span className={cn(
-                            "truncate flex-1 min-w-0",
-                            row.isHighlight && "text-primary"
-                          )}>
-                            {row.label}
-                          </span>
-                          {row.tooltip && (
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <span className="flex-shrink-0 cursor-help">
-                                  <HelpCircle className="h-3 w-3 text-muted-foreground/50 hover:text-muted-foreground" />
-                                </span>
-                              </TooltipTrigger>
-                              <TooltipContent side="right" className="max-w-[200px]">
-                                <p className="text-xs">{row.tooltip}</p>
-                              </TooltipContent>
-                            </Tooltip>
-                          )}
-                        </div>
-                      </td>
-                      
-                      {displayYears.map((yearData: any, idx: number) => {
-                        const value = yearData[row.key];
-                        const prevValue = idx > 0 ? displayYears[idx - 1]?.[row.key] : null;
-                        const yoyChange = prevValue && value ? ((value - prevValue) / Math.abs(prevValue)) * 100 : undefined;
-                        
-                        return (
-                          <td
-                            key={idx}
-                            className={cn(
-                              "p-0 w-[80px] min-w-[80px]",
-                              row.isHighlight && "bg-primary/5"
+                  <React.Fragment key={row.key}>
+                    <TooltipProvider delayDuration={0}>
+                      <tr 
+                        className={cn(
+                          "border-b border-border/30 hover:bg-accent/30 transition-colors",
+                          row.isHighlight && "bg-primary/5 font-semibold"
+                        )}
+                      >
+                        <td className={cn(
+                          "sticky left-0 z-20 px-4 py-2.5 text-xs w-[140px] min-w-[140px] overflow-hidden",
+                          row.isHighlight ? "bg-primary/5" : "bg-card",
+                          row.isSubItem && "pl-8 text-muted-foreground"
+                        )}>
+                          <div className="flex items-center gap-1.5 max-w-full">
+                            <span className={cn(
+                              "truncate flex-1 min-w-0",
+                              row.isHighlight && "text-primary"
+                            )}>
+                              {row.label}
+                            </span>
+                            {row.tooltip && (
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <span className="flex-shrink-0 cursor-help">
+                                    <HelpCircle className="h-3 w-3 text-muted-foreground/50 hover:text-muted-foreground" />
+                                  </span>
+                                </TooltipTrigger>
+                                <TooltipContent side="right" className="max-w-[200px]">
+                                  <p className="text-xs">{row.tooltip}</p>
+                                </TooltipContent>
+                              </Tooltip>
                             )}
-                          >
-                            <FinancialDataCell
-                              value={formatValue(value)}
-                              rawValue={value}
-                              label={row.label}
-                              tooltip={row.tooltip}
-                              source="SEC"
-                              sourceDetail={`10-K Filing ${yearData.date?.split('-')[0] || yearData.year}`}
-                              isHighlight={row.isHighlight}
-                              yoyChange={yoyChange}
-                            />
+                          </div>
+                        </td>
+                        
+                        {displayYears.map((yearData: any, idx: number) => {
+                          const value = yearData[row.key];
+                          const prevValue = idx > 0 ? displayYears[idx - 1]?.[row.key] : null;
+                          const yoyChange = prevValue && value ? ((value - prevValue) / Math.abs(prevValue)) * 100 : undefined;
+                          
+                          return (
+                            <td
+                              key={idx}
+                              className={cn(
+                                "p-0 w-[80px] min-w-[80px]",
+                                row.isHighlight && "bg-primary/5"
+                              )}
+                            >
+                              <FinancialDataCell
+                                value={formatValue(value)}
+                                rawValue={value}
+                                label={row.label}
+                                tooltip={row.tooltip}
+                                source="SEC"
+                                sourceDetail={`10-K Filing ${yearData.date?.split('-')[0] || yearData.year}`}
+                                isHighlight={row.isHighlight}
+                                yoyChange={yoyChange}
+                              />
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    </TooltipProvider>
+                    
+                    {/* Derived metric rows */}
+                    {derivedMetricsForRow.map((metric) => (
+                      <TooltipProvider key={metric.label} delayDuration={0}>
+                        <tr className="border-b border-border/20 bg-muted/20">
+                          <td className="sticky left-0 z-20 px-4 py-1.5 text-[10px] w-[140px] min-w-[140px] overflow-hidden bg-muted/20 pl-8">
+                            <div className="flex items-center gap-1.5 max-w-full">
+                              <span className="truncate flex-1 min-w-0 text-muted-foreground italic">
+                                {metric.label}
+                              </span>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <span className="flex-shrink-0 cursor-help">
+                                    <HelpCircle className="h-2.5 w-2.5 text-muted-foreground/40 hover:text-muted-foreground" />
+                                  </span>
+                                </TooltipTrigger>
+                                <TooltipContent side="right" className="max-w-[200px]">
+                                  <p className="text-xs">{metric.tooltip}</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </div>
                           </td>
-                        );
-                      })}
-                    </tr>
-                  </TooltipProvider>
+                          
+                          {displayYears.map((yearData: any, idx: number) => {
+                            const prev = idx > 0 ? displayYears[idx - 1] : null;
+                            const computedValue = metric.compute(yearData, prev);
+                            const formattedValue = metric.format(computedValue);
+                            
+                            return (
+                              <td 
+                                key={idx}
+                                className={cn(
+                                  "px-3 py-1.5 text-right text-[10px] tabular-nums w-[80px] min-w-[80px]",
+                                  metric.colorize && computedValue != null && (
+                                    computedValue >= 0 ? "text-emerald-500" : "text-destructive"
+                                  ),
+                                  !metric.colorize && "text-muted-foreground"
+                                )}
+                              >
+                                {formattedValue}
+                              </td>
+                            );
+                          })}
+                        </tr>
+                      </TooltipProvider>
+                    ))}
+                  </React.Fragment>
                 );
               })}
             </tbody>
