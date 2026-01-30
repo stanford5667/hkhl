@@ -171,6 +171,11 @@ serve(async (req) => {
     
     console.log(`[polygon-screener] Got ${tickers.length} tickers from snapshot`);
 
+    // Check if we have fundamental filters that require ticker details
+    const hasFundamentalFilters = filters.minMarketCap !== undefined || 
+                                   filters.maxMarketCap !== undefined || 
+                                   (filters.sectors && filters.sectors.length > 0);
+
     // Step 2: Apply basic filters on snapshot data
     // Calculate accurate 1-day change from prevDay close to current price
     let filteredTickers = tickers.filter(t => {
@@ -180,22 +185,24 @@ serve(async (req) => {
       // Must have valid previous day data for accurate change calculation
       if (!t.prevDay || !t.prevDay.c || t.prevDay.c <= 0) return false;
       
-      // Price filters
+      // Price filters - always apply
       if (filters.minPrice !== undefined && t.day.c < filters.minPrice) return false;
       if (filters.maxPrice !== undefined && t.day.c > filters.maxPrice) return false;
       
       // Calculate accurate 1-day percentage change: (current - prevClose) / prevClose * 100
       const accurateChangePercent = ((t.day.c - t.prevDay.c) / t.prevDay.c) * 100;
       
-      // Change filters using accurate calculation
-      if (filters.minChange1D !== undefined && accurateChangePercent < filters.minChange1D) return false;
-      if (filters.maxChange1D !== undefined && accurateChangePercent > filters.maxChange1D) return false;
+      // Change filters - only apply if NOT using fundamental filters (let more stocks through for fundamental filtering)
+      if (!hasFundamentalFilters) {
+        if (filters.minChange1D !== undefined && accurateChangePercent < filters.minChange1D) return false;
+        if (filters.maxChange1D !== undefined && accurateChangePercent > filters.maxChange1D) return false;
+      }
       
-      // Volume filters
+      // Volume filters - always apply basic volume filter
       if (filters.minVolume !== undefined && t.day.v < filters.minVolume) return false;
       
-      // Relative volume (today vs previous day)
-      if (filters.minRelativeVolume !== undefined && t.prevDay?.v > 0) {
+      // Relative volume (today vs previous day) - only apply if NOT using fundamental filters
+      if (!hasFundamentalFilters && filters.minRelativeVolume !== undefined && t.prevDay?.v > 0) {
         const relativeVol = t.day.v / t.prevDay.v;
         if (relativeVol < filters.minRelativeVolume) return false;
       }
@@ -205,7 +212,7 @@ serve(async (req) => {
 
     console.log(`[polygon-screener] After basic filters: ${filteredTickers.length} tickers`);
 
-    // Step 3: Sort and limit before fetching details (optimization)
+    // Step 3: Sort and determine how many to fetch details for
     const sortBy = filters.sortBy || 'volume';
     const sortDir = filters.sortDirection || 'desc';
     
@@ -235,13 +242,15 @@ serve(async (req) => {
       return sortDir === 'desc' ? bVal - aVal : aVal - bVal;
     });
 
-    // Take top candidates for detail fetching
-    const candidateTickers = filteredTickers.slice(0, Math.min(filteredTickers.length, 500));
+    // When fundamental filters are active, fetch details for MORE tickers to ensure we capture all matching stocks
+    // Without fundamental filters, limit to 500 for performance
+    const maxCandidates = hasFundamentalFilters ? 3000 : 500;
+    const candidateTickers = filteredTickers.slice(0, Math.min(filteredTickers.length, maxCandidates));
     
-    console.log(`[polygon-screener] Fetching details for ${candidateTickers.length} tickers...`);
+    console.log(`[polygon-screener] Fetching details for ${candidateTickers.length} tickers (fundamental filters: ${hasFundamentalFilters})...`);
 
     // Step 4: Fetch ticker details in batches
-    const batchSize = 50;
+    const batchSize = 100; // Increased batch size for efficiency
     const tickerDetails: Map<string, TickerDetails> = new Map();
     
     for (let i = 0; i < candidateTickers.length; i += batchSize) {
@@ -271,7 +280,7 @@ serve(async (req) => {
       
       // Rate limiting - small delay between batches
       if (i + batchSize < candidateTickers.length) {
-        await new Promise(resolve => setTimeout(resolve, 100));
+        await new Promise(resolve => setTimeout(resolve, 50));
       }
     }
 
@@ -295,12 +304,54 @@ serve(async (req) => {
         if (!filters.sectors.includes(sector)) return false;
       }
       
+      // If fundamental filters were used, now apply the change filters that were skipped earlier
+      if (hasFundamentalFilters) {
+        const accurateChangePercent = t.prevDay?.c > 0 ? ((t.day.c - t.prevDay.c) / t.prevDay.c) * 100 : 0;
+        if (filters.minChange1D !== undefined && accurateChangePercent < filters.minChange1D) return false;
+        if (filters.maxChange1D !== undefined && accurateChangePercent > filters.maxChange1D) return false;
+        
+        // Also apply relative volume filter now
+        if (filters.minRelativeVolume !== undefined && t.prevDay?.v > 0) {
+          const relativeVol = t.day.v / t.prevDay.v;
+          if (relativeVol < filters.minRelativeVolume) return false;
+        }
+      }
+      
       return true;
     });
 
     console.log(`[polygon-screener] After market cap/sector filters: ${finalResults.length} results`);
 
-    // Step 6: Apply pagination
+    // Step 6: Re-sort final results by the requested sort criteria
+    finalResults.sort((a, b) => {
+      let aVal: number, bVal: number;
+      const aChangePercent = a.prevDay?.c > 0 ? ((a.day.c - a.prevDay.c) / a.prevDay.c) * 100 : 0;
+      const bChangePercent = b.prevDay?.c > 0 ? ((b.day.c - b.prevDay.c) / b.prevDay.c) * 100 : 0;
+      
+      switch (sortBy) {
+        case 'change':
+          aVal = aChangePercent;
+          bVal = bChangePercent;
+          break;
+        case 'price':
+          aVal = a.day?.c || 0;
+          bVal = b.day?.c || 0;
+          break;
+        case 'marketCap':
+          aVal = tickerDetails.get(a.ticker)?.market_cap || 0;
+          bVal = tickerDetails.get(b.ticker)?.market_cap || 0;
+          break;
+        case 'volume':
+        default:
+          aVal = a.day?.v || 0;
+          bVal = b.day?.v || 0;
+          break;
+      }
+      
+      return sortDir === 'desc' ? bVal - aVal : aVal - bVal;
+    });
+
+    // Step 7: Apply pagination
     const paginatedResults = finalResults.slice(offset, offset + limit);
 
     // Step 7: Build response
