@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { 
   TrendingUp, Activity, Zap, Flame, BarChart3, Filter, X, ChevronDown, ChevronUp,
   Building2, DollarSign, Percent, Scale, Target, LineChart, AlertTriangle,
-  Clock, Volume2, Gauge, TrendingDown, Calculator, Ratio
+  Clock, Volume2, Gauge, TrendingDown, Calculator, Ratio, ChevronLeft, ChevronRight
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -20,6 +20,8 @@ import {
 } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 import { screenStocksFromPolygon, QUICK_SCREENS, type ScreenerResult, type ScreenerFilters } from '@/services/polygonScreenerService';
+
+const ITEMS_PER_PAGE = 50;
 
 // =====================
 // Tab Configuration
@@ -391,12 +393,24 @@ function StockRow({ stock, onClick }: { stock: ScreenerResult; onClick: () => vo
 function StockList({ 
   stocks, 
   isLoading, 
-  onStockClick 
+  onStockClick,
+  currentPage,
+  totalCount,
+  onPageChange,
+  hasMore
 }: { 
   stocks: ScreenerResult[] | undefined; 
   isLoading: boolean;
   onStockClick: (symbol: string) => void;
+  currentPage: number;
+  totalCount: number;
+  onPageChange: (page: number) => void;
+  hasMore: boolean;
 }) {
+  const totalPages = Math.ceil(totalCount / ITEMS_PER_PAGE);
+  const startItem = currentPage * ITEMS_PER_PAGE + 1;
+  const endItem = Math.min((currentPage + 1) * ITEMS_PER_PAGE, totalCount);
+
   if (isLoading) {
     return (
       <div className="space-y-1 p-2">
@@ -416,9 +430,9 @@ function StockList({
   }
 
   return (
-    <div className="max-h-[500px] overflow-y-auto">
+    <div>
       {/* Header */}
-      <div className="flex items-center gap-2 px-3 py-2 bg-muted/30 border-b border-border sticky top-0 z-10">
+      <div className="flex items-center gap-2 px-3 py-2 bg-muted/30 border-b border-border">
         <span className="w-14 text-[10px] font-medium text-muted-foreground">Symbol</span>
         <span className="flex-1 text-[10px] font-medium text-muted-foreground">Name</span>
         <span className="w-16 text-right text-[10px] font-medium text-muted-foreground">Price</span>
@@ -426,13 +440,92 @@ function StockList({
         <span className="w-14 text-right text-[10px] font-medium text-muted-foreground">Volume</span>
         <span className="w-16 text-right text-[10px] font-medium text-muted-foreground">Change</span>
       </div>
-      {stocks.map(stock => (
-        <StockRow 
-          key={stock.symbol} 
-          stock={stock} 
-          onClick={() => onStockClick(stock.symbol)} 
-        />
-      ))}
+      
+      {/* Stock rows */}
+      <div className="max-h-[500px] overflow-y-auto">
+        {stocks.map(stock => (
+          <StockRow 
+            key={stock.symbol} 
+            stock={stock} 
+            onClick={() => onStockClick(stock.symbol)} 
+          />
+        ))}
+      </div>
+
+      {/* Pagination */}
+      {totalCount > ITEMS_PER_PAGE && (
+        <div className="flex items-center justify-between px-3 py-3 border-t border-border bg-muted/20">
+          <div className="text-xs text-muted-foreground">
+            Showing {startItem.toLocaleString()}-{endItem.toLocaleString()} of {totalCount.toLocaleString()} results
+          </div>
+          <div className="flex items-center gap-1">
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-7 w-7 p-0"
+              onClick={() => onPageChange(currentPage - 1)}
+              disabled={currentPage === 0}
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            
+            {/* Page numbers */}
+            <div className="flex items-center gap-0.5">
+              {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                let pageNum: number;
+                if (totalPages <= 5) {
+                  pageNum = i;
+                } else if (currentPage < 3) {
+                  pageNum = i;
+                } else if (currentPage > totalPages - 4) {
+                  pageNum = totalPages - 5 + i;
+                } else {
+                  pageNum = currentPage - 2 + i;
+                }
+                
+                return (
+                  <Button
+                    key={pageNum}
+                    variant={currentPage === pageNum ? 'default' : 'ghost'}
+                    size="sm"
+                    className={cn(
+                      "h-7 w-7 p-0 text-xs",
+                      currentPage === pageNum && "bg-primary text-primary-foreground"
+                    )}
+                    onClick={() => onPageChange(pageNum)}
+                  >
+                    {pageNum + 1}
+                  </Button>
+                );
+              })}
+              
+              {totalPages > 5 && currentPage < totalPages - 3 && (
+                <>
+                  <span className="text-xs text-muted-foreground px-1">...</span>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 w-7 p-0 text-xs"
+                    onClick={() => onPageChange(totalPages - 1)}
+                  >
+                    {totalPages}
+                  </Button>
+                </>
+              )}
+            </div>
+            
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-7 w-7 p-0"
+              onClick={() => onPageChange(currentPage + 1)}
+              disabled={!hasMore}
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -582,6 +675,7 @@ export function UnifiedDiscoveryScreener() {
   const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTERS);
   const [showFilters, setShowFilters] = useState(false);
   const [expandedCategory, setExpandedCategory] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(0);
 
   const activeFilterCount = useMemo(() => 
     Object.values(filters).filter(v => v !== 'all').length,
@@ -590,8 +684,14 @@ export function UnifiedDiscoveryScreener() {
 
   const hasActiveFilters = activeFilterCount > 0;
 
+  // Reset page when tab or filters change
+  const handleTabChange = (tab: TabId) => {
+    setActiveTab(tab);
+    setCurrentPage(0);
+  };
+
   // Build query filters based on active tab + fundamental filters
-  const buildQueryFilters = (tabFilters: ScreenerFilters): ScreenerFilters => {
+  const buildQueryFilters = (tabFilters: ScreenerFilters, offset: number = 0): ScreenerFilters => {
     const combined: ScreenerFilters = { ...tabFilters };
     
     // Market Cap filter
@@ -607,12 +707,16 @@ export function UnifiedDiscoveryScreener() {
       if (volOption.min !== undefined) combined.minVolume = volOption.min;
     }
     
+    // Pagination
+    combined.limit = ITEMS_PER_PAGE;
+    combined.offset = offset;
+    
     return combined;
   };
 
   // Top Gainers query
-  const { data: gainers, isLoading: loadingGainers } = useQuery({
-    queryKey: ['screener', 'topGainers-full', filters],
+  const { data: gainersData, isLoading: loadingGainers } = useQuery({
+    queryKey: ['screener', 'topGainers-full', filters, currentPage],
     queryFn: async () => {
       const baseFilters: ScreenerFilters = {
         minChange1D: 2,
@@ -620,54 +724,48 @@ export function UnifiedDiscoveryScreener() {
         minVolume: 500000,
         sortBy: 'change',
         sortDirection: 'desc',
-        limit: 50,
       };
-      const result = await screenStocksFromPolygon(buildQueryFilters(baseFilters));
-      return result.results;
+      return await screenStocksFromPolygon(buildQueryFilters(baseFilters, currentPage * ITEMS_PER_PAGE));
     },
     staleTime: 60000,
     enabled: activeTab === 'topGainers',
   });
 
   // Most Active query
-  const { data: mostActive, isLoading: loadingActive } = useQuery({
-    queryKey: ['screener', 'mostActive-full', filters],
+  const { data: mostActiveData, isLoading: loadingActive } = useQuery({
+    queryKey: ['screener', 'mostActive-full', filters, currentPage],
     queryFn: async () => {
       const baseFilters: ScreenerFilters = {
-        minPrice: 1,
-        minVolume: 1000000,
+        minPrice: 2,
+        minVolume: 500000,
         sortBy: 'volume',
         sortDirection: 'desc',
-        limit: 50,
       };
-      const result = await screenStocksFromPolygon(buildQueryFilters(baseFilters));
-      return result.results;
+      return await screenStocksFromPolygon(buildQueryFilters(baseFilters, currentPage * ITEMS_PER_PAGE));
     },
     staleTime: 60000,
     enabled: activeTab === 'mostActive',
   });
 
   // Momentum query
-  const { data: momentum, isLoading: loadingMomentum } = useQuery({
-    queryKey: ['screener', 'smallCapMomentum-full', filters],
+  const { data: momentumData, isLoading: loadingMomentum } = useQuery({
+    queryKey: ['screener', 'smallCapMomentum-full', filters, currentPage],
     queryFn: async () => {
       const screenConfig = QUICK_SCREENS['smallCapMomentum'];
-      if (!screenConfig) return [];
-      const result = await screenStocksFromPolygon(buildQueryFilters(screenConfig.filters));
-      return result.results;
+      if (!screenConfig) return { results: [], count: 0, pagination: { hasMore: false, total: 0 } };
+      return await screenStocksFromPolygon(buildQueryFilters(screenConfig.filters, currentPage * ITEMS_PER_PAGE));
     },
     staleTime: 60000,
     enabled: activeTab === 'momentum',
   });
 
   // Unusual Volume query
-  const { data: unusualVol, isLoading: loadingUnusual } = useQuery({
-    queryKey: ['screener', 'unusualVolume-full', filters],
+  const { data: unusualVolData, isLoading: loadingUnusual } = useQuery({
+    queryKey: ['screener', 'unusualVolume-full', filters, currentPage],
     queryFn: async () => {
       const screenConfig = QUICK_SCREENS['unusualVolume'];
-      if (!screenConfig) return [];
-      const result = await screenStocksFromPolygon(buildQueryFilters(screenConfig.filters));
-      return result.results;
+      if (!screenConfig) return { results: [], count: 0, pagination: { hasMore: false, total: 0 } };
+      return await screenStocksFromPolygon(buildQueryFilters(screenConfig.filters, currentPage * ITEMS_PER_PAGE));
     },
     staleTime: 60000,
     enabled: activeTab === 'unusualVolume',
@@ -683,28 +781,54 @@ export function UnifiedDiscoveryScreener() {
 
   const handleClearFilter = (key: keyof FilterState) => {
     setFilters(prev => ({ ...prev, [key]: 'all' }));
+    setCurrentPage(0);
   };
 
   const handleClearAllFilters = () => {
     setFilters(DEFAULT_FILTERS);
+    setCurrentPage(0);
+  };
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
   };
 
   const getTabData = () => {
     switch (activeTab) {
       case 'topGainers':
-        return { stocks: gainers, isLoading: loadingGainers };
+        return { 
+          stocks: gainersData?.results, 
+          isLoading: loadingGainers,
+          totalCount: gainersData?.pagination?.total || gainersData?.count || 0,
+          hasMore: gainersData?.pagination?.hasMore || false
+        };
       case 'mostActive':
-        return { stocks: mostActive, isLoading: loadingActive };
+        return { 
+          stocks: mostActiveData?.results, 
+          isLoading: loadingActive,
+          totalCount: mostActiveData?.pagination?.total || mostActiveData?.count || 0,
+          hasMore: mostActiveData?.pagination?.hasMore || false
+        };
       case 'momentum':
-        return { stocks: momentum, isLoading: loadingMomentum };
+        return { 
+          stocks: momentumData?.results, 
+          isLoading: loadingMomentum,
+          totalCount: momentumData?.pagination?.total || momentumData?.count || 0,
+          hasMore: momentumData?.pagination?.hasMore || false
+        };
       case 'unusualVolume':
-        return { stocks: unusualVol, isLoading: loadingUnusual };
+        return { 
+          stocks: unusualVolData?.results, 
+          isLoading: loadingUnusual,
+          totalCount: unusualVolData?.pagination?.total || unusualVolData?.count || 0,
+          hasMore: unusualVolData?.pagination?.hasMore || false
+        };
       default:
-        return { stocks: undefined, isLoading: false };
+        return { stocks: undefined, isLoading: false, totalCount: 0, hasMore: false };
     }
   };
 
-  const { stocks, isLoading } = getTabData();
+  const { stocks, isLoading, totalCount, hasMore } = getTabData();
 
   return (
     <Card className="bg-card border-border">
@@ -750,7 +874,7 @@ export function UnifiedDiscoveryScreener() {
                     ? 'bg-primary text-primary-foreground shadow-sm' 
                     : 'text-muted-foreground hover:text-foreground hover:bg-muted'
                 )}
-                onClick={() => setActiveTab(tab.id)}
+                onClick={() => handleTabChange(tab.id)}
               >
                 <Icon className="h-3.5 w-3.5" />
                 {tab.label}
@@ -798,7 +922,11 @@ export function UnifiedDiscoveryScreener() {
         <StockList 
           stocks={stocks} 
           isLoading={isLoading} 
-          onStockClick={handleStockClick} 
+          onStockClick={handleStockClick}
+          currentPage={currentPage}
+          totalCount={totalCount}
+          onPageChange={handlePageChange}
+          hasMore={hasMore}
         />
       </CardContent>
     </Card>
