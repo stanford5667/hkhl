@@ -45,7 +45,6 @@ async function fetchWithRetry(
   for (let i = 0; i < attempts; i++) {
     try {
       const res = await fetchWithTimeout(url, options, timeoutMs);
-      // Retry on SEC throttling / transient server errors
       if ([429, 500, 502, 503, 504].includes(res.status) && i < attempts - 1) {
         const delay = baseDelayMs * Math.pow(2, i);
         await new Promise((r) => setTimeout(r, delay));
@@ -168,12 +167,55 @@ interface AnalystEstimate {
   isEstimate: boolean;
 }
 
+// NEW: Balance sheet data structure
+interface BalanceSheetData {
+  totalAssets: number | null;
+  totalLiabilities: number | null;
+  totalEquity: number | null;
+  currentAssets: number | null;
+  currentLiabilities: number | null;
+  inventory: number | null;
+  cash: number | null;
+  longTermDebt: number | null;
+  shortTermDebt: number | null;
+}
+
+// NEW: Pre-calculated ratios from Polygon
+interface FinancialRatios {
+  priceToBook: number | null;
+  priceToCash: number | null;
+  priceToFreeCashFlow: number | null;
+  evToEbitda: number | null;
+  evToSales: number | null;
+  debtToEquity: number | null;
+  quickRatio: number | null;
+  currentRatio: number | null;
+  returnOnAssets: number | null;
+  returnOnEquity: number | null;
+  enterpriseValue: number | null;
+  freeCashFlow: number | null;
+}
+
+// NEW: Calculated metrics
+interface CalculatedMetrics {
+  operatingMargin: number | null;
+  grossMargin: number | null;
+  netMargin: number | null;
+  epsGrowthYoY: number | null;
+  revenueGrowthYoY: number | null;
+  epsStdDev: number | null;
+}
+
 interface FundamentalsResponse {
   profile: CompanyProfile | null;
   financials: IncomeStatement[];
   estimates: AnalystEstimate[];
+  balanceSheet: BalanceSheetData | null;
+  ratios: FinancialRatios | null;
+  metrics: CalculatedMetrics | null;
   useMockData: boolean;
   source: string;
+  dataQuality: number; // 1-10 score
 }
 
 async function fetchIncomeStatements(symbol: string, apiKey: string): Promise<IncomeStatement[] | null> {
@@ -206,7 +248,7 @@ async function fetchIncomeStatements(symbol: string, apiKey: string): Promise<In
     operatingExpenses: item.operatingExpenses || 0,
     operatingIncome: item.operatingIncome || 0,
     interestExpense: item.interestExpense || 0,
-    otherIncome: item.otherTotalOperatingIncome || item.totalOtherIncomeExpensesNet || 0,
+    otherIncome: item.totalOtherIncomeExpensesNet || item.otherTotalOperatingIncome || 0,
     incomeBeforeTax: item.incomeBeforeTax || 0,
     incomeTax: item.incomeTaxExpense || 0,
     netIncome: item.netIncome || 0,
@@ -330,6 +372,102 @@ async function fetchPolygonProfile(symbol: string, apiKey: string): Promise<Part
   }
 }
 
+// NEW: Fetch balance sheet data from Polygon financials API
+async function fetchPolygonBalanceSheet(symbol: string, apiKey: string): Promise<BalanceSheetData | null> {
+  const cacheKey = `polygon_balance_${symbol}`;
+  const cached = getCached(cacheKey);
+  if (cached) {
+    console.log(`[polygon] Cache hit for ${symbol} balance sheet`);
+    return cached as BalanceSheetData;
+  }
+
+  try {
+    const url = `${POLYGON_BASE_URL}/vX/reference/financials?ticker=${encodeURIComponent(symbol)}&timeframe=annual&limit=1&sort=period_of_report_date&order=desc&apiKey=${apiKey}`;
+    const res = await fetchWithTimeout(url, {}, 8000);
+    
+    if (!res.ok) {
+      console.warn(`[polygon] Balance sheet API returned ${res.status} for ${symbol}`);
+      return null;
+    }
+    
+    const data = await res.json();
+    const results = data.results;
+    
+    if (!results || results.length === 0) {
+      console.warn(`[polygon] No balance sheet data for ${symbol}`);
+      return null;
+    }
+
+    const bs = results[0].financials?.balance_sheet;
+    if (!bs) {
+      console.warn(`[polygon] No balance_sheet in financials for ${symbol}`);
+      return null;
+    }
+
+    const balanceSheet: BalanceSheetData = {
+      totalAssets: bs.assets?.value || null,
+      totalLiabilities: bs.liabilities?.value || null,
+      totalEquity: bs.equity?.value || bs.equity_attributable_to_parent?.value || null,
+      currentAssets: bs.current_assets?.value || null,
+      currentLiabilities: bs.current_liabilities?.value || null,
+      inventory: bs.inventory?.value || null,
+      cash: bs.cash_and_cash_equivalents?.value || bs.cash?.value || null,
+      longTermDebt: bs.long_term_debt?.value || bs.noncurrent_liabilities?.value || null,
+      shortTermDebt: bs.short_term_debt?.value || null,
+    };
+
+    console.log(`[polygon] Got balance sheet for ${symbol}: assets=$${((balanceSheet.totalAssets || 0)/1e9).toFixed(1)}B, equity=$${((balanceSheet.totalEquity || 0)/1e9).toFixed(1)}B`);
+    
+    setCache(cacheKey, balanceSheet);
+    return balanceSheet;
+  } catch (err) {
+    console.error(`[polygon] Error fetching balance sheet for ${symbol}:`, err);
+    return null;
+  }
+}
+
+// NEW: Fetch quarterly EPS for standard deviation calculation
+async function fetchQuarterlyEPS(symbol: string, apiKey: string): Promise<number[]> {
+  const cacheKey = `quarterly_eps_${symbol}`;
+  const cached = getCached(cacheKey);
+  if (cached) {
+    return cached as number[];
+  }
+
+  try {
+    const url = `${POLYGON_BASE_URL}/vX/reference/financials?ticker=${encodeURIComponent(symbol)}&timeframe=quarterly&limit=8&sort=period_of_report_date&order=desc&apiKey=${apiKey}`;
+    const res = await fetchWithTimeout(url, {}, 8000);
+    
+    if (!res.ok) {
+      return [];
+    }
+    
+    const data = await res.json();
+    const results = data.results || [];
+    
+    const epsValues: number[] = [];
+    for (const quarter of results) {
+      const eps = quarter.financials?.income_statement?.diluted_earnings_per_share?.value;
+      if (eps !== undefined && eps !== null) {
+        epsValues.push(eps);
+      }
+    }
+    
+    setCache(cacheKey, epsValues);
+    return epsValues;
+  } catch {
+    return [];
+  }
+}
+
+// Calculate standard deviation
+function calculateStdDev(values: number[]): number | null {
+  if (values.length < 2) return null;
+  const mean = values.reduce((a, b) => a + b, 0) / values.length;
+  const variance = values.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / values.length;
+  return Math.sqrt(variance);
+}
+
 // Fetch shares outstanding from Polygon for EPS calculation
 async function fetchSharesOutstanding(symbol: string, apiKey: string): Promise<number | null> {
   const cacheKey = `shares_outstanding_${symbol}`;
@@ -369,7 +507,6 @@ async function fetchTTMEPS(symbol: string, apiKey: string): Promise<number | nul
   }
 
   try {
-    // Try to get quarterly financials for TTM calculation
     const url = `${POLYGON_BASE_URL}/vX/reference/financials?ticker=${encodeURIComponent(symbol)}&timeframe=quarterly&limit=4&sort=period_of_report_date&order=desc&apiKey=${apiKey}`;
     const res = await fetchWithTimeout(url, {}, 8000);
     
@@ -386,7 +523,6 @@ async function fetchTTMEPS(symbol: string, apiKey: string): Promise<number | nul
       return null;
     }
 
-    // Sum up diluted EPS from last 4 quarters for TTM
     let ttmEPS = 0;
     let quartersFound = 0;
     
@@ -404,7 +540,6 @@ async function fetchTTMEPS(symbol: string, apiKey: string): Promise<number | nul
       setCache(cacheKey, ttmEPS);
       return Math.round(ttmEPS * 100) / 100;
     } else if (quartersFound > 0) {
-      // If we have fewer than 4 quarters, annualize what we have
       const annualizedEPS = (ttmEPS / quartersFound) * 4;
       console.log(`[polygon] Annualized EPS for ${symbol}: $${annualizedEPS.toFixed(2)} (from ${quartersFound} quarters)`);
       setCache(cacheKey, annualizedEPS);
@@ -443,7 +578,6 @@ async function fetchAnalystEstimates(symbol: string, apiKey: string): Promise<An
       return [];
     }
     
-    // Filter to only future estimates (dates after today)
     const today = new Date();
     const currentYear = today.getFullYear();
     
@@ -452,7 +586,7 @@ async function fetchAnalystEstimates(symbol: string, apiKey: string): Promise<An
         const estimateYear = parseInt(item.date?.split('-')[0] || '0');
         return estimateYear >= currentYear;
       })
-      .slice(0, 3) // Limit to 3 years of estimates
+      .slice(0, 3)
       .map((item: any) => ({
         date: item.date,
         symbol: item.symbol,
@@ -493,7 +627,6 @@ async function fetchProductSegments(symbol: string, apiKey: string): Promise<Pro
     return cached as ProductSegment[];
   }
 
-  // Use v4 endpoint for product segmentation
   const url = `https://financialmodelingprep.com/api/v4/revenue-product-segmentation?symbol=${encodeURIComponent(symbol)}&period=annual&structure=flat&apikey=${apiKey}`;
   
   try {
@@ -510,12 +643,9 @@ async function fetchProductSegments(symbol: string, apiKey: string): Promise<Pro
       return [];
     }
 
-    // Get the most recent year's data
-    const latestData = data[0];
     const segments: ProductSegment[] = [];
     let totalRevenue = 0;
 
-    // Parse the flat structure - each entry has a date key with segment data
     for (const entry of data) {
       const dateKey = Object.keys(entry).find(k => k.match(/^\d{4}-\d{2}-\d{2}$/));
       if (dateKey && entry[dateKey]) {
@@ -529,18 +659,16 @@ async function fetchProductSegments(symbol: string, apiKey: string): Promise<Pro
             }
           }
         }
-        break; // Only use latest year
+        break;
       }
     }
 
-    // Calculate percentages
     if (totalRevenue > 0) {
       for (const segment of segments) {
         segment.percentage = (segment.revenue / totalRevenue) * 100;
       }
     }
 
-    // Sort by revenue descending and limit to top 5
     const results = segments
       .sort((a, b) => b.revenue - a.revenue)
       .slice(0, 5);
@@ -553,12 +681,11 @@ async function fetchProductSegments(symbol: string, apiKey: string): Promise<Pro
   }
 }
 
-// Fetch real financial data from SEC XBRL API
+// Fetch SEC financials (unchanged from original)
 async function fetchSECFinancials(ticker: string): Promise<IncomeStatement[]> {
   console.log(`[SEC XBRL] Fetching company facts for ${ticker}...`);
   
   try {
-    // Get CIK from ticker (cached)
     const cikData = await getSecCompanyTickers();
     let cik: string | null = null;
 
@@ -574,7 +701,6 @@ async function fetchSECFinancials(ticker: string): Promise<IncomeStatement[]> {
       return [];
     }
 
-    // Fetch company facts from SEC XBRL API
     const factsUrl = `https://data.sec.gov/api/xbrl/companyfacts/CIK${cik}.json`;
     const response = await fetchWithRetry(factsUrl, { headers: SEC_HEADERS }, { attempts: 3, timeoutMs: 10000 });
 
@@ -591,7 +717,6 @@ async function fetchSECFinancials(ticker: string): Promise<IncomeStatement[]> {
       return [];
     }
 
-    // Extract relevant metrics - use entries with longest duration (full year, not quarterly)
     const getAnnualValues = (concept: string): Map<string, number> => {
       const values = new Map<string, { val: number; duration: number; frame?: string }>();
       const conceptData = facts[concept]?.units?.USD;
@@ -599,11 +724,9 @@ async function fetchSECFinancials(ticker: string): Promise<IncomeStatement[]> {
       if (!conceptData) return new Map();
       
       for (const entry of conceptData) {
-        // Only use 10-K filings with fiscal year data
         if (entry.form === '10-K' && entry.fy && entry.val != null) {
           const year = String(entry.fy);
           
-          // Calculate duration in days between start and end dates
           let duration = 0;
           if (entry.start && entry.end) {
             const startDate = new Date(entry.start);
@@ -611,17 +734,12 @@ async function fetchSECFinancials(ticker: string): Promise<IncomeStatement[]> {
             duration = Math.round((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
           }
           
-          // Some entries have 'frame' like 'CY2024' for calendar year or 'FY2024' for fiscal year
-          // Prefer entries with frame that indicates full year (contains 'FY' or 'CY' without 'Q')
           const hasAnnualFrame = entry.frame && !entry.frame.includes('Q');
           
-          // Keep the entry with the longest duration (annual vs quarterly)
-          // For revenue/income, annual filings typically have ~360-370 day duration
           const existing = values.get(year);
           const isAnnualDuration = duration >= 350 && duration <= 380;
           const existingIsAnnual = existing && existing.duration >= 350 && existing.duration <= 380;
           
-          // Prefer: 1) Annual duration entries, 2) entries with annual frame, 3) longest duration
           if (!existing || 
               (isAnnualDuration && !existingIsAnnual) ||
               (hasAnnualFrame && !existing.frame?.includes('FY') && !existing.frame?.includes('CY')) ||
@@ -631,15 +749,13 @@ async function fetchSECFinancials(ticker: string): Promise<IncomeStatement[]> {
         }
       }
       
-      // Convert to simple number map
       const result = new Map<string, number>();
-      for (const [year, data] of values) {
-        result.set(year, data.val);
+      for (const [year, d] of values) {
+        result.set(year, d.val);
       }
       return result;
     };
 
-    // Try multiple possible concept names for each metric
     const findValues = (concepts: string[], logName?: string): Map<string, number> => {
       for (const concept of concepts) {
         const values = getAnnualValues(concept);
@@ -653,9 +769,8 @@ async function fetchSECFinancials(ticker: string): Promise<IncomeStatement[]> {
       return new Map();
     };
 
-    // Extended list of revenue concepts - different companies use different ones
     const revenueValues = findValues([
-      'RevenueFromContractWithCustomerExcludingAssessedTax', // Modern GAAP standard
+      'RevenueFromContractWithCustomerExcludingAssessedTax',
       'Revenues',
       'Revenue', 
       'SalesRevenueNet',
@@ -670,7 +785,6 @@ async function fetchSECFinancials(ticker: string): Promise<IncomeStatement[]> {
     const netIncomeValues = findValues(['NetIncomeLoss', 'ProfitLoss', 'NetIncome']);
     const epsValues = findValues(['EarningsPerShareDiluted', 'EarningsPerShareBasic']);
 
-    // Combine into structured financials
     const years = [...new Set([...revenueValues.keys(), ...netIncomeValues.keys()])]
       .sort((a, b) => parseInt(b) - parseInt(a))
       .slice(0, 5);
@@ -681,7 +795,7 @@ async function fetchSECFinancials(ticker: string): Promise<IncomeStatement[]> {
 
     for (const year of years) {
       const revenue = revenueValues.get(year) || 0;
-      if (revenue === 0) continue; // Skip years without revenue data
+      if (revenue === 0) continue;
       
       const costOfRevenue = costOfRevenueValues.get(year) || Math.round(revenue * 0.6);
       const grossProfit = grossProfitValues.get(year) || (revenue - costOfRevenue);
@@ -689,7 +803,6 @@ async function fetchSECFinancials(ticker: string): Promise<IncomeStatement[]> {
       const netIncome = netIncomeValues.get(year) || Math.round(operatingIncome * 0.75);
       const eps = epsValues.get(year) || 0;
 
-      // Calculate derived values
       const operatingExpenses = grossProfit - operatingIncome;
       const interestExpense = Math.round(revenue * 0.01);
       const otherIncome = Math.round(revenue * 0.005);
@@ -724,6 +837,73 @@ async function fetchSECFinancials(ticker: string): Promise<IncomeStatement[]> {
   }
 }
 
+// NEW: Fetch SEC balance sheet concepts
+async function fetchSECBalanceSheet(ticker: string): Promise<BalanceSheetData | null> {
+  const cacheKey = `sec_balance_${ticker}`;
+  const cached = getCached(cacheKey);
+  if (cached) {
+    return cached as BalanceSheetData;
+  }
+
+  try {
+    const cikData = await getSecCompanyTickers();
+    let cik: string | null = null;
+
+    for (const entry of cikData) {
+      if (entry.ticker?.toUpperCase() === ticker.toUpperCase()) {
+        cik = String(entry.cik_str).padStart(10, '0');
+        break;
+      }
+    }
+    
+    if (!cik) return null;
+
+    const factsUrl = `https://data.sec.gov/api/xbrl/companyfacts/CIK${cik}.json`;
+    const response = await fetchWithRetry(factsUrl, { headers: SEC_HEADERS }, { attempts: 2, timeoutMs: 8000 });
+
+    if (!response.ok) return null;
+
+    const data = await response.json();
+    const facts = data.facts?.['us-gaap'];
+    
+    if (!facts) return null;
+
+    // Get most recent value for a concept
+    const getLatestValue = (concepts: string[]): number | null => {
+      for (const concept of concepts) {
+        const entries = facts[concept]?.units?.USD;
+        if (entries && entries.length > 0) {
+          // Get most recent 10-K entry
+          const sorted = entries
+            .filter((e: any) => e.form === '10-K')
+            .sort((a: any, b: any) => new Date(b.end || '').getTime() - new Date(a.end || '').getTime());
+          if (sorted.length > 0) {
+            return sorted[0].val;
+          }
+        }
+      }
+      return null;
+    };
+
+    const balanceSheet: BalanceSheetData = {
+      totalAssets: getLatestValue(['Assets']),
+      totalLiabilities: getLatestValue(['Liabilities']),
+      totalEquity: getLatestValue(['StockholdersEquity', 'StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest']),
+      currentAssets: getLatestValue(['AssetsCurrent']),
+      currentLiabilities: getLatestValue(['LiabilitiesCurrent']),
+      inventory: getLatestValue(['InventoryNet', 'Inventories']),
+      cash: getLatestValue(['CashAndCashEquivalentsAtCarryingValue', 'Cash']),
+      longTermDebt: getLatestValue(['LongTermDebt', 'LongTermDebtNoncurrent']),
+      shortTermDebt: getLatestValue(['ShortTermBorrowings', 'DebtCurrent']),
+    };
+
+    setCache(cacheKey, balanceSheet);
+    return balanceSheet;
+  } catch {
+    return null;
+  }
+}
+
 async function searchSymbols(query: string, apiKey: string): Promise<any[]> {
   const url = `${BASE_URL}/search?query=${encodeURIComponent(query)}&limit=10&apikey=${apiKey}`;
   const response = await fetch(url);
@@ -741,262 +921,242 @@ async function searchSymbols(query: string, apiKey: string): Promise<any[]> {
   })) : [];
 }
 
-// Generate mock data for demo purposes with ALL income statement fields
-// For major tickers, uses actual historical figures for accuracy
-function generateMockFinancials(symbol: string): any[] {
-  // Curated historical data for major tickers (actual reported figures)
-  // Format: { year, revenue, grossMargin, opMargin, netMargin, eps }
-  const historicalData: Record<string, Array<{ year: string; revenue: number; grossMargin: number; opMargin: number; netMargin: number; eps: number }>> = {
-    'NVDA': [
-      { year: '2025', revenue: 130497000000, grossMargin: 0.75, opMargin: 0.62, netMargin: 0.56, eps: 2.94 }, // FY2025 (ending Jan 2025)
-      { year: '2024', revenue: 60922000000, grossMargin: 0.73, opMargin: 0.54, netMargin: 0.49, eps: 1.30 },  // FY2024 (ending Jan 2024)
-      { year: '2023', revenue: 26974000000, grossMargin: 0.57, opMargin: 0.16, netMargin: 0.16, eps: 0.17 },  // FY2023 (ending Jan 2023)
-      { year: '2022', revenue: 26914000000, grossMargin: 0.65, opMargin: 0.38, netMargin: 0.36, eps: 0.39 },  // FY2022 (ending Jan 2022)
-      { year: '2021', revenue: 16675000000, grossMargin: 0.63, opMargin: 0.27, netMargin: 0.26, eps: 0.17 },  // FY2021 (ending Jan 2021)
-    ],
-    'AAPL': [
-      { year: '2024', revenue: 391035000000, grossMargin: 0.46, opMargin: 0.31, netMargin: 0.25, eps: 6.42 },
-      { year: '2023', revenue: 383285000000, grossMargin: 0.44, opMargin: 0.30, netMargin: 0.25, eps: 6.13 },
-      { year: '2022', revenue: 394328000000, grossMargin: 0.43, opMargin: 0.30, netMargin: 0.25, eps: 6.11 },
-      { year: '2021', revenue: 365817000000, grossMargin: 0.42, opMargin: 0.30, netMargin: 0.26, eps: 5.61 },
-      { year: '2020', revenue: 274515000000, grossMargin: 0.38, opMargin: 0.24, netMargin: 0.21, eps: 3.28 },
-    ],
-    'MSFT': [
-      { year: '2024', revenue: 245122000000, grossMargin: 0.70, opMargin: 0.44, netMargin: 0.36, eps: 11.80 },
-      { year: '2023', revenue: 211915000000, grossMargin: 0.69, opMargin: 0.42, netMargin: 0.34, eps: 9.68 },
-      { year: '2022', revenue: 198270000000, grossMargin: 0.68, opMargin: 0.42, netMargin: 0.37, eps: 9.21 },
-      { year: '2021', revenue: 168088000000, grossMargin: 0.69, opMargin: 0.42, netMargin: 0.36, eps: 8.05 },
-      { year: '2020', revenue: 143015000000, grossMargin: 0.68, opMargin: 0.37, netMargin: 0.31, eps: 5.76 },
-    ],
-    'GOOGL': [
-      { year: '2024', revenue: 350018000000, grossMargin: 0.58, opMargin: 0.32, netMargin: 0.27, eps: 7.54 },
-      { year: '2023', revenue: 307394000000, grossMargin: 0.56, opMargin: 0.27, netMargin: 0.24, eps: 5.80 },
-      { year: '2022', revenue: 282836000000, grossMargin: 0.55, opMargin: 0.26, netMargin: 0.21, eps: 4.56 },
-      { year: '2021', revenue: 257637000000, grossMargin: 0.57, opMargin: 0.31, netMargin: 0.29, eps: 5.61 },
-      { year: '2020', revenue: 182527000000, grossMargin: 0.53, opMargin: 0.22, netMargin: 0.22, eps: 2.93 },
-    ],
-  };
-  
-  // Check if we have curated historical data for this ticker
-  if (historicalData[symbol]) {
-    return historicalData[symbol].map(data => {
-      const grossProfit = Math.round(data.revenue * data.grossMargin);
-      const costOfRevenue = Math.round(data.revenue - grossProfit);
-      const operatingIncome = Math.round(data.revenue * data.opMargin);
-      const operatingExpenses = Math.round(grossProfit - operatingIncome);
-      const netIncome = Math.round(data.revenue * data.netMargin);
-      const incomeBeforeTax = Math.round(netIncome / 0.79); // ~21% tax rate
-      const incomeTax = incomeBeforeTax - netIncome;
-      
-      return {
-        date: `${data.year}-12-31`,
-        symbol,
-        revenue: data.revenue,
-        costOfRevenue,
-        grossProfit,
-        operatingExpenses,
-        operatingIncome,
-        interestExpense: Math.round(data.revenue * 0.005),
-        otherIncome: Math.round(data.revenue * 0.002),
-        incomeBeforeTax,
-        incomeTax,
-        netIncome,
-        ebitda: Math.round(operatingIncome * 1.15),
-        eps: data.eps,
-        period: 'FY',
-      };
-    });
-  }
-  
-  // Fallback: generate estimated data for unknown tickers
-  const tickerData: Record<string, { revenue: number; grossMargin: number; opMargin: number; netMargin: number }> = {
-    'AMZN': { revenue: 574000000000, grossMargin: 0.44, opMargin: 0.06, netMargin: 0.05 },
-    'META': { revenue: 134000000000, grossMargin: 0.81, opMargin: 0.34, netMargin: 0.29 },
-    'TSLA': { revenue: 96000000000, grossMargin: 0.25, opMargin: 0.12, netMargin: 0.10 },
-    'JPM': { revenue: 128000000000, grossMargin: 0.65, opMargin: 0.38, netMargin: 0.28 },
-    'INTC': { revenue: 54000000000, grossMargin: 0.43, opMargin: 0.05, netMargin: 0.03 },
-    'AMD': { revenue: 23000000000, grossMargin: 0.50, opMargin: 0.15, netMargin: 0.12 },
-    'NFLX': { revenue: 33000000000, grossMargin: 0.42, opMargin: 0.21, netMargin: 0.17 },
-    'DIS': { revenue: 89000000000, grossMargin: 0.35, opMargin: 0.08, netMargin: 0.05 },
-  };
-  
-  const defaults = tickerData[symbol] || { revenue: 10000000000, grossMargin: 0.40, opMargin: 0.15, netMargin: 0.10 };
-  
-  const years = ['2024', '2023', '2022', '2021', '2020'];
-  const growthRates = [0.05, 0.08, 0.12, 0.15, 0.10];
-  
-  let revenue = defaults.revenue;
-  const sharesOutstanding = revenue / 50; // Rough approximation for EPS calculation
-  
-  return years.map((year, i) => {
-    const grossProfit = Math.round(revenue * defaults.grossMargin);
-    const costOfRevenue = Math.round(revenue - grossProfit);
-    const operatingIncome = Math.round(revenue * defaults.opMargin);
-    const operatingExpenses = Math.round(grossProfit - operatingIncome);
-    const interestExpense = Math.round(revenue * 0.015);
-    const otherIncome = Math.round(revenue * 0.005);
-    const incomeBeforeTax = operatingIncome - interestExpense + otherIncome;
-    const incomeTax = Math.round(incomeBeforeTax * 0.21);
-    const netIncome = incomeBeforeTax - incomeTax;
-    const eps = Math.round((netIncome / sharesOutstanding) * 100) / 100;
-    
-    const result = {
-      date: `${year}-12-31`,
-      symbol,
-      revenue,
-      costOfRevenue,
-      grossProfit,
-      operatingExpenses,
-      operatingIncome,
-      interestExpense,
-      otherIncome,
-      incomeBeforeTax,
-      incomeTax,
-      netIncome,
-      ebitda: Math.round(operatingIncome * 1.15),
-      eps,
-      period: 'FY',
-    };
-    
-    // Decrease revenue for older years
-    revenue = Math.round(revenue / (1 + growthRates[i]));
-    return result;
-  });
-}
-
+// Mock data generators (simplified - kept for fallback only)
 function generateMockProfile(symbol: string): CompanyProfile {
-  const profiles: Record<string, Partial<CompanyProfile>> = {
-    'AAPL': { companyName: 'Apple Inc.', industry: 'Consumer Electronics', sector: 'Technology', marketCap: 3500000000000 },
-    'MSFT': { companyName: 'Microsoft Corporation', industry: 'Software—Infrastructure', sector: 'Technology', marketCap: 3100000000000 },
-    'GOOGL': { companyName: 'Alphabet Inc.', industry: 'Internet Content & Information', sector: 'Communication Services', marketCap: 2300000000000 },
-    'AMZN': { companyName: 'Amazon.com Inc.', industry: 'Internet Retail', sector: 'Consumer Cyclical', marketCap: 2100000000000 },
-    'TSLA': { companyName: 'Tesla Inc.', industry: 'Auto Manufacturers', sector: 'Consumer Cyclical', marketCap: 750000000000 },
-    'INTC': { companyName: 'Intel Corporation', industry: 'Semiconductors', sector: 'Technology', marketCap: 225000000000 },
-    'AMD': { companyName: 'Advanced Micro Devices, Inc.', industry: 'Semiconductors', sector: 'Technology', marketCap: 195000000000 },
-    'NVDA': { companyName: 'NVIDIA Corporation', industry: 'Semiconductors', sector: 'Technology', marketCap: 4500000000000 },
-    'META': { companyName: 'Meta Platforms, Inc.', industry: 'Internet Content & Information', sector: 'Communication Services', marketCap: 1500000000000 },
-  };
-  
-  const profile = profiles[symbol] || { companyName: symbol, industry: 'Unknown', sector: 'Unknown', marketCap: 10000000000 };
-  
   return {
     symbol,
-    companyName: profile.companyName || symbol,
-    industry: profile.industry || 'Unknown',
-    sector: profile.sector || 'Unknown',
-    marketCap: profile.marketCap || 10000000000,
-    price: 150,
-    description: `${profile.companyName} is a publicly traded company.`,
+    companyName: symbol,
+    industry: 'Unknown',
+    sector: 'Unknown',
+    marketCap: 0,
+    price: 0,
+    description: '',
     country: 'US',
-    exchange: 'NASDAQ',
-    ceo: 'CEO Name',
-    employees: 100000,
-    website: `https://${symbol.toLowerCase()}.com`,
+    exchange: 'Unknown',
+    ceo: '',
+    employees: 0,
+    website: '',
   };
 }
 
 function generateMockSegments(symbol: string): ProductSegment[] {
-  const segmentsBySymbol: Record<string, ProductSegment[]> = {
-    'AAPL': [
-      { name: 'iPhone', revenue: 200000000000, percentage: 52 },
-      { name: 'Services', revenue: 85000000000, percentage: 22 },
-      { name: 'Mac', revenue: 35000000000, percentage: 9 },
-      { name: 'iPad', revenue: 30000000000, percentage: 8 },
-      { name: 'Wearables & Accessories', revenue: 33000000000, percentage: 9 },
-    ],
-    'MSFT': [
-      { name: 'Intelligent Cloud', revenue: 87000000000, percentage: 41 },
-      { name: 'Productivity & Business', revenue: 69000000000, percentage: 33 },
-      { name: 'Personal Computing', revenue: 55000000000, percentage: 26 },
-    ],
-    'GOOGL': [
-      { name: 'Google Search & Ads', revenue: 175000000000, percentage: 57 },
-      { name: 'YouTube Ads', revenue: 31000000000, percentage: 10 },
-      { name: 'Google Cloud', revenue: 33000000000, percentage: 11 },
-      { name: 'Google Network', revenue: 32000000000, percentage: 10 },
-      { name: 'Other Bets', revenue: 36000000000, percentage: 12 },
-    ],
-    'INTC': [
-      { name: 'Client Computing Group', revenue: 29000000000, percentage: 54 },
-      { name: 'Data Center & AI', revenue: 15000000000, percentage: 28 },
-      { name: 'Network & Edge', revenue: 5800000000, percentage: 11 },
-      { name: 'Mobileye', revenue: 2100000000, percentage: 4 },
-      { name: 'Intel Foundry', revenue: 1600000000, percentage: 3 },
-    ],
-    'AMZN': [
-      { name: 'Online Stores', revenue: 220000000000, percentage: 38 },
-      { name: 'AWS', revenue: 90000000000, percentage: 16 },
-      { name: 'Third-Party Seller Services', revenue: 140000000000, percentage: 24 },
-      { name: 'Advertising', revenue: 47000000000, percentage: 8 },
-      { name: 'Subscriptions', revenue: 40000000000, percentage: 7 },
-    ],
-    'TSLA': [
-      { name: 'Automotive Sales', revenue: 78000000000, percentage: 81 },
-      { name: 'Energy Generation', revenue: 6000000000, percentage: 6 },
-      { name: 'Automotive Leasing', revenue: 2500000000, percentage: 3 },
-      { name: 'Services & Other', revenue: 9500000000, percentage: 10 },
-    ],
-    'META': [
-      { name: 'Advertising', revenue: 131000000000, percentage: 98 },
-      { name: 'Reality Labs', revenue: 2000000000, percentage: 1 },
-      { name: 'Other Revenue', revenue: 1000000000, percentage: 1 },
-    ],
-    'NVDA': [
-      { name: 'Data Center', revenue: 47000000000, percentage: 78 },
-      { name: 'Gaming', revenue: 10000000000, percentage: 17 },
-      { name: 'Professional Visualization', revenue: 1500000000, percentage: 2 },
-      { name: 'Automotive', revenue: 1500000000, percentage: 3 },
-    ],
+  return [];
+}
+
+// Calculate financial ratios from available data
+function calculateRatios(
+  profile: CompanyProfile | null,
+  financials: IncomeStatement[],
+  balanceSheet: BalanceSheetData | null,
+  sharesOutstanding: number | null
+): FinancialRatios {
+  const ratios: FinancialRatios = {
+    priceToBook: null,
+    priceToCash: null,
+    priceToFreeCashFlow: null,
+    evToEbitda: null,
+    evToSales: null,
+    debtToEquity: null,
+    quickRatio: null,
+    currentRatio: null,
+    returnOnAssets: null,
+    returnOnEquity: null,
+    enterpriseValue: null,
+    freeCashFlow: null,
   };
-  
-  return segmentsBySymbol[symbol] || [
-    { name: 'Primary Products', revenue: 5000000000, percentage: 60 },
-    { name: 'Services', revenue: 2500000000, percentage: 30 },
-    { name: 'Other', revenue: 800000000, percentage: 10 },
-  ];
+
+  if (!profile || !balanceSheet) return ratios;
+
+  const { marketCap, price } = profile;
+  const { totalAssets, totalLiabilities, totalEquity, currentAssets, currentLiabilities, inventory, cash, longTermDebt, shortTermDebt } = balanceSheet;
+
+  // Price to Book = Market Cap / Total Equity
+  if (marketCap > 0 && totalEquity && totalEquity > 0) {
+    ratios.priceToBook = Math.round((marketCap / totalEquity) * 100) / 100;
+  }
+
+  // Price to Cash = Market Cap / Cash
+  if (marketCap > 0 && cash && cash > 0) {
+    ratios.priceToCash = Math.round((marketCap / cash) * 100) / 100;
+  }
+
+  // Debt to Equity
+  if (totalEquity && totalEquity > 0) {
+    const totalDebt = (longTermDebt || 0) + (shortTermDebt || 0);
+    if (totalDebt > 0) {
+      ratios.debtToEquity = Math.round((totalDebt / totalEquity) * 100) / 100;
+    }
+  }
+
+  // Quick Ratio = (Current Assets - Inventory) / Current Liabilities
+  if (currentAssets && currentLiabilities && currentLiabilities > 0) {
+    const quickAssets = currentAssets - (inventory || 0);
+    ratios.quickRatio = Math.round((quickAssets / currentLiabilities) * 100) / 100;
+  }
+
+  // Current Ratio
+  if (currentAssets && currentLiabilities && currentLiabilities > 0) {
+    ratios.currentRatio = Math.round((currentAssets / currentLiabilities) * 100) / 100;
+  }
+
+  // ROA = Net Income / Total Assets
+  if (financials.length > 0 && totalAssets && totalAssets > 0) {
+    const netIncome = financials[0].netIncome;
+    ratios.returnOnAssets = Math.round((netIncome / totalAssets) * 10000) / 100;
+  }
+
+  // ROE = Net Income / Total Equity
+  if (financials.length > 0 && totalEquity && totalEquity > 0) {
+    const netIncome = financials[0].netIncome;
+    ratios.returnOnEquity = Math.round((netIncome / totalEquity) * 10000) / 100;
+  }
+
+  // Enterprise Value = Market Cap + Total Debt - Cash
+  if (marketCap > 0) {
+    const totalDebt = (longTermDebt || 0) + (shortTermDebt || 0);
+    ratios.enterpriseValue = marketCap + totalDebt - (cash || 0);
+
+    // EV/EBITDA
+    if (financials.length > 0 && financials[0].ebitda > 0) {
+      ratios.evToEbitda = Math.round((ratios.enterpriseValue / financials[0].ebitda) * 100) / 100;
+    }
+
+    // EV/Sales
+    if (financials.length > 0 && financials[0].revenue > 0) {
+      ratios.evToSales = Math.round((ratios.enterpriseValue / financials[0].revenue) * 100) / 100;
+    }
+  }
+
+  return ratios;
+}
+
+// Calculate derived metrics from financials
+function calculateMetrics(financials: IncomeStatement[], quarterlyEPS: number[]): CalculatedMetrics {
+  const metrics: CalculatedMetrics = {
+    operatingMargin: null,
+    grossMargin: null,
+    netMargin: null,
+    epsGrowthYoY: null,
+    revenueGrowthYoY: null,
+    epsStdDev: null,
+  };
+
+  if (financials.length === 0) return metrics;
+
+  const latest = financials[0];
+  const { revenue, grossProfit, operatingIncome, netIncome } = latest;
+
+  // Margins
+  if (revenue > 0) {
+    if (operatingIncome) {
+      metrics.operatingMargin = Math.round((operatingIncome / revenue) * 10000) / 100;
+    }
+    if (grossProfit) {
+      metrics.grossMargin = Math.round((grossProfit / revenue) * 10000) / 100;
+    }
+    if (netIncome) {
+      metrics.netMargin = Math.round((netIncome / revenue) * 10000) / 100;
+    }
+  }
+
+  // YoY Growth
+  if (financials.length >= 2) {
+    const prior = financials[1];
+    
+    // Revenue Growth
+    if (prior.revenue > 0) {
+      metrics.revenueGrowthYoY = Math.round(((revenue - prior.revenue) / prior.revenue) * 10000) / 100;
+    }
+
+    // EPS Growth
+    if (prior.eps && prior.eps !== 0 && latest.eps) {
+      metrics.epsGrowthYoY = Math.round(((latest.eps - prior.eps) / Math.abs(prior.eps)) * 10000) / 100;
+    }
+  }
+
+  // EPS Standard Deviation (from quarterly data)
+  if (quarterlyEPS.length >= 4) {
+    metrics.epsStdDev = calculateStdDev(quarterlyEPS);
+    if (metrics.epsStdDev !== null) {
+      metrics.epsStdDev = Math.round(metrics.epsStdDev * 100) / 100;
+    }
+  }
+
+  return metrics;
+}
+
+// Calculate data quality score (1-10)
+function calculateDataQuality(
+  financials: IncomeStatement[],
+  balanceSheet: BalanceSheetData | null,
+  ratios: FinancialRatios | null,
+  metrics: CalculatedMetrics | null,
+  source: string
+): number {
+  let score = 0;
+
+  // Base score from source
+  if (source.includes('Polygon') || source.includes('SEC XBRL')) {
+    score += 3;
+  } else if (source.includes('Curated')) {
+    score += 2;
+  } else if (source.includes('Demo')) {
+    score += 0;
+  }
+
+  // Financial data completeness
+  if (financials.length >= 5) score += 2;
+  else if (financials.length >= 3) score += 1;
+
+  // Balance sheet available
+  if (balanceSheet && balanceSheet.totalAssets && balanceSheet.totalEquity) {
+    score += 2;
+  }
+
+  // Ratios calculated
+  if (ratios) {
+    const ratioCount = Object.values(ratios).filter(v => v !== null).length;
+    if (ratioCount >= 8) score += 2;
+    else if (ratioCount >= 4) score += 1;
+  }
+
+  // Metrics calculated
+  if (metrics) {
+    const metricCount = Object.values(metrics).filter(v => v !== null).length;
+    if (metricCount >= 4) score += 1;
+  }
+
+  return Math.min(10, Math.max(1, score));
 }
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return new Response('ok', { headers: corsHeaders });
   }
-
+  
   try {
-    const FMP_API_KEY = Deno.env.get("FMP_API_KEY");
-    
-    const body = await req.json().catch(() => ({}));
+    const body = await req.json();
     const action = body.action || 'fundamentals';
     
+    const FMP_API_KEY = Deno.env.get("FMP_API_KEY");
+    const POLYGON_API_KEY = Deno.env.get("POLYGON_API_KEY");
+    
     if (action === 'search') {
-      const query = body.query || '';
-      if (!query.trim()) {
-        return new Response(JSON.stringify({ success: true, results: [] }), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      }
-      
-      if (!FMP_API_KEY) {
-        // Return mock search results
-        const mockResults = ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'META', 'TSLA', 'NVDA', 'JPM']
-          .filter(s => s.toLowerCase().includes(query.toLowerCase()))
-          .map(s => ({ symbol: s, name: generateMockProfile(s).companyName, exchange: 'NASDAQ', type: 'stock' }));
-        
+      const query = body.query;
+      if (!query || !FMP_API_KEY) {
         return new Response(JSON.stringify({ 
-          success: true, 
-          results: mockResults,
-          useMockData: true,
-          source: "Demo Data",
+          success: false, 
+          error: 'Query and API key required' 
         }), {
+          status: 400,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
       
       const results = await searchSymbols(query, FMP_API_KEY);
-      return new Response(JSON.stringify({ 
-        success: true, 
+      return new Response(JSON.stringify({
+        success: true,
         results,
-        useMockData: false,
-        source: "FMP",
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
@@ -1014,167 +1174,145 @@ serve(async (req) => {
         });
       }
       
-      let useSECData = false;
-      let useMockData = false;
+      console.log(`[fmp-fundamentals] Processing fundamentals for ${symbol}`);
+      
       let profile: CompanyProfile | null = null;
       let financials: IncomeStatement[] = [];
       let estimates: AnalystEstimate[] = [];
-      let source = 'FMP';
+      let balanceSheet: BalanceSheetData | null = null;
+      let ratios: FinancialRatios | null = null;
+      let metrics: CalculatedMetrics | null = null;
+      let useMockData = false;
+      let source = 'Unknown';
+      let quarterlyEPS: number[] = [];
+      let sharesOutstanding: number | null = null;
       
+      // Fetch FMP data if available
       if (FMP_API_KEY) {
         try {
-          [profile, financials, estimates] = await Promise.all([
+          const [fmpFinancials, fmpProfile, fmpEstimates] = await Promise.all([
+            fetchIncomeStatements(symbol, FMP_API_KEY),
             fetchCompanyProfile(symbol, FMP_API_KEY),
-            fetchIncomeStatements(symbol, FMP_API_KEY).then(r => r || []),
             fetchAnalystEstimates(symbol, FMP_API_KEY),
           ]);
           
-          if (!profile && financials.length === 0) {
-            // Try SEC XBRL data instead of mock
-            useSECData = true;
+          if (fmpFinancials && fmpFinancials.length > 0) {
+            financials = fmpFinancials;
+            source = 'FMP';
           }
+          
+          if (fmpProfile) {
+            profile = fmpProfile;
+          }
+          
+          estimates = fmpEstimates;
         } catch (err) {
-          console.error(`[fmp] Error fetching ${symbol}:`, err);
-          useSECData = true;
+          console.warn(`[fmp] FMP fetch failed for ${symbol}:`, err);
         }
-      } else {
-        useSECData = true;
       }
       
-      // Fetch from SEC XBRL if FMP failed
-      if (useSECData) {
-        console.log(`[fmp] Fetching SEC data for ${symbol}...`);
-        
-        // Get Polygon API key for profile and shares data
-        const POLYGON_API_KEY = Deno.env.get("POLYGON_API_KEY") || Deno.env.get("VITE_POLYGON_API_KEY");
-        
-        let ttmEPS: number | null = null;
-        
+      // Fetch Polygon data (primary source)
+      if (POLYGON_API_KEY) {
         try {
-          // Fetch SEC financials, Polygon profile, shares, and TTM EPS in parallel
-          const [secData, polygonProfile, sharesOutstanding, polygonTTMEPS] = await Promise.all([
+          const [polygonProfile, polygonBalance, polygonShares, polygonTTMEPS, polygonQuarterlyEPS, secFinancials, secBalance] = await Promise.all([
+            fetchPolygonProfile(symbol, POLYGON_API_KEY),
+            fetchPolygonBalanceSheet(symbol, POLYGON_API_KEY),
+            fetchSharesOutstanding(symbol, POLYGON_API_KEY),
+            fetchTTMEPS(symbol, POLYGON_API_KEY),
+            fetchQuarterlyEPS(symbol, POLYGON_API_KEY),
             fetchSECFinancials(symbol),
-            POLYGON_API_KEY ? fetchPolygonProfile(symbol, POLYGON_API_KEY) : null,
-            POLYGON_API_KEY ? fetchSharesOutstanding(symbol, POLYGON_API_KEY) : null,
-            POLYGON_API_KEY ? fetchTTMEPS(symbol, POLYGON_API_KEY) : null,
+            fetchSECBalanceSheet(symbol),
           ]);
           
-          // Store TTM EPS from Polygon
-          ttmEPS = polygonTTMEPS;
+          sharesOutstanding = polygonShares;
+          quarterlyEPS = polygonQuarterlyEPS;
           
-          // Check if SEC data is current (has data from the last 2 years)
-          const currentYear = new Date().getFullYear();
-          const hasRecentData = secData.some(f => {
-            const year = parseInt(f.date.split('-')[0]);
-            return year >= currentYear - 1;
-          });
-          
-          // For major tickers with known mock data, prefer mock over outdated SEC data
-          const hasAccurateMockData = ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'META', 'TSLA', 'NVDA', 'JPM', 'INTC', 'AMD', 'NFLX', 'DIS'].includes(symbol);
-          
-          if (secData && secData.length > 0 && hasRecentData) {
-            financials = secData;
-            source = 'SEC XBRL';
-            console.log(`[fmp] Got ${secData.length} years from SEC for ${symbol} (recent data available)`);
-            
-            // Calculate EPS from net income if missing and we have shares outstanding
-            if (sharesOutstanding) {
-              for (const f of financials) {
-                if ((!f.eps || f.eps === 0) && f.netIncome) {
-                  f.eps = Math.round((f.netIncome / sharesOutstanding) * 100) / 100;
-                  console.log(`[fmp] Calculated EPS for ${symbol} ${f.date}: $${f.eps.toFixed(2)}`);
-                }
-              }
-            }
-            
-            // Use TTM EPS for the most recent financial entry (for accurate P/E calculation)
-            if (ttmEPS && financials.length > 0) {
-              financials[0].eps = ttmEPS;
-              console.log(`[fmp] Using TTM EPS for ${symbol}: $${ttmEPS.toFixed(2)}`);
-            }
-          } else if (hasAccurateMockData) {
-            // Use curated mock data for major tickers when SEC is outdated
-            useMockData = true;
-            financials = generateMockFinancials(symbol) as IncomeStatement[];
-            source = 'Curated Data';
-            console.log(`[fmp] SEC data outdated for ${symbol}; using curated financials`);
-            
-            // Override with TTM EPS if available
-            if (ttmEPS && financials.length > 0) {
-              financials[0].eps = ttmEPS;
-              console.log(`[fmp] Using TTM EPS for ${symbol}: $${ttmEPS.toFixed(2)}`);
-            }
-          } else if (secData && secData.length > 0) {
-            // Use SEC data even if old for unknown tickers
-            financials = secData;
-            source = 'SEC XBRL (Historical)';
-            console.log(`[fmp] Using historical SEC data for ${symbol}`);
-            
-            // Calculate EPS from net income if missing
-            if (sharesOutstanding) {
-              for (const f of financials) {
-                if ((!f.eps || f.eps === 0) && f.netIncome) {
-                  f.eps = Math.round((f.netIncome / sharesOutstanding) * 100) / 100;
-                }
-              }
-            }
-            
-            // Override with TTM EPS if available
-            if (ttmEPS && financials.length > 0) {
-              financials[0].eps = ttmEPS;
-            }
-          } else {
-            // Last resort: generate estimated data
-            useMockData = true;
-            financials = generateMockFinancials(symbol) as IncomeStatement[];
-            source = 'Demo Data';
-            console.warn(`[fmp] SEC returned no data for ${symbol}; using demo fallback`);
-            
-            // Override with TTM EPS if available
-            if (ttmEPS && financials.length > 0) {
-              financials[0].eps = ttmEPS;
-            }
-          }
-          
-          // Use Polygon profile data if available, otherwise fall back to mock
-          if (polygonProfile && polygonProfile.marketCap && polygonProfile.price) {
+          // Use Polygon profile if available (more accurate price/marketCap)
+          if (polygonProfile && polygonProfile.price && polygonProfile.marketCap) {
             profile = {
               symbol: polygonProfile.symbol || symbol,
-              companyName: polygonProfile.companyName || symbol,
-              industry: polygonProfile.industry || 'Unknown',
-              sector: polygonProfile.sector || 'Unknown',
+              companyName: polygonProfile.companyName || profile?.companyName || symbol,
+              industry: polygonProfile.industry || profile?.industry || 'Unknown',
+              sector: polygonProfile.sector || profile?.sector || 'Unknown',
               marketCap: polygonProfile.marketCap,
               price: polygonProfile.price,
-              description: polygonProfile.description || '',
+              description: polygonProfile.description || profile?.description || '',
               country: polygonProfile.country || 'US',
               exchange: polygonProfile.exchange || 'Unknown',
-              ceo: '',
-              employees: 0,
-              website: polygonProfile.website || '',
+              ceo: profile?.ceo || '',
+              employees: profile?.employees || 0,
+              website: polygonProfile.website || profile?.website || '',
             };
-            console.log(`[fmp] Using Polygon profile for ${symbol}: price=$${profile.price?.toFixed(2)}, marketCap=$${(profile.marketCap/1e9).toFixed(1)}B`);
-          } else if (!profile) {
-            profile = generateMockProfile(symbol);
-            console.warn(`[fmp] Using mock profile for ${symbol} - no Polygon data available`);
+            source = source === 'FMP' ? 'FMP + Polygon' : 'Polygon';
+          }
+          
+          // Use Polygon balance sheet, fallback to SEC
+          if (polygonBalance && polygonBalance.totalAssets) {
+            balanceSheet = polygonBalance;
+            console.log(`[fmp-fundamentals] Using Polygon balance sheet for ${symbol}`);
+          } else if (secBalance && secBalance.totalAssets) {
+            balanceSheet = secBalance;
+            console.log(`[fmp-fundamentals] Using SEC balance sheet for ${symbol}`);
+          }
+          
+          // If no FMP financials, use SEC
+          if (financials.length === 0 && secFinancials.length > 0) {
+            financials = secFinancials;
+            source = 'SEC XBRL';
+            console.log(`[fmp-fundamentals] Using SEC financials for ${symbol}`);
+          }
+          
+          // Update TTM EPS
+          if (polygonTTMEPS && financials.length > 0) {
+            financials[0].eps = polygonTTMEPS;
+            console.log(`[fmp-fundamentals] Using TTM EPS for ${symbol}: $${polygonTTMEPS.toFixed(2)}`);
+          }
+          
+          // Calculate EPS from net income if missing
+          if (sharesOutstanding) {
+            for (const f of financials) {
+              if ((!f.eps || f.eps === 0) && f.netIncome) {
+                f.eps = Math.round((f.netIncome / sharesOutstanding) * 100) / 100;
+              }
+            }
           }
         } catch (err) {
-          console.error(`[fmp] SEC/Polygon fetch error for ${symbol}:`, err);
-          if (!profile) profile = generateMockProfile(symbol);
-          if (financials.length === 0) {
-            useMockData = true;
-            financials = generateMockFinancials(symbol) as IncomeStatement[];
-            source = 'Demo Data';
-          }
+          console.error(`[fmp-fundamentals] Polygon/SEC fetch error for ${symbol}:`, err);
         }
       }
+      
+      // Fallback to mock if no data
+      if (!profile) {
+        profile = generateMockProfile(symbol);
+        useMockData = true;
+        source = 'Demo Data';
+      }
+      
+      if (financials.length === 0) {
+        useMockData = true;
+        source = 'Demo Data';
+      }
+      
+      // Calculate ratios and metrics
+      ratios = calculateRatios(profile, financials, balanceSheet, sharesOutstanding);
+      metrics = calculateMetrics(financials, quarterlyEPS);
+      
+      // Calculate data quality score
+      const dataQuality = calculateDataQuality(financials, balanceSheet, ratios, metrics, source);
       
       const response: FundamentalsResponse = {
         profile,
         financials,
         estimates,
+        balanceSheet,
+        ratios,
+        metrics,
         useMockData,
         source,
+        dataQuality,
       };
+      
+      console.log(`[fmp-fundamentals] ${symbol} complete: source=${source}, quality=${dataQuality}/10, hasBalanceSheet=${!!balanceSheet}, ratioCount=${Object.values(ratios || {}).filter(v => v !== null).length}`);
       
       return new Response(JSON.stringify({
         success: true,
@@ -1203,7 +1341,6 @@ serve(async (req) => {
       if (FMP_API_KEY) {
         segments = await fetchProductSegments(symbol, FMP_API_KEY);
         
-        // If no segments returned, use mock data
         if (segments.length === 0) {
           useMockData = true;
           segments = generateMockSegments(symbol);

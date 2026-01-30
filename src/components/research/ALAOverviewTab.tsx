@@ -11,12 +11,14 @@ import { EarningsImpactSection } from './EarningsImpactSection';
 import { BasicStatsData, BasicStatistics } from './BasicStatistics';
 import { CandlestickChart } from '@/components/charts/CandlestickChart';
 import { useTickerSnapshot } from '@/hooks/useTickerSnapshot';
-import { useTickerFundamentals } from '@/hooks/useTickerFundamentals';
 import { useTickerAnalystData } from '@/hooks/useTickerAnalystData';
 import { PerformanceMetricsSection } from './PerformanceMetricsSection';
 import { useProductSegments } from '@/hooks/useProductSegments';
 import { RevenueSegmentsCard } from './RevenueSegmentsCard';
-
+import { useComprehensiveFundamentals } from '@/hooks/useComprehensiveFundamentals';
+import { ComprehensiveMetricsCard } from './ComprehensiveMetricsCard';
+import { RiskPerformanceCard } from './RiskPerformanceCard';
+import { EarningsIntelCard } from './EarningsIntelCard';
 const LOOKBACK_OPTIONS = [
   { value: '90', label: '90 Days' },
   { value: '180', label: '180 Days' },
@@ -66,7 +68,7 @@ export function ALAOverviewTab({
 
   // Fetch real data from edge functions
   const { data: snapshot, isLoading: snapshotLoading, isFetching: snapshotFetching } = useTickerSnapshot(ticker, lookbackDays);
-  const { data: fundamentals, isLoading: fundLoading } = useTickerFundamentals(ticker);
+  const comprehensiveFundamentals = useComprehensiveFundamentals(ticker);
   const { data: analystData, isLoading: analystLoading } = useTickerAnalystData(ticker);
   const { data: segmentsData, isLoading: segmentsLoading } = useProductSegments(ticker);
 
@@ -196,15 +198,14 @@ export function ALAOverviewTab({
     };
   }, [snapshot]);
 
-  const isDataLoading = snapshotLoading || fundLoading || analystLoading;
+  const isDataLoading = snapshotLoading || comprehensiveFundamentals.isLoading || analystLoading;
   const analystRating = analystData?.analyst?.rating || 'Buy';
   const priceTarget = analystData?.priceTarget?.targetMean;
   const nextEarnings = analystData?.nextEarnings?.formatted;
-  const peRatio = fundamentals?.peRatio;
-  const eps = fundamentals?.eps;
-  const marketCap = fundamentals?.marketCap || quote?.marketCap;
-  const beta = snapshot?.volatility?.annualizedVolatility ? snapshot.volatility.annualizedVolatility / 15 : undefined;
-
+  const peRatio = comprehensiveFundamentals.pe;
+  const eps = comprehensiveFundamentals.eps;
+  const marketCap = comprehensiveFundamentals.marketCap || quote?.marketCap;
+  const beta = comprehensiveFundamentals.beta;
   const ratingColors: Record<string, string> = {
     'Strong Buy': 'bg-emerald-500/20 text-emerald-400',
     'Buy': 'bg-emerald-500/20 text-emerald-400',
@@ -338,33 +339,23 @@ export function ALAOverviewTab({
 
         {/* Stats Column - 1/3 width */}
         <div className="space-y-2">
-          {/* Key Financials Card */}
-          <Card className="bg-card border-border">
-            <CardContent className="p-2 space-y-2">
-              <div className="flex items-center gap-1">
-                <Building2 className="h-3 w-3 text-primary" />
-                <span className="text-[10px] md:text-xs font-medium">Key Financials</span>
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                <div className="p-1.5 bg-secondary/30 rounded text-center">
-                  <p className="text-[7px] md:text-[8px] text-muted-foreground uppercase">Mkt Cap</p>
-                  <p className="text-[10px] md:text-xs font-bold text-primary">{formatMarketCap(marketCap)}</p>
-                </div>
-                <div className="p-1.5 bg-secondary/30 rounded text-center">
-                  <p className="text-[7px] md:text-[8px] text-muted-foreground uppercase">EPS</p>
-                  <p className="text-[10px] md:text-xs font-bold">{eps ? `$${eps.toFixed(2)}` : '—'}</p>
-                </div>
-                <div className="p-1.5 bg-secondary/30 rounded text-center">
-                  <p className="text-[7px] md:text-[8px] text-muted-foreground uppercase">P/E Ratio</p>
-                  <p className="text-[10px] md:text-xs font-bold">{peRatio ? peRatio.toFixed(2) : '—'}</p>
-                </div>
-                <div className="p-1.5 bg-secondary/30 rounded text-center">
-                  <p className="text-[7px] md:text-[8px] text-muted-foreground uppercase">Earnings</p>
-                  <p className="text-[10px] md:text-xs font-bold">{nextEarnings || '—'}</p>
-                </div>
-            </div>
-            </CardContent>
-          </Card>
+          {/* Comprehensive Metrics Card */}
+          <ComprehensiveMetricsCard 
+            data={comprehensiveFundamentals} 
+            isLoading={comprehensiveFundamentals.isLoading} 
+          />
+
+          {/* Risk & Performance Card */}
+          <RiskPerformanceCard 
+            data={comprehensiveFundamentals} 
+            isLoading={comprehensiveFundamentals.isLoading} 
+          />
+
+          {/* Earnings Intelligence Card */}
+          <EarningsIntelCard 
+            data={comprehensiveFundamentals} 
+            isLoading={comprehensiveFundamentals.isLoading} 
+          />
 
           {/* Revenue by Segment Card */}
           <RevenueSegmentsCard 
