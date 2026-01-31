@@ -61,23 +61,11 @@ export function VisualStrategyBuilder({
   // Generate unique ID
   const generateId = () => `block-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
-  // Handle drag end from palette to canvas
-  const handleDragEnd = useCallback((result: DropResult) => {
-    const { destination, draggableId } = result;
-
-    // Dropped outside
-    if (!destination) return;
-
-    // Only handle drops onto canvas
-    if (destination.droppableId !== 'canvas') return;
-
-    // Extract subtype from draggableId (palette-{SUBTYPE})
-    const subtype = draggableId.replace('palette-', '') as BlockSubtype;
+  // Add block (shared by drag-drop and click-to-add)
+  const addBlockToCanvas = useCallback((subtype: BlockSubtype) => {
     const paletteBlock = ALL_PALETTE_BLOCKS.find(b => b.subtype === subtype);
-
     if (!paletteBlock) return;
 
-    // Create new canvas block
     const newBlock: CanvasBlock = {
       id: generateId(),
       type: paletteBlock.type,
@@ -91,8 +79,28 @@ export function VisualStrategyBuilder({
     };
 
     setBlocks(prev => [...prev, newBlock]);
-    setShowOnboarding(false); // Hide onboarding once user starts building
+    setShowOnboarding(false);
   }, [blocks.length, setBlocks]);
+
+  // Handle drag end from palette to canvas
+  const handleDragEnd = useCallback((result: DropResult) => {
+    const { destination, draggableId } = result;
+
+    // Dropped outside
+    if (!destination) return;
+
+    // Only handle drops onto canvas
+    if (destination.droppableId !== 'canvas') return;
+
+    // Extract subtype from draggableId (palette-{SUBTYPE})
+    const subtype = draggableId.replace('palette-', '') as BlockSubtype;
+    addBlockToCanvas(subtype);
+  }, [addBlockToCanvas]);
+
+  // Handle click to add block
+  const handleAddBlock = useCallback((subtype: BlockSubtype) => {
+    addBlockToCanvas(subtype);
+  }, [addBlockToCanvas]);
 
   // Update block position
   const handleUpdateBlockPosition = useCallback((id: string, position: { x: number; y: number }) => {
@@ -304,7 +312,7 @@ export function VisualStrategyBuilder({
             )}
             
             {/* Palette (compact) */}
-            <BlockPalette className="border-b border-[rgb(33,38,45)] shrink-0" compact />
+            <BlockPalette className="border-b border-[rgb(33,38,45)] shrink-0" compact onAddBlock={handleAddBlock} />
             
             {/* Canvas */}
             <StrategyCanvas
@@ -400,7 +408,7 @@ export function VisualStrategyBuilder({
         {/* Main 3-panel layout */}
         <div className="flex flex-1 overflow-hidden">
           {/* Left: Block Palette */}
-          <BlockPalette className="w-64 shrink-0" />
+          <BlockPalette className="w-64 shrink-0" onAddBlock={handleAddBlock} />
 
           {/* Center: Strategy Canvas OR Onboarding */}
           <div className="flex-1 flex flex-col relative">
