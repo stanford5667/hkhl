@@ -79,22 +79,23 @@ export const CanvasBlockComponent = memo(function CanvasBlockComponent({
       style={{
         left: block.position.x,
         top: block.position.y,
-        minWidth: 160,
+        minWidth: hasParameters ? 180 : 140,
+        maxWidth: 220,
       }}
       onClick={handleClick}
     >
-      {/* Header */}
-      <div className="flex items-center gap-2 px-3 py-2 border-b border-border/50">
-        <GripVertical className="h-3 w-3 text-muted-foreground cursor-grab" />
-        <span className="text-lg">{paletteBlock.icon}</span>
-        <span className="text-sm font-medium flex-1 truncate">{paletteBlock.label}</span>
+      {/* Compact header */}
+      <div className="flex items-center gap-1.5 px-2 py-1.5">
+        <GripVertical className="h-3 w-3 text-muted-foreground/50 cursor-grab shrink-0" />
+        <span className="text-base">{paletteBlock.icon}</span>
+        <span className="text-xs font-semibold flex-1 truncate">{paletteBlock.label}</span>
         <Button
           variant="ghost"
           size="icon"
-          className="h-5 w-5 hover:bg-destructive/20 shrink-0"
+          className="h-4 w-4 hover:bg-destructive/20 shrink-0 opacity-50 hover:opacity-100"
           onClick={handleDelete}
         >
-          <X className="h-3 w-3" />
+          <X className="h-2.5 w-2.5" />
         </Button>
       </div>
 

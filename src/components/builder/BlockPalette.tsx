@@ -1,16 +1,14 @@
 /**
  * Block Palette Component
  * 
- * Left panel containing draggable strategy blocks organized by category.
- * Now includes tooltips and connection hints for better UX.
+ * Left panel with clear step-by-step flow for building strategies.
+ * Visual numbered workflow: 1→2→3→4 makes the process intuitive.
  */
 
 import { memo } from 'react';
 import { Draggable, Droppable } from '@hello-pangea/dnd';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { Badge } from '@/components/ui/badge';
-import { ChevronDown, Info } from 'lucide-react';
+import { ChevronRight, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
   INDICATOR_BLOCKS,
@@ -20,7 +18,6 @@ import {
   ACTION_BLOCKS,
 } from '@/lib/strategyBuilder/templates';
 import type { PaletteBlock, BlockSubtype } from '@/lib/strategyBuilder/types';
-import { BlockTooltip } from './BlockTooltip';
 
 export interface BlockPaletteProps {
   className?: string;
@@ -28,179 +25,176 @@ export interface BlockPaletteProps {
   onAddBlock?: (subtype: BlockSubtype) => void;
 }
 
-interface BlockCategoryProps {
+interface StepCategoryProps {
+  stepNumber: number;
   title: string;
-  icon: string;
+  subtitle: string;
   blocks: PaletteBlock[];
   droppableId: string;
   compact?: boolean;
-  hint?: string;
-  step?: number;
+  isOptional?: boolean;
   onAddBlock?: (subtype: BlockSubtype) => void;
 }
 
-const BlockCategory = memo(function BlockCategory({ 
+const StepCategory = memo(function StepCategory({ 
+  stepNumber,
   title, 
-  icon, 
+  subtitle,
   blocks, 
   droppableId, 
   compact,
-  hint,
-  step,
+  isOptional,
   onAddBlock,
-}: BlockCategoryProps) {
+}: StepCategoryProps) {
   return (
-    <Collapsible defaultOpen={!compact} className="border-b border-border/50 last:border-b-0">
-      <CollapsibleTrigger className={cn(
-        "flex items-center gap-2 w-full hover:bg-accent/50 transition-colors group",
+    <div className="relative">
+      {/* Step indicator */}
+      <div className={cn(
+        "flex items-center gap-2 border-b border-border/30",
         compact ? "px-2 py-1.5" : "px-3 py-2"
       )}>
-        <span className={compact ? "text-sm" : ""}>{icon}</span>
-        <span className={cn("font-medium flex-1 text-left", compact ? "text-xs" : "text-sm")}>
-          {title}
-        </span>
-        {step && !compact && (
-          <Badge variant="outline" className="text-[10px] h-4 px-1.5 opacity-60 group-hover:opacity-100">
-            Step {step}
-          </Badge>
-        )}
-        <ChevronDown className={cn(
-          "transition-transform duration-200 [[data-state=open]>&]:rotate-180", 
-          compact ? "h-3 w-3" : "h-4 w-4"
-        )} />
-      </CollapsibleTrigger>
-      <CollapsibleContent>
-        {/* Category hint */}
-        {hint && !compact && (
-          <div className="px-3 pb-2 text-[10px] text-muted-foreground flex items-start gap-1.5">
-            <Info className="h-3 w-3 mt-0.5 shrink-0" />
-            <span>{hint}</span>
+        <div className={cn(
+          "flex items-center justify-center rounded-full font-bold text-primary-foreground shrink-0",
+          isOptional ? "bg-muted text-muted-foreground" : "bg-primary",
+          compact ? "h-5 w-5 text-[10px]" : "h-6 w-6 text-xs"
+        )}>
+          {stepNumber}
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className={cn("font-semibold truncate", compact ? "text-[10px]" : "text-xs")}>
+            {title}
+            {isOptional && <span className="text-muted-foreground font-normal ml-1">(optional)</span>}
+          </p>
+          {!compact && (
+            <p className="text-[10px] text-muted-foreground truncate">{subtitle}</p>
+          )}
+        </div>
+      </div>
+      
+      {/* Blocks grid - more compact, easier to scan */}
+      <Droppable droppableId={droppableId} isDropDisabled>
+        {(provided) => (
+          <div
+            ref={provided.innerRef}
+            {...provided.droppableProps}
+            className={cn(
+              "grid gap-1",
+              compact ? "grid-cols-1 p-1" : "grid-cols-2 p-2"
+            )}
+          >
+            {blocks.map((block, index) => (
+              <Draggable
+                key={`${droppableId}-${block.subtype}`}
+                draggableId={`palette-${block.subtype}`}
+                index={index}
+              >
+                {(provided, snapshot) => {
+                  const handleClick = (e: React.MouseEvent) => {
+                    if (snapshot.isDragging) return;
+                    e.stopPropagation();
+                    onAddBlock?.(block.subtype);
+                  };
+
+                  return (
+                    <div
+                      ref={provided.innerRef}
+                      {...provided.draggableProps}
+                      {...provided.dragHandleProps}
+                      onClick={handleClick}
+                      className={cn(
+                        "flex items-center gap-1.5 rounded border cursor-pointer group",
+                        "transition-all duration-150",
+                        "hover:ring-2 hover:ring-primary/50 hover:shadow-sm",
+                        block.color,
+                        snapshot.isDragging && "shadow-lg ring-2 ring-primary",
+                        compact ? "px-1.5 py-1" : "px-2 py-1.5"
+                      )}
+                    >
+                      <span className={compact ? "text-xs" : "text-sm"}>{block.icon}</span>
+                      <span className={cn(
+                        "font-medium truncate flex-1",
+                        compact ? "text-[10px]" : "text-xs"
+                      )}>
+                        {block.label}
+                      </span>
+                      <Plus className={cn(
+                        "shrink-0 opacity-0 group-hover:opacity-100 transition-opacity text-primary",
+                        compact ? "h-2.5 w-2.5" : "h-3 w-3"
+                      )} />
+                    </div>
+                  );
+                }}
+              </Draggable>
+            ))}
+            {provided.placeholder}
           </div>
         )}
-        <Droppable droppableId={droppableId} isDropDisabled>
-          {(provided) => (
-            <div
-              ref={provided.innerRef}
-              {...provided.droppableProps}
-              className={cn("space-y-1", compact ? "px-1.5 pb-1.5" : "px-2 pb-2")}
-            >
-              {blocks.map((block, index) => (
-                <Draggable
-                  key={`${droppableId}-${block.subtype}`}
-                  draggableId={`palette-${block.subtype}`}
-                  index={index}
-                >
-                  {(provided, snapshot) => {
-                    const handleClick = (e: React.MouseEvent) => {
-                      // Don't trigger click when dragging
-                      if (snapshot.isDragging) return;
-                      e.stopPropagation();
-                      onAddBlock?.(block.subtype);
-                    };
+      </Droppable>
+    </div>
+  );
+});
 
-                    const blockElement = (
-                      <div
-                        ref={provided.innerRef}
-                        {...provided.draggableProps}
-                        {...provided.dragHandleProps}
-                        onClick={handleClick}
-                        className={cn(
-                          "flex items-center gap-2 rounded-md border cursor-pointer",
-                          "transition-all duration-150 hover:ring-2 hover:ring-primary/50",
-                          block.color,
-                          snapshot.isDragging && "shadow-lg ring-2 ring-primary opacity-90",
-                          compact ? "px-2 py-1" : "px-3 py-2"
-                        )}
-                        title="Click to add or drag to canvas"
-                      >
-                        <span className={compact ? "text-sm" : "text-base"}>{block.icon}</span>
-                        <div className="flex-1 min-w-0">
-                          <p className={cn("font-medium truncate", compact ? "text-xs" : "text-sm")}>
-                            {block.label}
-                          </p>
-                          {!compact && (
-                            <p className="text-xs text-muted-foreground truncate">{block.description}</p>
-                          )}
-                        </div>
-                      </div>
-                    );
-
-                    // Wrap with tooltip in non-compact mode
-                    if (!compact) {
-                      return (
-                        <BlockTooltip
-                          blockType={block.type}
-                          blockLabel={block.label}
-                          description={block.description}
-                        >
-                          {blockElement}
-                        </BlockTooltip>
-                      );
-                    }
-                    return blockElement;
-                  }}
-                </Draggable>
-              ))}
-              {provided.placeholder}
-            </div>
-          )}
-        </Droppable>
-      </CollapsibleContent>
-    </Collapsible>
+// Flow arrow between steps
+const FlowArrow = memo(function FlowArrow({ compact }: { compact?: boolean }) {
+  if (compact) return null;
+  return (
+    <div className="flex justify-center py-0.5">
+      <ChevronRight className="h-3 w-3 text-muted-foreground/50 rotate-90" />
+    </div>
   );
 });
 
 export const BlockPalette = memo(function BlockPalette({ className, compact, onAddBlock }: BlockPaletteProps) {
-  // In compact mode, avoid nested ScrollArea to fix @hello-pangea/dnd issues
   const content = (
-    <div className="divide-y divide-border/50">
-      <BlockCategory
-        title="Indicators"
-        icon="📊"
+    <div>
+      <StepCategory
+        stepNumber={1}
+        title="Pick an Indicator"
+        subtitle="What signal will trigger trades?"
         blocks={INDICATOR_BLOCKS}
         droppableId="palette-indicators"
         compact={compact}
-        step={1}
-        hint="Start here! Indicators measure market conditions like momentum or trend."
         onAddBlock={onAddBlock}
       />
-      <BlockCategory
-        title="Conditions"
-        icon="🎯"
+      <FlowArrow compact={compact} />
+      <StepCategory
+        stepNumber={2}
+        title="Set a Condition"
+        subtitle="When should it trigger?"
         blocks={CONDITION_BLOCKS}
         droppableId="palette-conditions"
         compact={compact}
-        step={2}
-        hint="Set thresholds for your indicators (e.g., RSI < 30 = oversold)."
         onAddBlock={onAddBlock}
       />
-      <BlockCategory
-        title="Logic"
-        icon="🔗"
-        blocks={LOGIC_BLOCKS}
-        droppableId="palette-logic"
-        compact={compact}
-        onAddBlock={onAddBlock}
-        hint="Optional: Combine multiple conditions with AND/OR."
-      />
-      <BlockCategory
-        title="Actions"
-        icon="✅"
+      <FlowArrow compact={compact} />
+      <StepCategory
+        stepNumber={3}
+        title="Add Action"
+        subtitle="BUY when condition is met"
         blocks={ACTION_BLOCKS}
         droppableId="palette-actions"
         compact={compact}
-        step={3}
-        hint="Connect your conditions to a BUY signal to enter trades."
         onAddBlock={onAddBlock}
       />
-      <BlockCategory
+      <FlowArrow compact={compact} />
+      <StepCategory
+        stepNumber={4}
         title="Exit Rules"
-        icon="🛑"
+        subtitle="Take profit & stop loss"
         blocks={EXIT_BLOCKS}
         droppableId="palette-exits"
         compact={compact}
-        step={4}
-        hint="Set profit targets and stop losses. These apply automatically!"
+        onAddBlock={onAddBlock}
+      />
+      <FlowArrow compact={compact} />
+      <StepCategory
+        stepNumber={5}
+        title="Combine Logic"
+        subtitle="AND/OR multiple conditions"
+        blocks={LOGIC_BLOCKS}
+        droppableId="palette-logic"
+        compact={compact}
+        isOptional
         onAddBlock={onAddBlock}
       />
     </div>
@@ -212,14 +206,20 @@ export const BlockPalette = memo(function BlockPalette({ className, compact, onA
       compact ? "max-h-48" : "h-full",
       className
     )}>
-      <div className={cn("border-b border-border", compact ? "px-2 py-1.5" : "px-4 py-3")}>
-        <h2 className={cn("font-semibold", compact ? "text-xs" : "text-sm")}>Strategy Blocks</h2>
+      <div className={cn(
+        "border-b border-border bg-muted/30",
+        compact ? "px-2 py-1.5" : "px-3 py-2"
+      )}>
+        <h2 className={cn("font-bold", compact ? "text-xs" : "text-sm")}>
+          Build Your Strategy
+        </h2>
         {!compact && (
-          <p className="text-xs text-muted-foreground">Click or drag blocks to canvas</p>
+          <p className="text-[10px] text-muted-foreground mt-0.5">
+            Follow steps 1→4. Click or drag to add.
+          </p>
         )}
       </div>
       
-      {/* In compact mode, use simple overflow-y-auto to avoid nested scroll issues with dnd */}
       {compact ? (
         <div className="flex-1 overflow-y-auto">
           {content}
