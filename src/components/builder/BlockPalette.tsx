@@ -19,12 +19,13 @@ import {
   EXIT_BLOCKS,
   ACTION_BLOCKS,
 } from '@/lib/strategyBuilder/templates';
-import type { PaletteBlock } from '@/lib/strategyBuilder/types';
+import type { PaletteBlock, BlockSubtype } from '@/lib/strategyBuilder/types';
 import { BlockTooltip } from './BlockTooltip';
 
 export interface BlockPaletteProps {
   className?: string;
   compact?: boolean;
+  onAddBlock?: (subtype: BlockSubtype) => void;
 }
 
 interface BlockCategoryProps {
@@ -35,6 +36,7 @@ interface BlockCategoryProps {
   compact?: boolean;
   hint?: string;
   step?: number;
+  onAddBlock?: (subtype: BlockSubtype) => void;
 }
 
 const BlockCategory = memo(function BlockCategory({ 
@@ -45,6 +47,7 @@ const BlockCategory = memo(function BlockCategory({
   compact,
   hint,
   step,
+  onAddBlock,
 }: BlockCategoryProps) {
   return (
     <Collapsible defaultOpen={!compact} className="border-b border-border/50 last:border-b-0">
@@ -88,18 +91,27 @@ const BlockCategory = memo(function BlockCategory({
                   index={index}
                 >
                   {(provided, snapshot) => {
+                    const handleClick = (e: React.MouseEvent) => {
+                      // Don't trigger click when dragging
+                      if (snapshot.isDragging) return;
+                      e.stopPropagation();
+                      onAddBlock?.(block.subtype);
+                    };
+
                     const blockElement = (
                       <div
                         ref={provided.innerRef}
                         {...provided.draggableProps}
                         {...provided.dragHandleProps}
+                        onClick={handleClick}
                         className={cn(
-                          "flex items-center gap-2 rounded-md border cursor-grab",
-                          "transition-all duration-150",
+                          "flex items-center gap-2 rounded-md border cursor-pointer",
+                          "transition-all duration-150 hover:ring-2 hover:ring-primary/50",
                           block.color,
                           snapshot.isDragging && "shadow-lg ring-2 ring-primary opacity-90",
                           compact ? "px-2 py-1" : "px-3 py-2"
                         )}
+                        title="Click to add or drag to canvas"
                       >
                         <span className={compact ? "text-sm" : "text-base"}>{block.icon}</span>
                         <div className="flex-1 min-w-0">
@@ -138,7 +150,7 @@ const BlockCategory = memo(function BlockCategory({
   );
 });
 
-export const BlockPalette = memo(function BlockPalette({ className, compact }: BlockPaletteProps) {
+export const BlockPalette = memo(function BlockPalette({ className, compact, onAddBlock }: BlockPaletteProps) {
   // In compact mode, avoid nested ScrollArea to fix @hello-pangea/dnd issues
   const content = (
     <div className="divide-y divide-border/50">
@@ -150,6 +162,7 @@ export const BlockPalette = memo(function BlockPalette({ className, compact }: B
         compact={compact}
         step={1}
         hint="Start here! Indicators measure market conditions like momentum or trend."
+        onAddBlock={onAddBlock}
       />
       <BlockCategory
         title="Conditions"
@@ -159,6 +172,7 @@ export const BlockPalette = memo(function BlockPalette({ className, compact }: B
         compact={compact}
         step={2}
         hint="Set thresholds for your indicators (e.g., RSI < 30 = oversold)."
+        onAddBlock={onAddBlock}
       />
       <BlockCategory
         title="Logic"
@@ -166,6 +180,7 @@ export const BlockPalette = memo(function BlockPalette({ className, compact }: B
         blocks={LOGIC_BLOCKS}
         droppableId="palette-logic"
         compact={compact}
+        onAddBlock={onAddBlock}
         hint="Optional: Combine multiple conditions with AND/OR."
       />
       <BlockCategory
@@ -176,6 +191,7 @@ export const BlockPalette = memo(function BlockPalette({ className, compact }: B
         compact={compact}
         step={3}
         hint="Connect your conditions to a BUY signal to enter trades."
+        onAddBlock={onAddBlock}
       />
       <BlockCategory
         title="Exit Rules"
@@ -185,6 +201,7 @@ export const BlockPalette = memo(function BlockPalette({ className, compact }: B
         compact={compact}
         step={4}
         hint="Set profit targets and stop losses. These apply automatically!"
+        onAddBlock={onAddBlock}
       />
     </div>
   );
@@ -198,7 +215,7 @@ export const BlockPalette = memo(function BlockPalette({ className, compact }: B
       <div className={cn("border-b border-border", compact ? "px-2 py-1.5" : "px-4 py-3")}>
         <h2 className={cn("font-semibold", compact ? "text-xs" : "text-sm")}>Strategy Blocks</h2>
         {!compact && (
-          <p className="text-xs text-muted-foreground">Drag blocks to canvas • Hover for tips</p>
+          <p className="text-xs text-muted-foreground">Click or drag blocks to canvas</p>
         )}
       </div>
       
