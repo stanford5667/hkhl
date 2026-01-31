@@ -70,32 +70,40 @@ export const BlockParameterEditor = memo(function BlockParameterEditor({
     return null;
   }
 
-  // Compact inline display showing current values
-  const currentValueDisplay = parameterConfig
-    .map(config => {
-      const val = parameters[config.key] ?? config.min;
-      return `${val}${config.suffix || ''}`;
-    })
-    .join(', ');
-
   return (
     <Popover open={isOpen} onOpenChange={handleOpenChange}>
       <PopoverTrigger asChild>
-        <Button
-          variant="ghost"
-          size="sm"
+        <div
           className={cn(
-            "w-full justify-between gap-2 h-auto py-1.5 px-2",
-            "text-xs hover:bg-background/50",
-            "border border-border/50 rounded"
+            "w-full rounded-md cursor-pointer",
+            "hover:bg-background/60 transition-colors",
+            "border border-dashed border-primary/30 hover:border-primary/60"
           )}
           onClick={(e) => e.stopPropagation()}
         >
-          <span className="text-muted-foreground truncate">
-            {currentValueDisplay}
-          </span>
-          <Settings2 className="h-3 w-3 shrink-0 text-muted-foreground" />
-        </Button>
+          {/* Show each parameter prominently */}
+          <div className="space-y-1 p-1.5">
+            {parameterConfig.map(config => {
+              const val = parameters[config.key] ?? config.min;
+              return (
+                <div key={config.key} className="flex items-center justify-between gap-2">
+                  <span className="text-[10px] text-muted-foreground truncate">
+                    {config.label}
+                  </span>
+                  <div className="flex items-center gap-1">
+                    <span className="text-xs font-semibold text-primary">
+                      {val}{config.suffix || ''}
+                    </span>
+                    <Settings2 className="h-2.5 w-2.5 text-muted-foreground" />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          <div className="text-[9px] text-center text-muted-foreground pb-1">
+            tap to adjust
+          </div>
+        </div>
       </PopoverTrigger>
       
       <PopoverContent 
