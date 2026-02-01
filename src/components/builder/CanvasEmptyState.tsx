@@ -26,23 +26,39 @@ export const CanvasEmptyState = memo(function CanvasEmptyState({
   if (compact) {
     return (
       <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none text-center p-4">
-        <div className="pointer-events-auto space-y-3">
-          <div className="flex items-center gap-2 text-muted-foreground mb-2">
-            <GripVertical className="h-4 w-4" />
-            <span className="text-sm">Drag blocks here</span>
+        <div className="pointer-events-auto space-y-4 max-w-xs">
+          {/* Clear primary action */}
+          <div className="space-y-2">
+            <div className="inline-flex items-center justify-center p-3 rounded-xl bg-primary/10 border-2 border-dashed border-primary/40">
+              <MousePointerClick className="h-8 w-8 text-primary" />
+            </div>
+            <h3 className="text-base font-semibold">Start Building</h3>
+            <p className="text-xs text-muted-foreground">
+              Tap <strong>"Add"</strong> below to add your first block
+            </p>
           </div>
           
-          <p className="text-xs text-muted-foreground">or</p>
+          {/* Quick flow hint */}
+          <div className="flex items-center justify-center gap-1 text-[10px] text-muted-foreground">
+            <span className="px-2 py-0.5 rounded bg-blue-500/20 text-blue-400">Indicator</span>
+            <ArrowRight className="h-3 w-3" />
+            <span className="px-2 py-0.5 rounded bg-amber-500/20 text-amber-400">Condition</span>
+            <ArrowRight className="h-3 w-3" />
+            <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400">Action</span>
+          </div>
           
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => onLoadTemplate(featuredTemplate)}
-            className="gap-2"
-          >
-            <Sparkles className="h-3 w-3" />
-            Try RSI Bounce Template
-          </Button>
+          {/* Or use template */}
+          <div className="pt-2">
+            <Button
+              variant="default"
+              size="sm"
+              onClick={() => onLoadTemplate(featuredTemplate)}
+              className="gap-2 w-full"
+            >
+              <Sparkles className="h-4 w-4" />
+              Quick Start: RSI Bounce
+            </Button>
+          </div>
         </div>
       </div>
     );

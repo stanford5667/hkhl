@@ -248,6 +248,17 @@ export const StrategyCanvas = memo(function StrategyCanvas({
             />
           )}
 
+          {/* Persistent step indicator when blocks exist */}
+          {blocks.length > 0 && compact && (
+            <div className="absolute top-2 left-2 right-2 flex items-center justify-center gap-1 px-3 py-1.5 bg-card/90 backdrop-blur-sm rounded-lg border border-border/50 text-[10px] text-muted-foreground">
+              <span className="px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-400 font-medium">1. Indicator</span>
+              <span>→</span>
+              <span className="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400 font-medium">2. Condition</span>
+              <span>→</span>
+              <span className="px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400 font-medium">3. Action</span>
+            </div>
+          )}
+
           {/* Connection hint when dragging */}
           {isConnecting && (
             <div className="absolute bottom-4 left-1/2 -translate-x-1/2 px-4 py-2 bg-primary text-primary-foreground text-sm rounded-full shadow-lg animate-pulse">

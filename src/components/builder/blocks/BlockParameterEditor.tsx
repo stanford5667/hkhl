@@ -70,6 +70,12 @@ export const BlockParameterEditor = memo(function BlockParameterEditor({
     return null;
   }
 
+  // For inline slider mode (single parameter, common case)
+  const showInlineSlider = parameterConfig.length === 1;
+  const firstConfig = parameterConfig[0];
+  const firstValue = parameters[firstConfig?.key] ?? firstConfig?.min ?? 0;
+  const numFirstValue = typeof firstValue === 'number' ? firstValue : parseFloat(String(firstValue)) || 0;
+
   return (
     <Popover open={isOpen} onOpenChange={handleOpenChange}>
       <PopoverTrigger asChild>
@@ -77,32 +83,64 @@ export const BlockParameterEditor = memo(function BlockParameterEditor({
           className={cn(
             "w-full rounded-md cursor-pointer",
             "hover:bg-background/60 transition-colors",
-            "border border-dashed border-primary/30 hover:border-primary/60"
+            "border border-dashed border-primary/30 hover:border-primary/60",
+            "p-2"
           )}
           onClick={(e) => e.stopPropagation()}
         >
-          {/* Show each parameter prominently */}
-          <div className="space-y-1 p-1.5">
-            {parameterConfig.map(config => {
-              const val = parameters[config.key] ?? config.min;
-              return (
-                <div key={config.key} className="flex items-center justify-between gap-2">
-                  <span className="text-[10px] text-muted-foreground truncate">
-                    {config.label}
-                  </span>
-                  <div className="flex items-center gap-1">
-                    <span className="text-xs font-semibold text-primary">
-                      {val}{config.suffix || ''}
-                    </span>
-                    <Settings2 className="h-2.5 w-2.5 text-muted-foreground" />
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-          <div className="text-[9px] text-center text-muted-foreground pb-1">
-            tap to adjust
-          </div>
+          {/* Inline slider for single-param blocks */}
+          {showInlineSlider && firstConfig ? (
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] text-muted-foreground">
+                  {firstConfig.label}
+                </span>
+                <span className="text-xs font-bold text-primary">
+                  {numFirstValue}{firstConfig.suffix || ''}
+                </span>
+              </div>
+              <Slider
+                value={[numFirstValue]}
+                onValueChange={(values) => {
+                  onParameterChange(blockId, firstConfig.key, values[0]);
+                }}
+                min={firstConfig.min ?? 0}
+                max={firstConfig.max ?? 100}
+                step={firstConfig.step ?? 1}
+                className="w-full"
+                onClick={(e) => e.stopPropagation()}
+              />
+              <div className="flex justify-between text-[9px] text-muted-foreground">
+                <span>{firstConfig.min ?? 0}</span>
+                <span>{firstConfig.max ?? 100}</span>
+              </div>
+            </div>
+          ) : (
+            /* Multi-param blocks show summary + tap hint */
+            <>
+              <div className="space-y-1">
+                {parameterConfig.map(config => {
+                  const val = parameters[config.key] ?? config.min;
+                  return (
+                    <div key={config.key} className="flex items-center justify-between gap-2">
+                      <span className="text-[10px] text-muted-foreground truncate">
+                        {config.label}
+                      </span>
+                      <div className="flex items-center gap-1">
+                        <span className="text-xs font-semibold text-primary">
+                          {val}{config.suffix || ''}
+                        </span>
+                        <Settings2 className="h-2.5 w-2.5 text-muted-foreground" />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="text-[9px] text-center text-muted-foreground pt-1">
+                tap to adjust all
+              </div>
+            </>
+          )}
         </div>
       </PopoverTrigger>
       
