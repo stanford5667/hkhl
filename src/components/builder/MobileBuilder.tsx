@@ -256,19 +256,19 @@ export const MobileBuilder = memo(function MobileBuilder({
             </TabsContent>
           </div>
 
-          {/* Bottom Tab Bar */}
+          {/* Bottom Tab Bar - Renamed for clarity: Build, Add, Run */}
           <TabsList className="grid grid-cols-3 h-14 rounded-none border-t bg-card">
             <TabsTrigger value="canvas" className="flex flex-col gap-0.5 h-full data-[state=active]:bg-primary/10">
               <LayoutGrid className="h-4 w-4" />
-              <span className="text-[10px]">Canvas</span>
+              <span className="text-[10px] font-medium">Build</span>
             </TabsTrigger>
             <TabsTrigger value="blocks" className="flex flex-col gap-0.5 h-full data-[state=active]:bg-primary/10">
               <Layers className="h-4 w-4" />
-              <span className="text-[10px]">Blocks</span>
+              <span className="text-[10px] font-medium">Add</span>
             </TabsTrigger>
             <TabsTrigger value="summary" className="flex flex-col gap-0.5 h-full data-[state=active]:bg-primary/10">
               <FileText className="h-4 w-4" />
-              <span className="text-[10px]">Config</span>
+              <span className="text-[10px] font-medium">Run</span>
             </TabsTrigger>
           </TabsList>
         </Tabs>
