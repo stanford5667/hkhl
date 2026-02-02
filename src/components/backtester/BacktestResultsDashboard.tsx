@@ -138,6 +138,17 @@ export interface BacktestResultData {
   totalCommissionCost?: number;
   theoreticalMetrics?: { totalReturn: number; winRate: number; sharpeRatio: number };
   realisticMetrics?: { totalReturn: number; winRate: number; sharpeRatio: number };
+
+  // Integrity + labeling (provided by backend)
+  dataWindow?: {
+    requestedStartDate: string;
+    requestedEndDate: string;
+    effectiveStartDate: string;
+    effectiveEndDate: string;
+    lastAvailableBarDate: string;
+    wasEndDateClamped: boolean;
+    isForwardSimulated: boolean;
+  };
 }
 
 interface BacktestResultsDashboardProps {
@@ -614,6 +625,21 @@ export function BacktestResultsDashboard({ result, compact = false }: BacktestRe
               <p className="text-sm text-muted-foreground">
                 {format(new Date(result.startDate), 'MMM dd, yyyy')} → {format(new Date(result.endDate), 'MMM dd, yyyy')} • {result.tradingDays} trading days
               </p>
+
+              {result.dataWindow && (result.dataWindow.wasEndDateClamped || result.dataWindow.isForwardSimulated) && (
+                <div className="mt-2 flex flex-wrap items-center gap-2">
+                  {result.dataWindow.wasEndDateClamped && (
+                    <Badge variant="secondary" className="text-xs">
+                      Clamped to last real bar ({result.dataWindow.effectiveEndDate})
+                    </Badge>
+                  )}
+                  {result.dataWindow.isForwardSimulated && (
+                    <Badge variant="destructive" className="text-xs">
+                      Forward simulated
+                    </Badge>
+                  )}
+                </div>
+              )}
             </div>
             <div className="text-right">
               <div className="flex items-center gap-3">
