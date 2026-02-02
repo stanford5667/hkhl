@@ -160,27 +160,23 @@ export default function PublicStockView() {
         body: { ticker }
       });
 
-      // Network/timeout errors - NOT invalid ticker
+      // Network/timeout errors - treat as temporary API error, NOT invalid ticker
+      // NEVER set notFound based on network errors - only based on explicit API responses
       if (error) {
-        console.error('Polygon details error:', error);
-        // Check if it's a network error vs actual 404
-        const errorMsg = error.message?.toLowerCase() || '';
-        if (errorMsg.includes('fetch') || errorMsg.includes('network') || errorMsg.includes('timeout') || errorMsg.includes('load failed')) {
-          setApiError(true);
-          // Use fallback details with just ticker
-          setDetails({
-            ticker,
-            name: ticker,
-            description: undefined,
-            sector: undefined,
-            industry: undefined,
-            primaryExchange: undefined,
-            homepageUrl: undefined,
-            marketCap: undefined,
-          });
-          return;
-        }
-        setNotFound(true);
+        console.error('Polygon details error (treating as temporary):', error);
+        // All network errors should show fallback, not "not found"
+        setApiError(true);
+        // Use fallback details with just ticker so page still renders
+        setDetails({
+          ticker,
+          name: ticker,
+          description: undefined,
+          sector: undefined,
+          industry: undefined,
+          primaryExchange: undefined,
+          homepageUrl: undefined,
+          marketCap: undefined,
+        });
         return;
       }
 
