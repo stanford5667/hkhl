@@ -26,6 +26,8 @@ export interface BlockPaletteProps {
   compact?: boolean;
   onAddBlock?: (subtype: BlockSubtype) => void;
   onSwitchToCanvas?: () => void;
+  onRunBacktest?: (params: { strategy: string; ticker: string; params: Record<string, number | string | undefined> }) => void;
+  ticker?: string;
 }
 
 interface BlockGridProps {
@@ -256,6 +258,8 @@ export const BlockPalette = memo(function BlockPalette({
   compact, 
   onAddBlock,
   onSwitchToCanvas,
+  onRunBacktest,
+  ticker,
 }: BlockPaletteProps) {
   // Use sentence builder for mobile/compact mode - clearer relationships
   if (compact) {
@@ -267,6 +271,8 @@ export const BlockPalette = memo(function BlockPalette({
         <SentenceBuilder 
           onAddBlock={onAddBlock || (() => {})} 
           onComplete={onSwitchToCanvas}
+          onRunBacktest={onRunBacktest}
+          ticker={ticker}
         />
       </div>
     );

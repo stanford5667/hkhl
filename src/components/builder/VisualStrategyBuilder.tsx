@@ -22,10 +22,16 @@ import { MobileBuilder } from './MobileBuilder';
 import { useBuilderHistory } from '@/hooks/useBuilderHistory';
 import { useIsMobile } from '@/hooks/use-mobile';
 
+interface BacktestParams {
+  strategy: string;
+  ticker: string;
+  params: Record<string, number | string | undefined>;
+}
+
 interface VisualStrategyBuilderProps {
   embedded?: boolean;
   /** Callback for inline backtest execution (instead of navigating to /backtester) */
-  onRunBacktest?: (serialized: SerializedStrategy) => void;
+  onRunBacktest?: (params: BacktestParams) => void;
   /** Initial ticker for embedded mode */
   initialTicker?: string;
 }
@@ -269,7 +275,9 @@ export function VisualStrategyBuilder({
             <BlockPalette 
               className="border-b border-border/30" 
               compact 
-              onAddBlock={handleAddBlock} 
+              onAddBlock={handleAddBlock}
+              onRunBacktest={onRunBacktest}
+              ticker={ticker}
             />
             
             {/* Compact Summary - ticker + template only */}

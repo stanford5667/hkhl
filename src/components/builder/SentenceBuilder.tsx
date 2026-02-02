@@ -22,7 +22,15 @@ import type { PaletteBlock, BlockSubtype } from '@/lib/strategyBuilder/types';
 interface SentenceBuilderProps {
   onAddBlock: (subtype: BlockSubtype, parameters?: Record<string, number>) => void;
   onComplete?: () => void;
+  onRunBacktest?: (params: BacktestParams) => void;
+  ticker?: string;
   className?: string;
+}
+
+interface BacktestParams {
+  strategy: string;
+  ticker: string;
+  params: Record<string, number | string | undefined>;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -502,6 +510,8 @@ const ExitAddButton = memo(function ExitAddButton({
 export const SentenceBuilder = memo(function SentenceBuilder({
   onAddBlock,
   onComplete,
+  onRunBacktest,
+  ticker = 'AAPL',
   className,
 }: SentenceBuilderProps) {
   // Entry signals (multiple with AND/OR)
@@ -554,11 +564,72 @@ export const SentenceBuilder = memo(function SentenceBuilder({
   };
 
   const handleRunBacktest = useCallback(() => {
-    if (entrySignals.length === 0) return;
+    if (entrySignals.length === 0 || exitRules.length === 0) return;
     
-    // Add entry signals (with logic blocks between them)
+    // Build strategy params from the sentence builder state
+    const firstSignal = entrySignals[0];
+    const stopLoss = exitRules.find(e => e.block.subtype === 'STOP_LOSS');
+    const takeProfit = exitRules.find(e => e.block.subtype === 'TAKE_PROFIT');
+    
+    // Determine strategy type based on signal
+    let strategy = 'rsi_oversold';
+    const params: Record<string, number | string | undefined> = {};
+    
+    switch (firstSignal.preset.id) {
+      case 'rsi-oversold':
+        strategy = 'rsi_oversold';
+        params.rsiPeriod = firstSignal.parameters.period;
+        params.rsiThreshold = firstSignal.parameters.threshold;
+        break;
+      case 'rsi-overbought':
+        strategy = 'rsi_overbought';
+        params.rsiPeriod = firstSignal.parameters.period;
+        params.rsiThreshold = firstSignal.parameters.threshold;
+        break;
+      case 'price-above-sma':
+      case 'price-below-sma':
+        strategy = 'ma_crossover';
+        params.maPeriod = firstSignal.parameters.period;
+        break;
+      case 'ema-crossover':
+        strategy = 'ema_crossover';
+        params.emaPeriod = firstSignal.parameters.period;
+        break;
+      case 'gap-down':
+        strategy = 'gap_fill';
+        params.gapThreshold = firstSignal.parameters.threshold;
+        break;
+      case 'consecutive-down':
+        strategy = 'consecutive_days';
+        params.consecutiveDays = firstSignal.parameters.days;
+        break;
+      case 'volume-spike':
+        strategy = 'volume_spike';
+        params.volumePeriod = firstSignal.parameters.period;
+        params.volumeThreshold = firstSignal.parameters.threshold;
+        break;
+    }
+    
+    // Add exit params
+    if (stopLoss) {
+      params.stopLoss = stopLoss.parameters.percent;
+    }
+    if (takeProfit) {
+      params.takeProfit = takeProfit.parameters.percent;
+    }
+    
+    // Call onRunBacktest if provided
+    if (onRunBacktest) {
+      onRunBacktest({
+        strategy,
+        ticker,
+        params,
+      });
+      return;
+    }
+    
+    // Fallback: add blocks to canvas and call onComplete
     entrySignals.forEach((signal, idx) => {
-      // Map signal parameters to indicator and condition blocks
       const indicatorParams: Record<string, number> = {};
       const conditionParams: Record<string, number> = {};
       
@@ -573,33 +644,25 @@ export const SentenceBuilder = memo(function SentenceBuilder({
         }
       });
 
-      // Add indicator block
       onAddBlock(signal.preset.indicator, indicatorParams);
-      
-      // Add condition block
       onAddBlock(signal.preset.condition, conditionParams);
       
-      // Add logic operator if not the last signal
       if (idx < entrySignals.length - 1) {
         onAddBlock(entryLogic, {});
       }
     });
     
-    // Add BUY action
     onAddBlock('BUY', {});
     
-    // Add exit rules (with logic blocks between them)
     exitRules.forEach((exit, idx) => {
       onAddBlock(exit.block.subtype, exit.parameters);
-      
-      // Add logic operator if not the last exit
       if (idx < exitRules.length - 1) {
         onAddBlock(exitLogic, {});
       }
     });
     
     onComplete?.();
-  }, [entrySignals, entryLogic, exitRules, exitLogic, onAddBlock, onComplete]);
+  }, [entrySignals, entryLogic, exitRules, exitLogic, onAddBlock, onComplete, onRunBacktest, ticker]);
 
   const handleClear = () => {
     setEntrySignals([]);
