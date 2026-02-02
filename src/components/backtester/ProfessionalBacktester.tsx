@@ -246,6 +246,7 @@ export function ProfessionalBacktester() {
   // Refs
   const searchInputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const resultsRef = useRef<HTMLDivElement>(null);
 
   // ─────────────────────────────────────────────────────────────────────────────
   // Computed values
@@ -670,6 +671,11 @@ export function ProfessionalBacktester() {
         description: `${commonDates.length} days analyzed`,
       });
       
+      // Auto-scroll to results after state updates
+      setTimeout(() => {
+        resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 100);
+      
     } catch (error) {
       console.error('Backtest error:', error);
       toast.error('Backtest failed', {
@@ -788,8 +794,10 @@ export function ProfessionalBacktester() {
         description: `${backtestResult.metrics?.totalTrades || 0} trades analyzed`,
       });
       
-      // Auto-navigate: collapse left panel focus to results
-      // Keep on strategy-builder tab but results are now visible in center
+      // Auto-scroll to results after state updates
+      setTimeout(() => {
+        resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 100);
       
     } catch (error) {
       console.error('Visual builder backtest error:', error);
@@ -1265,7 +1273,7 @@ export function ProfessionalBacktester() {
         {/* ─────────────────────────────────────────────────────────────────────────
             CENTER - Results
             ───────────────────────────────────────────────────────────────────────── */}
-        <div className="flex-1 flex flex-col min-w-0">
+        <div ref={resultsRef} className="flex-1 flex flex-col min-w-0">
           {result ? (
             <>
               {/* Backtest Parameters Summary Bar */}
