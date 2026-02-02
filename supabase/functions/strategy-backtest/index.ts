@@ -483,16 +483,8 @@ interface BacktestResult {
   totalCommissionCost: number;
   grossReturn: number;
   netReturn: number;
-  theoreticalMetrics: {
-    totalReturn: number;
-    winRate: number;
-    sharpeRatio: number;
-  };
-  realisticMetrics: {
-    totalReturn: number;
-    winRate: number;
-    sharpeRatio: number;
-  };
+  // Note: All metrics now include execution costs (slippage + commission) by default.
+  // There is no "theoretical" vs "realistic" split - we only report realistic results.
 
   // Integrity + labeling
   dataWindow?: {
@@ -1139,18 +1131,8 @@ function runBacktest(
   const grossReturnTotal = trades.reduce((sum, t) => sum + (t.grossPnl ?? t.pnl), 0);
   const netReturnTotal = trades.reduce((sum, t) => sum + (t.netPnl ?? t.pnl), 0);
   
-  // Calculate theoretical metrics (perfect fills, no costs)
-  // Single-position engine => summing per-trade dollar PnL is consistent with NAV.
-  const theoreticalFinalValue = initialCapital + grossReturnTotal;
-  const theoreticalReturn = ((theoreticalFinalValue - initialCapital) / initialCapital) * 100;
-  const theoreticalWinners = trades.filter(t => (t.grossPnl ?? t.pnl) > 0);
-  const theoreticalWinRate = trades.length > 0 ? (theoreticalWinners.length / trades.length) * 100 : 0;
-  
-  // Calculate realistic metrics (with slippage and commissions)
-  const realisticWinners = trades.filter(t => (t.netPnl ?? t.pnl) > 0);
-  const realisticFinalValue = initialCapital + netReturnTotal;
-  const realisticReturn = ((realisticFinalValue - initialCapital) / initialCapital) * 100;
-  const realisticWinRate = trades.length > 0 ? (realisticWinners.length / trades.length) * 100 : 0;
+  // Note: All metrics include execution costs (slippage + commission) by default.
+  // We removed the theoretical vs realistic split - all reported numbers are realistic.
   
   return {
     strategy,
@@ -1184,23 +1166,12 @@ function runBacktest(
     dataSourceUrl,
     barsCount: bars.length,
     rawBarsPreview: bars.slice(0, 10),
-    // Execution realism fields
+    // Execution costs (applied to all metrics)
     executionConfig: DEFAULT_EXECUTION_CONFIG,
     totalSlippageCost: Math.round(totalSlippageCost * 100) / 100,
     totalCommissionCost: Math.round(totalCommissionCost * 100) / 100,
     grossReturn: Math.round(grossReturnTotal * 100) / 100,
     netReturn: Math.round(netReturnTotal * 100) / 100,
-    theoreticalMetrics: {
-      totalReturn: Math.round(theoreticalReturn * 100) / 100,
-      winRate: Math.round(theoreticalWinRate * 100) / 100,
-      sharpeRatio: Math.round(sharpeRatio * 100) / 100,
-    },
-    realisticMetrics: {
-      totalReturn: Math.round(totalReturn * 100) / 100,
-      winRate: Math.round(realisticWinRate * 100) / 100,
-      sharpeRatio: Math.round(sharpeRatio * 100) / 100,
-    }
-    ,
     dataWindow,
   };
 }
