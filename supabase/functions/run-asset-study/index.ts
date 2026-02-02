@@ -320,6 +320,131 @@ function calculateMovementProbabilities(bars: PriceBar[], forwardDays: number = 
   };
 }
 
+// ============================================================
+// SERVER-SIDE VALIDATION
+// ============================================================
+
+interface ServerValidation {
+  isValid: boolean;
+  score: number;
+  dataQuality: {
+    sampleSize: number;
+    minRequired: number;
+    sufficient: boolean;
+    dateRange: { start: string; end: string; years: number };
+  };
+  statistical: {
+    confidenceLevel: 'high' | 'medium' | 'low' | 'insufficient';
+    marginOfError: number;
+    significant: boolean;
+  };
+  warnings: string[];
+}
+
+function calculateServerValidation(
+  studyType: string,
+  result: any,
+  bars: PriceBar[]
+): ServerValidation {
+  const warnings: string[] = [];
+  
+  // Get sample size from result
+  const sampleSize = extractServerSampleSize(result);
+  
+  // Determine minimum required sample size by study type
+  const conditionalStudies = ['after_down_x', 'after_up_x', 'after_consecutive_days', 'after_high_volume', 'after_gap', 'below_ma', 'after_drawdown'];
+  const minRequired = conditionalStudies.includes(studyType) ? 10 : 50;
+  
+  const sufficient = sampleSize >= minRequired;
+  if (!sufficient) {
+    warnings.push(`Sample size (${sampleSize}) below recommended minimum (${minRequired})`);
+  }
+  
+  // Date range
+  const dateRange = bars.length > 0 ? {
+    start: bars[0].date,
+    end: bars[bars.length - 1].date,
+    years: bars.length / 252
+  } : { start: '', end: '', years: 0 };
+  
+  if (dateRange.years < 1) {
+    warnings.push('Less than 1 year of data - results may not be reliable');
+  }
+  
+  // Calculate statistical metrics
+  const winRate = extractServerWinRate(result);
+  const proportion = (winRate || 50) / 100;
+  const standardError = sampleSize > 0 
+    ? Math.sqrt((proportion * (1 - proportion)) / sampleSize) * 100
+    : 100;
+  const marginOfError = 1.96 * standardError;
+  
+  // Z-test for significance
+  const zScore = sampleSize > 0 && standardError > 0
+    ? Math.abs((winRate || 50) - 50) / standardError
+    : 0;
+  const significant = zScore > 1.96;
+  
+  if (!significant && sampleSize >= minRequired) {
+    warnings.push('Results not statistically significant (p > 0.05)');
+  }
+  
+  // Confidence level
+  let confidenceLevel: 'high' | 'medium' | 'low' | 'insufficient' = 'insufficient';
+  if (sampleSize >= 100) confidenceLevel = 'high';
+  else if (sampleSize >= 30) confidenceLevel = 'medium';
+  else if (sampleSize >= 10) confidenceLevel = 'low';
+  
+  // Calculate overall score
+  let score = 0;
+  if (sufficient) score += 35;
+  else score += Math.max(0, 35 * (sampleSize / minRequired));
+  
+  if (significant) score += 30;
+  if (confidenceLevel === 'high') score += 25;
+  else if (confidenceLevel === 'medium') score += 15;
+  else if (confidenceLevel === 'low') score += 5;
+  
+  if (marginOfError < 10) score += 10;
+  else if (marginOfError < 20) score += 5;
+  
+  return {
+    isValid: score >= 50 && sufficient,
+    score: Math.round(Math.min(100, score)),
+    dataQuality: {
+      sampleSize,
+      minRequired,
+      sufficient,
+      dateRange
+    },
+    statistical: {
+      confidenceLevel,
+      marginOfError: Math.round(marginOfError * 10) / 10,
+      significant
+    },
+    warnings
+  };
+}
+
+function extractServerSampleSize(result: any): number {
+  if (result.sampleSize !== undefined) return result.sampleSize;
+  if (result.total_days !== undefined) return result.total_days;
+  if (result.count !== undefined) return result.count;
+  if (result.totalOccurrences !== undefined) return result.totalOccurrences;
+  if (result.analysis?.[0]?.occurrences !== undefined) return result.analysis[0].occurrences;
+  if (result.afterOversold?.count !== undefined) return result.afterOversold.count + (result.afterOverbought?.count || 0);
+  return 0;
+}
+
+function extractServerWinRate(result: any): number | undefined {
+  if (result.winRate !== undefined) return result.winRate;
+  if (result.hitRate !== undefined) return result.hitRate;
+  if (result.percentage !== undefined) return result.percentage;
+  if (result.analysis?.[0]?.winRate !== undefined) return result.analysis[0].winRate;
+  if (result.afterOversold?.hitRate !== undefined) return result.afterOversold.hitRate;
+  return undefined;
+}
+
 // Get asset metadata from database
 async function getAssetMetadata(supabase: any, ticker: string): Promise<{ name?: string; sector?: string; market_cap_tier?: string } | null> {
   try {
@@ -1442,6 +1567,9 @@ serve(async (req) => {
       days21: calculateMovementProbabilities(bars, 21),
     };
     
+    // Server-side validation metrics
+    const validation = calculateServerValidation(studyType, result, bars);
+    
     return new Response(JSON.stringify({ 
       success: true, 
       result, 
@@ -1450,7 +1578,8 @@ serve(async (req) => {
       computationTimeMs: Date.now() - startTime, 
       dateRange: { start: bars[0].date, end: bars[bars.length - 1].date },
       probabilitySummary,
-      movementProbabilities
+      movementProbabilities,
+      validation
     }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
   } catch (error: any) {
     console.error('Study error:', error);

@@ -4,7 +4,7 @@
  * Includes trading strategy explanations and comprehensive visualizations
  */
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -29,6 +29,8 @@ import { StudyVisualizations } from './StudyVisualizations';
 import { EnhancedResultView } from './EnhancedResultViews';
 import { TradingStrategyCard } from './TradingStrategyCard';
 import { MovementProbabilities } from './MovementProbabilities';
+import { validateStudyResult, type ValidationResult } from '@/lib/studyValidation';
+import { StudyValidationBadge } from './StudyValidationBadge';
 
 interface StudyParam {
   key: string;
@@ -440,6 +442,17 @@ export function StudyResultCard({
   onNavigate,
 }: StudyResultCardProps) {
   const [selectedMetric, setSelectedMetric] = useState<{ key: string; value: any } | null>(null);
+  
+  // Validate study result
+  const validation = useMemo<ValidationResult | null>(() => {
+    if (!result) return null;
+    try {
+      return validateStudyResult(study.id, result);
+    } catch (e) {
+      console.warn('Validation error:', e);
+      return null;
+    }
+  }, [study.id, result]);
 
   // Get displayable metrics from result
   const getDisplayMetrics = (): [string, any][] => {
@@ -528,6 +541,13 @@ export function StudyResultCard({
             </div>
           </div>
           <div className="flex items-center gap-1.5 shrink-0">
+            {/* Validation Badge */}
+            {validation && (
+              <StudyValidationBadge 
+                validation={validation} 
+                compact 
+              />
+            )}
             <Button
               size="sm"
               variant="ghost"
