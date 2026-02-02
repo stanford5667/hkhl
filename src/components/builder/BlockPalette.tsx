@@ -2,7 +2,7 @@
  * Block Palette Component
  * 
  * Left panel with clear step-by-step flow for building strategies.
- * Compact mode uses sentence-based builder for clearer relationships.
+ * Compact mode uses unified builder with presets + customization.
  */
 
 import { memo, useState } from 'react';
@@ -19,7 +19,8 @@ import {
   ACTION_BLOCKS,
 } from '@/lib/strategyBuilder/templates';
 import type { PaletteBlock, BlockSubtype } from '@/lib/strategyBuilder/types';
-import { SentenceBuilder, type SentenceBuilderState } from './SentenceBuilder';
+import { type SentenceBuilderState } from './SentenceBuilder';
+import { UnifiedStrategyBuilder } from './UnifiedStrategyBuilder';
 
 export interface BlockPaletteProps {
   className?: string;
@@ -266,20 +267,18 @@ export const BlockPalette = memo(function BlockPalette({
   sentenceState,
   onSentenceStateChange,
 }: BlockPaletteProps) {
-  // Use sentence builder for mobile/compact mode - clearer relationships
+  // Use unified builder for mobile/compact mode - presets + customization
   if (compact) {
     return (
       <div className={cn(
         "flex flex-col border-r border-border bg-card/50 h-full",
         className
       )}>
-        <SentenceBuilder 
-          onAddBlock={onAddBlock || (() => {})} 
-          onComplete={onSwitchToCanvas}
+        <UnifiedStrategyBuilder
           onRunBacktest={onRunBacktest}
           ticker={ticker}
-          state={sentenceState}
-          onStateChange={onSentenceStateChange}
+          sentenceState={sentenceState}
+          onSentenceStateChange={onSentenceStateChange}
         />
       </div>
     );
