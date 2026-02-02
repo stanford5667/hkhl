@@ -351,16 +351,6 @@ export const StrategySummary = memo(function StrategySummary({
             </div>
           )}
 
-          {/* Test Strategy Button - larger touch target */}
-          <Button
-            size="sm"
-            className="w-full h-10 text-sm font-medium"
-            onClick={handleTestInBacktest}
-            disabled={!validation.isValid}
-          >
-            <FlaskConical className="h-4 w-4 mr-2" />
-            Test Strategy
-          </Button>
         </div>
       </div>
     );
