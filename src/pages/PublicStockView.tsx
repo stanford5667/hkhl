@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, lazy, Suspense } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -7,17 +7,27 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { LineChart, TrendingUp, TrendingDown, Plus, Building2, Globe, BarChart3, Newspaper } from 'lucide-react';
+import { LineChart, TrendingUp, TrendingDown, Plus, Building2, Globe, BarChart3, Newspaper, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { EmbeddedQuantLab } from '@/components/equity/EmbeddedQuantLab';
-import { StrategyBacktester } from '@/components/backtester/StrategyBacktester';
-import { SECFilingsPanel } from '@/components/research/SECFilingsPanel';
-import { AnalystSocialPanel } from '@/components/research/AnalystSocialPanel';
-import { IntegratedResearchView, ALAOverviewTab } from '@/components/research';
 import { StockDetailLayout, DEFAULT_STOCK_TABS } from '@/components/research/StockDetailLayout';
 import { useCompanyNews } from '@/hooks/useCompanyResearch';
-import { KeyCatalystsSection } from '@/components/research/KeyCatalystsSection';
-import { FinancialsSection } from '@/components/financials/FinancialsSection';
+
+// Lazy load heavy components to improve initial page load
+const EmbeddedQuantLab = lazy(() => import('@/components/equity/EmbeddedQuantLab').then(m => ({ default: m.EmbeddedQuantLab })));
+const StrategyBacktester = lazy(() => import('@/components/backtester/StrategyBacktester').then(m => ({ default: m.StrategyBacktester })));
+const SECFilingsPanel = lazy(() => import('@/components/research/SECFilingsPanel').then(m => ({ default: m.SECFilingsPanel })));
+const AnalystSocialPanel = lazy(() => import('@/components/research/AnalystSocialPanel').then(m => ({ default: m.AnalystSocialPanel })));
+const KeyCatalystsSection = lazy(() => import('@/components/research/KeyCatalystsSection').then(m => ({ default: m.KeyCatalystsSection })));
+const FinancialsSection = lazy(() => import('@/components/financials/FinancialsSection').then(m => ({ default: m.FinancialsSection })));
+const IntegratedResearchView = lazy(() => import('@/components/research').then(m => ({ default: m.IntegratedResearchView })));
+const ALAOverviewTab = lazy(() => import('@/components/research').then(m => ({ default: m.ALAOverviewTab })));
+
+// Lightweight loading fallback for lazy components
+const TabLoader = () => (
+  <div className="flex items-center justify-center py-12">
+    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+  </div>
+);
 
 interface TickerDetails {
   ticker: string;
@@ -384,19 +394,21 @@ export default function PublicStockView() {
       case 'overview':
         return (
           <div className="p-3 md:p-4 space-y-4">
-            <ALAOverviewTab
-              ticker={ticker}
-              companyName={details?.name}
-              exchange={details?.primaryExchange}
-              sector={details?.sector}
-              industry={details?.industry}
-              description={details?.description}
-              homepageUrl={details?.homepageUrl}
-              quote={quote}
-              isLoadingQuote={isLoadingQuote}
-              onRefresh={handleRefresh}
-              isRefreshing={isRefreshing}
-            />
+            <Suspense fallback={<TabLoader />}>
+              <ALAOverviewTab
+                ticker={ticker}
+                companyName={details?.name}
+                exchange={details?.primaryExchange}
+                sector={details?.sector}
+                industry={details?.industry}
+                description={details?.description}
+                homepageUrl={details?.homepageUrl}
+                quote={quote}
+                isLoadingQuote={isLoadingQuote}
+                onRefresh={handleRefresh}
+                isRefreshing={isRefreshing}
+              />
+            </Suspense>
 
             {/* Sign In CTA */}
             {!user && (
@@ -422,28 +434,36 @@ export default function PublicStockView() {
       case 'financials':
         return (
           <div className="p-3 md:p-4">
-            <FinancialsSection ticker={ticker} companyName={details?.name || ticker} />
+            <Suspense fallback={<TabLoader />}>
+              <FinancialsSection ticker={ticker} companyName={details?.name || ticker} />
+            </Suspense>
           </div>
         );
       
       case 'quant-lab':
         return (
           <div className="relative h-full min-h-[600px]">
-            <EmbeddedQuantLab ticker={ticker} companyName={details?.name || ticker} />
+            <Suspense fallback={<TabLoader />}>
+              <EmbeddedQuantLab ticker={ticker} companyName={details?.name || ticker} />
+            </Suspense>
           </div>
         );
       
       case 'backtest':
         return (
           <div className="p-3 md:p-4">
-            <StrategyBacktester ticker={ticker} companyName={details?.name || ticker} />
+            <Suspense fallback={<TabLoader />}>
+              <StrategyBacktester ticker={ticker} companyName={details?.name || ticker} />
+            </Suspense>
           </div>
         );
       
       case 'news':
         return (
           <div className="p-3 md:p-4 space-y-4">
-            <KeyCatalystsSection ticker={ticker} />
+            <Suspense fallback={<TabLoader />}>
+              <KeyCatalystsSection ticker={ticker} />
+            </Suspense>
             <StockNewsSection ticker={ticker} companyName={details?.name || ticker} />
           </div>
         );
@@ -451,21 +471,27 @@ export default function PublicStockView() {
       case 'sec':
         return (
           <div className="p-3 md:p-4">
-            <SECFilingsPanel ticker={ticker} />
+            <Suspense fallback={<TabLoader />}>
+              <SECFilingsPanel ticker={ticker} />
+            </Suspense>
           </div>
         );
       
       case 'analyst-social':
         return (
           <div className="p-3 md:p-4">
-            <AnalystSocialPanel ticker={ticker} />
+            <Suspense fallback={<TabLoader />}>
+              <AnalystSocialPanel ticker={ticker} />
+            </Suspense>
           </div>
         );
       
       case 'research-v2':
         return (
           <div className="p-3 md:p-4 min-h-[600px]">
-            <IntegratedResearchView ticker={ticker} currentPrice={quote?.price || 0} />
+            <Suspense fallback={<TabLoader />}>
+              <IntegratedResearchView ticker={ticker} currentPrice={quote?.price || 0} />
+            </Suspense>
           </div>
         );
       

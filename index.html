@@ -12,12 +12,15 @@
     <link rel="shortcut icon" type="image/png" href="/favicon.png?v=2" />
     <link rel="apple-touch-icon" href="/favicon.png?v=2" />
 
-    <!-- DNS Prefetch for external services -->
+    <!-- DNS Prefetch and Preconnect for external services -->
     <link rel="dns-prefetch" href="https://oalfgwkzjwmfkaxuomqm.supabase.co" />
     <link rel="preconnect" href="https://oalfgwkzjwmfkaxuomqm.supabase.co" crossorigin />
+    <link rel="dns-prefetch" href="https://api.polygon.io" />
+    <link rel="dns-prefetch" href="https://finnhub.io" />
     
-    <!-- Preload critical fonts if any are used -->
+    <!-- Preload critical resources -->
     <link rel="preload" as="style" href="/src/index.css" />
+    <link rel="modulepreload" href="/src/main.tsx" />
 
     <meta property="og:title" content="Asset Labs AI" />
     <meta property="og:description" content="AI-powered portfolio analytics and corporate finance platform" />

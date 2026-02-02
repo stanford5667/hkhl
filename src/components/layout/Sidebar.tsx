@@ -1,6 +1,7 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
+import { preloadRoute } from "@/lib/routePreloader";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { useOrganization } from "@/contexts/OrganizationContext";
@@ -164,6 +165,11 @@ export function Sidebar() {
       (item.href !== "/" && location.pathname.startsWith(item.href));
     const Icon = item.icon;
 
+    // Prefetch route on hover for faster navigation
+    const handleMouseEnter = useCallback(() => {
+      preloadRoute(item.href);
+    }, [item.href]);
+
     const linkContent = (
       <motion.div
         initial={{ opacity: 0, x: -10 }}
@@ -172,6 +178,7 @@ export function Sidebar() {
       >
         <Link
           to={item.href}
+          onMouseEnter={handleMouseEnter}
           className={cn(
             "group relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-300",
             isActive
