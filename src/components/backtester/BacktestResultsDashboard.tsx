@@ -59,6 +59,7 @@ import {
 import { cn } from '@/lib/utils';
 import { format, parseISO, differenceInDays } from 'date-fns';
 import { HealthScore } from '@/components/ui/HealthScore';
+import { TradeExport } from './TradeExport';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // TYPES
@@ -889,10 +890,19 @@ export function BacktestResultsDashboard({ result, compact = false }: BacktestRe
           {/* Trade List */}
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm">Trade History</CardTitle>
-              <CardDescription className="text-xs text-muted-foreground">
-                Detailed execution log with fill prices and signals
-              </CardDescription>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="text-sm">Trade History</CardTitle>
+                  <CardDescription className="text-xs text-muted-foreground">
+                    Detailed execution log with fill prices and signals
+                  </CardDescription>
+                </div>
+                <TradeExport 
+                  trades={result.trades} 
+                  ticker={result.ticker} 
+                  strategy={result.strategy} 
+                />
+              </div>
             </CardHeader>
             <CardContent className="p-0">
               <ScrollArea className="h-[300px]">
