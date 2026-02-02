@@ -43,6 +43,9 @@ import {
   Activity,
   Layers,
   Workflow,
+  RefreshCw,
+  ChevronLeft,
+  Settings2,
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
@@ -223,6 +226,16 @@ export function ProfessionalBacktester() {
   const [result, setResult] = useState<BacktestResult | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [loadingProgress, setLoadingProgress] = useState(0);
+  
+  // Last backtest params - for display and re-run
+  const [lastBacktestParams, setLastBacktestParams] = useState<{
+    type: 'strategy' | 'portfolio';
+    strategy?: string;
+    ticker?: string;
+    params?: Record<string, number | string | undefined>;
+    assets?: Asset[];
+    period?: string;
+  } | null>(null);
   
   // UI state
   const [activeTab, setActiveTab] = useState('overview');
@@ -762,12 +775,21 @@ export function ProfessionalBacktester() {
         rollingReturns: [],
       });
       
+      // Store backtest params for display/re-run
+      setLastBacktestParams({
+        type: 'strategy',
+        strategy: params.strategy,
+        ticker: params.ticker,
+        params: params.params,
+        period,
+      });
+      
       toast.success('Strategy backtest complete', {
         description: `${backtestResult.metrics?.totalTrades || 0} trades analyzed`,
       });
       
-      // Switch to portfolio tab to show results
-      setActiveLeftTab('portfolio');
+      // Auto-navigate: collapse left panel focus to results
+      // Keep on strategy-builder tab but results are now visible in center
       
     } catch (error) {
       console.error('Visual builder backtest error:', error);
@@ -1246,6 +1268,82 @@ export function ProfessionalBacktester() {
         <div className="flex-1 flex flex-col min-w-0">
           {result ? (
             <>
+              {/* Backtest Parameters Summary Bar */}
+              {lastBacktestParams && (
+                <div className="flex-shrink-0 px-3 py-2 border-b border-[rgb(33,38,45)] bg-[rgb(17,21,28)] flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-3 min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] uppercase tracking-wider text-[rgb(87,96,106)]">
+                        {lastBacktestParams.type === 'strategy' ? 'Strategy' : 'Portfolio'}
+                      </span>
+                      <span className="text-sm font-mono font-bold text-[rgb(230,237,243)]">
+                        {lastBacktestParams.ticker || lastBacktestParams.assets?.map(a => a.symbol).join(', ')}
+                      </span>
+                    </div>
+                    {lastBacktestParams.strategy && (
+                      <>
+                        <div className="h-3 w-px bg-[rgb(33,38,45)]" />
+                        <span className="text-xs text-[rgb(139,148,158)]">
+                          {lastBacktestParams.strategy.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                        </span>
+                      </>
+                    )}
+                    {lastBacktestParams.params && Object.keys(lastBacktestParams.params).length > 0 && (
+                      <>
+                        <div className="h-3 w-px bg-[rgb(33,38,45)]" />
+                        <div className="flex items-center gap-1.5 overflow-hidden">
+                          {Object.entries(lastBacktestParams.params).slice(0, 4).map(([key, val]) => (
+                            <span key={key} className="px-1.5 py-0.5 text-[10px] font-mono bg-[rgb(27,32,40)] rounded text-[rgb(139,148,158)] whitespace-nowrap">
+                              {key.replace(/([A-Z])/g, ' $1').trim()}: {val}
+                            </span>
+                          ))}
+                          {Object.keys(lastBacktestParams.params).length > 4 && (
+                            <span className="text-[10px] text-[rgb(87,96,106)]">
+                              +{Object.keys(lastBacktestParams.params).length - 4} more
+                            </span>
+                          )}
+                        </div>
+                      </>
+                    )}
+                    <div className="h-3 w-px bg-[rgb(33,38,45)]" />
+                    <span className="text-[10px] text-[rgb(87,96,106)]">{lastBacktestParams.period}</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 flex-shrink-0">
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => setActiveLeftTab('strategy-builder')}
+                      className="h-7 px-2 text-xs text-[rgb(139,148,158)] hover:text-[rgb(230,237,243)] hover:bg-[rgb(27,32,40)]"
+                    >
+                      <Settings2 className="h-3.5 w-3.5 mr-1" />
+                      Edit
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => {
+                        if (lastBacktestParams.type === 'strategy' && lastBacktestParams.strategy) {
+                          handleVisualBuilderBacktest({
+                            strategy: lastBacktestParams.strategy,
+                            ticker: lastBacktestParams.ticker || 'AAPL',
+                            params: lastBacktestParams.params || {},
+                          });
+                        }
+                      }}
+                      disabled={isLoading}
+                      className="h-7 px-2 text-xs text-[rgb(56,139,253)] hover:text-[rgb(88,166,255)] hover:bg-[rgb(56,139,253,0.1)]"
+                    >
+                      {isLoading ? (
+                        <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />
+                      ) : (
+                        <RefreshCw className="h-3.5 w-3.5 mr-1" />
+                      )}
+                      Re-run
+                    </Button>
+                  </div>
+                </div>
+              )}
+              
               {/* Metrics bar */}
               <div className="flex-shrink-0 p-3 border-b border-[rgb(33,38,45)] bg-[rgb(13,17,23)]">
                 <div className="grid grid-cols-6 gap-2">
@@ -1541,6 +1639,23 @@ export function ProfessionalBacktester() {
             ───────────────────────────────────────────────────────────────────────── */}
         {result && (
           <div className="w-72 flex-shrink-0 border-l border-[rgb(33,38,45)] bg-[rgb(13,17,23)] overflow-y-auto">
+            {/* Quick Actions */}
+            <div className="p-3 border-b border-[rgb(33,38,45)]">
+              <Button
+                onClick={() => {
+                  setResult(null);
+                  setLastBacktestParams(null);
+                  setActiveLeftTab('strategy-builder');
+                }}
+                variant="outline"
+                size="sm"
+                className="w-full h-8 text-xs bg-[rgb(17,21,28)] border-[rgb(48,54,61)] hover:bg-[rgb(27,32,40)] hover:border-[rgb(56,139,253)]"
+              >
+                <Plus className="h-3.5 w-3.5 mr-1.5" />
+                New Backtest
+              </Button>
+            </div>
+            
             <PanelHeader title="Risk Analytics" />
             
             <div className="p-3 space-y-4">
