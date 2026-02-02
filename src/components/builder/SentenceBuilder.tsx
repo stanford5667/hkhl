@@ -600,7 +600,7 @@ export const SentenceBuilder = memo(function SentenceBuilder({
         params.gapThreshold = firstSignal.parameters.threshold;
         break;
       case 'consecutive-down':
-        strategy = 'consecutive_days';
+        strategy = 'consecutive_days_reversal';
         params.consecutiveDays = firstSignal.parameters.days;
         break;
       case 'volume-spike':
