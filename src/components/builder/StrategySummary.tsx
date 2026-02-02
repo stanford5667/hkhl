@@ -283,81 +283,80 @@ export const StrategySummary = memo(function StrategySummary({
   if (compact) {
     return (
       <div className={cn("flex flex-col bg-[rgb(13,17,23)]", className)}>
-        <ScrollArea className="max-h-48">
-          <div className="p-2 space-y-2">
-            {/* Ticker + Template row */}
-            <div className="flex gap-2">
-              <Input
-                value={ticker}
-                onChange={(e) => onTickerChange(e.target.value.toUpperCase())}
-                placeholder="AAPL"
-                className="h-7 text-xs uppercase flex-1 bg-[rgb(17,21,28)] border-[rgb(33,38,45)]"
-              />
-              <Select onValueChange={(id) => {
-                const template = STRATEGY_TEMPLATES.find(t => t.id === id);
-                if (template) onLoadTemplate(template);
-              }}>
-                <SelectTrigger className="h-7 text-xs w-32 bg-[rgb(17,21,28)] border-[rgb(33,38,45)]">
-                  <SelectValue placeholder="Template" />
-                </SelectTrigger>
-                <SelectContent>
-                  {STRATEGY_TEMPLATES.map(template => (
-                    <SelectItem key={template.id} value={template.id}>
-                      {template.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Plain English Summary (compact) */}
-            {blocks.length > 0 && (
-              <div className="text-[10px] space-y-1 p-2 rounded bg-[rgb(17,21,28)] border border-[rgb(33,38,45)]">
-                <div className="flex items-start gap-1">
-                  <TrendingUp className="h-3 w-3 text-emerald-500 mt-0.5 shrink-0" />
-                  <span className="text-[rgb(200,210,220)]">{plainEnglish.entry}</span>
-                </div>
-                <div className="flex items-start gap-1">
-                  <TrendingDown className="h-3 w-3 text-rose-500 mt-0.5 shrink-0" />
-                  <span className="text-[rgb(200,210,220)]">{plainEnglish.exit}</span>
-                </div>
-              </div>
-            )}
-
-            {/* Validation status (compact) */}
-            {blocks.length > 0 && (
-              <div className="flex items-center gap-2">
-                {validation.isComplete ? (
-                  <Badge variant="outline" className="text-[10px] bg-emerald-500/10 text-emerald-400 border-emerald-500/30">
-                    <CheckCircle2 className="h-2.5 w-2.5 mr-1" />
-                    Ready to test
-                  </Badge>
-                ) : validation.isValid ? (
-                  <Badge variant="outline" className="text-[10px] bg-amber-500/10 text-amber-400 border-amber-500/30">
-                    <AlertCircle className="h-2.5 w-2.5 mr-1" />
-                    {validation.warnings.length} suggestion{validation.warnings.length !== 1 ? 's' : ''}
-                  </Badge>
-                ) : (
-                  <Badge variant="outline" className="text-[10px] bg-rose-500/10 text-rose-400 border-rose-500/30">
-                    <AlertCircle className="h-2.5 w-2.5 mr-1" />
-                    {validation.errors[0]}
-                  </Badge>
-                )}
-              </div>
-            )}
-
-            {/* Actions */}
-            <Button
-              size="sm"
-              className="w-full h-7 text-xs"
-              onClick={handleTestInBacktest}
-              disabled={!validation.isValid}
-            >
-              <FlaskConical className="h-3 w-3 mr-1" />
-              Test Strategy
-            </Button>
+        {/* Remove ScrollArea - parent handles scrolling, add bottom padding for mobile nav */}
+        <div className="p-3 pb-20 space-y-3">
+          {/* Ticker + Template row */}
+          <div className="flex gap-2">
+            <Input
+              value={ticker}
+              onChange={(e) => onTickerChange(e.target.value.toUpperCase())}
+              placeholder="AAPL"
+              className="h-8 text-xs uppercase flex-1 bg-[rgb(17,21,28)] border-[rgb(33,38,45)]"
+            />
+            <Select onValueChange={(id) => {
+              const template = STRATEGY_TEMPLATES.find(t => t.id === id);
+              if (template) onLoadTemplate(template);
+            }}>
+              <SelectTrigger className="h-8 text-xs w-28 bg-[rgb(17,21,28)] border-[rgb(33,38,45)]">
+                <SelectValue placeholder="Template" />
+              </SelectTrigger>
+              <SelectContent>
+                {STRATEGY_TEMPLATES.map(template => (
+                  <SelectItem key={template.id} value={template.id}>
+                    {template.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
-        </ScrollArea>
+
+          {/* Plain English Summary (compact) */}
+          {blocks.length > 0 && (
+            <div className="text-[11px] space-y-1.5 p-2.5 rounded bg-[rgb(17,21,28)] border border-[rgb(33,38,45)]">
+              <div className="flex items-start gap-1.5">
+                <TrendingUp className="h-3.5 w-3.5 text-emerald-500 mt-0.5 shrink-0" />
+                <span className="text-[rgb(200,210,220)]">{plainEnglish.entry}</span>
+              </div>
+              <div className="flex items-start gap-1.5">
+                <TrendingDown className="h-3.5 w-3.5 text-rose-500 mt-0.5 shrink-0" />
+                <span className="text-[rgb(200,210,220)]">{plainEnglish.exit}</span>
+              </div>
+            </div>
+          )}
+
+          {/* Validation status (compact) */}
+          {blocks.length > 0 && (
+            <div className="flex items-center gap-2">
+              {validation.isComplete ? (
+                <Badge variant="outline" className="text-[10px] bg-emerald-500/10 text-emerald-400 border-emerald-500/30">
+                  <CheckCircle2 className="h-2.5 w-2.5 mr-1" />
+                  Ready to test
+                </Badge>
+              ) : validation.isValid ? (
+                <Badge variant="outline" className="text-[10px] bg-amber-500/10 text-amber-400 border-amber-500/30">
+                  <AlertCircle className="h-2.5 w-2.5 mr-1" />
+                  {validation.warnings.length} suggestion{validation.warnings.length !== 1 ? 's' : ''}
+                </Badge>
+              ) : (
+                <Badge variant="outline" className="text-[10px] bg-rose-500/10 text-rose-400 border-rose-500/30">
+                  <AlertCircle className="h-2.5 w-2.5 mr-1" />
+                  {validation.errors[0]}
+                </Badge>
+              )}
+            </div>
+          )}
+
+          {/* Test Strategy Button - larger touch target */}
+          <Button
+            size="sm"
+            className="w-full h-10 text-sm font-medium"
+            onClick={handleTestInBacktest}
+            disabled={!validation.isValid}
+          >
+            <FlaskConical className="h-4 w-4 mr-2" />
+            Test Strategy
+          </Button>
+        </div>
       </div>
     );
   }
