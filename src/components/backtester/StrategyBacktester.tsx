@@ -211,8 +211,8 @@ export function StrategyBacktester({ ticker, companyName }: StrategyBacktesterPr
       </div>
 
       {/* Unified Strategy Builder - contains presets + custom building */}
-      <Card className="min-h-[500px]">
-        <CardContent className="p-0 h-[500px]">
+      <Card>
+        <CardContent className="p-0">
           <VisualStrategyBuilder 
             embedded 
             initialTicker={ticker}
