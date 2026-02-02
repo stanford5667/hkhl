@@ -735,6 +735,19 @@ export function ProfessionalBacktester() {
         initialCapital * (1 + (backtestResult.metrics?.netProfit || 0) / 100 * (i / Math.max(dates.length - 1, 1)))
       );
       
+      // Extract metrics for return value (used by embedded builder)
+      const metricsForReturn = {
+        totalReturn: backtestResult.metrics?.netProfit || 0,
+        winRate: backtestResult.metrics?.winRate || 0,
+        totalTrades: backtestResult.metrics?.totalTrades || 0,
+        sharpeRatio: backtestResult.metrics?.sharpeRatio || 0,
+        maxDrawdown: backtestResult.metrics?.maxDrawdown || 0,
+        avgWin: backtestResult.metrics?.avgWin || 0,
+        avgLoss: backtestResult.metrics?.avgLoss || 0,
+        profitFactor: backtestResult.metrics?.profitFactor || 0,
+        avgHoldingDays: backtestResult.metrics?.avgHoldingDays || 0,
+      };
+      
       setResult({
         dates,
         portfolioValues,
@@ -743,12 +756,12 @@ export function ProfessionalBacktester() {
         benchmarkReturns: [],
         drawdownSeries: portfolioValues.map(() => 0),
         metrics: {
-          totalReturn: backtestResult.metrics?.netProfit || 0,
+          totalReturn: metricsForReturn.totalReturn,
           cagr: backtestResult.metrics?.cagr || 0,
           volatility: backtestResult.metrics?.annualizedVolatility || 0,
-          sharpeRatio: backtestResult.metrics?.sharpeRatio || 0,
+          sharpeRatio: metricsForReturn.sharpeRatio,
           sortinoRatio: backtestResult.metrics?.sortinoRatio || 0,
-          maxDrawdown: backtestResult.metrics?.maxDrawdown || 0,
+          maxDrawdown: metricsForReturn.maxDrawdown,
           var95: 0,
           cvar95: 0,
           alpha: 0,
@@ -759,9 +772,9 @@ export function ProfessionalBacktester() {
           trackingError: 0,
           upCapture: 0,
           downCapture: 0,
-          winRate: backtestResult.metrics?.winRate || 0,
-          avgWin: backtestResult.metrics?.avgWin || 0,
-          avgLoss: backtestResult.metrics?.avgLoss || 0,
+          winRate: metricsForReturn.winRate,
+          avgWin: metricsForReturn.avgWin,
+          avgLoss: metricsForReturn.avgLoss,
           bestDay: 0,
           worstDay: 0,
           bestMonth: 0,
@@ -791,7 +804,7 @@ export function ProfessionalBacktester() {
       });
       
       toast.success('Strategy backtest complete', {
-        description: `${backtestResult.metrics?.totalTrades || 0} trades analyzed`,
+        description: `${metricsForReturn.totalTrades} trades analyzed`,
       });
       
       // Auto-scroll to results after state updates
@@ -799,11 +812,15 @@ export function ProfessionalBacktester() {
         resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }, 100);
       
+      // Return metrics for embedded builder to display
+      return metricsForReturn;
+      
     } catch (error) {
       console.error('Visual builder backtest error:', error);
       toast.error('Backtest failed', {
         description: error instanceof Error ? error.message : 'Unknown error',
       });
+      return undefined;
     } finally {
       setIsLoading(false);
       setLoadingProgress(100);
