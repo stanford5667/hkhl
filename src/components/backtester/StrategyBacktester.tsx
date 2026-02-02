@@ -21,7 +21,7 @@ import {
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { format, parseISO } from 'date-fns';
+import { format } from 'date-fns';
 import { retryWithBackoff } from '@/utils/retryWithBackoff';
 import {
   InspectModeToggle,
@@ -31,6 +31,7 @@ import {
 import { BacktestResultsDashboard } from './BacktestResultsDashboard';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
+import { parseDateOnly } from '@/lib/date';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // TYPES
@@ -264,12 +265,12 @@ export function StrategyBacktester({ ticker, companyName }: StrategyBacktesterPr
                 <div>
                   <p className="text-muted-foreground mb-1">Entry</p>
                   <p className="font-semibold">${selectedTrade.entryPrice.toFixed(2)}</p>
-                  <p className="text-xs text-muted-foreground">{format(parseISO(selectedTrade.entryDate), 'MMMM dd, yyyy')}</p>
+                  <p className="text-xs text-muted-foreground">{format(parseDateOnly(selectedTrade.entryDate), 'MMMM dd, yyyy')}</p>
                 </div>
                 <div>
                   <p className="text-muted-foreground mb-1">Exit</p>
                   <p className="font-semibold">${selectedTrade.exitPrice.toFixed(2)}</p>
-                  <p className="text-xs text-muted-foreground">{format(parseISO(selectedTrade.exitDate), 'MMMM dd, yyyy')}</p>
+                  <p className="text-xs text-muted-foreground">{format(parseDateOnly(selectedTrade.exitDate), 'MMMM dd, yyyy')}</p>
                 </div>
               </div>
               <Separator />

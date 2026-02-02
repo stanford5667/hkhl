@@ -57,7 +57,8 @@ import {
   ChevronRight,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { format, parseISO, differenceInDays } from 'date-fns';
+import { format, differenceInDays } from 'date-fns';
+import { parseDateOnly } from '@/lib/date';
 import { HealthScore } from '@/components/ui/HealthScore';
 import { TradeExport } from './TradeExport';
 import { RealityScenarios } from './RealityScenarios';
@@ -410,7 +411,7 @@ function MonthlyReturnsHeatmap({ trades }: { trades: Trade[] }) {
     const byMonth: Record<string, number> = {};
     
     trades.forEach(trade => {
-      const month = format(new Date(trade.exitDate), 'yyyy-MM');
+      const month = format(parseDateOnly(trade.exitDate), 'yyyy-MM');
       byMonth[month] = (byMonth[month] || 0) + trade.pnlPercent;
     });
     
@@ -418,7 +419,7 @@ function MonthlyReturnsHeatmap({ trades }: { trades: Trade[] }) {
       .sort(([a], [b]) => a.localeCompare(b))
       .slice(-12) // Last 12 months
       .map(([month, ret]) => ({
-        month: format(new Date(month + '-01'), 'MMM yy'),
+        month: format(parseDateOnly(month + '-01'), 'MMM yy'),
         return: Math.round(ret * 100) / 100,
       }));
   }, [trades]);
@@ -731,7 +732,7 @@ export function BacktestResultsDashboard({ result, compact = false }: BacktestRe
                     <XAxis 
                       dataKey="date" 
                       tick={{ fontSize: 10 }}
-                      tickFormatter={(v) => format(new Date(v), 'MMM yy')}
+          tickFormatter={(v) => format(parseDateOnly(String(v)), 'MMM yy')}
                       className="text-muted-foreground"
                     />
                     <YAxis 
@@ -975,13 +976,13 @@ export function BacktestResultsDashboard({ result, compact = false }: BacktestRe
                       <tr key={i} className="border-b hover:bg-secondary/30">
                         <td className="p-2 font-mono text-muted-foreground">{i + 1}</td>
                         <td className="p-2">
-                          <span className="font-medium">{format(new Date(trade.entryDate), 'MMM dd, yy')}</span>
+                    <span className="font-medium">{format(parseDateOnly(trade.entryDate), 'MMM dd, yy')}</span>
                         </td>
                         <td className="p-2 text-right font-mono text-cyan-400">
                           ${trade.entryPrice.toFixed(2)}
                         </td>
                         <td className="p-2">
-                          <span className="font-medium">{format(new Date(trade.exitDate), 'MMM dd, yy')}</span>
+                          <span className="font-medium">{format(parseDateOnly(trade.exitDate), 'MMM dd, yy')}</span>
                         </td>
                         <td className="p-2 text-right font-mono text-cyan-400">
                           ${trade.exitPrice.toFixed(2)}
