@@ -193,6 +193,20 @@ function applySlippageToPrice(price: number, direction: 'buy' | 'sell', slippage
   }
 }
 
+// Single source of truth for fills + commissions.
+// IMPORTANT: Any place we mutate cash/equity MUST use this exact model.
+function getExecutionFill(
+  basePrice: number,
+  side: 'buy' | 'sell',
+  config: ExecutionConfig
+): { price: number; commission: number } {
+  const price = config.applySlippage
+    ? applySlippageToPrice(basePrice, side, config.slippageBps)
+    : basePrice;
+  const commission = config.applyCommission ? config.commissionPerTrade : 0;
+  return { price, commission };
+}
+
 // Calculate execution costs and create trade with realism fields
 function createTradeWithRealism(
   baseEntry: number,
@@ -257,23 +271,19 @@ function createTradeWithRealism(
   const grossPnl = shares * (baseExit - baseEntry);
   const grossPnlPercent = ((baseExit - baseEntry) / baseEntry) * 100;
   
-  // Apply slippage
-  const actualEntry = config.applySlippage 
-    ? applySlippageToPrice(baseEntry, 'buy', config.slippageBps)
-    : baseEntry;
-  const actualExit = config.applySlippage 
-    ? applySlippageToPrice(baseExit, 'sell', config.slippageBps)
-    : baseExit;
-  
-  // Calculate slippage cost
-  const slippageCost = config.applySlippage 
+  // Apply execution model (must match cash-flow simulation)
+  const entryFill = getExecutionFill(baseEntry, 'buy', config);
+  const exitFill = getExecutionFill(baseExit, 'sell', config);
+  const actualEntry = entryFill.price;
+  const actualExit = exitFill.price;
+
+  // Calculate slippage cost (dollar impact of worse prices)
+  const slippageCost = config.applySlippage
     ? (actualEntry - baseEntry) * shares + (baseExit - actualExit) * shares
     : 0;
-  
+
   // Calculate commission cost (round trip)
-  const commissionCost = config.applyCommission 
-    ? config.commissionPerTrade * 2 
-    : 0;
+  const commissionCost = entryFill.commission + exitFill.commission;
   
   // Calculate net P&L (with all costs)
   const netPnl = shares * (actualExit - actualEntry) - commissionCost;
@@ -776,6 +786,9 @@ function runBacktest(
   const positionSize = (params.positionSizePercent ?? 100) / 100;
   const stopLoss = params.stopLossPercent ?? null;
   const takeProfit = params.takeProfitPercent ?? null;
+
+  // Execution realism used for portfolio NAV (single source of truth)
+  const execConfig = DEFAULT_EXECUTION_CONFIG;
   
   // Pre-calculate indicators
   const closes = bars.map(b => b.close);
@@ -854,7 +867,7 @@ function runBacktest(
           'LONG',
           entryReason,
           `Stop loss triggered at -${stopLoss}%`,
-          DEFAULT_EXECUTION_CONFIG,
+          execConfig,
           {
             entryBarRaw: entryBarRaw || undefined,
             exitBarRaw: { ...bar },
@@ -864,8 +877,10 @@ function runBacktest(
           }
         );
         trades.push(trade);
-        
-        cash += shares * bar.close;
+
+        // Apply REALISTIC cash flow (sell fill minus commission)
+        const sellFill = getExecutionFill(bar.close, 'sell', execConfig);
+        cash += shares * sellFill.price - sellFill.commission;
         shares = 0;
         inPosition = false;
         entryPrice = null;
@@ -888,7 +903,7 @@ function runBacktest(
           'LONG',
           entryReason,
           `Take profit triggered at +${takeProfit}%`,
-          DEFAULT_EXECUTION_CONFIG,
+          execConfig,
           {
             entryBarRaw: entryBarRaw || undefined,
             exitBarRaw: { ...bar },
@@ -898,8 +913,10 @@ function runBacktest(
           }
         );
         trades.push(trade);
-        
-        cash += shares * targetExitPrice;
+
+        // Apply REALISTIC cash flow (sell at target price with execution model)
+        const sellFill = getExecutionFill(targetExitPrice, 'sell', execConfig);
+        cash += shares * sellFill.price - sellFill.commission;
         shares = 0;
         inPosition = false;
         entryPrice = null;
@@ -940,10 +957,18 @@ function runBacktest(
       // Hard rule: cannot open positions on non-trading sessions.
       if (!isTradingDay(bar.date)) continue;
       const amountToInvest = cash * positionSize;
-      shares = Math.floor(amountToInvest / bar.close);
+
+      // Realistic entry: price includes slippage, and we must reserve commission.
+      const buyFill = getExecutionFill(bar.close, 'buy', execConfig);
+      const maxAffordableShares = Math.floor(
+        Math.max(0, (amountToInvest - buyFill.commission) / buyFill.price)
+      );
+      shares = maxAffordableShares;
       if (shares > 0) {
-        cash -= shares * bar.close;
+        cash -= shares * buyFill.price + buyFill.commission;
         inPosition = true;
+        // Store the *base* bar close as the strategy reference price.
+        // Realized P&L is driven by fills + commissions via createTradeWithRealism.
         entryPrice = bar.close;
         entryDate = bar.date;
         entryIndex = i;
@@ -973,7 +998,7 @@ function runBacktest(
         'LONG',
         entryReason,
         signal.reason,
-        DEFAULT_EXECUTION_CONFIG,
+        execConfig,
         {
           entryBarRaw: entryBarRaw || undefined,
           exitBarRaw: { ...bar },
@@ -983,8 +1008,9 @@ function runBacktest(
         }
       );
       trades.push(trade);
-      
-      cash += shares * exitPrice;
+
+      const sellFill = getExecutionFill(exitPrice, 'sell', execConfig);
+      cash += shares * sellFill.price - sellFill.commission;
       shares = 0;
       inPosition = false;
       entryPrice = null;
@@ -1007,7 +1033,7 @@ function runBacktest(
       'LONG',
       entryReason,
       'End of backtest period',
-      DEFAULT_EXECUTION_CONFIG,
+      execConfig,
       {
         entryBarRaw: entryBarRaw || undefined,
         exitBarRaw: { ...lastBar },
@@ -1017,8 +1043,9 @@ function runBacktest(
       }
     );
     trades.push(trade);
-    
-    cash += shares * lastBar.close;
+
+    const sellFill = getExecutionFill(lastBar.close, 'sell', execConfig);
+    cash += shares * sellFill.price - sellFill.commission;
   }
   
   // Calculate metrics
@@ -1108,16 +1135,21 @@ function runBacktest(
   // Calculate execution realism totals
   const totalSlippageCost = trades.reduce((sum, t) => sum + (t.slippageCost || 0), 0);
   const totalCommissionCost = trades.reduce((sum, t) => sum + (t.commissionCost || 0), 0);
-  const grossReturnTotal = trades.reduce((sum, t) => sum + (t.grossPnl || t.pnl), 0);
-  const netReturnTotal = trades.reduce((sum, t) => sum + (t.netPnl || t.pnl), 0);
+  // IMPORTANT: use nullish coalescing so legitimate 0 values don't fall back.
+  const grossReturnTotal = trades.reduce((sum, t) => sum + (t.grossPnl ?? t.pnl), 0);
+  const netReturnTotal = trades.reduce((sum, t) => sum + (t.netPnl ?? t.pnl), 0);
   
   // Calculate theoretical metrics (perfect fills, no costs)
-  const theoreticalReturn = trades.reduce((sum, t) => sum + (t.grossPnlPercent || t.pnlPercent), 0);
-  const theoreticalWinners = trades.filter(t => (t.grossPnl || t.pnl) > 0);
+  // Single-position engine => summing per-trade dollar PnL is consistent with NAV.
+  const theoreticalFinalValue = initialCapital + grossReturnTotal;
+  const theoreticalReturn = ((theoreticalFinalValue - initialCapital) / initialCapital) * 100;
+  const theoreticalWinners = trades.filter(t => (t.grossPnl ?? t.pnl) > 0);
   const theoreticalWinRate = trades.length > 0 ? (theoreticalWinners.length / trades.length) * 100 : 0;
   
   // Calculate realistic metrics (with slippage and commissions)
-  const realisticWinners = trades.filter(t => (t.netPnl || t.pnl) > 0);
+  const realisticWinners = trades.filter(t => (t.netPnl ?? t.pnl) > 0);
+  const realisticFinalValue = initialCapital + netReturnTotal;
+  const realisticReturn = ((realisticFinalValue - initialCapital) / initialCapital) * 100;
   const realisticWinRate = trades.length > 0 ? (realisticWinners.length / trades.length) * 100 : 0;
   
   return {
