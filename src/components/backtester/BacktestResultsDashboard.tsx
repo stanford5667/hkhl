@@ -574,7 +574,7 @@ export function BacktestResultsDashboard({ result, compact = false }: BacktestRe
             </div>
             <div className="text-center p-2 rounded bg-secondary/50">
               <p className="text-muted-foreground">Profit Factor</p>
-              <p className="font-mono font-semibold">{result.profitFactor.toFixed(2)}</p>
+              <p className="font-mono font-semibold">{result.profitFactor != null ? result.profitFactor.toFixed(2) : '∞'}</p>
             </div>
             <div className="text-center p-2 rounded bg-secondary/50">
               <p className="text-muted-foreground">vs Buy & Hold</p>
@@ -802,9 +802,9 @@ export function BacktestResultsDashboard({ result, compact = false }: BacktestRe
             />
             <MetricCard 
               label="Profit Factor" 
-              value={result.profitFactor.toFixed(2)}
+              value={result.profitFactor != null ? result.profitFactor.toFixed(2) : '∞'}
               description="Gross profit / loss"
-              trend={result.profitFactor >= 1.5 ? 'good' : result.profitFactor >= 1 ? 'neutral' : 'bad'}
+              trend={result.profitFactor == null || result.profitFactor >= 1.5 ? 'good' : result.profitFactor >= 1 ? 'neutral' : 'bad'}
             />
           </div>
 
