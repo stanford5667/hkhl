@@ -287,16 +287,19 @@ function createTradeWithRealism(
   
   // Calculate net P&L (with all costs)
   const netPnl = shares * (actualExit - actualEntry) - commissionCost;
+  // Use higher precision to avoid identical rounding across trades
   const netPnlPercent = ((actualExit - actualEntry) / actualEntry) * 100 - (commissionCost / (shares * actualEntry)) * 100;
   
   return {
     entryDate: normalizedEntryDate,
     exitDate: validatedExitDate,
-    entryPrice: Math.round(actualEntry * 100) / 100,
-    exitPrice: Math.round(actualExit * 100) / 100,
+    // Preserve 4 decimal places for prices to show real variance
+    entryPrice: Math.round(actualEntry * 10000) / 10000,
+    exitPrice: Math.round(actualExit * 10000) / 10000,
     shares,
     pnl: Math.round(netPnl * 100) / 100,
-    pnlPercent: Math.round(netPnlPercent * 100) / 100,
+    // Preserve 4 decimal places for pnlPercent to show variance
+    pnlPercent: Math.round(netPnlPercent * 10000) / 10000,
     type,
     entryReason,
     exitReason,
