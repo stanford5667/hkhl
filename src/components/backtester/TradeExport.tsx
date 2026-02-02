@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Download, FileSpreadsheet, FileText } from 'lucide-react';
 import { format } from 'date-fns';
+import { parseDateOnly } from '@/lib/date';
 import * as XLSX from 'xlsx';
 import { toast } from 'sonner';
 
@@ -40,9 +41,9 @@ export function TradeExport({ trades, ticker, strategy }: TradeExportProps) {
   const formatTradesForExport = () => {
     return trades.map((trade, index) => ({
       'Trade #': index + 1,
-      'Entry Date': format(new Date(trade.entryDate), 'yyyy-MM-dd'),
+      'Entry Date': format(parseDateOnly(trade.entryDate), 'yyyy-MM-dd'),
       'Entry Price': trade.entryPrice,
-      'Exit Date': format(new Date(trade.exitDate), 'yyyy-MM-dd'),
+      'Exit Date': format(parseDateOnly(trade.exitDate), 'yyyy-MM-dd'),
       'Exit Price': trade.exitPrice,
       'Shares': trade.shares,
       'Holding Days (Trading)': trade.holdingDays,

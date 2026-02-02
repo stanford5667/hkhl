@@ -43,6 +43,7 @@ import {
   Info,
 } from 'lucide-react';
 import { format } from 'date-fns';
+import { parseDateOnly } from '@/lib/date';
 import { cn } from '@/lib/utils';
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -309,7 +310,7 @@ export function TradeSourceModal({ trade, ticker, dataSource, onClose }: TradeSo
               <p className="text-xs text-emerald-400 mb-1">Entry Signal</p>
               <p className="text-sm font-semibold">{trade.entryReason}</p>
               <p className="text-xs text-muted-foreground mt-1">
-                {format(new Date(trade.entryDate), 'MMM dd, yyyy')} @ ${trade.entryPrice.toFixed(2)}
+                {format(parseDateOnly(trade.entryDate), 'MMM dd, yyyy')} @ ${trade.entryPrice.toFixed(2)}
               </p>
               {trade.indicatorValueAtEntry !== undefined && (
                 <Badge variant="outline" className="mt-2 text-[10px]">
@@ -321,7 +322,7 @@ export function TradeSourceModal({ trade, ticker, dataSource, onClose }: TradeSo
               <p className="text-xs text-rose-400 mb-1">Exit Signal</p>
               <p className="text-sm font-semibold">{trade.exitReason}</p>
               <p className="text-xs text-muted-foreground mt-1">
-                {format(new Date(trade.exitDate), 'MMM dd, yyyy')} @ ${trade.exitPrice.toFixed(2)}
+                {format(parseDateOnly(trade.exitDate), 'MMM dd, yyyy')} @ ${trade.exitPrice.toFixed(2)}
               </p>
               {trade.indicatorValueAtExit !== undefined && (
                 <Badge variant="outline" className="mt-2 text-[10px]">
@@ -455,9 +456,9 @@ export function ExecutionLog({
                         )}
                       </div>
                     </td>
-                    <td className="p-3">{format(new Date(trade.entryDate), 'MMM dd, yy')}</td>
+                    <td className="p-3">{format(parseDateOnly(trade.entryDate), 'MMM dd, yy')}</td>
                     <td className="p-3 text-right font-mono">${trade.entryPrice.toFixed(2)}</td>
-                    <td className="p-3">{format(new Date(trade.exitDate), 'MMM dd, yy')}</td>
+                    <td className="p-3">{format(parseDateOnly(trade.exitDate), 'MMM dd, yy')}</td>
                     <td className="p-3 text-right font-mono">${trade.exitPrice.toFixed(2)}</td>
                     <td className={cn(
                       "p-3 text-right font-mono font-semibold",
