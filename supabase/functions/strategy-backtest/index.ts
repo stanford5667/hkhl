@@ -154,6 +154,14 @@ function countTradingDaysBetween(startDate: string, endDate: string): number {
   return Math.max(0, count - 1);
 }
 
+// Calendar day difference (UTC noon anchor to avoid TZ rollover)
+function countCalendarDaysBetween(startDate: string, endDate: string): number {
+  const start = new Date(normalizeDate(startDate) + 'T12:00:00Z');
+  const end = new Date(normalizeDate(endDate) + 'T12:00:00Z');
+  const msPerDay = 24 * 60 * 60 * 1000;
+  return Math.max(0, Math.round((end.getTime() - start.getTime()) / msPerDay));
+}
+
 // Check if a date is in the future (beyond today)
 function isFutureDate(dateStr: string): boolean {
   const today = new Date().toISOString().split('T')[0];
@@ -222,15 +230,20 @@ function createTradeWithRealism(
   }
   
   // CRITICAL: Validate that entry date is a valid trading day
+  // NOTE: We do NOT auto-adjust entry dates because that would create a price/date mismatch.
+  // If this ever triggers, it means upstream bars are corrupt or date conversion is wrong.
   if (!isTradingDay(normalizedEntryDate)) {
-    console.error(`[strategy-backtest] ERROR: Entry date ${normalizedEntryDate} is not a trading day - bars must be filtered/normalized`);
+    console.error(`[strategy-backtest] ERROR: Invalid entry date ${normalizedEntryDate} (non-trading). Trade will be flagged.`);
     qualityFlag = qualityFlag
-      ? `${qualityFlag}; Invalid entry date ${normalizedEntryDate}`
-      : `Invalid entry date ${normalizedEntryDate}`;
+      ? `${qualityFlag}; Invalid entry date ${normalizedEntryDate} (non-trading)`
+      : `Invalid entry date ${normalizedEntryDate} (non-trading)`;
   }
   
-  // CRITICAL: Calculate actual trading days held (not calendar days)
-  const holdingDays = countTradingDaysBetween(entryDate, validatedExitDate);
+  // CRITICAL: Calculate holding periods
+  const holdingDaysTrading = countTradingDaysBetween(normalizedEntryDate, validatedExitDate);
+  const holdingDaysCalendar = countCalendarDaysBetween(normalizedEntryDate, validatedExitDate);
+  // Backwards-compat: holdingDays remains the trading-day count
+  const holdingDays = holdingDaysTrading;
   
   // CRITICAL: Check for future dates
   const today = new Date().toISOString().split('T')[0];
@@ -278,6 +291,8 @@ function createTradeWithRealism(
     entryReason,
     exitReason,
     holdingDays,
+    holdingDaysTrading,
+    holdingDaysCalendar,
     // Execution realism fields
     grossPnl: Math.round(grossPnl * 100) / 100,
     grossPnlPercent: Math.round(grossPnlPercent * 100) / 100,
@@ -389,6 +404,9 @@ interface Trade {
   entryReason: string;
   exitReason: string;
   holdingDays: number;
+  // Explicit holding period semantics
+  holdingDaysTrading?: number;
+  holdingDaysCalendar?: number;
   // Data Inspector fields
   entryBarRaw?: Bar;
   exitBarRaw?: Bar;
@@ -464,6 +482,17 @@ interface BacktestResult {
     totalReturn: number;
     winRate: number;
     sharpeRatio: number;
+  };
+
+  // Integrity + labeling
+  dataWindow?: {
+    requestedStartDate: string;
+    requestedEndDate: string;
+    effectiveStartDate: string;
+    effectiveEndDate: string;
+    lastAvailableBarDate: string;
+    wasEndDateClamped: boolean;
+    isForwardSimulated: boolean;
   };
 }
 
@@ -728,7 +757,8 @@ function runBacktest(
   initialCapital: number,
   params: StrategyParams,
   dataSource: 'database' | 'polygon',
-  dataSourceUrl: string
+  dataSourceUrl: string,
+  dataWindow?: BacktestResult['dataWindow']
 ): Omit<BacktestResult, 'success' | 'ticker' | 'startDate' | 'endDate'> {
   const trades: Trade[] = [];
   const portfolioHistory: PortfolioSnapshot[] = [];
@@ -792,6 +822,12 @@ function runBacktest(
   // Process each bar
   for (let i = 0; i < bars.length; i++) {
     const bar = bars[i];
+
+    // Absolute safety: never process signals on a closed-market day
+    if (!isTradingDay(bar.date)) {
+      console.warn(`[strategy-backtest] Skipping non-trading bar in simulation: ${bar.date}`);
+      continue;
+    }
     const positionValue = inPosition ? shares * bar.close : 0;
     const totalValue = cash + positionValue;
     
@@ -901,6 +937,8 @@ function runBacktest(
     
     // Execute signal
     if (signal.action === 'BUY' && !inPosition) {
+      // Hard rule: cannot open positions on non-trading sessions.
+      if (!isTradingDay(bar.date)) continue;
       const amountToInvest = cash * positionSize;
       shares = Math.floor(amountToInvest / bar.close);
       if (shares > 0) {
@@ -914,6 +952,8 @@ function runBacktest(
         entryIndicatorValue = getIndicatorValue(strategy, i);
       }
     } else if (signal.action === 'SELL' && inPosition && entryPrice !== null) {
+      // Hard rule: cannot close positions on non-trading sessions.
+      if (!isTradingDay(bar.date)) continue;
       // CRITICAL: When take profit is set, ignore strategy-specific exits
       // Only TP/SL (checked above) should trigger exits to respect user's risk/reward settings
       if (takeProfit !== null) {
@@ -1128,6 +1168,8 @@ function runBacktest(
       winRate: Math.round(realisticWinRate * 100) / 100,
       sharpeRatio: Math.round(sharpeRatio * 100) / 100,
     }
+    ,
+    dataWindow,
   };
 }
 
@@ -1151,9 +1193,12 @@ Deno.serve(async (req) => {
     
     const { ticker, strategy, startDate, initialCapital = 10000 } = body;
     let { endDate } = body;
+    const requestedStartDate = normalizeDate(startDate);
+    const requestedEndDateInitial = normalizeDate(endDate);
     
     // CRITICAL: Prevent backtesting on future dates - cap end date at today
     const today = new Date().toISOString().split('T')[0];
+    endDate = normalizeDate(endDate);
     if (endDate > today) {
       console.log(`[strategy-backtest] WARNING: End date ${endDate} is in the future, capping to today (${today})`);
       endDate = today;
@@ -1184,7 +1229,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    console.log(`[strategy-backtest] Running ${strategy} on ${ticker} from ${startDate} to ${endDate} (today: ${today})`);
+    console.log(`[strategy-backtest] Running ${strategy} on ${ticker} from ${requestedStartDate} to ${endDate} (today: ${today})`);
 
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
@@ -1196,7 +1241,7 @@ Deno.serve(async (req) => {
     let dataSourceUrl = '';
     
     // Calculate expected bars for the date range (approx 252 trading days/year)
-    const requestedStartMs = new Date(startDate).getTime();
+    const requestedStartMs = new Date(requestedStartDate).getTime();
     const requestedEndMs = new Date(endDate).getTime();
     const daysDiff = Math.floor((requestedEndMs - requestedStartMs) / (1000 * 60 * 60 * 24));
     const expectedBars = Math.floor(daysDiff * 0.7); // ~70% are trading days
@@ -1207,7 +1252,7 @@ Deno.serve(async (req) => {
       .from('market_daily_bars')
       .select('bar_date, open, high, low, close, volume, daily_return')
       .eq('ticker', normalizedTicker)
-      .gte('bar_date', startDate)
+      .gte('bar_date', requestedStartDate)
       .lte('bar_date', endDate)
       .order('bar_date', { ascending: true });
 
@@ -1289,8 +1334,24 @@ Deno.serve(async (req) => {
 
      console.log(`[strategy-backtest] Proceeding with ${bars.length} bars from ${dataSource}`);
 
+     // Determine effective date window and clamp labeling.
+     const lastAvailableBarDate = normalizeDate(bars[bars.length - 1]?.date || endDate);
+     const effectiveStartDate = normalizeDate(bars[0]?.date || requestedStartDate);
+     const effectiveEndDate = lastAvailableBarDate;
+     const wasEndDateClamped = requestedEndDateInitial !== effectiveEndDate;
+     const isForwardSimulated = false; // by design: we never simulate beyond the last real bar
+     const dataWindow: BacktestResult['dataWindow'] = {
+       requestedStartDate,
+       requestedEndDate: requestedEndDateInitial,
+       effectiveStartDate,
+       effectiveEndDate,
+       lastAvailableBarDate,
+       wasEndDateClamped,
+       isForwardSimulated,
+     };
+
     // Run backtest
-    const result = runBacktest(bars, strategy, initialCapital, params, dataSource, dataSourceUrl);
+    const result = runBacktest(bars, strategy, initialCapital, params, dataSource, dataSourceUrl, dataWindow);
 
     console.log(`[strategy-backtest] Complete: ${result.totalTrades} trades, ${result.totalReturn.toFixed(2)}% return`);
 
@@ -1299,7 +1360,7 @@ Deno.serve(async (req) => {
         success: true,
         ...result,
         ticker: normalizedTicker,
-         startDate: normalizeDate(bars[0]?.date || startDate),
+         startDate: normalizeDate(bars[0]?.date || requestedStartDate),
          endDate: normalizeDate(bars[bars.length - 1]?.date || endDate)
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
