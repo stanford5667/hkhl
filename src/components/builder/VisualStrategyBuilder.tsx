@@ -264,7 +264,7 @@ export function VisualStrategyBuilder({
       <DragDropContext onDragEnd={handleDragEnd}>
         <div className="flex flex-col h-full overflow-hidden">
           {/* Scrollable content area */}
-          <div className="flex-1 overflow-y-auto">
+          <div className="flex-1 overflow-y-auto pb-[env(safe-area-inset-bottom)]">
             {/* SentenceBuilder is the primary interface in embedded mode */}
             <BlockPalette 
               className="border-b border-border/30" 
