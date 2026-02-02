@@ -232,8 +232,8 @@ export function StockDetailLayout({
           </div>
         </div>
 
-        {/* Scrollable Content */}
-        <div className="flex-1 overflow-y-auto">
+        {/* Scrollable Content (pad for mobile bottom nav + iOS safe area) */}
+        <div className="flex-1 overflow-y-auto pb-[calc(5rem+env(safe-area-inset-bottom))]">
           {children}
         </div>
       </div>
