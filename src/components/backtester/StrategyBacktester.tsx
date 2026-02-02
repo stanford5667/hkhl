@@ -497,7 +497,7 @@ export function StrategyBacktester({ ticker, companyName }: StrategyBacktesterPr
     const strategy = STRATEGIES.find(s => s.id === serialized.strategy);
     if (!strategy) {
       toast.error(`Strategy "${serialized.strategy}" not supported`);
-      return;
+      return undefined;
     }
 
     // Update state to match the visual builder's configuration  
@@ -572,10 +572,24 @@ export function StrategyBacktester({ ticker, companyName }: StrategyBacktesterPr
       setResult(data as BacktestResult);
       toast.success(`Backtest complete: ${data.totalTrades} trades, ${data.totalReturn.toFixed(2)}% return`);
 
+      // Return metrics for embedded builder results view
+      return {
+        totalReturn: data.totalReturn || 0,
+        winRate: data.winRate || 0,
+        totalTrades: data.totalTrades || 0,
+        sharpeRatio: data.sharpeRatio || 0,
+        maxDrawdown: data.maxDrawdown || 0,
+        avgWin: data.avgWin || 0,
+        avgLoss: data.avgLoss || 0,
+        profitFactor: data.profitFactor || 0,
+        avgHoldingDays: data.avgHoldingDays || 0,
+      };
+
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Backtest failed';
       setError(message);
       toast.error(message);
+      return undefined;
     } finally {
       setIsRunning(false);
     }

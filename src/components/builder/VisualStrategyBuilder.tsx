@@ -19,6 +19,7 @@ import { StrategyCanvas } from './StrategyCanvas';
 import { StrategySummary, type SerializedStrategy } from './StrategySummary';
 import { BuilderOnboarding } from './BuilderOnboarding';
 import { MobileBuilder } from './MobileBuilder';
+import { BacktestResultsView } from './BacktestResultsView';
 import { useBuilderHistory } from '@/hooks/useBuilderHistory';
 import { useIsMobile } from '@/hooks/use-mobile';
 
@@ -28,10 +29,22 @@ interface BacktestParams {
   params: Record<string, number | string | undefined>;
 }
 
+interface BacktestMetrics {
+  totalReturn?: number;
+  winRate?: number;
+  totalTrades?: number;
+  sharpeRatio?: number;
+  maxDrawdown?: number;
+  avgWin?: number;
+  avgLoss?: number;
+  profitFactor?: number;
+  avgHoldingDays?: number;
+}
+
 interface VisualStrategyBuilderProps {
   embedded?: boolean;
-  /** Callback for inline backtest execution (instead of navigating to /backtester) */
-  onRunBacktest?: (params: BacktestParams) => void;
+  /** Callback for inline backtest execution - should return metrics for results view */
+  onRunBacktest?: (params: BacktestParams) => Promise<BacktestMetrics | void> | void;
   /** Initial ticker for embedded mode */
   initialTicker?: string;
 }
@@ -63,6 +76,12 @@ export function VisualStrategyBuilder({
   // Onboarding state
   const [showOnboarding, setShowOnboarding] = useState(true);
   const [showHelp, setShowHelp] = useState(false);
+  
+  // Stage-based flow for embedded mode: 'build' | 'results'
+  const [stage, setStage] = useState<'build' | 'results'>('build');
+  const [lastBacktestParams, setLastBacktestParams] = useState<BacktestParams | null>(null);
+  const [lastBacktestMetrics, setLastBacktestMetrics] = useState<BacktestMetrics | null>(null);
+  const [isRunningBacktest, setIsRunningBacktest] = useState(false);
 
   // Generate unique ID
   const generateId = () => `block-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
@@ -263,9 +282,61 @@ export function VisualStrategyBuilder({
     );
   }
 
+  // Wrapped backtest handler that captures results for stage flow
+  const handleEmbeddedBacktest = useCallback(async (params: BacktestParams) => {
+    setLastBacktestParams(params);
+    setIsRunningBacktest(true);
+    setLastBacktestMetrics(null);
+    
+    // Call the parent's onRunBacktest if provided
+    if (onRunBacktest) {
+      try {
+        // The parent handler should return metrics
+        const metrics = await onRunBacktest(params);
+        
+        if (metrics) {
+          setLastBacktestMetrics(metrics);
+        }
+        
+        // Transition to results stage
+        setStage('results');
+      } catch (error) {
+        console.error('Backtest error:', error);
+      } finally {
+        setIsRunningBacktest(false);
+      }
+    }
+  }, [onRunBacktest]);
+
+  // Handle going back to build stage
+  const handleBackToBuilder = useCallback(() => {
+    setStage('build');
+  }, []);
+
+  // Handle re-run
+  const handleRerun = useCallback(() => {
+    if (lastBacktestParams) {
+      handleEmbeddedBacktest(lastBacktestParams);
+    }
+  }, [lastBacktestParams, handleEmbeddedBacktest]);
+
   // Embedded compact layout (for side panel in Backtester)
   // Uses SentenceBuilder directly - no canvas needed
   if (embedded) {
+    // Results stage - show results with back button
+    if (stage === 'results' && lastBacktestParams) {
+      return (
+        <BacktestResultsView
+          params={lastBacktestParams}
+          metrics={lastBacktestMetrics || {}}
+          isLoading={isRunningBacktest}
+          onBack={handleBackToBuilder}
+          onRerun={handleRerun}
+        />
+      );
+    }
+    
+    // Build stage - show the strategy builder
     return (
       <DragDropContext onDragEnd={handleDragEnd}>
         <div className="flex flex-col h-full overflow-hidden">
@@ -276,7 +347,7 @@ export function VisualStrategyBuilder({
               className="border-b border-border/30" 
               compact 
               onAddBlock={handleAddBlock}
-              onRunBacktest={onRunBacktest}
+              onRunBacktest={handleEmbeddedBacktest}
               ticker={ticker}
             />
             
@@ -289,7 +360,7 @@ export function VisualStrategyBuilder({
               onNameChange={setStrategyName}
               onTickerChange={setTicker}
               onLoadTemplate={handleLoadTemplate}
-              onRunBacktest={onRunBacktest}
+              onRunBacktest={handleEmbeddedBacktest}
               className="border-t border-border/30"
               compact
                showTickerAndTemplate={false}
