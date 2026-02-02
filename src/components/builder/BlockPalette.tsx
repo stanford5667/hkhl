@@ -19,7 +19,7 @@ import {
   ACTION_BLOCKS,
 } from '@/lib/strategyBuilder/templates';
 import type { PaletteBlock, BlockSubtype } from '@/lib/strategyBuilder/types';
-import { SentenceBuilder } from './SentenceBuilder';
+import { SentenceBuilder, type SentenceBuilderState } from './SentenceBuilder';
 
 export interface BlockPaletteProps {
   className?: string;
@@ -28,6 +28,9 @@ export interface BlockPaletteProps {
   onSwitchToCanvas?: () => void;
   onRunBacktest?: (params: { strategy: string; ticker: string; params: Record<string, number | string | undefined> }) => void;
   ticker?: string;
+  // Controlled state for SentenceBuilder persistence
+  sentenceState?: SentenceBuilderState;
+  onSentenceStateChange?: (state: SentenceBuilderState) => void;
 }
 
 interface BlockGridProps {
@@ -260,6 +263,8 @@ export const BlockPalette = memo(function BlockPalette({
   onSwitchToCanvas,
   onRunBacktest,
   ticker,
+  sentenceState,
+  onSentenceStateChange,
 }: BlockPaletteProps) {
   // Use sentence builder for mobile/compact mode - clearer relationships
   if (compact) {
@@ -273,6 +278,8 @@ export const BlockPalette = memo(function BlockPalette({
           onComplete={onSwitchToCanvas}
           onRunBacktest={onRunBacktest}
           ticker={ticker}
+          state={sentenceState}
+          onStateChange={onSentenceStateChange}
         />
       </div>
     );

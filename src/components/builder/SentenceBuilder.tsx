@@ -19,18 +19,40 @@ import {
 } from '@/lib/strategyBuilder/templates';
 import type { PaletteBlock, BlockSubtype } from '@/lib/strategyBuilder/types';
 
+export interface BacktestParams {
+  strategy: string;
+  ticker: string;
+  params: Record<string, number | string | undefined>;
+}
+
+export interface SelectedSignal {
+  preset: SignalPreset;
+  parameters: Record<string, number>;
+}
+
+export interface SelectedExit {
+  block: PaletteBlock;
+  parameters: Record<string, number>;
+}
+
+export type LogicOperator = 'AND' | 'OR';
+
+export interface SentenceBuilderState {
+  entrySignals: SelectedSignal[];
+  entryLogic: LogicOperator;
+  exitRules: SelectedExit[];
+  exitLogic: LogicOperator;
+}
+
 interface SentenceBuilderProps {
   onAddBlock: (subtype: BlockSubtype, parameters?: Record<string, number>) => void;
   onComplete?: () => void;
   onRunBacktest?: (params: BacktestParams) => void;
   ticker?: string;
   className?: string;
-}
-
-interface BacktestParams {
-  strategy: string;
-  ticker: string;
-  params: Record<string, number | string | undefined>;
+  // Controlled state for persistence
+  state?: SentenceBuilderState;
+  onStateChange?: (state: SentenceBuilderState) => void;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -170,17 +192,7 @@ const SIGNAL_PRESETS: SignalPreset[] = [
   },
 ];
 
-interface SelectedSignal {
-  preset: SignalPreset;
-  parameters: Record<string, number>;
-}
-
-interface SelectedExit {
-  block: PaletteBlock;
-  parameters: Record<string, number>;
-}
-
-type LogicOperator = 'AND' | 'OR';
+// Types moved to top for export
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // LOGIC TOGGLE BUTTON
@@ -513,14 +525,56 @@ export const SentenceBuilder = memo(function SentenceBuilder({
   onRunBacktest,
   ticker = 'AAPL',
   className,
+  state,
+  onStateChange,
 }: SentenceBuilderProps) {
-  // Entry signals (multiple with AND/OR)
-  const [entrySignals, setEntrySignals] = useState<SelectedSignal[]>([]);
-  const [entryLogic, setEntryLogic] = useState<LogicOperator>('AND');
+  // Use controlled state if provided, otherwise fall back to local state
+  const [localEntrySignals, setLocalEntrySignals] = useState<SelectedSignal[]>([]);
+  const [localEntryLogic, setLocalEntryLogic] = useState<LogicOperator>('AND');
+  const [localExitRules, setLocalExitRules] = useState<SelectedExit[]>([]);
+  const [localExitLogic, setLocalExitLogic] = useState<LogicOperator>('OR');
   
-  // Exit rules (multiple with AND/OR)
-  const [exitRules, setExitRules] = useState<SelectedExit[]>([]);
-  const [exitLogic, setExitLogic] = useState<LogicOperator>('OR');
+  // Controlled vs uncontrolled pattern
+  const isControlled = state !== undefined && onStateChange !== undefined;
+  
+  const entrySignals = isControlled ? state.entrySignals : localEntrySignals;
+  const entryLogic = isControlled ? state.entryLogic : localEntryLogic;
+  const exitRules = isControlled ? state.exitRules : localExitRules;
+  const exitLogic = isControlled ? state.exitLogic : localExitLogic;
+  
+  const setEntrySignals = useCallback((updater: SelectedSignal[] | ((prev: SelectedSignal[]) => SelectedSignal[])) => {
+    if (isControlled) {
+      const newValue = typeof updater === 'function' ? updater(state.entrySignals) : updater;
+      onStateChange({ ...state, entrySignals: newValue });
+    } else {
+      setLocalEntrySignals(updater);
+    }
+  }, [isControlled, state, onStateChange]);
+  
+  const setEntryLogic = useCallback((value: LogicOperator) => {
+    if (isControlled) {
+      onStateChange({ ...state, entryLogic: value });
+    } else {
+      setLocalEntryLogic(value);
+    }
+  }, [isControlled, state, onStateChange]);
+  
+  const setExitRules = useCallback((updater: SelectedExit[] | ((prev: SelectedExit[]) => SelectedExit[])) => {
+    if (isControlled) {
+      const newValue = typeof updater === 'function' ? updater(state.exitRules) : updater;
+      onStateChange({ ...state, exitRules: newValue });
+    } else {
+      setLocalExitRules(updater);
+    }
+  }, [isControlled, state, onStateChange]);
+  
+  const setExitLogic = useCallback((value: LogicOperator) => {
+    if (isControlled) {
+      onStateChange({ ...state, exitLogic: value });
+    } else {
+      setLocalExitLogic(value);
+    }
+  }, [isControlled, state, onStateChange]);
 
   // State tracking
   const entryComplete = entrySignals.length > 0;
