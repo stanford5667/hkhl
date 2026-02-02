@@ -177,9 +177,9 @@ interface ExecutionConfig {
 }
 
 const DEFAULT_EXECUTION_CONFIG: ExecutionConfig = {
-  slippageBps: 10,              // 0.10% slippage
+  slippageBps: 0,               // Disabled - focus on pure strategy performance
   commissionPerTrade: 0.99,     // $0.99 per trade
-  applySlippage: true,
+  applySlippage: false,         // Slippage disabled for now
   applyCommission: true,
 };
 
