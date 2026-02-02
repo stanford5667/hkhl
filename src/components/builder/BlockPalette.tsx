@@ -170,28 +170,64 @@ const STEPS = [
   { id: 'logic', stepNumber: 5, title: 'Logic', shortTitle: '5. Logic', subtitle: 'AND/OR', blocks: LOGIC_BLOCKS, droppableId: 'palette-logic', isOptional: true },
 ];
 
-// Mobile tabbed palette - no scrolling required
+// Mobile tabbed palette - auto-advances through steps
 const TabbedPalette = memo(function TabbedPalette({ onAddBlock }: { onAddBlock?: (subtype: BlockSubtype) => void }) {
   const [activeStep, setActiveStep] = useState('indicators');
+  
+  // Auto-advance to next step when block is added
+  const handleAddBlock = (subtype: BlockSubtype) => {
+    onAddBlock?.(subtype);
+    
+    // Find current step index and advance to next
+    const currentIndex = STEPS.findIndex(s => s.id === activeStep);
+    if (currentIndex < STEPS.length - 1) {
+      // Skip to next required step (skip optional logic unless on exits)
+      const nextStep = STEPS[currentIndex + 1];
+      if (nextStep.isOptional && currentIndex < 3) {
+        // If next is optional and we haven't done exits, go to next non-optional
+        setActiveStep(STEPS[Math.min(currentIndex + 1, STEPS.length - 1)].id);
+      } else {
+        setActiveStep(nextStep.id);
+      }
+    }
+  };
+  
+  // Get completion status for each step
+  const getStepStatus = (stepId: string) => {
+    const stepIndex = STEPS.findIndex(s => s.id === stepId);
+    const activeIndex = STEPS.findIndex(s => s.id === activeStep);
+    if (stepIndex < activeIndex) return 'complete';
+    if (stepIndex === activeIndex) return 'current';
+    return 'upcoming';
+  };
   
   return (
     <Tabs value={activeStep} onValueChange={setActiveStep} className="flex flex-col h-full">
       {/* Horizontal step tabs - all visible at once */}
       <TabsList className="grid grid-cols-5 h-auto p-1 bg-muted/50 rounded-none border-b">
-        {STEPS.map((step) => (
-          <TabsTrigger
-            key={step.id}
-            value={step.id}
-            className={cn(
-              "flex flex-col items-center gap-0.5 px-1 py-1.5 text-[10px] rounded",
-              "data-[state=active]:bg-primary data-[state=active]:text-primary-foreground",
-              step.isOptional && "opacity-70"
-            )}
-          >
-            <span className="font-bold">{step.stepNumber}</span>
-            <span className="truncate max-w-full">{step.title}</span>
-          </TabsTrigger>
-        ))}
+        {STEPS.map((step) => {
+          const status = getStepStatus(step.id);
+          return (
+            <TabsTrigger
+              key={step.id}
+              value={step.id}
+              className={cn(
+                "flex flex-col items-center gap-0.5 px-1 py-1.5 text-[10px] rounded relative",
+                "data-[state=active]:bg-primary data-[state=active]:text-primary-foreground",
+                status === 'complete' && "bg-green-500/20 text-green-700 dark:text-green-400",
+                step.isOptional && status === 'upcoming' && "opacity-50"
+              )}
+            >
+              <span className={cn(
+                "font-bold flex items-center justify-center w-4 h-4 rounded-full text-[9px]",
+                status === 'complete' && "bg-green-500 text-white"
+              )}>
+                {status === 'complete' ? '✓' : step.stepNumber}
+              </span>
+              <span className="truncate max-w-full">{step.title}</span>
+            </TabsTrigger>
+          );
+        })}
       </TabsList>
       
       {/* Tab content - blocks for selected step */}
@@ -204,7 +240,7 @@ const TabbedPalette = memo(function TabbedPalette({ onAddBlock }: { onAddBlock?:
             <BlockGrid
               blocks={step.blocks}
               droppableId={step.droppableId}
-              onAddBlock={onAddBlock}
+              onAddBlock={handleAddBlock}
             />
           </div>
         </TabsContent>
