@@ -348,35 +348,32 @@ export function VisualStrategyBuilder({
     // Build stage - show the strategy builder
     return (
       <DragDropContext onDragEnd={handleDragEnd}>
-        <div className="flex flex-col h-full overflow-hidden">
-          {/* Scrollable content area */}
-          <div className="flex-1 overflow-y-auto pb-[env(safe-area-inset-bottom)]">
-            {/* SentenceBuilder is the primary interface in embedded mode */}
-            <BlockPalette 
-              className="border-b border-border/30" 
-              compact 
-              onAddBlock={handleAddBlock}
-              onRunBacktest={handleEmbeddedBacktest}
-              ticker={ticker}
-              sentenceState={sentenceState}
-              onSentenceStateChange={setSentenceState}
-            />
-            
-            {/* Compact Summary - ticker + template only */}
-            <StrategySummary
-              blocks={blocks}
-              connections={connections}
-              strategyName={strategyName}
-              ticker={ticker}
-              onNameChange={setStrategyName}
-              onTickerChange={setTicker}
-              onLoadTemplate={handleLoadTemplate}
-              onRunBacktest={handleEmbeddedBacktest}
-              className="border-t border-border/30"
-              compact
-               showTickerAndTemplate={false}
-            />
-          </div>
+        <div className="flex flex-col">
+          {/* SentenceBuilder is the primary interface in embedded mode */}
+          <BlockPalette 
+            className="border-b border-border/30" 
+            compact 
+            onAddBlock={handleAddBlock}
+            onRunBacktest={handleEmbeddedBacktest}
+            ticker={ticker}
+            sentenceState={sentenceState}
+            onSentenceStateChange={setSentenceState}
+          />
+          
+          {/* Compact Summary - ticker + template only */}
+          <StrategySummary
+            blocks={blocks}
+            connections={connections}
+            strategyName={strategyName}
+            ticker={ticker}
+            onNameChange={setStrategyName}
+            onTickerChange={setTicker}
+            onLoadTemplate={handleLoadTemplate}
+            onRunBacktest={handleEmbeddedBacktest}
+            className="border-t border-border/30"
+            compact
+            showTickerAndTemplate={false}
+          />
         </div>
       </DragDropContext>
     );
