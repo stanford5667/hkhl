@@ -282,22 +282,22 @@ export const StrategySummary = memo(function StrategySummary({
   // Compact mode for embedded use
   if (compact) {
     return (
-      <div className={cn("flex flex-col bg-[rgb(13,17,23)]", className)}>
-        {/* Remove ScrollArea - parent handles scrolling, add bottom padding for mobile nav */}
-        <div className="p-3 pb-20 space-y-3">
+      <div className={cn("flex flex-col bg-card", className)}>
+        {/* Parent handles scrolling; keep safe-area-aware bottom padding so CTA clears mobile nav */}
+        <div className="p-3 space-y-3 pb-[calc(6rem+env(safe-area-inset-bottom))]">
           {/* Ticker + Template row */}
           <div className="flex gap-2">
             <Input
               value={ticker}
               onChange={(e) => onTickerChange(e.target.value.toUpperCase())}
               placeholder="AAPL"
-              className="h-8 text-xs uppercase flex-1 bg-[rgb(17,21,28)] border-[rgb(33,38,45)]"
+              className="h-8 text-xs uppercase flex-1"
             />
             <Select onValueChange={(id) => {
               const template = STRATEGY_TEMPLATES.find(t => t.id === id);
               if (template) onLoadTemplate(template);
             }}>
-              <SelectTrigger className="h-8 text-xs w-28 bg-[rgb(17,21,28)] border-[rgb(33,38,45)]">
+              <SelectTrigger className="h-8 text-xs w-28">
                 <SelectValue placeholder="Template" />
               </SelectTrigger>
               <SelectContent>
@@ -312,14 +312,14 @@ export const StrategySummary = memo(function StrategySummary({
 
           {/* Plain English Summary (compact) */}
           {blocks.length > 0 && (
-            <div className="text-[11px] space-y-1.5 p-2.5 rounded bg-[rgb(17,21,28)] border border-[rgb(33,38,45)]">
+            <div className="text-[11px] space-y-1.5 p-2.5 rounded bg-muted/30 border border-border">
               <div className="flex items-start gap-1.5">
                 <TrendingUp className="h-3.5 w-3.5 text-emerald-500 mt-0.5 shrink-0" />
-                <span className="text-[rgb(200,210,220)]">{plainEnglish.entry}</span>
+                <span className="text-foreground/80">{plainEnglish.entry}</span>
               </div>
               <div className="flex items-start gap-1.5">
                 <TrendingDown className="h-3.5 w-3.5 text-rose-500 mt-0.5 shrink-0" />
-                <span className="text-[rgb(200,210,220)]">{plainEnglish.exit}</span>
+                <span className="text-foreground/80">{plainEnglish.exit}</span>
               </div>
             </div>
           )}
