@@ -126,6 +126,31 @@ function getNextTradingDay(dateStr: string): string {
   return date.toISOString().split('T')[0];
 }
 
+// Count trading days between two dates (for accurate holding period calculation)
+function countTradingDaysBetween(startDate: string, endDate: string): number {
+  const start = new Date(startDate + 'T12:00:00Z');
+  const end = new Date(endDate + 'T12:00:00Z');
+  let count = 0;
+  const currentDate = new Date(start);
+  
+  while (currentDate <= end) {
+    const dateStr = currentDate.toISOString().split('T')[0];
+    if (isTradingDay(dateStr)) {
+      count++;
+    }
+    currentDate.setDate(currentDate.getDate() + 1);
+  }
+  
+  // Subtract 1 because we don't count entry day, only holding days
+  return Math.max(0, count - 1);
+}
+
+// Check if a date is in the future (beyond today)
+function isFutureDate(dateStr: string): boolean {
+  const today = new Date().toISOString().split('T')[0];
+  return dateStr > today;
+}
+
 // Execution realism configuration
 interface ExecutionConfig {
   slippageBps: number;           // 10 = 0.10% (10 basis points)
@@ -161,7 +186,6 @@ function createTradeWithRealism(
   type: 'LONG' | 'SHORT',
   entryReason: string,
   exitReason: string,
-  holdingDays: number,
   config: ExecutionConfig,
   extras?: {
     entryBarRaw?: Bar;
@@ -172,6 +196,37 @@ function createTradeWithRealism(
     dataQualityFlag?: string;
   }
 ): Trade {
+  // CRITICAL: Validate that exit date is a valid trading day
+  let validatedExitDate = exitDate;
+  let qualityFlag = extras?.dataQualityFlag;
+  
+  if (!isTradingDay(exitDate)) {
+    validatedExitDate = getNextTradingDay(exitDate);
+    qualityFlag = qualityFlag 
+      ? `${qualityFlag}; Exit date ${exitDate} was non-trading day, adjusted to ${validatedExitDate}`
+      : `Exit date ${exitDate} was non-trading day, adjusted to ${validatedExitDate}`;
+    console.log(`[strategy-backtest] WARNING: Exit date ${exitDate} is non-trading day, adjusted to ${validatedExitDate}`);
+  }
+  
+  // CRITICAL: Validate that entry date is a valid trading day
+  if (!isTradingDay(entryDate)) {
+    console.error(`[strategy-backtest] ERROR: Entry date ${entryDate} is not a trading day - this should never happen!`);
+    qualityFlag = qualityFlag
+      ? `${qualityFlag}; Invalid entry date ${entryDate}`
+      : `Invalid entry date ${entryDate}`;
+  }
+  
+  // CRITICAL: Calculate actual trading days held (not calendar days)
+  const holdingDays = countTradingDaysBetween(entryDate, validatedExitDate);
+  
+  // CRITICAL: Check for future dates
+  const today = new Date().toISOString().split('T')[0];
+  if (validatedExitDate > today) {
+    qualityFlag = qualityFlag
+      ? `${qualityFlag}; Future date detected - data may be synthetic`
+      : 'Future date detected - data may be synthetic';
+  }
+  
   // Calculate gross P&L (theoretical, no costs)
   const grossPnl = shares * (baseExit - baseEntry);
   const grossPnlPercent = ((baseExit - baseEntry) / baseEntry) * 100;
@@ -198,16 +253,9 @@ function createTradeWithRealism(
   const netPnl = shares * (actualExit - actualEntry) - commissionCost;
   const netPnlPercent = ((actualExit - actualEntry) / actualEntry) * 100 - (commissionCost / (shares * actualEntry)) * 100;
   
-  // Check for data quality issues
-  let dataQualityFlag = extras?.dataQualityFlag;
-  const today = new Date().toISOString().split('T')[0];
-  if (exitDate > today) {
-    dataQualityFlag = 'Future date detected - data may be synthetic';
-  }
-  
   return {
     entryDate,
-    exitDate,
+    exitDate: validatedExitDate,
     entryPrice: Math.round(actualEntry * 100) / 100,
     exitPrice: Math.round(actualExit * 100) / 100,
     shares,
@@ -224,7 +272,7 @@ function createTradeWithRealism(
     commissionCost: Math.round(commissionCost * 100) / 100,
     netPnl: Math.round(netPnl * 100) / 100,
     netPnlPercent: Math.round(netPnlPercent * 100) / 100,
-    dataQualityFlag,
+    dataQualityFlag: qualityFlag,
     // Data inspector fields
     entryBarRaw: extras?.entryBarRaw,
     exitBarRaw: extras?.exitBarRaw,
@@ -568,12 +616,13 @@ function gapFillStrategy(
   inPosition: boolean,
   entryPrice: number | null,
   params: StrategyParams
-): StrategySignal {
-  if (index < 1) return { action: 'HOLD', reason: 'Need previous bar' };
+): { signal: StrategySignal; exitAtEntryPrice?: boolean } {
+  if (index < 1) return { signal: { action: 'HOLD', reason: 'Need previous bar' } };
   
   const prevClose = bars[index - 1].close;
   const todayOpen = bars[index].open;
   const todayClose = bars[index].close;
+  const todayHigh = bars[index].high;
   const threshold = params.gapThreshold ?? 2; // 2% gap
   const takeProfit = params.takeProfitPercent ?? null;
   
@@ -587,7 +636,7 @@ function gapFillStrategy(
   
   // Gap down detected - only enter if not already in position
   if (!inPosition && gapPercent < -threshold) {
-    return { action: 'BUY', reason: `Gap down of ${gapPercent.toFixed(2)}% (below -${threshold}%)` };
+    return { signal: { action: 'BUY', reason: `Gap down of ${gapPercent.toFixed(2)}% (below -${threshold}%)` } };
   }
   
   // Exit conditions when in position
@@ -599,26 +648,32 @@ function gapFillStrategy(
     if (takeProfit !== null) {
       if (currentReturn >= takeProfit) {
         console.log(`[Gap Strategy] Take profit HIT: target ${takeProfit}%, current ${currentReturn.toFixed(2)}%`);
-        return { action: 'SELL', reason: `Take profit triggered at +${takeProfit}% (current: +${currentReturn.toFixed(2)}%)` };
+        return { signal: { action: 'SELL', reason: `Take profit triggered at +${takeProfit}% (current: +${currentReturn.toFixed(2)}%)` } };
       }
       // Hold position - waiting for take profit target
-      return { action: 'HOLD', reason: `Waiting for +${takeProfit}% target (current: +${currentReturn.toFixed(2)}%)` };
+      return { signal: { action: 'HOLD', reason: `Waiting for +${takeProfit}% target (current: +${currentReturn.toFixed(2)}%)` } };
     }
     
     // Default gap-fill exit ONLY when NO take profit is specified
-    if (todayClose >= entryPrice) {
-      return { action: 'SELL', reason: `Gap filled - price returned to entry ($${entryPrice.toFixed(2)})` };
+    // CRITICAL FIX: Check if price touched entry level during the day (use high), and exit AT entry price
+    if (todayHigh >= entryPrice) {
+      // Price touched or exceeded entry - gap is filled, exit AT entry price (not at close)
+      return { 
+        signal: { action: 'SELL', reason: `Gap filled - price returned to entry ($${entryPrice.toFixed(2)})` },
+        exitAtEntryPrice: true  // Signal to exit at entry price, not bar close
+      };
     }
   }
   
-  return { action: 'HOLD', reason: `Gap: ${gapPercent.toFixed(2)}%` };
+  return { signal: { action: 'HOLD', reason: `Gap: ${gapPercent.toFixed(2)}%` } };
 }
 
 function consecutiveDaysStrategy(
   bars: Bar[],
   index: number,
   inPosition: boolean,
-  entryIndex: number | null,
+  entryDate: string | null,
+  currentDate: string,
   params: StrategyParams
 ): StrategySignal {
   const consecutiveDays = params.consecutiveDays ?? 3;
@@ -639,11 +694,11 @@ function consecutiveDaysStrategy(
     }
   }
   
-  // Exit after holding period
-  if (inPosition && entryIndex !== null) {
-    const daysHeld = index - entryIndex;
-    if (daysHeld >= holdingPeriod) {
-      return { action: 'SELL', reason: `Holding period of ${holdingPeriod} days reached` };
+  // Exit after holding period - CRITICAL: Use actual trading days, not bar indices
+  if (inPosition && entryDate !== null) {
+    const tradingDaysHeld = countTradingDaysBetween(entryDate, currentDate);
+    if (tradingDaysHeld >= holdingPeriod) {
+      return { action: 'SELL', reason: `Holding period of ${holdingPeriod} trading days reached (actual: ${tradingDaysHeld})` };
     }
   }
   
@@ -750,7 +805,6 @@ function runBacktest(
           'LONG',
           entryReason,
           `Stop loss triggered at -${stopLoss}%`,
-          i - entryIndex!,
           DEFAULT_EXECUTION_CONFIG,
           {
             entryBarRaw: entryBarRaw || undefined,
@@ -785,7 +839,6 @@ function runBacktest(
           'LONG',
           entryReason,
           `Take profit triggered at +${takeProfit}%`,
-          i - entryIndex!,
           DEFAULT_EXECUTION_CONFIG,
           {
             entryBarRaw: entryBarRaw || undefined,
@@ -811,6 +864,7 @@ function runBacktest(
     
     // Get strategy signal
     let signal: StrategySignal;
+    let gapFillExitAtEntry = false;
     
     switch (strategy) {
       case 'rsi':
@@ -819,11 +873,14 @@ function runBacktest(
       case 'ma-crossover':
         signal = maStrategy(bars, i, fastMa, slowMa, inPosition, params);
         break;
-      case 'gap-fill':
-        signal = gapFillStrategy(bars, i, inPosition, entryPrice, params);
+      case 'gap-fill': {
+        const gapResult = gapFillStrategy(bars, i, inPosition, entryPrice, params);
+        signal = gapResult.signal;
+        gapFillExitAtEntry = gapResult.exitAtEntryPrice || false;
         break;
+      }
       case 'consecutive-days':
-        signal = consecutiveDaysStrategy(bars, i, inPosition, entryIndex, params);
+        signal = consecutiveDaysStrategy(bars, i, inPosition, entryDate, bar.date, params);
         break;
       default:
         signal = { action: 'HOLD', reason: 'Unknown strategy' };
@@ -851,16 +908,18 @@ function runBacktest(
         continue;
       }
       
+      // CRITICAL FIX: For gap-fill strategy, exit at entry price when gap is filled
+      const exitPrice = gapFillExitAtEntry ? entryPrice : bar.close;
+      
       const trade = createTradeWithRealism(
         entryPrice,
-        bar.close,
+        exitPrice,
         shares,
         entryDate!,
         bar.date,
         'LONG',
         entryReason,
         signal.reason,
-        i - entryIndex!,
         DEFAULT_EXECUTION_CONFIG,
         {
           entryBarRaw: entryBarRaw || undefined,
@@ -872,7 +931,7 @@ function runBacktest(
       );
       trades.push(trade);
       
-      cash += shares * bar.close;
+      cash += shares * exitPrice;
       shares = 0;
       inPosition = false;
       entryPrice = null;
@@ -895,7 +954,6 @@ function runBacktest(
       'LONG',
       entryReason,
       'End of backtest period',
-      bars.length - 1 - entryIndex!,
       DEFAULT_EXECUTION_CONFIG,
       {
         entryBarRaw: entryBarRaw || undefined,
@@ -1078,7 +1136,15 @@ Deno.serve(async (req) => {
       return handlePing();
     }
     
-    const { ticker, strategy, startDate, endDate, initialCapital = 10000 } = body;
+    const { ticker, strategy, startDate, initialCapital = 10000 } = body;
+    let { endDate } = body;
+    
+    // CRITICAL: Prevent backtesting on future dates - cap end date at today
+    const today = new Date().toISOString().split('T')[0];
+    if (endDate > today) {
+      console.log(`[strategy-backtest] WARNING: End date ${endDate} is in the future, capping to today (${today})`);
+      endDate = today;
+    }
     
     // Support both nested params object and flat parameters at root level
     const params: StrategyParams = body.params || {};
@@ -1105,7 +1171,8 @@ Deno.serve(async (req) => {
       );
     }
 
-    console.log(`[strategy-backtest] Running ${strategy} on ${ticker} from ${startDate} to ${endDate}`);
+    console.log(`[strategy-backtest] Running ${strategy} on ${ticker} from ${startDate} to ${endDate} (today: ${today})`);
+
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
     const normalizedTicker = ticker.toUpperCase().trim();
