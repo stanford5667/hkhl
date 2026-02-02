@@ -1,8 +1,7 @@
 /**
  * Sentence Builder Component
  * 
- * Redesigned to think like a trader: Signal presets combine indicator + condition
- * into unified concepts like "RSI < 30" or "Price crossed above SMA(50)".
+ * Supports multiple entry signals and exit rules connected with AND/OR logic.
  */
 
 import { memo, useState, useCallback } from 'react';
@@ -36,16 +35,13 @@ interface SignalPreset {
   description: string;
   icon: string;
   category: 'momentum' | 'trend' | 'pattern';
-  // What blocks to create
   indicator: BlockSubtype;
   condition: BlockSubtype;
-  // Combined parameters with sensible defaults
   parameters: {
     period?: number;
     threshold?: number;
     days?: number;
   };
-  // Parameter configuration
   parameterConfig: {
     key: string;
     label: string;
@@ -57,7 +53,6 @@ interface SignalPreset {
 }
 
 const SIGNAL_PRESETS: SignalPreset[] = [
-  // RSI Signals
   {
     id: 'rsi-oversold',
     label: 'RSI Oversold',
@@ -86,7 +81,6 @@ const SIGNAL_PRESETS: SignalPreset[] = [
       { key: 'threshold', label: 'Above', min: 50, max: 90, step: 5 },
     ],
   },
-  // MA Signals  
   {
     id: 'price-above-sma',
     label: 'Price Above SMA',
@@ -126,7 +120,6 @@ const SIGNAL_PRESETS: SignalPreset[] = [
       { key: 'period', label: 'Fast EMA', min: 5, max: 50, step: 1 },
     ],
   },
-  // Pattern Signals
   {
     id: 'gap-down',
     label: 'Gap Down',
@@ -179,22 +172,183 @@ interface SelectedExit {
   parameters: Record<string, number>;
 }
 
+type LogicOperator = 'AND' | 'OR';
+
 // ═══════════════════════════════════════════════════════════════════════════════
-// SIGNAL SELECTOR - Unified indicator + condition in one selection
+// LOGIC TOGGLE BUTTON
 // ═══════════════════════════════════════════════════════════════════════════════
 
-const SignalSelector = memo(function SignalSelector({
-  selected,
-  onSelect,
-  onClear,
-  onParamsChange,
-  isActive,
+const LogicToggle = memo(function LogicToggle({
+  value,
+  onChange,
 }: {
-  selected: SelectedSignal | null;
-  onSelect: (preset: SignalPreset) => void;
-  onClear: () => void;
+  value: LogicOperator;
+  onChange: (op: LogicOperator) => void;
+}) {
+  return (
+    <div className="flex items-center justify-center py-2">
+      <div className="inline-flex items-center bg-muted rounded-full p-0.5 gap-0.5">
+        <button
+          onClick={() => onChange('AND')}
+          className={cn(
+            "px-4 py-1.5 rounded-full text-xs font-bold transition-all",
+            value === 'AND' 
+              ? "bg-primary text-primary-foreground shadow-sm" 
+              : "text-muted-foreground hover:text-foreground"
+          )}
+        >
+          AND
+        </button>
+        <button
+          onClick={() => onChange('OR')}
+          className={cn(
+            "px-4 py-1.5 rounded-full text-xs font-bold transition-all",
+            value === 'OR' 
+              ? "bg-primary text-primary-foreground shadow-sm" 
+              : "text-muted-foreground hover:text-foreground"
+          )}
+        >
+          OR
+        </button>
+      </div>
+    </div>
+  );
+});
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// SINGLE SIGNAL CARD WITH INLINE PARAMS
+// ═══════════════════════════════════════════════════════════════════════════════
+
+const SignalCard = memo(function SignalCard({
+  signal,
+  onRemove,
+  onParamsChange,
+}: {
+  signal: SelectedSignal;
+  onRemove: () => void;
   onParamsChange: (params: Record<string, number>) => void;
-  isActive: boolean;
+}) {
+  const getDisplayValue = () => {
+    const parts: string[] = [];
+    signal.preset.parameterConfig.forEach(config => {
+      const val = signal.parameters[config.key];
+      if (val !== undefined) {
+        parts.push(`${val}${config.suffix || ''}`);
+      }
+    });
+    return parts.join(', ');
+  };
+
+  return (
+    <div className="border rounded-lg bg-card shadow-sm overflow-hidden">
+      <div className="flex items-center gap-2 px-3 py-2 bg-muted/30">
+        <span className="text-xl">{signal.preset.icon}</span>
+        <div className="flex-1 min-w-0">
+          <div className="font-semibold text-sm">{signal.preset.label}</div>
+          <div className="text-xs text-muted-foreground font-mono">{getDisplayValue()}</div>
+        </div>
+        <button
+          onClick={onRemove}
+          className="p-1.5 rounded-full hover:bg-destructive/20 transition-colors"
+        >
+          <X className="h-3.5 w-3.5" />
+        </button>
+      </div>
+      
+      {signal.preset.parameterConfig.length > 0 && (
+        <div className="px-3 py-2 space-y-2 border-t">
+          {signal.preset.parameterConfig.map((config) => (
+            <div key={config.key} className="space-y-1">
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-muted-foreground">{config.label}</span>
+                <span className="font-mono font-semibold text-foreground">
+                  {signal.parameters[config.key] ?? config.min}
+                  {config.suffix || ''}
+                </span>
+              </div>
+              <Slider
+                value={[signal.parameters[config.key] ?? config.min]}
+                min={config.min}
+                max={config.max}
+                step={config.step}
+                onValueChange={([value]) => onParamsChange({ ...signal.parameters, [config.key]: value })}
+                className="w-full"
+              />
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+});
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// EXIT CARD WITH INLINE PARAMS
+// ═══════════════════════════════════════════════════════════════════════════════
+
+const ExitCard = memo(function ExitCard({
+  exit,
+  onRemove,
+  onParamsChange,
+}: {
+  exit: SelectedExit;
+  onRemove: () => void;
+  onParamsChange: (params: Record<string, number>) => void;
+}) {
+  return (
+    <div className={cn("border rounded-lg bg-card shadow-sm overflow-hidden", exit.block.color)}>
+      <div className="flex items-center gap-2 px-3 py-2 bg-muted/30">
+        <span className="text-lg">{exit.block.icon}</span>
+        <div className="flex-1 min-w-0">
+          <div className="font-semibold text-sm">{exit.block.label}</div>
+        </div>
+        <button
+          onClick={onRemove}
+          className="p-1.5 rounded-full hover:bg-destructive/20 transition-colors"
+        >
+          <X className="h-3.5 w-3.5" />
+        </button>
+      </div>
+      
+      {exit.block.parameterConfig && exit.block.parameterConfig.length > 0 && (
+        <div className="px-3 py-2 space-y-2 border-t">
+          {exit.block.parameterConfig.map((config) => (
+            <div key={config.key} className="space-y-1">
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-muted-foreground">{config.label}</span>
+                <span className="font-mono font-semibold">
+                  {exit.parameters[config.key] ?? (exit.block.defaultParameters?.[config.key] as number) ?? config.min}
+                  {config.suffix || ''}
+                </span>
+              </div>
+              <Slider
+                value={[exit.parameters[config.key] ?? (exit.block.defaultParameters?.[config.key] as number) ?? config.min]}
+                min={config.min}
+                max={config.max}
+                step={config.step}
+                onValueChange={([value]) => onParamsChange({ ...exit.parameters, [config.key]: value })}
+                className="w-full"
+              />
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+});
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// SIGNAL ADD BUTTON (Popover)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+const SignalAddButton = memo(function SignalAddButton({
+  onSelect,
+  selectedIds,
+  isRequired,
+}: {
+  onSelect: (preset: SignalPreset) => void;
+  selectedIds: string[];
+  isRequired: boolean;
 }) {
   const [open, setOpen] = useState(false);
 
@@ -204,83 +358,51 @@ const SignalSelector = memo(function SignalSelector({
     { id: 'pattern', label: 'Pattern' },
   ];
 
-  // Format display value
-  const getDisplayValue = (preset: SignalPreset, params: Record<string, number>) => {
-    const parts: string[] = [];
-    preset.parameterConfig.forEach(config => {
-      const val = params[config.key];
-      if (val !== undefined) {
-        parts.push(`${val}${config.suffix || ''}`);
-      }
-    });
-    return parts.join(', ');
-  };
-
   return (
-    <div className="space-y-2">
-      <Popover open={open} onOpenChange={setOpen}>
-        <PopoverTrigger asChild>
-          <button
-            className={cn(
-              "inline-flex items-center gap-2 px-4 py-2 rounded-lg border-2 transition-all",
-              "hover:border-primary hover:bg-primary/5",
-              "focus:outline-none focus:ring-2 focus:ring-primary/50",
-              selected ? "border-solid bg-card shadow-md" : "border-dashed border-muted-foreground/30",
-              isActive && !selected && "border-primary animate-pulse bg-primary/10",
-              !selected && "border-destructive/50"
-            )}
-          >
-            {selected ? (
-              <>
-                <span className="text-xl">{selected.preset.icon}</span>
-                <div className="text-left">
-                  <div className="font-semibold text-sm">{selected.preset.label}</div>
-                  <div className="text-xs text-muted-foreground font-mono">
-                    {getDisplayValue(selected.preset, selected.parameters)}
-                  </div>
-                </div>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onClear();
-                  }}
-                  className="ml-2 p-1 rounded-full hover:bg-destructive/20"
-                >
-                  <X className="h-3 w-3" />
-                </button>
-              </>
-            ) : (
-              <>
-                <Plus className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm text-muted-foreground">Select Entry Signal</span>
-                <span className="text-destructive text-xs">*</span>
-                <ChevronDown className="h-3 w-3 text-muted-foreground" />
-              </>
-            )}
-          </button>
-        </PopoverTrigger>
-        <PopoverContent className="w-80 p-3" align="start">
-          <div className="text-xs font-medium text-muted-foreground mb-3">
-            Choose your entry signal
-          </div>
-          <div className="space-y-4 max-h-72 overflow-auto">
-            {categories.map(cat => (
-              <div key={cat.id}>
-                <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
-                  {cat.label}
-                </div>
-                <div className="space-y-1">
-                  {SIGNAL_PRESETS.filter(p => p.category === cat.id).map(preset => (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <button
+          className={cn(
+            "inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border-2 border-dashed transition-all",
+            "hover:border-primary hover:bg-primary/5",
+            "focus:outline-none focus:ring-2 focus:ring-primary/50",
+            isRequired && "border-destructive/50 animate-pulse"
+          )}
+        >
+          <Plus className="h-4 w-4 text-muted-foreground" />
+          <span className="text-sm text-muted-foreground">
+            {selectedIds.length === 0 ? 'Add Signal' : 'Add Another'}
+          </span>
+          {isRequired && <span className="text-destructive text-xs">*</span>}
+          <ChevronDown className="h-3 w-3 text-muted-foreground" />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent className="w-80 p-3" align="start">
+        <div className="text-xs font-medium text-muted-foreground mb-3">
+          Choose entry signal
+        </div>
+        <div className="space-y-4 max-h-72 overflow-auto">
+          {categories.map(cat => (
+            <div key={cat.id}>
+              <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+                {cat.label}
+              </div>
+              <div className="space-y-1">
+                {SIGNAL_PRESETS.filter(p => p.category === cat.id).map(preset => {
+                  const isAlreadyAdded = selectedIds.includes(preset.id);
+                  return (
                     <button
                       key={preset.id}
                       onClick={() => {
-                        onSelect(preset);
-                        setOpen(false);
+                        if (!isAlreadyAdded) {
+                          onSelect(preset);
+                          setOpen(false);
+                        }
                       }}
+                      disabled={isAlreadyAdded}
                       className={cn(
                         "flex items-center gap-3 w-full px-3 py-2 rounded-md text-left transition-colors",
-                        "hover:bg-muted",
-                        selected?.preset.id === preset.id && "bg-primary/10 ring-1 ring-primary"
+                        isAlreadyAdded ? "opacity-40 cursor-not-allowed" : "hover:bg-muted"
                       )}
                     >
                       <span className="text-xl">{preset.icon}</span>
@@ -288,180 +410,88 @@ const SignalSelector = memo(function SignalSelector({
                         <div className="font-medium text-sm">{preset.label}</div>
                         <div className="text-xs text-muted-foreground truncate">{preset.description}</div>
                       </div>
-                      {selected?.preset.id === preset.id && <Check className="h-4 w-4 text-primary" />}
+                      {isAlreadyAdded && <Check className="h-4 w-4 text-muted-foreground" />}
                     </button>
-                  ))}
-                </div>
+                  );
+                })}
               </div>
-            ))}
-          </div>
-        </PopoverContent>
-      </Popover>
-
-      {/* Inline parameter editor for the selected signal */}
-      {selected && selected.preset.parameterConfig.length > 0 && (
-        <div className="ml-4 p-3 bg-muted/50 rounded-lg border-l-2 border-primary/50">
-          <div className="flex items-center gap-1 text-xs text-muted-foreground mb-2">
-            <Settings2 className="h-3 w-3" />
-            <span className="font-medium">Adjust Parameters</span>
-          </div>
-          <div className="space-y-3">
-            {selected.preset.parameterConfig.map((config) => (
-              <div key={config.key} className="space-y-1">
-                <div className="flex items-center justify-between text-xs">
-                  <span className="text-muted-foreground">{config.label}</span>
-                  <span className="font-mono font-semibold text-foreground">
-                    {selected.parameters[config.key] ?? config.min}
-                    {config.suffix || ''}
-                  </span>
-                </div>
-                <Slider
-                  value={[selected.parameters[config.key] ?? config.min]}
-                  min={config.min}
-                  max={config.max}
-                  step={config.step}
-                  onValueChange={([value]) => onParamsChange({ ...selected.parameters, [config.key]: value })}
-                  className="w-full"
-                />
-              </div>
-            ))}
-          </div>
+            </div>
+          ))}
         </div>
-      )}
-    </div>
+      </PopoverContent>
+    </Popover>
   );
 });
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// EXIT RULES SELECTOR
+// EXIT ADD BUTTON (Popover)
 // ═══════════════════════════════════════════════════════════════════════════════
 
-const ExitRulesSelector = memo(function ExitRulesSelector({
-  values,
-  onToggle,
-  onParamsChange,
-  isActive,
+const ExitAddButton = memo(function ExitAddButton({
+  onSelect,
+  selectedSubtypes,
+  isRequired,
 }: {
-  values: SelectedExit[];
-  onToggle: (block: PaletteBlock) => void;
-  onParamsChange: (subtype: string, params: Record<string, number>) => void;
-  isActive: boolean;
+  onSelect: (block: PaletteBlock) => void;
+  selectedSubtypes: string[];
+  isRequired: boolean;
 }) {
   const [open, setOpen] = useState(false);
 
   return (
-    <div className="space-y-2">
-      <div className="flex flex-wrap items-center gap-2">
-        {values.map((selected) => (
-          <div
-            key={selected.block.subtype}
-            className={cn(
-              "inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border bg-card shadow-sm",
-              selected.block.color
-            )}
-          >
-            <span className="text-base">{selected.block.icon}</span>
-            <span className="font-medium text-sm">{selected.block.label}</span>
-            {selected.block.parameterConfig && selected.block.parameterConfig.length > 0 && (
-              <span className="text-xs text-muted-foreground font-mono">
-                ({Object.values(selected.parameters).join('')}{selected.block.parameterConfig[0]?.suffix || ''})
-              </span>
-            )}
-            <button
-              onClick={() => onToggle(selected.block)}
-              className="ml-1 p-0.5 rounded-full hover:bg-destructive/20"
-            >
-              <X className="h-3 w-3" />
-            </button>
-          </div>
-        ))}
-        
-        <Popover open={open} onOpenChange={setOpen}>
-          <PopoverTrigger asChild>
-            <button
-              className={cn(
-                "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border-2 border-dashed transition-all",
-                "hover:border-primary hover:bg-primary/5",
-                "focus:outline-none focus:ring-2 focus:ring-primary/50",
-                values.length === 0 && "border-destructive/50",
-                isActive && values.length === 0 && "border-primary animate-pulse bg-primary/10"
-              )}
-            >
-              <Plus className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm text-muted-foreground">
-                {values.length === 0 ? 'Add Exit Rule' : 'Add'}
-              </span>
-              {values.length === 0 && <span className="text-destructive text-xs">*</span>}
-              <ChevronDown className="h-3 w-3 text-muted-foreground" />
-            </button>
-          </PopoverTrigger>
-          <PopoverContent className="w-64 p-2" align="start">
-            <div className="text-xs font-medium text-muted-foreground mb-2 px-1">
-              Select Exit Rules
-            </div>
-            <div className="grid gap-1 max-h-48 overflow-auto">
-              {EXIT_BLOCKS.map((block) => {
-                const isSelected = values.some(v => v.block.subtype === block.subtype);
-                return (
-                  <button
-                    key={block.subtype}
-                    onClick={() => onToggle(block)}
-                    className={cn(
-                      "flex items-center gap-2 px-3 py-2 rounded-md text-left transition-colors",
-                      "hover:bg-muted",
-                      isSelected && "bg-primary/10 ring-1 ring-primary",
-                      block.color
-                    )}
-                  >
-                    <span className="text-lg">{block.icon}</span>
-                    <div className="flex-1 min-w-0">
-                      <div className="font-medium text-sm">{block.label}</div>
-                      <div className="text-xs text-muted-foreground">{block.description}</div>
-                    </div>
-                    {isSelected && <Check className="h-4 w-4 text-primary" />}
-                  </button>
-                );
-              })}
-            </div>
-          </PopoverContent>
-        </Popover>
-      </div>
-      
-      {/* Inline parameter editors for each exit rule */}
-      {values.length > 0 && (
-        <div className="ml-4 space-y-2">
-          {values.map((selected) => (
-            selected.block.parameterConfig && selected.block.parameterConfig.length > 0 && (
-              <div key={selected.block.subtype} className="p-3 bg-muted/30 rounded-lg border-l-2 border-rose-500/50">
-                <div className="flex items-center gap-1 text-xs text-muted-foreground mb-2">
-                  <span className="text-base">{selected.block.icon}</span>
-                  <span className="font-medium">{selected.block.label}</span>
-                </div>
-                {selected.block.parameterConfig.map((config) => (
-                  <div key={config.key} className="space-y-1">
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="text-muted-foreground">{config.label}</span>
-                      <span className="font-mono font-semibold">
-                        {selected.parameters[config.key] ?? config.min}
-                        {config.suffix || ''}
-                      </span>
-                    </div>
-                    <Slider
-                      value={[selected.parameters[config.key] ?? (selected.block.defaultParameters?.[config.key] as number) ?? config.min]}
-                      min={config.min}
-                      max={config.max}
-                      step={config.step}
-                      onValueChange={([value]) => onParamsChange(selected.block.subtype, { ...selected.parameters, [config.key]: value })}
-                      className="w-full"
-                    />
-                  </div>
-                ))}
-              </div>
-            )
-          ))}
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <button
+          className={cn(
+            "inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border-2 border-dashed transition-all",
+            "hover:border-primary hover:bg-primary/5",
+            "focus:outline-none focus:ring-2 focus:ring-primary/50",
+            isRequired && "border-destructive/50 animate-pulse"
+          )}
+        >
+          <Plus className="h-4 w-4 text-muted-foreground" />
+          <span className="text-sm text-muted-foreground">
+            {selectedSubtypes.length === 0 ? 'Add Exit Rule' : 'Add Another'}
+          </span>
+          {isRequired && <span className="text-destructive text-xs">*</span>}
+          <ChevronDown className="h-3 w-3 text-muted-foreground" />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent className="w-64 p-2" align="start">
+        <div className="text-xs font-medium text-muted-foreground mb-2 px-1">
+          Select Exit Rule
         </div>
-      )}
-    </div>
+        <div className="grid gap-1 max-h-48 overflow-auto">
+          {EXIT_BLOCKS.map((block) => {
+            const isAlreadyAdded = selectedSubtypes.includes(block.subtype);
+            return (
+              <button
+                key={block.subtype}
+                onClick={() => {
+                  if (!isAlreadyAdded) {
+                    onSelect(block);
+                    setOpen(false);
+                  }
+                }}
+                disabled={isAlreadyAdded}
+                className={cn(
+                  "flex items-center gap-2 px-3 py-2 rounded-md text-left transition-colors",
+                  isAlreadyAdded ? "opacity-40 cursor-not-allowed" : "hover:bg-muted",
+                  block.color
+                )}
+              >
+                <span className="text-lg">{block.icon}</span>
+                <div className="flex-1 min-w-0">
+                  <div className="font-medium text-sm">{block.label}</div>
+                  <div className="text-xs text-muted-foreground">{block.description}</div>
+                </div>
+                {isAlreadyAdded && <Check className="h-4 w-4 text-muted-foreground" />}
+              </button>
+            );
+          })}
+        </div>
+      </PopoverContent>
+    </Popover>
   );
 });
 
@@ -474,78 +504,105 @@ export const SentenceBuilder = memo(function SentenceBuilder({
   onComplete,
   className,
 }: SentenceBuilderProps) {
-  // Entry signal (combined indicator + condition)
-  const [signal, setSignal] = useState<SelectedSignal | null>(null);
+  // Entry signals (multiple with AND/OR)
+  const [entrySignals, setEntrySignals] = useState<SelectedSignal[]>([]);
+  const [entryLogic, setEntryLogic] = useState<LogicOperator>('AND');
   
-  // Exit rules (multiple allowed, at least one required)
+  // Exit rules (multiple with AND/OR)
   const [exitRules, setExitRules] = useState<SelectedExit[]>([]);
+  const [exitLogic, setExitLogic] = useState<LogicOperator>('OR');
 
   // State tracking
-  const entryComplete = signal !== null;
+  const entryComplete = entrySignals.length > 0;
   const exitComplete = exitRules.length > 0;
   const activeSection = !entryComplete ? 'entry' : !exitComplete ? 'exit' : 'complete';
   const isComplete = entryComplete && exitComplete;
-  const hasAnySelection = signal || exitRules.length > 0;
+  const hasAnySelection = entrySignals.length > 0 || exitRules.length > 0;
 
-  const handleSelectSignal = (preset: SignalPreset) => {
-    setSignal({
+  const handleAddSignal = (preset: SignalPreset) => {
+    setEntrySignals(prev => [...prev, {
       preset,
       parameters: { ...preset.parameters },
-    });
+    }]);
   };
 
-  const handleToggleExit = (block: PaletteBlock) => {
-    setExitRules(prev => {
-      const exists = prev.some(e => e.block.subtype === block.subtype);
-      if (exists) {
-        return prev.filter(e => e.block.subtype !== block.subtype);
-      }
-      return [...prev, { block, parameters: { ...block.defaultParameters } as Record<string, number> }];
-    });
+  const handleRemoveSignal = (index: number) => {
+    setEntrySignals(prev => prev.filter((_, i) => i !== index));
   };
 
-  const handleExitParamsChange = (subtype: string, params: Record<string, number>) => {
-    setExitRules(prev => prev.map(e => 
-      e.block.subtype === subtype ? { ...e, parameters: params } : e
+  const handleSignalParamsChange = (index: number, params: Record<string, number>) => {
+    setEntrySignals(prev => prev.map((s, i) => 
+      i === index ? { ...s, parameters: params } : s
+    ));
+  };
+
+  const handleAddExit = (block: PaletteBlock) => {
+    setExitRules(prev => [...prev, { 
+      block, 
+      parameters: { ...block.defaultParameters } as Record<string, number> 
+    }]);
+  };
+
+  const handleRemoveExit = (index: number) => {
+    setExitRules(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const handleExitParamsChange = (index: number, params: Record<string, number>) => {
+    setExitRules(prev => prev.map((e, i) => 
+      i === index ? { ...e, parameters: params } : e
     ));
   };
 
   const handleRunBacktest = useCallback(() => {
-    if (!signal) return;
+    if (entrySignals.length === 0) return;
     
-    // Map signal parameters to indicator and condition blocks
-    const indicatorParams: Record<string, number> = {};
-    const conditionParams: Record<string, number> = {};
-    
-    signal.preset.parameterConfig.forEach(config => {
-      const value = signal.parameters[config.key];
-      if (value !== undefined) {
-        // Route parameters to the right block
-        if (config.key === 'period' || config.key === 'days') {
-          indicatorParams[config.key] = value;
-        } else if (config.key === 'threshold') {
-          conditionParams['value'] = value;
+    // Add entry signals (with logic blocks between them)
+    entrySignals.forEach((signal, idx) => {
+      // Map signal parameters to indicator and condition blocks
+      const indicatorParams: Record<string, number> = {};
+      const conditionParams: Record<string, number> = {};
+      
+      signal.preset.parameterConfig.forEach(config => {
+        const value = signal.parameters[config.key];
+        if (value !== undefined) {
+          if (config.key === 'period' || config.key === 'days') {
+            indicatorParams[config.key] = value;
+          } else if (config.key === 'threshold') {
+            conditionParams['value'] = value;
+          }
         }
+      });
+
+      // Add indicator block
+      onAddBlock(signal.preset.indicator, indicatorParams);
+      
+      // Add condition block
+      onAddBlock(signal.preset.condition, conditionParams);
+      
+      // Add logic operator if not the last signal
+      if (idx < entrySignals.length - 1) {
+        onAddBlock(entryLogic, {});
       }
     });
-
-    // Add indicator block
-    onAddBlock(signal.preset.indicator, indicatorParams);
-    
-    // Add condition block
-    onAddBlock(signal.preset.condition, conditionParams);
     
     // Add BUY action
     onAddBlock('BUY', {});
     
-    // Add all exit rule blocks with parameters
-    exitRules.forEach(exit => onAddBlock(exit.block.subtype, exit.parameters));
+    // Add exit rules (with logic blocks between them)
+    exitRules.forEach((exit, idx) => {
+      onAddBlock(exit.block.subtype, exit.parameters);
+      
+      // Add logic operator if not the last exit
+      if (idx < exitRules.length - 1) {
+        onAddBlock(exitLogic, {});
+      }
+    });
     
     onComplete?.();
-  }, [signal, exitRules, onAddBlock, onComplete]);
+  }, [entrySignals, entryLogic, exitRules, exitLogic, onAddBlock, onComplete]);
 
   const handleClear = () => {
-    setSignal(null);
+    setEntrySignals([]);
     setExitRules([]);
   };
 
@@ -561,7 +618,7 @@ export const SentenceBuilder = memo(function SentenceBuilder({
         )}
       </div>
 
-      {/* ENTRY SIGNAL SECTION */}
+      {/* ENTRY SIGNALS SECTION */}
       <div className={cn(
         "p-4 rounded-lg border-2 transition-all",
         activeSection === 'entry' ? "border-primary bg-primary/5" : entryComplete ? "border-emerald-500/50 bg-emerald-500/5" : "border-border"
@@ -573,17 +630,30 @@ export const SentenceBuilder = memo(function SentenceBuilder({
           )}>
             {entryComplete ? '✓' : '1'}
           </div>
-          <span className="font-semibold text-sm">Entry Signal</span>
+          <span className="font-semibold text-sm">Entry Signals</span>
           <span className="text-xs text-muted-foreground">— When should we buy?</span>
         </div>
         
-        <SignalSelector
-          selected={signal}
-          onSelect={handleSelectSignal}
-          onClear={() => setSignal(null)}
-          onParamsChange={(params) => setSignal(prev => prev ? { ...prev, parameters: params } : null)}
-          isActive={activeSection === 'entry'}
-        />
+        <div className="space-y-2">
+          {entrySignals.map((signal, idx) => (
+            <div key={`${signal.preset.id}-${idx}`}>
+              <SignalCard
+                signal={signal}
+                onRemove={() => handleRemoveSignal(idx)}
+                onParamsChange={(params) => handleSignalParamsChange(idx, params)}
+              />
+              {idx < entrySignals.length - 1 && (
+                <LogicToggle value={entryLogic} onChange={setEntryLogic} />
+              )}
+            </div>
+          ))}
+          
+          <SignalAddButton
+            onSelect={handleAddSignal}
+            selectedIds={entrySignals.map(s => s.preset.id)}
+            isRequired={entrySignals.length === 0}
+          />
+        </div>
       </div>
 
       {/* Arrow between sections */}
@@ -611,12 +681,26 @@ export const SentenceBuilder = memo(function SentenceBuilder({
           <span className="text-xs text-destructive">(Required)</span>
         </div>
         
-        <ExitRulesSelector
-          values={exitRules}
-          onToggle={handleToggleExit}
-          onParamsChange={handleExitParamsChange}
-          isActive={activeSection === 'exit'}
-        />
+        <div className="space-y-2">
+          {exitRules.map((exit, idx) => (
+            <div key={`${exit.block.subtype}-${idx}`}>
+              <ExitCard
+                exit={exit}
+                onRemove={() => handleRemoveExit(idx)}
+                onParamsChange={(params) => handleExitParamsChange(idx, params)}
+              />
+              {idx < exitRules.length - 1 && (
+                <LogicToggle value={exitLogic} onChange={setExitLogic} />
+              )}
+            </div>
+          ))}
+          
+          <ExitAddButton
+            onSelect={handleAddExit}
+            selectedSubtypes={exitRules.map(e => e.block.subtype)}
+            isRequired={exitRules.length === 0}
+          />
+        </div>
       </div>
 
       {/* RUN BACKTEST BUTTON */}
@@ -628,7 +712,7 @@ export const SentenceBuilder = memo(function SentenceBuilder({
           isComplete && "bg-gradient-to-r from-primary to-primary/80 shadow-lg"
         )}
       >
-        {!signal ? 'Select Entry Signal' : 
+        {entrySignals.length === 0 ? 'Select Entry Signal' : 
          exitRules.length === 0 ? 'Add Exit Rules' : 
          '🚀 Run Backtest'}
       </Button>
