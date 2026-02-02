@@ -22,6 +22,7 @@ import { MobileBuilder } from './MobileBuilder';
 import { BacktestResultsView } from './BacktestResultsView';
 import { useBuilderHistory } from '@/hooks/useBuilderHistory';
 import { useIsMobile } from '@/hooks/use-mobile';
+import type { SentenceBuilderState } from './SentenceBuilder';
 
 interface BacktestParams {
   strategy: string;
@@ -82,6 +83,14 @@ export function VisualStrategyBuilder({
   const [lastBacktestParams, setLastBacktestParams] = useState<BacktestParams | null>(null);
   const [lastBacktestMetrics, setLastBacktestMetrics] = useState<BacktestMetrics | null>(null);
   const [isRunningBacktest, setIsRunningBacktest] = useState(false);
+  
+  // Sentence builder state - persisted across stage transitions
+  const [sentenceState, setSentenceState] = useState<SentenceBuilderState>({
+    entrySignals: [],
+    entryLogic: 'AND',
+    exitRules: [],
+    exitLogic: 'OR',
+  });
 
   // Generate unique ID
   const generateId = () => `block-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
@@ -349,6 +358,8 @@ export function VisualStrategyBuilder({
               onAddBlock={handleAddBlock}
               onRunBacktest={handleEmbeddedBacktest}
               ticker={ticker}
+              sentenceState={sentenceState}
+              onSentenceStateChange={setSentenceState}
             />
             
             {/* Compact Summary - ticker + template only */}
