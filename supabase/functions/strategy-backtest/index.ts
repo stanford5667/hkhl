@@ -112,6 +112,128 @@ function isTradingDay(dateStr: string): boolean {
   return !holidays.includes(dateStr);
 }
 
+// Get next valid trading day from a given date
+function getNextTradingDay(dateStr: string): string {
+  let date = new Date(dateStr + 'T12:00:00Z');
+  let attempts = 0;
+  const maxAttempts = 10; // Prevent infinite loop
+  
+  while (!isTradingDay(date.toISOString().split('T')[0]) && attempts < maxAttempts) {
+    date = new Date(date.getTime() + 24 * 60 * 60 * 1000);
+    attempts++;
+  }
+  
+  return date.toISOString().split('T')[0];
+}
+
+// Execution realism configuration
+interface ExecutionConfig {
+  slippageBps: number;           // 10 = 0.10% (10 basis points)
+  commissionPerTrade: number;    // $0.99 default
+  applySlippage: boolean;
+  applyCommission: boolean;
+}
+
+const DEFAULT_EXECUTION_CONFIG: ExecutionConfig = {
+  slippageBps: 10,              // 0.10% slippage
+  commissionPerTrade: 0.99,     // $0.99 per trade
+  applySlippage: true,
+  applyCommission: true,
+};
+
+// Apply slippage to price (direction: 'buy' = worse fill = higher, 'sell' = lower)
+function applySlippageToPrice(price: number, direction: 'buy' | 'sell', slippageBps: number): number {
+  const slippageMultiplier = slippageBps / 10000;
+  if (direction === 'buy') {
+    return price * (1 + slippageMultiplier);
+  } else {
+    return price * (1 - slippageMultiplier);
+  }
+}
+
+// Calculate execution costs and create trade with realism fields
+function createTradeWithRealism(
+  baseEntry: number,
+  baseExit: number,
+  shares: number,
+  entryDate: string,
+  exitDate: string,
+  type: 'LONG' | 'SHORT',
+  entryReason: string,
+  exitReason: string,
+  holdingDays: number,
+  config: ExecutionConfig,
+  extras?: {
+    entryBarRaw?: Bar;
+    exitBarRaw?: Bar;
+    indicatorValueAtEntry?: number;
+    indicatorValueAtExit?: number;
+    indicatorName?: string;
+    dataQualityFlag?: string;
+  }
+): Trade {
+  // Calculate gross P&L (theoretical, no costs)
+  const grossPnl = shares * (baseExit - baseEntry);
+  const grossPnlPercent = ((baseExit - baseEntry) / baseEntry) * 100;
+  
+  // Apply slippage
+  const actualEntry = config.applySlippage 
+    ? applySlippageToPrice(baseEntry, 'buy', config.slippageBps)
+    : baseEntry;
+  const actualExit = config.applySlippage 
+    ? applySlippageToPrice(baseExit, 'sell', config.slippageBps)
+    : baseExit;
+  
+  // Calculate slippage cost
+  const slippageCost = config.applySlippage 
+    ? (actualEntry - baseEntry) * shares + (baseExit - actualExit) * shares
+    : 0;
+  
+  // Calculate commission cost (round trip)
+  const commissionCost = config.applyCommission 
+    ? config.commissionPerTrade * 2 
+    : 0;
+  
+  // Calculate net P&L (with all costs)
+  const netPnl = shares * (actualExit - actualEntry) - commissionCost;
+  const netPnlPercent = ((actualExit - actualEntry) / actualEntry) * 100 - (commissionCost / (shares * actualEntry)) * 100;
+  
+  // Check for data quality issues
+  let dataQualityFlag = extras?.dataQualityFlag;
+  const today = new Date().toISOString().split('T')[0];
+  if (exitDate > today) {
+    dataQualityFlag = 'Future date detected - data may be synthetic';
+  }
+  
+  return {
+    entryDate,
+    exitDate,
+    entryPrice: Math.round(actualEntry * 100) / 100,
+    exitPrice: Math.round(actualExit * 100) / 100,
+    shares,
+    pnl: Math.round(netPnl * 100) / 100,
+    pnlPercent: Math.round(netPnlPercent * 100) / 100,
+    type,
+    entryReason,
+    exitReason,
+    holdingDays,
+    // Execution realism fields
+    grossPnl: Math.round(grossPnl * 100) / 100,
+    grossPnlPercent: Math.round(grossPnlPercent * 100) / 100,
+    slippageCost: Math.round(slippageCost * 100) / 100,
+    commissionCost: Math.round(commissionCost * 100) / 100,
+    netPnl: Math.round(netPnl * 100) / 100,
+    netPnlPercent: Math.round(netPnlPercent * 100) / 100,
+    dataQualityFlag,
+    // Data inspector fields
+    entryBarRaw: extras?.entryBarRaw,
+    exitBarRaw: extras?.exitBarRaw,
+    indicatorValueAtEntry: extras?.indicatorValueAtEntry,
+    indicatorValueAtExit: extras?.indicatorValueAtExit,
+    indicatorName: extras?.indicatorName,
+  };
+}
+
 // ═══════════════════════════════════════════════════════════════════════════════
 // POLYGON API FALLBACK
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -212,6 +334,14 @@ interface Trade {
   indicatorValueAtEntry?: number;
   indicatorValueAtExit?: number;
   indicatorName?: string;
+  // Execution realism fields
+  grossPnl?: number;
+  grossPnlPercent?: number;
+  slippageCost?: number;
+  commissionCost?: number;
+  netPnl?: number;
+  netPnlPercent?: number;
+  dataQualityFlag?: string;
 }
 
 interface PortfolioSnapshot {
@@ -258,6 +388,22 @@ interface BacktestResult {
   dataSourceUrl: string;
   barsCount: number;
   rawBarsPreview: Bar[];
+  // Execution realism fields
+  executionConfig: ExecutionConfig;
+  totalSlippageCost: number;
+  totalCommissionCost: number;
+  grossReturn: number;
+  netReturn: number;
+  theoreticalMetrics: {
+    totalReturn: number;
+    winRate: number;
+    sharpeRatio: number;
+  };
+  realisticMetrics: {
+    totalReturn: number;
+    winRate: number;
+    sharpeRatio: number;
+  };
 }
 
 interface StrategyParams {
@@ -595,25 +741,26 @@ function runBacktest(
       
       if (stopLoss !== null && currentReturn <= -stopLoss) {
         // Stop loss triggered
-        const pnl = shares * (bar.close - entryPrice);
-        trades.push({
-          entryDate: entryDate!,
-          exitDate: bar.date,
+        const trade = createTradeWithRealism(
           entryPrice,
-          exitPrice: bar.close,
+          bar.close,
           shares,
-          pnl,
-          pnlPercent: currentReturn,
-          type: 'LONG',
+          entryDate!,
+          bar.date,
+          'LONG',
           entryReason,
-          exitReason: `Stop loss triggered at -${stopLoss}%`,
-          holdingDays: i - entryIndex!,
-          entryBarRaw: entryBarRaw || undefined,
-          exitBarRaw: { ...bar },
-          indicatorValueAtEntry: entryIndicatorValue ?? undefined,
-          indicatorValueAtExit: getIndicatorValue(strategy, i) ?? undefined,
-          indicatorName
-        });
+          `Stop loss triggered at -${stopLoss}%`,
+          i - entryIndex!,
+          DEFAULT_EXECUTION_CONFIG,
+          {
+            entryBarRaw: entryBarRaw || undefined,
+            exitBarRaw: { ...bar },
+            indicatorValueAtEntry: entryIndicatorValue ?? undefined,
+            indicatorValueAtExit: getIndicatorValue(strategy, i) ?? undefined,
+            indicatorName
+          }
+        );
+        trades.push(trade);
         
         cash += shares * bar.close;
         shares = 0;
@@ -628,28 +775,27 @@ function runBacktest(
       
       if (takeProfit !== null && currentReturn >= takeProfit) {
         // Take profit triggered - cap the return at the take profit target
-        // In real trading, a limit order would execute at the target price, not the closing price
-        const cappedReturn = takeProfit;
         const targetExitPrice = entryPrice * (1 + takeProfit / 100);
-        const pnl = shares * (targetExitPrice - entryPrice);
-        trades.push({
-          entryDate: entryDate!,
-          exitDate: bar.date,
+        const trade = createTradeWithRealism(
           entryPrice,
-          exitPrice: targetExitPrice,
+          targetExitPrice,
           shares,
-          pnl,
-          pnlPercent: cappedReturn,
-          type: 'LONG',
+          entryDate!,
+          bar.date,
+          'LONG',
           entryReason,
-          exitReason: `Take profit triggered at +${takeProfit}%`,
-          holdingDays: i - entryIndex!,
-          entryBarRaw: entryBarRaw || undefined,
-          exitBarRaw: { ...bar },
-          indicatorValueAtEntry: entryIndicatorValue ?? undefined,
-          indicatorValueAtExit: getIndicatorValue(strategy, i) ?? undefined,
-          indicatorName
-        });
+          `Take profit triggered at +${takeProfit}%`,
+          i - entryIndex!,
+          DEFAULT_EXECUTION_CONFIG,
+          {
+            entryBarRaw: entryBarRaw || undefined,
+            exitBarRaw: { ...bar },
+            indicatorValueAtEntry: entryIndicatorValue ?? undefined,
+            indicatorValueAtExit: getIndicatorValue(strategy, i) ?? undefined,
+            indicatorName
+          }
+        );
+        trades.push(trade);
         
         cash += shares * targetExitPrice;
         shares = 0;
@@ -705,27 +851,26 @@ function runBacktest(
         continue;
       }
       
-      const pnl = shares * (bar.close - entryPrice);
-      const pnlPercent = ((bar.close - entryPrice) / entryPrice) * 100;
-      
-      trades.push({
-        entryDate: entryDate!,
-        exitDate: bar.date,
+      const trade = createTradeWithRealism(
         entryPrice,
-        exitPrice: bar.close,
+        bar.close,
         shares,
-        pnl,
-        pnlPercent,
-        type: 'LONG',
+        entryDate!,
+        bar.date,
+        'LONG',
         entryReason,
-        exitReason: signal.reason,
-        holdingDays: i - entryIndex!,
-        entryBarRaw: entryBarRaw || undefined,
-        exitBarRaw: { ...bar },
-        indicatorValueAtEntry: entryIndicatorValue ?? undefined,
-        indicatorValueAtExit: getIndicatorValue(strategy, i) ?? undefined,
-        indicatorName
-      });
+        signal.reason,
+        i - entryIndex!,
+        DEFAULT_EXECUTION_CONFIG,
+        {
+          entryBarRaw: entryBarRaw || undefined,
+          exitBarRaw: { ...bar },
+          indicatorValueAtEntry: entryIndicatorValue ?? undefined,
+          indicatorValueAtExit: getIndicatorValue(strategy, i) ?? undefined,
+          indicatorName
+        }
+      );
+      trades.push(trade);
       
       cash += shares * bar.close;
       shares = 0;
@@ -741,27 +886,26 @@ function runBacktest(
   // Close any open position at end
   if (inPosition && entryPrice !== null && bars.length > 0) {
     const lastBar = bars[bars.length - 1];
-    const pnl = shares * (lastBar.close - entryPrice);
-    const pnlPercent = ((lastBar.close - entryPrice) / entryPrice) * 100;
-    
-    trades.push({
-      entryDate: entryDate!,
-      exitDate: lastBar.date,
+    const trade = createTradeWithRealism(
       entryPrice,
-      exitPrice: lastBar.close,
+      lastBar.close,
       shares,
-      pnl,
-      pnlPercent,
-      type: 'LONG',
+      entryDate!,
+      lastBar.date,
+      'LONG',
       entryReason,
-      exitReason: 'End of backtest period',
-      holdingDays: bars.length - 1 - entryIndex!,
-      entryBarRaw: entryBarRaw || undefined,
-      exitBarRaw: { ...lastBar },
-      indicatorValueAtEntry: entryIndicatorValue ?? undefined,
-      indicatorValueAtExit: getIndicatorValue(strategy, bars.length - 1) ?? undefined,
-      indicatorName
-    });
+      'End of backtest period',
+      bars.length - 1 - entryIndex!,
+      DEFAULT_EXECUTION_CONFIG,
+      {
+        entryBarRaw: entryBarRaw || undefined,
+        exitBarRaw: { ...lastBar },
+        indicatorValueAtEntry: entryIndicatorValue ?? undefined,
+        indicatorValueAtExit: getIndicatorValue(strategy, bars.length - 1) ?? undefined,
+        indicatorName
+      }
+    );
+    trades.push(trade);
     
     cash += shares * lastBar.close;
   }
@@ -850,6 +994,21 @@ function runBacktest(
     ? trades.reduce((sum, t) => sum + t.holdingDays, 0) / trades.length 
     : 0;
   
+  // Calculate execution realism totals
+  const totalSlippageCost = trades.reduce((sum, t) => sum + (t.slippageCost || 0), 0);
+  const totalCommissionCost = trades.reduce((sum, t) => sum + (t.commissionCost || 0), 0);
+  const grossReturnTotal = trades.reduce((sum, t) => sum + (t.grossPnl || t.pnl), 0);
+  const netReturnTotal = trades.reduce((sum, t) => sum + (t.netPnl || t.pnl), 0);
+  
+  // Calculate theoretical metrics (perfect fills, no costs)
+  const theoreticalReturn = trades.reduce((sum, t) => sum + (t.grossPnlPercent || t.pnlPercent), 0);
+  const theoreticalWinners = trades.filter(t => (t.grossPnl || t.pnl) > 0);
+  const theoreticalWinRate = trades.length > 0 ? (theoreticalWinners.length / trades.length) * 100 : 0;
+  
+  // Calculate realistic metrics (with slippage and commissions)
+  const realisticWinners = trades.filter(t => (t.netPnl || t.pnl) > 0);
+  const realisticWinRate = trades.length > 0 ? (realisticWinners.length / trades.length) * 100 : 0;
+  
   return {
     strategy,
     initialCapital,
@@ -881,7 +1040,23 @@ function runBacktest(
     dataSource,
     dataSourceUrl,
     barsCount: bars.length,
-    rawBarsPreview: bars.slice(0, 10) // First 10 bars for inspection
+    rawBarsPreview: bars.slice(0, 10),
+    // Execution realism fields
+    executionConfig: DEFAULT_EXECUTION_CONFIG,
+    totalSlippageCost: Math.round(totalSlippageCost * 100) / 100,
+    totalCommissionCost: Math.round(totalCommissionCost * 100) / 100,
+    grossReturn: Math.round(grossReturnTotal * 100) / 100,
+    netReturn: Math.round(netReturnTotal * 100) / 100,
+    theoreticalMetrics: {
+      totalReturn: Math.round(theoreticalReturn * 100) / 100,
+      winRate: Math.round(theoreticalWinRate * 100) / 100,
+      sharpeRatio: Math.round(sharpeRatio * 100) / 100,
+    },
+    realisticMetrics: {
+      totalReturn: Math.round(totalReturn * 100) / 100,
+      winRate: Math.round(realisticWinRate * 100) / 100,
+      sharpeRatio: Math.round(sharpeRatio * 100) / 100,
+    }
   };
 }
 

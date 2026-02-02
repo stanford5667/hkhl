@@ -60,6 +60,7 @@ import { cn } from '@/lib/utils';
 import { format, parseISO, differenceInDays } from 'date-fns';
 import { HealthScore } from '@/components/ui/HealthScore';
 import { TradeExport } from './TradeExport';
+import { RealityScenarios } from './RealityScenarios';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // TYPES
@@ -131,6 +132,12 @@ export interface BacktestResultData {
   payoffRatio?: number;
   kellyPercent?: number;
   rMultiples?: number[];
+  // Execution realism fields
+  executionConfig?: { slippageBps: number; commissionPerTrade: number; applySlippage: boolean; applyCommission: boolean };
+  totalSlippageCost?: number;
+  totalCommissionCost?: number;
+  theoreticalMetrics?: { totalReturn: number; winRate: number; sharpeRatio: number };
+  realisticMetrics?: { totalReturn: number; winRate: number; sharpeRatio: number };
 }
 
 interface BacktestResultsDashboardProps {
@@ -631,6 +638,22 @@ export function BacktestResultsDashboard({ result, compact = false }: BacktestRe
 
         {/* Performance Tab */}
         <TabsContent value="performance" className="space-y-4">
+          {/* Reality Scenarios - Execution Costs Impact */}
+          {result.executionConfig && result.theoreticalMetrics && result.realisticMetrics && (
+            <RealityScenarios
+              theoreticalReturn={result.theoreticalMetrics.totalReturn}
+              theoreticalWinRate={result.theoreticalMetrics.winRate}
+              theoreticalSharpe={result.theoreticalMetrics.sharpeRatio}
+              realisticReturn={result.realisticMetrics.totalReturn}
+              realisticWinRate={result.realisticMetrics.winRate}
+              realisticSharpe={result.realisticMetrics.sharpeRatio}
+              totalSlippageCost={result.totalSlippageCost || 0}
+              totalCommissionCost={result.totalCommissionCost || 0}
+              executionConfig={result.executionConfig}
+              totalTrades={result.totalTrades}
+            />
+          )}
+          
           {/* Key Performance Metrics */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <MetricCard 
