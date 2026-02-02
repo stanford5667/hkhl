@@ -258,79 +258,21 @@ export function VisualStrategyBuilder({
   }
 
   // Embedded compact layout (for side panel in Backtester)
+  // Uses SentenceBuilder directly - no canvas needed
   if (embedded) {
     return (
       <DragDropContext onDragEnd={handleDragEnd}>
-        <div className="flex flex-col h-full">
-          {/* Compact toolbar */}
-          <div className="flex items-center justify-between px-3 py-2 border-b border-[rgb(33,38,45)] bg-[rgb(13,17,23)]">
-            <span className="text-xs font-medium text-[rgb(139,148,158)]">
-              Strategy Builder
-            </span>
-            <div className="flex items-center gap-1">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={undo}
-                disabled={!canUndo}
-                className="h-6 w-6 p-0"
-                title="Undo (Ctrl+Z)"
-              >
-                <Undo2 className="h-3 w-3" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={redo}
-                disabled={!canRedo}
-                className="h-6 w-6 p-0"
-                title="Redo (Ctrl+Y)"
-              >
-                <Redo2 className="h-3 w-3" />
-              </Button>
-              <span className="text-[10px] text-[rgb(87,96,106)]">
-                {blocks.length} blocks
-              </span>
-              {blocks.length > 0 && (
-                <Button variant="ghost" size="sm" onClick={handleClear} className="h-6 px-2 text-[10px]">
-                  <Trash2 className="h-3 w-3" />
-                </Button>
-              )}
-            </div>
-          </div>
-          
-          {/* Stacked layout for embedded mode */}
-          <div className="flex-1 flex flex-col min-h-0">
-            {/* Onboarding (compact) - shown when no blocks */}
-            {blocks.length === 0 && showOnboarding && (
-              <BuilderOnboarding
-                templates={STRATEGY_TEMPLATES}
-                onLoadTemplate={handleLoadTemplate}
-                onDismiss={() => setShowOnboarding(false)}
-                compact
-              />
-            )}
-            
-            {/* Palette (compact) */}
-            <BlockPalette className="border-b border-[rgb(33,38,45)] shrink-0" compact onAddBlock={handleAddBlock} />
-            
-            {/* Canvas */}
-            <StrategyCanvas
-              blocks={blocks}
-              connections={connections}
-              selectedBlockId={selectedBlockId}
-              onSelectBlock={setSelectedBlockId}
-              onDeleteBlock={handleDeleteBlock}
-              onDeleteConnection={handleDeleteConnection}
-              onUpdateBlockPosition={handleUpdateBlockPosition}
-              onUpdateBlockParameter={handleUpdateBlockParameter}
-              onConnect={handleConnect}
-              onLoadTemplate={handleLoadTemplate}
-              className="flex-1 min-h-[200px]"
-              compact
+        <div className="flex flex-col h-full overflow-hidden">
+          {/* Scrollable content area */}
+          <div className="flex-1 overflow-y-auto">
+            {/* SentenceBuilder is the primary interface in embedded mode */}
+            <BlockPalette 
+              className="border-b border-border/30" 
+              compact 
+              onAddBlock={handleAddBlock} 
             />
             
-            {/* Summary */}
+            {/* Compact Summary - ticker + template only */}
             <StrategySummary
               blocks={blocks}
               connections={connections}
@@ -340,7 +282,7 @@ export function VisualStrategyBuilder({
               onTickerChange={setTicker}
               onLoadTemplate={handleLoadTemplate}
               onRunBacktest={onRunBacktest}
-              className="border-t border-[rgb(33,38,45)] shrink-0"
+              className="border-t border-border/30"
               compact
             />
           </div>
