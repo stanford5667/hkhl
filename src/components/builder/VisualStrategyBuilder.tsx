@@ -284,6 +284,7 @@ export function VisualStrategyBuilder({
               onRunBacktest={onRunBacktest}
               className="border-t border-border/30"
               compact
+               showTickerAndTemplate={false}
             />
           </div>
         </div>
