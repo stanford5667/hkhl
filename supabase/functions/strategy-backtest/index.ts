@@ -1212,10 +1212,22 @@ Deno.serve(async (req) => {
     
     // Support both nested params object and flat parameters at root level
     const params: StrategyParams = body.params || {};
+
+    // Backwards-compat aliases (older UI keys)
+    // Some clients send `takeProfit` / `stopLoss` instead of `takeProfitPercent` / `stopLossPercent`.
+    if (params.takeProfitPercent === undefined && (params as any).takeProfit !== undefined) {
+      (params as any).takeProfitPercent = (params as any).takeProfit;
+    }
+    if (params.stopLossPercent === undefined && (params as any).stopLoss !== undefined) {
+      (params as any).stopLossPercent = (params as any).stopLoss;
+    }
     
     // Merge root-level parameters into params (root level takes precedence for backwards compat)
     if (body.stopLossPercent !== undefined) params.stopLossPercent = body.stopLossPercent;
     if (body.takeProfitPercent !== undefined) params.takeProfitPercent = body.takeProfitPercent;
+    // Root-level backwards-compat aliases
+    if (body.stopLoss !== undefined && body.stopLossPercent === undefined) params.stopLossPercent = body.stopLoss;
+    if (body.takeProfit !== undefined && body.takeProfitPercent === undefined) params.takeProfitPercent = body.takeProfit;
     if (body.rsiPeriod !== undefined) params.rsiPeriod = body.rsiPeriod;
     if (body.rsiOversold !== undefined) params.rsiOversold = body.rsiOversold;
     if (body.rsiOverbought !== undefined) params.rsiOverbought = body.rsiOverbought;
