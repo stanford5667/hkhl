@@ -1,105 +1,179 @@
 
-# Fix: Backtest Reliability - Automatic Retry on First Failure
+# Unified Plan: Cleanup Legacy Backtest + Add Execution Realism
 
-## Problem Summary
-The backtest button fails on the first click ~50% of the time because:
-- Edge functions "cold start" when not recently used (takes ~25-30ms to boot)
-- The browser request may timeout before the function responds
-- There's no retry logic - the error just shows and the user has to click again
+## Overview
+This plan combines two critical objectives:
+1. **Cleanup** - Remove the legacy/orphan `run-backtest` system that causes confusion
+2. **Execution Realism** - Fix systematic data issues in the active `strategy-backtest` system
 
-## Solution: Intelligent Retry with User Feedback
-
-### What You'll See After the Fix
-1. **Automatic retry** - If the first request fails, it silently retries up to 2 more times
-2. **Better loading feedback** - Shows "Warming up..." on first attempt, "Running backtest..." on success
-3. **Faster perceived performance** - Pre-warms the edge function when you select a strategy
-4. **Graceful degradation** - Only shows an error after all retries fail
+The Strategy Backtester on company detail pages (`/stock/:ticker`) uses `strategy-backtest` edge function - this is the ONLY backtester you'll have after cleanup.
 
 ---
 
-## Implementation Steps
+## Phase 1: Remove Legacy Backtest Infrastructure
 
-### Step 1: Create Retry Utility
-Create a reusable retry wrapper for edge function calls:
+### What Gets Deleted
 
-**New file**: `src/utils/retryWithBackoff.ts`
-- Accepts any async function
-- Retries up to 3 times with exponential backoff (200ms → 400ms → 800ms)
-- Returns result on first success
-- Throws only after all attempts exhausted
+| Item | Path | Purpose | Reason for Removal |
+|------|------|---------|-------------------|
+| Legacy Edge Function | `supabase/functions/run-backtest/` | Portfolio buy-hold simulation | Only used by orphan page |
+| Orphan Page | `src/pages/Backtest.tsx` | Portfolio simulation UI | Not routed in App.tsx |
+| Config Entry | Line 63-64 in `supabase/config.toml` | Function config | Removing the function |
 
-### Step 2: Add Pre-warm Function Call
-When user selects a strategy, fire a lightweight "ping" to wake up the edge function:
+### What Stays (Your Active Systems)
 
-**Modify**: `src/components/backtester/StrategyBacktester.tsx`
-- In `handleSelectStrategy`, add a silent ping to `/strategy-backtest` with `{ ping: true }`
-- Edge function responds immediately with `{ ok: true }` for ping requests
-- This ensures the function is warm when "Run" is clicked
-
-### Step 3: Wrap Backtest Calls with Retry Logic
-Update both `handleRunBacktest` and `handleVisualBuilderBacktest`:
-
-**Modify**: `src/components/backtester/StrategyBacktester.tsx`
-- Wrap `supabase.functions.invoke()` calls with the retry utility
-- Add progress indicator showing attempt number if retrying
-- Only show error toast after all retries fail
-
-### Step 4: Add Ping Handler to Edge Function
-
-**Modify**: `supabase/functions/strategy-backtest/index.ts`
-- Add early return for ping requests:
-  ```typescript
-  if (body.ping) {
-    return new Response(JSON.stringify({ ok: true }), { headers: corsHeaders });
-  }
-  ```
+| Component | Location | Purpose |
+|-----------|----------|---------|
+| **Strategy Backtester** | `src/components/backtester/StrategyBacktester.tsx` | Single-ticker strategy testing on `/stock/:ticker` |
+| **strategy-backtest** | `supabase/functions/strategy-backtest/index.ts` | Edge function (1051 lines) with RSI, MA, Gap, Consecutive strategies |
+| **Portfolio Visualizer** | `src/components/backtester/ProfessionalBacktester.tsx` | Multi-asset portfolio analysis at `/backtester` route |
 
 ---
 
-## Technical Details
+## Phase 2: Execution Realism Improvements
 
-### Retry Configuration
+These changes target the active `strategy-backtest` edge function.
+
+### 2.1 Trading Calendar Enforcement for Exit Dates
+
+**Problem**: Exit dates can land on weekends when holding periods expire.
+
+**Solution**: Add `getNextTradingDay()` helper and apply to all exit date calculations.
+
 ```text
-┌─────────────┬─────────────┬─────────────┐
-│  Attempt 1  │  Attempt 2  │  Attempt 3  │
-├─────────────┼─────────────┼─────────────┤
-│ Immediate   │ +200ms wait │ +400ms wait │
-│ "Starting"  │ "Retrying"  │ "Retrying"  │
-└─────────────┴─────────────┴─────────────┘
-        Total max wait: ~600ms + execution time
+Entry Signal → Is Trading Day? 
+                    ↓ No
+              Skip to Next Trading Day
+                    ↓ Yes
+              Execute Trade
 ```
 
-### Files Changed
-| File | Change |
+### 2.2 Slippage & Commission Modeling
+
+**New Configuration Interface**:
+```text
+ExecutionConfig {
+  slippageBps: 10          // 0.10% default (10 basis points)
+  commissionPerTrade: 0.99 // $0.99 default
+  orderType: 'market'      // 'market' or 'limit'
+}
+```
+
+**Application**:
+- Entry price adjusted UP by slippage (buying at slightly higher price)
+- Exit price adjusted DOWN by slippage (selling at slightly lower price)  
+- Commission deducted from both legs
+- Net P&L reflects real-world friction
+
+### 2.3 Enhanced Trade Logging
+
+Add new fields to each trade for transparency:
+
+| Field | Description |
+|-------|-------------|
+| `grossPnl` | P&L before costs |
+| `slippageCost` | Estimated slippage amount |
+| `commissionCost` | Round-trip commission |
+| `netPnl` | Final P&L after all costs |
+| `dataQualityFlag` | Any warnings (weekend date corrected, future date, etc.) |
+
+### 2.4 Reality Scenarios Display
+
+Add a comparison section in the results dashboard:
+
+```text
+┌───────────────────────────────────────────────────────┐
+│ 📊 Reality Scenarios                                  │
+├─────────────┬─────────────┬─────────────┬─────────────┤
+│ Theoretical │ With        │ With        │ Realistic   │
+│ (Perfect)   │ Slippage    │ Commission  │ (Combined)  │
+├─────────────┼─────────────┼─────────────┼─────────────┤
+│ +25.4%      │ +23.8%      │ +24.9%      │ +23.3%      │
+│ 68% Win     │ 66% Win     │ 68% Win     │ 66% Win     │
+└─────────────┴─────────────┴─────────────┴─────────────┘
+```
+
+---
+
+## Phase 3: Data Quality Validation
+
+### 3.1 Future Date Prevention
+
+Reject or flag trades with dates beyond today:
+
+```text
+if (trade.exitDate > currentDate) {
+  trade.dataQualityWarning = 'Future date detected - may be synthetic data';
+}
+```
+
+### 3.2 Weekend/Holiday Auto-Correction
+
+When a calculated exit date falls on a non-trading day:
+1. Automatically snap to next valid trading day
+2. Add warning flag to trade
+3. Log the correction for transparency
+
+### 3.3 Exit Date Validation in Holding Period Strategies
+
+For strategies like "Consecutive Days" that use fixed holding periods:
+- Calculate target exit date
+- Check if it's a valid trading day
+- If not, find next trading day using existing `isTradingDay()` function
+
+---
+
+## Implementation Details
+
+### Files to Delete
+
+| File | Action |
 |------|--------|
-| `src/utils/retryWithBackoff.ts` | New - Retry utility |
-| `src/components/backtester/StrategyBacktester.tsx` | Add retry wrapper + pre-warm |
-| `supabase/functions/strategy-backtest/index.ts` | Add ping handler |
+| `src/pages/Backtest.tsx` | Delete |
+| `supabase/functions/run-backtest/index.ts` | Delete entire directory |
 
-### User Experience Flow (After Fix)
-```text
-User clicks "Run Backtest"
-        ↓
-   [Attempt 1] ─── Success ──→ Show Results ✓
-        │
-    Failure (cold start)
-        ↓
-   Wait 200ms
-        ↓
-   [Attempt 2] ─── Success ──→ Show Results ✓
-        │
-    Failure
-        ↓
-   Wait 400ms
-        ↓
-   [Attempt 3] ─── Success ──→ Show Results ✓
-        │
-    Failure
-        ↓
-   Show Error Toast ✗
-```
+### Files to Modify
 
-## Expected Outcome
-- First-click success rate increases from ~50% to ~99%
-- Users see smoother loading experience
-- Pre-warming eliminates most cold starts entirely
+| File | Changes |
+|------|---------|
+| `supabase/config.toml` | Remove lines 63-64 (`[functions.run-backtest]` block) |
+| `supabase/functions/strategy-backtest/index.ts` | Add execution realism logic |
+| `src/components/backtester/BacktestResultsDashboard.tsx` | Add Reality Scenarios panel |
+| `src/lib/backtesting/types.ts` | Add ExecutionConfig and trade cost fields |
+
+### Files to Create
+
+| File | Purpose |
+|------|---------|
+| `src/components/backtester/RealityScenarios.tsx` | Comparison display component |
+
+---
+
+## Edge Function Changes Summary
+
+The `strategy-backtest` function gets these additions:
+
+1. **`getNextTradingDay(dateStr)`** - Helper to find next valid trading day
+2. **`applySlippage(price, direction, bps)`** - Apply slippage to prices
+3. **`calculateNetPnl(trade, config)`** - Compute P&L after all costs
+4. **Modified trade execution** - Apply slippage/commission at entry and exit
+5. **Data validation** - Flag future dates and weekend corrections
+
+---
+
+## Expected Outcomes
+
+After implementation:
+
+| Metric | Before | After |
+|--------|--------|-------|
+| Weekend/Holiday Trades | Possible | Prevented |
+| Perfect Fill Assumption | Yes | Slippage Applied |
+| Commission Modeling | None | Deducted |
+| Execution Transparency | Basic | Full Cost Breakdown |
+| Data Quality Flags | None | Automatic Warnings |
+
+The result will be backtests that are:
+- More realistic (won't mislead users with perfect-world returns)
+- More transparent (shows where costs come from)
+- Higher quality (flags suspicious data automatically)
