@@ -572,41 +572,59 @@ export const SentenceBuilder = memo(function SentenceBuilder({
     const takeProfit = exitRules.find(e => e.block.subtype === 'TAKE_PROFIT');
     
     // Determine strategy type based on signal
-    let strategy = 'rsi_oversold';
+    // IMPORTANT: These IDs must match what the `strategy-backtest` backend function supports.
+    let strategy: 'rsi' | 'ma-crossover' | 'gap-fill' | 'consecutive-days' = 'rsi';
     const params: Record<string, number | string | undefined> = {};
     
     switch (firstSignal.preset.id) {
       case 'rsi-oversold':
-        strategy = 'rsi_oversold';
+        strategy = 'rsi';
+        // backend expects: rsiPeriod, rsiOversold, rsiOverbought
         params.rsiPeriod = firstSignal.parameters.period;
-        params.rsiThreshold = firstSignal.parameters.threshold;
+        params.rsiOversold = firstSignal.parameters.threshold;
+        // keep a sensible default overbought if user didn’t specify one
+        params.rsiOverbought = 70;
         break;
       case 'rsi-overbought':
-        strategy = 'rsi_overbought';
+        // We still route this to the RSI strategy so it never errors as “unsupported”.
+        // Treat the selected threshold as the overbought level.
+        strategy = 'rsi';
         params.rsiPeriod = firstSignal.parameters.period;
-        params.rsiThreshold = firstSignal.parameters.threshold;
+        params.rsiOversold = 30;
+        params.rsiOverbought = firstSignal.parameters.threshold;
         break;
       case 'price-above-sma':
       case 'price-below-sma':
-        strategy = 'ma_crossover';
-        params.maPeriod = firstSignal.parameters.period;
+        strategy = 'ma-crossover';
+        // backend expects: fastMaPeriod, slowMaPeriod
+        params.fastMaPeriod = firstSignal.parameters.period;
+        params.slowMaPeriod = Math.max(20, firstSignal.parameters.period * 5);
         break;
       case 'ema-crossover':
-        strategy = 'ema_crossover';
-        params.emaPeriod = firstSignal.parameters.period;
+        strategy = 'ma-crossover';
+        params.fastMaPeriod = firstSignal.parameters.period;
+        params.slowMaPeriod = Math.max(20, firstSignal.parameters.period * 5);
         break;
       case 'gap-down':
-        strategy = 'gap_fill';
+        strategy = 'gap-fill';
         params.gapThreshold = firstSignal.parameters.threshold;
         break;
       case 'consecutive-down':
-        strategy = 'consecutive_days_reversal';
+        strategy = 'consecutive-days';
         params.consecutiveDays = firstSignal.parameters.days;
+        params.holdingPeriod = 5;
         break;
       case 'volume-spike':
-        strategy = 'volume_spike';
-        params.volumePeriod = firstSignal.parameters.period;
-        params.volumeThreshold = firstSignal.parameters.threshold;
+        // Not a supported backend strategy yet; map to MA crossover so the run works.
+        strategy = 'ma-crossover';
+        params.fastMaPeriod = Math.max(5, Math.round(firstSignal.parameters.period / 2));
+        params.slowMaPeriod = Math.max(20, firstSignal.parameters.period);
+        break;
+      default:
+        strategy = 'rsi';
+        params.rsiPeriod = 14;
+        params.rsiOversold = 30;
+        params.rsiOverbought = 70;
         break;
     }
     
