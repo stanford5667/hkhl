@@ -18,7 +18,17 @@ const routeImports: Record<string, () => Promise<any>> = {
   '/quant-lab': () => import('../pages/QuantLab'),
   '/market-intel': () => import('../pages/MarketIntel'),
   '/settings': () => import('../pages/Settings'),
+  '/academy': () => import('../pages/Academy'),
+  '/investment-plan': () => import('../pages/InvestmentPlan'),
+  '/glossary': () => import('../pages/Glossary'),
+  '/support': () => import('../pages/SupportCenter'),
 };
+
+// Preload critical components used across multiple pages
+const criticalComponentImports: (() => Promise<any>)[] = [
+  () => import('../components/research/TickerCarousel'),
+  () => import('../components/earnings'),
+];
 
 // Track which routes have been preloaded
 const preloadedRoutes = new Set<string>();
@@ -54,6 +64,15 @@ export function preloadRoutes(paths: string[]): void {
 }
 
 /**
+ * Preload critical components
+ */
+export function preloadCriticalComponents(): void {
+  criticalComponentImports.forEach(importer => {
+    importer().catch(() => {});
+  });
+}
+
+/**
  * Preload common routes after initial page load
  * Called after the app is idle
  */
@@ -63,20 +82,40 @@ export function preloadCommonRoutes(): void {
     (window as any).requestIdleCallback(() => {
       // Preload the most common navigation targets
       preloadRoutes([
-        '/watchlist',
         '/research',
         '/portfolio-visualizer',
+        '/academy',
       ]);
-    }, { timeout: 3000 });
+      // Preload critical shared components
+      preloadCriticalComponents();
+    }, { timeout: 2000 });
+    
+    // Second wave of preloads after more time
+    (window as any).requestIdleCallback(() => {
+      preloadRoutes([
+        '/watchlist',
+        '/investment-plan',
+        '/glossary',
+      ]);
+    }, { timeout: 5000 });
   } else {
     // Fallback for browsers without requestIdleCallback
     setTimeout(() => {
       preloadRoutes([
-        '/watchlist',
         '/research',
         '/portfolio-visualizer',
+        '/academy',
       ]);
-    }, 2000);
+      preloadCriticalComponents();
+    }, 1500);
+    
+    setTimeout(() => {
+      preloadRoutes([
+        '/watchlist',
+        '/investment-plan',
+        '/glossary',
+      ]);
+    }, 4000);
   }
 }
 
