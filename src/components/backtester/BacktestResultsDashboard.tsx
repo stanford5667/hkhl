@@ -887,9 +887,9 @@ export function BacktestResultsDashboard({ result, compact = false }: BacktestRe
               trend={advanced.payoffRatio >= 1.5 ? 'good' : 'neutral'}
             />
             <MetricCard 
-              label="Avg Hold Time" 
-              value={`${result.avgHoldingDays.toFixed(1)} days`}
-              description="Per trade"
+              label="Avg Hold (trading)" 
+              value={`${result.avgHoldingDays.toFixed(1)} trading days`}
+              description="Excludes weekends/holidays"
               trend="neutral"
             />
             <MetricCard 
@@ -938,7 +938,7 @@ export function BacktestResultsDashboard({ result, compact = false }: BacktestRe
                       <th className="text-left p-2 font-medium">Exit Date</th>
                       <th className="text-right p-2 font-medium">Fill $</th>
                       <th className="text-right p-2 font-medium">Shares</th>
-                      <th className="text-right p-2 font-medium">Days</th>
+                      <th className="text-right p-2 font-medium">Trading days</th>
                       <th className="text-right p-2 font-medium">Return</th>
                       <th className="text-right p-2 font-medium">P&L</th>
                       <th className="text-left p-2 font-medium">Signal</th>

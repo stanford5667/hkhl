@@ -45,7 +45,7 @@ export function TradeExport({ trades, ticker, strategy }: TradeExportProps) {
       'Exit Date': format(new Date(trade.exitDate), 'yyyy-MM-dd'),
       'Exit Price': trade.exitPrice,
       'Shares': trade.shares,
-      'Holding Days': trade.holdingDays,
+      'Holding Days (Trading)': trade.holdingDays,
       'P&L ($)': Math.round(trade.pnl * 100) / 100,
       'Return (%)': Math.round(trade.pnlPercent * 100) / 100,
       'Type': trade.type,

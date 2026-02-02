@@ -279,8 +279,8 @@ export function StrategyBacktester({ ticker, companyName }: StrategyBacktesterPr
                   <p className="font-semibold">{selectedTrade.shares}</p>
                 </div>
                 <div>
-                  <p className="text-muted-foreground mb-1">Duration</p>
-                  <p className="font-semibold">{selectedTrade.holdingDays} days</p>
+                  <p className="text-muted-foreground mb-1">Holding (trading days)</p>
+                  <p className="font-semibold">{selectedTrade.holdingDays} trading days</p>
                 </div>
                 <div>
                   <p className="text-muted-foreground mb-1">Return</p>

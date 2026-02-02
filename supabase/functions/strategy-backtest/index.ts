@@ -23,6 +23,14 @@ async function handlePing(): Promise<Response> {
 // MARKET HOLIDAYS - US Market Holiday Validation
 // ═══════════════════════════════════════════════════════════════════════════════
 
+// Normalize incoming date strings to YYYY-MM-DD.
+// Some sources can return ISO timestamps (e.g. "2024-09-08T00:00:00+00:00").
+// If we don't normalize, weekend/holiday detection can silently fail.
+function normalizeDate(dateLike: string): string {
+  if (!dateLike) return dateLike;
+  return dateLike.length >= 10 ? dateLike.slice(0, 10) : dateLike;
+}
+
 // Fixed US holidays (month, day) - 0-indexed months
 const FIXED_HOLIDAYS = [
   { month: 0, day: 1 },   // New Year's Day
@@ -99,24 +107,25 @@ function getMarketHolidays(year: number): string[] {
 
 // Check if date is a weekend
 function isWeekend(dateStr: string): boolean {
-  const d = new Date(dateStr + 'T12:00:00Z');
+  const d = new Date(normalizeDate(dateStr) + 'T12:00:00Z');
   const day = d.getUTCDay();
   return day === 0 || day === 6;
 }
 
 // Check if date is a valid trading day
 function isTradingDay(dateStr: string): boolean {
-  if (isWeekend(dateStr)) return false;
-  const year = parseInt(dateStr.split('-')[0]);
+  const normalized = normalizeDate(dateStr);
+  if (isWeekend(normalized)) return false;
+  const year = parseInt(normalized.split('-')[0]);
   const holidays = getMarketHolidays(year);
-  return !holidays.includes(dateStr);
+  return !holidays.includes(normalized);
 }
 
 // Get next valid trading day from a given date
 function getNextTradingDay(dateStr: string): string {
-  let date = new Date(dateStr + 'T12:00:00Z');
+  let date = new Date(normalizeDate(dateStr) + 'T12:00:00Z');
   let attempts = 0;
-  const maxAttempts = 10; // Prevent infinite loop
+  const maxAttempts = 30; // Prevent infinite loop
   
   while (!isTradingDay(date.toISOString().split('T')[0]) && attempts < maxAttempts) {
     date = new Date(date.getTime() + 24 * 60 * 60 * 1000);
@@ -128,8 +137,8 @@ function getNextTradingDay(dateStr: string): string {
 
 // Count trading days between two dates (for accurate holding period calculation)
 function countTradingDaysBetween(startDate: string, endDate: string): number {
-  const start = new Date(startDate + 'T12:00:00Z');
-  const end = new Date(endDate + 'T12:00:00Z');
+  const start = new Date(normalizeDate(startDate) + 'T12:00:00Z');
+  const end = new Date(normalizeDate(endDate) + 'T12:00:00Z');
   let count = 0;
   const currentDate = new Date(start);
   
@@ -148,7 +157,7 @@ function countTradingDaysBetween(startDate: string, endDate: string): number {
 // Check if a date is in the future (beyond today)
 function isFutureDate(dateStr: string): boolean {
   const today = new Date().toISOString().split('T')[0];
-  return dateStr > today;
+  return normalizeDate(dateStr) > today;
 }
 
 // Execution realism configuration
@@ -196,24 +205,28 @@ function createTradeWithRealism(
     dataQualityFlag?: string;
   }
 ): Trade {
+  const normalizedEntryDate = normalizeDate(entryDate);
+  const normalizedExitDate = normalizeDate(exitDate);
+
   // CRITICAL: Validate that exit date is a valid trading day
-  let validatedExitDate = exitDate;
+  let validatedExitDate = normalizedExitDate;
   let qualityFlag = extras?.dataQualityFlag;
   
-  if (!isTradingDay(exitDate)) {
-    validatedExitDate = getNextTradingDay(exitDate);
+  if (!isTradingDay(validatedExitDate)) {
+    const originalExit = validatedExitDate;
+    validatedExitDate = getNextTradingDay(validatedExitDate);
     qualityFlag = qualityFlag 
-      ? `${qualityFlag}; Exit date ${exitDate} was non-trading day, adjusted to ${validatedExitDate}`
-      : `Exit date ${exitDate} was non-trading day, adjusted to ${validatedExitDate}`;
-    console.log(`[strategy-backtest] WARNING: Exit date ${exitDate} is non-trading day, adjusted to ${validatedExitDate}`);
+      ? `${qualityFlag}; Exit date ${originalExit} was non-trading day, adjusted to ${validatedExitDate}`
+      : `Exit date ${originalExit} was non-trading day, adjusted to ${validatedExitDate}`;
+    console.log(`[strategy-backtest] WARNING: Exit date ${originalExit} is non-trading day, adjusted to ${validatedExitDate}`);
   }
   
   // CRITICAL: Validate that entry date is a valid trading day
-  if (!isTradingDay(entryDate)) {
-    console.error(`[strategy-backtest] ERROR: Entry date ${entryDate} is not a trading day - this should never happen!`);
+  if (!isTradingDay(normalizedEntryDate)) {
+    console.error(`[strategy-backtest] ERROR: Entry date ${normalizedEntryDate} is not a trading day - bars must be filtered/normalized`);
     qualityFlag = qualityFlag
-      ? `${qualityFlag}; Invalid entry date ${entryDate}`
-      : `Invalid entry date ${entryDate}`;
+      ? `${qualityFlag}; Invalid entry date ${normalizedEntryDate}`
+      : `Invalid entry date ${normalizedEntryDate}`;
   }
   
   // CRITICAL: Calculate actual trading days held (not calendar days)
@@ -254,7 +267,7 @@ function createTradeWithRealism(
   const netPnlPercent = ((actualExit - actualEntry) / actualEntry) * 100 - (commissionCost / (shares * actualEntry)) * 100;
   
   return {
-    entryDate,
+    entryDate: normalizedEntryDate,
     exitDate: validatedExitDate,
     entryPrice: Math.round(actualEntry * 100) / 100,
     exitPrice: Math.round(actualExit * 100) / 100,
@@ -1209,8 +1222,8 @@ Deno.serve(async (req) => {
     if (priceData && priceData.length >= 50 && dbCoverage >= 0.8) {
       console.log(`[strategy-backtest] Using ${priceData.length} bars from database for ${normalizedTicker}`);
       dataSourceUrl = `Cloud DB: market_daily_bars (ticker=${normalizedTicker})`;
-      const rawBars = priceData.map(row => ({
-        date: row.bar_date,
+       const rawBars = priceData.map(row => ({
+         date: normalizeDate(row.bar_date),
         open: row.open,
         high: row.high,
         low: row.low,
@@ -1237,8 +1250,8 @@ Deno.serve(async (req) => {
         // Fallback: use whatever database has even if incomplete
         console.log(`[strategy-backtest] Polygon failed, using limited database data (${priceData.length} bars)`);
         dataSourceUrl = `Cloud DB: market_daily_bars (ticker=${normalizedTicker}) [PARTIAL]`;
-        const rawBars = priceData.map(row => ({
-          date: row.bar_date,
+         const rawBars = priceData.map(row => ({
+           date: normalizeDate(row.bar_date),
           open: row.open,
           high: row.high,
           low: row.low,
@@ -1264,7 +1277,17 @@ Deno.serve(async (req) => {
       }
     }
 
-    console.log(`[strategy-backtest] Proceeding with ${bars.length} bars from ${dataSource}`);
+     // Final normalization/filter (defensive): guarantees we never run signals on
+     // weekend/holiday rows even if upstream stored timestamps.
+     const beforeFinalFilter = bars.length;
+     bars = bars
+       .map((b) => ({ ...b, date: normalizeDate(b.date) }))
+       .filter((b) => isTradingDay(b.date));
+     if (bars.length !== beforeFinalFilter) {
+       console.log(`[strategy-backtest] Filtered ${beforeFinalFilter - bars.length} non-trading day bars after normalization`);
+     }
+
+     console.log(`[strategy-backtest] Proceeding with ${bars.length} bars from ${dataSource}`);
 
     // Run backtest
     const result = runBacktest(bars, strategy, initialCapital, params, dataSource, dataSourceUrl);
@@ -1276,8 +1299,8 @@ Deno.serve(async (req) => {
         success: true,
         ...result,
         ticker: normalizedTicker,
-        startDate: bars[0]?.date || startDate,
-        endDate: bars[bars.length - 1]?.date || endDate
+         startDate: normalizeDate(bars[0]?.date || startDate),
+         endDate: normalizeDate(bars[bars.length - 1]?.date || endDate)
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
