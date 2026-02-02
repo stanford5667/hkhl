@@ -2,7 +2,7 @@
  * Block Palette Component
  * 
  * Left panel with clear step-by-step flow for building strategies.
- * Uses horizontal tabs on mobile so all steps are visible without scrolling.
+ * Compact mode uses sentence-based builder for clearer relationships.
  */
 
 import { memo, useState } from 'react';
@@ -19,11 +19,13 @@ import {
   ACTION_BLOCKS,
 } from '@/lib/strategyBuilder/templates';
 import type { PaletteBlock, BlockSubtype } from '@/lib/strategyBuilder/types';
+import { SentenceBuilder } from './SentenceBuilder';
 
 export interface BlockPaletteProps {
   className?: string;
   compact?: boolean;
   onAddBlock?: (subtype: BlockSubtype) => void;
+  onSwitchToCanvas?: () => void;
 }
 
 interface BlockGridProps {
@@ -249,18 +251,23 @@ const TabbedPalette = memo(function TabbedPalette({ onAddBlock }: { onAddBlock?:
   );
 });
 
-export const BlockPalette = memo(function BlockPalette({ className, compact, onAddBlock }: BlockPaletteProps) {
-  // Use tabbed layout for mobile/compact mode - no scrolling needed
+export const BlockPalette = memo(function BlockPalette({ 
+  className, 
+  compact, 
+  onAddBlock,
+  onSwitchToCanvas,
+}: BlockPaletteProps) {
+  // Use sentence builder for mobile/compact mode - clearer relationships
   if (compact) {
     return (
       <div className={cn(
         "flex flex-col border-r border-border bg-card/50 h-full",
         className
       )}>
-        <div className="px-2 py-1.5 border-b border-border bg-muted/30">
-          <h2 className="text-xs font-bold">Build Your Strategy</h2>
-        </div>
-        <TabbedPalette onAddBlock={onAddBlock} />
+        <SentenceBuilder 
+          onAddBlock={onAddBlock || (() => {})} 
+          onComplete={onSwitchToCanvas}
+        />
       </div>
     );
   }

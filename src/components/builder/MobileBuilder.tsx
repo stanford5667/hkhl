@@ -82,6 +82,26 @@ export const MobileBuilder = memo(function MobileBuilder({
     setActiveTab('canvas'); // Switch to canvas after dropping
   }, [blocks.length, setBlocks]);
 
+  // Handle adding a block by subtype (from SentenceBuilder)
+  const handleAddBlockBySubtype = useCallback((subtype: BlockSubtype) => {
+    const paletteBlock = ALL_PALETTE_BLOCKS.find(b => b.subtype === subtype);
+    if (!paletteBlock) return;
+
+    const newBlock: CanvasBlock = {
+      id: generateId(),
+      type: paletteBlock.type,
+      subtype: paletteBlock.subtype,
+      position: {
+        x: 60 + (blocks.length % 2) * 160,
+        y: 60 + Math.floor(blocks.length / 2) * 100,
+      },
+      parameters: { ...paletteBlock.defaultParameters },
+      connections: { inputs: [], outputs: [] },
+    };
+
+    setBlocks(prev => [...prev, newBlock]);
+  }, [blocks.length, setBlocks]);
+
   // Update block position
   const handleUpdateBlockPosition = useCallback((id: string, position: { x: number; y: number }) => {
     setBlocks(prev => prev.map(b => 
@@ -239,7 +259,12 @@ export const MobileBuilder = memo(function MobileBuilder({
             </TabsContent>
 
             <TabsContent value="blocks" className="h-full m-0 overflow-auto">
-              <BlockPalette className="h-full border-r-0" compact={false} />
+              <BlockPalette 
+                className="h-full border-r-0" 
+                compact 
+                onAddBlock={handleAddBlockBySubtype}
+                onSwitchToCanvas={() => setActiveTab('canvas')}
+              />
             </TabsContent>
 
             <TabsContent value="summary" className="h-full m-0 overflow-auto">
