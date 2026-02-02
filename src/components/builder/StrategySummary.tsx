@@ -329,27 +329,6 @@ export const StrategySummary = memo(function StrategySummary({
             </div>
           )}
 
-          {/* Validation status (compact) */}
-          {blocks.length > 0 && (
-            <div className="flex items-center gap-2">
-              {validation.isComplete ? (
-                <Badge variant="outline" className="text-[10px] bg-emerald-500/10 text-emerald-400 border-emerald-500/30">
-                  <CheckCircle2 className="h-2.5 w-2.5 mr-1" />
-                  Ready to test
-                </Badge>
-              ) : validation.isValid ? (
-                <Badge variant="outline" className="text-[10px] bg-amber-500/10 text-amber-400 border-amber-500/30">
-                  <AlertCircle className="h-2.5 w-2.5 mr-1" />
-                  {validation.warnings.length} suggestion{validation.warnings.length !== 1 ? 's' : ''}
-                </Badge>
-              ) : (
-                <Badge variant="outline" className="text-[10px] bg-rose-500/10 text-rose-400 border-rose-500/30">
-                  <AlertCircle className="h-2.5 w-2.5 mr-1" />
-                  {validation.errors[0]}
-                </Badge>
-              )}
-            </div>
-          )}
 
         </div>
       </div>

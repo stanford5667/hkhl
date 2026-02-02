@@ -668,6 +668,119 @@ export function ProfessionalBacktester() {
   }, [assets, benchmark, period, initialCapital, isValid]);
 
   // ─────────────────────────────────────────────────────────────────────────────
+  // Handle Visual Strategy Builder backtest
+  // ─────────────────────────────────────────────────────────────────────────────
+  
+  const handleVisualBuilderBacktest = useCallback(async (params: { 
+    strategy: string; 
+    ticker: string; 
+    params: Record<string, number | string | undefined> 
+  }) => {
+    setIsLoading(true);
+    setLoadingProgress(10);
+    
+    try {
+      const periodYears = PERIODS.find(p => p.value === period)?.years || 5;
+      const endDate = new Date();
+      const startDate = new Date();
+      startDate.setFullYear(endDate.getFullYear() - periodYears);
+      
+      setLoadingProgress(20);
+      
+      // Call the strategy backtest edge function
+      const { data, error } = await supabase.functions.invoke('strategy-backtest', {
+        body: {
+          ticker: params.ticker,
+          strategy: params.strategy,
+          startDate: startDate.toISOString().split('T')[0],
+          endDate: endDate.toISOString().split('T')[0],
+          initialCapital,
+          params: {
+            ...params.params,
+            stopLossPercent: params.params.stopLoss,
+            takeProfitPercent: params.params.takeProfit,
+          }
+        }
+      });
+      
+      setLoadingProgress(80);
+      
+      if (error) throw error;
+      if (!data?.success) throw new Error(data?.error || 'Backtest failed');
+      
+      const backtestResult = data.result;
+      
+      // Convert strategy backtest result to portfolio format for display
+      const dates = backtestResult.trades?.map((t: any) => t.entryDate) || [];
+      const portfolioValues = dates.map((_: any, i: number) => 
+        initialCapital * (1 + (backtestResult.metrics?.netProfit || 0) / 100 * (i / Math.max(dates.length - 1, 1)))
+      );
+      
+      setResult({
+        dates,
+        portfolioValues,
+        benchmarkValues: portfolioValues.map((v: number) => v * 0.95), // Placeholder
+        dailyReturns: [],
+        benchmarkReturns: [],
+        drawdownSeries: portfolioValues.map(() => 0),
+        metrics: {
+          totalReturn: backtestResult.metrics?.netProfit || 0,
+          cagr: backtestResult.metrics?.cagr || 0,
+          volatility: backtestResult.metrics?.annualizedVolatility || 0,
+          sharpeRatio: backtestResult.metrics?.sharpeRatio || 0,
+          sortinoRatio: backtestResult.metrics?.sortinoRatio || 0,
+          maxDrawdown: backtestResult.metrics?.maxDrawdown || 0,
+          var95: 0,
+          cvar95: 0,
+          alpha: 0,
+          beta: 0,
+          calmarRatio: 0,
+          treynorRatio: 0,
+          informationRatio: 0,
+          trackingError: 0,
+          upCapture: 0,
+          downCapture: 0,
+          winRate: backtestResult.metrics?.winRate || 0,
+          avgWin: backtestResult.metrics?.avgWin || 0,
+          avgLoss: backtestResult.metrics?.avgLoss || 0,
+          bestDay: 0,
+          worstDay: 0,
+          bestMonth: 0,
+          worstMonth: 0,
+          bestYear: 0,
+          worstYear: 0,
+          positiveMonths: 0,
+          positiveYears: 0,
+          currentDrawdown: 0,
+          drawdownDuration: 0,
+          recoveryTime: 0,
+          ulcerIndex: 0,
+          painIndex: 0,
+        },
+        yearlyReturns: [],
+        monthlyReturns: [],
+        rollingReturns: [],
+      });
+      
+      toast.success('Strategy backtest complete', {
+        description: `${backtestResult.metrics?.totalTrades || 0} trades analyzed`,
+      });
+      
+      // Switch to portfolio tab to show results
+      setActiveLeftTab('portfolio');
+      
+    } catch (error) {
+      console.error('Visual builder backtest error:', error);
+      toast.error('Backtest failed', {
+        description: error instanceof Error ? error.message : 'Unknown error',
+      });
+    } finally {
+      setIsLoading(false);
+      setLoadingProgress(100);
+    }
+  }, [period, initialCapital]);
+
+  // ─────────────────────────────────────────────────────────────────────────────
   // Chart data
   // ─────────────────────────────────────────────────────────────────────────────
   
@@ -1118,7 +1231,10 @@ export function ProfessionalBacktester() {
             ) : (
               /* Visual Strategy Builder Tab */
               <div className="flex-1 flex flex-col min-h-0 bg-[rgb(8,12,16)]">
-                <VisualStrategyBuilder embedded />
+                <VisualStrategyBuilder 
+                  embedded 
+                  onRunBacktest={handleVisualBuilderBacktest}
+                />
               </div>
             )}
           </div>
