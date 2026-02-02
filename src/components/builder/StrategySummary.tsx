@@ -63,6 +63,8 @@ export interface StrategySummaryProps {
   onRunBacktest?: (serialized: SerializedStrategy) => void;
   className?: string;
   compact?: boolean;
+  /** In compact embedded contexts, hides the ticker + template controls row. */
+  showTickerAndTemplate?: boolean;
 }
 
 // Generate plain English description of strategy
@@ -176,6 +178,7 @@ export const StrategySummary = memo(function StrategySummary({
   onRunBacktest,
   className,
   compact = false,
+  showTickerAndTemplate = true,
 }: StrategySummaryProps) {
   const navigate = useNavigate();
   const [copied, setCopied] = useState(false);
@@ -285,30 +288,32 @@ export const StrategySummary = memo(function StrategySummary({
       <div className={cn("flex flex-col bg-card", className)}>
         {/* Parent handles scrolling; keep safe-area-aware bottom padding so CTA clears mobile nav */}
         <div className="p-3 space-y-3 pb-[calc(6rem+env(safe-area-inset-bottom))]">
-          {/* Ticker + Template row */}
-          <div className="flex gap-2">
-            <Input
-              value={ticker}
-              onChange={(e) => onTickerChange(e.target.value.toUpperCase())}
-              placeholder="AAPL"
-              className="h-8 text-xs uppercase flex-1"
-            />
-            <Select onValueChange={(id) => {
-              const template = STRATEGY_TEMPLATES.find(t => t.id === id);
-              if (template) onLoadTemplate(template);
-            }}>
-              <SelectTrigger className="h-8 text-xs w-28">
-                <SelectValue placeholder="Template" />
-              </SelectTrigger>
-              <SelectContent>
-                {STRATEGY_TEMPLATES.map(template => (
-                  <SelectItem key={template.id} value={template.id}>
-                    {template.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          {/* Ticker + Template row (optional in embedded contexts) */}
+          {showTickerAndTemplate && (
+            <div className="flex gap-2">
+              <Input
+                value={ticker}
+                onChange={(e) => onTickerChange(e.target.value.toUpperCase())}
+                placeholder="AAPL"
+                className="h-8 text-xs uppercase flex-1"
+              />
+              <Select onValueChange={(id) => {
+                const template = STRATEGY_TEMPLATES.find(t => t.id === id);
+                if (template) onLoadTemplate(template);
+              }}>
+                <SelectTrigger className="h-8 text-xs w-28">
+                  <SelectValue placeholder="Template" />
+                </SelectTrigger>
+                <SelectContent>
+                  {STRATEGY_TEMPLATES.map(template => (
+                    <SelectItem key={template.id} value={template.id}>
+                      {template.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
 
           {/* Plain English Summary (compact) */}
           {blocks.length > 0 && (
