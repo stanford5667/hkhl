@@ -662,7 +662,8 @@ function gapFillStrategy(
   index: number,
   inPosition: boolean,
   entryPrice: number | null,
-  params: StrategyParams
+  params: StrategyParams,
+  entryDate?: string | null
 ): { signal: StrategySignal; exitAtEntryPrice?: boolean } {
   if (index < 1) return { signal: { action: 'HOLD', reason: 'Need previous bar' } };
   
@@ -670,13 +671,15 @@ function gapFillStrategy(
   const todayOpen = bars[index].open;
   const todayClose = bars[index].close;
   const todayHigh = bars[index].high;
+  const currentDate = normalizeDate(bars[index].date);
   const threshold = params.gapThreshold ?? 2; // 2% gap
   const takeProfit = params.takeProfitPercent ?? null;
+  const holdingPeriod = params.holdingPeriod ?? null; // Time-based exit
   
   // Log params on first call for debugging
   if (index === 1) {
     console.log('[Gap Strategy] Params received:', JSON.stringify(params));
-    console.log('[Gap Strategy] Threshold:', threshold, '%, Take Profit:', takeProfit, '%');
+    console.log('[Gap Strategy] Threshold:', threshold, '%, Take Profit:', takeProfit, '%, Holding Period:', holdingPeriod, 'days');
   }
   
   const gapPercent = ((todayOpen - prevClose) / prevClose) * 100;
@@ -690,20 +693,27 @@ function gapFillStrategy(
   if (inPosition && entryPrice !== null) {
     const currentReturn = ((todayClose - entryPrice) / entryPrice) * 100;
     
-    // CRITICAL: When take profit is set, ONLY exit on take profit (or stop loss handled elsewhere)
-    // Do NOT exit early on gap-fill completion
+    // Time-based exit takes priority if specified
+    if (holdingPeriod !== null && entryDate) {
+      const tradingDaysHeld = countTradingDaysBetween(entryDate, currentDate);
+      if (tradingDaysHeld >= holdingPeriod) {
+        return { signal: { action: 'SELL', reason: `Holding period of ${holdingPeriod} trading days reached (actual: ${tradingDaysHeld})` } };
+      }
+    }
+    
+    // Take profit check
     if (takeProfit !== null) {
       if (currentReturn >= takeProfit) {
         console.log(`[Gap Strategy] Take profit HIT: target ${takeProfit}%, current ${currentReturn.toFixed(2)}%`);
         return { signal: { action: 'SELL', reason: `Take profit triggered at +${takeProfit}% (current: +${currentReturn.toFixed(2)}%)` } };
       }
-      // Hold position - waiting for take profit target
+      // Hold position - waiting for take profit or time exit
       return { signal: { action: 'HOLD', reason: `Waiting for +${takeProfit}% target (current: +${currentReturn.toFixed(2)}%)` } };
     }
     
-    // Default gap-fill exit ONLY when NO take profit is specified
-    // CRITICAL FIX: Check if price touched entry level during the day (use high), and exit AT entry price
-    if (todayHigh >= entryPrice) {
+    // Default gap-fill exit ONLY when NO take profit AND NO holding period is specified
+    // When holdingPeriod is set, we wait for time exit (handled above) instead of exiting on gap fill
+    if (holdingPeriod === null && todayHigh >= entryPrice) {
       // Price touched or exceeded entry - gap is filled, exit AT entry price (not at close)
       return { 
         signal: { action: 'SELL', reason: `Gap filled - price returned to entry ($${entryPrice.toFixed(2)})` },
@@ -921,6 +931,44 @@ function runBacktest(
         entryIndicatorValue = null;
         continue;
       }
+      
+      // Global holdingPeriod check - applies to ALL strategies
+      const holdingPeriodLimit = params.holdingPeriod;
+      if (holdingPeriodLimit !== undefined && holdingPeriodLimit !== null && entryDate !== null) {
+        const tradingDaysHeld = countTradingDaysBetween(entryDate, bar.date);
+        if (tradingDaysHeld >= holdingPeriodLimit) {
+          const trade = createTradeWithRealism(
+            entryPrice,
+            bar.close,
+            shares,
+            entryDate,
+            bar.date,
+            'LONG',
+            entryReason,
+            `Holding period of ${holdingPeriodLimit} trading days reached (held ${tradingDaysHeld})`,
+            execConfig,
+            {
+              entryBarRaw: entryBarRaw || undefined,
+              exitBarRaw: { ...bar },
+              indicatorValueAtEntry: entryIndicatorValue ?? undefined,
+              indicatorValueAtExit: getIndicatorValue(strategy, i) ?? undefined,
+              indicatorName
+            }
+          );
+          trades.push(trade);
+          
+          const sellFill = getExecutionFill(bar.close, 'sell', execConfig);
+          cash += shares * sellFill.price - sellFill.commission;
+          shares = 0;
+          inPosition = false;
+          entryPrice = null;
+          entryDate = null;
+          entryIndex = null;
+          entryBarRaw = null;
+          entryIndicatorValue = null;
+          continue;
+        }
+      }
     }
     
     // Get strategy signal
@@ -935,7 +983,7 @@ function runBacktest(
         signal = maStrategy(bars, i, fastMa, slowMa, inPosition, params);
         break;
       case 'gap-fill': {
-        const gapResult = gapFillStrategy(bars, i, inPosition, entryPrice, params);
+        const gapResult = gapFillStrategy(bars, i, inPosition, entryPrice, params, entryDate);
         signal = gapResult.signal;
         gapFillExitAtEntry = gapResult.exitAtEntryPrice || false;
         break;

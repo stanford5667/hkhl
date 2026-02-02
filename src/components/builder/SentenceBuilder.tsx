@@ -624,6 +624,7 @@ export const SentenceBuilder = memo(function SentenceBuilder({
     const firstSignal = entrySignals[0];
     const stopLoss = exitRules.find(e => e.block.subtype === 'STOP_LOSS');
     const takeProfit = exitRules.find(e => e.block.subtype === 'TAKE_PROFIT');
+    const timeExit = exitRules.find(e => e.block.subtype === 'TIME_EXIT');
     
     // Determine strategy type based on signal
     // IMPORTANT: These IDs must match what the `strategy-backtest` backend function supports.
@@ -688,6 +689,9 @@ export const SentenceBuilder = memo(function SentenceBuilder({
     }
     if (takeProfit) {
       params.takeProfit = takeProfit.parameters.percent;
+    }
+    if (timeExit) {
+      params.holdingPeriod = timeExit.parameters.days;
     }
     
     // Call onRunBacktest if provided
