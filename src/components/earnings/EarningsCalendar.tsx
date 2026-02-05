@@ -158,7 +158,7 @@ export const EarningsCalendar = () => {
             <div className="space-y-4">
               <Card className="bg-card/50 border-border/50">
                 <CardContent className="pt-4">
-                  <EarningsTable earnings={paginatedEarnings} />
+                  <EarningsTable earnings={paginatedEarnings} showDate />
                 </CardContent>
               </Card>
 
