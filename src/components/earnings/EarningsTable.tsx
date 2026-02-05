@@ -1,6 +1,7 @@
 // src/components/earnings/EarningsTable.tsx
 
 import { useState, useMemo } from 'react';
+import { format } from 'date-fns';
 import { TrendingUp, TrendingDown, Minus, Info, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 import {
   Table,
@@ -20,6 +21,7 @@ import {
 } from '@/components/ui/tooltip';
 import { EarningsWithPrediction } from '@/types/earnings';
 import { formatEarningsCurrency } from '@/lib/earningsUtils';
+import { parseDateOnly } from '@/lib/date';
 import { EarningsDetailDialog } from './EarningsDetailDialog';
 
 type SortField = 'market_cap' | 'symbol' | 'company_name' | 'eps_estimate' | 'revenue_estimate' | 'analyst_count' | 'confidence';
@@ -249,7 +251,7 @@ export const EarningsTable = ({ earnings, showDate = false }: Props) => {
                 </TableCell>
                 {showDate && (
                   <TableCell className="text-sm">
-                    {new Date(earning.report_date).toLocaleDateString()}
+                    {format(parseDateOnly(earning.report_date), 'MMM d, yyyy')}
                   </TableCell>
                 )}
                 <TableCell>
