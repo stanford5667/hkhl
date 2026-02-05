@@ -304,27 +304,33 @@ const FILTER_CONFIG: Record<keyof FilterState, { label: string; options: { value
 const FILTER_CATEGORIES = [
   { 
     name: 'Valuation', 
-    filters: ['marketCap', 'peRatio', 'forwardPE', 'peg', 'priceToBook', 'priceToCash', 'evEbitda'] as (keyof FilterState)[]
+    filters: ['marketCap', 'peRatio', 'forwardPE', 'peg', 'priceToBook', 'priceToCash', 'evEbitda'] as (keyof FilterState)[],
+    isPrimary: true
   },
   { 
     name: 'Profitability & Growth', 
-    filters: ['opMargin', 'epsGrowth', 'revenueGrowth'] as (keyof FilterState)[]
+    filters: ['opMargin', 'epsGrowth', 'revenueGrowth'] as (keyof FilterState)[],
+    isPrimary: false
   },
   { 
     name: 'Stability', 
-    filters: ['debtEquity', 'quickRatio', 'epsStdDev'] as (keyof FilterState)[]
+    filters: ['debtEquity', 'quickRatio', 'epsStdDev'] as (keyof FilterState)[],
+    isPrimary: false
   },
   { 
     name: 'Risk', 
-    filters: ['volatility', 'maxDrawdown', 'sharpe', 'beta'] as (keyof FilterState)[]
+    filters: ['volatility', 'maxDrawdown', 'sharpe', 'beta'] as (keyof FilterState)[],
+    isPrimary: false
   },
   { 
     name: 'Volume & Earnings', 
-    filters: ['avgVolume', 'beatProbability'] as (keyof FilterState)[]
+    filters: ['avgVolume', 'beatProbability'] as (keyof FilterState)[],
+    isPrimary: false
   },
   { 
     name: 'Performance', 
-    filters: ['performancePeriod', 'performanceDirection'] as (keyof FilterState)[]
+    filters: ['performancePeriod', 'performanceDirection'] as (keyof FilterState)[],
+    isPrimary: false
   },
 ];
 
@@ -817,7 +823,7 @@ export function UnifiedDiscoveryScreener() {
   const [activeTab, setActiveTab] = useState<TabId>('topGainers');
   const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTERS);
   const [showFilters, setShowFilters] = useState(false);
-  const [expandedCategory, setExpandedCategory] = useState<string | null>(null);
+  const [showAllFilters, setShowAllFilters] = useState(false);
   const [currentPage, setCurrentPage] = useState(0);
   const [sortConfig, setSortConfig] = useState<SortConfig>({ column: 'change', direction: 'desc' });
 
@@ -1157,7 +1163,8 @@ export function UnifiedDiscoveryScreener() {
         {/* Filter Panel - Expanded with all 19 filters */}
         {showFilters && (
           <div className="pt-3 border-t border-border mt-3 space-y-4">
-            {FILTER_CATEGORIES.map(category => (
+            {/* Primary filters - always shown */}
+            {FILTER_CATEGORIES.filter(c => c.isPrimary).map(category => (
               <FilterCategory
                 key={category.name}
                 name={category.name}
@@ -1167,8 +1174,43 @@ export function UnifiedDiscoveryScreener() {
               />
             ))}
             
-            {hasActiveFilters && (
-              <div className="flex justify-end pt-2">
+            {/* Secondary filters - shown when expanded */}
+            {showAllFilters && (
+              <>
+                {FILTER_CATEGORIES.filter(c => !c.isPrimary).map(category => (
+                  <FilterCategory
+                    key={category.name}
+                    name={category.name}
+                    filterKeys={category.filters}
+                    filters={filters}
+                    onFilterChange={handleFilterChange}
+                  />
+                ))}
+              </>
+            )}
+            
+            {/* See More / See Less toggle */}
+            <div className="flex items-center justify-between pt-2 border-t border-border/50">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-xs h-7 gap-1 text-muted-foreground hover:text-foreground"
+                onClick={() => setShowAllFilters(!showAllFilters)}
+              >
+                {showAllFilters ? (
+                  <>
+                    <ChevronUp className="h-3 w-3" />
+                    See Less
+                  </>
+                ) : (
+                  <>
+                    <ChevronDown className="h-3 w-3" />
+                    See More Filters ({FILTER_CATEGORIES.filter(c => !c.isPrimary).reduce((acc, c) => acc + c.filters.length, 0)})
+                  </>
+                )}
+              </Button>
+              
+              {hasActiveFilters && (
                 <Button 
                   variant="outline" 
                   size="sm" 
@@ -1178,8 +1220,8 @@ export function UnifiedDiscoveryScreener() {
                   <X className="h-3 w-3 mr-1" />
                   Clear All Filters
                 </Button>
-              </div>
-            )}
+              )}
+            </div>
           </div>
         )}
       </CardHeader>
