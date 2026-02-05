@@ -59,7 +59,7 @@ export const useEarningsCalendar = (filters?: EarningsCalendarFilters) => {
 
       if (error) throw error;
 
-      // Now fetch predictions for these earnings (batch to avoid URL length limits)
+      // Fetch predictions for these earnings (batch to avoid URL length limits)
       const earningsIds = (data || []).map(e => e.id);
       
       let predictions: EarningsPrediction[] = [];
@@ -82,12 +82,39 @@ export const useEarningsCalendar = (filters?: EarningsCalendarFilters) => {
         predictions = batchResults.flatMap(r => (r.data || [])) as EarningsPrediction[];
       }
 
+      // Get symbols missing market cap to enrich from asset_universe
+      const symbolsMissingMktCap = (data || [])
+        .filter(e => !e.market_cap)
+        .map(e => e.symbol);
+      
+      const marketCapMap: Record<string, number> = {};
+      
+      if (symbolsMissingMktCap.length > 0) {
+        // Try to get market cap from asset_universe via avg_daily_dollar_volume as proxy
+        // (avg_daily_dollar_volume / turnover ratio ~= market cap, but we'll use it as a sorting proxy)
+        const { data: assetData } = await supabase
+          .from('asset_universe')
+          .select('ticker, avg_daily_dollar_volume')
+          .in('ticker', symbolsMissingMktCap);
+        
+        if (assetData) {
+          // Use avg_daily_dollar_volume * 20 as rough market cap proxy (assuming ~5% daily turnover)
+          assetData.forEach(a => {
+            if (a.avg_daily_dollar_volume) {
+              marketCapMap[a.ticker] = a.avg_daily_dollar_volume * 20;
+            }
+          });
+        }
+      }
+
       // Merge predictions with earnings
       const results: EarningsWithPrediction[] = (data || []).map(e => {
         const prediction = predictions.find(p => p.earnings_calendar_id === e.id);
         return {
           ...e,
           prediction,
+          // Use stored market_cap or fallback to proxy
+          market_cap: e.market_cap || marketCapMap[e.symbol] || null,
         } as EarningsWithPrediction;
       });
 
