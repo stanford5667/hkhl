@@ -4,7 +4,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { 
   TrendingUp, Activity, Zap, Flame, BarChart3, Filter, X, ChevronDown, ChevronUp,
   Building2, DollarSign, Percent, Scale, Target, LineChart, AlertTriangle,
-  Clock, Volume2, Gauge, TrendingDown, Calculator, Ratio, ChevronLeft, ChevronRight
+  Clock, Volume2, Gauge, TrendingDown, Calculator, Ratio, ChevronLeft, ChevronRight, SlidersHorizontal
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -1109,19 +1109,29 @@ export function UnifiedDiscoveryScreener() {
   return (
     <Card className="bg-card border-border">
       <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-base font-semibold flex items-center gap-2">
-            <BarChart3 className="h-4 w-4 text-primary" />
-            Market Screener
-          </CardTitle>
+        {/* Screener Header */}
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <div className="p-1.5 rounded-lg bg-primary/10 border border-primary/20">
+              <SlidersHorizontal className="h-4 w-4 text-primary" />
+            </div>
+            <div>
+              <CardTitle className="text-base font-semibold">Stock Screener</CardTitle>
+              <p className="text-[10px] text-muted-foreground">Filter stocks by fundamentals and technicals</p>
+            </div>
+          </div>
         </div>
         
-        {/* Primary Filters - Always visible */}
-        <div className="pt-2 mt-1">
+        {/* Primary Filters - Always visible with clear label */}
+        <div className="pt-3 pb-3 px-3 -mx-3 bg-muted/30 rounded-lg border border-border/50">
+          <div className="flex items-center gap-2 mb-2">
+            <Filter className="h-3.5 w-3.5 text-primary" />
+            <span className="text-[11px] font-semibold text-foreground uppercase tracking-wide">Quick Filters</span>
+          </div>
           {FILTER_CATEGORIES.filter(c => c.isPrimary).map(category => (
             <FilterCategory
               key={category.name}
-              name={category.name}
+              name=""
               filterKeys={category.filters}
               filters={filters}
               onFilterChange={handleFilterChange}
@@ -1130,7 +1140,7 @@ export function UnifiedDiscoveryScreener() {
         </div>
 
         {/* Tab Navigation */}
-        <div className="flex gap-1 pt-2 flex-wrap items-center">
+        <div className="flex gap-1 pt-3 flex-wrap items-center">
           {SCREENER_TABS.map(tab => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
@@ -1155,28 +1165,36 @@ export function UnifiedDiscoveryScreener() {
           
           {/* More Filters button inline with tabs */}
           <Button 
-            variant={showFilters ? 'secondary' : 'ghost'}
+            variant={showFilters ? 'default' : 'outline'}
             size="sm" 
             className={cn(
-              "h-8 text-xs gap-1.5 ml-auto",
-              hasActiveFilters && !showFilters && "text-primary"
+              "h-8 text-xs gap-1.5 ml-auto transition-all",
+              !showFilters && "border-primary/50 text-primary hover:bg-primary/10 hover:text-primary",
+              showFilters && "bg-primary text-primary-foreground shadow-sm"
             )}
             onClick={() => setShowFilters(!showFilters)}
           >
-            <Filter className="h-3.5 w-3.5" />
-            {showFilters ? 'Less Filters' : 'More Filters'}
-            {hasActiveFilters && !showFilters && (
+            <SlidersHorizontal className="h-3.5 w-3.5" />
+            {showFilters ? 'Hide Advanced' : 'Advanced Filters'}
+            {!showFilters && (
+              <span className="text-[10px] opacity-70">({FILTER_CATEGORIES.filter(c => !c.isPrimary).length} categories)</span>
+            )}
+            {hasActiveFilters && !showFilters && activeFilterCount > 0 && (
               <Badge variant="secondary" className="h-4 min-w-4 p-0 text-[9px] flex items-center justify-center">
                 {activeFilterCount}
               </Badge>
             )}
+            {showFilters ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
           </Button>
         </div>
 
         {/* Extended Filter Panel */}
         {showFilters && (
-          <div className="pt-3 border-t border-border mt-3 space-y-4">
-            {/* Secondary filters */}
+          <div className="pt-4 mt-3 space-y-4 bg-muted/20 -mx-3 px-3 pb-3 rounded-lg border border-border/50">
+            <div className="flex items-center gap-2 pb-2 border-b border-border/50">
+              <Target className="h-3.5 w-3.5 text-primary" />
+              <span className="text-[11px] font-semibold text-foreground uppercase tracking-wide">Advanced Screening Filters</span>
+            </div>
             {FILTER_CATEGORIES.filter(c => !c.isPrimary).map(category => (
               <FilterCategory
                 key={category.name}
