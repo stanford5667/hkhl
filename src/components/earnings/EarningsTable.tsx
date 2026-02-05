@@ -1,7 +1,7 @@
 // src/components/earnings/EarningsTable.tsx
 
-import { useState } from 'react';
-import { TrendingUp, TrendingDown, Minus, Info } from 'lucide-react';
+import { useState, useMemo } from 'react';
+import { TrendingUp, TrendingDown, Minus, Info, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 import {
   Table,
   TableBody,
@@ -22,6 +22,9 @@ import { EarningsWithPrediction } from '@/types/earnings';
 import { formatEarningsCurrency } from '@/lib/earningsUtils';
 import { EarningsDetailDialog } from './EarningsDetailDialog';
 
+type SortField = 'market_cap' | 'symbol' | 'company_name' | 'eps_estimate' | 'revenue_estimate' | 'analyst_count' | 'confidence';
+type SortDirection = 'asc' | 'desc';
+
 interface Props {
   earnings: EarningsWithPrediction[];
   showDate?: boolean;
@@ -29,6 +32,72 @@ interface Props {
 
 export const EarningsTable = ({ earnings, showDate = false }: Props) => {
   const [selectedEarning, setSelectedEarning] = useState<EarningsWithPrediction | null>(null);
+  const [sortField, setSortField] = useState<SortField>('market_cap');
+  const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
+
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDirection(field === 'symbol' || field === 'company_name' ? 'asc' : 'desc');
+    }
+  };
+
+  const SortIcon = ({ field }: { field: SortField }) => {
+    if (sortField !== field) return <ArrowUpDown className="h-3 w-3 ml-1 opacity-50" />;
+    return sortDirection === 'asc' 
+      ? <ArrowUp className="h-3 w-3 ml-1" />
+      : <ArrowDown className="h-3 w-3 ml-1" />;
+  };
+
+  const sortedEarnings = useMemo(() => {
+    return [...earnings].sort((a, b) => {
+      let aVal: number | string = 0;
+      let bVal: number | string = 0;
+
+      switch (sortField) {
+        case 'market_cap':
+          aVal = a.market_cap ?? 0;
+          bVal = b.market_cap ?? 0;
+          break;
+        case 'symbol':
+          aVal = a.symbol || '';
+          bVal = b.symbol || '';
+          break;
+        case 'company_name':
+          aVal = a.company_name || a.symbol || '';
+          bVal = b.company_name || b.symbol || '';
+          break;
+        case 'eps_estimate':
+          aVal = a.eps_estimate ?? 0;
+          bVal = b.eps_estimate ?? 0;
+          break;
+        case 'revenue_estimate':
+          aVal = a.revenue_estimate ?? 0;
+          bVal = b.revenue_estimate ?? 0;
+          break;
+        case 'analyst_count':
+          aVal = a.analyst_count ?? 0;
+          bVal = b.analyst_count ?? 0;
+          break;
+        case 'confidence':
+          aVal = a.prediction?.confidence_score ?? 0;
+          bVal = b.prediction?.confidence_score ?? 0;
+          break;
+      }
+
+      if (typeof aVal === 'string' && typeof bVal === 'string') {
+        return sortDirection === 'asc' 
+          ? aVal.localeCompare(bVal)
+          : bVal.localeCompare(aVal);
+      }
+
+      return sortDirection === 'asc' 
+        ? (aVal as number) - (bVal as number)
+        : (bVal as number) - (aVal as number);
+    });
+  }, [earnings, sortField, sortDirection]);
 
   const getPredictionBadge = (earning: EarningsWithPrediction) => {
     if (!earning.prediction) return null;
@@ -87,15 +156,72 @@ export const EarningsTable = ({ earnings, showDate = false }: Props) => {
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Symbol</TableHead>
-            <TableHead>Company</TableHead>
+            <TableHead 
+              className="cursor-pointer hover:bg-muted/50 select-none"
+              onClick={() => handleSort('symbol')}
+            >
+              <div className="flex items-center">
+                Symbol
+                <SortIcon field="symbol" />
+              </div>
+            </TableHead>
+            <TableHead 
+              className="cursor-pointer hover:bg-muted/50 select-none"
+              onClick={() => handleSort('company_name')}
+            >
+              <div className="flex items-center">
+                Company
+                <SortIcon field="company_name" />
+              </div>
+            </TableHead>
             {showDate && <TableHead>Date</TableHead>}
             <TableHead>Time</TableHead>
             <TableHead>Period</TableHead>
-            <TableHead className="text-right">EPS Est.</TableHead>
-            <TableHead className="text-right">Rev. Est.</TableHead>
-            <TableHead className="text-center">Prediction</TableHead>
-            <TableHead className="text-center">Analysts</TableHead>
+            <TableHead 
+              className="text-right cursor-pointer hover:bg-muted/50 select-none"
+              onClick={() => handleSort('market_cap')}
+            >
+              <div className="flex items-center justify-end">
+                Mkt Cap
+                <SortIcon field="market_cap" />
+              </div>
+            </TableHead>
+            <TableHead 
+              className="text-right cursor-pointer hover:bg-muted/50 select-none"
+              onClick={() => handleSort('eps_estimate')}
+            >
+              <div className="flex items-center justify-end">
+                EPS Est.
+                <SortIcon field="eps_estimate" />
+              </div>
+            </TableHead>
+            <TableHead 
+              className="text-right cursor-pointer hover:bg-muted/50 select-none"
+              onClick={() => handleSort('revenue_estimate')}
+            >
+              <div className="flex items-center justify-end">
+                Rev. Est.
+                <SortIcon field="revenue_estimate" />
+              </div>
+            </TableHead>
+            <TableHead 
+              className="text-center cursor-pointer hover:bg-muted/50 select-none"
+              onClick={() => handleSort('confidence')}
+            >
+              <div className="flex items-center justify-center">
+                Prediction
+                <SortIcon field="confidence" />
+              </div>
+            </TableHead>
+            <TableHead 
+              className="text-center cursor-pointer hover:bg-muted/50 select-none"
+              onClick={() => handleSort('analyst_count')}
+            >
+              <div className="flex items-center justify-center">
+                Analysts
+                <SortIcon field="analyst_count" />
+              </div>
+            </TableHead>
             <TableHead></TableHead>
           </TableRow>
         </TableHeader>
@@ -107,7 +233,7 @@ export const EarningsTable = ({ earnings, showDate = false }: Props) => {
               </TableCell>
             </TableRow>
           ) : (
-            earnings.map((earning) => (
+            sortedEarnings.map((earning) => (
               <TableRow 
                 key={earning.id}
                 className="cursor-pointer hover:bg-muted/50"
@@ -131,6 +257,11 @@ export const EarningsTable = ({ earnings, showDate = false }: Props) => {
                 </TableCell>
                 <TableCell className="text-sm">
                   {earning.fiscal_period} {earning.fiscal_year}
+                </TableCell>
+                <TableCell className="text-right font-mono text-sm">
+                  {earning.market_cap 
+                    ? formatEarningsCurrency(earning.market_cap, true)
+                    : '-'}
                 </TableCell>
                 <TableCell className="text-right font-mono text-sm">
                   {earning.eps_estimate !== null 
