@@ -432,6 +432,58 @@ serve(async (req) => {
         console.error('[EARNINGS] Insert error:', insertError);
         throw insertError;
       }
+      
+      // ============================================
+      // POST-UPSERT ENRICHMENT: Fill missing market caps from asset_universe
+      // ============================================
+      const symbolsMissingMktCap = earningsToInsert
+        .filter(e => !e.market_cap)
+        .map(e => e.symbol);
+      
+      if (symbolsMissingMktCap.length > 0) {
+        console.log(`[EARNINGS] Enriching market caps for ${symbolsMissingMktCap.length} symbols from asset_universe`);
+        
+        // Batch lookups to avoid URL length limits
+        const BATCH_SIZE = 50;
+        const batches: string[][] = [];
+        for (let i = 0; i < symbolsMissingMktCap.length; i += BATCH_SIZE) {
+          batches.push(symbolsMissingMktCap.slice(i, i + BATCH_SIZE));
+        }
+        
+        const assetResults = await Promise.all(
+          batches.map(batch =>
+            supabase
+              .from('asset_universe')
+              .select('ticker, avg_daily_dollar_volume')
+              .in('ticker', batch)
+          )
+        );
+        
+        // Build map: ticker -> proxy market cap (ADDV * 20)
+        const marketCapProxyMap: Record<string, number> = {};
+        assetResults.flatMap(r => r.data || []).forEach((a: any) => {
+          if (a.avg_daily_dollar_volume) {
+            marketCapProxyMap[a.ticker] = Math.round(a.avg_daily_dollar_volume * 20);
+          }
+        });
+        
+        console.log(`[EARNINGS] Found ${Object.keys(marketCapProxyMap).length} market cap proxies`);
+        
+        // Update earnings_calendar rows that are missing market_cap
+        if (Object.keys(marketCapProxyMap).length > 0) {
+          const updatePromises = Object.entries(marketCapProxyMap).map(([symbol, mktCap]) =>
+            supabase
+              .from('earnings_calendar')
+              .update({ market_cap: mktCap })
+              .eq('symbol', symbol)
+              .is('market_cap', null)
+          );
+          
+          const updateResults = await Promise.all(updatePromises);
+          const successCount = updateResults.filter(r => !r.error).length;
+          console.log(`[EARNINGS] Updated market_cap for ${successCount} symbols`);
+        }
+      }
 
       return new Response(
         JSON.stringify({ 
