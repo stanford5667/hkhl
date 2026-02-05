@@ -823,7 +823,6 @@ export function UnifiedDiscoveryScreener() {
   const [activeTab, setActiveTab] = useState<TabId>('topGainers');
   const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTERS);
   const [showFilters, setShowFilters] = useState(false);
-  const [showAllFilters, setShowAllFilters] = useState(false);
   const [currentPage, setCurrentPage] = useState(0);
   const [sortConfig, setSortConfig] = useState<SortConfig>({ column: 'change', direction: 'desc' });
 
@@ -1115,28 +1114,23 @@ export function UnifiedDiscoveryScreener() {
             <BarChart3 className="h-4 w-4 text-primary" />
             Market Screener
           </CardTitle>
-          <Button 
-            variant={showFilters ? 'secondary' : 'ghost'}
-            size="sm" 
-            className={cn(
-              "text-xs h-7 gap-1.5",
-              hasActiveFilters && "text-primary"
-            )}
-            onClick={() => setShowFilters(!showFilters)}
-          >
-            <Filter className="h-3 w-3" />
-            Filters
-            {hasActiveFilters && (
-              <Badge variant="secondary" className="h-4 min-w-4 p-0 text-[9px] flex items-center justify-center">
-                {activeFilterCount}
-              </Badge>
-            )}
-            {showFilters ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
-          </Button>
         </div>
         
+        {/* Primary Filters - Always visible */}
+        <div className="pt-2 mt-1">
+          {FILTER_CATEGORIES.filter(c => c.isPrimary).map(category => (
+            <FilterCategory
+              key={category.name}
+              name={category.name}
+              filterKeys={category.filters}
+              filters={filters}
+              onFilterChange={handleFilterChange}
+            />
+          ))}
+        </div>
+
         {/* Tab Navigation */}
-        <div className="flex gap-1 pt-2 flex-wrap">
+        <div className="flex gap-1 pt-2 flex-wrap items-center">
           {SCREENER_TABS.map(tab => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
@@ -1158,13 +1152,32 @@ export function UnifiedDiscoveryScreener() {
               </Button>
             );
           })}
+          
+          {/* More Filters button inline with tabs */}
+          <Button 
+            variant={showFilters ? 'secondary' : 'ghost'}
+            size="sm" 
+            className={cn(
+              "h-8 text-xs gap-1.5 ml-auto",
+              hasActiveFilters && !showFilters && "text-primary"
+            )}
+            onClick={() => setShowFilters(!showFilters)}
+          >
+            <Filter className="h-3.5 w-3.5" />
+            {showFilters ? 'Less Filters' : 'More Filters'}
+            {hasActiveFilters && !showFilters && (
+              <Badge variant="secondary" className="h-4 min-w-4 p-0 text-[9px] flex items-center justify-center">
+                {activeFilterCount}
+              </Badge>
+            )}
+          </Button>
         </div>
 
-        {/* Filter Panel - Expanded with all 19 filters */}
+        {/* Extended Filter Panel */}
         {showFilters && (
           <div className="pt-3 border-t border-border mt-3 space-y-4">
-            {/* Primary filters - always shown */}
-            {FILTER_CATEGORIES.filter(c => c.isPrimary).map(category => (
+            {/* Secondary filters */}
+            {FILTER_CATEGORIES.filter(c => !c.isPrimary).map(category => (
               <FilterCategory
                 key={category.name}
                 name={category.name}
@@ -1174,43 +1187,8 @@ export function UnifiedDiscoveryScreener() {
               />
             ))}
             
-            {/* Secondary filters - shown when expanded */}
-            {showAllFilters && (
-              <>
-                {FILTER_CATEGORIES.filter(c => !c.isPrimary).map(category => (
-                  <FilterCategory
-                    key={category.name}
-                    name={category.name}
-                    filterKeys={category.filters}
-                    filters={filters}
-                    onFilterChange={handleFilterChange}
-                  />
-                ))}
-              </>
-            )}
-            
-            {/* See More / See Less toggle */}
-            <div className="flex items-center justify-between pt-2 border-t border-border/50">
-              <Button
-                variant="ghost"
-                size="sm"
-                className="text-xs h-7 gap-1 text-muted-foreground hover:text-foreground"
-                onClick={() => setShowAllFilters(!showAllFilters)}
-              >
-                {showAllFilters ? (
-                  <>
-                    <ChevronUp className="h-3 w-3" />
-                    See Less
-                  </>
-                ) : (
-                  <>
-                    <ChevronDown className="h-3 w-3" />
-                    See More Filters ({FILTER_CATEGORIES.filter(c => !c.isPrimary).reduce((acc, c) => acc + c.filters.length, 0)})
-                  </>
-                )}
-              </Button>
-              
-              {hasActiveFilters && (
+            {hasActiveFilters && (
+              <div className="flex justify-end pt-2 border-t border-border/50">
                 <Button 
                   variant="outline" 
                   size="sm" 
@@ -1220,8 +1198,8 @@ export function UnifiedDiscoveryScreener() {
                   <X className="h-3 w-3 mr-1" />
                   Clear All Filters
                 </Button>
-              )}
-            </div>
+              </div>
+            )}
           </div>
         )}
       </CardHeader>
