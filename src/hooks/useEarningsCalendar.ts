@@ -2,6 +2,7 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { format, addDays, addMonths, addYears } from 'date-fns';
 import { 
   EarningsEvent, 
   EarningsPrediction, 
@@ -12,11 +13,15 @@ import {
 } from '@/types/earnings';
 import { useToast } from '@/hooks/use-toast';
 
+const toLocalISODate = (d: Date) => format(d, 'yyyy-MM-dd');
+
 export const useEarningsCalendar = (filters?: EarningsCalendarFilters) => {
   return useQuery({
     queryKey: ['earnings-calendar', filters],
     queryFn: async () => {
-      const today = new Date().toISOString().split('T')[0];
+      // IMPORTANT: use local date, not UTC. Using toISOString() can shift the day
+      // for users outside UTC and make the earnings calendar look “inaccurate”.
+      const today = toLocalISODate(new Date());
       
       let query = supabase
         .from('earnings_calendar')
@@ -31,21 +36,17 @@ export const useEarningsCalendar = (filters?: EarningsCalendarFilters) => {
       } else if (filters?.dateRange === 'today') {
         query = query.eq('report_date', today);
       } else if (filters?.dateRange === 'week') {
-        const weekAhead = new Date();
-        weekAhead.setDate(weekAhead.getDate() + 7);
-        query = query.gte('report_date', today).lte('report_date', weekAhead.toISOString().split('T')[0]);
+        const weekAhead = toLocalISODate(addDays(new Date(), 7));
+        query = query.gte('report_date', today).lte('report_date', weekAhead);
       } else if (filters?.dateRange === 'month') {
-        const monthAhead = new Date();
-        monthAhead.setMonth(monthAhead.getMonth() + 1);
-        query = query.gte('report_date', today).lte('report_date', monthAhead.toISOString().split('T')[0]);
+        const monthAhead = toLocalISODate(addMonths(new Date(), 1));
+        query = query.gte('report_date', today).lte('report_date', monthAhead);
       } else if (filters?.dateRange === 'quarter') {
-        const quarterAhead = new Date();
-        quarterAhead.setMonth(quarterAhead.getMonth() + 3);
-        query = query.gte('report_date', today).lte('report_date', quarterAhead.toISOString().split('T')[0]);
+        const quarterAhead = toLocalISODate(addMonths(new Date(), 3));
+        query = query.gte('report_date', today).lte('report_date', quarterAhead);
       } else if (filters?.dateRange === 'year') {
-        const yearAhead = new Date();
-        yearAhead.setFullYear(yearAhead.getFullYear() + 1);
-        query = query.gte('report_date', today).lte('report_date', yearAhead.toISOString().split('T')[0]);
+        const yearAhead = toLocalISODate(addYears(new Date(), 1));
+        query = query.gte('report_date', today).lte('report_date', yearAhead);
       } else {
         // Default: show from today forward
         query = query.gte('report_date', today);
