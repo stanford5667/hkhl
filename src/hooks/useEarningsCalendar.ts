@@ -117,7 +117,7 @@ export const useEarningsCalendar = (filters?: EarningsCalendarFilters) => {
       }
 
       // Merge predictions with earnings
-      const results: EarningsWithPrediction[] = (data || []).map(e => {
+      let results: EarningsWithPrediction[] = (data || []).map(e => {
         const prediction = predictions.find(p => p.earnings_calendar_id === e.id);
         return {
           ...e,
@@ -126,6 +126,13 @@ export const useEarningsCalendar = (filters?: EarningsCalendarFilters) => {
           market_cap: e.market_cap || marketCapMap[e.symbol] || null,
         } as EarningsWithPrediction;
       });
+
+      // Safety guard: in custom (single-day) mode, enforce exact date matching.
+      // This prevents any accidental “bleed” of adjacent days due to upstream data
+      // inconsistencies or query/cache edge cases.
+      if (filters?.dateRange === 'custom' && filters.customStart) {
+        results = results.filter(e => e.report_date === filters.customStart);
+      }
 
       // Filter by prediction if needed
       if (filters?.hasPrediction !== undefined) {
