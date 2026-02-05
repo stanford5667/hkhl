@@ -7,7 +7,9 @@ import {
   Archive,
   Target,
   Briefcase,
-  XCircle
+  XCircle,
+  ArrowUp,
+  ArrowDown
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { Button } from '@/components/ui/button';
@@ -36,14 +38,21 @@ import { AppCompany, CompanyStage } from '@/hooks/useAppData';
 import { CompanyAvatar } from './CompanyAvatar';
 import { StageIndicator } from './StageIndicator';
 import { HealthScore } from './HealthScore';
+import { cn } from '@/lib/utils';
+
+type SortField = 'market_value' | 'revenue_ltm' | 'ebitda_ltm' | 'name' | 'updated_at' | 'health';
+type SortDirection = 'asc' | 'desc';
 
 interface CompanyListViewProps {
   companies: AppCompany[];
   onUpdateStage: (companyId: string, stage: CompanyStage, subStage?: string) => void;
   onDelete?: (companyId: string) => void;
+  sortField?: SortField;
+  sortDirection?: SortDirection;
+  onSort?: (field: SortField) => void;
 }
 
-export function CompanyListView({ companies, onUpdateStage, onDelete }: CompanyListViewProps) {
+export function CompanyListView({ companies, onUpdateStage, onDelete, sortField, sortDirection, onSort }: CompanyListViewProps) {
   const navigate = useNavigate();
 
   const getHealthScore = (company: AppCompany) => {
@@ -59,6 +68,25 @@ export function CompanyListView({ companies, onUpdateStage, onDelete }: CompanyL
     return `$${value.toFixed(0)}M`;
   };
 
+  const SortableHeader = ({ field, children, className }: { field: SortField; children: React.ReactNode; className?: string }) => (
+    <TableHead 
+      className={cn(
+        "text-muted-foreground font-medium cursor-pointer hover:text-foreground transition-colors select-none",
+        className
+      )}
+      onClick={() => onSort?.(field)}
+    >
+      <div className="flex items-center gap-1">
+        {children}
+        {sortField === field && (
+          sortDirection === 'asc' 
+            ? <ArrowUp className="h-3 w-3" /> 
+            : <ArrowDown className="h-3 w-3" />
+        )}
+      </div>
+    </TableHead>
+  );
+
   if (companies.length === 0) {
     return (
       <div className="bg-card rounded-xl border border-border p-12 text-center">
@@ -72,13 +100,14 @@ export function CompanyListView({ companies, onUpdateStage, onDelete }: CompanyL
       <Table>
         <TableHeader>
           <TableRow className="border-border hover:bg-transparent">
-            <TableHead className="text-muted-foreground font-medium">Company</TableHead>
+            <SortableHeader field="name">Company</SortableHeader>
             <TableHead className="text-muted-foreground font-medium">Stage</TableHead>
             <TableHead className="text-muted-foreground font-medium">Industry</TableHead>
-            <TableHead className="text-muted-foreground font-medium text-right">Revenue</TableHead>
-            <TableHead className="text-muted-foreground font-medium text-right">EBITDA</TableHead>
-            <TableHead className="text-muted-foreground font-medium">Last Activity</TableHead>
-            <TableHead className="text-muted-foreground font-medium text-center">Health</TableHead>
+            <SortableHeader field="market_value" className="text-right">Market Cap</SortableHeader>
+            <SortableHeader field="revenue_ltm" className="text-right">Revenue</SortableHeader>
+            <SortableHeader field="ebitda_ltm" className="text-right">EBITDA</SortableHeader>
+            <SortableHeader field="updated_at">Last Activity</SortableHeader>
+            <SortableHeader field="health" className="text-center">Health</SortableHeader>
             <TableHead className="w-10"></TableHead>
           </TableRow>
         </TableHeader>
@@ -105,6 +134,9 @@ export function CompanyListView({ companies, onUpdateStage, onDelete }: CompanyL
                 <Badge variant="outline" className="text-muted-foreground">
                   {company.industry || 'N/A'}
                 </Badge>
+              </TableCell>
+              <TableCell className="text-right text-foreground font-medium">
+                {formatCurrency(company.market_value)}
               </TableCell>
               <TableCell className="text-right text-foreground font-medium">
                 {formatCurrency(company.revenue_ltm)}

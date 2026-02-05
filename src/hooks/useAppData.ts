@@ -17,6 +17,9 @@ export interface AppCompany {
   company_type: CompanyStage | null;
   revenue_ltm: number | null;
   ebitda_ltm: number | null;
+  market_value: number | null;
+  current_price: number | null;
+  ticker_symbol: string | null;
   deal_lead: string | null;
   status: string | null;
   created_at: string;
