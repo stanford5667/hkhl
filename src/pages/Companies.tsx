@@ -1,10 +1,16 @@
-import { useState, useMemo } from 'react';
-import { Plus, Search, List, Columns, Grid3X3 } from 'lucide-react';
+import { useState, useMemo, useCallback } from 'react';
+import { Plus, Search, List, Columns, Grid3X3, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { useAppCompanies, CompanyStage } from '@/hooks/useAppData';
 import { CompanyListView } from '@/components/companies/CompanyListView';
 import { PipelineKanbanView } from '@/components/companies/PipelineKanbanView';
@@ -16,6 +22,18 @@ import { AssetTypeFilter, useAssetTypeFilter } from '@/components/shared/AssetTy
 type ViewType = 'list' | 'pipeline' | 'portfolio';
 type StageFilter = 'all' | 'pipeline' | 'portfolio' | 'passed';
 
+export type SortField = 'market_value' | 'revenue_ltm' | 'ebitda_ltm' | 'name' | 'updated_at' | 'health';
+export type SortDirection = 'asc' | 'desc';
+
+const SORT_OPTIONS: { field: SortField; label: string }[] = [
+  { field: 'market_value', label: 'Market Cap' },
+  { field: 'revenue_ltm', label: 'Revenue' },
+  { field: 'ebitda_ltm', label: 'EBITDA' },
+  { field: 'health', label: 'Health Score' },
+  { field: 'name', label: 'Name' },
+  { field: 'updated_at', label: 'Last Updated' },
+];
+
 export default function Companies() {
   const navigate = useNavigate();
   const { companies, loading, createCompany, updateStage, updatePipelineStage, deleteCompany } = useAppCompanies();
@@ -24,6 +42,24 @@ export default function Companies() {
   const [searchQuery, setSearchQuery] = useState('');
   const [wizardOpen, setWizardOpen] = useState(false);
   const assetTypeFilter = useAssetTypeFilter();
+  const [sortField, setSortField] = useState<SortField>('market_value');
+  const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
+
+  const getHealthScore = useCallback((company: any) => {
+    if (company.ebitda_ltm && company.revenue_ltm) {
+      return Math.min(100, Math.round((company.ebitda_ltm / company.revenue_ltm) * 100 * 5));
+    }
+    return 75;
+  }, []);
+
+  const handleSort = (field: SortField) => {
+    if (field === sortField) {
+      setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDirection('desc');
+    }
+  };
 
   // Calculate counts
   const counts = useMemo(() => {
@@ -42,7 +78,7 @@ export default function Companies() {
 
   // Filter companies
   const filteredCompanies = useMemo(() => {
-    return companies.filter(c => {
+    const filtered = companies.filter(c => {
       const matchesSearch = c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         c.industry?.toLowerCase().includes(searchQuery.toLowerCase());
       const matchesStage = stageFilter === 'all' || c.company_type === stageFilter;
@@ -50,7 +86,50 @@ export default function Companies() {
         ((c as any).asset_class || 'private_equity') === assetTypeFilter;
       return matchesSearch && matchesStage && matchesAssetType;
     });
-  }, [companies, searchQuery, stageFilter, assetTypeFilter]);
+
+    // Sort the filtered results
+    return [...filtered].sort((a, b) => {
+      let aVal: any;
+      let bVal: any;
+
+      switch (sortField) {
+        case 'market_value':
+          aVal = a.market_value ?? 0;
+          bVal = b.market_value ?? 0;
+          break;
+        case 'revenue_ltm':
+          aVal = a.revenue_ltm ?? 0;
+          bVal = b.revenue_ltm ?? 0;
+          break;
+        case 'ebitda_ltm':
+          aVal = a.ebitda_ltm ?? 0;
+          bVal = b.ebitda_ltm ?? 0;
+          break;
+        case 'health':
+          aVal = getHealthScore(a);
+          bVal = getHealthScore(b);
+          break;
+        case 'name':
+          aVal = a.name.toLowerCase();
+          bVal = b.name.toLowerCase();
+          break;
+        case 'updated_at':
+          aVal = new Date(a.updated_at).getTime();
+          bVal = new Date(b.updated_at).getTime();
+          break;
+        default:
+          return 0;
+      }
+
+      if (typeof aVal === 'string') {
+        return sortDirection === 'asc' 
+          ? aVal.localeCompare(bVal)
+          : bVal.localeCompare(aVal);
+      }
+
+      return sortDirection === 'asc' ? aVal - bVal : bVal - aVal;
+    });
+  }, [companies, searchQuery, stageFilter, assetTypeFilter, sortField, sortDirection, getHealthScore]);
 
   const handleUpdateStage = async (companyId: string, stage: CompanyStage, subStage?: string) => {
     await updateStage(companyId, stage, subStage);
@@ -150,14 +229,40 @@ export default function Companies() {
       </div>
 
       {/* Search */}
-      <div className="relative w-64">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input
-          placeholder="Search companies..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="pl-9"
-        />
+      <div className="flex items-center gap-3">
+        <div className="relative w-64">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search companies..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-9"
+          />
+        </div>
+        
+        {/* Sort Dropdown */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" size="sm" className="gap-2">
+              {sortDirection === 'asc' ? <ArrowUp className="h-3.5 w-3.5" /> : <ArrowDown className="h-3.5 w-3.5" />}
+              Sort: {SORT_OPTIONS.find(o => o.field === sortField)?.label}
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start">
+            {SORT_OPTIONS.map(option => (
+              <DropdownMenuItem 
+                key={option.field}
+                onClick={() => handleSort(option.field)}
+                className="flex items-center justify-between"
+              >
+                {option.label}
+                {sortField === option.field && (
+                  sortDirection === 'asc' ? <ArrowUp className="h-3.5 w-3.5 ml-2" /> : <ArrowDown className="h-3.5 w-3.5 ml-2" />
+                )}
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
 
       {/* Content */}
@@ -174,6 +279,9 @@ export default function Companies() {
               companies={filteredCompanies} 
               onUpdateStage={handleUpdateStage}
               onDelete={deleteCompany}
+              sortField={sortField}
+              sortDirection={sortDirection}
+              onSort={handleSort}
             />
           )}
           {view === 'pipeline' && (
