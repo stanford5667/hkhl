@@ -1,6 +1,7 @@
+import { useState, useEffect } from 'react';
 import { TrendingUp, TrendingDown } from 'lucide-react';
 import { MiniSparkline } from './MiniSparkline';
-import { useSparklineData } from '@/hooks/useChartData';
+import { supabase } from '@/integrations/supabase/client';
 
 interface InteractiveTickerCardProps {
   symbol: string;
@@ -17,8 +18,33 @@ export function InteractiveTickerCard({
   changePercent,
   onClick,
 }: InteractiveTickerCardProps) {
-  // Use database-first approach via useChartData for reliable data
-  const { data: sparklineData, isLoading } = useSparklineData(symbol, '1M');
+  const [sparklineData, setSparklineData] = useState<number[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Fetch sparkline data directly from Polygon via edge function
+  useEffect(() => {
+    let mounted = true;
+    
+    async function fetchPolygonSparkline() {
+      try {
+        const { data, error } = await supabase.functions.invoke('polygon-daily-bars', {
+          body: { ticker: symbol.toUpperCase(), days: 30 }
+        });
+        
+        if (!error && data?.ok && data?.bars?.length > 0 && mounted) {
+          const closes = data.bars.map((bar: { close: number }) => bar.close);
+          setSparklineData(closes);
+        }
+      } catch (err) {
+        console.warn(`[Sparkline] Polygon fetch failed for ${symbol}:`, err);
+      } finally {
+        if (mounted) setIsLoading(false);
+      }
+    }
+    
+    fetchPolygonSparkline();
+    return () => { mounted = false; };
+  }, [symbol]);
 
   const isPositive = (changePercent ?? 0) >= 0;
 
