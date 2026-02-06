@@ -30,20 +30,21 @@ class ResizeObserverMock {
 window.ResizeObserver = ResizeObserverMock;
 
 // Mock IntersectionObserver
-class IntersectionObserverMock {
+class IntersectionObserverMock implements IntersectionObserver {
   constructor(callback: IntersectionObserverCallback) {
     this.callback = callback;
   }
   callback: IntersectionObserverCallback;
-  root = null;
+  root: Element | Document | null = null;
   rootMargin = '';
-  thresholds = [];
+  thresholds: ReadonlyArray<number> = [];
+  scrollMargin = '';
   observe = vi.fn();
   unobserve = vi.fn();
   disconnect = vi.fn();
-  takeRecords = vi.fn(() => []);
+  takeRecords = vi.fn((): IntersectionObserverEntry[] => []);
 }
-window.IntersectionObserver = IntersectionObserverMock;
+window.IntersectionObserver = IntersectionObserverMock as unknown as typeof IntersectionObserver;
 
 // Mock crypto.randomUUID
 if (!crypto.randomUUID) {

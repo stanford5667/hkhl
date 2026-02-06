@@ -1,7 +1,6 @@
-import { useState, useEffect } from 'react';
 import { TrendingUp, TrendingDown } from 'lucide-react';
 import { MiniSparkline } from './MiniSparkline';
-import { getCandlesForRange, CandleData } from '@/services/candleService';
+import { useSparklineData } from '@/hooks/useChartData';
 
 interface InteractiveTickerCardProps {
   symbol: string;
@@ -18,30 +17,8 @@ export function InteractiveTickerCard({
   changePercent,
   onClick,
 }: InteractiveTickerCardProps) {
-  const [sparklineData, setSparklineData] = useState<number[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    let mounted = true;
-    
-    async function fetchSparkline() {
-      try {
-        const candles = await getCandlesForRange(symbol, '1M');
-        if (mounted && candles.length > 0) {
-          // Take last 30 points max for the sparkline
-          const closes = candles.slice(-30).map((c: CandleData) => c.close);
-          setSparklineData(closes);
-        }
-      } catch (err) {
-        console.warn(`[Sparkline] Failed for ${symbol}:`, err);
-      } finally {
-        if (mounted) setIsLoading(false);
-      }
-    }
-    
-    fetchSparkline();
-    return () => { mounted = false; };
-  }, [symbol]);
+  // Use database-first approach via useChartData for reliable data
+  const { data: sparklineData, isLoading } = useSparklineData(symbol, '1M');
 
   const isPositive = (changePercent ?? 0) >= 0;
 
