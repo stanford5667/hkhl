@@ -1,16 +1,18 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { 
   TrendingUp, Activity, Zap, Flame, BarChart3, Filter, X, ChevronDown, ChevronUp,
   Building2, DollarSign, Percent, Scale, Target, LineChart, AlertTriangle,
-  Clock, Volume2, Gauge, TrendingDown, Calculator, Ratio, ChevronLeft, ChevronRight, SlidersHorizontal
+  Clock, Volume2, Gauge, TrendingDown, Calculator, Ratio, ChevronLeft, ChevronRight, SlidersHorizontal,
+  Sparkles, Lightbulb
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Select,
   SelectContent,
@@ -18,8 +20,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import { screenStocksFromPolygon, QUICK_SCREENS, type ScreenerResult, type ScreenerFilters } from '@/services/polygonScreenerService';
+import { generateBatchInsights, getInsightSummary, type StockInsight } from '@/services/stockInsightGenerator';
 
 const ITEMS_PER_PAGE = 50;
 
@@ -406,11 +415,15 @@ const SORTABLE_COLUMNS: SortableColumn[] = [
 function StockRow({ 
   stock, 
   onClick,
-  visibleColumns 
+  visibleColumns,
+  insight,
+  showInsights,
 }: { 
   stock: ScreenerResult; 
   onClick: () => void;
   visibleColumns: SortableColumn[];
+  insight?: StockInsight;
+  showInsights: boolean;
 }) {
   const isPositive = stock.changePercent >= 0;
   
@@ -463,6 +476,40 @@ function StockRow({
           </div>
         );
       })}
+      
+      {/* Insight column */}
+      {showInsights && insight && (
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div className="w-32 flex-shrink-0 flex items-center gap-1.5 text-left">
+                <Lightbulb className={cn(
+                  "h-3 w-3 flex-shrink-0",
+                  insight.confidence === 'high' ? 'text-amber-500' : 
+                  insight.confidence === 'medium' ? 'text-amber-400/70' : 'text-muted-foreground'
+                )} />
+                <span className="text-[10px] text-muted-foreground truncate">
+                  {getInsightSummary(insight)}
+                </span>
+              </div>
+            </TooltipTrigger>
+            <TooltipContent side="left" className="max-w-xs p-3">
+              <div className="space-y-2">
+                <p className="text-xs font-medium">{insight.headline}</p>
+                {insight.matchReasons.length > 0 && (
+                  <div className="flex flex-wrap gap-1">
+                    {insight.matchReasons.map((reason, i) => (
+                      <Badge key={i} variant="secondary" className="text-[9px] h-4">
+                        {reason}
+                      </Badge>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      )}
     </button>
   );
 }
@@ -483,6 +530,9 @@ function StockList({
   activeFilters,
   sortConfig,
   onSortChange,
+  showInsights,
+  insights,
+  insightsLoading,
 }: { 
   stocks: ScreenerResult[] | undefined; 
   isLoading: boolean;
@@ -494,6 +544,9 @@ function StockList({
   activeFilters: Set<keyof FilterState>;
   sortConfig: SortConfig;
   onSortChange: (column: string) => void;
+  showInsights: boolean;
+  insights: Map<string, StockInsight>;
+  insightsLoading: boolean;
 }) {
   const totalPages = Math.ceil(totalCount / ITEMS_PER_PAGE);
   const startItem = currentPage * ITEMS_PER_PAGE + 1;
@@ -586,6 +639,16 @@ function StockList({
             </button>
           );
         })}
+        {/* Insight column header */}
+        {showInsights && (
+          <div className="w-32 flex-shrink-0 flex items-center gap-1 text-[10px] font-medium text-amber-500">
+            <Sparkles className="h-3 w-3" />
+            Insight
+            {insightsLoading && (
+              <span className="text-[9px] text-muted-foreground animate-pulse">loading...</span>
+            )}
+          </div>
+        )}
       </div>
       
       {/* Stock rows */}
@@ -596,6 +659,8 @@ function StockList({
             stock={stock} 
             onClick={() => onStockClick(stock.symbol)}
             visibleColumns={visibleColumns}
+            showInsights={showInsights}
+            insight={insights.get(stock.symbol)}
           />
         ))}
       </div>
@@ -825,6 +890,11 @@ export function UnifiedDiscoveryScreener() {
   const [showFilters, setShowFilters] = useState(false);
   const [currentPage, setCurrentPage] = useState(0);
   const [sortConfig, setSortConfig] = useState<SortConfig>({ column: 'change', direction: 'desc' });
+  
+  // AI Insights state
+  const [showInsights, setShowInsights] = useState(false);
+  const [insights, setInsights] = useState<Map<string, StockInsight>>(new Map());
+  const [insightsLoading, setInsightsLoading] = useState(false);
 
   // Compute active filter keys as a Set for StockList
   const activeFilterKeys = useMemo(() => {
@@ -1106,6 +1176,30 @@ export function UnifiedDiscoveryScreener() {
 
   const { stocks, isLoading, totalCount, hasMore } = getTabData();
 
+  // Generate insights asynchronously when stocks change and insights are enabled
+  useEffect(() => {
+    if (!showInsights || !stocks || stocks.length === 0) {
+      return;
+    }
+
+    setInsightsLoading(true);
+    
+    // Build filter object for context
+    const activeFiltersObj: Record<string, string> = {};
+    Object.entries(filters).forEach(([key, value]) => {
+      activeFiltersObj[key] = value;
+    });
+
+    generateBatchInsights(stocks, activeFiltersObj)
+      .then((newInsights) => {
+        setInsights(newInsights);
+        setInsightsLoading(false);
+      })
+      .catch(() => {
+        setInsightsLoading(false);
+      });
+  }, [showInsights, stocks, filters]);
+
   return (
     <Card className="bg-card border-border">
       <CardHeader className="pb-3">
@@ -1223,6 +1317,29 @@ export function UnifiedDiscoveryScreener() {
       </CardHeader>
       
       <CardContent className="p-0 pt-0">
+        {/* AI Insights Toggle */}
+        <div className="flex items-center justify-between px-3 py-2 border-b border-border bg-gradient-to-r from-amber-500/5 to-transparent">
+          <div className="flex items-center gap-2">
+            <Checkbox 
+              id="show-insights"
+              checked={showInsights}
+              onCheckedChange={(checked) => setShowInsights(checked === true)}
+            />
+            <Label 
+              htmlFor="show-insights" 
+              className="text-xs font-medium cursor-pointer flex items-center gap-1.5"
+            >
+              <Sparkles className="h-3.5 w-3.5 text-amber-500" />
+              Show AI Insights
+            </Label>
+          </div>
+          {showInsights && (
+            <span className="text-[10px] text-muted-foreground">
+              Explains why each stock matches your criteria
+            </span>
+          )}
+        </div>
+        
         <ActiveFilterBadges 
           filters={filters}
           onClearFilter={handleClearFilter}
@@ -1244,6 +1361,9 @@ export function UnifiedDiscoveryScreener() {
               direction: prev.column === column && prev.direction === 'desc' ? 'asc' : 'desc'
             }));
           }}
+          showInsights={showInsights}
+          insights={insights}
+          insightsLoading={insightsLoading}
         />
       </CardContent>
     </Card>
