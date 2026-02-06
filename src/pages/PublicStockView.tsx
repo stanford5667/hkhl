@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, lazy, Suspense } from 'react';
+import { useState, useEffect, useCallback, lazy, Suspense, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -11,6 +11,7 @@ import { LineChart, TrendingUp, TrendingDown, Plus, Building2, Globe, BarChart3,
 import { cn } from '@/lib/utils';
 import { StockDetailLayout, DEFAULT_STOCK_TABS } from '@/components/research/StockDetailLayout';
 import { useCompanyNews } from '@/hooks/useCompanyResearch';
+import { getAssetCategory, getAssetTypeInfo, getTabsForAssetType, type AssetCategory, type AssetTypeInfo } from '@/config/assetTypeConfig';
 
 // Lazy load heavy components to improve initial page load
 const EmbeddedQuantLab = lazy(() => import('@/components/equity/EmbeddedQuantLab').then(m => ({ default: m.EmbeddedQuantLab })));
@@ -21,6 +22,7 @@ const KeyCatalystsSection = lazy(() => import('@/components/research/KeyCatalyst
 const FinancialsSection = lazy(() => import('@/components/financials/FinancialsSection').then(m => ({ default: m.FinancialsSection })));
 const IntegratedResearchView = lazy(() => import('@/components/research').then(m => ({ default: m.IntegratedResearchView })));
 const ALAOverviewTab = lazy(() => import('@/components/research').then(m => ({ default: m.ALAOverviewTab })));
+const ETFOverviewTab = lazy(() => import('@/components/research/ETFOverviewTab').then(m => ({ default: m.ETFOverviewTab })));
 
 // Lightweight loading fallback for lazy components
 const TabLoader = () => (
@@ -38,6 +40,9 @@ interface TickerDetails {
   primaryExchange?: string;
   homepageUrl?: string;
   marketCap?: number;
+  type?: string; // Polygon asset type
+  assetCategory?: AssetCategory;
+  assetTypeInfo?: AssetTypeInfo;
 }
 
 interface StockQuote {
@@ -157,6 +162,18 @@ export default function PublicStockView() {
   const [retryCount, setRetryCount] = useState(0);
   const [activeTab, setActiveTab] = useState('overview');
 
+  // Get asset-specific tabs - Must be before any early returns
+  const assetTabs = useMemo(() => {
+    if (details?.assetTypeInfo) {
+      return getTabsForAssetType(details.assetTypeInfo);
+    }
+    // Default to stock tabs if asset type not yet loaded
+    return DEFAULT_STOCK_TABS;
+  }, [details?.assetTypeInfo]);
+  
+  const isETF = details?.assetCategory === 'etf';
+  const isCrypto = details?.assetCategory === 'crypto';
+
   // Fetch ticker details from Polygon with retry logic
   const fetchDetails = useCallback(async (isRetry = false) => {
     if (!ticker) return;
@@ -222,6 +239,11 @@ export default function PublicStockView() {
         return;
       }
 
+      // Determine asset category from Polygon type field
+      const polygonType = data.details.type;
+      const assetCategory = getAssetCategory(polygonType, ticker);
+      const assetTypeInfo = getAssetTypeInfo(assetCategory);
+      
       setDetails({
         ticker,
         name: data.details.name,
@@ -231,6 +253,9 @@ export default function PublicStockView() {
         primaryExchange: data.details.primaryExchange,
         homepageUrl: data.details.homepageUrl,
         marketCap: data.details.marketCap,
+        type: polygonType,
+        assetCategory,
+        assetTypeInfo,
       });
     } catch (e) {
       console.error('Details error:', e);
@@ -388,26 +413,38 @@ export default function PublicStockView() {
     );
   }
 
-  // Render tab content based on active tab
+  // Render tab content based on active tab and asset type
   const renderTabContent = () => {
     switch (activeTab) {
       case 'overview':
         return (
           <div className="p-3 md:p-4 space-y-4">
             <Suspense fallback={<TabLoader />}>
-              <ALAOverviewTab
-                ticker={ticker}
-                companyName={details?.name}
-                exchange={details?.primaryExchange}
-                sector={details?.sector}
-                industry={details?.industry}
-                description={details?.description}
-                homepageUrl={details?.homepageUrl}
-                quote={quote}
-                isLoadingQuote={isLoadingQuote}
-                onRefresh={handleRefresh}
-                isRefreshing={isRefreshing}
-              />
+              {isETF ? (
+                <ETFOverviewTab
+                  ticker={ticker}
+                  companyName={details?.name}
+                  description={details?.description}
+                  quote={quote}
+                  isLoading={isLoadingQuote}
+                  onRefresh={handleRefresh}
+                  isRefreshing={isRefreshing}
+                />
+              ) : (
+                <ALAOverviewTab
+                  ticker={ticker}
+                  companyName={details?.name}
+                  exchange={details?.primaryExchange}
+                  sector={details?.sector}
+                  industry={details?.industry}
+                  description={details?.description}
+                  homepageUrl={details?.homepageUrl}
+                  quote={quote}
+                  isLoadingQuote={isLoadingQuote}
+                  onRefresh={handleRefresh}
+                  isRefreshing={isRefreshing}
+                />
+              )}
             </Suspense>
 
             {/* Sign In CTA */}
@@ -416,9 +453,9 @@ export default function PublicStockView() {
                 <CardContent className="py-4">
                   <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
                     <div>
-                      <h3 className="font-semibold text-sm">Track this stock in your portfolio</h3>
+                      <h3 className="font-semibold text-sm">Track this {isETF ? 'ETF' : 'stock'} in your portfolio</h3>
                       <p className="text-xs text-muted-foreground">
-                        Sign in to add stocks, track performance, and access educational insights
+                        Sign in to add {isETF ? 'ETFs' : 'stocks'}, track performance, and access educational insights
                       </p>
                     </div>
                     <Button size="sm" onClick={() => navigate('/auth', { state: { returnTo: `/stock/${ticker}` } })}>
@@ -507,7 +544,7 @@ export default function PublicStockView() {
       exchange={details?.primaryExchange}
       activeTab={activeTab}
       onTabChange={setActiveTab}
-      tabs={DEFAULT_STOCK_TABS}
+      tabs={assetTabs}
       onBack={() => navigate(-1)}
       price={quote?.price}
       change={quote?.change}

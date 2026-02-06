@@ -1,5 +1,6 @@
 // Ticker Details Service - Fetch metadata from Polygon.io
 import { supabase } from '@/integrations/supabase/client';
+import { getAssetCategory, getAssetTypeInfo, type AssetCategory, type AssetTypeInfo } from '@/config/assetTypeConfig';
 
 export interface TickerDetails {
   ticker: string;
@@ -13,6 +14,9 @@ export interface TickerDetails {
   currencyName: string;
   logoUrl: string | null;
   homepageUrl: string | null;
+  // Asset type classification
+  assetCategory: AssetCategory;
+  assetTypeInfo: AssetTypeInfo;
 }
 
 // In-memory cache
@@ -43,7 +47,17 @@ export async function fetchTickerDetails(ticker: string): Promise<TickerDetails 
       return null;
     }
     
-    const details = data.details as TickerDetails;
+    const rawDetails = data.details;
+    
+    // Determine asset category from Polygon type field
+    const assetCategory = getAssetCategory(rawDetails.type, upperTicker);
+    const assetTypeInfo = getAssetTypeInfo(assetCategory);
+    
+    const details: TickerDetails = {
+      ...rawDetails,
+      assetCategory,
+      assetTypeInfo,
+    };
     
     // Cache the result
     detailsCache.set(upperTicker, {

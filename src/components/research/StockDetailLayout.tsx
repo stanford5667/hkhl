@@ -241,7 +241,7 @@ export function StockDetailLayout({
   );
 }
 
-// Default tabs for public stock view
+// Default tabs for public stock view (stocks with full financials)
 export const DEFAULT_STOCK_TABS: StockDetailTab[] = [
   { id: 'overview', label: 'Overview', icon: LayoutDashboard, color: 'blue' },
   { id: 'financials', label: 'Financials', icon: BarChart3, color: 'emerald' },
@@ -251,3 +251,6 @@ export const DEFAULT_STOCK_TABS: StockDetailTab[] = [
   { id: 'sec', label: 'SEC Filings', icon: FileText, shortLabel: 'SEC', color: 'cyan' },
   { id: 'analyst-social', label: 'Analyst & Social', icon: MessageCircle, shortLabel: 'Social', color: 'rose' },
 ];
+
+// Re-export the tab type
+export type { StockDetailTab as AssetTab };
