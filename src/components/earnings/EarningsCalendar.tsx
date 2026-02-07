@@ -1,10 +1,10 @@
 // src/components/earnings/EarningsCalendar.tsx
 
-import { useState, useEffect, useRef } from 'react';
-import { format, isToday, isTomorrow, parseISO, addDays, subDays } from 'date-fns';
+import { useState, useEffect, useRef, lazy, Suspense } from 'react';
+import { format, isToday, isTomorrow, addDays, subDays } from 'date-fns';
 import { Calendar as CalendarIcon, Sparkles, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Calendar } from '@/components/ui/calendar';
@@ -12,10 +12,12 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { useEarningsCalendar, useFetchEarningsData, useGeneratePredictions } from '@/hooks/useEarningsCalendar';
 import { EarningsCalendarFilters } from '@/types/earnings';
 import { EarningsTable } from './EarningsTable';
-import { EarningsScreener } from './EarningsScreener';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { cn } from '@/lib/utils';
+
+// Lazy load the screener since it's a secondary tab
+const EarningsScreener = lazy(() => import('./EarningsScreener').then(m => ({ default: m.EarningsScreener })));
 
 const ITEMS_PER_PAGE = 20;
 
@@ -206,7 +208,9 @@ export const EarningsCalendar = () => {
         </TabsContent>
 
         <TabsContent value="screener">
-          <EarningsScreener />
+          <Suspense fallback={<Skeleton className="h-64 w-full" />}>
+            <EarningsScreener />
+          </Suspense>
         </TabsContent>
       </Tabs>
     </div>

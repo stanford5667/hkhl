@@ -96,22 +96,22 @@ export const EarningsScreener = () => {
   }, [screenResults]);
 
   return (
-    <div className="space-y-6">
-      {/* Criteria Panel */}
+    <div className="space-y-4 sm:space-y-6">
+      {/* Criteria Panel - Compact on mobile */}
       <Card className="bg-card/50 border-border/50">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Search className="h-5 w-5" />
+        <CardHeader className="pb-2 sm:pb-4">
+          <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+            <Search className="h-4 w-4 sm:h-5 sm:w-5" />
             Screening Criteria
           </CardTitle>
-          <CardDescription>
+          <CardDescription className="text-xs sm:text-sm">
             Filter companies based on earnings prediction signals
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        <CardContent className="space-y-4 sm:space-y-6">
+          <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
             {/* Expected Outcome */}
-            <div className="space-y-2">
+            <div className="space-y-1.5 sm:space-y-2">
               <Label className="text-xs">Expected Outcome</Label>
               <Select
                 value={criteria.expectedOutcome}
@@ -132,9 +132,9 @@ export const EarningsScreener = () => {
             </div>
 
             {/* Minimum Confidence */}
-            <div className="space-y-2">
+            <div className="space-y-1.5 sm:space-y-2">
               <div className="flex justify-between items-center">
-                <Label className="text-xs">Minimum Confidence</Label>
+                <Label className="text-xs">Min. Confidence</Label>
                 <span className="text-xs font-mono text-muted-foreground">
                   {Math.round(criteria.minConfidence * 100)}%
                 </span>
@@ -150,9 +150,9 @@ export const EarningsScreener = () => {
             </div>
 
             {/* Historical Beat Rate */}
-            <div className="space-y-2">
+            <div className="space-y-1.5 sm:space-y-2">
               <div className="flex justify-between items-center">
-                <Label className="text-xs">Min. Historical Beat Rate</Label>
+                <Label className="text-xs">Min. Beat Rate</Label>
                 <span className="text-xs font-mono text-muted-foreground">
                   {criteria.minBeatRate ? `${Math.round(criteria.minBeatRate * 100)}%` : 'Any'}
                 </span>
@@ -172,55 +172,55 @@ export const EarningsScreener = () => {
         </CardContent>
       </Card>
 
-      {/* Results Summary */}
-      <div className="grid gap-4 md:grid-cols-4">
+      {/* Results Summary - 2x2 grid on mobile */}
+      <div className="grid gap-2 sm:gap-4 grid-cols-2 md:grid-cols-4">
         <Card className="bg-card/50 border-border/50">
-          <CardHeader className="pb-2">
-            <CardDescription>Total Results</CardDescription>
+          <CardHeader className="pb-1 sm:pb-2 p-3 sm:p-6">
+            <CardDescription className="text-[10px] sm:text-xs">Total</CardDescription>
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.total}</div>
+          <CardContent className="p-3 pt-0 sm:p-6 sm:pt-0">
+            <div className="text-lg sm:text-2xl font-bold">{stats.total}</div>
           </CardContent>
         </Card>
         <Card className="bg-card/50 border-border/50">
-          <CardHeader className="pb-2">
-            <CardDescription>Expected Beats</CardDescription>
+          <CardHeader className="pb-1 sm:pb-2 p-3 sm:p-6">
+            <CardDescription className="text-[10px] sm:text-xs">Beats</CardDescription>
           </CardHeader>
-          <CardContent>
-            <div className="flex items-center gap-2">
-              <TrendingUp className="h-5 w-5 text-emerald-600" />
-              <div className="text-2xl font-bold text-emerald-600">{stats.beats}</div>
+          <CardContent className="p-3 pt-0 sm:p-6 sm:pt-0">
+            <div className="flex items-center gap-1 sm:gap-2">
+              <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5 text-green-500" />
+              <div className="text-lg sm:text-2xl font-bold text-green-500">{stats.beats}</div>
             </div>
           </CardContent>
         </Card>
         <Card className="bg-card/50 border-border/50">
-          <CardHeader className="pb-2">
-            <CardDescription>Expected Misses</CardDescription>
+          <CardHeader className="pb-1 sm:pb-2 p-3 sm:p-6">
+            <CardDescription className="text-[10px] sm:text-xs">Misses</CardDescription>
           </CardHeader>
-          <CardContent>
-            <div className="flex items-center gap-2">
-              <TrendingDown className="h-5 w-5 text-destructive" />
-              <div className="text-2xl font-bold text-destructive">{stats.misses}</div>
+          <CardContent className="p-3 pt-0 sm:p-6 sm:pt-0">
+            <div className="flex items-center gap-1 sm:gap-2">
+              <TrendingDown className="h-4 w-4 sm:h-5 sm:w-5 text-destructive" />
+              <div className="text-lg sm:text-2xl font-bold text-destructive">{stats.misses}</div>
             </div>
           </CardContent>
         </Card>
         <Card className="bg-card/50 border-border/50">
-          <CardHeader className="pb-2">
-            <CardDescription>Expected Inline</CardDescription>
+          <CardHeader className="pb-1 sm:pb-2 p-3 sm:p-6">
+            <CardDescription className="text-[10px] sm:text-xs">Inline</CardDescription>
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-muted-foreground">{stats.inline}</div>
+          <CardContent className="p-3 pt-0 sm:p-6 sm:pt-0">
+            <div className="text-lg sm:text-2xl font-bold text-muted-foreground">{stats.inline}</div>
           </CardContent>
         </Card>
       </div>
 
       {/* Results Table */}
       <Card className="bg-card/50 border-border/50">
-        <CardHeader>
-          <div className="flex justify-between items-center">
+        <CardHeader className="p-3 sm:p-6">
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
             <div>
-              <CardTitle>Screening Results</CardTitle>
-              <CardDescription>
+              <CardTitle className="text-base sm:text-lg">Results</CardTitle>
+              <CardDescription className="text-xs sm:text-sm">
                 Companies matching your criteria
               </CardDescription>
             </div>
@@ -229,24 +229,25 @@ export const EarningsScreener = () => {
               size="sm"
               onClick={exportResults}
               disabled={!screenResults || screenResults.length === 0}
+              className="w-full sm:w-auto h-8 text-xs"
             >
-              <Download className="h-4 w-4 mr-2" />
+              <Download className="h-3.5 w-3.5 mr-1.5" />
               Export CSV
             </Button>
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-3 pt-0 sm:p-6 sm:pt-0">
           {isLoading ? (
             <div className="space-y-2">
               {[1, 2, 3, 4, 5].map(i => (
-                <Skeleton key={i} className="h-12 w-full" />
+                <Skeleton key={i} className="h-10 sm:h-12 w-full" />
               ))}
             </div>
           ) : screenResults && screenResults.length > 0 ? (
             <EarningsTable earnings={screenResults} showDate />
           ) : (
-            <div className="py-12 text-center text-muted-foreground">
-              No companies match your screening criteria. Try adjusting the filters.
+            <div className="py-8 sm:py-12 text-center text-muted-foreground text-sm">
+              No companies match your criteria. Try adjusting filters.
             </div>
           )}
         </CardContent>
