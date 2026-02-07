@@ -36,9 +36,26 @@ interface ETFDetails {
   sectorBreakdown: Array<{ sector: string; weight: number }>;
 }
 
-// Real-data enrichment via Firecrawl (no hardcoded ETF registry)
-// If Polygon + our DB cache don't provide holdings/fees/AUM breakdowns,
-// we extract them from authoritative ETF issuer pages.
+// For single-asset trusts (commodity/crypto), external pages rarely have structured holdings data.
+// We store the nature of the underlying asset as reference metadata (not financial data).
+const SINGLE_ASSET_TRUSTS: Record<string, {
+  underlyingAsset: string;
+  underlyingName: string;
+  category: string;
+  issuer: string;
+}> = {
+  SLV: { underlyingAsset: 'Silver Bullion', underlyingName: 'Physical Silver held in trust', category: 'Precious Metals', issuer: 'iShares (BlackRock)' },
+  GLD: { underlyingAsset: 'Gold Bullion', underlyingName: 'Physical Gold held in trust', category: 'Precious Metals', issuer: 'State Street' },
+  IAU: { underlyingAsset: 'Gold Bullion', underlyingName: 'Physical Gold held in trust', category: 'Precious Metals', issuer: 'iShares (BlackRock)' },
+  GLDM: { underlyingAsset: 'Gold Bullion', underlyingName: 'Physical Gold held in trust', category: 'Precious Metals', issuer: 'State Street' },
+  IBIT: { underlyingAsset: 'BTC', underlyingName: 'Bitcoin held in custody', category: 'Cryptocurrency', issuer: 'iShares (BlackRock)' },
+  GBTC: { underlyingAsset: 'BTC', underlyingName: 'Bitcoin held in trust', category: 'Cryptocurrency', issuer: 'Grayscale' },
+  FBTC: { underlyingAsset: 'BTC', underlyingName: 'Bitcoin held in custody', category: 'Cryptocurrency', issuer: 'Fidelity' },
+  BITO: { underlyingAsset: 'BTC Futures', underlyingName: 'Bitcoin futures contracts', category: 'Cryptocurrency', issuer: 'ProShares' },
+  ETHE: { underlyingAsset: 'ETH', underlyingName: 'Ethereum held in trust', category: 'Cryptocurrency', issuer: 'Grayscale' },
+  USO: { underlyingAsset: 'Crude Oil Futures', underlyingName: 'WTI crude oil futures contracts', category: 'Commodities', issuer: 'USCF' },
+  UNG: { underlyingAsset: 'Natural Gas Futures', underlyingName: 'Natural gas futures contracts', category: 'Commodities', issuer: 'USCF' },
+};
 
 type FirecrawlSearchResult = { url: string; title?: string; description?: string };
 
@@ -277,10 +294,23 @@ async function enrichFromIssuerPages(params: {
   };
 }): Promise<Partial<ETFDetails>> {
   const apiKey = getFirecrawlApiKey();
-  if (!apiKey) return {};
+  if (!apiKey) {
+    console.log(`[polygon-etf-details] No Firecrawl API key found, skipping enrichment`);
+    return {};
+  }
 
   const query = pickBestIssuerSearchQuery(params.ticker, params.name);
-  const results = await firecrawlSearch(query, apiKey);
+  console.log(`[polygon-etf-details] Firecrawl search query: "${query}"`);
+  
+  let results: FirecrawlSearchResult[] = [];
+  try {
+    results = await firecrawlSearch(query, apiKey);
+  } catch (e) {
+    console.warn(`[polygon-etf-details] Firecrawl search failed for ${params.ticker}:`, e);
+    return {};
+  }
+  
+  console.log(`[polygon-etf-details] Firecrawl search returned ${results.length} results`);
   if (!results.length) return {};
 
   const out: Partial<ETFDetails> = {};
@@ -488,9 +518,42 @@ serve(async (req) => {
 
     const name = tickerDetails.name || ticker;
 
-    // Determine baseline issuer/category from available sources (DB cache / Polygon fields)
-    const baseIssuer = "";
-    const baseCategory = assetUniverseData?.category || "ETF";
+    // Infer issuer from fund name if not in DB
+    let baseIssuer = "";
+    const nameLower = name.toLowerCase();
+    if (nameLower.includes("ishares")) baseIssuer = "iShares (BlackRock)";
+    else if (nameLower.includes("vanguard")) baseIssuer = "Vanguard";
+    else if (nameLower.includes("spdr") || nameLower.includes("state street")) baseIssuer = "State Street";
+    else if (nameLower.includes("invesco")) baseIssuer = "Invesco";
+    else if (nameLower.includes("schwab")) baseIssuer = "Charles Schwab";
+    else if (nameLower.includes("proshares")) baseIssuer = "ProShares";
+    else if (nameLower.includes("wisdomtree")) baseIssuer = "WisdomTree";
+    else if (nameLower.includes("ark")) baseIssuer = "ARK Invest";
+    else if (nameLower.includes("fidelity")) baseIssuer = "Fidelity";
+    else if (nameLower.includes("grayscale")) baseIssuer = "Grayscale";
+
+    // Infer category from fund name
+    let baseCategory = assetUniverseData?.category || "";
+    if (!baseCategory || baseCategory === "stock") {
+      if (nameLower.includes("silver")) baseCategory = "Precious Metals";
+      else if (nameLower.includes("gold")) baseCategory = "Precious Metals";
+      else if (nameLower.includes("bitcoin") || nameLower.includes("btc")) baseCategory = "Cryptocurrency";
+      else if (nameLower.includes("ethereum") || nameLower.includes("eth")) baseCategory = "Cryptocurrency";
+      else if (nameLower.includes("bond") || nameLower.includes("treasury")) baseCategory = "Fixed Income";
+      else if (nameLower.includes("tech") || nameLower.includes("technology")) baseCategory = "Technology";
+      else if (nameLower.includes("energy")) baseCategory = "Energy";
+      else if (nameLower.includes("health")) baseCategory = "Healthcare";
+      else if (nameLower.includes("financ")) baseCategory = "Financials";
+      else if (nameLower.includes("real estate") || nameLower.includes("reit")) baseCategory = "Real Estate";
+      else if (nameLower.includes("s&p 500") || nameLower.includes("s&p500")) baseCategory = "Large Cap Blend";
+      else if (nameLower.includes("nasdaq") || nameLower.includes("qqq")) baseCategory = "Large Cap Growth";
+      else if (nameLower.includes("small cap") || nameLower.includes("russell 2000")) baseCategory = "Small Cap Blend";
+      else if (nameLower.includes("dividend")) baseCategory = "Dividend";
+      else if (nameLower.includes("total market") || nameLower.includes("total stock")) baseCategory = "Total Market";
+      else if (nameLower.includes("emerging")) baseCategory = "Emerging Markets";
+      else if (nameLower.includes("international") || nameLower.includes("developed")) baseCategory = "International";
+      else baseCategory = "ETF";
+    }
 
     // Baseline AUM from DB cache or Polygon's market_cap (not always true AUM, but it is real Polygon data)
     const baseAum = assetUniverseData?.aum ?? tickerDetails.market_cap ?? null;
@@ -509,8 +572,24 @@ serve(async (req) => {
     let enriched: Partial<ETFDetails> = {};
     try {
       enriched = await enrichFromIssuerPages({ ticker, name, want });
+      console.log(`[polygon-etf-details] Firecrawl enrichment for ${ticker}: issuer=${enriched.issuer}, category=${enriched.category}, expenseRatio=${enriched.expenseRatio}, aum=${enriched.aum}, holdings=${enriched.holdings}, topHoldings=${enriched.topHoldings?.length || 0}`);
     } catch (e) {
       console.warn(`[polygon-etf-details] Firecrawl enrichment failed for ${ticker}:`, e);
+    }
+
+    // For single-asset trusts (commodities, crypto), apply reference metadata if external enrichment didn't find data
+    const singleAsset = SINGLE_ASSET_TRUSTS[ticker];
+    if (singleAsset) {
+      if (!enriched.issuer) enriched.issuer = singleAsset.issuer;
+      if (!enriched.category || enriched.category === "ETF") enriched.category = singleAsset.category;
+      if (!enriched.holdings) enriched.holdings = 1;
+      if (!enriched.topHoldings || enriched.topHoldings.length === 0) {
+        enriched.topHoldings = [{
+          symbol: singleAsset.underlyingAsset,
+          name: singleAsset.underlyingName,
+          weight: 100,
+        }];
+      }
     }
 
     const etfDetails: ETFDetails = {
@@ -534,11 +613,7 @@ serve(async (req) => {
       sectorBreakdown: enriched.sectorBreakdown || [],
     };
 
-    console.log(`[polygon-etf-details] ETF details ready for ${ticker}: expenseRatio=${etfDetails.expenseRatio}, aum=${etfDetails.aum}, holdings=${etfDetails.holdings}, topHoldings=${etfDetails.topHoldings.length}`);
-
-    return json({ ok: true, ticker, etfData: etfDetails }, 200);
-
-    console.log(`[polygon-etf-details] Got ETF details for ${ticker}: ${name}, Category: ${category}, Expense: ${etfDetails.expenseRatio}, Holdings: ${etfDetails.holdings}`);
+    console.log(`[polygon-etf-details] ETF details ready for ${ticker}: category=${etfDetails.category}, issuer=${etfDetails.issuer}, expenseRatio=${etfDetails.expenseRatio}, aum=${etfDetails.aum}, holdings=${etfDetails.holdings}, topHoldings=${etfDetails.topHoldings.length}`);
 
     return json({ ok: true, ticker, etfData: etfDetails }, 200);
   } catch (error) {
