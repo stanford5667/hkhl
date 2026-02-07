@@ -39,11 +39,35 @@ interface ETFDetails {
 // Static ETF data for common ETFs (expense ratios, holdings counts, etc.)
 // This provides fallback data when APIs don't return it
 const KNOWN_ETF_DATA: Record<string, Partial<ETFDetails>> = {
-  // Precious Metals
-  'SLV': { expenseRatio: 0.0050, holdings: 1, category: 'Precious Metals', issuer: 'iShares (BlackRock)' },
-  'GLD': { expenseRatio: 0.0040, holdings: 1, category: 'Precious Metals', issuer: 'State Street' },
-  'IAU': { expenseRatio: 0.0025, holdings: 1, category: 'Precious Metals', issuer: 'iShares (BlackRock)' },
-  'GLDM': { expenseRatio: 0.0010, holdings: 1, category: 'Precious Metals', issuer: 'State Street' },
+// Precious Metals (commodity trusts - single physical holding)
+  'SLV': { 
+    expenseRatio: 0.0050, 
+    holdings: 1, 
+    category: 'Precious Metals', 
+    issuer: 'iShares (BlackRock)',
+    topHoldings: [{ symbol: 'Silver Bullion', name: 'Physical Silver held in trust', weight: 100 }]
+  },
+  'GLD': { 
+    expenseRatio: 0.0040, 
+    holdings: 1, 
+    category: 'Precious Metals', 
+    issuer: 'State Street',
+    topHoldings: [{ symbol: 'Gold Bullion', name: 'Physical Gold held in trust', weight: 100 }]
+  },
+  'IAU': { 
+    expenseRatio: 0.0025, 
+    holdings: 1, 
+    category: 'Precious Metals', 
+    issuer: 'iShares (BlackRock)',
+    topHoldings: [{ symbol: 'Gold Bullion', name: 'Physical Gold held in trust', weight: 100 }]
+  },
+  'GLDM': { 
+    expenseRatio: 0.0010, 
+    holdings: 1, 
+    category: 'Precious Metals', 
+    issuer: 'State Street',
+    topHoldings: [{ symbol: 'Gold Bullion', name: 'Physical Gold held in trust', weight: 100 }]
+  },
   
   // Large Cap
   'SPY': { expenseRatio: 0.0009, holdings: 503, category: 'Large Cap Blend', issuer: 'State Street', beta: 1.0 },
@@ -91,10 +115,28 @@ const KNOWN_ETF_DATA: Record<string, Partial<ETFDetails>> = {
   'XLB': { expenseRatio: 0.0009, holdings: 28, category: 'Materials', issuer: 'State Street', beta: 1.15 },
   'XLRE': { expenseRatio: 0.0009, holdings: 31, category: 'Real Estate', issuer: 'State Street', beta: 0.95 },
   
-  // Bitcoin/Crypto
-  'IBIT': { expenseRatio: 0.0025, holdings: 1, category: 'Cryptocurrency', issuer: 'iShares (BlackRock)' },
-  'GBTC': { expenseRatio: 0.015, holdings: 1, category: 'Cryptocurrency', issuer: 'Grayscale' },
-  'FBTC': { expenseRatio: 0.0025, holdings: 1, category: 'Cryptocurrency', issuer: 'Fidelity' },
+  // Bitcoin/Crypto (single digital asset trusts)
+  'IBIT': { 
+    expenseRatio: 0.0025, 
+    holdings: 1, 
+    category: 'Cryptocurrency', 
+    issuer: 'iShares (BlackRock)',
+    topHoldings: [{ symbol: 'BTC', name: 'Bitcoin held in custody', weight: 100 }]
+  },
+  'GBTC': { 
+    expenseRatio: 0.015, 
+    holdings: 1, 
+    category: 'Cryptocurrency', 
+    issuer: 'Grayscale',
+    topHoldings: [{ symbol: 'BTC', name: 'Bitcoin held in trust', weight: 100 }]
+  },
+  'FBTC': { 
+    expenseRatio: 0.0025, 
+    holdings: 1, 
+    category: 'Cryptocurrency', 
+    issuer: 'Fidelity',
+    topHoldings: [{ symbol: 'BTC', name: 'Bitcoin held in custody', weight: 100 }]
+  },
   
   // Leveraged/Inverse
   'TQQQ': { expenseRatio: 0.0086, holdings: 103, category: '3x Leveraged', issuer: 'ProShares', beta: 3.5 },
@@ -220,6 +262,9 @@ serve(async (req) => {
 
     // Get known ETF data if available
     const knownData = KNOWN_ETF_DATA[ticker] || {};
+    
+    // Extract topHoldings from known data
+    const topHoldings = knownData.topHoldings || [];
 
     // Extract issuer from name
     const name = tickerDetails.name || ticker;
@@ -287,7 +332,7 @@ serve(async (req) => {
       oneYearReturn: oneYearReturn,
       threeYearReturn: null, // Would need more history
       fiveYearReturn: null, // Would need more history
-      topHoldings: [], // Would need premium holdings endpoint
+      topHoldings: topHoldings,
       sectorBreakdown: [], // Would need premium holdings endpoint
     };
 

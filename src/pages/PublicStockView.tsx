@@ -24,6 +24,7 @@ const FinancialsSection = lazy(() => import('@/components/financials/FinancialsS
 const IntegratedResearchView = lazy(() => import('@/components/research').then(m => ({ default: m.IntegratedResearchView })));
 const ALAOverviewTab = lazy(() => import('@/components/research').then(m => ({ default: m.ALAOverviewTab })));
 const ETFOverviewTab = lazy(() => import('@/components/research/ETFOverviewTab').then(m => ({ default: m.ETFOverviewTab })));
+const ETFHoldingsTab = lazy(() => import('@/components/research/ETFHoldingsTab').then(m => ({ default: m.ETFHoldingsTab })));
 
 // Lightweight loading fallback for lazy components
 const TabLoader = () => (
@@ -515,6 +516,20 @@ export default function PublicStockView() {
           <div className="p-3 md:p-4">
             <Suspense fallback={<TabLoader />}>
               <SECFilingsPanel ticker={ticker} />
+            </Suspense>
+          </div>
+        );
+      
+      case 'holdings':
+        return (
+          <div className="p-3 md:p-4">
+            <Suspense fallback={<TabLoader />}>
+              <ETFHoldingsTab
+                ticker={ticker}
+                companyName={details?.name}
+                etfData={etfData || undefined}
+                isLoading={isLoadingETFData}
+              />
             </Suspense>
           </div>
         );
