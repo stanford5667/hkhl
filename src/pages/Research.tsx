@@ -138,31 +138,31 @@ export default function ResearchPage() {
       {/* Animated Background */}
       <AnimatedBackground />
 
-      {/* Hero Section - More compact */}
+      {/* Hero Section - More compact on mobile */}
       <div className="relative">
-        <div className="relative max-w-6xl mx-auto px-4 sm:px-6 pt-6 pb-4">
+        <div className="relative max-w-6xl mx-auto px-3 sm:px-6 pt-4 sm:pt-6 pb-3 sm:pb-4">
           {/* Hero Text - More compact */}
-          <div className="text-center mb-4">
-            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-1">
+          <div className="text-center mb-3 sm:mb-4">
+            <h1 className="text-xl sm:text-2xl lg:text-4xl font-bold mb-0.5 sm:mb-1">
               <span className="bg-gradient-to-r from-primary via-cyan-400 to-primary bg-clip-text text-transparent">
                 Find Investments
               </span>
             </h1>
-            <p className="text-muted-foreground text-xs sm:text-sm">
+            <p className="text-muted-foreground text-[10px] sm:text-xs lg:text-sm">
               AI-powered insights for smarter investing
             </p>
           </div>
 
           {/* Search Section */}
-          <div className="max-w-xl mx-auto mb-4">
+          <div className="max-w-xl mx-auto mb-3 sm:mb-4">
             <div className={cn(
               "relative rounded-xl overflow-hidden",
               "bg-card/80 backdrop-blur-sm border border-border/60",
               "shadow-lg shadow-primary/5",
               "focus-within:border-primary/50 focus-within:shadow-primary/10 transition-all"
             )}>
-              <div className="flex items-center gap-2 p-1">
-                <Search className="h-4 w-4 text-muted-foreground ml-3" />
+              <div className="flex items-center gap-1.5 sm:gap-2 p-1">
+                <Search className="h-4 w-4 text-muted-foreground ml-2 sm:ml-3 shrink-0" />
                 <TickerSearchAutocomplete
                   value={searchQuery}
                   onChange={setSearchQuery}
@@ -173,7 +173,7 @@ export default function ResearchPage() {
                 />
                 <Button 
                   size="sm" 
-                  className="mr-1 bg-primary hover:bg-primary/90 h-8"
+                  className="mr-1 bg-primary hover:bg-primary/90 h-8 px-2 sm:px-3"
                   onClick={() => searchQuery && handleSearch(searchQuery)}
                 >
                   <ArrowRight className="h-4 w-4" />
@@ -182,11 +182,11 @@ export default function ResearchPage() {
             </div>
           </div>
 
-          {/* Recent Searches - Inline */}
+          {/* Recent Searches - Inline, scrollable on mobile */}
           {recentSearches.length > 0 && (
-            <div className="max-w-xl mx-auto">
-              <div className="flex items-center justify-center gap-1.5 flex-wrap">
-                <span className="text-[10px] text-muted-foreground flex items-center gap-1">
+            <div className="max-w-xl mx-auto overflow-x-auto scrollbar-hide">
+              <div className="flex items-center gap-1.5 min-w-max px-1">
+                <span className="text-[10px] text-muted-foreground flex items-center gap-1 shrink-0">
                   <Clock className="h-3 w-3" /> Recent:
                 </span>
                 {recentSearches.slice(0, 4).map(ticker => (
@@ -195,7 +195,7 @@ export default function ResearchPage() {
                     variant="outline"
                     size="sm"
                     onClick={() => handleSearch(ticker)}
-                    className="h-6 px-2 text-[10px] border-border/60"
+                    className="h-6 px-2 text-[10px] border-border/60 shrink-0"
                   >
                     {ticker}
                   </Button>
@@ -204,7 +204,7 @@ export default function ResearchPage() {
                   variant="ghost"
                   size="icon"
                   onClick={clearRecentSearches}
-                  className="h-6 w-6 text-muted-foreground"
+                  className="h-6 w-6 text-muted-foreground shrink-0"
                 >
                   <X className="h-3 w-3" />
                 </Button>
@@ -215,18 +215,18 @@ export default function ResearchPage() {
       </div>
 
       {/* Main Content */}
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 pb-12 space-y-6">
+      <div className="max-w-6xl mx-auto px-3 sm:px-6 pb-8 sm:pb-12 space-y-4 sm:space-y-6">
 
         {/* Trending Tickers */}
-        <section className="space-y-3">
+        <section className="space-y-2 sm:space-y-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <div className="p-1.5 rounded-lg bg-primary/10 border border-primary/20">
-                <TrendingUp className="h-4 w-4 text-primary" />
+              <div className="p-1 sm:p-1.5 rounded-lg bg-primary/10 border border-primary/20">
+                <TrendingUp className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-primary" />
               </div>
               <div>
-                <h2 className="text-base font-semibold text-foreground">Trending Now</h2>
-                <p className="text-[10px] text-muted-foreground">Click any card to view full analysis</p>
+                <h2 className="text-sm sm:text-base font-semibold text-foreground">Trending Now</h2>
+                <p className="text-[9px] sm:text-[10px] text-muted-foreground hidden sm:block">Click any card to view full analysis</p>
               </div>
               {tickersLoading && <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />}
             </div>
@@ -237,13 +237,13 @@ export default function ResearchPage() {
               onTickerClick={handleSearch} 
             />
           ) : tickersLoading ? (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-              {Array.from({ length: 8 }).map((_, i) => (
-                <div key={i} className="h-[200px] bg-muted/30 rounded-xl animate-pulse" />
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-3">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <div key={i} className="h-[120px] sm:h-[200px] bg-muted/30 rounded-xl animate-pulse" />
               ))}
             </div>
           ) : (
-            <div className="text-center py-8 text-muted-foreground bg-card rounded-xl border border-border/60">
+            <div className="text-center py-6 sm:py-8 text-sm text-muted-foreground bg-card rounded-xl border border-border/60">
               No trending tickers available
             </div>
           )}
@@ -259,14 +259,14 @@ export default function ResearchPage() {
         <MarketIntelligenceSection />
 
         {/* Earnings Calendar Section */}
-        <section className="space-y-3">
+        <section className="space-y-2 sm:space-y-3">
           <div className="flex items-center gap-2">
-            <div className="p-1.5 rounded-lg bg-primary/10 border border-primary/20">
-              <FileText className="h-4 w-4 text-primary" />
+            <div className="p-1 sm:p-1.5 rounded-lg bg-primary/10 border border-primary/20">
+              <FileText className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-primary" />
             </div>
             <div>
-              <h2 className="text-base font-semibold text-foreground">Earnings Calendar</h2>
-              <p className="text-[10px] text-muted-foreground">Upcoming earnings with AI predictions</p>
+              <h2 className="text-sm sm:text-base font-semibold text-foreground">Earnings Calendar</h2>
+              <p className="text-[9px] sm:text-[10px] text-muted-foreground hidden sm:block">Upcoming earnings with AI predictions</p>
             </div>
           </div>
           <EarningsCalendar />

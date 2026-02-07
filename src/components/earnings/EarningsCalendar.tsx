@@ -103,17 +103,17 @@ export const EarningsCalendar = () => {
         </TabsList>
 
         <TabsContent value="calendar" className="space-y-4">
-          {/* Date Navigation */}
-          <div className="flex items-center justify-between gap-4 flex-wrap">
-            <div className="flex items-center gap-2">
-              <Button variant="outline" size="icon" onClick={goToPreviousDay}>
+          {/* Date Navigation - Mobile optimized */}
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
+            <div className="flex items-center gap-1 sm:gap-2 w-full sm:w-auto">
+              <Button variant="outline" size="icon" onClick={goToPreviousDay} className="h-8 w-8 sm:h-10 sm:w-10">
                 <ChevronLeft className="h-4 w-4" />
               </Button>
               <Popover>
                 <PopoverTrigger asChild>
-                  <Button variant="outline" className="min-w-[200px] justify-start text-left font-normal">
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {getDateLabel()}
+                  <Button variant="outline" className="flex-1 sm:flex-none sm:min-w-[200px] justify-start text-left font-normal h-8 sm:h-10 text-xs sm:text-sm px-2 sm:px-4">
+                    <CalendarIcon className="mr-1.5 sm:mr-2 h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0" />
+                    <span className="truncate">{getDateLabel()}</span>
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="start">
@@ -126,16 +126,16 @@ export const EarningsCalendar = () => {
                   />
                 </PopoverContent>
               </Popover>
-              <Button variant="outline" size="icon" onClick={goToNextDay}>
+              <Button variant="outline" size="icon" onClick={goToNextDay} className="h-8 w-8 sm:h-10 sm:w-10">
                 <ChevronRight className="h-4 w-4" />
               </Button>
               {!isToday(selectedDate) && (
-                <Button variant="ghost" size="sm" onClick={goToToday}>
+                <Button variant="ghost" size="sm" onClick={goToToday} className="h-8 text-xs hidden sm:flex">
                   Today
                 </Button>
               )}
             </div>
-            <Badge variant="secondary" className="text-sm">
+            <Badge variant="secondary" className="text-xs sm:text-sm self-end sm:self-auto">
               {totalItems} {totalItems === 1 ? 'company' : 'companies'}
             </Badge>
           </div>
@@ -162,33 +162,35 @@ export const EarningsCalendar = () => {
                 </CardContent>
               </Card>
 
-              {/* Pagination Controls */}
+              {/* Pagination Controls - Mobile optimized */}
               {totalPages > 1 && (
-                <div className="flex items-center justify-between pt-4 border-t border-border/50">
-                  <p className="text-sm text-muted-foreground">
-                    Showing {startIndex + 1}-{Math.min(endIndex, totalItems)} of {totalItems}
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-4 border-t border-border/50">
+                  <p className="text-xs sm:text-sm text-muted-foreground order-2 sm:order-1">
+                    {startIndex + 1}-{Math.min(endIndex, totalItems)} of {totalItems}
                   </p>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 order-1 sm:order-2">
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                       disabled={currentPage === 1}
+                      className="h-8 text-xs"
                     >
-                      <ChevronLeft className="h-4 w-4" />
-                      Previous
+                      <ChevronLeft className="h-3 w-3 sm:mr-1" />
+                      <span className="hidden sm:inline">Previous</span>
                     </Button>
-                    <span className="text-sm px-2">
-                      Page {currentPage} of {totalPages}
+                    <span className="text-xs sm:text-sm px-2 whitespace-nowrap">
+                      {currentPage}/{totalPages}
                     </span>
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
                       disabled={currentPage === totalPages}
+                      className="h-8 text-xs"
                     >
-                      Next
-                      <ChevronRight className="h-4 w-4" />
+                      <span className="hidden sm:inline">Next</span>
+                      <ChevronRight className="h-3 w-3 sm:ml-1" />
                     </Button>
                   </div>
                 </div>

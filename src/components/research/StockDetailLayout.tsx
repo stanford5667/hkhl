@@ -201,9 +201,9 @@ export function StockDetailLayout({
 
           </div>
 
-          {/* Mobile tab bar */}
+          {/* Mobile tab bar - improved scroll and touch */}
           <div className="md:hidden overflow-x-auto scrollbar-hide bg-card border-b-2 border-primary/20 shadow-md">
-            <div className="flex min-w-max">
+            <div className="flex min-w-max snap-x snap-mandatory">
               {tabs.map((tab) => {
                 const Icon = tab.icon;
                 const isActive = activeTab === tab.id;
@@ -214,14 +214,14 @@ export function StockDetailLayout({
                     key={tab.id}
                     onClick={() => onTabChange(tab.id)}
                     className={cn(
-                      "flex flex-col items-center gap-0.5 px-4 py-3 text-[10px] font-semibold whitespace-nowrap transition-all relative uppercase tracking-wide",
+                      "flex flex-col items-center gap-0.5 px-3 sm:px-4 py-2.5 sm:py-3 text-[9px] sm:text-[10px] font-semibold whitespace-nowrap transition-all relative uppercase tracking-wide snap-start",
                       isActive 
                         ? `${colors.active}` 
-                        : "text-muted-foreground hover:text-foreground hover:bg-accent"
+                        : "text-muted-foreground hover:text-foreground hover:bg-accent active:bg-accent"
                     )}
                   >
                     <Icon className={cn(
-                      "h-4 w-4 transition-transform",
+                      "h-3.5 w-3.5 sm:h-4 sm:w-4 transition-transform",
                       isActive && "scale-110"
                     )} />
                     <span>{tab.shortLabel || tab.label.split(' ')[0]}</span>
