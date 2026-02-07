@@ -5,7 +5,7 @@ import { TrendingUp, TrendingDown, Minus, ChevronRight } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { EarningsWithPrediction } from '@/types/earnings';
-import { formatEarningsCurrency } from '@/lib/earningsUtils';
+import { formatMarketCapFull } from '@/lib/earningsUtils';
 import { EarningsDetailDialog } from './EarningsDetailDialog';
 
 interface Props {
@@ -78,7 +78,7 @@ export const EarningsTableMobile = ({ earnings }: Props) => {
             onClick={() => setSelectedEarning(earning)}
           >
             <div className="flex items-start justify-between gap-2">
-              {/* Left: Symbol + Company */}
+              {/* Left: Symbol + Company + Industry */}
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
                   <span className="font-mono font-semibold text-sm">
@@ -90,9 +90,14 @@ export const EarningsTableMobile = ({ earnings }: Props) => {
                     </span>
                   )}
                 </div>
-                <p className="text-xs text-muted-foreground truncate mt-0.5">
+                <p className="text-xs text-foreground truncate mt-0.5">
                   {earning.company_name || earning.symbol}
                 </p>
+                {earning.industry && (
+                  <p className="text-[10px] text-muted-foreground truncate">
+                    {earning.industry}
+                  </p>
+                )}
               </div>
 
               {/* Right: Prediction + Chevron */}
@@ -106,9 +111,9 @@ export const EarningsTableMobile = ({ earnings }: Props) => {
             <div className="flex items-center gap-3 mt-2 text-[11px] text-muted-foreground">
               {earning.market_cap && (
                 <span>
-                  <span className="opacity-60">Cap:</span>{' '}
-                  <span className="text-foreground font-mono">
-                    {formatEarningsCurrency(earning.market_cap, true)}
+                  <span className="opacity-60">Market Cap:</span>{' '}
+                  <span className="text-foreground">
+                    {formatMarketCapFull(earning.market_cap)}
                   </span>
                 </span>
               )}
@@ -118,11 +123,6 @@ export const EarningsTableMobile = ({ earnings }: Props) => {
                   <span className="text-foreground font-mono">
                     ${earning.eps_estimate.toFixed(2)}
                   </span>
-                </span>
-              )}
-              {earning.fiscal_period && (
-                <span className="opacity-60">
-                  {earning.fiscal_period}
                 </span>
               )}
             </div>

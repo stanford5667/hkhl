@@ -20,7 +20,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { EarningsWithPrediction } from '@/types/earnings';
-import { formatEarningsCurrency } from '@/lib/earningsUtils';
+import { formatEarningsCurrency, formatMarketCapFull } from '@/lib/earningsUtils';
 import { parseDateOnly } from '@/lib/date';
 import { EarningsDetailDialog } from './EarningsDetailDialog';
 import { EarningsTableMobile } from './EarningsTableMobile';
@@ -186,13 +186,14 @@ export const EarningsTable = ({ earnings, showDate = false }: Props) => {
             </TableHead>
             {showDate && <TableHead>Date</TableHead>}
             <TableHead>Time</TableHead>
+            <TableHead>Industry</TableHead>
             <TableHead>Period</TableHead>
             <TableHead 
               className="text-right cursor-pointer hover:bg-muted/50 select-none"
               onClick={() => handleSort('market_cap')}
             >
               <div className="flex items-center justify-end">
-                Mkt Cap
+                Market Cap
                 <SortIcon field="market_cap" />
               </div>
             </TableHead>
@@ -265,12 +266,15 @@ export const EarningsTable = ({ earnings, showDate = false }: Props) => {
                 <TableCell>
                   {getTimeOfDayBadge(earning.time_of_day)}
                 </TableCell>
+                <TableCell className="text-sm text-muted-foreground max-w-[120px] truncate">
+                  {earning.industry || '-'}
+                </TableCell>
                 <TableCell className="text-sm">
                   {earning.fiscal_period} {earning.fiscal_year}
                 </TableCell>
-                <TableCell className="text-right font-mono text-sm">
+                <TableCell className="text-right text-sm">
                   {earning.market_cap 
-                    ? formatEarningsCurrency(earning.market_cap, true)
+                    ? formatMarketCapFull(earning.market_cap)
                     : '-'}
                 </TableCell>
                 <TableCell className="text-right font-mono text-sm">

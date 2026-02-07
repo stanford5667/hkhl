@@ -60,6 +60,8 @@ export interface EarningsWithPrediction extends EarningsEvent {
   avg_surprise_2y?: number;
   beat_count_2y?: number;
   total_reports_2y?: number;
+  industry?: string | null;
+  sector?: string | null;
 }
 
 export interface EarningsScreenCriteria {
