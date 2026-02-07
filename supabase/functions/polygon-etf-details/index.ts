@@ -163,14 +163,24 @@ function clampWeight(w: number) {
 
 function pickBestIssuerSearchQuery(ticker: string, name: string) {
   const n = name.toLowerCase();
-  if (n.includes("ishares")) return `site:ishares.com ${ticker} expense ratio holdings net assets`;
-  if (n.includes("vanguard")) return `site:vanguard.com ${ticker} expense ratio holdings net assets`;
-  if (n.includes("spdr") || n.includes("state street")) return `site:ssga.com ${ticker} expense ratio holdings net assets`;
+  // Prefer the issuer’s canonical product/fund pages first (they most reliably contain Net Assets/AUM).
+  if (n.includes("ishares")) {
+    // iShares product pages are typically under /us/products/...
+    return `site:ishares.com/us/products ${ticker} (\"Net Assets\" OR \"Total Net Assets\" OR \"Net assets\")`;
+  }
+  if (n.includes("vanguard")) {
+    // Vanguard fund profiles
+    return `site:investor.vanguard.com ${ticker} (\"Net assets\" OR \"Net Assets\")`;
+  }
+  if (n.includes("spdr") || n.includes("state street")) {
+    // SSGA/SPDR fund pages
+    return `site:ssga.com ${ticker} (\"Net assets\" OR \"Net Assets\")`;
+  }
   if (n.includes("invesco")) return `site:invesco.com ${ticker} expense ratio holdings`;
   if (n.includes("schwab")) return `site:schwabassetmanagement.com ${ticker} expense ratio holdings`;
   if (n.includes("proshares")) return `site:proshares.com ${ticker} expense ratio holdings`;
   // fallback: broad query, we’ll still validate extracted fields
-  return `${ticker} ETF expense ratio holdings net assets issuer`;
+  return `${ticker} ETF net assets AUM expense ratio holdings issuer`;
 }
 
 async function firecrawlSearch(query: string, apiKey: string): Promise<FirecrawlSearchResult[]> {
@@ -276,9 +286,11 @@ type FirecrawlScrapeResponse = {
 };
 
 function parseUsdAmountFromText(text: string): number | null {
-  // Examples: "$12.34B", "USD 12.34 billion", "12.34B"
-  const cleaned = text.replace(/\s+/g, " ");
+  // Handles examples like:
+  // "$12.34B", "USD 12.34 billion", "12.34B", "$12,345,678,901", "12.3 million"
+  const cleaned = text.replace(/\s+/g, " ").trim();
 
+  // $12.34B / 12.34B
   const abbrev = cleaned.match(/\$?\s*([0-9]{1,3}(?:,[0-9]{3})*(?:\.[0-9]+)?|[0-9]+(?:\.[0-9]+)?)\s*([TMB])\b/i);
   if (abbrev) {
     const raw = Number(String(abbrev[1]).replace(/,/g, ""));
@@ -287,6 +299,16 @@ function parseUsdAmountFromText(text: string): number | null {
     return Number.isFinite(raw) ? raw * mult : null;
   }
 
+  // 12.34 billion/million/trillion
+  const wordUnit = cleaned.match(/\$?\s*([0-9]{1,3}(?:,[0-9]{3})*(?:\.[0-9]+)?|[0-9]+(?:\.[0-9]+)?)\s*(trillion|billion|million)\b/i);
+  if (wordUnit) {
+    const raw = Number(String(wordUnit[1]).replace(/,/g, ""));
+    const unit = String(wordUnit[2]).toLowerCase();
+    const mult = unit === "trillion" ? 1e12 : unit === "billion" ? 1e9 : 1e6;
+    return Number.isFinite(raw) ? raw * mult : null;
+  }
+
+  // $12,345,678,901 or $12345
   const plain = cleaned.match(/\$\s*([0-9]{1,3}(?:,[0-9]{3})+(?:\.[0-9]+)?|[0-9]+(?:\.[0-9]+)?)\b/);
   if (plain) {
     const raw = Number(String(plain[1]).replace(/,/g, ""));
@@ -326,10 +348,13 @@ async function firecrawlScrapeMarkdown(url: string, apiKey: string): Promise<str
 }
 
 function tryParseAumFromMarkdown(markdown: string): number | null {
+  // Try to find a "Net Assets"-style label and parse the first USD-looking amount nearby.
   const candidates = [
-    /Net Assets[^\n\r]{0,80}([\$0-9.,\s]+[TMB])\b/i,
-    /Total Net Assets[^\n\r]{0,80}([\$0-9.,\s]+[TMB])\b/i,
-    /AUM[^\n\r]{0,80}([\$0-9.,\s]+[TMB])\b/i,
+    /Net Assets[^\n\r]{0,140}?(\$?\s*[0-9][0-9.,\s]*(?:[TMB])?\b)/i,
+    /Total Net Assets[^\n\r]{0,140}?(\$?\s*[0-9][0-9.,\s]*(?:[TMB])?\b)/i,
+    /Fund Net Assets[^\n\r]{0,140}?(\$?\s*[0-9][0-9.,\s]*(?:[TMB])?\b)/i,
+    /Net assets[^\n\r]{0,140}?(\$?\s*[0-9][0-9.,\s]*(?:[TMB])?\b)/i,
+    /AUM[^\n\r]{0,140}?(\$?\s*[0-9][0-9.,\s]*(?:[TMB])?\b)/i,
   ];
 
   for (const re of candidates) {
@@ -635,13 +660,18 @@ serve(async (req) => {
         const divRes = await fetch(dividendUrl);
         if (divRes.ok) {
           const divData = await divRes.json();
-          if (divData.results && Array.isArray(divData.results) && divData.results.length > 0) {
-            // Sum all dividends in the past year
-            const totalDividends = divData.results.reduce((sum: number, d: any) => sum + (d.cash_amount || 0), 0);
+          const results = Array.isArray(divData.results) ? divData.results : [];
+
+          // If Polygon reports no cash distributions in the last 12 months, the real dividend yield is 0.
+          if (results.length === 0) {
+            calculatedDividendYield = 0;
+            console.log(`[polygon-etf-details] Polygon dividends for ${ticker}: none in last 12 months → yield=0.00%`);
+          } else {
+            const totalDividends = results.reduce((sum: number, d: any) => sum + (d.cash_amount || 0), 0);
             const currentPrice = bars[bars.length - 1]?.c || 0;
-            if (currentPrice > 0 && totalDividends > 0) {
-              calculatedDividendYield = (totalDividends / currentPrice) * 100;
-              console.log(`[polygon-etf-details] Calculated dividend yield for ${ticker}: ${calculatedDividendYield.toFixed(2)}% (${divData.results.length} dividends, $${totalDividends.toFixed(2)} total)`);
+            if (currentPrice > 0) {
+              calculatedDividendYield = totalDividends > 0 ? (totalDividends / currentPrice) * 100 : 0;
+              console.log(`[polygon-etf-details] Polygon dividends for ${ticker}: yield=${calculatedDividendYield.toFixed(2)}% (${results.length} dividends, $${totalDividends.toFixed(2)} total)`);
             }
           }
         }
@@ -689,8 +719,26 @@ serve(async (req) => {
       else baseCategory = "ETF";
     }
 
-    // Baseline AUM from DB cache or Polygon's market_cap (not always true AUM, but it is real Polygon data)
-    const baseAum = assetUniverseData?.aum ?? tickerDetails.market_cap ?? null;
+    // Baseline AUM:
+    // 1) DB cache (asset_universe.aum)
+    // 2) Polygon-provided market_cap when available
+    // 3) Otherwise derive from shares outstanding × current price (real Polygon data)
+    const sharesOutstanding =
+      (typeof tickerDetails.weighted_shares_outstanding === "number" ? tickerDetails.weighted_shares_outstanding : null) ??
+      (typeof tickerDetails.share_class_shares_outstanding === "number" ? tickerDetails.share_class_shares_outstanding : null) ??
+      (typeof tickerDetails.shares_outstanding === "number" ? tickerDetails.shares_outstanding : null);
+
+    const derivedPrice =
+      snapshot?.lastTrade?.p ??
+      snapshot?.day?.c ??
+      (bars.length > 0 ? bars[bars.length - 1]?.c : null);
+
+    const derivedAum =
+      sharesOutstanding && derivedPrice && sharesOutstanding > 0 && derivedPrice > 0
+        ? sharesOutstanding * derivedPrice
+        : null;
+
+    const baseAum = assetUniverseData?.aum ?? tickerDetails.market_cap ?? derivedAum ?? null;
 
     // Decide what we still need
     const want = {
