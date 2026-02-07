@@ -176,9 +176,9 @@ function pickBestIssuerSearchQuery(ticker: string, name: string) {
     // SSGA/SPDR fund pages
     return `site:ssga.com ${ticker} (\"Net assets\" OR \"Net Assets\")`;
   }
-  if (n.includes("invesco")) return `site:invesco.com ${ticker} expense ratio holdings`;
-  if (n.includes("schwab")) return `site:schwabassetmanagement.com ${ticker} expense ratio holdings`;
-  if (n.includes("proshares")) return `site:proshares.com ${ticker} expense ratio holdings`;
+  if (n.includes("invesco")) return `site:invesco.com ${ticker} (\"Net assets\" OR \"Net Assets\" OR AUM)`;
+  if (n.includes("schwab")) return `site:schwabassetmanagement.com ${ticker} (\"Net assets\" OR \"Net Assets\" OR AUM)`;
+  if (n.includes("proshares")) return `site:proshares.com ${ticker} (\"Net assets\" OR \"Net Assets\" OR AUM OR \"Total Net Assets\")`;
   // fallback: broad query, we’ll still validate extracted fields
   return `${ticker} ETF net assets AUM expense ratio holdings issuer`;
 }
@@ -348,13 +348,32 @@ async function firecrawlScrapeMarkdown(url: string, apiKey: string): Promise<str
 }
 
 function tryParseAumFromMarkdown(markdown: string): number | null {
-  // Try to find a "Net Assets"-style label and parse the first USD-looking amount nearby.
+  // Many pages render the label/value across multiple lines or with extra markup.
+  // We locate the label first, then parse the first USD-looking amount shortly after.
+  const labels = [
+    "total net assets",
+    "fund net assets",
+    "net assets",
+    "aum",
+  ];
+
+  const lower = markdown.toLowerCase();
+
+  for (const label of labels) {
+    const idx = lower.indexOf(label);
+    if (idx === -1) continue;
+
+    const window = markdown.slice(idx, idx + 600); // capture across line breaks
+    const parsed = parseUsdAmountFromText(window);
+    if (parsed != null) return parsed;
+  }
+
+  // Fallback to regex (some docs repeat multiple times)
   const candidates = [
-    /Net Assets[^\n\r]{0,140}?(\$?\s*[0-9][0-9.,\s]*(?:[TMB])?\b)/i,
-    /Total Net Assets[^\n\r]{0,140}?(\$?\s*[0-9][0-9.,\s]*(?:[TMB])?\b)/i,
-    /Fund Net Assets[^\n\r]{0,140}?(\$?\s*[0-9][0-9.,\s]*(?:[TMB])?\b)/i,
-    /Net assets[^\n\r]{0,140}?(\$?\s*[0-9][0-9.,\s]*(?:[TMB])?\b)/i,
-    /AUM[^\n\r]{0,140}?(\$?\s*[0-9][0-9.,\s]*(?:[TMB])?\b)/i,
+    /Net Assets[\s\S]{0,200}?(\$?\s*[0-9][0-9.,\s]*(?:[TMB])?\b)/i,
+    /Total Net Assets[\s\S]{0,200}?(\$?\s*[0-9][0-9.,\s]*(?:[TMB])?\b)/i,
+    /Fund Net Assets[\s\S]{0,200}?(\$?\s*[0-9][0-9.,\s]*(?:[TMB])?\b)/i,
+    /AUM[\s\S]{0,200}?(\$?\s*[0-9][0-9.,\s]*(?:[TMB])?\b)/i,
   ];
 
   for (const re of candidates) {
