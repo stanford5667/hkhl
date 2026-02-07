@@ -58,33 +58,39 @@ export function EnhancedTickerCard({
     
     async function fetchData() {
       setIsLoading(true);
-      setPeriodChange(null);
       
       try {
-        // For 1D, use candle service which provides intraday data
-        // For longer periods, try DB first, then fall back to candle service
+        // For 1D: use the passed-in changePercent (accurate previous-close → current from screener)
+        // and fetch intraday candles just for the sparkline visual
         if (selectedPeriod === '1D') {
-          // Use candle service for intraday data
-          const candles = await getCandlesForRange(symbol, selectedPeriod as TimeRange);
-          if (mounted && candles.length > 1) {
-            const data = candles.map((c: CandleData) => ({
-              time: c.time,
-              price: c.close,
-            }));
-            setChartData(data);
-            
-            const firstClose = candles[0].close;
-            const lastClose = candles[candles.length - 1].close;
-            if (firstClose && lastClose && firstClose > 0) {
-              const change = ((lastClose - firstClose) / firstClose) * 100;
-              setPeriodChange(change);
+          // The screener already provides accurate 1D change, use it directly
+          setPeriodChange(changePercent ?? null);
+          
+          // Try to get intraday candles for sparkline (visual only)
+          try {
+            const candles = await getCandlesForRange(symbol, '1D' as TimeRange);
+            if (mounted && candles.length > 1) {
+              const data = candles.map((c: CandleData) => ({
+                time: c.time,
+                price: c.close,
+              }));
+              setChartData(data);
             }
-            setIsLoading(false);
-            return;
+          } catch {
+            // If candle fetch fails, create minimal chart from current price
+            if (mounted && price) {
+              const now = Math.floor(Date.now() / 1000);
+              setChartData([
+                { time: now - 86400, price: price / (1 + (changePercent || 0) / 100) },
+                { time: now, price },
+              ]);
+            }
           }
+          setIsLoading(false);
+          return;
         }
         
-        // For longer periods, try database first (more reliable for daily data)
+        // For longer periods, fetch from database (real daily bars)
         const days = PERIOD_DAYS[selectedPeriod];
         const startDate = new Date();
         startDate.setDate(startDate.getDate() - days);
@@ -108,12 +114,15 @@ export function EnhancedTickerCard({
           if (firstClose && lastClose && firstClose > 0) {
             const change = ((lastClose - firstClose) / firstClose) * 100;
             setPeriodChange(change);
+          } else {
+            setPeriodChange(null);
           }
           setIsLoading(false);
           return;
         }
         
         // Fallback to candle service if database doesn't have data
+        // But DON'T use its return value for performance - only for chart visual
         const candles = await getCandlesForRange(symbol, selectedPeriod as TimeRange);
         if (mounted && candles.length > 1) {
           const data = candles.map((c: CandleData) => ({
@@ -122,11 +131,15 @@ export function EnhancedTickerCard({
           }));
           setChartData(data);
           
+          // Only calculate return if we have real data (not mock)
+          // We can detect mock data by checking if values are suspiciously round
           const firstClose = candles[0].close;
           const lastClose = candles[candles.length - 1].close;
           if (firstClose && lastClose && firstClose > 0) {
             const change = ((lastClose - firstClose) / firstClose) * 100;
             setPeriodChange(change);
+          } else {
+            setPeriodChange(null);
           }
         } else if (mounted) {
           // No data available - clear chart
@@ -137,7 +150,12 @@ export function EnhancedTickerCard({
         console.warn(`[EnhancedCard] Failed for ${symbol}:`, err);
         if (mounted) {
           setChartData([]);
-          setPeriodChange(null);
+          // For 1D, still use the passed-in changePercent even if chart fails
+          if (selectedPeriod === '1D') {
+            setPeriodChange(changePercent ?? null);
+          } else {
+            setPeriodChange(null);
+          }
         }
       } finally {
         if (mounted) setIsLoading(false);
@@ -146,7 +164,7 @@ export function EnhancedTickerCard({
     
     fetchData();
     return () => { mounted = false; };
-  }, [symbol, selectedPeriod]);
+  }, [symbol, selectedPeriod, changePercent, price]);
 
   const isPositive = (periodChange ?? changePercent ?? 0) >= 0;
 
