@@ -203,7 +203,7 @@ export function ETFOverviewTab({
                 <div className="p-2 bg-secondary/30 rounded-lg">
                   <span className="text-[8px] text-muted-foreground uppercase block">Expense Ratio</span>
                   <span className="text-sm font-bold text-foreground">
-                    {etfData?.expenseRatio !== undefined ? `${(etfData.expenseRatio * 100).toFixed(2)}%` : '—'}
+                    {etfData?.expenseRatio != null ? `${(etfData.expenseRatio * 100).toFixed(2)}%` : '—'}
                   </span>
                 </div>
                 <div className="p-2 bg-secondary/30 rounded-lg">
@@ -213,7 +213,7 @@ export function ETFOverviewTab({
                 <div className="p-2 bg-secondary/30 rounded-lg">
                   <span className="text-[8px] text-muted-foreground uppercase block">Div Yield</span>
                   <span className="text-sm font-bold text-foreground">
-                    {etfData?.dividendYield !== undefined ? `${etfData.dividendYield.toFixed(2)}%` : '—'}
+                    {etfData?.dividendYield != null ? `${etfData.dividendYield.toFixed(2)}%` : '—'}
                   </span>
                 </div>
               </div>
