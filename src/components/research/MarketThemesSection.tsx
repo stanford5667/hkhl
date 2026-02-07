@@ -59,9 +59,10 @@ function ThemeCard({
     <button
       onClick={onClick}
       className={cn(
-        "relative group w-[300px] sm:w-[340px] shrink-0 p-4 rounded-xl text-left transition-all duration-300",
+        "relative group w-[240px] sm:w-[300px] md:w-[340px] shrink-0 p-3 sm:p-4 rounded-xl text-left transition-all duration-300",
         "bg-white/5 backdrop-blur-md border border-white/10",
-        "hover:bg-white/10 hover:border-white/20 hover:scale-[1.02]",
+        "hover:bg-white/10 hover:border-white/20 md:hover:scale-[1.02]",
+        "active:scale-[0.98] md:active:scale-100",
         "focus:outline-none focus:ring-2 focus:ring-primary/50"
       )}
     >
@@ -176,33 +177,33 @@ export function MarketThemesSection() {
   const displayedThemes = showAll ? MARKET_THEMES : randomizedThemes;
 
   return (
-    <section className="space-y-3">
+    <section className="space-y-2 sm:space-y-3">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <div className="p-1.5 rounded-lg bg-primary/10 border border-primary/20">
-            <Sparkles className="h-4 w-4 text-primary" />
+          <div className="p-1 sm:p-1.5 rounded-lg bg-primary/10 border border-primary/20">
+            <Sparkles className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-primary" />
           </div>
           <div>
-            <h2 className="text-base font-semibold text-foreground">Major Market Themes</h2>
-            <p className="text-[10px] text-muted-foreground">{MARKET_THEMES.length} active themes tracked</p>
+            <h2 className="text-sm sm:text-base font-semibold text-foreground">Major Market Themes</h2>
+            <p className="text-[9px] sm:text-[10px] text-muted-foreground hidden sm:block">{MARKET_THEMES.length} active themes tracked</p>
           </div>
         </div>
         <Button 
           variant="ghost" 
           size="sm" 
           onClick={() => setShowAll(!showAll)}
-          className="text-xs h-7"
+          className="text-[10px] sm:text-xs h-6 sm:h-7 px-2"
         >
-          {showAll ? 'Show Less' : `View All ${MARKET_THEMES.length}`}
+          {showAll ? 'Less' : `All ${MARKET_THEMES.length}`}
         </Button>
       </div>
 
       {/* Theme Cards - Horizontal Scroll or Grid */}
       <div className={cn(
         showAll 
-          ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3" 
-          : "relative -mx-4 sm:-mx-6 px-4 sm:px-6"
+          ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 sm:gap-3" 
+          : "relative -mx-3 sm:-mx-6 px-3 sm:px-6"
       )}>
         {showAll ? (
           displayedThemes.map((theme) => (
@@ -215,14 +216,15 @@ export function MarketThemesSection() {
             </div>
           ))
         ) : (
-          <div className="flex gap-3 overflow-x-auto scrollbar-hide pb-2">
+          <div className="flex gap-2 sm:gap-3 overflow-x-auto scrollbar-hide pb-2 snap-x snap-mandatory sm:snap-none">
             {displayedThemes.map((theme) => (
-              <ThemeCard 
-                key={theme.id} 
-                theme={theme} 
-                onClick={() => handleThemeSelect(theme)}
-                onTickerClick={handleTickerClick}
-              />
+              <div key={theme.id} className="snap-start">
+                <ThemeCard 
+                  theme={theme} 
+                  onClick={() => handleThemeSelect(theme)}
+                  onTickerClick={handleTickerClick}
+                />
+              </div>
             ))}
           </div>
         )}

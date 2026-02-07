@@ -14,6 +14,7 @@ interface EnhancedTickerCardProps {
   changePercent?: number;
   marketCap?: number;
   onClick: () => void;
+  compact?: boolean; // Mobile-optimized compact view
 }
 
 const PERIODS: { label: string; value: Period }[] = [
@@ -40,6 +41,7 @@ export function EnhancedTickerCard({
   changePercent,
   marketCap,
   onClick,
+  compact = false,
 }: EnhancedTickerCardProps) {
   const [selectedPeriod, setSelectedPeriod] = useState<Period>('1D');
   const [chartData, setChartData] = useState<{ time: number; price: number }[]>([]);
@@ -201,10 +203,15 @@ export function EnhancedTickerCard({
   const renderChart = () => {
     if (chartData.length < 2) return null;
 
-    const width = 200;
-    const height = 80;
-    const priceScaleWidth = 38;
-    const padding = { top: 8, right: 4, bottom: 16, left: priceScaleWidth };
+    const width = compact ? 140 : 200;
+    const height = compact ? 50 : 80;
+    const priceScaleWidth = compact ? 0 : 38; // Hide price scale on compact
+    const padding = { 
+      top: compact ? 4 : 8, 
+      right: 4, 
+      bottom: compact ? 4 : 16, 
+      left: priceScaleWidth 
+    };
     const chartWidth = width - padding.left - padding.right;
     const chartHeight = height - padding.top - padding.bottom;
 
@@ -242,7 +249,7 @@ export function EnhancedTickerCard({
       return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
     };
 
-    // Price ticks (3 levels: low, mid, high)
+    // Price ticks (3 levels: low, mid, high) - only show in non-compact mode
     const priceTicks = [paddedMin, paddedMin + paddedRange / 2, paddedMax];
 
     return (
@@ -254,8 +261,8 @@ export function EnhancedTickerCard({
           </linearGradient>
         </defs>
         
-        {/* Price Scale (Y-axis) */}
-        {priceTicks.map((tick, i) => {
+        {/* Price Scale (Y-axis) - Hidden in compact mode */}
+        {!compact && priceTicks.map((tick, i) => {
           const y = padding.top + chartHeight - ((tick - paddedMin) / paddedRange) * chartHeight;
           return (
             <g key={i}>
@@ -286,13 +293,17 @@ export function EnhancedTickerCard({
         <path d={areaD} fill={`url(#${gradientId})`} />
         <path d={pathD} fill="none" stroke={lineColor} strokeWidth="1.5" strokeLinecap="round" />
         
-        {/* Time axis labels */}
-        <text x={padding.left} y={height - 2} fontSize="7" fill="hsl(var(--muted-foreground))" textAnchor="start" opacity="0.7">
-          {formatLabel(startTime)}
-        </text>
-        <text x={width - padding.right} y={height - 2} fontSize="7" fill="hsl(var(--muted-foreground))" textAnchor="end" opacity="0.7">
-          {formatLabel(endTime)}
-        </text>
+        {/* Time axis labels - Hidden in compact mode */}
+        {!compact && (
+          <>
+            <text x={padding.left} y={height - 2} fontSize="7" fill="hsl(var(--muted-foreground))" textAnchor="start" opacity="0.7">
+              {formatLabel(startTime)}
+            </text>
+            <text x={width - padding.right} y={height - 2} fontSize="7" fill="hsl(var(--muted-foreground))" textAnchor="end" opacity="0.7">
+              {formatLabel(endTime)}
+            </text>
+          </>
+        )}
       </svg>
     );
   };
@@ -300,6 +311,63 @@ export function EnhancedTickerCard({
   const sectorDisplay = details?.sector || null;
   const effectiveMarketCap = details?.marketCap || marketCap;
 
+  // Compact mobile layout
+  if (compact) {
+    return (
+      <div
+        className={cn(
+          "flex flex-col p-2.5 rounded-lg",
+          "bg-gradient-to-br from-card to-card/80",
+          "border border-border/60",
+          "active:scale-[0.98] transition-transform duration-150",
+          "cursor-pointer"
+        )}
+        onClick={onClick}
+      >
+        {/* Header: Symbol + Change */}
+        <div className="flex items-center justify-between mb-1">
+          <span className="font-bold text-sm text-foreground tracking-tight">
+            {symbol}
+          </span>
+          {periodChange !== null ? (
+            <span className={cn(
+              "text-xs font-semibold tabular-nums",
+              isPositive ? 'text-chart-2' : 'text-destructive'
+            )}>
+              {isPositive ? '+' : ''}{periodChange.toFixed(1)}%
+            </span>
+          ) : changePercent !== undefined ? (
+            <span className={cn(
+              "text-xs font-semibold tabular-nums",
+              changePercent >= 0 ? 'text-chart-2' : 'text-destructive'
+            )}>
+              {changePercent >= 0 ? '+' : ''}{changePercent.toFixed(1)}%
+            </span>
+          ) : null}
+        </div>
+        
+        {/* Price */}
+        <div className="text-xs text-muted-foreground mb-1.5 truncate">
+          {formatPrice(price)}
+        </div>
+        
+        {/* Mini Chart */}
+        <div className="h-[50px] min-h-0">
+          {isLoading ? (
+            <div className="w-full h-full bg-muted/20 animate-pulse rounded" />
+          ) : chartData.length > 1 ? (
+            renderChart()
+          ) : (
+            <div className="w-full h-full bg-muted/10 rounded flex items-center justify-center text-[9px] text-muted-foreground">
+              —
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // Full desktop layout
   return (
     <div
       className={cn(
@@ -366,10 +434,10 @@ export function EnhancedTickerCard({
         {/* Period Performance */}
         {periodChange !== null ? (
           <div className={cn(
-            "flex items-center gap-1.5 text-sm font-semibold px-2 py-1 rounded-lg",
+            "flex items-center gap-1.5 text-sm font-semibold px-2 py-1 rounded-lg border",
             isPositive 
-              ? 'text-emerald-400 bg-emerald-500/10 border border-emerald-500/20' 
-              : 'text-red-400 bg-red-500/10 border border-red-500/20'
+              ? 'text-chart-2 bg-chart-2/10 border-chart-2/20' 
+              : 'text-destructive bg-destructive/10 border-destructive/20'
           )}>
             {isPositive ? <TrendingUp className="h-3.5 w-3.5" /> : <TrendingDown className="h-3.5 w-3.5" />}
             <span className="tabular-nums">{isPositive ? '+' : ''}{periodChange.toFixed(2)}%</span>
