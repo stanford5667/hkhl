@@ -23,6 +23,8 @@ import { EarningsWithPrediction } from '@/types/earnings';
 import { formatEarningsCurrency } from '@/lib/earningsUtils';
 import { parseDateOnly } from '@/lib/date';
 import { EarningsDetailDialog } from './EarningsDetailDialog';
+import { EarningsTableMobile } from './EarningsTableMobile';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 type SortField = 'market_cap' | 'symbol' | 'company_name' | 'eps_estimate' | 'revenue_estimate' | 'analyst_count' | 'confidence';
 type SortDirection = 'asc' | 'desc';
@@ -33,6 +35,7 @@ interface Props {
 }
 
 export const EarningsTable = ({ earnings, showDate = false }: Props) => {
+  const isMobile = useIsMobile();
   const [selectedEarning, setSelectedEarning] = useState<EarningsWithPrediction | null>(null);
   const [sortField, setSortField] = useState<SortField>('market_cap');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
@@ -152,6 +155,11 @@ export const EarningsTable = ({ earnings, showDate = false }: Props) => {
       </Badge>
     );
   };
+
+  // Mobile: Use card-based layout
+  if (isMobile) {
+    return <EarningsTableMobile earnings={sortedEarnings} />;
+  }
 
   return (
     <>
