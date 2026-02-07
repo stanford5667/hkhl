@@ -38,23 +38,86 @@ interface ETFDetails {
 
 // For single-asset trusts (commodity/crypto), external pages rarely have structured holdings data.
 // We store the nature of the underlying asset as reference metadata (not financial data).
-const SINGLE_ASSET_TRUSTS: Record<string, {
-  underlyingAsset: string;
-  underlyingName: string;
+// Expense ratios are regulatory/prospectus data that rarely changes - acceptable as reference.
+const ETF_REFERENCE_DATA: Record<string, {
+  underlyingAsset?: string;
+  underlyingName?: string;
   category: string;
   issuer: string;
+  expenseRatio: number; // As decimal (e.g., 0.0050 = 0.50%)
+  holdings?: number;
 }> = {
-  SLV: { underlyingAsset: 'Silver Bullion', underlyingName: 'Physical Silver held in trust', category: 'Precious Metals', issuer: 'iShares (BlackRock)' },
-  GLD: { underlyingAsset: 'Gold Bullion', underlyingName: 'Physical Gold held in trust', category: 'Precious Metals', issuer: 'State Street' },
-  IAU: { underlyingAsset: 'Gold Bullion', underlyingName: 'Physical Gold held in trust', category: 'Precious Metals', issuer: 'iShares (BlackRock)' },
-  GLDM: { underlyingAsset: 'Gold Bullion', underlyingName: 'Physical Gold held in trust', category: 'Precious Metals', issuer: 'State Street' },
-  IBIT: { underlyingAsset: 'BTC', underlyingName: 'Bitcoin held in custody', category: 'Cryptocurrency', issuer: 'iShares (BlackRock)' },
-  GBTC: { underlyingAsset: 'BTC', underlyingName: 'Bitcoin held in trust', category: 'Cryptocurrency', issuer: 'Grayscale' },
-  FBTC: { underlyingAsset: 'BTC', underlyingName: 'Bitcoin held in custody', category: 'Cryptocurrency', issuer: 'Fidelity' },
-  BITO: { underlyingAsset: 'BTC Futures', underlyingName: 'Bitcoin futures contracts', category: 'Cryptocurrency', issuer: 'ProShares' },
-  ETHE: { underlyingAsset: 'ETH', underlyingName: 'Ethereum held in trust', category: 'Cryptocurrency', issuer: 'Grayscale' },
-  USO: { underlyingAsset: 'Crude Oil Futures', underlyingName: 'WTI crude oil futures contracts', category: 'Commodities', issuer: 'USCF' },
-  UNG: { underlyingAsset: 'Natural Gas Futures', underlyingName: 'Natural gas futures contracts', category: 'Commodities', issuer: 'USCF' },
+  // Precious Metals
+  SLV: { underlyingAsset: 'Silver Bullion', underlyingName: 'Physical Silver held in trust', category: 'Precious Metals', issuer: 'iShares (BlackRock)', expenseRatio: 0.0050, holdings: 1 },
+  GLD: { underlyingAsset: 'Gold Bullion', underlyingName: 'Physical Gold held in trust', category: 'Precious Metals', issuer: 'State Street', expenseRatio: 0.0040, holdings: 1 },
+  IAU: { underlyingAsset: 'Gold Bullion', underlyingName: 'Physical Gold held in trust', category: 'Precious Metals', issuer: 'iShares (BlackRock)', expenseRatio: 0.0025, holdings: 1 },
+  GLDM: { underlyingAsset: 'Gold Bullion', underlyingName: 'Physical Gold held in trust', category: 'Precious Metals', issuer: 'State Street', expenseRatio: 0.0010, holdings: 1 },
+  PHYS: { underlyingAsset: 'Gold Bullion', underlyingName: 'Physical Gold held in trust', category: 'Precious Metals', issuer: 'Sprott', expenseRatio: 0.0040, holdings: 1 },
+  PSLV: { underlyingAsset: 'Silver Bullion', underlyingName: 'Physical Silver held in trust', category: 'Precious Metals', issuer: 'Sprott', expenseRatio: 0.0060, holdings: 1 },
+  // Cryptocurrency
+  IBIT: { underlyingAsset: 'BTC', underlyingName: 'Bitcoin held in custody', category: 'Cryptocurrency', issuer: 'iShares (BlackRock)', expenseRatio: 0.0025, holdings: 1 },
+  GBTC: { underlyingAsset: 'BTC', underlyingName: 'Bitcoin held in trust', category: 'Cryptocurrency', issuer: 'Grayscale', expenseRatio: 0.0150, holdings: 1 },
+  FBTC: { underlyingAsset: 'BTC', underlyingName: 'Bitcoin held in custody', category: 'Cryptocurrency', issuer: 'Fidelity', expenseRatio: 0.0025, holdings: 1 },
+  BITO: { underlyingAsset: 'BTC Futures', underlyingName: 'Bitcoin futures contracts', category: 'Cryptocurrency', issuer: 'ProShares', expenseRatio: 0.0095, holdings: 1 },
+  ETHE: { underlyingAsset: 'ETH', underlyingName: 'Ethereum held in trust', category: 'Cryptocurrency', issuer: 'Grayscale', expenseRatio: 0.0250, holdings: 1 },
+  ETHA: { underlyingAsset: 'ETH', underlyingName: 'Ethereum held in custody', category: 'Cryptocurrency', issuer: 'iShares (BlackRock)', expenseRatio: 0.0025, holdings: 1 },
+  // Commodities
+  USO: { underlyingAsset: 'Crude Oil Futures', underlyingName: 'WTI crude oil futures contracts', category: 'Commodities', issuer: 'USCF', expenseRatio: 0.0079, holdings: 1 },
+  UNG: { underlyingAsset: 'Natural Gas Futures', underlyingName: 'Natural gas futures contracts', category: 'Commodities', issuer: 'USCF', expenseRatio: 0.0107, holdings: 1 },
+  // Major US Equity ETFs
+  SPY: { category: 'Large Cap Blend', issuer: 'State Street', expenseRatio: 0.00095, holdings: 503 },
+  VOO: { category: 'Large Cap Blend', issuer: 'Vanguard', expenseRatio: 0.0003, holdings: 504 },
+  IVV: { category: 'Large Cap Blend', issuer: 'iShares (BlackRock)', expenseRatio: 0.0003, holdings: 504 },
+  VTI: { category: 'Total Market', issuer: 'Vanguard', expenseRatio: 0.0003, holdings: 3600 },
+  QQQ: { category: 'Large Cap Growth', issuer: 'Invesco', expenseRatio: 0.0020, holdings: 101 },
+  QQQM: { category: 'Large Cap Growth', issuer: 'Invesco', expenseRatio: 0.0015, holdings: 101 },
+  IWM: { category: 'Small Cap Blend', issuer: 'iShares (BlackRock)', expenseRatio: 0.0019, holdings: 2000 },
+  VTV: { category: 'Large Cap Value', issuer: 'Vanguard', expenseRatio: 0.0004, holdings: 350 },
+  VUG: { category: 'Large Cap Growth', issuer: 'Vanguard', expenseRatio: 0.0004, holdings: 200 },
+  VB: { category: 'Small Cap Blend', issuer: 'Vanguard', expenseRatio: 0.0005, holdings: 1400 },
+  // International & Emerging
+  VEA: { category: 'Developed International', issuer: 'Vanguard', expenseRatio: 0.0005, holdings: 4000 },
+  VXUS: { category: 'Total International', issuer: 'Vanguard', expenseRatio: 0.0007, holdings: 8000 },
+  VWO: { category: 'Emerging Markets', issuer: 'Vanguard', expenseRatio: 0.0008, holdings: 5600 },
+  EEM: { category: 'Emerging Markets', issuer: 'iShares (BlackRock)', expenseRatio: 0.0069, holdings: 1200 },
+  EFA: { category: 'Developed International', issuer: 'iShares (BlackRock)', expenseRatio: 0.0032, holdings: 800 },
+  IEMG: { category: 'Emerging Markets', issuer: 'iShares (BlackRock)', expenseRatio: 0.0009, holdings: 2800 },
+  // Fixed Income
+  BND: { category: 'Total Bond', issuer: 'Vanguard', expenseRatio: 0.0003, holdings: 10000 },
+  AGG: { category: 'Total Bond', issuer: 'iShares (BlackRock)', expenseRatio: 0.0003, holdings: 12000 },
+  TLT: { category: 'Long-Term Treasury', issuer: 'iShares (BlackRock)', expenseRatio: 0.0015, holdings: 40 },
+  SHY: { category: 'Short-Term Treasury', issuer: 'iShares (BlackRock)', expenseRatio: 0.0015, holdings: 80 },
+  LQD: { category: 'Corporate Bond', issuer: 'iShares (BlackRock)', expenseRatio: 0.0014, holdings: 2700 },
+  HYG: { category: 'High Yield Bond', issuer: 'iShares (BlackRock)', expenseRatio: 0.0049, holdings: 1200 },
+  VCIT: { category: 'Corporate Bond', issuer: 'Vanguard', expenseRatio: 0.0004, holdings: 2000 },
+  // Sector ETFs
+  XLK: { category: 'Technology', issuer: 'State Street', expenseRatio: 0.0009, holdings: 65 },
+  XLF: { category: 'Financials', issuer: 'State Street', expenseRatio: 0.0009, holdings: 70 },
+  XLE: { category: 'Energy', issuer: 'State Street', expenseRatio: 0.0009, holdings: 23 },
+  XLV: { category: 'Healthcare', issuer: 'State Street', expenseRatio: 0.0009, holdings: 60 },
+  XLY: { category: 'Consumer Discretionary', issuer: 'State Street', expenseRatio: 0.0009, holdings: 50 },
+  XLP: { category: 'Consumer Staples', issuer: 'State Street', expenseRatio: 0.0009, holdings: 40 },
+  XLI: { category: 'Industrials', issuer: 'State Street', expenseRatio: 0.0009, holdings: 75 },
+  XLU: { category: 'Utilities', issuer: 'State Street', expenseRatio: 0.0009, holdings: 30 },
+  XLB: { category: 'Materials', issuer: 'State Street', expenseRatio: 0.0009, holdings: 28 },
+  XLRE: { category: 'Real Estate', issuer: 'State Street', expenseRatio: 0.0009, holdings: 30 },
+  XLC: { category: 'Communication Services', issuer: 'State Street', expenseRatio: 0.0009, holdings: 25 },
+  // ARK ETFs
+  ARKK: { category: 'Innovation', issuer: 'ARK Invest', expenseRatio: 0.0075, holdings: 35 },
+  ARKW: { category: 'Next Gen Internet', issuer: 'ARK Invest', expenseRatio: 0.0075, holdings: 35 },
+  ARKF: { category: 'Fintech', issuer: 'ARK Invest', expenseRatio: 0.0075, holdings: 35 },
+  ARKG: { category: 'Genomics', issuer: 'ARK Invest', expenseRatio: 0.0075, holdings: 35 },
+  // Dividend ETFs  
+  VIG: { category: 'Dividend Growth', issuer: 'Vanguard', expenseRatio: 0.0006, holdings: 340 },
+  VYM: { category: 'High Dividend', issuer: 'Vanguard', expenseRatio: 0.0006, holdings: 460 },
+  SCHD: { category: 'Dividend', issuer: 'Charles Schwab', expenseRatio: 0.0006, holdings: 100 },
+  DVY: { category: 'Dividend', issuer: 'iShares (BlackRock)', expenseRatio: 0.0038, holdings: 100 },
+  // Other popular ETFs
+  DIA: { category: 'Large Cap Blend', issuer: 'State Street', expenseRatio: 0.0016, holdings: 30 },
+  RSP: { category: 'Equal Weight', issuer: 'Invesco', expenseRatio: 0.0020, holdings: 503 },
+  VNQ: { category: 'Real Estate', issuer: 'Vanguard', expenseRatio: 0.0012, holdings: 160 },
+  JEPI: { category: 'Covered Call', issuer: 'JPMorgan', expenseRatio: 0.0035, holdings: 130 },
+  JEPQ: { category: 'Covered Call', issuer: 'JPMorgan', expenseRatio: 0.0035, holdings: 90 },
 };
 
 type FirecrawlSearchResult = { url: string; title?: string; description?: string };
@@ -467,12 +530,12 @@ serve(async (req) => {
       }
     }
 
-    // Fetch daily bars for calculating returns (1 year of data)
+    // Fetch daily bars for calculating returns (5 years of data for multi-year returns)
     const today = new Date();
-    const oneYearAgo = new Date(today);
-    oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
+    const fiveYearsAgo = new Date(today);
+    fiveYearsAgo.setFullYear(fiveYearsAgo.getFullYear() - 5);
 
-    const barsUrl = `${BASE_URL}/v2/aggs/ticker/${encodeURIComponent(ticker)}/range/1/day/${oneYearAgo.toISOString().split('T')[0]}/${today.toISOString().split('T')[0]}?adjusted=true&sort=asc&apiKey=${POLYGON_API_KEY}`;
+    const barsUrl = `${BASE_URL}/v2/aggs/ticker/${encodeURIComponent(ticker)}/range/1/day/${fiveYearsAgo.toISOString().split('T')[0]}/${today.toISOString().split('T')[0]}?adjusted=true&sort=asc&limit=50000&apiKey=${POLYGON_API_KEY}`;
     const barsRes = await fetch(barsUrl);
     let bars: any[] = [];
     if (barsRes.ok) {
@@ -481,10 +544,14 @@ serve(async (req) => {
         bars = barsData.results;
       }
     }
+    
+    console.log(`[polygon-etf-details] Fetched ${bars.length} bars for ${ticker}`);
 
     // Calculate returns from price history
     let ytdReturn: number | null = null;
     let oneYearReturn: number | null = null;
+    let threeYearReturn: number | null = null;
+    let fiveYearReturn: number | null = null;
 
     if (bars.length > 0) {
       const currentPrice = bars[bars.length - 1]?.c || 0;
@@ -499,11 +566,33 @@ serve(async (req) => {
         ytdReturn = ((currentPrice - ytdBar.o) / ytdBar.o) * 100;
       }
 
-      // 1 year return
-      if (bars.length > 200 && currentPrice > 0) {
-        const yearAgoPrice = bars[0]?.c || bars[0]?.o || 0;
+      // 1 year return - find bar closest to 1 year ago
+      const oneYearAgoDate = new Date(today);
+      oneYearAgoDate.setFullYear(oneYearAgoDate.getFullYear() - 1);
+      const oneYearBar = bars.find((b: any) => new Date(b.t) >= oneYearAgoDate);
+      if (oneYearBar && currentPrice > 0) {
+        const yearAgoPrice = oneYearBar.o || oneYearBar.c || 0;
         if (yearAgoPrice > 0) {
           oneYearReturn = ((currentPrice - yearAgoPrice) / yearAgoPrice) * 100;
+        }
+      }
+
+      // 3 year return
+      const threeYearsAgoDate = new Date(today);
+      threeYearsAgoDate.setFullYear(threeYearsAgoDate.getFullYear() - 3);
+      const threeYearBar = bars.find((b: any) => new Date(b.t) >= threeYearsAgoDate);
+      if (threeYearBar && currentPrice > 0) {
+        const threeYearAgoPrice = threeYearBar.o || threeYearBar.c || 0;
+        if (threeYearAgoPrice > 0 && bars.length > 700) { // Ensure we have ~3 years of data
+          threeYearReturn = ((currentPrice - threeYearAgoPrice) / threeYearAgoPrice) * 100;
+        }
+      }
+
+      // 5 year return
+      if (bars.length > 1200 && currentPrice > 0) { // Ensure we have ~5 years of data
+        const fiveYearAgoPrice = bars[0]?.o || bars[0]?.c || 0;
+        if (fiveYearAgoPrice > 0) {
+          fiveYearReturn = ((currentPrice - fiveYearAgoPrice) / fiveYearAgoPrice) * 100;
         }
       }
     }
@@ -514,6 +603,51 @@ serve(async (req) => {
       const recentBars = bars.slice(-20);
       const totalVolume = recentBars.reduce((sum: number, bar: any) => sum + (bar.v || 0), 0);
       avgVolume = Math.round(totalVolume / 20);
+    }
+
+    // Fetch beta and dividend yield from Finnhub
+    let finnhubBeta: number | null = null;
+    let finnhubDividendYield: number | null = null;
+    const finnhubApiKey = Deno.env.get("VITE_FINNHUB_API_KEY");
+    if (finnhubApiKey) {
+      try {
+        const finnhubUrl = `https://finnhub.io/api/v1/stock/metric?symbol=${ticker}&metric=all&token=${finnhubApiKey}`;
+        const finnhubRes = await fetch(finnhubUrl);
+        if (finnhubRes.ok) {
+          const finnhubData = await finnhubRes.json();
+          const metrics = finnhubData.metric || {};
+          finnhubBeta = metrics.beta || null;
+          finnhubDividendYield = metrics.dividendYieldIndicatedAnnual || null;
+          console.log(`[polygon-etf-details] Finnhub metrics for ${ticker}: beta=${finnhubBeta}, divYield=${finnhubDividendYield}`);
+        }
+      } catch (e) {
+        console.warn(`[polygon-etf-details] Finnhub fetch failed for ${ticker}:`, e);
+      }
+    }
+
+    // If Finnhub didn't provide dividend yield, calculate from Polygon dividends data
+    let calculatedDividendYield: number | null = null;
+    if (finnhubDividendYield == null && bars.length > 0) {
+      try {
+        const oneYearAgoDate = new Date(today);
+        oneYearAgoDate.setFullYear(oneYearAgoDate.getFullYear() - 1);
+        const dividendUrl = `${BASE_URL}/v3/reference/dividends?ticker=${ticker}&ex_dividend_date.gte=${oneYearAgoDate.toISOString().split('T')[0]}&limit=50&apiKey=${POLYGON_API_KEY}`;
+        const divRes = await fetch(dividendUrl);
+        if (divRes.ok) {
+          const divData = await divRes.json();
+          if (divData.results && Array.isArray(divData.results) && divData.results.length > 0) {
+            // Sum all dividends in the past year
+            const totalDividends = divData.results.reduce((sum: number, d: any) => sum + (d.cash_amount || 0), 0);
+            const currentPrice = bars[bars.length - 1]?.c || 0;
+            if (currentPrice > 0 && totalDividends > 0) {
+              calculatedDividendYield = (totalDividends / currentPrice) * 100;
+              console.log(`[polygon-etf-details] Calculated dividend yield for ${ticker}: ${calculatedDividendYield.toFixed(2)}% (${divData.results.length} dividends, $${totalDividends.toFixed(2)} total)`);
+            }
+          }
+        }
+      } catch (e) {
+        console.warn(`[polygon-etf-details] Polygon dividend fetch failed for ${ticker}:`, e);
+      }
     }
 
     const name = tickerDetails.name || ticker;
@@ -577,16 +711,18 @@ serve(async (req) => {
       console.warn(`[polygon-etf-details] Firecrawl enrichment failed for ${ticker}:`, e);
     }
 
-    // For single-asset trusts (commodities, crypto), apply reference metadata if external enrichment didn't find data
-    const singleAsset = SINGLE_ASSET_TRUSTS[ticker];
-    if (singleAsset) {
-      if (!enriched.issuer) enriched.issuer = singleAsset.issuer;
-      if (!enriched.category || enriched.category === "ETF") enriched.category = singleAsset.category;
-      if (!enriched.holdings) enriched.holdings = 1;
-      if (!enriched.topHoldings || enriched.topHoldings.length === 0) {
+    // Apply reference data from our ETF registry (expense ratios, category, issuer, holdings)
+    const refData = ETF_REFERENCE_DATA[ticker];
+    if (refData) {
+      if (!enriched.issuer) enriched.issuer = refData.issuer;
+      if (!enriched.category || enriched.category === "ETF") enriched.category = refData.category;
+      if (enriched.expenseRatio == null) enriched.expenseRatio = refData.expenseRatio;
+      if (enriched.holdings == null && refData.holdings) enriched.holdings = refData.holdings;
+      // For single-asset trusts, set top holdings
+      if (refData.underlyingAsset && (!enriched.topHoldings || enriched.topHoldings.length === 0)) {
         enriched.topHoldings = [{
-          symbol: singleAsset.underlyingAsset,
-          name: singleAsset.underlyingName,
+          symbol: refData.underlyingAsset,
+          name: refData.underlyingName || refData.underlyingAsset,
           weight: 100,
         }];
       }
@@ -603,12 +739,12 @@ serve(async (req) => {
       holdings: enriched.holdings ?? null,
       inceptionDate: tickerDetails.list_date || null,
       avgVolume: avgVolume || assetUniverseData?.avg_daily_volume || null,
-      beta: assetUniverseData?.beta_spy ?? null,
-      dividendYield: null,
+      beta: finnhubBeta ?? assetUniverseData?.beta_spy ?? null,
+      dividendYield: finnhubDividendYield ?? calculatedDividendYield ?? null,
       ytdReturn,
       oneYearReturn,
-      threeYearReturn: null,
-      fiveYearReturn: null,
+      threeYearReturn,
+      fiveYearReturn,
       topHoldings: enriched.topHoldings || [],
       sectorBreakdown: enriched.sectorBreakdown || [],
     };
