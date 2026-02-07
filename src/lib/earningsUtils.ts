@@ -150,6 +150,20 @@ export const formatEarningsCurrency = (value: number | null, compact = false): s
 };
 
 /**
+ * Format market cap as full readable text (e.g., "1.5 Trillion")
+ */
+export const formatMarketCapFull = (value: number | null): string => {
+  if (value === null) return 'N/A';
+  
+  if (value >= 1e12) return `$${(value / 1e12).toFixed(2)} Trillion`;
+  if (value >= 1e9) return `$${(value / 1e9).toFixed(2)} Billion`;
+  if (value >= 1e6) return `$${(value / 1e6).toFixed(2)} Million`;
+  if (value >= 1e3) return `$${(value / 1e3).toFixed(0)} Thousand`;
+  
+  return `$${value.toFixed(0)}`;
+};
+
+/**
  * Format percent value
  */
 export const formatEarningsPercent = (value: number | null): string => {

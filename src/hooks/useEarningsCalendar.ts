@@ -90,40 +90,50 @@ export const useEarningsCalendar = (filters?: EarningsCalendarFilters) => {
       
       const marketCapMap: Record<string, number> = {};
       
-      if (symbolsMissingMktCap.length > 0) {
-        // Batch asset_universe lookups to avoid URL length limits
+      // Fetch industry/sector data for all symbols
+      const allSymbols = [...new Set((data || []).map(e => e.symbol))];
+      const industryMap: Record<string, { industry: string | null; sector: string | null }> = {};
+      
+      if (allSymbols.length > 0) {
         const SYMBOL_BATCH_SIZE = 50;
         const symbolBatches = [];
-        for (let i = 0; i < symbolsMissingMktCap.length; i += SYMBOL_BATCH_SIZE) {
-          symbolBatches.push(symbolsMissingMktCap.slice(i, i + SYMBOL_BATCH_SIZE));
+        for (let i = 0; i < allSymbols.length; i += SYMBOL_BATCH_SIZE) {
+          symbolBatches.push(allSymbols.slice(i, i + SYMBOL_BATCH_SIZE));
         }
         
         const assetResults = await Promise.all(
           symbolBatches.map(batch =>
             supabase
               .from('asset_universe')
-              .select('ticker, avg_daily_dollar_volume')
+              .select('ticker, avg_daily_dollar_volume, industry, sector')
               .in('ticker', batch)
           )
         );
         
-        // Merge results and build market cap proxy map
+        // Merge results and build maps
         assetResults.flatMap(r => r.data || []).forEach(a => {
-          if (a.avg_daily_dollar_volume) {
+          if (a.avg_daily_dollar_volume && symbolsMissingMktCap.includes(a.ticker)) {
             // Use avg_daily_dollar_volume * 20 as rough market cap proxy (assuming ~5% daily turnover)
             marketCapMap[a.ticker] = a.avg_daily_dollar_volume * 20;
           }
+          industryMap[a.ticker] = { 
+            industry: a.industry || null, 
+            sector: a.sector || null 
+          };
         });
       }
 
       // Merge predictions with earnings
       let results: EarningsWithPrediction[] = (data || []).map(e => {
         const prediction = predictions.find(p => p.earnings_calendar_id === e.id);
+        const assetInfo = industryMap[e.symbol];
         return {
           ...e,
           prediction,
           // Use stored market_cap or fallback to proxy
           market_cap: e.market_cap || marketCapMap[e.symbol] || null,
+          industry: assetInfo?.industry || null,
+          sector: assetInfo?.sector || null,
         } as EarningsWithPrediction;
       });
 
