@@ -11,6 +11,7 @@ import { LineChart, TrendingUp, TrendingDown, Plus, Building2, Globe, BarChart3,
 import { cn } from '@/lib/utils';
 import { StockDetailLayout, DEFAULT_STOCK_TABS } from '@/components/research/StockDetailLayout';
 import { useCompanyNews } from '@/hooks/useCompanyResearch';
+import { useETFData } from '@/hooks/useETFData';
 import { getAssetCategory, getAssetTypeInfo, getTabsForAssetType, type AssetCategory, type AssetTypeInfo } from '@/config/assetTypeConfig';
 
 // Lazy load heavy components to improve initial page load
@@ -173,6 +174,9 @@ export default function PublicStockView() {
   
   const isETF = details?.assetCategory === 'etf';
   const isCrypto = details?.assetCategory === 'crypto';
+
+  // Fetch ETF-specific data when viewing an ETF
+  const { data: etfData, isLoading: isLoadingETFData } = useETFData(ticker, isETF);
 
   // Fetch ticker details from Polygon with retry logic
   const fetchDetails = useCallback(async (isRetry = false) => {
@@ -426,7 +430,8 @@ export default function PublicStockView() {
                   companyName={details?.name}
                   description={details?.description}
                   quote={quote}
-                  isLoading={isLoadingQuote}
+                  etfData={etfData || undefined}
+                  isLoading={isLoadingQuote || isLoadingETFData}
                   onRefresh={handleRefresh}
                   isRefreshing={isRefreshing}
                 />
