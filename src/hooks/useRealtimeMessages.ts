@@ -15,6 +15,26 @@ export function useRealtimeMessages(roomId: string | null) {
   const { user } = useAuth();
   const channelRef = useRef<RealtimeChannel | null>(null);
 
+  // Cache for user profiles to avoid repeated fetches
+  const profileCacheRef = useRef<Map<string, { full_name: string | null; avatar_url: string | null }>>(new Map());
+
+  // Fetch user profile and cache it
+  const fetchUserProfile = useCallback(async (userId: string) => {
+    if (profileCacheRef.current.has(userId)) {
+      return profileCacheRef.current.get(userId)!;
+    }
+
+    const { data } = await supabase
+      .from('profiles')
+      .select('full_name, avatar_url')
+      .eq('user_id', userId)
+      .single();
+
+    const profile = data || { full_name: null, avatar_url: null };
+    profileCacheRef.current.set(userId, profile);
+    return profile;
+  }, []);
+
   // Fetch initial messages
   const fetchMessages = useCallback(async (beforeTimestamp?: string) => {
     if (!roomId) return;
@@ -41,25 +61,31 @@ export function useRealtimeMessages(roomId: string | null) {
 
       if (fetchError) throw fetchError;
 
-      const messagesWithReactions = (data || []).map(msg => ({
+      // Fetch profiles for all unique user IDs
+      const userIds = [...new Set((data || []).map(msg => msg.user_id))];
+      const profiles = await Promise.all(userIds.map(id => fetchUserProfile(id)));
+      const profileMap = new Map(userIds.map((id, i) => [id, profiles[i]]));
+
+      const messagesWithData = (data || []).map(msg => ({
         ...msg,
         reactions: msg.message_reactions || [],
+        user_profile: profileMap.get(msg.user_id) || { full_name: null, avatar_url: null },
       })) as ChatMessage[];
 
       if (beforeTimestamp) {
-        setMessages(prev => [...prev, ...messagesWithReactions.reverse()]);
+        setMessages(prev => [...prev, ...messagesWithData.reverse()]);
       } else {
-        setMessages(messagesWithReactions.reverse());
+        setMessages(messagesWithData.reverse());
       }
 
-      setHasMore(messagesWithReactions.length === MESSAGES_PER_PAGE);
+      setHasMore(messagesWithData.length === MESSAGES_PER_PAGE);
     } catch (err: any) {
       console.error('Error fetching messages:', err);
       setError(err.message);
     } finally {
       setLoading(false);
     }
-  }, [roomId]);
+  }, [roomId, fetchUserProfile]);
 
   // Subscribe to realtime updates
   useEffect(() => {
@@ -78,9 +104,12 @@ export function useRealtimeMessages(roomId: string | null) {
           table: 'chat_messages',
           filter: `room_id=eq.${roomId}`,
         },
-        (payload) => {
+        async (payload) => {
           const newMessage = payload.new as ChatMessage;
           newMessage.reactions = [];
+          // Fetch profile for the new message
+          const profile = await fetchUserProfile(newMessage.user_id);
+          newMessage.user_profile = profile;
           setMessages(prev => [...prev, newMessage]);
         }
       )
