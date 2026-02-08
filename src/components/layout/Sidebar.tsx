@@ -56,6 +56,7 @@ import {
   Activity,
   Lightbulb,
   BookOpen,
+  Users,
   CreditCard,
 } from "lucide-react";
 
@@ -125,6 +126,12 @@ export function Sidebar() {
       //   icon: Sparkles,
       //   isPremium: true,
       // },
+      { 
+        label: "Community", 
+        subtitle: "Chat & Ideas",
+        href: "/community", 
+        icon: Users 
+      },
       { 
         label: "Academy", 
         subtitle: "Learn & Grow",
