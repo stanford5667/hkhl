@@ -5748,6 +5748,10 @@ export type Database = {
           portfolio_return: number
         }[]
       }
+      get_room_type: {
+        Args: { check_room_id: string }
+        Returns: Database["public"]["Enums"]["room_type"]
+      }
       get_ticker_returns: {
         Args: { p_end_date?: string; p_start_date?: string; p_ticker: string }
         Returns: {
@@ -5769,6 +5773,10 @@ export type Database = {
       is_admin: { Args: never; Returns: boolean }
       is_org_admin: { Args: { org_id: string }; Returns: boolean }
       is_org_member: { Args: { org_id: string }; Returns: boolean }
+      is_room_member: {
+        Args: { check_room_id: string; check_user_id: string }
+        Returns: boolean
+      }
       reset_daily_usage: { Args: never; Returns: undefined }
       screen_study_probabilities: {
         Args: {
