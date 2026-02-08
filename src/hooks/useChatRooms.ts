@@ -1,0 +1,109 @@
+import { useState, useEffect, useCallback } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { ChatRoom, RoomType } from '@/types/community';
+import { useAuth } from '@/contexts/AuthContext';
+
+export function useChatRooms() {
+  const [rooms, setRooms] = useState<ChatRoom[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const { user } = useAuth();
+
+  const fetchRooms = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const { data, error: fetchError } = await supabase
+        .from('chat_rooms')
+        .select('*')
+        .order('member_count', { ascending: false });
+
+      if (fetchError) throw fetchError;
+
+      setRooms((data || []) as ChatRoom[]);
+    } catch (err: any) {
+      console.error('Error fetching chat rooms:', err);
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchRooms();
+  }, [fetchRooms]);
+
+  const createRoom = async (
+    name: string,
+    description: string,
+    roomType: RoomType = 'public',
+    ticker?: string,
+    icon: string = '💬'
+  ) => {
+    if (!user) throw new Error('Must be authenticated to create a room');
+
+    const slug = name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+
+    const { data, error } = await supabase
+      .from('chat_rooms')
+      .insert({
+        name,
+        slug,
+        description,
+        room_type: roomType,
+        ticker: ticker || null,
+        icon,
+        created_by: user.id,
+      })
+      .select()
+      .single();
+
+    if (error) throw error;
+    
+    // Refresh rooms list
+    await fetchRooms();
+    
+    return data as ChatRoom;
+  };
+
+  const getOrCreateStockRoom = async (ticker: string, companyName: string) => {
+    // Check if room already exists
+    const existing = rooms.find(r => r.ticker === ticker);
+    if (existing) return existing;
+
+    // Check in database (in case not in local state yet)
+    const { data: existingRoom } = await supabase
+      .from('chat_rooms')
+      .select('*')
+      .eq('ticker', ticker)
+      .single();
+
+    if (existingRoom) return existingRoom as ChatRoom;
+
+    // Create new stock room
+    return createRoom(
+      `${ticker} Discussion`,
+      `Discuss ${companyName} ($${ticker}) - earnings, news, and trading ideas`,
+      'stock',
+      ticker,
+      '📈'
+    );
+  };
+
+  const getRoomsByType = (type: RoomType) => {
+    return rooms.filter(room => room.room_type === type);
+  };
+
+  return {
+    rooms,
+    loading,
+    error,
+    fetchRooms,
+    createRoom,
+    getOrCreateStockRoom,
+    getRoomsByType,
+    publicRooms: getRoomsByType('public'),
+    stockRooms: getRoomsByType('stock'),
+  };
+}

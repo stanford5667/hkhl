@@ -61,6 +61,7 @@ const CourseDetail = lazy(() => import('./pages/CourseDetail'));
 const LessonView = lazy(() => import('./pages/LessonView'));
 const QuizView = lazy(() => import('./pages/QuizView'));
 const StudyMaterials = lazy(() => import('./pages/StudyMaterials'));
+const Community = lazy(() => import('./pages/Community'));
 
 // Optimized QueryClient with aggressive caching and deduplication
 const queryClient = new QueryClient({
@@ -143,6 +144,9 @@ const App = () => {
                               <Route path="/academy/lesson/:lessonId" element={<LessonView />} />
                               <Route path="/academy/quiz/:quizId" element={<QuizView />} />
                               <Route path="/academy/materials" element={<StudyMaterials />} />
+                              <Route path="/community" element={<Community />} />
+                              <Route path="/community/chat/:roomId" element={<Community />} />
+                              <Route path="/community/posts" element={<Community />} />
                               <Route path="/terms" element={<Terms />} />
                               <Route path="/disclosures" element={<Disclosures />} />
                               <Route path="/privacy" element={<Privacy />} />

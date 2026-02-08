@@ -678,6 +678,108 @@ export type Database = {
         }
         Relationships: []
       }
+      chat_messages: {
+        Row: {
+          attachment_type: string | null
+          attachment_url: string | null
+          content: string
+          created_at: string
+          detected_tickers: string[] | null
+          id: string
+          is_edited: boolean
+          mentioned_users: string[] | null
+          reply_to: string | null
+          room_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          attachment_type?: string | null
+          attachment_url?: string | null
+          content: string
+          created_at?: string
+          detected_tickers?: string[] | null
+          id?: string
+          is_edited?: boolean
+          mentioned_users?: string[] | null
+          reply_to?: string | null
+          room_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          attachment_type?: string | null
+          attachment_url?: string | null
+          content?: string
+          created_at?: string
+          detected_tickers?: string[] | null
+          id?: string
+          is_edited?: boolean
+          mentioned_users?: string[] | null
+          reply_to?: string | null
+          room_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_messages_reply_to_fkey"
+            columns: ["reply_to"]
+            isOneToOne: false
+            referencedRelation: "chat_messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chat_messages_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "chat_rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      chat_rooms: {
+        Row: {
+          created_at: string
+          created_by: string
+          description: string | null
+          icon: string | null
+          id: string
+          member_count: number
+          name: string
+          room_type: Database["public"]["Enums"]["room_type"]
+          slug: string
+          ticker: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          description?: string | null
+          icon?: string | null
+          id?: string
+          member_count?: number
+          name: string
+          room_type?: Database["public"]["Enums"]["room_type"]
+          slug: string
+          ticker?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          icon?: string | null
+          id?: string
+          member_count?: number
+          name?: string
+          room_type?: Database["public"]["Enums"]["room_type"]
+          slug?: string
+          ticker?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       companies: {
         Row: {
           asset_class: string | null
@@ -2716,6 +2818,38 @@ export type Database = {
           },
         ]
       }
+      message_reactions: {
+        Row: {
+          created_at: string
+          emoji: string
+          id: string
+          message_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          emoji: string
+          id?: string
+          message_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          emoji?: string
+          id?: string
+          message_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "message_reactions_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "chat_messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       metric_definitions: {
         Row: {
           category: string
@@ -3256,6 +3390,89 @@ export type Database = {
           },
         ]
       }
+      post_comments: {
+        Row: {
+          content: string
+          created_at: string
+          detected_tickers: string[] | null
+          id: string
+          parent_id: string | null
+          post_id: string
+          updated_at: string
+          upvotes: number
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          detected_tickers?: string[] | null
+          id?: string
+          parent_id?: string | null
+          post_id: string
+          updated_at?: string
+          upvotes?: number
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          detected_tickers?: string[] | null
+          id?: string
+          parent_id?: string | null
+          post_id?: string
+          updated_at?: string
+          upvotes?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "post_comments_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "post_comments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "post_comments_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "research_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      post_votes: {
+        Row: {
+          created_at: string
+          id: string
+          post_id: string
+          user_id: string
+          vote_type: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          post_id: string
+          user_id: string
+          vote_type: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          post_id?: string
+          user_id?: string
+          vote_type?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "post_votes_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "research_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       prediction_markets: {
         Row: {
           category: string
@@ -3705,6 +3922,80 @@ export type Database = {
             columns: ["duplicate_of"]
             isOneToOne: false
             referencedRelation: "real_world_events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      research_posts: {
+        Row: {
+          comment_count: number
+          content: string
+          created_at: string
+          detected_tickers: string[] | null
+          downvotes: number
+          id: string
+          is_pinned: boolean
+          title: string
+          updated_at: string
+          upvotes: number
+          user_id: string
+        }
+        Insert: {
+          comment_count?: number
+          content: string
+          created_at?: string
+          detected_tickers?: string[] | null
+          downvotes?: number
+          id?: string
+          is_pinned?: boolean
+          title: string
+          updated_at?: string
+          upvotes?: number
+          user_id: string
+        }
+        Update: {
+          comment_count?: number
+          content?: string
+          created_at?: string
+          detected_tickers?: string[] | null
+          downvotes?: number
+          id?: string
+          is_pinned?: boolean
+          title?: string
+          updated_at?: string
+          upvotes?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
+      room_members: {
+        Row: {
+          id: string
+          joined_at: string
+          role: string
+          room_id: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          joined_at?: string
+          role?: string
+          room_id: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          joined_at?: string
+          role?: string
+          room_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "room_members_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "chat_rooms"
             referencedColumns: ["id"]
           },
         ]
@@ -5594,6 +5885,7 @@ export type Database = {
         | "other"
       document_status: "needs_review" | "approved" | "pending" | "rejected"
       news_sentiment: "bullish" | "bearish" | "neutral"
+      room_type: "public" | "stock" | "private"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -5734,6 +6026,7 @@ export const Constants = {
       ],
       document_status: ["needs_review", "approved", "pending", "rejected"],
       news_sentiment: ["bullish", "bearish", "neutral"],
+      room_type: ["public", "stock", "private"],
     },
   },
 } as const
