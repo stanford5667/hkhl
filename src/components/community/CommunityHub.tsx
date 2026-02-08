@@ -1,4 +1,4 @@
-import { useState, lazy, Suspense } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ChatRoom as ChatRoomType } from '@/types/community';
 import { useChatRooms } from '@/hooks/useChatRooms';
@@ -34,14 +34,14 @@ export function CommunityHub({ defaultTab = 'chat', initialRoomId }: CommunityHu
   const { rooms, loading: roomsLoading } = useChatRooms();
 
   // Select initial room if provided or default to first room
-  useState(() => {
+  useEffect(() => {
     if (initialRoomId) {
       const room = rooms.find(r => r.id === initialRoomId || r.slug === initialRoomId);
       if (room) setSelectedRoom(room);
     } else if (rooms.length > 0 && !selectedRoom) {
       setSelectedRoom(rooms[0]);
     }
-  });
+  }, [initialRoomId, rooms, selectedRoom]);
 
   const handleRoomSelect = (room: ChatRoomType) => {
     setSelectedRoom(room);
