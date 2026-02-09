@@ -153,6 +153,15 @@ export function ChatRoomView({ room, onBack }: ChatRoomViewProps) {
     }
   }, [unpinMessage]);
 
+  const handleSetMessagePremium = useCallback(async (messageId: string, isPremium: boolean) => {
+    try {
+      await setMessagePremium(messageId, isPremium);
+      toast.success(isPremium ? 'Message marked as premium' : 'Premium removed from message');
+    } catch (err: any) {
+      toast.error('Failed to update message');
+    }
+  }, [setMessagePremium]);
+
   const handleUpgradeClick = () => {
     showUpgradeModal('premiumChat');
   };
@@ -201,6 +210,7 @@ export function ChatRoomView({ room, onBack }: ChatRoomViewProps) {
                 onOpenThread={canAccess ? openThread : undefined}
                 onPin={canPin ? handlePinMessage : undefined}
                 onUnpin={canPin ? handleUnpinMessage : undefined}
+                onSetPremium={isAdmin ? handleSetMessagePremium : undefined}
                 onLoadMore={loadMoreMessages}
                 pinnedMessageIds={pinnedMessageIds}
                 canPin={canPin}
