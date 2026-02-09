@@ -1,288 +1,200 @@
 
-# Social Trading Platform Implementation Plan
+
+# Premium Chat Rooms Implementation Plan
 
 ## Overview
-This plan outlines the implementation of a Discord-like chatroom and Reddit-style research posts system that integrates with your existing stock research infrastructure. The platform will leverage Supabase Realtime for live messaging and your existing authentication system.
+Enable chat admins to mark certain chat rooms as "premium" while giving non-premium users a teaser experience—they can see blurred/partial content but need to upgrade for full access.
 
 ---
 
-## Phase 1: Database Schema Design
+## Design: The "Peek Behind the Curtain" Experience
 
-### New Tables Required
+### What Users Will See
 
-**1. `chat_rooms`** - Discord-like room definitions
-- `id` (uuid, primary key)
-- `name` (text) - e.g., "Day Trading", "AAPL Discussion"
-- `slug` (text, unique) - URL-friendly identifier
-- `description` (text)
-- `room_type` (enum: 'public', 'stock', 'private')
-- `ticker` (text, nullable) - For stock-specific rooms
-- `icon` (text) - Emoji or icon identifier
-- `member_count` (integer, default 0)
-- `created_by` (uuid, references auth.users)
-- `created_at`, `updated_at`
+```text
+┌─────────────────────────────────────┐
+│  ✨ Trade Ideas Pro       [Settings]│
+├─────────────────────────────────────┤
+│                                     │
+│   ░░░░░ Blurred older message ░░░░░ │
+│   ░░░░░ Blurred older message ░░░░░ │
+│                                     │
+│  ┌─────────────────────────────────┐│
+│  │      🔒 Premium Room            ││
+│  │                                 ││
+│  │  45 traders discussing now     ││
+│  │                                 ││
+│  │  [Unlock Full Access]          ││
+│  └─────────────────────────────────┘│
+│                                     │
+│   Visible teaser message #1         │
+│   Visible teaser message #2         │
+│   Visible teaser message #3         │
+│                                     │
+├─────────────────────────────────────┤
+│  🔒 Upgrade to join the chat...     │
+└─────────────────────────────────────┘
+```
 
-**2. `chat_messages`** - Real-time messages
-- `id` (uuid, primary key)
-- `room_id` (uuid, references chat_rooms)
-- `user_id` (uuid, references auth.users)
-- `content` (text)
-- `mentioned_users` (uuid[]) - For @mentions
-- `detected_tickers` (text[]) - Auto-extracted $AAPL, #TSLA
-- `reply_to` (uuid, nullable) - Thread support
-- `attachment_url` (text, nullable)
-- `attachment_type` (text, nullable)
-- `is_edited` (boolean, default false)
-- `created_at`, `updated_at`
+**Free Users in Premium Rooms:**
+- Room appears in the list with a ✨ crown badge
+- Can enter and see the last 3-5 messages (partially blurred)
+- A frosted glass overlay covers older messages with social proof
+- Can't type messages (input shows upgrade prompt with lock icon)
 
-**3. `message_reactions`** - Emoji reactions
-- `id` (uuid, primary key)
-- `message_id` (uuid, references chat_messages)
-- `user_id` (uuid, references auth.users)
-- `emoji` (text)
-- `created_at`
-- Unique constraint on (message_id, user_id, emoji)
+**Pro Users:** Full access, same experience as public rooms
 
-**4. `research_posts`** - Reddit-style posts
-- `id` (uuid, primary key)
-- `user_id` (uuid, references auth.users)
-- `title` (text)
-- `content` (text) - Markdown supported
-- `detected_tickers` (text[])
-- `upvotes` (integer, default 0)
-- `downvotes` (integer, default 0)
-- `comment_count` (integer, default 0)
-- `is_pinned` (boolean, default false)
-- `created_at`, `updated_at`
+**Admins:** Settings gear in room header to toggle premium status
 
-**5. `post_votes`** - Track user votes
-- `id` (uuid, primary key)
-- `post_id` (uuid, references research_posts)
-- `user_id` (uuid, references auth.users)
-- `vote_type` (integer: 1 for upvote, -1 for downvote)
-- `created_at`
-- Unique constraint on (post_id, user_id)
+---
 
-**6. `post_comments`** - Comment threads
-- `id` (uuid, primary key)
-- `post_id` (uuid, references research_posts)
-- `user_id` (uuid, references auth.users)
-- `parent_id` (uuid, nullable) - For nested replies
-- `content` (text)
-- `detected_tickers` (text[])
-- `upvotes` (integer, default 0)
-- `created_at`, `updated_at`
+## Phase 1: Database Schema
 
-**7. `room_members`** - Track room membership (for private rooms)
-- `id` (uuid, primary key)
-- `room_id` (uuid, references chat_rooms)
-- `user_id` (uuid, references auth.users)
-- `joined_at` (timestamp)
-- `role` (text: 'member', 'moderator')
+### Add `is_premium` Column
 
-### RLS Policies
-- Public rooms: Anyone can read, authenticated users can write
-- Private rooms: Only members can read/write
-- Posts/comments: Authenticated users can create, anyone can read
-- Votes: One vote per user per post (enforced via unique constraint)
-
-### Realtime Configuration
 ```sql
-ALTER PUBLICATION supabase_realtime ADD TABLE chat_messages;
-ALTER PUBLICATION supabase_realtime ADD TABLE message_reactions;
-ALTER PUBLICATION supabase_realtime ADD TABLE research_posts;
+ALTER TABLE chat_rooms ADD COLUMN is_premium boolean DEFAULT false;
 ```
 
+This simple boolean flag on the existing `chat_rooms` table is all that's needed.
+
 ---
 
-## Phase 2: Core Components Architecture
+## Phase 2: Update Types & Hooks
 
-### Directory Structure
-```text
-src/components/community/
-├── chat/
-│   ├── ChatRoomList.tsx       - Room sidebar navigation
-│   ├── ChatRoom.tsx           - Main chat view
-│   ├── MessageList.tsx        - Virtualized message list
-│   ├── MessageItem.tsx        - Individual message with reactions
-│   ├── MessageInput.tsx       - Rich text input with mentions
-│   ├── ReactionPicker.tsx     - Emoji reaction selector
-│   └── RoomHeader.tsx         - Room info + stock link
-├── posts/
-│   ├── PostFeed.tsx           - Reddit-style feed
-│   ├── PostCard.tsx           - Post preview with voting
-│   ├── PostDetail.tsx         - Full post view
-│   ├── PostEditor.tsx         - Create/edit post
-│   ├── CommentThread.tsx      - Nested comments
-│   └── VoteButtons.tsx        - Upvote/downvote controls
-├── shared/
-│   ├── TickerMention.tsx      - Auto-linked ticker badge
-│   ├── UserMention.tsx        - @mention rendering
-│   ├── StockSidebar.tsx       - Mini chart + quote
-│   └── MemberList.tsx         - Online users
-└── hooks/
-    ├── useChatRoom.ts         - Room subscription
-    ├── useRealtimeMessages.ts - Message streaming
-    └── usePostVoting.ts       - Vote management
+### 2.1 Update `src/types/community.ts`
+
+Add `is_premium` field to the `ChatRoom` interface.
+
+### 2.2 Update `src/hooks/useChatRooms.ts`
+
+Add new function `setRoomPremium(roomId, isPremium)` for admins to toggle premium status via a simple update query.
+
+---
+
+## Phase 3: New Components
+
+### 3.1 Create `PremiumRoomGate.tsx`
+
+A reusable overlay component that displays:
+- Frosted glass background (`bg-background/80 backdrop-blur-sm`)
+- Crown icon with gradient styling (matching existing `DynamicScreener.tsx` pattern)
+- Social proof: "X traders discussing now" using `room.member_count`
+- "Unlock Full Access" button that calls `showUpgradeModal('premiumChat')`
+- Fade gradient at the top of visible content
+
+### 3.2 Create `RoomSettings.tsx`
+
+A dropdown or popover for admins (using `useAdmin` hook) with:
+- Toggle switch: "Make this room Premium"
+- Only visible when `isAdmin === true`
+- Calls `setRoomPremium()` on toggle
+
+---
+
+## Phase 4: Update Existing Components
+
+### 4.1 `ChatRoomList.tsx`
+
+- Add Crown icon (from lucide-react) next to premium room names
+- Add subtle gold/amber accent styling to premium room items
+- Show "PRO" badge similar to existing `Badge` component usage
+
+### 4.2 `ChatRoomView.tsx`
+
+Core gating logic:
+```typescript
+const { isPro, showUpgradeModal } = useUsage();
+const { isAdmin } = useAdmin();
+
+// Full access if: not premium, OR user is pro, OR user is admin
+const canAccess = !room.is_premium || isPro || isAdmin;
+
+// Teaser: show last 5 messages when gated
+const displayMessages = canAccess 
+  ? messages 
+  : messages.slice(-5);
 ```
 
----
+- Wrap `MessageList` with conditional `PremiumRoomGate`
+- Pass `blurred` prop and limited messages when gated
+- Add settings button in header for admins
 
-## Phase 3: Chat System Implementation
+### 4.3 `MessageList.tsx`
 
-### 3.1 Realtime Message Service
-Create a service similar to `portfolioRealtimeService.ts`:
+- Add optional `blurred` prop
+- When `blurred=true`: apply `blur-sm` class to all messages except the newest 3
+- Add gradient fade overlay at top of blurred section
 
-```text
-src/services/chatRealtimeService.ts
-- Subscribe to room-specific channels
-- Handle message INSERT/UPDATE/DELETE events
-- Manage typing indicators via Presence API
-- Broadcast new reactions in real-time
-```
+### 4.4 `MessageInput.tsx`
 
-### 3.2 Ticker Auto-Detection
-Utility function to parse messages:
+- Add `lockedMessage` prop for premium room gating
+- When locked: show lock icon, disabled state, and "Upgrade to join the conversation" text
+- Click triggers `showUpgradeModal('premiumChat')`
 
-```text
-src/utils/tickerParser.ts
-- Regex patterns: /\$([A-Z]{1,5})/g for $AAPL format
-- Regex patterns: /#([A-Z]{1,5})/g for #AAPL format
-- Validate against asset_universe table
-- Return array of detected tickers
-```
+### 4.5 `RoomHeader.tsx`
 
-### 3.3 Virtual Scrolling for Chat
-Leverage existing `react-window` pattern from `VirtualizedResultsTable.tsx`:
-- Reverse scroll (newest at bottom)
-- Infinite scroll for history
-- Estimated 50-100 messages visible
-- Lazy load older messages on scroll up
-
-### 3.4 Message Input Features
-- @mention autocomplete (query profiles table)
-- $ticker autocomplete (query asset_universe)
-- Emoji picker integration
-- File upload to Supabase storage (pattern from `UploadZone.tsx`)
+- Show Crown icon next to room name when `room.is_premium`
+- Add Settings button (gear icon) for admins that opens `RoomSettings`
 
 ---
 
-## Phase 4: Research Posts Implementation
+## File Summary
 
-### 4.1 Post Feed
-- Sort options: Hot (score-decay), New, Top (day/week/month)
-- Filter by ticker tags
-- Infinite scroll pagination
-- Skeleton loading states
-
-### 4.2 Voting System
-- Optimistic UI updates
-- Database trigger to update post vote counts
-- Rate limiting (max votes per minute)
-
-### 4.3 Comment Threading
-- Nested replies (max 3 levels deep for mobile)
-- Collapse/expand threads
-- Sort by best/newest
-
----
-
-## Phase 5: Stock Integration
-
-### 5.1 Auto-Linking Tickers
-Enhance `TickerBadge.tsx` for inline rendering:
-- Hover preview with mini chart
-- Click navigates to `/stock/{ticker}`
-
-### 5.2 Stock Sidebar Widget
-For chat rooms with `room_type === 'stock'`:
-- Mini sparkline chart
-- Current price + change
-- Quick link to full research page
-- Uses existing `getCachedFullQuote` service
-
-### 5.3 Stock-Specific Rooms
-Auto-create rooms when users visit popular tickers:
-- Check if room exists for ticker
-- If not, create on-demand
-- Link from stock detail page tab
-
----
-
-## Phase 6: Mobile Optimization
-
-### 6.1 Responsive Layout
-- Collapsible room sidebar (drawer on mobile)
-- Touch-friendly message actions (long-press for reactions)
-- Swipe gestures for room navigation
-- Bottom-anchored message input
-
-### 6.2 Performance Optimizations
-- Virtual scrolling for messages (react-window)
-- Debounced typing indicators
-- Lazy load user avatars
-- Message batching (group rapid messages)
-
----
-
-## Phase 7: New Pages & Routes
-
-### Routes to Add
-```text
-/community              - Main hub (room list + feed)
-/community/chat/:roomId - Specific chat room
-/community/posts        - Research post feed
-/community/posts/:id    - Single post detail
-/community/new-post     - Create post form
-```
-
-### Navigation Integration
-Add "Community" link to main sidebar/header navigation.
+| Action | File |
+|--------|------|
+| Create | `src/components/community/chat/PremiumRoomGate.tsx` |
+| Create | `src/components/community/chat/RoomSettings.tsx` |
+| Modify | `src/types/community.ts` |
+| Modify | `src/hooks/useChatRooms.ts` |
+| Modify | `src/components/community/chat/ChatRoomList.tsx` |
+| Modify | `src/components/community/chat/ChatRoomView.tsx` |
+| Modify | `src/components/community/chat/MessageList.tsx` |
+| Modify | `src/components/community/chat/MessageInput.tsx` |
+| Modify | `src/components/community/chat/RoomHeader.tsx` |
+| Database | Add `is_premium` column to `chat_rooms` |
 
 ---
 
 ## Technical Details
 
-### Database Functions
-```sql
--- Auto-increment member count on room join
-CREATE FUNCTION update_room_member_count()
+### Existing Patterns Being Followed
 
--- Update post vote totals on vote change
-CREATE FUNCTION update_post_vote_counts()
+1. **Blur Pattern** from `DynamicScreener.tsx` (line 740):
+   ```jsx
+   <div className="blur-sm pointer-events-none">
+     {/* blurred content */}
+   </div>
+   <div className="absolute inset-0 bg-background/80 backdrop-blur-[2px] ...">
+     {/* overlay with CTA */}
+   </div>
+   ```
 
--- Update comment count on new comment
-CREATE FUNCTION update_post_comment_count()
-```
+2. **Premium Badge Styling** from `PremiumBadge.tsx`:
+   ```jsx
+   className="bg-gradient-to-r from-amber-500/10 to-orange-500/10 
+              border-amber-500/30 text-amber-500"
+   ```
 
-### Storage Bucket
-Create `chat-attachments` bucket for file uploads in messages.
+3. **Usage Context** hook from `UsageContext.tsx`:
+   ```typescript
+   const { isPro, showUpgradeModal } = useUsage();
+   ```
 
-### Estimated New Files
-- 15-20 new React components
-- 3-5 custom hooks
-- 2-3 service files
-- 1 utility file (ticker parser)
-- 1 types file for community features
+4. **Admin Check** from `useAdmin.ts`:
+   ```typescript
+   const { isAdmin } = useAdmin();
+   ```
 
----
+### Implementation Order
 
-## Implementation Order
+1. Run database migration (add `is_premium` column)
+2. Update types and hooks
+3. Create `PremiumRoomGate` component
+4. Create `RoomSettings` component
+5. Update `ChatRoomView` with gate logic
+6. Update `MessageInput` with disabled/locked state
+7. Update `MessageList` with blur support
+8. Update `ChatRoomList` with premium badges
+9. Update `RoomHeader` with premium indicator and settings button
 
-1. **Database Setup** - Create tables, RLS policies, enable realtime
-2. **Basic Chat UI** - Room list, message display, input
-3. **Realtime Integration** - Live message streaming
-4. **Post System** - CRUD for posts, voting
-5. **Comments** - Threaded replies
-6. **Stock Integration** - Ticker detection, sidebar, auto-linking
-7. **File Uploads** - Attachments in chat
-8. **Polish** - Reactions, mentions, mobile optimization
-
----
-
-## Dependencies
-All required packages are already installed:
-- `react-window` for virtualization
-- `@supabase/supabase-js` for realtime
-- Existing UI components (Card, Button, Avatar, etc.)
-- `framer-motion` for animations (already available)
