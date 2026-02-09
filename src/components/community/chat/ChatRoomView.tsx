@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import { ChatRoom } from '@/types/community';
 import { useRealtimeMessages } from '@/hooks/useRealtimeMessages';
 import { useTypingIndicator } from '@/hooks/useTypingIndicator';
@@ -77,12 +77,12 @@ export function ChatRoomView({ room, onBack }: ChatRoomViewProps) {
   }, [pinnedMessages]);
 
   // Mark room as read when viewing
-  useState(() => {
+  useEffect(() => {
     if (canAccess && messages.length > 0) {
       const lastMessage = messages[messages.length - 1];
       markRoomAsRead(room.id, lastMessage.id);
     }
-  });
+  }, [canAccess, messages, room.id, markRoomAsRead]);
 
   const handleSendMessage = async (content: string) => {
     try {
