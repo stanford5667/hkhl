@@ -5,7 +5,7 @@ import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Hash, TrendingUp, Lock, Plus, Users } from 'lucide-react';
+import { Hash, TrendingUp, Lock, Plus, Users, Crown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface ChatRoomListProps {
@@ -59,7 +59,8 @@ export function ChatRoomList({
         className={cn(
           "w-full flex items-center gap-2 px-3 py-2 rounded-lg text-left",
           "transition-colors hover:bg-muted",
-          isActive && "bg-primary/10 text-primary"
+          isActive && "bg-primary/10 text-primary",
+          room.is_premium && "border border-amber-500/30 bg-gradient-to-r from-amber-500/5 to-orange-500/5"
         )}
       >
         <span className="text-lg">{room.icon}</span>
@@ -71,6 +72,15 @@ export function ChatRoomList({
             )}>
               {room.name}
             </span>
+            {room.is_premium && (
+              <Badge 
+                variant="outline" 
+                className="text-[10px] px-1.5 py-0 border-amber-500/50 bg-amber-500/10 text-amber-600"
+              >
+                <Crown className="h-2.5 w-2.5 mr-0.5" />
+                PRO
+              </Badge>
+            )}
             {room.ticker && (
               <Badge variant="outline" className="text-[10px] px-1.5 py-0">
                 ${room.ticker}

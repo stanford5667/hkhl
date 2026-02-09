@@ -95,6 +95,18 @@ export function useChatRooms() {
     return rooms.filter(room => room.room_type === type);
   };
 
+  const setRoomPremium = async (roomId: string, isPremium: boolean) => {
+    const { error } = await supabase
+      .from('chat_rooms')
+      .update({ is_premium: isPremium })
+      .eq('id', roomId);
+
+    if (error) throw error;
+    
+    // Refresh rooms list
+    await fetchRooms();
+  };
+
   return {
     rooms,
     loading,
@@ -103,6 +115,7 @@ export function useChatRooms() {
     createRoom,
     getOrCreateStockRoom,
     getRoomsByType,
+    setRoomPremium,
     publicRooms: getRoomsByType('public'),
     stockRooms: getRoomsByType('stock'),
   };

@@ -2,12 +2,14 @@ import { ChatRoom } from '@/types/community';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Users, TrendingUp, Info, ExternalLink } from 'lucide-react';
+import { ArrowLeft, Users, TrendingUp, ExternalLink, Crown } from 'lucide-react';
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { RoomSettings } from './RoomSettings';
+import { useAdmin } from '@/hooks/useAdmin';
 
 interface RoomHeaderProps {
   room: ChatRoom;
@@ -16,6 +18,7 @@ interface RoomHeaderProps {
 
 export function RoomHeader({ room, onBack }: RoomHeaderProps) {
   const navigate = useNavigate();
+  const { isAdmin } = useAdmin();
 
   return (
     <div className="flex items-center gap-3 px-4 py-3 border-b bg-background/95 backdrop-blur-sm">
@@ -35,6 +38,15 @@ export function RoomHeader({ room, onBack }: RoomHeaderProps) {
         <div>
           <div className="flex items-center gap-2">
             <h2 className="font-semibold">{room.name}</h2>
+            {room.is_premium && (
+              <Badge 
+                variant="outline" 
+                className="border-amber-500/50 bg-amber-500/10 text-amber-600"
+              >
+                <Crown className="h-3 w-3 mr-1" />
+                PRO
+              </Badge>
+            )}
             {room.ticker && (
               <Badge
                 variant="secondary"
@@ -78,6 +90,10 @@ export function RoomHeader({ room, onBack }: RoomHeaderProps) {
             <TrendingUp className="h-4 w-4" />
             View Research
           </Button>
+        )}
+
+        {isAdmin && (
+          <RoomSettings roomId={room.id} isPremium={room.is_premium} />
         )}
       </div>
     </div>
