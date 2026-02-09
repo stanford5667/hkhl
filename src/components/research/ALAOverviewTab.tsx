@@ -22,10 +22,12 @@ import {
   InsightsDeck, 
   FloatingActionMenu,
   MobileChartCard,
+  TradingRangeBar,
   type MetricData,
   type InsightData,
   type ChartTimeframe 
 } from './mobile';
+import { ShimmerSkeleton, ShimmerChartCard, ShimmerMetricCard, ShimmerPriceHeader } from '@/components/ui/shimmer-skeleton';
 import { Activity, RefreshCw, Star, Bell } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -322,9 +324,15 @@ export function ALAOverviewTab({
   if (isLoadingQuote || isDataLoading) {
     return (
       <div className="space-y-3 p-4">
-        <Skeleton className="h-20 w-full" />
-        <Skeleton className="h-[280px] w-full" />
-        <Skeleton className="h-24 w-full" />
+        <ShimmerPriceHeader />
+        <ShimmerChartCard height={240} />
+        <div className="flex gap-3 overflow-hidden">
+          <ShimmerMetricCard />
+          <ShimmerMetricCard />
+          <ShimmerMetricCard />
+        </div>
+        <ShimmerSkeleton variant="rounded" height={80} />
+        <ShimmerSkeleton variant="rounded" height={120} />
       </div>
     );
   }
@@ -362,6 +370,17 @@ export function ALAOverviewTab({
               isRefreshing={isRefreshing}
             />
           </MobileChartCard>
+
+          {/* Trading Range Bar - OHLC Summary */}
+          {quote && (
+            <TradingRangeBar
+              open={quote.open}
+              high={quote.high}
+              low={quote.low}
+              current={quote.price}
+              previousClose={quote.previousClose}
+            />
+          )}
 
           {/* Metrics Carousel */}
           {carouselMetrics.length > 0 && (
@@ -560,6 +579,17 @@ export function ALAOverviewTab({
               isRefreshing={isRefreshing}
             />
           </Card>
+
+          {/* Trading Range Bar - OHLC Summary */}
+          {quote && (
+            <TradingRangeBar
+              open={quote.open}
+              high={quote.high}
+              low={quote.low}
+              current={quote.price}
+              previousClose={quote.previousClose}
+            />
+          )}
 
           {/* Metrics Carousel - Now visible on desktop too */}
           {carouselMetrics.length > 0 && (
