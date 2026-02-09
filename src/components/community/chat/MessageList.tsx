@@ -44,6 +44,7 @@ interface MessageItemProps {
   onOpenThread?: (message: ChatMessage) => void;
   onPin?: (messageId: string) => void;
   onUnpin?: (messageId: string) => void;
+  onSetPremium?: (messageId: string, isPremium: boolean) => void;
   isPinned?: boolean;
   canPin?: boolean;
   getUserPresence?: (userId: string) => 'online' | 'idle' | 'offline';
@@ -59,6 +60,7 @@ const MessageItem = memo(function MessageItem({
   onOpenThread,
   onPin,
   onUnpin,
+  onSetPremium,
   isPinned = false,
   canPin = false,
   getUserPresence,
@@ -270,6 +272,22 @@ const MessageItem = memo(function MessageItem({
                 <DropdownMenuSeparator />
               </>
             )}
+            {isAdmin && onSetPremium && (
+              <>
+                {isPremiumMessage ? (
+                  <DropdownMenuItem onClick={() => onSetPremium(message.id, false)}>
+                    <Lock className="h-4 w-4 mr-2" />
+                    Remove Premium
+                  </DropdownMenuItem>
+                ) : (
+                  <DropdownMenuItem onClick={() => onSetPremium(message.id, true)}>
+                    <Crown className="h-4 w-4 mr-2" />
+                    Mark as Premium
+                  </DropdownMenuItem>
+                )}
+                <DropdownMenuSeparator />
+              </>
+            )}
             {isOwn && onEdit && (
               <DropdownMenuItem onClick={() => onEdit(message.id)}>
                 <Pencil className="h-4 w-4 mr-2" />
@@ -305,6 +323,7 @@ interface MessageListProps {
   onOpenThread?: (message: ChatMessage) => void;
   onPin?: (messageId: string) => void;
   onUnpin?: (messageId: string) => void;
+  onSetPremium?: (messageId: string, isPremium: boolean) => void;
   onLoadMore: () => void;
   pinnedMessageIds?: Set<string>;
   canPin?: boolean;
@@ -324,6 +343,7 @@ export function MessageList({
   onOpenThread,
   onPin,
   onUnpin,
+  onSetPremium,
   onLoadMore,
   pinnedMessageIds = new Set(),
   canPin = false,
@@ -411,6 +431,7 @@ export function MessageList({
             onOpenThread={blurred ? undefined : onOpenThread}
             onPin={blurred ? undefined : onPin}
             onUnpin={blurred ? undefined : onUnpin}
+            onSetPremium={blurred ? undefined : onSetPremium}
             isPinned={pinnedMessageIds.has(message.id)}
             canPin={canPin}
             getUserPresence={getUserPresence}
