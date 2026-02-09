@@ -1,9 +1,12 @@
 import { useState, useCallback } from 'react';
 import { ChatRoom } from '@/types/community';
 import { useRealtimeMessages } from '@/hooks/useRealtimeMessages';
+import { useUsage } from '@/contexts/UsageContext';
+import { useAdmin } from '@/hooks/useAdmin';
 import { MessageList } from './MessageList';
 import { MessageInput } from './MessageInput';
 import { RoomHeader } from './RoomHeader';
+import { PremiumRoomGate } from './PremiumRoomGate';
 import { toast } from 'sonner';
 
 interface ChatRoomViewProps {
@@ -17,6 +20,12 @@ export function ChatRoomView({ room, onBack }: ChatRoomViewProps) {
     content: string;
     userName: string;
   } | null>(null);
+
+  const { isPro, showUpgradeModal } = useUsage();
+  const { isAdmin } = useAdmin();
+
+  // Full access if: not premium, OR user is pro, OR user is admin
+  const canAccess = !room.is_premium || isPro || isAdmin;
 
   const {
     messages,
@@ -77,8 +86,12 @@ export function ChatRoomView({ room, onBack }: ChatRoomViewProps) {
     }
   }, [messages]);
 
+  const handleUpgradeClick = () => {
+    showUpgradeModal('premiumChat');
+  };
+
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full relative">
       <RoomHeader room={room} onBack={onBack} />
 
       {error && (
@@ -87,22 +100,35 @@ export function ChatRoomView({ room, onBack }: ChatRoomViewProps) {
         </div>
       )}
 
-      <MessageList
-        messages={messages}
-        loading={loading}
-        hasMore={hasMore}
-        onAddReaction={handleAddReaction}
-        onRemoveReaction={handleRemoveReaction}
-        onDelete={handleDeleteMessage}
-        onReply={handleReply}
-        onLoadMore={loadMoreMessages}
-      />
+      <div className="flex-1 relative overflow-hidden">
+        <MessageList
+          messages={messages}
+          loading={loading}
+          hasMore={hasMore}
+          blurred={!canAccess}
+          onAddReaction={handleAddReaction}
+          onRemoveReaction={handleRemoveReaction}
+          onDelete={canAccess ? handleDeleteMessage : undefined}
+          onReply={canAccess ? handleReply : undefined}
+          onLoadMore={loadMoreMessages}
+        />
+
+        {/* Premium gate overlay */}
+        {!canAccess && (
+          <PremiumRoomGate 
+            memberCount={room.member_count} 
+            roomName={room.name} 
+          />
+        )}
+      </div>
 
       <MessageInput
         onSend={handleSendMessage}
         replyingTo={replyingTo}
         onCancelReply={() => setReplyingTo(null)}
         placeholder={`Message #${room.name}...`}
+        locked={!canAccess}
+        onUpgradeClick={handleUpgradeClick}
       />
     </div>
   );

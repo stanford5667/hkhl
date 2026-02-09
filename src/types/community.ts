@@ -11,6 +11,7 @@ export interface ChatRoom {
   ticker: string | null;
   icon: string;
   member_count: number;
+  is_premium: boolean;
   created_by: string;
   created_at: string;
   updated_at: string;

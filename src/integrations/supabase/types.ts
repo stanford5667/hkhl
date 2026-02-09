@@ -745,6 +745,7 @@ export type Database = {
           description: string | null
           icon: string | null
           id: string
+          is_premium: boolean | null
           member_count: number
           name: string
           room_type: Database["public"]["Enums"]["room_type"]
@@ -758,6 +759,7 @@ export type Database = {
           description?: string | null
           icon?: string | null
           id?: string
+          is_premium?: boolean | null
           member_count?: number
           name: string
           room_type?: Database["public"]["Enums"]["room_type"]
@@ -771,6 +773,7 @@ export type Database = {
           description?: string | null
           icon?: string | null
           id?: string
+          is_premium?: boolean | null
           member_count?: number
           name?: string
           room_type?: Database["public"]["Enums"]["room_type"]

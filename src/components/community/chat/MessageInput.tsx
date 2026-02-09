@@ -1,9 +1,9 @@
-import { useState, useRef, useCallback, useEffect } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
-import { Send, Paperclip, Smile, X, AtSign } from 'lucide-react';
+import { Send, Smile, X, Lock } from 'lucide-react';
 import { 
   Popover, 
   PopoverContent, 
@@ -16,6 +16,8 @@ interface MessageInputProps {
   onSend: (content: string) => Promise<void>;
   placeholder?: string;
   disabled?: boolean;
+  locked?: boolean;
+  onUpgradeClick?: () => void;
   replyingTo?: {
     id: string;
     content: string;
@@ -28,13 +30,15 @@ export function MessageInput({
   onSend,
   placeholder = 'Type a message... Use $TICKER to mention stocks',
   disabled = false,
+  locked = false,
+  onUpgradeClick,
   replyingTo,
   onCancelReply,
 }: MessageInputProps) {
   const [content, setContent] = useState('');
   const [sending, setSending] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const { user, isAuthenticated } = useAuth();
+  const { isAuthenticated } = useAuth();
 
   // Auto-resize textarea
   useEffect(() => {
@@ -79,6 +83,22 @@ export function MessageInput({
         <p className="text-sm text-muted-foreground">
           Please sign in to send messages
         </p>
+      </div>
+    );
+  }
+
+  if (locked) {
+    return (
+      <div 
+        className="p-4 border-t bg-muted/50 text-center cursor-pointer hover:bg-muted/70 transition-colors"
+        onClick={onUpgradeClick}
+      >
+        <div className="flex items-center justify-center gap-2 text-muted-foreground">
+          <Lock className="h-4 w-4" />
+          <p className="text-sm font-medium">
+            Upgrade to Pro to join the conversation
+          </p>
+        </div>
       </div>
     );
   }

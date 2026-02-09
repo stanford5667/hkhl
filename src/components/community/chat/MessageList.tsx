@@ -204,6 +204,7 @@ interface MessageListProps {
   messages: ChatMessage[];
   loading: boolean;
   hasMore: boolean;
+  blurred?: boolean;
   onAddReaction: (messageId: string, emoji: string) => void;
   onRemoveReaction: (messageId: string, emoji: string) => void;
   onEdit?: (messageId: string) => void;
@@ -216,6 +217,7 @@ export function MessageList({
   messages,
   loading,
   hasMore,
+  blurred = false,
   onAddReaction,
   onRemoveReaction,
   onEdit,
@@ -253,9 +255,14 @@ export function MessageList({
     );
   }
 
+  // For blurred mode, show a gradient fade at the top of visible messages
+  const visibleCount = 3;
+  const blurredMessages = blurred ? messages.slice(0, -visibleCount) : [];
+  const visibleMessages = blurred ? messages.slice(-visibleCount) : messages;
+
   return (
     <ScrollArea ref={scrollRef} className="flex-1 h-[calc(100vh-250px)]">
-      {hasMore && (
+      {hasMore && !blurred && (
         <div className="flex justify-center py-2">
           <Button
             variant="ghost"
@@ -267,16 +274,36 @@ export function MessageList({
           </Button>
         </div>
       )}
+      
+      {/* Blurred older messages (teaser mode) */}
+      {blurred && blurredMessages.length > 0 && (
+        <div className="relative">
+          <div className="blur-sm pointer-events-none opacity-50">
+            {blurredMessages.map((message) => (
+              <MessageItem
+                key={message.id}
+                message={message}
+                onAddReaction={onAddReaction}
+                onRemoveReaction={onRemoveReaction}
+              />
+            ))}
+          </div>
+          {/* Gradient fade overlay */}
+          <div className="absolute inset-0 bg-gradient-to-b from-background via-background/50 to-transparent pointer-events-none" />
+        </div>
+      )}
+      
+      {/* Visible messages */}
       <div className="space-y-0">
-        {messages.map((message) => (
+        {visibleMessages.map((message) => (
           <MessageItem
             key={message.id}
             message={message}
             onAddReaction={onAddReaction}
             onRemoveReaction={onRemoveReaction}
-            onEdit={onEdit}
-            onDelete={onDelete}
-            onReply={onReply}
+            onEdit={blurred ? undefined : onEdit}
+            onDelete={blurred ? undefined : onDelete}
+            onReply={blurred ? undefined : onReply}
           />
         ))}
       </div>
