@@ -54,6 +54,7 @@ const Disclosures = lazy(() => import('./pages/Disclosures'));
 const Privacy = lazy(() => import('./pages/Privacy'));
 const Glossary = lazy(() => import('./pages/Glossary'));
 const Builder = lazy(() => import('./pages/Builder'));
+const Charting = lazy(() => import('./pages/Charting'));
 const NotFound = lazy(() => import('./pages/NotFound'));
 const VerifyEmail = lazy(() => import('./pages/VerifyEmail'));
 const Academy = lazy(() => import('./pages/Academy'));
@@ -139,6 +140,7 @@ const App = () => {
                               <Route path="/quant-lab" element={<QuantLab />} />
                               <Route path="/backtester" element={<BacktesterPage />} />
                               <Route path="/builder" element={<Builder />} />
+                              <Route path="/chart" element={<Charting />} />
                               <Route path="/academy" element={<Academy />} />
                               <Route path="/academy/course/:courseId" element={<CourseDetail />} />
                               <Route path="/academy/lesson/:lessonId" element={<LessonView />} />
