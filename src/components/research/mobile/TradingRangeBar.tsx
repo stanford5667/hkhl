@@ -27,28 +27,32 @@ export function TradingRangeBar({
     : null;
 
   const formatPrice = (price: number) => {
-    return price >= 1000 
-      ? `$${(price / 1000).toFixed(1)}k`
-      : `$${price.toFixed(2)}`;
+    if (price >= 10000) return `$${(price / 1000).toFixed(0)}k`;
+    if (price >= 1000) return `$${(price / 1000).toFixed(1)}k`;
+    if (price >= 100) return `$${price.toFixed(0)}`;
+    return `$${price.toFixed(2)}`;
   };
 
   const isAboveOpen = current >= open;
 
+  // Clamp position to prevent overflow
+  const clampedPosition = Math.max(5, Math.min(95, position));
+
   return (
-    <div className={cn("bg-card border border-border rounded-xl p-3", className)}>
+    <div className={cn("bg-card border border-border rounded-xl p-3 overflow-hidden", className)}>
       {/* Labels Row */}
-      <div className="flex items-center justify-between mb-2">
-        <div className="flex items-center gap-1.5">
-          <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">
+      <div className="flex items-center justify-between mb-2 gap-2">
+        <div className="flex items-center gap-1.5 min-w-0">
+          <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide whitespace-nowrap">
             Day Range
           </span>
-          <span className="text-[10px] text-muted-foreground">
-            ({((position).toFixed(0))}% of range)
+          <span className="text-[10px] text-muted-foreground whitespace-nowrap">
+            ({((position).toFixed(0))}%)
           </span>
         </div>
-        <div className="flex items-center gap-3 text-[10px] text-muted-foreground">
-          <span>O: {formatPrice(open)}</span>
-          {previousClose && <span>PC: {formatPrice(previousClose)}</span>}
+        <div className="flex items-center gap-2 text-[10px] text-muted-foreground flex-shrink-0">
+          <span className="whitespace-nowrap">O: {formatPrice(open)}</span>
+          {previousClose && <span className="whitespace-nowrap hidden sm:inline">PC: {formatPrice(previousClose)}</span>}
         </div>
       </div>
 
@@ -75,7 +79,7 @@ export function TradingRangeBar({
                 : "bg-gradient-to-r from-muted via-destructive/40 to-destructive"
             )}
             initial={{ width: 0 }}
-            animate={{ width: `${Math.max(2, position)}%` }}
+            animate={{ width: `${Math.max(2, clampedPosition)}%` }}
             transition={{ duration: 0.6, ease: "easeOut" }}
           />
 
@@ -101,7 +105,7 @@ export function TradingRangeBar({
                 ? "bg-success border-success-foreground" 
                 : "bg-destructive border-destructive-foreground"
             )}
-            style={{ left: `calc(${position}% - 8px)` }}
+            style={{ left: `calc(${clampedPosition}% - 8px)` }}
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
             transition={{ delay: 0.3, type: "spring", stiffness: 300 }}

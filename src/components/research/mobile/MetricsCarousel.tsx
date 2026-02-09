@@ -40,12 +40,12 @@ export function MetricsCarousel({ metrics, onMetricTap }: MetricsCarouselProps) 
   };
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-3 overflow-hidden">
       {/* Scrollable Cards */}
       <div
         ref={scrollRef}
         onScroll={handleScroll}
-        className="flex gap-3 overflow-x-auto scrollbar-hide snap-x snap-mandatory px-4 pb-2 -mx-4"
+        className="flex gap-3 overflow-x-auto scrollbar-hide snap-x snap-mandatory pl-4 pr-4 pb-2"
         style={{ scrollPaddingLeft: '1rem' }}
       >
         {metrics.map((metric, index) => {
