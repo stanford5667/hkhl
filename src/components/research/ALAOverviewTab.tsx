@@ -1,14 +1,11 @@
 import { useMemo, useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { TrendingUp, TrendingDown, RefreshCw, Building2, ChevronDown, Activity } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { QuickHistoricalInsights, StreakData, HistoricalPattern } from './QuickHistoricalInsights';
 import { EarningsImpactSection } from './EarningsImpactSection';
-import { BasicStatsData, BasicStatistics } from './BasicStatistics';
+import { BasicStatsData } from './BasicStatistics';
 import { IntegratedStockChart } from './IntegratedStockChart';
 import { useTickerSnapshot } from '@/hooks/useTickerSnapshot';
 import { useTickerAnalystData } from '@/hooks/useTickerAnalystData';
@@ -19,6 +16,21 @@ import { useComprehensiveFundamentals } from '@/hooks/useComprehensiveFundamenta
 import { ComprehensiveMetricsCard } from './ComprehensiveMetricsCard';
 import { RiskPerformanceCard } from './RiskPerformanceCard';
 import { EarningsIntelCard } from './EarningsIntelCard';
+import { 
+  MobileStockHeader, 
+  MetricsCarousel, 
+  InsightsDeck, 
+  FloatingActionMenu,
+  MobileChartCard,
+  type MetricData,
+  type InsightData,
+  type ChartTimeframe 
+} from './mobile';
+import { Activity, RefreshCw } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { toast } from 'sonner';
+import { useNavigate } from 'react-router-dom';
+
 const LOOKBACK_OPTIONS = [
   { value: '90', label: '90 Days' },
   { value: '180', label: '180 Days' },
@@ -26,6 +38,7 @@ const LOOKBACK_OPTIONS = [
   { value: '730', label: '2 Years' },
   { value: 'all', label: 'All Data' },
 ];
+
 interface ALAOverviewTabProps {
   ticker: string;
   companyName?: string;
@@ -63,24 +76,16 @@ export function ALAOverviewTab({
   onRefresh,
   isRefreshing = false,
 }: ALAOverviewTabProps) {
-  // Lookback state for trading days stats
+  const isMobile = useIsMobile();
+  const navigate = useNavigate();
   const [lookbackDays, setLookbackDays] = useState<number | undefined>(undefined);
+  const [chartTimeframe, setChartTimeframe] = useState<ChartTimeframe>('3M');
 
   // Fetch real data from edge functions
   const { data: snapshot, isLoading: snapshotLoading, isFetching: snapshotFetching } = useTickerSnapshot(ticker, lookbackDays);
   const comprehensiveFundamentals = useComprehensiveFundamentals(ticker);
   const { data: analystData, isLoading: analystLoading } = useTickerAnalystData(ticker);
   const { data: segmentsData, isLoading: segmentsLoading } = useProductSegments(ticker);
-
-  const isPositive = (quote?.change || 0) >= 0;
-
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 2,
-    }).format(value);
-  };
 
   const formatMarketCap = (value: number | undefined) => {
     if (!value) return '—';
@@ -96,13 +101,6 @@ export function ALAOverviewTab({
     if (value >= 1e3) return `${(value / 1e3).toFixed(1)}K`;
     return value.toLocaleString();
   };
-
-  // Calculate 52-week range position
-  const week52High = snapshot?.yearRange?.week52High;
-  const week52Low = snapshot?.yearRange?.week52Low;
-  const rangePosition = week52High && week52Low && quote?.price
-    ? ((quote.price - week52Low) / (week52High - week52Low)) * 100
-    : 50;
 
   // Derive streak data from snapshot
   const streakData: StreakData | null = useMemo(() => {
@@ -198,165 +196,215 @@ export function ALAOverviewTab({
     };
   }, [snapshot]);
 
+  // Build metrics for carousel
+  const carouselMetrics: MetricData[] = useMemo(() => {
+    const metrics: MetricData[] = [];
+    
+    // Performance metric
+    if (quote) {
+      metrics.push({
+        id: 'performance',
+        title: '24H Performance',
+        value: `${quote.changePercent >= 0 ? '+' : ''}${quote.changePercent.toFixed(2)}%`,
+        trend: quote.changePercent >= 0 ? 'up' : 'down',
+        trendValue: `$${Math.abs(quote.change).toFixed(2)}`,
+        icon: 'performance',
+      });
+    }
+
+    // Volume metric
+    if (quote?.volume) {
+      metrics.push({
+        id: 'volume',
+        title: 'Volume',
+        value: formatVolume(quote.volume),
+        icon: 'volume',
+      });
+    }
+
+    // Market Cap
+    const marketCap = comprehensiveFundamentals.marketCap || quote?.marketCap;
+    if (marketCap) {
+      metrics.push({
+        id: 'marketcap',
+        title: 'Market Cap',
+        value: formatMarketCap(marketCap),
+        icon: 'fundamentals',
+      });
+    }
+
+    // P/E Ratio
+    if (comprehensiveFundamentals.pe) {
+      metrics.push({
+        id: 'pe',
+        title: 'P/E Ratio',
+        value: comprehensiveFundamentals.pe.toFixed(2),
+        icon: 'fundamentals',
+      });
+    }
+
+    // Beta
+    if (comprehensiveFundamentals.beta) {
+      const beta = comprehensiveFundamentals.beta;
+      metrics.push({
+        id: 'beta',
+        title: 'Beta',
+        value: beta.toFixed(2),
+        trend: beta > 1.2 ? 'up' : beta < 0.8 ? 'down' : 'neutral',
+        trendValue: beta > 1 ? 'High Vol' : 'Low Vol',
+        icon: 'volatility',
+      });
+    }
+
+    // Volatility
+    if (basicStats?.avgDailyMovePercent) {
+      metrics.push({
+        id: 'volatility',
+        title: 'Avg Daily Move',
+        value: `${basicStats.avgDailyMovePercent.toFixed(2)}%`,
+        icon: 'volatility',
+      });
+    }
+
+    return metrics;
+  }, [quote, comprehensiveFundamentals, basicStats]);
+
+  // Build insights from patterns
+  const insights: InsightData[] = useMemo(() => {
+    const items: InsightData[] = [];
+
+    // Add pattern-based insights
+    activePatterns.forEach(pattern => {
+      let sentiment: InsightData['sentiment'] = 'neutral';
+      if (pattern.name.includes('Oversold') || pattern.name.includes('Lower')) {
+        sentiment = 'bullish';
+      } else if (pattern.name.includes('Overbought') || pattern.name.includes('Upper')) {
+        sentiment = 'bearish';
+      }
+
+      items.push({
+        id: pattern.id,
+        title: pattern.name,
+        summary: `Historical win rate of ${pattern.winRate.toFixed(0)}% based on similar patterns`,
+        confidence: pattern.winRate,
+        sentiment,
+        details: `This pattern has historically resulted in a ${sentiment === 'bullish' ? 'bounce' : 'pullback'} ${pattern.winRate.toFixed(0)}% of the time. Based on analysis of past trading data.`,
+        source: 'Technical Analysis',
+      });
+    });
+
+    // Add streak insight
+    if (streakData && streakData.consecutiveDays >= 3) {
+      items.push({
+        id: 'streak',
+        title: `${streakData.consecutiveDays}-Day ${streakData.direction === 'up' ? 'Win' : 'Loss'} Streak`,
+        summary: `${streakData.bounceProbability.toFixed(0)}% probability of reversal based on historical data`,
+        confidence: streakData.bounceProbability,
+        sentiment: streakData.direction === 'up' ? 'caution' : 'bullish',
+        details: `The stock has moved ${streakData.direction} for ${streakData.consecutiveDays} consecutive days with a total change of ${streakData.totalChange >= 0 ? '+' : ''}${streakData.totalChange.toFixed(2)}%. Historical data suggests a ${streakData.bounceProbability.toFixed(0)}% chance of reversal.`,
+        source: 'Streak Analysis',
+      });
+    }
+
+    return items;
+  }, [activePatterns, streakData]);
+
   const isDataLoading = snapshotLoading || comprehensiveFundamentals.isLoading || analystLoading;
-  const analystRating = analystData?.analyst?.rating || 'Buy';
-  const priceTarget = analystData?.priceTarget?.targetMean;
   const nextEarnings = analystData?.nextEarnings?.formatted;
-  const peRatio = comprehensiveFundamentals.pe;
-  const eps = comprehensiveFundamentals.eps;
-  const marketCap = comprehensiveFundamentals.marketCap || quote?.marketCap;
-  const beta = comprehensiveFundamentals.beta;
-  const ratingColors: Record<string, string> = {
-    'Strong Buy': 'bg-emerald-500/20 text-emerald-400',
-    'Buy': 'bg-emerald-500/20 text-emerald-400',
-    'Hold': 'bg-amber-500/20 text-amber-400',
-    'Sell': 'bg-rose-500/20 text-rose-400',
-  };
+
+  // Floating action handlers
+  const handleAnalyze = () => navigate(`/stock/${ticker}?tab=quant-lab`);
+  const handleBacktest = () => navigate(`/stock/${ticker}?tab=backtest`);
+  const handleWatchlist = () => toast.success(`${ticker} added to watchlist`);
+  const handleAlert = () => toast.info('Price alerts coming soon');
 
   if (isLoadingQuote || isDataLoading) {
     return (
-      <div className="space-y-3">
+      <div className="space-y-3 p-4">
+        <Skeleton className="h-20 w-full" />
+        <Skeleton className="h-[280px] w-full" />
         <Skeleton className="h-24 w-full" />
-        <Skeleton className="h-[300px] w-full" />
-        <Skeleton className="h-32 w-full" />
       </div>
     );
   }
 
-  return (
-    <div className="space-y-2">
-      {/* Main Grid: Chart + Stats Side by Side */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-2">
-        {/* Chart Column - 2/3 width */}
-        <Card className="bg-card border-border lg:col-span-2 overflow-hidden">
-          {/* Price Header - Refined hierarchy */}
-          <div className="px-3 pt-3 pb-2 space-y-1.5">
-            {/* Row 1: Company name */}
-            <h2 className="text-sm md:text-base font-semibold text-foreground truncate">
-              {companyName || ticker}
-            </h2>
-            
-            {/* Row 2: Price, Change + 52W Range */}
-            <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
-              <div className="flex items-baseline gap-2.5">
-                <span className="text-2xl md:text-3xl font-bold tabular-nums text-foreground">
-                  {formatCurrency(quote?.price || 0)}
-                </span>
-                <div className={cn(
-                  "flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-semibold",
-                  isPositive ? "bg-emerald-500/15 text-emerald-500" : "bg-destructive/15 text-destructive"
-                )}>
-                  {isPositive ? <TrendingUp className="h-3.5 w-3.5" /> : <TrendingDown className="h-3.5 w-3.5" />}
-                  <span className="tabular-nums">
-                    {isPositive ? '+' : ''}{(quote?.change || 0).toFixed(2)} ({isPositive ? '+' : ''}{(quote?.changePercent || 0).toFixed(2)}%)
-                  </span>
-                </div>
-              </div>
-              
-              {/* 52W Range - Desktop only (right of price) */}
-              <div className="hidden lg:flex items-center gap-2 text-[10px]">
-                <span className="text-muted-foreground font-medium">52W:</span>
-                <span className="tabular-nums text-destructive font-medium">${week52Low?.toFixed(2) || '—'}</span>
-                <div className="relative w-20 h-1.5 bg-secondary rounded-full overflow-hidden">
-                  <div className="absolute top-0 left-0 h-full w-full bg-gradient-to-r from-destructive/40 via-muted to-emerald-500/40 rounded-full" />
-                  <div 
-                    className="absolute top-1/2 -translate-y-1/2 w-2.5 h-2.5 bg-primary rounded-full shadow-md shadow-primary/50 border border-primary-foreground/20"
-                    style={{ left: `calc(${Math.min(100, Math.max(0, rangePosition))}% - 5px)` }}
-                  />
-                </div>
-                <span className="tabular-nums text-emerald-500 font-medium">${week52High?.toFixed(2) || '—'}</span>
-              </div>
-            </div>
-            {/* Row 3: OHLC + Prev inline */}
-            <div className="flex items-center gap-3 md:gap-4 text-[10px] md:text-xs text-muted-foreground">
-              <div className="flex items-center gap-1">
-                <span className="opacity-70">O:</span>
-                <span className="font-medium tabular-nums text-foreground">{formatCurrency(quote?.open || 0)}</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <span className="opacity-70">H:</span>
-                <span className="font-medium tabular-nums text-emerald-500">{formatCurrency(quote?.high || 0)}</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <span className="opacity-70">L:</span>
-                <span className="font-medium tabular-nums text-destructive">{formatCurrency(quote?.low || 0)}</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <span className="opacity-70">Prev:</span>
-                <span className="font-medium tabular-nums text-foreground">{quote?.previousClose ? formatCurrency(quote.previousClose) : '—'}</span>
-              </div>
-            </div>
-            
-            {/* 52W Range - Mobile only */}
-            <div className="flex lg:hidden items-center gap-2 text-[10px]">
-              <span className="text-muted-foreground font-medium">52W:</span>
-              <span className="tabular-nums text-destructive font-medium">${week52Low?.toFixed(2) || '—'}</span>
-              <div className="relative flex-1 max-w-[120px] h-1.5 bg-secondary rounded-full overflow-hidden">
-                <div className="absolute top-0 left-0 h-full w-full bg-gradient-to-r from-destructive/40 via-muted to-emerald-500/40 rounded-full" />
-                <div 
-                  className="absolute top-1/2 -translate-y-1/2 w-2.5 h-2.5 bg-primary rounded-full shadow-md shadow-primary/50 border border-primary-foreground/20"
-                  style={{ left: `calc(${Math.min(100, Math.max(0, rangePosition))}% - 5px)` }}
-                />
-              </div>
-              <span className="tabular-nums text-emerald-500 font-medium">${week52High?.toFixed(2) || '—'}</span>
-            </div>
-            
-            {/* Exchange + Sector badges */}
-            <div className="flex items-center gap-1.5">
-              {exchange && (
-                <Badge variant="outline" className="text-[8px] px-1.5 py-0.5 h-5 bg-secondary/50 font-medium">
-                  {exchange}
-                </Badge>
-              )}
-              {sector && (
-                <Badge variant="outline" className="text-[8px] px-1.5 py-0.5 h-5 bg-secondary/50 font-medium">
-                  {sector}
-                </Badge>
-              )}
-            </div>
-          </div>
+  // Mobile Layout
+  if (isMobile) {
+    return (
+      <div className="relative min-h-screen pb-24">
+        {/* Sticky Header */}
+        <MobileStockHeader
+          ticker={ticker}
+          companyName={companyName}
+          price={quote?.price || 0}
+          change={quote?.change || 0}
+          changePercent={quote?.changePercent || 0}
+          exchange={exchange}
+          sector={sector}
+          onWatchlist={handleWatchlist}
+          onAlert={handleAlert}
+        />
 
-          {/* About Summary - Below price header, above chart */}
-          {description && (
-            <div className="px-3 pb-2">
-              <p className="text-[9px] md:text-[10px] text-muted-foreground leading-relaxed line-clamp-2">{description}</p>
-            </div>
-          )}
-
-          {/* Chart Section - Full featured */}
-          <div className="w-full">
+        {/* Content Stack */}
+        <div className="p-4 space-y-4">
+          {/* Chart Card with Gesture Support */}
+          <MobileChartCard
+            defaultTimeframe={chartTimeframe}
+            onTimeframeChange={setChartTimeframe}
+          >
             <IntegratedStockChart 
               symbol={ticker} 
-              height={320}
-              showVolume={true}
-              defaultRange="3M"
+              height={240}
+              showVolume={false}
+              defaultRange={chartTimeframe === 'ALL' ? '5Y' : chartTimeframe}
               onRefresh={onRefresh}
               isRefreshing={isRefreshing}
             />
-          </div>
-        </Card>
+          </MobileChartCard>
 
-        {/* Stats Column - 1/3 width */}
-        <div className="space-y-2">
-          {/* Comprehensive Metrics Card */}
+          {/* Metrics Carousel */}
+          {carouselMetrics.length > 0 && (
+            <MetricsCarousel 
+              metrics={carouselMetrics}
+              onMetricTap={(metric) => toast.info(`${metric.title}: ${metric.value}`)}
+            />
+          )}
+
+          {/* AI Insights Deck */}
+          {insights.length > 0 && (
+            <InsightsDeck 
+              insights={insights}
+              onInsightExpand={(insight) => console.log('Expanded:', insight.id)}
+            />
+          )}
+
+          {/* Quick Historical Insights */}
+          <QuickHistoricalInsights 
+            ticker={ticker} 
+            streakData={streakData}
+            activePatterns={activePatterns}
+            isLoading={snapshotLoading}
+          />
+
+          {/* Earnings Impact */}
+          <EarningsImpactSection ticker={ticker} nextEarnings={nextEarnings} />
+
+          {/* Fundamentals Cards */}
           <ComprehensiveMetricsCard 
             data={comprehensiveFundamentals} 
             isLoading={comprehensiveFundamentals.isLoading} 
           />
 
-          {/* Risk & Performance Card */}
           <RiskPerformanceCard 
             data={comprehensiveFundamentals} 
             isLoading={comprehensiveFundamentals.isLoading} 
           />
 
-          {/* Earnings Intelligence Card */}
           <EarningsIntelCard 
             data={comprehensiveFundamentals} 
             isLoading={comprehensiveFundamentals.isLoading} 
           />
 
-          {/* Revenue by Segment Card */}
           <RevenueSegmentsCard 
             segments={segmentsData?.segments}
             isLoading={segmentsLoading}
@@ -364,15 +412,14 @@ export function ALAOverviewTab({
             ticker={ticker}
           />
 
-          {/* Performance + Trading Days Card */}
+          {/* Trading Days Stats */}
           {basicStats && (
             <Card className="bg-card border-border">
-              <CardContent className="p-2 space-y-2">
-                {/* Header */}
+              <CardContent className="p-3 space-y-2">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-1">
                     <Activity className="h-3 w-3 text-primary" />
-                    <span className="text-[10px] md:text-xs font-medium">
+                    <span className="text-xs font-medium">
                       Past {basicStats.totalDays} Trading Days
                     </span>
                     {snapshotFetching && <RefreshCw className="h-2.5 w-2.5 animate-spin ml-1 text-muted-foreground" />}
@@ -381,7 +428,7 @@ export function ALAOverviewTab({
                     value={lookbackDays?.toString() || 'all'} 
                     onValueChange={(val) => setLookbackDays(val === 'all' ? undefined : parseInt(val))}
                   >
-                    <SelectTrigger className="h-5 w-[80px] text-[8px] bg-secondary/50 border-border px-1.5">
+                    <SelectTrigger className="h-6 w-[80px] text-[10px] bg-secondary/50 border-border px-2">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent className="bg-card border-border z-50">
@@ -394,11 +441,120 @@ export function ALAOverviewTab({
                   </Select>
                 </div>
                 
-                {/* Trading Day Stats */}
+                <div className="grid grid-cols-3 gap-2">
+                  <div className="p-2 bg-secondary/30 rounded text-center">
+                    <span className="text-[9px] text-muted-foreground uppercase block">Up</span>
+                    <p className="text-sm font-bold text-success">{basicStats.upDays}</p>
+                  </div>
+                  <div className="p-2 bg-secondary/30 rounded text-center">
+                    <span className="text-[9px] text-muted-foreground uppercase block">Down</span>
+                    <p className="text-sm font-bold text-destructive">{basicStats.downDays}</p>
+                  </div>
+                  <div className="p-2 bg-secondary/30 rounded text-center">
+                    <span className="text-[9px] text-muted-foreground uppercase block">Avg Move</span>
+                    <p className="text-sm font-bold">{basicStats.avgDailyMovePercent.toFixed(2)}%</p>
+                  </div>
+                </div>
+                
+                <PerformanceMetricsSection ticker={ticker} compact />
+              </CardContent>
+            </Card>
+          )}
+        </div>
+
+        {/* Floating Action Menu */}
+        <FloatingActionMenu
+          secondaryActions={[
+            { id: 'analyze', icon: <Activity className="h-5 w-5" />, label: 'Analyze', onClick: handleAnalyze },
+            { id: 'backtest', icon: <Activity className="h-5 w-5" />, label: 'Backtest', onClick: handleBacktest },
+          ]}
+        />
+      </div>
+    );
+  }
+
+  // Desktop Layout (original)
+  return (
+    <div className="space-y-2">
+      {/* Main Grid: Chart + Stats Side by Side */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-2">
+        {/* Chart Column - 2/3 width */}
+        <Card className="bg-card border-border lg:col-span-2 overflow-hidden">
+          {/* Price Header */}
+          <div className="px-3 pt-3 pb-2 space-y-1.5">
+            <h2 className="text-sm md:text-base font-semibold text-foreground truncate">
+              {companyName || ticker}
+            </h2>
+            
+            <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
+              <div className="flex items-baseline gap-2.5">
+                <span className="text-2xl md:text-3xl font-bold tabular-nums text-foreground">
+                  ${(quote?.price || 0).toFixed(2)}
+                </span>
+                <div className={cn(
+                  "flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-semibold",
+                  (quote?.change || 0) >= 0 ? "bg-success/15 text-success" : "bg-destructive/15 text-destructive"
+                )}>
+                  <span className="tabular-nums">
+                    {(quote?.change || 0) >= 0 ? '+' : ''}{(quote?.change || 0).toFixed(2)} ({(quote?.change || 0) >= 0 ? '+' : ''}{(quote?.changePercent || 0).toFixed(2)}%)
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {description && (
+              <p className="text-[9px] md:text-[10px] text-muted-foreground leading-relaxed line-clamp-2">{description}</p>
+            )}
+          </div>
+
+          {/* Chart Section */}
+          <div className="w-full">
+            <IntegratedStockChart 
+              symbol={ticker} 
+              height={320}
+              showVolume={true}
+              defaultRange="3M"
+              onRefresh={onRefresh}
+              isRefreshing={isRefreshing}
+            />
+          </div>
+        </Card>
+
+        {/* Stats Column */}
+        <div className="space-y-2">
+          <ComprehensiveMetricsCard data={comprehensiveFundamentals} isLoading={comprehensiveFundamentals.isLoading} />
+          <RiskPerformanceCard data={comprehensiveFundamentals} isLoading={comprehensiveFundamentals.isLoading} />
+          <EarningsIntelCard data={comprehensiveFundamentals} isLoading={comprehensiveFundamentals.isLoading} />
+          <RevenueSegmentsCard segments={segmentsData?.segments} isLoading={segmentsLoading} useMockData={segmentsData?.useMockData} ticker={ticker} />
+          
+          {basicStats && (
+            <Card className="bg-card border-border">
+              <CardContent className="p-2 space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1">
+                    <Activity className="h-3 w-3 text-primary" />
+                    <span className="text-[10px] md:text-xs font-medium">Past {basicStats.totalDays} Trading Days</span>
+                    {snapshotFetching && <RefreshCw className="h-2.5 w-2.5 animate-spin ml-1 text-muted-foreground" />}
+                  </div>
+                  <Select 
+                    value={lookbackDays?.toString() || 'all'} 
+                    onValueChange={(val) => setLookbackDays(val === 'all' ? undefined : parseInt(val))}
+                  >
+                    <SelectTrigger className="h-5 w-[80px] text-[8px] bg-secondary/50 border-border px-1.5">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="bg-card border-border z-50">
+                      {LOOKBACK_OPTIONS.map(opt => (
+                        <SelectItem key={opt.value} value={opt.value} className="text-[10px]">{opt.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                
                 <div className="grid grid-cols-3 gap-1">
                   <div className="p-1.5 bg-secondary/30 rounded text-center">
                     <span className="text-[7px] text-muted-foreground uppercase block">Up Days</span>
-                    <p className="text-xs font-bold text-emerald-500">{basicStats.upDays}</p>
+                    <p className="text-xs font-bold text-success">{basicStats.upDays}</p>
                   </div>
                   <div className="p-1.5 bg-secondary/30 rounded text-center">
                     <span className="text-[7px] text-muted-foreground uppercase block">Down Days</span>
@@ -414,7 +570,7 @@ export function ALAOverviewTab({
                   </div>
                   <div className="p-1.5 bg-secondary/30 rounded text-center">
                     <span className="text-[7px] text-muted-foreground uppercase block">Best Day</span>
-                    <p className="text-xs font-bold text-emerald-500">+{basicStats.bestDay.change.toFixed(1)}%</p>
+                    <p className="text-xs font-bold text-success">+{basicStats.bestDay.change.toFixed(1)}%</p>
                   </div>
                   <div className="p-1.5 bg-secondary/30 rounded text-center">
                     <span className="text-[7px] text-muted-foreground uppercase block">Worst Day</span>
@@ -422,10 +578,7 @@ export function ALAOverviewTab({
                   </div>
                 </div>
                 
-                {/* Divider */}
                 <div className="border-t border-border my-1" />
-                
-                {/* Performance Metrics */}
                 <PerformanceMetricsSection ticker={ticker} compact />
               </CardContent>
             </Card>
@@ -435,12 +588,7 @@ export function ALAOverviewTab({
 
       {/* Quick Insights + Earnings Impact Row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-2">
-        <QuickHistoricalInsights 
-          ticker={ticker} 
-          streakData={streakData}
-          activePatterns={activePatterns}
-          isLoading={snapshotLoading}
-        />
+        <QuickHistoricalInsights ticker={ticker} streakData={streakData} activePatterns={activePatterns} isLoading={snapshotLoading} />
         <EarningsImpactSection ticker={ticker} nextEarnings={nextEarnings} />
       </div>
     </div>
