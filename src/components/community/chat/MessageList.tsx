@@ -2,6 +2,8 @@ import { useState, useEffect, useMemo, useCallback, useRef, memo } from 'react';
 import { formatDistanceToNow } from 'date-fns';
 import { ChatMessage, MessageReaction } from '@/types/community';
 import { useAuth } from '@/contexts/AuthContext';
+import { useUsage } from '@/contexts/UsageContext';
+import { useAdmin } from '@/hooks/useAdmin';
 import { parseContent, ContentPart } from '@/utils/tickerParser';
 import { TickerBadge } from '@/components/ui/TickerBadge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -11,7 +13,8 @@ import {
   DropdownMenu, 
   DropdownMenuContent, 
   DropdownMenuItem, 
-  DropdownMenuTrigger 
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 import { 
@@ -20,8 +23,14 @@ import {
   Reply, 
   Pencil, 
   Trash2,
-  TrendingUp
+  TrendingUp,
+  Pin,
+  MessageSquare,
+  Lock,
+  Crown,
 } from 'lucide-react';
+import { PresenceIndicator } from './PresenceIndicator';
+import { PremiumMessageGate } from './PremiumMessageGate';
 
 const COMMON_EMOJIS = ['👍', '❤️', '🚀', '🔥', '📈', '💎', '🐻', '🐂'];
 
@@ -32,6 +41,12 @@ interface MessageItemProps {
   onEdit?: (messageId: string) => void;
   onDelete?: (messageId: string) => void;
   onReply?: (messageId: string) => void;
+  onOpenThread?: (message: ChatMessage) => void;
+  onPin?: (messageId: string) => void;
+  onUnpin?: (messageId: string) => void;
+  isPinned?: boolean;
+  canPin?: boolean;
+  getUserPresence?: (userId: string) => 'online' | 'idle' | 'offline';
 }
 
 const MessageItem = memo(function MessageItem({
@@ -41,10 +56,23 @@ const MessageItem = memo(function MessageItem({
   onEdit,
   onDelete,
   onReply,
+  onOpenThread,
+  onPin,
+  onUnpin,
+  isPinned = false,
+  canPin = false,
+  getUserPresence,
 }: MessageItemProps) {
   const { user } = useAuth();
+  const { isPro } = useUsage();
+  const { isAdmin } = useAdmin();
   const isOwn = user?.id === message.user_id;
   const contentParts = useMemo(() => parseContent(message.content), [message.content]);
+  const presenceStatus = getUserPresence?.(message.user_id) || 'offline';
+
+  // Check if user can view premium content
+  const canViewPremium = isPro || isAdmin || isOwn;
+  const isPremiumMessage = message.is_premium;
 
   // Group reactions by emoji with count
   const groupedReactions = useMemo(() => {
@@ -90,14 +118,25 @@ const MessageItem = memo(function MessageItem({
 
   const displayName = message.user_profile?.full_name || 'Anonymous';
   const initials = displayName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+  const threadCount = message.thread?.reply_count || 0;
 
   return (
-    <div className="group flex gap-3 px-4 py-2 hover:bg-muted/50 transition-colors">
-      <Avatar className="h-8 w-8 shrink-0">
-        <AvatarFallback className="text-xs bg-primary/20 text-primary">
-          {initials}
-        </AvatarFallback>
-      </Avatar>
+    <div className={cn(
+      "group flex gap-3 px-4 py-2 hover:bg-muted/50 transition-colors",
+      isPinned && "bg-amber-500/5 border-l-2 border-amber-500"
+    )}>
+      <div className="relative">
+        <Avatar className="h-8 w-8 shrink-0">
+          <AvatarFallback className="text-xs bg-primary/20 text-primary">
+            {initials}
+          </AvatarFallback>
+        </Avatar>
+        {getUserPresence && (
+          <div className="absolute -bottom-0.5 -right-0.5">
+            <PresenceIndicator status={presenceStatus} size="sm" />
+          </div>
+        )}
+      </div>
 
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
@@ -108,11 +147,39 @@ const MessageItem = memo(function MessageItem({
           {message.is_edited && (
             <span className="text-xs text-muted-foreground">(edited)</span>
           )}
+          {isPremiumMessage && (
+            <span className="inline-flex items-center gap-1 text-xs text-amber-600">
+              <Crown className="h-3 w-3" />
+              Premium
+            </span>
+          )}
+          {isPinned && (
+            <span className="inline-flex items-center gap-1 text-xs text-amber-600">
+              <Pin className="h-3 w-3" />
+              Pinned
+            </span>
+          )}
         </div>
 
+        {/* Message content - gated if premium and user can't view */}
         <div className="text-sm break-words">
-          {renderContent(contentParts)}
+          {isPremiumMessage && !canViewPremium ? (
+            <PremiumMessageGate content={message.content} />
+          ) : (
+            renderContent(contentParts)
+          )}
         </div>
+
+        {/* Thread indicator */}
+        {threadCount > 0 && onOpenThread && (
+          <button
+            onClick={() => onOpenThread(message)}
+            className="flex items-center gap-1.5 mt-1 text-xs text-primary hover:underline"
+          >
+            <MessageSquare className="h-3 w-3" />
+            {threadCount} {threadCount === 1 ? 'reply' : 'replies'}
+          </button>
+        )}
 
         {/* Reactions */}
         {Object.keys(groupedReactions).length > 0 && (
@@ -158,6 +225,17 @@ const MessageItem = memo(function MessageItem({
           </DropdownMenuContent>
         </DropdownMenu>
 
+        {onOpenThread && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7"
+            onClick={() => onOpenThread(message)}
+          >
+            <MessageSquare className="h-4 w-4" />
+          </Button>
+        )}
+
         {onReply && (
           <Button
             variant="ghost"
@@ -169,32 +247,46 @@ const MessageItem = memo(function MessageItem({
           </Button>
         )}
 
-        {isOwn && (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-7 w-7">
-                <MoreHorizontal className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              {onEdit && (
-                <DropdownMenuItem onClick={() => onEdit(message.id)}>
-                  <Pencil className="h-4 w-4 mr-2" />
-                  Edit
-                </DropdownMenuItem>
-              )}
-              {onDelete && (
-                <DropdownMenuItem 
-                  onClick={() => onDelete(message.id)}
-                  className="text-destructive"
-                >
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  Delete
-                </DropdownMenuItem>
-              )}
-            </DropdownMenuContent>
-          </DropdownMenu>
-        )}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon" className="h-7 w-7">
+              <MoreHorizontal className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            {canPin && (
+              <>
+                {isPinned ? (
+                  <DropdownMenuItem onClick={() => onUnpin?.(message.id)}>
+                    <Pin className="h-4 w-4 mr-2" />
+                    Unpin message
+                  </DropdownMenuItem>
+                ) : (
+                  <DropdownMenuItem onClick={() => onPin?.(message.id)}>
+                    <Pin className="h-4 w-4 mr-2" />
+                    Pin message
+                  </DropdownMenuItem>
+                )}
+                <DropdownMenuSeparator />
+              </>
+            )}
+            {isOwn && onEdit && (
+              <DropdownMenuItem onClick={() => onEdit(message.id)}>
+                <Pencil className="h-4 w-4 mr-2" />
+                Edit
+              </DropdownMenuItem>
+            )}
+            {isOwn && onDelete && (
+              <DropdownMenuItem 
+                onClick={() => onDelete(message.id)}
+                className="text-destructive"
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                Delete
+              </DropdownMenuItem>
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
     </div>
   );
@@ -210,7 +302,13 @@ interface MessageListProps {
   onEdit?: (messageId: string) => void;
   onDelete?: (messageId: string) => void;
   onReply?: (messageId: string) => void;
+  onOpenThread?: (message: ChatMessage) => void;
+  onPin?: (messageId: string) => void;
+  onUnpin?: (messageId: string) => void;
   onLoadMore: () => void;
+  pinnedMessageIds?: Set<string>;
+  canPin?: boolean;
+  getUserPresence?: (userId: string) => 'online' | 'idle' | 'offline';
 }
 
 export function MessageList({
@@ -223,7 +321,13 @@ export function MessageList({
   onEdit,
   onDelete,
   onReply,
+  onOpenThread,
+  onPin,
+  onUnpin,
   onLoadMore,
+  pinnedMessageIds = new Set(),
+  canPin = false,
+  getUserPresence,
 }: MessageListProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -304,6 +408,12 @@ export function MessageList({
             onEdit={blurred ? undefined : onEdit}
             onDelete={blurred ? undefined : onDelete}
             onReply={blurred ? undefined : onReply}
+            onOpenThread={blurred ? undefined : onOpenThread}
+            onPin={blurred ? undefined : onPin}
+            onUnpin={blurred ? undefined : onUnpin}
+            isPinned={pinnedMessageIds.has(message.id)}
+            canPin={canPin}
+            getUserPresence={getUserPresence}
           />
         ))}
       </div>

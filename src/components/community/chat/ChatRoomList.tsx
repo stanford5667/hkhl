@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { ChatRoom, RoomType } from '@/types/community';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Hash, TrendingUp, Lock, Plus, Users, Crown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { UnreadBadge } from './UnreadBadge';
 
 interface ChatRoomListProps {
   rooms: ChatRoom[];
@@ -14,6 +15,7 @@ interface ChatRoomListProps {
   activeRoomId?: string;
   onRoomSelect: (room: ChatRoom) => void;
   onCreateRoom?: () => void;
+  getUnreadCount?: (roomId: string) => number;
 }
 
 export function ChatRoomList({
@@ -22,6 +24,7 @@ export function ChatRoomList({
   activeRoomId,
   onRoomSelect,
   onCreateRoom,
+  getUnreadCount,
 }: ChatRoomListProps) {
   const navigate = useNavigate();
 
@@ -52,6 +55,7 @@ export function ChatRoomList({
 
   const RoomItem = ({ room }: { room: ChatRoom }) => {
     const isActive = room.id === activeRoomId;
+    const unreadCount = getUnreadCount?.(room.id) || 0;
 
     return (
       <button
@@ -94,6 +98,10 @@ export function ChatRoomList({
             </div>
           )}
         </div>
+        {/* Unread badge */}
+        {unreadCount > 0 && !isActive && (
+          <UnreadBadge count={unreadCount} />
+        )}
       </button>
     );
   };

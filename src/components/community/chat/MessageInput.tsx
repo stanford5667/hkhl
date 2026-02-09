@@ -14,6 +14,7 @@ const COMMON_EMOJIS = ['👍', '❤️', '🚀', '🔥', '📈', '💎', '🐻',
 
 interface MessageInputProps {
   onSend: (content: string) => Promise<void>;
+  onTyping?: () => void;
   placeholder?: string;
   disabled?: boolean;
   locked?: boolean;
@@ -28,6 +29,7 @@ interface MessageInputProps {
 
 export function MessageInput({
   onSend,
+  onTyping,
   placeholder = 'Type a message... Use $TICKER to mention stocks',
   disabled = false,
   locked = false,
@@ -130,7 +132,10 @@ export function MessageInput({
           <Textarea
             ref={textareaRef}
             value={content}
-            onChange={(e) => setContent(e.target.value)}
+            onChange={(e) => {
+              setContent(e.target.value);
+              onTyping?.();
+            }}
             onKeyDown={handleKeyDown}
             placeholder={placeholder}
             disabled={disabled || sending}

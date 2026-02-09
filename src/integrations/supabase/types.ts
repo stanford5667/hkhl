@@ -687,6 +687,7 @@ export type Database = {
           detected_tickers: string[] | null
           id: string
           is_edited: boolean
+          is_premium: boolean | null
           mentioned_users: string[] | null
           reply_to: string | null
           room_id: string
@@ -701,6 +702,7 @@ export type Database = {
           detected_tickers?: string[] | null
           id?: string
           is_edited?: boolean
+          is_premium?: boolean | null
           mentioned_users?: string[] | null
           reply_to?: string | null
           room_id: string
@@ -715,6 +717,7 @@ export type Database = {
           detected_tickers?: string[] | null
           id?: string
           is_edited?: boolean
+          is_premium?: boolean | null
           mentioned_users?: string[] | null
           reply_to?: string | null
           room_id?: string
@@ -2853,6 +2856,48 @@ export type Database = {
           },
         ]
       }
+      message_threads: {
+        Row: {
+          created_at: string
+          id: string
+          last_reply_at: string | null
+          parent_message_id: string
+          reply_count: number
+          room_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          last_reply_at?: string | null
+          parent_message_id: string
+          reply_count?: number
+          room_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          last_reply_at?: string | null
+          parent_message_id?: string
+          reply_count?: number
+          room_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "message_threads_parent_message_id_fkey"
+            columns: ["parent_message_id"]
+            isOneToOne: true
+            referencedRelation: "chat_messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "message_threads_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "chat_rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       metric_definitions: {
         Row: {
           category: string
@@ -3297,6 +3342,45 @@ export type Database = {
           user_id?: string | null
         }
         Relationships: []
+      }
+      pinned_messages: {
+        Row: {
+          id: string
+          message_id: string
+          pinned_at: string
+          pinned_by: string
+          room_id: string
+        }
+        Insert: {
+          id?: string
+          message_id: string
+          pinned_at?: string
+          pinned_by: string
+          room_id: string
+        }
+        Update: {
+          id?: string
+          message_id?: string
+          pinned_at?: string
+          pinned_by?: string
+          room_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pinned_messages_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: true
+            referencedRelation: "chat_messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pinned_messages_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "chat_rooms"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       portfolio_assets: {
         Row: {
@@ -3996,6 +4080,45 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "room_members_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "chat_rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      room_read_receipts: {
+        Row: {
+          id: string
+          last_read_at: string
+          last_read_message_id: string | null
+          room_id: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          last_read_at?: string
+          last_read_message_id?: string | null
+          room_id: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          last_read_at?: string
+          last_read_message_id?: string | null
+          room_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "room_read_receipts_last_read_message_id_fkey"
+            columns: ["last_read_message_id"]
+            isOneToOne: false
+            referencedRelation: "chat_messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "room_read_receipts_room_id_fkey"
             columns: ["room_id"]
             isOneToOne: false
             referencedRelation: "chat_rooms"
@@ -5272,6 +5395,41 @@ export type Database = {
           weight?: number | null
         }
         Relationships: []
+      }
+      user_presence: {
+        Row: {
+          current_room_id: string | null
+          id: string
+          last_seen_at: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          current_room_id?: string | null
+          id?: string
+          last_seen_at?: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          current_room_id?: string | null
+          id?: string
+          last_seen_at?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_presence_current_room_id_fkey"
+            columns: ["current_room_id"]
+            isOneToOne: false
+            referencedRelation: "chat_rooms"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_roles: {
         Row: {
