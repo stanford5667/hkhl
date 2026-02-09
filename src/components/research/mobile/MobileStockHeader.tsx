@@ -1,9 +1,9 @@
 import { cn } from '@/lib/utils';
-import { TrendingUp, TrendingDown, Bookmark, Bell, ChevronDown } from 'lucide-react';
+import { TrendingUp, TrendingDown, Bookmark, Bell, ChevronDown, Radio } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
 interface MobileStockHeaderProps {
   ticker: string;
@@ -36,6 +36,18 @@ export function MobileStockHeader({
 }: MobileStockHeaderProps) {
   const isPositive = change >= 0;
   const [showDetails, setShowDetails] = useState(false);
+  const [isPulsing, setIsPulsing] = useState(false);
+  const previousPriceRef = useRef(price);
+
+  // Detect price changes and trigger pulse animation
+  useEffect(() => {
+    if (price !== previousPriceRef.current) {
+      setIsPulsing(true);
+      previousPriceRef.current = price;
+      const timer = setTimeout(() => setIsPulsing(false), 600);
+      return () => clearTimeout(timer);
+    }
+  }, [price]);
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('en-US', {
@@ -71,24 +83,71 @@ export function MobileStockHeader({
               )} />
             </button>
             
-            <div className="flex items-baseline gap-2">
-              <span className="text-2xl font-bold tabular-nums text-foreground">
-                {formatCurrency(price)}
-              </span>
+            <div className="flex items-center gap-2">
+              {/* Price with pulse effect */}
+              <div className="relative">
+                <motion.span 
+                  className="text-2xl font-bold tabular-nums text-foreground relative z-10"
+                  animate={isPulsing ? { scale: [1, 1.02, 1] } : {}}
+                  transition={{ duration: 0.3 }}
+                >
+                  {formatCurrency(price)}
+                </motion.span>
+                {/* Glow effect behind price on update */}
+                <AnimatePresence>
+                  {isPulsing && (
+                    <motion.div
+                      className={cn(
+                        "absolute inset-0 -inset-x-2 rounded-lg blur-md",
+                        isPositive ? "bg-success/30" : "bg-destructive/30"
+                      )}
+                      initial={{ opacity: 0, scale: 0.8 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 1.2 }}
+                      transition={{ duration: 0.3 }}
+                    />
+                  )}
+                </AnimatePresence>
+              </div>
+              
+              {/* Change badge with flash on update */}
               <motion.div 
                 className={cn(
                   "flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold",
                   isPositive ? "bg-success/15 text-success" : "bg-destructive/15 text-destructive"
                 )}
-                initial={{ scale: 0.9 }}
-                animate={{ scale: 1 }}
-                transition={{ duration: 0.2 }}
+                animate={isPulsing ? { 
+                  scale: [1, 1.1, 1],
+                  backgroundColor: isPositive 
+                    ? ['hsl(var(--success) / 0.15)', 'hsl(var(--success) / 0.4)', 'hsl(var(--success) / 0.15)']
+                    : ['hsl(var(--destructive) / 0.15)', 'hsl(var(--destructive) / 0.4)', 'hsl(var(--destructive) / 0.15)']
+                } : {}}
+                transition={{ duration: 0.4 }}
               >
                 {isPositive ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
                 <span className="tabular-nums">
                   {isPositive ? '+' : ''}{changePercent.toFixed(2)}%
                 </span>
               </motion.div>
+
+              {/* LIVE indicator */}
+              <div className="flex items-center gap-1 ml-1">
+                <motion.div
+                  className="w-1.5 h-1.5 rounded-full bg-success"
+                  animate={{ 
+                    scale: [1, 1.3, 1],
+                    opacity: [1, 0.7, 1]
+                  }}
+                  transition={{ 
+                    duration: 2,
+                    repeat: Infinity,
+                    ease: "easeInOut"
+                  }}
+                />
+                <span className="text-[9px] font-medium text-success uppercase tracking-wider">
+                  Live
+                </span>
+              </div>
             </div>
           </div>
 
