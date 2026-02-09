@@ -69,25 +69,25 @@ export function MobileStockHeader({
     >
       <div className="px-4 py-3 space-y-2">
         {/* Main Row: Symbol + Price + Actions */}
-        <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center justify-between gap-2">
           {/* Left: Symbol & Price */}
-          <div className="flex items-center gap-3 min-w-0 flex-1">
+          <div className="flex items-center gap-2 min-w-0 flex-1 overflow-hidden">
             <button 
               onClick={() => setShowDetails(!showDetails)}
-              className="flex items-center gap-2 min-w-0"
+              className="flex items-center gap-1.5 min-w-0 flex-shrink-0"
             >
-              <span className="text-xl font-bold text-foreground">{ticker}</span>
+              <span className="text-lg font-bold text-foreground">{ticker}</span>
               <ChevronDown className={cn(
-                "h-4 w-4 text-muted-foreground transition-transform",
+                "h-3.5 w-3.5 text-muted-foreground transition-transform flex-shrink-0",
                 showDetails && "rotate-180"
               )} />
             </button>
             
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 flex-wrap min-w-0">
               {/* Price with pulse effect */}
-              <div className="relative">
+              <div className="relative flex-shrink-0">
                 <motion.span 
-                  className="text-2xl font-bold tabular-nums text-foreground relative z-10"
+                  className="text-lg font-bold tabular-nums text-foreground relative z-10"
                   animate={isPulsing ? { scale: [1, 1.02, 1] } : {}}
                   transition={{ duration: 0.3 }}
                 >
@@ -113,7 +113,7 @@ export function MobileStockHeader({
               {/* Change badge with flash on update */}
               <motion.div 
                 className={cn(
-                  "flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold",
+                  "flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-semibold flex-shrink-0",
                   isPositive ? "bg-success/15 text-success" : "bg-destructive/15 text-destructive"
                 )}
                 animate={isPulsing ? { 
@@ -124,14 +124,14 @@ export function MobileStockHeader({
                 } : {}}
                 transition={{ duration: 0.4 }}
               >
-                {isPositive ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
+                {isPositive ? <TrendingUp className="h-2.5 w-2.5" /> : <TrendingDown className="h-2.5 w-2.5" />}
                 <span className="tabular-nums">
                   {isPositive ? '+' : ''}{changePercent.toFixed(2)}%
                 </span>
               </motion.div>
 
               {/* LIVE indicator */}
-              <div className="flex items-center gap-1 ml-1">
+              <div className="flex items-center gap-0.5 flex-shrink-0">
                 <motion.div
                   className="w-1.5 h-1.5 rounded-full bg-success"
                   animate={{ 
@@ -144,7 +144,7 @@ export function MobileStockHeader({
                     ease: "easeInOut"
                   }}
                 />
-                <span className="text-[9px] font-medium text-success uppercase tracking-wider">
+                <span className="text-[8px] font-medium text-success uppercase tracking-wider">
                   Live
                 </span>
               </div>
@@ -152,7 +152,7 @@ export function MobileStockHeader({
           </div>
 
           {/* Right: Quick Actions */}
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1 flex-shrink-0">
             <Button
               variant="ghost"
               size="icon"
