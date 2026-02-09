@@ -9,7 +9,7 @@ import { cn } from '@/lib/utils';
 import { QuickHistoricalInsights, StreakData, HistoricalPattern } from './QuickHistoricalInsights';
 import { EarningsImpactSection } from './EarningsImpactSection';
 import { BasicStatsData, BasicStatistics } from './BasicStatistics';
-import { CandlestickChart } from '@/components/charts/CandlestickChart';
+import { IntegratedStockChart } from './IntegratedStockChart';
 import { useTickerSnapshot } from '@/hooks/useTickerSnapshot';
 import { useTickerAnalystData } from '@/hooks/useTickerAnalystData';
 import { PerformanceMetricsSection } from './PerformanceMetricsSection';
@@ -323,13 +323,12 @@ export function ALAOverviewTab({
             </div>
           )}
 
-          {/* Chart Section - Larger on desktop */}
+          {/* Chart Section - Full featured */}
           <div className="w-full">
-            <CandlestickChart 
+            <IntegratedStockChart 
               symbol={ticker} 
               height={320}
               showVolume={true}
-              showRangeSelector={true}
               defaultRange="3M"
               onRefresh={onRefresh}
               isRefreshing={isRefreshing}
