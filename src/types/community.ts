@@ -28,6 +28,7 @@ export interface ChatMessage {
   attachment_url: string | null;
   attachment_type: string | null;
   is_edited: boolean;
+  is_premium: boolean;
   created_at: string;
   updated_at: string;
   // Joined data
@@ -36,6 +37,44 @@ export interface ChatMessage {
     avatar_url: string | null;
   };
   reactions?: MessageReaction[];
+  thread?: MessageThread;
+  isPinned?: boolean;
+}
+
+export interface MessageThread {
+  id: string;
+  parent_message_id: string;
+  room_id: string;
+  reply_count: number;
+  last_reply_at: string | null;
+  created_at: string;
+}
+
+export interface PinnedMessage {
+  id: string;
+  message_id: string;
+  room_id: string;
+  pinned_by: string;
+  pinned_at: string;
+}
+
+export interface RoomReadReceipt {
+  id: string;
+  room_id: string;
+  user_id: string;
+  last_read_message_id: string | null;
+  last_read_at: string;
+}
+
+export type UserPresenceStatus = 'online' | 'idle' | 'offline';
+
+export interface UserPresence {
+  id: string;
+  user_id: string;
+  status: UserPresenceStatus;
+  last_seen_at: string;
+  current_room_id: string | null;
+  updated_at: string;
 }
 
 export interface MessageReaction {

@@ -269,6 +269,15 @@ export function useRealtimeMessages(roomId: string | null) {
     if (error) throw error;
   };
 
+  const setMessagePremium = async (messageId: string, isPremium: boolean) => {
+    const { error } = await supabase
+      .from('chat_messages')
+      .update({ is_premium: isPremium })
+      .eq('id', messageId);
+
+    if (error) throw error;
+  };
+
   const loadMoreMessages = () => {
     if (!hasMore || loading || messages.length === 0) return;
     const oldestMessage = messages[0];
@@ -285,6 +294,7 @@ export function useRealtimeMessages(roomId: string | null) {
     deleteMessage,
     addReaction,
     removeReaction,
+    setMessagePremium,
     loadMoreMessages,
     refreshMessages: fetchMessages,
   };
