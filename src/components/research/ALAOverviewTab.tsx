@@ -26,7 +26,8 @@ import {
   type InsightData,
   type ChartTimeframe 
 } from './mobile';
-import { Activity, RefreshCw } from 'lucide-react';
+import { Activity, RefreshCw, Star, Bell } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
@@ -473,55 +474,128 @@ export function ALAOverviewTab({
     );
   }
 
-  // Desktop Layout (original)
+  // Desktop Layout - NEW unified design with mobile components adapted for larger screens
   return (
-    <div className="space-y-2">
-      {/* Main Grid: Chart + Stats Side by Side */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-2">
-        {/* Chart Column - 2/3 width */}
-        <Card className="bg-card border-border lg:col-span-2 overflow-hidden">
-          {/* Price Header */}
-          <div className="px-3 pt-3 pb-2 space-y-1.5">
-            <h2 className="text-sm md:text-base font-semibold text-foreground truncate">
-              {companyName || ticker}
-            </h2>
+    <div className="space-y-4">
+      {/* Desktop Stock Header - Similar to mobile but adapted */}
+      <Card className="bg-card border-border">
+        <CardContent className="p-4">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div className="space-y-1">
+              <div className="flex items-center gap-3">
+                <h2 className="text-xl font-bold text-foreground">{ticker}</h2>
+                {exchange && (
+                  <span className="text-xs text-muted-foreground bg-secondary/50 px-2 py-0.5 rounded">
+                    {exchange}
+                  </span>
+                )}
+                {sector && (
+                  <span className="text-xs text-muted-foreground">
+                    {sector}
+                  </span>
+                )}
+              </div>
+              <p className="text-sm text-muted-foreground">{companyName}</p>
+            </div>
             
-            <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
-              <div className="flex items-baseline gap-2.5">
-                <span className="text-2xl md:text-3xl font-bold tabular-nums text-foreground">
+            <div className="flex items-center gap-4">
+              <div className="text-right">
+                <span className="text-3xl font-bold tabular-nums text-foreground">
                   ${(quote?.price || 0).toFixed(2)}
                 </span>
                 <div className={cn(
-                  "flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-semibold",
-                  (quote?.change || 0) >= 0 ? "bg-success/15 text-success" : "bg-destructive/15 text-destructive"
+                  "flex items-center justify-end gap-1 text-sm font-semibold",
+                  (quote?.change || 0) >= 0 ? "text-success" : "text-destructive"
                 )}>
                   <span className="tabular-nums">
                     {(quote?.change || 0) >= 0 ? '+' : ''}{(quote?.change || 0).toFixed(2)} ({(quote?.change || 0) >= 0 ? '+' : ''}{(quote?.changePercent || 0).toFixed(2)}%)
                   </span>
                 </div>
               </div>
+              
+              {/* Quick Actions */}
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleWatchlist}
+                  className="h-9"
+                >
+                  <Star className="h-4 w-4 mr-1" />
+                  Watch
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleAlert}
+                  className="h-9"
+                >
+                  <Bell className="h-4 w-4 mr-1" />
+                  Alert
+                </Button>
+              </div>
             </div>
-
-            {description && (
-              <p className="text-[9px] md:text-[10px] text-muted-foreground leading-relaxed line-clamp-2">{description}</p>
-            )}
           </div>
+          
+          {description && (
+            <p className="text-xs text-muted-foreground mt-3 leading-relaxed line-clamp-2">
+              {description}
+            </p>
+          )}
+        </CardContent>
+      </Card>
 
-          {/* Chart Section */}
-          <div className="w-full">
+      {/* Main Content Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        {/* Left Column - Chart + Metrics */}
+        <div className="lg:col-span-2 space-y-4">
+          {/* Chart Card */}
+          <Card className="bg-card border-border overflow-hidden">
             <IntegratedStockChart 
               symbol={ticker} 
-              height={320}
+              height={380}
               showVolume={true}
               defaultRange="3M"
               onRefresh={onRefresh}
               isRefreshing={isRefreshing}
             />
-          </div>
-        </Card>
+          </Card>
 
-        {/* Stats Column */}
-        <div className="space-y-2">
+          {/* Metrics Carousel - Now visible on desktop too */}
+          {carouselMetrics.length > 0 && (
+            <div>
+              <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide px-1 mb-2">
+                Key Metrics
+              </h3>
+              <MetricsCarousel 
+                metrics={carouselMetrics}
+                onMetricTap={(metric) => toast.info(`${metric.title}: ${metric.value}`)}
+              />
+            </div>
+          )}
+
+          {/* AI Insights Deck - Now visible on desktop too */}
+          {insights.length > 0 && (
+            <InsightsDeck 
+              insights={insights}
+              onInsightExpand={(insight) => console.log('Expanded:', insight.id)}
+            />
+          )}
+
+          {/* Quick Historical Insights */}
+          <QuickHistoricalInsights 
+            ticker={ticker} 
+            streakData={streakData}
+            activePatterns={activePatterns}
+            isLoading={snapshotLoading}
+          />
+
+          {/* Earnings Impact */}
+          <EarningsImpactSection ticker={ticker} nextEarnings={nextEarnings} />
+        </div>
+
+        {/* Right Column - Stats Sidebar */}
+        <div className="space-y-3">
           <ComprehensiveMetricsCard data={comprehensiveFundamentals} isLoading={comprehensiveFundamentals.isLoading} />
           <RiskPerformanceCard data={comprehensiveFundamentals} isLoading={comprehensiveFundamentals.isLoading} />
           <EarningsIntelCard data={comprehensiveFundamentals} isLoading={comprehensiveFundamentals.isLoading} />
@@ -529,18 +603,18 @@ export function ALAOverviewTab({
           
           {basicStats && (
             <Card className="bg-card border-border">
-              <CardContent className="p-2 space-y-2">
+              <CardContent className="p-3 space-y-2">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-1">
                     <Activity className="h-3 w-3 text-primary" />
-                    <span className="text-[10px] md:text-xs font-medium">Past {basicStats.totalDays} Trading Days</span>
+                    <span className="text-xs font-medium">Past {basicStats.totalDays} Trading Days</span>
                     {snapshotFetching && <RefreshCw className="h-2.5 w-2.5 animate-spin ml-1 text-muted-foreground" />}
                   </div>
                   <Select 
                     value={lookbackDays?.toString() || 'all'} 
                     onValueChange={(val) => setLookbackDays(val === 'all' ? undefined : parseInt(val))}
                   >
-                    <SelectTrigger className="h-5 w-[80px] text-[8px] bg-secondary/50 border-border px-1.5">
+                    <SelectTrigger className="h-6 w-[80px] text-[10px] bg-secondary/50 border-border px-2">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent className="bg-card border-border z-50">
@@ -551,45 +625,26 @@ export function ALAOverviewTab({
                   </Select>
                 </div>
                 
-                <div className="grid grid-cols-3 gap-1">
-                  <div className="p-1.5 bg-secondary/30 rounded text-center">
-                    <span className="text-[7px] text-muted-foreground uppercase block">Up Days</span>
-                    <p className="text-xs font-bold text-success">{basicStats.upDays}</p>
+                <div className="grid grid-cols-3 gap-2">
+                  <div className="p-2 bg-secondary/30 rounded text-center">
+                    <span className="text-[9px] text-muted-foreground uppercase block">Up</span>
+                    <p className="text-sm font-bold text-success">{basicStats.upDays}</p>
                   </div>
-                  <div className="p-1.5 bg-secondary/30 rounded text-center">
-                    <span className="text-[7px] text-muted-foreground uppercase block">Down Days</span>
-                    <p className="text-xs font-bold text-destructive">{basicStats.downDays}</p>
+                  <div className="p-2 bg-secondary/30 rounded text-center">
+                    <span className="text-[9px] text-muted-foreground uppercase block">Down</span>
+                    <p className="text-sm font-bold text-destructive">{basicStats.downDays}</p>
                   </div>
-                  <div className="p-1.5 bg-secondary/30 rounded text-center">
-                    <span className="text-[7px] text-muted-foreground uppercase block">Flat Days</span>
-                    <p className="text-xs font-bold">{basicStats.flatDays}</p>
-                  </div>
-                  <div className="p-1.5 bg-secondary/30 rounded text-center">
-                    <span className="text-[7px] text-muted-foreground uppercase block">Avg Move</span>
-                    <p className="text-xs font-bold">{basicStats.avgDailyMovePercent.toFixed(2)}%</p>
-                  </div>
-                  <div className="p-1.5 bg-secondary/30 rounded text-center">
-                    <span className="text-[7px] text-muted-foreground uppercase block">Best Day</span>
-                    <p className="text-xs font-bold text-success">+{basicStats.bestDay.change.toFixed(1)}%</p>
-                  </div>
-                  <div className="p-1.5 bg-secondary/30 rounded text-center">
-                    <span className="text-[7px] text-muted-foreground uppercase block">Worst Day</span>
-                    <p className="text-xs font-bold text-destructive">{basicStats.worstDay.change.toFixed(1)}%</p>
+                  <div className="p-2 bg-secondary/30 rounded text-center">
+                    <span className="text-[9px] text-muted-foreground uppercase block">Avg Move</span>
+                    <p className="text-sm font-bold">{basicStats.avgDailyMovePercent.toFixed(2)}%</p>
                   </div>
                 </div>
                 
-                <div className="border-t border-border my-1" />
                 <PerformanceMetricsSection ticker={ticker} compact />
               </CardContent>
             </Card>
           )}
         </div>
-      </div>
-
-      {/* Quick Insights + Earnings Impact Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-2">
-        <QuickHistoricalInsights ticker={ticker} streakData={streakData} activePatterns={activePatterns} isLoading={snapshotLoading} />
-        <EarningsImpactSection ticker={ticker} nextEarnings={nextEarnings} />
       </div>
     </div>
   );
