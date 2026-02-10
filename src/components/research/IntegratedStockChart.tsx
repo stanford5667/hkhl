@@ -23,7 +23,7 @@ import {
   ChevronDown,
   BarChart3,
   LineChart,
-  CandlestickChart as CandlestickIcon,
+  ChartCandlestick,
   Activity,
   Layers
 } from 'lucide-react';
@@ -54,8 +54,8 @@ interface IntegratedStockChartProps {
 
 // Chart type options
 const CHART_TYPES: { type: ChartType; label: string; icon: React.ReactNode }[] = [
-  { type: 'candlestick', label: 'Candlestick', icon: <CandlestickIcon className="h-4 w-4" /> },
-  { type: 'heikin-ashi', label: 'Heikin-Ashi', icon: <CandlestickIcon className="h-4 w-4" /> },
+  { type: 'candlestick', label: 'Candlestick', icon: <ChartCandlestick className="h-4 w-4" /> },
+  { type: 'heikin-ashi', label: 'Heikin-Ashi', icon: <ChartCandlestick className="h-4 w-4" /> },
   { type: 'ohlc', label: 'OHLC/Bars', icon: <BarChart3 className="h-4 w-4" /> },
   { type: 'line', label: 'Line', icon: <LineChart className="h-4 w-4" /> },
   { type: 'area', label: 'Area', icon: <Activity className="h-4 w-4" /> },
@@ -533,7 +533,7 @@ export function IntegratedStockChart({
   return (
     <div className={cn("relative", className)}>
       {/* Toolbar */}
-      <div className="flex items-center justify-between gap-2 mb-2 flex-wrap">
+      <div className="flex items-center justify-between gap-2 mb-2 px-2 pt-2 overflow-x-auto">
         {/* Left: Range selector */}
         {!hideRangeSelector && (
           <div className="flex items-center gap-0.5">
