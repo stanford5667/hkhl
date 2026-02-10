@@ -71,6 +71,16 @@ export function CommunityHub({ defaultTab = 'chat', initialRoomId }: CommunityHu
 
   return (
     <div className="h-full flex flex-col">
+      {/* Sign-in banner for logged-out users */}
+      {!isAuthenticated && (
+        <div className="px-4 py-3 bg-primary/10 border-b flex items-center justify-between gap-3">
+          <p className="text-sm font-medium">Join the conversation — sign in to chat and post research.</p>
+          <Button size="sm" className="gap-2 shrink-0" onClick={() => navigate('/auth')}>
+            <LogIn className="h-4 w-4" />
+            Sign In / Sign Up
+          </Button>
+        </div>
+      )}
       {/* Tab navigation */}
       <div className="border-b px-4 py-2 flex items-center gap-4">
         {isMobile && activeTab === 'chat' && (
