@@ -6,6 +6,7 @@ import { ChatRoomList } from './chat/ChatRoomList';
 import { ChatRoomView } from './chat/ChatRoomView';
 import { PostFeed } from './posts/PostFeed';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useAuth } from '@/contexts/AuthContext';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
@@ -15,7 +16,8 @@ import {
   FileText, 
   Menu, 
   Users,
-  TrendingUp
+  TrendingUp,
+  LogIn
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -27,6 +29,7 @@ interface CommunityHubProps {
 export function CommunityHub({ defaultTab = 'chat', initialRoomId }: CommunityHubProps) {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
+  const { isAuthenticated } = useAuth();
   const [activeTab, setActiveTab] = useState<'chat' | 'posts'>(defaultTab);
   const [selectedRoom, setSelectedRoom] = useState<ChatRoomType | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -97,10 +100,19 @@ export function CommunityHub({ defaultTab = 'chat', initialRoomId }: CommunityHu
         </Tabs>
 
         <div className="ml-auto flex items-center gap-2 text-sm text-muted-foreground">
-          <TrendingUp className="h-4 w-4" />
-          <span className="hidden sm:inline">
-            {rooms.reduce((sum, r) => sum + r.member_count, 0).toLocaleString()} members online
-          </span>
+          {!isAuthenticated ? (
+            <Button size="sm" variant="default" className="gap-2" onClick={() => navigate('/auth')}>
+              <LogIn className="h-4 w-4" />
+              Sign In
+            </Button>
+          ) : (
+            <>
+              <TrendingUp className="h-4 w-4" />
+              <span className="hidden sm:inline">
+                {rooms.reduce((sum, r) => sum + r.member_count, 0).toLocaleString()} members online
+              </span>
+            </>
+          )}
         </div>
       </div>
 
