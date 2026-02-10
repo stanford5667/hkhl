@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowRight, Plus, ExternalLink, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -172,9 +172,30 @@ export function MarketThemesSection() {
     navigate(`/stock/${symbol}`);
   };
 
-  // Use date-seeded randomization so users see different themes each day
-  const [randomizedThemes] = useState(() => getRandomizedThemes(12));
-  const displayedThemes = showAll ? MARKET_THEMES : randomizedThemes;
+  // Shuffled pool of all themes
+  const allShuffled = useMemo(() => [...MARKET_THEMES].sort(() => Math.random() - 0.5), []);
+  const [visibleCount, setVisibleCount] = useState(8);
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Auto-add a new theme every 8 seconds
+  useEffect(() => {
+    if (showAll) return;
+    const interval = setInterval(() => {
+      setVisibleCount(prev => {
+        if (prev >= allShuffled.length) return 8; // loop back
+        return prev + 1;
+      });
+    }, 8000);
+    return () => clearInterval(interval);
+  }, [showAll, allShuffled.length]);
+
+  // Auto-scroll to show the newest card
+  useEffect(() => {
+    if (showAll || !scrollRef.current) return;
+    scrollRef.current.scrollTo({ left: scrollRef.current.scrollWidth, behavior: 'smooth' });
+  }, [visibleCount, showAll]);
+
+  const displayedThemes = showAll ? MARKET_THEMES : allShuffled.slice(0, visibleCount);
 
   return (
     <section className="space-y-2 sm:space-y-3">
@@ -216,9 +237,9 @@ export function MarketThemesSection() {
             </div>
           ))
         ) : (
-          <div className="flex gap-2 sm:gap-3 overflow-x-auto scrollbar-hide pb-2 snap-x snap-mandatory sm:snap-none">
+          <div ref={scrollRef} className="flex gap-2 sm:gap-3 overflow-x-auto scrollbar-hide pb-2 snap-x snap-mandatory sm:snap-none">
             {displayedThemes.map((theme) => (
-              <div key={theme.id} className="snap-start">
+              <div key={theme.id} className="snap-start animate-in fade-in slide-in-from-right-4 duration-500">
                 <ThemeCard 
                   theme={theme} 
                   onClick={() => handleThemeSelect(theme)}
