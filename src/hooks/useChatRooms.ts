@@ -102,8 +102,26 @@ export function useChatRooms() {
       .eq('id', roomId);
 
     if (error) throw error;
-    
-    // Refresh rooms list
+    await fetchRooms();
+  };
+
+  const updateRoomSettings = async (roomId: string, settings: { posting_mode?: string; requires_approval?: boolean }) => {
+    const { error } = await supabase
+      .from('chat_rooms')
+      .update(settings)
+      .eq('id', roomId);
+
+    if (error) throw error;
+    await fetchRooms();
+  };
+
+  const deleteRoom = async (roomId: string) => {
+    const { error } = await supabase
+      .from('chat_rooms')
+      .delete()
+      .eq('id', roomId);
+
+    if (error) throw error;
     await fetchRooms();
   };
 
@@ -116,6 +134,8 @@ export function useChatRooms() {
     getOrCreateStockRoom,
     getRoomsByType,
     setRoomPremium,
+    updateRoomSettings,
+    deleteRoom,
     publicRooms: getRoomsByType('public'),
     stockRooms: getRoomsByType('stock'),
   };

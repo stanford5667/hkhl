@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Settings, Crown, Pencil, UserX, UserCheck } from 'lucide-react';
+import { Settings, Crown, Pencil, Trash2, ShieldCheck, MessageSquare } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
@@ -10,40 +10,45 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import { useChatRooms } from '@/hooks/useChatRooms';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
-
-interface MutedUser {
-  id: string;
-  user_id: string;
-  reason: string | null;
-  created_at: string;
-}
 
 interface RoomSettingsProps {
   roomId: string;
   roomName: string;
   isPremium: boolean;
-  mutedUsers?: MutedUser[];
-  onMuteUser?: (userId: string) => Promise<void>;
-  onUnmuteUser?: (userId: string) => Promise<void>;
+  postingMode: 'everyone' | 'admin_only';
+  requiresApproval: boolean;
   onRoomRenamed?: () => void;
+  onRoomDeleted?: () => void;
+  onSettingsChanged?: () => void;
 }
 
-export function RoomSettings({ roomId, roomName, isPremium, mutedUsers = [], onMuteUser, onUnmuteUser, onRoomRenamed }: RoomSettingsProps) {
+export function RoomSettings({ roomId, roomName, isPremium, postingMode, requiresApproval, onRoomRenamed, onRoomDeleted, onSettingsChanged }: RoomSettingsProps) {
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
-  const { setRoomPremium } = useChatRooms();
+  const { setRoomPremium, updateRoomSettings, deleteRoom } = useChatRooms();
   const [editingName, setEditingName] = useState(false);
   const [newName, setNewName] = useState(roomName);
-  const [muteUserId, setMuteUserId] = useState('');
 
   const handleTogglePremium = async (checked: boolean) => {
     setLoading(true);
     try {
       await setRoomPremium(roomId, checked);
       toast.success(checked ? 'Room marked as premium' : 'Room is now public');
+      onSettingsChanged?.();
     } catch (err) {
       toast.error('Failed to update room settings');
     } finally {
@@ -73,15 +78,41 @@ export function RoomSettings({ roomId, roomName, isPremium, mutedUsers = [], onM
     }
   };
 
-  const handleMuteUser = async () => {
-    if (!muteUserId.trim() || !onMuteUser) return;
+  const handlePostingModeToggle = async (adminOnly: boolean) => {
     setLoading(true);
     try {
-      await onMuteUser(muteUserId.trim());
-      toast.success('User muted');
-      setMuteUserId('');
+      await updateRoomSettings(roomId, { posting_mode: adminOnly ? 'admin_only' : 'everyone' });
+      toast.success(adminOnly ? 'Only admins can post now' : 'Everyone can post now');
+      onSettingsChanged?.();
     } catch (err) {
-      toast.error('Failed to mute user');
+      toast.error('Failed to update posting mode');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleApprovalToggle = async (checked: boolean) => {
+    setLoading(true);
+    try {
+      await updateRoomSettings(roomId, { requires_approval: checked });
+      toast.success(checked ? 'Posts now require approval' : 'Posts no longer require approval');
+      onSettingsChanged?.();
+    } catch (err) {
+      toast.error('Failed to update approval setting');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDeleteRoom = async () => {
+    setLoading(true);
+    try {
+      await deleteRoom(roomId);
+      toast.success('Room deleted');
+      setOpen(false);
+      onRoomDeleted?.();
+    } catch (err) {
+      toast.error('Failed to delete room');
     } finally {
       setLoading(false);
     }
@@ -141,50 +172,67 @@ export function RoomSettings({ roomId, roomName, isPremium, mutedUsers = [], onM
 
           <Separator />
 
-          {/* Mute user */}
-          <div className="space-y-2">
-            <Label className="text-xs text-muted-foreground flex items-center gap-1">
-              <UserX className="h-3.5 w-3.5" />
-              Mute User (by ID)
-            </Label>
-            <div className="flex gap-1">
-              <Input
-                value={muteUserId}
-                onChange={(e) => setMuteUserId(e.target.value)}
-                placeholder="User ID..."
-                className="h-8 text-xs"
-              />
-              <Button size="sm" className="h-8 text-xs" onClick={handleMuteUser} disabled={loading || !muteUserId.trim()}>
-                Mute
-              </Button>
+          {/* Posting mode */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <ShieldCheck className="h-4 w-4 text-blue-500" />
+              <Label htmlFor="posting-mode" className="text-sm">Admin-only posting</Label>
             </div>
+            <Switch
+              id="posting-mode"
+              checked={postingMode === 'admin_only'}
+              onCheckedChange={handlePostingModeToggle}
+              disabled={loading}
+            />
           </div>
 
-          {/* Muted users list */}
-          {mutedUsers.length > 0 && (
-            <div className="space-y-1">
-              <Label className="text-xs text-muted-foreground">Muted Users</Label>
-              <div className="max-h-32 overflow-y-auto space-y-1">
-                {mutedUsers.map((mu) => (
-                  <div key={mu.id} className="flex items-center justify-between text-xs bg-muted rounded px-2 py-1">
-                    <span className="truncate font-mono">{mu.user_id.slice(0, 8)}...</span>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-5 w-5"
-                      onClick={() => onUnmuteUser?.(mu.user_id)}
-                    >
-                      <UserCheck className="h-3 w-3" />
-                    </Button>
-                  </div>
-                ))}
-              </div>
+          {/* Requires approval */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <MessageSquare className="h-4 w-4 text-orange-500" />
+              <Label htmlFor="approval-toggle" className="text-sm">Require approval</Label>
             </div>
-          )}
+            <Switch
+              id="approval-toggle"
+              checked={requiresApproval}
+              onCheckedChange={handleApprovalToggle}
+              disabled={loading || postingMode === 'admin_only'}
+            />
+          </div>
 
           <p className="text-xs text-muted-foreground">
-            Muted users cannot send messages in this room.
+            {postingMode === 'admin_only' 
+              ? 'Only admins can send messages in this room.'
+              : requiresApproval 
+                ? 'Messages require admin approval before appearing.'
+                : 'Everyone can post freely in this room.'}
           </p>
+
+          <Separator />
+
+          {/* Delete room */}
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="destructive" size="sm" className="w-full gap-2" disabled={loading}>
+                <Trash2 className="h-3.5 w-3.5" />
+                Delete Room
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Delete "{roomName}"?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This will permanently delete this room and all its messages. This action cannot be undone.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={handleDeleteRoom} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                  Delete
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
       </PopoverContent>
     </Popover>

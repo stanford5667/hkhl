@@ -12,6 +12,8 @@ export interface ChatRoom {
   icon: string;
   member_count: number;
   is_premium: boolean;
+  posting_mode: 'everyone' | 'admin_only';
+  requires_approval: boolean;
   created_by: string;
   created_at: string;
   updated_at: string;

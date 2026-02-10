@@ -751,6 +751,8 @@ export type Database = {
           is_premium: boolean | null
           member_count: number
           name: string
+          posting_mode: string
+          requires_approval: boolean
           room_type: Database["public"]["Enums"]["room_type"]
           slug: string
           ticker: string | null
@@ -765,6 +767,8 @@ export type Database = {
           is_premium?: boolean | null
           member_count?: number
           name: string
+          posting_mode?: string
+          requires_approval?: boolean
           room_type?: Database["public"]["Enums"]["room_type"]
           slug: string
           ticker?: string | null
@@ -779,6 +783,8 @@ export type Database = {
           is_premium?: boolean | null
           member_count?: number
           name?: string
+          posting_mode?: string
+          requires_approval?: boolean
           room_type?: Database["public"]["Enums"]["room_type"]
           slug?: string
           ticker?: string | null
@@ -4080,41 +4086,6 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "room_members_room_id_fkey"
-            columns: ["room_id"]
-            isOneToOne: false
-            referencedRelation: "chat_rooms"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      room_muted_users: {
-        Row: {
-          created_at: string
-          id: string
-          muted_by: string
-          reason: string | null
-          room_id: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          muted_by: string
-          reason?: string | null
-          room_id: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          muted_by?: string
-          reason?: string | null
-          room_id?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "room_muted_users_room_id_fkey"
             columns: ["room_id"]
             isOneToOne: false
             referencedRelation: "chat_rooms"
