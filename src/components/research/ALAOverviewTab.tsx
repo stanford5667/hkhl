@@ -365,7 +365,8 @@ export function ALAOverviewTab({
               symbol={ticker} 
               height={240}
               showVolume={false}
-              defaultRange={chartTimeframe === 'ALL' ? '5Y' : chartTimeframe}
+              defaultRange={chartTimeframe === 'ALL' ? '1Y' : chartTimeframe as any}
+              hideRangeSelector={true}
               onRefresh={onRefresh}
               isRefreshing={isRefreshing}
             />
