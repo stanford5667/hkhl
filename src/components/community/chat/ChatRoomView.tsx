@@ -1,4 +1,5 @@
 import { useState, useCallback, useMemo, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { ChatRoom } from '@/types/community';
 import { useRealtimeMessages } from '@/hooks/useRealtimeMessages';
 import { useTypingIndicator } from '@/hooks/useTypingIndicator';
@@ -6,7 +7,6 @@ import { useUserPresence } from '@/hooks/useUserPresence';
 import { usePinnedMessages } from '@/hooks/usePinnedMessages';
 import { useMessageThreads } from '@/hooks/useMessageThreads';
 import { useUnreadMessages } from '@/hooks/useUnreadMessages';
-import { useRoomMutes } from '@/hooks/useRoomMutes';
 import { useChatRooms } from '@/hooks/useChatRooms';
 import { useUsage } from '@/contexts/UsageContext';
 import { useAdmin } from '@/hooks/useAdmin';
@@ -36,51 +36,32 @@ export function ChatRoomView({ room, onBack }: ChatRoomViewProps) {
     userName: string;
   } | null>(null);
 
+  const navigate = useNavigate();
   const { isPro, showUpgradeModal } = useUsage();
   const { isAdmin } = useAdmin();
 
-  // Full access if: not premium, OR user is pro, OR user is admin
   const canAccess = !room.is_premium || isPro || isAdmin;
+  const canPost = isAdmin || room.posting_mode === 'everyone';
   const canPin = isAdmin;
 
-  // Core message functionality
   const {
-    messages,
-    loading,
-    hasMore,
-    error,
-    sendMessage,
-    editMessage,
-    deleteMessage,
-    addReaction,
-    removeReaction,
-    setMessagePremium,
-    loadMoreMessages,
+    messages, loading, hasMore, error,
+    sendMessage, editMessage, deleteMessage,
+    addReaction, removeReaction, setMessagePremium, loadMoreMessages,
   } = useRealtimeMessages(room.id);
 
-  // Discord-like features
   const { typingUsers, startTyping, stopTyping } = useTypingIndicator(room.id);
   const { getUserPresence } = useUserPresence(room.id);
   const { pinnedMessages, pinMessage, unpinMessage, isMessagePinned } = usePinnedMessages(room.id);
   const { markRoomAsRead } = useUnreadMessages();
-  const { mutedUsers, isMuted, muteUser, unmuteUser } = useRoomMutes(room.id);
   const { fetchRooms } = useChatRooms();
   const {
-    activeThread,
-    threadReplies,
-    threadInfo,
-    loading: threadLoading,
-    openThread,
-    closeThread,
-    sendThreadReply,
+    activeThread, threadReplies, threadInfo,
+    loading: threadLoading, openThread, closeThread, sendThreadReply,
   } = useMessageThreads(room.id);
 
-  // Pinned message IDs for quick lookup
-  const pinnedMessageIds = useMemo(() => {
-    return new Set(pinnedMessages.map(m => m.id));
-  }, [pinnedMessages]);
+  const pinnedMessageIds = useMemo(() => new Set(pinnedMessages.map(m => m.id)), [pinnedMessages]);
 
-  // Mark room as read when viewing
   useEffect(() => {
     if (canAccess && messages.length > 0) {
       const lastMessage = messages[messages.length - 1];
@@ -99,33 +80,18 @@ export function ChatRoomView({ room, onBack }: ChatRoomViewProps) {
     }
   };
 
-  const handleTyping = useCallback(() => {
-    startTyping();
-  }, [startTyping]);
+  const handleTyping = useCallback(() => { startTyping(); }, [startTyping]);
 
   const handleAddReaction = useCallback(async (messageId: string, emoji: string) => {
-    try {
-      await addReaction(messageId, emoji);
-    } catch (err: any) {
-      toast.error('Failed to add reaction');
-    }
+    try { await addReaction(messageId, emoji); } catch { toast.error('Failed to add reaction'); }
   }, [addReaction]);
 
   const handleRemoveReaction = useCallback(async (messageId: string, emoji: string) => {
-    try {
-      await removeReaction(messageId, emoji);
-    } catch (err: any) {
-      toast.error('Failed to remove reaction');
-    }
+    try { await removeReaction(messageId, emoji); } catch { toast.error('Failed to remove reaction'); }
   }, [removeReaction]);
 
   const handleDeleteMessage = useCallback(async (messageId: string) => {
-    try {
-      await deleteMessage(messageId, isAdmin);
-      toast.success('Message deleted');
-    } catch (err: any) {
-      toast.error('Failed to delete message');
-    }
+    try { await deleteMessage(messageId, isAdmin); toast.success('Message deleted'); } catch { toast.error('Failed to delete message'); }
   }, [deleteMessage, isAdmin]);
 
   const handleReply = useCallback((messageId: string) => {
@@ -140,43 +106,31 @@ export function ChatRoomView({ room, onBack }: ChatRoomViewProps) {
   }, [messages]);
 
   const handlePinMessage = useCallback(async (messageId: string) => {
-    try {
-      await pinMessage(messageId);
-      toast.success('Message pinned');
-    } catch (err: any) {
-      toast.error('Failed to pin message');
-    }
+    try { await pinMessage(messageId); toast.success('Message pinned'); } catch { toast.error('Failed to pin message'); }
   }, [pinMessage]);
 
   const handleUnpinMessage = useCallback(async (messageId: string) => {
-    try {
-      await unpinMessage(messageId);
-      toast.success('Message unpinned');
-    } catch (err: any) {
-      toast.error('Failed to unpin message');
-    }
+    try { await unpinMessage(messageId); toast.success('Message unpinned'); } catch { toast.error('Failed to unpin message'); }
   }, [unpinMessage]);
 
   const handleSetMessagePremium = useCallback(async (messageId: string, isPremium: boolean) => {
-    try {
-      await setMessagePremium(messageId, isPremium);
-      toast.success(isPremium ? 'Message marked as premium' : 'Premium removed from message');
-    } catch (err: any) {
-      toast.error('Failed to update message');
-    }
+    try { await setMessagePremium(messageId, isPremium); toast.success(isPremium ? 'Message marked as premium' : 'Premium removed'); } catch { toast.error('Failed to update message'); }
   }, [setMessagePremium]);
 
-  const handleUpgradeClick = () => {
-    showUpgradeModal('premiumChat');
-  };
+  const handleUpgradeClick = () => { showUpgradeModal('premiumChat'); };
 
   const handleSendThreadReply = async (content: string) => {
-    try {
-      await sendThreadReply(content);
-    } catch (err: any) {
-      toast.error('Failed to send reply: ' + err.message);
-      throw err;
-    }
+    try { await sendThreadReply(content); } catch (err: any) { toast.error('Failed to send reply: ' + err.message); throw err; }
+  };
+
+  const handleRoomDeleted = () => {
+    navigate('/community');
+  };
+
+  const getInputPlaceholder = () => {
+    if (!canPost) return 'Only admins can post in this room';
+    if (room.requires_approval) return `Message #${room.name}... (requires approval)`;
+    return `Message #${room.name}...`;
   };
 
   return (
@@ -184,10 +138,9 @@ export function ChatRoomView({ room, onBack }: ChatRoomViewProps) {
       <RoomHeader
         room={room}
         onBack={onBack}
-        mutedUsers={mutedUsers}
-        onMuteUser={muteUser}
-        onUnmuteUser={unmuteUser}
         onRoomRenamed={fetchRooms}
+        onRoomDeleted={handleRoomDeleted}
+        onSettingsChanged={fetchRooms}
       />
 
       {error && (
@@ -196,7 +149,6 @@ export function ChatRoomView({ room, onBack }: ChatRoomViewProps) {
         </div>
       )}
 
-      {/* Pinned messages bar */}
       {pinnedMessages.length > 0 && canAccess && (
         <PinnedMessagesBar
           pinnedMessages={pinnedMessages}
@@ -227,13 +179,10 @@ export function ChatRoomView({ room, onBack }: ChatRoomViewProps) {
                 canPin={canPin}
                 getUserPresence={getUserPresence}
               />
-
-              {/* Typing indicator */}
               {canAccess && <TypingIndicator typingUsers={typingUsers} />}
             </div>
           </ResizablePanel>
 
-          {/* Thread panel */}
           {activeThread && (
             <>
               <ResizableHandle withHandle />
@@ -251,7 +200,6 @@ export function ChatRoomView({ room, onBack }: ChatRoomViewProps) {
           )}
         </ResizablePanelGroup>
 
-        {/* Premium gate overlay */}
         {!canAccess && (
           <PremiumRoomGate 
             memberCount={room.member_count} 
@@ -265,9 +213,9 @@ export function ChatRoomView({ room, onBack }: ChatRoomViewProps) {
         onTyping={handleTyping}
         replyingTo={replyingTo}
         onCancelReply={() => setReplyingTo(null)}
-        placeholder={isMuted ? 'You are muted in this room' : `Message #${room.name}...`}
+        placeholder={getInputPlaceholder()}
         locked={!canAccess}
-        disabled={isMuted}
+        disabled={!canPost}
         onUpgradeClick={handleUpgradeClick}
       />
     </div>

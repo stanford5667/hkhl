@@ -6,23 +6,15 @@ import { ArrowLeft, TrendingUp, ExternalLink, Crown } from 'lucide-react';
 import { RoomSettings } from './RoomSettings';
 import { useAdmin } from '@/hooks/useAdmin';
 
-interface MutedUser {
-  id: string;
-  user_id: string;
-  reason: string | null;
-  created_at: string;
-}
-
 interface RoomHeaderProps {
   room: ChatRoom;
   onBack?: () => void;
-  mutedUsers?: MutedUser[];
-  onMuteUser?: (userId: string) => Promise<void>;
-  onUnmuteUser?: (userId: string) => Promise<void>;
   onRoomRenamed?: () => void;
+  onRoomDeleted?: () => void;
+  onSettingsChanged?: () => void;
 }
 
-export function RoomHeader({ room, onBack, mutedUsers = [], onMuteUser, onUnmuteUser, onRoomRenamed }: RoomHeaderProps) {
+export function RoomHeader({ room, onBack, onRoomRenamed, onRoomDeleted, onSettingsChanged }: RoomHeaderProps) {
   const navigate = useNavigate();
   const { isAdmin } = useAdmin();
 
@@ -91,10 +83,11 @@ export function RoomHeader({ room, onBack, mutedUsers = [], onMuteUser, onUnmute
             roomId={room.id}
             roomName={room.name}
             isPremium={room.is_premium}
-            mutedUsers={mutedUsers}
-            onMuteUser={onMuteUser}
-            onUnmuteUser={onUnmuteUser}
+            postingMode={room.posting_mode}
+            requiresApproval={room.requires_approval}
             onRoomRenamed={onRoomRenamed}
+            onRoomDeleted={onRoomDeleted}
+            onSettingsChanged={onSettingsChanged}
           />
         )}
       </div>
