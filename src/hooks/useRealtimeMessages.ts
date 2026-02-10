@@ -229,15 +229,20 @@ export function useRealtimeMessages(roomId: string | null) {
     if (error) throw error;
   };
 
-  const deleteMessage = async (messageId: string) => {
+  const deleteMessage = async (messageId: string, isAdminDelete = false) => {
     if (!user) throw new Error('Must be authenticated');
 
-    const { error } = await supabase
+    let query = supabase
       .from('chat_messages')
       .delete()
-      .eq('id', messageId)
-      .eq('user_id', user.id);
+      .eq('id', messageId);
 
+    // Admin can delete any message; regular users can only delete their own
+    if (!isAdminDelete) {
+      query = query.eq('user_id', user.id);
+    }
+
+    const { error } = await query;
     if (error) throw error;
   };
 

@@ -91,12 +91,6 @@ export function ChatRoomList({
               </Badge>
             )}
           </div>
-          {room.member_count > 0 && (
-            <div className="flex items-center gap-1 text-xs text-muted-foreground">
-              <Users className="h-3 w-3" />
-              <span>{room.member_count.toLocaleString()}</span>
-            </div>
-          )}
         </div>
         {/* Unread badge */}
         {unreadCount > 0 && !isActive && (

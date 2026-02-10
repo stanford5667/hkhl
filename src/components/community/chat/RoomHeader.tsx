@@ -2,21 +2,27 @@ import { ChatRoom } from '@/types/community';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Users, TrendingUp, ExternalLink, Crown } from 'lucide-react';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
+import { ArrowLeft, TrendingUp, ExternalLink, Crown } from 'lucide-react';
 import { RoomSettings } from './RoomSettings';
 import { useAdmin } from '@/hooks/useAdmin';
+
+interface MutedUser {
+  id: string;
+  user_id: string;
+  reason: string | null;
+  created_at: string;
+}
 
 interface RoomHeaderProps {
   room: ChatRoom;
   onBack?: () => void;
+  mutedUsers?: MutedUser[];
+  onMuteUser?: (userId: string) => Promise<void>;
+  onUnmuteUser?: (userId: string) => Promise<void>;
+  onRoomRenamed?: () => void;
 }
 
-export function RoomHeader({ room, onBack }: RoomHeaderProps) {
+export function RoomHeader({ room, onBack, mutedUsers = [], onMuteUser, onUnmuteUser, onRoomRenamed }: RoomHeaderProps) {
   const navigate = useNavigate();
   const { isAdmin } = useAdmin();
 
@@ -68,18 +74,6 @@ export function RoomHeader({ room, onBack }: RoomHeaderProps) {
       </div>
 
       <div className="ml-auto flex items-center gap-2">
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <div className="flex items-center gap-1 text-sm text-muted-foreground">
-              <Users className="h-4 w-4" />
-              <span>{room.member_count.toLocaleString()}</span>
-            </div>
-          </TooltipTrigger>
-          <TooltipContent>
-            {room.member_count} {room.member_count === 1 ? 'member' : 'members'}
-          </TooltipContent>
-        </Tooltip>
-
         {room.ticker && (
           <Button
             variant="outline"
@@ -93,7 +87,15 @@ export function RoomHeader({ room, onBack }: RoomHeaderProps) {
         )}
 
         {isAdmin && (
-          <RoomSettings roomId={room.id} isPremium={room.is_premium} />
+          <RoomSettings
+            roomId={room.id}
+            roomName={room.name}
+            isPremium={room.is_premium}
+            mutedUsers={mutedUsers}
+            onMuteUser={onMuteUser}
+            onUnmuteUser={onUnmuteUser}
+            onRoomRenamed={onRoomRenamed}
+          />
         )}
       </div>
     </div>
