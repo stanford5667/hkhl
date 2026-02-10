@@ -533,10 +533,10 @@ export function IntegratedStockChart({
   return (
     <div className={cn("relative", className)}>
       {/* Toolbar */}
-      <div className="flex items-center justify-between gap-2 mb-2 px-2 pt-2 overflow-x-auto">
+      <div className="flex items-center gap-2 mb-2 px-2 pt-2 overflow-x-auto min-w-0">
         {/* Left: Range selector */}
         {!hideRangeSelector && (
-          <div className="flex items-center gap-0.5">
+          <div className="flex items-center gap-0.5 flex-shrink-0">
             {(Object.keys(TIME_RANGES) as TimeRange[]).map((range) => (
               <Button
                 key={range}
@@ -567,7 +567,7 @@ export function IntegratedStockChart({
         )}
 
         {/* Center: Drawing tools + Chart type + Indicators */}
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1 flex-shrink-0">
           {/* Chart Type Selector */}
           <Popover>
             <PopoverTrigger asChild>
@@ -712,7 +712,7 @@ export function IntegratedStockChart({
         </div>
 
         {/* Right: Zoom controls */}
-        <div className="flex items-center gap-0.5">
+        <div className="flex items-center gap-0.5 flex-shrink-0 ml-auto">
           <Button
             variant="ghost"
             size="sm"

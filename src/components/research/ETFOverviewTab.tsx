@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { TrendingUp, TrendingDown, PieChart, DollarSign, Percent, Activity, Layers, BarChart3 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { CandlestickChart } from '@/components/charts/CandlestickChart';
+import { IntegratedStockChart } from '@/components/research/IntegratedStockChart';
 
 interface ETFOverviewTabProps {
   ticker: string;
@@ -99,7 +99,7 @@ export function ETFOverviewTab({
       {/* Main Grid: Chart + Stats Side by Side */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-2">
         {/* Chart Column - 2/3 width */}
-        <Card className="bg-card border-border lg:col-span-2 overflow-hidden">
+        <Card className="bg-card border-border lg:col-span-2">
           {/* Price Header */}
           <div className="px-3 pt-3 pb-2 space-y-1.5">
             <div className="flex items-center gap-2">
@@ -173,11 +173,9 @@ export function ETFOverviewTab({
 
           {/* Chart */}
           <div className="w-full">
-            <CandlestickChart 
+            <IntegratedStockChart 
               symbol={ticker} 
               height={320}
-              showVolume={true}
-              showRangeSelector={true}
               defaultRange="3M"
               onRefresh={onRefresh}
               isRefreshing={isRefreshing}
