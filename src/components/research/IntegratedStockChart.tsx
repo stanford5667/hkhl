@@ -49,6 +49,7 @@ interface IntegratedStockChartProps {
   defaultRange?: TimeRange;
   onRefresh?: () => void;
   isRefreshing?: boolean;
+  hideRangeSelector?: boolean;
 }
 
 // Chart type options
@@ -93,6 +94,7 @@ export function IntegratedStockChart({
   defaultRange = '3M',
   onRefresh,
   isRefreshing = false,
+  hideRangeSelector = false,
 }: IntegratedStockChartProps) {
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<any>(null);
@@ -102,6 +104,11 @@ export function IntegratedStockChart({
   
   const [isLoading, setIsLoading] = useState(true);
   const [selectedRange, setSelectedRange] = useState<TimeRange>(defaultRange);
+
+  // Sync selectedRange when parent changes defaultRange (e.g. MobileChartCard timeframe pills)
+  useEffect(() => {
+    setSelectedRange(defaultRange);
+  }, [defaultRange]);
   const [chartType, setChartType] = useState<ChartType>('candlestick');
   const [activeTool, setActiveTool] = useState<DrawingToolType>('cursor');
   const [drawings, setDrawings] = useState<DrawingObject[]>([]);
@@ -533,34 +540,36 @@ export function IntegratedStockChart({
       {/* Toolbar */}
       <div className="flex items-center justify-between gap-2 mb-2 flex-wrap">
         {/* Left: Range selector */}
-        <div className="flex items-center gap-0.5">
-          {(Object.keys(TIME_RANGES) as TimeRange[]).map((range) => (
-            <Button
-              key={range}
-              variant={selectedRange === range ? "secondary" : "ghost"}
-              size="sm"
-              className={cn(
-                "h-6 px-1.5 text-[10px]",
-                selectedRange === range && "bg-primary/10 text-primary"
-              )}
-              onClick={() => setSelectedRange(range)}
-            >
-              {range}
-            </Button>
-          ))}
-          {onRefresh && (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-6 w-6 p-0 ml-1"
-              onClick={onRefresh}
-              disabled={isRefreshing}
-              title="Refresh data"
-            >
-              <RefreshCw className={cn("h-3 w-3", isRefreshing && "animate-spin")} />
-            </Button>
-          )}
-        </div>
+        {!hideRangeSelector && (
+          <div className="flex items-center gap-0.5">
+            {(Object.keys(TIME_RANGES) as TimeRange[]).map((range) => (
+              <Button
+                key={range}
+                variant={selectedRange === range ? "secondary" : "ghost"}
+                size="sm"
+                className={cn(
+                  "h-6 px-1.5 text-[10px]",
+                  selectedRange === range && "bg-primary/10 text-primary"
+                )}
+                onClick={() => setSelectedRange(range)}
+              >
+                {range}
+              </Button>
+            ))}
+            {onRefresh && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-6 w-6 p-0 ml-1"
+                onClick={onRefresh}
+                disabled={isRefreshing}
+                title="Refresh data"
+              >
+                <RefreshCw className={cn("h-3 w-3", isRefreshing && "animate-spin")} />
+              </Button>
+            )}
+          </div>
+        )}
 
         {/* Center: Drawing tools + Chart type + Indicators */}
         <div className="flex items-center gap-1">
