@@ -2830,6 +2830,57 @@ export type Database = {
           },
         ]
       }
+      market_themes: {
+        Row: {
+          category: string
+          created_at: string
+          detailed_summary: string
+          generated_date: string
+          headlines: Json
+          icon_name: string
+          id: string
+          impact_percent: number | null
+          is_active: boolean
+          sentiment_score: number | null
+          summary: string
+          theme_id: string
+          tickers: Json
+          title: string
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          detailed_summary: string
+          generated_date?: string
+          headlines?: Json
+          icon_name?: string
+          id?: string
+          impact_percent?: number | null
+          is_active?: boolean
+          sentiment_score?: number | null
+          summary: string
+          theme_id: string
+          tickers?: Json
+          title: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          detailed_summary?: string
+          generated_date?: string
+          headlines?: Json
+          icon_name?: string
+          id?: string
+          impact_percent?: number | null
+          is_active?: boolean
+          sentiment_score?: number | null
+          summary?: string
+          theme_id?: string
+          tickers?: Json
+          title?: string
+        }
+        Relationships: []
+      }
       message_reactions: {
         Row: {
           created_at: string

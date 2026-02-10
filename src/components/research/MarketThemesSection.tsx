@@ -1,12 +1,13 @@
 import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowRight, Plus, ExternalLink, Sparkles } from 'lucide-react';
+import { ArrowRight, Plus, ExternalLink, Sparkles, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { getRandomizedThemes, MARKET_THEMES, type MarketTheme, type ThemeTicker } from '@/data/marketThemes';
+import { useMarketThemes } from '@/hooks/useMarketThemes';
 
 function TickerPill({ ticker, onClick }: { ticker: ThemeTicker; onClick: () => void }) {
   const sentimentColor = {
@@ -156,6 +157,13 @@ export function MarketThemesSection() {
   const [showAll, setShowAll] = useState(false);
   const [sheetExpanded, setSheetExpanded] = useState(false);
 
+  // Fetch AI-generated themes from database
+  const { data: dbThemes, isLoading: themesLoading } = useMarketThemes();
+
+  // Use DB themes if available, otherwise fall back to static themes
+  const sourceThemes = dbThemes && dbThemes.length > 0 ? dbThemes : MARKET_THEMES;
+  const isAiGenerated = !!(dbThemes && dbThemes.length > 0);
+
   // Reset expansion when theme changes
   const handleThemeSelect = (theme: MarketTheme) => {
     setSheetExpanded(false);
@@ -172,8 +180,8 @@ export function MarketThemesSection() {
     navigate(`/stock/${symbol}`);
   };
 
-  // Shuffled pool of all themes
-  const allShuffled = useMemo(() => [...MARKET_THEMES].sort(() => Math.random() - 0.5), []);
+  // Shuffled pool of themes
+  const allShuffled = useMemo(() => [...sourceThemes].sort(() => Math.random() - 0.5), [sourceThemes]);
   const [visibleCount, setVisibleCount] = useState(8);
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -195,7 +203,7 @@ export function MarketThemesSection() {
     scrollRef.current.scrollTo({ left: scrollRef.current.scrollWidth, behavior: 'smooth' });
   }, [visibleCount, showAll]);
 
-  const displayedThemes = showAll ? MARKET_THEMES : allShuffled.slice(0, visibleCount);
+  const displayedThemes = showAll ? sourceThemes : allShuffled.slice(0, visibleCount);
 
   return (
     <section className="space-y-2 sm:space-y-3">
@@ -206,8 +214,18 @@ export function MarketThemesSection() {
             <Sparkles className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-primary" />
           </div>
           <div>
-            <h2 className="text-sm sm:text-base font-semibold text-foreground">Major Market Themes</h2>
-            <p className="text-[9px] sm:text-[10px] text-muted-foreground hidden sm:block">{MARKET_THEMES.length} active themes tracked</p>
+            <div className="flex items-center gap-1.5">
+              <h2 className="text-sm sm:text-base font-semibold text-foreground">Major Market Themes</h2>
+              {isAiGenerated && (
+                <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-4 border-primary/30 text-primary">
+                  AI · Today
+                </Badge>
+              )}
+              {themesLoading && <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />}
+            </div>
+            <p className="text-[9px] sm:text-[10px] text-muted-foreground hidden sm:block">
+              {isAiGenerated ? 'Fresh themes generated daily by AI' : `${MARKET_THEMES.length} active themes tracked`}
+            </p>
           </div>
         </div>
         <Button 
@@ -216,7 +234,7 @@ export function MarketThemesSection() {
           onClick={() => setShowAll(!showAll)}
           className="text-[10px] sm:text-xs h-6 sm:h-7 px-2"
         >
-          {showAll ? 'Less' : `All ${MARKET_THEMES.length}`}
+          {showAll ? 'Less' : `All ${sourceThemes.length}`}
         </Button>
       </div>
 
