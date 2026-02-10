@@ -284,10 +284,7 @@ export function IntegratedStockChart({
       volumeSeriesRef.current = volumeSeries;
     }
 
-    // Re-apply data if we have it
-    if (chartData.length > 0) {
-      applyChartData(chartData);
-    }
+    // Data will be re-applied by the unified chartData effect
   }, [chartType, chartReady, showVolume]);
 
   // Apply data to chart
@@ -331,7 +328,7 @@ export function IntegratedStockChart({
     chartRef.current?.timeScale().scrollToRealTime();
   }, [chartType]);
 
-  // Fetch data
+  // Fetch data when symbol, range, or chart readiness changes
   useEffect(() => {
     if (!chartReady || !mainSeriesRef.current) return;
 
@@ -344,8 +341,6 @@ export function IntegratedStockChart({
         
         if (data.length > 0) {
           setChartData(data);
-          applyChartData(data);
-          updateIndicators(data);
         }
       } catch (err) {
         console.error('[IntegratedStockChart] Error:', err);
@@ -356,7 +351,7 @@ export function IntegratedStockChart({
     };
 
     fetchData();
-  }, [chartReady, symbol, selectedRange, applyChartData]);
+  }, [chartReady, symbol, selectedRange]);
 
   // Calculate Heikin-Ashi
   const calculateHeikinAshi = (data: any[]): any[] => {
@@ -448,12 +443,12 @@ export function IntegratedStockChart({
     });
   }, [activeIndicators]);
 
-  // Re-apply indicators when they change
+  // Apply chart data + indicators whenever chartData, chartType, or indicators change
   useEffect(() => {
-    if (chartData.length > 0) {
-      updateIndicators(chartData);
-    }
-  }, [activeIndicators, chartData, updateIndicators]);
+    if (!mainSeriesRef.current || chartData.length === 0) return;
+    applyChartData(chartData);
+    updateIndicators(chartData);
+  }, [chartData, applyChartData, updateIndicators]);
 
   // Toggle indicator
   const toggleIndicator = (indicatorDef: typeof POPULAR_INDICATORS[0]) => {
