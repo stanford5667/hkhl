@@ -294,13 +294,13 @@ const MessageItem = memo(function MessageItem({
                 Edit
               </DropdownMenuItem>
             )}
-            {isOwn && onDelete && (
+            {(isOwn || isAdmin) && onDelete && (
               <DropdownMenuItem 
                 onClick={() => onDelete(message.id)}
                 className="text-destructive"
               >
                 <Trash2 className="h-4 w-4 mr-2" />
-                Delete
+                Delete{isAdmin && !isOwn ? ' (Admin)' : ''}
               </DropdownMenuItem>
             )}
           </DropdownMenuContent>

@@ -6,6 +6,8 @@ import { useUserPresence } from '@/hooks/useUserPresence';
 import { usePinnedMessages } from '@/hooks/usePinnedMessages';
 import { useMessageThreads } from '@/hooks/useMessageThreads';
 import { useUnreadMessages } from '@/hooks/useUnreadMessages';
+import { useRoomMutes } from '@/hooks/useRoomMutes';
+import { useChatRooms } from '@/hooks/useChatRooms';
 import { useUsage } from '@/contexts/UsageContext';
 import { useAdmin } from '@/hooks/useAdmin';
 import { MessageList } from './MessageList';
@@ -61,6 +63,8 @@ export function ChatRoomView({ room, onBack }: ChatRoomViewProps) {
   const { getUserPresence } = useUserPresence(room.id);
   const { pinnedMessages, pinMessage, unpinMessage, isMessagePinned } = usePinnedMessages(room.id);
   const { markRoomAsRead } = useUnreadMessages();
+  const { mutedUsers, isMuted, muteUser, unmuteUser } = useRoomMutes(room.id);
+  const { fetchRooms } = useChatRooms();
   const {
     activeThread,
     threadReplies,
@@ -117,12 +121,12 @@ export function ChatRoomView({ room, onBack }: ChatRoomViewProps) {
 
   const handleDeleteMessage = useCallback(async (messageId: string) => {
     try {
-      await deleteMessage(messageId);
+      await deleteMessage(messageId, isAdmin);
       toast.success('Message deleted');
     } catch (err: any) {
       toast.error('Failed to delete message');
     }
-  }, [deleteMessage]);
+  }, [deleteMessage, isAdmin]);
 
   const handleReply = useCallback((messageId: string) => {
     const message = messages.find(m => m.id === messageId);
@@ -177,7 +181,14 @@ export function ChatRoomView({ room, onBack }: ChatRoomViewProps) {
 
   return (
     <div className="flex flex-col h-full relative">
-      <RoomHeader room={room} onBack={onBack} />
+      <RoomHeader
+        room={room}
+        onBack={onBack}
+        mutedUsers={mutedUsers}
+        onMuteUser={muteUser}
+        onUnmuteUser={unmuteUser}
+        onRoomRenamed={fetchRooms}
+      />
 
       {error && (
         <div className="px-4 py-2 bg-destructive/10 text-destructive text-sm">
@@ -254,8 +265,9 @@ export function ChatRoomView({ room, onBack }: ChatRoomViewProps) {
         onTyping={handleTyping}
         replyingTo={replyingTo}
         onCancelReply={() => setReplyingTo(null)}
-        placeholder={`Message #${room.name}...`}
+        placeholder={isMuted ? 'You are muted in this room' : `Message #${room.name}...`}
         locked={!canAccess}
+        disabled={isMuted}
         onUpgradeClick={handleUpgradeClick}
       />
     </div>

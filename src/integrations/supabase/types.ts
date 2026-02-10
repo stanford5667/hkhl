@@ -4087,6 +4087,41 @@ export type Database = {
           },
         ]
       }
+      room_muted_users: {
+        Row: {
+          created_at: string
+          id: string
+          muted_by: string
+          reason: string | null
+          room_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          muted_by: string
+          reason?: string | null
+          room_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          muted_by?: string
+          reason?: string | null
+          room_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "room_muted_users_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "chat_rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       room_read_receipts: {
         Row: {
           id: string
