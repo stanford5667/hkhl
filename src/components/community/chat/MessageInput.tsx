@@ -1,9 +1,10 @@
 import { useState, useRef, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
-import { Send, Smile, X, Lock } from 'lucide-react';
+import { Send, Smile, X, Lock, LogIn } from 'lucide-react';
 import { 
   Popover, 
   PopoverContent, 
@@ -79,12 +80,18 @@ export function MessageInput({
     textareaRef.current?.focus();
   };
 
+  const navigateTo = useNavigate();
+
   if (!isAuthenticated) {
     return (
       <div className="p-4 border-t bg-muted/50 text-center">
-        <p className="text-sm text-muted-foreground">
-          Please sign in to send messages
+        <p className="text-sm text-muted-foreground mb-2">
+          Sign in to join the conversation
         </p>
+        <Button size="sm" variant="default" className="gap-2" onClick={() => navigateTo('/auth')}>
+          <LogIn className="h-4 w-4" />
+          Sign In / Sign Up
+        </Button>
       </div>
     );
   }
