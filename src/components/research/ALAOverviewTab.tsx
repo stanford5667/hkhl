@@ -570,7 +570,7 @@ export function ALAOverviewTab({
         {/* Left Column - Chart + Metrics */}
         <div className="lg:col-span-2 space-y-4">
           {/* Chart Card */}
-          <Card className="bg-card border-border overflow-hidden">
+          <Card className="bg-card border-border">
             <IntegratedStockChart 
               symbol={ticker} 
               height={380}
