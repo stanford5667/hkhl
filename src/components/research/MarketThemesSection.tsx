@@ -160,8 +160,13 @@ export function MarketThemesSection() {
   // Fetch AI-generated themes from database
   const { data: dbThemes, isLoading: themesLoading } = useMarketThemes();
 
-  // Use DB themes if available, otherwise fall back to static themes
-  const sourceThemes = dbThemes && dbThemes.length > 0 ? dbThemes : MARKET_THEMES;
+  // Combine AI-generated themes with static ones (AI first, then static)
+  const sourceThemes = useMemo(() => {
+    const aiThemes = dbThemes && dbThemes.length > 0 ? dbThemes : [];
+    const aiIds = new Set(aiThemes.map(t => t.id));
+    const staticOnly = MARKET_THEMES.filter(t => !aiIds.has(t.id));
+    return [...aiThemes, ...staticOnly];
+  }, [dbThemes]);
   const isAiGenerated = !!(dbThemes && dbThemes.length > 0);
 
   // Reset expansion when theme changes
