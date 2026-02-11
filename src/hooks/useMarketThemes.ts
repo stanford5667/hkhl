@@ -53,8 +53,7 @@ export function useMarketThemes() {
         .from('market_themes')
         .select('*')
         .eq('is_active', true)
-        .order('generated_date', { ascending: false })
-        .limit(20);
+        .order('generated_date', { ascending: false });
 
       if (error) throw error;
       if (!data || data.length === 0) return null; // signal to use fallback

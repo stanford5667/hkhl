@@ -146,11 +146,7 @@ Return ONLY valid JSON array. Each item:
       throw new Error(`DB insert error: ${insertError.message}`);
     }
 
-    // Deactivate old themes (older than 3 days)
-    await supabase
-      .from("market_themes")
-      .update({ is_active: false })
-      .lt("generated_date", new Date(Date.now() - 3 * 86400000).toISOString().split("T")[0]);
+    // All themes remain active and accumulate over time
 
     return new Response(JSON.stringify({ 
       success: true, 
