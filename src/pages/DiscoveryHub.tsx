@@ -44,7 +44,8 @@ import {
   Brain,
   Bell,
   LineChart,
-  ArrowRight
+  ArrowRight,
+  Flame
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { AlphaDashboard } from "@/components/alpha-dashboard";
@@ -261,6 +262,28 @@ export default function DiscoveryHub() {
           </Button>
         }
       />
+
+      {/* Swipe Discovery CTA */}
+      <Card className="border-orange-500/20 bg-gradient-to-r from-orange-500/5 to-pink-500/5">
+        <CardContent className="p-4 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 rounded-2xl bg-gradient-to-br from-orange-500/20 to-pink-500/20 border border-orange-500/30">
+              <Flame className="h-6 w-6 text-orange-400" />
+            </div>
+            <div>
+              <h3 className="font-bold text-foreground">🔥 Swipe Discovery</h3>
+              <p className="text-xs text-muted-foreground">Tinder-style stock discovery — swipe to build your watchlist</p>
+            </div>
+          </div>
+          <Button
+            onClick={() => navigate('/stock-swipe')}
+            className="bg-gradient-to-r from-orange-500 to-pink-600 hover:from-orange-600 hover:to-pink-700 text-white"
+          >
+            Try It
+            <ArrowRight className="h-4 w-4 ml-2" />
+          </Button>
+        </CardContent>
+      </Card>
 
       {/* Main Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">

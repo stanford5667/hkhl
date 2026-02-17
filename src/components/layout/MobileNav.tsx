@@ -16,7 +16,8 @@ import {
   BookOpen,
   LogOut,
   Settings,
-  Users
+  Users,
+  Flame
 } from "lucide-react";
 import { useState } from "react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -120,6 +121,7 @@ function MobileSidebarContent({ onNavigate }: { onNavigate: () => void }) {
   
   const navItems = [
     { label: "Research", href: "/research", icon: Search },
+    { label: "Swipe Stocks", href: "/stock-swipe", icon: Flame },
     { label: "Portfolio Builder", href: "/portfolio-visualizer", icon: PieChart },
     { label: "Community", href: "/community", icon: Users },
     { label: "Academy", href: "/academy", icon: BookOpen },

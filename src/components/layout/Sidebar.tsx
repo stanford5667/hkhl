@@ -58,6 +58,7 @@ import {
   BookOpen,
   Users,
   CreditCard,
+  Flame,
 } from "lucide-react";
 
 interface NavItem {
@@ -110,6 +111,12 @@ export function Sidebar() {
         href: "/research", 
         icon: Search,
         isPremium: false,
+      },
+      { 
+        label: "Swipe Stocks", 
+        subtitle: "Discover & Like",
+        href: "/stock-swipe", 
+        icon: Flame,
       },
       { 
         label: "Portfolio Builder", 

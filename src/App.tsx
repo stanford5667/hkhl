@@ -64,6 +64,7 @@ const LessonView = lazy(() => import('./pages/LessonView'));
 const QuizView = lazy(() => import('./pages/QuizView'));
 const StudyMaterials = lazy(() => import('./pages/StudyMaterials'));
 const Community = lazy(() => import('./pages/Community'));
+const StockDiscovery = lazy(() => import('./pages/StockDiscovery'));
 
 // Optimized QueryClient with aggressive caching and deduplication
 const queryClient = new QueryClient({
@@ -162,6 +163,7 @@ const App = () => {
                               <Route path="/markets" element={<Navigate to="/" replace />} />
                               <Route path="/holdings" element={<Navigate to="/" replace />} />
                               
+                              <Route path="/stock-swipe" element={<StockDiscovery />} />
                               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                               <Route path="*" element={<NotFound />} />
                             </Routes>
