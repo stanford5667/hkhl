@@ -112,12 +112,12 @@ export function Sidebar() {
         icon: Search,
         isPremium: false,
       },
-      { 
-        label: "Swipe Stocks", 
-        subtitle: "Discover & Like",
-        href: "/stock-swipe", 
-        icon: Flame,
-      },
+      // { 
+      //   label: "Swipe Stocks", 
+      //   subtitle: "Discover & Like",
+      //   href: "/stock-swipe", 
+      //   icon: Flame,
+      // },
       { 
         label: "Portfolio Builder", 
         subtitle: "Build & Analyze",
