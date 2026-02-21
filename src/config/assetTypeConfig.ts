@@ -283,6 +283,8 @@ export function getTabsForAssetType(assetInfo: AssetTypeInfo): AssetTab[] {
   const tabs: AssetTab[] = [
     // Overview is always shown
     { id: 'overview', label: 'Overview', icon: LayoutDashboard, color: 'blue' },
+    // Backtest is always second
+    { id: 'backtest', label: 'Backtest', icon: Beaker, color: 'primary' },
   ];
   
   // Financials tab only for stocks
@@ -297,9 +299,6 @@ export function getTabsForAssetType(assetInfo: AssetTypeInfo): AssetTab[] {
   
   // Quant Lab - useful for most tradable assets
   tabs.push({ id: 'quant-lab', label: 'Quant Lab', icon: FlaskConical, shortLabel: 'Quant', color: 'violet' });
-  
-  // Backtest - useful for all tradable assets
-  tabs.push({ id: 'backtest', label: 'Backtest', icon: Beaker, color: 'primary' });
   
   // News is always shown
   tabs.push({ id: 'news', label: 'News', icon: Newspaper, color: 'amber' });
