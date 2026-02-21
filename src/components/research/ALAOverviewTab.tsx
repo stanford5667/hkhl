@@ -12,6 +12,7 @@ import { useTickerAnalystData } from '@/hooks/useTickerAnalystData';
 import { PerformanceMetricsSection } from './PerformanceMetricsSection';
 import { useProductSegments } from '@/hooks/useProductSegments';
 import { RevenueSegmentsCard } from './RevenueSegmentsCard';
+import { BacktestCTA } from './BacktestCTA';
 import { useComprehensiveFundamentals } from '@/hooks/useComprehensiveFundamentals';
 import { ComprehensiveMetricsCard } from './ComprehensiveMetricsCard';
 import { RiskPerformanceCard } from './RiskPerformanceCard';
@@ -64,6 +65,7 @@ interface ALAOverviewTabProps {
   isLoadingQuote?: boolean;
   onRefresh?: () => void;
   isRefreshing?: boolean;
+  onNavigateToBacktest?: () => void;
 }
 
 export function ALAOverviewTab({
@@ -78,6 +80,7 @@ export function ALAOverviewTab({
   isLoadingQuote = false,
   onRefresh,
   isRefreshing = false,
+  onNavigateToBacktest,
 }: ALAOverviewTabProps) {
   const isMobile = useIsMobile();
   const navigate = useNavigate();
@@ -677,6 +680,9 @@ export function ALAOverviewTab({
           )}
         </div>
       </div>
+
+      {/* Backtest CTA */}
+      <BacktestCTA ticker={ticker} onNavigateToBacktest={onNavigateToBacktest} />
     </div>
   );
 }

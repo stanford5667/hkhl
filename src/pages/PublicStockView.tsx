@@ -435,6 +435,7 @@ export default function PublicStockView() {
                   isLoading={isLoadingQuote || isLoadingETFData}
                   onRefresh={handleRefresh}
                   isRefreshing={isRefreshing}
+                  onNavigateToBacktest={() => setActiveTab('backtest')}
                 />
               ) : (
                 <ALAOverviewTab
@@ -449,6 +450,7 @@ export default function PublicStockView() {
                   isLoadingQuote={isLoadingQuote}
                   onRefresh={handleRefresh}
                   isRefreshing={isRefreshing}
+                  onNavigateToBacktest={() => setActiveTab('backtest')}
                 />
               )}
             </Suspense>

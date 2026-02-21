@@ -8,6 +8,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { TrendingUp, TrendingDown, PieChart, DollarSign, Percent, Activity, Layers, BarChart3 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { IntegratedStockChart } from '@/components/research/IntegratedStockChart';
+import { BacktestCTA } from './BacktestCTA';
 
 interface ETFOverviewTabProps {
   ticker: string;
@@ -49,6 +50,7 @@ interface ETFOverviewTabProps {
   isLoading?: boolean;
   onRefresh?: () => void;
   isRefreshing?: boolean;
+  onNavigateToBacktest?: () => void;
 }
 
 const formatCurrency = (value: number) => {
@@ -81,6 +83,7 @@ export function ETFOverviewTab({
   isLoading = false,
   onRefresh,
   isRefreshing = false,
+  onNavigateToBacktest,
 }: ETFOverviewTabProps) {
   const isPositive = (quote?.change || 0) >= 0;
 
@@ -326,6 +329,9 @@ export function ETFOverviewTab({
           )}
         </div>
       </div>
+
+      {/* Backtest CTA */}
+      <BacktestCTA ticker={ticker} onNavigateToBacktest={onNavigateToBacktest} />
     </div>
   );
 }
