@@ -64,7 +64,10 @@ export default function ResearchPage() {
       {/* Main Content */}
       <div className="max-w-6xl mx-auto px-3 sm:px-6 pb-8 sm:pb-12 space-y-5 sm:space-y-8">
 
-        {/* Trending Tickers - FIRST for immediate engagement */}
+        {/* Feature Showcase */}
+        <FeatureShowcaseRow />
+
+        {/* Trending Tickers */}
         <section className="space-y-2 sm:space-y-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -95,9 +98,6 @@ export default function ResearchPage() {
             </div>
           )}
         </section>
-
-        {/* Feature Showcase */}
-        <FeatureShowcaseRow />
 
         {/* Major Market Themes */}
         <MarketThemesSection />
