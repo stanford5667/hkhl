@@ -579,6 +579,92 @@ function maStrategy(bars: Bar[], index: number, fastMa: (number | null)[], slowM
   return { action: 'HOLD', reason: `Fast MA: ${fast.toFixed(2)}, Slow MA: ${slow.toFixed(2)}` };
 }
 
+function macdStrategy(bars: Bar[], index: number, macdHist: (number | null)[], inPosition: boolean, params: StrategyParams): StrategySignal {
+  const hist = macdHist[index];
+  const prevHist = index > 0 ? macdHist[index - 1] : null;
+  if (hist === null || prevHist === null) return { action: 'HOLD', reason: 'Insufficient data for MACD' };
+  const direction = (params as any).direction ?? 'bullish';
+  if (direction === 'bullish') {
+    if (!inPosition && prevHist < 0 && hist > 0) return { action: 'BUY', reason: `MACD bullish crossover (histogram: ${hist.toFixed(3)})` };
+    if (inPosition && prevHist > 0 && hist < 0) return { action: 'SELL', reason: `MACD bearish crossover (histogram: ${hist.toFixed(3)})` };
+  } else {
+    if (!inPosition && prevHist > 0 && hist < 0) return { action: 'SHORT', reason: `MACD bearish crossover (histogram: ${hist.toFixed(3)})` };
+    if (inPosition && prevHist < 0 && hist > 0) return { action: 'SELL', reason: `MACD bullish crossover (histogram: ${hist.toFixed(3)})` };
+  }
+  return { action: 'HOLD', reason: `MACD histogram: ${hist.toFixed(3)}` };
+}
+
+function bollingerStrategy(bars: Bar[], index: number, sma: (number | null)[], stdDevs: (number | null)[], inPosition: boolean, params: StrategyParams): StrategySignal {
+  const ma = sma[index];
+  const sd = stdDevs[index];
+  if (ma === null || sd === null) return { action: 'HOLD', reason: 'Insufficient data for Bollinger' };
+  const multiplier = (params as any).bbStdDev ?? 2;
+  const upper = ma + multiplier * sd;
+  const lower = ma - multiplier * sd;
+  const price = bars[index].close;
+  const direction = (params as any).direction ?? 'lower';
+  if (direction === 'lower') {
+    if (!inPosition && price <= lower) return { action: 'BUY', reason: `Price ($${price.toFixed(2)}) at lower Bollinger Band ($${lower.toFixed(2)})` };
+    if (inPosition && price >= ma) return { action: 'SELL', reason: `Price ($${price.toFixed(2)}) reverted to mean ($${ma.toFixed(2)})` };
+  } else {
+    if (!inPosition && price >= upper) return { action: 'SHORT', reason: `Price ($${price.toFixed(2)}) at upper Bollinger Band ($${upper.toFixed(2)})` };
+    if (inPosition && price <= ma) return { action: 'SELL', reason: `Price ($${price.toFixed(2)}) reverted to mean ($${ma.toFixed(2)})` };
+  }
+  return { action: 'HOLD', reason: `Price: $${price.toFixed(2)}, BB: $${lower.toFixed(2)}-$${upper.toFixed(2)}` };
+}
+
+function stochasticStrategy(bars: Bar[], index: number, stochK: (number | null)[], inPosition: boolean, params: StrategyParams): StrategySignal {
+  const k = stochK[index];
+  const prevK = index > 0 ? stochK[index - 1] : null;
+  if (k === null || prevK === null) return { action: 'HOLD', reason: 'Insufficient data for Stochastic' };
+  const oversold = (params as any).stochOversold ?? 20;
+  const overbought = (params as any).stochOverbought ?? 80;
+  if (!inPosition && prevK < oversold && k > oversold) return { action: 'BUY', reason: `Stochastic (%K=${k.toFixed(0)}) crossed above ${oversold} - oversold reversal` };
+  if (inPosition && prevK > overbought && k < overbought) return { action: 'SELL', reason: `Stochastic (%K=${k.toFixed(0)}) crossed below ${overbought} - overbought reversal` };
+  return { action: 'HOLD', reason: `Stochastic %K: ${k.toFixed(0)}` };
+}
+
+function calculateStochasticK(bars: Bar[], period: number): (number | null)[] {
+  const result: (number | null)[] = [];
+  for (let i = 0; i < bars.length; i++) {
+    if (i < period - 1) { result.push(null); continue; }
+    const slice = bars.slice(i - period + 1, i + 1);
+    const high = Math.max(...slice.map(b => b.high));
+    const low = Math.min(...slice.map(b => b.low));
+    result.push(high !== low ? ((bars[i].close - low) / (high - low)) * 100 : 50);
+  }
+  return result;
+}
+
+function calculateMACDHistogram(closes: number[], fastPeriod: number, slowPeriod: number, signalPeriod: number = 9): (number | null)[] {
+  const emaFast = calculateEMA(closes, fastPeriod);
+  const emaSlow = calculateEMA(closes, slowPeriod);
+  const macdLine: number[] = [];
+  for (let i = 0; i < closes.length; i++) {
+    if (emaFast[i] !== null && emaSlow[i] !== null) macdLine.push(emaFast[i]! - emaSlow[i]!);
+    else macdLine.push(0);
+  }
+  const signal = calculateEMA(macdLine, signalPeriod);
+  const result: (number | null)[] = [];
+  for (let i = 0; i < closes.length; i++) {
+    if (emaFast[i] === null || emaSlow[i] === null || signal[i] === null) result.push(null);
+    else result.push(macdLine[i] - signal[i]!);
+  }
+  return result;
+}
+
+function calculateStdDev(prices: number[], period: number): (number | null)[] {
+  const result: (number | null)[] = [];
+  for (let i = 0; i < prices.length; i++) {
+    if (i < period - 1) { result.push(null); continue; }
+    const slice = prices.slice(i - period + 1, i + 1);
+    const mean = slice.reduce((a, b) => a + b, 0) / period;
+    const variance = slice.reduce((s, v) => s + Math.pow(v - mean, 2), 0) / period;
+    result.push(Math.sqrt(variance));
+  }
+  return result;
+}
+
 function gapFillStrategy(bars: Bar[], index: number, inPosition: boolean, entryPrice: number | null, params: StrategyParams, entryDate?: string | null): { signal: StrategySignal; exitAtEntryPrice?: boolean } {
   if (index < 1) return { signal: { action: 'HOLD', reason: 'Need previous bar' } };
   const prevClose = bars[index - 1].close;
@@ -680,9 +766,15 @@ function runBacktest(
   const fastMa = calculateEMA(closes, params.fastMaPeriod ?? 10);
   const slowMa = calculateSMA(closes, params.slowMaPeriod ?? 50);
   const atrValues = calculateATR(bars, advancedParams.stopLossAtrPeriod ?? 14);
+  
+  // MACD, Bollinger, Stochastic indicators (computed lazily but pre-calc is fine)
+  const macdHist = calculateMACDHistogram(closes, (params as any).fastMaPeriod ?? 12, (params as any).slowMaPeriod ?? 26, 9);
+  const bbSma = calculateSMA(closes, (params as any).bbPeriod ?? 20);
+  const bbStdDevs = calculateStdDev(closes, (params as any).bbPeriod ?? 20);
+  const stochK = calculateStochasticK(bars, (params as any).stochPeriod ?? 14);
 
   const getIndicatorName = (s: string): string => {
-    switch (s) { case 'rsi': return 'RSI'; case 'ma-crossover': return 'Fast EMA'; case 'gap-fill': return 'Gap %'; case 'consecutive-days': return 'Down Days'; default: return 'Indicator'; }
+    switch (s) { case 'rsi': return 'RSI'; case 'ma-crossover': return 'Fast EMA'; case 'gap-fill': return 'Gap %'; case 'consecutive-days': return 'Down Days'; case 'macd': return 'MACD Hist'; case 'bollinger': return 'BB Position'; case 'stochastic': return 'Stochastic %K'; default: return 'Indicator'; }
   };
   const getIndicatorValue = (s: string, idx: number): number | null => {
     switch (s) {
@@ -690,6 +782,9 @@ function runBacktest(
       case 'ma-crossover': return fastMa[idx];
       case 'gap-fill': return idx < 1 ? null : ((bars[idx].open - bars[idx - 1].close) / bars[idx - 1].close) * 100;
       case 'consecutive-days': { let c = 0; for (let j = 0; j < Math.min(idx + 1, 5); j++) { if ((bars[idx - j].close - bars[idx - j].open) / bars[idx - j].open < 0) c++; else break; } return c; }
+      case 'macd': return macdHist[idx];
+      case 'bollinger': return bbSma[idx] !== null ? (bars[idx].close - bbSma[idx]!) / (bbStdDevs[idx] || 1) : null;
+      case 'stochastic': return stochK[idx];
       default: return null;
     }
   };
@@ -1005,6 +1100,9 @@ function runBacktest(
       case 'ma-crossover': signal = maStrategy(bars, i, fastMa, slowMa, inPosition, params); break;
       case 'gap-fill': { const r = gapFillStrategy(bars, i, inPosition, entryPrice, params, entryDate); signal = r.signal; gapFillExitAtEntry = r.exitAtEntryPrice || false; break; }
       case 'consecutive-days': signal = consecutiveDaysStrategy(bars, i, inPosition, entryDate, bar.date, params); break;
+      case 'macd': signal = macdStrategy(bars, i, macdHist, inPosition, params); break;
+      case 'bollinger': signal = bollingerStrategy(bars, i, bbSma, bbStdDevs, inPosition, params); break;
+      case 'stochastic': signal = stochasticStrategy(bars, i, stochK, inPosition, params); break;
       default: signal = { action: 'HOLD', reason: 'Unknown strategy' };
     }
 

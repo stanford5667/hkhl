@@ -29,6 +29,7 @@ import {
   Trade,
 } from './DataInspector';
 import { BacktestResultsDashboard } from './BacktestResultsDashboard';
+import { QuickInsightsPanel } from './QuickInsightsPanel';
 
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
@@ -102,6 +103,14 @@ const STRATEGY_MAP: Record<string, string> = {
   'gap-down': 'gap-fill',
   'consecutive-days': 'consecutive-days',
   'consecutive-down': 'consecutive-days',
+  'macd': 'macd',
+  'macd-bullish': 'macd',
+  'macd-bearish': 'macd',
+  'bollinger': 'bollinger',
+  'bollinger-lower': 'bollinger',
+  'bollinger-upper': 'bollinger',
+  'stochastic': 'stochastic',
+  'stochastic-oversold': 'stochastic',
 };
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -231,6 +240,9 @@ export function StrategyBacktester({ ticker, companyName }: StrategyBacktesterPr
         </CardContent>
       </Card>
       
+      {/* Quick Insights Panel */}
+      <QuickInsightsPanel ticker={ticker} />
+
       {/* Error Display */}
       {error && (
         <Card className="border-rose-500/30 bg-rose-500/5">
