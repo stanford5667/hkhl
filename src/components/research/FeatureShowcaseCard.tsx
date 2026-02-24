@@ -22,7 +22,7 @@ export function FeatureShowcaseRow() {
       title: 'Backtest Strategies',
       description: 'Test any portfolio against historical data with real returns, Sharpe ratios, and drawdown analysis.',
       cta: 'Try backtesting',
-      action: () => navigate('/stock/AAPL'),
+      action: () => navigate('/stock/AAPL', { state: { tab: 'backtest' } }),
       accentClass: 'text-primary bg-primary/10 border-primary/20',
     },
     {

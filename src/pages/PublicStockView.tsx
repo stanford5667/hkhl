@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, lazy, Suspense, useMemo } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
@@ -152,6 +152,7 @@ export default function PublicStockView() {
   const { ticker: paramTicker } = useParams<{ ticker: string }>();
   const ticker = (paramTicker || '').toUpperCase();
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useAuth();
   
   const [details, setDetails] = useState<TickerDetails | null>(null);
@@ -162,7 +163,9 @@ export default function PublicStockView() {
   const [notFound, setNotFound] = useState(false);
   const [apiError, setApiError] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
-  const [activeTab, setActiveTab] = useState('overview');
+  const [activeTab, setActiveTab] = useState(
+    (location.state as { tab?: string })?.tab || 'overview'
+  );
 
   // Get asset-specific tabs - Must be before any early returns
   const assetTabs = useMemo(() => {
