@@ -433,6 +433,141 @@ export interface ValidationResult {
 
 // ==================== PREBUILT STRATEGY CONFIGS ====================
 
+// ==================== ADVANCED BACKTEST PARAMETERS ====================
+
+export interface AdvancedBacktestParams {
+  // Entry
+  entryOrderType: 'market' | 'limit' | 'stop' | 'stop-limit';
+  entryLimitOffset?: number;
+  entryStopOffset?: number;
+  requireExceedLimit: boolean;
+
+  // Take profit
+  takeProfitEnabled: boolean;
+  takeProfitType: 'percent' | 'fixed';
+  takeProfitValue: number;
+  takeProfitPartial: boolean;
+  takeProfitPartialPercent: number;
+
+  // Stop loss
+  stopLossEnabled: boolean;
+  stopLossType: 'percent' | 'fixed' | 'atr';
+  stopLossValue: number;
+  stopLossAtrPeriod?: number;
+  breakEvenEnabled: boolean;
+  breakEvenTrigger?: number;
+
+  // Trailing stop
+  trailingStopEnabled: boolean;
+  trailingStopPercent: number;
+  trailingStopActivation: 'immediate' | 'after-profit';
+  trailingStopActivationPercent?: number;
+
+  // Time exit
+  timeExitEnabled: boolean;
+  timeExitBars?: number;
+  timeExitOnSessionClose: boolean;
+
+  // Scaled exits
+  exitTiers: Array<{ profitPercent: number; closePercent: number }>;
+
+  // Execution realism
+  commissionType: 'percent' | 'fixed-per-order' | 'fixed-per-contract';
+  commissionValue: number;
+  slippageTicks: number;
+  executeOnBarClose: boolean;
+  useBarMagnifier: boolean;
+
+  // Position sizing
+  positionSizingMethod: 'percent-equity' | 'fixed-dollar' | 'fixed-shares' | 'risk-based';
+  positionSizingValue: number;
+  pyramiding: number;
+  marginLong: number;
+  marginShort: number;
+}
+
+export const DEFAULT_ADVANCED_PARAMS: AdvancedBacktestParams = {
+  entryOrderType: 'market',
+  requireExceedLimit: false,
+  takeProfitEnabled: false,
+  takeProfitType: 'percent',
+  takeProfitValue: 8,
+  takeProfitPartial: false,
+  takeProfitPartialPercent: 50,
+  stopLossEnabled: false,
+  stopLossType: 'percent',
+  stopLossValue: 4,
+  stopLossAtrPeriod: 14,
+  breakEvenEnabled: false,
+  breakEvenTrigger: 3,
+  trailingStopEnabled: false,
+  trailingStopPercent: 2,
+  trailingStopActivation: 'immediate',
+  trailingStopActivationPercent: 3,
+  timeExitEnabled: false,
+  timeExitBars: 10,
+  timeExitOnSessionClose: false,
+  exitTiers: [],
+  commissionType: 'percent',
+  commissionValue: 0.1,
+  slippageTicks: 1,
+  executeOnBarClose: false,
+  useBarMagnifier: false,
+  positionSizingMethod: 'percent-equity',
+  positionSizingValue: 10,
+  pyramiding: 1,
+  marginLong: 100,
+  marginShort: 100,
+};
+
+export const ADVANCED_PARAM_PRESETS: Record<string, { label: string; description: string; params: Partial<AdvancedBacktestParams> }> = {
+  realistic: {
+    label: 'Realistic',
+    description: 'Commission 0.1%, slippage 1 tick, market orders, 10% equity',
+    params: {
+      entryOrderType: 'market',
+      commissionType: 'percent',
+      commissionValue: 0.1,
+      slippageTicks: 1,
+      positionSizingMethod: 'percent-equity',
+      positionSizingValue: 10,
+      executeOnBarClose: false,
+    },
+  },
+  conservative: {
+    label: 'Conservative',
+    description: '4% stop loss, 2% trailing stop, 5% equity sizing',
+    params: {
+      stopLossEnabled: true,
+      stopLossType: 'percent',
+      stopLossValue: 4,
+      trailingStopEnabled: true,
+      trailingStopPercent: 2,
+      trailingStopActivation: 'after-profit',
+      trailingStopActivationPercent: 3,
+      positionSizingMethod: 'percent-equity',
+      positionSizingValue: 5,
+      commissionType: 'percent',
+      commissionValue: 0.1,
+      slippageTicks: 1,
+    },
+  },
+  aggressive: {
+    label: 'Aggressive',
+    description: 'No stop loss, 20% equity, pyramiding 3, on-bar-close',
+    params: {
+      stopLossEnabled: false,
+      positionSizingMethod: 'percent-equity',
+      positionSizingValue: 20,
+      pyramiding: 3,
+      executeOnBarClose: true,
+      commissionType: 'percent',
+      commissionValue: 0.1,
+      slippageTicks: 0,
+    },
+  },
+};
+
 export const PREBUILT_STRATEGIES: Record<PrebuiltStrategyId, Omit<PrebuiltStrategy, 'parameters'> & { defaultParameters: StrategyParameters }> = {
   consecutive_days_reversal: {
     id: 'consecutive_days_reversal',
