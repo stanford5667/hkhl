@@ -866,8 +866,20 @@ export class BacktestEngine {
       mean,
       median,
       stdDev,
-      skewness: 0, // TODO: Calculate actual skewness
-      kurtosis: 0, // TODO: Calculate actual kurtosis
+      skewness: returns.length > 2
+        ? (() => {
+            const n = returns.length
+            const m3 = returns.reduce((sum, r) => sum + Math.pow(r - mean, 3), 0) / n
+            return (n * m3) / ((n - 1) * (n - 2) * Math.pow(stdDev, 3)) * n || 0
+          })()
+        : 0,
+      kurtosis: returns.length > 3
+        ? (() => {
+            const n = returns.length
+            const m4 = returns.reduce((sum, r) => sum + Math.pow(r - mean, 4), 0) / n
+            return (m4 / Math.pow(stdDev, 4)) - 3 || 0
+          })()
+        : 0,
     }
   }
 

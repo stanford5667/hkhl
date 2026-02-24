@@ -168,20 +168,98 @@ function isFutureDate(dateStr: string): boolean {
   return normalizeDate(dateStr) > today;
 }
 
-// Execution realism configuration
-interface ExecutionConfig {
-  slippageBps: number;           // 10 = 0.10% (10 basis points)
-  commissionPerTrade: number;    // $0.99 default
-  applySlippage: boolean;
-  applyCommission: boolean;
+// ═══════════════════════════════════════════════════════════════════════════════
+// ADVANCED PARAMS DEFAULTS (mirrors AdvancedBacktestParams from types.ts)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+interface AdvancedParams {
+  entryOrderType: 'market' | 'limit' | 'stop' | 'stop-limit';
+  entryLimitOffset?: number;
+  entryStopOffset?: number;
+  takeProfitEnabled: boolean;
+  takeProfitType: 'percent' | 'fixed';
+  takeProfitValue: number;
+  takeProfitPartial: boolean;
+  takeProfitPartialPercent: number;
+  stopLossEnabled: boolean;
+  stopLossType: 'percent' | 'fixed' | 'atr';
+  stopLossValue: number;
+  stopLossAtrPeriod?: number;
+  breakEvenEnabled: boolean;
+  breakEvenTrigger?: number;
+  trailingStopEnabled: boolean;
+  trailingStopPercent: number;
+  trailingStopActivation: 'immediate' | 'after-profit';
+  trailingStopActivationPercent?: number;
+  timeExitEnabled: boolean;
+  timeExitBars?: number;
+  timeExitOnSessionClose: boolean;
+  exitTiers: Array<{ profitPercent: number; closePercent: number }>;
+  commissionType: 'percent' | 'fixed-per-order' | 'fixed-per-contract';
+  commissionValue: number;
+  slippageTicks: number;
+  executeOnBarClose: boolean;
+  positionSizingMethod: 'percent-equity' | 'fixed-dollar' | 'fixed-shares' | 'risk-based';
+  positionSizingValue: number;
+  pyramiding: number;
+  marginLong: number;
+  marginShort: number;
 }
 
-const DEFAULT_EXECUTION_CONFIG: ExecutionConfig = {
-  slippageBps: 0,               // Disabled - focus on pure strategy performance
-  commissionPerTrade: 0.99,     // $0.99 per trade
-  applySlippage: false,         // Slippage disabled for now
-  applyCommission: true,
+const DEFAULT_ADVANCED_PARAMS: AdvancedParams = {
+  entryOrderType: 'market',
+  takeProfitEnabled: false,
+  takeProfitType: 'percent',
+  takeProfitValue: 8,
+  takeProfitPartial: false,
+  takeProfitPartialPercent: 50,
+  stopLossEnabled: false,
+  stopLossType: 'percent',
+  stopLossValue: 4,
+  stopLossAtrPeriod: 14,
+  breakEvenEnabled: false,
+  breakEvenTrigger: 3,
+  trailingStopEnabled: false,
+  trailingStopPercent: 2,
+  trailingStopActivation: 'immediate',
+  trailingStopActivationPercent: 3,
+  timeExitEnabled: false,
+  timeExitBars: 10,
+  timeExitOnSessionClose: false,
+  exitTiers: [],
+  commissionType: 'percent',
+  commissionValue: 0.1,
+  slippageTicks: 1,
+  executeOnBarClose: false,
+  positionSizingMethod: 'percent-equity',
+  positionSizingValue: 10,
+  pyramiding: 1,
+  marginLong: 100,
+  marginShort: 100,
 };
+
+// Execution realism configuration
+interface ExecutionConfig {
+  slippageBps: number;
+  commissionPerTrade: number;
+  applySlippage: boolean;
+  applyCommission: boolean;
+  commissionType: 'percent' | 'fixed-per-order' | 'fixed-per-contract';
+  commissionValue: number;
+}
+
+function buildExecutionConfig(adv: AdvancedParams): ExecutionConfig {
+  return {
+    slippageBps: adv.slippageTicks * 1, // 1 tick ≈ 1 bps for stocks
+    commissionPerTrade: adv.commissionType === 'fixed-per-order' ? adv.commissionValue : 0.99,
+    applySlippage: adv.slippageTicks > 0,
+    applyCommission: true,
+    commissionType: adv.commissionType,
+    commissionValue: adv.commissionValue,
+  };
+}
+
+const DEFAULT_EXECUTION_CONFIG: ExecutionConfig = buildExecutionConfig(DEFAULT_ADVANCED_PARAMS);
 
 // Apply slippage to price (direction: 'buy' = worse fill = higher, 'sell' = lower)
 function applySlippageToPrice(price: number, direction: 'buy' | 'sell', slippageBps: number): number {
@@ -194,16 +272,30 @@ function applySlippageToPrice(price: number, direction: 'buy' | 'sell', slippage
 }
 
 // Single source of truth for fills + commissions.
-// IMPORTANT: Any place we mutate cash/equity MUST use this exact model.
 function getExecutionFill(
   basePrice: number,
   side: 'buy' | 'sell',
-  config: ExecutionConfig
+  config: ExecutionConfig,
+  shares?: number
 ): { price: number; commission: number } {
   const price = config.applySlippage
     ? applySlippageToPrice(basePrice, side, config.slippageBps)
     : basePrice;
-  const commission = config.applyCommission ? config.commissionPerTrade : 0;
+  
+  let commission = 0;
+  if (config.applyCommission) {
+    switch (config.commissionType) {
+      case 'percent':
+        commission = (price * (shares || 1)) * (config.commissionValue / 100);
+        break;
+      case 'fixed-per-order':
+        commission = config.commissionValue;
+        break;
+      case 'fixed-per-contract':
+        commission = (shares || 1) * config.commissionValue;
+        break;
+    }
+  }
   return { price, commission };
 }
 

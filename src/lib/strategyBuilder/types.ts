@@ -11,11 +11,11 @@
 
 export type BlockType = 'indicator' | 'condition' | 'logic' | 'exit' | 'action';
 
-export type IndicatorSubtype = 'RSI' | 'SMA' | 'EMA' | 'MACD' | 'VOLUME' | 'BOLLINGER' | 'GAP_DOWN' | 'CONSECUTIVE_DOWN';
-export type ConditionSubtype = 'LESS_THAN' | 'GREATER_THAN' | 'CROSSES_ABOVE' | 'CROSSES_BELOW' | 'EQUALS';
+export type IndicatorSubtype = 'RSI' | 'SMA' | 'EMA' | 'WMA' | 'HMA' | 'MACD' | 'VOLUME' | 'BOLLINGER' | 'STOCHASTIC' | 'CCI' | 'MOMENTUM' | 'ADX' | 'SUPERTREND' | 'VWAP' | 'OBV' | 'CMF' | 'DONCHIAN' | 'KELTNER' | 'PARABOLIC_SAR' | 'GAP_DOWN' | 'CONSECUTIVE_DOWN';
+export type ConditionSubtype = 'LESS_THAN' | 'GREATER_THAN' | 'CROSSES_ABOVE' | 'CROSSES_BELOW' | 'EQUALS' | 'BETWEEN' | 'IS_RISING' | 'IS_FALLING';
 export type LogicSubtype = 'AND' | 'OR';
 export type ExitSubtype = 'TAKE_PROFIT' | 'STOP_LOSS' | 'TIME_EXIT';
-export type ActionSubtype = 'BUY' | 'SELL';
+export type ActionSubtype = 'BUY' | 'SELL' | 'SHORT';
 
 export type BlockSubtype = IndicatorSubtype | ConditionSubtype | LogicSubtype | ExitSubtype | ActionSubtype;
 
