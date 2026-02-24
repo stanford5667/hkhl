@@ -20,6 +20,8 @@ import {
 import { SentenceBuilder, type SentenceBuilderState, type SelectedSignal, type SelectedExit, type BacktestParams } from './SentenceBuilder';
 import { EXIT_BLOCKS } from '@/lib/strategyBuilder/templates';
 import type { BlockSubtype } from '@/lib/strategyBuilder/types';
+import { AdvancedParamsPanel } from '@/components/backtester/AdvancedParamsPanel';
+import type { AdvancedBacktestParams } from '@/lib/backtesting/types';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // PRESET STRATEGY DEFINITIONS
@@ -160,6 +162,8 @@ interface UnifiedStrategyBuilderProps {
   sentenceState?: SentenceBuilderState;
   onSentenceStateChange?: (state: SentenceBuilderState) => void;
   className?: string;
+  advancedParams?: AdvancedBacktestParams;
+  onAdvancedParamsChange?: (params: AdvancedBacktestParams) => void;
 }
 
 export const UnifiedStrategyBuilder = memo(function UnifiedStrategyBuilder({
@@ -168,6 +172,8 @@ export const UnifiedStrategyBuilder = memo(function UnifiedStrategyBuilder({
   sentenceState,
   onSentenceStateChange,
   className,
+  advancedParams,
+  onAdvancedParamsChange,
 }: UnifiedStrategyBuilderProps) {
   
   // Handle preset selection - populates the sentence builder
@@ -296,6 +302,14 @@ export const UnifiedStrategyBuilder = memo(function UnifiedStrategyBuilder({
           state={sentenceState}
           onStateChange={onSentenceStateChange}
         />
+
+        {/* Advanced Parameters - integrated into the builder flow */}
+        {advancedParams && onAdvancedParamsChange && (
+          <>
+            <Separator />
+            <AdvancedParamsPanel params={advancedParams} onChange={onAdvancedParamsChange} />
+          </>
+        )}
       </div>
     </ScrollArea>
   );
