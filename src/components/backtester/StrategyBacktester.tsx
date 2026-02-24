@@ -29,9 +29,12 @@ import {
   Trade,
 } from './DataInspector';
 import { BacktestResultsDashboard } from './BacktestResultsDashboard';
+import { AdvancedParamsPanel } from './AdvancedParamsPanel';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 import { parseDateOnly } from '@/lib/date';
+import type { AdvancedBacktestParams } from '@/lib/backtesting/types';
+import { DEFAULT_ADVANCED_PARAMS } from '@/lib/backtesting/types';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // TYPES
@@ -119,6 +122,9 @@ export function StrategyBacktester({ ticker, companyName }: StrategyBacktesterPr
   const [inspectMode, setInspectMode] = useState(false);
   const [viewSourceTrade, setViewSourceTrade] = useState<Trade | null>(null);
 
+  // Advanced parameters state
+  const [advancedParams, setAdvancedParams] = useState<AdvancedBacktestParams>(DEFAULT_ADVANCED_PARAMS);
+
   // Handle backtest from Visual Strategy Builder
   const handleVisualBuilderBacktest = useCallback(async (serialized: { 
     strategy: string; 
@@ -153,6 +159,7 @@ export function StrategyBacktester({ ticker, companyName }: StrategyBacktesterPr
               endDate: format(endDate, 'yyyy-MM-dd'),
               initialCapital,
               params: serialized.params,
+              advancedParams,
             }
           });
 
@@ -196,7 +203,7 @@ export function StrategyBacktester({ ticker, companyName }: StrategyBacktesterPr
     } finally {
       setIsRunning(false);
     }
-  }, [ticker, period, initialCapital]);
+  }, [ticker, period, initialCapital, advancedParams]);
 
   return (
     <div className="space-y-6">
@@ -221,6 +228,9 @@ export function StrategyBacktester({ ticker, companyName }: StrategyBacktesterPr
           />
         </CardContent>
       </Card>
+
+      {/* Advanced Parameters Panel */}
+      <AdvancedParamsPanel params={advancedParams} onChange={setAdvancedParams} />
       
       {/* Error Display */}
       {error && (
