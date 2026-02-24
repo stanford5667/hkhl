@@ -79,28 +79,31 @@ export default function ChartingPage() {
 
   return (
     <div className="flex flex-col h-[calc(100vh-4rem)] bg-background">
-      {/* Toolbar */}
-      <ChartToolbar
-        symbol={symbol}
-        onSymbolChange={handleSymbolChange}
-        timeframe={timeframe}
-        onTimeframeChange={setTimeframe}
-        chartType={chartType}
-        onChartTypeChange={setChartType}
-        activeTool={activeTool}
-        onToolChange={setActiveTool}
-        onAddIndicator={handleAddIndicator}
-        onZoomIn={handleZoomIn}
-        onZoomOut={handleZoomOut}
-        onFitContent={handleFitContent}
-        onScreenshot={handleScreenshot}
-        onFullscreen={handleFullscreen}
-        onSaveLayout={handleSaveLayout}
-        activeIndicators={indicators.map(i => i.type)}
-      />
+      {/* Toolbar - scrollable on mobile */}
+      <div className="overflow-x-auto scrollbar-hide">
+        <ChartToolbar
+          symbol={symbol}
+          onSymbolChange={handleSymbolChange}
+          timeframe={timeframe}
+          onTimeframeChange={setTimeframe}
+          chartType={chartType}
+          onChartTypeChange={setChartType}
+          activeTool={activeTool}
+          onToolChange={setActiveTool}
+          onAddIndicator={handleAddIndicator}
+          onZoomIn={handleZoomIn}
+          onZoomOut={handleZoomOut}
+          onFitContent={handleFitContent}
+          onScreenshot={handleScreenshot}
+          onFullscreen={handleFullscreen}
+          onSaveLayout={handleSaveLayout}
+          activeIndicators={indicators.map(i => i.type)}
+          className="min-w-[600px]"
+        />
+      </div>
 
-      {/* Chart Area */}
-      <div className="flex-1 p-2">
+      {/* Chart Area - responsive height */}
+      <div className="flex-1 p-1 sm:p-2">
         <AdvancedChart
           symbol={symbol}
           height={600}
@@ -115,12 +118,12 @@ export default function ChartingPage() {
 
       {/* Active Indicators Bar */}
       {indicators.length > 0 && (
-        <div className="flex items-center gap-2 px-4 py-2 bg-card/50 border-t border-border/50">
-          <span className="text-xs text-muted-foreground">Active:</span>
+        <div className="flex items-center gap-2 px-2 sm:px-4 py-2 bg-card/50 border-t border-border/50 overflow-x-auto scrollbar-hide">
+          <span className="text-xs text-muted-foreground shrink-0">Active:</span>
           {indicators.map((ind) => (
             <div
               key={ind.id}
-              className="flex items-center gap-1 px-2 py-1 bg-primary/10 rounded text-xs"
+              className="flex items-center gap-1 px-2 py-1 bg-primary/10 rounded text-xs shrink-0"
             >
               <span className="font-medium">{INDICATOR_DEFINITIONS[ind.type]?.shortName}</span>
               <button

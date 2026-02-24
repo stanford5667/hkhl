@@ -850,7 +850,7 @@ export function ProfessionalBacktester() {
     <div 
       ref={containerRef}
       className={cn(
-        "h-screen flex flex-col overflow-hidden",
+        "min-h-screen md:h-screen flex flex-col md:overflow-hidden overflow-auto",
         "bg-[rgb(8,12,16)] text-[rgb(230,237,243)]",
         "font-sans selection:bg-[rgb(56,139,253)] selection:text-white"
       )}
@@ -858,8 +858,8 @@ export function ProfessionalBacktester() {
       {/* ═══════════════════════════════════════════════════════════════════════════
           HEADER
           ═══════════════════════════════════════════════════════════════════════════ */}
-      <header className="flex-shrink-0 h-12 px-4 flex items-center justify-between border-b border-[rgb(33,38,45)] bg-[rgb(13,17,23)]">
-        <div className="flex items-center gap-4">
+      <header className="flex-shrink-0 min-h-[48px] px-2 sm:px-4 flex items-center justify-between border-b border-[rgb(33,38,45)] bg-[rgb(13,17,23)] overflow-x-auto scrollbar-hide gap-2">
+        <div className="flex items-center gap-2 sm:gap-4 shrink-0">
           <div className="flex items-center gap-2">
             <div className="w-6 h-6 rounded bg-gradient-to-br from-[rgb(56,139,253)] to-[rgb(35,197,94)] flex items-center justify-center">
               <BarChart3 className="h-3.5 w-3.5 text-white" />
@@ -909,7 +909,7 @@ export function ProfessionalBacktester() {
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
           {/* Weight indicator */}
           <div className={cn(
             "flex items-center gap-2 px-3 py-1 rounded text-xs font-mono",
@@ -959,12 +959,12 @@ export function ProfessionalBacktester() {
       {/* ═══════════════════════════════════════════════════════════════════════════
           MAIN CONTENT
           ═══════════════════════════════════════════════════════════════════════════ */}
-      <div className="flex-1 flex min-h-0">
+      <div className="flex-1 flex flex-col md:flex-row min-h-0">
         
         {/* ─────────────────────────────────────────────────────────────────────────
             LEFT PANEL - Portfolio Builder with Side Tabs
             ───────────────────────────────────────────────────────────────────────── */}
-        <div className="w-80 flex-shrink-0 border-r border-[rgb(33,38,45)] flex bg-[rgb(13,17,23)]">
+        <div className="w-full md:w-80 md:flex-shrink-0 border-b md:border-b-0 md:border-r border-[rgb(33,38,45)] flex bg-[rgb(13,17,23)] max-h-[50vh] md:max-h-none">
           
           {/* Side Tab Navigation */}
           <div className="w-10 flex-shrink-0 border-r border-[rgb(33,38,45)] flex flex-col py-2 bg-[rgb(10,13,18)]">
