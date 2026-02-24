@@ -64,7 +64,7 @@ interface SignalPreset {
   label: string;
   description: string;
   icon: string;
-  category: 'momentum' | 'trend' | 'pattern';
+  category: 'momentum' | 'trend' | 'pattern' | 'oscillator';
   indicator: BlockSubtype;
   condition: BlockSubtype;
   parameters: {
@@ -109,6 +109,74 @@ const SIGNAL_PRESETS: SignalPreset[] = [
     parameterConfig: [
       { key: 'period', label: 'RSI Period', min: 5, max: 30, step: 1 },
       { key: 'threshold', label: 'Above', min: 50, max: 90, step: 5 },
+    ],
+  },
+  {
+    id: 'macd-bullish',
+    label: 'MACD Bullish Cross',
+    description: 'MACD histogram crosses above zero',
+    icon: '🔼',
+    category: 'oscillator',
+    indicator: 'EMA',
+    condition: 'CROSSES_ABOVE',
+    parameters: { period: 12 },
+    parameterConfig: [
+      { key: 'period', label: 'Fast EMA', min: 5, max: 26, step: 1 },
+    ],
+  },
+  {
+    id: 'macd-bearish',
+    label: 'MACD Bearish Cross',
+    description: 'MACD histogram crosses below zero',
+    icon: '🔽',
+    category: 'oscillator',
+    indicator: 'EMA',
+    condition: 'CROSSES_BELOW',
+    parameters: { period: 12 },
+    parameterConfig: [
+      { key: 'period', label: 'Fast EMA', min: 5, max: 26, step: 1 },
+    ],
+  },
+  {
+    id: 'bollinger-lower',
+    label: 'Bollinger Lower Touch',
+    description: 'Price touches lower Bollinger Band',
+    icon: '⬇️',
+    category: 'oscillator',
+    indicator: 'SMA',
+    condition: 'LESS_THAN',
+    parameters: { period: 20, threshold: 2 },
+    parameterConfig: [
+      { key: 'period', label: 'BB Period', min: 10, max: 50, step: 5 },
+      { key: 'threshold', label: 'Std Dev', min: 1, max: 3, step: 0.5 },
+    ],
+  },
+  {
+    id: 'bollinger-upper',
+    label: 'Bollinger Upper Touch',
+    description: 'Price touches upper Bollinger Band',
+    icon: '⬆️',
+    category: 'oscillator',
+    indicator: 'SMA',
+    condition: 'GREATER_THAN',
+    parameters: { period: 20, threshold: 2 },
+    parameterConfig: [
+      { key: 'period', label: 'BB Period', min: 10, max: 50, step: 5 },
+      { key: 'threshold', label: 'Std Dev', min: 1, max: 3, step: 0.5 },
+    ],
+  },
+  {
+    id: 'stochastic-oversold',
+    label: 'Stochastic Oversold',
+    description: 'Stochastic %K drops below 20',
+    icon: '📊',
+    category: 'oscillator',
+    indicator: 'RSI',
+    condition: 'LESS_THAN',
+    parameters: { period: 14, threshold: 20 },
+    parameterConfig: [
+      { key: 'period', label: 'Stoch Period', min: 5, max: 21, step: 1 },
+      { key: 'threshold', label: 'Below', min: 10, max: 30, step: 5 },
     ],
   },
   {
@@ -374,6 +442,7 @@ const SignalAddButton = memo(function SignalAddButton({
 
   const categories = [
     { id: 'momentum', label: 'Momentum' },
+    { id: 'oscillator', label: 'Oscillator' },
     { id: 'trend', label: 'Trend' },
     { id: 'pattern', label: 'Pattern' },
   ];
@@ -628,30 +697,55 @@ export const SentenceBuilder = memo(function SentenceBuilder({
     
     // Determine strategy type based on signal
     // IMPORTANT: These IDs must match what the `strategy-backtest` backend function supports.
-    let strategy: 'rsi' | 'ma-crossover' | 'gap-fill' | 'consecutive-days' = 'rsi';
+    let strategy = 'rsi';
     const params: Record<string, number | string | undefined> = {};
     
     switch (firstSignal.preset.id) {
       case 'rsi-oversold':
         strategy = 'rsi';
-        // backend expects: rsiPeriod, rsiOversold, rsiOverbought
         params.rsiPeriod = firstSignal.parameters.period;
         params.rsiOversold = firstSignal.parameters.threshold;
-        // keep a sensible default overbought if user didn’t specify one
         params.rsiOverbought = 70;
         break;
       case 'rsi-overbought':
-        // We still route this to the RSI strategy so it never errors as “unsupported”.
-        // Treat the selected threshold as the overbought level.
         strategy = 'rsi';
         params.rsiPeriod = firstSignal.parameters.period;
         params.rsiOversold = 30;
         params.rsiOverbought = firstSignal.parameters.threshold;
         break;
+      case 'macd-bullish':
+        strategy = 'macd';
+        params.fastMaPeriod = firstSignal.parameters.period;
+        params.slowMaPeriod = 26;
+        params.direction = 'bullish';
+        break;
+      case 'macd-bearish':
+        strategy = 'macd';
+        params.fastMaPeriod = firstSignal.parameters.period;
+        params.slowMaPeriod = 26;
+        params.direction = 'bearish';
+        break;
+      case 'bollinger-lower':
+        strategy = 'bollinger';
+        params.bbPeriod = firstSignal.parameters.period;
+        params.bbStdDev = firstSignal.parameters.threshold;
+        params.direction = 'lower';
+        break;
+      case 'bollinger-upper':
+        strategy = 'bollinger';
+        params.bbPeriod = firstSignal.parameters.period;
+        params.bbStdDev = firstSignal.parameters.threshold;
+        params.direction = 'upper';
+        break;
+      case 'stochastic-oversold':
+        strategy = 'stochastic';
+        params.stochPeriod = firstSignal.parameters.period;
+        params.stochOversold = firstSignal.parameters.threshold;
+        params.stochOverbought = 80;
+        break;
       case 'price-above-sma':
       case 'price-below-sma':
         strategy = 'ma-crossover';
-        // backend expects: fastMaPeriod, slowMaPeriod
         params.fastMaPeriod = firstSignal.parameters.period;
         params.slowMaPeriod = Math.max(20, firstSignal.parameters.period * 5);
         break;
@@ -670,7 +764,6 @@ export const SentenceBuilder = memo(function SentenceBuilder({
         params.holdingPeriod = 5;
         break;
       case 'volume-spike':
-        // Not a supported backend strategy yet; map to MA crossover so the run works.
         strategy = 'ma-crossover';
         params.fastMaPeriod = Math.max(5, Math.round(firstSignal.parameters.period / 2));
         params.slowMaPeriod = Math.max(20, firstSignal.parameters.period);
