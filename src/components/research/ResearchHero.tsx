@@ -29,11 +29,11 @@ export function ResearchHero({
 }: ResearchHeroProps) {
   return (
     <div className="relative">
-      <div className="relative max-w-6xl mx-auto px-3 sm:px-6 pt-6 sm:pt-10 pb-4 sm:pb-6">
-        {/* Hero Text */}
-        <div className="text-center mb-4 sm:mb-6">
+      <div className="relative max-w-6xl mx-auto px-3 sm:px-6 pt-4 sm:pt-6 pb-3 sm:pb-4">
+        {/* Hero Text - more compact */}
+        <div className="text-center mb-3 sm:mb-4">
           <motion.h1
-            className="text-2xl sm:text-3xl lg:text-5xl font-bold mb-1.5 sm:mb-2 tracking-tight"
+            className="text-xl sm:text-2xl lg:text-4xl font-bold mb-1 sm:mb-1.5 tracking-tight"
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
@@ -45,7 +45,7 @@ export function ResearchHero({
             <span className="text-foreground"> Invest Better.</span>
           </motion.h1>
           <motion.p
-            className="text-muted-foreground text-xs sm:text-sm lg:text-base max-w-lg mx-auto"
+            className="text-muted-foreground text-[11px] sm:text-xs lg:text-sm max-w-lg mx-auto"
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.1 }}
@@ -56,7 +56,7 @@ export function ResearchHero({
 
         {/* Search Section */}
         <motion.div
-          className="max-w-xl mx-auto mb-4 sm:mb-5"
+          className="max-w-xl mx-auto mb-3 sm:mb-4"
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.2 }}
@@ -90,7 +90,7 @@ export function ResearchHero({
 
         {/* Recent Searches */}
         {recentSearches.length > 0 && (
-          <div className="max-w-xl mx-auto overflow-x-auto scrollbar-hide mb-4 sm:mb-5">
+          <div className="max-w-xl mx-auto overflow-x-auto scrollbar-hide mb-3 sm:mb-4">
             <div className="flex items-center gap-1.5 min-w-max px-1">
               <span className="text-[10px] text-muted-foreground flex items-center gap-1 shrink-0">
                 <Clock className="h-3 w-3" /> Recent:
@@ -118,17 +118,17 @@ export function ResearchHero({
           </div>
         )}
 
-        {/* Stats Bar */}
+        {/* Stats Bar - inline and compact */}
         <motion.div
           className="flex items-center justify-center gap-4 sm:gap-8"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.6, delay: 0.35 }}
         >
-          {STATS.map((stat, i) => (
+          {STATS.map((stat) => (
             <div key={stat.label} className="flex flex-col items-center gap-0.5">
-              <span className="text-sm sm:text-lg font-bold text-foreground">{stat.value}</span>
-              <span className="text-[9px] sm:text-[11px] text-muted-foreground">{stat.label}</span>
+              <span className="text-xs sm:text-base font-bold text-foreground">{stat.value}</span>
+              <span className="text-[8px] sm:text-[10px] text-muted-foreground">{stat.label}</span>
             </div>
           ))}
         </motion.div>

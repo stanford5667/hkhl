@@ -64,10 +64,7 @@ export default function ResearchPage() {
       {/* Main Content */}
       <div className="max-w-6xl mx-auto px-3 sm:px-6 pb-8 sm:pb-12 space-y-5 sm:space-y-8">
 
-        {/* Feature Showcase */}
-        <FeatureShowcaseRow />
-
-        {/* Trending Tickers */}
+        {/* Trending Tickers - FIRST for immediate engagement */}
         <section className="space-y-2 sm:space-y-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -88,8 +85,8 @@ export default function ResearchPage() {
             />
           ) : tickersLoading ? (
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-3">
-              {Array.from({ length: 6 }).map((_, i) => (
-                <div key={i} className="h-[120px] sm:h-[200px] bg-muted/30 rounded-xl animate-pulse" />
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="h-[100px] sm:h-[160px] bg-muted/30 rounded-xl animate-pulse" />
               ))}
             </div>
           ) : (
@@ -98,6 +95,9 @@ export default function ResearchPage() {
             </div>
           )}
         </section>
+
+        {/* Feature Showcase */}
+        <FeatureShowcaseRow />
 
         {/* Major Market Themes */}
         <MarketThemesSection />
