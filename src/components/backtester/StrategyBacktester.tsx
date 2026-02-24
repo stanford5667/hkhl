@@ -218,7 +218,7 @@ export function StrategyBacktester({ ticker, companyName }: StrategyBacktesterPr
         {result && <InspectModeToggle inspectMode={inspectMode} onToggle={setInspectMode} />}
       </div>
 
-      {/* Unified Strategy Builder - contains presets + custom building */}
+      {/* Unified Strategy Builder - contains presets, custom building, and advanced params */}
       <Card>
         <CardContent className="p-0">
           <VisualStrategyBuilder 
@@ -226,11 +226,12 @@ export function StrategyBacktester({ ticker, companyName }: StrategyBacktesterPr
             initialTicker={ticker}
             onRunBacktest={handleVisualBuilderBacktest}
           />
+          <Separator />
+          <div className="p-4">
+            <AdvancedParamsPanel params={advancedParams} onChange={setAdvancedParams} />
+          </div>
         </CardContent>
       </Card>
-
-      {/* Advanced Parameters Panel */}
-      <AdvancedParamsPanel params={advancedParams} onChange={setAdvancedParams} />
       
       {/* Error Display */}
       {error && (
