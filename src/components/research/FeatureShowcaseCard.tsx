@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { ArrowRight, Beaker, Brain, SlidersHorizontal, type LucideIcon } from 'lucide-react';
+import { ArrowRight, Beaker, Brain, SlidersHorizontal, FlaskConical, type LucideIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
 
@@ -18,10 +18,10 @@ export function FeatureShowcaseRow() {
 
   const features: Feature[] = [
     {
-      icon: Beaker,
-      title: 'Backtest Strategies',
-      description: 'Test any portfolio against historical data with real returns, Sharpe ratios, and drawdown analysis.',
-      cta: 'Try backtesting',
+      icon: FlaskConical,
+      title: 'No-Code Quant Tools',
+      description: 'Backtest strategies, run Monte Carlo simulations, and analyze risk — no programming required.',
+      cta: 'Try it free',
       action: () => navigate('/stock/AAPL', { state: { tab: 'backtest' } }),
       accentClass: 'text-primary bg-primary/10 border-primary/20',
     },
