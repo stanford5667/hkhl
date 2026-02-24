@@ -33,8 +33,19 @@ export function ResearchHero({
   const { query, setQuery, results, isSearching, clear } = useTickerSearch(200);
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
 
+  const POPULAR_TICKERS = [
+    { symbol: 'AAPL', label: 'Apple' },
+    { symbol: 'NVDA', label: 'NVIDIA' },
+    { symbol: 'MSFT', label: 'Microsoft' },
+    { symbol: 'GOOGL', label: 'Alphabet' },
+    { symbol: 'AMZN', label: 'Amazon' },
+    { symbol: 'TSLA', label: 'Tesla' },
+    { symbol: 'META', label: 'Meta' },
+    { symbol: 'SPY', label: 'S&P 500 ETF' },
+  ];
+
   const hasResults = results.length > 0;
-  const showDropdown = isFocused && (query.length >= 1);
+  const showDropdown = isFocused;
 
   useEffect(() => {
     setHighlightedIndex(-1);
@@ -125,7 +136,7 @@ export function ResearchHero({
           transition={{ duration: 0.5, delay: 0.2 }}
         >
           <div className={cn(
-            "relative rounded-xl overflow-visible",
+            "relative rounded-xl",
             "bg-card border border-border/60",
             "shadow-lg shadow-primary/5",
             "transition-all",
@@ -161,50 +172,63 @@ export function ResearchHero({
                 <kbd className="px-1.5 py-0.5 bg-muted/60 rounded text-[10px] font-mono">⌘K</kbd>
               </div>
             </div>
+          </div>
 
-            {/* Dropdown results */}
-            <AnimatePresence>
-              {showDropdown && (
-                <motion.div
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: 'auto' }}
-                  exit={{ opacity: 0, height: 0 }}
-                  transition={{ duration: 0.15 }}
-                  className="border-t border-border/60 overflow-hidden"
-                >
-                  {hasResults ? (
-                    <ul className="py-1 max-h-[300px] overflow-y-auto">
+          {/* Floating dropdown */}
+          <AnimatePresence>
+            {showDropdown && (
+              <motion.div
+                initial={{ opacity: 0, y: 4 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 4 }}
+                transition={{ duration: 0.15 }}
+                className="absolute left-0 right-0 top-full mt-1.5 z-50 rounded-xl border border-border bg-popover shadow-xl shadow-black/20 overflow-hidden"
+              >
+                {/* Search results */}
+                {hasResults ? (
+                  <div>
+                    <div className="px-3 sm:px-4 py-1.5 border-b border-border/40">
+                      <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Results</span>
+                    </div>
+                    <ul className="py-1 max-h-[280px] overflow-y-auto">
                       {results.map((result, index) => (
                         <li
                           key={result.symbol}
                           onClick={() => handleSelect(result.symbol)}
                           className={cn(
-                            "flex items-center justify-between w-full px-3 sm:px-4 py-2.5 cursor-pointer transition-colors",
+                            "flex items-center justify-between w-full px-3 sm:px-4 py-2 cursor-pointer transition-colors",
                             highlightedIndex === index
                               ? "bg-accent"
                               : "hover:bg-accent/50"
                           )}
                         >
                           <div className="flex items-center gap-3">
-                            <span className="w-14 font-mono font-semibold text-sm text-primary">
-                              {result.symbol}
-                            </span>
+                            <div className="flex items-center justify-center h-8 w-8 rounded-lg bg-primary/10 border border-primary/20 shrink-0">
+                              <span className="font-mono font-bold text-[11px] text-primary">
+                                {result.symbol.slice(0, 3)}
+                              </span>
+                            </div>
                             <div className="flex-1 min-w-0">
-                              <p className="text-sm text-foreground truncate">{result.name}</p>
-                              <p className="text-[11px] text-muted-foreground truncate">
-                                {result.exchange || result.type || 'Stock'}
-                              </p>
+                              <div className="flex items-center gap-1.5">
+                                <span className="font-mono font-semibold text-sm text-foreground">{result.symbol}</span>
+                                <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground">
+                                  {result.exchange || result.type || 'Stock'}
+                                </span>
+                              </div>
+                              <p className="text-xs text-muted-foreground truncate">{result.name}</p>
                             </div>
                           </div>
                           {result.quote && (
-                            <div className="flex items-center gap-2 text-right shrink-0">
+                            <div className="flex items-center gap-2 text-right shrink-0 ml-2">
                               <span className="font-mono text-sm text-foreground">
                                 ${result.quote.price?.toFixed(2) || '—'}
                               </span>
                               {result.quote.changePercent !== undefined && (
                                 <span className={cn(
-                                  "flex items-center text-xs font-medium",
-                                  result.quote.changePercent >= 0 ? "text-success" : "text-destructive"
+                                  "flex items-center text-[11px] font-medium px-1.5 py-0.5 rounded",
+                                  result.quote.changePercent >= 0
+                                    ? "text-success bg-success/10"
+                                    : "text-destructive bg-destructive/10"
                                 )}>
                                   {result.quote.changePercent >= 0 ? (
                                     <TrendingUp className="h-3 w-3 mr-0.5" />
@@ -219,40 +243,64 @@ export function ResearchHero({
                         </li>
                       ))}
                     </ul>
-                  ) : isSearching ? (
-                    <div className="flex items-center justify-center py-6 text-muted-foreground">
-                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                      <span className="text-sm">Searching tickers...</span>
+                  </div>
+                ) : isSearching ? (
+                  <div className="flex items-center justify-center py-6 text-muted-foreground">
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    <span className="text-sm">Searching tickers...</span>
+                  </div>
+                ) : query.length >= 1 ? (
+                  <div className="py-6 text-center">
+                    <Search className="h-6 w-6 text-muted-foreground/40 mx-auto mb-2" />
+                    <p className="text-sm text-muted-foreground">No tickers found for "{query}"</p>
+                  </div>
+                ) : (
+                  /* Popular suggestions when empty */
+                  <div>
+                    <div className="px-3 sm:px-4 py-1.5 border-b border-border/40">
+                      <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Popular</span>
                     </div>
-                  ) : query.length >= 1 ? (
-                    <div className="py-6 text-center">
-                      <Search className="h-6 w-6 text-muted-foreground/40 mx-auto mb-2" />
-                      <p className="text-sm text-muted-foreground">No tickers found for "{query}"</p>
+                    <div className="grid grid-cols-2 gap-px bg-border/30">
+                      {POPULAR_TICKERS.map((t) => (
+                        <button
+                          key={t.symbol}
+                          onClick={() => handleSelect(t.symbol)}
+                          className="flex items-center gap-2.5 px-3 py-2.5 bg-popover hover:bg-accent/50 transition-colors text-left"
+                        >
+                          <div className="flex items-center justify-center h-7 w-7 rounded-md bg-primary/10 border border-primary/20 shrink-0">
+                            <span className="font-mono font-bold text-[10px] text-primary">{t.symbol.slice(0, 3)}</span>
+                          </div>
+                          <div className="min-w-0">
+                            <p className="font-mono font-semibold text-xs text-foreground">{t.symbol}</p>
+                            <p className="text-[10px] text-muted-foreground truncate">{t.label}</p>
+                          </div>
+                        </button>
+                      ))}
                     </div>
-                  ) : null}
+                  </div>
+                )}
 
-                  {/* Footer hints */}
-                  <div className="flex items-center justify-between px-3 sm:px-4 py-1.5 border-t border-border/40 text-[10px] text-muted-foreground">
-                    <div className="flex items-center gap-3">
-                      <span className="flex items-center gap-1">
-                        <kbd className="px-1 py-0.5 bg-muted/60 rounded font-mono">↑</kbd>
-                        <kbd className="px-1 py-0.5 bg-muted/60 rounded font-mono">↓</kbd>
-                        Navigate
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <kbd className="px-1.5 py-0.5 bg-muted/60 rounded font-mono">Enter</kbd>
-                        Open
-                      </span>
-                    </div>
+                {/* Footer hints */}
+                <div className="flex items-center justify-between px-3 sm:px-4 py-1.5 border-t border-border/40 bg-muted/30 text-[10px] text-muted-foreground">
+                  <div className="flex items-center gap-3">
                     <span className="flex items-center gap-1">
-                      <kbd className="px-1.5 py-0.5 bg-muted/60 rounded font-mono">Esc</kbd>
-                      Close
+                      <kbd className="px-1 py-0.5 bg-muted rounded font-mono">↑</kbd>
+                      <kbd className="px-1 py-0.5 bg-muted rounded font-mono">↓</kbd>
+                      Navigate
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <kbd className="px-1.5 py-0.5 bg-muted rounded font-mono">Enter</kbd>
+                      Open
                     </span>
                   </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
+                  <span className="flex items-center gap-1">
+                    <kbd className="px-1.5 py-0.5 bg-muted rounded font-mono">Esc</kbd>
+                    Close
+                  </span>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </motion.div>
 
         {/* Recent Searches */}
