@@ -324,6 +324,16 @@ export const EXIT_BLOCKS: PaletteBlock[] = [
     ],
   },
   {
+    type: 'exit', subtype: 'TRAILING_STOP', label: 'Trailing Stop',
+    description: 'Dynamic stop that follows price up',
+    icon: '📈', color: 'bg-amber-500/20 border-amber-500/50',
+    defaultParameters: { percent: 3, activationPercent: 0 },
+    parameterConfig: [
+      { key: 'percent', label: 'Trail Distance', type: 'number', min: 0.5, max: 20, step: 0.5, suffix: '%' },
+      { key: 'activationPercent', label: 'Activate After Gain', type: 'number', min: 0, max: 15, step: 0.5, suffix: '%' },
+    ],
+  },
+  {
     type: 'exit', subtype: 'TIME_EXIT', label: 'Time Exit',
     description: 'Exit after N days',
     icon: '⏰', color: 'bg-sky-500/20 border-sky-500/50',

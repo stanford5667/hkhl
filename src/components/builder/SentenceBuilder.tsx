@@ -694,6 +694,15 @@ export const SentenceBuilder = memo(function SentenceBuilder({
       params.holdingPeriod = timeExit.parameters.days;
     }
     
+    const trailingStop = exitRules.find(e => e.block.subtype === 'TRAILING_STOP');
+    if (trailingStop) {
+      params.trailingStopPercent = trailingStop.parameters.percent;
+      if (trailingStop.parameters.activationPercent > 0) {
+        params.trailingStopActivation = 'after-profit';
+        params.trailingStopActivationPercent = trailingStop.parameters.activationPercent;
+      }
+    }
+    
     // Call onRunBacktest if provided
     if (onRunBacktest) {
       onRunBacktest({
