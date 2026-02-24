@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { 
   TrendingUp, Loader2, FileText
 } from 'lucide-react';
+import { motion } from 'framer-motion';
 import { useTrendingTickers } from '@/hooks/useTrendingTickers';
 import { useCategoryCounts, useETFCount } from '@/hooks/useCategoryCounts';
 import { TickerCarousel } from '@/components/research/TickerCarousel';
@@ -12,6 +13,19 @@ import { EarningsCalendar } from '@/components/earnings';
 import { AnimatedBackground } from '@/components/research/AnimatedBackground';
 import { ResearchHero } from '@/components/research/ResearchHero';
 import { FeatureShowcaseRow } from '@/components/research/FeatureShowcaseCard';
+import { StickyEngagementBar } from '@/components/research/StickyEngagementBar';
+import { SocialProofSignals } from '@/components/research/SocialProofSignals';
+import { OnboardingNudges } from '@/components/research/OnboardingNudges';
+
+const stagger = {
+  hidden: {},
+  visible: { transition: { staggerChildren: 0.12 } },
+};
+
+const fadeUp = {
+  hidden: { opacity: 0, y: 18 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: [0, 0, 0.2, 1] as const } },
+};
 
 export default function ResearchPage() {
   const navigate = useNavigate();
@@ -61,14 +75,26 @@ export default function ResearchPage() {
         onClearRecent={clearRecentSearches}
       />
 
-      {/* Main Content */}
-      <div className="max-w-6xl mx-auto px-3 sm:px-6 pb-8 sm:pb-12 space-y-5 sm:space-y-8">
+      {/* Social Proof Signals - rotating live activity ticker */}
+      <div className="max-w-6xl mx-auto px-3 sm:px-6 -mt-1 mb-4">
+        <SocialProofSignals />
+      </div>
+
+      {/* Main Content with progressive reveal */}
+      <motion.div
+        className="max-w-6xl mx-auto px-3 sm:px-6 pb-8 sm:pb-12 space-y-5 sm:space-y-8"
+        variants={stagger}
+        initial="hidden"
+        animate="visible"
+      >
 
         {/* Feature Showcase */}
-        <FeatureShowcaseRow />
+        <motion.div variants={fadeUp}>
+          <FeatureShowcaseRow />
+        </motion.div>
 
         {/* Trending Tickers */}
-        <section className="space-y-2 sm:space-y-3">
+        <motion.section className="space-y-2 sm:space-y-3" variants={fadeUp}>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <div className="p-1 sm:p-1.5 rounded-lg bg-primary/10 border border-primary/20">
@@ -97,18 +123,20 @@ export default function ResearchPage() {
               No trending tickers available
             </div>
           )}
-        </section>
+        </motion.section>
 
         {/* Major Market Themes */}
-        <MarketThemesSection />
+        <motion.div variants={fadeUp}>
+          <MarketThemesSection />
+        </motion.div>
 
         {/* Market Intelligence */}
-        <div id="market-intelligence">
+        <motion.div id="market-intelligence" variants={fadeUp}>
           <MarketIntelligenceSection />
-        </div>
+        </motion.div>
 
         {/* Earnings Calendar */}
-        <section className="space-y-2 sm:space-y-3">
+        <motion.section className="space-y-2 sm:space-y-3" variants={fadeUp}>
           <div className="flex items-center gap-2">
             <div className="p-1 sm:p-1.5 rounded-lg bg-primary/10 border border-primary/20">
               <FileText className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-primary" />
@@ -119,9 +147,15 @@ export default function ResearchPage() {
             </div>
           </div>
           <EarningsCalendar />
-        </section>
+        </motion.section>
 
-      </div>
+      </motion.div>
+
+      {/* Sticky Engagement Bar - appears on scroll */}
+      <StickyEngagementBar />
+
+      {/* Onboarding Nudges - first-time visitor tooltips */}
+      <OnboardingNudges />
     </div>
   );
 }
