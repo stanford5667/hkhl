@@ -9,7 +9,7 @@ const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 const POLYGON_API_KEY = Deno.env.get('POLYGON_API_KEY');
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// PING HANDLER - Fast response for edge function warm-up
+// PING HANDLER
 // ═══════════════════════════════════════════════════════════════════════════════
 
 async function handlePing(): Promise<Response> {
@@ -23,22 +23,17 @@ async function handlePing(): Promise<Response> {
 // MARKET HOLIDAYS - US Market Holiday Validation
 // ═══════════════════════════════════════════════════════════════════════════════
 
-// Normalize incoming date strings to YYYY-MM-DD.
-// Some sources can return ISO timestamps (e.g. "2024-09-08T00:00:00+00:00").
-// If we don't normalize, weekend/holiday detection can silently fail.
 function normalizeDate(dateLike: string): string {
   if (!dateLike) return dateLike;
   return dateLike.length >= 10 ? dateLike.slice(0, 10) : dateLike;
 }
 
-// Fixed US holidays (month, day) - 0-indexed months
 const FIXED_HOLIDAYS = [
-  { month: 0, day: 1 },   // New Year's Day
-  { month: 6, day: 4 },   // Independence Day
-  { month: 11, day: 25 }, // Christmas Day
+  { month: 0, day: 1 },
+  { month: 6, day: 4 },
+  { month: 11, day: 25 },
 ];
 
-// Get nth occurrence of a day in a month (e.g., 3rd Monday)
 function getNthDayOfMonth(year: number, month: number, dayOfWeek: number, n: number): Date {
   const firstDay = new Date(year, month, 1);
   let dayOffset = dayOfWeek - firstDay.getDay();
@@ -46,7 +41,6 @@ function getNthDayOfMonth(year: number, month: number, dayOfWeek: number, n: num
   return new Date(year, month, 1 + dayOffset + (n - 1) * 7);
 }
 
-// Get last occurrence of a day in a month
 function getLastDayOfMonth(year: number, month: number, dayOfWeek: number): Date {
   const lastDay = new Date(year, month + 1, 0);
   let dayOffset = lastDay.getDay() - dayOfWeek;
@@ -54,7 +48,6 @@ function getLastDayOfMonth(year: number, month: number, dayOfWeek: number): Date
   return new Date(year, month + 1, -dayOffset);
 }
 
-// Get observed holiday (Friday if Saturday, Monday if Sunday)
 function getObservedHoliday(date: Date): Date {
   const day = date.getDay();
   if (day === 6) return new Date(date.getTime() - 24 * 60 * 60 * 1000);
@@ -62,7 +55,6 @@ function getObservedHoliday(date: Date): Date {
   return date;
 }
 
-// Easter Sunday calculation
 function getEasterSunday(year: number): Date {
   const a = year % 19;
   const b = Math.floor(year / 100);
@@ -77,42 +69,32 @@ function getEasterSunday(year: number): Date {
   const l = (32 + 2 * e + 2 * i - h - k) % 7;
   const m = Math.floor((a + 11 * h + 22 * l) / 451);
   const month = Math.floor((h + l - 7 * m + 114) / 31) - 1;
-  const day = ((h + l - 7 * m + 114) % 31) + 1;
-  return new Date(year, month, day);
+  const day2 = ((h + l - 7 * m + 114) % 31) + 1;
+  return new Date(year, month, day2);
 }
 
-// Get all US market holidays for a given year
 function getMarketHolidays(year: number): string[] {
   const holidays: Date[] = [];
-  
-  // Fixed holidays with observed adjustments
   for (const { month, day } of FIXED_HOLIDAYS) {
     holidays.push(getObservedHoliday(new Date(year, month, day)));
   }
-  
-  // Juneteenth (observed)
   holidays.push(getObservedHoliday(new Date(year, 5, 19)));
-  
-  // Floating holidays
-  holidays.push(getNthDayOfMonth(year, 0, 1, 3)); // MLK Day
-  holidays.push(getNthDayOfMonth(year, 1, 1, 3)); // Presidents Day
+  holidays.push(getNthDayOfMonth(year, 0, 1, 3));
+  holidays.push(getNthDayOfMonth(year, 1, 1, 3));
   const easter = getEasterSunday(year);
-  holidays.push(new Date(easter.getTime() - 2 * 24 * 60 * 60 * 1000)); // Good Friday
-  holidays.push(getLastDayOfMonth(year, 4, 1)); // Memorial Day
-  holidays.push(getNthDayOfMonth(year, 8, 1, 1)); // Labor Day
-  holidays.push(getNthDayOfMonth(year, 10, 4, 4)); // Thanksgiving
-  
+  holidays.push(new Date(easter.getTime() - 2 * 24 * 60 * 60 * 1000));
+  holidays.push(getLastDayOfMonth(year, 4, 1));
+  holidays.push(getNthDayOfMonth(year, 8, 1, 1));
+  holidays.push(getNthDayOfMonth(year, 10, 4, 4));
   return holidays.map(d => d.toISOString().split('T')[0]);
 }
 
-// Check if date is a weekend
 function isWeekend(dateStr: string): boolean {
   const d = new Date(normalizeDate(dateStr) + 'T12:00:00Z');
   const day = d.getUTCDay();
   return day === 0 || day === 6;
 }
 
-// Check if date is a valid trading day
 function isTradingDay(dateStr: string): boolean {
   const normalized = normalizeDate(dateStr);
   if (isWeekend(normalized)) return false;
@@ -121,55 +103,40 @@ function isTradingDay(dateStr: string): boolean {
   return !holidays.includes(normalized);
 }
 
-// Get next valid trading day from a given date
 function getNextTradingDay(dateStr: string): string {
   let date = new Date(normalizeDate(dateStr) + 'T12:00:00Z');
   let attempts = 0;
-  const maxAttempts = 30; // Prevent infinite loop
-  
-  while (!isTradingDay(date.toISOString().split('T')[0]) && attempts < maxAttempts) {
+  while (!isTradingDay(date.toISOString().split('T')[0]) && attempts < 30) {
     date = new Date(date.getTime() + 24 * 60 * 60 * 1000);
     attempts++;
   }
-  
   return date.toISOString().split('T')[0];
 }
 
-// Count trading days between two dates (for accurate holding period calculation)
 function countTradingDaysBetween(startDate: string, endDate: string): number {
   const start = new Date(normalizeDate(startDate) + 'T12:00:00Z');
   const end = new Date(normalizeDate(endDate) + 'T12:00:00Z');
   let count = 0;
   const currentDate = new Date(start);
-  
   while (currentDate <= end) {
-    const dateStr = currentDate.toISOString().split('T')[0];
-    if (isTradingDay(dateStr)) {
-      count++;
-    }
+    if (isTradingDay(currentDate.toISOString().split('T')[0])) count++;
     currentDate.setDate(currentDate.getDate() + 1);
   }
-  
-  // Subtract 1 because we don't count entry day, only holding days
   return Math.max(0, count - 1);
 }
 
-// Calendar day difference (UTC noon anchor to avoid TZ rollover)
 function countCalendarDaysBetween(startDate: string, endDate: string): number {
   const start = new Date(normalizeDate(startDate) + 'T12:00:00Z');
   const end = new Date(normalizeDate(endDate) + 'T12:00:00Z');
-  const msPerDay = 24 * 60 * 60 * 1000;
-  return Math.max(0, Math.round((end.getTime() - start.getTime()) / msPerDay));
+  return Math.max(0, Math.round((end.getTime() - start.getTime()) / (24 * 60 * 60 * 1000)));
 }
 
-// Check if a date is in the future (beyond today)
 function isFutureDate(dateStr: string): boolean {
-  const today = new Date().toISOString().split('T')[0];
-  return normalizeDate(dateStr) > today;
+  return normalizeDate(dateStr) > new Date().toISOString().split('T')[0];
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// ADVANCED PARAMS DEFAULTS (mirrors AdvancedBacktestParams from types.ts)
+// ADVANCED PARAMS
 // ═══════════════════════════════════════════════════════════════════════════════
 
 interface AdvancedParams {
@@ -238,7 +205,10 @@ const DEFAULT_ADVANCED_PARAMS: AdvancedParams = {
   marginShort: 100,
 };
 
-// Execution realism configuration
+// ═══════════════════════════════════════════════════════════════════════════════
+// EXECUTION REALISM
+// ═══════════════════════════════════════════════════════════════════════════════
+
 interface ExecutionConfig {
   slippageBps: number;
   commissionPerTrade: number;
@@ -250,7 +220,7 @@ interface ExecutionConfig {
 
 function buildExecutionConfig(adv: AdvancedParams): ExecutionConfig {
   return {
-    slippageBps: adv.slippageTicks * 1, // 1 tick ≈ 1 bps for stocks
+    slippageBps: adv.slippageTicks * 1,
     commissionPerTrade: adv.commissionType === 'fixed-per-order' ? adv.commissionValue : 0.99,
     applySlippage: adv.slippageTicks > 0,
     applyCommission: true,
@@ -259,228 +229,27 @@ function buildExecutionConfig(adv: AdvancedParams): ExecutionConfig {
   };
 }
 
-const DEFAULT_EXECUTION_CONFIG: ExecutionConfig = buildExecutionConfig(DEFAULT_ADVANCED_PARAMS);
-
-// Apply slippage to price (direction: 'buy' = worse fill = higher, 'sell' = lower)
 function applySlippageToPrice(price: number, direction: 'buy' | 'sell', slippageBps: number): number {
-  const slippageMultiplier = slippageBps / 10000;
-  if (direction === 'buy') {
-    return price * (1 + slippageMultiplier);
-  } else {
-    return price * (1 - slippageMultiplier);
-  }
+  const m = slippageBps / 10000;
+  return direction === 'buy' ? price * (1 + m) : price * (1 - m);
 }
 
-// Single source of truth for fills + commissions.
 function getExecutionFill(
   basePrice: number,
   side: 'buy' | 'sell',
   config: ExecutionConfig,
   shares?: number
 ): { price: number; commission: number } {
-  const price = config.applySlippage
-    ? applySlippageToPrice(basePrice, side, config.slippageBps)
-    : basePrice;
-  
+  const price = config.applySlippage ? applySlippageToPrice(basePrice, side, config.slippageBps) : basePrice;
   let commission = 0;
   if (config.applyCommission) {
     switch (config.commissionType) {
-      case 'percent':
-        commission = (price * (shares || 1)) * (config.commissionValue / 100);
-        break;
-      case 'fixed-per-order':
-        commission = config.commissionValue;
-        break;
-      case 'fixed-per-contract':
-        commission = (shares || 1) * config.commissionValue;
-        break;
+      case 'percent': commission = (price * (shares || 1)) * (config.commissionValue / 100); break;
+      case 'fixed-per-order': commission = config.commissionValue; break;
+      case 'fixed-per-contract': commission = (shares || 1) * config.commissionValue; break;
     }
   }
   return { price, commission };
-}
-
-// Calculate execution costs and create trade with realism fields
-function createTradeWithRealism(
-  baseEntry: number,
-  baseExit: number,
-  shares: number,
-  entryDate: string,
-  exitDate: string,
-  type: 'LONG' | 'SHORT',
-  entryReason: string,
-  exitReason: string,
-  config: ExecutionConfig,
-  extras?: {
-    entryBarRaw?: Bar;
-    exitBarRaw?: Bar;
-    indicatorValueAtEntry?: number;
-    indicatorValueAtExit?: number;
-    indicatorName?: string;
-    dataQualityFlag?: string;
-  }
-): Trade {
-  const normalizedEntryDate = normalizeDate(entryDate);
-  const normalizedExitDate = normalizeDate(exitDate);
-
-  // CRITICAL: Validate that exit date is a valid trading day
-  let validatedExitDate = normalizedExitDate;
-  let qualityFlag = extras?.dataQualityFlag;
-  
-  if (!isTradingDay(validatedExitDate)) {
-    const originalExit = validatedExitDate;
-    validatedExitDate = getNextTradingDay(validatedExitDate);
-    qualityFlag = qualityFlag 
-      ? `${qualityFlag}; Exit date ${originalExit} was non-trading day, adjusted to ${validatedExitDate}`
-      : `Exit date ${originalExit} was non-trading day, adjusted to ${validatedExitDate}`;
-    console.log(`[strategy-backtest] WARNING: Exit date ${originalExit} is non-trading day, adjusted to ${validatedExitDate}`);
-  }
-  
-  // CRITICAL: Validate that entry date is a valid trading day
-  // NOTE: We do NOT auto-adjust entry dates because that would create a price/date mismatch.
-  // If this ever triggers, it means upstream bars are corrupt or date conversion is wrong.
-  if (!isTradingDay(normalizedEntryDate)) {
-    console.error(`[strategy-backtest] ERROR: Invalid entry date ${normalizedEntryDate} (non-trading). Trade will be flagged.`);
-    qualityFlag = qualityFlag
-      ? `${qualityFlag}; Invalid entry date ${normalizedEntryDate} (non-trading)`
-      : `Invalid entry date ${normalizedEntryDate} (non-trading)`;
-  }
-  
-  // CRITICAL: Calculate holding periods
-  const holdingDaysTrading = countTradingDaysBetween(normalizedEntryDate, validatedExitDate);
-  const holdingDaysCalendar = countCalendarDaysBetween(normalizedEntryDate, validatedExitDate);
-  // Backwards-compat: holdingDays remains the trading-day count
-  const holdingDays = holdingDaysTrading;
-  
-  // CRITICAL: Check for future dates
-  const today = new Date().toISOString().split('T')[0];
-  if (validatedExitDate > today) {
-    qualityFlag = qualityFlag
-      ? `${qualityFlag}; Future date detected - data may be synthetic`
-      : 'Future date detected - data may be synthetic';
-  }
-  
-  // Calculate gross P&L (theoretical, no costs)
-  const grossPnl = shares * (baseExit - baseEntry);
-  const grossPnlPercent = ((baseExit - baseEntry) / baseEntry) * 100;
-  
-  // Apply execution model (must match cash-flow simulation)
-  const entryFill = getExecutionFill(baseEntry, 'buy', config);
-  const exitFill = getExecutionFill(baseExit, 'sell', config);
-  const actualEntry = entryFill.price;
-  const actualExit = exitFill.price;
-
-  // Calculate slippage cost (dollar impact of worse prices)
-  const slippageCost = config.applySlippage
-    ? (actualEntry - baseEntry) * shares + (baseExit - actualExit) * shares
-    : 0;
-
-  // Calculate commission cost (round trip)
-  const commissionCost = entryFill.commission + exitFill.commission;
-  
-  // Calculate net P&L (with all costs)
-  const netPnl = shares * (actualExit - actualEntry) - commissionCost;
-  // Use higher precision to avoid identical rounding across trades
-  const netPnlPercent = ((actualExit - actualEntry) / actualEntry) * 100 - (commissionCost / (shares * actualEntry)) * 100;
-  
-  return {
-    entryDate: normalizedEntryDate,
-    exitDate: validatedExitDate,
-    // Preserve 4 decimal places for prices to show real variance
-    entryPrice: Math.round(actualEntry * 10000) / 10000,
-    exitPrice: Math.round(actualExit * 10000) / 10000,
-    shares,
-    pnl: Math.round(netPnl * 100) / 100,
-    // Preserve 4 decimal places for pnlPercent to show variance
-    pnlPercent: Math.round(netPnlPercent * 10000) / 10000,
-    type,
-    entryReason,
-    exitReason,
-    holdingDays,
-    holdingDaysTrading,
-    holdingDaysCalendar,
-    // Execution realism fields
-    grossPnl: Math.round(grossPnl * 100) / 100,
-    grossPnlPercent: Math.round(grossPnlPercent * 100) / 100,
-    slippageCost: Math.round(slippageCost * 100) / 100,
-    commissionCost: Math.round(commissionCost * 100) / 100,
-    netPnl: Math.round(netPnl * 100) / 100,
-    netPnlPercent: Math.round(netPnlPercent * 100) / 100,
-    dataQualityFlag: qualityFlag,
-    // Data inspector fields
-    entryBarRaw: extras?.entryBarRaw,
-    exitBarRaw: extras?.exitBarRaw,
-    indicatorValueAtEntry: extras?.indicatorValueAtEntry,
-    indicatorValueAtExit: extras?.indicatorValueAtExit,
-    indicatorName: extras?.indicatorName,
-  };
-}
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// POLYGON API FALLBACK
-// ═══════════════════════════════════════════════════════════════════════════════
-
-async function fetchPolygonBars(ticker: string, startDate: string, endDate: string): Promise<Bar[] | null> {
-  if (!POLYGON_API_KEY) {
-    console.log('[strategy-backtest] No POLYGON_API_KEY configured');
-    return null;
-  }
-  
-  try {
-    const url = `https://api.polygon.io/v2/aggs/ticker/${encodeURIComponent(ticker)}/range/1/day/${startDate}/${endDate}?adjusted=true&sort=asc&limit=50000&apiKey=${POLYGON_API_KEY}`;
-    console.log(`[strategy-backtest] Fetching from Polygon API for ${ticker}`);
-    
-    const response = await fetch(url);
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error(`[strategy-backtest] Polygon API error: ${response.status} - ${errorText}`);
-      return null;
-    }
-    
-    const data = await response.json();
-    if (!data.results || data.results.length === 0) {
-      console.log(`[strategy-backtest] No results from Polygon for ${ticker}`);
-      return null;
-    }
-    
-    console.log(`[strategy-backtest] Got ${data.results.length} bars from Polygon for ${ticker}`);
-    
-    // Convert Polygon format to Bar format
-    // Polygon timestamps are midnight UTC of the trading day
-    const bars: Bar[] = data.results.map((r: { t: number; o: number; h: number; l: number; c: number; v: number }, idx: number, arr: { c: number }[]) => {
-      // Polygon timestamps are in ms, representing start of day UTC
-      // Use the timestamp directly without offset to get the actual trading day
-      const dateObj = new Date(r.t);
-      const year = dateObj.getUTCFullYear();
-      const month = String(dateObj.getUTCMonth() + 1).padStart(2, '0');
-      const day = String(dateObj.getUTCDate()).padStart(2, '0');
-      const date = `${year}-${month}-${day}`;
-      
-      const prevClose = idx > 0 ? arr[idx - 1].c : r.o;
-      const dailyReturn = prevClose ? ((r.c - prevClose) / prevClose) * 100 : 0;
-      
-      return {
-        date,
-        open: r.o,
-        high: r.h,
-        low: r.l,
-        close: r.c,
-        volume: r.v,
-        dailyReturn
-      };
-    });
-    
-    // Filter out any bars that landed on non-trading days (data quality check)
-    const validBars = bars.filter(bar => isTradingDay(bar.date));
-    
-    if (validBars.length !== bars.length) {
-      console.log(`[strategy-backtest] Filtered ${bars.length - validBars.length} non-trading day bars`);
-    }
-    
-    return validBars;
-  } catch (error) {
-    console.error('[strategy-backtest] Polygon fetch error:', error);
-    return null;
-  }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -509,16 +278,13 @@ interface Trade {
   entryReason: string;
   exitReason: string;
   holdingDays: number;
-  // Explicit holding period semantics
   holdingDaysTrading?: number;
   holdingDaysCalendar?: number;
-  // Data Inspector fields
   entryBarRaw?: Bar;
   exitBarRaw?: Bar;
   indicatorValueAtEntry?: number;
   indicatorValueAtExit?: number;
   indicatorName?: string;
-  // Execution realism fields
   grossPnl?: number;
   grossPnlPercent?: number;
   slippageCost?: number;
@@ -567,21 +333,15 @@ interface BacktestResult {
   trades: Trade[];
   portfolioHistory: PortfolioSnapshot[];
   tradingDays: number;
-  // Data Inspector fields
   dataSource: 'database' | 'polygon';
   dataSourceUrl: string;
   barsCount: number;
   rawBarsPreview: Bar[];
-  // Execution realism fields
   executionConfig: ExecutionConfig;
   totalSlippageCost: number;
   totalCommissionCost: number;
   grossReturn: number;
   netReturn: number;
-  // Note: All metrics now include execution costs (slippage + commission) by default.
-  // There is no "theoretical" vs "realistic" split - we only report realistic results.
-
-  // Integrity + labeling
   dataWindow?: {
     requestedStartDate: string;
     requestedEndDate: string;
@@ -594,22 +354,144 @@ interface BacktestResult {
 }
 
 interface StrategyParams {
-  // RSI
   rsiPeriod?: number;
   rsiOversold?: number;
   rsiOverbought?: number;
-  // MA Crossover
   fastMaPeriod?: number;
   slowMaPeriod?: number;
-  // Gap Fill
   gapThreshold?: number;
-  // Consecutive Days
   consecutiveDays?: number;
   holdingPeriod?: number;
-  // General
   stopLossPercent?: number;
   takeProfitPercent?: number;
   positionSizePercent?: number;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// TRADE CREATION HELPER
+// ═══════════════════════════════════════════════════════════════════════════════
+
+function createTradeWithRealism(
+  baseEntry: number,
+  baseExit: number,
+  shares: number,
+  entryDate: string,
+  exitDate: string,
+  type: 'LONG' | 'SHORT',
+  entryReason: string,
+  exitReason: string,
+  config: ExecutionConfig,
+  extras?: {
+    entryBarRaw?: Bar;
+    exitBarRaw?: Bar;
+    indicatorValueAtEntry?: number;
+    indicatorValueAtExit?: number;
+    indicatorName?: string;
+    dataQualityFlag?: string;
+  }
+): Trade {
+  const normalizedEntryDate = normalizeDate(entryDate);
+  const normalizedExitDate = normalizeDate(exitDate);
+
+  let validatedExitDate = normalizedExitDate;
+  let qualityFlag = extras?.dataQualityFlag;
+
+  if (!isTradingDay(validatedExitDate)) {
+    const originalExit = validatedExitDate;
+    validatedExitDate = getNextTradingDay(validatedExitDate);
+    qualityFlag = qualityFlag
+      ? `${qualityFlag}; Exit date ${originalExit} adjusted to ${validatedExitDate}`
+      : `Exit date ${originalExit} adjusted to ${validatedExitDate}`;
+  }
+
+  if (!isTradingDay(normalizedEntryDate)) {
+    qualityFlag = qualityFlag
+      ? `${qualityFlag}; Invalid entry date ${normalizedEntryDate}`
+      : `Invalid entry date ${normalizedEntryDate}`;
+  }
+
+  const holdingDaysTrading = countTradingDaysBetween(normalizedEntryDate, validatedExitDate);
+  const holdingDaysCalendar = countCalendarDaysBetween(normalizedEntryDate, validatedExitDate);
+  const holdingDays = holdingDaysTrading;
+
+  if (isFutureDate(validatedExitDate)) {
+    qualityFlag = qualityFlag
+      ? `${qualityFlag}; Future date - data may be synthetic`
+      : 'Future date - data may be synthetic';
+  }
+
+  // For SHORT positions, P&L is inverted
+  const direction = type === 'LONG' ? 1 : -1;
+  const grossPnl = direction * shares * (baseExit - baseEntry);
+  const grossPnlPercent = direction * ((baseExit - baseEntry) / baseEntry) * 100;
+
+  const entrySide: 'buy' | 'sell' = type === 'LONG' ? 'buy' : 'sell';
+  const exitSide: 'buy' | 'sell' = type === 'LONG' ? 'sell' : 'buy';
+  const entryFill = getExecutionFill(baseEntry, entrySide, config, shares);
+  const exitFill = getExecutionFill(baseExit, exitSide, config, shares);
+  const actualEntry = entryFill.price;
+  const actualExit = exitFill.price;
+
+  const slippageCost = config.applySlippage
+    ? Math.abs(actualEntry - baseEntry) * shares + Math.abs(baseExit - actualExit) * shares
+    : 0;
+  const commissionCost = entryFill.commission + exitFill.commission;
+
+  const netPnl = direction * shares * (actualExit - actualEntry) - commissionCost;
+  const netPnlPercent = ((direction * (actualExit - actualEntry)) / actualEntry) * 100 - (commissionCost / (shares * actualEntry)) * 100;
+
+  return {
+    entryDate: normalizedEntryDate,
+    exitDate: validatedExitDate,
+    entryPrice: Math.round(actualEntry * 10000) / 10000,
+    exitPrice: Math.round(actualExit * 10000) / 10000,
+    shares,
+    pnl: Math.round(netPnl * 100) / 100,
+    pnlPercent: Math.round(netPnlPercent * 10000) / 10000,
+    type,
+    entryReason,
+    exitReason,
+    holdingDays,
+    holdingDaysTrading,
+    holdingDaysCalendar,
+    grossPnl: Math.round(grossPnl * 100) / 100,
+    grossPnlPercent: Math.round(grossPnlPercent * 100) / 100,
+    slippageCost: Math.round(slippageCost * 100) / 100,
+    commissionCost: Math.round(commissionCost * 100) / 100,
+    netPnl: Math.round(netPnl * 100) / 100,
+    netPnlPercent: Math.round(netPnlPercent * 100) / 100,
+    dataQualityFlag: qualityFlag,
+    entryBarRaw: extras?.entryBarRaw,
+    exitBarRaw: extras?.exitBarRaw,
+    indicatorValueAtEntry: extras?.indicatorValueAtEntry,
+    indicatorValueAtExit: extras?.indicatorValueAtExit,
+    indicatorName: extras?.indicatorName,
+  };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// POLYGON API FALLBACK
+// ═══════════════════════════════════════════════════════════════════════════════
+
+async function fetchPolygonBars(ticker: string, startDate: string, endDate: string): Promise<Bar[] | null> {
+  if (!POLYGON_API_KEY) return null;
+  try {
+    const url = `https://api.polygon.io/v2/aggs/ticker/${encodeURIComponent(ticker)}/range/1/day/${startDate}/${endDate}?adjusted=true&sort=asc&limit=50000&apiKey=${POLYGON_API_KEY}`;
+    const response = await fetch(url);
+    if (!response.ok) return null;
+    const data = await response.json();
+    if (!data.results || data.results.length === 0) return null;
+
+    const bars: Bar[] = data.results.map((r: { t: number; o: number; h: number; l: number; c: number; v: number }, idx: number, arr: { c: number }[]) => {
+      const dateObj = new Date(r.t);
+      const date = `${dateObj.getUTCFullYear()}-${String(dateObj.getUTCMonth() + 1).padStart(2, '0')}-${String(dateObj.getUTCDate()).padStart(2, '0')}`;
+      const prevClose = idx > 0 ? arr[idx - 1].c : r.o;
+      return { date, open: r.o, high: r.h, low: r.l, close: r.c, volume: r.v, dailyReturn: prevClose ? ((r.c - prevClose) / prevClose) * 100 : 0 };
+    });
+    return bars.filter(bar => isTradingDay(bar.date));
+  } catch {
+    return null;
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -619,13 +501,8 @@ interface StrategyParams {
 function calculateSMA(prices: number[], period: number): (number | null)[] {
   const result: (number | null)[] = [];
   for (let i = 0; i < prices.length; i++) {
-    if (i < period - 1) {
-      result.push(null);
-    } else {
-      const slice = prices.slice(i - period + 1, i + 1);
-      const sum = slice.reduce((a, b) => a + b, 0);
-      result.push(sum / period);
-    }
+    if (i < period - 1) { result.push(null); }
+    else { result.push(prices.slice(i - period + 1, i + 1).reduce((a, b) => a + b, 0) / period); }
   }
   return result;
 }
@@ -633,19 +510,10 @@ function calculateSMA(prices: number[], period: number): (number | null)[] {
 function calculateEMA(prices: number[], period: number): (number | null)[] {
   const result: (number | null)[] = [];
   const multiplier = 2 / (period + 1);
-  
   for (let i = 0; i < prices.length; i++) {
-    if (i < period - 1) {
-      result.push(null);
-    } else if (i === period - 1) {
-      // First EMA is SMA
-      const sum = prices.slice(0, period).reduce((a, b) => a + b, 0);
-      result.push(sum / period);
-    } else {
-      const prevEma = result[i - 1]!;
-      const ema = (prices[i] - prevEma) * multiplier + prevEma;
-      result.push(ema);
-    }
+    if (i < period - 1) { result.push(null); }
+    else if (i === period - 1) { result.push(prices.slice(0, period).reduce((a, b) => a + b, 0) / period); }
+    else { result.push((prices[i] - result[i - 1]!) * multiplier + result[i - 1]!); }
   }
   return result;
 }
@@ -653,209 +521,135 @@ function calculateEMA(prices: number[], period: number): (number | null)[] {
 function calculateRSI(prices: number[], period: number = 14): (number | null)[] {
   const result: (number | null)[] = [];
   const changes: number[] = [];
-  
-  for (let i = 1; i < prices.length; i++) {
-    changes.push(prices[i] - prices[i - 1]);
-  }
-  
+  for (let i = 1; i < prices.length; i++) changes.push(prices[i] - prices[i - 1]);
   for (let i = 0; i < prices.length; i++) {
-    if (i < period) {
-      result.push(null);
-    } else {
-      const relevantChanges = changes.slice(i - period, i);
-      let avgGain = 0;
-      let avgLoss = 0;
-      
-      for (const change of relevantChanges) {
-        if (change > 0) avgGain += change;
-        else avgLoss += Math.abs(change);
-      }
-      
-      avgGain /= period;
-      avgLoss /= period;
-      
-      if (avgLoss === 0) {
-        result.push(100);
-      } else {
-        const rs = avgGain / avgLoss;
-        result.push(100 - (100 / (1 + rs)));
-      }
+    if (i < period) { result.push(null); }
+    else {
+      const rel = changes.slice(i - period, i);
+      let avgGain = 0, avgLoss = 0;
+      for (const c of rel) { if (c > 0) avgGain += c; else avgLoss += Math.abs(c); }
+      avgGain /= period; avgLoss /= period;
+      result.push(avgLoss === 0 ? 100 : 100 - (100 / (1 + avgGain / avgLoss)));
     }
   }
-  
+  return result;
+}
+
+function calculateATR(bars: Bar[], period: number): (number | null)[] {
+  const result: (number | null)[] = [];
+  for (let i = 0; i < bars.length; i++) {
+    if (i < period) { result.push(null); continue; }
+    let sum = 0;
+    for (let j = i - period + 1; j <= i; j++) {
+      const prev = j > 0 ? bars[j - 1].close : bars[j].open;
+      const tr = Math.max(bars[j].high - bars[j].low, Math.abs(bars[j].high - prev), Math.abs(bars[j].low - prev));
+      sum += tr;
+    }
+    result.push(sum / period);
+  }
   return result;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// STRATEGY IMPLEMENTATIONS
+// STRATEGY SIGNAL IMPLEMENTATIONS
 // ═══════════════════════════════════════════════════════════════════════════════
 
 interface StrategySignal {
-  action: 'BUY' | 'SELL' | 'HOLD';
+  action: 'BUY' | 'SELL' | 'SHORT' | 'HOLD';
   reason: string;
 }
 
-function rsiStrategy(
-  bars: Bar[],
-  index: number,
-  rsiValues: (number | null)[],
-  inPosition: boolean,
-  params: StrategyParams
-): StrategySignal {
+function rsiStrategy(bars: Bar[], index: number, rsiValues: (number | null)[], inPosition: boolean, params: StrategyParams): StrategySignal {
   const rsi = rsiValues[index];
+  if (rsi === null) return { action: 'HOLD', reason: 'Insufficient data for RSI' };
   const oversold = params.rsiOversold ?? 30;
   const overbought = params.rsiOverbought ?? 70;
-  
-  if (rsi === null) return { action: 'HOLD', reason: 'Insufficient data for RSI' };
-  
-  if (!inPosition && rsi < oversold) {
-    return { action: 'BUY', reason: `RSI (${rsi.toFixed(1)}) below ${oversold} - oversold` };
-  }
-  
-  if (inPosition && rsi > overbought) {
-    return { action: 'SELL', reason: `RSI (${rsi.toFixed(1)}) above ${overbought} - overbought` };
-  }
-  
+  if (!inPosition && rsi < oversold) return { action: 'BUY', reason: `RSI (${rsi.toFixed(1)}) below ${oversold} - oversold` };
+  if (inPosition && rsi > overbought) return { action: 'SELL', reason: `RSI (${rsi.toFixed(1)}) above ${overbought} - overbought` };
   return { action: 'HOLD', reason: `RSI at ${rsi.toFixed(1)}` };
 }
 
-function maStrategy(
-  bars: Bar[],
-  index: number,
-  fastMa: (number | null)[],
-  slowMa: (number | null)[],
-  inPosition: boolean,
-  _params: StrategyParams
-): StrategySignal {
-  const fast = fastMa[index];
-  const slow = slowMa[index];
+function maStrategy(bars: Bar[], index: number, fastMa: (number | null)[], slowMa: (number | null)[], inPosition: boolean, _params: StrategyParams): StrategySignal {
+  const fast = fastMa[index], slow = slowMa[index];
   const prevFast = index > 0 ? fastMa[index - 1] : null;
   const prevSlow = index > 0 ? slowMa[index - 1] : null;
-  
-  if (fast === null || slow === null || prevFast === null || prevSlow === null) {
-    return { action: 'HOLD', reason: 'Insufficient data for MA' };
-  }
-  
-  // Golden cross: fast crosses above slow
-  if (!inPosition && prevFast < prevSlow && fast > slow) {
-    return { action: 'BUY', reason: `Golden Cross: Fast MA (${fast.toFixed(2)}) crossed above Slow MA (${slow.toFixed(2)})` };
-  }
-  
-  // Death cross: fast crosses below slow
-  if (inPosition && prevFast > prevSlow && fast < slow) {
-    return { action: 'SELL', reason: `Death Cross: Fast MA (${fast.toFixed(2)}) crossed below Slow MA (${slow.toFixed(2)})` };
-  }
-  
+  if (fast === null || slow === null || prevFast === null || prevSlow === null) return { action: 'HOLD', reason: 'Insufficient data for MA' };
+  if (!inPosition && prevFast < prevSlow && fast > slow) return { action: 'BUY', reason: `Golden Cross: Fast MA (${fast.toFixed(2)}) crossed above Slow MA (${slow.toFixed(2)})` };
+  if (inPosition && prevFast > prevSlow && fast < slow) return { action: 'SELL', reason: `Death Cross: Fast MA (${fast.toFixed(2)}) crossed below Slow MA (${slow.toFixed(2)})` };
   return { action: 'HOLD', reason: `Fast MA: ${fast.toFixed(2)}, Slow MA: ${slow.toFixed(2)}` };
 }
 
-function gapFillStrategy(
-  bars: Bar[],
-  index: number,
-  inPosition: boolean,
-  entryPrice: number | null,
-  params: StrategyParams,
-  entryDate?: string | null
-): { signal: StrategySignal; exitAtEntryPrice?: boolean } {
+function gapFillStrategy(bars: Bar[], index: number, inPosition: boolean, entryPrice: number | null, params: StrategyParams, entryDate?: string | null): { signal: StrategySignal; exitAtEntryPrice?: boolean } {
   if (index < 1) return { signal: { action: 'HOLD', reason: 'Need previous bar' } };
-  
   const prevClose = bars[index - 1].close;
   const todayOpen = bars[index].open;
   const todayClose = bars[index].close;
   const todayHigh = bars[index].high;
   const currentDate = normalizeDate(bars[index].date);
-  const threshold = params.gapThreshold ?? 2; // 2% gap
+  const threshold = params.gapThreshold ?? 2;
   const takeProfit = params.takeProfitPercent ?? null;
-  const holdingPeriod = params.holdingPeriod ?? null; // Time-based exit
-  
-  // Log params on first call for debugging
-  if (index === 1) {
-    console.log('[Gap Strategy] Params received:', JSON.stringify(params));
-    console.log('[Gap Strategy] Threshold:', threshold, '%, Take Profit:', takeProfit, '%, Holding Period:', holdingPeriod, 'days');
-  }
-  
+  const holdingPeriod = params.holdingPeriod ?? null;
   const gapPercent = ((todayOpen - prevClose) / prevClose) * 100;
-  
-  // Gap down detected - only enter if not already in position
-  if (!inPosition && gapPercent < -threshold) {
-    return { signal: { action: 'BUY', reason: `Gap down of ${gapPercent.toFixed(2)}% (below -${threshold}%)` } };
-  }
-  
-  // Exit conditions when in position
+
+  if (!inPosition && gapPercent < -threshold) return { signal: { action: 'BUY', reason: `Gap down of ${gapPercent.toFixed(2)}% (below -${threshold}%)` } };
+
   if (inPosition && entryPrice !== null) {
     const currentReturn = ((todayClose - entryPrice) / entryPrice) * 100;
-    
-    // Time-based exit takes priority if specified
     if (holdingPeriod !== null && entryDate) {
       const tradingDaysHeld = countTradingDaysBetween(entryDate, currentDate);
-      if (tradingDaysHeld >= holdingPeriod) {
-        return { signal: { action: 'SELL', reason: `Holding period of ${holdingPeriod} trading days reached (actual: ${tradingDaysHeld})` } };
-      }
+      if (tradingDaysHeld >= holdingPeriod) return { signal: { action: 'SELL', reason: `Holding period of ${holdingPeriod} days reached` } };
     }
-    
-    // Take profit check
     if (takeProfit !== null) {
-      if (currentReturn >= takeProfit) {
-        console.log(`[Gap Strategy] Take profit HIT: target ${takeProfit}%, current ${currentReturn.toFixed(2)}%`);
-        return { signal: { action: 'SELL', reason: `Take profit triggered at +${takeProfit}% (current: +${currentReturn.toFixed(2)}%)` } };
-      }
-      // Hold position - waiting for take profit or time exit
-      return { signal: { action: 'HOLD', reason: `Waiting for +${takeProfit}% target (current: +${currentReturn.toFixed(2)}%)` } };
+      if (currentReturn >= takeProfit) return { signal: { action: 'SELL', reason: `Take profit triggered at +${takeProfit}%` } };
+      return { signal: { action: 'HOLD', reason: `Waiting for +${takeProfit}% target` } };
     }
-    
-    // Default gap-fill exit ONLY when NO take profit AND NO holding period is specified
-    // When holdingPeriod is set, we wait for time exit (handled above) instead of exiting on gap fill
     if (holdingPeriod === null && todayHigh >= entryPrice) {
-      // Price touched or exceeded entry - gap is filled, exit AT entry price (not at close)
-      return { 
-        signal: { action: 'SELL', reason: `Gap filled - price returned to entry ($${entryPrice.toFixed(2)})` },
-        exitAtEntryPrice: true  // Signal to exit at entry price, not bar close
-      };
+      return { signal: { action: 'SELL', reason: `Gap filled - price returned to entry` }, exitAtEntryPrice: true };
     }
   }
-  
   return { signal: { action: 'HOLD', reason: `Gap: ${gapPercent.toFixed(2)}%` } };
 }
 
-function consecutiveDaysStrategy(
-  bars: Bar[],
-  index: number,
-  inPosition: boolean,
-  entryDate: string | null,
-  currentDate: string,
-  params: StrategyParams
-): StrategySignal {
+function consecutiveDaysStrategy(bars: Bar[], index: number, inPosition: boolean, entryDate: string | null, currentDate: string, params: StrategyParams): StrategySignal {
   const consecutiveDays = params.consecutiveDays ?? 3;
   const holdingPeriod = params.holdingPeriod ?? 5;
-  
   if (index < consecutiveDays) return { action: 'HOLD', reason: 'Need more history' };
-  
-  // Check for consecutive down days
   if (!inPosition) {
     let downDays = 0;
     for (let i = 0; i < consecutiveDays; i++) {
-      const dayReturn = (bars[index - i].close - bars[index - i].open) / bars[index - i].open;
-      if (dayReturn < 0) downDays++;
+      if ((bars[index - i].close - bars[index - i].open) / bars[index - i].open < 0) downDays++;
     }
-    
-    if (downDays === consecutiveDays) {
-      return { action: 'BUY', reason: `${consecutiveDays} consecutive down days - mean reversion expected` };
-    }
+    if (downDays === consecutiveDays) return { action: 'BUY', reason: `${consecutiveDays} consecutive down days` };
   }
-  
-  // Exit after holding period - CRITICAL: Use actual trading days, not bar indices
   if (inPosition && entryDate !== null) {
     const tradingDaysHeld = countTradingDaysBetween(entryDate, currentDate);
-    if (tradingDaysHeld >= holdingPeriod) {
-      return { action: 'SELL', reason: `Holding period of ${holdingPeriod} trading days reached (actual: ${tradingDaysHeld})` };
-    }
+    if (tradingDaysHeld >= holdingPeriod) return { action: 'SELL', reason: `Holding period of ${holdingPeriod} days reached` };
   }
-  
   return { action: 'HOLD', reason: 'Waiting for signal' };
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// MAIN BACKTEST ENGINE
+// POSITION STATE (supports multiple positions via pyramiding)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+interface OpenPosition {
+  entryPrice: number;
+  shares: number;
+  remainingShares: number; // tracks partial exits
+  entryDate: string;
+  entryIndex: number;
+  entryReason: string;
+  entryBarRaw: Bar;
+  entryIndicatorValue: number | null;
+  type: 'LONG' | 'SHORT';
+  highWaterMark: number; // for trailing stop
+  stopLossPrice: number | null; // dynamic stop level (may move for break-even/trailing)
+  tiersExecuted: Set<number>; // indices of exitTiers already triggered
+  barsHeld: number;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// MAIN BACKTEST ENGINE (with full AdvancedParams wiring)
 // ═══════════════════════════════════════════════════════════════════════════════
 
 function runBacktest(
@@ -863,458 +657,509 @@ function runBacktest(
   strategy: string,
   initialCapital: number,
   params: StrategyParams,
+  advancedParams: AdvancedParams,
   dataSource: 'database' | 'polygon',
   dataSourceUrl: string,
   dataWindow?: BacktestResult['dataWindow']
 ): Omit<BacktestResult, 'success' | 'ticker' | 'startDate' | 'endDate'> {
   const trades: Trade[] = [];
   const portfolioHistory: PortfolioSnapshot[] = [];
-  
-  let cash = initialCapital;
-  let shares = 0;
-  let inPosition = false;
-  let entryPrice: number | null = null;
-  let entryDate: string | null = null;
-  let entryIndex: number | null = null;
-  let entryReason = '';
-  let entryBarRaw: Bar | null = null;
-  let entryIndicatorValue: number | null = null;
-  
-  const positionSize = (params.positionSizePercent ?? 100) / 100;
-  const stopLoss = params.stopLossPercent ?? null;
-  const takeProfit = params.takeProfitPercent ?? null;
 
-  // Execution realism used for portfolio NAV (single source of truth)
-  const execConfig = DEFAULT_EXECUTION_CONFIG;
-  
+  let cash = initialCapital;
+  const positions: OpenPosition[] = [];
+
+  const execConfig = buildExecutionConfig(advancedParams);
+
+  // Merge legacy params with advancedParams (advancedParams takes precedence when enabled)
+  const effectiveStopLoss = advancedParams.stopLossEnabled ? advancedParams.stopLossValue : (params.stopLossPercent ?? null);
+  const effectiveTakeProfit = advancedParams.takeProfitEnabled ? advancedParams.takeProfitValue : (params.takeProfitPercent ?? null);
+
   // Pre-calculate indicators
   const closes = bars.map(b => b.close);
-  const rsiPeriod = params.rsiPeriod ?? 14;
-  const fastPeriod = params.fastMaPeriod ?? 10;
-  const slowPeriod = params.slowMaPeriod ?? 50;
-  
-  const rsiValues = calculateRSI(closes, rsiPeriod);
-  const fastMa = calculateEMA(closes, fastPeriod);
-  const slowMa = calculateSMA(closes, slowPeriod);
-  
-  // Determine indicator name based on strategy
-  const getIndicatorName = (strat: string): string => {
-    switch (strat) {
-      case 'rsi': return 'RSI';
-      case 'ma-crossover': return 'Fast EMA';
-      case 'gap-fill': return 'Gap %';
-      case 'consecutive-days': return 'Down Days';
-      default: return 'Indicator';
-    }
+  const rsiValues = calculateRSI(closes, params.rsiPeriod ?? 14);
+  const fastMa = calculateEMA(closes, params.fastMaPeriod ?? 10);
+  const slowMa = calculateSMA(closes, params.slowMaPeriod ?? 50);
+  const atrValues = calculateATR(bars, advancedParams.stopLossAtrPeriod ?? 14);
+
+  const getIndicatorName = (s: string): string => {
+    switch (s) { case 'rsi': return 'RSI'; case 'ma-crossover': return 'Fast EMA'; case 'gap-fill': return 'Gap %'; case 'consecutive-days': return 'Down Days'; default: return 'Indicator'; }
   };
-  
-  const getIndicatorValue = (strat: string, idx: number): number | null => {
-    switch (strat) {
+  const getIndicatorValue = (s: string, idx: number): number | null => {
+    switch (s) {
       case 'rsi': return rsiValues[idx];
       case 'ma-crossover': return fastMa[idx];
-      case 'gap-fill': 
-        if (idx < 1) return null;
-        return ((bars[idx].open - bars[idx - 1].close) / bars[idx - 1].close) * 100;
-      case 'consecutive-days':
-        let count = 0;
-        for (let j = 0; j < Math.min(idx + 1, 5); j++) {
-          const dayRet = (bars[idx - j].close - bars[idx - j].open) / bars[idx - j].open;
-          if (dayRet < 0) count++;
-          else break;
-        }
-        return count;
+      case 'gap-fill': return idx < 1 ? null : ((bars[idx].open - bars[idx - 1].close) / bars[idx - 1].close) * 100;
+      case 'consecutive-days': { let c = 0; for (let j = 0; j < Math.min(idx + 1, 5); j++) { if ((bars[idx - j].close - bars[idx - j].open) / bars[idx - j].open < 0) c++; else break; } return c; }
       default: return null;
     }
   };
-  
   const indicatorName = getIndicatorName(strategy);
-  
-  // Process each bar
+
+  // Pending order state (for limit/stop entries)
+  let pendingOrder: { type: 'limit' | 'stop' | 'stop-limit'; triggerPrice: number; limitPrice?: number; direction: 'LONG' | 'SHORT'; reason: string; barIndex: number; stopTriggered?: boolean } | null = null;
+
+  // Helper: close a position (full or partial)
+  function closePosition(pos: OpenPosition, exitPrice: number, exitDate: string, exitReason: string, barIndex: number, sharesToClose?: number): void {
+    const closeShares = sharesToClose ?? pos.remainingShares;
+    if (closeShares <= 0) return;
+
+    const trade = createTradeWithRealism(
+      pos.entryPrice, exitPrice, closeShares, pos.entryDate, exitDate, pos.type,
+      pos.entryReason, exitReason, execConfig,
+      { entryBarRaw: pos.entryBarRaw, exitBarRaw: { ...bars[barIndex] }, indicatorValueAtEntry: pos.entryIndicatorValue ?? undefined, indicatorValueAtExit: getIndicatorValue(strategy, barIndex) ?? undefined, indicatorName }
+    );
+    trades.push(trade);
+
+    // Cash flow
+    const side: 'buy' | 'sell' = pos.type === 'LONG' ? 'sell' : 'buy';
+    const fill = getExecutionFill(exitPrice, side, execConfig, closeShares);
+    if (pos.type === 'LONG') {
+      cash += closeShares * fill.price - fill.commission;
+    } else {
+      // SHORT cover: we previously credited (entry * shares), now we debit (exit * shares)
+      cash -= closeShares * fill.price + fill.commission;
+    }
+
+    pos.remainingShares -= closeShares;
+  }
+
+  // Helper: calculate position sizing
+  function calculateShares(price: number, posType: 'LONG' | 'SHORT'): number {
+    const margin = posType === 'LONG' ? advancedParams.marginLong : advancedParams.marginShort;
+    const buyingPower = cash * (margin / 100);
+
+    let amountToInvest: number;
+    switch (advancedParams.positionSizingMethod) {
+      case 'percent-equity': {
+        const totalEquity = cash + positions.reduce((s, p) => s + p.remainingShares * bars[bars.length - 1]?.close || 0, 0);
+        amountToInvest = totalEquity * (advancedParams.positionSizingValue / 100);
+        break;
+      }
+      case 'fixed-dollar':
+        amountToInvest = advancedParams.positionSizingValue;
+        break;
+      case 'fixed-shares':
+        return Math.min(Math.floor(advancedParams.positionSizingValue), Math.floor(buyingPower / price));
+      case 'risk-based': {
+        // (Portfolio * riskPercent) / stopDistance
+        if (effectiveStopLoss === null || effectiveStopLoss === 0) {
+          amountToInvest = cash * 0.1; // fallback 10% if no SL
+        } else {
+          const riskAmount = cash * (advancedParams.positionSizingValue / 100);
+          const stopDistance = price * (effectiveStopLoss / 100);
+          amountToInvest = stopDistance > 0 ? (riskAmount / stopDistance) * price : cash * 0.1;
+        }
+        break;
+      }
+      default:
+        amountToInvest = cash * 0.1;
+    }
+
+    // Also respect legacy positionSizePercent if no advanced sizing
+    if (params.positionSizePercent !== undefined && advancedParams.positionSizingMethod === 'percent-equity' && advancedParams.positionSizingValue === DEFAULT_ADVANCED_PARAMS.positionSizingValue) {
+      amountToInvest = cash * (params.positionSizePercent / 100);
+    }
+
+    amountToInvest = Math.min(amountToInvest, buyingPower);
+    const buyFill = getExecutionFill(price, posType === 'LONG' ? 'buy' : 'sell', execConfig);
+    return Math.max(0, Math.floor((amountToInvest - buyFill.commission) / buyFill.price));
+  }
+
+  // Helper: compute initial stop loss price for a position
+  function computeInitialStopLoss(entryPrice: number, posType: 'LONG' | 'SHORT', barIndex: number): number | null {
+    if (effectiveStopLoss === null) return null;
+
+    if (advancedParams.stopLossEnabled && advancedParams.stopLossType === 'atr') {
+      const atr = atrValues[barIndex];
+      if (atr !== null) {
+        return posType === 'LONG'
+          ? entryPrice - atr * advancedParams.stopLossValue
+          : entryPrice + atr * advancedParams.stopLossValue;
+      }
+    }
+
+    // Percent or fixed
+    const stopDist = advancedParams.stopLossEnabled && advancedParams.stopLossType === 'fixed'
+      ? advancedParams.stopLossValue
+      : entryPrice * (effectiveStopLoss / 100);
+
+    return posType === 'LONG' ? entryPrice - stopDist : entryPrice + stopDist;
+  }
+
+  // ─── MAIN LOOP ─────────────────────────────────────────────────────────────
   for (let i = 0; i < bars.length; i++) {
     const bar = bars[i];
+    if (!isTradingDay(bar.date)) continue;
 
-    // Absolute safety: never process signals on a closed-market day
-    if (!isTradingDay(bar.date)) {
-      console.warn(`[strategy-backtest] Skipping non-trading bar in simulation: ${bar.date}`);
-      continue;
+    // Update position high-water marks and bars held
+    for (const pos of positions) {
+      pos.barsHeld++;
+      if (pos.type === 'LONG' && bar.high > pos.highWaterMark) pos.highWaterMark = bar.high;
+      if (pos.type === 'SHORT' && bar.low < pos.highWaterMark) pos.highWaterMark = bar.low;
     }
-    const positionValue = inPosition ? shares * bar.close : 0;
+
+    const positionValue = positions.reduce((s, p) => {
+      const dir = p.type === 'LONG' ? 1 : -1;
+      return s + p.remainingShares * (p.entryPrice + dir * (bar.close - p.entryPrice));
+    }, 0);
     const totalValue = cash + positionValue;
-    
-    portfolioHistory.push({
-      date: bar.date,
-      value: totalValue,
-      cash,
-      positionValue,
-      inPosition
-    });
-    
-    // Check stop loss / take profit first
-    if (inPosition && entryPrice !== null) {
-      const currentReturn = ((bar.close - entryPrice) / entryPrice) * 100;
-      
-      if (stopLoss !== null && currentReturn <= -stopLoss) {
-        // Stop loss triggered
-        const trade = createTradeWithRealism(
-          entryPrice,
-          bar.close,
-          shares,
-          entryDate!,
-          bar.date,
-          'LONG',
-          entryReason,
-          `Stop loss triggered at -${stopLoss}%`,
-          execConfig,
-          {
-            entryBarRaw: entryBarRaw || undefined,
-            exitBarRaw: { ...bar },
-            indicatorValueAtEntry: entryIndicatorValue ?? undefined,
-            indicatorValueAtExit: getIndicatorValue(strategy, i) ?? undefined,
-            indicatorName
-          }
-        );
-        trades.push(trade);
 
-        // Apply REALISTIC cash flow (sell fill minus commission)
-        const sellFill = getExecutionFill(bar.close, 'sell', execConfig);
-        cash += shares * sellFill.price - sellFill.commission;
-        shares = 0;
-        inPosition = false;
-        entryPrice = null;
-        entryDate = null;
-        entryIndex = null;
-        entryBarRaw = null;
-        entryIndicatorValue = null;
-        continue;
-      }
-      
-      if (takeProfit !== null && currentReturn >= takeProfit) {
-        // Take profit triggered - cap the return at the take profit target
-        const targetExitPrice = entryPrice * (1 + takeProfit / 100);
-        const trade = createTradeWithRealism(
-          entryPrice,
-          targetExitPrice,
-          shares,
-          entryDate!,
-          bar.date,
-          'LONG',
-          entryReason,
-          `Take profit triggered at +${takeProfit}%`,
-          execConfig,
-          {
-            entryBarRaw: entryBarRaw || undefined,
-            exitBarRaw: { ...bar },
-            indicatorValueAtEntry: entryIndicatorValue ?? undefined,
-            indicatorValueAtExit: getIndicatorValue(strategy, i) ?? undefined,
-            indicatorName
-          }
-        );
-        trades.push(trade);
+    portfolioHistory.push({ date: bar.date, value: totalValue, cash, positionValue, inPosition: positions.length > 0 });
 
-        // Apply REALISTIC cash flow (sell at target price with execution model)
-        const sellFill = getExecutionFill(targetExitPrice, 'sell', execConfig);
-        cash += shares * sellFill.price - sellFill.commission;
-        shares = 0;
-        inPosition = false;
-        entryPrice = null;
-        entryDate = null;
-        entryIndex = null;
-        entryBarRaw = null;
-        entryIndicatorValue = null;
-        continue;
+    // ─── EXIT CHECKS (priority order) ──────────────────────────────────────
+    const positionsToRemove: number[] = [];
+    for (let p = 0; p < positions.length; p++) {
+      const pos = positions[p];
+      if (pos.remainingShares <= 0) { positionsToRemove.push(p); continue; }
+
+      const isLong = pos.type === 'LONG';
+      const currentReturn = isLong
+        ? ((bar.close - pos.entryPrice) / pos.entryPrice) * 100
+        : ((pos.entryPrice - bar.close) / pos.entryPrice) * 100;
+      const unrealizedPnlPercent = currentReturn;
+
+      // 1. HARD STOP LOSS
+      if (pos.stopLossPrice !== null) {
+        const slTriggered = isLong ? bar.low <= pos.stopLossPrice : bar.high >= pos.stopLossPrice;
+        if (slTriggered) {
+          closePosition(pos, pos.stopLossPrice, bar.date, `Stop Loss triggered at $${pos.stopLossPrice.toFixed(2)}`, i);
+          positionsToRemove.push(p);
+          continue;
+        }
       }
-      
-      // Global holdingPeriod check - applies to ALL strategies
-      const holdingPeriodLimit = params.holdingPeriod;
-      if (holdingPeriodLimit !== undefined && holdingPeriodLimit !== null && entryDate !== null) {
-        const tradingDaysHeld = countTradingDaysBetween(entryDate, bar.date);
-        if (tradingDaysHeld >= holdingPeriodLimit) {
-          const trade = createTradeWithRealism(
-            entryPrice,
-            bar.close,
-            shares,
-            entryDate,
-            bar.date,
-            'LONG',
-            entryReason,
-            `Holding period of ${holdingPeriodLimit} trading days reached (held ${tradingDaysHeld})`,
-            execConfig,
-            {
-              entryBarRaw: entryBarRaw || undefined,
-              exitBarRaw: { ...bar },
-              indicatorValueAtEntry: entryIndicatorValue ?? undefined,
-              indicatorValueAtExit: getIndicatorValue(strategy, i) ?? undefined,
-              indicatorName
-            }
-          );
-          trades.push(trade);
-          
-          const sellFill = getExecutionFill(bar.close, 'sell', execConfig);
-          cash += shares * sellFill.price - sellFill.commission;
-          shares = 0;
-          inPosition = false;
-          entryPrice = null;
-          entryDate = null;
-          entryIndex = null;
-          entryBarRaw = null;
-          entryIndicatorValue = null;
+
+      // 2. TAKE PROFIT (full or partial)
+      if (effectiveTakeProfit !== null) {
+        const tpPrice = isLong
+          ? pos.entryPrice * (1 + effectiveTakeProfit / 100)
+          : pos.entryPrice * (1 - effectiveTakeProfit / 100);
+        const tpHit = isLong ? bar.high >= tpPrice : bar.low <= tpPrice;
+
+        if (tpHit) {
+          if (advancedParams.takeProfitPartial && pos.remainingShares > 1) {
+            const partialShares = Math.max(1, Math.floor(pos.remainingShares * (advancedParams.takeProfitPartialPercent / 100)));
+            closePosition(pos, tpPrice, bar.date, `Partial TP (${advancedParams.takeProfitPartialPercent}%) at +${effectiveTakeProfit}%`, i, partialShares);
+            // Remainder stays open with trailing stop if enabled
+          } else {
+            closePosition(pos, tpPrice, bar.date, `Take Profit at +${effectiveTakeProfit}%`, i);
+            positionsToRemove.push(p);
+            continue;
+          }
+        }
+      }
+
+      // 3. BREAK-EVEN STOP (move stop to entry when profit exceeds trigger)
+      if (advancedParams.breakEvenEnabled && advancedParams.breakEvenTrigger !== undefined) {
+        if (unrealizedPnlPercent >= advancedParams.breakEvenTrigger) {
+          const bePrice = pos.entryPrice;
+          // Only move stop up, never down
+          if (isLong && (pos.stopLossPrice === null || bePrice > pos.stopLossPrice)) {
+            pos.stopLossPrice = bePrice;
+          }
+          if (!isLong && (pos.stopLossPrice === null || bePrice < pos.stopLossPrice)) {
+            pos.stopLossPrice = bePrice;
+          }
+        }
+      }
+
+      // 4. TRAILING STOP
+      if (advancedParams.trailingStopEnabled) {
+        let trailingActive = advancedParams.trailingStopActivation === 'immediate';
+        if (!trailingActive && advancedParams.trailingStopActivation === 'after-profit') {
+          trailingActive = unrealizedPnlPercent >= (advancedParams.trailingStopActivationPercent ?? 0);
+        }
+        if (trailingActive) {
+          const trailDist = pos.highWaterMark * (advancedParams.trailingStopPercent / 100);
+          const trailingStopLevel = isLong
+            ? pos.highWaterMark - trailDist
+            : pos.highWaterMark + trailDist;
+
+          // Move stop up only (for longs) or down only (for shorts)
+          if (isLong && (pos.stopLossPrice === null || trailingStopLevel > pos.stopLossPrice)) {
+            pos.stopLossPrice = trailingStopLevel;
+          }
+          if (!isLong && (pos.stopLossPrice === null || trailingStopLevel < pos.stopLossPrice)) {
+            pos.stopLossPrice = trailingStopLevel;
+          }
+
+          // Check if trailing stop triggered
+          const trailTriggered = isLong ? bar.low <= pos.stopLossPrice! : bar.high >= pos.stopLossPrice!;
+          if (trailTriggered && pos.stopLossPrice !== null) {
+            closePosition(pos, pos.stopLossPrice, bar.date, `Trailing Stop at $${pos.stopLossPrice.toFixed(2)}`, i);
+            positionsToRemove.push(p);
+            continue;
+          }
+        }
+      }
+
+      // 5. SCALED EXIT TIERS
+      if (advancedParams.exitTiers.length > 0) {
+        for (let t = 0; t < advancedParams.exitTiers.length; t++) {
+          if (pos.tiersExecuted.has(t)) continue;
+          const tier = advancedParams.exitTiers[t];
+          if (unrealizedPnlPercent >= tier.profitPercent) {
+            const tierShares = Math.max(1, Math.floor(pos.remainingShares * (tier.closePercent / 100)));
+            closePosition(pos, bar.close, bar.date, `Scaled Exit Tier: ${tier.closePercent}% at +${tier.profitPercent}%`, i, tierShares);
+            pos.tiersExecuted.add(t);
+          }
+        }
+        if (pos.remainingShares <= 0) { positionsToRemove.push(p); continue; }
+      }
+
+      // 6. TIME EXIT
+      if (advancedParams.timeExitEnabled && advancedParams.timeExitBars !== undefined) {
+        if (pos.barsHeld >= advancedParams.timeExitBars) {
+          closePosition(pos, bar.close, bar.date, `Time exit after ${advancedParams.timeExitBars} bars`, i);
+          positionsToRemove.push(p);
+          continue;
+        }
+      }
+
+      // 7. LEGACY holding period (from StrategyParams)
+      if (params.holdingPeriod !== undefined && params.holdingPeriod !== null && !advancedParams.timeExitEnabled) {
+        const tradingDaysHeld = countTradingDaysBetween(pos.entryDate, bar.date);
+        if (tradingDaysHeld >= params.holdingPeriod) {
+          closePosition(pos, bar.close, bar.date, `Holding period of ${params.holdingPeriod} trading days reached`, i);
+          positionsToRemove.push(p);
           continue;
         }
       }
     }
-    
-    // Get strategy signal
+
+    // Remove closed positions (iterate in reverse to preserve indices)
+    for (const idx of [...new Set(positionsToRemove)].sort((a, b) => b - a)) {
+      if (positions[idx].remainingShares <= 0) positions.splice(idx, 1);
+    }
+
+    // ─── PENDING ORDER FILL CHECK ──────────────────────────────────────────
+    if (pendingOrder !== null) {
+      let filled = false;
+      let fillPrice = 0;
+
+      switch (pendingOrder.type) {
+        case 'limit':
+          if (bar.low <= pendingOrder.triggerPrice) {
+            filled = true;
+            fillPrice = pendingOrder.triggerPrice;
+          }
+          break;
+        case 'stop':
+          if (bar.high >= pendingOrder.triggerPrice) {
+            filled = true;
+            fillPrice = pendingOrder.triggerPrice;
+          }
+          break;
+        case 'stop-limit':
+          if (!pendingOrder.stopTriggered && bar.high >= pendingOrder.triggerPrice) {
+            pendingOrder.stopTriggered = true;
+          }
+          if (pendingOrder.stopTriggered && pendingOrder.limitPrice !== undefined && bar.low <= pendingOrder.limitPrice) {
+            filled = true;
+            fillPrice = pendingOrder.limitPrice;
+          }
+          break;
+      }
+
+      // Cancel stale orders after 5 bars
+      if (i - pendingOrder.barIndex > 5) { pendingOrder = null; }
+      else if (filled && positions.length < advancedParams.pyramiding) {
+        const shares = calculateShares(fillPrice, pendingOrder.direction);
+        if (shares > 0) {
+          const side: 'buy' | 'sell' = pendingOrder.direction === 'LONG' ? 'buy' : 'sell';
+          const buyFill = getExecutionFill(fillPrice, side, execConfig, shares);
+          if (pendingOrder.direction === 'LONG') {
+            cash -= shares * buyFill.price + buyFill.commission;
+          } else {
+            cash += shares * buyFill.price - buyFill.commission;
+          }
+          positions.push({
+            entryPrice: fillPrice,
+            shares,
+            remainingShares: shares,
+            entryDate: bar.date,
+            entryIndex: i,
+            entryReason: pendingOrder.reason,
+            entryBarRaw: { ...bar },
+            entryIndicatorValue: getIndicatorValue(strategy, i),
+            type: pendingOrder.direction,
+            highWaterMark: fillPrice,
+            stopLossPrice: computeInitialStopLoss(fillPrice, pendingOrder.direction, i),
+            tiersExecuted: new Set(),
+            barsHeld: 0,
+          });
+        }
+        pendingOrder = null;
+      }
+    }
+
+    // ─── STRATEGY SIGNAL ───────────────────────────────────────────────────
+    const inPosition = positions.length > 0;
+    const entryPrice = positions.length > 0 ? positions[0].entryPrice : null;
+    const entryDate = positions.length > 0 ? positions[0].entryDate : null;
+
     let signal: StrategySignal;
     let gapFillExitAtEntry = false;
-    
+
     switch (strategy) {
-      case 'rsi':
-        signal = rsiStrategy(bars, i, rsiValues, inPosition, params);
-        break;
-      case 'ma-crossover':
-        signal = maStrategy(bars, i, fastMa, slowMa, inPosition, params);
-        break;
-      case 'gap-fill': {
-        const gapResult = gapFillStrategy(bars, i, inPosition, entryPrice, params, entryDate);
-        signal = gapResult.signal;
-        gapFillExitAtEntry = gapResult.exitAtEntryPrice || false;
-        break;
-      }
-      case 'consecutive-days':
-        signal = consecutiveDaysStrategy(bars, i, inPosition, entryDate, bar.date, params);
-        break;
-      default:
-        signal = { action: 'HOLD', reason: 'Unknown strategy' };
+      case 'rsi': signal = rsiStrategy(bars, i, rsiValues, inPosition, params); break;
+      case 'ma-crossover': signal = maStrategy(bars, i, fastMa, slowMa, inPosition, params); break;
+      case 'gap-fill': { const r = gapFillStrategy(bars, i, inPosition, entryPrice, params, entryDate); signal = r.signal; gapFillExitAtEntry = r.exitAtEntryPrice || false; break; }
+      case 'consecutive-days': signal = consecutiveDaysStrategy(bars, i, inPosition, entryDate, bar.date, params); break;
+      default: signal = { action: 'HOLD', reason: 'Unknown strategy' };
     }
-    
-    // Execute signal
-    if (signal.action === 'BUY' && !inPosition) {
-      // Hard rule: cannot open positions on non-trading sessions.
-      if (!isTradingDay(bar.date)) continue;
-      const amountToInvest = cash * positionSize;
 
-      // Realistic entry: price includes slippage, and we must reserve commission.
-      const buyFill = getExecutionFill(bar.close, 'buy', execConfig);
-      const maxAffordableShares = Math.floor(
-        Math.max(0, (amountToInvest - buyFill.commission) / buyFill.price)
-      );
-      shares = maxAffordableShares;
-      if (shares > 0) {
-        cash -= shares * buyFill.price + buyFill.commission;
-        inPosition = true;
-        // Store the *base* bar close as the strategy reference price.
-        // Realized P&L is driven by fills + commissions via createTradeWithRealism.
-        entryPrice = bar.close;
-        entryDate = bar.date;
-        entryIndex = i;
-        entryReason = signal.reason;
-        entryBarRaw = { ...bar };
-        entryIndicatorValue = getIndicatorValue(strategy, i);
-      }
-    } else if (signal.action === 'SELL' && inPosition && entryPrice !== null) {
-      // Hard rule: cannot close positions on non-trading sessions.
+    // ─── EXECUTE ENTRY ─────────────────────────────────────────────────────
+    if ((signal.action === 'BUY' || signal.action === 'SHORT') && positions.length < advancedParams.pyramiding) {
       if (!isTradingDay(bar.date)) continue;
-      // CRITICAL: When take profit is set, ignore strategy-specific exits
-      // Only TP/SL (checked above) should trigger exits to respect user's risk/reward settings
-      if (takeProfit !== null) {
-        // Skip this sell signal - wait for take profit or stop loss
-        continue;
-      }
-      
-      // CRITICAL FIX: For gap-fill strategy, exit at entry price when gap is filled
-      const exitPrice = gapFillExitAtEntry ? entryPrice : bar.close;
-      
-      const trade = createTradeWithRealism(
-        entryPrice,
-        exitPrice,
-        shares,
-        entryDate!,
-        bar.date,
-        'LONG',
-        entryReason,
-        signal.reason,
-        execConfig,
-        {
-          entryBarRaw: entryBarRaw || undefined,
-          exitBarRaw: { ...bar },
-          indicatorValueAtEntry: entryIndicatorValue ?? undefined,
-          indicatorValueAtExit: getIndicatorValue(strategy, i) ?? undefined,
-          indicatorName
+
+      const posType: 'LONG' | 'SHORT' = signal.action === 'BUY' ? 'LONG' : 'SHORT';
+
+      if (advancedParams.entryOrderType === 'market' || advancedParams.entryOrderType === undefined) {
+        // Market order: fill at bar close (or next bar open if not executeOnBarClose)
+        const fillPrice = advancedParams.executeOnBarClose ? bar.close : (i + 1 < bars.length ? bars[i + 1].open : bar.close);
+        const shares = calculateShares(fillPrice, posType);
+        if (shares > 0) {
+          const side: 'buy' | 'sell' = posType === 'LONG' ? 'buy' : 'sell';
+          const buyFill = getExecutionFill(fillPrice, side, execConfig, shares);
+          if (posType === 'LONG') {
+            cash -= shares * buyFill.price + buyFill.commission;
+          } else {
+            cash += shares * buyFill.price - buyFill.commission; // short: credit proceeds
+          }
+          positions.push({
+            entryPrice: fillPrice,
+            shares,
+            remainingShares: shares,
+            entryDate: bar.date,
+            entryIndex: i,
+            entryReason: signal.reason,
+            entryBarRaw: { ...bar },
+            entryIndicatorValue: getIndicatorValue(strategy, i),
+            type: posType,
+            highWaterMark: fillPrice,
+            stopLossPrice: computeInitialStopLoss(fillPrice, posType, i),
+            tiersExecuted: new Set(),
+            barsHeld: 0,
+          });
         }
-      );
-      trades.push(trade);
+      } else {
+        // Limit/Stop/Stop-Limit: place pending order
+        const basePrice = bar.close;
+        let triggerPrice = basePrice;
+        let limitPrice: number | undefined;
 
-      const sellFill = getExecutionFill(exitPrice, 'sell', execConfig);
-      cash += shares * sellFill.price - sellFill.commission;
-      shares = 0;
-      inPosition = false;
-      entryPrice = null;
-      entryDate = null;
-      entryIndex = null;
-      entryBarRaw = null;
-      entryIndicatorValue = null;
+        if (advancedParams.entryOrderType === 'limit') {
+          triggerPrice = basePrice * (1 - (advancedParams.entryLimitOffset ?? 0.5) / 100);
+        } else if (advancedParams.entryOrderType === 'stop') {
+          triggerPrice = basePrice * (1 + (advancedParams.entryStopOffset ?? 0.5) / 100);
+        } else if (advancedParams.entryOrderType === 'stop-limit') {
+          triggerPrice = basePrice * (1 + (advancedParams.entryStopOffset ?? 0.5) / 100);
+          limitPrice = triggerPrice * (1 - (advancedParams.entryLimitOffset ?? 0.2) / 100);
+        }
+        pendingOrder = { type: advancedParams.entryOrderType, triggerPrice, limitPrice, direction: posType, reason: signal.reason, barIndex: i };
+      }
+    }
+
+    // ─── EXECUTE STRATEGY EXIT ─────────────────────────────────────────────
+    if (signal.action === 'SELL' && positions.length > 0) {
+      if (!isTradingDay(bar.date)) continue;
+
+      // When TP/SL is active, skip strategy-specific sells (TP/SL handled above)
+      if (effectiveTakeProfit !== null || effectiveStopLoss !== null) continue;
+
+      const exitPrice = gapFillExitAtEntry && positions[0] ? positions[0].entryPrice : bar.close;
+
+      // Close all LONG positions on strategy sell
+      for (let p = positions.length - 1; p >= 0; p--) {
+        if (positions[p].type === 'LONG' && positions[p].remainingShares > 0) {
+          closePosition(positions[p], exitPrice, bar.date, signal.reason, i);
+          if (positions[p].remainingShares <= 0) positions.splice(p, 1);
+        }
+      }
     }
   }
-  
-  // Close any open position at end
-  if (inPosition && entryPrice !== null && bars.length > 0) {
-    const lastBar = bars[bars.length - 1];
-    const trade = createTradeWithRealism(
-      entryPrice,
-      lastBar.close,
-      shares,
-      entryDate!,
-      lastBar.date,
-      'LONG',
-      entryReason,
-      'End of backtest period',
-      execConfig,
-      {
-        entryBarRaw: entryBarRaw || undefined,
-        exitBarRaw: { ...lastBar },
-        indicatorValueAtEntry: entryIndicatorValue ?? undefined,
-        indicatorValueAtExit: getIndicatorValue(strategy, bars.length - 1) ?? undefined,
-        indicatorName
-      }
-    );
-    trades.push(trade);
 
-    const sellFill = getExecutionFill(lastBar.close, 'sell', execConfig);
-    cash += shares * sellFill.price - sellFill.commission;
+  // Close any open positions at end
+  for (let p = positions.length - 1; p >= 0; p--) {
+    const pos = positions[p];
+    if (pos.remainingShares > 0 && bars.length > 0) {
+      closePosition(pos, bars[bars.length - 1].close, bars[bars.length - 1].date, 'End of backtest period', bars.length - 1);
+      positions.splice(p, 1);
+    }
   }
-  
-  // Calculate metrics
+
+  // ─── CALCULATE METRICS ───────────────────────────────────────────────────
   const finalValue = cash;
   const totalReturn = ((finalValue - initialCapital) / initialCapital) * 100;
   const years = bars.length / 252;
   const annualizedReturn = years > 0 ? (Math.pow(finalValue / initialCapital, 1 / years) - 1) * 100 : 0;
-  
-  // Buy and hold comparison - simulate buying with full capital at start
+
   const firstClose = bars[0]?.close || 1;
   const lastClose = bars[bars.length - 1]?.close || firstClose;
-  // Calculate how many shares we could buy with initial capital at first close
-  const buyHoldShares = initialCapital / firstClose;
-  // Final value if we held those shares
-  const buyHoldFinalValue = buyHoldShares * lastClose;
-  // Buy and hold return as percentage of initial capital
-  const buyHoldReturn = ((buyHoldFinalValue - initialCapital) / initialCapital) * 100;
-  
-  // Calculate daily returns for Sharpe/Sortino
+  const buyHoldReturn = ((lastClose - firstClose) / firstClose) * 100;
+
   const dailyReturns: number[] = [];
   for (let i = 1; i < portfolioHistory.length; i++) {
-    const prevValue = portfolioHistory[i - 1].value;
-    if (prevValue > 0) {
-      dailyReturns.push((portfolioHistory[i].value - prevValue) / prevValue);
-    }
+    const prev = portfolioHistory[i - 1].value;
+    if (prev > 0) dailyReturns.push((portfolioHistory[i].value - prev) / prev);
   }
-  
-  const avgDailyReturn = dailyReturns.length > 0 
-    ? dailyReturns.reduce((a, b) => a + b, 0) / dailyReturns.length 
-    : 0;
-  const dailyStdDev = dailyReturns.length > 1
-    ? Math.sqrt(dailyReturns.reduce((sum, r) => sum + Math.pow(r - avgDailyReturn, 2), 0) / (dailyReturns.length - 1))
-    : 0;
-  
+
+  const avgDailyReturn = dailyReturns.length > 0 ? dailyReturns.reduce((a, b) => a + b, 0) / dailyReturns.length : 0;
+  const dailyStdDev = dailyReturns.length > 1 ? Math.sqrt(dailyReturns.reduce((s, r) => s + Math.pow(r - avgDailyReturn, 2), 0) / (dailyReturns.length - 1)) : 0;
   const annualizedVol = dailyStdDev * Math.sqrt(252) * 100;
   const riskFreeRate = 0.04;
   const sharpeRatio = annualizedVol > 0 ? (annualizedReturn - riskFreeRate * 100) / annualizedVol : 0;
-  
-  // Sortino (downside deviation only)
+
   const negativeReturns = dailyReturns.filter(r => r < 0);
-  const downsideDeviation = negativeReturns.length > 0
-    ? Math.sqrt(negativeReturns.reduce((sum, r) => sum + r * r, 0) / negativeReturns.length) * Math.sqrt(252) * 100
-    : 0.001;
+  const downsideDeviation = negativeReturns.length > 0 ? Math.sqrt(negativeReturns.reduce((s, r) => s + r * r, 0) / negativeReturns.length) * Math.sqrt(252) * 100 : 0.001;
   const sortinoRatio = downsideDeviation > 0 ? (annualizedReturn - riskFreeRate * 100) / downsideDeviation : 0;
-  
-  // Max drawdown
+
   let peak = initialCapital;
   let maxDrawdown = 0;
   let maxDrawdownDate = '';
-  
-  for (const snapshot of portfolioHistory) {
-    if (snapshot.value > peak) peak = snapshot.value;
-    const drawdown = ((peak - snapshot.value) / peak) * 100;
-    if (drawdown > maxDrawdown) {
-      maxDrawdown = drawdown;
-      maxDrawdownDate = snapshot.date;
-    }
+  for (const snap of portfolioHistory) {
+    if (snap.value > peak) peak = snap.value;
+    const dd = ((peak - snap.value) / peak) * 100;
+    if (dd > maxDrawdown) { maxDrawdown = dd; maxDrawdownDate = snap.date; }
   }
-  
-  // Trade statistics
+
   const winningTrades = trades.filter(t => t.pnl > 0);
   const losingTrades = trades.filter(t => t.pnl <= 0);
   const winRate = trades.length > 0 ? (winningTrades.length / trades.length) * 100 : 0;
-  
-  const avgWin = winningTrades.length > 0 
-    ? winningTrades.reduce((sum, t) => sum + t.pnlPercent, 0) / winningTrades.length 
-    : 0;
-  const avgLoss = losingTrades.length > 0 
-    ? losingTrades.reduce((sum, t) => sum + Math.abs(t.pnlPercent), 0) / losingTrades.length 
-    : 0;
-  
+  const avgWin = winningTrades.length > 0 ? winningTrades.reduce((s, t) => s + t.pnlPercent, 0) / winningTrades.length : 0;
+  const avgLoss = losingTrades.length > 0 ? losingTrades.reduce((s, t) => s + Math.abs(t.pnlPercent), 0) / losingTrades.length : 0;
   const bestTrade = trades.length > 0 ? Math.max(...trades.map(t => t.pnlPercent)) : 0;
   const worstTrade = trades.length > 0 ? Math.min(...trades.map(t => t.pnlPercent)) : 0;
-  
-  // Expected value per trade
   const expectedValue = (winRate / 100) * avgWin - ((100 - winRate) / 100) * avgLoss;
-  
-  // Profit factor
-  const grossProfit = winningTrades.reduce((sum, t) => sum + t.pnl, 0);
-  const grossLoss = Math.abs(losingTrades.reduce((sum, t) => sum + t.pnl, 0));
+  const grossProfit = winningTrades.reduce((s, t) => s + t.pnl, 0);
+  const grossLoss = Math.abs(losingTrades.reduce((s, t) => s + t.pnl, 0));
   const profitFactor = grossLoss > 0 ? grossProfit / grossLoss : grossProfit > 0 ? Infinity : 0;
-  
-  const avgHoldingDays = trades.length > 0 
-    ? trades.reduce((sum, t) => sum + t.holdingDays, 0) / trades.length 
-    : 0;
-  
-  // Calculate execution realism totals
-  const totalSlippageCost = trades.reduce((sum, t) => sum + (t.slippageCost || 0), 0);
-  const totalCommissionCost = trades.reduce((sum, t) => sum + (t.commissionCost || 0), 0);
-  // IMPORTANT: use nullish coalescing so legitimate 0 values don't fall back.
-  const grossReturnTotal = trades.reduce((sum, t) => sum + (t.grossPnl ?? t.pnl), 0);
-  const netReturnTotal = trades.reduce((sum, t) => sum + (t.netPnl ?? t.pnl), 0);
-  
-  // Note: All metrics include execution costs (slippage + commission) by default.
-  // We removed the theoretical vs realistic split - all reported numbers are realistic.
-  
+  const avgHoldingDays = trades.length > 0 ? trades.reduce((s, t) => s + t.holdingDays, 0) / trades.length : 0;
+
+  const totalSlippageCost = trades.reduce((s, t) => s + (t.slippageCost || 0), 0);
+  const totalCommissionCost = trades.reduce((s, t) => s + (t.commissionCost || 0), 0);
+  const grossReturnTotal = trades.reduce((s, t) => s + (t.grossPnl ?? t.pnl), 0);
+  const netReturnTotal = trades.reduce((s, t) => s + (t.netPnl ?? t.pnl), 0);
+
+  const r2 = (v: number) => Math.round(v * 100) / 100;
+
   return {
-    strategy,
-    initialCapital,
-    finalValue: Math.round(finalValue * 100) / 100,
-    totalReturn: Math.round(totalReturn * 100) / 100,
-    annualizedReturn: Math.round(annualizedReturn * 100) / 100,
-    buyHoldReturn: Math.round(buyHoldReturn * 100) / 100,
-    outperformance: Math.round((totalReturn - buyHoldReturn) * 100) / 100,
-    sharpeRatio: Math.round(sharpeRatio * 100) / 100,
-    sortinoRatio: Math.round(sortinoRatio * 100) / 100,
-    maxDrawdown: Math.round(maxDrawdown * 100) / 100,
-    maxDrawdownDate,
-    volatility: Math.round(annualizedVol * 100) / 100,
-    totalTrades: trades.length,
-    winningTrades: winningTrades.length,
-    losingTrades: losingTrades.length,
-    winRate: Math.round(winRate * 100) / 100,
-    avgWin: Math.round(avgWin * 100) / 100,
-    avgLoss: Math.round(avgLoss * 100) / 100,
-    bestTrade: Math.round(bestTrade * 100) / 100,
-    worstTrade: Math.round(worstTrade * 100) / 100,
-    expectedValue: Math.round(expectedValue * 100) / 100,
-    profitFactor: Math.round(profitFactor * 100) / 100,
+    strategy, initialCapital,
+    finalValue: r2(finalValue), totalReturn: r2(totalReturn), annualizedReturn: r2(annualizedReturn),
+    buyHoldReturn: r2(buyHoldReturn), outperformance: r2(totalReturn - buyHoldReturn),
+    sharpeRatio: r2(sharpeRatio), sortinoRatio: r2(sortinoRatio),
+    maxDrawdown: r2(maxDrawdown), maxDrawdownDate,
+    volatility: r2(annualizedVol),
+    totalTrades: trades.length, winningTrades: winningTrades.length, losingTrades: losingTrades.length,
+    winRate: r2(winRate), avgWin: r2(avgWin), avgLoss: r2(avgLoss),
+    bestTrade: r2(bestTrade), worstTrade: r2(worstTrade),
+    expectedValue: r2(expectedValue), profitFactor: r2(profitFactor),
     avgHoldingDays: Math.round(avgHoldingDays * 10) / 10,
-    trades,
-    portfolioHistory,
-    tradingDays: bars.length,
-    // Data Inspector fields
-    dataSource,
-    dataSourceUrl,
-    barsCount: bars.length,
-    rawBarsPreview: bars.slice(0, 10),
-    // Execution costs (applied to all metrics)
-    executionConfig: DEFAULT_EXECUTION_CONFIG,
-    totalSlippageCost: Math.round(totalSlippageCost * 100) / 100,
-    totalCommissionCost: Math.round(totalCommissionCost * 100) / 100,
-    grossReturn: Math.round(grossReturnTotal * 100) / 100,
-    netReturn: Math.round(netReturnTotal * 100) / 100,
+    trades, portfolioHistory, tradingDays: bars.length,
+    dataSource, dataSourceUrl, barsCount: bars.length, rawBarsPreview: bars.slice(0, 10),
+    executionConfig: execConfig,
+    totalSlippageCost: r2(totalSlippageCost), totalCommissionCost: r2(totalCommissionCost),
+    grossReturn: r2(grossReturnTotal), netReturn: r2(netReturnTotal),
     dataWindow,
   };
 }
@@ -1330,42 +1175,31 @@ Deno.serve(async (req) => {
 
   try {
     const body = await req.json();
-    
-    // Handle ping requests for edge function warm-up (fast response)
+
     if (body.ping === true) {
       console.log('[strategy-backtest] Ping received - function is warm');
       return handlePing();
     }
-    
+
     const { ticker, strategy, startDate, initialCapital = 10000 } = body;
     let { endDate } = body;
     const requestedStartDate = normalizeDate(startDate);
     const requestedEndDateInitial = normalizeDate(endDate);
-    
-    // CRITICAL: Prevent backtesting on future dates - cap end date at today
+
     const today = new Date().toISOString().split('T')[0];
     endDate = normalizeDate(endDate);
     if (endDate > today) {
-      console.log(`[strategy-backtest] WARNING: End date ${endDate} is in the future, capping to today (${today})`);
+      console.log(`[strategy-backtest] End date ${endDate} capped to today (${today})`);
       endDate = today;
     }
-    
-    // Support both nested params object and flat parameters at root level
+
     const params: StrategyParams = body.params || {};
 
-    // Backwards-compat aliases (older UI keys)
-    // Some clients send `takeProfit` / `stopLoss` instead of `takeProfitPercent` / `stopLossPercent`.
-    if (params.takeProfitPercent === undefined && (params as any).takeProfit !== undefined) {
-      (params as any).takeProfitPercent = (params as any).takeProfit;
-    }
-    if (params.stopLossPercent === undefined && (params as any).stopLoss !== undefined) {
-      (params as any).stopLossPercent = (params as any).stopLoss;
-    }
-    
-    // Merge root-level parameters into params (root level takes precedence for backwards compat)
+    // Backwards-compat aliases
+    if (params.takeProfitPercent === undefined && (params as any).takeProfit !== undefined) (params as any).takeProfitPercent = (params as any).takeProfit;
+    if (params.stopLossPercent === undefined && (params as any).stopLoss !== undefined) (params as any).stopLossPercent = (params as any).stopLoss;
     if (body.stopLossPercent !== undefined) params.stopLossPercent = body.stopLossPercent;
     if (body.takeProfitPercent !== undefined) params.takeProfitPercent = body.takeProfitPercent;
-    // Root-level backwards-compat aliases
     if (body.stopLoss !== undefined && body.stopLossPercent === undefined) params.stopLossPercent = body.stopLoss;
     if (body.takeProfit !== undefined && body.takeProfitPercent === undefined) params.takeProfitPercent = body.takeProfit;
     if (body.rsiPeriod !== undefined) params.rsiPeriod = body.rsiPeriod;
@@ -1377,8 +1211,20 @@ Deno.serve(async (req) => {
     if (body.consecutiveDays !== undefined) params.consecutiveDays = body.consecutiveDays;
     if (body.holdingPeriod !== undefined) params.holdingPeriod = body.holdingPeriod;
     if (body.positionSizePercent !== undefined) params.positionSizePercent = body.positionSizePercent;
-    
-    console.log('[strategy-backtest] Merged params:', JSON.stringify(params));
+
+    // Merge advancedParams from request body
+    const advancedParams: AdvancedParams = { ...DEFAULT_ADVANCED_PARAMS, ...(body.advancedParams || {}) };
+
+    console.log('[strategy-backtest] Params:', JSON.stringify(params));
+    console.log('[strategy-backtest] AdvancedParams:', JSON.stringify({
+      entryOrderType: advancedParams.entryOrderType,
+      stopLossEnabled: advancedParams.stopLossEnabled,
+      takeProfitEnabled: advancedParams.takeProfitEnabled,
+      trailingStopEnabled: advancedParams.trailingStopEnabled,
+      breakEvenEnabled: advancedParams.breakEvenEnabled,
+      positionSizingMethod: advancedParams.positionSizingMethod,
+      pyramiding: advancedParams.pyramiding,
+    }));
 
     if (!ticker || !strategy) {
       return new Response(
@@ -1387,24 +1233,19 @@ Deno.serve(async (req) => {
       );
     }
 
-    console.log(`[strategy-backtest] Running ${strategy} on ${ticker} from ${requestedStartDate} to ${endDate} (today: ${today})`);
-
+    console.log(`[strategy-backtest] Running ${strategy} on ${ticker} from ${requestedStartDate} to ${endDate}`);
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
     const normalizedTicker = ticker.toUpperCase().trim();
 
-    // Fetch OHLCV data from market_daily_bars first
     let bars: Bar[] = [];
     let dataSource: 'database' | 'polygon' = 'database';
     let dataSourceUrl = '';
-    
-    // Calculate expected bars for the date range (approx 252 trading days/year)
+
     const requestedStartMs = new Date(requestedStartDate).getTime();
     const requestedEndMs = new Date(endDate).getTime();
     const daysDiff = Math.floor((requestedEndMs - requestedStartMs) / (1000 * 60 * 60 * 24));
-    const expectedBars = Math.floor(daysDiff * 0.7); // ~70% are trading days
-    
-    console.log(`[strategy-backtest] Date range: ${startDate} to ${endDate} (${daysDiff} days, expecting ~${expectedBars} bars)`);
+    const expectedBars = Math.floor(daysDiff * 0.7);
 
     const { data: priceData, error } = await supabase
       .from('market_daily_bars')
@@ -1414,121 +1255,63 @@ Deno.serve(async (req) => {
       .lte('bar_date', endDate)
       .order('bar_date', { ascending: true });
 
-    if (error) {
-      console.error('[strategy-backtest] Database error:', error);
-    }
+    if (error) console.error('[strategy-backtest] Database error:', error);
 
-    // Check if database has enough coverage (at least 80% of expected data)
     const dbCoverage = priceData ? priceData.length / Math.max(expectedBars, 50) : 0;
-    console.log(`[strategy-backtest] Database has ${priceData?.length || 0} bars, coverage: ${(dbCoverage * 100).toFixed(1)}%`);
 
     if (priceData && priceData.length >= 50 && dbCoverage >= 0.8) {
-      console.log(`[strategy-backtest] Using ${priceData.length} bars from database for ${normalizedTicker}`);
       dataSourceUrl = `Cloud DB: market_daily_bars (ticker=${normalizedTicker})`;
-       const rawBars = priceData.map(row => ({
-         date: normalizeDate(row.bar_date),
-        open: row.open,
-        high: row.high,
-        low: row.low,
-        close: row.close,
-        volume: row.volume,
-        dailyReturn: row.daily_return
-      }));
-      // Filter out any weekend/holiday bars that may have been stored incorrectly
-      bars = rawBars.filter(bar => isTradingDay(bar.date));
-      if (bars.length !== rawBars.length) {
-        console.log(`[strategy-backtest] Filtered ${rawBars.length - bars.length} non-trading day bars from database`);
-      }
+      bars = priceData.map(row => ({
+        date: normalizeDate(row.bar_date), open: row.open, high: row.high, low: row.low, close: row.close, volume: row.volume, dailyReturn: row.daily_return
+      })).filter(bar => isTradingDay(bar.date));
     } else {
-      // Database doesn't have enough data - fetch from Polygon for full range
-      console.log(`[strategy-backtest] Database coverage insufficient (${priceData?.length || 0} bars, ${(dbCoverage * 100).toFixed(1)}% coverage), fetching from Polygon...`);
       const polygonBars = await fetchPolygonBars(normalizedTicker, startDate, endDate);
-      
       if (polygonBars && polygonBars.length >= 50) {
         bars = polygonBars;
         dataSource = 'polygon';
         dataSourceUrl = `https://api.polygon.io/v2/aggs/ticker/${normalizedTicker}/range/1/day/${startDate}/${endDate}`;
-        console.log(`[strategy-backtest] Using ${bars.length} bars from Polygon for ${normalizedTicker}`);
       } else if (priceData && priceData.length >= 20) {
-        // Fallback: use whatever database has even if incomplete
-        console.log(`[strategy-backtest] Polygon failed, using limited database data (${priceData.length} bars)`);
         dataSourceUrl = `Cloud DB: market_daily_bars (ticker=${normalizedTicker}) [PARTIAL]`;
-         const rawBars = priceData.map(row => ({
-           date: normalizeDate(row.bar_date),
-          open: row.open,
-          high: row.high,
-          low: row.low,
-          close: row.close,
-          volume: row.volume,
-          dailyReturn: row.daily_return
-        }));
-        // Filter out any weekend/holiday bars
-        bars = rawBars.filter(bar => isTradingDay(bar.date));
-        if (bars.length !== rawBars.length) {
-          console.log(`[strategy-backtest] Filtered ${rawBars.length - bars.length} non-trading day bars from fallback database data`);
-        }
+        bars = priceData.map(row => ({
+          date: normalizeDate(row.bar_date), open: row.open, high: row.high, low: row.low, close: row.close, volume: row.volume, dailyReturn: row.daily_return
+        })).filter(bar => isTradingDay(bar.date));
       } else {
         return new Response(
-          JSON.stringify({ 
-            success: false, 
-            error: `Insufficient data for ${normalizedTicker}. Database: ${priceData?.length || 0} bars, Polygon: ${polygonBars?.length || 0} bars. Need at least 50.`,
-            availableBars: priceData?.length || 0,
-            polygonBars: polygonBars?.length || 0
-          }),
+          JSON.stringify({ success: false, error: `Insufficient data for ${normalizedTicker}. Need at least 50 bars.`, availableBars: priceData?.length || 0, polygonBars: polygonBars?.length || 0 }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
         );
       }
     }
 
-     // Final normalization/filter (defensive): guarantees we never run signals on
-     // weekend/holiday rows even if upstream stored timestamps.
-     const beforeFinalFilter = bars.length;
-     bars = bars
-       .map((b) => ({ ...b, date: normalizeDate(b.date) }))
-       .filter((b) => isTradingDay(b.date));
-     if (bars.length !== beforeFinalFilter) {
-       console.log(`[strategy-backtest] Filtered ${beforeFinalFilter - bars.length} non-trading day bars after normalization`);
-     }
+    // Final normalization
+    bars = bars.map(b => ({ ...b, date: normalizeDate(b.date) })).filter(b => isTradingDay(b.date));
 
-     console.log(`[strategy-backtest] Proceeding with ${bars.length} bars from ${dataSource}`);
+    const lastAvailableBarDate = normalizeDate(bars[bars.length - 1]?.date || endDate);
+    const effectiveStartDate = normalizeDate(bars[0]?.date || requestedStartDate);
+    const effectiveEndDate = lastAvailableBarDate;
+    const dataWindow: BacktestResult['dataWindow'] = {
+      requestedStartDate,
+      requestedEndDate: requestedEndDateInitial,
+      effectiveStartDate,
+      effectiveEndDate,
+      lastAvailableBarDate,
+      wasEndDateClamped: requestedEndDateInitial !== effectiveEndDate,
+      isForwardSimulated: false,
+    };
 
-     // Determine effective date window and clamp labeling.
-     const lastAvailableBarDate = normalizeDate(bars[bars.length - 1]?.date || endDate);
-     const effectiveStartDate = normalizeDate(bars[0]?.date || requestedStartDate);
-     const effectiveEndDate = lastAvailableBarDate;
-     const wasEndDateClamped = requestedEndDateInitial !== effectiveEndDate;
-     const isForwardSimulated = false; // by design: we never simulate beyond the last real bar
-     const dataWindow: BacktestResult['dataWindow'] = {
-       requestedStartDate,
-       requestedEndDate: requestedEndDateInitial,
-       effectiveStartDate,
-       effectiveEndDate,
-       lastAvailableBarDate,
-       wasEndDateClamped,
-       isForwardSimulated,
-     };
-
-    // Run backtest
-    const result = runBacktest(bars, strategy, initialCapital, params, dataSource, dataSourceUrl, dataWindow);
+    const result = runBacktest(bars, strategy, initialCapital, params, advancedParams, dataSource, dataSourceUrl, dataWindow);
 
     console.log(`[strategy-backtest] Complete: ${result.totalTrades} trades, ${result.totalReturn.toFixed(2)}% return`);
 
     return new Response(
-      JSON.stringify({
-        success: true,
-        ...result,
-        ticker: normalizedTicker,
-         startDate: normalizeDate(bars[0]?.date || requestedStartDate),
-         endDate: normalizeDate(bars[bars.length - 1]?.date || endDate)
-      }),
+      JSON.stringify({ success: true, ...result, ticker: normalizedTicker, startDate: normalizeDate(bars[0]?.date || requestedStartDate), endDate: normalizeDate(bars[bars.length - 1]?.date || endDate) }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
   } catch (error) {
     console.error('[strategy-backtest] Error:', error);
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return new Response(
-      JSON.stringify({ success: false, error: errorMessage }),
+      JSON.stringify({ success: false, error: error instanceof Error ? error.message : 'Unknown error' }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
     );
   }
