@@ -1075,15 +1075,15 @@ export default function Portfolio() {
     });
   }, [allHoldings, liveQuotes]);
   if (isLoading) {
-    return <div className="p-6 space-y-6">
+    return <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
         <Skeleton className="h-10 w-48" />
-        <div className="flex gap-3">
+        <div className="flex gap-3 overflow-x-auto">
           {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-20 w-32 flex-shrink-0" />)}
         </div>
-        <div className="grid grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
           {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-24" />)}
         </div>
-        <Skeleton className="h-96" />
+        <Skeleton className="h-64 sm:h-96" />
       </div>;
   }
 
@@ -1250,20 +1250,21 @@ export default function Portfolio() {
         subtitle={`${activePortfolio?.name || 'My Portfolio'} • ${perfPositionCount > 0 ? perfPositionCount : allHoldings.length} Holdings`}
         {...PAGE_ICON_PRESETS.emerald}
         actions={
-          <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
             <PortfolioSwitcher portfolios={portfolios} activePortfolioId={activePortfolioId} onSelect={setActivePortfolio} onCreateNew={() => setShowCreatePortfolioDialog(true)} onDelete={deletePortfolio} onDuplicate={duplicatePortfolio} onRename={handleRenamePortfolio} isLoading={portfoliosLoading} isDeleting={isDeleting} />
-            <Button variant="outline" size="sm" onClick={handleRefresh} disabled={isRefreshing}>
+            <Button variant="outline" size="icon" className="h-8 w-8 sm:h-9 sm:w-9" onClick={handleRefresh} disabled={isRefreshing}>
               <RefreshCw className={cn("h-4 w-4", isRefreshing && "animate-spin")} />
             </Button>
-            <Button variant="outline" size="sm" className="relative">
+            <Button variant="outline" size="icon" className="h-8 w-8 sm:h-9 sm:w-9 relative">
               <AlertTriangle className="h-4 w-4" />
               {stats.overdueTasks > 0 && <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-destructive text-[10px] font-medium flex items-center justify-center text-destructive-foreground">
                   {stats.overdueTasks}
                 </span>}
             </Button>
-            <Button onClick={() => setShowAddDialog(true)} size="sm" className="gap-2">
+            <Button onClick={() => setShowAddDialog(true)} size="sm" className="gap-1.5 h-8 sm:h-9 text-xs sm:text-sm">
               <Plus className="h-4 w-4" />
-              Add Position
+              <span className="hidden sm:inline">Add Position</span>
+              <span className="sm:hidden">Add</span>
             </Button>
           </div>
         }
@@ -1363,7 +1364,7 @@ export default function Portfolio() {
 
 
       {/* Bottom Row - Alerts + Macro + Upcoming - Market Intel Style */}
-      <div className="grid md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
         {/* Alerts */}
         <Card>
           <CardContent className="p-6">

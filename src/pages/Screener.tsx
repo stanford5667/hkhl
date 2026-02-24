@@ -388,7 +388,7 @@ function AdvancedFiltersSheet({
           Filters
         </Button>
       </SheetTrigger>
-      <SheetContent className="w-[520px] sm:max-w-[520px] p-0">
+      <SheetContent className="w-full sm:w-[520px] sm:max-w-[520px] p-0">
         <SheetHeader className="p-4 pb-0">
           <SheetTitle>Advanced Filters</SheetTitle>
           <SheetDescription>67+ Finviz-style filter criteria</SheetDescription>

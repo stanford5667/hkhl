@@ -93,6 +93,58 @@ function AddStockDialog({ onAdd, isAdding }: { onAdd: (symbol: string, name: str
   );
 }
 
+function WatchlistMobileCard({
+  item,
+  onDelete,
+  isDeleting,
+}: {
+  item: WatchlistItemWithQuote;
+  onDelete: (id: string) => void;
+  isDeleting: boolean;
+}) {
+  const isPositive = (item.change ?? 0) >= 0;
+
+  return (
+    <div className="flex items-center justify-between p-3 rounded-lg bg-card border border-border/50">
+      <div className="flex items-center gap-3 min-w-0">
+        <Star className="h-4 w-4 text-amber-500 fill-amber-500 shrink-0" />
+        <div className="min-w-0">
+          <p className="font-semibold text-sm">{item.item_id}</p>
+          <p className="text-xs text-muted-foreground truncate">{item.item_name}</p>
+        </div>
+      </div>
+      <div className="flex items-center gap-3 shrink-0">
+        <div className="text-right">
+          {item.isLoading ? (
+            <Skeleton className="h-5 w-14" />
+          ) : (
+            <>
+              <p className="font-mono text-sm font-medium">
+                {item.currentPrice !== null ? `$${item.currentPrice.toFixed(2)}` : '—'}
+              </p>
+              {item.changePercent !== null && (
+                <p className={cn("text-xs font-medium flex items-center justify-end gap-0.5", isPositive ? 'text-emerald-500' : 'text-destructive')}>
+                  {isPositive ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
+                  {isPositive ? '+' : ''}{item.changePercent.toFixed(2)}%
+                </p>
+              )}
+            </>
+          )}
+        </div>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-8 w-8 text-muted-foreground hover:text-destructive"
+          onClick={() => onDelete(item.id)}
+          disabled={isDeleting}
+        >
+          <Trash2 className="h-4 w-4" />
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 function WatchlistRow({
   item,
   onDelete,
@@ -224,8 +276,30 @@ export default function Watchlist() {
         </Button>
       </div>
 
-      {/* Table */}
-      <Card>
+      {/* Mobile Card Layout */}
+      <div className="md:hidden space-y-2">
+        {isLoading && items.length === 0 ? (
+          Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="h-16 bg-muted/30 rounded-lg animate-pulse" />
+          ))
+        ) : filteredItems.length === 0 ? (
+          <div className="text-center py-8 text-muted-foreground text-sm">
+            {searchQuery ? 'No stocks match your search' : 'Your watchlist is empty. Add a stock to get started.'}
+          </div>
+        ) : (
+          filteredItems.map((item) => (
+            <WatchlistMobileCard
+              key={item.id}
+              item={item}
+              onDelete={removeFromWatchlist}
+              isDeleting={isRemoving}
+            />
+          ))
+        )}
+      </div>
+
+      {/* Desktop Table */}
+      <Card className="hidden md:block">
         <Table>
           <TableHeader>
             <TableRow>
