@@ -21,6 +21,7 @@ import {
 import type { PaletteBlock, BlockSubtype } from '@/lib/strategyBuilder/types';
 import { type SentenceBuilderState } from './SentenceBuilder';
 import { UnifiedStrategyBuilder } from './UnifiedStrategyBuilder';
+import type { AdvancedBacktestParams } from '@/lib/backtesting/types';
 
 export interface BlockPaletteProps {
   className?: string;
@@ -32,6 +33,9 @@ export interface BlockPaletteProps {
   // Controlled state for SentenceBuilder persistence
   sentenceState?: SentenceBuilderState;
   onSentenceStateChange?: (state: SentenceBuilderState) => void;
+  // Advanced params
+  advancedParams?: AdvancedBacktestParams;
+  onAdvancedParamsChange?: (params: AdvancedBacktestParams) => void;
 }
 
 interface BlockGridProps {
@@ -266,6 +270,8 @@ export const BlockPalette = memo(function BlockPalette({
   ticker,
   sentenceState,
   onSentenceStateChange,
+  advancedParams,
+  onAdvancedParamsChange,
 }: BlockPaletteProps) {
   // Use unified builder for mobile/compact mode - presets + customization
   if (compact) {
@@ -279,6 +285,8 @@ export const BlockPalette = memo(function BlockPalette({
           ticker={ticker}
           sentenceState={sentenceState}
           onSentenceStateChange={onSentenceStateChange}
+          advancedParams={advancedParams}
+          onAdvancedParamsChange={onAdvancedParamsChange}
         />
       </div>
     );

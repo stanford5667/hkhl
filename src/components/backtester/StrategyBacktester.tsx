@@ -29,7 +29,7 @@ import {
   Trade,
 } from './DataInspector';
 import { BacktestResultsDashboard } from './BacktestResultsDashboard';
-import { AdvancedParamsPanel } from './AdvancedParamsPanel';
+
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 import { parseDateOnly } from '@/lib/date';
@@ -225,11 +225,9 @@ export function StrategyBacktester({ ticker, companyName }: StrategyBacktesterPr
             embedded 
             initialTicker={ticker}
             onRunBacktest={handleVisualBuilderBacktest}
+            advancedParams={advancedParams}
+            onAdvancedParamsChange={setAdvancedParams}
           />
-          <Separator />
-          <div className="p-4">
-            <AdvancedParamsPanel params={advancedParams} onChange={setAdvancedParams} />
-          </div>
         </CardContent>
       </Card>
       

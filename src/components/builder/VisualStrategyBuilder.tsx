@@ -23,6 +23,7 @@ import { BacktestResultsView } from './BacktestResultsView';
 import { useBuilderHistory } from '@/hooks/useBuilderHistory';
 import { useIsMobile } from '@/hooks/use-mobile';
 import type { SentenceBuilderState } from './SentenceBuilder';
+import type { AdvancedBacktestParams } from '@/lib/backtesting/types';
 
 interface BacktestParams {
   strategy: string;
@@ -48,12 +49,17 @@ interface VisualStrategyBuilderProps {
   onRunBacktest?: (params: BacktestParams) => Promise<BacktestMetrics | void> | void;
   /** Initial ticker for embedded mode */
   initialTicker?: string;
+  /** Advanced params for execution configuration */
+  advancedParams?: AdvancedBacktestParams;
+  onAdvancedParamsChange?: (params: AdvancedBacktestParams) => void;
 }
 
 export function VisualStrategyBuilder({ 
   embedded = false, 
   onRunBacktest,
   initialTicker = 'AAPL',
+  advancedParams,
+  onAdvancedParamsChange,
 }: VisualStrategyBuilderProps) {
   const isMobile = useIsMobile();
   
@@ -358,6 +364,8 @@ export function VisualStrategyBuilder({
             ticker={ticker}
             sentenceState={sentenceState}
             onSentenceStateChange={setSentenceState}
+            advancedParams={advancedParams}
+            onAdvancedParamsChange={onAdvancedParamsChange}
           />
           
           {/* Compact Summary - ticker + template only */}
