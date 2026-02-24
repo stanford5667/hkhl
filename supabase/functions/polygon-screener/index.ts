@@ -8,7 +8,7 @@ const corsHeaders = {
 
 const BASE_URL = "https://api.polygon.io";
 
-const EXTERNAL_TIMEOUT_MS = 4000;
+const EXTERNAL_TIMEOUT_MS = 15000;
 
 // Simple in-memory cache for fundamentals (1 hour TTL)
 const fundamentalsCache = new Map<string, { data: TickerFundamentals; timestamp: number }>();
