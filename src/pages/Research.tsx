@@ -63,7 +63,7 @@ export default function ResearchPage() {
   }));
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background via-background to-muted/20 overflow-x-hidden">
+    <div className="min-h-screen bg-background overflow-x-hidden">
       <AnimatedBackground />
 
       {/* Hero Section */}
@@ -97,12 +97,12 @@ export default function ResearchPage() {
         <motion.section className="space-y-2 sm:space-y-3" variants={fadeUp}>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <div className="p-1 sm:p-1.5 rounded-lg bg-primary/10 border border-primary/20">
+              <div className="p-1 sm:p-1.5 rounded-md bg-primary/10 border border-primary/20">
                 <TrendingUp className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-primary" />
               </div>
               <div>
-                <h2 className="text-sm sm:text-base font-semibold text-foreground">Trending Now</h2>
-                <p className="text-[9px] sm:text-[10px] text-muted-foreground hidden sm:block">Click any card to view full analysis</p>
+                <h2 className="text-sm sm:text-base font-mono font-semibold text-foreground uppercase tracking-wide">Trending Now</h2>
+                <p className="text-[9px] sm:text-[10px] font-mono text-muted-foreground hidden sm:block">Click any card for full analysis</p>
               </div>
               {tickersLoading && <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />}
             </div>
@@ -138,12 +138,12 @@ export default function ResearchPage() {
         {/* Earnings Calendar */}
         <motion.section className="space-y-2 sm:space-y-3" variants={fadeUp}>
           <div className="flex items-center gap-2">
-            <div className="p-1 sm:p-1.5 rounded-lg bg-primary/10 border border-primary/20">
+            <div className="p-1 sm:p-1.5 rounded-md bg-primary/10 border border-primary/20">
               <FileText className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-primary" />
             </div>
             <div>
-              <h2 className="text-sm sm:text-base font-semibold text-foreground">Earnings Calendar</h2>
-              <p className="text-[9px] sm:text-[10px] text-muted-foreground hidden sm:block">Upcoming earnings with AI predictions</p>
+              <h2 className="text-sm sm:text-base font-mono font-semibold text-foreground uppercase tracking-wide">Earnings Calendar</h2>
+              <p className="text-[9px] sm:text-[10px] font-mono text-muted-foreground hidden sm:block">Upcoming earnings with AI predictions</p>
             </div>
           </div>
           <EarningsCalendar />
