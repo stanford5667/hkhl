@@ -111,11 +111,11 @@ export function ResearchHero({
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
           >
-            <span className="bg-gradient-to-r from-primary via-primary to-cyan-400 bg-clip-text text-transparent">
-              Research Smarter.
+           <span className="bg-gradient-to-r from-primary via-primary to-cyan-400 bg-clip-text text-transparent">
+              Your Unfair Advantage
             </span>
             <br className="sm:hidden" />
-            <span className="text-foreground"> Invest Better.</span>
+            <span className="text-foreground"> in Every Trade.</span>
           </motion.h1>
           <motion.p
             className="text-muted-foreground text-[11px] sm:text-xs lg:text-sm max-w-lg mx-auto"
@@ -154,7 +154,7 @@ export function ResearchHero({
                 onBlur={handleBlur}
                 placeholder="Search tickers or company names... (e.g., AAPL, Microsoft)"
                 className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground outline-none"
-                autoFocus
+                autoFocus={false}
               />
               {isSearching && (
                 <Loader2 className="h-4 w-4 animate-spin text-muted-foreground shrink-0" />
