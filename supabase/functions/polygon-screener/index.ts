@@ -853,13 +853,14 @@ async function screenFromPolygonAPI(
     return candidateSortDir === "desc" ? bVal - aVal : aVal - bVal;
   });
 
-  const maxCandidates = hasFundamentalFilters ? 3000 : 500;
+  // Cap candidates to avoid overwhelming the API with detail requests
+  const maxCandidates = hasFundamentalFilters ? 500 : 200;
   const candidateTickers = filteredTickers.slice(0, Math.min(filteredTickers.length, maxCandidates));
 
   console.log(`[polygon-screener] Fetching details for ${candidateTickers.length} tickers...`);
 
-  // Step 4: Fetch ticker details in batches
-  const batchSize = 100;
+  // Step 4: Fetch ticker details in small batches (10 concurrent) to avoid connection resets
+  const batchSize = 10;
   const tickerDetails: Map<string, TickerDetails> = new Map();
 
   for (let i = 0; i < candidateTickers.length; i += batchSize) {
@@ -868,7 +869,7 @@ async function screenFromPolygonAPI(
     const detailPromises = batch.map(async (t) => {
       try {
         const detailUrl = `${BASE_URL}/v3/reference/tickers/${encodeURIComponent(t.ticker)}?apiKey=${apiKey}`;
-        const detailRes = await fetchWithTimeout(detailUrl);
+        const detailRes = await fetchWithTimeout(detailUrl, {}, 8000);
         const text = await detailRes.text();
         if (!detailRes.ok) return null;
         const data = JSON.parse(text);
@@ -876,18 +877,19 @@ async function screenFromPolygonAPI(
           return { ticker: t.ticker, details: data.results as TickerDetails };
         }
       } catch (err) {
-        console.warn(`[polygon-screener] Failed to fetch details for ${t.ticker}:`, err);
+        // Silently skip failed detail fetches
       }
       return null;
     });
 
-    const results = await Promise.all(detailPromises);
+    const results = await Promise.allSettled(detailPromises);
     results.forEach((r) => {
-      if (r) tickerDetails.set(r.ticker, r.details);
+      if (r.status === "fulfilled" && r.value) tickerDetails.set(r.value.ticker, r.value.details);
     });
 
+    // Brief pause between batches
     if (i + batchSize < candidateTickers.length) {
-      await new Promise((resolve) => setTimeout(resolve, 50));
+      await new Promise((resolve) => setTimeout(resolve, 100));
     }
   }
 
