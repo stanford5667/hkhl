@@ -1,10 +1,10 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Search, ArrowRight, Clock, X, TrendingUp, Beaker, BarChart3 } from 'lucide-react';
-import { TickerSearchAutocomplete } from '@/components/shared/TickerSearchAutocomplete';
+import { Search, Clock, X, TrendingUp, TrendingDown, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useTickerSearch } from '@/hooks/useTickerSearch';
 
 const STATS = [
   { label: 'Stocks & ETFs', value: '10,000+' },
@@ -27,10 +27,72 @@ export function ResearchHero({
   recentSearches,
   onClearRecent,
 }: ResearchHeroProps) {
+  const [isFocused, setIsFocused] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const { query, setQuery, results, isSearching, clear } = useTickerSearch(200);
+  const [highlightedIndex, setHighlightedIndex] = useState(-1);
+
+  const hasResults = results.length > 0;
+  const showDropdown = isFocused && (query.length >= 1);
+
+  useEffect(() => {
+    setHighlightedIndex(-1);
+  }, [results]);
+
+  // Sync external search query
+  useEffect(() => {
+    setQuery(searchQuery);
+  }, [searchQuery, setQuery]);
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    onSearchQueryChange(val);
+    setQuery(val);
+  };
+
+  const handleSelect = (symbol: string) => {
+    onSearch(symbol);
+    setIsFocused(false);
+    clear();
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      if (highlightedIndex >= 0 && highlightedIndex < results.length) {
+        handleSelect(results[highlightedIndex].symbol);
+      } else if (query) {
+        onSearch(query);
+      }
+      return;
+    }
+    if (!hasResults) return;
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setHighlightedIndex(prev => (prev < results.length - 1 ? prev + 1 : 0));
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setHighlightedIndex(prev => (prev > 0 ? prev - 1 : results.length - 1));
+    } else if (e.key === 'Escape') {
+      setIsFocused(false);
+    }
+  };
+
+  const handleBlur = () => {
+    setTimeout(() => setIsFocused(false), 200);
+  };
+
+  const handleClear = () => {
+    onSearchQueryChange('');
+    clear();
+    inputRef.current?.focus();
+  };
+
   return (
     <div className="relative">
       <div className="relative max-w-6xl mx-auto px-3 sm:px-6 pt-4 sm:pt-6 pb-3 sm:pb-4">
-        {/* Hero Text - more compact */}
+        {/* Hero Text */}
         <div className="text-center mb-3 sm:mb-4">
           <motion.h1
             className="text-xl sm:text-2xl lg:text-4xl font-bold mb-1 sm:mb-1.5 tracking-tight"
@@ -54,37 +116,142 @@ export function ResearchHero({
           </motion.p>
         </div>
 
-        {/* Search Section */}
+        {/* Search Section - Command palette style */}
         <motion.div
-          className="max-w-xl mx-auto mb-3 sm:mb-4"
+          ref={containerRef}
+          className="max-w-xl mx-auto mb-3 sm:mb-4 relative"
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.2 }}
         >
           <div className={cn(
-            "relative rounded-xl overflow-hidden",
-            "bg-card/80 backdrop-blur-sm border border-border/60",
+            "relative rounded-xl overflow-visible",
+            "bg-card border border-border/60",
             "shadow-lg shadow-primary/5",
-            "focus-within:border-primary/50 focus-within:shadow-primary/10 transition-all"
+            "transition-all",
+            isFocused && "border-primary/50 shadow-primary/10 ring-1 ring-primary/20"
           )}>
-            <div className="flex items-center gap-1.5 sm:gap-2 p-1">
-              <Search className="h-4 w-4 text-muted-foreground ml-2 sm:ml-3 shrink-0" />
-              <TickerSearchAutocomplete
+            {/* Input row */}
+            <div className="flex items-center gap-2 px-3 sm:px-4 h-11 sm:h-12">
+              <Search className="h-4 w-4 text-muted-foreground shrink-0" />
+              <input
+                ref={inputRef}
                 value={searchQuery}
-                onChange={onSearchQueryChange}
-                onSelect={(result) => onSearch(result.symbol)}
-                placeholder="Search any stock or ETF..."
-                className="flex-1 border-0 shadow-none focus-visible:ring-0 bg-transparent text-sm"
+                onChange={handleInputChange}
+                onKeyDown={handleKeyDown}
+                onFocus={() => setIsFocused(true)}
+                onBlur={handleBlur}
+                placeholder="Search tickers or company names... (e.g., AAPL, Microsoft)"
+                className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground outline-none"
                 autoFocus
               />
-              <Button
-                size="sm"
-                className="mr-1 bg-primary hover:bg-primary/90 h-8 px-2 sm:px-3"
-                onClick={() => searchQuery && onSearch(searchQuery)}
-              >
-                <ArrowRight className="h-4 w-4" />
-              </Button>
+              {isSearching && (
+                <Loader2 className="h-4 w-4 animate-spin text-muted-foreground shrink-0" />
+              )}
+              {!isSearching && searchQuery && (
+                <button
+                  type="button"
+                  onClick={handleClear}
+                  className="h-4 w-4 text-muted-foreground hover:text-foreground transition-colors shrink-0"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
+              <div className="hidden sm:flex items-center gap-1 text-[10px] text-muted-foreground border-l border-border/60 pl-2 ml-1">
+                <kbd className="px-1.5 py-0.5 bg-muted/60 rounded text-[10px] font-mono">⌘K</kbd>
+              </div>
             </div>
+
+            {/* Dropdown results */}
+            <AnimatePresence>
+              {showDropdown && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  transition={{ duration: 0.15 }}
+                  className="border-t border-border/60 overflow-hidden"
+                >
+                  {hasResults ? (
+                    <ul className="py-1 max-h-[300px] overflow-y-auto">
+                      {results.map((result, index) => (
+                        <li
+                          key={result.symbol}
+                          onClick={() => handleSelect(result.symbol)}
+                          className={cn(
+                            "flex items-center justify-between w-full px-3 sm:px-4 py-2.5 cursor-pointer transition-colors",
+                            highlightedIndex === index
+                              ? "bg-accent"
+                              : "hover:bg-accent/50"
+                          )}
+                        >
+                          <div className="flex items-center gap-3">
+                            <span className="w-14 font-mono font-semibold text-sm text-primary">
+                              {result.symbol}
+                            </span>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm text-foreground truncate">{result.name}</p>
+                              <p className="text-[11px] text-muted-foreground truncate">
+                                {result.exchange || result.type || 'Stock'}
+                              </p>
+                            </div>
+                          </div>
+                          {result.quote && (
+                            <div className="flex items-center gap-2 text-right shrink-0">
+                              <span className="font-mono text-sm text-foreground">
+                                ${result.quote.price?.toFixed(2) || '—'}
+                              </span>
+                              {result.quote.changePercent !== undefined && (
+                                <span className={cn(
+                                  "flex items-center text-xs font-medium",
+                                  result.quote.changePercent >= 0 ? "text-success" : "text-destructive"
+                                )}>
+                                  {result.quote.changePercent >= 0 ? (
+                                    <TrendingUp className="h-3 w-3 mr-0.5" />
+                                  ) : (
+                                    <TrendingDown className="h-3 w-3 mr-0.5" />
+                                  )}
+                                  {result.quote.changePercent >= 0 ? '+' : ''}{result.quote.changePercent.toFixed(2)}%
+                                </span>
+                              )}
+                            </div>
+                          )}
+                        </li>
+                      ))}
+                    </ul>
+                  ) : isSearching ? (
+                    <div className="flex items-center justify-center py-6 text-muted-foreground">
+                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                      <span className="text-sm">Searching tickers...</span>
+                    </div>
+                  ) : query.length >= 1 ? (
+                    <div className="py-6 text-center">
+                      <Search className="h-6 w-6 text-muted-foreground/40 mx-auto mb-2" />
+                      <p className="text-sm text-muted-foreground">No tickers found for "{query}"</p>
+                    </div>
+                  ) : null}
+
+                  {/* Footer hints */}
+                  <div className="flex items-center justify-between px-3 sm:px-4 py-1.5 border-t border-border/40 text-[10px] text-muted-foreground">
+                    <div className="flex items-center gap-3">
+                      <span className="flex items-center gap-1">
+                        <kbd className="px-1 py-0.5 bg-muted/60 rounded font-mono">↑</kbd>
+                        <kbd className="px-1 py-0.5 bg-muted/60 rounded font-mono">↓</kbd>
+                        Navigate
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <kbd className="px-1.5 py-0.5 bg-muted/60 rounded font-mono">Enter</kbd>
+                        Open
+                      </span>
+                    </div>
+                    <span className="flex items-center gap-1">
+                      <kbd className="px-1.5 py-0.5 bg-muted/60 rounded font-mono">Esc</kbd>
+                      Close
+                    </span>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
         </motion.div>
 
@@ -118,7 +285,7 @@ export function ResearchHero({
           </div>
         )}
 
-        {/* Stats Bar - inline and compact */}
+        {/* Stats Bar */}
         <motion.div
           className="flex items-center justify-center gap-4 sm:gap-8"
           initial={{ opacity: 0 }}
