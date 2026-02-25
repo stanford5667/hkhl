@@ -613,6 +613,115 @@ function bollingerStrategy(bars: Bar[], index: number, sma: (number | null)[], s
   return { action: 'HOLD', reason: `Price: $${price.toFixed(2)}, BB: $${lower.toFixed(2)}-$${upper.toFixed(2)}` };
 }
 
+// ── DRAWDOWN RECOVERY STRATEGY ──────────────────────────────────────────────
+// Buy when price drops X% from its N-period high, sell after recovery or holding period
+function drawdownRecoveryStrategy(bars: Bar[], index: number, inPosition: boolean, entryDate: string | null, params: StrategyParams): StrategySignal {
+  const period = (params as any).drawdownPeriod ?? 20;
+  const threshold = (params as any).drawdownThreshold ?? 10;
+  const holdingPeriod = params.holdingPeriod ?? 20;
+  const recoveryTarget = (params as any).recoveryTarget ?? 50; // recover X% of the drawdown
+
+  if (index < period) return { action: 'HOLD', reason: 'Insufficient data for drawdown' };
+
+  const lookback = bars.slice(Math.max(0, index - period + 1), index + 1);
+  const periodHigh = Math.max(...lookback.map(b => b.high));
+  const currentPrice = bars[index].close;
+  const drawdownPct = ((periodHigh - currentPrice) / periodHigh) * 100;
+
+  if (!inPosition && drawdownPct >= threshold) {
+    return { action: 'BUY', reason: `Drawdown of ${drawdownPct.toFixed(1)}% from ${period}-day high ($${periodHigh.toFixed(2)})` };
+  }
+
+  if (inPosition && entryDate) {
+    const entryPrice = bars.find(b => normalizeDate(b.date) === normalizeDate(entryDate))?.close;
+    if (entryPrice) {
+      const recovery = ((currentPrice - entryPrice) / entryPrice) * 100;
+      const targetRecovery = (threshold * recoveryTarget) / 100;
+      if (recovery >= targetRecovery) {
+        return { action: 'SELL', reason: `Recovery target reached: +${recovery.toFixed(1)}% (target ${targetRecovery.toFixed(1)}%)` };
+      }
+    }
+    const daysHeld = countTradingDaysBetween(entryDate, normalizeDate(bars[index].date));
+    if (daysHeld >= holdingPeriod) {
+      return { action: 'SELL', reason: `Holding period of ${holdingPeriod} trading days reached` };
+    }
+  }
+
+  return { action: 'HOLD', reason: `Drawdown: ${drawdownPct.toFixed(1)}% (threshold: ${threshold}%)` };
+}
+
+// ── MEAN REVERSION STRATEGY ─────────────────────────────────────────────────
+// Buy when price deviates X standard deviations below its N-period mean, sell on reversion
+function meanReversionStrategy(bars: Bar[], index: number, sma: (number | null)[], stdDevs: (number | null)[], inPosition: boolean, params: StrategyParams): StrategySignal {
+  const deviationThreshold = (params as any).deviationThreshold ?? 2;
+  const holdingPeriod = params.holdingPeriod ?? 10;
+
+  const ma = sma[index];
+  const sd = stdDevs[index];
+  if (ma === null || sd === null || sd === 0) return { action: 'HOLD', reason: 'Insufficient data for mean reversion' };
+
+  const price = bars[index].close;
+  const zScore = (price - ma) / sd;
+
+  if (!inPosition && zScore <= -deviationThreshold) {
+    return { action: 'BUY', reason: `Z-score ${zScore.toFixed(2)} below -${deviationThreshold} (price $${price.toFixed(2)}, mean $${ma.toFixed(2)})` };
+  }
+
+  if (inPosition) {
+    // Exit when price reverts to the mean (z-score crosses back above 0)
+    if (zScore >= 0) {
+      return { action: 'SELL', reason: `Price reverted to mean (Z-score: ${zScore.toFixed(2)}, mean: $${ma.toFixed(2)})` };
+    }
+  }
+
+  return { action: 'HOLD', reason: `Z-score: ${zScore.toFixed(2)}` };
+}
+
+// ── VOLATILITY SQUEEZE STRATEGY ─────────────────────────────────────────────
+// Buy when Bollinger Band width contracts to a minimum, anticipating a breakout
+function volatilitySqueezeStrategy(bars: Bar[], index: number, sma: (number | null)[], stdDevs: (number | null)[], inPosition: boolean, entryDate: string | null, params: StrategyParams): StrategySignal {
+  const period = (params as any).squeezePeriod ?? 20;
+  const lookback = (params as any).squeezeLookback ?? 120; // compare bandwidth over this window
+  const holdingPeriod = params.holdingPeriod ?? 10;
+
+  const ma = sma[index];
+  const sd = stdDevs[index];
+  if (ma === null || sd === null || ma === 0) return { action: 'HOLD', reason: 'Insufficient data for volatility squeeze' };
+
+  const bandwidth = (sd * 2) / ma; // normalized BB width
+
+  // Need enough history to compare bandwidth
+  if (index < lookback) return { action: 'HOLD', reason: 'Need more history for squeeze detection' };
+
+  // Find minimum bandwidth in the lookback window
+  let minBW = Infinity;
+  for (let j = index - lookback; j < index; j++) {
+    if (sma[j] !== null && stdDevs[j] !== null && sma[j]! > 0) {
+      const bw = (stdDevs[j]! * 2) / sma[j]!;
+      if (bw < minBW) minBW = bw;
+    }
+  }
+
+  const isSqueezing = bandwidth <= minBW * 1.05; // within 5% of minimum
+
+  if (!inPosition && isSqueezing && bars[index].close > ma) {
+    return { action: 'BUY', reason: `Volatility squeeze detected (BW: ${(bandwidth * 100).toFixed(2)}%, ${lookback}-bar min: ${(minBW * 100).toFixed(2)}%) + price above mean` };
+  }
+
+  if (inPosition && entryDate) {
+    const daysHeld = countTradingDaysBetween(entryDate, normalizeDate(bars[index].date));
+    // Exit on expansion: bandwidth doubles from entry squeeze level
+    if (bandwidth > minBW * 2) {
+      return { action: 'SELL', reason: `Volatility expanded (BW: ${(bandwidth * 100).toFixed(2)}%)` };
+    }
+    if (daysHeld >= holdingPeriod) {
+      return { action: 'SELL', reason: `Holding period of ${holdingPeriod} trading days reached` };
+    }
+  }
+
+  return { action: 'HOLD', reason: `Bandwidth: ${(bandwidth * 100).toFixed(2)}%` };
+}
+
 function stochasticStrategy(bars: Bar[], index: number, stochK: (number | null)[], inPosition: boolean, params: StrategyParams): StrategySignal {
   const k = stochK[index];
   const prevK = index > 0 ? stochK[index - 1] : null;
@@ -774,7 +883,7 @@ function runBacktest(
   const stochK = calculateStochasticK(bars, (params as any).stochPeriod ?? 14);
 
   const getIndicatorName = (s: string): string => {
-    switch (s) { case 'rsi': return 'RSI'; case 'ma-crossover': return 'Fast EMA'; case 'gap-fill': return 'Gap %'; case 'consecutive-days': return 'Down Days'; case 'macd': return 'MACD Hist'; case 'bollinger': return 'BB Position'; case 'stochastic': return 'Stochastic %K'; default: return 'Indicator'; }
+    switch (s) { case 'rsi': return 'RSI'; case 'ma-crossover': return 'Fast EMA'; case 'gap-fill': return 'Gap %'; case 'consecutive-days': return 'Down Days'; case 'macd': return 'MACD Hist'; case 'bollinger': return 'BB Position'; case 'stochastic': return 'Stochastic %K'; case 'drawdown-recovery': return 'Drawdown %'; case 'mean-reversion': return 'Z-Score'; case 'volatility-squeeze': return 'BB Width %'; default: return 'Indicator'; }
   };
   const getIndicatorValue = (s: string, idx: number): number | null => {
     switch (s) {
@@ -785,6 +894,15 @@ function runBacktest(
       case 'macd': return macdHist[idx];
       case 'bollinger': return bbSma[idx] !== null ? (bars[idx].close - bbSma[idx]!) / (bbStdDevs[idx] || 1) : null;
       case 'stochastic': return stochK[idx];
+      case 'drawdown-recovery': {
+        const period = (params as any).drawdownPeriod ?? 20;
+        if (idx < period) return null;
+        const lookback = bars.slice(Math.max(0, idx - period + 1), idx + 1);
+        const periodHigh = Math.max(...lookback.map(b => b.high));
+        return ((periodHigh - bars[idx].close) / periodHigh) * 100;
+      }
+      case 'mean-reversion': return bbSma[idx] !== null && bbStdDevs[idx] !== null && bbStdDevs[idx]! > 0 ? (bars[idx].close - bbSma[idx]!) / bbStdDevs[idx]! : null;
+      case 'volatility-squeeze': return bbSma[idx] !== null && bbStdDevs[idx] !== null && bbSma[idx]! > 0 ? (bbStdDevs[idx]! * 2 / bbSma[idx]!) * 100 : null;
       default: return null;
     }
   };
@@ -1103,6 +1221,9 @@ function runBacktest(
       case 'macd': signal = macdStrategy(bars, i, macdHist, inPosition, params); break;
       case 'bollinger': signal = bollingerStrategy(bars, i, bbSma, bbStdDevs, inPosition, params); break;
       case 'stochastic': signal = stochasticStrategy(bars, i, stochK, inPosition, params); break;
+      case 'drawdown-recovery': signal = drawdownRecoveryStrategy(bars, i, inPosition, entryDate, params); break;
+      case 'mean-reversion': signal = meanReversionStrategy(bars, i, bbSma, bbStdDevs, inPosition, params); break;
+      case 'volatility-squeeze': signal = volatilitySqueezeStrategy(bars, i, bbSma, bbStdDevs, inPosition, entryDate, params); break;
       default: signal = { action: 'HOLD', reason: 'Unknown strategy' };
     }
 
