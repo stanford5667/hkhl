@@ -26,6 +26,8 @@ import {
 
 interface QuickInsightsPanelProps {
   ticker: string;
+  /** When true, renders without the collapsible card wrapper */
+  inline?: boolean;
 }
 
 interface StudyChip {
@@ -208,8 +210,8 @@ function renderStudyResult(studyId: string, data: any) {
 // MAIN COMPONENT
 // ═══════════════════════════════════════════════════════════════════════════════
 
-export function QuickInsightsPanel({ ticker }: QuickInsightsPanelProps) {
-  const [isOpen, setIsOpen] = useState(false);
+export function QuickInsightsPanel({ ticker, inline }: QuickInsightsPanelProps) {
+  const [isOpen, setIsOpen] = useState(true);
   const [loadingStudies, setLoadingStudies] = useState<Set<string>>(new Set());
   const [results, setResults] = useState<Record<string, any>>({});
   const [openStudies, setOpenStudies] = useState<Set<string>>(new Set());
@@ -248,6 +250,78 @@ export function QuickInsightsPanel({ ticker }: QuickInsightsPanelProps) {
     }
   }, [ticker, results]);
 
+  const content = (
+    <div className="space-y-3">
+      {/* Study Chips */}
+      <div className="flex flex-wrap gap-1.5">
+        {QUICK_STUDIES.map(study => {
+          const isLoading = loadingStudies.has(study.id);
+          const isActive = openStudies.has(study.id);
+          const hasError = !!errors[study.id];
+
+          return (
+            <Button
+              key={study.id}
+              variant={isActive ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => handleRunStudy(study.id)}
+              disabled={isLoading}
+              className={cn(
+                "h-7 text-xs gap-1",
+                hasError && "border-destructive/50"
+              )}
+            >
+              {isLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : <span>{study.icon}</span>}
+              {study.label}
+            </Button>
+          );
+        })}
+      </div>
+
+      {/* Results */}
+      <div className="space-y-2">
+        {QUICK_STUDIES.filter(s => openStudies.has(s.id)).map(study => (
+          <div key={study.id} className="rounded-lg border bg-card p-3">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <span>{study.icon}</span>
+                <span className="text-sm font-semibold">{study.label}</span>
+              </div>
+              <button
+                onClick={() => setOpenStudies(prev => { const next = new Set(prev); next.delete(study.id); return next; })}
+                className="p-1 rounded hover:bg-muted transition-colors"
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </div>
+            {errors[study.id] ? (
+              <p className="text-xs text-destructive">{errors[study.id]}</p>
+            ) : results[study.id] ? (
+              renderStudyResult(study.id, results[study.id])
+            ) : (
+              <div className="flex items-center gap-2 py-4 justify-center">
+                <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                <span className="text-xs text-muted-foreground">Loading...</span>
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+
+      {openStudies.size === 0 && (
+        <p className="text-xs text-muted-foreground text-center py-3">
+          Click a study above to see {ticker} statistical insights — no backtest needed.
+        </p>
+      )}
+    </div>
+  );
+
+  // Inline mode: render content directly without card wrapper
+  if (inline) {
+    return content;
+  }
+
+  // Standalone mode: collapsible card
   return (
     <Collapsible open={isOpen} onOpenChange={setIsOpen}>
       <Card className="border-dashed">
@@ -263,62 +337,8 @@ export function QuickInsightsPanel({ ticker }: QuickInsightsPanelProps) {
         </CollapsibleTrigger>
 
         <CollapsibleContent>
-          <CardContent className="pt-0 pb-4 px-4 space-y-3">
-            {/* Study Chips */}
-            <div className="flex flex-wrap gap-1.5">
-              {QUICK_STUDIES.map(study => {
-                const isLoading = loadingStudies.has(study.id);
-                const isActive = openStudies.has(study.id);
-                const hasError = !!errors[study.id];
-
-                return (
-                  <Button
-                    key={study.id}
-                    variant={isActive ? 'default' : 'outline'}
-                    size="sm"
-                    onClick={() => handleRunStudy(study.id)}
-                    disabled={isLoading}
-                    className={cn(
-                      "h-7 text-xs gap-1",
-                      hasError && "border-destructive/50"
-                    )}
-                  >
-                    {isLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : <span>{study.icon}</span>}
-                    {study.label}
-                  </Button>
-                );
-              })}
-            </div>
-
-            {/* Results */}
-            <div className="space-y-2">
-              {QUICK_STUDIES.filter(s => openStudies.has(s.id)).map(study => (
-                <div key={study.id} className="rounded-lg border bg-card p-3">
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-2">
-                      <span>{study.icon}</span>
-                      <span className="text-sm font-semibold">{study.label}</span>
-                    </div>
-                    <button
-                      onClick={() => setOpenStudies(prev => { const next = new Set(prev); next.delete(study.id); return next; })}
-                      className="p-1 rounded hover:bg-muted transition-colors"
-                    >
-                      <X className="h-3 w-3" />
-                    </button>
-                  </div>
-                  {errors[study.id] ? (
-                    <p className="text-xs text-destructive">{errors[study.id]}</p>
-                  ) : results[study.id] ? (
-                    renderStudyResult(study.id, results[study.id])
-                  ) : (
-                    <div className="flex items-center gap-2 py-4 justify-center">
-                      <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-                      <span className="text-xs text-muted-foreground">Loading...</span>
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
+          <CardContent className="pt-0 pb-4 px-4">
+            {content}
           </CardContent>
         </CollapsibleContent>
       </Card>
