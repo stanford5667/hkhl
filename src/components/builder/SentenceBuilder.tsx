@@ -852,22 +852,20 @@ export const SentenceBuilder = memo(function SentenceBuilder({
         params.slowMaPeriod = Math.max(20, firstSignal.parameters.period);
         break;
       case 'drawdown-recovery':
-        strategy = 'bollinger';
-        params.bbPeriod = firstSignal.parameters.period;
-        params.bbStdDev = firstSignal.parameters.threshold / 5;
-        params.direction = 'lower';
+        strategy = 'drawdown-recovery';
+        params.drawdownPeriod = firstSignal.parameters.period;
+        params.drawdownThreshold = firstSignal.parameters.threshold;
         break;
       case 'mean-reversion':
-        strategy = 'bollinger';
+        strategy = 'mean-reversion';
         params.bbPeriod = firstSignal.parameters.period;
-        params.bbStdDev = firstSignal.parameters.threshold;
-        params.direction = 'lower';
+        params.deviationThreshold = firstSignal.parameters.threshold;
         break;
       case 'volatility-squeeze':
-        strategy = 'bollinger';
+        strategy = 'volatility-squeeze';
+        params.squeezePeriod = firstSignal.parameters.period;
+        params.squeezeLookback = firstSignal.parameters.period * 6;
         params.bbPeriod = firstSignal.parameters.period;
-        params.bbStdDev = firstSignal.parameters.threshold;
-        params.direction = 'lower';
         break;
       case 'consecutive-up':
         strategy = 'consecutive-days';

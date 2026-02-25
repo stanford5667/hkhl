@@ -116,9 +116,9 @@ const STRATEGY_MAP: Record<string, string> = {
   'bollinger-upper': 'bollinger',
   'stochastic': 'stochastic',
   'stochastic-oversold': 'stochastic',
-  'drawdown-recovery': 'bollinger',
-  'mean-reversion': 'bollinger',
-  'volatility-squeeze': 'bollinger',
+  'drawdown-recovery': 'drawdown-recovery',
+  'mean-reversion': 'mean-reversion',
+  'volatility-squeeze': 'volatility-squeeze',
   'oversold-bounce': 'rsi',
 };
 
