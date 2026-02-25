@@ -258,6 +258,89 @@ const SIGNAL_PRESETS: SignalPreset[] = [
       { key: 'threshold', label: '% of Avg', min: 100, max: 300, step: 25, suffix: '%' },
     ],
   },
+  // ── Quant Study Signals ──
+  {
+    id: 'drawdown-recovery',
+    label: 'Drawdown Recovery',
+    description: 'Buy after price drops X% from recent high',
+    icon: '📉',
+    category: 'pattern',
+    indicator: 'RSI',
+    condition: 'LESS_THAN',
+    parameters: { threshold: 10, period: 20 },
+    parameterConfig: [
+      { key: 'threshold', label: 'Drawdown %', min: 3, max: 30, step: 1, suffix: '%' },
+      { key: 'period', label: 'Lookback', min: 10, max: 60, step: 5 },
+    ],
+  },
+  {
+    id: 'mean-reversion',
+    label: 'Mean Reversion',
+    description: 'Buy when price is far below its moving average',
+    icon: '🔄',
+    category: 'momentum',
+    indicator: 'SMA',
+    condition: 'LESS_THAN',
+    parameters: { period: 20, threshold: 2 },
+    parameterConfig: [
+      { key: 'period', label: 'MA Period', min: 10, max: 50, step: 5 },
+      { key: 'threshold', label: 'Std Devs Below', min: 1, max: 3, step: 0.5 },
+    ],
+  },
+  {
+    id: 'volatility-squeeze',
+    label: 'Volatility Squeeze',
+    description: 'Bollinger Bands narrow — breakout expected',
+    icon: '🔋',
+    category: 'pattern',
+    indicator: 'SMA',
+    condition: 'LESS_THAN',
+    parameters: { period: 20, threshold: 1 },
+    parameterConfig: [
+      { key: 'period', label: 'BB Period', min: 10, max: 50, step: 5 },
+      { key: 'threshold', label: 'Bandwidth <', min: 0.5, max: 3, step: 0.25 },
+    ],
+  },
+  {
+    id: 'consecutive-up',
+    label: 'Up Days Streak',
+    description: 'Multiple consecutive gaining days (contrarian short)',
+    icon: '🔺',
+    category: 'pattern',
+    indicator: 'CONSECUTIVE_DOWN',
+    condition: 'GREATER_THAN',
+    parameters: { days: 4 },
+    parameterConfig: [
+      { key: 'days', label: 'Up Days', min: 2, max: 7, step: 1 },
+    ],
+  },
+  {
+    id: 'oversold-bounce',
+    label: 'Oversold Bounce',
+    description: 'RSI exits oversold territory (crosses above 30)',
+    icon: '🚀',
+    category: 'momentum',
+    indicator: 'RSI',
+    condition: 'CROSSES_ABOVE',
+    parameters: { period: 14, threshold: 30 },
+    parameterConfig: [
+      { key: 'period', label: 'RSI Period', min: 5, max: 30, step: 1 },
+      { key: 'threshold', label: 'Crosses Above', min: 20, max: 40, step: 5 },
+    ],
+  },
+  {
+    id: 'gap-up',
+    label: 'Gap Up',
+    description: 'Stock gaps up at open',
+    icon: '⬆️',
+    category: 'pattern',
+    indicator: 'GAP_DOWN',
+    condition: 'GREATER_THAN',
+    parameters: { threshold: 2 },
+    parameterConfig: [
+      { key: 'threshold', label: 'Gap %', min: 1, max: 10, step: 0.5, suffix: '%' },
+    ],
+  },
 ];
 
 // Types moved to top for export
@@ -767,6 +850,41 @@ export const SentenceBuilder = memo(function SentenceBuilder({
         strategy = 'ma-crossover';
         params.fastMaPeriod = Math.max(5, Math.round(firstSignal.parameters.period / 2));
         params.slowMaPeriod = Math.max(20, firstSignal.parameters.period);
+        break;
+      case 'drawdown-recovery':
+        strategy = 'bollinger';
+        params.bbPeriod = firstSignal.parameters.period;
+        params.bbStdDev = firstSignal.parameters.threshold / 5;
+        params.direction = 'lower';
+        break;
+      case 'mean-reversion':
+        strategy = 'bollinger';
+        params.bbPeriod = firstSignal.parameters.period;
+        params.bbStdDev = firstSignal.parameters.threshold;
+        params.direction = 'lower';
+        break;
+      case 'volatility-squeeze':
+        strategy = 'bollinger';
+        params.bbPeriod = firstSignal.parameters.period;
+        params.bbStdDev = firstSignal.parameters.threshold;
+        params.direction = 'lower';
+        break;
+      case 'consecutive-up':
+        strategy = 'consecutive-days';
+        params.consecutiveDays = firstSignal.parameters.days;
+        params.holdingPeriod = 5;
+        params.direction = 'up';
+        break;
+      case 'oversold-bounce':
+        strategy = 'rsi';
+        params.rsiPeriod = firstSignal.parameters.period;
+        params.rsiOversold = firstSignal.parameters.threshold;
+        params.rsiOverbought = 70;
+        break;
+      case 'gap-up':
+        strategy = 'gap-fill';
+        params.gapThreshold = firstSignal.parameters.threshold;
+        params.direction = 'up';
         break;
       default:
         strategy = 'rsi';

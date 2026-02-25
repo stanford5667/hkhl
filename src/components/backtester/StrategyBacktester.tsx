@@ -7,6 +7,7 @@
 
 import { useState, useCallback } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { VisualStrategyBuilder } from '@/components/builder/VisualStrategyBuilder';
 import {
   Dialog,
@@ -18,6 +19,8 @@ import {
 import {
   Loader2,
   AlertTriangle,
+  FlaskConical,
+  Zap,
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -101,8 +104,10 @@ const STRATEGY_MAP: Record<string, string> = {
   'ema-crossover': 'ma-crossover',
   'gap-fill': 'gap-fill',
   'gap-down': 'gap-fill',
+  'gap-up': 'gap-fill',
   'consecutive-days': 'consecutive-days',
   'consecutive-down': 'consecutive-days',
+  'consecutive-up': 'consecutive-days',
   'macd': 'macd',
   'macd-bullish': 'macd',
   'macd-bearish': 'macd',
@@ -111,6 +116,10 @@ const STRATEGY_MAP: Record<string, string> = {
   'bollinger-upper': 'bollinger',
   'stochastic': 'stochastic',
   'stochastic-oversold': 'stochastic',
+  'drawdown-recovery': 'bollinger',
+  'mean-reversion': 'bollinger',
+  'volatility-squeeze': 'bollinger',
+  'oversold-bounce': 'rsi',
 };
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -215,7 +224,7 @@ export function StrategyBacktester({ ticker, companyName }: StrategyBacktesterPr
   }, [ticker, period, initialCapital, advancedParams]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -227,27 +236,47 @@ export function StrategyBacktester({ ticker, companyName }: StrategyBacktesterPr
         {result && <InspectModeToggle inspectMode={inspectMode} onToggle={setInspectMode} />}
       </div>
 
-      {/* Unified Strategy Builder - contains presets, custom building, and advanced params */}
+      {/* Tabbed Interface - Strategy Builder + Quick Insights in one card */}
       <Card>
-        <CardContent className="p-0">
-          <VisualStrategyBuilder 
-            embedded 
-            initialTicker={ticker}
-            onRunBacktest={handleVisualBuilderBacktest}
-            advancedParams={advancedParams}
-            onAdvancedParamsChange={setAdvancedParams}
-          />
-        </CardContent>
+        <Tabs defaultValue="strategy" className="w-full">
+          <TabsList className="w-full justify-start rounded-none border-b bg-transparent h-auto p-0">
+            <TabsTrigger
+              value="strategy"
+              className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-4 py-2.5 gap-1.5"
+            >
+              <FlaskConical className="h-3.5 w-3.5" />
+              Strategy Builder
+            </TabsTrigger>
+            <TabsTrigger
+              value="insights"
+              className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-4 py-2.5 gap-1.5"
+            >
+              <Zap className="h-3.5 w-3.5" />
+              Quick Insights
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="strategy" className="mt-0">
+            <VisualStrategyBuilder 
+              embedded 
+              initialTicker={ticker}
+              onRunBacktest={handleVisualBuilderBacktest}
+              advancedParams={advancedParams}
+              onAdvancedParamsChange={setAdvancedParams}
+            />
+          </TabsContent>
+
+          <TabsContent value="insights" className="mt-0 p-4">
+            <QuickInsightsPanel ticker={ticker} inline />
+          </TabsContent>
+        </Tabs>
       </Card>
-      
-      {/* Quick Insights Panel */}
-      <QuickInsightsPanel ticker={ticker} />
 
       {/* Error Display */}
       {error && (
-        <Card className="border-rose-500/30 bg-rose-500/5">
-          <CardContent className="py-4">
-            <div className="flex items-center gap-2 text-rose-400">
+        <Card className="border-destructive/30 bg-destructive/5">
+          <CardContent className="py-3">
+            <div className="flex items-center gap-2 text-destructive">
               <AlertTriangle className="h-4 w-4" />
               <span className="text-sm">{error}</span>
             </div>
@@ -258,10 +287,9 @@ export function StrategyBacktester({ ticker, companyName }: StrategyBacktesterPr
       {/* Loading State */}
       {isRunning && (
         <Card>
-          <CardContent className="py-12 text-center">
-            <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-primary" />
+          <CardContent className="py-8 text-center">
+            <Loader2 className="h-6 w-6 animate-spin mx-auto mb-3 text-primary" />
             <p className="text-sm text-muted-foreground">Running backtest on {ticker}...</p>
-            <p className="text-xs text-muted-foreground mt-1">Analyzing historical data</p>
           </CardContent>
         </Card>
       )}
@@ -308,7 +336,7 @@ export function StrategyBacktester({ ticker, companyName }: StrategyBacktesterPr
                   <p className="text-muted-foreground mb-1">Return</p>
                   <p className={cn(
                     "font-semibold",
-                    selectedTrade.pnlPercent >= 0 ? 'text-emerald-400' : 'text-rose-400'
+                    selectedTrade.pnlPercent >= 0 ? 'text-emerald-500' : 'text-rose-500'
                   )}>
                     {selectedTrade.pnlPercent >= 0 ? '+' : ''}{selectedTrade.pnlPercent.toFixed(2)}% (${selectedTrade.pnl.toFixed(2)})
                   </p>
