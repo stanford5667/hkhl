@@ -1,126 +1,103 @@
 
 
-# Integrate Quant Lab Studies into the Strategy Backtester
+# Backtest Validation Test Suite
 
 ## Overview
 
-Two distinct integrations, both living inside the existing backtester area:
+Create an automated test suite that verifies backtest calculations against real price data from the Polygon API. The tests will call the live `strategy-backtest` edge function with known tickers and date ranges, then validate that every trade, metric, and portfolio value is mathematically consistent with the underlying price bars returned in the response.
 
-1. **Signal-capable studies become entry signal presets** -- Studies like RSI, MACD, Bollinger, Stochastic, Gap Analysis, and Consecutive Days already have matching backtest strategies. These get added to the signal picker so users can select them as entry conditions directly.
+## Validation Layers
 
-2. **Informational studies get an inline "Quick Insights" panel** -- Studies like Best Days of the Week, Best Months, Volatility Profile, Drawdown Analysis, and Win Streaks show their results inline within the backtester card, without requiring a full backtest run. The user clicks a study, it calls the existing `run-single-study` edge function, and the results render right there.
+### Layer 1: Data Integrity Checks
+- Verify `barsCount` matches the actual number of bars in the response
+- Confirm all bar dates fall on valid trading days (no weekends/holidays)
+- Ensure bars are sorted chronologically with no duplicates
+- Validate OHLCV relationships: `low <= open, close <= high` for every bar
+- Confirm `dailyReturn` matches `(close - prevClose) / prevClose * 100`
+- Check `dataSource` is either `'database'` or `'polygon'` (no mock data)
 
----
+### Layer 2: Trade-Level Verification
+For every trade in the `trades` array:
+- Confirm `entryDate` and `exitDate` exist in the bars data
+- Verify `entryPrice` matches the bar's close on `entryDate` (adjusted for slippage)
+- Verify `exitPrice` matches the bar's close on `exitDate` (adjusted for slippage)
+- Recalculate `grossPnl` as `shares * (exitPrice - entryPrice)` and compare
+- Recalculate `grossPnlPercent` as `((exitPrice - entryPrice) / entryPrice) * 100`
+- Verify `holdingDays` (trading days between entry and exit)
+- Check that no two trades overlap in time (no double-positions unless pyramiding > 1)
+- Validate `commissionCost` matches the commission model (percent, fixed-per-order, or fixed-per-contract)
+- Verify `netPnl = grossPnl - slippageCost - commissionCost`
 
-## Part 1: Map Quant Lab Studies to Entry Signal Presets
+### Layer 3: Portfolio / Equity Curve
+- Walk through `portfolioHistory` and verify `value = cash + positionValue`
+- Confirm initial snapshot value equals `initialCapital`
+- Confirm final snapshot value equals `finalValue`
+- Verify `inPosition` flag flips correctly at trade entry/exit dates
 
-Currently, `SIGNAL_PRESETS` in `SentenceBuilder.tsx` has 8 presets (RSI Oversold, RSI Overbought, Price Above/Below SMA, EMA Crossover, Gap Down, Consecutive Down, Volume Spike). Many Quant Lab studies map directly to these or to new backtestable strategies we just built.
+### Layer 4: Summary Metrics
+- **totalReturn**: recalculate as `((finalValue - initialCapital) / initialCapital) * 100`
+- **winRate**: recalculate as `winningTrades / totalTrades * 100`
+- **winningTrades + losingTrades = totalTrades**
+- **avgWin**: mean of positive `pnlPercent` trades
+- **avgLoss**: mean of negative `pnlPercent` trades
+- **profitFactor**: `sum(wins) / abs(sum(losses))`
+- **maxDrawdown**: walk equity curve, find largest peak-to-trough drop
+- **sharpeRatio**: recalculate from daily returns in portfolio history
+- **buyHoldReturn**: `((lastClose - firstClose) / firstClose) * 100`
+- **outperformance**: `totalReturn - buyHoldReturn`
 
-### New signal presets to add:
+### Layer 5: Strategy-Specific Signal Validation
+For a known strategy (e.g., RSI with period=14, oversold=30):
+- Independently compute RSI from the bar closes
+- Verify that BUY signals only fired when RSI was below the oversold threshold
+- Verify that SELL signals only fired when RSI was above the overbought threshold
+- Spot-check 2-3 trades' `entryReason` text against computed indicator values
 
-| Preset | Maps to Strategy | Source Study |
-|--------|-----------------|--------------|
-| MACD Bullish Cross | `macd-divergence` | `macd_analysis` |
-| MACD Bearish Cross | `macd-divergence` | `macd_analysis` |
-| Bollinger Lower Touch | `bollinger-reversal` | `bollinger_analysis` |
-| Bollinger Upper Touch | `bollinger-reversal` | `bollinger_analysis` |
-| Stochastic Oversold | `stochastic` (new handler) | `stochastic_analysis` |
-| ADX Strong Trend | `adx-trend` | (new indicator) |
-| Supertrend Bullish | `supertrend` | (new indicator) |
+## Test Scenarios
 
-### New signal categories:
+| Test | Strategy | Ticker | Period | What it validates |
+|------|----------|--------|--------|-------------------|
+| 1 | RSI (14, 30/70) | AAPL | 1Y | Signal accuracy + trade math |
+| 2 | MA Crossover (20/50) | MSFT | 3Y | Crossover detection + long holding periods |
+| 3 | MACD (12/26/9) | TSLA | 1Y | Histogram sign flip accuracy |
+| 4 | Bollinger (20, 2) | SPY | 3Y | Band touch detection |
+| 5 | Gap Fill (-2%) | QQQ | 1Y | Gap calculation + fill logic |
+| 6 | Consecutive Down (3) | NVDA | 1Y | Streak counting |
+| 7 | No-trade scenario | BRK.B | 1Y (RSI 5/95) | Edge case: 0 trades, metrics default correctly |
+| 8 | Execution realism | AAPL | 1Y | Slippage + commission deductions match config |
 
-Expand the category system from `['momentum', 'trend', 'pattern']` to include `'oscillator'` for the MACD/Stochastic/Bollinger signals.
+## Implementation
 
-### Strategy map updates:
+### File: `supabase/functions/strategy-backtest/index_test.ts`
 
-Add entries to `STRATEGY_MAP` in `StrategyBacktester.tsx`:
-- `'macd-bullish'` -> `'macd-divergence'`
-- `'macd-bearish'` -> `'macd-divergence'`
-- `'bollinger-lower'` -> `'bollinger-reversal'`
-- `'bollinger-upper'` -> `'bollinger-reversal'`
-- `'stochastic-oversold'` -> `'stochastic'`
-- `'adx-strong-trend'` -> `'adx-trend'`
-- `'supertrend-bullish'` -> `'supertrend'`
+A Deno test file using the existing edge function endpoint. Each test:
+1. Calls `strategy-backtest` with specific params
+2. Parses the full response (bars, trades, portfolio history, metrics)
+3. Runs the validation checks above
+4. Asserts with clear error messages on any mismatch
 
-### Files modified:
-- `src/components/builder/SentenceBuilder.tsx` -- Add ~7 new entries to `SIGNAL_PRESETS` array, add `'oscillator'` category
-- `src/components/backtester/StrategyBacktester.tsx` -- Add new entries to `STRATEGY_MAP`
-- `supabase/functions/strategy-backtest/index.ts` -- Add `stochastic` strategy handler (if not already present)
+Tolerance for floating-point comparisons: 0.01% for prices, 0.1% for percentages.
 
----
-
-## Part 2: Inline Quick Insights Panel
-
-### Concept
-
-A new collapsible section inside the backtester card (below the strategy builder, above results) titled "Quick Insights". It shows a row of clickable study chips for non-backtest studies. Clicking one calls `run-single-study` and renders the result inline.
-
-### Studies shown as Quick Insights (not backtest-able, informational only):
-
-| Study | What it shows |
-|-------|--------------|
-| `day_of_week_returns` | Bar chart: win rate + avg return per weekday |
-| `month_of_year_returns` | Bar chart: avg return per month |
-| `daily_return_distribution` | Histogram of daily returns |
-| `drawdown_analysis` | Max drawdown, recovery time |
-| `up_down_streaks` | Streak length distribution |
-| `volatility_analysis` | ATR, daily range stats |
-| `mean_reversion` | Reversion tendency stats |
-
-### New component: `QuickInsightsPanel`
-
-Located at `src/components/backtester/QuickInsightsPanel.tsx`
-
-**UI structure:**
-- Collapsible section with header "Quick Insights for {TICKER}"
-- Row of small chips/buttons for each study (icon + short name)
-- Clicking a chip triggers `supabase.functions.invoke('run-single-study', { body: { ticker, studyId } })`
-- Results render below the chips in a compact card format
-- Multiple studies can be open simultaneously (accordion-style or grid)
-- Loading skeleton while fetching
-
-**Result renderers** (compact inline versions):
-- **Day of Week**: Horizontal bar chart showing each weekday's win rate and avg return
-- **Month of Year**: 12-cell grid with color-coded avg returns (green = positive, red = negative)
-- **Volatility**: Simple stat cards (ATR, Daily Range, Current vs Avg)
-- **Drawdown**: Single stat card with max drawdown %, date, and recovery time
-- **Streaks**: Compact display of current streak, max win/loss streaks
-- **Distribution**: Mini histogram using Recharts
-
-### Integration point
-
-In `StrategyBacktester.tsx`, the `QuickInsightsPanel` is rendered between the strategy builder card and the results dashboard. It receives the `ticker` prop and manages its own state (which studies are loaded/open).
-
-### Files created:
-- `src/components/backtester/QuickInsightsPanel.tsx` -- Main panel with study chips and result renderers
-
-### Files modified:
-- `src/components/backtester/StrategyBacktester.tsx` -- Import and render `QuickInsightsPanel` between builder and results
-
----
+### Helper functions to create:
+- `validateBarIntegrity(bars)` -- OHLCV sanity, trading day check
+- `validateTradeAgainstBars(trade, bars, execConfig)` -- price/PnL verification
+- `validatePortfolioHistory(history, trades, initialCapital)` -- equity walk
+- `validateSummaryMetrics(result)` -- recalculate all metrics
+- `computeRSI(closes, period)` -- independent RSI for signal validation
 
 ## Technical Details
 
-### Data flow for Quick Insights:
 ```text
-User clicks "Best Days" chip
-  --> QuickInsightsPanel calls supabase.functions.invoke('run-single-study', { ticker, studyId: 'day_of_week_returns' })
-  --> Edge function fetches Polygon bars, runs study, returns result
-  --> QuickInsightsPanel renders inline chart/table
-  --> Result is cached in component state (no re-fetch if already loaded for this ticker)
+Test runner: Deno.test() via supabase--test-edge-functions tool
+Env loading: import "https://deno.land/std@0.224.0/dotenv/load.ts"
+Endpoint:    VITE_SUPABASE_URL + /functions/v1/strategy-backtest
+Auth:        VITE_SUPABASE_PUBLISHABLE_KEY as Bearer token
+Timeout:     120s per test (API calls + computation)
 ```
-
-### No database or edge function changes needed:
-- `run-single-study` already handles all the studies we need
-- All rendering is client-side using existing Recharts dependency
 
 ### Files summary:
 
 | File | Action |
 |------|--------|
-| `src/components/builder/SentenceBuilder.tsx` | Modify -- add 7 new signal presets, add oscillator category |
-| `src/components/backtester/StrategyBacktester.tsx` | Modify -- add strategy map entries, render QuickInsightsPanel |
-| `src/components/backtester/QuickInsightsPanel.tsx` | Create -- inline study results panel |
-| `supabase/functions/strategy-backtest/index.ts` | Modify -- add stochastic strategy handler if missing |
+| `supabase/functions/strategy-backtest/index_test.ts` | Create -- full validation test suite |
 
