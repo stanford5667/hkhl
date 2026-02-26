@@ -1,103 +1,90 @@
 
 
-# Backtest Validation Test Suite
+# Incorporate Fundamental Analysis (Earnings Data) into the Backtester
 
 ## Overview
 
-Create an automated test suite that verifies backtest calculations against real price data from the Polygon API. The tests will call the live `strategy-backtest` edge function with known tickers and date ranges, then validate that every trade, metric, and portfolio value is mathematically consistent with the underlying price bars returned in the response.
+Add earnings-based strategy signals to the backtester so users can backtest strategies that trade around earnings events. The `earnings_history` table already has historical report dates, EPS surprise data, and post-earnings price changes for hundreds of tickers -- we just need to wire it into the existing backtest engine.
 
-## Validation Layers
+## New Signal Presets (Frontend)
 
-### Layer 1: Data Integrity Checks
-- Verify `barsCount` matches the actual number of bars in the response
-- Confirm all bar dates fall on valid trading days (no weekends/holidays)
-- Ensure bars are sorted chronologically with no duplicates
-- Validate OHLCV relationships: `low <= open, close <= high` for every bar
-- Confirm `dailyReturn` matches `(close - prevClose) / prevClose * 100`
-- Check `dataSource` is either `'database'` or `'polygon'` (no mock data)
+Add these to the SentenceBuilder signal palette under a new **"fundamental"** category:
 
-### Layer 2: Trade-Level Verification
-For every trade in the `trades` array:
-- Confirm `entryDate` and `exitDate` exist in the bars data
-- Verify `entryPrice` matches the bar's close on `entryDate` (adjusted for slippage)
-- Verify `exitPrice` matches the bar's close on `exitDate` (adjusted for slippage)
-- Recalculate `grossPnl` as `shares * (exitPrice - entryPrice)` and compare
-- Recalculate `grossPnlPercent` as `((exitPrice - entryPrice) / entryPrice) * 100`
-- Verify `holdingDays` (trading days between entry and exit)
-- Check that no two trades overlap in time (no double-positions unless pyramiding > 1)
-- Validate `commissionCost` matches the commission model (percent, fixed-per-order, or fixed-per-contract)
-- Verify `netPnl = grossPnl - slippageCost - commissionCost`
+| Signal ID | Label | Description | Parameters |
+|-----------|-------|-------------|------------|
+| `earnings-beat-buy` | Buy Before Earnings | Enter N days before earnings report | Days Before (1-10), Historical Beat Rate min (50-100%) |
+| `post-earnings-drift` | Post-Earnings Drift | Buy after an earnings beat, ride the drift | Min Surprise % (1-20%), Hold Days (5-30) |
+| `earnings-miss-short` | Sell After Miss | Short/sell after earnings miss | Max Surprise % (-20 to -1%), Hold Days (5-30) |
+| `pre-earnings-run` | Pre-Earnings Run | Buy N days before earnings, sell day before | Days Before (5-20) |
 
-### Layer 3: Portfolio / Equity Curve
-- Walk through `portfolioHistory` and verify `value = cash + positionValue`
-- Confirm initial snapshot value equals `initialCapital`
-- Confirm final snapshot value equals `finalValue`
-- Verify `inPosition` flag flips correctly at trade entry/exit dates
+## Backend Changes (strategy-backtest edge function)
 
-### Layer 4: Summary Metrics
-- **totalReturn**: recalculate as `((finalValue - initialCapital) / initialCapital) * 100`
-- **winRate**: recalculate as `winningTrades / totalTrades * 100`
-- **winningTrades + losingTrades = totalTrades**
-- **avgWin**: mean of positive `pnlPercent` trades
-- **avgLoss**: mean of negative `pnlPercent` trades
-- **profitFactor**: `sum(wins) / abs(sum(losses))`
-- **maxDrawdown**: walk equity curve, find largest peak-to-trough drop
-- **sharpeRatio**: recalculate from daily returns in portfolio history
-- **buyHoldReturn**: `((lastClose - firstClose) / firstClose) * 100`
-- **outperformance**: `totalReturn - buyHoldReturn`
+### 1. Fetch Earnings Data at Backtest Start
 
-### Layer 5: Strategy-Specific Signal Validation
-For a known strategy (e.g., RSI with period=14, oversold=30):
-- Independently compute RSI from the bar closes
-- Verify that BUY signals only fired when RSI was below the oversold threshold
-- Verify that SELL signals only fired when RSI was above the overbought threshold
-- Spot-check 2-3 trades' `entryReason` text against computed indicator values
-
-## Test Scenarios
-
-| Test | Strategy | Ticker | Period | What it validates |
-|------|----------|--------|--------|-------------------|
-| 1 | RSI (14, 30/70) | AAPL | 1Y | Signal accuracy + trade math |
-| 2 | MA Crossover (20/50) | MSFT | 3Y | Crossover detection + long holding periods |
-| 3 | MACD (12/26/9) | TSLA | 1Y | Histogram sign flip accuracy |
-| 4 | Bollinger (20, 2) | SPY | 3Y | Band touch detection |
-| 5 | Gap Fill (-2%) | QQQ | 1Y | Gap calculation + fill logic |
-| 6 | Consecutive Down (3) | NVDA | 1Y | Streak counting |
-| 7 | No-trade scenario | BRK.B | 1Y (RSI 5/95) | Edge case: 0 trades, metrics default correctly |
-| 8 | Execution realism | AAPL | 1Y | Slippage + commission deductions match config |
-
-## Implementation
-
-### File: `supabase/functions/strategy-backtest/index_test.ts`
-
-A Deno test file using the existing edge function endpoint. Each test:
-1. Calls `strategy-backtest` with specific params
-2. Parses the full response (bars, trades, portfolio history, metrics)
-3. Runs the validation checks above
-4. Asserts with clear error messages on any mismatch
-
-Tolerance for floating-point comparisons: 0.01% for prices, 0.1% for percentages.
-
-### Helper functions to create:
-- `validateBarIntegrity(bars)` -- OHLCV sanity, trading day check
-- `validateTradeAgainstBars(trade, bars, execConfig)` -- price/PnL verification
-- `validatePortfolioHistory(history, trades, initialCapital)` -- equity walk
-- `validateSummaryMetrics(result)` -- recalculate all metrics
-- `computeRSI(closes, period)` -- independent RSI for signal validation
-
-## Technical Details
+When the strategy is an earnings-based one, query the `earnings_history` table for the ticker's historical earnings dates within the backtest window:
 
 ```text
-Test runner: Deno.test() via supabase--test-edge-functions tool
-Env loading: import "https://deno.land/std@0.224.0/dotenv/load.ts"
-Endpoint:    VITE_SUPABASE_URL + /functions/v1/strategy-backtest
-Auth:        VITE_SUPABASE_PUBLISHABLE_KEY as Bearer token
-Timeout:     120s per test (API calls + computation)
+SELECT report_date, eps_estimate, eps_actual, eps_surprise_pct, 
+       price_change_pct, price_before, price_after
+FROM earnings_history 
+WHERE symbol = $ticker 
+  AND report_date BETWEEN $startDate AND $endDate
+ORDER BY report_date ASC
 ```
 
-### Files summary:
+Build a date-indexed map of earnings events that the strategy functions can reference during the bar loop.
 
-| File | Action |
-|------|--------|
-| `supabase/functions/strategy-backtest/index_test.ts` | Create -- full validation test suite |
+### 2. New Strategy Functions
+
+**earningsPreBuyStrategy** (`earnings-beat-buy` / `pre-earnings-run`):
+- For each bar, check if any earnings report is N trading days ahead
+- Look up the ticker's historical beat rate from past earnings in the dataset
+- BUY if beat rate exceeds the user's threshold
+- SELL the day before or day of earnings (configurable)
+
+**postEarningsDriftStrategy** (`post-earnings-drift`):
+- On earnings day, check if `eps_surprise_pct` exceeds the user's min threshold (a beat)
+- BUY on the next trading day after a beat
+- SELL after the configured holding period
+- Indicator value = eps_surprise_pct
+
+**earningsMissStrategy** (`earnings-miss-short`):
+- On earnings day, check if `eps_surprise_pct` is below the user's max threshold (a miss)
+- SHORT on the next trading day after a miss
+- Cover after the configured holding period
+
+### 3. Wire Into the Engine
+
+- Add `earningsData` parameter to the `runBacktest` function signature
+- Add `case 'earnings-beat-buy':`, `case 'post-earnings-drift':`, `case 'earnings-miss-short':`, `case 'pre-earnings-run':` to the strategy switch
+- Add indicator names: `EPS Surprise %`, `Beat Rate`, `Days to Earnings`
+- Add indicator value functions for each
+
+### 4. Frontend Mapping
+
+**SentenceBuilder.tsx** -- add 4 new presets to `SIGNAL_PRESETS` array with category `'fundamental'` and appropriate parameter configs.
+
+**StrategyBacktester.tsx** -- add to `STRATEGY_MAP`:
+```text
+'earnings-beat-buy': 'earnings-beat-buy'
+'post-earnings-drift': 'post-earnings-drift'
+'earnings-miss-short': 'earnings-miss-short'
+'pre-earnings-run': 'pre-earnings-run'
+```
+
+### 5. Category Filter Update
+
+Add `'fundamental'` to the category filter buttons in the signal picker so earnings signals are grouped together (alongside existing `momentum`, `trend`, `pattern`, `oscillator`).
+
+## Files to Change
+
+| File | Action | What |
+|------|--------|------|
+| `supabase/functions/strategy-backtest/index.ts` | Edit | Add earnings data fetch, 4 new strategy functions, wire into switch/indicators |
+| `src/components/builder/SentenceBuilder.tsx` | Edit | Add 4 new signal presets with `'fundamental'` category, add category filter button |
+| `src/components/backtester/StrategyBacktester.tsx` | Edit | Add 4 entries to `STRATEGY_MAP` |
+
+## Data Availability
+
+The `earnings_history` table already contains data for 100+ tickers (AAPL has 27 records, META has 27, etc.) with `report_date`, `eps_actual`, `eps_surprise_pct`, and `price_change_pct`. No new database tables or migrations are needed.
 
