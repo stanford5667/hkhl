@@ -621,7 +621,7 @@ export function BacktestResultsDashboard({ result, compact = false }: BacktestRe
                 {result.ticker} - {result.strategy.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())} Strategy
               </h3>
               <p className="text-sm text-muted-foreground">
-                {format(new Date(result.startDate), 'MMM dd, yyyy')} → {format(new Date(result.endDate), 'MMM dd, yyyy')} • {result.tradingDays} trading days
+                {result.startDate && !isNaN(new Date(result.startDate).getTime()) ? format(new Date(result.startDate), 'MMM dd, yyyy') : 'N/A'} → {result.endDate && !isNaN(new Date(result.endDate).getTime()) ? format(new Date(result.endDate), 'MMM dd, yyyy') : 'N/A'} • {result.tradingDays} trading days
               </p>
 
               {result.dataWindow && (result.dataWindow.wasEndDateClamped || result.dataWindow.isForwardSimulated) && (
@@ -822,7 +822,7 @@ export function BacktestResultsDashboard({ result, compact = false }: BacktestRe
             <MetricCard 
               label="Max Drawdown" 
               value={`-${result.maxDrawdown.toFixed(2)}%`}
-              description={format(new Date(result.maxDrawdownDate), 'MMM dd, yyyy')}
+              description={result.maxDrawdownDate && !isNaN(new Date(result.maxDrawdownDate).getTime()) ? format(new Date(result.maxDrawdownDate), 'MMM dd, yyyy') : 'N/A'}
               trend="bad"
               icon={AlertTriangle}
             />
