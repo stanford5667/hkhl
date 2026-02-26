@@ -788,6 +788,55 @@ interface EarningsEvent {
   priceAfter: number | null;
 }
 
+function toFiniteNumber(value: unknown): number | null {
+  if (value === null || value === undefined) return null;
+  const n = typeof value === 'number' ? value : Number(value);
+  return Number.isFinite(n) ? n : null;
+}
+
+function getEffectiveEpsSurprisePct(event: EarningsEvent): number | null {
+  const epsSurprise = toFiniteNumber(event.epsSurprisePct);
+  if (epsSurprise !== null) {
+    return epsSurprise;
+  }
+
+  const epsActual = toFiniteNumber(event.epsActual);
+  const epsEstimate = toFiniteNumber(event.epsEstimate);
+  if (epsActual !== null && epsEstimate !== null && epsEstimate !== 0) {
+    return ((epsActual - epsEstimate) / Math.abs(epsEstimate)) * 100;
+  }
+
+  // Fallback used by earnings analytics UI when surprise fields are sparse
+  const priceChange = toFiniteNumber(event.priceChangePct);
+  if (priceChange !== null) {
+    return priceChange;
+  }
+
+  return null;
+}
+
+function isEarningsBeat(event: EarningsEvent): boolean | null {
+  const surprise = getEffectiveEpsSurprisePct(event);
+  if (surprise === null) return null;
+  return surprise >= 0;
+}
+
+function getRecentEarningsEvent(
+  currentDate: string,
+  earningsMap: Map<string, EarningsEvent>,
+  lookbackCalendarDays = 3
+): EarningsEvent | null {
+  const base = new Date(normalizeDate(currentDate) + 'T12:00:00Z');
+  for (let d = 0; d <= lookbackCalendarDays; d++) {
+    const probe = new Date(base.getTime() - d * 24 * 60 * 60 * 1000)
+      .toISOString()
+      .split('T')[0];
+    const event = earningsMap.get(probe);
+    if (event) return event;
+  }
+  return null;
+}
+
 function earningsPreBuyStrategy(
   bars: Bar[], index: number, inPosition: boolean, entryDate: string | null,
   earningsMap: Map<string, EarningsEvent>, earningsDatesSorted: string[],
@@ -800,8 +849,9 @@ function earningsPreBuyStrategy(
   const pastEarnings = earningsDatesSorted
     .filter(d => d < currentDate)
     .map(d => earningsMap.get(d)!)
-    .filter(e => e.epsEstimate !== null && e.epsActual !== null);
-  const beats = pastEarnings.filter(e => e.epsActual! >= e.epsEstimate!).length;
+    .map(e => ({ ...e, isBeat: isEarningsBeat(e) }))
+    .filter(e => e.isBeat !== null);
+  const beats = pastEarnings.filter(e => e.isBeat === true).length;
   const beatRate = pastEarnings.length > 0 ? (beats / pastEarnings.length) * 100 : 0;
 
   if (!inPosition) {
@@ -842,12 +892,11 @@ function postEarningsDriftStrategy(
   const currentDate = normalizeDate(bars[index].date);
 
   if (!inPosition) {
-    const prevDate = index > 0 ? normalizeDate(bars[index - 1].date) : null;
-    const earningsToday = earningsMap.get(currentDate);
-    const earningsYesterday = prevDate ? earningsMap.get(prevDate) : null;
-    const event = earningsToday || earningsYesterday;
-    if (event && event.epsSurprisePct !== null && event.epsSurprisePct >= minSurprise) {
-      return { action: 'BUY', reason: `Post-earnings drift: EPS surprise +${event.epsSurprisePct.toFixed(1)}% (min ${minSurprise}%)` };
+    const event = getRecentEarningsEvent(currentDate, earningsMap, 4);
+    const surprise = event ? getEffectiveEpsSurprisePct(event) : null;
+
+    if (event && surprise !== null && surprise >= minSurprise) {
+      return { action: 'BUY', reason: `Post-earnings drift: surprise ${surprise >= 0 ? '+' : ''}${surprise.toFixed(1)}% (min ${minSurprise}%)` };
     }
   }
 
@@ -875,8 +924,10 @@ function earningsMissStrategy(
     const earningsToday = earningsMap.get(currentDate);
     const earningsYesterday = prevDate ? earningsMap.get(prevDate) : null;
     const event = earningsToday || earningsYesterday;
-    if (event && event.epsSurprisePct !== null && event.epsSurprisePct <= maxSurprise) {
-      return { action: 'SELL', reason: `Earnings miss: EPS surprise ${event.epsSurprisePct.toFixed(1)}% (threshold ${maxSurprise}%)` };
+    const surprise = event ? getEffectiveEpsSurprisePct(event) : null;
+
+    if (event && surprise !== null && surprise <= maxSurprise) {
+      return { action: 'SELL', reason: `Earnings miss: surprise ${surprise.toFixed(1)}% (threshold ${maxSurprise}%)` };
     }
   }
 
@@ -1056,15 +1107,19 @@ function runBacktest(
       case 'earnings-beat-buy': case 'pre-earnings-run': {
         if (!earningsData) return null;
         const curDate = normalizeDate(bars[idx].date);
-        const pastE = earningsData.datesSorted.filter(d => d < curDate).map(d => earningsData.map.get(d)!).filter(e => e.epsEstimate !== null && e.epsActual !== null);
-        const beats = pastE.filter(e => e.epsActual! >= e.epsEstimate!).length;
+        const pastE = earningsData.datesSorted
+          .filter(d => d < curDate)
+          .map(d => earningsData.map.get(d)!)
+          .map(e => isEarningsBeat(e))
+          .filter((isBeat): isBeat is boolean => isBeat !== null);
+        const beats = pastE.filter(Boolean).length;
         return pastE.length > 0 ? (beats / pastE.length) * 100 : null;
       }
       case 'post-earnings-drift': case 'earnings-miss-short': {
         if (!earningsData) return null;
         const curDate = normalizeDate(bars[idx].date);
         const event = earningsData.map.get(curDate);
-        return event?.epsSurprisePct ?? null;
+        return event ? getEffectiveEpsSurprisePct(event) : null;
       }
       default: return null;
     }
