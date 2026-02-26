@@ -284,7 +284,7 @@ export default function PublicStockView() {
     }
   }, [ticker]);
 
-  // Fetch stock quote
+  // Fetch stock quote - independent of details
   const fetchQuote = useCallback(async () => {
     if (!ticker) return;
     
@@ -302,8 +302,7 @@ export default function PublicStockView() {
           high: data.high,
           low: data.low,
           previousClose: data.previousClose,
-          marketCap: details?.marketCap,
-          companyName: data.companyName || details?.name,
+          companyName: data.companyName || ticker,
         });
       }
     } catch (e) {
@@ -311,17 +310,20 @@ export default function PublicStockView() {
     } finally {
       setIsLoadingQuote(false);
     }
-  }, [ticker, details?.marketCap, details?.name]);
+  }, [ticker]);
 
+  // Fetch details and quote in parallel on mount
   useEffect(() => {
     fetchDetails();
-  }, [fetchDetails]);
+    fetchQuote();
+  }, [fetchDetails, fetchQuote]);
 
+  // Enrich quote with details data when details arrive
   useEffect(() => {
-    if (details) {
-      fetchQuote();
+    if (details?.marketCap) {
+      setQuote(prev => prev ? { ...prev, marketCap: details.marketCap } : prev);
     }
-  }, [details, fetchQuote]);
+  }, [details?.marketCap]);
 
   const handleRefresh = async () => {
     setIsRefreshing(true);

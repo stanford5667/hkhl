@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { TrendingUp, TrendingDown, Loader2 } from 'lucide-react';
 import { useBatchQuotes } from '@/hooks/useMarketDataQuery';
+import { prefetchTickerData } from '@/lib/tickerPrefetch';
 
 interface TickerItem {
   symbol: string;
@@ -72,6 +73,7 @@ export function TickerStream({ className }: { className?: string }) {
           <Link 
             key={`${ticker.symbol}-${i}`}
             to={`/stock/${ticker.symbol}`}
+            onMouseEnter={() => prefetchTickerData(ticker.symbol)}
             className="flex items-center gap-2 shrink-0 hover:bg-muted/50 rounded px-2 py-1 transition-colors"
           >
             <span className="ticker-badge text-xs hover:text-primary">{ticker.symbol}</span>

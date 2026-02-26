@@ -1,5 +1,6 @@
 import { cn } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
+import { prefetchTickerData } from "@/lib/tickerPrefetch";
 
 interface TickerBadgeProps {
   ticker: string;
@@ -33,6 +34,7 @@ export function TickerBadge({
         className
       )}
       onClick={handleClick}
+      onMouseEnter={() => prefetchTickerData(ticker)}
     >
       ${ticker}
     </span>
