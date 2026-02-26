@@ -227,6 +227,11 @@ export function StrategyBacktester({ ticker, companyName }: StrategyBacktesterPr
     }
   }, [ticker, period, initialCapital, advancedParams]);
 
+  const handleClear = useCallback(() => {
+    setResult(null);
+    setError(null);
+  }, []);
+
   return (
     <div className="space-y-4">
       {/* Header */}
@@ -265,6 +270,7 @@ export function StrategyBacktester({ ticker, companyName }: StrategyBacktesterPr
               embedded 
               initialTicker={ticker}
               onRunBacktest={handleVisualBuilderBacktest}
+              onClear={handleClear}
               advancedParams={advancedParams}
               onAdvancedParamsChange={setAdvancedParams}
             />

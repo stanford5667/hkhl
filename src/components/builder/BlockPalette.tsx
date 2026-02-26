@@ -29,6 +29,7 @@ export interface BlockPaletteProps {
   onAddBlock?: (subtype: BlockSubtype) => void;
   onSwitchToCanvas?: () => void;
   onRunBacktest?: (params: { strategy: string; ticker: string; params: Record<string, number | string | undefined> }) => void;
+  onClear?: () => void;
   ticker?: string;
   // Controlled state for SentenceBuilder persistence
   sentenceState?: SentenceBuilderState;
@@ -267,6 +268,7 @@ export const BlockPalette = memo(function BlockPalette({
   onAddBlock,
   onSwitchToCanvas,
   onRunBacktest,
+  onClear,
   ticker,
   sentenceState,
   onSentenceStateChange,
@@ -282,6 +284,7 @@ export const BlockPalette = memo(function BlockPalette({
       )}>
         <UnifiedStrategyBuilder
           onRunBacktest={onRunBacktest}
+          onClear={onClear}
           ticker={ticker}
           sentenceState={sentenceState}
           onSentenceStateChange={onSentenceStateChange}

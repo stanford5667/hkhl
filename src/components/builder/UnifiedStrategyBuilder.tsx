@@ -159,6 +159,7 @@ const SIGNAL_PRESET_MAP: Record<string, {
 interface UnifiedStrategyBuilderProps {
   ticker?: string;
   onRunBacktest?: (params: BacktestParams) => void;
+  onClear?: () => void;
   sentenceState?: SentenceBuilderState;
   onSentenceStateChange?: (state: SentenceBuilderState) => void;
   className?: string;
@@ -169,6 +170,7 @@ interface UnifiedStrategyBuilderProps {
 export const UnifiedStrategyBuilder = memo(function UnifiedStrategyBuilder({
   ticker = 'AAPL',
   onRunBacktest,
+  onClear,
   sentenceState,
   onSentenceStateChange,
   className,
@@ -298,6 +300,7 @@ export const UnifiedStrategyBuilder = memo(function UnifiedStrategyBuilder({
         <SentenceBuilder
           onAddBlock={() => {}}
           onRunBacktest={onRunBacktest}
+          onClear={onClear}
           ticker={ticker}
           state={sentenceState}
           onStateChange={onSentenceStateChange}

@@ -47,6 +47,8 @@ interface VisualStrategyBuilderProps {
   embedded?: boolean;
   /** Callback for inline backtest execution - should return metrics for results view */
   onRunBacktest?: (params: BacktestParams) => Promise<BacktestMetrics | void> | void;
+  /** Callback when user clears the strategy */
+  onClear?: () => void;
   /** Initial ticker for embedded mode */
   initialTicker?: string;
   /** Advanced params for execution configuration */
@@ -57,6 +59,7 @@ interface VisualStrategyBuilderProps {
 export function VisualStrategyBuilder({ 
   embedded = false, 
   onRunBacktest,
+  onClear,
   initialTicker = 'AAPL',
   advancedParams,
   onAdvancedParamsChange,
@@ -361,6 +364,7 @@ export function VisualStrategyBuilder({
             compact 
             onAddBlock={handleAddBlock}
             onRunBacktest={handleEmbeddedBacktest}
+            onClear={onClear}
             ticker={ticker}
             sentenceState={sentenceState}
             onSentenceStateChange={setSentenceState}

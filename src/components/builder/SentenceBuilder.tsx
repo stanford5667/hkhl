@@ -48,6 +48,7 @@ interface SentenceBuilderProps {
   onAddBlock: (subtype: BlockSubtype, parameters?: Record<string, number>) => void;
   onComplete?: () => void;
   onRunBacktest?: (params: BacktestParams) => void;
+  onClear?: () => void;
   ticker?: string;
   className?: string;
   // Controlled state for persistence
@@ -732,6 +733,7 @@ export const SentenceBuilder = memo(function SentenceBuilder({
   onAddBlock,
   onComplete,
   onRunBacktest,
+  onClear,
   ticker = 'AAPL',
   className,
   state,
@@ -1037,6 +1039,7 @@ export const SentenceBuilder = memo(function SentenceBuilder({
   const handleClear = () => {
     setEntrySignals([]);
     setExitRules([]);
+    onClear?.();
   };
 
   return (
