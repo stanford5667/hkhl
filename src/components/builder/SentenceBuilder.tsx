@@ -64,7 +64,7 @@ interface SignalPreset {
   label: string;
   description: string;
   icon: string;
-  category: 'momentum' | 'trend' | 'pattern' | 'oscillator';
+  category: 'momentum' | 'trend' | 'pattern' | 'oscillator' | 'fundamental';
   indicator: BlockSubtype;
   condition: BlockSubtype;
   parameters: {
@@ -341,6 +341,62 @@ const SIGNAL_PRESETS: SignalPreset[] = [
       { key: 'threshold', label: 'Gap %', min: 1, max: 10, step: 0.5, suffix: '%' },
     ],
   },
+  // ── Fundamental / Earnings Signals ──
+  {
+    id: 'earnings-beat-buy',
+    label: 'Buy Before Earnings',
+    description: 'Enter N days before earnings if beat rate is high',
+    icon: '📊',
+    category: 'fundamental',
+    indicator: 'RSI',
+    condition: 'GREATER_THAN',
+    parameters: { threshold: 60, period: 5 },
+    parameterConfig: [
+      { key: 'period', label: 'Days Before', min: 1, max: 10, step: 1 },
+      { key: 'threshold', label: 'Min Beat Rate', min: 50, max: 100, step: 5, suffix: '%' },
+    ],
+  },
+  {
+    id: 'post-earnings-drift',
+    label: 'Post-Earnings Drift',
+    description: 'Buy after an earnings beat, ride the drift',
+    icon: '🚀',
+    category: 'fundamental',
+    indicator: 'RSI',
+    condition: 'GREATER_THAN',
+    parameters: { threshold: 5, period: 10 },
+    parameterConfig: [
+      { key: 'threshold', label: 'Min Surprise %', min: 1, max: 20, step: 1, suffix: '%' },
+      { key: 'period', label: 'Hold Days', min: 5, max: 30, step: 1 },
+    ],
+  },
+  {
+    id: 'earnings-miss-short',
+    label: 'Sell After Miss',
+    description: 'Sell after a significant earnings miss',
+    icon: '📉',
+    category: 'fundamental',
+    indicator: 'RSI',
+    condition: 'LESS_THAN',
+    parameters: { threshold: -5, period: 10 },
+    parameterConfig: [
+      { key: 'threshold', label: 'Max Surprise %', min: -20, max: -1, step: 1, suffix: '%' },
+      { key: 'period', label: 'Hold Days', min: 5, max: 30, step: 1 },
+    ],
+  },
+  {
+    id: 'pre-earnings-run',
+    label: 'Pre-Earnings Run',
+    description: 'Buy N days before earnings, sell day before',
+    icon: '⏰',
+    category: 'fundamental',
+    indicator: 'RSI',
+    condition: 'GREATER_THAN',
+    parameters: { period: 10 },
+    parameterConfig: [
+      { key: 'period', label: 'Days Before', min: 5, max: 20, step: 1 },
+    ],
+  },
 ];
 
 // Types moved to top for export
@@ -528,6 +584,7 @@ const SignalAddButton = memo(function SignalAddButton({
     { id: 'oscillator', label: 'Oscillator' },
     { id: 'trend', label: 'Trend' },
     { id: 'pattern', label: 'Pattern' },
+    { id: 'fundamental', label: 'Fundamental' },
   ];
 
   return (
@@ -883,6 +940,25 @@ export const SentenceBuilder = memo(function SentenceBuilder({
         strategy = 'gap-fill';
         params.gapThreshold = firstSignal.parameters.threshold;
         params.direction = 'up';
+        break;
+      case 'earnings-beat-buy':
+        strategy = 'earnings-beat-buy';
+        params.daysBefore = firstSignal.parameters.period;
+        params.minBeatRate = firstSignal.parameters.threshold;
+        break;
+      case 'post-earnings-drift':
+        strategy = 'post-earnings-drift';
+        params.minSurprise = firstSignal.parameters.threshold;
+        params.holdingPeriod = firstSignal.parameters.period;
+        break;
+      case 'earnings-miss-short':
+        strategy = 'earnings-miss-short';
+        params.maxSurprise = firstSignal.parameters.threshold;
+        params.holdingPeriod = firstSignal.parameters.period;
+        break;
+      case 'pre-earnings-run':
+        strategy = 'pre-earnings-run';
+        params.daysBefore = firstSignal.parameters.period;
         break;
       default:
         strategy = 'rsi';

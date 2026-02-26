@@ -120,6 +120,10 @@ const STRATEGY_MAP: Record<string, string> = {
   'mean-reversion': 'mean-reversion',
   'volatility-squeeze': 'volatility-squeeze',
   'oversold-bounce': 'rsi',
+  'earnings-beat-buy': 'earnings-beat-buy',
+  'post-earnings-drift': 'post-earnings-drift',
+  'earnings-miss-short': 'earnings-miss-short',
+  'pre-earnings-run': 'pre-earnings-run',
 };
 
 // ═══════════════════════════════════════════════════════════════════════════════

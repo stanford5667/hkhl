@@ -774,6 +774,155 @@ function calculateStdDev(prices: number[], period: number): (number | null)[] {
   return result;
 }
 
+// ═══════════════════════════════════════════════════════════════════════════════
+// EARNINGS-BASED STRATEGY IMPLEMENTATIONS
+// ═══════════════════════════════════════════════════════════════════════════════
+
+interface EarningsEvent {
+  reportDate: string;
+  epsEstimate: number | null;
+  epsActual: number | null;
+  epsSurprisePct: number | null;
+  priceChangePct: number | null;
+  priceBefore: number | null;
+  priceAfter: number | null;
+}
+
+function earningsPreBuyStrategy(
+  bars: Bar[], index: number, inPosition: boolean, entryDate: string | null,
+  earningsMap: Map<string, EarningsEvent>, earningsDatesSorted: string[],
+  params: StrategyParams
+): StrategySignal {
+  const daysBefore = (params as any).daysBefore ?? 5;
+  const minBeatRate = (params as any).minBeatRate ?? 60;
+  const currentDate = normalizeDate(bars[index].date);
+
+  const pastEarnings = earningsDatesSorted
+    .filter(d => d < currentDate)
+    .map(d => earningsMap.get(d)!)
+    .filter(e => e.epsEstimate !== null && e.epsActual !== null);
+  const beats = pastEarnings.filter(e => e.epsActual! >= e.epsEstimate!).length;
+  const beatRate = pastEarnings.length > 0 ? (beats / pastEarnings.length) * 100 : 0;
+
+  if (!inPosition) {
+    for (const eDate of earningsDatesSorted) {
+      if (eDate <= currentDate) continue;
+      const tradingDaysAway = countTradingDaysBetween(currentDate, eDate);
+      if (tradingDaysAway <= daysBefore && tradingDaysAway > 0) {
+        if (beatRate >= minBeatRate) {
+          return { action: 'BUY', reason: `Earnings in ${tradingDaysAway}d, beat rate ${beatRate.toFixed(0)}% (min ${minBeatRate}%)` };
+        }
+        break;
+      }
+      if (tradingDaysAway > daysBefore) break;
+    }
+  }
+
+  if (inPosition && entryDate) {
+    for (const eDate of earningsDatesSorted) {
+      if (eDate < currentDate) continue;
+      const daysToEarnings = countTradingDaysBetween(currentDate, eDate);
+      if (daysToEarnings <= 1) {
+        return { action: 'SELL', reason: `Selling before earnings report on ${eDate}` };
+      }
+      break;
+    }
+  }
+
+  return { action: 'HOLD', reason: `Beat rate: ${beatRate.toFixed(0)}%` };
+}
+
+function postEarningsDriftStrategy(
+  bars: Bar[], index: number, inPosition: boolean, entryDate: string | null,
+  earningsMap: Map<string, EarningsEvent>,
+  params: StrategyParams
+): StrategySignal {
+  const minSurprise = (params as any).minSurprise ?? 5;
+  const holdDays = params.holdingPeriod ?? 10;
+  const currentDate = normalizeDate(bars[index].date);
+
+  if (!inPosition) {
+    const prevDate = index > 0 ? normalizeDate(bars[index - 1].date) : null;
+    const earningsToday = earningsMap.get(currentDate);
+    const earningsYesterday = prevDate ? earningsMap.get(prevDate) : null;
+    const event = earningsToday || earningsYesterday;
+    if (event && event.epsSurprisePct !== null && event.epsSurprisePct >= minSurprise) {
+      return { action: 'BUY', reason: `Post-earnings drift: EPS surprise +${event.epsSurprisePct.toFixed(1)}% (min ${minSurprise}%)` };
+    }
+  }
+
+  if (inPosition && entryDate) {
+    const daysHeld = countTradingDaysBetween(entryDate, currentDate);
+    if (daysHeld >= holdDays) {
+      return { action: 'SELL', reason: `Drift hold period of ${holdDays} days reached` };
+    }
+  }
+
+  return { action: 'HOLD', reason: 'Waiting for earnings beat' };
+}
+
+function earningsMissStrategy(
+  bars: Bar[], index: number, inPosition: boolean, entryDate: string | null,
+  earningsMap: Map<string, EarningsEvent>,
+  params: StrategyParams
+): StrategySignal {
+  const maxSurprise = (params as any).maxSurprise ?? -5;
+  const holdDays = params.holdingPeriod ?? 10;
+  const currentDate = normalizeDate(bars[index].date);
+
+  if (!inPosition) {
+    const prevDate = index > 0 ? normalizeDate(bars[index - 1].date) : null;
+    const earningsToday = earningsMap.get(currentDate);
+    const earningsYesterday = prevDate ? earningsMap.get(prevDate) : null;
+    const event = earningsToday || earningsYesterday;
+    if (event && event.epsSurprisePct !== null && event.epsSurprisePct <= maxSurprise) {
+      return { action: 'SELL', reason: `Earnings miss: EPS surprise ${event.epsSurprisePct.toFixed(1)}% (threshold ${maxSurprise}%)` };
+    }
+  }
+
+  if (inPosition && entryDate) {
+    const daysHeld = countTradingDaysBetween(entryDate, currentDate);
+    if (daysHeld >= holdDays) {
+      return { action: 'SELL', reason: `Miss hold period of ${holdDays} days reached` };
+    }
+  }
+
+  return { action: 'HOLD', reason: 'Waiting for earnings miss' };
+}
+
+function preEarningsRunStrategy(
+  bars: Bar[], index: number, inPosition: boolean, entryDate: string | null,
+  earningsDatesSorted: string[],
+  params: StrategyParams
+): StrategySignal {
+  const daysBefore = (params as any).daysBefore ?? 10;
+  const currentDate = normalizeDate(bars[index].date);
+
+  if (!inPosition) {
+    for (const eDate of earningsDatesSorted) {
+      if (eDate <= currentDate) continue;
+      const tradingDaysAway = countTradingDaysBetween(currentDate, eDate);
+      if (tradingDaysAway <= daysBefore && tradingDaysAway > 1) {
+        return { action: 'BUY', reason: `Pre-earnings run: ${tradingDaysAway}d before earnings on ${eDate}` };
+      }
+      if (tradingDaysAway > daysBefore) break;
+    }
+  }
+
+  if (inPosition && entryDate) {
+    for (const eDate of earningsDatesSorted) {
+      if (eDate < currentDate) continue;
+      const daysToEarnings = countTradingDaysBetween(currentDate, eDate);
+      if (daysToEarnings <= 1) {
+        return { action: 'SELL', reason: `Selling before earnings on ${eDate}` };
+      }
+      break;
+    }
+  }
+
+  return { action: 'HOLD', reason: 'No upcoming earnings in window' };
+}
+
 function gapFillStrategy(bars: Bar[], index: number, inPosition: boolean, entryPrice: number | null, params: StrategyParams, entryDate?: string | null): { signal: StrategySignal; exitAtEntryPrice?: boolean } {
   if (index < 1) return { signal: { action: 'HOLD', reason: 'Need previous bar' } };
   const prevClose = bars[index - 1].close;
@@ -855,7 +1004,8 @@ function runBacktest(
   advancedParams: AdvancedParams,
   dataSource: 'database' | 'polygon',
   dataSourceUrl: string,
-  dataWindow?: BacktestResult['dataWindow']
+  dataWindow?: BacktestResult['dataWindow'],
+  earningsData?: { map: Map<string, EarningsEvent>; datesSorted: string[] }
 ): Omit<BacktestResult, 'success' | 'ticker' | 'startDate' | 'endDate'> {
   const trades: Trade[] = [];
   const portfolioHistory: PortfolioSnapshot[] = [];
@@ -883,7 +1033,7 @@ function runBacktest(
   const stochK = calculateStochasticK(bars, (params as any).stochPeriod ?? 14);
 
   const getIndicatorName = (s: string): string => {
-    switch (s) { case 'rsi': return 'RSI'; case 'ma-crossover': return 'Fast EMA'; case 'gap-fill': return 'Gap %'; case 'consecutive-days': return 'Down Days'; case 'macd': return 'MACD Hist'; case 'bollinger': return 'BB Position'; case 'stochastic': return 'Stochastic %K'; case 'drawdown-recovery': return 'Drawdown %'; case 'mean-reversion': return 'Z-Score'; case 'volatility-squeeze': return 'BB Width %'; default: return 'Indicator'; }
+    switch (s) { case 'rsi': return 'RSI'; case 'ma-crossover': return 'Fast EMA'; case 'gap-fill': return 'Gap %'; case 'consecutive-days': return 'Down Days'; case 'macd': return 'MACD Hist'; case 'bollinger': return 'BB Position'; case 'stochastic': return 'Stochastic %K'; case 'drawdown-recovery': return 'Drawdown %'; case 'mean-reversion': return 'Z-Score'; case 'volatility-squeeze': return 'BB Width %'; case 'earnings-beat-buy': return 'Beat Rate'; case 'post-earnings-drift': return 'EPS Surprise %'; case 'earnings-miss-short': return 'EPS Surprise %'; case 'pre-earnings-run': return 'Days to Earnings'; default: return 'Indicator'; }
   };
   const getIndicatorValue = (s: string, idx: number): number | null => {
     switch (s) {
@@ -903,6 +1053,19 @@ function runBacktest(
       }
       case 'mean-reversion': return bbSma[idx] !== null && bbStdDevs[idx] !== null && bbStdDevs[idx]! > 0 ? (bars[idx].close - bbSma[idx]!) / bbStdDevs[idx]! : null;
       case 'volatility-squeeze': return bbSma[idx] !== null && bbStdDevs[idx] !== null && bbSma[idx]! > 0 ? (bbStdDevs[idx]! * 2 / bbSma[idx]!) * 100 : null;
+      case 'earnings-beat-buy': case 'pre-earnings-run': {
+        if (!earningsData) return null;
+        const curDate = normalizeDate(bars[idx].date);
+        const pastE = earningsData.datesSorted.filter(d => d < curDate).map(d => earningsData.map.get(d)!).filter(e => e.epsEstimate !== null && e.epsActual !== null);
+        const beats = pastE.filter(e => e.epsActual! >= e.epsEstimate!).length;
+        return pastE.length > 0 ? (beats / pastE.length) * 100 : null;
+      }
+      case 'post-earnings-drift': case 'earnings-miss-short': {
+        if (!earningsData) return null;
+        const curDate = normalizeDate(bars[idx].date);
+        const event = earningsData.map.get(curDate);
+        return event?.epsSurprisePct ?? null;
+      }
       default: return null;
     }
   };
@@ -1224,6 +1387,10 @@ function runBacktest(
       case 'drawdown-recovery': signal = drawdownRecoveryStrategy(bars, i, inPosition, entryDate, params); break;
       case 'mean-reversion': signal = meanReversionStrategy(bars, i, bbSma, bbStdDevs, inPosition, params); break;
       case 'volatility-squeeze': signal = volatilitySqueezeStrategy(bars, i, bbSma, bbStdDevs, inPosition, entryDate, params); break;
+      case 'earnings-beat-buy': signal = earningsData ? earningsPreBuyStrategy(bars, i, inPosition, entryDate, earningsData.map, earningsData.datesSorted, params) : { action: 'HOLD', reason: 'No earnings data' }; break;
+      case 'post-earnings-drift': signal = earningsData ? postEarningsDriftStrategy(bars, i, inPosition, entryDate, earningsData.map, params) : { action: 'HOLD', reason: 'No earnings data' }; break;
+      case 'earnings-miss-short': signal = earningsData ? earningsMissStrategy(bars, i, inPosition, entryDate, earningsData.map, params) : { action: 'HOLD', reason: 'No earnings data' }; break;
+      case 'pre-earnings-run': signal = earningsData ? preEarningsRunStrategy(bars, i, inPosition, entryDate, earningsData.datesSorted, params) : { action: 'HOLD', reason: 'No earnings data' }; break;
       default: signal = { action: 'HOLD', reason: 'Unknown strategy' };
     }
 
@@ -1518,7 +1685,45 @@ Deno.serve(async (req) => {
       isForwardSimulated: false,
     };
 
-    const result = runBacktest(bars, strategy, initialCapital, params, advancedParams, dataSource, dataSourceUrl, dataWindow);
+    // ─── FETCH EARNINGS DATA FOR FUNDAMENTAL STRATEGIES ───────────────────
+    const EARNINGS_STRATEGIES = ['earnings-beat-buy', 'post-earnings-drift', 'earnings-miss-short', 'pre-earnings-run'];
+    let earningsData: { map: Map<string, EarningsEvent>; datesSorted: string[] } | undefined;
+
+    if (EARNINGS_STRATEGIES.includes(strategy)) {
+      const { data: earningsRows, error: earningsError } = await supabase
+        .from('earnings_history')
+        .select('report_date, eps_estimate, eps_actual, eps_surprise_pct, price_change_pct, price_before, price_after')
+        .eq('symbol', normalizedTicker)
+        .gte('report_date', requestedStartDate)
+        .lte('report_date', endDate)
+        .order('report_date', { ascending: true });
+
+      if (earningsError) console.error('[strategy-backtest] Earnings query error:', earningsError);
+
+      if (earningsRows && earningsRows.length > 0) {
+        const map = new Map<string, EarningsEvent>();
+        const datesSorted: string[] = [];
+        for (const row of earningsRows) {
+          const d = normalizeDate(row.report_date);
+          map.set(d, {
+            reportDate: d,
+            epsEstimate: row.eps_estimate,
+            epsActual: row.eps_actual,
+            epsSurprisePct: row.eps_surprise_pct,
+            priceChangePct: row.price_change_pct,
+            priceBefore: row.price_before,
+            priceAfter: row.price_after,
+          });
+          datesSorted.push(d);
+        }
+        earningsData = { map, datesSorted };
+        console.log(`[strategy-backtest] Loaded ${earningsRows.length} earnings events for ${normalizedTicker}`);
+      } else {
+        console.log(`[strategy-backtest] No earnings data found for ${normalizedTicker}`);
+      }
+    }
+
+    const result = runBacktest(bars, strategy, initialCapital, params, advancedParams, dataSource, dataSourceUrl, dataWindow, earningsData);
 
     console.log(`[strategy-backtest] Complete: ${result.totalTrades} trades, ${result.totalReturn.toFixed(2)}% return`);
 
