@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { prefetchTickerData } from '@/lib/tickerPrefetch';
 import {
   CommandDialog,
   CommandEmpty,
@@ -71,6 +72,7 @@ export function GlobalSearch({ open, onOpenChange }: GlobalSearchProps) {
                   onSelect={() => {
                     runCommand(() => navigate(`/stock/${result.symbol}`));
                   }}
+                  onMouseEnter={() => prefetchTickerData(result.symbol)}
                   className="text-slate-300 hover:bg-slate-800"
                 >
                   <div className="flex items-center justify-between w-full">
