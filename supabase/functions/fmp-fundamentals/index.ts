@@ -226,7 +226,7 @@ async function fetchIncomeStatements(symbol: string, apiKey: string): Promise<In
     return cached as IncomeStatement[];
   }
 
-  const url = `${BASE_URL}/income-statement/${encodeURIComponent(symbol)}?period=annual&limit=5&apikey=${apiKey}`;
+  const url = `${BASE_URL}/income-statement/${encodeURIComponent(symbol)}?period=annual&limit=10&apikey=${apiKey}`;
   const response = await fetch(url);
   
   if (!response.ok) {
@@ -787,7 +787,7 @@ async function fetchSECFinancials(ticker: string): Promise<IncomeStatement[]> {
 
     const years = [...new Set([...revenueValues.keys(), ...netIncomeValues.keys()])]
       .sort((a, b) => parseInt(b) - parseInt(a))
-      .slice(0, 5);
+      .slice(0, 10);
     
     console.log(`[SEC XBRL] Found years: ${years.join(', ')} with revenue values: ${[...revenueValues.entries()].map(([y, v]) => `${y}=${(v/1e9).toFixed(1)}B`).join(', ')}`);
 
@@ -980,7 +980,7 @@ async function fetchSECBalanceSheetHistory(ticker: string): Promise<any[]> {
     // Get all years from totalAssets
     const years = [...totalAssets.keys()]
       .sort((a, b) => parseInt(b) - parseInt(a))
-      .slice(0, 5);
+      .slice(0, 10);
 
     const balanceSheets = years.map(year => ({
       date: `${year}-12-31`,
@@ -1136,7 +1136,7 @@ async function fetchSECCashFlowHistory(ticker: string): Promise<any[]> {
     // Get all years
     const years = [...operatingCashFlow.keys()]
       .sort((a, b) => parseInt(b) - parseInt(a))
-      .slice(0, 5);
+      .slice(0, 10);
 
     const cashFlows = years.map(year => {
       const opCF = operatingCashFlow.get(year) || null;
