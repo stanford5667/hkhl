@@ -14,6 +14,8 @@
  */
 
 import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
+import { useRequireAuth } from '@/hooks/useRequireAuth';
+import { AuthGateDialog } from '@/components/auth/AuthGateDialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -212,6 +214,7 @@ export function ProfessionalBacktester() {
   // ─────────────────────────────────────────────────────────────────────────────
   
   // Portfolio state
+  const { requireAuth, showAuthDialog, closeAuthDialog } = useRequireAuth();
   const [assets, setAssets] = useState<Asset[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<{ symbol: string; name: string }[]>([]);
@@ -276,7 +279,7 @@ export function ProfessionalBacktester() {
       // Cmd/Ctrl + Enter: Run backtest
       if ((e.metaKey || e.ctrlKey) && e.key === 'Enter' && isValid) {
         e.preventDefault();
-        runBacktest();
+        requireAuth(() => runBacktest(), 'run-backtest');
       }
       // Escape: Clear search
       if (e.key === 'Escape') {
@@ -847,6 +850,7 @@ export function ProfessionalBacktester() {
   // ─────────────────────────────────────────────────────────────────────────────
   
   return (
+    <>
     <div 
       ref={containerRef}
       className={cn(
@@ -937,7 +941,7 @@ export function ProfessionalBacktester() {
           
           {/* Run button */}
           <Button
-            onClick={runBacktest}
+            onClick={() => requireAuth(() => runBacktest(), 'run-backtest')}
             disabled={!isValid || isLoading}
             className={cn(
               "h-8 px-4 gap-2 text-xs font-semibold",
@@ -1868,6 +1872,13 @@ export function ProfessionalBacktester() {
         </div>
       )}
     </div>
+    <AuthGateDialog
+      open={showAuthDialog}
+      onOpenChange={closeAuthDialog}
+      title="Sign in to run backtests"
+      description="Create a free account to backtest portfolios and access full analysis tools."
+    />
+    </>
   );
 }
 
