@@ -8,6 +8,8 @@
  */
 
 import { useState, useCallback, useMemo, useEffect } from 'react';
+import { useRequireAuth } from '@/hooks/useRequireAuth';
+import { AuthGateDialog } from '@/components/auth/AuthGateDialog';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -285,6 +287,7 @@ function MetricPill({
 // ═══════════════════════════════════════════════════════════════════════════════
 
 export function MobileBacktester() {
+  const { requireAuth, showAuthDialog, closeAuthDialog } = useRequireAuth();
   // Default 5 positions
   const DEFAULT_POSITIONS: Asset[] = [
     { symbol: 'VTI', weight: 40, color: COLORS[0], name: 'Total Stock Market' },
@@ -1079,6 +1082,7 @@ export function MobileBacktester() {
   // ═══════════════════════════════════════════════════════════════════════════════
 
   return (
+    <>
     <div className="flex flex-col h-full min-h-0 bg-background">
       {/* Header Bar - Portfolio Lab Style */}
       <header className="flex-shrink-0 px-4 py-2.5 border-b bg-background/95 backdrop-blur">
@@ -1144,7 +1148,7 @@ export function MobileBacktester() {
             
             {/* Run button */}
             <Button 
-              onClick={runBacktest} 
+              onClick={() => requireAuth(() => runBacktest(), 'run-backtest')} 
               disabled={isLoading || !isValid || assets.length === 0}
               size="sm"
               className={cn(
@@ -1804,6 +1808,13 @@ export function MobileBacktester() {
         </SheetContent>
       </Sheet>
     </div>
+    <AuthGateDialog
+      open={showAuthDialog}
+      onOpenChange={closeAuthDialog}
+      title="Sign in to run backtests"
+      description="Create a free account to backtest portfolios and access full analysis tools."
+    />
+    </>
   );
 }
 
