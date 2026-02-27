@@ -114,10 +114,18 @@ export function AuthGateDialog({
 
   const authForm = (
     <div className="space-y-1.5 sm:space-y-3 px-1">
-      {/* Asset Labs Branding - minimal on mobile */}
-      <div className="flex items-center justify-center">
-        <AssetLabsLogo size="sm" className="sm:hidden" />
-        <AssetLabsLogo size="lg" className="hidden sm:block" />
+      {/* Asset Labs Branding - centered vertically */}
+      <div className="flex flex-col items-center justify-center">
+        <AssetLabsLogo size="sm" showText={false} className="sm:hidden" />
+        <AssetLabsLogo size="lg" showText={false} className="hidden sm:flex" />
+        <div className="flex items-center gap-1.5 mt-1.5">
+          <span className="text-base sm:text-xl font-bold tracking-tight leading-none">
+            Asset Labs
+          </span>
+          <span className="text-base sm:text-xl font-bold tracking-tight leading-none bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
+            AI
+          </span>
+        </div>
       </div>
 
       {/* Value Proposition - hidden on very small screens */}
