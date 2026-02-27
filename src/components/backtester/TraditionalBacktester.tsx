@@ -9,6 +9,8 @@
  */
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useRequireAuth } from '@/hooks/useRequireAuth';
+import { AuthGateDialog } from '@/components/auth/AuthGateDialog';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -320,6 +322,7 @@ const DRAWDOWN_PORTFOLIOS = [
 ];
 
 export function TraditionalBacktester() {
+  const { requireAuth, showAuthDialog, closeAuthDialog } = useRequireAuth();
   // Portfolio state
   const [assets, setAssets] = useState<Asset[]>([
     { symbol: 'VTI', weight: 60, color: ASSET_COLORS[0] },
@@ -703,6 +706,7 @@ export function TraditionalBacktester() {
   }, [result]);
 
   return (
+    <>
     <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -726,7 +730,7 @@ export function TraditionalBacktester() {
           </Button>
           
           <Button 
-            onClick={runBacktest} 
+            onClick={() => requireAuth(() => runBacktest(), 'run-backtest')} 
             disabled={isLoading || !isValidAllocation}
             className="gap-2"
           >
@@ -1447,7 +1451,7 @@ export function TraditionalBacktester() {
                 <p className="text-muted-foreground max-w-sm mx-auto mb-4">
                   Add assets on the left, set weights to 100%, then click "Run Backtest" to see historical performance.
                 </p>
-                <Button onClick={runBacktest} disabled={!isValidAllocation || isLoading}>
+                <Button onClick={() => requireAuth(() => runBacktest(), 'run-backtest')} disabled={!isValidAllocation || isLoading}>
                   <Play className="h-4 w-4 mr-2" />
                   Run Backtest
                 </Button>
@@ -1460,6 +1464,13 @@ export function TraditionalBacktester() {
         </div>
       </div>
     </div>
+    <AuthGateDialog
+      open={showAuthDialog}
+      onOpenChange={closeAuthDialog}
+      title="Sign in to run backtests"
+      description="Create a free account to backtest portfolios and access full analysis tools."
+    />
+    </>
   );
 }
 

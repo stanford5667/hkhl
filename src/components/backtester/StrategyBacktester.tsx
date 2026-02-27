@@ -6,6 +6,8 @@
  */
 
 import { useState, useCallback } from 'react';
+import { useRequireAuth } from '@/hooks/useRequireAuth';
+import { AuthGateDialog } from '@/components/auth/AuthGateDialog';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { VisualStrategyBuilder } from '@/components/builder/VisualStrategyBuilder';
@@ -131,6 +133,7 @@ const STRATEGY_MAP: Record<string, string> = {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 export function StrategyBacktester({ ticker, companyName }: StrategyBacktesterProps) {
+  const { requireAuth, showAuthDialog, closeAuthDialog } = useRequireAuth();
   const [period] = useState<'1Y' | '3Y' | '5Y'>('3Y');
   const [initialCapital] = useState(10000);
   
@@ -269,7 +272,7 @@ export function StrategyBacktester({ ticker, companyName }: StrategyBacktesterPr
             <VisualStrategyBuilder 
               embedded 
               initialTicker={ticker}
-              onRunBacktest={handleVisualBuilderBacktest}
+              onRunBacktest={(s) => requireAuth(() => handleVisualBuilderBacktest(s), 'run-backtest')}
               onClear={handleClear}
               advancedParams={advancedParams}
               onAdvancedParamsChange={setAdvancedParams}
@@ -372,6 +375,12 @@ export function StrategyBacktester({ ticker, companyName }: StrategyBacktesterPr
         ticker={ticker}
         dataSource={result?.dataSource || 'database'}
         onClose={() => setViewSourceTrade(null)}
+      />
+      <AuthGateDialog
+        open={showAuthDialog}
+        onOpenChange={closeAuthDialog}
+        title="Sign in to run backtests"
+        description="Create a free account to backtest strategies and access full analysis tools."
       />
     </div>
   );
