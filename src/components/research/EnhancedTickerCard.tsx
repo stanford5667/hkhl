@@ -208,7 +208,7 @@ export function EnhancedTickerCard({
       <div
         ref={cardRef}
         className={cn(
-          "relative flex flex-col p-2.5 rounded-lg cursor-pointer",
+          "relative flex flex-col p-2.5 rounded-lg cursor-pointer h-[160px]",
           "bg-card/60 backdrop-blur-sm",
           "border transition-all duration-200 group",
           isPositive
@@ -233,7 +233,7 @@ export function EnhancedTickerCard({
         {/* Price */}
         <span className="font-mono text-xs text-muted-foreground tabular-nums">{formatPrice(price)}</span>
         {/* Sparkline */}
-        <div className="h-[44px] mt-1.5 -mx-1">
+        <div className="h-[44px] mt-1.5 -mx-1 flex-1 min-h-0">
           {isLoading ? (
             <div className="w-full h-full bg-muted/10 animate-pulse rounded" />
           ) : chartData.length > 1 ? renderChart() : (
@@ -255,7 +255,7 @@ export function EnhancedTickerCard({
     <div
       ref={cardRef}
       className={cn(
-        "relative flex flex-col rounded-xl cursor-pointer overflow-hidden",
+        "relative flex flex-col rounded-xl cursor-pointer overflow-hidden h-[280px]",
         "bg-card/60 backdrop-blur-sm",
         "border transition-all duration-300 group",
         isPositive
@@ -270,7 +270,7 @@ export function EnhancedTickerCard({
         isPositive ? "bg-gradient-to-r from-success/60 via-success/30 to-transparent" : "bg-gradient-to-r from-destructive/60 via-destructive/30 to-transparent"
       )} />
 
-      <div className="p-3.5">
+      <div className="p-3.5 flex flex-col flex-1 min-h-0">
         {/* Header: Symbol + Price + Change */}
         <div className="flex items-start justify-between mb-2">
           <div>
@@ -317,7 +317,7 @@ export function EnhancedTickerCard({
         </div>
 
         {/* Sparkline Chart */}
-        <div className="h-[70px] -mx-1.5 mb-2">
+        <div className="flex-1 min-h-[50px] -mx-1.5 mb-2">
           {isLoading ? (
             <div className="w-full h-full bg-muted/10 animate-pulse rounded" />
           ) : chartData.length > 1 ? renderChart() : (
