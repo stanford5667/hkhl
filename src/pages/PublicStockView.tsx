@@ -12,6 +12,7 @@ import { cn } from '@/lib/utils';
 import { StockDetailLayout, DEFAULT_STOCK_TABS } from '@/components/research/StockDetailLayout';
 import { useCompanyNews } from '@/hooks/useCompanyResearch';
 import { useETFData } from '@/hooks/useETFData';
+import { getCachedFullQuote } from '@/services/quoteCacheService';
 import { getAssetCategory, getAssetTypeInfo, getTabsForAssetType, type AssetCategory, type AssetTypeInfo } from '@/config/assetTypeConfig';
 
 // Lazy load heavy components to improve initial page load
@@ -22,7 +23,8 @@ const AnalystSocialPanel = lazy(() => import('@/components/research/AnalystSocia
 const KeyCatalystsSection = lazy(() => import('@/components/research/KeyCatalystsSection').then(m => ({ default: m.KeyCatalystsSection })));
 const FinancialsSection = lazy(() => import('@/components/financials/FinancialsSection').then(m => ({ default: m.FinancialsSection })));
 const IntegratedResearchView = lazy(() => import('@/components/research').then(m => ({ default: m.IntegratedResearchView })));
-const ALAOverviewTab = lazy(() => import('@/components/research').then(m => ({ default: m.ALAOverviewTab })));
+// ALAOverviewTab is the default tab — eagerly import for faster initial render
+import { ALAOverviewTab } from '@/components/research';
 const ETFOverviewTab = lazy(() => import('@/components/research/ETFOverviewTab').then(m => ({ default: m.ETFOverviewTab })));
 const ETFHoldingsTab = lazy(() => import('@/components/research/ETFHoldingsTab').then(m => ({ default: m.ETFHoldingsTab })));
 
@@ -290,7 +292,6 @@ export default function PublicStockView() {
     
     setIsLoadingQuote(true);
     try {
-      const { getCachedFullQuote } = await import('@/services/quoteCacheService');
       const data = await getCachedFullQuote(ticker);
       
       if (data) {
@@ -429,8 +430,8 @@ export default function PublicStockView() {
       case 'overview':
         return (
           <div className="p-3 md:p-4 space-y-4">
-            <Suspense fallback={<TabLoader />}>
-              {isETF ? (
+            {isETF ? (
+              <Suspense fallback={<TabLoader />}>
                 <ETFOverviewTab
                   ticker={ticker}
                   companyName={details?.name}
@@ -442,23 +443,23 @@ export default function PublicStockView() {
                   isRefreshing={isRefreshing}
                   onNavigateToBacktest={() => setActiveTab('backtest')}
                 />
-              ) : (
-                <ALAOverviewTab
-                  ticker={ticker}
-                  companyName={details?.name}
-                  exchange={details?.primaryExchange}
-                  sector={details?.sector}
-                  industry={details?.industry}
-                  description={details?.description}
-                  homepageUrl={details?.homepageUrl}
-                  quote={quote}
-                  isLoadingQuote={isLoadingQuote}
-                  onRefresh={handleRefresh}
-                  isRefreshing={isRefreshing}
-                  onNavigateToBacktest={() => setActiveTab('backtest')}
-                />
-              )}
-            </Suspense>
+              </Suspense>
+            ) : (
+              <ALAOverviewTab
+                ticker={ticker}
+                companyName={details?.name}
+                exchange={details?.primaryExchange}
+                sector={details?.sector}
+                industry={details?.industry}
+                description={details?.description}
+                homepageUrl={details?.homepageUrl}
+                quote={quote}
+                isLoadingQuote={isLoadingQuote}
+                onRefresh={handleRefresh}
+                isRefreshing={isRefreshing}
+                onNavigateToBacktest={() => setActiveTab('backtest')}
+              />
+            )}
 
             {/* Sign In CTA */}
             {!user && (

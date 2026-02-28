@@ -3,6 +3,7 @@
  * Warms up edge functions and caches before the user navigates to /stock/:ticker
  */
 import { supabase } from '@/integrations/supabase/client';
+import { getCachedQuote } from '@/services/quoteCacheService';
 
 const prefetched = new Set<string>();
 
@@ -20,9 +21,7 @@ export function prefetchTickerData(ticker: string) {
   }).catch(() => {});
 
   // Also warm up the quote cache
-  import('@/services/quoteCacheService').then(({ getCachedQuote }) => {
-    getCachedQuote(ticker).catch(() => {});
-  });
+  getCachedQuote(ticker).catch(() => {});
 }
 
 /**
