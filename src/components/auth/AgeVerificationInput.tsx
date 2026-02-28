@@ -115,7 +115,7 @@ export function AgeVerificationInput({
           <SelectTrigger className="h-8 text-[11px] px-2">
             <SelectValue placeholder="Month" />
           </SelectTrigger>
-          <SelectContent>
+          <SelectContent position="popper" className="pointer-events-auto z-[9999]" onPointerDownOutside={(e) => e.preventDefault()}>
             {MONTHS.map((m, idx) => (
               <SelectItem key={m} value={String(idx + 1)} className="text-xs">
                 {m.slice(0, 3)}
@@ -128,7 +128,7 @@ export function AgeVerificationInput({
           <SelectTrigger className="h-8 text-[11px] px-2">
             <SelectValue placeholder="Day" />
           </SelectTrigger>
-          <SelectContent>
+          <SelectContent position="popper" className="pointer-events-auto z-[9999]" onPointerDownOutside={(e) => e.preventDefault()}>
             {days.map((d) => (
               <SelectItem key={d} value={String(d)} className="text-xs">
                 {d}
@@ -141,7 +141,7 @@ export function AgeVerificationInput({
           <SelectTrigger className="h-8 text-[11px] px-2">
             <SelectValue placeholder="Year" />
           </SelectTrigger>
-          <SelectContent className="max-h-[180px]">
+          <SelectContent position="popper" className="max-h-[180px] pointer-events-auto z-[9999]" onPointerDownOutside={(e) => e.preventDefault()}>
             {years.map((y) => (
               <SelectItem key={y} value={String(y)} className="text-xs">
                 {y}
