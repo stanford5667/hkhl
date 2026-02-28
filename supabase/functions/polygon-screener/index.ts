@@ -796,25 +796,38 @@ async function screenFromPolygonAPI(
     filters.maxMarketCap !== undefined ||
     (filters.sectors && filters.sectors.length > 0);
 
+  // Detect if market is closed: if most tickers have no day data, use prevDay
+  const tickersWithDayData = tickers.filter(t => t.day && t.day.c && t.day.c > 0).length;
+  const marketClosed = tickersWithDayData < tickers.length * 0.1; // <10% have day data = closed
+  if (marketClosed) {
+    console.log(`[polygon-screener] Market appears closed (${tickersWithDayData}/${tickers.length} have day data), using prevDay`);
+  }
+
   // Step 2: Apply basic filters on snapshot data
   let filteredTickers = tickers.filter((t) => {
-    if (!t.day || !t.day.c || t.day.c <= 0) return false;
+    // When market is closed, use prevDay as the "current" data
+    const price = marketClosed ? (t.prevDay?.c || 0) : (t.day?.c || 0);
+    const volume = marketClosed ? (t.prevDay?.v || 0) : (t.day?.v || 0);
+    
+    if (price <= 0) return false;
     if (!t.prevDay || !t.prevDay.c || t.prevDay.c <= 0) return false;
 
-    if (filters.minPrice !== undefined && t.day.c < filters.minPrice) return false;
-    if (filters.maxPrice !== undefined && t.day.c > filters.maxPrice) return false;
+    if (filters.minPrice !== undefined && price < filters.minPrice) return false;
+    if (filters.maxPrice !== undefined && price > filters.maxPrice) return false;
 
-    const accurateChangePercent = ((t.day.c - t.prevDay.c) / t.prevDay.c) * 100;
-
-    if (!hasFundamentalFilters) {
-      if (filters.minChange1D !== undefined && accurateChangePercent < filters.minChange1D) return false;
-      if (filters.maxChange1D !== undefined && accurateChangePercent > filters.maxChange1D) return false;
+    // When market closed, change% is 0 (same day), so skip change filters
+    if (!marketClosed) {
+      const accurateChangePercent = ((price - t.prevDay.c) / t.prevDay.c) * 100;
+      if (!hasFundamentalFilters) {
+        if (filters.minChange1D !== undefined && accurateChangePercent < filters.minChange1D) return false;
+        if (filters.maxChange1D !== undefined && accurateChangePercent > filters.maxChange1D) return false;
+      }
     }
 
-    if (filters.minVolume !== undefined && t.day.v < filters.minVolume) return false;
+    if (filters.minVolume !== undefined && volume < filters.minVolume) return false;
 
-    if (!hasFundamentalFilters && filters.minRelativeVolume !== undefined && t.prevDay?.v > 0) {
-      const relativeVol = t.day.v / t.prevDay.v;
+    if (!hasFundamentalFilters && filters.minRelativeVolume !== undefined && t.prevDay?.v > 0 && !marketClosed) {
+      const relativeVol = (t.day?.v || 0) / t.prevDay.v;
       if (relativeVol < filters.minRelativeVolume) return false;
     }
 
@@ -831,8 +844,10 @@ async function screenFromPolygonAPI(
 
   filteredTickers.sort((a, b) => {
     let aVal: number, bVal: number;
-    const aChangePercent = a.prevDay?.c > 0 ? ((a.day.c - a.prevDay.c) / a.prevDay.c) * 100 : 0;
-    const bChangePercent = b.prevDay?.c > 0 ? ((b.day.c - b.prevDay.c) / b.prevDay.c) * 100 : 0;
+    const aPrice = marketClosed ? (a.prevDay?.c || 0) : (a.day?.c || 0);
+    const bPrice = marketClosed ? (b.prevDay?.c || 0) : (b.day?.c || 0);
+    const aChangePercent = a.prevDay?.c > 0 && !marketClosed ? ((a.day.c - a.prevDay.c) / a.prevDay.c) * 100 : 0;
+    const bChangePercent = b.prevDay?.c > 0 && !marketClosed ? ((b.day.c - b.prevDay.c) / b.prevDay.c) * 100 : 0;
 
     switch (candidateSortBy) {
       case "change":
@@ -840,13 +855,13 @@ async function screenFromPolygonAPI(
         bVal = bChangePercent;
         break;
       case "price":
-        aVal = a.day?.c || 0;
-        bVal = b.day?.c || 0;
+        aVal = aPrice;
+        bVal = bPrice;
         break;
       case "volume":
       default:
-        aVal = a.day?.v || 0;
-        bVal = b.day?.v || 0;
+        aVal = marketClosed ? (a.prevDay?.v || 0) : (a.day?.v || 0);
+        bVal = marketClosed ? (b.prevDay?.v || 0) : (b.day?.v || 0);
         break;
     }
 
@@ -911,7 +926,7 @@ async function screenFromPolygonAPI(
       if (!filters.sectors.includes(sector)) return false;
     }
 
-    if (hasFundamentalFilters) {
+    if (hasFundamentalFilters && !marketClosed) {
       const accurateChangePercent = t.prevDay?.c > 0 ? ((t.day.c - t.prevDay.c) / t.prevDay.c) * 100 : 0;
       if (filters.minChange1D !== undefined && accurateChangePercent < filters.minChange1D) return false;
       if (filters.maxChange1D !== undefined && accurateChangePercent > filters.maxChange1D) return false;
@@ -930,8 +945,10 @@ async function screenFromPolygonAPI(
   // Step 6: Re-sort final results
   finalResults.sort((a, b) => {
     let aVal: number, bVal: number;
-    const aChangePercent = a.prevDay?.c > 0 ? ((a.day.c - a.prevDay.c) / a.prevDay.c) * 100 : 0;
-    const bChangePercent = b.prevDay?.c > 0 ? ((b.day.c - b.prevDay.c) / b.prevDay.c) * 100 : 0;
+    const aPrice = marketClosed ? (a.prevDay?.c || 0) : (a.day?.c || 0);
+    const bPrice = marketClosed ? (b.prevDay?.c || 0) : (b.day?.c || 0);
+    const aChangePercent = a.prevDay?.c > 0 && !marketClosed ? ((a.day.c - a.prevDay.c) / a.prevDay.c) * 100 : 0;
+    const bChangePercent = b.prevDay?.c > 0 && !marketClosed ? ((b.day.c - b.prevDay.c) / b.prevDay.c) * 100 : 0;
 
     switch (sortBy) {
       case "change":
@@ -939,8 +956,8 @@ async function screenFromPolygonAPI(
         bVal = bChangePercent;
         break;
       case "price":
-        aVal = a.day?.c || 0;
-        bVal = b.day?.c || 0;
+        aVal = aPrice;
+        bVal = bPrice;
         break;
       case "marketCap":
         aVal = tickerDetails.get(a.ticker)?.market_cap || 0;
@@ -948,8 +965,8 @@ async function screenFromPolygonAPI(
         break;
       case "volume":
       default:
-        aVal = a.day?.v || 0;
-        bVal = b.day?.v || 0;
+        aVal = marketClosed ? (a.prevDay?.v || 0) : (a.day?.v || 0);
+        bVal = marketClosed ? (b.prevDay?.v || 0) : (b.day?.v || 0);
         break;
     }
 
@@ -964,10 +981,12 @@ async function screenFromPolygonAPI(
     const details = tickerDetails.get(t.ticker);
     const sector = getSectorFromSIC(details?.sic_code || null);
 
+    // Use prevDay as source when market is closed
+    const dayData = marketClosed ? t.prevDay : t.day;
     const prevClose = t.prevDay?.c || 0;
-    const currentPrice = t.day?.c || 0;
-    const accurateChange = prevClose > 0 ? currentPrice - prevClose : 0;
-    const accurateChangePercent = prevClose > 0 ? ((currentPrice - prevClose) / prevClose) * 100 : 0;
+    const currentPrice = dayData?.c || 0;
+    const accurateChange = marketClosed ? 0 : (prevClose > 0 ? currentPrice - prevClose : 0);
+    const accurateChangePercent = marketClosed ? 0 : (prevClose > 0 ? ((currentPrice - prevClose) / prevClose) * 100 : 0);
 
     return {
       symbol: t.ticker,
@@ -977,18 +996,19 @@ async function screenFromPolygonAPI(
       price: currentPrice,
       change: accurateChange,
       changePercent: accurateChangePercent,
-      volume: t.day?.v || 0,
+      volume: dayData?.v || 0,
       prevVolume: t.prevDay?.v || 0,
-      relativeVolume: t.prevDay?.v > 0 ? t.day.v / t.prevDay.v : null,
+      relativeVolume: t.prevDay?.v > 0 && !marketClosed ? (t.day?.v || 0) / t.prevDay.v : null,
       marketCap: details?.market_cap || null,
-      high: t.day?.h || 0,
-      low: t.day?.l || 0,
-      open: t.day?.o || 0,
-      vwap: t.day?.vw || null,
+      high: dayData?.h || 0,
+      low: dayData?.l || 0,
+      open: dayData?.o || 0,
+      vwap: dayData?.vw || null,
       exchange: details?.primary_exchange || null,
       type: details?.type || null,
       volatility: null,
       beta: null,
+      marketClosed, // signal to frontend
     };
   });
 
@@ -1042,5 +1062,6 @@ async function screenFromPolygonAPI(
       total: finalResults.length,
     },
     source: "api",
+    marketClosed,
   });
 }
