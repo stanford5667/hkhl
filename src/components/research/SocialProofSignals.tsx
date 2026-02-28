@@ -82,7 +82,7 @@ export function SocialProofSignals() {
   const current = signals[activeIndex];
 
   return (
-    <div className="flex items-center justify-center">
+    <div className="flex items-center justify-start sm:justify-center">
       <AnimatePresence mode="wait">
         <motion.button
           key={current.id}
