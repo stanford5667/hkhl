@@ -8,7 +8,9 @@ import { memo, useState, useCallback } from 'react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
-import { ChevronDown, X, Check, Plus, ArrowRight, Settings2 } from 'lucide-react';
+import { ChevronDown, X, Check, Plus, ArrowRight, Settings2, Lock, Crown } from 'lucide-react';
+import { useUsage } from '@/contexts/UsageContext';
+import { useUpgrade } from '@/hooks/useUpgrade';
 import {
   Popover,
   PopoverContent,
@@ -68,6 +70,7 @@ interface SignalPreset {
   category: 'momentum' | 'trend' | 'pattern' | 'oscillator' | 'fundamental';
   indicator: BlockSubtype;
   condition: BlockSubtype;
+  premium?: boolean;
   parameters: {
     period?: number;
     threshold?: number;
@@ -82,6 +85,9 @@ interface SignalPreset {
     suffix?: string;
   }[];
 }
+
+// Free signals: rsi-oversold, price-above-sma, price-below-sma, consecutive-down, gap-down
+const FREE_SIGNAL_IDS = new Set(['rsi-oversold', 'price-above-sma', 'price-below-sma', 'consecutive-down', 'gap-down']);
 
 const SIGNAL_PRESETS: SignalPreset[] = [
   {
@@ -579,6 +585,8 @@ const SignalAddButton = memo(function SignalAddButton({
   isRequired: boolean;
 }) {
   const [open, setOpen] = useState(false);
+  const { isPro } = useUsage();
+  const { promptUpgrade } = useUpgrade();
 
   const categories = [
     { id: 'momentum', label: 'Momentum' },
@@ -620,10 +628,16 @@ const SignalAddButton = memo(function SignalAddButton({
               <div className="space-y-1">
                 {SIGNAL_PRESETS.filter(p => p.category === cat.id).map(preset => {
                   const isAlreadyAdded = selectedIds.includes(preset.id);
+                  const isLocked = !isPro && !FREE_SIGNAL_IDS.has(preset.id);
                   return (
                     <button
                       key={preset.id}
                       onClick={() => {
+                        if (isLocked) {
+                          promptUpgrade('strategy-signals');
+                          setOpen(false);
+                          return;
+                        }
                         if (!isAlreadyAdded) {
                           onSelect(preset);
                           setOpen(false);
@@ -632,12 +646,16 @@ const SignalAddButton = memo(function SignalAddButton({
                       disabled={isAlreadyAdded}
                       className={cn(
                         "flex items-center gap-3 w-full px-3 py-2 rounded-md text-left transition-colors",
-                        isAlreadyAdded ? "opacity-40 cursor-not-allowed" : "hover:bg-muted"
+                        isAlreadyAdded ? "opacity-40 cursor-not-allowed" : "hover:bg-muted",
+                        isLocked && !isAlreadyAdded && "opacity-70"
                       )}
                     >
                       <span className="text-xl">{preset.icon}</span>
                       <div className="flex-1 min-w-0">
-                        <div className="font-medium text-sm">{preset.label}</div>
+                        <div className="font-medium text-sm flex items-center gap-1.5">
+                          {preset.label}
+                          {isLocked && <Lock className="h-3 w-3 text-amber-400 flex-shrink-0" />}
+                        </div>
                         <div className="text-xs text-muted-foreground truncate">{preset.description}</div>
                       </div>
                       {isAlreadyAdded && <Check className="h-4 w-4 text-muted-foreground" />}
@@ -648,6 +666,23 @@ const SignalAddButton = memo(function SignalAddButton({
             </div>
           ))}
         </div>
+        {!isPro && (
+          <div className="mt-3 pt-3 border-t border-border">
+            <button
+              onClick={() => {
+                promptUpgrade('strategy-signals');
+                setOpen(false);
+              }}
+              className="flex items-center gap-2 w-full px-3 py-2 rounded-md text-left hover:bg-amber-500/10 transition-colors"
+            >
+              <Crown className="h-4 w-4 text-amber-400" />
+              <div className="flex-1">
+                <div className="font-medium text-sm text-amber-400">Unlock All Signals</div>
+                <div className="text-xs text-muted-foreground">20+ indicators & strategies</div>
+              </div>
+            </button>
+          </div>
+        )}
       </PopoverContent>
     </Popover>
   );
