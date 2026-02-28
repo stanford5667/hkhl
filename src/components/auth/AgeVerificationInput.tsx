@@ -9,13 +9,6 @@
 import { useState, useMemo } from "react";
 import { AlertTriangle, ShieldCheck, Calendar } from "lucide-react";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 
 interface AgeVerificationInputProps {
@@ -25,8 +18,8 @@ interface AgeVerificationInputProps {
 }
 
 const MONTHS = [
-  "January", "February", "March", "April", "May", "June",
-  "July", "August", "September", "October", "November", "December"
+  "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+  "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
 ];
 
 const CURRENT_YEAR = new Date().getFullYear();
@@ -80,20 +73,25 @@ export function AgeVerificationInput({
     onVerificationChange(isVerified);
   };
 
-  const handleMonthChange = (value: string) => {
+  const handleMonthChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const value = e.target.value;
     setMonth(value);
     verifyAge(value, day, year);
   };
 
-  const handleDayChange = (value: string) => {
+  const handleDayChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const value = e.target.value;
     setDay(value);
     verifyAge(month, value, year);
   };
 
-  const handleYearChange = (value: string) => {
+  const handleYearChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const value = e.target.value;
     setYear(value);
     verifyAge(month, day, value);
   };
+
+  const selectClassName = "h-8 text-[11px] px-1.5 w-full rounded-md border border-input bg-background text-foreground ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 appearance-none cursor-pointer";
 
   return (
     <div className={cn("space-y-1", className)}>
@@ -109,46 +107,49 @@ export function AgeVerificationInput({
         </div>
       </div>
 
-      {/* DOB Inputs - more compact */}
+      {/* DOB Inputs - native selects to avoid portal/dialog conflicts */}
       <div className="grid grid-cols-3 gap-1.5">
-        <Select value={month} onValueChange={handleMonthChange}>
-          <SelectTrigger className="h-8 text-[11px] px-2">
-            <SelectValue placeholder="Month" />
-          </SelectTrigger>
-          <SelectContent position="popper" className="pointer-events-auto z-[9999]" onPointerDownOutside={(e) => e.preventDefault()}>
-            {MONTHS.map((m, idx) => (
-              <SelectItem key={m} value={String(idx + 1)} className="text-xs">
-                {m.slice(0, 3)}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <select
+          value={month}
+          onChange={handleMonthChange}
+          className={selectClassName}
+          aria-label="Birth month"
+        >
+          <option value="" disabled>Month</option>
+          {MONTHS.map((m, idx) => (
+            <option key={m} value={String(idx + 1)}>
+              {m}
+            </option>
+          ))}
+        </select>
 
-        <Select value={day} onValueChange={handleDayChange}>
-          <SelectTrigger className="h-8 text-[11px] px-2">
-            <SelectValue placeholder="Day" />
-          </SelectTrigger>
-          <SelectContent position="popper" className="pointer-events-auto z-[9999]" onPointerDownOutside={(e) => e.preventDefault()}>
-            {days.map((d) => (
-              <SelectItem key={d} value={String(d)} className="text-xs">
-                {d}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <select
+          value={day}
+          onChange={handleDayChange}
+          className={selectClassName}
+          aria-label="Birth day"
+        >
+          <option value="" disabled>Day</option>
+          {days.map((d) => (
+            <option key={d} value={String(d)}>
+              {d}
+            </option>
+          ))}
+        </select>
 
-        <Select value={year} onValueChange={handleYearChange}>
-          <SelectTrigger className="h-8 text-[11px] px-2">
-            <SelectValue placeholder="Year" />
-          </SelectTrigger>
-          <SelectContent position="popper" className="max-h-[180px] pointer-events-auto z-[9999]" onPointerDownOutside={(e) => e.preventDefault()}>
-            {years.map((y) => (
-              <SelectItem key={y} value={String(y)} className="text-xs">
-                {y}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <select
+          value={year}
+          onChange={handleYearChange}
+          className={selectClassName}
+          aria-label="Birth year"
+        >
+          <option value="" disabled>Year</option>
+          {years.map((y) => (
+            <option key={y} value={String(y)}>
+              {y}
+            </option>
+          ))}
+        </select>
       </div>
 
       {/* Status Messages - ultra compact */}
