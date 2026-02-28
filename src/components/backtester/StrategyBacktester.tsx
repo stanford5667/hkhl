@@ -9,7 +9,7 @@ import { useState, useCallback } from 'react';
 import { useRequireAuth } from '@/hooks/useRequireAuth';
 import { AuthGateDialog } from '@/components/auth/AuthGateDialog';
 import { useUsage } from '@/contexts/UsageContext';
-import { useUpgrade } from '@/hooks/useUpgrade';
+
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { VisualStrategyBuilder } from '@/components/builder/VisualStrategyBuilder';
@@ -138,8 +138,7 @@ const STRATEGY_MAP: Record<string, string> = {
 
 export function StrategyBacktester({ ticker, companyName }: StrategyBacktesterProps) {
   const { requireAuth, showAuthDialog, closeAuthDialog } = useRequireAuth();
-  const { isPro } = useUsage();
-  const { startCheckout, promptUpgrade, showUpgradeDialog, setShowUpgradeDialog } = useUpgrade();
+  const { isPro, showUpgradeModal } = useUsage();
   const [period] = useState<'1Y' | '3Y' | '5Y'>('3Y');
   const [initialCapital] = useState(10000);
   
@@ -280,7 +279,7 @@ export function StrategyBacktester({ ticker, companyName }: StrategyBacktesterPr
               initialTicker={ticker}
               onRunBacktest={(s) => requireAuth(() => handleVisualBuilderBacktest(s), 'run-backtest')}
               onClear={handleClear}
-              onPromptUpgrade={promptUpgrade}
+              onPromptUpgrade={showUpgradeModal}
               advancedParams={advancedParams}
               onAdvancedParamsChange={setAdvancedParams}
             />
@@ -389,40 +388,6 @@ export function StrategyBacktester({ ticker, companyName }: StrategyBacktesterPr
         title="Sign in to run backtests"
         description="Create a free account to backtest strategies and access full analysis tools."
       />
-      {showUpgradeDialog && (
-        <div 
-          className="fixed inset-0 bg-black/60 flex items-center justify-center z-50"
-          onClick={() => setShowUpgradeDialog(false)}
-        >
-          <div 
-            className="bg-card border border-border rounded-xl p-6 max-w-sm mx-4 space-y-4"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h3 className="text-lg font-bold">Unlock Pro Signals</h3>
-            <p className="text-sm text-muted-foreground">
-              Get access to 20+ advanced indicators, institutional-grade strategies, and more.
-            </p>
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                onClick={() => setShowUpgradeDialog(false)}
-                className="flex-1"
-              >
-                Maybe Later
-              </Button>
-              <Button
-                onClick={() => {
-                  setShowUpgradeDialog(false);
-                  startCheckout();
-                }}
-                className="flex-1"
-              >
-                Upgrade to Pro
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

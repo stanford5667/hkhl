@@ -55,6 +55,10 @@ const FEATURE_COPY: Record<string, { title: string; benefit: string }> = {
     title: "Multiple filters are a Pro feature",
     benefit: 'Use all screening criteria',
   },
+  'strategy-signals': {
+    title: "Unlock Pro Strategy Signals",
+    benefit: 'Access 20+ advanced indicators',
+  },
   default: {
     title: "Upgrade to Pro",
     benefit: 'Unlock all premium features',
