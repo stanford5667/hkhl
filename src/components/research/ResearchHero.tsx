@@ -123,10 +123,10 @@ export function ResearchHero({
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
           >
-            <span className="text-foreground">Your </span>
-            <span className="text-primary">Unfair Advantage</span>
+            <span className="text-foreground">No Code </span>
+            <span className="text-primary">Quant Backtesting</span>
             <br className="sm:hidden" />
-            <span className="text-foreground"> in Every Trade.</span>
+            <span className="text-foreground"> Tools.</span>
           </motion.h1>
           <motion.p
             className="text-muted-foreground text-[11px] sm:text-xs lg:text-sm max-w-lg mx-auto font-mono"
