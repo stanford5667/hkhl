@@ -81,7 +81,7 @@ export function OnboardingNudges() {
         animate={{ opacity: 1, x: 0, scale: 1 }}
         exit={{ opacity: 0, x: 20, scale: 0.95 }}
         transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-        className="fixed bottom-20 right-4 z-40 max-w-[260px]"
+        className="fixed bottom-16 sm:bottom-20 right-3 sm:right-4 z-40 max-w-[240px] sm:max-w-[260px]"
       >
         <div className="rounded-xl border border-border/60 bg-card/95 backdrop-blur-md shadow-xl shadow-black/15 p-3">
           <div className="flex items-start gap-2">

@@ -35,7 +35,7 @@ export function StickyEngagementBar() {
         className="fixed bottom-0 left-0 right-0 z-50 pointer-events-none"
       >
         <div className="max-w-3xl mx-auto px-3 pb-3 pointer-events-auto">
-          <div className="relative flex items-center justify-between gap-3 px-4 py-2.5 rounded-xl border border-border/60 bg-card/95 backdrop-blur-md shadow-2xl shadow-black/20">
+          <div className="relative flex items-center justify-between gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl border border-border/60 bg-card/95 backdrop-blur-md shadow-2xl shadow-black/20">
             {/* Left: Live pulse + top mover */}
             <div className="flex items-center gap-3 min-w-0">
               <div className="flex items-center gap-1.5">

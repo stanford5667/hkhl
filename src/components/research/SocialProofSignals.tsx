@@ -92,7 +92,7 @@ export function SocialProofSignals() {
           transition={{ duration: 0.3 }}
           onClick={() => current.ticker ? navigate(`/stock/${current.ticker}`) : undefined}
           className={cn(
-            "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-medium transition-colors",
+            "inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-0.5 sm:py-1 rounded-full text-[10px] sm:text-[11px] font-medium transition-colors",
             current.accentClass,
             current.ticker && "cursor-pointer hover:opacity-80"
           )}
