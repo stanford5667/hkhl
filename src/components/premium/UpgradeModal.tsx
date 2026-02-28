@@ -106,7 +106,7 @@ export function UpgradeModal({ isOpen, feature, onClose, onUpgrade }: UpgradeMod
       }
       
       if (data?.url) {
-        window.open(data.url, '_blank');
+        window.location.href = data.url;
         onUpgrade?.();
         onClose();
       }
