@@ -887,8 +887,8 @@ export function ProfessionalBacktester() {
   };
 
   const handlePremiumTab = (tab: 'portfolio' | 'templates' | 'strategy-builder') => {
-    if (!isPro && (tab === 'templates' || tab === 'strategy-builder')) {
-      promptUpgrade('backtester-' + tab);
+    if (!isPro && tab === 'strategy-builder') {
+      promptUpgrade('backtester-strategy-builder');
       return;
     }
     setActiveLeftTab(tab);
@@ -1052,15 +1052,12 @@ export function ProfessionalBacktester() {
                   ? "text-[rgb(56,139,253)]"
                   : "text-[rgb(87,96,106)] hover:text-[rgb(139,148,158)]"
               )}
-              title={isPro ? "Templates" : "Templates (Pro)"}
+              title="Templates"
             >
               {activeLeftTab === 'templates' && (
                 <div className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-6 bg-[rgb(56,139,253)] rounded-r" />
               )}
-              <div className="relative">
-                <BarChart3 className="h-4 w-4" />
-                {!isPro && <Lock className="h-2 w-2 text-amber-400 absolute -top-1 -right-1" />}
-              </div>
+              <BarChart3 className="h-4 w-4" />
             </button>
             <button
               onClick={() => handlePremiumTab('strategy-builder')}

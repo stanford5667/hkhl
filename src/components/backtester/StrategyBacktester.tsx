@@ -241,24 +241,6 @@ export function StrategyBacktester({ ticker, companyName }: StrategyBacktesterPr
     setError(null);
   }, []);
 
-  if (!isPro) {
-    return (
-      <div className="relative rounded-lg border bg-card p-8 text-center">
-        <div className="w-12 h-12 rounded-full bg-amber-500/10 mx-auto mb-3 flex items-center justify-center">
-          <Crown className="h-6 w-6 text-amber-400" />
-        </div>
-        <h3 className="text-lg font-semibold mb-1">Strategy Backtester</h3>
-        <p className="text-sm text-muted-foreground mb-4">
-          Test trading strategies on {companyName} ({ticker}) with 20+ indicators and institutional-grade metrics.
-        </p>
-        <Button onClick={startCheckout} className="gap-2 bg-amber-500 hover:bg-amber-600 text-black font-semibold">
-          <Crown className="h-4 w-4" />
-          Upgrade to Pro
-        </Button>
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-4">
       {/* Header */}
