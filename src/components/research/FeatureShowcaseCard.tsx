@@ -17,23 +17,35 @@ function FeatureCard({ feature: f, compact = false }: { feature: Feature; compac
     <div
       className={cn(
         "group relative rounded-xl border bg-card/60 backdrop-blur-sm",
-        compact ? "p-3" : "p-4 sm:p-5",
+        compact ? "p-4" : "p-5 sm:p-7",
         "border-border/40 hover:border-primary/30",
         "hover:shadow-[0_0_24px_hsl(var(--primary)/0.06)]",
         "transition-all cursor-pointer"
       )}
       onClick={f.action}
     >
-      <div className={cn("inline-flex rounded-lg border", compact ? "p-1.5 mb-2" : "p-2 mb-3", f.accentClass)}>
+      <div className={cn("inline-flex rounded-lg border", compact ? "p-1.5 mb-2.5" : "p-2 mb-4", f.accentClass)}>
         <f.icon className="h-4 w-4 sm:h-5 sm:w-5" />
       </div>
-      <h3 className={cn("font-semibold font-mono text-foreground mb-1", compact ? "text-xs" : "text-sm sm:text-base")}>{f.title}</h3>
-      <p className={cn("text-muted-foreground leading-relaxed", compact ? "text-[10px] mb-2 line-clamp-2" : "text-[11px] sm:text-xs mb-3")}>
+      <h3 className={cn("font-semibold font-mono text-foreground mb-1.5", compact ? "text-xs" : "text-sm sm:text-base")}>{f.title}</h3>
+      <p className={cn("text-foreground/70 leading-relaxed", compact ? "text-[10px] mb-3 line-clamp-2" : "text-[11px] sm:text-xs mb-4")}>
         {f.description}
       </p>
-      <span className={cn("inline-flex items-center gap-1 font-mono font-medium text-primary group-hover:gap-1.5 transition-all uppercase tracking-wide", compact ? "text-[10px]" : "text-[11px] sm:text-xs")}>
-        {f.cta} <ArrowRight className="h-3 w-3" />
-      </span>
+      {f.cta.toLowerCase().includes('try it') ? (
+        <span
+          className={cn(
+            "inline-flex items-center gap-1.5 font-mono font-bold uppercase tracking-wide rounded-md transition-all",
+            "bg-[hsl(175_80%_45%)] text-background hover:bg-[hsl(175_80%_50%)] shadow-md",
+            compact ? "text-[10px] px-3 py-1.5" : "text-[11px] sm:text-xs px-4 py-2"
+          )}
+        >
+          {f.cta} <ArrowRight className="h-3 w-3" />
+        </span>
+      ) : (
+        <span className={cn("inline-flex items-center gap-1 font-mono font-medium text-primary group-hover:gap-1.5 transition-all uppercase tracking-wide", compact ? "text-[10px]" : "text-[11px] sm:text-xs")}>
+          {f.cta} <ArrowRight className="h-3 w-3" />
+        </span>
+      )}
     </div>
   );
 }

@@ -102,9 +102,9 @@ export function ResearchHero({
 
   return (
     <div className="relative">
-      <div className="relative max-w-6xl mx-auto px-3 sm:px-6 pt-4 sm:pt-8 pb-3 sm:pb-5">
+      <div className="relative max-w-6xl mx-auto px-3 sm:px-6 pt-6 sm:pt-12 pb-5 sm:pb-8">
         {/* Hero Text — Terminal style */}
-        <div className="text-left sm:text-center mb-3 sm:mb-5">
+        <div className="text-left sm:text-center mb-5 sm:mb-8">
           <motion.h1
             className="text-2xl sm:text-3xl lg:text-5xl font-bold mb-1.5 sm:mb-2.5 tracking-tight font-mono leading-tight"
             initial={{ opacity: 0, y: 12 }}
@@ -132,7 +132,7 @@ export function ResearchHero({
         {/* Search Section - Command palette style with glow */}
         <motion.div
           ref={containerRef}
-          className="max-w-xl mx-auto mb-2 sm:mb-3 relative"
+          className="max-w-xl mx-auto mb-4 sm:mb-6 relative"
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.2 }}
@@ -351,7 +351,7 @@ export function ResearchHero({
 
         {/* Stats Bar — moved below search for immediate validation */}
         <motion.div
-          className="flex items-center justify-start sm:justify-center gap-2 sm:gap-6"
+          className="flex items-center justify-start sm:justify-center gap-3 sm:gap-8 mt-2 sm:mt-4"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.6, delay: 0.35 }}
@@ -360,7 +360,7 @@ export function ResearchHero({
             <div key={stat.label} className="flex items-center gap-2">
               {i > 0 && <span className="text-border text-xs">│</span>}
               <div className="flex flex-col items-start sm:items-center gap-0">
-                <span className="text-[10px] sm:text-sm font-mono font-bold text-primary tabular-nums">{stat.value}</span>
+                <span className="text-[10px] sm:text-sm font-mono font-bold text-foreground tabular-nums">{stat.value}</span>
                 <span className="text-[7px] sm:text-[9px] font-mono text-muted-foreground uppercase tracking-wider">{stat.label}</span>
               </div>
             </div>
