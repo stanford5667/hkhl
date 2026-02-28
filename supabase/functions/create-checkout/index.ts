@@ -76,7 +76,7 @@ serve(async (req) => {
     // Always use production URL for Stripe redirects (preview URLs won't work)
     const productionUrl = "https://hkhl.lovable.app";
     
-    const session = await stripe.checkout.sessions.create({
+    const sessionParams: any = {
       customer: customerId,
       customer_email: customerId ? undefined : user.email,
       line_items: [
@@ -88,20 +88,25 @@ serve(async (req) => {
       mode: "subscription",
       success_url: `${productionUrl}/quant-lab?subscription=success`,
       cancel_url: `${productionUrl}/quant-lab?subscription=cancelled`,
-      // Note: For subscription mode, invoices are created automatically by Stripe
-      // Add custom fields to show what's included
       custom_text: {
         submit: {
           message: "Your Pro subscription includes:\n• Unlimited portfolio analysis\n• Advanced risk metrics & correlations\n• AI-powered insights & recommendations\n• Real-time market data\n• Priority support\n\nSubscription auto-renews monthly. Cancel anytime from your account settings.",
         },
       },
-      // Collect billing address for invoices
       billing_address_collection: "required",
-      // Enable tax ID collection for businesses
       tax_id_collection: {
         enabled: true,
       },
-    });
+    };
+
+    // When reusing an existing customer, allow Stripe to update their name for tax ID collection
+    if (customerId) {
+      sessionParams.customer_update = {
+        name: "auto",
+      };
+    }
+
+    const session = await stripe.checkout.sessions.create(sessionParams);
 
     logStep("Checkout session created", { sessionId: session.id });
 
