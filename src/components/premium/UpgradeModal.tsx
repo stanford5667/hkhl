@@ -59,6 +59,10 @@ const FEATURE_COPY: Record<string, { title: string; benefit: string }> = {
     title: "Unlock Pro Strategy Signals",
     benefit: 'Access 20+ advanced indicators',
   },
+  financialProjections: {
+    title: "Unlock Full Financial Projections",
+    benefit: 'Multi-year analyst estimates & scenarios',
+  },
   default: {
     title: "Upgrade to Pro",
     benefit: 'Unlock all premium features',
@@ -71,6 +75,7 @@ const PRO_FEATURES = [
   { icon: Bell, text: 'Save portfolios, studies & screens' },
   { icon: Zap, text: 'All Quant Lab studies (100+ available)' },
   { icon: Crown, text: 'Deep conditional probability studies' },
+  { icon: Crown, text: 'Multi-year financial projections & scenarios' },
   { icon: Crown, text: 'Expanded datasets & asset coverage' },
   { icon: Crown, text: 'Extended historical timeframes' },
 ];

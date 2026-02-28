@@ -10,11 +10,14 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { BarChart3, HelpCircle, TrendingUp, RefreshCw } from 'lucide-react';
+import { BarChart3, HelpCircle, TrendingUp, RefreshCw, Lock, Crown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { FinancialDataCell } from './FinancialDataCell';
+import { useUsage } from '@/contexts/UsageContext';
+import { useUpgrade } from '@/hooks/useUpgrade';
+import { UpgradeModal } from '@/components/premium/UpgradeModal';
 
 interface IncomeStatementTableProps {
   ticker: string;
@@ -308,6 +311,8 @@ function generateFallbackEstimates(historicalData: any[], scenario: EstimateScen
 export function IncomeStatementTable({ ticker, companyName }: IncomeStatementTableProps) {
   const [selectedScenario, setSelectedScenario] = useState<EstimateScenario>('base');
   const { data, isLoading, error, refetch, isRefetching } = useFinancialData(ticker);
+  const { isPro } = useUsage();
+  const { promptUpgrade, showUpgradeDialog, setShowUpgradeDialog, upgradeFeature } = useUpgrade();
   
   const historicalData = data?.financials || [];
   const analystEstimates = data?.estimates || [];
@@ -315,14 +320,22 @@ export function IncomeStatementTable({ ticker, companyName }: IncomeStatementTab
   
   const estimates = convertEstimatesToDisplayFormat(analystEstimates, historicalData, selectedScenario);
   
+  // Free users: 1 year of estimates. Pro: all estimates.
+  const FREE_ESTIMATE_LIMIT = 1;
+  const visibleEstimates = isPro ? estimates : estimates.slice(0, FREE_ESTIMATE_LIMIT);
+  const lockedEstimates = isPro ? [] : estimates.slice(FREE_ESTIMATE_LIMIT);
+  const hasLockedEstimates = lockedEstimates.length > 0;
+  
   // Prepare display data - historical (reversed to show oldest first) + estimates
   const displayYears = [
     ...historicalData.slice().reverse().map((item: any) => ({
       ...item,
       year: parseInt(item.date?.split('-')[0] || '2020'),
       isEstimate: false,
+      isLocked: false,
     })),
-    ...estimates,
+    ...visibleEstimates.map(e => ({ ...e, isLocked: false })),
+    ...lockedEstimates.map(e => ({ ...e, isLocked: true })),
   ];
   
   if (isLoading) {
@@ -407,6 +420,7 @@ export function IncomeStatementTable({ ticker, companyName }: IncomeStatementTab
                 </th>
                 {displayYears.map((yearData, idx) => {
                   const isEstimate = yearData.isEstimate;
+                  const isLocked = yearData.isLocked;
                   const yearLabel = isEstimate 
                     ? `${yearData.year}E`
                     : yearData.year?.toString() || yearData.date?.split('-')[0];
@@ -416,10 +430,16 @@ export function IncomeStatementTable({ ticker, companyName }: IncomeStatementTab
                       key={idx} 
                       className={cn(
                         "text-right px-3 py-2.5 font-medium text-xs w-[80px] min-w-[80px]",
-                        isEstimate && "bg-primary/5"
+                        isEstimate && "bg-primary/5",
+                        isLocked && "cursor-pointer"
                       )}
+                      onClick={isLocked ? () => promptUpgrade('financialProjections') : undefined}
                     >
-                      <span className={cn(isEstimate && "text-primary")}>
+                      <span className={cn(
+                        isEstimate && "text-primary",
+                        isLocked && "opacity-50 flex items-center justify-end gap-1"
+                      )}>
+                        {isLocked && <Lock className="h-2.5 w-2.5 inline" />}
                         {yearLabel}
                       </span>
                     </th>
@@ -514,6 +534,23 @@ export function IncomeStatementTable({ ticker, companyName }: IncomeStatementTab
                         {displayYears.map((yearData, idx) => {
                           const value = yearData[row.key];
                           const isEPS = row.key === 'eps';
+                          const isLocked = yearData.isLocked;
+                          
+                          if (isLocked) {
+                            return (
+                              <td 
+                                key={idx}
+                                className="p-0 w-[80px] min-w-[80px] bg-primary/5 cursor-pointer"
+                                onClick={() => promptUpgrade('financialProjections')}
+                              >
+                                <div className="px-3 py-2.5 text-right select-none">
+                                  <span className="text-xs tabular-nums blur-[6px] opacity-50 pointer-events-none">
+                                    {formatValue(value, isEPS)}
+                                  </span>
+                                </div>
+                              </td>
+                            );
+                          }
                           
                           return (
                             <td 
@@ -568,6 +605,7 @@ export function IncomeStatementTable({ ticker, companyName }: IncomeStatementTab
                             const prev = idx > 0 ? displayYears[idx - 1] : null;
                             const computedValue = metric.compute(yearData, prev, displayYears, idx);
                             const formattedValue = metric.format(computedValue);
+                            const isLocked = yearData.isLocked;
                             
                             return (
                               <td 
@@ -575,13 +613,17 @@ export function IncomeStatementTable({ ticker, companyName }: IncomeStatementTab
                                 className={cn(
                                   "px-3 py-1.5 text-right text-[10px] tabular-nums w-[80px] min-w-[80px]",
                                   yearData.isEstimate && "bg-primary/5",
-                                  metric.colorize && computedValue != null && (
+                                  isLocked && "cursor-pointer",
+                                  !isLocked && metric.colorize && computedValue != null && (
                                     computedValue >= 0 ? "text-emerald-500" : "text-destructive"
                                   ),
-                                  !metric.colorize && "text-muted-foreground"
+                                  !isLocked && !metric.colorize && "text-muted-foreground"
                                 )}
+                                onClick={isLocked ? () => promptUpgrade('financialProjections') : undefined}
                               >
-                                {formattedValue}
+                                {isLocked ? (
+                                  <span className="blur-[6px] opacity-50 pointer-events-none">{formattedValue}</span>
+                                ) : formattedValue}
                               </td>
                             );
                           })}
@@ -606,7 +648,36 @@ export function IncomeStatementTable({ ticker, companyName }: IncomeStatementTab
               : 'Estimates based on historical trends'}
           </span>
         </div>
+        
+        {/* Upgrade banner for locked estimates */}
+        {hasLockedEstimates && (
+          <div 
+            className="px-4 py-3 border-t border-primary/20 bg-gradient-to-r from-primary/5 to-primary/10 flex items-center justify-between cursor-pointer hover:from-primary/10 hover:to-primary/15 transition-colors"
+            onClick={() => promptUpgrade('financialProjections')}
+          >
+            <div className="flex items-center gap-2">
+              <Lock className="h-3.5 w-3.5 text-primary" />
+              <span className="text-xs font-medium text-foreground">
+                {lockedEstimates.length} more year{lockedEstimates.length > 1 ? 's' : ''} of projections available
+              </span>
+            </div>
+            <Button
+              size="sm"
+              className="h-7 text-[10px] px-3 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-semibold shadow-lg shadow-orange-500/20"
+            >
+              <Crown className="h-3 w-3 mr-1" />
+              Unlock Pro
+            </Button>
+          </div>
+        )}
       </CardContent>
+      
+      {/* Upgrade Modal */}
+      <UpgradeModal
+        isOpen={showUpgradeDialog}
+        feature={upgradeFeature}
+        onClose={() => setShowUpgradeDialog(false)}
+      />
     </Card>
   );
 }
