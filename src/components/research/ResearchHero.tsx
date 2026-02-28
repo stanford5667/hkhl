@@ -124,7 +124,9 @@ export function ResearchHero({
             transition={{ duration: 0.5 }}
           >
             <span className="text-foreground">Build </span>
-            <span className="text-primary">Quant Strategies</span>
+            <span className="text-primary">Quant Investment</span>
+            <br />
+            <span className="text-primary">Strategies</span>
             <span className="text-foreground"> in Minutes.</span>
             <br />
             <span className="text-foreground">No Coding Required.</span>
