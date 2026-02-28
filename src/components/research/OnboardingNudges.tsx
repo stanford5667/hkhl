@@ -36,6 +36,7 @@ const NUDGES: Nudge[] = [
 ];
 
 const NUDGE_STORAGE_KEY = 'research-nudges-dismissed';
+const NUDGE_INTERACTION_KEY = 'research-user-interacted';
 
 export function OnboardingNudges() {
   const [dismissedIds, setDismissedIds] = useState<Set<string>>(() => {
@@ -45,10 +46,32 @@ export function OnboardingNudges() {
   const [currentNudgeIndex, setCurrentNudgeIndex] = useState(0);
   const [visible, setVisible] = useState(false);
 
-  // Delay showing nudges
+  // Only show nudges after user has performed a search or clicked a tool
   useEffect(() => {
-    const timer = setTimeout(() => setVisible(true), 2500);
-    return () => clearTimeout(timer);
+    const hasInteracted = localStorage.getItem(NUDGE_INTERACTION_KEY);
+    if (hasInteracted) {
+      const timer = setTimeout(() => setVisible(true), 1500);
+      return () => clearTimeout(timer);
+    }
+
+    // Listen for navigation events that indicate user interaction
+    const handleInteraction = () => {
+      localStorage.setItem(NUDGE_INTERACTION_KEY, 'true');
+      setTimeout(() => setVisible(true), 1000);
+    };
+
+    // Watch for pushState/popState which indicates user navigated to a ticker or tool
+    window.addEventListener('popstate', handleInteraction);
+    const originalPushState = history.pushState;
+    history.pushState = function (...args) {
+      originalPushState.apply(this, args);
+      handleInteraction();
+    };
+
+    return () => {
+      window.removeEventListener('popstate', handleInteraction);
+      history.pushState = originalPushState;
+    };
   }, []);
 
   const activeNudges = NUDGES.filter((n) => !dismissedIds.has(n.id));
