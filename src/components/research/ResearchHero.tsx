@@ -105,18 +105,6 @@ export function ResearchHero({
       <div className="relative max-w-6xl mx-auto px-3 sm:px-6 pt-4 sm:pt-8 pb-3 sm:pb-5">
         {/* Hero Text — Terminal style */}
         <div className="text-left sm:text-center mb-3 sm:mb-5">
-          <motion.div
-            className="inline-flex items-center gap-1 sm:gap-1.5 mb-2 sm:mb-3 px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full border border-success/30 bg-success/5"
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.4 }}
-          >
-            <span className="relative flex h-1.5 w-1.5">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-success opacity-75" />
-              <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-success" />
-            </span>
-            <span className="text-[9px] sm:text-[10px] font-mono font-medium text-success uppercase tracking-widest">Market Open · Live Data</span>
-          </motion.div>
           <motion.h1
             className="text-2xl sm:text-3xl lg:text-5xl font-bold mb-1.5 sm:mb-2.5 tracking-tight font-mono leading-tight"
             initial={{ opacity: 0, y: 12 }}
@@ -330,15 +318,6 @@ export function ResearchHero({
           </AnimatePresence>
         </motion.div>
 
-        {/* Data provider trust signal */}
-        <motion.p
-          className="text-center text-[9px] sm:text-[10px] font-mono text-muted-foreground/70 mb-2 sm:mb-3"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.5, delay: 0.3 }}
-        >
-          Institutional-grade data powered by Polygon.io
-        </motion.p>
 
         {/* Recent Searches */}
         {recentSearches.length > 0 && (
