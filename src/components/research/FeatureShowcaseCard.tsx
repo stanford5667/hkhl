@@ -33,12 +33,13 @@ function FeatureCard({ feature: f, compact = false }: { feature: Feature; compac
       </p>
       <span
         className={cn(
-          "inline-flex items-center gap-1.5 font-mono font-bold uppercase tracking-wide rounded-md transition-all",
-          "bg-[hsl(175_80%_45%)] text-background hover:bg-[hsl(175_80%_50%)] shadow-md",
-          compact ? "text-[10px] px-3 py-1.5" : "text-[11px] sm:text-xs px-4 py-2"
+          "inline-flex items-center gap-1.5 font-mono font-bold uppercase tracking-wide rounded-lg transition-all",
+          "bg-[hsl(175_80%_45%)] text-background hover:bg-[hsl(175_80%_50%)]",
+          "shadow-[0_0_16px_hsl(175_80%_45%/0.35)] hover:shadow-[0_0_24px_hsl(175_80%_45%/0.55)]",
+          compact ? "text-[10px] px-3.5 py-2" : "text-[11px] sm:text-xs px-5 py-2.5"
         )}
       >
-        {f.cta} <ArrowRight className="h-3 w-3" />
+        {f.cta} <ArrowRight className="h-3.5 w-3.5" />
       </span>
     </div>
   );

@@ -108,9 +108,9 @@ export default function ResearchPage() {
             </div>
             <button
               onClick={() => navigate('/stock/AAPL')}
-              className="hidden sm:inline-flex items-center gap-1.5 font-mono font-bold uppercase tracking-wide rounded-md transition-all bg-[hsl(175_80%_45%)] text-background hover:bg-[hsl(175_80%_50%)] shadow-md text-[11px] px-4 py-2"
+              className="hidden sm:inline-flex items-center gap-1.5 font-mono font-bold uppercase tracking-wide rounded-lg transition-all bg-[hsl(175_80%_45%)] text-background hover:bg-[hsl(175_80%_50%)] shadow-[0_0_16px_hsl(175_80%_45%/0.4)] hover:shadow-[0_0_24px_hsl(175_80%_45%/0.6)] text-[11px] px-5 py-2.5"
             >
-              Explore stocks <ArrowRight className="h-3 w-3" />
+              Explore stocks <ArrowRight className="h-3.5 w-3.5" />
             </button>
           </div>
           {tickersWithQuotes.length > 0 ? (
@@ -155,9 +155,9 @@ export default function ResearchPage() {
             </div>
             <button
               onClick={() => navigate('/stock/NVDA')}
-              className="hidden sm:inline-flex items-center gap-1.5 font-mono font-bold uppercase tracking-wide rounded-md transition-all bg-[hsl(175_80%_45%)] text-background hover:bg-[hsl(175_80%_50%)] shadow-md text-[11px] px-4 py-2"
+              className="hidden sm:inline-flex items-center gap-1.5 font-mono font-bold uppercase tracking-wide rounded-lg transition-all bg-[hsl(175_80%_45%)] text-background hover:bg-[hsl(175_80%_50%)] shadow-[0_0_16px_hsl(175_80%_45%/0.4)] hover:shadow-[0_0_24px_hsl(175_80%_45%/0.6)] text-[11px] px-5 py-2.5"
             >
-              Get AI predictions <ArrowRight className="h-3 w-3" />
+              Get AI predictions <ArrowRight className="h-3.5 w-3.5" />
             </button>
           </div>
           <EarningsCalendar />
@@ -172,18 +172,18 @@ export default function ResearchPage() {
           <div className="flex flex-wrap items-center justify-center gap-3">
             <button
               onClick={() => navigate('/stock/AAPL', { state: { tab: 'backtest' } })}
-              className="inline-flex items-center gap-1.5 font-mono font-bold uppercase tracking-wide rounded-md transition-all bg-[hsl(175_80%_45%)] text-background hover:bg-[hsl(175_80%_50%)] shadow-md text-xs sm:text-sm px-5 py-2.5"
+              className="inline-flex items-center gap-1.5 font-mono font-bold uppercase tracking-wide rounded-lg transition-all bg-[hsl(175_80%_45%)] text-background hover:bg-[hsl(175_80%_50%)] shadow-[0_0_20px_hsl(175_80%_45%/0.4)] hover:shadow-[0_0_32px_hsl(175_80%_45%/0.6)] text-xs sm:text-sm px-6 py-3"
             >
-              Start backtesting <ArrowRight className="h-3.5 w-3.5" />
+              Start backtesting <ArrowRight className="h-4 w-4" />
             </button>
             <button
               onClick={() => {
                 const el = document.getElementById('market-intelligence');
                 el?.scrollIntoView({ behavior: 'smooth' });
               }}
-              className="inline-flex items-center gap-1.5 font-mono font-bold uppercase tracking-wide rounded-md transition-all border border-[hsl(175_80%_45%/0.4)] text-[hsl(175_80%_45%)] hover:bg-[hsl(175_80%_45%/0.1)] text-xs sm:text-sm px-5 py-2.5"
+              className="inline-flex items-center gap-1.5 font-mono font-bold uppercase tracking-wide rounded-lg transition-all border-2 border-[hsl(175_80%_45%/0.5)] text-[hsl(175_80%_45%)] hover:bg-[hsl(175_80%_45%/0.1)] hover:border-[hsl(175_80%_45%/0.8)] shadow-[0_0_12px_hsl(175_80%_45%/0.15)] hover:shadow-[0_0_20px_hsl(175_80%_45%/0.3)] text-xs sm:text-sm px-6 py-3"
             >
-              Screen stocks <ArrowRight className="h-3.5 w-3.5" />
+              Screen stocks <ArrowRight className="h-4 w-4" />
             </button>
           </div>
         </motion.div>
