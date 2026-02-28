@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { TrendingUp, TrendingDown, ArrowRight } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { getCandlesForRange, CandleData, TimeRange } from '@/services/candleService';
@@ -37,12 +37,28 @@ export function EnhancedTickerCard({
   const [periodChange, setPeriodChange] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [details, setDetails] = useState<TickerDetails | null>(null);
+  const [isVisible, setIsVisible] = useState(false);
+  const cardRef = useRef<HTMLDivElement>(null);
+
+  // Defer data fetching until card is visible
+  useEffect(() => {
+    const el = cardRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => { if (entry.isIntersecting) { setIsVisible(true); observer.disconnect(); } },
+      { rootMargin: '200px' }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
+    if (!isVisible) return;
     fetchTickerDetails(symbol).then(setDetails).catch(() => {});
-  }, [symbol]);
+  }, [symbol, isVisible]);
 
   useEffect(() => {
+    if (!isVisible) return;
     let mounted = true;
     async function fetchData() {
       setIsLoading(true);
@@ -110,7 +126,7 @@ export function EnhancedTickerCard({
     }
     fetchData();
     return () => { mounted = false; };
-  }, [symbol, selectedPeriod, changePercent, price]);
+  }, [symbol, selectedPeriod, changePercent, price, isVisible]);
 
   const isPositive = (periodChange ?? changePercent ?? 0) >= 0;
 
@@ -190,10 +206,11 @@ export function EnhancedTickerCard({
   if (compact) {
     return (
       <div
+        ref={cardRef}
         className={cn(
           "relative flex flex-col p-2.5 rounded-lg cursor-pointer",
           "bg-card/60 backdrop-blur-sm",
-          "border transition-all duration-200",
+          "border transition-all duration-200 group",
           isPositive
             ? "border-success/20 hover:border-success/40"
             : "border-destructive/20 hover:border-destructive/40",
@@ -223,6 +240,12 @@ export function EnhancedTickerCard({
             <div className="w-full h-full flex items-center justify-center text-[9px] text-muted-foreground font-mono">—</div>
           )}
         </div>
+        {/* CTA */}
+        <div className="mt-1.5 pt-1.5 border-t border-border/20">
+          <span className="inline-flex items-center gap-1 font-mono font-bold uppercase tracking-wide rounded-md text-[8px] px-2 py-0.5 bg-[hsl(175_80%_45%)] text-background shadow-[0_0_8px_hsl(175_80%_45%/0.3)] group-hover:shadow-[0_0_14px_hsl(175_80%_45%/0.5)] transition-all">
+            Analyze <ArrowRight className="h-2 w-2" />
+          </span>
+        </div>
       </div>
     );
   }
@@ -230,6 +253,7 @@ export function EnhancedTickerCard({
   // Full desktop layout — Bloomberg terminal card
   return (
     <div
+      ref={cardRef}
       className={cn(
         "relative flex flex-col rounded-xl cursor-pointer overflow-hidden",
         "bg-card/60 backdrop-blur-sm",
