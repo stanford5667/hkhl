@@ -1072,8 +1072,19 @@ export const SentenceBuilder = memo(function SentenceBuilder({
   }, [entrySignals, entryLogic, exitRules, exitLogic, onAddBlock, onComplete, onRunBacktest, ticker]);
 
   const handleClear = () => {
-    setEntrySignals([]);
-    setExitRules([]);
+    if (isControlled && onStateChange) {
+      onStateChange({
+        entrySignals: [],
+        entryLogic: 'AND',
+        exitRules: [],
+        exitLogic: 'OR',
+      });
+    } else {
+      setLocalEntrySignals([]);
+      setLocalEntryLogic('AND');
+      setLocalExitRules([]);
+      setLocalExitLogic('OR');
+    }
     onClear?.();
   };
 
