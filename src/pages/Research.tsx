@@ -76,13 +76,13 @@ export default function ResearchPage() {
       />
 
       {/* Social Proof Signals - rotating live activity ticker */}
-      <div className="max-w-6xl mx-auto px-3 sm:px-6 -mt-1 mb-4">
+      <div className="max-w-6xl mx-auto px-3 sm:px-6 -mt-1 mb-2 sm:mb-4">
         <SocialProofSignals />
       </div>
 
       {/* Main Content with progressive reveal */}
       <motion.div
-        className="max-w-6xl mx-auto px-3 sm:px-6 pb-8 sm:pb-12 space-y-5 sm:space-y-8"
+        className="max-w-6xl mx-auto px-3 sm:px-6 pb-8 sm:pb-12 space-y-3 sm:space-y-8"
         variants={stagger}
         initial="hidden"
         animate="visible"

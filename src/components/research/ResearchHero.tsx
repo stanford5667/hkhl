@@ -102,11 +102,11 @@ export function ResearchHero({
 
   return (
     <div className="relative">
-      <div className="relative max-w-6xl mx-auto px-3 sm:px-6 pt-4 sm:pt-6 pb-3 sm:pb-4">
+      <div className="relative max-w-6xl mx-auto px-3 sm:px-6 pt-2 sm:pt-6 pb-2 sm:pb-4">
         {/* Hero Text — Terminal style */}
-        <div className="text-center mb-3 sm:mb-4">
+        <div className="text-center mb-2 sm:mb-4">
           <motion.div
-            className="inline-flex items-center gap-1.5 mb-2 px-2.5 py-1 rounded-full border border-success/30 bg-success/5"
+            className="inline-flex items-center gap-1 sm:gap-1.5 mb-1.5 sm:mb-2 px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full border border-success/30 bg-success/5"
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.4 }}
@@ -115,10 +115,10 @@ export function ResearchHero({
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-success opacity-75" />
               <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-success" />
             </span>
-            <span className="text-[10px] font-mono font-medium text-success uppercase tracking-widest">Market Open · Live Data</span>
+            <span className="text-[9px] sm:text-[10px] font-mono font-medium text-success uppercase tracking-widest">Market Open · Live Data</span>
           </motion.div>
           <motion.h1
-            className="text-xl sm:text-2xl lg:text-4xl font-bold mb-1 sm:mb-1.5 tracking-tight font-mono"
+            className="text-lg sm:text-2xl lg:text-4xl font-bold mb-0.5 sm:mb-1.5 tracking-tight font-mono"
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
@@ -129,7 +129,7 @@ export function ResearchHero({
             <span className="text-foreground"> Platform.</span>
           </motion.h1>
           <motion.p
-            className="text-muted-foreground text-[11px] sm:text-xs lg:text-sm max-w-lg mx-auto font-mono"
+            className="text-muted-foreground text-[10px] sm:text-xs lg:text-sm max-w-lg mx-auto font-mono"
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.1 }}
@@ -141,7 +141,7 @@ export function ResearchHero({
         {/* Search Section - Command palette style */}
         <motion.div
           ref={containerRef}
-          className="max-w-xl mx-auto mb-3 sm:mb-4 relative"
+          className="max-w-xl mx-auto mb-2 sm:mb-4 relative"
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.2 }}
@@ -154,7 +154,7 @@ export function ResearchHero({
             isFocused && "border-primary/50 shadow-primary/10 ring-1 ring-primary/20"
           )}>
             {/* Input row */}
-            <div className="flex items-center gap-2 px-3 sm:px-4 h-11 sm:h-12">
+            <div className="flex items-center gap-2 px-3 sm:px-4 h-10 sm:h-12">
               <Search className="h-4 w-4 text-muted-foreground shrink-0" />
               <input
                 ref={inputRef}
@@ -316,7 +316,7 @@ export function ResearchHero({
 
         {/* Recent Searches */}
         {recentSearches.length > 0 && (
-          <div className="max-w-xl mx-auto overflow-x-auto scrollbar-hide mb-3 sm:mb-4">
+          <div className="max-w-xl mx-auto overflow-x-auto scrollbar-hide mb-2 sm:mb-4">
             <div className="flex items-center gap-1.5 min-w-max px-1">
               <span className="text-[10px] text-muted-foreground flex items-center gap-1 shrink-0">
                 <Clock className="h-3 w-3" /> Recent:
@@ -346,7 +346,7 @@ export function ResearchHero({
 
         {/* Stats Bar — Terminal readout */}
         <motion.div
-          className="flex items-center justify-center gap-3 sm:gap-6"
+          className="flex items-center justify-center gap-2 sm:gap-6"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.6, delay: 0.35 }}
@@ -355,8 +355,8 @@ export function ResearchHero({
             <div key={stat.label} className="flex items-center gap-2">
               {i > 0 && <span className="text-border text-xs">│</span>}
               <div className="flex flex-col items-center gap-0">
-                <span className="text-xs sm:text-sm font-mono font-bold text-primary tabular-nums">{stat.value}</span>
-                <span className="text-[8px] sm:text-[9px] font-mono text-muted-foreground uppercase tracking-wider">{stat.label}</span>
+                <span className="text-[10px] sm:text-sm font-mono font-bold text-primary tabular-nums">{stat.value}</span>
+                <span className="text-[7px] sm:text-[9px] font-mono text-muted-foreground uppercase tracking-wider">{stat.label}</span>
               </div>
             </div>
           ))}
