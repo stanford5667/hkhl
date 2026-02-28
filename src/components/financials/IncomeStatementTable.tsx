@@ -635,6 +635,32 @@ export function IncomeStatementTable({ ticker, companyName }: IncomeStatementTab
               })}
             </tbody>
           </table>
+          
+          {/* Pro upgrade overlay on locked columns */}
+          {hasLockedEstimates && (
+            <div 
+              className="absolute right-0 top-0 bottom-0 flex items-center justify-center z-10 cursor-pointer"
+              style={{ width: `${lockedEstimates.length * 80}px` }}
+              onClick={() => promptUpgrade('financialProjections')}
+            >
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-background/80 to-background/95 backdrop-blur-[2px]" />
+              <div className="relative flex flex-col items-center gap-2 p-4 text-center">
+                <div className="h-10 w-10 rounded-full bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center shadow-lg shadow-orange-500/30">
+                  <Crown className="h-5 w-5 text-white" />
+                </div>
+                <p className="text-xs font-semibold text-foreground">Unlock Projections</p>
+                <p className="text-[10px] text-muted-foreground max-w-[120px]">
+                  Get multi-year analyst estimates & scenarios
+                </p>
+                <Button
+                  size="sm"
+                  className="h-7 text-[10px] px-3 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-semibold shadow-lg shadow-orange-500/20"
+                >
+                  Upgrade to Pro
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
         
         {/* Data source indicator */}
@@ -649,27 +675,6 @@ export function IncomeStatementTable({ ticker, companyName }: IncomeStatementTab
           </span>
         </div>
         
-        {/* Upgrade banner for locked estimates */}
-        {hasLockedEstimates && (
-          <div 
-            className="px-4 py-3 border-t border-primary/20 bg-gradient-to-r from-primary/5 to-primary/10 flex items-center justify-between cursor-pointer hover:from-primary/10 hover:to-primary/15 transition-colors"
-            onClick={() => promptUpgrade('financialProjections')}
-          >
-            <div className="flex items-center gap-2">
-              <Lock className="h-3.5 w-3.5 text-primary" />
-              <span className="text-xs font-medium text-foreground">
-                {lockedEstimates.length} more year{lockedEstimates.length > 1 ? 's' : ''} of projections available
-              </span>
-            </div>
-            <Button
-              size="sm"
-              className="h-7 text-[10px] px-3 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-semibold shadow-lg shadow-orange-500/20"
-            >
-              <Crown className="h-3 w-3 mr-1" />
-              Unlock Pro
-            </Button>
-          </div>
-        )}
       </CardContent>
       
       {/* Upgrade Modal */}

@@ -460,6 +460,87 @@ async function fetchQuarterlyEPS(symbol: string, apiKey: string): Promise<number
   }
 }
 
+// Fetch income statements from Polygon financials API (primary fallback when FMP fails)
+async function fetchPolygonIncomeStatements(symbol: string, apiKey: string): Promise<IncomeStatement[]> {
+  const cacheKey = `polygon_income_${symbol}`;
+  const cached = getCached(cacheKey);
+  if (cached) {
+    console.log(`[polygon] Cache hit for ${symbol} income statements`);
+    return cached as IncomeStatement[];
+  }
+
+  try {
+    const url = `${POLYGON_BASE_URL}/vX/reference/financials?ticker=${encodeURIComponent(symbol)}&timeframe=annual&limit=10&sort=period_of_report_date&order=desc&apiKey=${apiKey}`;
+    const res = await fetchWithTimeout(url, {}, 10000);
+    
+    if (!res.ok) {
+      console.warn(`[polygon] Income statements API returned ${res.status} for ${symbol}`);
+      return [];
+    }
+    
+    const data = await res.json();
+    const results = data.results;
+    
+    if (!results || results.length === 0) {
+      console.warn(`[polygon] No income statement data for ${symbol}`);
+      return [];
+    }
+
+    const financials: IncomeStatement[] = [];
+    
+    for (const entry of results) {
+      const is = entry.financials?.income_statement;
+      const cf = entry.financials?.cash_flow_statement;
+      if (!is) continue;
+      
+      const revenue = is.revenues?.value || 0;
+      if (revenue === 0) continue;
+      
+      const costOfRevenue = is.cost_of_revenue?.value || 0;
+      const grossProfit = is.gross_profit?.value || (revenue - costOfRevenue);
+      const operatingIncome = is.operating_income_loss?.value || 0;
+      const operatingExpenses = is.operating_expenses?.value || (grossProfit - operatingIncome);
+      const netIncome = is.net_income_loss?.value || is.net_income_loss_attributable_to_parent?.value || 0;
+      const interestExpense = is.interest_expense_operating?.value || 0;
+      const incomeTax = is.income_tax_expense_benefit?.value || 0;
+      const incomeBeforeTax = is.income_loss_from_continuing_operations_before_tax?.value || (netIncome + incomeTax);
+      const eps = is.diluted_earnings_per_share?.value || is.basic_earnings_per_share?.value || 0;
+      const da = cf?.depreciation_and_amortization?.value || 0;
+      const ebitda = operatingIncome + (da || Math.round(operatingIncome * 0.15));
+      
+      const reportDate = entry.end_date || entry.period_of_report_date || '';
+      const fiscalYear = entry.fiscal_year || reportDate.split('-')[0];
+      
+      financials.push({
+        date: reportDate || `${fiscalYear}-12-31`,
+        symbol,
+        revenue,
+        costOfRevenue,
+        grossProfit,
+        operatingExpenses,
+        operatingIncome,
+        interestExpense,
+        otherIncome: 0,
+        incomeBeforeTax,
+        incomeTax,
+        netIncome,
+        ebitda,
+        eps,
+        period: 'FY',
+      });
+      
+      console.log(`[polygon] ${symbol} FY${fiscalYear}: revenue=$${(revenue/1e9).toFixed(1)}B, netIncome=$${(netIncome/1e9).toFixed(1)}B, eps=$${eps.toFixed(2)}`);
+    }
+
+    console.log(`[polygon] Extracted ${financials.length} years of income statements for ${symbol}`);
+    setCache(cacheKey, financials);
+    return financials;
+  } catch (err) {
+    console.error(`[polygon] Error fetching income statements for ${symbol}:`, err);
+    return [];
+  }
+}
+
 // Calculate standard deviation
 function calculateStdDev(values: number[]): number | null {
   if (values.length < 2) return null;
@@ -1486,12 +1567,13 @@ serve(async (req) => {
       // Fetch Polygon data (primary source)
       if (POLYGON_API_KEY) {
         try {
-          const [polygonProfile, polygonBalance, polygonShares, polygonTTMEPS, polygonQuarterlyEPS, secFinancials, secBalance] = await Promise.all([
+          const [polygonProfile, polygonBalance, polygonShares, polygonTTMEPS, polygonQuarterlyEPS, polygonIncomeStatements, secFinancials, secBalance] = await Promise.all([
             fetchPolygonProfile(symbol, POLYGON_API_KEY),
             fetchPolygonBalanceSheet(symbol, POLYGON_API_KEY),
             fetchSharesOutstanding(symbol, POLYGON_API_KEY),
             fetchTTMEPS(symbol, POLYGON_API_KEY),
             fetchQuarterlyEPS(symbol, POLYGON_API_KEY),
+            fetchPolygonIncomeStatements(symbol, POLYGON_API_KEY),
             fetchSECFinancials(symbol),
             fetchSECBalanceSheet(symbol),
           ]);
@@ -1527,8 +1609,12 @@ serve(async (req) => {
             console.log(`[fmp-fundamentals] Using SEC balance sheet for ${symbol}`);
           }
           
-          // If no FMP financials, use SEC
-          if (financials.length === 0 && secFinancials.length > 0) {
+          // Priority: FMP > Polygon > SEC for income statements
+          if (financials.length === 0 && polygonIncomeStatements.length > 0) {
+            financials = polygonIncomeStatements;
+            source = source.includes('Polygon') ? source : 'Polygon';
+            console.log(`[fmp-fundamentals] Using Polygon income statements for ${symbol} (${financials.length} years)`);
+          } else if (financials.length === 0 && secFinancials.length > 0) {
             financials = secFinancials;
             source = 'SEC XBRL';
             console.log(`[fmp-fundamentals] Using SEC financials for ${symbol}`);
