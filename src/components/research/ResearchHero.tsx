@@ -123,40 +123,40 @@ export function ResearchHero({
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
           >
-            <span className="text-foreground">The All-in-One </span>
-            <span className="text-primary">AI Quant</span>
+            <span className="text-foreground">Build </span>
+            <span className="text-primary">Quant Strategies</span>
+            <span className="text-foreground"> in Minutes.</span>
             <br />
-            <span className="text-primary">Investing</span>
-            <span className="text-foreground"> Platform.</span>
+            <span className="text-foreground">No Coding Required.</span>
           </motion.h1>
           <motion.p
-            className="text-muted-foreground text-[10px] sm:text-xs lg:text-sm max-w-lg sm:mx-auto font-mono"
+            className="text-muted-foreground text-[11px] sm:text-xs lg:text-sm max-w-lg sm:mx-auto font-mono font-semibold"
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.1 }}
           >
-            AI-powered analysis · backtesting · screening — 10,000+ assets
+            AI-powered analysis · backtesting · screening
           </motion.p>
         </div>
 
-        {/* Search Section - Command palette style */}
+        {/* Search Section - Command palette style with glow */}
         <motion.div
           ref={containerRef}
-          className="max-w-xl mx-auto mb-2 sm:mb-4 relative"
+          className="max-w-xl mx-auto mb-2 sm:mb-3 relative"
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.2 }}
         >
           <div className={cn(
             "relative rounded-xl",
-            "bg-card border border-border/60",
-            "shadow-lg shadow-primary/5",
-            "transition-all",
-            isFocused && "border-primary/50 shadow-primary/10 ring-1 ring-primary/20"
+            "bg-card border-2 border-primary/30",
+            "shadow-[0_0_15px_-3px_hsl(var(--primary)/0.2)]",
+            "transition-all duration-300",
+            isFocused && "border-primary/60 shadow-[0_0_25px_-3px_hsl(var(--primary)/0.35)] ring-1 ring-primary/30"
           )}>
             {/* Input row */}
             <div className="flex items-center gap-2 px-3 sm:px-4 h-10 sm:h-12">
-              <Search className="h-4 w-4 text-muted-foreground shrink-0" />
+              <Search className="h-4 w-4 text-primary shrink-0" />
               <input
                 ref={inputRef}
                 value={searchQuery}
@@ -186,7 +186,7 @@ export function ResearchHero({
             </div>
           </div>
 
-          {/* Floating dropdown */}
+          {/* Floating dropdown with skeleton loading */}
           <AnimatePresence>
             {showDropdown && (
               <motion.div
@@ -257,9 +257,21 @@ export function ResearchHero({
                     </ul>
                   </div>
                 ) : isSearching ? (
-                  <div className="flex items-center justify-center py-6 text-muted-foreground">
-                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                    <span className="text-sm">Searching tickers...</span>
+                  /* Skeleton loading state */
+                  <div className="py-1">
+                    <div className="px-3 sm:px-4 py-1.5 border-b border-border/40">
+                      <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Searching...</span>
+                    </div>
+                    {Array.from({ length: 4 }).map((_, i) => (
+                      <div key={i} className="flex items-center gap-3 px-3 sm:px-4 py-2.5">
+                        <div className="h-8 w-8 rounded-lg bg-muted animate-pulse shrink-0" />
+                        <div className="flex-1 space-y-1.5">
+                          <div className="h-3.5 w-16 bg-muted animate-pulse rounded" />
+                          <div className="h-3 w-28 bg-muted/60 animate-pulse rounded" />
+                        </div>
+                        <div className="h-4 w-14 bg-muted animate-pulse rounded shrink-0" />
+                      </div>
+                    ))}
                   </div>
                 ) : query.length >= 1 ? (
                   <div className="py-6 text-center">
@@ -315,9 +327,19 @@ export function ResearchHero({
           </AnimatePresence>
         </motion.div>
 
+        {/* Data provider trust signal */}
+        <motion.p
+          className="text-center text-[9px] sm:text-[10px] font-mono text-muted-foreground/70 mb-2 sm:mb-3"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.5, delay: 0.3 }}
+        >
+          Institutional-grade data powered by Polygon.io
+        </motion.p>
+
         {/* Recent Searches */}
         {recentSearches.length > 0 && (
-          <div className="max-w-xl mx-auto overflow-x-auto scrollbar-hide mb-2 sm:mb-4">
+          <div className="max-w-xl mx-auto overflow-x-auto scrollbar-hide mb-2 sm:mb-3">
             <div className="flex items-center gap-1.5 min-w-max px-1">
               <span className="text-[10px] text-muted-foreground flex items-center gap-1 shrink-0">
                 <Clock className="h-3 w-3" /> Recent:
@@ -345,7 +367,7 @@ export function ResearchHero({
           </div>
         )}
 
-        {/* Stats Bar — Terminal readout */}
+        {/* Stats Bar — moved below search for immediate validation */}
         <motion.div
           className="flex items-center justify-start sm:justify-center gap-2 sm:gap-6"
           initial={{ opacity: 0 }}
