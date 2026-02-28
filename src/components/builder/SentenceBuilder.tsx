@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { ChevronDown, X, Check, Plus, ArrowRight, Settings2, Lock, Crown } from 'lucide-react';
 import { useUsage } from '@/contexts/UsageContext';
-import { useUpgrade } from '@/hooks/useUpgrade';
+
 import {
   Popover,
   PopoverContent,
@@ -51,6 +51,7 @@ interface SentenceBuilderProps {
   onComplete?: () => void;
   onRunBacktest?: (params: BacktestParams) => void;
   onClear?: () => void;
+  onPromptUpgrade?: (feature: string) => void;
   ticker?: string;
   className?: string;
   // Controlled state for persistence
@@ -579,14 +580,15 @@ const SignalAddButton = memo(function SignalAddButton({
   onSelect,
   selectedIds,
   isRequired,
+  onPromptUpgrade,
 }: {
   onSelect: (preset: SignalPreset) => void;
   selectedIds: string[];
   isRequired: boolean;
+  onPromptUpgrade?: (feature: string) => void;
 }) {
   const [open, setOpen] = useState(false);
   const { isPro } = useUsage();
-  const { promptUpgrade } = useUpgrade();
 
   const categories = [
     { id: 'momentum', label: 'Momentum' },
@@ -634,7 +636,7 @@ const SignalAddButton = memo(function SignalAddButton({
                       key={preset.id}
                       onClick={() => {
                         if (isLocked) {
-                          promptUpgrade('strategy-signals');
+                          onPromptUpgrade?.('strategy-signals');
                           setOpen(false);
                           return;
                         }
@@ -670,7 +672,7 @@ const SignalAddButton = memo(function SignalAddButton({
           <div className="mt-3 pt-3 border-t border-border">
             <button
               onClick={() => {
-                promptUpgrade('strategy-signals');
+                onPromptUpgrade?.('strategy-signals');
                 setOpen(false);
               }}
               className="flex items-center gap-2 w-full px-3 py-2 rounded-md text-left hover:bg-amber-500/10 transition-colors"
@@ -769,6 +771,7 @@ export const SentenceBuilder = memo(function SentenceBuilder({
   onComplete,
   onRunBacktest,
   onClear,
+  onPromptUpgrade,
   ticker = 'AAPL',
   className,
   state,
@@ -1134,6 +1137,7 @@ export const SentenceBuilder = memo(function SentenceBuilder({
             onSelect={handleAddSignal}
             selectedIds={entrySignals.map(s => s.preset.id)}
             isRequired={entrySignals.length === 0}
+            onPromptUpgrade={onPromptUpgrade}
           />
         </div>
       </div>

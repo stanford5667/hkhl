@@ -160,6 +160,7 @@ interface UnifiedStrategyBuilderProps {
   ticker?: string;
   onRunBacktest?: (params: BacktestParams) => void;
   onClear?: () => void;
+  onPromptUpgrade?: (feature: string) => void;
   sentenceState?: SentenceBuilderState;
   onSentenceStateChange?: (state: SentenceBuilderState) => void;
   className?: string;
@@ -171,6 +172,7 @@ export const UnifiedStrategyBuilder = memo(function UnifiedStrategyBuilder({
   ticker = 'AAPL',
   onRunBacktest,
   onClear,
+  onPromptUpgrade,
   sentenceState,
   onSentenceStateChange,
   className,
@@ -301,6 +303,7 @@ export const UnifiedStrategyBuilder = memo(function UnifiedStrategyBuilder({
           onAddBlock={() => {}}
           onRunBacktest={onRunBacktest}
           onClear={onClear}
+          onPromptUpgrade={onPromptUpgrade}
           ticker={ticker}
           state={sentenceState}
           onStateChange={onSentenceStateChange}
