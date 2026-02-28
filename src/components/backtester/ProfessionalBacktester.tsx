@@ -1345,6 +1345,7 @@ export function ProfessionalBacktester() {
                 <VisualStrategyBuilder 
                   embedded 
                   onRunBacktest={handleVisualBuilderBacktest}
+                  onPromptUpgrade={promptUpgrade}
                 />
               </div>
             )}
