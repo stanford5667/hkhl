@@ -16,6 +16,8 @@
 import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { useRequireAuth } from '@/hooks/useRequireAuth';
 import { AuthGateDialog } from '@/components/auth/AuthGateDialog';
+import { useUsage } from '@/contexts/UsageContext';
+import { useUpgrade } from '@/hooks/useUpgrade';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -48,6 +50,8 @@ import {
   RefreshCw,
   ChevronLeft,
   Settings2,
+  Lock,
+  Crown,
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
@@ -215,13 +219,15 @@ export function ProfessionalBacktester() {
   
   // Portfolio state
   const { requireAuth, showAuthDialog, closeAuthDialog } = useRequireAuth();
+  const { isPro } = useUsage();
+  const { promptUpgrade, showUpgradeDialog, setShowUpgradeDialog, showAuthSheet, setShowAuthSheet, startCheckout } = useUpgrade();
   const [assets, setAssets] = useState<Asset[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<{ symbol: string; name: string }[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   
   // Settings
-  const [period, setPeriod] = useState('5Y');
+  const [period, setPeriod] = useState('1Y');
   const [benchmark, setBenchmark] = useState('SPY');
   const [initialCapital] = useState(100000);
   
@@ -846,6 +852,49 @@ export function ProfessionalBacktester() {
   }, [result]);
 
   // ─────────────────────────────────────────────────────────────────────────────
+  // Premium lock helper
+  // ─────────────────────────────────────────────────────────────────────────────
+  
+  const PremiumLockOverlay = ({ label = 'Pro Feature' }: { label?: string }) => (
+    <div 
+      className="absolute inset-0 z-10 bg-[rgb(8,12,16)]/80 backdrop-blur-sm flex flex-col items-center justify-center gap-2 rounded-lg cursor-pointer"
+      onClick={() => promptUpgrade('backtester')}
+    >
+      <div className="flex items-center gap-1.5 text-amber-400">
+        <Crown className="h-4 w-4" />
+        <span className="text-xs font-semibold">{label}</span>
+      </div>
+      <button className="px-3 py-1.5 text-[10px] font-semibold bg-amber-500/20 text-amber-400 border border-amber-500/30 rounded-md hover:bg-amber-500/30 transition-colors">
+        Upgrade to Pro
+      </button>
+    </div>
+  );
+
+  const handlePremiumPeriod = (value: string) => {
+    if (!isPro && value !== '1Y') {
+      promptUpgrade('backtester-periods');
+      return;
+    }
+    setPeriod(value);
+  };
+
+  const handlePremiumBenchmark = (value: string) => {
+    if (!isPro && value !== 'SPY') {
+      promptUpgrade('backtester-benchmarks');
+      return;
+    }
+    setBenchmark(value);
+  };
+
+  const handlePremiumTab = (tab: 'portfolio' | 'templates' | 'strategy-builder') => {
+    if (!isPro && (tab === 'templates' || tab === 'strategy-builder')) {
+      promptUpgrade('backtester-' + tab);
+      return;
+    }
+    setActiveLeftTab(tab);
+  };
+
+  // ─────────────────────────────────────────────────────────────────────────────
   // Render
   // ─────────────────────────────────────────────────────────────────────────────
   
@@ -878,15 +927,19 @@ export function ProfessionalBacktester() {
             {PERIODS.map(p => (
               <button
                 key={p.value}
-                onClick={() => setPeriod(p.value)}
+                onClick={() => handlePremiumPeriod(p.value)}
                 className={cn(
-                  "px-2 py-1 text-[10px] font-medium rounded transition-colors",
+                  "px-2 py-1 text-[10px] font-medium rounded transition-colors relative",
                   period === p.value
                     ? "bg-[rgb(56,139,253)] text-white"
-                    : "text-[rgb(139,148,158)] hover:text-[rgb(230,237,243)] hover:bg-[rgb(27,32,40)]"
+                    : "text-[rgb(139,148,158)] hover:text-[rgb(230,237,243)] hover:bg-[rgb(27,32,40)]",
+                  !isPro && p.value !== '1Y' && "opacity-60"
                 )}
               >
-                {p.label}
+                <span className="flex items-center gap-1">
+                  {p.label}
+                  {!isPro && p.value !== '1Y' && <Lock className="h-2.5 w-2.5 text-amber-400" />}
+                </span>
               </button>
             ))}
           </div>
@@ -899,15 +952,19 @@ export function ProfessionalBacktester() {
             {BENCHMARKS.map(b => (
               <button
                 key={b.value}
-                onClick={() => setBenchmark(b.value)}
+                onClick={() => handlePremiumBenchmark(b.value)}
                 className={cn(
                   "px-2 py-1 text-[10px] font-mono rounded transition-colors",
                   benchmark === b.value
                     ? "bg-[rgb(33,38,45)] text-[rgb(230,237,243)]"
-                    : "text-[rgb(87,96,106)] hover:text-[rgb(139,148,158)]"
+                    : "text-[rgb(87,96,106)] hover:text-[rgb(139,148,158)]",
+                  !isPro && b.value !== 'SPY' && "opacity-60"
                 )}
               >
-                {b.label}
+                <span className="flex items-center gap-1">
+                  {b.label}
+                  {!isPro && b.value !== 'SPY' && <Lock className="h-2.5 w-2.5 text-amber-400" />}
+                </span>
               </button>
             ))}
           </div>
@@ -988,34 +1045,40 @@ export function ProfessionalBacktester() {
               <Layers className="h-4 w-4" />
             </button>
             <button
-              onClick={() => setActiveLeftTab('templates')}
+              onClick={() => handlePremiumTab('templates')}
               className={cn(
                 "w-full aspect-square flex items-center justify-center transition-all relative",
                 activeLeftTab === 'templates'
                   ? "text-[rgb(56,139,253)]"
                   : "text-[rgb(87,96,106)] hover:text-[rgb(139,148,158)]"
               )}
-              title="Templates"
+              title={isPro ? "Templates" : "Templates (Pro)"}
             >
               {activeLeftTab === 'templates' && (
                 <div className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-6 bg-[rgb(56,139,253)] rounded-r" />
               )}
-              <BarChart3 className="h-4 w-4" />
+              <div className="relative">
+                <BarChart3 className="h-4 w-4" />
+                {!isPro && <Lock className="h-2 w-2 text-amber-400 absolute -top-1 -right-1" />}
+              </div>
             </button>
             <button
-              onClick={() => setActiveLeftTab('strategy-builder')}
+              onClick={() => handlePremiumTab('strategy-builder')}
               className={cn(
                 "w-full aspect-square flex items-center justify-center transition-all relative",
                 activeLeftTab === 'strategy-builder'
                   ? "text-[rgb(56,139,253)]"
                   : "text-[rgb(87,96,106)] hover:text-[rgb(139,148,158)]"
               )}
-              title="Visual Strategy Builder"
+              title={isPro ? "Visual Strategy Builder" : "Strategy Builder (Pro)"}
             >
               {activeLeftTab === 'strategy-builder' && (
                 <div className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-6 bg-[rgb(56,139,253)] rounded-r" />
               )}
-              <Workflow className="h-4 w-4" />
+              <div className="relative">
+                <Workflow className="h-4 w-4" />
+                {!isPro && <Lock className="h-2 w-2 text-amber-400 absolute -top-1 -right-1" />}
+              </div>
             </button>
           </div>
           
@@ -1415,14 +1478,20 @@ export function ProfessionalBacktester() {
               
               {/* Chart tabs */}
               <div className="flex-1 flex flex-col min-h-0">
-                <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
+                <Tabs value={activeTab} onValueChange={(val) => {
+                  if (!isPro && val !== 'overview') {
+                    promptUpgrade('backtester-charts');
+                    return;
+                  }
+                  setActiveTab(val);
+                }} className="flex-1 flex flex-col">
                   <div className="flex-shrink-0 px-3 pt-2 border-b border-[rgb(33,38,45)] bg-[rgb(13,17,23)]">
                     <TabsList className="h-8 bg-transparent gap-1 p-0">
                       {[
-                        { value: 'overview', label: 'Growth' },
-                        { value: 'drawdown', label: 'Drawdown' },
-                        { value: 'yearly', label: 'Annual' },
-                        { value: 'monthly', label: 'Monthly' },
+                        { value: 'overview', label: 'Growth', locked: false },
+                        { value: 'drawdown', label: 'Drawdown', locked: true },
+                        { value: 'yearly', label: 'Annual', locked: true },
+                        { value: 'monthly', label: 'Monthly', locked: true },
                       ].map(tab => (
                         <TabsTrigger
                           key={tab.value}
@@ -1430,10 +1499,14 @@ export function ProfessionalBacktester() {
                           className={cn(
                             "h-8 px-3 text-xs font-medium rounded-none border-b-2 border-transparent",
                             "data-[state=active]:border-[rgb(56,139,253)] data-[state=active]:text-[rgb(230,237,243)]",
-                            "text-[rgb(87,96,106)] hover:text-[rgb(139,148,158)]"
+                            "text-[rgb(87,96,106)] hover:text-[rgb(139,148,158)]",
+                            !isPro && tab.locked && "opacity-60"
                           )}
                         >
-                          {tab.label}
+                          <span className="flex items-center gap-1">
+                            {tab.label}
+                            {!isPro && tab.locked && <Lock className="h-2.5 w-2.5 text-amber-400" />}
+                          </span>
                         </TabsTrigger>
                       ))}
                     </TabsList>
@@ -1667,7 +1740,8 @@ export function ProfessionalBacktester() {
             RIGHT PANEL - Advanced Metrics (only when results exist)
             ───────────────────────────────────────────────────────────────────────── */}
         {result && (
-          <div className="w-72 flex-shrink-0 border-l border-[rgb(33,38,45)] bg-[rgb(13,17,23)] overflow-y-auto">
+          <div className="w-72 flex-shrink-0 border-l border-[rgb(33,38,45)] bg-[rgb(13,17,23)] overflow-y-auto relative">
+            {!isPro && <PremiumLockOverlay label="Pro Analytics" />}
             {/* Quick Actions */}
             <div className="p-3 border-b border-[rgb(33,38,45)]">
               <Button
@@ -1878,6 +1952,62 @@ export function ProfessionalBacktester() {
       title="Sign in to run backtests"
       description="Create a free account to backtest portfolios and access full analysis tools."
     />
+    {/* Upgrade Dialog */}
+    {showUpgradeDialog && (
+      <div 
+        className="fixed inset-0 bg-black/60 flex items-center justify-center z-50"
+        onClick={() => setShowUpgradeDialog(false)}
+      >
+        <div 
+          className="bg-[rgb(17,21,28)] border border-[rgb(33,38,45)] rounded-xl p-6 max-w-sm w-full mx-4"
+          onClick={e => e.stopPropagation()}
+        >
+          <div className="text-center">
+            <div className="w-12 h-12 rounded-full bg-amber-500/10 mx-auto mb-3 flex items-center justify-center">
+              <Crown className="h-6 w-6 text-amber-400" />
+            </div>
+            <h3 className="text-lg font-semibold text-[rgb(230,237,243)] mb-1">Upgrade to Pro</h3>
+            <p className="text-sm text-[rgb(139,148,158)] mb-4">
+              Unlock the full backtesting suite with strategy builder, advanced analytics, extended timeframes, and more.
+            </p>
+            <div className="space-y-2 text-left mb-5">
+              {[
+                'Visual Strategy Builder with 20+ indicators',
+                'Extended periods (3Y, 5Y, MAX)',
+                'All benchmark comparisons',
+                'Drawdown, Annual & Monthly analysis',
+                'Risk analytics & portfolio scoring',
+                'Portfolio templates library',
+              ].map((f, i) => (
+                <div key={i} className="flex items-center gap-2 text-xs text-[rgb(139,148,158)]">
+                  <div className="w-1 h-1 rounded-full bg-amber-400 flex-shrink-0" />
+                  {f}
+                </div>
+              ))}
+            </div>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                onClick={() => setShowUpgradeDialog(false)}
+                className="flex-1 h-9 text-xs bg-transparent border-[rgb(48,54,61)] text-[rgb(139,148,158)] hover:bg-[rgb(27,32,40)]"
+              >
+                Maybe later
+              </Button>
+              <Button
+                onClick={() => {
+                  setShowUpgradeDialog(false);
+                  startCheckout();
+                }}
+                className="flex-1 h-9 text-xs bg-amber-500 hover:bg-amber-600 text-black font-semibold"
+              >
+                <Crown className="h-3.5 w-3.5 mr-1.5" />
+                Upgrade
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+    )}
     </>
   );
 }

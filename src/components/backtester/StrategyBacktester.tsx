@@ -8,6 +8,8 @@
 import { useState, useCallback } from 'react';
 import { useRequireAuth } from '@/hooks/useRequireAuth';
 import { AuthGateDialog } from '@/components/auth/AuthGateDialog';
+import { useUsage } from '@/contexts/UsageContext';
+import { useUpgrade } from '@/hooks/useUpgrade';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { VisualStrategyBuilder } from '@/components/builder/VisualStrategyBuilder';
@@ -23,7 +25,9 @@ import {
   AlertTriangle,
   FlaskConical,
   Zap,
+  Crown,
 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
@@ -134,6 +138,8 @@ const STRATEGY_MAP: Record<string, string> = {
 
 export function StrategyBacktester({ ticker, companyName }: StrategyBacktesterProps) {
   const { requireAuth, showAuthDialog, closeAuthDialog } = useRequireAuth();
+  const { isPro } = useUsage();
+  const { startCheckout } = useUpgrade();
   const [period] = useState<'1Y' | '3Y' | '5Y'>('3Y');
   const [initialCapital] = useState(10000);
   
@@ -234,6 +240,24 @@ export function StrategyBacktester({ ticker, companyName }: StrategyBacktesterPr
     setResult(null);
     setError(null);
   }, []);
+
+  if (!isPro) {
+    return (
+      <div className="relative rounded-lg border bg-card p-8 text-center">
+        <div className="w-12 h-12 rounded-full bg-amber-500/10 mx-auto mb-3 flex items-center justify-center">
+          <Crown className="h-6 w-6 text-amber-400" />
+        </div>
+        <h3 className="text-lg font-semibold mb-1">Strategy Backtester</h3>
+        <p className="text-sm text-muted-foreground mb-4">
+          Test trading strategies on {companyName} ({ticker}) with 20+ indicators and institutional-grade metrics.
+        </p>
+        <Button onClick={startCheckout} className="gap-2 bg-amber-500 hover:bg-amber-600 text-black font-semibold">
+          <Crown className="h-4 w-4" />
+          Upgrade to Pro
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">
