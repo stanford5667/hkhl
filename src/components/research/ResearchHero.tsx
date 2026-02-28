@@ -104,7 +104,7 @@ export function ResearchHero({
     <div className="relative">
       <div className="relative max-w-6xl mx-auto px-3 sm:px-6 pt-2 sm:pt-6 pb-2 sm:pb-4">
         {/* Hero Text — Terminal style */}
-        <div className="text-center mb-2 sm:mb-4">
+        <div className="text-left sm:text-center mb-2 sm:mb-4">
           <motion.div
             className="inline-flex items-center gap-1 sm:gap-1.5 mb-1.5 sm:mb-2 px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full border border-success/30 bg-success/5"
             initial={{ opacity: 0, scale: 0.9 }}
@@ -129,7 +129,7 @@ export function ResearchHero({
             <span className="text-foreground"> Platform.</span>
           </motion.h1>
           <motion.p
-            className="text-muted-foreground text-[10px] sm:text-xs lg:text-sm max-w-lg mx-auto font-mono"
+            className="text-muted-foreground text-[10px] sm:text-xs lg:text-sm max-w-lg sm:mx-auto font-mono"
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.1 }}
@@ -346,7 +346,7 @@ export function ResearchHero({
 
         {/* Stats Bar — Terminal readout */}
         <motion.div
-          className="flex items-center justify-center gap-2 sm:gap-6"
+          className="flex items-center justify-start sm:justify-center gap-2 sm:gap-6"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.6, delay: 0.35 }}
@@ -354,7 +354,7 @@ export function ResearchHero({
           {STATS.map((stat, i) => (
             <div key={stat.label} className="flex items-center gap-2">
               {i > 0 && <span className="text-border text-xs">│</span>}
-              <div className="flex flex-col items-center gap-0">
+              <div className="flex flex-col items-start sm:items-center gap-0">
                 <span className="text-[10px] sm:text-sm font-mono font-bold text-primary tabular-nums">{stat.value}</span>
                 <span className="text-[7px] sm:text-[9px] font-mono text-muted-foreground uppercase tracking-wider">{stat.label}</span>
               </div>
