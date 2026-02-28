@@ -31,21 +31,15 @@ function FeatureCard({ feature: f, compact = false }: { feature: Feature; compac
       <p className={cn("text-foreground/70 leading-relaxed", compact ? "text-[10px] mb-3 line-clamp-2" : "text-[11px] sm:text-xs mb-4")}>
         {f.description}
       </p>
-      {f.cta.toLowerCase().includes('try it') ? (
-        <span
-          className={cn(
-            "inline-flex items-center gap-1.5 font-mono font-bold uppercase tracking-wide rounded-md transition-all",
-            "bg-[hsl(175_80%_45%)] text-background hover:bg-[hsl(175_80%_50%)] shadow-md",
-            compact ? "text-[10px] px-3 py-1.5" : "text-[11px] sm:text-xs px-4 py-2"
-          )}
-        >
-          {f.cta} <ArrowRight className="h-3 w-3" />
-        </span>
-      ) : (
-        <span className={cn("inline-flex items-center gap-1 font-mono font-medium text-primary group-hover:gap-1.5 transition-all uppercase tracking-wide", compact ? "text-[10px]" : "text-[11px] sm:text-xs")}>
-          {f.cta} <ArrowRight className="h-3 w-3" />
-        </span>
-      )}
+      <span
+        className={cn(
+          "inline-flex items-center gap-1.5 font-mono font-bold uppercase tracking-wide rounded-md transition-all",
+          "bg-[hsl(175_80%_45%)] text-background hover:bg-[hsl(175_80%_50%)] shadow-md",
+          compact ? "text-[10px] px-3 py-1.5" : "text-[11px] sm:text-xs px-4 py-2"
+        )}
+      >
+        {f.cta} <ArrowRight className="h-3 w-3" />
+      </span>
     </div>
   );
 }
