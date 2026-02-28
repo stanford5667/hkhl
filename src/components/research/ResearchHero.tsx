@@ -124,8 +124,9 @@ export function ResearchHero({
             transition={{ duration: 0.5 }}
           >
             <span className="text-foreground">The All-in-One </span>
-            <span className="text-primary">AI Quant Investing</span>
-            <br className="sm:hidden" />
+            <span className="text-primary">AI Quant</span>
+            <br />
+            <span className="text-primary">Investing</span>
             <span className="text-foreground"> Platform.</span>
           </motion.h1>
           <motion.p
