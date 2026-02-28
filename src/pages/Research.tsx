@@ -82,7 +82,7 @@ export default function ResearchPage() {
 
       {/* Main Content with progressive reveal */}
       <motion.div
-        className="max-w-6xl mx-auto px-3 sm:px-6 pb-8 sm:pb-12 space-y-3 sm:space-y-8"
+        className="max-w-6xl mx-auto px-3 sm:px-6 pb-10 sm:pb-16 space-y-5 sm:space-y-12"
         variants={stagger}
         initial="hidden"
         animate="visible"

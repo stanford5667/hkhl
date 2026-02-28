@@ -203,11 +203,11 @@ export function EnhancedTickerCard({
       >
         {/* Top row: symbol + change */}
         <div className="flex items-center justify-between mb-0.5">
-          <span className="font-mono font-bold text-sm text-foreground">{symbol}</span>
+          <span className="font-mono font-extrabold text-sm text-white">{symbol}</span>
           {displayChange !== null && (
             <span className={cn(
               "font-mono text-[11px] font-bold tabular-nums",
-              isPositive ? 'text-success' : 'text-destructive'
+              isPositive ? 'text-[hsl(142_76%_55%)]' : 'text-[hsl(0_84%_60%)]'
             )}>
               {isPositive ? '+' : ''}{displayChange.toFixed(2)}%
             </span>
@@ -251,7 +251,7 @@ export function EnhancedTickerCard({
         <div className="flex items-start justify-between mb-2">
           <div>
             <div className="flex items-center gap-2">
-              <span className="font-mono font-bold text-base text-foreground group-hover:text-primary transition-colors">
+              <span className="font-mono font-extrabold text-base text-white group-hover:text-primary transition-colors">
                 {symbol}
               </span>
               {sectorDisplay && (
@@ -309,8 +309,8 @@ export function EnhancedTickerCard({
             <div className={cn(
               "inline-flex items-center gap-1 text-xs font-mono font-bold px-2 py-0.5 rounded border tabular-nums",
               isPositive
-                ? 'text-success bg-success/10 border-success/20'
-                : 'text-destructive bg-destructive/10 border-destructive/20'
+                ? 'text-[hsl(142_76%_55%)] bg-[hsl(142_76%_55%/0.1)] border-[hsl(142_76%_55%/0.2)]'
+                : 'text-[hsl(0_84%_60%)] bg-[hsl(0_84%_60%/0.1)] border-[hsl(0_84%_60%/0.2)]'
             )}>
               {isPositive ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
               {isPositive ? '+' : ''}{displayChange.toFixed(2)}%
