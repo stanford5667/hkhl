@@ -142,10 +142,11 @@ function ThemeCard({
         )}
       </div>
 
-      {/* Click hint */}
-      <div className="flex items-center gap-1 mt-2 pt-2 border-t border-white/5 text-[10px] text-muted-foreground opacity-60 group-hover:opacity-100 transition-opacity">
-        <span>Click to explore theme</span>
-        <ArrowRight className="h-3 w-3 group-hover:translate-x-0.5 transition-transform" />
+      {/* CTA */}
+      <div className="mt-2 pt-2 border-t border-white/5">
+        <span className="inline-flex items-center gap-1.5 font-mono font-bold uppercase tracking-wide rounded-lg text-[10px] px-3 py-1.5 bg-[hsl(175_80%_45%)] text-background shadow-[0_0_12px_hsl(175_80%_45%/0.3)] group-hover:shadow-[0_0_20px_hsl(175_80%_45%/0.5)] transition-all">
+          Explore theme <ArrowRight className="h-3 w-3 group-hover:translate-x-0.5 transition-transform" />
+        </span>
       </div>
     </button>
   );
