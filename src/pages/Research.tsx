@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
-  TrendingUp, Loader2, FileText
+  TrendingUp, Loader2, FileText, ArrowRight
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useTrendingTickers } from '@/hooks/useTrendingTickers';
@@ -106,6 +106,12 @@ export default function ResearchPage() {
               </div>
               {tickersLoading && <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />}
             </div>
+            <button
+              onClick={() => navigate('/stock/AAPL')}
+              className="hidden sm:inline-flex items-center gap-1.5 font-mono font-bold uppercase tracking-wide rounded-md transition-all bg-[hsl(175_80%_45%)] text-background hover:bg-[hsl(175_80%_50%)] shadow-md text-[11px] px-4 py-2"
+            >
+              Explore stocks <ArrowRight className="h-3 w-3" />
+            </button>
           </div>
           {tickersWithQuotes.length > 0 ? (
             <TickerCarousel 
@@ -137,17 +143,50 @@ export default function ResearchPage() {
 
         {/* Earnings Calendar */}
         <motion.section className="space-y-2 sm:space-y-3" variants={fadeUp}>
-          <div className="flex items-center gap-2">
-            <div className="p-1 sm:p-1.5 rounded-md bg-primary/10 border border-primary/20">
-              <FileText className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-primary" />
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="p-1 sm:p-1.5 rounded-md bg-primary/10 border border-primary/20">
+                <FileText className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-primary" />
+              </div>
+              <div>
+                <h2 className="text-sm sm:text-base font-mono font-semibold text-foreground uppercase tracking-wide">Earnings Calendar</h2>
+                <p className="text-[9px] sm:text-[10px] font-mono text-muted-foreground hidden sm:block">Upcoming earnings with AI predictions</p>
+              </div>
             </div>
-            <div>
-              <h2 className="text-sm sm:text-base font-mono font-semibold text-foreground uppercase tracking-wide">Earnings Calendar</h2>
-              <p className="text-[9px] sm:text-[10px] font-mono text-muted-foreground hidden sm:block">Upcoming earnings with AI predictions</p>
-            </div>
+            <button
+              onClick={() => navigate('/stock/NVDA')}
+              className="hidden sm:inline-flex items-center gap-1.5 font-mono font-bold uppercase tracking-wide rounded-md transition-all bg-[hsl(175_80%_45%)] text-background hover:bg-[hsl(175_80%_50%)] shadow-md text-[11px] px-4 py-2"
+            >
+              Get AI predictions <ArrowRight className="h-3 w-3" />
+            </button>
           </div>
           <EarningsCalendar />
         </motion.section>
+
+        {/* Bottom CTA Banner */}
+        <motion.div variants={fadeUp} className="rounded-xl border border-border/40 bg-card/60 backdrop-blur-sm p-6 sm:p-10 text-center space-y-4">
+          <h2 className="text-lg sm:text-2xl font-mono font-bold text-foreground">Ready to invest smarter?</h2>
+          <p className="text-sm sm:text-base text-foreground/70 max-w-xl mx-auto">
+            Access AI-powered analysis, no-code quant tools, and real-time market intelligence — all in one platform.
+          </p>
+          <div className="flex flex-wrap items-center justify-center gap-3">
+            <button
+              onClick={() => navigate('/stock/AAPL', { state: { tab: 'backtest' } })}
+              className="inline-flex items-center gap-1.5 font-mono font-bold uppercase tracking-wide rounded-md transition-all bg-[hsl(175_80%_45%)] text-background hover:bg-[hsl(175_80%_50%)] shadow-md text-xs sm:text-sm px-5 py-2.5"
+            >
+              Start backtesting <ArrowRight className="h-3.5 w-3.5" />
+            </button>
+            <button
+              onClick={() => {
+                const el = document.getElementById('market-intelligence');
+                el?.scrollIntoView({ behavior: 'smooth' });
+              }}
+              className="inline-flex items-center gap-1.5 font-mono font-bold uppercase tracking-wide rounded-md transition-all border border-[hsl(175_80%_45%/0.4)] text-[hsl(175_80%_45%)] hover:bg-[hsl(175_80%_45%/0.1)] text-xs sm:text-sm px-5 py-2.5"
+            >
+              Screen stocks <ArrowRight className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        </motion.div>
 
       </motion.div>
 
