@@ -88,7 +88,7 @@ interface SignalPreset {
 }
 
 // Free signals: rsi-oversold, price-above-sma, price-below-sma, consecutive-down, gap-down
-const FREE_SIGNAL_IDS = new Set(['rsi-oversold', 'price-above-sma', 'price-below-sma', 'consecutive-down', 'gap-down']);
+const FREE_SIGNAL_IDS = new Set(['rsi-oversold', 'rsi-overbought', 'price-above-sma', 'price-below-sma', 'consecutive-down', 'gap-down', 'mean-reversion']);
 
 const SIGNAL_PRESETS: SignalPreset[] = [
   {
