@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { TrendingUp, TrendingDown } from 'lucide-react';
+import { TrendingUp, TrendingDown, ArrowRight } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { getCandlesForRange, CandleData, TimeRange } from '@/services/candleService';
 import { fetchTickerDetails, TickerDetails } from '@/services/tickerDetailsService';
@@ -318,8 +318,8 @@ export function EnhancedTickerCard({
           ) : (
             <span className="text-[10px] font-mono text-muted-foreground">—</span>
           )}
-          <span className="text-[9px] font-mono text-muted-foreground/40 group-hover:text-muted-foreground transition-colors">
-            CLICK TO ANALYZE →
+          <span className="inline-flex items-center gap-1 font-mono font-bold uppercase tracking-wide rounded-md text-[9px] px-2.5 py-1 bg-[hsl(175_80%_45%)] text-background shadow-[0_0_10px_hsl(175_80%_45%/0.3)] group-hover:shadow-[0_0_16px_hsl(175_80%_45%/0.5)] transition-all">
+            Analyze <ArrowRight className="h-2.5 w-2.5" />
           </span>
         </div>
       </div>
