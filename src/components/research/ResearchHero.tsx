@@ -151,13 +151,14 @@ export function ResearchHero({
         >
           <div className={cn(
             "relative rounded-xl",
-            "bg-card border-2 border-primary/30",
-            "shadow-[0_0_15px_-3px_hsl(var(--primary)/0.2)]",
+            "bg-card border-2 border-primary/40",
+            "shadow-[0_0_20px_-3px_hsl(var(--primary)/0.25),0_0_40px_-8px_hsl(var(--primary)/0.1)]",
             "transition-all duration-300",
-            isFocused && "border-primary/60 shadow-[0_0_25px_-3px_hsl(var(--primary)/0.35)] ring-1 ring-primary/30"
+            "animate-[pulse-glow_3s_ease-in-out_infinite]",
+            isFocused && "border-primary/70 shadow-[0_0_30px_-3px_hsl(var(--primary)/0.4),0_0_60px_-8px_hsl(var(--primary)/0.15)] ring-2 ring-primary/30 animate-none"
           )}>
             {/* Input row */}
-            <div className="flex items-center gap-2 px-3 sm:px-4 h-10 sm:h-12">
+            <div className="flex items-center gap-2 px-3 sm:px-4 h-11 sm:h-13">
               <Search className="h-4 w-4 text-primary shrink-0" />
               <input
                 ref={inputRef}
