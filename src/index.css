@@ -311,6 +311,15 @@
   }
 }
 
+@keyframes pulse-glow-cyan {
+  0%, 100% {
+    box-shadow: 0 0 20px -3px hsl(175 80% 40% / 0.25), 0 0 40px -8px hsl(175 80% 40% / 0.1);
+  }
+  50% {
+    box-shadow: 0 0 25px -3px hsl(175 80% 40% / 0.35), 0 0 50px -8px hsl(175 80% 40% / 0.15);
+  }
+}
+
 @keyframes shimmer {
   0% { background-position: -200% 0; }
   100% { background-position: 200% 0; }
