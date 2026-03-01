@@ -643,7 +643,7 @@ export function IncomeStatementTable({ ticker, companyName }: IncomeStatementTab
               style={{ width: `${lockedEstimates.length * 80}px` }}
               onClick={() => promptUpgrade('financialProjections')}
             >
-              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-background/80 to-background/95 backdrop-blur-[2px]" />
+              <div className="absolute inset-0 bg-gradient-to-r from-background/40 via-background/80 to-background/95" />
               <div className="relative flex flex-col items-center gap-2 p-4 text-center">
                 <div className="h-10 w-10 rounded-full bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center shadow-lg shadow-orange-500/30">
                   <Crown className="h-5 w-5 text-white" />
