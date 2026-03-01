@@ -210,7 +210,7 @@ export function CashFlowTable({ ticker, companyName }: CashFlowTableProps) {
       
       <CardContent className="p-0">
         <div className="overflow-x-auto relative">
-          <table className="w-full text-sm border-collapse" style={{ tableLayout: 'fixed' }}>
+          <table className="min-w-full text-sm border-collapse">
             <thead>
               <tr className="border-b border-border/50">
                 <th className="sticky left-0 bg-card z-20 text-left px-4 py-2.5 font-medium text-muted-foreground text-xs w-[180px] min-w-[180px] overflow-hidden" style={{ boxShadow: '2px 0 4px -1px hsl(var(--border) / 0.3)' }}>
