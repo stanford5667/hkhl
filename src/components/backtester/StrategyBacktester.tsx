@@ -277,7 +277,7 @@ export function StrategyBacktester({ ticker, companyName }: StrategyBacktesterPr
             <VisualStrategyBuilder 
               embedded 
               initialTicker={ticker}
-              onRunBacktest={(s) => requireAuth(() => handleVisualBuilderBacktest(s), 'run-backtest')}
+              onRunBacktest={(s) => requireAuth(() => handleVisualBuilderBacktest(s), 'run-backtest') as any}
               onClear={handleClear}
               onPromptUpgrade={showUpgradeModal}
               advancedParams={advancedParams}
