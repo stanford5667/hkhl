@@ -10,7 +10,8 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { BarChart3, HelpCircle, TrendingUp, RefreshCw, Lock, Crown, ChevronLeft, ChevronRight } from 'lucide-react';
+import { BarChart3, HelpCircle, TrendingUp, RefreshCw, Lock, Crown } from 'lucide-react';
+import { HistoryExpandColumn } from './HistoryExpandColumn';
 import { cn } from '@/lib/utils';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -393,30 +394,6 @@ export function IncomeStatementTable({ ticker, companyName }: IncomeStatementTab
           </div>
           
           <div className="flex items-center gap-2">
-            {hasLockedHistorical && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  if (isPro) {
-                    setShowFullHistory(!showFullHistory);
-                  } else {
-                    promptUpgrade('financialProjections');
-                  }
-                }}
-                className="h-7 text-[10px] px-2 gap-1"
-              >
-                {isPro ? (
-                  showFullHistory ? (
-                    <><ChevronRight className="h-3 w-3" />Hide History</>
-                  ) : (
-                    <><ChevronLeft className="h-3 w-3" />+{lockedHistoricalCount}yr</>
-                  )
-                ) : (
-                  <><Crown className="h-3 w-3 text-amber-500" />+{lockedHistoricalCount}yr</>
-                )}
-              </Button>
-            )}
             <span className="text-xs text-muted-foreground">Values in millions USD</span>
             <Button 
               variant="ghost" 
@@ -446,7 +423,16 @@ export function IncomeStatementTable({ ticker, companyName }: IncomeStatementTab
                 <th className="sticky left-0 z-20 text-left px-4 py-2.5 font-medium text-muted-foreground text-xs whitespace-nowrap min-w-[180px]" style={{ backgroundColor: 'hsl(var(--card))', boxShadow: '4px 0 6px -2px rgba(0,0,0,0.4)' }}>
                   Line Item
                 </th>
-                {/* Expand/collapse column removed - button is now in header */}
+                {hasLockedHistorical && (
+                  <HistoryExpandColumn
+                    lockedCount={lockedHistoricalCount}
+                    isPro={isPro}
+                    showFullHistory={showFullHistory}
+                    onToggle={() => setShowFullHistory(!showFullHistory)}
+                    onUpgrade={() => promptUpgrade('financialProjections')}
+                    as="th"
+                  />
+                )}
                 {displayYears.map((yearData, idx) => {
                   const isEstimate = yearData.isEstimate;
                   const isLocked = yearData.isLocked;
@@ -479,7 +465,7 @@ export function IncomeStatementTable({ ticker, companyName }: IncomeStatementTab
               {/* Scenario selector row for estimates */}
               <tr className="border-b border-border/30">
                 <td className="sticky left-0 z-20 px-4 py-1 min-w-[180px]" style={{ backgroundColor: 'hsl(var(--card))', boxShadow: '4px 0 6px -2px rgba(0,0,0,0.4)' }}></td>
-                
+                {hasLockedHistorical && <td className="min-w-[40px] max-w-[40px] border-r border-border/30"></td>}
                 {displayYears.map((yearData, idx) => {
                   if (!yearData.isEstimate) {
                     return <td key={idx} className="px-3 py-1"></td>;
@@ -560,6 +546,9 @@ export function IncomeStatementTable({ ticker, companyName }: IncomeStatementTab
                           </div>
                         </td>
                         
+                        {hasLockedHistorical && (
+                          <td className="min-w-[40px] max-w-[40px] border-r border-border/30"></td>
+                        )}
                         
                         {displayYears.map((yearData, idx) => {
                           const value = yearData[row.key];
@@ -633,6 +622,9 @@ export function IncomeStatementTable({ ticker, companyName }: IncomeStatementTab
                             </div>
                           </td>
                           
+                          {hasLockedHistorical && (
+                            <td className="min-w-[40px] max-w-[40px] border-r border-border/30"></td>
+                          )}
                           
                           {displayYears.map((yearData, idx) => {
                             const prev = idx > 0 ? displayYears[idx - 1] : null;
