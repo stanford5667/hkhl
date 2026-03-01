@@ -221,7 +221,7 @@ export function BalanceSheetTable({ ticker, companyName }: BalanceSheetTableProp
           <table className="w-full text-sm border-collapse" style={{ tableLayout: 'fixed' }}>
             <thead>
               <tr className="border-b border-border/50">
-                <th className="sticky left-0 bg-card z-20 text-left px-4 py-2.5 font-medium text-muted-foreground text-xs w-[140px] min-w-[140px] overflow-hidden after:absolute after:right-0 after:top-0 after:bottom-0 after:w-px after:bg-border/50">
+                <th className="sticky left-0 bg-card z-20 text-left px-4 py-2.5 font-medium text-muted-foreground text-xs w-[180px] min-w-[180px] overflow-hidden" style={{ boxShadow: '2px 0 4px -1px hsl(var(--border) / 0.3)' }}>
                   <span className="block truncate">Line Item</span>
                 </th>
                 {displayYears.map((yearData: any, idx: number) => {
@@ -254,10 +254,10 @@ export function BalanceSheetTable({ ticker, companyName }: BalanceSheetTableProp
                         )}
                       >
                         <td className={cn(
-                          "sticky left-0 z-20 px-4 py-2.5 text-xs w-[140px] min-w-[140px] overflow-hidden",
+                          "sticky left-0 z-20 px-4 py-2.5 text-xs w-[180px] min-w-[180px] overflow-hidden",
                           row.isHighlight ? "bg-primary/5" : "bg-card",
                           row.isSubItem && "pl-8 text-muted-foreground"
-                        )}>
+                        )} style={{ boxShadow: '2px 0 4px -1px hsl(var(--border) / 0.3)' }}>
                           <div className="flex items-center gap-1.5 max-w-full">
                             <span className={cn(
                               "truncate flex-1 min-w-0",
@@ -313,7 +313,7 @@ export function BalanceSheetTable({ ticker, companyName }: BalanceSheetTableProp
                     {derivedMetricsForRow.map((metric) => (
                       <TooltipProvider key={metric.label} delayDuration={0}>
                         <tr className="border-b border-border/20 bg-muted/20">
-                          <td className="sticky left-0 z-20 px-4 py-1.5 text-[10px] w-[140px] min-w-[140px] overflow-hidden bg-muted/20 pl-8">
+                          <td className="sticky left-0 z-20 px-4 py-1.5 text-[10px] w-[180px] min-w-[180px] overflow-hidden bg-muted/20 pl-8" style={{ boxShadow: '2px 0 4px -1px hsl(var(--border) / 0.3)' }}>
                             <div className="flex items-center gap-1.5 max-w-full">
                               <span className="truncate flex-1 min-w-0 text-muted-foreground italic">
                                 {metric.label}
