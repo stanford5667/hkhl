@@ -15,15 +15,17 @@ import { useToast } from '@/hooks/use-toast';
 
 const toLocalISODate = (d: Date) => format(d, 'yyyy-MM-dd');
 
+// Lightweight query: just earnings rows for the selected date, no joins
 export const useEarningsCalendar = (filters?: EarningsCalendarFilters) => {
   return useQuery({
     queryKey: ['earnings-calendar', filters],
     queryFn: async () => {
       const today = toLocalISODate(new Date());
       
+      // Only select columns we actually display
       let query = supabase
         .from('earnings_calendar')
-        .select('*')
+        .select('id, symbol, company_name, report_date, time_of_day, eps_estimate, eps_actual, revenue_estimate, revenue_actual, eps_surprise_pct, revenue_surprise_pct, market_cap, fiscal_period, fiscal_year, analyst_count')
         .order('market_cap', { ascending: false, nullsFirst: false })
         .order('report_date', { ascending: true });
 
@@ -58,73 +60,60 @@ export const useEarningsCalendar = (filters?: EarningsCalendarFilters) => {
       const earningsData = data || [];
       if (earningsData.length === 0) return [];
 
-      // Run predictions + asset_universe lookups IN PARALLEL instead of waterfall
+      // Only enrich visible data — predictions + asset lookups in parallel
       const earningsIds = earningsData.map(e => e.id);
-      const allSymbols = [...new Set(earningsData.map(e => e.symbol))];
       const symbolsMissingMktCap = earningsData.filter(e => !e.market_cap).map(e => e.symbol);
+      const allSymbols = symbolsMissingMktCap.length > 0 ? [...new Set(symbolsMissingMktCap)] : [];
 
-      const [predictions, assetData] = await Promise.all([
-        // Fetch predictions
+      // Build parallel fetches — skip asset lookup entirely if all have market_cap
+      const fetchPromises: [Promise<EarningsPrediction[]>, Promise<any[]>] = [
+        // Predictions (batched)
         (async () => {
           if (earningsIds.length === 0) return [];
-          const BATCH_SIZE = 50;
+          const BATCH_SIZE = 100;
           const batches = [];
           for (let i = 0; i < earningsIds.length; i += BATCH_SIZE) {
             batches.push(earningsIds.slice(i, i + BATCH_SIZE));
           }
           const batchResults = await Promise.all(
             batches.map(batch =>
-              supabase.from('earnings_predictions').select('*').in('earnings_calendar_id', batch)
+              supabase.from('earnings_predictions')
+                .select('id, earnings_calendar_id, predicted_outcome, confidence_score, signals')
+                .in('earnings_calendar_id', batch)
             )
           );
           return batchResults.flatMap(r => (r.data || [])) as EarningsPrediction[];
         })(),
 
-        // Fetch asset_universe data (industry, sector, market cap proxy)
+        // Asset universe — only if needed
         (async () => {
           if (allSymbols.length === 0) return [];
-          const SYMBOL_BATCH_SIZE = 50;
-          const symbolBatches = [];
-          for (let i = 0; i < allSymbols.length; i += SYMBOL_BATCH_SIZE) {
-            symbolBatches.push(allSymbols.slice(i, i + SYMBOL_BATCH_SIZE));
-          }
-          const results = await Promise.all(
-            symbolBatches.map(batch =>
-              supabase.from('asset_universe').select('ticker, avg_daily_dollar_volume, industry, sector').in('ticker', batch)
-            )
-          );
-          return results.flatMap(r => r.data || []);
+          const { data } = await supabase
+            .from('asset_universe')
+            .select('ticker, avg_daily_dollar_volume, industry, sector')
+            .in('ticker', allSymbols);
+          return data || [];
         })(),
-      ]);
+      ];
+
+      const [predictions, assetData] = await Promise.all(fetchPromises);
 
       // Build lookup maps
-      const marketCapMap: Record<string, number> = {};
-      const industryMap: Record<string, { industry: string | null; sector: string | null }> = {};
-      
-      assetData.forEach(a => {
-        if (a.avg_daily_dollar_volume && symbolsMissingMktCap.includes(a.ticker)) {
-          marketCapMap[a.ticker] = a.avg_daily_dollar_volume * 20;
-        }
-        industryMap[a.ticker] = { industry: a.industry || null, sector: a.sector || null };
-      });
+      const predictionMap = new Map(predictions.map(p => [p.earnings_calendar_id, p]));
+      const assetMap = new Map(assetData.map(a => [a.ticker, a]));
 
-      // Merge predictions with earnings
+      // Merge — use Map for O(1) lookups instead of Array.find
       let results: EarningsWithPrediction[] = earningsData.map(e => {
-        const prediction = predictions.find(p => p.earnings_calendar_id === e.id);
-        const assetInfo = industryMap[e.symbol];
+        const prediction = predictionMap.get(e.id);
+        const asset = assetMap.get(e.symbol);
         return {
           ...e,
           prediction,
-          market_cap: e.market_cap || marketCapMap[e.symbol] || null,
-          industry: assetInfo?.industry || null,
-          sector: assetInfo?.sector || null,
+          market_cap: e.market_cap || (asset?.avg_daily_dollar_volume ? asset.avg_daily_dollar_volume * 20 : null),
+          industry: asset?.industry || null,
+          sector: asset?.sector || null,
         } as EarningsWithPrediction;
       });
-
-      // Safety guard for custom single-day mode
-      if (filters?.dateRange === 'custom' && filters.customStart) {
-        results = results.filter(e => e.report_date === filters.customStart);
-      }
 
       // Filter by prediction if needed
       if (filters?.hasPrediction !== undefined) {
@@ -135,7 +124,7 @@ export const useEarningsCalendar = (filters?: EarningsCalendarFilters) => {
 
       return results;
     },
-    staleTime: 10 * 60 * 1000, // 10 minutes — earnings data doesn't change frequently
+    staleTime: 10 * 60 * 1000,
   });
 };
 
@@ -165,6 +154,27 @@ export const useAdjacentEarningsDates = (currentDate: Date) => {
     },
     staleTime: 10 * 60 * 1000,
   });
+};
+
+// Prefetch the NEXT adjacent dates when navigating, so the following click is instant
+export const usePrefetchAdjacentDates = () => {
+  const queryClient = useQueryClient();
+  return (dateStr: string) => {
+    queryClient.prefetchQuery({
+      queryKey: ['earnings-adjacent-dates', dateStr],
+      queryFn: async () => {
+        const [prevResult, nextResult] = await Promise.all([
+          supabase.from('earnings_calendar').select('report_date').lt('report_date', dateStr).order('report_date', { ascending: false }).limit(1),
+          supabase.from('earnings_calendar').select('report_date').gt('report_date', dateStr).order('report_date', { ascending: true }).limit(1),
+        ]);
+        return {
+          prevDate: prevResult.data?.[0]?.report_date || null,
+          nextDate: nextResult.data?.[0]?.report_date || null,
+        };
+      },
+      staleTime: 10 * 60 * 1000,
+    });
+  };
 };
 
 export const useEarningsHistory = (symbol: string) => {
@@ -264,7 +274,6 @@ export const useEarningsScreen = (criteria: EarningsScreenCriteria) => {
   return useQuery({
     queryKey: ['earnings-screen', criteria],
     queryFn: async () => {
-      // Fetch earnings in the date range
       let query = supabase
         .from('earnings_calendar')
         .select('*')
@@ -278,12 +287,10 @@ export const useEarningsScreen = (criteria: EarningsScreenCriteria) => {
       const earnings = earningsData || [];
       if (earnings.length === 0) return [];
 
-      // Fetch predictions + history IN PARALLEL
       const earningsIds = earnings.map(e => e.id);
       const symbols = [...new Set(earnings.map(e => e.symbol))];
 
       const [predictions, historyData] = await Promise.all([
-        // Predictions
         (async () => {
           if (earningsIds.length === 0) return [];
           const BATCH_SIZE = 50;
@@ -298,8 +305,6 @@ export const useEarningsScreen = (criteria: EarningsScreenCriteria) => {
           );
           return batchResults.flatMap(r => (r.data || [])) as EarningsPrediction[];
         })(),
-
-        // Historical stats
         (async () => {
           if (symbols.length === 0) return [];
           const twoYearsAgo = new Date();
@@ -319,7 +324,6 @@ export const useEarningsScreen = (criteria: EarningsScreenCriteria) => {
         })(),
       ]);
 
-      // Build history stats map
       const historyStats: Record<string, { beatCount: number; totalReports: number }> = {};
       historyData.forEach(h => {
         if (!historyStats[h.symbol]) {
@@ -331,7 +335,6 @@ export const useEarningsScreen = (criteria: EarningsScreenCriteria) => {
         }
       });
 
-      // Merge and filter
       let results: EarningsWithPrediction[] = earnings.map(e => {
         const prediction = predictions.find(p => p.earnings_calendar_id === e.id);
         const stats = historyStats[e.symbol];
