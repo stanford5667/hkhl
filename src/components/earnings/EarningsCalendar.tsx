@@ -9,9 +9,10 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { useEarningsCalendar, useFetchEarningsData, useGeneratePredictions } from '@/hooks/useEarningsCalendar';
+import { useEarningsCalendar, useFetchEarningsData, useGeneratePredictions, useAdjacentEarningsDates } from '@/hooks/useEarningsCalendar';
 import { EarningsCalendarFilters } from '@/types/earnings';
 import { EarningsTable } from './EarningsTable';
+import { parseDateOnly } from '@/lib/date';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { cn } from '@/lib/utils';
@@ -37,6 +38,7 @@ export const EarningsCalendar = () => {
   const { data: earnings, isLoading, error, isFetched } = useEarningsCalendar(filters);
   const fetchEarnings = useFetchEarningsData();
   const generatePredictions = useGeneratePredictions();
+  const { data: adjacentDates } = useAdjacentEarningsDates(selectedDate);
 
   // Reset to page 1 when date changes
   useEffect(() => {
@@ -85,8 +87,20 @@ export const EarningsCalendar = () => {
     return format(selectedDate, 'EEEE, MMMM d, yyyy');
   };
 
-  const goToPreviousDay = () => setSelectedDate(prev => subDays(prev, 1));
-  const goToNextDay = () => setSelectedDate(prev => addDays(prev, 1));
+  const goToPreviousDay = () => {
+    if (adjacentDates?.prevDate) {
+      setSelectedDate(parseDateOnly(adjacentDates.prevDate));
+    } else {
+      setSelectedDate(prev => subDays(prev, 1));
+    }
+  };
+  const goToNextDay = () => {
+    if (adjacentDates?.nextDate) {
+      setSelectedDate(parseDateOnly(adjacentDates.nextDate));
+    } else {
+      setSelectedDate(prev => addDays(prev, 1));
+    }
+  };
   const goToToday = () => setSelectedDate(new Date());
 
   return (

@@ -139,6 +139,34 @@ export const useEarningsCalendar = (filters?: EarningsCalendarFilters) => {
   });
 };
 
+export const useAdjacentEarningsDates = (currentDate: Date) => {
+  const dateStr = toLocalISODate(currentDate);
+  return useQuery({
+    queryKey: ['earnings-adjacent-dates', dateStr],
+    queryFn: async () => {
+      const [prevResult, nextResult] = await Promise.all([
+        supabase
+          .from('earnings_calendar')
+          .select('report_date')
+          .lt('report_date', dateStr)
+          .order('report_date', { ascending: false })
+          .limit(1),
+        supabase
+          .from('earnings_calendar')
+          .select('report_date')
+          .gt('report_date', dateStr)
+          .order('report_date', { ascending: true })
+          .limit(1),
+      ]);
+      return {
+        prevDate: prevResult.data?.[0]?.report_date || null,
+        nextDate: nextResult.data?.[0]?.report_date || null,
+      };
+    },
+    staleTime: 10 * 60 * 1000,
+  });
+};
+
 export const useEarningsHistory = (symbol: string) => {
   return useQuery({
     queryKey: ['earnings-history', symbol],
