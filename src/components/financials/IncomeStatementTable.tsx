@@ -413,11 +413,11 @@ export function IncomeStatementTable({ ticker, companyName }: IncomeStatementTab
       <CardContent className="p-0">
         <div className="overflow-x-auto">
           <div className="relative inline-block min-w-full">
-          <table className="min-w-full text-sm border-collapse">
+          <table className="w-full text-sm border-collapse">
             <thead>
               <tr className="border-b border-border/50">
-                <th className="sticky left-0 bg-card z-20 text-left px-4 py-2.5 font-medium text-muted-foreground text-xs w-[180px] min-w-[180px] overflow-hidden" style={{ boxShadow: '2px 0 4px -1px hsl(var(--border) / 0.3)' }}>
-                  <span className="block truncate">Line Item</span>
+                <th className="sticky left-0 z-20 text-left px-4 py-2.5 font-medium text-muted-foreground text-xs whitespace-nowrap min-w-[180px]" style={{ backgroundColor: 'hsl(var(--card))', boxShadow: '4px 0 6px -2px rgba(0,0,0,0.4)' }}>
+                  Line Item
                 </th>
                 {displayYears.map((yearData, idx) => {
                   const isEstimate = yearData.isEstimate;
@@ -430,7 +430,7 @@ export function IncomeStatementTable({ ticker, companyName }: IncomeStatementTab
                     <th 
                       key={idx} 
                       className={cn(
-                        "text-right px-3 py-2.5 font-medium text-xs w-[80px] min-w-[80px]",
+                        "text-right px-3 py-2.5 font-medium text-xs whitespace-nowrap min-w-[120px]",
                         isEstimate && "bg-primary/5",
                         isLocked && "cursor-pointer"
                       )}
@@ -450,7 +450,7 @@ export function IncomeStatementTable({ ticker, companyName }: IncomeStatementTab
               
               {/* Scenario selector row for estimates */}
               <tr className="border-b border-border/30">
-                <td className="sticky left-0 bg-card z-20 px-4 py-1 w-[180px] min-w-[180px] overflow-hidden" style={{ boxShadow: '2px 0 4px -1px hsl(var(--border) / 0.3)' }}></td>
+                <td className="sticky left-0 z-20 px-4 py-1 min-w-[180px]" style={{ backgroundColor: 'hsl(var(--card))', boxShadow: '4px 0 6px -2px rgba(0,0,0,0.4)' }}></td>
                 {displayYears.map((yearData, idx) => {
                   if (!yearData.isEstimate) {
                     return <td key={idx} className="px-3 py-1"></td>;
@@ -505,10 +505,9 @@ export function IncomeStatementTable({ ticker, companyName }: IncomeStatementTab
                         )}
                       >
                         <td className={cn(
-                          "sticky left-0 z-20 px-4 py-2.5 text-xs w-[180px] min-w-[180px] overflow-hidden",
-                          row.isHighlight ? "bg-primary/5" : "bg-card",
+                          "sticky left-0 z-20 px-4 py-2.5 text-xs whitespace-nowrap min-w-[180px]",
                           row.isSubItem && "pl-8 text-muted-foreground"
-                        )} style={{ boxShadow: '2px 0 4px -1px hsl(var(--border) / 0.3)' }}>
+                        )} style={{ backgroundColor: 'hsl(var(--card))', boxShadow: '4px 0 6px -2px rgba(0,0,0,0.4)' }}>
                           <div className="flex items-center gap-1.5 max-w-full">
                             <span className={cn(
                               "truncate flex-1 min-w-0",
@@ -541,7 +540,7 @@ export function IncomeStatementTable({ ticker, companyName }: IncomeStatementTab
                             return (
                               <td 
                                 key={idx}
-                                className="p-0 w-[80px] min-w-[80px] bg-primary/5 cursor-pointer"
+                                className="p-0 min-w-[120px] bg-primary/5 cursor-pointer whitespace-nowrap"
                                 onClick={() => promptUpgrade('financialProjections')}
                               >
                                 <div className="px-3 py-2.5 text-right select-none">
@@ -557,7 +556,7 @@ export function IncomeStatementTable({ ticker, companyName }: IncomeStatementTab
                             <td 
                               key={idx}
                               className={cn(
-                                "p-0 w-[80px] min-w-[80px]",
+                                "p-0 min-w-[120px] whitespace-nowrap",
                                 yearData.isEstimate && "bg-primary/5"
                               )}
                             >
@@ -584,7 +583,7 @@ export function IncomeStatementTable({ ticker, companyName }: IncomeStatementTab
                     {derivedMetricsForRow.map((metric) => (
                       <TooltipProvider key={metric.label} delayDuration={0}>
                         <tr className="border-b border-border/20 bg-muted/20">
-                          <td className="sticky left-0 z-20 px-4 py-1.5 text-[10px] w-[180px] min-w-[180px] overflow-hidden bg-muted/20 pl-8" style={{ boxShadow: '2px 0 4px -1px hsl(var(--border) / 0.3)' }}>
+                          <td className="sticky left-0 z-20 px-4 py-1.5 text-[10px] min-w-[180px] pl-8 whitespace-nowrap" style={{ backgroundColor: 'hsl(var(--card))', boxShadow: '4px 0 6px -2px rgba(0,0,0,0.4)' }}>
                             <div className="flex items-center gap-1.5 max-w-full">
                               <span className="truncate flex-1 min-w-0 text-muted-foreground italic">
                                 {metric.label}
@@ -611,8 +610,8 @@ export function IncomeStatementTable({ ticker, companyName }: IncomeStatementTab
                             return (
                               <td 
                                 key={idx}
-                                className={cn(
-                                  "px-3 py-1.5 text-right text-[10px] tabular-nums w-[80px] min-w-[80px]",
+                                 className={cn(
+                                  "px-3 py-1.5 text-right text-[10px] tabular-nums min-w-[120px] whitespace-nowrap",
                                   yearData.isEstimate && "bg-primary/5",
                                   isLocked && "cursor-pointer",
                                   !isLocked && metric.colorize && computedValue != null && (
