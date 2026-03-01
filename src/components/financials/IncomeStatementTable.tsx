@@ -102,17 +102,6 @@ interface DerivedMetricRow {
 
 const DERIVED_METRICS: DerivedMetricRow[] = [
   {
-    label: 'Revenue Growth %',
-    parentKey: 'revenue',
-    compute: (current, prev) => {
-      if (!prev?.revenue || !current?.revenue) return null;
-      return ((current.revenue - prev.revenue) / Math.abs(prev.revenue)) * 100;
-    },
-    format: (v) => v != null ? `${v >= 0 ? '+' : ''}${v.toFixed(1)}%` : '—',
-    tooltip: 'Year-over-year revenue growth rate',
-    colorize: true,
-  },
-  {
     label: 'Gross Margin %',
     parentKey: 'grossProfit',
     compute: (current) => {
@@ -121,17 +110,6 @@ const DERIVED_METRICS: DerivedMetricRow[] = [
     },
     format: (v) => v != null ? `${v.toFixed(1)}%` : '—',
     tooltip: 'Gross Profit as a percentage of Revenue',
-  },
-  {
-    label: 'Gross Profit Δ %',
-    parentKey: 'grossProfit',
-    compute: (current, prev) => {
-      if (!prev?.grossProfit || !current?.grossProfit) return null;
-      return ((current.grossProfit - prev.grossProfit) / Math.abs(prev.grossProfit)) * 100;
-    },
-    format: (v) => v != null ? `${v >= 0 ? '+' : ''}${v.toFixed(1)}%` : '—',
-    tooltip: 'Year-over-year gross profit change',
-    colorize: true,
   },
   {
     label: 'Op. Margin %',
@@ -152,17 +130,6 @@ const DERIVED_METRICS: DerivedMetricRow[] = [
     },
     format: (v) => v != null ? `${v.toFixed(1)}%` : '—',
     tooltip: 'Net Income as a percentage of Revenue',
-  },
-  {
-    label: 'Net Income Δ %',
-    parentKey: 'netIncome',
-    compute: (current, prev) => {
-      if (!prev?.netIncome || !current?.netIncome) return null;
-      return ((current.netIncome - prev.netIncome) / Math.abs(prev.netIncome)) * 100;
-    },
-    format: (v) => v != null ? `${v >= 0 ? '+' : ''}${v.toFixed(1)}%` : '—',
-    tooltip: 'Year-over-year net income change',
-    colorize: true,
   },
 ];
 
@@ -535,6 +502,8 @@ export function IncomeStatementTable({ ticker, companyName }: IncomeStatementTab
                           const value = yearData[row.key];
                           const isEPS = row.key === 'eps';
                           const isLocked = yearData.isLocked;
+                          const prevValue = idx > 0 ? displayYears[idx - 1]?.[row.key] : null;
+                          const yoyChange = prevValue && value ? ((value - prevValue) / Math.abs(prevValue)) * 100 : undefined;
                           
                           if (isLocked) {
                             return (
@@ -572,6 +541,7 @@ export function IncomeStatementTable({ ticker, companyName }: IncomeStatementTab
                                 }
                                 isEstimate={yearData.isEstimate}
                                 isHighlight={row.isHighlight}
+                                yoyChange={yoyChange}
                               />
                             </td>
                           );
