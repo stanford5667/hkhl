@@ -199,7 +199,7 @@ const DEFAULT_ADVANCED_PARAMS: AdvancedParams = {
   slippageTicks: 1,
   executeOnBarClose: false,
   positionSizingMethod: 'percent-equity',
-  positionSizingValue: 10,
+  positionSizingValue: 100,
   pyramiding: 1,
   marginLong: 100,
   marginShort: 100,
