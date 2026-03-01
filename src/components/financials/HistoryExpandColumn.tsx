@@ -40,26 +40,38 @@ export function HistoryExpandColumn({
   return (
     <Tag
       className={cn(
-        "min-w-[40px] max-w-[40px] w-[40px] p-0 cursor-pointer select-none transition-colors",
-        "border-r border-border/30",
-        "hover:bg-accent/40",
+        "min-w-[44px] max-w-[44px] w-[44px] p-0 cursor-pointer select-none transition-all duration-200",
+        "border-r border-primary/20",
+        showFullHistory
+          ? "bg-accent/60 hover:bg-accent/80"
+          : "bg-primary/10 hover:bg-primary/20",
         className
       )}
       onClick={handleClick}
     >
-      <div className="flex flex-col items-center justify-center gap-0.5 py-2">
+      <div className="flex flex-col items-center justify-center gap-1 py-2.5">
         {isPro ? (
           showFullHistory ? (
-            <ChevronRight className="h-3 w-3 text-muted-foreground" />
+            <ChevronRight className="h-3.5 w-3.5 text-primary" />
           ) : (
-            <ChevronLeft className="h-3 w-3 text-muted-foreground" />
+            <div className="relative">
+              <ChevronLeft className="h-3.5 w-3.5 text-primary animate-pulse" />
+            </div>
           )
         ) : (
-          <Crown className="h-3 w-3 text-amber-500" />
+          <Crown className="h-3.5 w-3.5 text-amber-500 drop-shadow-sm" />
         )}
-        <span className="text-[9px] font-medium text-muted-foreground leading-none">
-          {showFullHistory ? 'Hide' : `+${lockedCount}yr`}
+        <span className={cn(
+          "text-[10px] font-semibold leading-none tracking-tight",
+          showFullHistory ? "text-muted-foreground" : "text-primary"
+        )}>
+          {showFullHistory ? 'Hide' : `+${lockedCount}`}
         </span>
+        {!showFullHistory && (
+          <span className="text-[8px] font-medium text-muted-foreground leading-none uppercase tracking-wider">
+            years
+          </span>
+        )}
       </div>
     </Tag>
   );
