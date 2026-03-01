@@ -1,579 +1,96 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { CompanyTypeBadge } from '@/components/companies/CompanyTypeBadge';
-import { EditCompanyDialog } from '@/components/companies/EditCompanyDialog';
-import { MarketIntelTab } from '@/components/companies/MarketIntelTab';
-import { EmbeddedDataRoom } from '@/components/companies/EmbeddedDataRoom';
-import { CompanyTeamPanel } from '@/components/companies/CompanyTeamPanel';
-import { CompanyTasksTab } from '@/components/companies/CompanyTasksTab';
-import { ProcessingBanner, ProcessingIndicator, AIAnalyzedBadge } from '@/components/companies/ProcessingBanner';
-import { AISummaryCard } from '@/components/companies/AISummaryCard';
-import { ALAOverviewTab } from '@/components/research/ALAOverviewTab';
-import { useStockQuote } from '@/hooks/useMarketData';
-import { fetchTickerDetails, TickerDetails } from '@/services/tickerDetailsService';
-import { AssetBacktestPanel } from '@/components/equity/AssetBacktestPanel';
-import { EmbeddedQuantLab } from '@/components/equity/EmbeddedQuantLab';
-import { SECFilingsPanel } from '@/components/research/SECFilingsPanel';
-import { AnalystSocialPanel } from '@/components/research/AnalystSocialPanel';
-import { MessageCircle } from 'lucide-react';
-import { CompanySummaryCard } from '@/components/companies/CompanySummaryCard';
-import { CompanyContactsCard } from '@/components/companies/CompanyContactsCard';
-import { NotesTasksTab } from '@/components/companies/NotesTasksTab';
-import { DataExtractionPanel } from '@/components/companies/DataExtractionPanel';
-import { ExtractedFieldsDisplay } from '@/components/companies/ExtractedFieldsDisplay';
-import { ArrowLeft, Building2, Globe, Users, FolderOpen, Brain, Edit, ExternalLink, FileText, TrendingUp, Newspaper, LayoutDashboard, StickyNote, Mail, Phone, CheckSquare, LineChart, Briefcase, BarChart3, FlaskConical } from 'lucide-react';
-import { format } from 'date-fns';
-import { useCompanyTasks } from '@/hooks/useTasks';
-interface CompanyDetail {
-  id: string;
-  name: string;
-  industry: string | null;
-  website: string | null;
-  description: string | null;
-  company_type: 'pipeline' | 'portfolio' | 'prospect' | 'passed' | null;
-  pipeline_stage: string | null;
-  revenue_ltm: number | null;
-  ebitda_ltm: number | null;
-  deal_lead: string | null;
-  status: string | null;
-  created_at: string;
-  updated_at: string;
-  // Public equity fields
-  asset_class: string | null;
-  ticker_symbol: string | null;
-  exchange: string | null;
-  shares_owned: number | null;
-  cost_basis: number | null;
-  current_price: number | null;
-  market_value: number | null;
-}
-interface Contact {
-  id: string;
-  first_name: string;
-  last_name: string;
-  email: string | null;
-  phone: string | null;
-  title: string | null;
-  category: string;
-}
-interface Document {
-  id: string;
-  name: string;
-  file_type: string | null;
-  file_path: string;
-  folder: string | null;
-  subfolder: string | null;
-  file_size: number | null;
-  doc_status: string | null;
-  created_at: string;
-  updated_at: string;
-}
-interface Model {
-  id: string;
-  name: string;
-  model_type: string;
-  status: string | null;
-  created_at: string;
-}
+import { Loader2 } from 'lucide-react';
+
+/**
+ * CompanyDetail - Redirects to the unified /stock/:ticker view.
+ * Looks up the company by ID, resolves its ticker, and navigates there.
+ * For companies without a ticker, shows a minimal fallback.
+ */
 export default function CompanyDetail() {
-  const {
-    id
-  } = useParams<{
-    id: string;
-  }>();
+  const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const {
-    user
-  } = useAuth();
-  const [company, setCompany] = useState<CompanyDetail | null>(null);
-  const [contacts, setContacts] = useState<Contact[]>([]);
-  const [documents, setDocuments] = useState<Document[]>([]);
-  const [models, setModels] = useState<Model[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [editDialogOpen, setEditDialogOpen] = useState(false);
-  const [extractionKey, setExtractionKey] = useState(0);
-  const [tickerDetails, setTickerDetails] = useState<TickerDetails | null>(null);
+  const { user } = useAuth();
+  const [fallback, setFallback] = useState(false);
 
-  // Get the ticker for public equities
-  const ticker = company?.asset_class === 'public_equity' ? company?.ticker_symbol : null;
-
-  // Use stock quote hook for public equities
-  const {
-    quote,
-    isLoading: isLoadingQuote,
-    refresh: refreshQuote
-  } = useStockQuote(ticker, {
-    enabled: !!ticker
-  });
-  const fetchData = async () => {
+  useEffect(() => {
     if (!id) return;
 
-    // If this route was used for a synced position, ids may be prefixed with "synced-"
-    const isSyncedPositionRoute = id.startsWith('synced-');
-    const lookupId = isSyncedPositionRoute ? id.replace(/^synced-/, '') : id;
-
-    // If we KNOW it's a synced position route, resolve to ticker and redirect.
-    if (isSyncedPositionRoute) {
-      const {
-        data: positionData
-      } = await supabase.from('synced_positions').select('symbol').eq('id', lookupId).maybeSingle();
-      if (positionData?.symbol) {
-        navigate(`/stock/${positionData.symbol}`, {
-          replace: true
+    // Handle synced position routes
+    if (id.startsWith('synced-')) {
+      const lookupId = id.replace(/^synced-/, '');
+      supabase
+        .from('synced_positions')
+        .select('symbol')
+        .eq('id', lookupId)
+        .maybeSingle()
+        .then(({ data }) => {
+          if (data?.symbol) {
+            navigate(`/stock/${data.symbol}`, { replace: true });
+          } else {
+            toast.error('Position not found');
+            navigate('/');
+          }
         });
-        return;
-      }
-      toast.error('Position not found');
-      navigate('/');
       return;
     }
 
-    // Company IDs are UUIDs; if this isn't a UUID, it's likely an invalid route.
-    const isValidUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(lookupId);
+    // Validate UUID format
+    const isValidUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
     if (!isValidUUID) {
       toast.error('Company not found');
       navigate('/');
       return;
     }
-    setLoading(true);
-    try {
-      // Fetch company
-      const {
-        data: companyData,
-        error: companyError
-      } = await supabase.from('companies').select('*').eq('id', lookupId).maybeSingle();
-      if (companyError) throw companyError;
-      if (!companyData) {
-        // Fallback: sometimes a UUID may refer to a synced position id
-        const {
-          data: positionData
-        } = await supabase.from('synced_positions').select('symbol').eq('id', lookupId).maybeSingle();
-        if (positionData?.symbol) {
-          navigate(`/stock/${positionData.symbol}`, {
-            replace: true
-          });
+
+    // Look up the company and redirect to /stock/:ticker
+    supabase
+      .from('companies')
+      .select('ticker_symbol, name')
+      .eq('id', id)
+      .maybeSingle()
+      .then(({ data, error }) => {
+        if (error || !data) {
+          // Fallback: check synced_positions
+          supabase
+            .from('synced_positions')
+            .select('symbol')
+            .eq('id', id)
+            .maybeSingle()
+            .then(({ data: posData }) => {
+              if (posData?.symbol) {
+                navigate(`/stock/${posData.symbol}`, { replace: true });
+              } else {
+                toast.error('Company not found');
+                navigate('/');
+              }
+            });
           return;
         }
-        toast.error('Company not found');
-        navigate('/');
-        return;
-      }
-      setCompany(companyData as CompanyDetail);
 
-      // Fetch related contacts
-      const {
-        data: contactsData
-      } = await supabase.from('contacts').select('id, first_name, last_name, email, phone, title, category').eq('company_id', id);
-      setContacts(contactsData || []);
-
-      // Fetch related documents
-      const {
-        data: docsData
-      } = await supabase.from('documents').select('*').eq('company_id', id).order('created_at', {
-        ascending: false
+        if (data.ticker_symbol) {
+          navigate(`/stock/${data.ticker_symbol}`, { replace: true });
+        } else {
+          // No ticker — rare case for private companies without tickers
+          setFallback(true);
+        }
       });
-      setDocuments(docsData as Document[] || []);
+  }, [id, navigate]);
 
-      // Fetch related models
-      const {
-        data: modelsData
-      } = await supabase.from('models').select('id, name, model_type, status, created_at').eq('company_id', id).order('created_at', {
-        ascending: false
-      });
-      setModels(modelsData || []);
-    } catch (error) {
-      console.error('Error fetching company:', error);
-      toast.error('Failed to load company details');
-    } finally {
-      setLoading(false);
-    }
-  };
-  useEffect(() => {
-    fetchData();
-  }, [id, user, navigate]);
-
-  // Fetch ticker details for public equities
-  useEffect(() => {
-    if (company?.asset_class === 'public_equity' && company?.ticker_symbol) {
-      fetchTickerDetails(company.ticker_symbol).then(setTickerDetails);
-    }
-  }, [company?.asset_class, company?.ticker_symbol]);
-  if (loading) {
-    return <div className="flex items-center justify-center h-full">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
-      </div>;
-  }
-  if (!company) {
-    return null;
-  }
-  const formatCurrency = (value: number | null) => {
-    if (!value) return '—';
-    if (value >= 1000) return `$${(value / 1000).toFixed(1)}B`;
-    return `$${value.toFixed(0)}M`;
-  };
-  const getHealthScore = () => {
-    if (company.ebitda_ltm && company.revenue_ltm) {
-      return Math.min(100, Math.round(company.ebitda_ltm / company.revenue_ltm * 100 * 5));
-    }
-    return 75;
-  };
-  const isPublicEquity = company.asset_class === 'public_equity' && company.ticker_symbol;
-
-  // Unified company view for both public and private companies
-  return <div className="p-2 md:p-6 space-y-2 md:space-y-6 animate-fade-in">
-      {/* Minimal Header - Just back button and company name */}
-      <div className="flex items-center gap-2">
-        <Button variant="ghost" size="icon" onClick={() => navigate(-1)} className="h-7 w-7 md:h-9 md:w-9 shrink-0">
-          <ArrowLeft className="h-4 w-4" />
-        </Button>
-        <h1 className="text-sm md:text-lg font-semibold truncate">{company.name}</h1>
-        {isPublicEquity && company.ticker_symbol && (
-          <Badge variant="secondary" className="text-[10px] md:text-xs font-mono px-1.5 shrink-0">
-            {company.ticker_symbol}
-          </Badge>
-        )}
+  if (fallback) {
+    return (
+      <div className="flex items-center justify-center h-full p-12 text-muted-foreground">
+        <p>This company does not have a ticker symbol and cannot be viewed in the research view.</p>
       </div>
+    );
+  }
 
-      {/* Tabs - Compact and no horizontal scroll */}
-      <Tabs defaultValue="overview" className="space-y-2 md:space-y-4">
-        <TabsList className="bg-secondary h-8 md:h-10 w-full grid gap-0" style={{ gridTemplateColumns: isPublicEquity ? 'repeat(7, 1fr)' : 'repeat(3, 1fr)' }}>
-          <TabsTrigger value="overview" className="text-[10px] md:text-xs px-1 md:px-2 py-1.5 data-[state=active]:bg-background">
-            <LayoutDashboard className="h-3 w-3 md:h-4 md:w-4 md:mr-1" />
-            <span className="hidden md:inline">Overview</span>
-          </TabsTrigger>
-          {isPublicEquity && (
-            <TabsTrigger value="quant-lab" className="text-[10px] md:text-xs px-1 md:px-2 py-1.5 data-[state=active]:bg-background">
-              <FlaskConical className="h-3 w-3 md:h-4 md:w-4 md:mr-1" />
-              <span className="hidden md:inline">Quant</span>
-            </TabsTrigger>
-          )}
-          <TabsTrigger value="notes-tasks" className="text-[10px] md:text-xs px-1 md:px-2 py-1.5 data-[state=active]:bg-background">
-            <CheckSquare className="h-3 w-3 md:h-4 md:w-4 md:mr-1" />
-            <span className="hidden md:inline">Tasks</span>
-          </TabsTrigger>
-          {isPublicEquity && (
-            <TabsTrigger value="backtest" className="text-[10px] md:text-xs px-1 md:px-2 py-1.5 data-[state=active]:bg-background">
-              <BarChart3 className="h-3 w-3 md:h-4 md:w-4 md:mr-1" />
-              <span className="hidden md:inline">Metrics</span>
-            </TabsTrigger>
-          )}
-          <TabsTrigger value="news" className="text-[10px] md:text-xs px-1 md:px-2 py-1.5 data-[state=active]:bg-background">
-            <Newspaper className="h-3 w-3 md:h-4 md:w-4 md:mr-1" />
-            <span className="hidden md:inline">{isPublicEquity ? 'News' : 'Intel'}</span>
-          </TabsTrigger>
-          {isPublicEquity && (
-            <TabsTrigger value="sec" className="text-[10px] md:text-xs px-1 md:px-2 py-1.5 data-[state=active]:bg-background">
-              <FileText className="h-3 w-3 md:h-4 md:w-4 md:mr-1" />
-              <span className="hidden md:inline">SEC</span>
-            </TabsTrigger>
-          )}
-          {isPublicEquity && (
-            <TabsTrigger value="analyst-social" className="text-[10px] md:text-xs px-1 md:px-2 py-1.5 data-[state=active]:bg-background">
-              <MessageCircle className="h-3 w-3 md:h-4 md:w-4 md:mr-1" />
-              <span className="hidden md:inline">Social</span>
-            </TabsTrigger>
-          )}</TabsList>
-
-        {/* Notes & Tasks Tab */}
-        <TabsContent value="notes-tasks">
-          <NotesTasksTab companyId={company.id} companyName={company.name} />
-        </TabsContent>
-
-        {/* Data Room Tab - Hidden */}
-
-        {/* Overview Tab */}
-        <TabsContent value="overview" className="space-y-6">
-          {isPublicEquity && company.ticker_symbol ? (/* Public Equity Overview - Use enhanced ALA UI */
-        <ALAOverviewTab ticker={company.ticker_symbol} companyName={tickerDetails?.name || company.name} exchange={tickerDetails?.primaryExchange || company.exchange || undefined} sector={tickerDetails?.sector || company.industry || undefined} quote={quote ? {
-          price: quote.price,
-          change: quote.change,
-          changePercent: quote.changePercent,
-          open: quote.open,
-          high: quote.high,
-          low: quote.low,
-          previousClose: quote.previousClose,
-          marketCap: tickerDetails?.marketCap ?? undefined
-        } : undefined} isLoadingQuote={isLoadingQuote} onRefresh={refreshQuote} />) : (/* Private Company Overview */
-        <>
-              {/* Processing Banner - Shows when documents are being analyzed */}
-              <ProcessingBanner companyId={company.id} />
-
-              {/* AI Summary Card - Shows AI-generated insights */}
-              <AISummaryCard companyId={company.id} companyName={company.name} />
-
-              {/* Data Extraction Panel */}
-              <DataExtractionPanel company={company} onComplete={() => setExtractionKey(prev => prev + 1)} />
-
-              {/* Extracted Fields Display */}
-              <ExtractedFieldsDisplay key={extractionKey} companyId={company.id} />
-
-              {/* Company Summary Section */}
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                {/* Main Info Card */}
-                <Card className="glass-card lg:col-span-2">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Building2 className="h-5 w-5 text-primary" />
-                      About {company.name}
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    {company.description ? <p className="text-foreground">{company.description}</p> : <p className="text-muted-foreground italic">No description available. Click Edit to add one.</p>}
-                    
-                    <div className="grid grid-cols-2 gap-4 pt-4 border-t border-border">
-                      <div>
-                        <p className="text-xs text-muted-foreground uppercase tracking-wider">Industry</p>
-                        <p className="text-foreground font-medium mt-1">{company.industry || '—'}</p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-muted-foreground uppercase tracking-wider">Website</p>
-                        {company.website ? <a href={company.website} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline font-medium mt-1 flex items-center gap-1">
-                            {company.website.replace(/^https?:\/\//, '')}
-                            <ExternalLink className="h-3 w-3" />
-                          </a> : <p className="text-foreground font-medium mt-1">—</p>}
-                      </div>
-                      <div>
-                        <p className="text-xs text-muted-foreground uppercase tracking-wider">Status</p>
-                        <p className="text-foreground font-medium mt-1 capitalize">{company.status || 'Active'}</p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-muted-foreground uppercase tracking-wider">Deal Lead</p>
-                        <p className="text-foreground font-medium mt-1">{company.deal_lead || '—'}</p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* Quick Stats Card */}
-                <div className="space-y-6">
-                  <Card className="glass-card">
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <TrendingUp className="h-5 w-5 text-success" />
-                        Quick Stats
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <div className="flex justify-between items-center">
-                        <span className="text-muted-foreground">Health Score</span>
-                        <span className={`text-xl font-bold ${getHealthScore() >= 70 ? 'text-emerald-400' : getHealthScore() >= 40 ? 'text-yellow-400' : 'text-rose-400'}`}>
-                          {getHealthScore()}
-                        </span>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-muted-foreground">EBITDA Margin</span>
-                        <span className="text-foreground font-medium">
-                          {company.revenue_ltm && company.ebitda_ltm ? `${(company.ebitda_ltm / company.revenue_ltm * 100).toFixed(1)}%` : '—'}
-                        </span>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-muted-foreground">Est. EV (8x)</span>
-                        <span className="text-foreground font-medium">
-                          {company.ebitda_ltm ? formatCurrency(company.ebitda_ltm * 8) : '—'}
-                        </span>
-                      </div>
-                      <div className="pt-3 border-t border-border space-y-2">
-                        <div className="flex justify-between items-center text-sm">
-                          <span className="text-muted-foreground flex items-center gap-1.5">
-                            <Users className="h-3.5 w-3.5" />
-                            Contacts
-                          </span>
-                          <span className="text-foreground">{contacts.length}</span>
-                        </div>
-                        <div className="flex justify-between items-center text-sm">
-                          <span className="text-muted-foreground flex items-center gap-1.5">
-                            <FolderOpen className="h-3.5 w-3.5" />
-                            Documents
-                          </span>
-                          <span className="text-foreground">{documents.length}</span>
-                        </div>
-                        <div className="flex justify-between items-center text-sm">
-                          <span className="text-muted-foreground flex items-center gap-1.5">
-                            <Brain className="h-3.5 w-3.5" />
-                            Models
-                          </span>
-                          <span className="text-foreground">{models.length}</span>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  {/* Team Panel */}
-                  <CompanyTeamPanel companyId={company.id} />
-                </div>
-              </div>
-
-              {/* Financials Summary */}
-              <Card className="glass-card">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <TrendingUp className="h-5 w-5 text-emerald-400" />
-                    Financial Summary
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-                    <div>
-                      <p className="text-xs text-muted-foreground uppercase tracking-wider">Revenue (LTM)</p>
-                      <p className="text-2xl font-bold mt-1">{formatCurrency(company.revenue_ltm)}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-muted-foreground uppercase tracking-wider">EBITDA (LTM)</p>
-                      <p className="text-2xl font-bold mt-1">{formatCurrency(company.ebitda_ltm)}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-muted-foreground uppercase tracking-wider">EBITDA Margin</p>
-                      <p className="text-2xl font-bold mt-1">
-                        {company.revenue_ltm && company.ebitda_ltm ? `${(company.ebitda_ltm / company.revenue_ltm * 100).toFixed(1)}%` : '—'}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-muted-foreground uppercase tracking-wider">Est. Enterprise Value</p>
-                      <p className="text-2xl font-bold mt-1">
-                        {company.ebitda_ltm ? formatCurrency(company.ebitda_ltm * 8) : '—'}
-                      </p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Three Column Grid for Summaries */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {/* Recent Documents */}
-                <Card className="glass-card">
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-sm flex items-center gap-2">
-                      <FolderOpen className="h-4 w-4 text-amber-400" />
-                      Recent Documents
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    {documents.length === 0 ? <p className="text-muted-foreground text-sm">No documents uploaded yet</p> : <ul className="space-y-2">
-                        {documents.slice(0, 4).map(doc => <li key={doc.id} className="flex items-center gap-2 text-sm">
-                            <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
-                            <span className="truncate flex-1 text-foreground">{doc.name}</span>
-                            <span className="text-muted-foreground text-xs shrink-0">
-                              {format(new Date(doc.created_at), 'MMM d')}
-                            </span>
-                          </li>)}
-                      </ul>}
-                    {documents.length > 4 && <p className="text-xs text-muted-foreground mt-3">+{documents.length - 4} more documents</p>}
-                  </CardContent>
-                </Card>
-
-                {/* Contacts Preview */}
-                <Card className="glass-card">
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-sm flex items-center gap-2">
-                      <Users className="h-4 w-4 text-blue-400" />
-                      Key Contacts
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    {contacts.length === 0 ? <p className="text-muted-foreground text-sm">No contacts assigned yet</p> : <ul className="space-y-3">
-                        {contacts.slice(0, 4).map(contact => <li key={contact.id} className="flex items-center gap-2">
-                            <div className="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center text-xs font-medium text-primary shrink-0">
-                              {contact.first_name[0]}{contact.last_name[0]}
-                            </div>
-                            <div className="min-w-0 flex-1">
-                              <p className="text-sm font-medium text-foreground truncate">
-                                {contact.first_name} {contact.last_name}
-                              </p>
-                              <p className="text-xs text-muted-foreground truncate">
-                                {contact.title || contact.category}
-                              </p>
-                            </div>
-                          </li>)}
-                      </ul>}
-                    {contacts.length > 4 && <p className="text-xs text-muted-foreground mt-3">+{contacts.length - 4} more contacts</p>}
-                  </CardContent>
-                </Card>
-
-                {/* Models Preview */}
-                <Card className="glass-card">
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-sm flex items-center gap-2">
-                      <Brain className="h-4 w-4 text-purple-400" />
-                      Financial Models
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    {models.length === 0 ? <p className="text-muted-foreground text-sm">No models created yet</p> : <ul className="space-y-2">
-                        {models.slice(0, 4).map(model => <li key={model.id} className="flex items-center justify-between gap-2 text-sm">
-                            <div className="min-w-0 flex-1">
-                              <p className="text-foreground truncate">{model.name}</p>
-                              <p className="text-xs text-muted-foreground capitalize">{model.model_type}</p>
-                            </div>
-                            <Badge variant={model.status === 'complete' ? 'default' : 'secondary'} className="shrink-0 text-xs">
-                              {model.status || 'Draft'}
-                            </Badge>
-                          </li>)}
-                      </ul>}
-                    {models.length > 4 && <p className="text-xs text-muted-foreground mt-3">+{models.length - 4} more models</p>}
-                  </CardContent>
-                </Card>
-              </div>
-
-              {/* Timeline */}
-              <Card className="glass-card">
-                <CardHeader>
-                  <CardTitle>Timeline</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <div className="flex items-center gap-3">
-                    <div className="h-2 w-2 rounded-full bg-primary" />
-                    <span className="text-muted-foreground">Created</span>
-                    <span className="font-medium">{format(new Date(company.created_at), 'MMMM d, yyyy')}</span>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <div className="h-2 w-2 rounded-full bg-emerald-500" />
-                    <span className="text-muted-foreground">Last Updated</span>
-                    <span className="font-medium">{format(new Date(company.updated_at), 'MMMM d, yyyy')}</span>
-                  </div>
-                </CardContent>
-              </Card>
-            </>)}
-        </TabsContent>
-
-        {/* Notes Tab - Moved to combined Notes & Tasks */}
-
-
-        {/* Backtest Tab - Public Equity Only */}
-        {isPublicEquity && company.ticker_symbol && <TabsContent value="backtest">
-            <AssetBacktestPanel ticker={company.ticker_symbol} companyName={company.name} />
-          </TabsContent>}
-
-        {/* Quant Lab Tab - Public Equity Only */}
-        {isPublicEquity && company.ticker_symbol && <TabsContent value="quant-lab" className="relative min-h-[600px]">
-            <EmbeddedQuantLab ticker={company.ticker_symbol} companyName={company.name} />
-          </TabsContent>}
-
-        {/* SEC Filings Tab - Public Equity Only */}
-        {isPublicEquity && company.ticker_symbol && <TabsContent value="sec">
-            <SECFilingsPanel ticker={company.ticker_symbol} companyName={company.name} />
-          </TabsContent>}
-
-        {/* Analyst & Social Tab - Public Equity Only */}
-        {isPublicEquity && company.ticker_symbol && <TabsContent value="analyst-social">
-            <AnalystSocialPanel ticker={company.ticker_symbol} companyName={company.name} />
-          </TabsContent>}
-
-        {/* Market Intel / News Tab */}
-        <TabsContent value="news">
-          <MarketIntelTab companyId={company.id} companyName={company.name} industry={company.industry} />
-        </TabsContent>
-
-        {/* Models Tab - Hidden */}
-      </Tabs>
-
-      {/* Edit Dialog */}
-      <EditCompanyDialog open={editDialogOpen} onOpenChange={setEditDialogOpen} company={company} onSave={fetchData} />
-    </div>;
+  return (
+    <div className="flex items-center justify-center h-full">
+      <Loader2 className="h-8 w-8 animate-spin text-primary" />
+    </div>
+  );
 }
