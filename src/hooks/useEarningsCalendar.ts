@@ -19,8 +19,6 @@ export const useEarningsCalendar = (filters?: EarningsCalendarFilters) => {
   return useQuery({
     queryKey: ['earnings-calendar', filters],
     queryFn: async () => {
-      // IMPORTANT: use local date, not UTC. Using toISOString() can shift the day
-      // for users outside UTC and make the earnings calendar look “inaccurate”.
       const today = toLocalISODate(new Date());
       
       let query = supabase
@@ -29,9 +27,8 @@ export const useEarningsCalendar = (filters?: EarningsCalendarFilters) => {
         .order('market_cap', { ascending: false, nullsFirst: false })
         .order('report_date', { ascending: true });
 
-      // Apply date filters - custom date allows viewing any specific day
+      // Apply date filters
       if (filters?.dateRange === 'custom' && filters.customStart) {
-        // For custom date, show exactly that date (past or future)
         query = query.eq('report_date', filters.customStart);
       } else if (filters?.dateRange === 'today') {
         query = query.eq('report_date', today);
@@ -48,7 +45,6 @@ export const useEarningsCalendar = (filters?: EarningsCalendarFilters) => {
         const yearAhead = toLocalISODate(addYears(new Date(), 1));
         query = query.gte('report_date', today).lte('report_date', yearAhead);
       } else {
-        // Default: show from today forward
         query = query.gte('report_date', today);
       }
 
@@ -57,89 +53,75 @@ export const useEarningsCalendar = (filters?: EarningsCalendarFilters) => {
       }
 
       const { data, error } = await query;
-
       if (error) throw error;
 
-      // Fetch predictions for these earnings (batch to avoid URL length limits)
-      const earningsIds = (data || []).map(e => e.id);
-      
-      let predictions: EarningsPrediction[] = [];
-      if (earningsIds.length > 0) {
-        const BATCH_SIZE = 50;
-        const batches = [];
-        for (let i = 0; i < earningsIds.length; i += BATCH_SIZE) {
-          batches.push(earningsIds.slice(i, i + BATCH_SIZE));
-        }
-        
-        const batchResults = await Promise.all(
-          batches.map(batch =>
-            supabase
-              .from('earnings_predictions')
-              .select('*')
-              .in('earnings_calendar_id', batch)
-          )
-        );
-        
-        predictions = batchResults.flatMap(r => (r.data || [])) as EarningsPrediction[];
-      }
+      const earningsData = data || [];
+      if (earningsData.length === 0) return [];
 
-      // Get symbols missing market cap to enrich from asset_universe
-      const symbolsMissingMktCap = (data || [])
-        .filter(e => !e.market_cap)
-        .map(e => e.symbol);
-      
+      // Run predictions + asset_universe lookups IN PARALLEL instead of waterfall
+      const earningsIds = earningsData.map(e => e.id);
+      const allSymbols = [...new Set(earningsData.map(e => e.symbol))];
+      const symbolsMissingMktCap = earningsData.filter(e => !e.market_cap).map(e => e.symbol);
+
+      const [predictions, assetData] = await Promise.all([
+        // Fetch predictions
+        (async () => {
+          if (earningsIds.length === 0) return [];
+          const BATCH_SIZE = 50;
+          const batches = [];
+          for (let i = 0; i < earningsIds.length; i += BATCH_SIZE) {
+            batches.push(earningsIds.slice(i, i + BATCH_SIZE));
+          }
+          const batchResults = await Promise.all(
+            batches.map(batch =>
+              supabase.from('earnings_predictions').select('*').in('earnings_calendar_id', batch)
+            )
+          );
+          return batchResults.flatMap(r => (r.data || [])) as EarningsPrediction[];
+        })(),
+
+        // Fetch asset_universe data (industry, sector, market cap proxy)
+        (async () => {
+          if (allSymbols.length === 0) return [];
+          const SYMBOL_BATCH_SIZE = 50;
+          const symbolBatches = [];
+          for (let i = 0; i < allSymbols.length; i += SYMBOL_BATCH_SIZE) {
+            symbolBatches.push(allSymbols.slice(i, i + SYMBOL_BATCH_SIZE));
+          }
+          const results = await Promise.all(
+            symbolBatches.map(batch =>
+              supabase.from('asset_universe').select('ticker, avg_daily_dollar_volume, industry, sector').in('ticker', batch)
+            )
+          );
+          return results.flatMap(r => r.data || []);
+        })(),
+      ]);
+
+      // Build lookup maps
       const marketCapMap: Record<string, number> = {};
-      
-      // Fetch industry/sector data for all symbols
-      const allSymbols = [...new Set((data || []).map(e => e.symbol))];
       const industryMap: Record<string, { industry: string | null; sector: string | null }> = {};
       
-      if (allSymbols.length > 0) {
-        const SYMBOL_BATCH_SIZE = 50;
-        const symbolBatches = [];
-        for (let i = 0; i < allSymbols.length; i += SYMBOL_BATCH_SIZE) {
-          symbolBatches.push(allSymbols.slice(i, i + SYMBOL_BATCH_SIZE));
+      assetData.forEach(a => {
+        if (a.avg_daily_dollar_volume && symbolsMissingMktCap.includes(a.ticker)) {
+          marketCapMap[a.ticker] = a.avg_daily_dollar_volume * 20;
         }
-        
-        const assetResults = await Promise.all(
-          symbolBatches.map(batch =>
-            supabase
-              .from('asset_universe')
-              .select('ticker, avg_daily_dollar_volume, industry, sector')
-              .in('ticker', batch)
-          )
-        );
-        
-        // Merge results and build maps
-        assetResults.flatMap(r => r.data || []).forEach(a => {
-          if (a.avg_daily_dollar_volume && symbolsMissingMktCap.includes(a.ticker)) {
-            // Use avg_daily_dollar_volume * 20 as rough market cap proxy (assuming ~5% daily turnover)
-            marketCapMap[a.ticker] = a.avg_daily_dollar_volume * 20;
-          }
-          industryMap[a.ticker] = { 
-            industry: a.industry || null, 
-            sector: a.sector || null 
-          };
-        });
-      }
+        industryMap[a.ticker] = { industry: a.industry || null, sector: a.sector || null };
+      });
 
       // Merge predictions with earnings
-      let results: EarningsWithPrediction[] = (data || []).map(e => {
+      let results: EarningsWithPrediction[] = earningsData.map(e => {
         const prediction = predictions.find(p => p.earnings_calendar_id === e.id);
         const assetInfo = industryMap[e.symbol];
         return {
           ...e,
           prediction,
-          // Use stored market_cap or fallback to proxy
           market_cap: e.market_cap || marketCapMap[e.symbol] || null,
           industry: assetInfo?.industry || null,
           sector: assetInfo?.sector || null,
         } as EarningsWithPrediction;
       });
 
-      // Safety guard: in custom (single-day) mode, enforce exact date matching.
-      // This prevents any accidental “bleed” of adjacent days due to upstream data
-      // inconsistencies or query/cache edge cases.
+      // Safety guard for custom single-day mode
       if (filters?.dateRange === 'custom' && filters.customStart) {
         results = results.filter(e => e.report_date === filters.customStart);
       }
@@ -153,7 +135,7 @@ export const useEarningsCalendar = (filters?: EarningsCalendarFilters) => {
 
       return results;
     },
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 10 * 60 * 1000, // 10 minutes — earnings data doesn't change frequently
   });
 };
 
@@ -265,66 +247,64 @@ export const useEarningsScreen = (criteria: EarningsScreenCriteria) => {
       const { data: earningsData, error } = await query;
       if (error) throw error;
 
-      // Fetch predictions (batch to avoid URL length limits)
-      const earningsIds = (earningsData || []).map(e => e.id);
-      let predictions: EarningsPrediction[] = [];
-      
-      if (earningsIds.length > 0) {
-        const BATCH_SIZE = 50;
-        const batches = [];
-        for (let i = 0; i < earningsIds.length; i += BATCH_SIZE) {
-          batches.push(earningsIds.slice(i, i + BATCH_SIZE));
-        }
-        
-        const batchResults = await Promise.all(
-          batches.map(batch =>
-            supabase
-              .from('earnings_predictions')
-              .select('*')
-              .in('earnings_calendar_id', batch)
-          )
-        );
-        
-        predictions = batchResults.flatMap(r => (r.data || [])) as EarningsPrediction[];
-      }
+      const earnings = earningsData || [];
+      if (earnings.length === 0) return [];
 
-      // Fetch historical stats for each symbol (batch to avoid URL length limits)
-      const symbols = [...new Set((earningsData || []).map(e => e.symbol))];
+      // Fetch predictions + history IN PARALLEL
+      const earningsIds = earnings.map(e => e.id);
+      const symbols = [...new Set(earnings.map(e => e.symbol))];
+
+      const [predictions, historyData] = await Promise.all([
+        // Predictions
+        (async () => {
+          if (earningsIds.length === 0) return [];
+          const BATCH_SIZE = 50;
+          const batches = [];
+          for (let i = 0; i < earningsIds.length; i += BATCH_SIZE) {
+            batches.push(earningsIds.slice(i, i + BATCH_SIZE));
+          }
+          const batchResults = await Promise.all(
+            batches.map(batch =>
+              supabase.from('earnings_predictions').select('*').in('earnings_calendar_id', batch)
+            )
+          );
+          return batchResults.flatMap(r => (r.data || [])) as EarningsPrediction[];
+        })(),
+
+        // Historical stats
+        (async () => {
+          if (symbols.length === 0) return [];
+          const twoYearsAgo = new Date();
+          twoYearsAgo.setFullYear(twoYearsAgo.getFullYear() - 2);
+          const SYMBOL_BATCH_SIZE = 100;
+          const symbolBatches = [];
+          for (let i = 0; i < symbols.length; i += SYMBOL_BATCH_SIZE) {
+            symbolBatches.push(symbols.slice(i, i + SYMBOL_BATCH_SIZE));
+          }
+          const results = await Promise.all(
+            symbolBatches.map(batch =>
+              supabase.from('earnings_history').select('symbol, eps_surprise_pct').in('symbol', batch)
+                .gte('report_date', twoYearsAgo.toISOString().split('T')[0])
+            )
+          );
+          return results.flatMap(r => r.data || []);
+        })(),
+      ]);
+
+      // Build history stats map
       const historyStats: Record<string, { beatCount: number; totalReports: number }> = {};
-      
-      if (symbols.length > 0) {
-        const twoYearsAgo = new Date();
-        twoYearsAgo.setFullYear(twoYearsAgo.getFullYear() - 2);
-        
-        const SYMBOL_BATCH_SIZE = 100;
-        const symbolBatches = [];
-        for (let i = 0; i < symbols.length; i += SYMBOL_BATCH_SIZE) {
-          symbolBatches.push(symbols.slice(i, i + SYMBOL_BATCH_SIZE));
+      historyData.forEach(h => {
+        if (!historyStats[h.symbol]) {
+          historyStats[h.symbol] = { beatCount: 0, totalReports: 0 };
         }
-        
-        const historyResults = await Promise.all(
-          symbolBatches.map(batch =>
-            supabase
-              .from('earnings_history')
-              .select('symbol, eps_surprise_pct')
-              .in('symbol', batch)
-              .gte('report_date', twoYearsAgo.toISOString().split('T')[0])
-          )
-        );
-        
-        historyResults.flatMap(r => r.data || []).forEach(h => {
-          if (!historyStats[h.symbol]) {
-            historyStats[h.symbol] = { beatCount: 0, totalReports: 0 };
-          }
-          historyStats[h.symbol].totalReports++;
-          if ((h.eps_surprise_pct || 0) > 0) {
-            historyStats[h.symbol].beatCount++;
-          }
-        });
-      }
+        historyStats[h.symbol].totalReports++;
+        if ((h.eps_surprise_pct || 0) > 0) {
+          historyStats[h.symbol].beatCount++;
+        }
+      });
 
       // Merge and filter
-      let results: EarningsWithPrediction[] = (earningsData || []).map(e => {
+      let results: EarningsWithPrediction[] = earnings.map(e => {
         const prediction = predictions.find(p => p.earnings_calendar_id === e.id);
         const stats = historyStats[e.symbol];
         return {
@@ -335,22 +315,18 @@ export const useEarningsScreen = (criteria: EarningsScreenCriteria) => {
         } as EarningsWithPrediction;
       });
 
-      // Apply filters - only filter by prediction criteria if explicitly set
-      // When minConfidence > 0, filter to only those with predictions meeting threshold
       if (criteria.minConfidence > 0) {
         results = results.filter(e => 
           e.prediction && e.prediction.confidence_score >= criteria.minConfidence
         );
       }
 
-      // When specific outcome selected, filter to those predictions only
       if (criteria.expectedOutcome !== 'all') {
         results = results.filter(e => 
           e.prediction?.predicted_outcome === criteria.expectedOutcome
         );
       }
 
-      // Beat rate filter only applies if explicitly set
       if (criteria.minBeatRate) {
         results = results.filter(e => {
           if (!e.beat_count_2y || !e.total_reports_2y) return false;
@@ -359,14 +335,12 @@ export const useEarningsScreen = (criteria: EarningsScreenCriteria) => {
         });
       }
 
-      // Analyst count filter
       if (criteria.minAnalystCount) {
         results = results.filter(e => 
           e.analyst_count && e.analyst_count >= criteria.minAnalystCount!
         );
       }
 
-      // Sort by report_date, then by market_cap (largest first)
       results.sort((a, b) => {
         const dateCompare = a.report_date.localeCompare(b.report_date);
         if (dateCompare !== 0) return dateCompare;
@@ -376,7 +350,7 @@ export const useEarningsScreen = (criteria: EarningsScreenCriteria) => {
       return results;
     },
     enabled: !!criteria,
-    staleTime: 2 * 60 * 1000,
+    staleTime: 5 * 60 * 1000,
   });
 };
 

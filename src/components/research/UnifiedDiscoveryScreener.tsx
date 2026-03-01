@@ -1065,7 +1065,7 @@ export function UnifiedDiscoveryScreener() {
       };
       return await screenStocksFromPolygon(buildQueryFilters(baseFilters, currentPage * ITEMS_PER_PAGE));
     },
-    staleTime: 60000,
+    staleTime: 5 * 60 * 1000,
     enabled: activeTab === 'topGainers',
   });
 
@@ -1081,7 +1081,7 @@ export function UnifiedDiscoveryScreener() {
       };
       return await screenStocksFromPolygon(buildQueryFilters(baseFilters, currentPage * ITEMS_PER_PAGE));
     },
-    staleTime: 60000,
+    staleTime: 5 * 60 * 1000,
     enabled: activeTab === 'mostActive',
   });
 
@@ -1093,7 +1093,7 @@ export function UnifiedDiscoveryScreener() {
       if (!screenConfig) return { results: [], count: 0, pagination: { hasMore: false, total: 0 } };
       return await screenStocksFromPolygon(buildQueryFilters(screenConfig.filters, currentPage * ITEMS_PER_PAGE));
     },
-    staleTime: 60000,
+    staleTime: 5 * 60 * 1000,
     enabled: activeTab === 'momentum',
   });
 
@@ -1105,7 +1105,7 @@ export function UnifiedDiscoveryScreener() {
       if (!screenConfig) return { results: [], count: 0, pagination: { hasMore: false, total: 0 } };
       return await screenStocksFromPolygon(buildQueryFilters(screenConfig.filters, currentPage * ITEMS_PER_PAGE));
     },
-    staleTime: 60000,
+    staleTime: 5 * 60 * 1000,
     enabled: activeTab === 'unusualVolume',
   });
 
