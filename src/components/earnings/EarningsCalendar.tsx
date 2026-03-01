@@ -45,6 +45,27 @@ export const EarningsCalendar = () => {
     setCurrentPage(1);
   }, [selectedDate]);
 
+  // Auto-jump to nearest earnings date if today has no earnings
+  const hasAutoJumped = useRef(false);
+  useEffect(() => {
+    if (
+      !hasAutoJumped.current &&
+      isFetched &&
+      !isLoading &&
+      earnings &&
+      earnings.length === 0 &&
+      isToday(selectedDate) &&
+      adjacentDates
+    ) {
+      hasAutoJumped.current = true;
+      if (adjacentDates.nextDate) {
+        setSelectedDate(parseDateOnly(adjacentDates.nextDate));
+      } else if (adjacentDates.prevDate) {
+        setSelectedDate(parseDateOnly(adjacentDates.prevDate));
+      }
+    }
+  }, [isFetched, isLoading, earnings, selectedDate, adjacentDates]);
+
   // Auto-fetch earnings data on first load if empty - fetch 1 year ahead
   useEffect(() => {
     if (isFetched && !isLoading && !hasAutoFetched.current && (!earnings || earnings.length === 0)) {
