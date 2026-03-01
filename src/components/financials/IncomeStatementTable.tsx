@@ -315,13 +315,21 @@ export function IncomeStatementTable({ ticker, companyName }: IncomeStatementTab
   const lockedEstimates = isPro ? [] : estimates.slice(FREE_ESTIMATE_LIMIT);
   const hasLockedEstimates = lockedEstimates.length > 0;
   
+  // Free users: 4 most recent historical years. Pro: all historical data.
+  const FREE_HISTORICAL_LIMIT = 4;
+  const historicalReversed = historicalData.slice().reverse();
+  const totalHistorical = historicalReversed.length;
+  const lockedHistoricalCount = isPro ? 0 : Math.max(0, totalHistorical - FREE_HISTORICAL_LIMIT);
+  const hasLockedHistorical = lockedHistoricalCount > 0;
+  
   // Prepare display data - historical (reversed to show oldest first) + estimates
   const displayYears = [
-    ...historicalData.slice().reverse().map((item: any) => ({
+    ...historicalReversed.map((item: any, idx: number) => ({
       ...item,
       year: parseInt(item.date?.split('-')[0] || '2020'),
       isEstimate: false,
-      isLocked: false,
+      isLocked: !isPro && idx < lockedHistoricalCount,
+      isLockedHistorical: !isPro && idx < lockedHistoricalCount,
     })),
     ...visibleEstimates.map(e => ({ ...e, isLocked: false })),
     ...lockedEstimates.map(e => ({ ...e, isLocked: true })),
@@ -627,7 +635,33 @@ export function IncomeStatementTable({ ticker, companyName }: IncomeStatementTab
             </tbody>
           </table>
           
-          {/* Pro upgrade overlay on locked columns */}
+          {/* Pro upgrade overlay on locked historical columns (left side) */}
+          {hasLockedHistorical && (
+            <div 
+              className="absolute left-[180px] top-0 bottom-0 flex items-center justify-center z-10 cursor-pointer"
+              style={{ width: `${lockedHistoricalCount * 120}px` }}
+              onClick={() => promptUpgrade('financialProjections')}
+            >
+              <div className="absolute inset-0 bg-gradient-to-l from-background/40 via-background/80 to-background/95" />
+              <div className="relative flex flex-col items-center gap-2 p-4 text-center">
+                <div className="h-10 w-10 rounded-full bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center shadow-lg shadow-orange-500/30">
+                  <Crown className="h-5 w-5 text-white" />
+                </div>
+                <p className="text-xs font-semibold text-foreground">Full History</p>
+                <p className="text-[10px] text-muted-foreground max-w-[120px]">
+                  Unlock {lockedHistoricalCount}+ years of historical data
+                </p>
+                <Button
+                  size="sm"
+                  className="h-7 text-[10px] px-3 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-semibold shadow-lg shadow-orange-500/20"
+                >
+                  Upgrade to Pro
+                </Button>
+              </div>
+            </div>
+          )}
+          
+          {/* Pro upgrade overlay on locked estimate columns (right side) */}
           {hasLockedEstimates && (
             <div 
               className="absolute right-0 top-0 bottom-0 flex items-center justify-center z-10 cursor-pointer"
