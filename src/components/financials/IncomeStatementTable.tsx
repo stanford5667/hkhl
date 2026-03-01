@@ -411,7 +411,8 @@ export function IncomeStatementTable({ ticker, companyName }: IncomeStatementTab
       </CardHeader>
       
       <CardContent className="p-0">
-        <div className="overflow-x-auto relative">
+        <div className="overflow-x-auto">
+          <div className="relative inline-block min-w-full">
           <table className="w-full text-sm border-collapse" style={{ tableLayout: 'fixed' }}>
             <thead>
               <tr className="border-b border-border/50">
@@ -661,6 +662,7 @@ export function IncomeStatementTable({ ticker, companyName }: IncomeStatementTab
               </div>
             </div>
           )}
+          </div>
         </div>
         
         {/* Data source indicator */}
