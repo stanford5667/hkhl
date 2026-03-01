@@ -20,6 +20,7 @@ import { useEventNotifications } from "@/hooks/useEventNotifications";
 import { useActivityHeartbeat } from "@/hooks/useActivityHeartbeat";
 import { useGlobalScrollPersistence } from "@/hooks/useScrollPersistence";
 import { cn } from "@/lib/utils";
+import { BacktestPromoToast } from "@/components/ui/BacktestPromoToast";
 
 interface LayoutProps {
   children: ReactNode;
@@ -158,6 +159,7 @@ export function Layout({ children }: LayoutProps) {
         onOpenChange={setSearchOpen}
       />
       <FloatingHelpWidget />
+      {!user && <BacktestPromoToast />}
       
       {/* Auth gate dialog */}
       <AuthGateDialog 
