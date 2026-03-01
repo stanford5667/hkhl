@@ -77,20 +77,8 @@ export const EarningsCalendar = () => {
     }
   }, [isFetched, isLoading, earnings, selectedDate, adjacentDates]);
 
-  // Auto-fetch earnings data on first load if empty - fetch 1 year ahead
-  useEffect(() => {
-    if (isFetched && !isLoading && !hasAutoFetched.current && (!earnings || earnings.length === 0)) {
-      hasAutoFetched.current = true;
-      const today = new Date().toISOString().split('T')[0];
-      const yearAhead = new Date();
-      yearAhead.setFullYear(yearAhead.getFullYear() + 1);
-      
-      fetchEarnings.mutate({
-        startDate: today,
-        endDate: yearAhead.toISOString().split('T')[0],
-      });
-    }
-  }, [isFetched, isLoading, earnings, fetchEarnings]);
+  // Auto-fetch is now manual only — the DB already has data from the cron job.
+  // Remove the auto-fetch that fired on every empty-date visit (weekends, holidays).
 
   // Also auto-generate predictions when we have earnings but no predictions
   useEffect(() => {
