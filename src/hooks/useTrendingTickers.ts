@@ -38,7 +38,7 @@ export function useTrendingTickers(limit: number = 12) {
         changePercent: r.changePercent,
       }));
     },
-    staleTime: 60 * 1000,
+    staleTime: 5 * 60 * 1000, // 5 minutes — Polygon snapshot doesn't change rapidly
   });
 
   return {
