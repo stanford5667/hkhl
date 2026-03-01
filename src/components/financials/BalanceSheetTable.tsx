@@ -223,6 +223,30 @@ export function BalanceSheetTable({ ticker, companyName }: BalanceSheetTableProp
           </div>
           
           <div className="flex items-center gap-2">
+            {hasLockedHistorical && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  if (isPro) {
+                    setShowFullHistory(!showFullHistory);
+                  } else {
+                    promptUpgrade('financialProjections');
+                  }
+                }}
+                className="h-7 text-[10px] px-2 gap-1"
+              >
+                {isPro ? (
+                  showFullHistory ? (
+                    <><ChevronRight className="h-3 w-3" />Hide History</>
+                  ) : (
+                    <><ChevronLeft className="h-3 w-3" />+{lockedHistoricalCount}yr</>
+                  )
+                ) : (
+                  <><Crown className="h-3 w-3 text-amber-500" />+{lockedHistoricalCount}yr</>
+                )}
+              </Button>
+            )}
             <span className="text-xs text-muted-foreground">Values in millions USD</span>
             <Button 
               variant="ghost" 
@@ -246,36 +270,7 @@ export function BalanceSheetTable({ ticker, companyName }: BalanceSheetTableProp
                 <th className="sticky left-0 z-20 text-left px-4 py-2.5 font-medium text-muted-foreground text-xs whitespace-nowrap min-w-[180px]" style={{ backgroundColor: 'hsl(var(--card))', boxShadow: '4px 0 6px -2px rgba(0,0,0,0.4)' }}>
                   Line Item
                 </th>
-                {/* Expand history button column */}
-                {hasLockedHistorical && !showFullHistory && (
-                  <th className="text-center px-1 py-2.5 min-w-[48px] max-w-[48px]">
-                    <button
-                      onClick={() => isPro ? setShowFullHistory(true) : promptUpgrade('financialProjections')}
-                      className="flex flex-col items-center gap-1 mx-auto group"
-                      title={isPro ? 'Show full history' : `Unlock ${lockedHistoricalCount}+ years`}
-                    >
-                      <div className="h-6 w-6 rounded-full bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center shadow-sm">
-                        {isPro ? <ChevronLeft className="h-3 w-3 text-white" /> : <Crown className="h-3 w-3 text-white" />}
-                      </div>
-                      <span className="text-[9px] text-muted-foreground leading-tight">
-                        +{lockedHistoricalCount}yr
-                      </span>
-                    </button>
-                  </th>
-                )}
-                {hasLockedHistorical && showFullHistory && (
-                  <th className="text-center px-1 py-2.5 min-w-[48px] max-w-[48px]">
-                    <button
-                      onClick={() => setShowFullHistory(false)}
-                      className="flex flex-col items-center gap-1 mx-auto"
-                      title="Collapse history"
-                    >
-                      <div className="h-6 w-6 rounded-full bg-muted flex items-center justify-center">
-                        <ChevronRight className="h-3 w-3 text-muted-foreground" />
-                      </div>
-                    </button>
-                  </th>
-                )}
+                
                 {displayYears.map((yearData: any, idx: number) => {
                   const yearLabel = yearData.date?.split('-')[0] || yearData.year;
                   const isLocked = yearData.isLocked;
@@ -342,7 +337,7 @@ export function BalanceSheetTable({ ticker, companyName }: BalanceSheetTableProp
                           </div>
                         </td>
                         
-                        {hasLockedHistorical && <td className="min-w-[48px] max-w-[48px]"></td>}
+                        
                         {displayYears.map((yearData: any, idx: number) => {
                           const value = yearData[row.key];
                           const isLocked = yearData.isLocked;
@@ -408,7 +403,7 @@ export function BalanceSheetTable({ ticker, companyName }: BalanceSheetTableProp
                             </div>
                           </td>
                           
-                          {hasLockedHistorical && <td className="min-w-[48px] max-w-[48px] bg-muted/20"></td>}
+                          
                           {displayYears.map((yearData: any, idx: number) => {
                             const prev = idx > 0 ? displayYears[idx - 1] : null;
                             const computedValue = metric.compute(yearData, prev);
