@@ -10,11 +10,14 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Scale, RefreshCw, HelpCircle } from 'lucide-react';
+import { Scale, RefreshCw, HelpCircle, Crown, Lock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { FinancialDataCell } from './FinancialDataCell';
+import { useUsage } from '@/contexts/UsageContext';
+import { useUpgrade } from '@/hooks/useUpgrade';
+import { UpgradeModal } from '@/components/premium/UpgradeModal';
 
 interface BalanceSheetTableProps {
   ticker: string;
@@ -142,9 +145,14 @@ function useBalanceSheetData(ticker: string) {
 
 export function BalanceSheetTable({ ticker, companyName }: BalanceSheetTableProps) {
   const { data, isLoading, error, refetch, isRefetching } = useBalanceSheetData(ticker);
+  const { isPro } = useUsage();
+  const { promptUpgrade, showUpgradeDialog, setShowUpgradeDialog, upgradeFeature } = useUpgrade();
 
   const balanceSheets = data?.balanceSheets || [];
   const source = data?.source || 'SEC XBRL';
+  
+  // Free users: 4 most recent years. Pro: all data.
+  const FREE_HISTORICAL_LIMIT = 4;
 
   if (isLoading) {
     return (
@@ -187,7 +195,16 @@ export function BalanceSheetTable({ ticker, companyName }: BalanceSheetTableProp
   }
 
   // Reverse to show oldest first, then newest
-  const displayYears = balanceSheets.slice().reverse();
+  const allYears = balanceSheets.slice().reverse();
+  const totalYears = allYears.length;
+  const lockedHistoricalCount = isPro ? 0 : Math.max(0, totalYears - FREE_HISTORICAL_LIMIT);
+  const hasLockedHistorical = lockedHistoricalCount > 0;
+  
+  const displayYears = allYears.map((item: any, idx: number) => ({
+    ...item,
+    isLocked: !isPro && idx < lockedHistoricalCount,
+    isLockedHistorical: !isPro && idx < lockedHistoricalCount,
+  }));
 
   return (
     <Card className="bg-card/50 border-border/50">
@@ -217,7 +234,8 @@ export function BalanceSheetTable({ ticker, companyName }: BalanceSheetTableProp
       </CardHeader>
       
       <CardContent className="p-0">
-        <div className="overflow-x-auto relative">
+        <div className="overflow-x-auto">
+          <div className="relative inline-block min-w-full">
            <table className="w-full text-sm border-collapse">
             <thead>
               <tr className="border-b border-border/50">
@@ -226,9 +244,20 @@ export function BalanceSheetTable({ ticker, companyName }: BalanceSheetTableProp
                 </th>
                 {displayYears.map((yearData: any, idx: number) => {
                   const yearLabel = yearData.date?.split('-')[0] || yearData.year;
+                  const isLocked = yearData.isLocked;
                   return (
-                    <th key={idx} className="text-right px-3 py-2.5 font-medium text-xs whitespace-nowrap min-w-[120px]">
-                      {yearLabel}
+                    <th 
+                      key={idx} 
+                      className={cn(
+                        "text-right px-3 py-2.5 font-medium text-xs whitespace-nowrap min-w-[120px]",
+                        isLocked && "cursor-pointer"
+                      )}
+                      onClick={isLocked ? () => promptUpgrade('financialProjections') : undefined}
+                    >
+                      <span className={cn(isLocked && "opacity-50 flex items-center justify-end gap-1")}>
+                        {isLocked && <Lock className="h-2.5 w-2.5 inline" />}
+                        {yearLabel}
+                      </span>
                     </th>
                   );
                 })}
@@ -281,8 +310,23 @@ export function BalanceSheetTable({ ticker, companyName }: BalanceSheetTableProp
                         
                         {displayYears.map((yearData: any, idx: number) => {
                           const value = yearData[row.key];
-                          const prevValue = idx > 0 ? displayYears[idx - 1]?.[row.key] : null;
-                          const yoyChange = prevValue && value ? ((value - prevValue) / Math.abs(prevValue)) * 100 : undefined;
+                          const isLocked = yearData.isLocked;
+                          
+                          if (isLocked) {
+                            return (
+                              <td 
+                                key={idx}
+                                className="p-0 min-w-[120px] cursor-pointer whitespace-nowrap"
+                                onClick={() => promptUpgrade('financialProjections')}
+                              >
+                                <div className="px-3 py-2.5 text-right select-none">
+                                  <span className="text-xs tabular-nums blur-[6px] opacity-50 pointer-events-none">
+                                    {formatValue(value)}
+                                  </span>
+                                </div>
+                              </td>
+                            );
+                          }
                           
                           return (
                             <td
@@ -333,19 +377,24 @@ export function BalanceSheetTable({ ticker, companyName }: BalanceSheetTableProp
                             const prev = idx > 0 ? displayYears[idx - 1] : null;
                             const computedValue = metric.compute(yearData, prev);
                             const formattedValue = metric.format(computedValue);
+                            const isLocked = yearData.isLocked;
                             
                             return (
                               <td 
                                 key={idx}
                                 className={cn(
                                   "px-3 py-1.5 text-right text-[10px] tabular-nums min-w-[120px] whitespace-nowrap",
-                                  metric.colorize && computedValue != null && (
+                                  isLocked && "cursor-pointer",
+                                  !isLocked && metric.colorize && computedValue != null && (
                                     computedValue >= 0 ? "text-emerald-500" : "text-destructive"
                                   ),
-                                  !metric.colorize && "text-muted-foreground"
+                                  !isLocked && !metric.colorize && "text-muted-foreground"
                                 )}
+                                onClick={isLocked ? () => promptUpgrade('financialProjections') : undefined}
                               >
-                                {formattedValue}
+                                {isLocked ? (
+                                  <span className="blur-[6px] opacity-50 pointer-events-none">{formattedValue}</span>
+                                ) : formattedValue}
                               </td>
                             );
                           })}
@@ -357,6 +406,33 @@ export function BalanceSheetTable({ ticker, companyName }: BalanceSheetTableProp
               })}
             </tbody>
           </table>
+          
+          {/* Pro upgrade overlay on locked historical columns */}
+          {hasLockedHistorical && (
+            <div 
+              className="absolute left-[180px] top-0 bottom-0 flex items-center justify-center z-10 cursor-pointer"
+              style={{ width: `${lockedHistoricalCount * 120}px` }}
+              onClick={() => promptUpgrade('financialProjections')}
+            >
+              <div className="absolute inset-0 bg-gradient-to-l from-background/40 via-background/80 to-background/95" />
+              <div className="relative flex flex-col items-center gap-2 p-4 text-center">
+                <div className="h-10 w-10 rounded-full bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center shadow-lg shadow-orange-500/30">
+                  <Crown className="h-5 w-5 text-white" />
+                </div>
+                <p className="text-xs font-semibold text-foreground">Full History</p>
+                <p className="text-[10px] text-muted-foreground max-w-[120px]">
+                  Unlock {lockedHistoricalCount}+ years of historical data
+                </p>
+                <Button
+                  size="sm"
+                  className="h-7 text-[10px] px-3 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-semibold shadow-lg shadow-orange-500/20"
+                >
+                  Upgrade to Pro
+                </Button>
+              </div>
+            </div>
+          )}
+          </div>
         </div>
         
         <div className="px-4 py-2 border-t border-border/30">
@@ -365,6 +441,12 @@ export function BalanceSheetTable({ ticker, companyName }: BalanceSheetTableProp
           </span>
         </div>
       </CardContent>
+      
+      <UpgradeModal
+        isOpen={showUpgradeDialog}
+        feature={upgradeFeature}
+        onClose={() => setShowUpgradeDialog(false)}
+      />
     </Card>
   );
 }
