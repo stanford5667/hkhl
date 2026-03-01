@@ -13,9 +13,9 @@ export function useRequireAuth() {
   const { user } = useAuth();
   const [showAuthDialog, setShowAuthDialog] = useState(false);
 
-  const requireAuth = useCallback((action: () => void, actionType?: string) => {
+  const requireAuth = useCallback(<T = void>(action: () => T, actionType?: string): T | undefined => {
     if (user) {
-      action();
+      return action();
     } else {
       // Store the action type so we can resume after auth
       if (actionType) {
