@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { useEarningsCalendar, useFetchEarningsData, useGeneratePredictions, useAdjacentEarningsDates } from '@/hooks/useEarningsCalendar';
+import { useEarningsCalendar, useFetchEarningsData, useGeneratePredictions, useAdjacentEarningsDates, usePrefetchAdjacentDates } from '@/hooks/useEarningsCalendar';
 import { EarningsCalendarFilters } from '@/types/earnings';
 import { EarningsTable } from './EarningsTable';
 import { parseDateOnly } from '@/lib/date';
@@ -39,6 +39,17 @@ export const EarningsCalendar = () => {
   const fetchEarnings = useFetchEarningsData();
   const generatePredictions = useGeneratePredictions();
   const { data: adjacentDates } = useAdjacentEarningsDates(selectedDate);
+  const prefetchAdjacent = usePrefetchAdjacentDates();
+
+  // Prefetch adjacent dates ahead of time so next/prev clicks are instant
+  useEffect(() => {
+    if (adjacentDates?.nextDate) {
+      prefetchAdjacent(adjacentDates.nextDate);
+    }
+    if (adjacentDates?.prevDate) {
+      prefetchAdjacent(adjacentDates.prevDate);
+    }
+  }, [adjacentDates]);
 
   // Reset to page 1 when date changes
   useEffect(() => {
