@@ -22,7 +22,7 @@ export function BacktestPromoToast() {
 
   const handleCTA = () => {
     dismiss();
-    navigate("/quant-lab?tab=backtest");
+    navigate("/backtester");
   };
 
   if (!visible) return null;
