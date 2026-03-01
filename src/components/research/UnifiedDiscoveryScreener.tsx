@@ -412,6 +412,50 @@ const SORTABLE_COLUMNS: SortableColumn[] = [
   { key: 'volume', label: 'Volume', filterKey: 'avgVolume', getValue: (s) => s.volume, format: (v) => v != null ? formatVolume(v) : '—', width: 'w-14' },
 ];
 
+function StockRowMobile({ stock, onClick, showInsights, insight }: { stock: ScreenerResult; onClick: () => void; showInsights: boolean; insight?: StockInsight }) {
+  const isPositive = stock.changePercent >= 0;
+  return (
+    <button onClick={onClick} className="w-full p-3 text-left border-b border-border last:border-b-0 hover:bg-muted/50 transition-colors active:scale-[0.99]">
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2 mb-0.5">
+            <span className="text-sm font-semibold text-primary">{stock.symbol}</span>
+            {stock.marketCap && (
+              <span className="text-[10px] text-muted-foreground tabular-nums">{formatMarketCap(stock.marketCap)}</span>
+            )}
+          </div>
+          <p className="text-xs text-muted-foreground truncate">{stock.name}</p>
+        </div>
+        <div className="text-right shrink-0">
+          <span className="text-sm font-medium text-foreground tabular-nums block">${stock.price.toFixed(2)}</span>
+          <span className={cn(
+            "text-xs font-semibold tabular-nums",
+            isPositive ? 'text-emerald-500' : 'text-destructive'
+          )}>
+            {isPositive ? '+' : ''}{stock.changePercent.toFixed(2)}%
+          </span>
+        </div>
+      </div>
+      {/* Extra metrics row */}
+      {(stock.volume || stock.pe) && (
+        <div className="flex items-center gap-3 mt-1.5 text-[10px] text-muted-foreground">
+          {stock.volume && <span>Vol: {formatVolume(stock.volume)}</span>}
+          {stock.pe != null && <span>P/E: {stock.pe.toFixed(1)}</span>}
+          {stock.beta != null && <span>β: {stock.beta.toFixed(2)}</span>}
+        </div>
+      )}
+      {showInsights && insight && (
+        <div className="mt-2 pt-2 border-t border-border/30">
+          <p className="text-[10px] text-muted-foreground line-clamp-2">
+            <Sparkles className="h-3 w-3 text-amber-500 inline mr-1" />
+            {getInsightSummary(insight)}
+          </p>
+        </div>
+      )}
+    </button>
+  );
+}
+
 function StockRow({ 
   stock, 
   onClick,
@@ -493,10 +537,11 @@ function StockRow({
                 </span>
               </div>
             </TooltipTrigger>
-            <TooltipContent side="left" className="max-w-xs p-3">
-              <div className="space-y-2">
-                <p className="text-xs font-medium">{insight.headline}</p>
-                {insight.matchReasons.length > 0 && (
+            <TooltipContent side="left" className="max-w-xs">
+              <div className="space-y-1.5">
+                <p className="text-xs font-medium">{stock.symbol} — AI Insight</p>
+                <p className="text-[11px] text-muted-foreground">{insight.headline}</p>
+                {insight.matchReasons && insight.matchReasons.length > 0 && (
                   <div className="flex flex-wrap gap-1">
                     {insight.matchReasons.map((reason, i) => (
                       <Badge key={i} variant="secondary" className="text-[9px] h-4">
@@ -609,8 +654,8 @@ function StockList({
 
   return (
     <div>
-      {/* Header with sortable columns */}
-      <div className="flex items-center gap-2 px-3 py-2 bg-muted/30 border-b border-border">
+      {/* Desktop: Header with sortable columns */}
+      <div className="hidden sm:flex items-center gap-2 px-3 py-2 bg-muted/30 border-b border-border">
         {visibleColumns.map(col => {
           const isSorted = sortConfig.column === col.key;
           const canSort = col.key !== 'symbol' && col.key !== 'name';
@@ -639,7 +684,6 @@ function StockList({
             </button>
           );
         })}
-        {/* Insight column header */}
         {showInsights && (
           <div className="w-32 flex-shrink-0 flex items-center gap-1 text-[10px] font-medium text-amber-500">
             <Sparkles className="h-3 w-3" />
@@ -651,25 +695,54 @@ function StockList({
         )}
       </div>
       
-      {/* Stock rows */}
+      {/* Mobile: sort control */}
+      <div className="sm:hidden flex items-center justify-between px-3 py-2 bg-muted/30 border-b border-border">
+        <span className="text-[10px] text-muted-foreground">{totalCount.toLocaleString()} results</span>
+        <Select value={sortConfig.column} onValueChange={onSortChange}>
+          <SelectTrigger className="h-6 text-[10px] w-auto gap-1 border-none bg-transparent px-1">
+            <SelectValue placeholder="Sort by" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="change" className="text-xs">% Change</SelectItem>
+            <SelectItem value="price" className="text-xs">Price</SelectItem>
+            <SelectItem value="marketCap" className="text-xs">Market Cap</SelectItem>
+            <SelectItem value="volume" className="text-xs">Volume</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+      
+      {/* Stock rows — cards on mobile, table rows on desktop */}
       <div className="max-h-[500px] overflow-y-auto">
         {sortedStocks.map(stock => (
-          <StockRow 
-            key={stock.symbol} 
-            stock={stock} 
-            onClick={() => onStockClick(stock.symbol)}
-            visibleColumns={visibleColumns}
-            showInsights={showInsights}
-            insight={insights.get(stock.symbol)}
-          />
+          <div key={stock.symbol}>
+            {/* Mobile card */}
+            <div className="sm:hidden">
+              <StockRowMobile 
+                stock={stock} 
+                onClick={() => onStockClick(stock.symbol)}
+                showInsights={showInsights}
+                insight={insights.get(stock.symbol)}
+              />
+            </div>
+            {/* Desktop row */}
+            <div className="hidden sm:block">
+              <StockRow 
+                stock={stock} 
+                onClick={() => onStockClick(stock.symbol)}
+                visibleColumns={visibleColumns}
+                showInsights={showInsights}
+                insight={insights.get(stock.symbol)}
+              />
+            </div>
+          </div>
         ))}
       </div>
 
       {/* Pagination */}
       {totalCount > ITEMS_PER_PAGE && (
         <div className="flex items-center justify-between px-3 py-3 border-t border-border bg-muted/20">
-          <div className="text-xs text-muted-foreground">
-            Showing {startItem.toLocaleString()}-{endItem.toLocaleString()} of {totalCount.toLocaleString()} results
+          <div className="text-[10px] sm:text-xs text-muted-foreground">
+            {startItem}-{endItem} of {totalCount.toLocaleString()}
           </div>
           <div className="flex items-center gap-1">
             <Button
@@ -682,18 +755,18 @@ function StockList({
               <ChevronLeft className="h-4 w-4" />
             </Button>
             
-            {/* Page numbers */}
+            {/* Page numbers — show fewer on mobile */}
             <div className="flex items-center gap-0.5">
-              {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+              {Array.from({ length: Math.min(3, totalPages) }, (_, i) => {
                 let pageNum: number;
-                if (totalPages <= 5) {
+                if (totalPages <= 3) {
                   pageNum = i;
-                } else if (currentPage < 3) {
+                } else if (currentPage < 2) {
                   pageNum = i;
-                } else if (currentPage > totalPages - 4) {
-                  pageNum = totalPages - 5 + i;
+                } else if (currentPage > totalPages - 3) {
+                  pageNum = totalPages - 3 + i;
                 } else {
-                  pageNum = currentPage - 2 + i;
+                  pageNum = currentPage - 1 + i;
                 }
                 
                 return (
@@ -712,7 +785,7 @@ function StockList({
                 );
               })}
               
-              {totalPages > 5 && currentPage < totalPages - 3 && (
+              {totalPages > 3 && currentPage < totalPages - 2 && (
                 <>
                   <span className="text-xs text-muted-foreground px-1">...</span>
                   <Button
@@ -1201,8 +1274,8 @@ export function UnifiedDiscoveryScreener() {
   }, [showInsights, stocks, filters]);
 
   return (
-    <Card className="bg-card border-border">
-      <CardHeader className="pb-3">
+    <Card className="bg-card border-border overflow-hidden">
+      <CardHeader className="pb-3 px-3 sm:px-6">
         {/* Screener Header */}
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
@@ -1210,8 +1283,8 @@ export function UnifiedDiscoveryScreener() {
               <SlidersHorizontal className="h-4 w-4 text-primary" />
             </div>
             <div>
-              <CardTitle className="text-base font-semibold">Stock Screener</CardTitle>
-              <p className="text-[10px] text-muted-foreground">Filter stocks by fundamentals and technicals</p>
+              <CardTitle className="text-sm sm:text-base font-semibold">Stock Screener</CardTitle>
+              <p className="text-[10px] text-muted-foreground hidden sm:block">Filter stocks by fundamentals and technicals</p>
             </div>
           </div>
         </div>
@@ -1233,53 +1306,54 @@ export function UnifiedDiscoveryScreener() {
           ))}
         </div>
 
-        {/* Tab Navigation */}
-        <div className="flex gap-1 pt-3 flex-wrap items-center">
-          {SCREENER_TABS.map(tab => {
-            const Icon = tab.icon;
-            const isActive = activeTab === tab.id;
-            return (
-              <Button
-                key={tab.id}
-                variant={isActive ? 'default' : 'ghost'}
-                size="sm"
-                className={cn(
-                  'h-8 text-xs gap-1.5 transition-all',
-                  isActive 
-                    ? 'bg-primary text-primary-foreground shadow-sm' 
-                    : 'text-muted-foreground hover:text-foreground hover:bg-muted'
-                )}
-                onClick={() => handleTabChange(tab.id)}
-              >
-                <Icon className="h-3.5 w-3.5" />
-                {tab.label}
-              </Button>
-            );
-          })}
-          
-          {/* More Filters button inline with tabs */}
-          <Button 
-            variant={showFilters ? 'default' : 'outline'}
-            size="sm" 
-            className={cn(
-              "h-8 text-xs gap-1.5 ml-auto transition-all",
-              !showFilters && "border-primary/50 text-primary hover:bg-primary/10 hover:text-primary",
-              showFilters && "bg-primary text-primary-foreground shadow-sm"
-            )}
-            onClick={() => setShowFilters(!showFilters)}
-          >
-            <SlidersHorizontal className="h-3.5 w-3.5" />
-            {showFilters ? 'Hide Advanced' : 'Advanced Filters'}
-            {!showFilters && (
-              <span className="text-[10px] opacity-70">({FILTER_CATEGORIES.filter(c => !c.isPrimary).length} categories)</span>
-            )}
-            {hasActiveFilters && !showFilters && activeFilterCount > 0 && (
-              <Badge variant="secondary" className="h-4 min-w-4 p-0 text-[9px] flex items-center justify-center">
-                {activeFilterCount}
-              </Badge>
-            )}
-            {showFilters ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
-          </Button>
+        {/* Tab Navigation — horizontal scroll on mobile */}
+        <div className="pt-3 -mx-3 sm:mx-0 px-3 sm:px-0">
+          <div className="flex gap-1 items-center overflow-x-auto scrollbar-hide pb-1">
+            {SCREENER_TABS.map(tab => {
+              const Icon = tab.icon;
+              const isActive = activeTab === tab.id;
+              return (
+                <Button
+                  key={tab.id}
+                  variant={isActive ? 'default' : 'ghost'}
+                  size="sm"
+                  className={cn(
+                    'h-8 text-xs gap-1 sm:gap-1.5 transition-all shrink-0 px-2.5 sm:px-3',
+                    isActive 
+                      ? 'bg-primary text-primary-foreground shadow-sm' 
+                      : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+                  )}
+                  onClick={() => handleTabChange(tab.id)}
+                >
+                  <Icon className="h-3.5 w-3.5" />
+                  <span className="hidden xs:inline sm:inline">{tab.label}</span>
+                  <span className="xs:hidden sm:hidden">{tab.label.split(' ')[0]}</span>
+                </Button>
+              );
+            })}
+            
+            {/* More Filters button */}
+            <Button 
+              variant={showFilters ? 'default' : 'outline'}
+              size="sm" 
+              className={cn(
+                "h-8 text-xs gap-1 sm:gap-1.5 ml-auto transition-all shrink-0",
+                !showFilters && "border-primary/50 text-primary hover:bg-primary/10 hover:text-primary",
+                showFilters && "bg-primary text-primary-foreground shadow-sm"
+              )}
+              onClick={() => setShowFilters(!showFilters)}
+            >
+              <SlidersHorizontal className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">{showFilters ? 'Hide Advanced' : 'Advanced Filters'}</span>
+              <span className="sm:hidden">{showFilters ? 'Hide' : 'Filters'}</span>
+              {hasActiveFilters && !showFilters && activeFilterCount > 0 && (
+                <Badge variant="secondary" className="h-4 min-w-4 p-0 text-[9px] flex items-center justify-center">
+                  {activeFilterCount}
+                </Badge>
+              )}
+              {showFilters ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+            </Button>
+          </div>
         </div>
 
         {/* Extended Filter Panel */}
@@ -1330,11 +1404,12 @@ export function UnifiedDiscoveryScreener() {
               className="text-xs font-medium cursor-pointer flex items-center gap-1.5"
             >
               <Sparkles className="h-3.5 w-3.5 text-amber-500" />
-              Show AI Insights
+              <span className="hidden sm:inline">Show AI Insights</span>
+              <span className="sm:hidden">AI Insights</span>
             </Label>
           </div>
           {showInsights && (
-            <span className="text-[10px] text-muted-foreground">
+            <span className="text-[10px] text-muted-foreground hidden sm:inline">
               Explains why each stock matches your criteria
             </span>
           )}
