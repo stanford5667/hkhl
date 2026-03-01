@@ -69,28 +69,6 @@ interface DerivedMetricRow {
 
 const DERIVED_METRICS: DerivedMetricRow[] = [
   {
-    label: 'OCF Growth %',
-    parentKey: 'operatingCashFlow',
-    compute: (current, prev) => {
-      if (!prev?.operatingCashFlow || !current?.operatingCashFlow) return null;
-      return ((current.operatingCashFlow - prev.operatingCashFlow) / Math.abs(prev.operatingCashFlow)) * 100;
-    },
-    format: (v) => v != null ? `${v >= 0 ? '+' : ''}${v.toFixed(1)}%` : '—',
-    tooltip: 'Year-over-year operating cash flow growth',
-    colorize: true,
-  },
-  {
-    label: 'FCF Growth %',
-    parentKey: 'freeCashFlow',
-    compute: (current, prev) => {
-      if (!prev?.freeCashFlow || !current?.freeCashFlow) return null;
-      return ((current.freeCashFlow - prev.freeCashFlow) / Math.abs(prev.freeCashFlow)) * 100;
-    },
-    format: (v) => v != null ? `${v >= 0 ? '+' : ''}${v.toFixed(1)}%` : '—',
-    tooltip: 'Year-over-year free cash flow growth',
-    colorize: true,
-  },
-  {
     label: 'FCF Margin %',
     parentKey: 'freeCashFlow',
     compute: (current) => {
