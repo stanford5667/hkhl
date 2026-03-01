@@ -69,6 +69,17 @@ interface DerivedMetricRow {
 
 const DERIVED_METRICS: DerivedMetricRow[] = [
   {
+    label: 'Assets Growth %',
+    parentKey: 'totalAssets',
+    compute: (current, prev) => {
+      if (!prev?.totalAssets || !current?.totalAssets) return null;
+      return ((current.totalAssets - prev.totalAssets) / Math.abs(prev.totalAssets)) * 100;
+    },
+    format: (v) => v != null ? `${v >= 0 ? '+' : ''}${v.toFixed(1)}%` : '—',
+    tooltip: 'Year-over-year total assets growth',
+    colorize: true,
+  },
+  {
     label: 'Current Ratio',
     parentKey: 'currentAssets',
     compute: (current) => {
@@ -87,6 +98,17 @@ const DERIVED_METRICS: DerivedMetricRow[] = [
     },
     format: (v) => v != null ? `${v.toFixed(2)}x` : '—',
     tooltip: 'Total Liabilities / Equity. Measures financial leverage.',
+  },
+  {
+    label: 'Equity Growth %',
+    parentKey: 'totalEquity',
+    compute: (current, prev) => {
+      if (!prev?.totalEquity || !current?.totalEquity) return null;
+      return ((current.totalEquity - prev.totalEquity) / Math.abs(prev.totalEquity)) * 100;
+    },
+    format: (v) => v != null ? `${v >= 0 ? '+' : ''}${v.toFixed(1)}%` : '—',
+    tooltip: 'Year-over-year stockholders equity change',
+    colorize: true,
   },
 ];
 
@@ -278,7 +300,6 @@ export function BalanceSheetTable({ ticker, companyName }: BalanceSheetTableProp
                                 source="SEC"
                                 sourceDetail={`10-K Filing ${yearData.date?.split('-')[0] || yearData.year}`}
                                 isHighlight={row.isHighlight}
-                                yoyChange={yoyChange}
                               />
                             </td>
                           );

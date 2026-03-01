@@ -102,6 +102,17 @@ interface DerivedMetricRow {
 
 const DERIVED_METRICS: DerivedMetricRow[] = [
   {
+    label: 'Revenue Growth %',
+    parentKey: 'revenue',
+    compute: (current, prev) => {
+      if (!prev?.revenue || !current?.revenue) return null;
+      return ((current.revenue - prev.revenue) / Math.abs(prev.revenue)) * 100;
+    },
+    format: (v) => v != null ? `${v >= 0 ? '+' : ''}${v.toFixed(1)}%` : '—',
+    tooltip: 'Year-over-year revenue growth rate',
+    colorize: true,
+  },
+  {
     label: 'Gross Margin %',
     parentKey: 'grossProfit',
     compute: (current) => {
@@ -120,6 +131,17 @@ const DERIVED_METRICS: DerivedMetricRow[] = [
     },
     format: (v) => v != null ? `${v.toFixed(1)}%` : '—',
     tooltip: 'Operating Income as a percentage of Revenue',
+  },
+  {
+    label: 'Net Income Growth %',
+    parentKey: 'netIncome',
+    compute: (current, prev) => {
+      if (!prev?.netIncome || !current?.netIncome) return null;
+      return ((current.netIncome - prev.netIncome) / Math.abs(prev.netIncome)) * 100;
+    },
+    format: (v) => v != null ? `${v >= 0 ? '+' : ''}${v.toFixed(1)}%` : '—',
+    tooltip: 'Year-over-year net income change',
+    colorize: true,
   },
   {
     label: 'Net Margin %',
@@ -541,7 +563,6 @@ export function IncomeStatementTable({ ticker, companyName }: IncomeStatementTab
                                 }
                                 isEstimate={yearData.isEstimate}
                                 isHighlight={row.isHighlight}
-                                yoyChange={yoyChange}
                               />
                             </td>
                           );

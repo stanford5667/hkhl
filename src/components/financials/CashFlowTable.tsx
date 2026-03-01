@@ -69,12 +69,32 @@ interface DerivedMetricRow {
 
 const DERIVED_METRICS: DerivedMetricRow[] = [
   {
+    label: 'OCF Growth %',
+    parentKey: 'operatingCashFlow',
+    compute: (current, prev) => {
+      if (!prev?.operatingCashFlow || !current?.operatingCashFlow) return null;
+      return ((current.operatingCashFlow - prev.operatingCashFlow) / Math.abs(prev.operatingCashFlow)) * 100;
+    },
+    format: (v) => v != null ? `${v >= 0 ? '+' : ''}${v.toFixed(1)}%` : '—',
+    tooltip: 'Year-over-year operating cash flow growth',
+    colorize: true,
+  },
+  {
+    label: 'FCF Growth %',
+    parentKey: 'freeCashFlow',
+    compute: (current, prev) => {
+      if (!prev?.freeCashFlow || !current?.freeCashFlow) return null;
+      return ((current.freeCashFlow - prev.freeCashFlow) / Math.abs(prev.freeCashFlow)) * 100;
+    },
+    format: (v) => v != null ? `${v >= 0 ? '+' : ''}${v.toFixed(1)}%` : '—',
+    tooltip: 'Year-over-year free cash flow growth',
+    colorize: true,
+  },
+  {
     label: 'FCF Margin %',
     parentKey: 'freeCashFlow',
     compute: (current) => {
-      // Need revenue for this - approximation from net income margin
       if (!current?.freeCashFlow || !current?.netIncome) return null;
-      // FCF as % of net income as proxy
       return (current.freeCashFlow / Math.abs(current.netIncome)) * 100;
     },
     format: (v) => v != null ? `${v.toFixed(0)}% of NI` : '—',
@@ -270,7 +290,6 @@ export function CashFlowTable({ ticker, companyName }: CashFlowTableProps) {
                                 source="SEC"
                                 sourceDetail={`10-K Filing ${yearData.date?.split('-')[0] || yearData.year}`}
                                 isHighlight={row.isHighlight}
-                                yoyChange={yoyChange}
                                 className={row.key === 'freeCashFlow' && value != null && value > 0 ? "text-emerald-500" : undefined}
                               />
                             </td>

@@ -134,33 +134,17 @@ export function FinancialDataCell({
       <HoverCardTrigger asChild>
         <button
           className={cn(
-            "text-right px-3 py-2 w-full",
+            "text-right px-3 py-2.5 text-xs tabular-nums whitespace-nowrap w-full",
             "hover:bg-accent/50 transition-colors cursor-pointer",
             "focus:outline-none focus:ring-1 focus:ring-primary/50",
             isEstimate && "bg-primary/5",
+            isHighlight && isEstimate && "text-primary font-semibold",
+            isHighlight && !isEstimate && "font-semibold",
             className
           )}
           onClick={() => setIsOpen(!isOpen)}
         >
-          <div className="flex flex-col items-end gap-0.5">
-            <span className={cn(
-              "text-xs tabular-nums whitespace-nowrap",
-              isHighlight && isEstimate && "text-primary font-semibold",
-              isHighlight && !isEstimate && "font-semibold",
-            )}>
-              {value}
-            </span>
-            <span className={cn(
-              "text-[9px] tabular-nums font-normal whitespace-nowrap h-3 leading-3",
-              yoyChange !== undefined && yoyChange !== 0
-                ? (yoyChange > 0 ? "text-emerald-500" : "text-destructive")
-                : "invisible"
-            )}>
-              {yoyChange !== undefined && yoyChange !== 0
-                ? `${yoyChange > 0 ? '+' : ''}${yoyChange.toFixed(1)}%`
-                : '\u00A0'}
-            </span>
-          </div>
+          {value}
         </button>
       </HoverCardTrigger>
       
