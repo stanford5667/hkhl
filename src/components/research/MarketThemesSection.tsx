@@ -176,10 +176,11 @@ export function MarketThemesSection() {
     setSelectedTheme(theme);
   };
 
-  const handleAddToWatchlist = () => {
-    if (!selectedTheme) return;
-    console.log('Adding tickers to watchlist:', selectedTheme.tickers.map(t => t.symbol));
+  const handleAnalyzeTheme = () => {
+    if (!selectedTheme || selectedTheme.tickers.length === 0) return;
+    const firstTicker = selectedTheme.tickers[0].symbol;
     setSelectedTheme(null);
+    navigate(`/stock/${firstTicker}`);
   };
 
   const handleTickerClick = (symbol: string) => {
@@ -414,11 +415,11 @@ export function MarketThemesSection() {
               {/* Action Button */}
               <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-background via-background to-transparent">
                 <Button 
-                  onClick={handleAddToWatchlist}
+                  onClick={handleAnalyzeTheme}
                   className="w-full bg-primary hover:bg-primary/90"
                 >
                   <Plus className="h-4 w-4 mr-2" />
-                  Trade the Theme ({selectedTheme.tickers.length} tickers)
+                  Analyze the Theme ({selectedTheme.tickers.length} tickers)
                 </Button>
               </div>
             </>
