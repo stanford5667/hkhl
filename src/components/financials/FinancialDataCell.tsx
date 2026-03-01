@@ -150,14 +150,16 @@ export function FinancialDataCell({
             )}>
               {value}
             </span>
-            {yoyChange !== undefined && yoyChange !== 0 && (
-              <span className={cn(
-                "text-[9px] tabular-nums font-normal whitespace-nowrap",
-                yoyChange > 0 ? "text-emerald-500" : "text-destructive"
-              )}>
-                {yoyChange > 0 ? '+' : ''}{yoyChange.toFixed(1)}%
-              </span>
-            )}
+            <span className={cn(
+              "text-[9px] tabular-nums font-normal whitespace-nowrap h-3 leading-3",
+              yoyChange !== undefined && yoyChange !== 0
+                ? (yoyChange > 0 ? "text-emerald-500" : "text-destructive")
+                : "invisible"
+            )}>
+              {yoyChange !== undefined && yoyChange !== 0
+                ? `${yoyChange > 0 ? '+' : ''}${yoyChange.toFixed(1)}%`
+                : '\u00A0'}
+            </span>
           </div>
         </button>
       </HoverCardTrigger>
