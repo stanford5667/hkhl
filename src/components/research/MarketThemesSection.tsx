@@ -177,10 +177,10 @@ export function MarketThemesSection() {
   };
 
   const handleAnalyzeTheme = () => {
-    if (!selectedTheme || selectedTheme.tickers.length === 0) return;
-    const firstTicker = selectedTheme.tickers[0].symbol;
+    if (!selectedTheme) return;
+    const themeData = selectedTheme;
     setSelectedTheme(null);
-    navigate(`/stock/${firstTicker}`);
+    navigate('/theme-analysis', { state: { theme: themeData } });
   };
 
   const handleTickerClick = (symbol: string) => {
@@ -418,7 +418,7 @@ export function MarketThemesSection() {
                   onClick={handleAnalyzeTheme}
                   className="w-full bg-primary hover:bg-primary/90"
                 >
-                  <Plus className="h-4 w-4 mr-2" />
+                  <Sparkles className="h-4 w-4 mr-2" />
                   Analyze the Theme ({selectedTheme.tickers.length} tickers)
                 </Button>
               </div>
