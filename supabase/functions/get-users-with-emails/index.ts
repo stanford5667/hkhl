@@ -52,15 +52,17 @@ Deno.serve(async (req) => {
       auth: { autoRefreshToken: false, persistSession: false },
     });
 
-    // Fetch auth users and profile data in parallel
-    const [authResult, profilesResult, activitiesResult] = await Promise.all([
+    // Fetch auth users, profiles, activities, and sessions in parallel
+    const [authResult, profilesResult, activitiesResult, sessionsResult] = await Promise.all([
       serviceClient.auth.admin.listUsers(),
       serviceClient.from('profiles').select('user_id, updated_at'),
-      // Get all activity timestamps for the last 30 days to compute days_active
       serviceClient
         .from('activities')
         .select('user_id, created_at')
         .gte('created_at', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()),
+      serviceClient
+        .from('user_sessions')
+        .select('user_id, started_at, last_heartbeat_at, duration_seconds'),
     ]);
 
     if (authResult.error) {
@@ -74,6 +76,7 @@ Deno.serve(async (req) => {
     const authUsers = authResult.data.users;
     const profiles = profilesResult.data || [];
     const recentActivities = activitiesResult.data || [];
+    const sessions = sessionsResult.data || [];
 
     // Build profile updated_at map
     const profileUpdatedMap: Record<string, string> = {};
@@ -81,28 +84,34 @@ Deno.serve(async (req) => {
       profileUpdatedMap[p.user_id] = p.updated_at;
     }
 
-    // Build activity stats: group by user, compute days_active in last 30d and last_activity
+    // Build activity stats
     const activityByUser: Record<string, string[]> = {};
     for (const a of recentActivities) {
       if (!activityByUser[a.user_id]) activityByUser[a.user_id] = [];
       activityByUser[a.user_id].push(a.created_at);
     }
 
-    // For each user, compute last_active and days_active_30d
-    // last_active = MAX of (auth.last_sign_in_at, profiles.updated_at, latest activity)
-    // days_active_30d = unique dates from activities in last 30 days
-    //   (we also count last_sign_in_at date and profile updated_at date if in range)
-    const emailMap: Record<string, string> = {};
-    const lastSignInMap: Record<string, string | null> = {};
-    const activityStatsMap: Record<string, { last_active: string | null; days_active_30d: number }> = {};
+    // Build session stats per user
+    const sessionStatsByUser: Record<string, { total_seconds: number; session_count: number }> = {};
+    for (const s of sessions) {
+      if (!sessionStatsByUser[s.user_id]) {
+        sessionStatsByUser[s.user_id] = { total_seconds: 0, session_count: 0 };
+      }
+      const duration = s.duration_seconds || 0;
+      sessionStatsByUser[s.user_id].total_seconds += duration;
+      sessionStatsByUser[s.user_id].session_count += 1;
+    }
 
     const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+
+    const emailMap: Record<string, string> = {};
+    const lastSignInMap: Record<string, string | null> = {};
+    const activityStatsMap: Record<string, { last_active: string | null; days_active_30d: number; total_time_seconds: number; session_count: number; avg_session_seconds: number }> = {};
 
     for (const u of authUsers) {
       emailMap[u.id] = u.email || '';
       lastSignInMap[u.id] = u.last_sign_in_at || null;
 
-      // Collect all timestamp candidates for "last active"
       const timestamps: Date[] = [];
       if (u.last_sign_in_at) timestamps.push(new Date(u.last_sign_in_at));
       if (profileUpdatedMap[u.id]) timestamps.push(new Date(profileUpdatedMap[u.id]));
@@ -112,14 +121,12 @@ Deno.serve(async (req) => {
         timestamps.push(new Date(ts));
       }
 
-      // Determine last_active
       let lastActive: string | null = null;
       if (timestamps.length > 0) {
         timestamps.sort((a, b) => b.getTime() - a.getTime());
         lastActive = timestamps[0].toISOString();
       }
 
-      // Compute days_active_30d: unique calendar days with any activity signal in last 30 days
       const uniqueDays = new Set<string>();
       for (const t of timestamps) {
         if (t >= thirtyDaysAgo) {
@@ -127,9 +134,17 @@ Deno.serve(async (req) => {
         }
       }
 
+      const userSessionStats = sessionStatsByUser[u.id] || { total_seconds: 0, session_count: 0 };
+      const avgSession = userSessionStats.session_count > 0
+        ? Math.round(userSessionStats.total_seconds / userSessionStats.session_count)
+        : 0;
+
       activityStatsMap[u.id] = {
         last_active: lastActive,
         days_active_30d: uniqueDays.size,
+        total_time_seconds: userSessionStats.total_seconds,
+        session_count: userSessionStats.session_count,
+        avg_session_seconds: avgSession,
       };
     }
 
