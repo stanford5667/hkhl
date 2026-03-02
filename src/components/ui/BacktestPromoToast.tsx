@@ -22,7 +22,7 @@ export function BacktestPromoToast() {
 
   const handleCTA = () => {
     dismiss();
-    navigate("/backtester");
+    navigate("/stock/AAPL", { state: { activeTab: "backtest" } });
   };
 
   if (!visible) return null;
