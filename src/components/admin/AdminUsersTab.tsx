@@ -26,9 +26,12 @@ interface UserWithProfile {
   last_sign_in: string | null;
   last_active: string | null;
   days_active_30d: number;
+  total_time_seconds: number;
+  session_count: number;
+  avg_session_seconds: number;
 }
 
-type SortField = 'full_name' | 'email' | 'company' | 'subscription_status' | 'role' | 'created_at' | 'last_active' | 'days_active_30d';
+type SortField = 'full_name' | 'email' | 'company' | 'subscription_status' | 'role' | 'created_at' | 'last_active' | 'days_active_30d' | 'total_time_seconds';
 type SortDirection = 'asc' | 'desc';
 
 export function AdminUsersTab() {
@@ -63,7 +66,7 @@ export function AdminUsersTab() {
       const roles = rolesRes.data || [];
       const emailMap: Record<string, string> = emailsRes.data?.emails || {};
       const lastSignInMap: Record<string, string | null> = emailsRes.data?.lastSignIns || {};
-      const activityStats: Record<string, { last_active: string; days_active_30d: number }> = emailsRes.data?.activityStats || {};
+      const activityStats: Record<string, { last_active: string; days_active_30d: number; total_time_seconds: number; session_count: number; avg_session_seconds: number }> = emailsRes.data?.activityStats || {};
       const subs = subsRes.data || [];
 
       const usersWithRoles: UserWithProfile[] = profiles.map(profile => {
@@ -83,6 +86,9 @@ export function AdminUsersTab() {
           last_sign_in: lastSignInMap[profile.user_id] || null,
           last_active: activity?.last_active || null,
           days_active_30d: activity?.days_active_30d || 0,
+          total_time_seconds: activity?.total_time_seconds || 0,
+          session_count: activity?.session_count || 0,
+          avg_session_seconds: activity?.avg_session_seconds || 0,
         };
       });
 
@@ -185,6 +191,8 @@ export function AdminUsersTab() {
         }
         case 'days_active_30d':
           return dir * (a.days_active_30d - b.days_active_30d);
+        case 'total_time_seconds':
+          return dir * (a.total_time_seconds - b.total_time_seconds);
         default:
           return 0;
       }
@@ -205,6 +213,14 @@ export function AdminUsersTab() {
     if (diffDays < 7) return `${diffDays}d ago`;
     if (diffDays < 30) return `${Math.floor(diffDays / 7)}w ago`;
     return date.toLocaleDateString();
+  };
+
+  const formatDuration = (totalSeconds: number) => {
+    if (totalSeconds === 0) return '-';
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    if (hours > 0) return `${hours}h ${minutes}m`;
+    return `${minutes}m`;
   };
 
   if (loading) {
@@ -255,6 +271,9 @@ export function AdminUsersTab() {
                 <TableHead className="cursor-pointer select-none" onClick={() => handleSort('days_active_30d')}>
                   <span className="flex items-center">Days Active (30d)<SortIcon field="days_active_30d" /></span>
                 </TableHead>
+                <TableHead className="cursor-pointer select-none" onClick={() => handleSort('total_time_seconds')}>
+                  <span className="flex items-center">Total Time<SortIcon field="total_time_seconds" /></span>
+                </TableHead>
                 <TableHead className="cursor-pointer select-none" onClick={() => handleSort('created_at')}>
                   <span className="flex items-center">Joined<SortIcon field="created_at" /></span>
                 </TableHead>
@@ -292,6 +311,16 @@ export function AdminUsersTab() {
                     <span className={`text-sm font-medium ${user.days_active_30d >= 15 ? 'text-green-600 dark:text-green-400' : user.days_active_30d >= 5 ? 'text-amber-600 dark:text-amber-400' : 'text-muted-foreground'}`}>
                       {user.days_active_30d}
                     </span>
+                  </TableCell>
+                  <TableCell>
+                    <div className="text-sm">
+                      <span className="font-medium">{formatDuration(user.total_time_seconds)}</span>
+                      {user.session_count > 0 && (
+                        <span className="text-muted-foreground block text-xs">
+                          {user.session_count} sessions · avg {formatDuration(user.avg_session_seconds)}
+                        </span>
+                      )}
+                    </div>
                   </TableCell>
                   <TableCell>{new Date(user.created_at).toLocaleDateString()}</TableCell>
                   <TableCell className="text-right">
