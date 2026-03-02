@@ -52,8 +52,8 @@ Deno.serve(async (req) => {
       auth: { autoRefreshToken: false, persistSession: false },
     });
 
-    // Fetch auth users, profiles, activities, and sessions in parallel
-    const [authResult, profilesResult, activitiesResult, sessionsResult] = await Promise.all([
+    // Fetch auth users, profiles, activities, sessions, and page views in parallel
+    const [authResult, profilesResult, activitiesResult, sessionsResult, pageViewsResult] = await Promise.all([
       serviceClient.auth.admin.listUsers(),
       serviceClient.from('profiles').select('user_id, updated_at'),
       serviceClient
@@ -63,6 +63,11 @@ Deno.serve(async (req) => {
       serviceClient
         .from('user_sessions')
         .select('user_id, started_at, last_heartbeat_at, duration_seconds'),
+      serviceClient
+        .from('page_views')
+        .select('user_id, page_path, viewed_at')
+        .order('viewed_at', { ascending: false })
+        .limit(1000),
     ]);
 
     if (authResult.error) {
@@ -77,6 +82,14 @@ Deno.serve(async (req) => {
     const profiles = profilesResult.data || [];
     const recentActivities = activitiesResult.data || [];
     const sessions = sessionsResult.data || [];
+    const pageViews = pageViewsResult.data || [];
+
+    // Build page views by user
+    const pageViewsByUser: Record<string, { page_path: string; viewed_at: string }[]> = {};
+    for (const pv of pageViews) {
+      if (!pageViewsByUser[pv.user_id]) pageViewsByUser[pv.user_id] = [];
+      pageViewsByUser[pv.user_id].push({ page_path: pv.page_path, viewed_at: pv.viewed_at });
+    }
 
     // Build profile updated_at map
     const profileUpdatedMap: Record<string, string> = {};
@@ -152,6 +165,7 @@ Deno.serve(async (req) => {
       emails: emailMap, 
       lastSignIns: lastSignInMap,
       activityStats: activityStatsMap,
+      pageViews: pageViewsByUser,
     }), {
       status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

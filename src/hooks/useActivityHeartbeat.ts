@@ -4,13 +4,30 @@ import { supabase } from "@/integrations/supabase/client";
 /**
  * Lightweight client-side activity signal.
  *
- * Tracks sessions in `user_sessions` and touches `user_usage.updated_at`.
+ * Tracks sessions in `user_sessions`, touches `user_usage.updated_at`,
+ * and logs page views to `page_views`.
  * A session is considered "active" if the last heartbeat was within 5 minutes.
  * If longer, a new session is started.
  */
 export function useActivityHeartbeat(userId: string | null, pathname: string) {
   const lastSentAtRef = useRef<number>(0);
   const sessionIdRef = useRef<string | null>(null);
+  const lastPageRef = useRef<string | null>(null);
+
+  // Track page views on route change
+  useEffect(() => {
+    if (!userId) return;
+    if (pathname === "/auth" || pathname === "/verify-email") return;
+    if (lastPageRef.current === pathname) return;
+    lastPageRef.current = pathname;
+
+    supabase
+      .from("page_views")
+      .insert({ user_id: userId, page_path: pathname })
+      .then(({ error }) => {
+        if (error) console.warn("Page view tracking failed:", error.message);
+      });
+  }, [userId, pathname]);
 
   useEffect(() => {
     if (!userId) return;
