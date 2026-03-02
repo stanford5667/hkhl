@@ -7,7 +7,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Search, Shield, Loader2, Users, Building2, Trash2 } from 'lucide-react';
+import { Search, Shield, Loader2, Users, Building2, Trash2, Crown } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -21,6 +21,8 @@ interface UserWithProfile {
   company: string | null;
   role: AppRole | null;
   created_at: string;
+  subscription_plan: string | null;
+  subscription_status: string | null;
 }
 
 export function AdminUsersTab() {
@@ -42,18 +44,21 @@ export function AdminUsersTab() {
 
   const fetchUsers = async () => {
     try {
-      const [profilesRes, rolesRes, emailsRes] = await Promise.all([
+      const [profilesRes, rolesRes, emailsRes, subsRes] = await Promise.all([
         supabase.from('profiles').select('*').order('created_at', { ascending: false }),
         supabase.from('user_roles').select('*'),
         supabase.functions.invoke('get-users-with-emails'),
+        supabase.from('subscriptions').select('user_id, plan, status'),
       ]);
 
       const profiles = profilesRes.data || [];
       const roles = rolesRes.data || [];
       const emailMap: Record<string, string> = emailsRes.data?.emails || {};
+      const subs = subsRes.data || [];
 
       const usersWithRoles: UserWithProfile[] = profiles.map(profile => {
         const userRole = roles.find(r => r.user_id === profile.user_id);
+        const userSub = subs.find((s: any) => s.user_id === profile.user_id && s.status === 'active');
         return {
           id: profile.user_id,
           email: emailMap[profile.user_id] || null,
@@ -62,6 +67,8 @@ export function AdminUsersTab() {
           company: profile.company,
           role: userRole?.role as AppRole | null,
           created_at: profile.created_at,
+          subscription_plan: userSub?.plan || null,
+          subscription_status: userSub?.status || null,
         };
       });
 
@@ -129,10 +136,11 @@ export function AdminUsersTab() {
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card><CardContent className="pt-6"><div className="flex items-center gap-4"><div className="p-3 rounded-lg bg-primary/10"><Users className="h-5 w-5 text-primary" /></div><div><p className="text-2xl font-bold">{users.length}</p><p className="text-sm text-muted-foreground">Total Users</p></div></div></CardContent></Card>
-        <Card><CardContent className="pt-6"><div className="flex items-center gap-4"><div className="p-3 rounded-lg bg-amber-500/10"><Shield className="h-5 w-5 text-amber-500" /></div><div><p className="text-2xl font-bold">{users.filter(u => u.role === 'admin').length}</p><p className="text-sm text-muted-foreground">Admins</p></div></div></CardContent></Card>
-        <Card><CardContent className="pt-6"><div className="flex items-center gap-4"><div className="p-3 rounded-lg bg-emerald-500/10"><Building2 className="h-5 w-5 text-emerald-500" /></div><div><p className="text-2xl font-bold">{new Set(users.filter(u => u.company).map(u => u.company)).size}</p><p className="text-sm text-muted-foreground">Organizations</p></div></div></CardContent></Card>
+        <Card><CardContent className="pt-6"><div className="flex items-center gap-4"><div className="p-3 rounded-lg bg-amber-500/10"><Crown className="h-5 w-5 text-amber-500" /></div><div><p className="text-2xl font-bold">{users.filter(u => u.subscription_status === 'active').length}</p><p className="text-sm text-muted-foreground">Paid Users</p></div></div></CardContent></Card>
+        <Card><CardContent className="pt-6"><div className="flex items-center gap-4"><div className="p-3 rounded-lg bg-muted"><Users className="h-5 w-5 text-muted-foreground" /></div><div><p className="text-2xl font-bold">{users.filter(u => u.subscription_status !== 'active').length}</p><p className="text-sm text-muted-foreground">Free Users</p></div></div></CardContent></Card>
+        <Card><CardContent className="pt-6"><div className="flex items-center gap-4"><div className="p-3 rounded-lg bg-primary/10"><Shield className="h-5 w-5 text-primary" /></div><div><p className="text-2xl font-bold">{users.filter(u => u.role === 'admin').length}</p><p className="text-sm text-muted-foreground">Admins</p></div></div></CardContent></Card>
       </div>
 
       <Card>
@@ -147,13 +155,20 @@ export function AdminUsersTab() {
         </CardHeader>
         <CardContent>
           <Table>
-            <TableHeader><TableRow><TableHead>User</TableHead><TableHead>Email</TableHead><TableHead>Company</TableHead><TableHead>Role</TableHead><TableHead>Joined</TableHead><TableHead className="text-right">Actions</TableHead></TableRow></TableHeader>
+            <TableHeader><TableRow><TableHead>User</TableHead><TableHead>Email</TableHead><TableHead>Company</TableHead><TableHead>Plan</TableHead><TableHead>Role</TableHead><TableHead>Joined</TableHead><TableHead className="text-right">Actions</TableHead></TableRow></TableHeader>
             <TableBody>
               {filteredUsers.map((user) => (
                 <TableRow key={user.id}>
                   <TableCell><div className="flex items-center gap-3"><Avatar className="h-8 w-8"><AvatarImage src={user.avatar_url || undefined} /><AvatarFallback>{user.full_name?.slice(0, 2).toUpperCase() || 'U'}</AvatarFallback></Avatar><p className="font-medium">{user.full_name || 'Unknown'}</p></div></TableCell>
                   <TableCell className="text-muted-foreground">{user.email || '-'}</TableCell>
                   <TableCell>{user.company || '-'}</TableCell>
+                  <TableCell>
+                    {user.subscription_status === 'active' ? (
+                      <Badge className="bg-amber-500/10 text-amber-600 dark:text-amber-400 border-transparent gap-1"><Crown className="h-3 w-3" />{user.subscription_plan || 'Pro'}</Badge>
+                    ) : (
+                      <Badge variant="outline">Free</Badge>
+                    )}
+                  </TableCell>
                   <TableCell><Badge variant={user.role === 'admin' ? 'default' : 'secondary'}>{user.role || 'No Role'}</Badge></TableCell>
                   <TableCell>{new Date(user.created_at).toLocaleDateString()}</TableCell>
                   <TableCell className="text-right">
