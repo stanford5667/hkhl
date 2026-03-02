@@ -23,12 +23,10 @@ Deno.serve(async (req) => {
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
 
-    // Create client with user's token to check their role
     const userClient = createClient(supabaseUrl, supabaseAnonKey, {
       global: { headers: { Authorization: authHeader } },
     });
 
-    // Get the current user
     const { data: { user }, error: userError } = await userClient.auth.getUser();
     if (userError || !user) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
@@ -37,7 +35,6 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Check if user is admin (user may have multiple roles)
     const { data: roleData, error: roleError } = await userClient
       .from('user_roles')
       .select('role')
@@ -51,12 +48,11 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Create service role client to access auth.users
     const serviceClient = createClient(supabaseUrl, supabaseServiceKey, {
       auth: { autoRefreshToken: false, persistSession: false },
     });
 
-    // Get all users from auth
+    // Get all users from auth (includes last_sign_in_at)
     const { data: authUsers, error: authError } = await serviceClient.auth.admin.listUsers();
     if (authError) {
       console.error('Error fetching auth users:', authError);
@@ -66,13 +62,50 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Create a map of user_id to email
+    // Get activity stats per user (last active + days active in last 30 days)
+    const { data: activityStats, error: activityError } = await serviceClient
+      .from('activities')
+      .select('user_id, created_at');
+
+    const activityMap: Record<string, { last_active: string; days_active_30d: number }> = {};
+    if (activityStats) {
+      const now = new Date();
+      const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+      
+      // Group activities by user
+      const userActivities: Record<string, string[]> = {};
+      for (const a of activityStats) {
+        if (!userActivities[a.user_id]) userActivities[a.user_id] = [];
+        userActivities[a.user_id].push(a.created_at);
+      }
+      
+      for (const [userId, dates] of Object.entries(userActivities)) {
+        dates.sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
+        const lastActive = dates[0];
+        const uniqueDays = new Set(
+          dates
+            .filter(d => new Date(d) >= thirtyDaysAgo)
+            .map(d => d.slice(0, 10))
+        );
+        activityMap[userId] = {
+          last_active: lastActive,
+          days_active_30d: uniqueDays.size,
+        };
+      }
+    }
+
     const emailMap: Record<string, string> = {};
-    authUsers.users.forEach((user) => {
-      emailMap[user.id] = user.email || '';
+    const lastSignInMap: Record<string, string | null> = {};
+    authUsers.users.forEach((u) => {
+      emailMap[u.id] = u.email || '';
+      lastSignInMap[u.id] = u.last_sign_in_at || null;
     });
 
-    return new Response(JSON.stringify({ emails: emailMap }), {
+    return new Response(JSON.stringify({ 
+      emails: emailMap, 
+      lastSignIns: lastSignInMap,
+      activityStats: activityMap,
+    }), {
       status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });

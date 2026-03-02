@@ -7,7 +7,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Search, Shield, Loader2, Users, Building2, Trash2, Crown } from 'lucide-react';
+import { Search, Shield, Loader2, Users, Building2, Trash2, Crown, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -23,7 +23,13 @@ interface UserWithProfile {
   created_at: string;
   subscription_plan: string | null;
   subscription_status: string | null;
+  last_sign_in: string | null;
+  last_active: string | null;
+  days_active_30d: number;
 }
+
+type SortField = 'full_name' | 'email' | 'company' | 'subscription_status' | 'role' | 'created_at' | 'last_active' | 'days_active_30d';
+type SortDirection = 'asc' | 'desc';
 
 export function AdminUsersTab() {
   const [users, setUsers] = useState<UserWithProfile[]>([]);
@@ -36,6 +42,8 @@ export function AdminUsersTab() {
   const [userToDelete, setUserToDelete] = useState<UserWithProfile | null>(null);
   const [updating, setUpdating] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [sortField, setSortField] = useState<SortField>('created_at');
+  const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
   const { toast } = useToast();
 
   useEffect(() => {
@@ -54,11 +62,14 @@ export function AdminUsersTab() {
       const profiles = profilesRes.data || [];
       const roles = rolesRes.data || [];
       const emailMap: Record<string, string> = emailsRes.data?.emails || {};
+      const lastSignInMap: Record<string, string | null> = emailsRes.data?.lastSignIns || {};
+      const activityStats: Record<string, { last_active: string; days_active_30d: number }> = emailsRes.data?.activityStats || {};
       const subs = subsRes.data || [];
 
       const usersWithRoles: UserWithProfile[] = profiles.map(profile => {
         const userRole = roles.find(r => r.user_id === profile.user_id);
         const userSub = subs.find((s: any) => s.user_id === profile.user_id && s.status === 'active');
+        const activity = activityStats[profile.user_id];
         return {
           id: profile.user_id,
           email: emailMap[profile.user_id] || null,
@@ -69,6 +80,9 @@ export function AdminUsersTab() {
           created_at: profile.created_at,
           subscription_plan: userSub?.plan || null,
           subscription_status: userSub?.status || null,
+          last_sign_in: lastSignInMap[profile.user_id] || null,
+          last_active: activity?.last_active || null,
+          days_active_30d: activity?.days_active_30d || 0,
         };
       });
 
@@ -124,11 +138,74 @@ export function AdminUsersTab() {
     }
   };
 
-  const filteredUsers = users.filter(user =>
-    user.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    user.company?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    user.email?.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDirection('desc');
+    }
+  };
+
+  const SortIcon = ({ field }: { field: SortField }) => {
+    if (sortField !== field) return <ArrowUpDown className="h-3 w-3 ml-1 opacity-40" />;
+    return sortDirection === 'asc'
+      ? <ArrowUp className="h-3 w-3 ml-1 text-primary" />
+      : <ArrowDown className="h-3 w-3 ml-1 text-primary" />;
+  };
+
+  const filteredAndSortedUsers = users
+    .filter(user =>
+      user.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      user.company?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      user.email?.toLowerCase().includes(searchQuery.toLowerCase())
+    )
+    .sort((a, b) => {
+      const dir = sortDirection === 'asc' ? 1 : -1;
+      switch (sortField) {
+        case 'full_name':
+          return dir * (a.full_name || '').localeCompare(b.full_name || '');
+        case 'email':
+          return dir * (a.email || '').localeCompare(b.email || '');
+        case 'company':
+          return dir * (a.company || '').localeCompare(b.company || '');
+        case 'subscription_status': {
+          const aVal = a.subscription_status === 'active' ? 1 : 0;
+          const bVal = b.subscription_status === 'active' ? 1 : 0;
+          return dir * (aVal - bVal);
+        }
+        case 'role':
+          return dir * (a.role || '').localeCompare(b.role || '');
+        case 'created_at':
+          return dir * (new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+        case 'last_active': {
+          const aTime = a.last_active ? new Date(a.last_active).getTime() : 0;
+          const bTime = b.last_active ? new Date(b.last_active).getTime() : 0;
+          return dir * (aTime - bTime);
+        }
+        case 'days_active_30d':
+          return dir * (a.days_active_30d - b.days_active_30d);
+        default:
+          return 0;
+      }
+    });
+
+  const formatRelativeDate = (dateStr: string | null) => {
+    if (!dateStr) return '-';
+    const date = new Date(dateStr);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+
+    if (diffMins < 1) return 'Just now';
+    if (diffMins < 60) return `${diffMins}m ago`;
+    if (diffHours < 24) return `${diffHours}h ago`;
+    if (diffDays < 7) return `${diffDays}d ago`;
+    if (diffDays < 30) return `${Math.floor(diffDays / 7)}w ago`;
+    return date.toLocaleDateString();
+  };
 
   if (loading) {
     return <div className="flex items-center justify-center py-12"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>;
@@ -146,7 +223,7 @@ export function AdminUsersTab() {
       <Card>
         <CardHeader>
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div><CardTitle>User Management</CardTitle><CardDescription>View and manage user accounts and roles</CardDescription></div>
+            <div><CardTitle>User Management</CardTitle><CardDescription>View and manage user accounts and roles. Click column headers to sort.</CardDescription></div>
             <div className="relative w-full sm:w-64">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input placeholder="Search users..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-9" />
@@ -155,11 +232,47 @@ export function AdminUsersTab() {
         </CardHeader>
         <CardContent>
           <Table>
-            <TableHeader><TableRow><TableHead>User</TableHead><TableHead>Email</TableHead><TableHead>Company</TableHead><TableHead>Plan</TableHead><TableHead>Role</TableHead><TableHead>Joined</TableHead><TableHead className="text-right">Actions</TableHead></TableRow></TableHeader>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="cursor-pointer select-none" onClick={() => handleSort('full_name')}>
+                  <span className="flex items-center">User<SortIcon field="full_name" /></span>
+                </TableHead>
+                <TableHead className="cursor-pointer select-none" onClick={() => handleSort('email')}>
+                  <span className="flex items-center">Email<SortIcon field="email" /></span>
+                </TableHead>
+                <TableHead className="cursor-pointer select-none" onClick={() => handleSort('company')}>
+                  <span className="flex items-center">Company<SortIcon field="company" /></span>
+                </TableHead>
+                <TableHead className="cursor-pointer select-none" onClick={() => handleSort('subscription_status')}>
+                  <span className="flex items-center">Plan<SortIcon field="subscription_status" /></span>
+                </TableHead>
+                <TableHead className="cursor-pointer select-none" onClick={() => handleSort('role')}>
+                  <span className="flex items-center">Role<SortIcon field="role" /></span>
+                </TableHead>
+                <TableHead className="cursor-pointer select-none" onClick={() => handleSort('last_active')}>
+                  <span className="flex items-center">Last Active<SortIcon field="last_active" /></span>
+                </TableHead>
+                <TableHead className="cursor-pointer select-none" onClick={() => handleSort('days_active_30d')}>
+                  <span className="flex items-center">Days Active (30d)<SortIcon field="days_active_30d" /></span>
+                </TableHead>
+                <TableHead className="cursor-pointer select-none" onClick={() => handleSort('created_at')}>
+                  <span className="flex items-center">Joined<SortIcon field="created_at" /></span>
+                </TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
             <TableBody>
-              {filteredUsers.map((user) => (
+              {filteredAndSortedUsers.map((user) => (
                 <TableRow key={user.id}>
-                  <TableCell><div className="flex items-center gap-3"><Avatar className="h-8 w-8"><AvatarImage src={user.avatar_url || undefined} /><AvatarFallback>{user.full_name?.slice(0, 2).toUpperCase() || 'U'}</AvatarFallback></Avatar><p className="font-medium">{user.full_name || 'Unknown'}</p></div></TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-3">
+                      <Avatar className="h-8 w-8">
+                        <AvatarImage src={user.avatar_url || undefined} />
+                        <AvatarFallback>{user.full_name?.slice(0, 2).toUpperCase() || 'U'}</AvatarFallback>
+                      </Avatar>
+                      <p className="font-medium">{user.full_name || 'Unknown'}</p>
+                    </div>
+                  </TableCell>
                   <TableCell className="text-muted-foreground">{user.email || '-'}</TableCell>
                   <TableCell>{user.company || '-'}</TableCell>
                   <TableCell>
@@ -170,6 +283,16 @@ export function AdminUsersTab() {
                     )}
                   </TableCell>
                   <TableCell><Badge variant={user.role === 'admin' ? 'default' : 'secondary'}>{user.role || 'No Role'}</Badge></TableCell>
+                  <TableCell>
+                    <span className="text-sm" title={user.last_active ? new Date(user.last_active).toLocaleString() : undefined}>
+                      {formatRelativeDate(user.last_active)}
+                    </span>
+                  </TableCell>
+                  <TableCell>
+                    <span className={`text-sm font-medium ${user.days_active_30d >= 15 ? 'text-green-600 dark:text-green-400' : user.days_active_30d >= 5 ? 'text-amber-600 dark:text-amber-400' : 'text-muted-foreground'}`}>
+                      {user.days_active_30d}
+                    </span>
+                  </TableCell>
                   <TableCell>{new Date(user.created_at).toLocaleDateString()}</TableCell>
                   <TableCell className="text-right">
                     <div className="flex items-center justify-end gap-2">
