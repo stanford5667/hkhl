@@ -128,7 +128,7 @@ export default function ThemeAnalysis() {
     );
   }
 
-  const IconComponent = theme.icon;
+  const IconComponent = theme.icon || Sparkles;
 
   return (
     <div className="min-h-screen bg-background">
