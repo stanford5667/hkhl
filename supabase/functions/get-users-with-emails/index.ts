@@ -52,59 +52,91 @@ Deno.serve(async (req) => {
       auth: { autoRefreshToken: false, persistSession: false },
     });
 
-    // Get all users from auth (includes last_sign_in_at)
-    const { data: authUsers, error: authError } = await serviceClient.auth.admin.listUsers();
-    if (authError) {
-      console.error('Error fetching auth users:', authError);
+    // Fetch auth users and profile data in parallel
+    const [authResult, profilesResult, activitiesResult] = await Promise.all([
+      serviceClient.auth.admin.listUsers(),
+      serviceClient.from('profiles').select('user_id, updated_at'),
+      // Get all activity timestamps for the last 30 days to compute days_active
+      serviceClient
+        .from('activities')
+        .select('user_id, created_at')
+        .gte('created_at', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()),
+    ]);
+
+    if (authResult.error) {
+      console.error('Error fetching auth users:', authResult.error);
       return new Response(JSON.stringify({ error: 'Failed to fetch users' }), {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    // Get activity stats per user (last active + days active in last 30 days)
-    const { data: activityStats, error: activityError } = await serviceClient
-      .from('activities')
-      .select('user_id, created_at');
+    const authUsers = authResult.data.users;
+    const profiles = profilesResult.data || [];
+    const recentActivities = activitiesResult.data || [];
 
-    const activityMap: Record<string, { last_active: string; days_active_30d: number }> = {};
-    if (activityStats) {
-      const now = new Date();
-      const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-      
-      // Group activities by user
-      const userActivities: Record<string, string[]> = {};
-      for (const a of activityStats) {
-        if (!userActivities[a.user_id]) userActivities[a.user_id] = [];
-        userActivities[a.user_id].push(a.created_at);
-      }
-      
-      for (const [userId, dates] of Object.entries(userActivities)) {
-        dates.sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
-        const lastActive = dates[0];
-        const uniqueDays = new Set(
-          dates
-            .filter(d => new Date(d) >= thirtyDaysAgo)
-            .map(d => d.slice(0, 10))
-        );
-        activityMap[userId] = {
-          last_active: lastActive,
-          days_active_30d: uniqueDays.size,
-        };
-      }
+    // Build profile updated_at map
+    const profileUpdatedMap: Record<string, string> = {};
+    for (const p of profiles) {
+      profileUpdatedMap[p.user_id] = p.updated_at;
     }
 
+    // Build activity stats: group by user, compute days_active in last 30d and last_activity
+    const activityByUser: Record<string, string[]> = {};
+    for (const a of recentActivities) {
+      if (!activityByUser[a.user_id]) activityByUser[a.user_id] = [];
+      activityByUser[a.user_id].push(a.created_at);
+    }
+
+    // For each user, compute last_active and days_active_30d
+    // last_active = MAX of (auth.last_sign_in_at, profiles.updated_at, latest activity)
+    // days_active_30d = unique dates from activities in last 30 days
+    //   (we also count last_sign_in_at date and profile updated_at date if in range)
     const emailMap: Record<string, string> = {};
     const lastSignInMap: Record<string, string | null> = {};
-    authUsers.users.forEach((u) => {
+    const activityStatsMap: Record<string, { last_active: string | null; days_active_30d: number }> = {};
+
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+
+    for (const u of authUsers) {
       emailMap[u.id] = u.email || '';
       lastSignInMap[u.id] = u.last_sign_in_at || null;
-    });
+
+      // Collect all timestamp candidates for "last active"
+      const timestamps: Date[] = [];
+      if (u.last_sign_in_at) timestamps.push(new Date(u.last_sign_in_at));
+      if (profileUpdatedMap[u.id]) timestamps.push(new Date(profileUpdatedMap[u.id]));
+      
+      const userActivities = activityByUser[u.id] || [];
+      for (const ts of userActivities) {
+        timestamps.push(new Date(ts));
+      }
+
+      // Determine last_active
+      let lastActive: string | null = null;
+      if (timestamps.length > 0) {
+        timestamps.sort((a, b) => b.getTime() - a.getTime());
+        lastActive = timestamps[0].toISOString();
+      }
+
+      // Compute days_active_30d: unique calendar days with any activity signal in last 30 days
+      const uniqueDays = new Set<string>();
+      for (const t of timestamps) {
+        if (t >= thirtyDaysAgo) {
+          uniqueDays.add(t.toISOString().slice(0, 10));
+        }
+      }
+
+      activityStatsMap[u.id] = {
+        last_active: lastActive,
+        days_active_30d: uniqueDays.size,
+      };
+    }
 
     return new Response(JSON.stringify({ 
       emails: emailMap, 
       lastSignIns: lastSignInMap,
-      activityStats: activityMap,
+      activityStats: activityStatsMap,
     }), {
       status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
