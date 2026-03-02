@@ -216,7 +216,8 @@ export function AdminUsersTab() {
   };
 
   const formatDuration = (totalSeconds: number) => {
-    if (totalSeconds === 0) return '-';
+    if (totalSeconds === 0) return 'No data yet';
+    if (totalSeconds < 60) return `${totalSeconds}s`;
     const hours = Math.floor(totalSeconds / 3600);
     const minutes = Math.floor((totalSeconds % 3600) / 60);
     if (hours > 0) return `${hours}h ${minutes}m`;
