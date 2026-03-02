@@ -178,9 +178,10 @@ export function MarketThemesSection() {
 
   const handleAnalyzeTheme = () => {
     if (!selectedTheme) return;
-    const themeData = selectedTheme;
+    // Strip non-serializable fields (icon is a React component) before passing to navigate state
+    const { icon, ...serializableTheme } = selectedTheme;
     setSelectedTheme(null);
-    navigate('/theme-analysis', { state: { theme: themeData } });
+    navigate('/theme-analysis', { state: { theme: serializableTheme } });
   };
 
   const handleTickerClick = (symbol: string) => {
