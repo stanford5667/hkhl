@@ -7,8 +7,9 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Search, Shield, Loader2, Users, Building2, Trash2, Crown, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
+import { Search, Shield, Loader2, Users, Building2, Trash2, Crown, ArrowUpDown, ArrowUp, ArrowDown, Eye } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { AppRole } from '@/hooks/useAdmin';
@@ -47,6 +48,8 @@ export function AdminUsersTab() {
   const [deleting, setDeleting] = useState(false);
   const [sortField, setSortField] = useState<SortField>('created_at');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
+  const [pageViewsDialogUser, setPageViewsDialogUser] = useState<UserWithProfile | null>(null);
+  const [allPageViews, setAllPageViews] = useState<Record<string, { page_path: string; viewed_at: string }[]>>({});
   const { toast } = useToast();
 
   useEffect(() => {
@@ -67,7 +70,9 @@ export function AdminUsersTab() {
       const emailMap: Record<string, string> = emailsRes.data?.emails || {};
       const lastSignInMap: Record<string, string | null> = emailsRes.data?.lastSignIns || {};
       const activityStats: Record<string, { last_active: string; days_active_30d: number; total_time_seconds: number; session_count: number; avg_session_seconds: number }> = emailsRes.data?.activityStats || {};
+      const pageViewsData: Record<string, { page_path: string; viewed_at: string }[]> = emailsRes.data?.pageViews || {};
       const subs = subsRes.data || [];
+      setAllPageViews(pageViewsData);
 
       const usersWithRoles: UserWithProfile[] = profiles.map(profile => {
         const userRole = roles.find(r => r.user_id === profile.user_id);
@@ -326,8 +331,11 @@ export function AdminUsersTab() {
                   <TableCell>{new Date(user.created_at).toLocaleDateString()}</TableCell>
                   <TableCell className="text-right">
                     <div className="flex items-center justify-end gap-2">
+                      <Button variant="ghost" size="sm" onClick={() => setPageViewsDialogUser(user)}>
+                        <Eye className="h-4 w-4 mr-1" />Pages
+                      </Button>
                       <Button variant="ghost" size="sm" onClick={() => { setSelectedUser(user); setNewRole(user.role || 'member'); setIsRoleDialogOpen(true); }}>
-                        <Shield className="h-4 w-4 mr-1" />Manage Role
+                        <Shield className="h-4 w-4 mr-1" />Role
                       </Button>
                       <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive hover:bg-destructive/10" onClick={() => { setUserToDelete(user); setIsDeleteDialogOpen(true); }}>
                         <Trash2 className="h-4 w-4" />
@@ -378,6 +386,39 @@ export function AdminUsersTab() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <Dialog open={!!pageViewsDialogUser} onOpenChange={(open) => { if (!open) setPageViewsDialogUser(null); }}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Page Views — {pageViewsDialogUser?.full_name || pageViewsDialogUser?.email || 'User'}</DialogTitle>
+            <DialogDescription>Recent pages visited by this user.</DialogDescription>
+          </DialogHeader>
+          <ScrollArea className="max-h-[400px]">
+            {(() => {
+              const views = pageViewsDialogUser ? allPageViews[pageViewsDialogUser.id] || [] : [];
+              if (views.length === 0) return <p className="text-sm text-muted-foreground py-4 text-center">No page views recorded yet.</p>;
+              return (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Page</TableHead>
+                      <TableHead>Visited</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {views.map((v, i) => (
+                      <TableRow key={i}>
+                        <TableCell className="font-mono text-sm">{v.page_path}</TableCell>
+                        <TableCell className="text-sm text-muted-foreground whitespace-nowrap">{new Date(v.viewed_at).toLocaleString()}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              );
+            })()}
+          </ScrollArea>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

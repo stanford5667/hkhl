@@ -3358,6 +3358,27 @@ export type Database = {
         }
         Relationships: []
       }
+      page_views: {
+        Row: {
+          id: string
+          page_path: string
+          user_id: string
+          viewed_at: string
+        }
+        Insert: {
+          id?: string
+          page_path: string
+          user_id: string
+          viewed_at?: string
+        }
+        Update: {
+          id?: string
+          page_path?: string
+          user_id?: string
+          viewed_at?: string
+        }
+        Relationships: []
+      }
       pe_funds: {
         Row: {
           created_at: string | null
