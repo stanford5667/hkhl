@@ -72,6 +72,54 @@ const MAX_FILE_SIZE = 5 * 1024 * 1024 * 1024; // 5GB
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
+// Standard upload via XHR — single PUT request, no TUS overhead.
+// Best for files ≤ 200MB. Faster because there's only 1 HTTP request.
+function standardUpload(
+  file: File,
+  filePath: string,
+  onProgress: (pct: number) => void,
+): Promise<string> {
+  return new Promise(async (resolve, reject) => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token ?? SUPABASE_ANON_KEY;
+
+      const xhr = new XMLHttpRequest();
+      xhr.open('POST', `${SUPABASE_URL}/storage/v1/object/course-videos/${filePath}`, true);
+      xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+      xhr.setRequestHeader('apikey', SUPABASE_ANON_KEY);
+      xhr.setRequestHeader('Content-Type', file.type);
+      xhr.setRequestHeader('Cache-Control', '3600');
+      xhr.setRequestHeader('x-upsert', 'false');
+
+      xhr.upload.addEventListener('progress', (e) => {
+        if (e.lengthComputable) {
+          onProgress((e.loaded / e.total) * 100);
+        }
+      });
+
+      xhr.addEventListener('load', () => {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          const { data } = supabase.storage
+            .from('course-videos')
+            .getPublicUrl(filePath);
+          resolve(data.publicUrl);
+        } else {
+          reject(new Error(`Upload failed: ${xhr.status} ${xhr.responseText}`));
+        }
+      });
+
+      xhr.addEventListener('error', () => reject(new Error('Network error during upload')));
+      xhr.addEventListener('abort', () => reject(new Error('Upload aborted')));
+
+      xhr.send(file);
+    } catch (err) {
+      reject(err);
+    }
+  });
+}
+
+// TUS resumable upload — only used for files > 200MB where resumability matters.
 function tusUpload(
   file: File,
   filePath: string,
@@ -80,6 +128,9 @@ function tusUpload(
   return new Promise(async (resolve, reject) => {
     const { data: { session } } = await supabase.auth.getSession();
     const token = session?.access_token ?? SUPABASE_ANON_KEY;
+
+    // Use large chunks — minimize HTTP roundtrips
+    const chunkSize = Math.min(file.size, 150 * 1024 * 1024); // up to 150MB per chunk
 
     const upload = new tus.Upload(file, {
       endpoint: `${SUPABASE_URL}/storage/v1/upload/resumable`,
@@ -96,7 +147,7 @@ function tusUpload(
         contentType: file.type,
         cacheControl: '3600',
       },
-      chunkSize: 50 * 1024 * 1024, // 50MB chunks — fewer round trips
+      chunkSize,
       onError: (error) => reject(error),
       onProgress: (bytesUploaded, bytesTotal) => {
         onProgress((bytesUploaded / bytesTotal) * 100);
@@ -109,7 +160,6 @@ function tusUpload(
       },
     });
 
-    // Check for previous uploads to resume
     const previousUploads = await upload.findPreviousUploads();
     if (previousUploads.length > 0) {
       upload.resumeFromPreviousUpload(previousUploads[0]);
@@ -117,6 +167,20 @@ function tusUpload(
 
     upload.start();
   });
+}
+
+// Pick the fastest strategy based on file size
+const STANDARD_UPLOAD_LIMIT = 200 * 1024 * 1024; // 200MB
+
+function uploadFile(
+  file: File,
+  filePath: string,
+  onProgress: (pct: number) => void,
+): Promise<string> {
+  if (file.size <= STANDARD_UPLOAD_LIMIT) {
+    return standardUpload(file, filePath, onProgress);
+  }
+  return tusUpload(file, filePath, onProgress);
 }
 
 export function BulkVideoUpload({ moduleId, existingLessonCount, onComplete }: BulkVideoUploadProps) {
@@ -173,7 +237,7 @@ export function BulkVideoUpload({ moduleId, existingLessonCount, onComplete }: B
       const sanitizedName = item.file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
       const filePath = `lessons/${timestamp}-${sanitizedName}`;
 
-      const publicUrl = await tusUpload(
+      const publicUrl = await uploadFile(
         item.file,
         filePath,
         (pct) => updateFile(item.id, { progress: pct }),
