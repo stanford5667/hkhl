@@ -96,7 +96,7 @@ function tusUpload(
         contentType: file.type,
         cacheControl: '3600',
       },
-      chunkSize: 6 * 1024 * 1024, // 6MB chunks
+      chunkSize: 50 * 1024 * 1024, // 50MB chunks — fewer round trips
       onError: (error) => reject(error),
       onProgress: (bytesUploaded, bytesTotal) => {
         onProgress((bytesUploaded / bytesTotal) * 100);
