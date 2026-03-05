@@ -20,6 +20,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Upload, CheckCircle, XCircle, Loader2, FileVideo } from 'lucide-react';
+import * as tus from 'tus-js-client';
 
 interface BulkVideoUploadProps {
   moduleId: string;
@@ -40,10 +41,7 @@ interface QueuedFile {
 }
 
 function parseFilename(filename: string): { title: string; order: number } {
-  // Strip extension
   const nameWithoutExt = filename.replace(/\.[^/.]+$/, '');
-
-  // Match leading number with optional separator
   const match = nameWithoutExt.match(/^(\d+)\s*[-_.\s]\s*(.+)$/);
 
   if (match) {
@@ -56,7 +54,6 @@ function parseFilename(filename: string): { title: string; order: number } {
     return { title, order };
   }
 
-  // No leading number
   const rawTitle = nameWithoutExt.replace(/[-_]/g, ' ').trim();
   const title = rawTitle
     .split(/\s+/)
@@ -72,6 +69,55 @@ function formatSize(bytes: number): string {
 }
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024 * 1024; // 5GB
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+
+function tusUpload(
+  file: File,
+  filePath: string,
+  onProgress: (pct: number) => void,
+): Promise<string> {
+  return new Promise(async (resolve, reject) => {
+    const { data: { session } } = await supabase.auth.getSession();
+    const token = session?.access_token ?? SUPABASE_ANON_KEY;
+
+    const upload = new tus.Upload(file, {
+      endpoint: `${SUPABASE_URL}/storage/v1/upload/resumable`,
+      retryDelays: [0, 1000, 3000, 5000],
+      headers: {
+        authorization: `Bearer ${token}`,
+        'x-upsert': 'false',
+      },
+      uploadDataDuringCreation: true,
+      removeFingerprintOnSuccess: true,
+      metadata: {
+        bucketName: 'course-videos',
+        objectName: filePath,
+        contentType: file.type,
+        cacheControl: '3600',
+      },
+      chunkSize: 6 * 1024 * 1024, // 6MB chunks
+      onError: (error) => reject(error),
+      onProgress: (bytesUploaded, bytesTotal) => {
+        onProgress((bytesUploaded / bytesTotal) * 100);
+      },
+      onSuccess: () => {
+        const { data } = supabase.storage
+          .from('course-videos')
+          .getPublicUrl(filePath);
+        resolve(data.publicUrl);
+      },
+    });
+
+    // Check for previous uploads to resume
+    const previousUploads = await upload.findPreviousUploads();
+    if (previousUploads.length > 0) {
+      upload.resumeFromPreviousUpload(previousUploads[0]);
+    }
+
+    upload.start();
+  });
+}
 
 export function BulkVideoUpload({ moduleId, existingLessonCount, onComplete }: BulkVideoUploadProps) {
   const [open, setOpen] = useState(false);
@@ -132,32 +178,16 @@ export function BulkVideoUpload({ moduleId, existingLessonCount, onComplete }: B
 
       updateFile(item.id, { status: 'uploading', progress: 0 });
 
-      // Simulate progress while uploading
-      const progressInterval = setInterval(() => {
-        setQueue((prev) => {
-          const current = prev.find((f) => f.id === item.id);
-          if (!current || current.status !== 'uploading') return prev;
-          const next = Math.min(current.progress + Math.random() * 15, 90);
-          return prev.map((f) => (f.id === item.id ? { ...f, progress: next } : f));
-        });
-      }, 500);
-
       try {
         const timestamp = Date.now();
         const sanitizedName = item.file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
         const filePath = `lessons/${timestamp}-${sanitizedName}`;
 
-        const { error: uploadError } = await supabase.storage
-          .from('course-videos')
-          .upload(filePath, item.file, { cacheControl: '3600', upsert: false });
-
-        clearInterval(progressInterval);
-
-        if (uploadError) throw uploadError;
-
-        const { data: urlData } = supabase.storage
-          .from('course-videos')
-          .getPublicUrl(filePath);
+        const publicUrl = await tusUpload(
+          item.file,
+          filePath,
+          (pct) => updateFile(item.id, { progress: pct }),
+        );
 
         const orderIndex = item.parsedOrder > 0
           ? existingLessonCount + item.parsedOrder
@@ -168,7 +198,7 @@ export function BulkVideoUpload({ moduleId, existingLessonCount, onComplete }: B
           .insert({
             module_id: moduleId,
             title: item.parsedTitle,
-            video_url: urlData.publicUrl,
+            video_url: publicUrl,
             video_provider: 'custom',
             order_index: orderIndex,
           });
@@ -178,7 +208,6 @@ export function BulkVideoUpload({ moduleId, existingLessonCount, onComplete }: B
         updateFile(item.id, { status: 'done', progress: 100 });
         successCount++;
       } catch (err: any) {
-        clearInterval(progressInterval);
         updateFile(item.id, { status: 'error', progress: 0, error: err.message });
         errorCount++;
       }
@@ -233,7 +262,7 @@ export function BulkVideoUpload({ moduleId, existingLessonCount, onComplete }: B
             Drag & drop video files here, or click to browse
           </p>
           <p className="text-xs text-muted-foreground mt-1">
-            Accepts video files up to 5GB each
+            Accepts video files up to 5GB each · Resumable uploads
           </p>
           <input
             ref={fileInputRef}
