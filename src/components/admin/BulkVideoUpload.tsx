@@ -165,53 +165,64 @@ export function BulkVideoUpload({ moduleId, existingLessonCount, onComplete }: B
     setQueue((prev) => prev.filter((f) => f.id !== id));
   };
 
+  const uploadSingleFile = async (item: QueuedFile): Promise<boolean> => {
+    updateFile(item.id, { status: 'uploading', progress: 0 });
+
+    try {
+      const timestamp = Date.now();
+      const sanitizedName = item.file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+      const filePath = `lessons/${timestamp}-${sanitizedName}`;
+
+      const publicUrl = await tusUpload(
+        item.file,
+        filePath,
+        (pct) => updateFile(item.id, { progress: pct }),
+      );
+
+      const orderIndex = item.parsedOrder > 0
+        ? existingLessonCount + item.parsedOrder
+        : existingLessonCount + queue.indexOf(item) + 1;
+
+      const { error: insertError } = await supabase
+        .from('course_lessons')
+        .insert({
+          module_id: moduleId,
+          title: item.parsedTitle,
+          video_url: publicUrl,
+          video_provider: 'custom',
+          order_index: orderIndex,
+        });
+
+      if (insertError) throw insertError;
+
+      updateFile(item.id, { status: 'done', progress: 100 });
+      return true;
+    } catch (err: any) {
+      updateFile(item.id, { status: 'error', progress: 0, error: err.message });
+      return false;
+    }
+  };
+
   const handleUploadAll = async () => {
     setIsUploading(true);
-    let successCount = 0;
+    const pending = queue.filter((f) => f.status !== 'done');
+    const alreadyDone = queue.length - pending.length;
+    let successCount = alreadyDone;
     let errorCount = 0;
 
-    for (const item of queue) {
-      if (item.status === 'done') {
-        successCount++;
-        continue;
+    const CONCURRENCY = 3;
+    let index = 0;
+
+    const worker = async () => {
+      while (index < pending.length) {
+        const current = pending[index++];
+        const ok = await uploadSingleFile(current);
+        if (ok) successCount++;
+        else errorCount++;
       }
+    };
 
-      updateFile(item.id, { status: 'uploading', progress: 0 });
-
-      try {
-        const timestamp = Date.now();
-        const sanitizedName = item.file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
-        const filePath = `lessons/${timestamp}-${sanitizedName}`;
-
-        const publicUrl = await tusUpload(
-          item.file,
-          filePath,
-          (pct) => updateFile(item.id, { progress: pct }),
-        );
-
-        const orderIndex = item.parsedOrder > 0
-          ? existingLessonCount + item.parsedOrder
-          : existingLessonCount + queue.indexOf(item) + 1;
-
-        const { error: insertError } = await supabase
-          .from('course_lessons')
-          .insert({
-            module_id: moduleId,
-            title: item.parsedTitle,
-            video_url: publicUrl,
-            video_provider: 'custom',
-            order_index: orderIndex,
-          });
-
-        if (insertError) throw insertError;
-
-        updateFile(item.id, { status: 'done', progress: 100 });
-        successCount++;
-      } catch (err: any) {
-        updateFile(item.id, { status: 'error', progress: 0, error: err.message });
-        errorCount++;
-      }
-    }
+    await Promise.all(Array.from({ length: Math.min(CONCURRENCY, pending.length) }, () => worker()));
 
     setIsUploading(false);
     toast.success(`${successCount} of ${successCount + errorCount} videos uploaded successfully`);
