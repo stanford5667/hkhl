@@ -5,6 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Progress } from '@/components/ui/progress';
 import { compressVideo } from './videoCompression';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 import {
   Dialog,
   DialogContent,
@@ -190,6 +192,7 @@ export function BulkVideoUpload({ moduleId, existingLessonCount, onComplete }: B
   const [open, setOpen] = useState(false);
   const [queue, setQueue] = useState<QueuedFile[]>([]);
   const [isUploading, setIsUploading] = useState(false);
+  const [compressEnabled, setCompressEnabled] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const addFiles = useCallback((files: FileList | File[]) => {
@@ -235,22 +238,29 @@ export function BulkVideoUpload({ moduleId, existingLessonCount, onComplete }: B
 
   const uploadSingleFile = async (item: QueuedFile): Promise<boolean> => {
     try {
-      // Step 1: Compress
-      updateFile(item.id, { status: 'compressing', compressionProgress: 0 });
-      const { compressedFile, compressedSize } = await compressVideo(
-        item.file,
-        (pct) => updateFile(item.id, { compressionProgress: pct }),
-      );
-      updateFile(item.id, { compressedSize });
+      let fileToUpload = item.file;
+      let ext = '';
 
-      // Step 2: Upload compressed file
+      // Optional compression
+      if (compressEnabled) {
+        updateFile(item.id, { status: 'compressing', compressionProgress: 0 });
+        const { compressedFile, compressedSize } = await compressVideo(
+          item.file,
+          (pct) => updateFile(item.id, { compressionProgress: pct }),
+        );
+        updateFile(item.id, { compressedSize });
+        fileToUpload = compressedFile;
+        ext = '.mp4';
+      }
+
+      // Upload
       updateFile(item.id, { status: 'uploading', progress: 0 });
       const timestamp = Date.now();
-      const sanitizedName = item.file.name.replace(/[^a-zA-Z0-9._-]/g, '_').replace(/\.[^/.]+$/, '.mp4');
+      const sanitizedName = item.file.name.replace(/[^a-zA-Z0-9._-]/g, '_') + (ext ? ext.replace(/\.[^/.]+$/, '') : '');
       const filePath = `lessons/${timestamp}-${sanitizedName}`;
 
       const publicUrl = await uploadFile(
-        compressedFile,
+        fileToUpload,
         filePath,
         (pct) => updateFile(item.id, { progress: pct }),
       );
@@ -361,6 +371,19 @@ export function BulkVideoUpload({ moduleId, existingLessonCount, onComplete }: B
             className="hidden"
             onChange={(e) => e.target.files && addFiles(e.target.files)}
           />
+        </div>
+
+        {/* Compression toggle */}
+        <div className="flex items-center gap-2">
+          <Switch
+            id="compress-toggle"
+            checked={compressEnabled}
+            onCheckedChange={setCompressEnabled}
+            disabled={isUploading}
+          />
+          <Label htmlFor="compress-toggle" className="text-sm text-muted-foreground cursor-pointer">
+            Compress videos before upload <span className="text-xs">(slower processing, smaller files)</span>
+          </Label>
         </div>
 
         {/* File queue table */}
