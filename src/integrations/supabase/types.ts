@@ -2100,7 +2100,7 @@ export type Database = {
       event_market_correlations: {
         Row: {
           avg_price_impact: number | null
-          avg_time_to_impact: unknown
+          avg_time_to_impact: string | null
           confidence_interval_high: number | null
           confidence_interval_low: number | null
           correlation_coefficient: number | null
@@ -2112,7 +2112,7 @@ export type Database = {
         }
         Insert: {
           avg_price_impact?: number | null
-          avg_time_to_impact?: unknown
+          avg_time_to_impact?: string | null
           confidence_interval_high?: number | null
           confidence_interval_low?: number | null
           correlation_coefficient?: number | null
@@ -2124,7 +2124,7 @@ export type Database = {
         }
         Update: {
           avg_price_impact?: number | null
-          avg_time_to_impact?: unknown
+          avg_time_to_impact?: string | null
           confidence_interval_high?: number | null
           confidence_interval_low?: number | null
           correlation_coefficient?: number | null

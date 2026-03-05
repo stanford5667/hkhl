@@ -28,6 +28,7 @@ import {
   Upload,
   CheckCircle,
 } from 'lucide-react';
+import { BulkVideoUpload } from './BulkVideoUpload';
 
 interface Course {
   id: string;
@@ -936,6 +937,11 @@ export function AdminCoursesTab() {
                             >
                               <Trash2 className="h-3 w-3" /> Delete
                             </Button>
+                            <BulkVideoUpload
+                              moduleId={module.id}
+                              existingLessonCount={(lessons[module.id] || []).length}
+                              onComplete={() => fetchLessons(module.id)}
+                            />
                             <Button
                               variant="default"
                               size="sm"
