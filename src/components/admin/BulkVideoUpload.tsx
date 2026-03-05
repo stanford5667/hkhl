@@ -4,6 +4,7 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Progress } from '@/components/ui/progress';
+import { compressVideo } from './videoCompression';
 import {
   Dialog,
   DialogContent,
@@ -28,7 +29,7 @@ interface BulkVideoUploadProps {
   onComplete: () => void;
 }
 
-type FileStatus = 'pending' | 'uploading' | 'done' | 'error';
+type FileStatus = 'pending' | 'compressing' | 'uploading' | 'done' | 'error';
 
 interface QueuedFile {
   file: File;
@@ -37,6 +38,8 @@ interface QueuedFile {
   parsedOrder: number;
   status: FileStatus;
   progress: number;
+  compressionProgress: number;
+  compressedSize?: number;
   error?: string;
 }
 
@@ -208,6 +211,7 @@ export function BulkVideoUpload({ moduleId, existingLessonCount, onComplete }: B
         parsedOrder: order,
         status: 'pending',
         progress: 0,
+        compressionProgress: 0,
       });
     }
     setQueue((prev) => [...prev, ...newFiles]);
@@ -230,15 +234,23 @@ export function BulkVideoUpload({ moduleId, existingLessonCount, onComplete }: B
   };
 
   const uploadSingleFile = async (item: QueuedFile): Promise<boolean> => {
-    updateFile(item.id, { status: 'uploading', progress: 0 });
-
     try {
+      // Step 1: Compress
+      updateFile(item.id, { status: 'compressing', compressionProgress: 0 });
+      const { compressedFile, compressedSize } = await compressVideo(
+        item.file,
+        (pct) => updateFile(item.id, { compressionProgress: pct }),
+      );
+      updateFile(item.id, { compressedSize });
+
+      // Step 2: Upload compressed file
+      updateFile(item.id, { status: 'uploading', progress: 0 });
       const timestamp = Date.now();
-      const sanitizedName = item.file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+      const sanitizedName = item.file.name.replace(/[^a-zA-Z0-9._-]/g, '_').replace(/\.[^/.]+$/, '.mp4');
       const filePath = `lessons/${timestamp}-${sanitizedName}`;
 
       const publicUrl = await uploadFile(
-        item.file,
+        compressedFile,
         filePath,
         (pct) => updateFile(item.id, { progress: pct }),
       );
@@ -306,6 +318,8 @@ export function BulkVideoUpload({ moduleId, existingLessonCount, onComplete }: B
         return <CheckCircle className="h-4 w-4 text-green-500" />;
       case 'error':
         return <XCircle className="h-4 w-4 text-destructive" />;
+      case 'compressing':
+        return <Loader2 className="h-4 w-4 animate-spin text-amber-500" />;
       case 'uploading':
         return <Loader2 className="h-4 w-4 animate-spin text-primary" />;
       default:
@@ -381,11 +395,21 @@ export function BulkVideoUpload({ moduleId, existingLessonCount, onComplete }: B
                       {item.parsedOrder || '—'}
                     </TableCell>
                     <TableCell className="text-sm text-muted-foreground">
-                      {formatSize(item.file.size)}
+                      {item.compressedSize
+                        ? `${formatSize(item.compressedSize)} (${Math.round((1 - item.compressedSize / item.file.size) * 100)}% saved)`
+                        : formatSize(item.file.size)}
                     </TableCell>
                     <TableCell>
-                      {item.status === 'uploading' ? (
-                        <Progress value={item.progress} className="h-2" />
+                      {item.status === 'compressing' ? (
+                        <div>
+                          <Progress value={item.compressionProgress} className="h-2" />
+                          <span className="text-xs text-muted-foreground">Compressing…</span>
+                        </div>
+                      ) : item.status === 'uploading' ? (
+                        <div>
+                          <Progress value={item.progress} className="h-2" />
+                          <span className="text-xs text-muted-foreground">Uploading…</span>
+                        </div>
                       ) : item.status === 'error' ? (
                         <span className="text-xs text-destructive truncate block max-w-[120px]" title={item.error}>
                           {item.error}
