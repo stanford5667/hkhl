@@ -55,7 +55,7 @@ export default function AdminPortal() {
       </div>
 
       {/* Main Tabs */}
-      <Tabs defaultValue="users" className="w-full">
+      <Tabs defaultValue="courses" className="w-full">
         <TabsList className="grid w-full grid-cols-6 bg-muted/50">
           <TabsTrigger value="users" className="flex items-center gap-2">
             <Users className="h-4 w-4" />
