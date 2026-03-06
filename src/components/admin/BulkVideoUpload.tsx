@@ -150,6 +150,21 @@ export function BulkVideoUpload({ moduleId, existingLessonCount, onComplete }: B
     setShowDuplicateAlert(false);
     setDuplicateFiles([]);
   }, []);
+
+  const handleDrop = useCallback(
+    (e: React.DragEvent) => {
+      e.preventDefault();
+      addFiles(e.dataTransfer.files);
+    },
+    [addFiles],
+  );
+
+  const handleUploadAll = () => {
+    uploadManager.startUpload(moduleId, existingLessonCount, compressEnabled, onComplete);
+  };
+
+  const statusIcon = (status: FileStatus) => {
+    switch (status) {
       case 'done':
         return <CheckCircle className="h-4 w-4 text-green-500" />;
       case 'error':
