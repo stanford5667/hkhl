@@ -82,6 +82,7 @@ export function AdminCoursesTab() {
   const [courseDialogOpen, setCourseDialogOpen] = useState(false);
   const [moduleDialogOpen, setModuleDialogOpen] = useState(false);
   const [lessonDialogOpen, setLessonDialogOpen] = useState(false);
+  const [moveDialogOpen, setMoveDialogOpen] = useState(false);
   
   // Edit states
   const [editingCourse, setEditingCourse] = useState<Course | null>(null);
@@ -89,6 +90,13 @@ export function AdminCoursesTab() {
   const [editingLesson, setEditingLesson] = useState<Lesson | null>(null);
   const [selectedCourseId, setSelectedCourseId] = useState<string | null>(null);
   const [selectedModuleId, setSelectedModuleId] = useState<string | null>(null);
+
+  // Bulk selection
+  const [selectedLessonIds, setSelectedLessonIds] = useState<Set<string>>(new Set());
+  const [moveTargetModuleId, setMoveTargetModuleId] = useState<string>('');
+  const [movingLessons, setMovingLessons] = useState(false);
+  // Track which module the selected lessons belong to (for context)
+  const [selectionSourceModuleId, setSelectionSourceModuleId] = useState<string | null>(null);
 
   // Form states
   const [courseForm, setCourseForm] = useState({
