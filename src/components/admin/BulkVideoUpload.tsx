@@ -1,10 +1,7 @@
-import { useState, useCallback, useRef } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
+import { useState, useCallback, useRef, useEffect, useSyncExternalStore } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Progress } from '@/components/ui/progress';
-import { compressVideo } from './videoCompression';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import {
@@ -23,48 +20,12 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Upload, CheckCircle, XCircle, Loader2, FileVideo } from 'lucide-react';
-import * as tus from 'tus-js-client';
+import { uploadManager, type QueuedFile, type FileStatus } from './uploadManager';
 
 interface BulkVideoUploadProps {
   moduleId: string;
   existingLessonCount: number;
   onComplete: () => void;
-}
-
-type FileStatus = 'pending' | 'compressing' | 'uploading' | 'done' | 'error';
-
-interface QueuedFile {
-  file: File;
-  id: string;
-  parsedTitle: string;
-  parsedOrder: number;
-  status: FileStatus;
-  progress: number;
-  compressionProgress: number;
-  compressedSize?: number;
-  error?: string;
-}
-
-function parseFilename(filename: string): { title: string; order: number } {
-  const nameWithoutExt = filename.replace(/\.[^/.]+$/, '');
-  const match = nameWithoutExt.match(/^(\d+)\s*[-_.\s]\s*(.+)$/);
-
-  if (match) {
-    const order = parseInt(match[1], 10);
-    const rawTitle = match[2].replace(/[-_]/g, ' ').trim();
-    const title = rawTitle
-      .split(/\s+/)
-      .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
-      .join(' ');
-    return { title, order };
-  }
-
-  const rawTitle = nameWithoutExt.replace(/[-_]/g, ' ').trim();
-  const title = rawTitle
-    .split(/\s+/)
-    .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
-    .join(' ');
-  return { title, order: 0 };
 }
 
 function formatSize(bytes: number): string {
@@ -73,151 +34,24 @@ function formatSize(bytes: number): string {
   return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`;
 }
 
-const MAX_FILE_SIZE = 5 * 1024 * 1024 * 1024; // 5GB
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
-const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
-
-// Standard upload via XHR — single PUT request, no TUS overhead.
-// Best for files ≤ 200MB. Faster because there's only 1 HTTP request.
-function standardUpload(
-  file: File,
-  filePath: string,
-  onProgress: (pct: number) => void,
-): Promise<string> {
-  return new Promise(async (resolve, reject) => {
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const token = session?.access_token ?? SUPABASE_ANON_KEY;
-
-      const xhr = new XMLHttpRequest();
-      xhr.open('POST', `${SUPABASE_URL}/storage/v1/object/course-videos/${filePath}`, true);
-      xhr.setRequestHeader('Authorization', `Bearer ${token}`);
-      xhr.setRequestHeader('apikey', SUPABASE_ANON_KEY);
-      xhr.setRequestHeader('Content-Type', file.type);
-      xhr.setRequestHeader('Cache-Control', '3600');
-      xhr.setRequestHeader('x-upsert', 'false');
-
-      xhr.upload.addEventListener('progress', (e) => {
-        if (e.lengthComputable) {
-          onProgress((e.loaded / e.total) * 100);
-        }
-      });
-
-      xhr.addEventListener('load', () => {
-        if (xhr.status >= 200 && xhr.status < 300) {
-          const { data } = supabase.storage
-            .from('course-videos')
-            .getPublicUrl(filePath);
-          resolve(data.publicUrl);
-        } else {
-          reject(new Error(`Upload failed: ${xhr.status} ${xhr.responseText}`));
-        }
-      });
-
-      xhr.addEventListener('error', () => reject(new Error('Network error during upload')));
-      xhr.addEventListener('abort', () => reject(new Error('Upload aborted')));
-
-      xhr.send(file);
-    } catch (err) {
-      reject(err);
-    }
-  });
-}
-
-// TUS resumable upload — only used for files > 200MB where resumability matters.
-function tusUpload(
-  file: File,
-  filePath: string,
-  onProgress: (pct: number) => void,
-): Promise<string> {
-  return new Promise(async (resolve, reject) => {
-    const { data: { session } } = await supabase.auth.getSession();
-    const token = session?.access_token ?? SUPABASE_ANON_KEY;
-
-    // Use large chunks — minimize HTTP roundtrips
-    const chunkSize = Math.min(file.size, 150 * 1024 * 1024); // up to 150MB per chunk
-
-    const upload = new tus.Upload(file, {
-      endpoint: `${SUPABASE_URL}/storage/v1/upload/resumable`,
-      retryDelays: [0, 1000, 3000, 5000],
-      headers: {
-        authorization: `Bearer ${token}`,
-        'x-upsert': 'false',
-      },
-      uploadDataDuringCreation: true,
-      removeFingerprintOnSuccess: true,
-      metadata: {
-        bucketName: 'course-videos',
-        objectName: filePath,
-        contentType: file.type,
-        cacheControl: '3600',
-      },
-      chunkSize,
-      onError: (error) => reject(error),
-      onProgress: (bytesUploaded, bytesTotal) => {
-        onProgress((bytesUploaded / bytesTotal) * 100);
-      },
-      onSuccess: () => {
-        const { data } = supabase.storage
-          .from('course-videos')
-          .getPublicUrl(filePath);
-        resolve(data.publicUrl);
-      },
-    });
-
-    const previousUploads = await upload.findPreviousUploads();
-    if (previousUploads.length > 0) {
-      upload.resumeFromPreviousUpload(previousUploads[0]);
-    }
-
-    upload.start();
-  });
-}
-
-// Pick the fastest strategy based on file size
-const STANDARD_UPLOAD_LIMIT = 200 * 1024 * 1024; // 200MB
-
-function uploadFile(
-  file: File,
-  filePath: string,
-  onProgress: (pct: number) => void,
-): Promise<string> {
-  if (file.size <= STANDARD_UPLOAD_LIMIT) {
-    return standardUpload(file, filePath, onProgress);
-  }
-  return tusUpload(file, filePath, onProgress);
+// Subscribe to the module-level upload manager so UI stays in sync
+function useUploadQueue() {
+  const [queue, setQueue] = useState<QueuedFile[]>(uploadManager.getQueue());
+  useEffect(() => {
+    return uploadManager.subscribe(setQueue);
+  }, []);
+  return queue;
 }
 
 export function BulkVideoUpload({ moduleId, existingLessonCount, onComplete }: BulkVideoUploadProps) {
   const [open, setOpen] = useState(false);
-  const [queue, setQueue] = useState<QueuedFile[]>([]);
-  const [isUploading, setIsUploading] = useState(false);
   const [compressEnabled, setCompressEnabled] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const queue = useUploadQueue();
+  const isUploading = uploadManager.getIsUploading();
 
   const addFiles = useCallback((files: FileList | File[]) => {
-    const newFiles: QueuedFile[] = [];
-    for (const file of Array.from(files)) {
-      if (!file.type.startsWith('video/')) {
-        toast.error(`${file.name} is not a video file`);
-        continue;
-      }
-      if (file.size > MAX_FILE_SIZE) {
-        toast.error(`${file.name} exceeds 5GB limit`);
-        continue;
-      }
-      const { title, order } = parseFilename(file.name);
-      newFiles.push({
-        file,
-        id: crypto.randomUUID(),
-        parsedTitle: title,
-        parsedOrder: order,
-        status: 'pending',
-        progress: 0,
-        compressionProgress: 0,
-      });
-    }
-    setQueue((prev) => [...prev, ...newFiles]);
+    uploadManager.addFiles(files);
   }, []);
 
   const handleDrop = useCallback(
@@ -225,107 +59,11 @@ export function BulkVideoUpload({ moduleId, existingLessonCount, onComplete }: B
       e.preventDefault();
       addFiles(e.dataTransfer.files);
     },
-    [addFiles]
+    [addFiles],
   );
 
-  const updateFile = (id: string, updates: Partial<QueuedFile>) => {
-    setQueue((prev) => prev.map((f) => (f.id === id ? { ...f, ...updates } : f)));
-  };
-
-  const removeFile = (id: string) => {
-    setQueue((prev) => prev.filter((f) => f.id !== id));
-  };
-
-  const uploadSingleFile = async (item: QueuedFile): Promise<boolean> => {
-    try {
-      let fileToUpload = item.file;
-      let ext = '';
-
-      // Optional compression — fall back to original file on error
-      if (compressEnabled) {
-        try {
-          updateFile(item.id, { status: 'compressing', compressionProgress: 0 });
-          const { compressedFile, compressedSize } = await compressVideo(
-            item.file,
-            (pct) => updateFile(item.id, { compressionProgress: pct }),
-          );
-          updateFile(item.id, { compressedSize });
-          fileToUpload = compressedFile;
-          ext = '.mp4';
-        } catch (compressErr) {
-          console.warn('Compression failed, uploading original file:', compressErr);
-          fileToUpload = item.file;
-          ext = '';
-        }
-      }
-
-      // Upload
-      updateFile(item.id, { status: 'uploading', progress: 0 });
-      const timestamp = Date.now();
-      const sanitizedName = item.file.name.replace(/[^a-zA-Z0-9._-]/g, '_') + (ext ? ext.replace(/\.[^/.]+$/, '') : '');
-      const filePath = `lessons/${timestamp}-${sanitizedName}`;
-
-      const publicUrl = await uploadFile(
-        fileToUpload,
-        filePath,
-        (pct) => updateFile(item.id, { progress: pct }),
-      );
-
-      const orderIndex = item.parsedOrder > 0
-        ? existingLessonCount + item.parsedOrder
-        : existingLessonCount + queue.indexOf(item) + 1;
-
-      const { error: insertError } = await supabase
-        .from('course_lessons')
-        .insert({
-          module_id: moduleId,
-          title: item.parsedTitle,
-          video_url: publicUrl,
-          video_provider: 'custom',
-          order_index: orderIndex,
-        });
-
-      if (insertError) throw insertError;
-
-      updateFile(item.id, { status: 'done', progress: 100 });
-      return true;
-    } catch (err: any) {
-      updateFile(item.id, { status: 'error', progress: 0, error: err.message });
-      return false;
-    }
-  };
-
-  const handleUploadAll = async () => {
-    setIsUploading(true);
-    const pending = queue.filter((f) => f.status !== 'done');
-    const alreadyDone = queue.length - pending.length;
-    let successCount = alreadyDone;
-    let errorCount = 0;
-
-    const CONCURRENCY = 3;
-    let index = 0;
-
-    const worker = async () => {
-      while (index < pending.length) {
-        const current = pending[index++];
-        const ok = await uploadSingleFile(current);
-        if (ok) successCount++;
-        else errorCount++;
-      }
-    };
-
-    await Promise.all(Array.from({ length: Math.min(CONCURRENCY, pending.length) }, () => worker()));
-
-    setIsUploading(false);
-    toast.success(`${successCount} of ${successCount + errorCount} videos uploaded successfully`);
-
-    if (errorCount === 0) {
-      onComplete();
-      setQueue([]);
-      setOpen(false);
-    } else {
-      onComplete();
-    }
+  const handleUploadAll = () => {
+    uploadManager.startUpload(moduleId, existingLessonCount, compressEnabled, onComplete);
   };
 
   const statusIcon = (status: FileStatus) => {
@@ -344,7 +82,14 @@ export function BulkVideoUpload({ moduleId, existingLessonCount, onComplete }: B
   };
 
   return (
-    <Dialog open={open} onOpenChange={(v) => { if (!isUploading) { setOpen(v); if (!v) setQueue([]); } }}>
+    <Dialog
+      open={open}
+      onOpenChange={(v) => {
+        // Allow closing even during upload — uploads continue in background
+        setOpen(v);
+        if (!v && !isUploading) uploadManager.resetQueue();
+      }}
+    >
       <DialogTrigger asChild>
         <Button variant="outline" size="sm" className="gap-1">
           <Upload className="h-3 w-3" /> Bulk Upload
@@ -354,6 +99,14 @@ export function BulkVideoUpload({ moduleId, existingLessonCount, onComplete }: B
         <DialogHeader>
           <DialogTitle>Bulk Video Upload</DialogTitle>
         </DialogHeader>
+
+        {/* Upload in progress banner */}
+        {isUploading && (
+          <div className="flex items-center gap-2 rounded-md bg-primary/10 p-3 text-sm text-primary">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            Uploads continue even if you close this dialog or navigate away.
+          </div>
+        )}
 
         {/* Drop zone */}
         <div
@@ -413,7 +166,7 @@ export function BulkVideoUpload({ moduleId, existingLessonCount, onComplete }: B
                       {item.status === 'pending' ? (
                         <Input
                           value={item.parsedTitle}
-                          onChange={(e) => updateFile(item.id, { parsedTitle: e.target.value })}
+                          onChange={(e) => uploadManager.updateFile(item.id, { parsedTitle: e.target.value })}
                           className="h-7 text-sm"
                         />
                       ) : (
@@ -447,7 +200,7 @@ export function BulkVideoUpload({ moduleId, existingLessonCount, onComplete }: B
                         <span className="text-xs text-green-500">Done</span>
                       ) : (
                         <button
-                          onClick={(e) => { e.stopPropagation(); removeFile(item.id); }}
+                          onClick={(e) => { e.stopPropagation(); uploadManager.removeFile(item.id); }}
                           className="text-xs text-muted-foreground hover:text-destructive"
                         >
                           Remove
