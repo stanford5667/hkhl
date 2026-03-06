@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, useEffect, useSyncExternalStore } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Progress } from '@/components/ui/progress';
@@ -12,6 +12,16 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import {
   Table,
   TableBody,
   TableCell,
@@ -19,8 +29,9 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Upload, CheckCircle, XCircle, Loader2, FileVideo } from 'lucide-react';
+import { Upload, CheckCircle, XCircle, Loader2, FileVideo, AlertTriangle } from 'lucide-react';
 import { uploadManager, type QueuedFile, type FileStatus } from './uploadManager';
+import { supabase } from '@/integrations/supabase/client';
 
 interface BulkVideoUploadProps {
   moduleId: string;
