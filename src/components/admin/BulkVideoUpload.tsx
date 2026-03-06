@@ -241,16 +241,22 @@ export function BulkVideoUpload({ moduleId, existingLessonCount, onComplete }: B
       let fileToUpload = item.file;
       let ext = '';
 
-      // Optional compression
+      // Optional compression — fall back to original file on error
       if (compressEnabled) {
-        updateFile(item.id, { status: 'compressing', compressionProgress: 0 });
-        const { compressedFile, compressedSize } = await compressVideo(
-          item.file,
-          (pct) => updateFile(item.id, { compressionProgress: pct }),
-        );
-        updateFile(item.id, { compressedSize });
-        fileToUpload = compressedFile;
-        ext = '.mp4';
+        try {
+          updateFile(item.id, { status: 'compressing', compressionProgress: 0 });
+          const { compressedFile, compressedSize } = await compressVideo(
+            item.file,
+            (pct) => updateFile(item.id, { compressionProgress: pct }),
+          );
+          updateFile(item.id, { compressedSize });
+          fileToUpload = compressedFile;
+          ext = '.mp4';
+        } catch (compressErr) {
+          console.warn('Compression failed, uploading original file:', compressErr);
+          fileToUpload = item.file;
+          ext = '';
+        }
       }
 
       // Upload
