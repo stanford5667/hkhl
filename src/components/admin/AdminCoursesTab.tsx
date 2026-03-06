@@ -8,10 +8,11 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '@/components/ui/dialog';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Plus,
   Pencil,
@@ -27,6 +28,7 @@ import {
   EyeOff,
   Upload,
   CheckCircle,
+  ArrowRightLeft,
 } from 'lucide-react';
 import { BulkVideoUpload } from './BulkVideoUpload';
 
@@ -80,6 +82,7 @@ export function AdminCoursesTab() {
   const [courseDialogOpen, setCourseDialogOpen] = useState(false);
   const [moduleDialogOpen, setModuleDialogOpen] = useState(false);
   const [lessonDialogOpen, setLessonDialogOpen] = useState(false);
+  const [moveDialogOpen, setMoveDialogOpen] = useState(false);
   
   // Edit states
   const [editingCourse, setEditingCourse] = useState<Course | null>(null);
@@ -87,6 +90,13 @@ export function AdminCoursesTab() {
   const [editingLesson, setEditingLesson] = useState<Lesson | null>(null);
   const [selectedCourseId, setSelectedCourseId] = useState<string | null>(null);
   const [selectedModuleId, setSelectedModuleId] = useState<string | null>(null);
+
+  // Bulk selection
+  const [selectedLessonIds, setSelectedLessonIds] = useState<Set<string>>(new Set());
+  const [moveTargetModuleId, setMoveTargetModuleId] = useState<string>('');
+  const [movingLessons, setMovingLessons] = useState(false);
+  // Track which module the selected lessons belong to (for context)
+  const [selectionSourceModuleId, setSelectionSourceModuleId] = useState<string | null>(null);
 
   // Form states
   const [courseForm, setCourseForm] = useState({
@@ -373,6 +383,79 @@ export function AdminCoursesTab() {
     } catch (err) {
       console.error('Error deleting lesson:', err);
       toast({ title: 'Error', description: 'Failed to delete lesson', variant: 'destructive' });
+    }
+  };
+
+  // Bulk lesson selection helpers
+  const toggleLessonSelection = (lessonId: string, moduleId: string) => {
+    setSelectedLessonIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(lessonId)) {
+        next.delete(lessonId);
+      } else {
+        next.add(lessonId);
+      }
+      // Track source module
+      if (next.size > 0) setSelectionSourceModuleId(moduleId);
+      else setSelectionSourceModuleId(null);
+      return next;
+    });
+  };
+
+  const toggleAllInModule = (moduleId: string) => {
+    const moduleLessons = lessons[moduleId] || [];
+    const allSelected = moduleLessons.every((l) => selectedLessonIds.has(l.id));
+    setSelectedLessonIds((prev) => {
+      const next = new Set(prev);
+      moduleLessons.forEach((l) => {
+        if (allSelected) next.delete(l.id);
+        else next.add(l.id);
+      });
+      if (next.size > 0) setSelectionSourceModuleId(moduleId);
+      else setSelectionSourceModuleId(null);
+      return next;
+    });
+  };
+
+  const clearSelection = () => {
+    setSelectedLessonIds(new Set());
+    setSelectionSourceModuleId(null);
+  };
+
+  // All modules across all courses for the move target picker
+  const allModules = Object.values(modules).flat();
+
+  const bulkMoveLessons = async () => {
+    if (!moveTargetModuleId || selectedLessonIds.size === 0) return;
+    setMovingLessons(true);
+
+    try {
+      // Get existing lesson count in target module for order_index
+      const targetLessons = lessons[moveTargetModuleId] || [];
+      let nextOrder = targetLessons.length;
+
+      const ids = Array.from(selectedLessonIds);
+      for (const id of ids) {
+        const { error } = await supabase
+          .from('course_lessons')
+          .update({ module_id: moveTargetModuleId, order_index: nextOrder++ })
+          .eq('id', id);
+        if (error) throw error;
+      }
+
+      toast({ title: 'Success', description: `Moved ${ids.length} lesson(s)` });
+      setMoveDialogOpen(false);
+      clearSelection();
+      setMoveTargetModuleId('');
+
+      // Refresh affected modules
+      if (selectionSourceModuleId) await fetchLessons(selectionSourceModuleId);
+      await fetchLessons(moveTargetModuleId);
+    } catch (err) {
+      console.error('Error moving lessons:', err);
+      toast({ title: 'Error', description: 'Failed to move lessons', variant: 'destructive' });
+    } finally {
+      setMovingLessons(false);
     }
   };
 
@@ -920,7 +1003,7 @@ export function AdminCoursesTab() {
                       </AccordionTrigger>
                       <AccordionContent>
                         <div className="pl-7 space-y-2">
-                          <div className="flex items-center gap-2 mb-3">
+                          <div className="flex items-center gap-2 mb-3 flex-wrap">
                             <Button
                               variant="outline"
                               size="sm"
@@ -942,6 +1025,33 @@ export function AdminCoursesTab() {
                               existingLessonCount={(lessons[module.id] || []).length}
                               onComplete={() => fetchLessons(module.id)}
                             />
+                            {(lessons[module.id] || []).length > 0 && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => toggleAllInModule(module.id)}
+                                className="gap-1"
+                              >
+                                <CheckCircle className="h-3 w-3" />
+                                {(lessons[module.id] || []).every((l) => selectedLessonIds.has(l.id))
+                                  ? 'Deselect All'
+                                  : 'Select All'}
+                              </Button>
+                            )}
+                            {selectedLessonIds.size > 0 && selectionSourceModuleId === module.id && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  setMoveTargetModuleId('');
+                                  setMoveDialogOpen(true);
+                                }}
+                                className="gap-1 text-primary"
+                              >
+                                <ArrowRightLeft className="h-3 w-3" />
+                                Move {selectedLessonIds.size} Lesson{selectedLessonIds.size > 1 ? 's' : ''}
+                              </Button>
+                            )}
                             <Button
                               variant="default"
                               size="sm"
@@ -956,9 +1066,17 @@ export function AdminCoursesTab() {
                           {(lessons[module.id] || []).map((lesson) => (
                             <div
                               key={lesson.id}
-                              className="flex items-center justify-between p-3 rounded-lg bg-muted/50 border"
+                              className={`flex items-center justify-between p-3 rounded-lg border ${
+                                selectedLessonIds.has(lesson.id)
+                                  ? 'bg-primary/10 border-primary/30'
+                                  : 'bg-muted/50'
+                              }`}
                             >
                               <div className="flex items-center gap-3">
+                                <Checkbox
+                                  checked={selectedLessonIds.has(lesson.id)}
+                                  onCheckedChange={() => toggleLessonSelection(lesson.id, module.id)}
+                                />
                                 <GripVertical className="h-4 w-4 text-muted-foreground cursor-grab" />
                                 {lesson.video_url ? (
                                   <Video className="h-4 w-4 text-primary" />
@@ -1015,6 +1133,60 @@ export function AdminCoursesTab() {
           ))}
         </div>
       )}
+      {/* Bulk Move Dialog */}
+      <Dialog open={moveDialogOpen} onOpenChange={(open) => { setMoveDialogOpen(open); if (!open) setMoveTargetModuleId(''); }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Move Lessons to Another Module</DialogTitle>
+            <DialogDescription>
+              Select a target module to move {selectedLessonIds.size} lesson{selectedLessonIds.size > 1 ? 's' : ''} to.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label>Target Module</Label>
+              <Select value={moveTargetModuleId} onValueChange={setMoveTargetModuleId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a module…" />
+                </SelectTrigger>
+                <SelectContent>
+                  {courses.map((c) => (
+                    (modules[c.id] || [])
+                      .filter((m) => m.id !== selectionSourceModuleId)
+                      .map((m) => (
+                        <SelectItem key={m.id} value={m.id}>
+                          {c.title} → {m.title}
+                        </SelectItem>
+                      ))
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="text-sm text-muted-foreground">
+              Moving: {Array.from(selectedLessonIds).map((id) => {
+                const allLessons = Object.values(lessons).flat();
+                const lesson = allLessons.find((l) => l.id === id);
+                return lesson?.title;
+              }).filter(Boolean).join(', ')}
+            </div>
+
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => { setMoveDialogOpen(false); clearSelection(); }}>
+                Cancel
+              </Button>
+              <Button
+                onClick={bulkMoveLessons}
+                disabled={!moveTargetModuleId || movingLessons}
+                className="gap-2"
+              >
+                {movingLessons ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRightLeft className="h-4 w-4" />}
+                Move Lessons
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
