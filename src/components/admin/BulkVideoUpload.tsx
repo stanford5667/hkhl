@@ -179,6 +179,7 @@ export function BulkVideoUpload({ moduleId, existingLessonCount, onComplete }: B
   };
 
   return (
+    <>
     <Dialog
       open={open}
       onOpenChange={(v) => {
