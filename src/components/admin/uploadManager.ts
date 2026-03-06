@@ -239,14 +239,13 @@ function tusUpload(
   onProgress: (pct: number) => void,
 ): Promise<string> {
   return new Promise(async (resolve, reject) => {
-    const { data: { session } } = await supabase.auth.getSession();
-    const token = session?.access_token ?? SUPABASE_ANON_KEY;
+    const token = await getAuthToken();
     const chunkSize = Math.min(file.size, 150 * 1024 * 1024);
 
     const upload = new tus.Upload(file, {
       endpoint: `${SUPABASE_URL}/storage/v1/upload/resumable`,
-      retryDelays: [0, 1000, 3000, 5000],
-      headers: { authorization: `Bearer ${token}`, 'x-upsert': 'false' },
+      retryDelays: [0, 1000, 3000, 5000, 10000],
+      headers: { authorization: `Bearer ${token}`, 'x-upsert': 'true' },
       uploadDataDuringCreation: true,
       removeFingerprintOnSuccess: true,
       metadata: {
@@ -256,6 +255,16 @@ function tusUpload(
         cacheControl: '3600',
       },
       chunkSize,
+      onShouldRetry: (err, retryAttempt, options) => {
+        console.warn(`[UploadManager] TUS retry #${retryAttempt}`, err);
+        // Refresh token on auth errors before retry
+        getAuthToken().then((newToken) => {
+          if (options.headers) {
+            options.headers.authorization = `Bearer ${newToken}`;
+          }
+        });
+        return retryAttempt < 5;
+      },
       onError: (error) => reject(error),
       onProgress: (bytesUploaded, bytesTotal) => onProgress((bytesUploaded / bytesTotal) * 100),
       onSuccess: () => {
