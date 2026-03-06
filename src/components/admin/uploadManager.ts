@@ -308,6 +308,10 @@ async function uploadSingleFile(
       ? existingLessonCount + item.parsedOrder
       : existingLessonCount + currentQueue.indexOf(item) + 1;
 
+    // Refresh the session before DB insert — uploads can take long enough
+    // for the JWT to expire, causing RLS violations with the anon key.
+    await supabase.auth.refreshSession();
+
     const { error: insertError } = await supabase
       .from('course_lessons')
       .insert({
