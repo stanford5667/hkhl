@@ -188,12 +188,17 @@ function parseFilename(filename: string): { title: string; order: number } {
 }
 
 async function getAuthToken(): Promise<string> {
-  await supabase.auth.refreshSession();
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session?.access_token) {
-    console.warn('[UploadManager] No authenticated session, using anon key');
+  // Try refreshing the session first
+  const { data: refreshData } = await supabase.auth.refreshSession();
+  if (refreshData?.session?.access_token) {
+    return refreshData.session.access_token;
   }
-  return session?.access_token ?? SUPABASE_ANON_KEY;
+  // Fallback: maybe refresh failed but session is still valid
+  const { data: { session } } = await supabase.auth.getSession();
+  if (session?.access_token) {
+    return session.access_token;
+  }
+  throw new Error('Your session has expired. Please log in again and retry the upload.');
 }
 
 function standardUpload(
