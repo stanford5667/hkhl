@@ -187,6 +187,15 @@ function parseFilename(filename: string): { title: string; order: number } {
   return { title, order: 0 };
 }
 
+async function getAuthToken(): Promise<string> {
+  await supabase.auth.refreshSession();
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session?.access_token) {
+    console.warn('[UploadManager] No authenticated session, using anon key');
+  }
+  return session?.access_token ?? SUPABASE_ANON_KEY;
+}
+
 function standardUpload(
   file: File,
   filePath: string,
@@ -194,8 +203,7 @@ function standardUpload(
 ): Promise<string> {
   return new Promise(async (resolve, reject) => {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const token = session?.access_token ?? SUPABASE_ANON_KEY;
+      const token = await getAuthToken();
 
       const xhr = new XMLHttpRequest();
       xhr.open('POST', `${SUPABASE_URL}/storage/v1/object/course-videos/${filePath}`, true);
@@ -203,7 +211,7 @@ function standardUpload(
       xhr.setRequestHeader('apikey', SUPABASE_ANON_KEY);
       xhr.setRequestHeader('Content-Type', file.type);
       xhr.setRequestHeader('Cache-Control', '3600');
-      xhr.setRequestHeader('x-upsert', 'false');
+      xhr.setRequestHeader('x-upsert', 'true');
 
       xhr.upload.addEventListener('progress', (e) => {
         if (e.lengthComputable) onProgress((e.loaded / e.total) * 100);
@@ -231,14 +239,13 @@ function tusUpload(
   onProgress: (pct: number) => void,
 ): Promise<string> {
   return new Promise(async (resolve, reject) => {
-    const { data: { session } } = await supabase.auth.getSession();
-    const token = session?.access_token ?? SUPABASE_ANON_KEY;
+    const token = await getAuthToken();
     const chunkSize = Math.min(file.size, 150 * 1024 * 1024);
 
     const upload = new tus.Upload(file, {
       endpoint: `${SUPABASE_URL}/storage/v1/upload/resumable`,
-      retryDelays: [0, 1000, 3000, 5000],
-      headers: { authorization: `Bearer ${token}`, 'x-upsert': 'false' },
+      retryDelays: [0, 1000, 3000, 5000, 10000],
+      headers: { authorization: `Bearer ${token}`, 'x-upsert': 'true' },
       uploadDataDuringCreation: true,
       removeFingerprintOnSuccess: true,
       metadata: {
@@ -248,6 +255,16 @@ function tusUpload(
         cacheControl: '3600',
       },
       chunkSize,
+      onShouldRetry: (err, retryAttempt, options) => {
+        console.warn(`[UploadManager] TUS retry #${retryAttempt}`, err);
+        // Refresh token on auth errors before retry
+        getAuthToken().then((newToken) => {
+          if (options.headers) {
+            options.headers.authorization = `Bearer ${newToken}`;
+          }
+        });
+        return retryAttempt < 5;
+      },
       onError: (error) => reject(error),
       onProgress: (bytesUploaded, bytesTotal) => onProgress((bytesUploaded / bytesTotal) * 100),
       onSuccess: () => {
