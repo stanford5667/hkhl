@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, useEffect, useSyncExternalStore } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Progress } from '@/components/ui/progress';
@@ -12,6 +12,16 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import {
   Table,
   TableBody,
   TableCell,
@@ -19,8 +29,9 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Upload, CheckCircle, XCircle, Loader2, FileVideo } from 'lucide-react';
+import { Upload, CheckCircle, XCircle, Loader2, FileVideo, AlertTriangle } from 'lucide-react';
 import { uploadManager, type QueuedFile, type FileStatus } from './uploadManager';
+import { supabase } from '@/integrations/supabase/client';
 
 interface BulkVideoUploadProps {
   moduleId: string;
@@ -50,8 +61,94 @@ export function BulkVideoUpload({ moduleId, existingLessonCount, onComplete }: B
   const queue = useUploadQueue();
   const isUploading = uploadManager.getIsUploading();
 
-  const addFiles = useCallback((files: FileList | File[]) => {
+  const [duplicateFiles, setDuplicateFiles] = useState<QueuedFile[]>([]);
+  const [showDuplicateAlert, setShowDuplicateAlert] = useState(false);
+  const [pendingNonDuplicates, setPendingNonDuplicates] = useState<File[]>([]);
+
+  const addFiles = useCallback(async (files: FileList | File[]) => {
+    // Fetch existing lesson titles in this module
+    const { data: existingLessons } = await supabase
+      .from('course_lessons')
+      .select('title')
+      .eq('module_id', moduleId);
+
+    const existingTitles = new Set(
+      (existingLessons || []).map((l) => l.title.toLowerCase().trim())
+    );
+
+    // Also check titles already in the queue
+    const queueTitles = new Set(
+      queue.map((q) => q.parsedTitle.toLowerCase().trim())
+    );
+
+    const dupes: File[] = [];
+    const nonDupes: File[] = [];
+
+    for (const file of Array.from(files)) {
+      if (!file.type.startsWith('video/')) continue;
+      const nameWithoutExt = file.name.replace(/\.[^/.]+$/, '');
+      const match = nameWithoutExt.match(/^(\d+)\s*[-_.\s]\s*(.+)$/);
+      const rawTitle = match
+        ? match[2].replace(/[-_]/g, ' ').trim()
+        : nameWithoutExt.replace(/[-_]/g, ' ').trim();
+      const parsedTitle = rawTitle
+        .split(/\s+/)
+        .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+        .join(' ');
+
+      if (existingTitles.has(parsedTitle.toLowerCase()) || queueTitles.has(parsedTitle.toLowerCase())) {
+        dupes.push(file);
+      } else {
+        nonDupes.push(file);
+      }
+    }
+
+    // Add non-duplicates immediately
+    if (nonDupes.length > 0) {
+      uploadManager.addFiles(nonDupes);
+    }
+
+    // If duplicates found, ask user
+    if (dupes.length > 0) {
+      setPendingNonDuplicates([]); // not needed but reset
+      // Build temp QueuedFile objects for display
+      const dupeItems: QueuedFile[] = dupes.map((f) => {
+        const nameWithoutExt = f.name.replace(/\.[^/.]+$/, '');
+        const match = nameWithoutExt.match(/^(\d+)\s*[-_.\s]\s*(.+)$/);
+        const rawTitle = match
+          ? match[2].replace(/[-_]/g, ' ').trim()
+          : nameWithoutExt.replace(/[-_]/g, ' ').trim();
+        const parsedTitle = rawTitle
+          .split(/\s+/)
+          .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+          .join(' ');
+        return {
+          file: f,
+          id: crypto.randomUUID(),
+          parsedTitle,
+          parsedOrder: 0,
+          status: 'pending' as FileStatus,
+          progress: 0,
+          compressionProgress: 0,
+          isDuplicate: true,
+        };
+      });
+      setDuplicateFiles(dupeItems);
+      setShowDuplicateAlert(true);
+    }
+  }, [moduleId, queue]);
+
+  const handleConfirmDuplicates = useCallback(() => {
+    // User chose to upload duplicates anyway
+    const files = duplicateFiles.map((d) => d.file);
     uploadManager.addFiles(files);
+    setShowDuplicateAlert(false);
+    setDuplicateFiles([]);
+  }, [duplicateFiles]);
+
+  const handleSkipDuplicates = useCallback(() => {
+    setShowDuplicateAlert(false);
+    setDuplicateFiles([]);
   }, []);
 
   const handleDrop = useCallback(
@@ -82,6 +179,7 @@ export function BulkVideoUpload({ moduleId, existingLessonCount, onComplete }: B
   };
 
   return (
+    <>
     <Dialog
       open={open}
       onOpenChange={(v) => {
@@ -236,5 +334,37 @@ export function BulkVideoUpload({ moduleId, existingLessonCount, onComplete }: B
         )}
       </DialogContent>
     </Dialog>
+
+      {/* Duplicate detection alert */}
+      <AlertDialog open={showDuplicateAlert} onOpenChange={setShowDuplicateAlert}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-amber-500" />
+              Duplicate Videos Detected
+            </AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div>
+                <p className="mb-3">
+                  {duplicateFiles.length === 1
+                    ? 'This video already exists in the module:'
+                    : `These ${duplicateFiles.length} videos already exist in the module:`}
+                </p>
+                <ul className="list-disc pl-5 space-y-1 text-sm">
+                  {duplicateFiles.map((d) => (
+                    <li key={d.id} className="text-foreground font-medium">{d.parsedTitle}</li>
+                  ))}
+                </ul>
+                <p className="mt-3">Do you want to upload them anyway?</p>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={handleSkipDuplicates}>Skip Duplicates</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmDuplicates}>Upload Anyway</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }

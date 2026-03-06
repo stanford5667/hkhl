@@ -19,6 +19,8 @@ export interface QueuedFile {
   compressionProgress: number;
   compressedSize?: number;
   error?: string;
+  isDuplicate?: boolean;
+  duplicateConfirmed?: boolean;
 }
 
 type Listener = (queue: QueuedFile[]) => void;
