@@ -61,24 +61,95 @@ export function BulkVideoUpload({ moduleId, existingLessonCount, onComplete }: B
   const queue = useUploadQueue();
   const isUploading = uploadManager.getIsUploading();
 
-  const addFiles = useCallback((files: FileList | File[]) => {
+  const [duplicateFiles, setDuplicateFiles] = useState<QueuedFile[]>([]);
+  const [showDuplicateAlert, setShowDuplicateAlert] = useState(false);
+  const [pendingNonDuplicates, setPendingNonDuplicates] = useState<File[]>([]);
+
+  const addFiles = useCallback(async (files: FileList | File[]) => {
+    // Fetch existing lesson titles in this module
+    const { data: existingLessons } = await supabase
+      .from('course_lessons')
+      .select('title')
+      .eq('module_id', moduleId);
+
+    const existingTitles = new Set(
+      (existingLessons || []).map((l) => l.title.toLowerCase().trim())
+    );
+
+    // Also check titles already in the queue
+    const queueTitles = new Set(
+      queue.map((q) => q.parsedTitle.toLowerCase().trim())
+    );
+
+    const dupes: File[] = [];
+    const nonDupes: File[] = [];
+
+    for (const file of Array.from(files)) {
+      if (!file.type.startsWith('video/')) continue;
+      const nameWithoutExt = file.name.replace(/\.[^/.]+$/, '');
+      const match = nameWithoutExt.match(/^(\d+)\s*[-_.\s]\s*(.+)$/);
+      const rawTitle = match
+        ? match[2].replace(/[-_]/g, ' ').trim()
+        : nameWithoutExt.replace(/[-_]/g, ' ').trim();
+      const parsedTitle = rawTitle
+        .split(/\s+/)
+        .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+        .join(' ');
+
+      if (existingTitles.has(parsedTitle.toLowerCase()) || queueTitles.has(parsedTitle.toLowerCase())) {
+        dupes.push(file);
+      } else {
+        nonDupes.push(file);
+      }
+    }
+
+    // Add non-duplicates immediately
+    if (nonDupes.length > 0) {
+      uploadManager.addFiles(nonDupes);
+    }
+
+    // If duplicates found, ask user
+    if (dupes.length > 0) {
+      setPendingNonDuplicates([]); // not needed but reset
+      // Build temp QueuedFile objects for display
+      const dupeItems: QueuedFile[] = dupes.map((f) => {
+        const nameWithoutExt = f.name.replace(/\.[^/.]+$/, '');
+        const match = nameWithoutExt.match(/^(\d+)\s*[-_.\s]\s*(.+)$/);
+        const rawTitle = match
+          ? match[2].replace(/[-_]/g, ' ').trim()
+          : nameWithoutExt.replace(/[-_]/g, ' ').trim();
+        const parsedTitle = rawTitle
+          .split(/\s+/)
+          .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+          .join(' ');
+        return {
+          file: f,
+          id: crypto.randomUUID(),
+          parsedTitle,
+          parsedOrder: 0,
+          status: 'pending' as FileStatus,
+          progress: 0,
+          compressionProgress: 0,
+          isDuplicate: true,
+        };
+      });
+      setDuplicateFiles(dupeItems);
+      setShowDuplicateAlert(true);
+    }
+  }, [moduleId, queue]);
+
+  const handleConfirmDuplicates = useCallback(() => {
+    // User chose to upload duplicates anyway
+    const files = duplicateFiles.map((d) => d.file);
     uploadManager.addFiles(files);
+    setShowDuplicateAlert(false);
+    setDuplicateFiles([]);
+  }, [duplicateFiles]);
+
+  const handleSkipDuplicates = useCallback(() => {
+    setShowDuplicateAlert(false);
+    setDuplicateFiles([]);
   }, []);
-
-  const handleDrop = useCallback(
-    (e: React.DragEvent) => {
-      e.preventDefault();
-      addFiles(e.dataTransfer.files);
-    },
-    [addFiles],
-  );
-
-  const handleUploadAll = () => {
-    uploadManager.startUpload(moduleId, existingLessonCount, compressEnabled, onComplete);
-  };
-
-  const statusIcon = (status: FileStatus) => {
-    switch (status) {
       case 'done':
         return <CheckCircle className="h-4 w-4 text-green-500" />;
       case 'error':
