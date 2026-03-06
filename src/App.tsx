@@ -172,7 +172,8 @@ const App = () => {
                             </Routes>
                           </Suspense>
                         </Layout>
-                        <DevModeToggle />
+                    <DevModeToggle />
+                        <GlobalUploadProgress />
                       </OnboardingFlow>
                       <UpgradeModal 
                         isOpen={!!upgradeFeature}
