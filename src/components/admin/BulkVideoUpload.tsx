@@ -333,5 +333,37 @@ export function BulkVideoUpload({ moduleId, existingLessonCount, onComplete }: B
         )}
       </DialogContent>
     </Dialog>
+
+      {/* Duplicate detection alert */}
+      <AlertDialog open={showDuplicateAlert} onOpenChange={setShowDuplicateAlert}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-amber-500" />
+              Duplicate Videos Detected
+            </AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div>
+                <p className="mb-3">
+                  {duplicateFiles.length === 1
+                    ? 'This video already exists in the module:'
+                    : `These ${duplicateFiles.length} videos already exist in the module:`}
+                </p>
+                <ul className="list-disc pl-5 space-y-1 text-sm">
+                  {duplicateFiles.map((d) => (
+                    <li key={d.id} className="text-foreground font-medium">{d.parsedTitle}</li>
+                  ))}
+                </ul>
+                <p className="mt-3">Do you want to upload them anyway?</p>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={handleSkipDuplicates}>Skip Duplicates</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmDuplicates}>Upload Anyway</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }
