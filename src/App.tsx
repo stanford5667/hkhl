@@ -19,6 +19,7 @@ import { ErrorBoundary } from "@/components/shared/ErrorBoundary";
 // ScrollToTop removed - using useGlobalScrollPersistence in Layout instead
 import { UpgradeModal } from "@/components/premium/UpgradeModal";
 import { ThemeProvider } from "@/components/theme/ThemeProvider";
+import { GlobalUploadProgress } from "@/components/admin/GlobalUploadProgress";
 // Lazy load all pages for code splitting
 const Pipeline = lazy(() => import('./pages/Pipeline'));
 const Models = lazy(() => import('./pages/Models'));
