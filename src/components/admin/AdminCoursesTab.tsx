@@ -1133,6 +1133,60 @@ export function AdminCoursesTab() {
           ))}
         </div>
       )}
+      {/* Bulk Move Dialog */}
+      <Dialog open={moveDialogOpen} onOpenChange={(open) => { setMoveDialogOpen(open); if (!open) setMoveTargetModuleId(''); }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Move Lessons to Another Module</DialogTitle>
+            <DialogDescription>
+              Select a target module to move {selectedLessonIds.size} lesson{selectedLessonIds.size > 1 ? 's' : ''} to.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label>Target Module</Label>
+              <Select value={moveTargetModuleId} onValueChange={setMoveTargetModuleId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a module…" />
+                </SelectTrigger>
+                <SelectContent>
+                  {courses.map((c) => (
+                    (modules[c.id] || [])
+                      .filter((m) => m.id !== selectionSourceModuleId)
+                      .map((m) => (
+                        <SelectItem key={m.id} value={m.id}>
+                          {c.title} → {m.title}
+                        </SelectItem>
+                      ))
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="text-sm text-muted-foreground">
+              Moving: {Array.from(selectedLessonIds).map((id) => {
+                const allLessons = Object.values(lessons).flat();
+                const lesson = allLessons.find((l) => l.id === id);
+                return lesson?.title;
+              }).filter(Boolean).join(', ')}
+            </div>
+
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => { setMoveDialogOpen(false); clearSelection(); }}>
+                Cancel
+              </Button>
+              <Button
+                onClick={bulkMoveLessons}
+                disabled={!moveTargetModuleId || movingLessons}
+                className="gap-2"
+              >
+                {movingLessons ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRightLeft className="h-4 w-4" />}
+                Move Lessons
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
