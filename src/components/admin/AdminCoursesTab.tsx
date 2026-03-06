@@ -386,6 +386,79 @@ export function AdminCoursesTab() {
     }
   };
 
+  // Bulk lesson selection helpers
+  const toggleLessonSelection = (lessonId: string, moduleId: string) => {
+    setSelectedLessonIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(lessonId)) {
+        next.delete(lessonId);
+      } else {
+        next.add(lessonId);
+      }
+      // Track source module
+      if (next.size > 0) setSelectionSourceModuleId(moduleId);
+      else setSelectionSourceModuleId(null);
+      return next;
+    });
+  };
+
+  const toggleAllInModule = (moduleId: string) => {
+    const moduleLessons = lessons[moduleId] || [];
+    const allSelected = moduleLessons.every((l) => selectedLessonIds.has(l.id));
+    setSelectedLessonIds((prev) => {
+      const next = new Set(prev);
+      moduleLessons.forEach((l) => {
+        if (allSelected) next.delete(l.id);
+        else next.add(l.id);
+      });
+      if (next.size > 0) setSelectionSourceModuleId(moduleId);
+      else setSelectionSourceModuleId(null);
+      return next;
+    });
+  };
+
+  const clearSelection = () => {
+    setSelectedLessonIds(new Set());
+    setSelectionSourceModuleId(null);
+  };
+
+  // All modules across all courses for the move target picker
+  const allModules = Object.values(modules).flat();
+
+  const bulkMoveLessons = async () => {
+    if (!moveTargetModuleId || selectedLessonIds.size === 0) return;
+    setMovingLessons(true);
+
+    try {
+      // Get existing lesson count in target module for order_index
+      const targetLessons = lessons[moveTargetModuleId] || [];
+      let nextOrder = targetLessons.length;
+
+      const ids = Array.from(selectedLessonIds);
+      for (const id of ids) {
+        const { error } = await supabase
+          .from('course_lessons')
+          .update({ module_id: moveTargetModuleId, order_index: nextOrder++ })
+          .eq('id', id);
+        if (error) throw error;
+      }
+
+      toast({ title: 'Success', description: `Moved ${ids.length} lesson(s)` });
+      setMoveDialogOpen(false);
+      clearSelection();
+      setMoveTargetModuleId('');
+
+      // Refresh affected modules
+      if (selectionSourceModuleId) await fetchLessons(selectionSourceModuleId);
+      await fetchLessons(moveTargetModuleId);
+    } catch (err) {
+      console.error('Error moving lessons:', err);
+      toast({ title: 'Error', description: 'Failed to move lessons', variant: 'destructive' });
+    } finally {
+      setMovingLessons(false);
+    }
+  };
+
   // Reset forms
   const resetCourseForm = () => {
     setEditingCourse(null);
