@@ -1003,7 +1003,7 @@ export function AdminCoursesTab() {
                       </AccordionTrigger>
                       <AccordionContent>
                         <div className="pl-7 space-y-2">
-                          <div className="flex items-center gap-2 mb-3">
+                          <div className="flex items-center gap-2 mb-3 flex-wrap">
                             <Button
                               variant="outline"
                               size="sm"
@@ -1025,6 +1025,33 @@ export function AdminCoursesTab() {
                               existingLessonCount={(lessons[module.id] || []).length}
                               onComplete={() => fetchLessons(module.id)}
                             />
+                            {(lessons[module.id] || []).length > 0 && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => toggleAllInModule(module.id)}
+                                className="gap-1"
+                              >
+                                <CheckCircle className="h-3 w-3" />
+                                {(lessons[module.id] || []).every((l) => selectedLessonIds.has(l.id))
+                                  ? 'Deselect All'
+                                  : 'Select All'}
+                              </Button>
+                            )}
+                            {selectedLessonIds.size > 0 && selectionSourceModuleId === module.id && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  setMoveTargetModuleId('');
+                                  setMoveDialogOpen(true);
+                                }}
+                                className="gap-1 text-primary"
+                              >
+                                <ArrowRightLeft className="h-3 w-3" />
+                                Move {selectedLessonIds.size} Lesson{selectedLessonIds.size > 1 ? 's' : ''}
+                              </Button>
+                            )}
                             <Button
                               variant="default"
                               size="sm"
@@ -1039,9 +1066,17 @@ export function AdminCoursesTab() {
                           {(lessons[module.id] || []).map((lesson) => (
                             <div
                               key={lesson.id}
-                              className="flex items-center justify-between p-3 rounded-lg bg-muted/50 border"
+                              className={`flex items-center justify-between p-3 rounded-lg border ${
+                                selectedLessonIds.has(lesson.id)
+                                  ? 'bg-primary/10 border-primary/30'
+                                  : 'bg-muted/50'
+                              }`}
                             >
                               <div className="flex items-center gap-3">
+                                <Checkbox
+                                  checked={selectedLessonIds.has(lesson.id)}
+                                  onCheckedChange={() => toggleLessonSelection(lesson.id, module.id)}
+                                />
                                 <GripVertical className="h-4 w-4 text-muted-foreground cursor-grab" />
                                 {lesson.video_url ? (
                                   <Video className="h-4 w-4 text-primary" />
