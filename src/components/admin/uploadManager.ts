@@ -272,6 +272,7 @@ async function uploadSingleFile(
   compressEnabled: boolean,
 ): Promise<boolean> {
   try {
+    console.log(`[UploadManager] Starting file: "${item.parsedTitle}" (${(item.file.size / 1024 / 1024).toFixed(1)} MB)`);
     let fileToUpload = item.file;
     let ext = '';
 
@@ -285,8 +286,9 @@ async function uploadSingleFile(
         updateItem(item.id, { compressedSize });
         fileToUpload = compressedFile;
         ext = '.mp4';
+        console.log(`[UploadManager] Compressed "${item.parsedTitle}": ${(compressedSize / 1024 / 1024).toFixed(1)} MB`);
       } catch (compressErr) {
-        console.warn('Compression failed, uploading original file:', compressErr);
+        console.warn('[UploadManager] Compression failed, uploading original file:', compressErr);
         fileToUpload = item.file;
         ext = '';
       }
@@ -294,8 +296,12 @@ async function uploadSingleFile(
 
     updateItem(item.id, { status: 'uploading', progress: 0 });
     const timestamp = Date.now();
-    const sanitizedName = item.file.name.replace(/[^a-zA-Z0-9._-]/g, '_') + (ext ? ext.replace(/\.[^/.]+$/, '') : '');
-    const filePath = `lessons/${timestamp}-${sanitizedName}`;
+    const randomSuffix = Math.random().toString(36).substring(2, 8);
+    const sanitizedName = item.file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+    const finalExt = ext || '';
+    const filePath = `lessons/${timestamp}-${randomSuffix}-${sanitizedName}${finalExt}`;
+
+    console.log(`[UploadManager] Uploading to path: ${filePath} (${(fileToUpload.size / 1024 / 1024).toFixed(1)} MB)`);
 
     const publicUrl = await doUploadFile(
       fileToUpload,
@@ -303,14 +309,19 @@ async function uploadSingleFile(
       (pct) => updateItem(item.id, { progress: pct }),
     );
 
+    console.log(`[UploadManager] Upload complete: "${item.parsedTitle}" → ${publicUrl.substring(0, 80)}...`);
+
     const currentQueue = queue;
+    const queueIndex = currentQueue.findIndex((f) => f.id === item.id);
     const orderIndex = item.parsedOrder > 0
       ? existingLessonCount + item.parsedOrder
-      : existingLessonCount + currentQueue.indexOf(item) + 1;
+      : existingLessonCount + (queueIndex >= 0 ? queueIndex : 0) + 1;
 
     // Refresh the session before DB insert — uploads can take long enough
     // for the JWT to expire, causing RLS violations with the anon key.
     await supabase.auth.refreshSession();
+
+    console.log(`[UploadManager] Inserting lesson: "${item.parsedTitle}" order=${orderIndex} module=${moduleId}`);
 
     const { error: insertError } = await supabase
       .from('course_lessons')
@@ -323,13 +334,16 @@ async function uploadSingleFile(
       });
 
     if (insertError) {
+      console.error(`[UploadManager] DB insert FAILED for "${item.parsedTitle}":`, insertError);
       updateItem(item.id, { status: 'error', progress: 0, error: insertError.message });
       return false;
     }
 
+    console.log(`[UploadManager] ✅ Done: "${item.parsedTitle}"`);
     updateItem(item.id, { status: 'done', progress: 100 });
     return true;
   } catch (err: any) {
+    console.error(`[UploadManager] ❌ FAILED "${item.parsedTitle}":`, err);
     updateItem(item.id, { status: 'error', progress: 0, error: err.message });
     return false;
   }
