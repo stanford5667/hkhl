@@ -1,13 +1,14 @@
 /**
  * Module-level upload manager that persists across React component mounts/unmounts.
  * Uploads continue even when the user navigates away from the admin page.
+ * Supports pause, resume, and stop (cancel) operations.
  */
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import * as tus from 'tus-js-client';
 import { compressVideo } from './videoCompression';
 
-export type FileStatus = 'pending' | 'compressing' | 'uploading' | 'done' | 'error';
+export type FileStatus = 'pending' | 'compressing' | 'uploading' | 'done' | 'error' | 'cancelled' | 'paused';
 
 export interface QueuedFile {
   file: File;
@@ -34,6 +35,8 @@ const CONCURRENCY = 3;
 // ── Singleton state ──────────────────────────────────────────────
 let queue: QueuedFile[] = [];
 let isUploading = false;
+let isPaused = false;
+let isStopped = false;
 let listeners: Listener[] = [];
 let activeWorkerCount = 0;
 let successCount = 0;
@@ -44,8 +47,11 @@ let currentModuleId = '';
 let currentExistingLessonCount = 0;
 let currentCompressEnabled = false;
 
+// Track active upload handles so we can abort them
+let activeXHRs: Map<string, XMLHttpRequest> = new Map();
+let activeTusUploads: Map<string, tus.Upload> = new Map();
+
 function notify() {
-  // Snapshot so React sees a new array ref
   const snapshot = [...queue];
   listeners.forEach((l) => l(snapshot));
 }
@@ -59,7 +65,6 @@ function updateItem(id: string, updates: Partial<QueuedFile>) {
 export const uploadManager = {
   subscribe(listener: Listener) {
     listeners.push(listener);
-    // Immediately send current state
     listener([...queue]);
     return () => {
       listeners = listeners.filter((l) => l !== listener);
@@ -72,6 +77,10 @@ export const uploadManager = {
 
   getIsUploading(): boolean {
     return isUploading;
+  },
+
+  getIsPaused(): boolean {
+    return isPaused;
   },
 
   addFiles(files: FileList | File[]) {
@@ -99,8 +108,7 @@ export const uploadManager = {
     queue = [...queue, ...newFiles];
     notify();
 
-    // Auto-spawn workers for new files if upload is already in progress
-    if (isUploading && newFiles.length > 0) {
+    if (isUploading && !isPaused && newFiles.length > 0) {
       ensureWorkers();
       toast.info(`${newFiles.length} new video(s) queued — uploading now.`);
     }
@@ -123,8 +131,98 @@ export const uploadManager = {
   resetQueue() {
     if (!isUploading) {
       queue = [];
+      activeXHRs.clear();
+      activeTusUploads.clear();
       notify();
     }
+  },
+
+  /** Pause all uploads. Active uploads are aborted and reset to pending so they can be resumed. */
+  pause() {
+    if (!isUploading || isPaused) return;
+    isPaused = true;
+    console.log('[UploadManager] Pausing uploads...');
+
+    // Abort all active XHRs
+    for (const [id, xhr] of activeXHRs) {
+      xhr.abort();
+      updateItem(id, { status: 'paused', progress: 0 });
+    }
+    activeXHRs.clear();
+
+    // Abort all active TUS uploads
+    for (const [id, upload] of activeTusUploads) {
+      upload.abort();
+      // TUS uploads can resume, so keep their progress
+      const item = queue.find((f) => f.id === id);
+      updateItem(id, { status: 'paused' });
+    }
+    activeTusUploads.clear();
+
+    // Mark any compressing files as paused too
+    queue.forEach((f) => {
+      if (f.status === 'compressing') {
+        updateItem(f.id, { status: 'paused', compressionProgress: 0 });
+      }
+    });
+
+    activeWorkerCount = 0;
+    toast.info('Uploads paused', { id: currentToastId });
+    notify();
+  },
+
+  /** Resume paused uploads */
+  resume() {
+    if (!isUploading || !isPaused) return;
+    isPaused = false;
+    isStopped = false;
+    console.log('[UploadManager] Resuming uploads...');
+
+    // Move paused items back to pending
+    queue = queue.map((f) =>
+      f.status === 'paused' ? { ...f, status: 'pending' as FileStatus, progress: 0, compressionProgress: 0 } : f,
+    );
+    notify();
+
+    toast.loading('Resuming uploads…', { id: currentToastId });
+    ensureWorkers();
+  },
+
+  /** Stop all uploads. Cancels everything and resets the queue. */
+  stop() {
+    console.log('[UploadManager] Stopping all uploads...');
+    isStopped = true;
+    isPaused = false;
+
+    // Abort all active XHRs
+    for (const [id, xhr] of activeXHRs) {
+      xhr.abort();
+    }
+    activeXHRs.clear();
+
+    // Abort all active TUS uploads
+    for (const [id, upload] of activeTusUploads) {
+      upload.abort();
+    }
+    activeTusUploads.clear();
+
+    // Mark non-done items as cancelled
+    queue = queue.map((f) =>
+      f.status !== 'done' && f.status !== 'error'
+        ? { ...f, status: 'cancelled' as FileStatus, progress: 0, compressionProgress: 0 }
+        : f,
+    );
+
+    activeWorkerCount = 0;
+    isUploading = false;
+    notify();
+
+    const msg = successCount > 0
+      ? `Upload stopped. ${successCount} video(s) completed before cancellation.`
+      : 'Upload cancelled.';
+    toast.info(msg, { id: currentToastId });
+
+    if (currentOnAllComplete) currentOnAllComplete();
   },
 
   async startUpload(
@@ -134,10 +232,16 @@ export const uploadManager = {
     onAllComplete: () => void,
   ) {
     if (isUploading) {
-      ensureWorkers();
+      if (isPaused) {
+        this.resume();
+      } else {
+        ensureWorkers();
+      }
       return;
     }
     isUploading = true;
+    isPaused = false;
+    isStopped = false;
     activeWorkerCount = 0;
     successCount = 0;
     errorCount = 0;
@@ -155,9 +259,9 @@ export const uploadManager = {
 
 // ── Ensure enough workers are running ────────────────────────────
 function ensureWorkers() {
+  if (isPaused || isStopped) return;
   const pendingCount = queue.filter((f) => f.status === 'pending').length;
   const neededWorkers = Math.min(pendingCount, CONCURRENCY) - activeWorkerCount;
-  console.log(`[UploadManager] ensureWorkers: pending=${pendingCount}, active=${activeWorkerCount}, spawning=${neededWorkers}`);
   for (let i = 0; i < neededWorkers; i++) {
     spawnWorker();
   }
@@ -166,30 +270,28 @@ function ensureWorkers() {
 // ── Worker spawner ───────────────────────────────────────────────
 function spawnWorker() {
   activeWorkerCount++;
-  console.log(`[UploadManager] Worker spawned. activeWorkerCount=${activeWorkerCount}`);
   const run = async () => {
     while (true) {
+      if (isPaused || isStopped) break;
       const next = queue.find((f) => f.status === 'pending');
       if (!next) break;
-      console.log(`[UploadManager] Worker claimed: "${next.parsedTitle}"`);
       updateItem(next.id, { status: 'compressing' });
       const ok = await uploadSingleFile(next, currentModuleId, currentExistingLessonCount, currentCompressEnabled);
+      if (isPaused || isStopped) break;
       if (ok) successCount++;
       else errorCount++;
       const remaining = queue.filter((f) => f.status === 'pending').length;
-      toast.loading(
-        `Uploading videos… ${successCount} done, ${remaining} remaining`,
-        { id: currentToastId },
-      );
+      if (!isPaused && !isStopped) {
+        toast.loading(
+          `Uploading videos… ${successCount} done, ${remaining} remaining`,
+          { id: currentToastId },
+        );
+      }
     }
     activeWorkerCount--;
-    console.log(`[UploadManager] Worker exited. activeWorkerCount=${activeWorkerCount}`);
-    // Last worker finishing marks completion
-    if (activeWorkerCount <= 0) {
-      // Check one more time for stragglers before declaring done
+    if (activeWorkerCount <= 0 && !isPaused && !isStopped) {
       const stragglers = queue.filter((f) => f.status === 'pending').length;
       if (stragglers > 0) {
-        console.log(`[UploadManager] Found ${stragglers} stragglers, re-spawning workers`);
         ensureWorkers();
         return;
       }
@@ -203,10 +305,10 @@ function spawnWorker() {
       }
     }
   };
-  run(); // fire-and-forget
+  run();
 }
 
-// ── Upload helpers (unchanged logic, just module-scoped) ─────────
+// ── Upload helpers ───────────────────────────────────────────────
 
 function parseFilename(filename: string): { title: string; order: number } {
   const nameWithoutExt = filename.replace(/\.[^/.]+$/, '');
@@ -214,39 +316,25 @@ function parseFilename(filename: string): { title: string; order: number } {
   if (match) {
     const order = parseInt(match[1], 10);
     const rawTitle = match[2].replace(/[-_]/g, ' ').trim();
-    const title = rawTitle
-      .split(/\s+/)
-      .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
-      .join(' ');
+    const title = rawTitle.split(/\s+/).map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
     return { title, order };
   }
   const rawTitle = nameWithoutExt.replace(/[-_]/g, ' ').trim();
-  const title = rawTitle
-    .split(/\s+/)
-    .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
-    .join(' ');
+  const title = rawTitle.split(/\s+/).map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
   return { title, order: 0 };
 }
 
 async function getAuthToken(): Promise<string> {
-  // Try refreshing the session first
   try {
     const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
-    if (refreshData?.session?.access_token) {
-      return refreshData.session.access_token;
-    }
-    if (refreshError) {
-      console.warn('[UploadManager] refreshSession failed:', refreshError.message);
-    }
+    if (refreshData?.session?.access_token) return refreshData.session.access_token;
+    if (refreshError) console.warn('[UploadManager] refreshSession failed:', refreshError.message);
   } catch (e) {
     console.warn('[UploadManager] refreshSession threw:', e);
   }
-  // Fallback: get current session (may still be valid)
   try {
     const { data: { session } } = await supabase.auth.getSession();
-    if (session?.access_token) {
-      return session.access_token;
-    }
+    if (session?.access_token) return session.access_token;
   } catch (e) {
     console.warn('[UploadManager] getSession threw:', e);
   }
@@ -256,13 +344,15 @@ async function getAuthToken(): Promise<string> {
 function standardUpload(
   file: File,
   filePath: string,
+  itemId: string,
   onProgress: (pct: number) => void,
 ): Promise<string> {
   return new Promise(async (resolve, reject) => {
     try {
       const token = await getAuthToken();
-
       const xhr = new XMLHttpRequest();
+      activeXHRs.set(itemId, xhr);
+
       xhr.open('POST', `${SUPABASE_URL}/storage/v1/object/course-videos/${filePath}`, true);
       xhr.setRequestHeader('Authorization', `Bearer ${token}`);
       xhr.setRequestHeader('apikey', SUPABASE_ANON_KEY);
@@ -274,6 +364,7 @@ function standardUpload(
         if (e.lengthComputable) onProgress((e.loaded / e.total) * 100);
       });
       xhr.addEventListener('load', () => {
+        activeXHRs.delete(itemId);
         if (xhr.status >= 200 && xhr.status < 300) {
           const { data } = supabase.storage.from('course-videos').getPublicUrl(filePath);
           resolve(data.publicUrl);
@@ -281,8 +372,8 @@ function standardUpload(
           reject(new Error(`Upload failed: ${xhr.status} ${xhr.responseText}`));
         }
       });
-      xhr.addEventListener('error', () => reject(new Error('Network error during upload')));
-      xhr.addEventListener('abort', () => reject(new Error('Upload aborted')));
+      xhr.addEventListener('error', () => { activeXHRs.delete(itemId); reject(new Error('Network error during upload')); });
+      xhr.addEventListener('abort', () => { activeXHRs.delete(itemId); reject(new Error('Upload paused or cancelled')); });
       xhr.send(file);
     } catch (err) {
       reject(err);
@@ -293,6 +384,7 @@ function standardUpload(
 function tusUpload(
   file: File,
   filePath: string,
+  itemId: string,
   onProgress: (pct: number) => void,
 ): Promise<string> {
   return new Promise(async (resolve, reject) => {
@@ -314,31 +406,30 @@ function tusUpload(
       chunkSize,
       onShouldRetry: (err, retryAttempt, options) => {
         console.warn(`[UploadManager] TUS retry #${retryAttempt}`, err);
-        // Refresh token on auth errors before retry
         getAuthToken().then((newToken) => {
-          if (options.headers) {
-            options.headers.authorization = `Bearer ${newToken}`;
-          }
+          if (options.headers) options.headers.authorization = `Bearer ${newToken}`;
         });
         return retryAttempt < 5;
       },
-      onError: (error) => reject(error),
+      onError: (error) => { activeTusUploads.delete(itemId); reject(error); },
       onProgress: (bytesUploaded, bytesTotal) => onProgress((bytesUploaded / bytesTotal) * 100),
       onSuccess: () => {
+        activeTusUploads.delete(itemId);
         const { data } = supabase.storage.from('course-videos').getPublicUrl(filePath);
         resolve(data.publicUrl);
       },
     });
 
+    activeTusUploads.set(itemId, upload);
     const previousUploads = await upload.findPreviousUploads();
     if (previousUploads.length > 0) upload.resumeFromPreviousUpload(previousUploads[0]);
     upload.start();
   });
 }
 
-function doUploadFile(file: File, filePath: string, onProgress: (pct: number) => void): Promise<string> {
-  if (file.size <= STANDARD_UPLOAD_LIMIT) return standardUpload(file, filePath, onProgress);
-  return tusUpload(file, filePath, onProgress);
+function doUploadFile(file: File, filePath: string, itemId: string, onProgress: (pct: number) => void): Promise<string> {
+  if (file.size <= STANDARD_UPLOAD_LIMIT) return standardUpload(file, filePath, itemId, onProgress);
+  return tusUpload(file, filePath, itemId, onProgress);
 }
 
 async function uploadSingleFile(
@@ -348,7 +439,8 @@ async function uploadSingleFile(
   compressEnabled: boolean,
 ): Promise<boolean> {
   try {
-    console.log(`[UploadManager] Starting file: "${item.parsedTitle}" (${(item.file.size / 1024 / 1024).toFixed(1)} MB)`);
+    if (isPaused || isStopped) return false;
+
     let fileToUpload = item.file;
     let ext = '';
 
@@ -359,16 +451,19 @@ async function uploadSingleFile(
           item.file,
           (pct) => updateItem(item.id, { compressionProgress: pct }),
         );
+        if (isPaused || isStopped) return false;
         updateItem(item.id, { compressedSize });
         fileToUpload = compressedFile;
         ext = '.mp4';
-        console.log(`[UploadManager] Compressed "${item.parsedTitle}": ${(compressedSize / 1024 / 1024).toFixed(1)} MB`);
       } catch (compressErr) {
-        console.warn('[UploadManager] Compression failed, uploading original file:', compressErr);
+        if (isPaused || isStopped) return false;
+        console.warn('[UploadManager] Compression failed, uploading original:', compressErr);
         fileToUpload = item.file;
         ext = '';
       }
     }
+
+    if (isPaused || isStopped) return false;
 
     updateItem(item.id, { status: 'uploading', progress: 0 });
     const timestamp = Date.now();
@@ -377,15 +472,14 @@ async function uploadSingleFile(
     const finalExt = ext || '';
     const filePath = `lessons/${timestamp}-${randomSuffix}-${sanitizedName}${finalExt}`;
 
-    console.log(`[UploadManager] Uploading to path: ${filePath} (${(fileToUpload.size / 1024 / 1024).toFixed(1)} MB)`);
-
     const publicUrl = await doUploadFile(
       fileToUpload,
       filePath,
+      item.id,
       (pct) => updateItem(item.id, { progress: pct }),
     );
 
-    console.log(`[UploadManager] Upload complete: "${item.parsedTitle}" → ${publicUrl.substring(0, 80)}...`);
+    if (isPaused || isStopped) return false;
 
     const currentQueue = queue;
     const queueIndex = currentQueue.findIndex((f) => f.id === item.id);
@@ -393,11 +487,7 @@ async function uploadSingleFile(
       ? existingLessonCount + item.parsedOrder
       : existingLessonCount + (queueIndex >= 0 ? queueIndex : 0) + 1;
 
-    // Refresh the session before DB insert — uploads can take long enough
-    // for the JWT to expire, causing RLS violations with the anon key.
     await supabase.auth.refreshSession();
-
-    console.log(`[UploadManager] Inserting lesson: "${item.parsedTitle}" order=${orderIndex} module=${moduleId}`);
 
     const { error: insertError } = await supabase
       .from('course_lessons')
@@ -410,15 +500,15 @@ async function uploadSingleFile(
       });
 
     if (insertError) {
-      console.error(`[UploadManager] DB insert FAILED for "${item.parsedTitle}":`, insertError);
       updateItem(item.id, { status: 'error', progress: 0, error: insertError.message });
       return false;
     }
 
-    console.log(`[UploadManager] ✅ Done: "${item.parsedTitle}"`);
     updateItem(item.id, { status: 'done', progress: 100 });
     return true;
   } catch (err: any) {
+    // Don't mark as error if we paused/stopped — it was intentional
+    if (isPaused || isStopped) return false;
     console.error(`[UploadManager] ❌ FAILED "${item.parsedTitle}":`, err);
     updateItem(item.id, { status: 'error', progress: 0, error: err.message });
     return false;
