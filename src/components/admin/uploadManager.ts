@@ -133,23 +133,8 @@ export const uploadManager = {
     compressEnabled: boolean,
     onAllComplete: () => void,
   ) {
-    // If already uploading, spawn additional workers for the new pending files
     if (isUploading) {
-      const newPending = queue.filter((f) => f.status === 'pending').length;
-      if (newPending > 0) {
-        const idleSlots = CONCURRENCY - activeWorkerCount;
-        const workersToSpawn = Math.min(newPending, Math.max(idleSlots, 0));
-        if (workersToSpawn > 0) {
-          toast.info(`${newPending} new video(s) queued — uploading now.`);
-          for (let i = 0; i < workersToSpawn; i++) {
-            spawnWorker(moduleId, existingLessonCount, compressEnabled);
-          }
-        } else {
-          toast.info(`${newPending} new video(s) queued — will start when a slot opens.`);
-        }
-      } else {
-        toast.info('New videos queued — they will be uploaded automatically.');
-      }
+      ensureWorkers();
       return;
     }
     isUploading = true;
@@ -164,11 +149,7 @@ export const uploadManager = {
     currentToastId = toast.loading('Uploading videos… You can navigate away safely.');
     currentOnAllComplete = onAllComplete;
 
-    const initialPending = queue.filter((f) => f.status === 'pending').length;
-    const workersToSpawn = Math.min(CONCURRENCY, Math.max(initialPending, 1));
-    for (let i = 0; i < workersToSpawn; i++) {
-      spawnWorker(moduleId, existingLessonCount, compressEnabled);
-    }
+    ensureWorkers();
   },
 };
 
