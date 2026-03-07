@@ -119,48 +119,53 @@ export const uploadManager = {
     compressEnabled: boolean,
     onAllComplete: () => void,
   ) {
-    if (isUploading) return;
+    // If already uploading, the new pending files will be picked up by
+    // the active workers automatically — no need to block.
+    if (isUploading) {
+      toast.info('New videos queued — they will be uploaded automatically.');
+      return;
+    }
     isUploading = true;
     notify();
 
-    // Show a persistent toast
     const toastId = toast.loading('Uploading videos… You can navigate away safely.');
 
-    const pending = queue.filter((f) => f.status !== 'done');
-    const alreadyDone = queue.length - pending.length;
-    let successCount = alreadyDone;
+    let successCount = queue.filter((f) => f.status === 'done').length;
     let errorCount = 0;
 
-    let index = 0;
+    // Worker pulls the next pending item from the live queue each iteration,
+    // so files added after startUpload() was called are picked up too.
     const worker = async () => {
-      while (index < pending.length) {
-        const current = pending[index++];
-        const ok = await uploadSingleFile(current, moduleId, existingLessonCount, compressEnabled);
+      while (true) {
+        const next = queue.find((f) => f.status === 'pending');
+        if (!next) break;
+        // Mark as compressing/uploading immediately so other workers skip it
+        updateItem(next.id, { status: 'compressing' });
+        const ok = await uploadSingleFile(next, moduleId, existingLessonCount, compressEnabled);
         if (ok) successCount++;
         else errorCount++;
-        // Update the persistent toast
+        const remaining = queue.filter((f) => f.status === 'pending').length;
         toast.loading(
-          `Uploading videos… ${successCount}/${successCount + errorCount + (pending.length - index)} complete`,
+          `Uploading videos… ${successCount} done, ${remaining} remaining`,
           { id: toastId },
         );
       }
     };
 
+    const initialPending = queue.filter((f) => f.status === 'pending').length;
     await Promise.all(
-      Array.from({ length: Math.min(CONCURRENCY, pending.length) }, () => worker()),
+      Array.from({ length: Math.min(CONCURRENCY, Math.max(initialPending, 1)) }, () => worker()),
     );
 
     isUploading = false;
     notify();
 
     toast.success(`${successCount} of ${successCount + errorCount} videos uploaded`, { id: toastId });
+    onAllComplete();
 
     if (errorCount === 0) {
-      onAllComplete();
       queue = [];
       notify();
-    } else {
-      onAllComplete();
     }
   },
 };
