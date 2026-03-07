@@ -37,7 +37,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setLoading(false);
     });
 
-    return () => subscription.unsubscribe();
+    // Proactively refresh token every 10 minutes to prevent expiry
+    const refreshInterval = setInterval(async () => {
+      const { data: { session: currentSession } } = await supabase.auth.getSession();
+      if (currentSession) {
+        await supabase.auth.refreshSession();
+      }
+    }, 10 * 60 * 1000);
+
+    // Refresh session when tab becomes visible again (e.g. user returns after hours)
+    const handleVisibility = async () => {
+      if (document.visibilityState === 'visible') {
+        const { data: { session: currentSession } } = await supabase.auth.getSession();
+        if (currentSession) {
+          const { data, error } = await supabase.auth.refreshSession();
+          if (error) {
+            console.warn('Session refresh failed on visibility change:', error.message);
+          } else if (data.session) {
+            setSession(data.session);
+            setUser(data.session.user);
+          }
+        }
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+
+    return () => {
+      subscription.unsubscribe();
+      clearInterval(refreshInterval);
+      document.removeEventListener('visibilitychange', handleVisibility);
+    };
   }, []);
 
   const signUp = async (email: string, password: string, fullName: string) => {
