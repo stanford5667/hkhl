@@ -322,24 +322,34 @@ export function BulkVideoUpload({ moduleId, existingLessonCount, onComplete }: B
           </div>
         )}
 
-        {/* Action */}
+        {/* Actions */}
         {queue.length > 0 && (
-          <div className="flex justify-end">
-            <Button
-              onClick={handleUploadAll}
-              disabled={queue.every((f) => f.status === 'done') || (!isUploading && queue.filter((f) => f.status === 'pending').length === 0)}
-              className="gap-2"
-            >
-              {isUploading ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin" /> Uploading…
-                </>
-              ) : (
-                <>
-                  <Upload className="h-4 w-4" /> Upload & Create Lessons
-                </>
-              )}
-            </Button>
+          <div className="flex justify-end gap-2">
+            {(isUploading || isPaused) && (
+              <>
+                {isPaused ? (
+                  <Button variant="outline" size="sm" className="gap-1" onClick={() => uploadManager.resume()}>
+                    <Play className="h-4 w-4" /> Resume
+                  </Button>
+                ) : (
+                  <Button variant="outline" size="sm" className="gap-1" onClick={() => uploadManager.pause()}>
+                    <Pause className="h-4 w-4" /> Pause
+                  </Button>
+                )}
+                <Button variant="outline" size="sm" className="gap-1 text-destructive hover:text-destructive" onClick={() => uploadManager.stop()}>
+                  <Square className="h-4 w-4" /> Stop
+                </Button>
+              </>
+            )}
+            {!isUploading && !isPaused && (
+              <Button
+                onClick={handleUploadAll}
+                disabled={queue.every((f) => f.status === 'done' || f.status === 'cancelled') || queue.filter((f) => f.status === 'pending').length === 0}
+                className="gap-2"
+              >
+                <Upload className="h-4 w-4" /> Upload & Create Lessons
+              </Button>
+            )}
           </div>
         )}
       </DialogContent>
