@@ -153,16 +153,27 @@ export const uploadManager = {
   },
 };
 
-// ── Worker spawner ───────────────────────────────────────────────
+// ── Ensure enough workers are running ────────────────────────────
+function ensureWorkers() {
+  const pendingCount = queue.filter((f) => f.status === 'pending').length;
+  const neededWorkers = Math.min(pendingCount, CONCURRENCY) - activeWorkerCount;
+  console.log(`[UploadManager] ensureWorkers: pending=${pendingCount}, active=${activeWorkerCount}, spawning=${neededWorkers}`);
+  for (let i = 0; i < neededWorkers; i++) {
+    spawnWorker();
+  }
+}
 
-function spawnWorker(moduleId: string, existingLessonCount: number, compressEnabled: boolean) {
+// ── Worker spawner ───────────────────────────────────────────────
+function spawnWorker() {
   activeWorkerCount++;
+  console.log(`[UploadManager] Worker spawned. activeWorkerCount=${activeWorkerCount}`);
   const run = async () => {
     while (true) {
       const next = queue.find((f) => f.status === 'pending');
       if (!next) break;
+      console.log(`[UploadManager] Worker claimed: "${next.parsedTitle}"`);
       updateItem(next.id, { status: 'compressing' });
-      const ok = await uploadSingleFile(next, moduleId, existingLessonCount, compressEnabled);
+      const ok = await uploadSingleFile(next, currentModuleId, currentExistingLessonCount, currentCompressEnabled);
       if (ok) successCount++;
       else errorCount++;
       const remaining = queue.filter((f) => f.status === 'pending').length;
@@ -172,8 +183,16 @@ function spawnWorker(moduleId: string, existingLessonCount: number, compressEnab
       );
     }
     activeWorkerCount--;
+    console.log(`[UploadManager] Worker exited. activeWorkerCount=${activeWorkerCount}`);
     // Last worker finishing marks completion
     if (activeWorkerCount <= 0) {
+      // Check one more time for stragglers before declaring done
+      const stragglers = queue.filter((f) => f.status === 'pending').length;
+      if (stragglers > 0) {
+        console.log(`[UploadManager] Found ${stragglers} stragglers, re-spawning workers`);
+        ensureWorkers();
+        return;
+      }
       isUploading = false;
       notify();
       toast.success(`${successCount} of ${successCount + errorCount} videos uploaded`, { id: currentToastId });
