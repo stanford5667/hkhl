@@ -40,6 +40,9 @@ let successCount = 0;
 let errorCount = 0;
 let currentToastId: string | number | undefined;
 let currentOnAllComplete: (() => void) | null = null;
+let currentModuleId = '';
+let currentExistingLessonCount = 0;
+let currentCompressEnabled = false;
 
 function notify() {
   // Snapshot so React sees a new array ref
@@ -95,6 +98,18 @@ export const uploadManager = {
     }
     queue = [...queue, ...newFiles];
     notify();
+
+    // Auto-spawn workers for new files if upload is already in progress
+    if (isUploading && newFiles.length > 0) {
+      const idleWorkerSlots = CONCURRENCY - activeWorkerCount;
+      const workersToSpawn = Math.min(newFiles.length, Math.max(idleWorkerSlots, 0));
+      for (let i = 0; i < workersToSpawn; i++) {
+        spawnWorker(currentModuleId, currentExistingLessonCount, currentCompressEnabled);
+      }
+      if (workersToSpawn > 0) {
+        toast.info(`${newFiles.length} new video(s) queued — uploading now.`);
+      }
+    }
   },
 
   updateFile(id: string, updates: Partial<QueuedFile>) {
@@ -128,11 +143,15 @@ export const uploadManager = {
     if (isUploading) {
       const newPending = queue.filter((f) => f.status === 'pending').length;
       if (newPending > 0) {
-        toast.info(`${newPending} new video(s) queued — uploading now.`);
-        // Spawn workers for new pending files (up to CONCURRENCY total)
-        const workersToSpawn = Math.min(newPending, CONCURRENCY);
-        for (let i = 0; i < workersToSpawn; i++) {
-          spawnWorker(moduleId, existingLessonCount, compressEnabled);
+        const idleSlots = CONCURRENCY - activeWorkerCount;
+        const workersToSpawn = Math.min(newPending, Math.max(idleSlots, 0));
+        if (workersToSpawn > 0) {
+          toast.info(`${newPending} new video(s) queued — uploading now.`);
+          for (let i = 0; i < workersToSpawn; i++) {
+            spawnWorker(moduleId, existingLessonCount, compressEnabled);
+          }
+        } else {
+          toast.info(`${newPending} new video(s) queued — will start when a slot opens.`);
         }
       } else {
         toast.info('New videos queued — they will be uploaded automatically.');
@@ -143,6 +162,9 @@ export const uploadManager = {
     activeWorkerCount = 0;
     successCount = 0;
     errorCount = 0;
+    currentModuleId = moduleId;
+    currentExistingLessonCount = existingLessonCount;
+    currentCompressEnabled = compressEnabled;
     notify();
 
     currentToastId = toast.loading('Uploading videos… You can navigate away safely.');
