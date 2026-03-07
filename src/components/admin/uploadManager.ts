@@ -156,6 +156,40 @@ export const uploadManager = {
   },
 };
 
+// ── Worker spawner ───────────────────────────────────────────────
+
+function spawnWorker(moduleId: string, existingLessonCount: number, compressEnabled: boolean) {
+  activeWorkerCount++;
+  const run = async () => {
+    while (true) {
+      const next = queue.find((f) => f.status === 'pending');
+      if (!next) break;
+      updateItem(next.id, { status: 'compressing' });
+      const ok = await uploadSingleFile(next, moduleId, existingLessonCount, compressEnabled);
+      if (ok) successCount++;
+      else errorCount++;
+      const remaining = queue.filter((f) => f.status === 'pending').length;
+      toast.loading(
+        `Uploading videos… ${successCount} done, ${remaining} remaining`,
+        { id: currentToastId },
+      );
+    }
+    activeWorkerCount--;
+    // Last worker finishing marks completion
+    if (activeWorkerCount <= 0) {
+      isUploading = false;
+      notify();
+      toast.success(`${successCount} of ${successCount + errorCount} videos uploaded`, { id: currentToastId });
+      if (currentOnAllComplete) currentOnAllComplete();
+      if (errorCount === 0) {
+        queue = [];
+        notify();
+      }
+    }
+  };
+  run(); // fire-and-forget
+}
+
 // ── Upload helpers (unchanged logic, just module-scoped) ─────────
 
 function parseFilename(filename: string): { title: string; order: number } {
