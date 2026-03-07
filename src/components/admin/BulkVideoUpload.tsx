@@ -174,6 +174,10 @@ export function BulkVideoUpload({ moduleId, existingLessonCount, onComplete }: B
         return <Loader2 className="h-4 w-4 animate-spin text-amber-500" />;
       case 'uploading':
         return <Loader2 className="h-4 w-4 animate-spin text-primary" />;
+      case 'paused':
+        return <Pause className="h-4 w-4 text-amber-500" />;
+      case 'cancelled':
+        return <Square className="h-4 w-4 text-muted-foreground" />;
       default:
         return <FileVideo className="h-4 w-4 text-muted-foreground" />;
     }
