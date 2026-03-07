@@ -40,6 +40,9 @@ let successCount = 0;
 let errorCount = 0;
 let currentToastId: string | number | undefined;
 let currentOnAllComplete: (() => void) | null = null;
+let currentModuleId = '';
+let currentExistingLessonCount = 0;
+let currentCompressEnabled = false;
 
 function notify() {
   // Snapshot so React sees a new array ref
