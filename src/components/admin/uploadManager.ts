@@ -158,6 +158,9 @@ export const uploadManager = {
     activeWorkerCount = 0;
     successCount = 0;
     errorCount = 0;
+    currentModuleId = moduleId;
+    currentExistingLessonCount = existingLessonCount;
+    currentCompressEnabled = compressEnabled;
     notify();
 
     currentToastId = toast.loading('Uploading videos… You can navigate away safely.');
