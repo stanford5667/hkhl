@@ -35,6 +35,11 @@ const CONCURRENCY = 3;
 let queue: QueuedFile[] = [];
 let isUploading = false;
 let listeners: Listener[] = [];
+let activeWorkerCount = 0;
+let successCount = 0;
+let errorCount = 0;
+let currentToastId: string | number | undefined;
+let currentOnAllComplete: (() => void) | null = null;
 
 function notify() {
   // Snapshot so React sees a new array ref
@@ -119,56 +124,71 @@ export const uploadManager = {
     compressEnabled: boolean,
     onAllComplete: () => void,
   ) {
-    // If already uploading, the new pending files will be picked up by
-    // the active workers automatically — no need to block.
+    // If already uploading, spawn additional workers for the new pending files
     if (isUploading) {
-      toast.info('New videos queued — they will be uploaded automatically.');
+      const newPending = queue.filter((f) => f.status === 'pending').length;
+      if (newPending > 0) {
+        toast.info(`${newPending} new video(s) queued — uploading now.`);
+        // Spawn workers for new pending files (up to CONCURRENCY total)
+        const workersToSpawn = Math.min(newPending, CONCURRENCY);
+        for (let i = 0; i < workersToSpawn; i++) {
+          spawnWorker(moduleId, existingLessonCount, compressEnabled);
+        }
+      } else {
+        toast.info('New videos queued — they will be uploaded automatically.');
+      }
       return;
     }
     isUploading = true;
+    activeWorkerCount = 0;
+    successCount = 0;
+    errorCount = 0;
     notify();
 
-    const toastId = toast.loading('Uploading videos… You can navigate away safely.');
-
-    let successCount = queue.filter((f) => f.status === 'done').length;
-    let errorCount = 0;
-
-    // Worker pulls the next pending item from the live queue each iteration,
-    // so files added after startUpload() was called are picked up too.
-    const worker = async () => {
-      while (true) {
-        const next = queue.find((f) => f.status === 'pending');
-        if (!next) break;
-        // Mark as compressing/uploading immediately so other workers skip it
-        updateItem(next.id, { status: 'compressing' });
-        const ok = await uploadSingleFile(next, moduleId, existingLessonCount, compressEnabled);
-        if (ok) successCount++;
-        else errorCount++;
-        const remaining = queue.filter((f) => f.status === 'pending').length;
-        toast.loading(
-          `Uploading videos… ${successCount} done, ${remaining} remaining`,
-          { id: toastId },
-        );
-      }
-    };
+    currentToastId = toast.loading('Uploading videos… You can navigate away safely.');
+    currentOnAllComplete = onAllComplete;
 
     const initialPending = queue.filter((f) => f.status === 'pending').length;
-    await Promise.all(
-      Array.from({ length: Math.min(CONCURRENCY, Math.max(initialPending, 1)) }, () => worker()),
-    );
-
-    isUploading = false;
-    notify();
-
-    toast.success(`${successCount} of ${successCount + errorCount} videos uploaded`, { id: toastId });
-    onAllComplete();
-
-    if (errorCount === 0) {
-      queue = [];
-      notify();
+    const workersToSpawn = Math.min(CONCURRENCY, Math.max(initialPending, 1));
+    for (let i = 0; i < workersToSpawn; i++) {
+      spawnWorker(moduleId, existingLessonCount, compressEnabled);
     }
   },
 };
+
+// ── Worker spawner ───────────────────────────────────────────────
+
+function spawnWorker(moduleId: string, existingLessonCount: number, compressEnabled: boolean) {
+  activeWorkerCount++;
+  const run = async () => {
+    while (true) {
+      const next = queue.find((f) => f.status === 'pending');
+      if (!next) break;
+      updateItem(next.id, { status: 'compressing' });
+      const ok = await uploadSingleFile(next, moduleId, existingLessonCount, compressEnabled);
+      if (ok) successCount++;
+      else errorCount++;
+      const remaining = queue.filter((f) => f.status === 'pending').length;
+      toast.loading(
+        `Uploading videos… ${successCount} done, ${remaining} remaining`,
+        { id: currentToastId },
+      );
+    }
+    activeWorkerCount--;
+    // Last worker finishing marks completion
+    if (activeWorkerCount <= 0) {
+      isUploading = false;
+      notify();
+      toast.success(`${successCount} of ${successCount + errorCount} videos uploaded`, { id: currentToastId });
+      if (currentOnAllComplete) currentOnAllComplete();
+      if (errorCount === 0) {
+        queue = [];
+        notify();
+      }
+    }
+  };
+  run(); // fire-and-forget
+}
 
 // ── Upload helpers (unchanged logic, just module-scoped) ─────────
 

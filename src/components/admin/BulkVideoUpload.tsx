@@ -317,7 +317,7 @@ export function BulkVideoUpload({ moduleId, existingLessonCount, onComplete }: B
           <div className="flex justify-end">
             <Button
               onClick={handleUploadAll}
-              disabled={isUploading || queue.every((f) => f.status === 'done')}
+              disabled={queue.every((f) => f.status === 'done') || (!isUploading && queue.filter((f) => f.status === 'pending').length === 0)}
               className="gap-2"
             >
               {isUploading ? (
