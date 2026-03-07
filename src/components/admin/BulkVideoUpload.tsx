@@ -297,12 +297,17 @@ export function BulkVideoUpload({ moduleId, existingLessonCount, onComplete }: B
                       ) : item.status === 'done' ? (
                         <span className="text-xs text-green-500">Done</span>
                       ) : (
-                        <button
-                          onClick={(e) => { e.stopPropagation(); uploadManager.removeFile(item.id); }}
-                          className="text-xs text-muted-foreground hover:text-destructive"
-                        >
-                          Remove
-                        </button>
+                        <div className="flex items-center gap-1">
+                          {isUploading ? (
+                            <span className="text-xs text-muted-foreground">Queued</span>
+                          ) : null}
+                          <button
+                            onClick={(e) => { e.stopPropagation(); uploadManager.removeFile(item.id); }}
+                            className="text-xs text-muted-foreground hover:text-destructive"
+                          >
+                            Remove
+                          </button>
+                        </div>
                       )}
                     </TableCell>
                   </TableRow>
