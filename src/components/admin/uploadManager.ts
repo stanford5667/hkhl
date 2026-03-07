@@ -143,11 +143,15 @@ export const uploadManager = {
     if (isUploading) {
       const newPending = queue.filter((f) => f.status === 'pending').length;
       if (newPending > 0) {
-        toast.info(`${newPending} new video(s) queued — uploading now.`);
-        // Spawn workers for new pending files (up to CONCURRENCY total)
-        const workersToSpawn = Math.min(newPending, CONCURRENCY);
-        for (let i = 0; i < workersToSpawn; i++) {
-          spawnWorker(moduleId, existingLessonCount, compressEnabled);
+        const idleSlots = CONCURRENCY - activeWorkerCount;
+        const workersToSpawn = Math.min(newPending, Math.max(idleSlots, 0));
+        if (workersToSpawn > 0) {
+          toast.info(`${newPending} new video(s) queued — uploading now.`);
+          for (let i = 0; i < workersToSpawn; i++) {
+            spawnWorker(moduleId, existingLessonCount, compressEnabled);
+          }
+        } else {
+          toast.info(`${newPending} new video(s) queued — will start when a slot opens.`);
         }
       } else {
         toast.info('New videos queued — they will be uploaded automatically.');
