@@ -101,14 +101,8 @@ export const uploadManager = {
 
     // Auto-spawn workers for new files if upload is already in progress
     if (isUploading && newFiles.length > 0) {
-      const idleWorkerSlots = CONCURRENCY - activeWorkerCount;
-      const workersToSpawn = Math.min(newFiles.length, Math.max(idleWorkerSlots, 0));
-      for (let i = 0; i < workersToSpawn; i++) {
-        spawnWorker(currentModuleId, currentExistingLessonCount, currentCompressEnabled);
-      }
-      if (workersToSpawn > 0) {
-        toast.info(`${newFiles.length} new video(s) queued — uploading now.`);
-      }
+      ensureWorkers();
+      toast.info(`${newFiles.length} new video(s) queued — uploading now.`);
     }
   },
 
