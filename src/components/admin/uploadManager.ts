@@ -35,6 +35,11 @@ const CONCURRENCY = 3;
 let queue: QueuedFile[] = [];
 let isUploading = false;
 let listeners: Listener[] = [];
+let activeWorkerCount = 0;
+let successCount = 0;
+let errorCount = 0;
+let currentToastId: string | number | undefined;
+let currentOnAllComplete: (() => void) | null = null;
 
 function notify() {
   // Snapshot so React sees a new array ref
