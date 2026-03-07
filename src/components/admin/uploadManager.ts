@@ -101,14 +101,8 @@ export const uploadManager = {
 
     // Auto-spawn workers for new files if upload is already in progress
     if (isUploading && newFiles.length > 0) {
-      const idleWorkerSlots = CONCURRENCY - activeWorkerCount;
-      const workersToSpawn = Math.min(newFiles.length, Math.max(idleWorkerSlots, 0));
-      for (let i = 0; i < workersToSpawn; i++) {
-        spawnWorker(currentModuleId, currentExistingLessonCount, currentCompressEnabled);
-      }
-      if (workersToSpawn > 0) {
-        toast.info(`${newFiles.length} new video(s) queued — uploading now.`);
-      }
+      ensureWorkers();
+      toast.info(`${newFiles.length} new video(s) queued — uploading now.`);
     }
   },
 
@@ -139,23 +133,8 @@ export const uploadManager = {
     compressEnabled: boolean,
     onAllComplete: () => void,
   ) {
-    // If already uploading, spawn additional workers for the new pending files
     if (isUploading) {
-      const newPending = queue.filter((f) => f.status === 'pending').length;
-      if (newPending > 0) {
-        const idleSlots = CONCURRENCY - activeWorkerCount;
-        const workersToSpawn = Math.min(newPending, Math.max(idleSlots, 0));
-        if (workersToSpawn > 0) {
-          toast.info(`${newPending} new video(s) queued — uploading now.`);
-          for (let i = 0; i < workersToSpawn; i++) {
-            spawnWorker(moduleId, existingLessonCount, compressEnabled);
-          }
-        } else {
-          toast.info(`${newPending} new video(s) queued — will start when a slot opens.`);
-        }
-      } else {
-        toast.info('New videos queued — they will be uploaded automatically.');
-      }
+      ensureWorkers();
       return;
     }
     isUploading = true;
@@ -170,24 +149,31 @@ export const uploadManager = {
     currentToastId = toast.loading('Uploading videos… You can navigate away safely.');
     currentOnAllComplete = onAllComplete;
 
-    const initialPending = queue.filter((f) => f.status === 'pending').length;
-    const workersToSpawn = Math.min(CONCURRENCY, Math.max(initialPending, 1));
-    for (let i = 0; i < workersToSpawn; i++) {
-      spawnWorker(moduleId, existingLessonCount, compressEnabled);
-    }
+    ensureWorkers();
   },
 };
 
-// ── Worker spawner ───────────────────────────────────────────────
+// ── Ensure enough workers are running ────────────────────────────
+function ensureWorkers() {
+  const pendingCount = queue.filter((f) => f.status === 'pending').length;
+  const neededWorkers = Math.min(pendingCount, CONCURRENCY) - activeWorkerCount;
+  console.log(`[UploadManager] ensureWorkers: pending=${pendingCount}, active=${activeWorkerCount}, spawning=${neededWorkers}`);
+  for (let i = 0; i < neededWorkers; i++) {
+    spawnWorker();
+  }
+}
 
-function spawnWorker(moduleId: string, existingLessonCount: number, compressEnabled: boolean) {
+// ── Worker spawner ───────────────────────────────────────────────
+function spawnWorker() {
   activeWorkerCount++;
+  console.log(`[UploadManager] Worker spawned. activeWorkerCount=${activeWorkerCount}`);
   const run = async () => {
     while (true) {
       const next = queue.find((f) => f.status === 'pending');
       if (!next) break;
+      console.log(`[UploadManager] Worker claimed: "${next.parsedTitle}"`);
       updateItem(next.id, { status: 'compressing' });
-      const ok = await uploadSingleFile(next, moduleId, existingLessonCount, compressEnabled);
+      const ok = await uploadSingleFile(next, currentModuleId, currentExistingLessonCount, currentCompressEnabled);
       if (ok) successCount++;
       else errorCount++;
       const remaining = queue.filter((f) => f.status === 'pending').length;
@@ -197,8 +183,16 @@ function spawnWorker(moduleId: string, existingLessonCount: number, compressEnab
       );
     }
     activeWorkerCount--;
+    console.log(`[UploadManager] Worker exited. activeWorkerCount=${activeWorkerCount}`);
     // Last worker finishing marks completion
     if (activeWorkerCount <= 0) {
+      // Check one more time for stragglers before declaring done
+      const stragglers = queue.filter((f) => f.status === 'pending').length;
+      if (stragglers > 0) {
+        console.log(`[UploadManager] Found ${stragglers} stragglers, re-spawning workers`);
+        ensureWorkers();
+        return;
+      }
       isUploading = false;
       notify();
       toast.success(`${successCount} of ${successCount + errorCount} videos uploaded`, { id: currentToastId });
@@ -236,14 +230,25 @@ function parseFilename(filename: string): { title: string; order: number } {
 
 async function getAuthToken(): Promise<string> {
   // Try refreshing the session first
-  const { data: refreshData } = await supabase.auth.refreshSession();
-  if (refreshData?.session?.access_token) {
-    return refreshData.session.access_token;
+  try {
+    const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
+    if (refreshData?.session?.access_token) {
+      return refreshData.session.access_token;
+    }
+    if (refreshError) {
+      console.warn('[UploadManager] refreshSession failed:', refreshError.message);
+    }
+  } catch (e) {
+    console.warn('[UploadManager] refreshSession threw:', e);
   }
-  // Fallback: maybe refresh failed but session is still valid
-  const { data: { session } } = await supabase.auth.getSession();
-  if (session?.access_token) {
-    return session.access_token;
+  // Fallback: get current session (may still be valid)
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session?.access_token) {
+      return session.access_token;
+    }
+  } catch (e) {
+    console.warn('[UploadManager] getSession threw:', e);
   }
   throw new Error('Your session has expired. Please log in again and retry the upload.');
 }
