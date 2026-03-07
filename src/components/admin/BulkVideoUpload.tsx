@@ -29,7 +29,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Upload, CheckCircle, XCircle, Loader2, FileVideo, AlertTriangle } from 'lucide-react';
+import { Upload, CheckCircle, XCircle, Loader2, FileVideo, AlertTriangle, Pause, Play, Square } from 'lucide-react';
 import { uploadManager, type QueuedFile, type FileStatus } from './uploadManager';
 import { supabase } from '@/integrations/supabase/client';
 
