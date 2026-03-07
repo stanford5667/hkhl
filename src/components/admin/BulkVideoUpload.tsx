@@ -60,6 +60,7 @@ export function BulkVideoUpload({ moduleId, existingLessonCount, onComplete }: B
   const fileInputRef = useRef<HTMLInputElement>(null);
   const queue = useUploadQueue();
   const isUploading = uploadManager.getIsUploading();
+  const isPaused = uploadManager.getIsPaused();
 
   const [duplicateFiles, setDuplicateFiles] = useState<QueuedFile[]>([]);
   const [showDuplicateAlert, setShowDuplicateAlert] = useState(false);
