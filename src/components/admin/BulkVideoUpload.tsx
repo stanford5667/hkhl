@@ -301,6 +301,10 @@ export function BulkVideoUpload({ moduleId, existingLessonCount, onComplete }: B
                         </span>
                       ) : item.status === 'done' ? (
                         <span className="text-xs text-green-500">Done</span>
+                      ) : item.status === 'paused' ? (
+                        <span className="text-xs text-amber-500">Paused</span>
+                      ) : item.status === 'cancelled' ? (
+                        <span className="text-xs text-muted-foreground">Cancelled</span>
                       ) : (
                         <div className="flex items-center gap-1">
                           {isUploading ? (
