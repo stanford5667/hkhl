@@ -1,0 +1,24 @@
+
+UPDATE course_lessons SET order_index = 0 WHERE id = '507c39ae-5915-4282-bedf-244db9e6c0ea';
+UPDATE course_lessons SET order_index = 1 WHERE id = 'd01f4215-d37a-4a8f-b4a3-83e6c8eee32d';
+UPDATE course_lessons SET order_index = 2 WHERE id = 'fad65851-1e95-4fe7-84b6-b48fbdb55cc7';
+UPDATE course_lessons SET order_index = 3 WHERE id = '7888cafd-cd95-40f7-a258-8679e747a938';
+UPDATE course_lessons SET order_index = 4 WHERE id = 'ffcc7fc7-6436-4a75-a793-44f96aadf6bd';
+UPDATE course_lessons SET order_index = 5 WHERE id = '4e92e00c-ff2f-456c-a4a0-f2e43d0f390c';
+UPDATE course_lessons SET order_index = 6 WHERE id = '37232365-50bc-4137-a56c-845a2fc9167f';
+UPDATE course_lessons SET order_index = 7 WHERE id = '71818dd3-9ebb-4ae4-9deb-9e4ad2f0def2';
+UPDATE course_lessons SET order_index = 8 WHERE id = 'fa203412-5ba9-40ae-8931-b0b85e8ad2f4';
+UPDATE course_lessons SET order_index = 9 WHERE id = 'f70f7154-b695-4f38-a629-a5c4bf2157c6';
+UPDATE course_lessons SET order_index = 10 WHERE id = 'f60e0d68-b058-474a-b026-b2871739ec4b';
+UPDATE course_lessons SET order_index = 11 WHERE id = '1cd117dc-03ac-4806-8c89-99771bdc909b';
+UPDATE course_lessons SET order_index = 12 WHERE id = '5149e4f3-3826-465c-b746-1be3e8e3b31d';
+UPDATE course_lessons SET order_index = 13 WHERE id = '33218e35-3760-4387-aff3-329b38941dcb';
+UPDATE course_lessons SET order_index = 14 WHERE id = '0d1cbf33-c7be-4fb6-9d69-5ffa6bcee69f';
+UPDATE course_lessons SET order_index = 15 WHERE id = '98431b6d-6a73-4acd-832a-44035cd0ecc9';
+UPDATE course_lessons SET order_index = 16 WHERE id = '250d5faf-82e5-4779-9e73-f557a46ddf1e';
+UPDATE course_lessons SET order_index = 17 WHERE id = '31c8eb37-d1ce-46ef-b048-f9b40a172de2';
+UPDATE course_lessons SET order_index = 18 WHERE id = 'b3bce6e7-183c-44fa-87da-a9a082aecf93';
+UPDATE course_lessons SET order_index = 19 WHERE id = '72994eee-652b-4121-886e-84ecce3a5860';
+UPDATE course_lessons SET order_index = 20 WHERE id = 'e7ef4af1-3429-4143-baec-d56bcafa990e';
+UPDATE course_lessons SET order_index = 21 WHERE id = '298a0133-dd97-4c40-8217-867dfd0363a2';
+UPDATE course_lessons SET order_index = 22 WHERE id = '3fcdfb8b-b43f-420e-825d-809860034079';
