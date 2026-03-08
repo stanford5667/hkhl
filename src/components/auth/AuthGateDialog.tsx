@@ -38,6 +38,7 @@ export function AuthGateDialog({
   description = "Create a free account to save your progress."
 }: AuthGateDialogProps) {
   const [mode, setMode] = useState<'signin' | 'signup'>('signup');
+  const [signUpStep, setSignUpStep] = useState(1);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
