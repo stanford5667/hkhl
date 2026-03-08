@@ -460,6 +460,7 @@ export default function Auth() {
                   type="button"
                   onClick={() => {
                     setMode(mode === "signin" ? "signup" : "signin");
+                    setSignUpStep(1);
                     signInForm.reset();
                     signUpForm.reset();
                   }}
