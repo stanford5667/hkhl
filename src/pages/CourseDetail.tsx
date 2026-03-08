@@ -204,11 +204,6 @@ export default function CourseDetail() {
 
   return (
     <div className="container mx-auto p-4 md:p-6 max-w-6xl space-y-6">
-      {/* Back button */}
-      <Button variant="ghost" onClick={() => navigate('/academy')} className="mb-4">
-        <ChevronLeft className="w-4 h-4 mr-2" />
-        Back to Academy
-      </Button>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Main Content */}
