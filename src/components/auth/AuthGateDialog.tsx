@@ -38,6 +38,7 @@ export function AuthGateDialog({
   description = "Create a free account to save your progress."
 }: AuthGateDialogProps) {
   const [mode, setMode] = useState<'signin' | 'signup'>('signup');
+  const [signUpStep, setSignUpStep] = useState(1);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
@@ -112,9 +113,21 @@ export function AuthGateDialog({
     { icon: Shield, text: "Statistical Edge Detection", highlight: true },
   ];
 
+  const handleContinueStep1 = () => {
+    if (!fullName.trim() || fullName.trim().length < 2) {
+      toast.error('Please enter your full name (at least 2 characters)');
+      return;
+    }
+    if (!email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+      toast.error('Please enter a valid email address');
+      return;
+    }
+    setSignUpStep(2);
+  };
+
   const authForm = (
     <div className="space-y-1.5 sm:space-y-3 px-1">
-      {/* Asset Labs Branding - centered vertically */}
+      {/* Asset Labs Branding */}
       <div className="flex flex-col items-center justify-center">
         <AssetLabsLogo size="sm" showText={false} className="sm:hidden" />
         <AssetLabsLogo size="lg" showText={false} className="hidden sm:flex" />
@@ -128,81 +141,135 @@ export function AuthGateDialog({
         </div>
       </div>
 
-      {/* Value Proposition - hidden on very small screens */}
       {mode === 'signup' && (
-        <p className="hidden xs:block text-center text-[10px] sm:text-xs text-muted-foreground">
-          Turn hunches into <span className="text-primary font-medium">statistical proof</span>
-        </p>
+        <>
+          {/* Step indicator */}
+          <div className="flex items-center gap-2 justify-center">
+            <div className={`h-1.5 w-12 rounded-full transition-colors ${signUpStep >= 1 ? 'bg-primary' : 'bg-muted'}`} />
+            <div className={`h-1.5 w-12 rounded-full transition-colors ${signUpStep >= 2 ? 'bg-primary' : 'bg-muted'}`} />
+          </div>
+          <p className="text-center text-[10px] text-muted-foreground">Step {signUpStep} of 2</p>
+        </>
       )}
 
       <form onSubmit={handleSubmit} className="space-y-1.5 sm:space-y-2.5">
-        {mode === 'signup' && (
-          <div className="space-y-0.5">
-            <Label htmlFor="fullName" className="text-[11px] sm:text-xs font-medium">Full Name</Label>
-            <Input
-              ref={fullNameInputRef}
-              id="fullName"
-              value={fullName}
-              onChange={(e) => setFullName(e.target.value)}
-              placeholder="John Doe"
-              required
-              className="h-9 sm:h-10 text-sm"
-              autoComplete="name"
-            />
-          </div>
-        )}
-        
-        <div className="space-y-0.5">
-          <Label htmlFor="email" className="text-[11px] sm:text-xs font-medium">Email</Label>
-          <Input
-            ref={emailInputRef}
-            id="email"
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="you@example.com"
-            required
-            className="h-9 sm:h-10 text-sm"
-            autoComplete="email"
-          />
-        </div>
-
-        <div className="space-y-0.5">
-          <Label htmlFor="password" className="text-[11px] sm:text-xs font-medium">Password</Label>
-          <Input
-            id="password"
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="••••••••"
-            required
-            minLength={6}
-            className="h-9 sm:h-10 text-sm"
-            autoComplete={mode === 'signup' ? 'new-password' : 'current-password'}
-          />
-        </div>
-
-        {mode === 'signup' && (
-          <AgeVerificationInput
-            onVerificationChange={setIsAgeVerified}
-            error={ageError}
-            className="!space-y-1"
-          />
-        )}
-
-        <Button 
-          type="submit" 
-          className="w-full h-9 sm:h-10 text-sm font-semibold mt-1" 
-          disabled={isLoading}
-        >
-          {isLoading ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : mode === 'signup' ? (
-            "Get Started Free"
+        {mode === 'signup' ? (
+          signUpStep === 1 ? (
+            <>
+              <div className="space-y-0.5">
+                <Label htmlFor="fullName" className="text-[11px] sm:text-xs font-medium">Full Name</Label>
+                <Input
+                  ref={fullNameInputRef}
+                  id="fullName"
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  placeholder="John Doe"
+                  required
+                  className="h-9 sm:h-10 text-sm"
+                  autoComplete="name"
+                />
+              </div>
+              <div className="space-y-0.5">
+                <Label htmlFor="email" className="text-[11px] sm:text-xs font-medium">Email</Label>
+                <Input
+                  ref={emailInputRef}
+                  id="email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="you@example.com"
+                  required
+                  className="h-9 sm:h-10 text-sm"
+                  autoComplete="email"
+                />
+              </div>
+              <Button
+                type="button"
+                className="w-full h-9 sm:h-10 text-sm font-semibold mt-1"
+                onClick={handleContinueStep1}
+              >
+                Continue
+              </Button>
+            </>
           ) : (
-            "Sign In"
-          )}
-        </Button>
+            <>
+              <div className="space-y-0.5">
+                <Label htmlFor="password" className="text-[11px] sm:text-xs font-medium">Password</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  required
+                  minLength={6}
+                  className="h-9 sm:h-10 text-sm"
+                  autoComplete="new-password"
+                />
+              </div>
+              <AgeVerificationInput
+                onVerificationChange={setIsAgeVerified}
+                error={ageError}
+                className="!space-y-1"
+              />
+              <div className="flex gap-2 mt-1">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="flex-1 h-9 sm:h-10 text-sm"
+                  onClick={() => setSignUpStep(1)}
+                >
+                  Back
+                </Button>
+                <Button
+                  type="submit"
+                  className="flex-1 h-9 sm:h-10 text-sm font-semibold"
+                  disabled={isLoading}
+                >
+                  {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Get Started Free"}
+                </Button>
+              </div>
+            </>
+          )
+        ) : (
+          <>
+            <div className="space-y-0.5">
+              <Label htmlFor="email" className="text-[11px] sm:text-xs font-medium">Email</Label>
+              <Input
+                ref={emailInputRef}
+                id="email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="you@example.com"
+                required
+                className="h-9 sm:h-10 text-sm"
+                autoComplete="email"
+              />
+            </div>
+            <div className="space-y-0.5">
+              <Label htmlFor="password" className="text-[11px] sm:text-xs font-medium">Password</Label>
+              <Input
+                id="password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
+                required
+                minLength={6}
+                className="h-9 sm:h-10 text-sm"
+                autoComplete="current-password"
+              />
+            </div>
+            <Button
+              type="submit"
+              className="w-full h-9 sm:h-10 text-sm font-semibold mt-1"
+              disabled={isLoading}
+            >
+              {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Sign In"}
+            </Button>
+          </>
+        )}
       </form>
 
       <div className="text-center text-[11px] sm:text-xs text-muted-foreground">
@@ -211,7 +278,7 @@ export function AuthGateDialog({
             Have an account?{" "}
             <button
               type="button"
-              onClick={() => setMode('signin')}
+              onClick={() => { setMode('signin'); setSignUpStep(1); }}
               className="text-primary font-medium hover:underline"
             >
               Sign in
@@ -222,7 +289,7 @@ export function AuthGateDialog({
             Need an account?{" "}
             <button
               type="button"
-              onClick={() => setMode('signup')}
+              onClick={() => { setMode('signup'); setSignUpStep(1); }}
               className="text-primary font-medium hover:underline"
             >
               Sign up
