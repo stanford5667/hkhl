@@ -406,6 +406,11 @@ function tusUpload(
       chunkSize,
       onShouldRetry: (err, retryAttempt, options) => {
         console.warn(`[UploadManager] TUS retry #${retryAttempt}`, err);
+        // Don't retry on 413 (file too large for storage)
+        const errMsg = err?.originalResponse?._xhr?.responseText || err?.message || '';
+        if (errMsg.includes('Maximum size exceeded') || errMsg.includes('413')) {
+          return false;
+        }
         getAuthToken().then((newToken) => {
           if (options.headers) options.headers.authorization = `Bearer ${newToken}`;
         });
