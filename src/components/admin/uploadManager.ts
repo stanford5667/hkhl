@@ -325,6 +325,21 @@ function parseFilename(filename: string): { title: string; order: number } {
 }
 
 async function getAuthToken(): Promise<string> {
+  // Try current session first (fast path, no network call)
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session?.access_token) {
+      // Check if token expires within 2 minutes; if so, try refreshing
+      const expiresAt = session.expires_at ?? 0;
+      const nowSecs = Math.floor(Date.now() / 1000);
+      if (expiresAt - nowSecs > 120) {
+        return session.access_token;
+      }
+    }
+  } catch (e) {
+    console.warn('[UploadManager] getSession threw:', e);
+  }
+  // Token expired or expiring soon — refresh
   try {
     const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
     if (refreshData?.session?.access_token) return refreshData.session.access_token;
@@ -332,11 +347,12 @@ async function getAuthToken(): Promise<string> {
   } catch (e) {
     console.warn('[UploadManager] refreshSession threw:', e);
   }
+  // Final fallback — try getSession once more
   try {
     const { data: { session } } = await supabase.auth.getSession();
     if (session?.access_token) return session.access_token;
   } catch (e) {
-    console.warn('[UploadManager] getSession threw:', e);
+    console.warn('[UploadManager] final getSession threw:', e);
   }
   throw new Error('Your session has expired. Please log in again and retry the upload.');
 }
