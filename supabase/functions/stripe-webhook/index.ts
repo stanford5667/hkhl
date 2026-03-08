@@ -56,8 +56,8 @@ serve(async (req) => {
             transactionalId: 'cmkiktuob007b0i2fu76g2z82',
             dataVariables: {
               customer_name: customerName,
-              plan_name: 'Pro Plan',
-              amount: '$50/month',
+              plan_name: session.amount_total === 10000 ? 'Research & Education Plan' : 'Pro Plan',
+              amount: session.amount_total === 10000 ? '$100/month' : '$50/month',
               app_name: 'Asset Labs',
             },
           }),
