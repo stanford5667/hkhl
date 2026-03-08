@@ -12,8 +12,11 @@ const logStep = (step: string, details?: unknown) => {
   console.log(`[CREATE-CHECKOUT] ${step}${detailsStr}`);
 };
 
-// Pro Plan price ID ($50/month)
-const PRO_PRICE_ID = "price_1SpJ7t0ATyKK64GzVausjlQ2";
+// Plan price IDs
+const PLAN_PRICES: Record<string, string> = {
+  pro: "price_1SpJ7t0ATyKK64GzVausjlQ2",           // $50/month
+  research_education: "price_1T6y590ATyKK64GzTH165hof", // $100/month
+};
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -34,6 +37,20 @@ serve(async (req) => {
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) throw new Error("No authorization header provided");
 
+    // Parse request body for plan selection
+    let selectedPlan = "pro";
+    try {
+      const body = await req.json();
+      if (body?.plan && PLAN_PRICES[body.plan]) {
+        selectedPlan = body.plan;
+      }
+    } catch {
+      // No body or invalid JSON - default to pro
+    }
+
+    const priceId = PLAN_PRICES[selectedPlan];
+    logStep("Selected plan", { plan: selectedPlan, priceId });
+
     const token = authHeader.replace("Bearer ", "");
     const { data } = await supabaseClient.auth.getUser(token);
     const user = data.user;
@@ -49,22 +66,22 @@ serve(async (req) => {
       customerId = customers.data[0].id;
       logStep("Existing customer found", { customerId });
       
-      // Check if customer already has an active subscription to the Pro plan
+      // Check if customer already has an active subscription to this plan
       const subscriptions = await stripe.subscriptions.list({
         customer: customerId,
         status: "active",
         limit: 100,
       });
       
-      const hasActiveProSubscription = subscriptions.data.some(
+      const hasActiveSubscription = subscriptions.data.some(
         (sub: { items: { data: Array<{ price: { id: string } }> } }) => 
-          sub.items.data.some((item: { price: { id: string } }) => item.price.id === PRO_PRICE_ID)
+          sub.items.data.some((item: { price: { id: string } }) => item.price.id === priceId)
       );
       
-      if (hasActiveProSubscription) {
-        logStep("User already has active Pro subscription");
+      if (hasActiveSubscription) {
+        logStep("User already has active subscription to this plan");
         return new Response(
-          JSON.stringify({ error: "You already have an active Pro subscription" }),
+          JSON.stringify({ error: "You already have an active subscription to this plan" }),
           {
             headers: { ...corsHeaders, "Content-Type": "application/json" },
             status: 400,
@@ -76,12 +93,22 @@ serve(async (req) => {
     // Always use production URL for Stripe redirects (preview URLs won't work)
     const productionUrl = "https://hkhl.lovable.app";
     
+    const planNames: Record<string, string> = {
+      pro: "Pro",
+      research_education: "Research & Education",
+    };
+
+    const planDescriptions: Record<string, string> = {
+      pro: "Your Pro subscription includes:\n• Unlimited portfolio analysis\n• Advanced risk metrics & correlations\n• AI-powered insights & recommendations\n• Real-time market data\n• Priority support\n\nSubscription auto-renews monthly. Cancel anytime from your account settings.",
+      research_education: "Your Research & Education subscription includes:\n• Everything in Pro\n• Access to all courses & video library\n• Community trade ideas & research posts\n• Exclusive educational content\n• Priority support\n\nSubscription auto-renews monthly. Cancel anytime from your account settings.",
+    };
+
     const sessionParams: any = {
       customer: customerId,
       customer_email: customerId ? undefined : user.email,
       line_items: [
         {
-          price: PRO_PRICE_ID,
+          price: priceId,
           quantity: 1,
         },
       ],
@@ -90,7 +117,7 @@ serve(async (req) => {
       cancel_url: `${productionUrl}/quant-lab?subscription=cancelled`,
       custom_text: {
         submit: {
-          message: "Your Pro subscription includes:\n• Unlimited portfolio analysis\n• Advanced risk metrics & correlations\n• AI-powered insights & recommendations\n• Real-time market data\n• Priority support\n\nSubscription auto-renews monthly. Cancel anytime from your account settings.",
+          message: planDescriptions[selectedPlan],
         },
       },
       billing_address_collection: "required",
@@ -108,7 +135,7 @@ serve(async (req) => {
 
     const session = await stripe.checkout.sessions.create(sessionParams);
 
-    logStep("Checkout session created", { sessionId: session.id });
+    logStep("Checkout session created", { sessionId: session.id, plan: selectedPlan });
 
     return new Response(JSON.stringify({ url: session.url }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },

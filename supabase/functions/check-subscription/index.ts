@@ -12,8 +12,17 @@ const logStep = (step: string, details?: unknown) => {
   console.log(`[CHECK-SUBSCRIPTION] ${step}${detailsStr}`);
 };
 
-// Product IDs for subscription tiers (includes test product)
+// Product IDs for subscription tiers
 const PRO_PRODUCT_IDS = ["prod_TmstE9xtaH6xoT", "prod_ToF1TRMcLjOt1t"];
+const RESEARCH_EDUCATION_PRODUCT_IDS = ["prod_U58L8r27VPBg1T"];
+
+function determinePlan(productId: string | null): string {
+  if (productId && RESEARCH_EDUCATION_PRODUCT_IDS.includes(productId)) return 'research_education';
+  if (productId && PRO_PRODUCT_IDS.includes(productId)) return 'pro';
+  return 'free';
+}
+
+const FREE_RESPONSE = { subscribed: false, plan: 'free', product_id: null, subscription_end: null };
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -34,14 +43,8 @@ serve(async (req) => {
 
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
-      // No auth header means user is not logged in - return free tier
       logStep("No authorization header - returning free tier");
-      return new Response(JSON.stringify({ 
-        subscribed: false,
-        plan: 'free',
-        product_id: null,
-        subscription_end: null 
-      }), {
+      return new Response(JSON.stringify(FREE_RESPONSE), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 200,
       });
@@ -50,20 +53,13 @@ serve(async (req) => {
     const token = authHeader.replace("Bearer ", "");
     const { data: userData, error: userError } = await supabaseClient.auth.getUser(token);
     if (userError || !userData.user?.email) {
-      // Auth error or no email - return free tier gracefully
       logStep("Auth error or no user - returning free tier", { error: userError?.message });
-      return new Response(JSON.stringify({ 
-        subscribed: false,
-        plan: 'free',
-        product_id: null,
-        subscription_end: null 
-      }), {
+      return new Response(JSON.stringify(FREE_RESPONSE), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 200,
       });
     }
     const user = userData.user;
-    logStep("User authenticated", { userId: user.id, email: user.email });
     logStep("User authenticated", { userId: user.id, email: user.email });
 
     const stripe = new Stripe(stripeKey, { apiVersion: "2023-10-16" });
@@ -96,12 +92,7 @@ serve(async (req) => {
     // Fall back to Stripe check
     if (customers.data.length === 0) {
       logStep("No customer found");
-      return new Response(JSON.stringify({ 
-        subscribed: false,
-        plan: 'free',
-        product_id: null,
-        subscription_end: null 
-      }), {
+      return new Response(JSON.stringify(FREE_RESPONSE), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 200,
       });
@@ -113,48 +104,59 @@ serve(async (req) => {
     const subscriptions = await stripe.subscriptions.list({
       customer: customerId,
       status: "active",
-      limit: 1,
+      limit: 10,
     });
 
-    const hasActiveSub = subscriptions.data.length > 0;
-    let productId = null;
-    let subscriptionEnd = null;
-    let plan = 'free';
-
-    if (hasActiveSub) {
-      const subscription = subscriptions.data[0];
-      // Safely handle the period end timestamp
-      const periodEnd = subscription.current_period_end;
-      if (periodEnd && typeof periodEnd === 'number') {
-        subscriptionEnd = new Date(periodEnd * 1000).toISOString();
-      }
-      productId = subscription.items.data[0]?.price?.product as string;
-      
-      if (productId && PRO_PRODUCT_IDS.includes(productId)) {
-        plan = 'pro';
-      }
-      
-      logStep("Active subscription found", { subscriptionId: subscription.id, plan, endDate: subscriptionEnd });
-      
-      // Upsert subscription record in database
-      await supabaseClient
-        .from('subscriptions')
-        .upsert({
-          user_id: user.id,
-          stripe_subscription_id: subscription.id,
-          stripe_customer_id: customerId,
-          plan: plan,
-          status: 'active',
-          current_period_end: subscriptionEnd,
-          updated_at: new Date().toISOString(),
-        }, { onConflict: 'user_id' });
-    } else {
+    if (subscriptions.data.length === 0) {
       logStep("No active subscription found");
+      return new Response(JSON.stringify(FREE_RESPONSE), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 200,
+      });
     }
 
+    // Find the highest tier subscription
+    let bestPlan = 'free';
+    let bestSubscription = subscriptions.data[0];
+    let productId: string | null = null;
+
+    for (const subscription of subscriptions.data) {
+      const subProductId = subscription.items.data[0]?.price?.product as string;
+      const subPlan = determinePlan(subProductId);
+      
+      // research_education > pro > free
+      const tierRank: Record<string, number> = { free: 0, pro: 1, research_education: 2 };
+      if (tierRank[subPlan] > tierRank[bestPlan]) {
+        bestPlan = subPlan;
+        bestSubscription = subscription;
+        productId = subProductId;
+      }
+    }
+
+    let subscriptionEnd: string | null = null;
+    const periodEnd = bestSubscription.current_period_end;
+    if (periodEnd && typeof periodEnd === 'number') {
+      subscriptionEnd = new Date(periodEnd * 1000).toISOString();
+    }
+
+    logStep("Active subscription found", { subscriptionId: bestSubscription.id, plan: bestPlan, endDate: subscriptionEnd });
+
+    // Upsert subscription record in database
+    await supabaseClient
+      .from('subscriptions')
+      .upsert({
+        user_id: user.id,
+        stripe_subscription_id: bestSubscription.id,
+        stripe_customer_id: customerId,
+        plan: bestPlan,
+        status: 'active',
+        current_period_end: subscriptionEnd,
+        updated_at: new Date().toISOString(),
+      }, { onConflict: 'user_id' });
+
     return new Response(JSON.stringify({
-      subscribed: hasActiveSub,
-      plan,
+      subscribed: true,
+      plan: bestPlan,
       product_id: productId,
       subscription_end: subscriptionEnd
     }), {
