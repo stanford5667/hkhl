@@ -67,6 +67,14 @@ export function MembershipStep({ onComplete, onBack }: MembershipStepProps) {
 
     try {
       if (plan === 'pro' || plan === 'research_education') {
+        // Ensure we have an active session before calling checkout
+        const { data: sessionData } = await supabase.auth.getSession();
+        if (!sessionData.session) {
+          toast.error('Your session has expired. Please sign in again.');
+          setIsLoading(false);
+          return;
+        }
+
         const { data, error } = await supabase.functions.invoke('create-checkout', {
           body: { plan },
         });
