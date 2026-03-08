@@ -325,6 +325,21 @@ function parseFilename(filename: string): { title: string; order: number } {
 }
 
 async function getAuthToken(): Promise<string> {
+  // Try current session first (fast path, no network call)
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session?.access_token) {
+      // Check if token expires within 2 minutes; if so, try refreshing
+      const expiresAt = session.expires_at ?? 0;
+      const nowSecs = Math.floor(Date.now() / 1000);
+      if (expiresAt - nowSecs > 120) {
+        return session.access_token;
+      }
+    }
+  } catch (e) {
+    console.warn('[UploadManager] getSession threw:', e);
+  }
+  // Token expired or expiring soon — refresh
   try {
     const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
     if (refreshData?.session?.access_token) return refreshData.session.access_token;
@@ -332,11 +347,12 @@ async function getAuthToken(): Promise<string> {
   } catch (e) {
     console.warn('[UploadManager] refreshSession threw:', e);
   }
+  // Final fallback — try getSession once more
   try {
     const { data: { session } } = await supabase.auth.getSession();
     if (session?.access_token) return session.access_token;
   } catch (e) {
-    console.warn('[UploadManager] getSession threw:', e);
+    console.warn('[UploadManager] final getSession threw:', e);
   }
   throw new Error('Your session has expired. Please log in again and retry the upload.');
 }
@@ -406,6 +422,11 @@ function tusUpload(
       chunkSize,
       onShouldRetry: (err, retryAttempt, options) => {
         console.warn(`[UploadManager] TUS retry #${retryAttempt}`, err);
+        // Don't retry on 413 (file too large for storage)
+        const errMsg = (err as any)?.originalResponse?._xhr?.responseText || err?.message || '';
+        if (errMsg.includes('Maximum size exceeded') || errMsg.includes('413')) {
+          return false;
+        }
         getAuthToken().then((newToken) => {
           if (options.headers) options.headers.authorization = `Bearer ${newToken}`;
         });
@@ -509,8 +530,12 @@ async function uploadSingleFile(
   } catch (err: any) {
     // Don't mark as error if we paused/stopped — it was intentional
     if (isPaused || isStopped) return false;
+    const errMsg = err?.message || String(err);
+    const userMessage = errMsg.includes('Maximum size exceeded') || errMsg.includes('413')
+      ? `File too large for storage. Try a smaller file or enable compression.`
+      : errMsg;
     console.error(`[UploadManager] ❌ FAILED "${item.parsedTitle}":`, err);
-    updateItem(item.id, { status: 'error', progress: 0, error: err.message });
+    updateItem(item.id, { status: 'error', progress: 0, error: userMessage });
     return false;
   }
 }
