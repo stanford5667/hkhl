@@ -82,8 +82,7 @@ export function MembershipStep({ onComplete, onBack }: MembershipStepProps) {
         if (error) throw error;
         
         if (data?.url) {
-          window.open(data.url, '_blank');
-          toast.info('Complete your payment in the new tab. Once done, you\'ll be upgraded automatically.');
+        window.location.href = data.url;
           setIsLoading(false);
           return;
         } else {
