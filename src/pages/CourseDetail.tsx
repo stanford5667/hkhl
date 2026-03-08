@@ -419,9 +419,10 @@ export default function CourseDetail() {
         <div className="space-y-6">
           <Card className="sticky top-6">
             <CardHeader>
-              <div className="text-3xl font-bold">
-                {course.is_free ? 'Free' : `$${course.price}`}
-              </div>
+              <div className="text-2xl font-bold">Research & Education</div>
+              <p className="text-sm text-muted-foreground mt-1">
+                $100/month membership
+              </p>
             </CardHeader>
             <CardContent className="space-y-4">
               {enrollment ? (
@@ -457,9 +458,35 @@ export default function CourseDetail() {
                   onClick={() => enrollMutation.mutate()}
                   disabled={enrollMutation.isPending || !user}
                 >
-                  {!user ? 'Sign in to Enroll' : 'Enroll Now'}
+                  {!user ? 'Sign in to Enroll' : 'Start Learning'}
                 </Button>
               )}
+
+              <Separator />
+
+              <div className="space-y-3 text-sm">
+                <p className="font-medium text-foreground">Membership includes:</p>
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-green-500 flex-shrink-0" />
+                  <span>Full video lesson library</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-green-500 flex-shrink-0" />
+                  <span>Trade ideas & signals</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-green-500 flex-shrink-0" />
+                  <span>Backtesting tools</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-green-500 flex-shrink-0" />
+                  <span>Community research posts</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-green-500 flex-shrink-0" />
+                  <span>Portfolio analytics</span>
+                </div>
+              </div>
 
               <Separator />
 
