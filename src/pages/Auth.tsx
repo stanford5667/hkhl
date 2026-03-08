@@ -37,6 +37,7 @@ type ForgotPasswordFormData = z.infer<typeof forgotPasswordSchema>;
 
 export default function Auth() {
   const [mode, setMode] = useState<"signin" | "signup" | "forgot-password">("signup");
+  const [signUpStep, setSignUpStep] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
   const [resetEmailSent, setResetEmailSent] = useState(false);
   const [isAgeVerified, setIsAgeVerified] = useState(false);
