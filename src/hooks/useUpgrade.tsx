@@ -29,7 +29,11 @@ export function useUpgrade() {
       }
       
       if (data?.url) {
-        window.location.href = data.url;
+        if (window.self !== window.top) {
+          window.open(data.url, '_blank');
+        } else {
+          window.location.href = data.url;
+        }
       }
     } catch (err) {
       toast.error('Something went wrong');

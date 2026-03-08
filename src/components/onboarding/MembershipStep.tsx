@@ -82,7 +82,12 @@ export function MembershipStep({ onComplete, onBack }: MembershipStepProps) {
         if (error) throw error;
         
         if (data?.url) {
-        window.location.href = data.url;
+          // Use window.open for iframe contexts (e.g. Lovable preview), same-tab redirect for production
+          if (window.self !== window.top) {
+            window.open(data.url, '_blank');
+          } else {
+            window.location.href = data.url;
+          }
           setIsLoading(false);
           return;
         } else {
