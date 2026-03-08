@@ -454,8 +454,14 @@ export default function CourseDetail() {
               ) : (
                 <Button 
                   className="w-full" 
-                  onClick={() => enrollMutation.mutate()}
-                  disabled={enrollMutation.isPending || !user}
+                  onClick={() => {
+                    if (!user) {
+                      navigate('/auth');
+                    } else {
+                      enrollMutation.mutate();
+                    }
+                  }}
+                  disabled={enrollMutation.isPending}
                 >
                   {!user ? 'Sign in to Enroll' : 'Start Learning'}
                 </Button>
