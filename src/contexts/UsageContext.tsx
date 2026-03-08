@@ -11,9 +11,13 @@ interface UsageLimits {
   screenerSearches: { used: number; limit: number };
 }
 
+type SubscriptionPlan = 'free' | 'pro' | 'research_education';
+
 interface UsageContextType {
   usage: UsageLimits;
   isPro: boolean;
+  isResearchTier: boolean;
+  plan: SubscriptionPlan;
   isLoading: boolean;
   canUse: (feature: keyof UsageLimits) => boolean;
   trackUsage: (feature: keyof UsageLimits) => Promise<boolean>;
@@ -40,23 +44,31 @@ interface UsageProviderProps {
 export function UsageProvider({ children, onUpgradeRequest }: UsageProviderProps) {
   const { user } = useAuth();
   const [usage, setUsage] = useState<UsageLimits>(FREE_LIMITS);
-  const [isPro, setIsPro] = useState(false);
+  const [plan, setPlan] = useState<SubscriptionPlan>('free');
   const [isLoading, setIsLoading] = useState(true);
+
+  const isPro = plan === 'pro' || plan === 'research_education';
+  const isResearchTier = plan === 'research_education';
 
   const fetchUsage = useCallback(async () => {
     if (!user) {
       setUsage(FREE_LIMITS);
+      setPlan('free');
       setIsLoading(false);
       return;
     }
 
     try {
       // Check subscription status via Stripe
-      let userIsPro = false;
+      let userPlan: SubscriptionPlan = 'free';
       try {
         const { data: stripeData, error: stripeError } = await supabase.functions.invoke('check-subscription');
         if (!stripeError && stripeData?.subscribed) {
-          userIsPro = stripeData.plan === 'pro';
+          if (stripeData.plan === 'research_education') {
+            userPlan = 'research_education';
+          } else if (stripeData.plan === 'pro') {
+            userPlan = 'pro';
+          }
         }
       } catch (e) {
         console.error('Error checking Stripe subscription:', e);
@@ -67,10 +79,13 @@ export function UsageProvider({ children, onUpgradeRequest }: UsageProviderProps
           .eq('user_id', user.id)
           .eq('status', 'active')
           .maybeSingle();
-        userIsPro = !!subscription;
+        if (subscription) {
+          userPlan = (subscription.plan as SubscriptionPlan) || 'pro';
+        }
       }
 
-      setIsPro(userIsPro);
+      setPlan(userPlan);
+      const userIsPro = userPlan === 'pro' || userPlan === 'research_education';
 
       // Get or create usage record
       let { data: usageData } = await supabase
@@ -80,7 +95,6 @@ export function UsageProvider({ children, onUpgradeRequest }: UsageProviderProps
         .maybeSingle();
 
       if (!usageData) {
-        // Create usage record
         const { data: newUsage } = await supabase
           .from('user_usage')
           .insert({ user_id: user.id })
@@ -134,11 +148,8 @@ export function UsageProvider({ children, onUpgradeRequest }: UsageProviderProps
     const subscriptionStatus = urlParams.get('subscription');
     
     if (subscriptionStatus === 'success') {
-      // Remove the query param from URL without refreshing
       const newUrl = window.location.pathname;
       window.history.replaceState({}, '', newUrl);
-      
-      // Refresh usage/subscription status
       fetchUsage();
     }
   }, [fetchUsage]);
@@ -156,7 +167,6 @@ export function UsageProvider({ children, onUpgradeRequest }: UsageProviderProps
       return false;
     }
 
-    // Optimistically update
     const newUsage = { ...usage };
     newUsage[feature] = { 
       ...newUsage[feature], 
@@ -164,7 +174,6 @@ export function UsageProvider({ children, onUpgradeRequest }: UsageProviderProps
     };
     setUsage(newUsage);
 
-    // Map feature to database column
     const columnMap: Record<keyof UsageLimits, string> = {
       aiAnalyses: 'ai_analyses_today',
       portfolios: 'portfolio_count',
@@ -200,7 +209,9 @@ export function UsageProvider({ children, onUpgradeRequest }: UsageProviderProps
   return (
     <UsageContext.Provider value={{ 
       usage, 
-      isPro, 
+      isPro,
+      isResearchTier,
+      plan,
       isLoading, 
       canUse, 
       trackUsage, 

@@ -8,7 +8,7 @@ export function useUpgrade() {
   const [upgradeFeature, setUpgradeFeature] = useState<string>("default");
   const [isLoading, setIsLoading] = useState(false);
 
-  const startCheckout = useCallback(async () => {
+  const startCheckout = useCallback(async (plan: string = 'pro') => {
     setIsLoading(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -18,7 +18,9 @@ export function useUpgrade() {
         return;
       }
 
-      const { data, error } = await supabase.functions.invoke('create-checkout');
+      const { data, error } = await supabase.functions.invoke('create-checkout', {
+        body: { plan },
+      });
       
       if (error) {
         toast.error('Failed to start checkout');
@@ -27,7 +29,7 @@ export function useUpgrade() {
       }
       
       if (data?.url) {
-        window.open(data.url, '_blank');
+        window.location.href = data.url;
       }
     } catch (err) {
       toast.error('Something went wrong');
