@@ -1085,9 +1085,12 @@ export function AdminCoursesTab() {
                                 )}
                                 <div>
                                   <p className="text-sm font-medium">{lesson.title}</p>
-                                  {lesson.video_duration && (
-                                    <p className="text-xs text-muted-foreground">{lesson.video_duration} min</p>
-                                  )}
+                                  <p className="text-xs text-muted-foreground">
+                                    {lesson.video_provider === 'custom' ? 'Uploaded' : lesson.video_provider || 'No video'}
+                                    {lesson.video_duration != null && lesson.video_duration > 0 && (
+                                      <span> • {formatDuration(lesson.video_duration)}</span>
+                                    )}
+                                  </p>
                                 </div>
                                 {lesson.is_preview && <Badge variant="secondary">Preview</Badge>}
                               </div>
