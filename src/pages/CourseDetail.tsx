@@ -19,7 +19,6 @@ import {
   Lock,
   BookOpen,
   Award,
-  ChevronLeft,
   FileText
 } from 'lucide-react';
 import { toast } from 'sonner';
