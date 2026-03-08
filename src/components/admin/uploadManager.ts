@@ -514,8 +514,12 @@ async function uploadSingleFile(
   } catch (err: any) {
     // Don't mark as error if we paused/stopped — it was intentional
     if (isPaused || isStopped) return false;
+    const errMsg = err?.message || String(err);
+    const userMessage = errMsg.includes('Maximum size exceeded') || errMsg.includes('413')
+      ? `File too large for storage. Try a smaller file or enable compression.`
+      : errMsg;
     console.error(`[UploadManager] ❌ FAILED "${item.parsedTitle}":`, err);
-    updateItem(item.id, { status: 'error', progress: 0, error: err.message });
+    updateItem(item.id, { status: 'error', progress: 0, error: userMessage });
     return false;
   }
 }
