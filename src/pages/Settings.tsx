@@ -961,7 +961,7 @@ function SubscriptionManagement() {
             </div>
             
             <Button 
-              onClick={startCheckout}
+              onClick={() => startCheckout()}
               className="w-full gap-2 bg-gradient-to-r from-primary to-purple-500 hover:from-primary/90 hover:to-purple-500/90"
             >
               <Crown className="h-4 w-4" />
