@@ -276,6 +276,7 @@ export default function CourseDetail() {
                             {module.lessons?.map((lesson: any, lessonIndex: number) => {
                               const isCompleted = completedLessons.has(lesson.id);
                               const canAccess = enrollment || lesson.is_preview;
+                              const thumbnail = getYouTubeThumbnail(lesson.video_url, lesson.video_provider);
 
                               return (
                                 <div
@@ -290,21 +291,38 @@ export default function CourseDetail() {
                                   }}
                                 >
                                   <div className="flex items-center gap-3">
-                                    {isCompleted ? (
-                                      <CheckCircle2 className="w-5 h-5 text-green-500" />
-                                    ) : canAccess ? (
-                                      <Play className="w-5 h-5 text-primary" />
-                                    ) : (
-                                      <Lock className="w-5 h-5 text-muted-foreground" />
-                                    )}
+                                    {/* Thumbnail */}
+                                    <div className="relative w-24 h-14 rounded-md overflow-hidden bg-muted flex-shrink-0">
+                                      {thumbnail ? (
+                                        <img src={thumbnail} alt={lesson.title} className="w-full h-full object-cover" />
+                                      ) : (
+                                        <div className="w-full h-full flex items-center justify-center bg-muted">
+                                          <Play className="w-5 h-5 text-muted-foreground" />
+                                        </div>
+                                      )}
+                                      {lesson.video_duration != null && lesson.video_duration > 0 && (
+                                        <span className="absolute bottom-1 right-1 bg-black/80 text-white text-[10px] font-medium px-1 py-0.5 rounded">
+                                          {formatLessonDuration(lesson.video_duration)}
+                                        </span>
+                                      )}
+                                      {/* Status icon overlay */}
+                                      {isCompleted && (
+                                        <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                                          <CheckCircle2 className="w-5 h-5 text-green-400" />
+                                        </div>
+                                      )}
+                                      {!canAccess && (
+                                        <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                                          <Lock className="w-4 h-4 text-muted-foreground" />
+                                        </div>
+                                      )}
+                                    </div>
                                     <div>
-                                      <p className="font-medium">
+                                      <p className="font-medium text-sm">
                                         {moduleIndex + 1}.{lessonIndex + 1} {lesson.title}
                                       </p>
-                                      {lesson.video_duration && (
-                                        <p className="text-xs text-muted-foreground">
-                                          {Math.floor(lesson.video_duration / 60)} min
-                                        </p>
+                                      {lesson.description && (
+                                        <p className="text-xs text-muted-foreground line-clamp-1">{lesson.description}</p>
                                       )}
                                     </div>
                                   </div>
