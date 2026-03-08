@@ -407,7 +407,7 @@ function tusUpload(
       onShouldRetry: (err, retryAttempt, options) => {
         console.warn(`[UploadManager] TUS retry #${retryAttempt}`, err);
         // Don't retry on 413 (file too large for storage)
-        const errMsg = err?.originalResponse?._xhr?.responseText || err?.message || '';
+        const errMsg = (err as any)?.originalResponse?._xhr?.responseText || err?.message || '';
         if (errMsg.includes('Maximum size exceeded') || errMsg.includes('413')) {
           return false;
         }
