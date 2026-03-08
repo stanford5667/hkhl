@@ -24,6 +24,26 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 
+function getYouTubeThumbnail(url: string | null, provider: string | null): string | null {
+  if (!url) return null;
+  if (provider === 'youtube' || (!provider && url.includes('youtube.com'))) {
+    const match = url.match(/(?:v=|\/embed\/|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+    if (match) return `https://img.youtube.com/vi/${match[1]}/mqdefault.jpg`;
+  }
+  if (provider === 'custom' || (url.includes('/storage/') && url.match(/\.(mp4|webm|mov)$/i))) {
+    return null; // uploaded videos – no easy thumbnail
+  }
+  return null;
+}
+
+function formatLessonDuration(seconds: number): string {
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  const s = seconds % 60;
+  if (h > 0) return `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+  return `${m}:${String(s).padStart(2, '0')}`;
+}
+
 export default function CourseDetail() {
   const { courseId } = useParams();
   const navigate = useNavigate();
