@@ -50,12 +50,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (document.visibilityState === 'visible') {
         const { data: { session: currentSession } } = await supabase.auth.getSession();
         if (currentSession) {
-          const { data, error } = await supabase.auth.refreshSession();
-          if (error) {
-            console.warn('Session refresh failed on visibility change:', error.message);
-          } else if (data.session) {
-            setSession(data.session);
-            setUser(data.session.user);
+          // Only refresh if the token is close to expiring (within 5 minutes)
+          const expiresAt = currentSession.expires_at;
+          const now = Math.floor(Date.now() / 1000);
+          if (expiresAt && expiresAt - now < 300) {
+            const { error } = await supabase.auth.refreshSession();
+            if (error) {
+              console.warn('Session refresh failed on visibility change:', error.message);
+            }
+            // onAuthStateChange listener will handle state updates
           }
         }
       }
