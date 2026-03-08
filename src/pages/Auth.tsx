@@ -347,77 +347,111 @@ export default function Auth() {
                 </form>
               ) : (
                 <form onSubmit={signUpForm.handleSubmit(handleSignUp)} className="space-y-6">
-                  <div className="space-y-2">
-                    <Label htmlFor="fullName" className="text-foreground">Full Name</Label>
-                    <Input
-                      id="fullName"
-                      type="text"
-                      placeholder="John Smith"
-                      className="bg-secondary border-border text-foreground placeholder:text-muted-foreground focus:border-primary focus:ring-1 focus:ring-primary/50"
-                      {...signUpForm.register("fullName")}
-                    />
-                    {signUpForm.formState.errors.fullName && (
-                      <p className="text-sm text-destructive">{signUpForm.formState.errors.fullName.message}</p>
-                    )}
+                  {/* Step indicator */}
+                  <div className="flex items-center gap-2 justify-center mb-2">
+                    <div className={`h-2 w-16 rounded-full transition-colors ${signUpStep >= 1 ? 'bg-primary' : 'bg-muted'}`} />
+                    <div className={`h-2 w-16 rounded-full transition-colors ${signUpStep >= 2 ? 'bg-primary' : 'bg-muted'}`} />
                   </div>
+                  <p className="text-center text-xs text-muted-foreground">Step {signUpStep} of 2</p>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="signup-email" className="text-foreground">Email</Label>
-                    <Input
-                      id="signup-email"
-                      type="email"
-                      placeholder="name@company.com"
-                      className="bg-secondary border-border text-foreground placeholder:text-muted-foreground focus:border-primary focus:ring-1 focus:ring-primary/50"
-                      {...signUpForm.register("email")}
-                    />
-                    {signUpForm.formState.errors.email && (
-                      <p className="text-sm text-destructive">{signUpForm.formState.errors.email.message}</p>
-                    )}
-                  </div>
+                  {signUpStep === 1 ? (
+                    <>
+                      <div className="space-y-2">
+                        <Label htmlFor="fullName" className="text-foreground">Full Name</Label>
+                        <Input
+                          id="fullName"
+                          type="text"
+                          placeholder="John Smith"
+                          className="bg-secondary border-border text-foreground placeholder:text-muted-foreground focus:border-primary focus:ring-1 focus:ring-primary/50"
+                          {...signUpForm.register("fullName")}
+                        />
+                        {signUpForm.formState.errors.fullName && (
+                          <p className="text-sm text-destructive">{signUpForm.formState.errors.fullName.message}</p>
+                        )}
+                      </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="signup-password" className="text-foreground">Password</Label>
-                    <Input
-                      id="signup-password"
-                      type="password"
-                      placeholder="••••••••"
-                      className="bg-secondary border-border text-foreground placeholder:text-muted-foreground focus:border-primary focus:ring-1 focus:ring-primary/50"
-                      {...signUpForm.register("password")}
-                    />
-                    {signUpForm.formState.errors.password && (
-                      <p className="text-sm text-destructive">{signUpForm.formState.errors.password.message}</p>
-                    )}
-                  </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="signup-email" className="text-foreground">Email</Label>
+                        <Input
+                          id="signup-email"
+                          type="email"
+                          placeholder="name@company.com"
+                          className="bg-secondary border-border text-foreground placeholder:text-muted-foreground focus:border-primary focus:ring-1 focus:ring-primary/50"
+                          {...signUpForm.register("email")}
+                        />
+                        {signUpForm.formState.errors.email && (
+                          <p className="text-sm text-destructive">{signUpForm.formState.errors.email.message}</p>
+                        )}
+                      </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="confirmPassword" className="text-foreground">Confirm Password</Label>
-                    <Input
-                      id="confirmPassword"
-                      type="password"
-                      placeholder="••••••••"
-                      className="bg-secondary border-border text-foreground placeholder:text-muted-foreground focus:border-primary focus:ring-1 focus:ring-primary/50"
-                      {...signUpForm.register("confirmPassword")}
-                    />
-                    {signUpForm.formState.errors.confirmPassword && (
-                      <p className="text-sm text-destructive">{signUpForm.formState.errors.confirmPassword.message}</p>
-                    )}
-                  </div>
+                      <Button
+                        type="button"
+                        className="w-full"
+                        onClick={async () => {
+                          const valid = await signUpForm.trigger(["fullName", "email"]);
+                          if (valid) setSignUpStep(2);
+                        }}
+                      >
+                        Continue
+                      </Button>
+                    </>
+                  ) : (
+                    <>
+                      <div className="space-y-2">
+                        <Label htmlFor="signup-password" className="text-foreground">Password</Label>
+                        <Input
+                          id="signup-password"
+                          type="password"
+                          placeholder="••••••••"
+                          className="bg-secondary border-border text-foreground placeholder:text-muted-foreground focus:border-primary focus:ring-1 focus:ring-primary/50"
+                          {...signUpForm.register("password")}
+                        />
+                        {signUpForm.formState.errors.password && (
+                          <p className="text-sm text-destructive">{signUpForm.formState.errors.password.message}</p>
+                        )}
+                      </div>
 
-                  <AgeVerificationInput
-                    onVerificationChange={setIsAgeVerified}
-                    error={ageError}
-                  />
+                      <div className="space-y-2">
+                        <Label htmlFor="confirmPassword" className="text-foreground">Confirm Password</Label>
+                        <Input
+                          id="confirmPassword"
+                          type="password"
+                          placeholder="••••••••"
+                          className="bg-secondary border-border text-foreground placeholder:text-muted-foreground focus:border-primary focus:ring-1 focus:ring-primary/50"
+                          {...signUpForm.register("confirmPassword")}
+                        />
+                        {signUpForm.formState.errors.confirmPassword && (
+                          <p className="text-sm text-destructive">{signUpForm.formState.errors.confirmPassword.message}</p>
+                        )}
+                      </div>
 
-                  <Button type="submit" className="w-full" disabled={isLoading}>
-                    {isLoading ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Creating account...
-                      </>
-                    ) : (
-                      "Create account"
-                    )}
-                  </Button>
+                      <AgeVerificationInput
+                        onVerificationChange={setIsAgeVerified}
+                        error={ageError}
+                      />
+
+                      <div className="flex gap-3">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="flex-1"
+                          onClick={() => setSignUpStep(1)}
+                        >
+                          Back
+                        </Button>
+                        <Button type="submit" className="flex-1" disabled={isLoading}>
+                          {isLoading ? (
+                            <>
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              Creating...
+                            </>
+                          ) : (
+                            "Create account"
+                          )}
+                        </Button>
+                      </div>
+                    </>
+                  )}
                 </form>
               )}
 
