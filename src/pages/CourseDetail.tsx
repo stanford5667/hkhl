@@ -332,10 +332,15 @@ export default function CourseDetail() {
               <span className="absolute select-none text-[clamp(2rem,12vw,6rem)] lg:text-[5rem] font-extrabold tracking-tighter uppercase text-gray-800/30 leading-none pointer-events-none whitespace-nowrap">
                 MASTERCLASS
               </span>
-              {/* Overlay label */}
-              <span className="relative z-10 text-xs sm:text-sm md:text-base font-semibold tracking-[0.25em] sm:tracking-[0.35em] uppercase text-white/90">
-                INVESTMENT
-              </span>
+              {/* Overlay label - two lines */}
+              <div className="relative z-10 flex flex-col items-center gap-0.5">
+                <span className="text-xs sm:text-sm md:text-base font-semibold tracking-[0.25em] sm:tracking-[0.35em] uppercase text-white/90">
+                  REINVESTMENT
+                </span>
+                <span className="text-xs sm:text-sm md:text-base font-semibold tracking-[0.25em] sm:tracking-[0.35em] uppercase text-white/90">
+                  MASTERCLASS
+                </span>
+              </div>
               {course.is_free && (
                 <Badge className="absolute top-2 left-2 sm:top-4 sm:left-4 bg-green-500 text-white text-xs">Free Course</Badge>
               )}
