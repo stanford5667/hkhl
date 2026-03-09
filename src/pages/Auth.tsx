@@ -123,7 +123,7 @@ export default function Auth() {
       title: "Welcome to Asset Labs AI!",
       description: "Your account has been created successfully.",
     });
-    navigate("/");
+    navigate(from, { replace: true });
   };
 
   const handleForgotPassword = async (data: ForgotPasswordFormData) => {

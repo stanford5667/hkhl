@@ -300,7 +300,7 @@ export default function LessonView() {
                             Create a free account to start learning. Access premium content with a Research & Education membership.
                           </p>
                           <div className="flex flex-col sm:flex-row gap-2 justify-center">
-                            <Button onClick={() => navigate('/auth')} className="gap-2">
+                            <Button onClick={() => navigate('/auth', { state: { from: `/academy/lesson/${lessonId}` } })} className="gap-2">
                               <LogIn className="w-4 h-4" />
                               Sign Up / Sign In
                             </Button>
