@@ -112,7 +112,7 @@ export function ResearchHero({
             transition={{ duration: 0.5 }}
           >
             <span className="text-foreground">Build </span>
-            <span className="bg-gradient-to-r from-[hsl(175_80%_45%)] to-[hsl(190_90%_55%)] bg-clip-text text-transparent">Quant Investment</span>
+            <span className="bg-gradient-to-r from-[hsl(175_80%_45%)] to-[hsl(190_90%_55%)] bg-clip-text text-transparent">AI Investment</span>
             <br />
             <span className="bg-gradient-to-r from-[hsl(190_90%_55%)] to-[hsl(175_80%_45%)] bg-clip-text text-transparent">Strategies</span>
             <span className="text-foreground"> in Minutes.</span>
