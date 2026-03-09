@@ -25,6 +25,9 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { MobileAuthSheet } from '@/components/auth/MobileAuthSheet';
+import { useSocialProofToasts } from '@/components/academy/SocialProofToast';
+import { ExitIntentPopup } from '@/components/academy/ExitIntentPopup';
+import { TestimonialsSection } from '@/components/academy/TestimonialsSection';
 
 function getYouTubeThumbnail(url: string | null, provider: string | null): string | null {
   if (!url) return null;
