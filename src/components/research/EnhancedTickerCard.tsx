@@ -220,6 +220,7 @@ export function EnhancedTickerCard({
         onClick={onClick}
         role="group"
       >
+        <HoverActionOverlay symbol={symbol} />
         {/* Top row: symbol + change */}
         <div className="flex items-center justify-between mb-0.5">
           <span className="font-mono font-extrabold text-sm text-white">{symbol}</span>
