@@ -319,15 +319,15 @@ export default function CourseDetail() {
   }
 
   return (
-    <div className="container mx-auto p-4 sm:p-6 max-w-6xl space-y-4 sm:space-y-6">
+    <div className="container mx-auto px-3 py-3 sm:p-6 max-w-6xl space-y-3 sm:space-y-6">
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 sm:gap-6">
         {/* Main Content */}
-        <div className="lg:col-span-2 space-y-4 sm:space-y-6">
+        <div className="lg:col-span-2 space-y-3 sm:space-y-6">
           {/* Hero */}
           <Card className="overflow-hidden">
             {/* CSS Thumbnail */}
-            <div className="relative aspect-video bg-[#0B0E14] flex items-center justify-center overflow-hidden">
+            <div className="relative aspect-[16/9] sm:aspect-video bg-[#0B0E14] flex items-center justify-center overflow-hidden">
               {/* Watermark text - responsive sizing */}
               <span className="absolute select-none text-[clamp(2rem,12vw,6rem)] lg:text-[5rem] font-extrabold tracking-tighter uppercase text-gray-800/30 leading-none pointer-events-none whitespace-nowrap">
                 MASTERCLASS
@@ -351,19 +351,19 @@ export default function CourseDetail() {
                 </Badge>
               )}
             </div>
-            <CardHeader className="p-4 sm:p-6">
+            <CardHeader className="p-3 sm:p-6">
               <div className="flex flex-wrap gap-2 mb-2">
                 <Badge variant="outline" className={`text-xs ${getLevelColor(course.level)}`}>
                   {course.level || 'All Levels'}
                 </Badge>
                 <Badge variant="outline" className="text-xs">{course.category}</Badge>
               </div>
-              <CardTitle className="text-xl sm:text-2xl md:text-3xl">{course.title}</CardTitle>
+              <CardTitle className="text-lg sm:text-2xl md:text-3xl leading-tight">{course.title}</CardTitle>
               <CardDescription className="text-sm sm:text-base">
                 {course.description}
               </CardDescription>
             </CardHeader>
-            <CardContent className="p-4 sm:p-6 pt-0">
+            <CardContent className="p-3 sm:p-6 pt-0">
               <div className="flex items-center gap-3 text-xs sm:text-sm text-muted-foreground">
                 <div className="w-8 h-8 rounded-full bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
                   CS
@@ -527,8 +527,8 @@ export default function CourseDetail() {
           </Tabs>
         </div>
 
-        {/* Sidebar */}
-        <div className="space-y-4 sm:space-y-6">
+        {/* Sidebar - hidden on mobile since we have sticky CTA */}
+        <div className="hidden lg:block space-y-6">
           <Card className="lg:sticky lg:top-6">
             <CardHeader className="p-4 sm:p-6">
               <div className="flex items-center gap-2">
