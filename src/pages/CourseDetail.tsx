@@ -511,6 +511,23 @@ export default function CourseDetail() {
                     <li>Build confidence in your trading decisions</li>
                     <li>Access practical tools and templates</li>
                   </ul>
+                  {!hasAccess && (
+                    <>
+                      <Separator className="my-4" />
+                      <div className="flex items-center gap-3 p-3 rounded-lg bg-cyan-500/5 border border-cyan-500/20">
+                        <Sparkles className="w-4 h-4 text-cyan-400 flex-shrink-0" />
+                        <p className="text-xs sm:text-sm text-muted-foreground flex-1">Ready to start learning?</p>
+                        <Button
+                          size="sm"
+                          className="bg-cyan-500 hover:bg-cyan-600 text-white text-xs h-8 shrink-0"
+                          onClick={handleSubscribe}
+                          disabled={isCheckoutLoading}
+                        >
+                          {isCheckoutLoading ? 'Loading...' : 'Subscribe'}
+                        </Button>
+                      </div>
+                    </>
+                  )}
                 </CardContent>
               </Card>
             </TabsContent>
