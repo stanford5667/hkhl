@@ -67,6 +67,7 @@ const StudyMaterials = lazy(() => import('./pages/StudyMaterials'));
 const Community = lazy(() => import('./pages/Community'));
 const StockDiscovery = lazy(() => import('./pages/StockDiscovery'));
 const ThemeAnalysis = lazy(() => import('./pages/ThemeAnalysis'));
+const LandingPage = lazy(() => import('./pages/LandingPage'));
 
 // Optimized QueryClient with aggressive caching and deduplication
 const queryClient = new QueryClient({
