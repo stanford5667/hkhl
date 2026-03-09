@@ -259,7 +259,7 @@ export function EnhancedTickerCard({
       className={cn(
         "relative flex flex-col rounded-xl cursor-pointer h-[280px]",
         "bg-card/60 backdrop-blur-sm",
-        "border transition-all duration-300 group",
+        "border transition-all duration-300 group/card",
         isPositive
           ? "border-success/15 hover:border-success/40 hover:shadow-[0_0_20px_hsl(var(--success)/0.08)]"
           : "border-destructive/15 hover:border-destructive/40 hover:shadow-[0_0_20px_hsl(var(--destructive)/0.08)]"

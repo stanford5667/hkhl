@@ -249,7 +249,7 @@ export const EarningsTable = ({ earnings, showDate = false }: Props) => {
             sortedEarnings.map((earning) => (
               <TableRow 
                 key={earning.id}
-                className="cursor-pointer hover:bg-muted/50 relative group"
+                className="cursor-pointer hover:bg-muted/50 relative group/card"
                 onClick={() => setSelectedEarning(earning)}
               >
                 {/* Hover action overlay */}
