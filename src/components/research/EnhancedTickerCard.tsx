@@ -267,6 +267,7 @@ export function EnhancedTickerCard({
       )}
       onClick={onClick}
     >
+      <HoverActionOverlay symbol={symbol} />
       {/* Top accent line */}
       <div className={cn(
         "h-[2px] w-full",
