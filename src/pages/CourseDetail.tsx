@@ -21,7 +21,8 @@ import {
   BookOpen,
   Award,
   FileText,
-  Sparkles
+  Sparkles,
+  Shield
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { MobileAuthSheet } from '@/components/auth/MobileAuthSheet';
@@ -152,7 +153,8 @@ export default function CourseDetail() {
           lessons:course_lessons(*)
         `)
         .eq('course_id', courseId)
-        .order('order_index');
+        .order('order_index')
+        .order('order_index', { referencedTable: 'course_lessons' });
 
       if (error) throw error;
       return data;
@@ -465,7 +467,7 @@ export default function CourseDetail() {
                                       )}
                                     </div>
                                   </div>
-                                  {lesson.is_preview && !hasAccess && moduleIndex === 0 && lessonIndex === 0 ? (
+                                  {lesson.is_preview && !hasAccess && lessonIndex === 0 ? (
                                     <Badge className="text-[10px] sm:text-xs flex-shrink-0 ml-2 bg-cyan-500/15 text-cyan-400 border-cyan-500/30 gap-1">
                                       <Play className="w-2.5 h-2.5" />
                                       Free Preview
@@ -484,7 +486,7 @@ export default function CourseDetail() {
                   {/* Mid-curriculum CTA */}
                   {!hasAccess && (
                     <div className="px-4 sm:px-6 py-4 border-t border-border/50 bg-muted/30">
-                      <div className="flex items-center justify-between gap-3">
+                     <div className="flex items-center justify-between gap-3">
                         <p className="text-xs sm:text-sm text-muted-foreground">
                           <Lock className="w-3.5 h-3.5 inline mr-1 -mt-0.5" />
                           Unlock all {totalLessons} lessons
@@ -498,6 +500,10 @@ export default function CourseDetail() {
                           {isCheckoutLoading ? 'Loading...' : 'Get Access'}
                         </Button>
                       </div>
+                      <p className="text-[10px] sm:text-xs text-muted-foreground text-center mt-2 flex items-center justify-center gap-1.5">
+                        <Shield className="w-3 h-3 text-emerald-400" />
+                        7-day money-back guarantee • Cancel anytime
+                      </p>
                     </div>
                   )}
                 </CardContent>
