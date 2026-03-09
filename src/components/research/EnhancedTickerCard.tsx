@@ -218,6 +218,7 @@ export function EnhancedTickerCard({
           "active:scale-[0.98]"
         )}
         onClick={onClick}
+        role="group"
       >
         {/* Top row: symbol + change */}
         <div className="flex items-center justify-between mb-0.5">
