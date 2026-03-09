@@ -45,6 +45,7 @@ export function MobileAuthSheet({
   const [mode, setMode] = useState<'signin' | 'signup'>('signup');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [fullName, setFullName] = useState('');
   const [isAgeVerified, setIsAgeVerified] = useState(false);
   const [ageError, setAgeError] = useState('');
@@ -70,6 +71,12 @@ export function MobileAuthSheet({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setAgeError('');
+
+    // Validate password confirmation for signup
+    if (mode === 'signup' && password !== confirmPassword) {
+      toast.error("Passwords don't match");
+      return;
+    }
 
     // Validate age verification for signup
     if (mode === 'signup' && !isAgeVerified) {
@@ -181,6 +188,22 @@ export function MobileAuthSheet({
           />
         </div>
 
+        {mode === 'signup' && (
+          <div className="space-y-0.5">
+            <Label htmlFor="confirmPassword" className="text-[11px] font-medium">Confirm Password</Label>
+            <Input
+              id="confirmPassword"
+              type="password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              placeholder="••••••••"
+              required
+              minLength={6}
+              className="h-9 text-sm"
+              autoComplete="new-password"
+            />
+          </div>
+        )}
         {mode === 'signup' && (
           <AgeVerificationInput
             onVerificationChange={setIsAgeVerified}
