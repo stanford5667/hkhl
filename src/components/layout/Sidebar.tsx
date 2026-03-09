@@ -106,6 +106,13 @@ export function Sidebar() {
   const allNavigation = useMemo<NavItem[]>(() => {
     const items: NavItem[] = [
       { 
+        label: "Landing Page", 
+        subtitle: "Marketing Preview",
+        href: "/landing", 
+        icon: Eye,
+        isPremium: false,
+      },
+      { 
         label: "Research", 
         subtitle: "Search & Analyze",
         href: "/research", 
