@@ -47,14 +47,32 @@ export default function Auth() {
   const { toast } = useToast();
   const { user, signIn, signUp, resetPassword } = useAuth();
 
-  // Get the redirect path from state or default to home
-  const from = (location.state as { from?: string })?.from || "/";
+  // Get the redirect path and optional checkout intent from state
+  const locationState = location.state as { from?: string; checkoutPlan?: string; checkoutReturnPath?: string } | null;
+  const from = locationState?.from || "/";
+  const checkoutPlan = locationState?.checkoutPlan;
+  const checkoutReturnPath = locationState?.checkoutReturnPath;
 
   useEffect(() => {
     if (user) {
-      navigate(from, { replace: true });
+      if (checkoutPlan) {
+        // Trigger checkout immediately after login/signup
+        import('@/integrations/supabase/client').then(({ supabase }) => {
+          supabase.functions.invoke('create-checkout', {
+            body: { plan: checkoutPlan, return_path: checkoutReturnPath || from },
+          }).then(({ data, error }) => {
+            if (!error && data?.url) {
+              window.location.href = data.url;
+            } else {
+              navigate(from, { replace: true });
+            }
+          });
+        });
+      } else {
+        navigate(from, { replace: true });
+      }
     }
-  }, [user, navigate, from]);
+  }, [user, navigate, from, checkoutPlan, checkoutReturnPath]);
 
   const signInForm = useForm<SignInFormData>({
     resolver: zodResolver(signInSchema),
