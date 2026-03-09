@@ -101,8 +101,8 @@ export default function CourseDetail() {
   const [descExpanded, setDescExpanded] = useState(false);
   const [showAuthSheet, setShowAuthSheet] = useState(false);
 
-  // Social proof toasts — show for non-subscribers
-  useSocialProofToasts(!hasAccess && !isLoading);
+  // Social proof toasts — show for guests/non-members
+  useSocialProofToasts(!isResearchTier);
 
   // Check for successful subscription and auto-enroll
   useEffect(() => {
