@@ -218,7 +218,6 @@ export function EnhancedTickerCard({
           "active:scale-[0.98]"
         )}
         onClick={onClick}
-        role="group"
       >
         <HoverActionOverlay symbol={symbol} />
         {/* Top row: symbol + change */}
