@@ -372,13 +372,20 @@ export default function LessonView() {
             </CardContent>
           </Card>
 
-          {/* Lesson Info */}
+{/* Lesson Info with AI-generated description */}
           <Card>
             <CardHeader>
               <div className="flex items-start justify-between gap-4">
                 <div className="flex-1">
                   <CardTitle className="text-xl md:text-2xl mb-2">{lesson.title}</CardTitle>
-                  <p className="text-muted-foreground">{lesson.description || 'No description available.'}</p>
+                  <p className="text-muted-foreground">
+                    {generatedDescription || lesson.description || (
+                      <span className="flex items-center gap-2">
+                        <span className="inline-block w-3 h-3 rounded-full bg-primary/50 animate-pulse" />
+                        Generating description...
+                      </span>
+                    )}
+                  </p>
                 </div>
                 {user && hasVideoAccess && (
                   !progress?.completed ? (
@@ -392,7 +399,7 @@ export default function LessonView() {
                       Mark Complete
                     </Button>
                   ) : (
-                    <div className="flex items-center gap-2 text-green-500 shrink-0">
+                    <div className="flex items-center gap-2 text-emerald-500 shrink-0">
                       <CheckCircle2 className="w-5 h-5" />
                       <span className="font-semibold">Completed</span>
                     </div>
