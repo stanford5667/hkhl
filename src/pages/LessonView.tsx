@@ -3,6 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useUsage } from '@/contexts/UsageContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
@@ -13,7 +14,10 @@ import {
   CheckCircle2,
   FileText,
   Download,
-  Play
+  Play,
+  Lock,
+  Sparkles,
+  LogIn
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -21,6 +25,7 @@ export default function LessonView() {
   const { lessonId } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { isResearchTier } = useUsage();
   const queryClient = useQueryClient();
   const videoRef = useRef<HTMLIFrameElement | HTMLVideoElement>(null);
   const [videoProgress, setVideoProgress] = useState(0);
@@ -229,6 +234,11 @@ export default function LessonView() {
     );
   }
 
+  // Determine access: user must be logged in and have research tier (or lesson is preview/free)
+  const courseId = lesson?.module?.course?.id;
+  const isFreeLesson = lesson?.is_preview;
+  const hasVideoAccess = user && (isResearchTier || isFreeLesson);
+
   const courseProgress = 45; // This would come from actual calculation
 
   return (
@@ -255,8 +265,8 @@ export default function LessonView() {
           {/* Video Player */}
           <Card>
             <CardContent className="p-0">
-              <div className="aspect-video bg-black rounded-lg overflow-hidden">
-                {lesson.video_url ? (
+              <div className="relative aspect-video bg-black rounded-lg overflow-hidden">
+                {hasVideoAccess && lesson.video_url ? (
                   (lesson.video_provider === 'custom' && isDirectVideoUrl(lesson.video_url)) ? (
                     <video
                       ref={videoRef as React.RefObject<HTMLVideoElement>}
@@ -277,10 +287,53 @@ export default function LessonView() {
                     />
                   )
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center text-white">
-                    <div className="text-center">
-                      <Play className="w-16 h-16 mx-auto mb-4 opacity-50" />
-                      <p>Video not available</p>
+                  /* Auth/subscription gate overlay */
+                  <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-slate-900 to-slate-950">
+                    <div className="text-center p-6 max-w-md">
+                      {!user ? (
+                        <>
+                          <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
+                            <LogIn className="w-8 h-8 text-primary" />
+                          </div>
+                          <h3 className="text-lg font-bold text-white mb-2">Sign in to watch</h3>
+                          <p className="text-sm text-muted-foreground mb-4">
+                            Create a free account to start learning. Access premium content with a Research & Education membership.
+                          </p>
+                          <div className="flex flex-col sm:flex-row gap-2 justify-center">
+                            <Button onClick={() => navigate('/auth')} className="gap-2">
+                              <LogIn className="w-4 h-4" />
+                              Sign Up / Sign In
+                            </Button>
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <div className="w-16 h-16 rounded-full bg-amber-500/10 flex items-center justify-center mx-auto mb-4">
+                            <Lock className="w-8 h-8 text-amber-400" />
+                          </div>
+                          <h3 className="text-lg font-bold text-white mb-2">Premium Content</h3>
+                          <p className="text-sm text-muted-foreground mb-4">
+                            This lesson requires a Research & Education membership ($100/month).
+                          </p>
+                          <Button
+                            className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 gap-2"
+                            onClick={async () => {
+                              try {
+                                const { data, error } = await supabase.functions.invoke('create-checkout', {
+                                  body: { plan: 'research_education', return_path: `/academy/lesson/${lessonId}` }
+                                });
+                                if (error) throw error;
+                                if (data?.url) window.location.href = data.url;
+                              } catch (err: any) {
+                                toast.error(err.message || 'Failed to start checkout');
+                              }
+                            }}
+                          >
+                            <Sparkles className="w-4 h-4" />
+                            Subscribe & Start Learning
+                          </Button>
+                        </>
+                      )}
                     </div>
                   </div>
                 )}
@@ -294,23 +347,25 @@ export default function LessonView() {
               <div className="flex items-start justify-between gap-4">
                 <div className="flex-1">
                   <CardTitle className="text-xl md:text-2xl mb-2">{lesson.title}</CardTitle>
-                  <p className="text-muted-foreground">{lesson.description}</p>
+                  <p className="text-muted-foreground">{lesson.description || 'No description available.'}</p>
                 </div>
-                {!progress?.completed ? (
-                  <Button
-                    onClick={handleMarkComplete}
-                    disabled={completeLessonMutation.isPending}
-                    variant="outline"
-                    className="shrink-0"
-                  >
-                    <CheckCircle2 className="w-4 h-4 mr-2" />
-                    Mark Complete
-                  </Button>
-                ) : (
-                  <div className="flex items-center gap-2 text-green-500 shrink-0">
-                    <CheckCircle2 className="w-5 h-5" />
-                    <span className="font-semibold">Completed</span>
-                  </div>
+                {user && hasVideoAccess && (
+                  !progress?.completed ? (
+                    <Button
+                      onClick={handleMarkComplete}
+                      disabled={completeLessonMutation.isPending}
+                      variant="outline"
+                      className="shrink-0"
+                    >
+                      <CheckCircle2 className="w-4 h-4 mr-2" />
+                      Mark Complete
+                    </Button>
+                  ) : (
+                    <div className="flex items-center gap-2 text-green-500 shrink-0">
+                      <CheckCircle2 className="w-5 h-5" />
+                      <span className="font-semibold">Completed</span>
+                    </div>
+                  )
                 )}
               </div>
             </CardHeader>
