@@ -252,7 +252,11 @@ export default function LessonView() {
         body: { plan: 'research_education', return_path: `/academy/lesson/${lessonId}` }
       });
       if (error) throw error;
-      if (data?.url) window.location.href = data.url;
+      if (data?.url) {
+        // Use window.open for reliable redirect (works in iframes too)
+        const w = window.open(data.url, '_blank');
+        if (!w) window.location.href = data.url;
+      }
     } catch (err: any) {
       toast.error(err.message || 'Failed to start checkout');
     } finally {
