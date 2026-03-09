@@ -405,50 +405,25 @@ export default function CourseDetail() {
                               const isCompleted = completedLessons.has(lesson.id);
                               const canAccess = hasAccess || lesson.is_preview;
                               const thumbnail = getYouTubeThumbnail(lesson.video_url, lesson.video_provider);
+                              const globalIndex = modules!.slice(0, moduleIndex).reduce((s: number, m: any) => s + (m.lessons?.length || 0), 0) + lessonIndex;
 
                               return (
                                 <div
                                   key={lesson.id}
-                                  className={`flex items-center justify-between p-2 sm:p-3 rounded-lg border ${
-                                    canAccess ? 'hover:bg-muted/50 cursor-pointer' : 'opacity-50'
-                                  }`}
+                                  className="flex items-center justify-between p-2 sm:p-3 rounded-lg border hover:bg-muted/50 cursor-pointer"
                                   onClick={() => {
-                                    if (canAccess) {
-                                      navigate(`/academy/lesson/${lesson.id}`);
-                                    } else if (!user) {
-                                      navigate('/auth');
-                                    } else if (!isResearchTier) {
-                                      handleSubscribe();
-                                    }
+                                    // Always navigate – lesson page handles auth gating
+                                    navigate(`/academy/lesson/${lesson.id}`);
                                   }}
                                 >
                                   <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
-                                    {/* Thumbnail - hide on very small screens */}
-                                    <div className="relative w-16 h-10 sm:w-24 sm:h-14 rounded-md overflow-hidden bg-muted flex-shrink-0 hidden xs:flex">
-                                      {thumbnail ? (
-                                        <img src={thumbnail} alt={lesson.title} className="w-full h-full object-cover" />
-                                      ) : (
-                                        <div className="w-full h-full flex items-center justify-center bg-muted">
-                                          <Play className="w-4 h-4 sm:w-5 sm:h-5 text-muted-foreground" />
-                                        </div>
-                                      )}
-                                      {lesson.video_duration != null && lesson.video_duration > 0 && (
-                                        <span className="absolute bottom-0.5 right-0.5 sm:bottom-1 sm:right-1 bg-black/80 text-white text-[8px] sm:text-[10px] font-medium px-1 py-0.5 rounded">
-                                          {formatLessonDuration(lesson.video_duration)}
-                                        </span>
-                                      )}
-                                      {/* Status icon overlay */}
-                                      {isCompleted && (
-                                        <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-                                          <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5 text-green-400" />
-                                        </div>
-                                      )}
-                                      {!canAccess && (
-                                        <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-                                          <Lock className="w-3 h-3 sm:w-4 sm:h-4 text-muted-foreground" />
-                                        </div>
-                                      )}
-                                    </div>
+                                    <LessonThumbnail
+                                      lesson={lesson}
+                                      index={globalIndex}
+                                      thumbnail={thumbnail}
+                                      isCompleted={isCompleted}
+                                      canAccess={canAccess}
+                                    />
                                     {/* Mobile: show status icon inline */}
                                     <div className="xs:hidden flex-shrink-0">
                                       {isCompleted ? (
