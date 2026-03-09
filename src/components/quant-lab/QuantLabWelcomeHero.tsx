@@ -150,7 +150,7 @@ export function QuantLabWelcomeHero({
                 className="px-3 sm:px-4 py-1 sm:py-1.5 text-xs sm:text-sm border-primary/30 bg-primary/5"
               >
                 <Sparkles className="h-3 sm:h-3.5 w-3 sm:w-3.5 mr-1.5 sm:mr-2 text-primary" />
-                No-Code AI Investing Tools
+                No-Code AI Investment
               </Badge>
             </motion.div>
 
