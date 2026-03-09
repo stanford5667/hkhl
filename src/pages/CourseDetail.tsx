@@ -228,7 +228,7 @@ export default function CourseDetail() {
 
   const handleSubscribe = async () => {
     if (!user) {
-      navigate('/auth');
+      navigate('/auth', { state: { from: `/academy/course/${courseId}` } });
       return;
     }
 
@@ -253,7 +253,7 @@ export default function CourseDetail() {
 
   const handleStartLearning = () => {
     if (!user) {
-      navigate('/auth');
+      navigate('/auth', { state: { from: `/academy/course/${courseId}` } });
       return;
     }
     
