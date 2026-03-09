@@ -129,7 +129,7 @@ export function ResearchUnauthHero() {
           <span className="bg-gradient-to-r from-[hsl(190_90%_55%)] to-[hsl(175_80%_45%)] bg-clip-text text-transparent">
             {' '}Strategies
           </span>
-          <span className="text-white"> in Minutes.</span>
+          <span className="text-white"> in Mins.</span>
           <br />
           <span className="text-white/30 text-[0.6em] sm:text-[0.65em]">No Coding Required.</span>
         </motion.h1>
