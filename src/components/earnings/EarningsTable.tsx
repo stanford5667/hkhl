@@ -249,11 +249,11 @@ export const EarningsTable = ({ earnings, showDate = false }: Props) => {
             sortedEarnings.map((earning) => (
               <TableRow 
                 key={earning.id}
-                className="cursor-pointer hover:bg-muted/50 relative group"
+                className="cursor-pointer hover:bg-muted/50 relative group/card"
                 onClick={() => setSelectedEarning(earning)}
               >
                 {/* Hover action overlay */}
-                <td className="absolute inset-0 z-20 opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto transition-all duration-250" style={{ position: 'absolute' }}>
+                <td className="absolute inset-0 z-20 opacity-0 group-hover/card:opacity-100 pointer-events-none group-hover/card:pointer-events-auto transition-all duration-250" style={{ position: 'absolute' }}>
                   <div className="flex items-center justify-center gap-2.5 h-full bg-black/60 backdrop-blur-sm" onClick={(e) => e.stopPropagation()}>
                     <button
                       onClick={(e) => { e.stopPropagation(); e.preventDefault(); navigate(`/stock/${earning.symbol}`); }}

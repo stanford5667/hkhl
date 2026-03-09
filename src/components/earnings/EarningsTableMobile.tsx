@@ -76,11 +76,11 @@ export const EarningsTableMobile = ({ earnings }: Props) => {
         {earnings.map((earning) => (
           <Card
             key={earning.id}
-            className="p-3 cursor-pointer hover:bg-muted/50 active:bg-muted/70 transition-colors relative group"
+            className="p-3 cursor-pointer hover:bg-muted/50 active:bg-muted/70 transition-colors relative group/card"
             onClick={() => setSelectedEarning(earning)}
           >
             {/* Hover/long-press action overlay */}
-            <div className="absolute inset-0 z-20 flex items-center justify-center gap-2.5 px-3 bg-black/60 backdrop-blur-sm rounded-[inherit] opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto transition-all duration-250" onClick={(e) => e.stopPropagation()}>
+            <div className="absolute inset-0 z-20 flex items-center justify-center gap-2.5 px-3 bg-black/60 backdrop-blur-sm rounded-[inherit] opacity-0 group-hover/card:opacity-100 pointer-events-none group-hover/card:pointer-events-auto transition-all duration-250" onClick={(e) => e.stopPropagation()}>
               <button
                 onClick={(e) => { e.stopPropagation(); e.preventDefault(); navigate(`/stock/${earning.symbol}`); }}
                 className="inline-flex items-center gap-1.5 font-mono font-semibold text-[11px] px-3.5 py-1.5 rounded-full bg-white/10 text-white border border-white/20 hover:bg-white/20 hover:border-white/30 transition-all backdrop-blur-sm"

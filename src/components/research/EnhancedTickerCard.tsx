@@ -211,7 +211,7 @@ export function EnhancedTickerCard({
         className={cn(
           "relative flex flex-col p-2.5 rounded-lg cursor-pointer h-[160px]",
           "bg-card/60 backdrop-blur-sm",
-          "border transition-all duration-200 group",
+          "border transition-all duration-200 group/card",
           isPositive
             ? "border-success/20 hover:border-success/40"
             : "border-destructive/20 hover:border-destructive/40",
@@ -244,7 +244,7 @@ export function EnhancedTickerCard({
         </div>
         {/* CTA */}
         <div className="mt-1.5 pt-1.5 border-t border-border/20">
-          <span className="inline-flex items-center gap-1 font-mono font-bold uppercase tracking-wide rounded-md text-[8px] px-2 py-0.5 bg-[hsl(175_80%_45%)] text-background shadow-[0_0_8px_hsl(175_80%_45%/0.3)] group-hover:shadow-[0_0_14px_hsl(175_80%_45%/0.5)] transition-all">
+          <span className="inline-flex items-center gap-1 font-mono font-bold uppercase tracking-wide rounded-md text-[8px] px-2 py-0.5 bg-[hsl(175_80%_45%)] text-background shadow-[0_0_8px_hsl(175_80%_45%/0.3)] group-hover/card:shadow-[0_0_14px_hsl(175_80%_45%/0.5)] transition-all">
             Analyze <ArrowRight className="h-2 w-2" />
           </span>
         </div>
@@ -259,7 +259,7 @@ export function EnhancedTickerCard({
       className={cn(
         "relative flex flex-col rounded-xl cursor-pointer h-[280px]",
         "bg-card/60 backdrop-blur-sm",
-        "border transition-all duration-300 group",
+        "border transition-all duration-300 group/card",
         isPositive
           ? "border-success/15 hover:border-success/40 hover:shadow-[0_0_20px_hsl(var(--success)/0.08)]"
           : "border-destructive/15 hover:border-destructive/40 hover:shadow-[0_0_20px_hsl(var(--destructive)/0.08)]"
@@ -278,7 +278,7 @@ export function EnhancedTickerCard({
         <div className="flex items-start justify-between mb-2">
           <div>
             <div className="flex items-center gap-2">
-              <span className="font-mono font-extrabold text-base text-white group-hover:text-primary transition-colors">
+              <span className="font-mono font-extrabold text-base text-white group-hover/card:text-primary transition-colors">
                 {symbol}
               </span>
               {sectorDisplay && (
@@ -345,7 +345,7 @@ export function EnhancedTickerCard({
           ) : (
             <span className="text-[10px] font-mono text-muted-foreground">—</span>
           )}
-          <span className="inline-flex items-center gap-1 font-mono font-bold uppercase tracking-wide rounded-md text-[9px] px-2.5 py-1 bg-[hsl(175_80%_45%)] text-background shadow-[0_0_10px_hsl(175_80%_45%/0.3)] group-hover:shadow-[0_0_16px_hsl(175_80%_45%/0.5)] transition-all">
+          <span className="inline-flex items-center gap-1 font-mono font-bold uppercase tracking-wide rounded-md text-[9px] px-2.5 py-1 bg-[hsl(175_80%_45%)] text-background shadow-[0_0_10px_hsl(175_80%_45%/0.3)] group-hover/card:shadow-[0_0_16px_hsl(175_80%_45%/0.5)] transition-all">
             Analyze <ArrowRight className="h-2.5 w-2.5" />
           </span>
         </div>
