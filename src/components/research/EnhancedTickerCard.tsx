@@ -218,7 +218,6 @@ export function EnhancedTickerCard({
           "active:scale-[0.98]"
         )}
         onClick={onClick}
-        role="group"
       >
         <HoverActionOverlay symbol={symbol} />
         {/* Top row: symbol + change */}
@@ -258,7 +257,7 @@ export function EnhancedTickerCard({
     <div
       ref={cardRef}
       className={cn(
-        "relative flex flex-col rounded-xl cursor-pointer overflow-hidden h-[280px]",
+        "relative flex flex-col rounded-xl cursor-pointer h-[280px]",
         "bg-card/60 backdrop-blur-sm",
         "border transition-all duration-300 group",
         isPositive
