@@ -94,6 +94,7 @@ export default function CourseDetail() {
   const { isResearchTier, isPro, refreshUsage, isLoading: isUsageLoading } = useUsage();
   const queryClient = useQueryClient();
   const [isCheckoutLoading, setIsCheckoutLoading] = useState(false);
+  const [descExpanded, setDescExpanded] = useState(false);
 
   // Check for successful subscription and auto-enroll
   useEffect(() => {
@@ -359,9 +360,17 @@ export default function CourseDetail() {
                 <Badge variant="outline" className="text-xs">{course.category}</Badge>
               </div>
               <CardTitle className="text-lg sm:text-2xl md:text-3xl leading-tight">{course.title}</CardTitle>
-              <CardDescription className="text-sm sm:text-base">
+              <CardDescription className={`text-sm sm:text-base ${!descExpanded ? 'line-clamp-3' : ''}`}>
                 {course.description}
               </CardDescription>
+              {course.description && course.description.length > 150 && (
+                <button
+                  onClick={() => setDescExpanded(!descExpanded)}
+                  className="text-xs text-cyan-400 hover:text-cyan-300 font-medium mt-1 transition-colors"
+                >
+                  {descExpanded ? 'Show less' : 'Read more'}
+                </button>
+              )}
             </CardHeader>
             <CardContent className="p-3 sm:p-6 pt-0">
               <div className="flex items-center gap-3 text-xs sm:text-sm text-muted-foreground">
