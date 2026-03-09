@@ -43,14 +43,18 @@ export default function Auth() {
   const [isAgeVerified, setIsAgeVerified] = useState(false);
   const [ageError, setAgeError] = useState("");
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
   const { user, signIn, signUp, resetPassword } = useAuth();
 
+  // Get the redirect path from state or default to home
+  const from = (location.state as { from?: string })?.from || "/";
+
   useEffect(() => {
     if (user) {
-      navigate("/");
+      navigate(from, { replace: true });
     }
-  }, [user, navigate]);
+  }, [user, navigate, from]);
 
   const signInForm = useForm<SignInFormData>({
     resolver: zodResolver(signInSchema),
