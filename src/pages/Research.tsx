@@ -191,6 +191,9 @@ export default function ResearchPage() {
 
       </motion.div>
 
+      {/* Marketing section for unauthenticated users */}
+      <ResearchMarketingSection />
+
       {/* Sticky Engagement Bar - appears on scroll */}
       <StickyEngagementBar />
 
