@@ -28,6 +28,7 @@ interface CommunityHubProps {
 
 export function CommunityHub({ defaultTab = 'chat', initialRoomId }: CommunityHubProps) {
   const navigate = useNavigate();
+  const location = useLocation();
   const isMobile = useIsMobile();
   const { isAuthenticated } = useAuth();
   const [activeTab, setActiveTab] = useState<'chat' | 'posts'>(defaultTab);
