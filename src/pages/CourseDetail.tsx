@@ -359,25 +359,16 @@ export default function CourseDetail() {
                 <Badge variant="outline" className="text-xs">{course.category}</Badge>
               </div>
               <CardTitle className="text-xl sm:text-2xl md:text-3xl">{course.title}</CardTitle>
-              <CardDescription className="text-sm sm:text-base line-clamp-3 sm:line-clamp-none">
+              <CardDescription className="text-sm sm:text-base">
                 {course.description}
               </CardDescription>
             </CardHeader>
             <CardContent className="p-4 sm:p-6 pt-0">
-              <div className="flex flex-wrap items-center gap-3 sm:gap-4 text-xs sm:text-sm text-muted-foreground">
-                <div className="flex items-center gap-1">
-                  <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                  <span>{course.duration_hours || 0}h</span>
+              <div className="flex items-center gap-3 text-xs sm:text-sm text-muted-foreground">
+                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
+                  CS
                 </div>
-                <div className="flex items-center gap-1">
-                  <Users className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                  <span>{course.student_count}</span>
-                </div>
-                <div className="flex items-center gap-1 text-yellow-500">
-                  <Star className="w-3.5 h-3.5 sm:w-4 sm:h-4 fill-current" />
-                  <span className="font-medium">{course.rating?.toFixed(1) || '0.0'}</span>
-                  <span className="text-muted-foreground">({reviews?.length || 0})</span>
-                </div>
+                <span className="text-foreground/80">Led by <span className="font-medium text-foreground">Chris Stanford</span>, Private Equity Investor</span>
               </div>
             </CardContent>
           </Card>
@@ -399,7 +390,7 @@ export default function CourseDetail() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="p-0">
-                  <Accordion type="multiple" className="w-full">
+                  <Accordion type="multiple" defaultValue={modules?.[0] ? [modules[0].id] : []} className="w-full">
                     {modules?.map((module: any, moduleIndex: number) => (
                       <AccordionItem key={module.id} value={module.id}>
                         <AccordionTrigger className="px-4 sm:px-6 hover:no-underline">
@@ -457,9 +448,14 @@ export default function CourseDetail() {
                                       )}
                                     </div>
                                   </div>
-                                  {lesson.is_preview && !hasAccess && (
+                                  {lesson.is_preview && !hasAccess && moduleIndex === 0 && lessonIndex === 0 ? (
+                                    <Badge className="text-[10px] sm:text-xs flex-shrink-0 ml-2 bg-cyan-500/15 text-cyan-400 border-cyan-500/30 gap-1">
+                                      <Play className="w-2.5 h-2.5" />
+                                      Free Preview
+                                    </Badge>
+                                  ) : lesson.is_preview && !hasAccess ? (
                                     <Badge variant="outline" className="text-[10px] sm:text-xs flex-shrink-0 ml-2">Preview</Badge>
-                                  )}
+                                  ) : null}
                                 </div>
                               );
                             })}
@@ -670,6 +666,21 @@ export default function CourseDetail() {
           </Card>
         </div>
       </div>
+      {/* Sticky Bottom CTA - mobile */}
+      {!hasAccess && (
+        <div className="fixed bottom-0 left-0 right-0 z-50 bg-[#0B0E14]/90 backdrop-blur-md border-t border-border/40 p-3 sm:p-4 lg:hidden">
+          <Button
+            className="w-full bg-cyan-500 hover:bg-cyan-600 text-white font-semibold text-sm h-11"
+            onClick={handleSubscribe}
+            disabled={isCheckoutLoading}
+          >
+            {isCheckoutLoading ? 'Loading...' : 'Unlock Full Masterclass — $100/mo'}
+          </Button>
+        </div>
+      )}
+
+      {/* Bottom padding to prevent content from hiding behind sticky CTA */}
+      {!hasAccess && <div className="h-20 lg:hidden" />}
     </div>
   );
 }
