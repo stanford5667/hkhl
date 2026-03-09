@@ -274,11 +274,12 @@ export default function LessonView() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Main Content */}
         <div className="lg:col-span-2 space-y-6">
-          {/* Video Player */}
+          {/* Video Player with Thumbnail + Play-to-Gate */}
           <Card>
             <CardContent className="p-0">
               <div className="relative aspect-video bg-black rounded-lg overflow-hidden">
-                {hasVideoAccess && lesson.video_url ? (
+                {/* If user has access, show actual video */}
+                {hasVideoAccess && lesson.video_url && !showPaywall ? (
                   (lesson.video_provider === 'custom' && isDirectVideoUrl(lesson.video_url)) ? (
                     <video
                       ref={videoRef as React.RefObject<HTMLVideoElement>}
@@ -298,16 +299,16 @@ export default function LessonView() {
                       allowFullScreen
                     />
                   )
-                ) : (
-                  /* Auth/subscription gate overlay */
-                  <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-slate-900 to-slate-950">
+                ) : showPaywall ? (
+                  /* Paywall overlay - shown when user clicks play without access */
+                  <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-background/95 to-background">
                     <div className="text-center p-6 max-w-md">
                       {!user ? (
                         <>
                           <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
                             <LogIn className="w-8 h-8 text-primary" />
                           </div>
-                          <h3 className="text-lg font-bold text-white mb-2">Sign in to watch</h3>
+                          <h3 className="text-lg font-bold mb-2">Sign in to watch</h3>
                           <p className="text-sm text-muted-foreground mb-4">
                             Create a free account to start learning. Access premium content with a Research & Education membership.
                           </p>
@@ -316,6 +317,9 @@ export default function LessonView() {
                               <LogIn className="w-4 h-4" />
                               Sign Up / Sign In
                             </Button>
+                            <Button variant="ghost" onClick={() => setShowPaywall(false)}>
+                              Back
+                            </Button>
                           </div>
                         </>
                       ) : (
@@ -323,29 +327,63 @@ export default function LessonView() {
                           <div className="w-16 h-16 rounded-full bg-amber-500/10 flex items-center justify-center mx-auto mb-4">
                             <Lock className="w-8 h-8 text-amber-400" />
                           </div>
-                          <h3 className="text-lg font-bold text-white mb-2">Premium Content</h3>
+                          <h3 className="text-lg font-bold mb-2">Premium Content</h3>
                           <p className="text-sm text-muted-foreground mb-4">
                             This lesson requires a Research & Education membership ($100/month).
                           </p>
-                          <Button
-                            className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 gap-2"
-                            onClick={async () => {
-                              try {
-                                const { data, error } = await supabase.functions.invoke('create-checkout', {
-                                  body: { plan: 'research_education', return_path: `/academy/lesson/${lessonId}` }
-                                });
-                                if (error) throw error;
-                                if (data?.url) window.location.href = data.url;
-                              } catch (err: any) {
-                                toast.error(err.message || 'Failed to start checkout');
-                              }
-                            }}
-                          >
-                            <Sparkles className="w-4 h-4" />
-                            Subscribe & Start Learning
-                          </Button>
+                          <div className="flex flex-col sm:flex-row gap-2 justify-center">
+                            <Button
+                              className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 gap-2"
+                              onClick={async () => {
+                                try {
+                                  const { data, error } = await supabase.functions.invoke('create-checkout', {
+                                    body: { plan: 'research_education', return_path: `/academy/lesson/${lessonId}` }
+                                  });
+                                  if (error) throw error;
+                                  if (data?.url) window.location.href = data.url;
+                                } catch (err: any) {
+                                  toast.error(err.message || 'Failed to start checkout');
+                                }
+                              }}
+                            >
+                              <Sparkles className="w-4 h-4" />
+                              Subscribe & Start Learning
+                            </Button>
+                            <Button variant="ghost" onClick={() => setShowPaywall(false)}>
+                              Back
+                            </Button>
+                          </div>
                         </>
                       )}
+                    </div>
+                  </div>
+                ) : (
+                  /* Thumbnail with Play button - visible to everyone */
+                  <div 
+                    className="w-full h-full cursor-pointer group"
+                    onClick={() => {
+                      if (!hasVideoAccess) {
+                        setShowPaywall(true);
+                      }
+                    }}
+                  >
+                    {/* CSS Gradient Thumbnail */}
+                    <div className={`absolute inset-0 bg-gradient-to-br ${THUMB_GRADIENTS[(lesson.module?.order_index || 0) % THUMB_GRADIENTS.length]}`}>
+                      <div className="absolute inset-0 flex flex-col items-center justify-center">
+                        {/* Play button */}
+                        <div className="w-20 h-20 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center mb-4 group-hover:bg-white/20 transition-colors group-hover:scale-110 duration-200">
+                          <Play className="w-10 h-10 text-white fill-white ml-1" />
+                        </div>
+                        {/* Lesson title watermark */}
+                        <p className="text-white/80 text-lg font-semibold text-center px-4 max-w-md">
+                          {lesson.title}
+                        </p>
+                        {lesson.video_duration && (
+                          <p className="text-white/50 text-sm mt-2">
+                            {Math.floor(lesson.video_duration / 60)}:{String(lesson.video_duration % 60).padStart(2, '0')}
+                          </p>
+                        )}
+                      </div>
                     </div>
                   </div>
                 )}
@@ -353,19 +391,14 @@ export default function LessonView() {
             </CardContent>
           </Card>
 
-{/* Lesson Info with AI-generated description */}
+          {/* Lesson Info */}
           <Card>
             <CardHeader>
               <div className="flex items-start justify-between gap-4">
                 <div className="flex-1">
                   <CardTitle className="text-xl md:text-2xl mb-2">{lesson.title}</CardTitle>
                   <p className="text-muted-foreground">
-                    {generatedDescription || lesson.description || (
-                      <span className="flex items-center gap-2">
-                        <span className="inline-block w-3 h-3 rounded-full bg-primary/50 animate-pulse" />
-                        Generating description...
-                      </span>
-                    )}
+                    {lesson.description || 'No description available.'}
                   </p>
                 </div>
                 {user && hasVideoAccess && (
