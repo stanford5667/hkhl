@@ -39,7 +39,7 @@ export default function LessonView() {
   const queryClient = useQueryClient();
   const videoRef = useRef<HTMLIFrameElement | HTMLVideoElement>(null);
   const [videoProgress, setVideoProgress] = useState(0);
-  const [generatedDescription, setGeneratedDescription] = useState<string | null>(null);
+  const [showPaywall, setShowPaywall] = useState(false);
 
   // Fetch lesson details
   const { data: lesson } = useQuery({
@@ -63,21 +63,6 @@ export default function LessonView() {
       return data;
     },
   });
-
-  // Generate description on-demand if missing
-  useEffect(() => {
-    if (lesson && (!lesson.description || lesson.description.trim().length < 10)) {
-      // Trigger AI generation
-      supabase.functions.invoke('generate-lesson-content', {
-        body: { lesson_id: lesson.id }
-      }).then(({ data }) => {
-        if (data?.description) {
-          setGeneratedDescription(data.description);
-          // Update cache
-          queryClient.setQueryData(['lesson', lessonId], (old: any) => ({
-            ...old,
-            description: data.description
-          }));
         }
       }).catch(console.error);
     }
