@@ -142,7 +142,7 @@ export function MarketingLandingPage() {
           </motion.p>
           <motion.div variants={fadeUp} custom={1} className="mt-10">
             <Button
-              onClick={() => requireAuth()}
+              onClick={() => requireAuth(() => {}, 'signup')}
               size="xl"
               className="bg-cyan-500 hover:bg-cyan-400 text-black font-semibold shadow-[0_0_30px_hsl(185_80%_50%/0.4)] hover:shadow-[0_0_40px_hsl(185_80%_50%/0.5)] transition-all duration-300 text-base px-12"
             >
