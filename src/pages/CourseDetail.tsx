@@ -527,8 +527,8 @@ export default function CourseDetail() {
           </Tabs>
         </div>
 
-        {/* Sidebar */}
-        <div className="space-y-4 sm:space-y-6">
+        {/* Sidebar - hidden on mobile since we have sticky CTA */}
+        <div className="hidden lg:block space-y-6">
           <Card className="lg:sticky lg:top-6">
             <CardHeader className="p-4 sm:p-6">
               <div className="flex items-center gap-2">
