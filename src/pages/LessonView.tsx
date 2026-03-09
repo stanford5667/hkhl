@@ -243,8 +243,8 @@ export default function LessonView() {
     setShowUpgradeModal(true);
   };
 
-  const handleSubscribe = async () => {
-    if (!user) {
+  const handleSubscribe = async (skipAuthCheck = false) => {
+    if (!user && !skipAuthCheck) {
       setShowUpgradeModal(false);
       setShowAuthSheet(true);
       return;
