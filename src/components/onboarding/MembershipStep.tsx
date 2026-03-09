@@ -38,13 +38,21 @@ const PRO_FEATURES = [
 ];
 
 const RESEARCH_FEATURES = [
-  { name: 'Everything in Pro', included: true },
   { name: 'Full Video Course Library', included: true, highlight: true },
   { name: 'Trade Ideas & Signals', included: true, highlight: true },
   { name: 'Community Research Posts', included: true },
   { name: 'Backtesting Tools', included: true },
   { name: 'Portfolio Analytics', included: true },
   { name: 'Early Access to New Features', included: true },
+  { name: 'Save Portfolios, Studies & Screens', included: true },
+  { name: '100+ Quant Lab Studies', included: true },
+  { name: 'Deep Conditional Probability Studies', included: true },
+  { name: 'Expanded Datasets & Asset Coverage', included: true },
+  { name: 'Unlimited Screener Results & Filters', included: true },
+  { name: 'Extended Historical Timeframes', included: true },
+  { name: 'AI-Powered Market Chat', included: true },
+  { name: 'Real-time Price Alerts', included: true },
+  { name: 'Priority Support', included: true },
 ];
 
 const COMING_SOON = [
@@ -88,11 +96,7 @@ export function MembershipStep({ onComplete, onBack }: MembershipStepProps) {
         if (error) throw error;
         
         if (data?.url) {
-          if (window.self !== window.top) {
-            window.open(data.url, '_blank');
-          } else {
-            window.location.href = data.url;
-          }
+          window.location.href = data.url;
           setIsLoading(false);
           return;
         } else {
