@@ -114,9 +114,10 @@ export default function CourseDetail() {
   }, [user, courseId]);
 
   // Fetch course details
-  const { data: course, isLoading } = useQuery({
+  const { data: course, isLoading, error: courseError } = useQuery({
     queryKey: ['course', courseId],
     queryFn: async () => {
+      if (!courseId) throw new Error('No course ID');
       const { data, error } = await supabase
         .from('courses')
         .select('*')
@@ -126,6 +127,9 @@ export default function CourseDetail() {
       if (error) throw error;
       return data;
     },
+    enabled: !!courseId,
+    retry: 1,
+    staleTime: 1000 * 60 * 5, // 5 minutes
   });
 
   // Fetch course modules with lessons
