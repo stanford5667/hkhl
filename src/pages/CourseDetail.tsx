@@ -25,6 +25,9 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { MobileAuthSheet } from '@/components/auth/MobileAuthSheet';
+import { useSocialProofToasts } from '@/components/academy/SocialProofToast';
+import { ExitIntentPopup } from '@/components/academy/ExitIntentPopup';
+import { TestimonialsSection } from '@/components/academy/TestimonialsSection';
 
 function getYouTubeThumbnail(url: string | null, provider: string | null): string | null {
   if (!url) return null;
@@ -97,6 +100,9 @@ export default function CourseDetail() {
   const [isCheckoutLoading, setIsCheckoutLoading] = useState(false);
   const [descExpanded, setDescExpanded] = useState(false);
   const [showAuthSheet, setShowAuthSheet] = useState(false);
+
+  // Social proof toasts — show for guests/non-members
+  useSocialProofToasts(!isResearchTier);
 
   // Check for successful subscription and auto-enroll
   useEffect(() => {
@@ -572,6 +578,8 @@ export default function CourseDetail() {
               </Card>
             </TabsContent>
           </Tabs>
+
+          <TestimonialsSection />
         </div>
 
         {/* Sidebar - hidden on mobile since we have sticky CTA */}
@@ -737,6 +745,8 @@ export default function CourseDetail() {
         description="Sign up first, then complete your Research & Education subscription ($100/mo)."
         onSuccess={() => handleSubscribe(true)}
       />
+
+      <ExitIntentPopup isLoggedIn={!!user} />
     </div>
   );
 }
