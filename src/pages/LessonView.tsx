@@ -63,10 +63,6 @@ export default function LessonView() {
       return data;
     },
   });
-        }
-      }).catch(console.error);
-    }
-  }, [lesson?.id, lesson?.description]);
 
   // Fetch all lessons in course for navigation
   const { data: allLessons } = useQuery({
