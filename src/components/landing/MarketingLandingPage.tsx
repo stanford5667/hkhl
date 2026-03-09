@@ -1,4 +1,4 @@
-import { motion } from 'framer-motion';
+import { motion, type Easing } from 'framer-motion';
 import { Zap, Database, GraduationCap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useRequireAuth } from '@/hooks/useRequireAuth';
@@ -28,27 +28,25 @@ const features = [
   },
 ];
 
-const stats = [
+const statItems = [
   { number: '10,000+', label: 'Equities & ETFs' },
   { number: '30+', label: 'Years of History' },
   { number: 'Real-Time', label: 'SEC Filings' },
 ];
+
+const ease: Easing = [0.25, 0.1, 0.25, 1];
 
 const fadeUp = {
   hidden: { opacity: 0, y: 30 },
   visible: (i: number) => ({
     opacity: 1,
     y: 0,
-    transition: { delay: i * 0.12, duration: 0.5, ease: 'easeOut' },
+    transition: { delay: i * 0.12, duration: 0.5, ease },
   }),
 };
 
 export function MarketingLandingPage() {
   const { requireAuth, showAuthDialog, closeAuthDialog } = useRequireAuth();
-
-  const handleSignup = () => {
-    requireAuth('signup');
-  };
 
   return (
     <>
@@ -107,7 +105,7 @@ export function MarketingLandingPage() {
         borderImage: 'linear-gradient(90deg, hsl(185 80% 50% / 0.3), hsl(270 70% 55% / 0.3)) 1',
       }}>
         <div className="flex flex-col sm:flex-row justify-around items-center py-12 sm:py-16 max-w-6xl mx-auto gap-10 sm:gap-4 px-4">
-          {stats.map((s, i) => (
+          {statItems.map((s, i) => (
             <motion.div
               key={s.label}
               variants={fadeUp}
@@ -139,12 +137,12 @@ export function MarketingLandingPage() {
           >
             Built for every trader.{' '}
             <span className="text-gray-400 font-normal">
-              Start free and scale when you're ready.
+              Start free and scale when you&apos;re ready.
             </span>
           </motion.p>
           <motion.div variants={fadeUp} custom={1} className="mt-10">
             <Button
-              onClick={handleSignup}
+              onClick={() => requireAuth()}
               size="xl"
               className="bg-cyan-500 hover:bg-cyan-400 text-black font-semibold shadow-[0_0_30px_hsl(185_80%_50%/0.4)] hover:shadow-[0_0_40px_hsl(185_80%_50%/0.5)] transition-all duration-300 text-base px-12"
             >
