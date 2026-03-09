@@ -124,29 +124,32 @@ export function ResearchUnauthHero() {
 
         {/* Headline */}
         <motion.h1
-          className="text-3xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight leading-[1.05] mb-5 sm:mb-6"
+          className="text-3xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight leading-[1.05] mb-5 sm:mb-6 font-mono"
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7, delay: 0.1 }}
         >
-          <span className="text-white">Institutional quant</span>
-          <br />
-          <span className="text-white">infrastructure, </span>
-          <span className="bg-gradient-to-r from-[hsl(185_80%_50%)] via-[hsl(160_70%_55%)] to-[hsl(185_80%_50%)] bg-clip-text text-transparent bg-[length:200%_auto] animate-[gradient-shift_4s_ease-in-out_infinite]">
-            redesigned
+          <span className="text-white">Build </span>
+          <span className="bg-gradient-to-r from-[hsl(175_80%_45%)] to-[hsl(190_90%_55%)] bg-clip-text text-transparent">
+            AI Investment
           </span>
           <br />
-          <span className="text-white/35">for everyday investors.</span>
+          <span className="bg-gradient-to-r from-[hsl(190_90%_55%)] to-[hsl(175_80%_45%)] bg-clip-text text-transparent">
+            Strategies
+          </span>
+          <span className="text-white"> in Minutes.</span>
+          <br />
+          <span className="text-white/35">No Coding Required.</span>
         </motion.h1>
 
         {/* Sub-headline */}
         <motion.p
-          className="text-white/40 text-sm sm:text-base max-w-lg mx-auto mb-8 sm:mb-10 font-light leading-relaxed"
+          className="text-white/40 text-sm sm:text-base max-w-lg mx-auto mb-8 sm:mb-10 font-mono font-semibold leading-relaxed"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.6, delay: 0.3 }}
         >
-          Stop paying Wall Street prices for Wall Street tools. Search any ticker to unlock institutional-grade analysis — completely free.
+          AI-powered analysis · backtesting · trade ideas · courses
         </motion.p>
 
         {/* ──── MASSIVE SEARCH BAR ──── */}
