@@ -244,7 +244,7 @@ export function EnhancedTickerCard({
         </div>
         {/* CTA */}
         <div className="mt-1.5 pt-1.5 border-t border-border/20">
-          <span className="inline-flex items-center gap-1 font-mono font-bold uppercase tracking-wide rounded-md text-[8px] px-2 py-0.5 bg-[hsl(175_80%_45%)] text-background shadow-[0_0_8px_hsl(175_80%_45%/0.3)] group-hover:shadow-[0_0_14px_hsl(175_80%_45%/0.5)] transition-all">
+          <span className="inline-flex items-center gap-1 font-mono font-bold uppercase tracking-wide rounded-md text-[8px] px-2 py-0.5 bg-[hsl(175_80%_45%)] text-background shadow-[0_0_8px_hsl(175_80%_45%/0.3)] group-hover/card:shadow-[0_0_14px_hsl(175_80%_45%/0.5)] transition-all">
             Analyze <ArrowRight className="h-2 w-2" />
           </span>
         </div>
