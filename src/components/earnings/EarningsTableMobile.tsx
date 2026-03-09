@@ -14,6 +14,7 @@ interface Props {
 }
 
 export const EarningsTableMobile = ({ earnings }: Props) => {
+  const navigate = useNavigate();
   const [selectedEarning, setSelectedEarning] = useState<EarningsWithPrediction | null>(null);
 
   const getPredictionBadge = (earning: EarningsWithPrediction) => {
