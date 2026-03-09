@@ -578,6 +578,8 @@ export default function CourseDetail() {
               </Card>
             </TabsContent>
           </Tabs>
+
+          <TestimonialsSection />
         </div>
 
         {/* Sidebar - hidden on mobile since we have sticky CTA */}
