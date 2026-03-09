@@ -55,14 +55,10 @@ export function ExitIntentPopup({ isLoggedIn = false }: ExitIntentPopupProps) {
 
     setIsSubmitting(true);
     try {
-      // Store lead in database (you can create a leads table or use existing)
-      const { error } = await supabase
-        .from('waitlist_signups')
-        .insert({ email: email.trim() });
-
-      if (error && !error.message.includes('duplicate')) {
-        throw error;
-      }
+      // Store in localStorage for now - can be synced to backend later
+      const leads = JSON.parse(localStorage.getItem('captured_leads') || '[]');
+      leads.push({ email: email.trim(), timestamp: new Date().toISOString() });
+      localStorage.setItem('captured_leads', JSON.stringify(leads));
 
       toast.success('Thanks! Check your inbox for free resources.');
       setIsOpen(false);
