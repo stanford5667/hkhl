@@ -31,10 +31,52 @@ function getYouTubeThumbnail(url: string | null, provider: string | null): strin
     const match = url.match(/(?:v=|\/embed\/|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
     if (match) return `https://img.youtube.com/vi/${match[1]}/mqdefault.jpg`;
   }
-  if (provider === 'custom' || (url.includes('/storage/') && url.match(/\.(mp4|webm|mov)$/i))) {
-    return null; // uploaded videos – no easy thumbnail
-  }
   return null;
+}
+
+// Gradient palette for CSS thumbnails based on lesson index
+const THUMB_GRADIENTS = [
+  'from-cyan-900/80 to-slate-900',
+  'from-violet-900/80 to-slate-900',
+  'from-amber-900/80 to-slate-900',
+  'from-emerald-900/80 to-slate-900',
+  'from-rose-900/80 to-slate-900',
+  'from-blue-900/80 to-slate-900',
+];
+
+function LessonThumbnail({ lesson, index, thumbnail, isCompleted, canAccess }: {
+  lesson: any; index: number; thumbnail: string | null;
+  isCompleted: boolean; canAccess: boolean;
+}) {
+  const gradient = THUMB_GRADIENTS[index % THUMB_GRADIENTS.length];
+  return (
+    <div className="relative w-16 h-10 sm:w-24 sm:h-14 rounded-md overflow-hidden bg-muted flex-shrink-0 hidden xs:flex">
+      {thumbnail ? (
+        <img src={thumbnail} alt={lesson.title} className="w-full h-full object-cover" />
+      ) : (
+        <div className={`w-full h-full flex items-center justify-center bg-gradient-to-br ${gradient} p-1`}>
+          <span className="text-[7px] sm:text-[8px] font-bold text-white/80 leading-tight text-center line-clamp-2 uppercase tracking-wide">
+            {lesson.title}
+          </span>
+        </div>
+      )}
+      {lesson.video_duration != null && lesson.video_duration > 0 && (
+        <span className="absolute bottom-0.5 right-0.5 sm:bottom-1 sm:right-1 bg-black/80 text-white text-[8px] sm:text-[10px] font-medium px-1 py-0.5 rounded">
+          {formatLessonDuration(lesson.video_duration)}
+        </span>
+      )}
+      {isCompleted && (
+        <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+          <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5 text-green-400" />
+        </div>
+      )}
+      {!canAccess && (
+        <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+          <Lock className="w-3 h-3 sm:w-4 sm:h-4 text-muted-foreground" />
+        </div>
+      )}
+    </div>
+  );
 }
 
 function formatLessonDuration(seconds: number): string {
