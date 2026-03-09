@@ -16,6 +16,7 @@ import { FeatureShowcaseRow } from '@/components/research/FeatureShowcaseCard';
 import { StickyEngagementBar } from '@/components/research/StickyEngagementBar';
 import { SocialProofSignals } from '@/components/research/SocialProofSignals';
 import { OnboardingNudges } from '@/components/research/OnboardingNudges';
+import { ResearchMarketingSection } from '@/components/research/ResearchMarketingSection';
 
 const stagger = {
   hidden: {},
@@ -189,6 +190,9 @@ export default function ResearchPage() {
         </motion.div>
 
       </motion.div>
+
+      {/* Marketing section for unauthenticated users */}
+      <ResearchMarketingSection />
 
       {/* Sticky Engagement Bar - appears on scroll */}
       <StickyEngagementBar />
