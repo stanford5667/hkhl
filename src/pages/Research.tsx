@@ -16,7 +16,9 @@ import { FeatureShowcaseRow } from '@/components/research/FeatureShowcaseCard';
 import { StickyEngagementBar } from '@/components/research/StickyEngagementBar';
 import { SocialProofSignals } from '@/components/research/SocialProofSignals';
 import { OnboardingNudges } from '@/components/research/OnboardingNudges';
+import { ResearchUnauthHero } from '@/components/research/ResearchUnauthHero';
 import { ResearchMarketingSection } from '@/components/research/ResearchMarketingSection';
+import { useAuth } from '@/contexts/AuthContext';
 
 const stagger = {
   hidden: {},
@@ -30,6 +32,7 @@ const fadeUp = {
 
 export default function ResearchPage() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
   const [recentSearches, setRecentSearches] = useState<string[]>(() => {
     const saved = localStorage.getItem('recentAssetSearches');
@@ -65,36 +68,48 @@ export default function ResearchPage() {
 
   return (
     <div className="min-h-screen bg-background overflow-x-hidden">
-      <AnimatedBackground />
+      {/* Unauthenticated: massive hero-first experience */}
+      {!user && <ResearchUnauthHero />}
+      
+      {/* Unauthenticated: features + stats section */}
+      {!user && (
+        <div id="research-features">
+          <ResearchMarketingSection />
+        </div>
+      )}
 
-      {/* Hero Section */}
-      <ResearchHero
-        searchQuery={searchQuery}
-        onSearchQueryChange={setSearchQuery}
-        onSearch={handleSearch}
-        recentSearches={recentSearches}
-        onClearRecent={clearRecentSearches}
-      />
+      {/* Authenticated: standard hero */}
+      {user && (
+        <>
+          <AnimatedBackground />
+          <ResearchHero
+            searchQuery={searchQuery}
+            onSearchQueryChange={setSearchQuery}
+            onSearch={handleSearch}
+            recentSearches={recentSearches}
+            onClearRecent={clearRecentSearches}
+          />
+        </>
+      )}
 
-      {/* Social Proof Signals - rotating live activity ticker */}
+      {/* Social Proof Signals */}
       <div className="max-w-6xl mx-auto px-3 sm:px-6 -mt-1 mb-2 sm:mb-4">
         <SocialProofSignals />
       </div>
 
-      {/* Main Content with progressive reveal */}
+      {/* Main Content */}
       <motion.div
         className="max-w-6xl mx-auto px-3 sm:px-6 pb-10 sm:pb-16 space-y-5 sm:space-y-12"
         variants={stagger}
         initial="hidden"
         animate="visible"
       >
-
         {/* Feature Showcase */}
         <motion.div variants={fadeUp}>
           <FeatureShowcaseRow />
         </motion.div>
 
-        {/* Trending Tickers - reduced prominence on mobile */}
+        {/* Trending Tickers */}
         <motion.section className="space-y-2 sm:space-y-3" variants={fadeUp}>
           <div className="flex items-center justify-between opacity-80 sm:opacity-100">
             <div className="flex items-center gap-2">
@@ -188,16 +203,12 @@ export default function ResearchPage() {
             </button>
           </div>
         </motion.div>
-
       </motion.div>
 
-      {/* Marketing section for unauthenticated users */}
-      <ResearchMarketingSection />
-
-      {/* Sticky Engagement Bar - appears on scroll */}
+      {/* Sticky Engagement Bar */}
       <StickyEngagementBar />
 
-      {/* Onboarding Nudges - first-time visitor tooltips */}
+      {/* Onboarding Nudges */}
       <OnboardingNudges />
     </div>
   );
