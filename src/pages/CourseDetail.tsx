@@ -193,7 +193,10 @@ export default function CourseDetail() {
     setIsCheckoutLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke('create-checkout', {
-        body: { plan: 'research_education' }
+        body: { 
+          plan: 'research_education',
+          return_path: `/academy/course/${courseId}`
+        }
       });
       
       if (error) throw error;
