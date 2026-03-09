@@ -390,7 +390,7 @@ export default function CourseDetail() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="p-0">
-                  <Accordion type="multiple" className="w-full">
+                  <Accordion type="multiple" defaultValue={modules?.[0] ? [modules[0].id] : []} className="w-full">
                     {modules?.map((module: any, moduleIndex: number) => (
                       <AccordionItem key={module.id} value={module.id}>
                         <AccordionTrigger className="px-4 sm:px-6 hover:no-underline">
