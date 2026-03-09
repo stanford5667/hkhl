@@ -25,6 +25,7 @@ export default function LessonView() {
   const { lessonId } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { isResearchTier } = useUsage();
   const queryClient = useQueryClient();
   const videoRef = useRef<HTMLIFrameElement | HTMLVideoElement>(null);
   const [videoProgress, setVideoProgress] = useState(0);
