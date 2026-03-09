@@ -45,6 +45,7 @@ export function MobileAuthSheet({
   const [mode, setMode] = useState<'signin' | 'signup'>('signup');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [fullName, setFullName] = useState('');
   const [isAgeVerified, setIsAgeVerified] = useState(false);
   const [ageError, setAgeError] = useState('');
