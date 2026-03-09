@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { ChatRoom as ChatRoomType } from '@/types/community';
 import { useChatRooms } from '@/hooks/useChatRooms';
 import { ChatRoomList } from './chat/ChatRoomList';
@@ -28,6 +28,7 @@ interface CommunityHubProps {
 
 export function CommunityHub({ defaultTab = 'chat', initialRoomId }: CommunityHubProps) {
   const navigate = useNavigate();
+  const location = useLocation();
   const isMobile = useIsMobile();
   const { isAuthenticated } = useAuth();
   const [activeTab, setActiveTab] = useState<'chat' | 'posts'>(defaultTab);
@@ -75,7 +76,7 @@ export function CommunityHub({ defaultTab = 'chat', initialRoomId }: CommunityHu
       {!isAuthenticated && (
         <div className="px-4 py-3 bg-primary/10 border-b flex items-center justify-between gap-3">
           <p className="text-sm font-medium">Join the conversation — sign in to chat and post research.</p>
-          <Button size="sm" className="gap-2 shrink-0" onClick={() => navigate('/auth')}>
+          <Button size="sm" className="gap-2 shrink-0" onClick={() => navigate('/auth', { state: { from: location.pathname } })}>
             <LogIn className="h-4 w-4" />
             Sign In / Sign Up
           </Button>
@@ -111,7 +112,7 @@ export function CommunityHub({ defaultTab = 'chat', initialRoomId }: CommunityHu
 
         <div className="ml-auto flex items-center gap-2 text-sm text-muted-foreground">
           {!isAuthenticated ? (
-            <Button size="sm" variant="default" className="gap-2" onClick={() => navigate('/auth')}>
+            <Button size="sm" variant="default" className="gap-2" onClick={() => navigate('/auth', { state: { from: location.pathname } })}>
               <LogIn className="h-4 w-4" />
               Sign In
             </Button>
