@@ -21,7 +21,8 @@ import {
   BookOpen,
   Award,
   FileText,
-  Sparkles
+  Sparkles,
+  Shield
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { MobileAuthSheet } from '@/components/auth/MobileAuthSheet';
