@@ -197,3 +197,6 @@ verify_jwt = false
 
 [functions.analyze-theme]
 verify_jwt = false
+
+[functions.generate-lesson-content]
+verify_jwt = false
