@@ -4,8 +4,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
-import { Check, Crown, GraduationCap, Loader2, Sparkles, X } from 'lucide-react';
+import { Check, GraduationCap, Loader2, Sparkles, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { BillingToggle } from './BillingToggle';
 
 interface MembershipStepProps {
   onComplete: () => void;
@@ -54,10 +55,16 @@ const COMING_SOON = [
 
 type PlanType = 'free' | 'pro' | 'research_education';
 
+const PRICES = {
+  pro: { monthly: 50, annual: 41 },
+  research_education: { monthly: 100, annual: 82 },
+};
+
 export function MembershipStep({ onComplete, onBack }: MembershipStepProps) {
   const { user } = useAuth();
   const [selectedPlan, setSelectedPlan] = useState<PlanType | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isAnnual, setIsAnnual] = useState(true);
 
   const handleSelectPlan = async (plan: PlanType) => {
     if (!user) return;
@@ -67,7 +74,6 @@ export function MembershipStep({ onComplete, onBack }: MembershipStepProps) {
 
     try {
       if (plan === 'pro' || plan === 'research_education') {
-        // Ensure we have an active session before calling checkout
         const { data: sessionData } = await supabase.auth.getSession();
         if (!sessionData.session) {
           toast.error('Your session has expired. Please sign in again.');
@@ -76,13 +82,12 @@ export function MembershipStep({ onComplete, onBack }: MembershipStepProps) {
         }
 
         const { data, error } = await supabase.functions.invoke('create-checkout', {
-          body: { plan },
+          body: { plan, billing_interval: isAnnual ? 'annual' : 'monthly' },
         });
         
         if (error) throw error;
         
         if (data?.url) {
-          // Use window.open for iframe contexts (e.g. Lovable preview), same-tab redirect for production
           if (window.self !== window.top) {
             window.open(data.url, '_blank');
           } else {
@@ -116,6 +121,9 @@ export function MembershipStep({ onComplete, onBack }: MembershipStepProps) {
     }
   };
 
+  const proPrice = isAnnual ? PRICES.pro.annual : PRICES.pro.monthly;
+  const researchPrice = isAnnual ? PRICES.research_education.annual : PRICES.research_education.monthly;
+
   return (
     <Card className="bg-slate-900 border-slate-800 max-w-5xl mx-auto">
       <CardHeader className="text-center">
@@ -129,6 +137,8 @@ export function MembershipStep({ onComplete, onBack }: MembershipStepProps) {
         <p className="text-xs text-slate-500 mt-2">Step 2 of 2</p>
       </CardHeader>
       <CardContent>
+        <BillingToggle isAnnual={isAnnual} onChange={setIsAnnual} />
+
         <div className="grid md:grid-cols-3 gap-5">
           {/* Free Plan */}
           <div 
@@ -193,8 +203,18 @@ export function MembershipStep({ onComplete, onBack }: MembershipStepProps) {
           >
             <div className="text-center mb-5 mt-1">
               <h3 className="text-lg font-bold text-white mb-1">Pro</h3>
-              <div className="text-3xl font-bold text-white">$50<span className="text-lg text-slate-400">/mo</span></div>
-              <p className="text-slate-400 text-sm">Billed monthly</p>
+              <div className="text-3xl font-bold text-white">
+                ${proPrice}
+                <span className="text-lg text-slate-400">/mo</span>
+              </div>
+              <p className="text-slate-400 text-sm">
+                {isAnnual ? `Billed $${PRICES.pro.annual * 12}/yr` : 'Billed monthly'}
+              </p>
+              {isAnnual && (
+                <p className="text-green-400 text-xs mt-1 font-medium">
+                  Save ${(PRICES.pro.monthly - PRICES.pro.annual) * 12}/yr vs monthly
+                </p>
+              )}
             </div>
             
             <ul className="space-y-2 mb-4">
@@ -245,8 +265,18 @@ export function MembershipStep({ onComplete, onBack }: MembershipStepProps) {
 
             <div className="text-center mb-5 mt-2">
               <h3 className="text-lg font-bold text-white mb-1">Research & Education</h3>
-              <div className="text-3xl font-bold text-white">$100<span className="text-lg text-slate-400">/mo</span></div>
-              <p className="text-slate-400 text-sm">Billed monthly</p>
+              <div className="text-3xl font-bold text-white">
+                ${researchPrice}
+                <span className="text-lg text-slate-400">/mo</span>
+              </div>
+              <p className="text-slate-400 text-sm">
+                {isAnnual ? `Billed $${PRICES.research_education.annual * 12}/yr` : 'Billed monthly'}
+              </p>
+              {isAnnual && (
+                <p className="text-green-400 text-xs mt-1 font-medium">
+                  Save ${(PRICES.research_education.monthly - PRICES.research_education.annual) * 12}/yr vs monthly
+                </p>
+              )}
             </div>
             
             <ul className="space-y-2 mb-4">
