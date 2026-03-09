@@ -403,6 +403,7 @@ export function UpgradeModal({ isOpen, feature, onClose, onUpgrade }: UpgradeMod
         onOpenChange={setShowAuthSheet}
         title="Sign up to access premium"
         description="Create a free account, then upgrade to unlock premium features."
+        onSuccess={handleAuthSuccess}
       />
     </>
   );
