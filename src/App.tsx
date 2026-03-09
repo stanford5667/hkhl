@@ -159,6 +159,7 @@ const App = () => {
                               <Route path="/privacy" element={<Privacy />} />
                               <Route path="/glossary" element={<Glossary />} />
                               <Route path="/theme-analysis" element={<ThemeAnalysis />} />
+                              <Route path="/landing" element={<LandingPage />} />
                               {/* Redirects from old routes */}
                               <Route path="/portfolio" element={<Navigate to="/" replace />} />
                               <Route path="/companies" element={<Navigate to="/" replace />} />
