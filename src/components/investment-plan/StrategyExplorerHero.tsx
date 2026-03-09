@@ -63,10 +63,12 @@ export function StrategyExplorerHero({ onStartAssessment, hasPlans }: StrategyEx
               transition={{ duration: 0.5, delay: 0.1 }}
               className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight mb-6"
             >
-              <span className="text-white">Discover Your</span>
+              <span className="text-white">Build AI Investment</span>
+              <br />
+              <span className="text-white">Strategies in Minutes.</span>
               <br />
               <span className="bg-gradient-to-r from-purple-400 via-pink-400 to-blue-400 bg-clip-text text-transparent">
-                Investor DNA
+                No Coding Required.
               </span>
             </motion.h1>
 
