@@ -728,6 +728,15 @@ export default function CourseDetail() {
 
       {/* Bottom padding to prevent content from hiding behind sticky CTA */}
       {!hasAccess && <div className="h-20 lg:hidden" />}
+
+      {/* Auth Sheet — shows inline sign-up then proceeds to checkout */}
+      <MobileAuthSheet
+        open={showAuthSheet}
+        onOpenChange={setShowAuthSheet}
+        title="Create your account"
+        description="Sign up first, then complete your Research & Education subscription ($100/mo)."
+        onSuccess={handleSubscribe}
+      />
     </div>
   );
 }
