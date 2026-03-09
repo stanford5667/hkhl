@@ -243,7 +243,13 @@ export default function LessonView() {
 
   const handleSubscribe = async () => {
     if (!user) {
-      navigate('/auth', { state: { from: `/academy/lesson/${lessonId}` } });
+      navigate('/auth', {
+        state: {
+          from: `/academy/lesson/${lessonId}`,
+          checkoutPlan: 'research_education',
+          checkoutReturnPath: `/academy/lesson/${lessonId}`,
+        },
+      });
       return;
     }
     setIsCheckoutLoading(true);
