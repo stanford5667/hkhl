@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { ChatRoom as ChatRoomType } from '@/types/community';
 import { useChatRooms } from '@/hooks/useChatRooms';
 import { ChatRoomList } from './chat/ChatRoomList';
