@@ -473,6 +473,25 @@ export default function CourseDetail() {
                       </AccordionItem>
                     ))}
                   </Accordion>
+                  {/* Mid-curriculum CTA */}
+                  {!hasAccess && (
+                    <div className="px-4 sm:px-6 py-4 border-t border-border/50 bg-muted/30">
+                      <div className="flex items-center justify-between gap-3">
+                        <p className="text-xs sm:text-sm text-muted-foreground">
+                          <Lock className="w-3.5 h-3.5 inline mr-1 -mt-0.5" />
+                          Unlock all {totalLessons} lessons
+                        </p>
+                        <Button
+                          size="sm"
+                          className="bg-cyan-500 hover:bg-cyan-600 text-white text-xs h-8 shrink-0"
+                          onClick={handleSubscribe}
+                          disabled={isCheckoutLoading}
+                        >
+                          {isCheckoutLoading ? 'Loading...' : 'Get Access'}
+                        </Button>
+                      </div>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </TabsContent>
