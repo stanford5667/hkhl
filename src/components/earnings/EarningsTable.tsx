@@ -37,6 +37,7 @@ interface Props {
 
 export const EarningsTable = ({ earnings, showDate = false }: Props) => {
   const isMobile = useIsMobile();
+  const navigate = useNavigate();
   const [selectedEarning, setSelectedEarning] = useState<EarningsWithPrediction | null>(null);
   const [sortField, setSortField] = useState<SortField>('market_cap');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
