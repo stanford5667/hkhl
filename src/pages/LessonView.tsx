@@ -27,6 +27,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
+import { MobileAuthSheet } from '@/components/auth/MobileAuthSheet';
 
 // Premium dark thumbnail gradients
 const THUMB_GRADIENTS = [
