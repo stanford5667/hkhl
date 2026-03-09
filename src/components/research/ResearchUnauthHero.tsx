@@ -74,7 +74,7 @@ export function ResearchUnauthHero() {
   };
 
   return (
-    <section className="relative min-h-[85vh] flex flex-col items-center justify-center overflow-hidden bg-[#030509]">
+    <section className="relative min-h-[85vh] flex flex-col items-center justify-center overflow-hidden bg-[#050911]">
       {/* ──── Animated background ──── */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
         {/* Central radial glow */}
@@ -110,7 +110,7 @@ export function ResearchUnauthHero() {
       </div>
 
       {/* ──── Content ──── */}
-      <div className="relative z-10 max-w-3xl mx-auto px-4 sm:px-6 text-center w-full">
+      <div className="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 text-center w-full">
         {/* Badge */}
         <motion.div
           className="inline-flex items-center gap-2 mb-6 sm:mb-8 px-4 py-1.5 rounded-full border border-[hsl(185_80%_50%/0.25)] bg-[hsl(185_80%_50%/0.05)] text-[hsl(185_80%_50%)] text-[11px] font-mono uppercase tracking-[0.2em]"
@@ -124,7 +124,7 @@ export function ResearchUnauthHero() {
 
         {/* Headline */}
         <motion.h1
-          className="text-3xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight leading-[1.05] mb-5 sm:mb-6 font-mono"
+          className="text-3xl sm:text-5xl md:text-[3.5rem] lg:text-6xl font-bold tracking-tight leading-[1.1] mb-4 sm:mb-5 font-mono"
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7, delay: 0.1 }}
@@ -139,12 +139,12 @@ export function ResearchUnauthHero() {
           </span>
           <span className="text-white"> in Minutes.</span>
           <br />
-          <span className="text-white/35">No Coding Required.</span>
+          <span className="text-white/30 text-[0.65em]">No Coding Required.</span>
         </motion.h1>
 
         {/* Sub-headline */}
         <motion.p
-          className="text-white/40 text-sm sm:text-base max-w-lg mx-auto mb-8 sm:mb-10 font-mono font-semibold leading-relaxed"
+          className="text-white/40 text-xs sm:text-sm max-w-md mx-auto mb-8 sm:mb-10 font-mono tracking-wide"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.6, delay: 0.3 }}
@@ -152,23 +152,23 @@ export function ResearchUnauthHero() {
           AI-powered analysis · backtesting · trade ideas · courses
         </motion.p>
 
-        {/* ──── MASSIVE SEARCH BAR ──── */}
+        {/* ──── SEARCH BAR ──── */}
         <motion.div
-          className="relative max-w-2xl mx-auto mb-4"
+          className="relative max-w-xl mx-auto mb-5"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.4 }}
         >
           <div className={cn(
             "relative rounded-2xl",
-            "bg-white/[0.04] border-2 border-[hsl(185_80%_50%/0.4)]",
-            "shadow-[0_0_40px_-5px_hsl(185_80%_50%/0.25),0_0_80px_-15px_hsl(185_80%_50%/0.1)]",
+            "bg-white/[0.04] border-2 border-[hsl(185_80%_50%/0.35)]",
+            "shadow-[0_0_40px_-5px_hsl(185_80%_50%/0.2),0_0_80px_-15px_hsl(185_80%_50%/0.08)]",
             "transition-all duration-300",
             "animate-[pulse-glow-cyan_3s_ease-in-out_infinite]",
-            isFocused && "border-[hsl(185_80%_50%/0.7)] shadow-[0_0_60px_-5px_hsl(185_80%_50%/0.4),0_0_120px_-15px_hsl(185_80%_50%/0.15)] ring-2 ring-[hsl(185_80%_50%/0.25)] animate-none"
+            isFocused && "border-[hsl(185_80%_50%/0.7)] shadow-[0_0_60px_-5px_hsl(185_80%_50%/0.35),0_0_120px_-15px_hsl(185_80%_50%/0.12)] ring-2 ring-[hsl(185_80%_50%/0.2)] animate-none"
           )}>
-            <div className="flex items-center gap-3 px-5 sm:px-6 h-14 sm:h-16">
-              <Search className="h-5 w-5 sm:h-6 sm:w-6 text-[hsl(185_80%_50%)] shrink-0" />
+            <div className="flex items-center gap-3 px-4 sm:px-5 h-12 sm:h-14">
+              <Search className="h-4.5 w-4.5 sm:h-5 sm:w-5 text-[hsl(185_80%_50%)] shrink-0" />
               <input
                 ref={inputRef}
                 value={searchQuery}
@@ -176,15 +176,18 @@ export function ResearchUnauthHero() {
                 onKeyDown={handleKeyDown}
                 onFocus={() => setIsFocused(true)}
                 onBlur={handleBlur}
-                placeholder="Search any ticker or company (e.g., NVDA, Apple)..."
-                className="flex-1 bg-transparent text-lg sm:text-xl text-white placeholder:text-white/25 outline-none font-mono"
+                placeholder="Search any ticker or company..."
+                className="flex-1 bg-transparent text-base sm:text-lg text-white placeholder:text-white/20 outline-none font-mono"
               />
-              {isSearching && <Loader2 className="h-5 w-5 animate-spin text-white/40 shrink-0" />}
+              {isSearching && <Loader2 className="h-4 w-4 animate-spin text-white/40 shrink-0" />}
               {!isSearching && searchQuery && (
-                <button onClick={handleClear} className="h-5 w-5 text-white/30 hover:text-white/60 transition-colors shrink-0">
-                  <X className="h-5 w-5" />
+                <button onClick={handleClear} className="h-4 w-4 text-white/30 hover:text-white/60 transition-colors shrink-0">
+                  <X className="h-4 w-4" />
                 </button>
               )}
+              <div className="hidden sm:flex items-center gap-1 text-[10px] text-white/15 border-l border-white/[0.08] pl-3 ml-1">
+                <kbd className="px-1.5 py-0.5 bg-white/[0.06] rounded font-mono">⌘K</kbd>
+              </div>
             </div>
           </div>
 
@@ -317,25 +320,25 @@ export function ResearchUnauthHero() {
 
         {/* Helper text */}
         <motion.p
-          className="text-[11px] sm:text-xs text-white/25 font-mono mb-10 sm:mb-14"
+          className="text-[10px] sm:text-[11px] text-white/20 font-mono mb-12 sm:mb-16"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.6 }}
         >
-          Search any ticker (e.g., NVDA, AAPL) to unlock institutional-grade analysis for free.
+          Try NVDA, AAPL, SPY — or any of 10,000+ tickers
         </motion.p>
 
         {/* Scroll chevron */}
         <motion.div
-          className="flex flex-col items-center gap-1 cursor-pointer"
-          animate={{ y: [0, 10, 0] }}
-          transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+          className="flex flex-col items-center gap-1.5 cursor-pointer"
+          animate={{ y: [0, 8, 0] }}
+          transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
           onClick={() => {
             document.getElementById('research-features')?.scrollIntoView({ behavior: 'smooth' });
           }}
         >
-          <span className="text-[9px] uppercase tracking-[0.3em] font-mono text-white/15">Explore</span>
-          <ChevronDown className="h-5 w-5 text-white/20" />
+          <span className="text-[9px] uppercase tracking-[0.25em] font-mono text-white/15">Explore</span>
+          <ChevronDown className="h-4 w-4 text-white/15" />
         </motion.div>
       </div>
     </section>

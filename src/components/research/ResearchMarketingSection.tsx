@@ -49,31 +49,47 @@ export function ResearchMarketingSection() {
 
   return (
     <>
-      <section className="relative overflow-hidden bg-[#060910] py-16 sm:py-24">
-        <div className="relative max-w-5xl mx-auto px-4 sm:px-6">
+      <section className="relative overflow-hidden bg-[#050911]">
+        {/* Top fade from hero */}
+        <div className="absolute top-0 left-0 right-0 h-24 bg-gradient-to-b from-[#050911] to-transparent pointer-events-none" />
+
+        <div className="relative max-w-4xl mx-auto px-4 sm:px-6 pt-16 sm:pt-24 pb-16 sm:pb-24">
+          {/* Section label */}
+          <motion.div
+            className="text-center mb-10 sm:mb-14"
+            initial={{ opacity: 0 }}
+            whileInView={{ opacity: 1 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6, ease }}
+          >
+            <span className="text-[10px] sm:text-[11px] font-mono uppercase tracking-[0.25em] text-white/20">
+              Why investors choose us
+            </span>
+          </motion.div>
+
           {/* Feature Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 mb-16 sm:mb-20">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-5 mb-16 sm:mb-20">
             {features.map((f, i) => (
               <motion.div
                 key={f.title}
-                initial={{ opacity: 0, y: 30 }}
+                initial={{ opacity: 0, y: 24 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, margin: '-30px' }}
                 transition={{ duration: 0.5, delay: i * 0.1, ease }}
-                className="group relative rounded-2xl border border-white/[0.06] bg-white/[0.02] backdrop-blur-sm p-6 sm:p-8 transition-all duration-500 hover:-translate-y-1.5 hover:border-white/[0.12] hover:bg-white/[0.04] hover:shadow-[0_20px_60px_-15px_rgba(0,0,0,0.5)]"
+                className="group relative rounded-2xl border border-white/[0.06] bg-white/[0.02] backdrop-blur-sm p-6 sm:p-7 transition-all duration-500 hover:-translate-y-1 hover:border-white/[0.12] hover:bg-white/[0.04] hover:shadow-[0_20px_60px_-15px_rgba(0,0,0,0.5)]"
               >
-                <div className={`inline-flex items-center justify-center w-11 h-11 rounded-xl ${f.glowBg} border ${f.borderColor} mb-5 transition-transform duration-300 group-hover:scale-110`}>
-                  <f.icon className={`w-5 h-5 ${f.iconColor}`} />
+                <div className={`inline-flex items-center justify-center w-10 h-10 rounded-xl ${f.glowBg} border ${f.borderColor} mb-4 transition-transform duration-300 group-hover:scale-110`}>
+                  <f.icon className={`w-4.5 h-4.5 ${f.iconColor}`} />
                 </div>
-                <h3 className="text-lg font-semibold text-white mb-2">{f.title}</h3>
-                <p className="text-white/40 text-sm leading-relaxed">{f.text}</p>
+                <h3 className="text-base font-semibold text-white mb-1.5 tracking-tight">{f.title}</h3>
+                <p className="text-white/35 text-sm leading-relaxed">{f.text}</p>
               </motion.div>
             ))}
           </div>
 
           {/* Stats Row */}
           <motion.div
-            className="flex flex-col sm:flex-row items-center justify-center gap-8 sm:gap-16 py-10 sm:py-14 border-y border-white/[0.06]"
+            className="flex flex-col sm:flex-row items-center justify-center gap-8 sm:gap-14 py-10 sm:py-12 border-y border-white/[0.06]"
             initial={{ opacity: 0 }}
             whileInView={{ opacity: 1 }}
             viewport={{ once: true }}
@@ -81,36 +97,39 @@ export function ResearchMarketingSection() {
           >
             {statItems.map((s) => (
               <div key={s.label} className="text-center">
-                <div className="text-3xl sm:text-5xl font-bold text-white tracking-tight">{s.number}</div>
-                <div className="text-xs sm:text-sm text-white/30 mt-1.5 font-mono uppercase tracking-wider">{s.label}</div>
+                <div className="text-2xl sm:text-4xl font-bold text-white tracking-tight font-mono">{s.number}</div>
+                <div className="text-[10px] sm:text-xs text-white/25 mt-1.5 font-mono uppercase tracking-wider">{s.label}</div>
               </div>
             ))}
           </motion.div>
 
           {/* Final CTA */}
           <motion.div
-            className="text-center pt-16 sm:pt-20 pb-4"
+            className="text-center pt-14 sm:pt-18 pb-2"
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.6, delay: 0.1, ease }}
           >
-            <p className="text-xl sm:text-2xl md:text-3xl font-bold text-white mb-2">
+            <p className="text-lg sm:text-2xl md:text-3xl font-bold text-white mb-2 tracking-tight">
               Start free. Scale when you're ready.
             </p>
-            <p className="text-sm text-white/30 mb-8 max-w-md mx-auto">
+            <p className="text-xs sm:text-sm text-white/25 mb-8 max-w-sm mx-auto font-mono">
               No credit card required. Full access to backtesting, screening, and AI analysis.
             </p>
             <Button
               onClick={() => requireAuth(() => {}, 'signup')}
               size="xl"
-              className="bg-[hsl(185_80%_50%)] hover:bg-[hsl(185_80%_55%)] text-black font-semibold shadow-[0_0_40px_hsl(185_80%_50%/0.35)] hover:shadow-[0_0_60px_hsl(185_80%_50%/0.5)] transition-all duration-300 text-sm sm:text-base px-10 sm:px-14 group"
+              className="bg-[hsl(185_80%_50%)] hover:bg-[hsl(185_80%_55%)] text-black font-semibold shadow-[0_0_40px_hsl(185_80%_50%/0.3)] hover:shadow-[0_0_60px_hsl(185_80%_50%/0.45)] transition-all duration-300 text-sm sm:text-base px-10 sm:px-14 group"
             >
               Start Building for Free
               <ChevronRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
             </Button>
           </motion.div>
         </div>
+
+        {/* Bottom fade to page bg */}
+        <div className="absolute bottom-0 left-0 right-0 h-20 bg-gradient-to-b from-transparent to-background pointer-events-none" />
       </section>
 
       <AuthGateDialog open={showAuthDialog} onOpenChange={closeAuthDialog} />
