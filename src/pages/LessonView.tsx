@@ -510,22 +510,18 @@ export default function LessonView() {
             </TabsList>
 
             <TabsContent value="overview" className="mt-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Lesson Content</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="prose prose-invert max-w-none">
-                    {lesson.content ? (
+              {lesson.content && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Lesson Content</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="prose prose-invert max-w-none">
                       <div dangerouslySetInnerHTML={{ __html: lesson.content }} />
-                    ) : (
-                      <p className="text-muted-foreground">
-                        No additional content available for this lesson. Watch the video above to continue learning.
-                      </p>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
             </TabsContent>
 
             <TabsContent value="materials" className="mt-6">
