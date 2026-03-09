@@ -327,7 +327,7 @@ export default function CourseDetail() {
           {/* Hero */}
           <Card className="overflow-hidden">
             {/* CSS Thumbnail */}
-            <div className="relative aspect-video bg-[#0B0E14] flex items-center justify-center overflow-hidden">
+            <div className="relative aspect-[16/9] sm:aspect-video bg-[#0B0E14] flex items-center justify-center overflow-hidden">
               {/* Watermark text - responsive sizing */}
               <span className="absolute select-none text-[clamp(2rem,12vw,6rem)] lg:text-[5rem] font-extrabold tracking-tighter uppercase text-gray-800/30 leading-none pointer-events-none whitespace-nowrap">
                 MASTERCLASS
