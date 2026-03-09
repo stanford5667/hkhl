@@ -91,7 +91,7 @@ export default function Auth() {
       title: "Welcome back!",
       description: "You have been signed in successfully.",
     });
-    navigate("/");
+    navigate(from, { replace: true });
   };
 
   const handleSignUp = async (data: SignUpFormData) => {
