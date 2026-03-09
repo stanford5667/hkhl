@@ -358,7 +358,7 @@ export default function CourseDetail() {
                 </Badge>
                 <Badge variant="outline" className="text-xs">{course.category}</Badge>
               </div>
-              <CardTitle className="text-xl sm:text-2xl md:text-3xl">{course.title}</CardTitle>
+              <CardTitle className="text-lg sm:text-2xl md:text-3xl leading-tight">{course.title}</CardTitle>
               <CardDescription className="text-sm sm:text-base">
                 {course.description}
               </CardDescription>
