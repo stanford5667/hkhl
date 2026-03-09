@@ -745,6 +745,8 @@ export default function CourseDetail() {
         description="Sign up first, then complete your Research & Education subscription ($100/mo)."
         onSuccess={() => handleSubscribe(true)}
       />
+
+      <ExitIntentPopup isLoggedIn={!!user} />
     </div>
   );
 }
