@@ -278,7 +278,7 @@ export function EnhancedTickerCard({
         <div className="flex items-start justify-between mb-2">
           <div>
             <div className="flex items-center gap-2">
-              <span className="font-mono font-extrabold text-base text-white group-hover:text-primary transition-colors">
+              <span className="font-mono font-extrabold text-base text-white group-hover/card:text-primary transition-colors">
                 {symbol}
               </span>
               {sectorDisplay && (
