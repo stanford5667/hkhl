@@ -364,20 +364,11 @@ export default function CourseDetail() {
               </CardDescription>
             </CardHeader>
             <CardContent className="p-4 sm:p-6 pt-0">
-              <div className="flex flex-wrap items-center gap-3 sm:gap-4 text-xs sm:text-sm text-muted-foreground">
-                <div className="flex items-center gap-1">
-                  <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                  <span>{course.duration_hours || 0}h</span>
+              <div className="flex items-center gap-3 text-xs sm:text-sm text-muted-foreground">
+                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
+                  CS
                 </div>
-                <div className="flex items-center gap-1">
-                  <Users className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                  <span>{course.student_count}</span>
-                </div>
-                <div className="flex items-center gap-1 text-yellow-500">
-                  <Star className="w-3.5 h-3.5 sm:w-4 sm:h-4 fill-current" />
-                  <span className="font-medium">{course.rating?.toFixed(1) || '0.0'}</span>
-                  <span className="text-muted-foreground">({reviews?.length || 0})</span>
-                </div>
+                <span className="text-foreground/80">Led by <span className="font-medium text-foreground">Chris Stanford</span>, Private Equity Investor</span>
               </div>
             </CardContent>
           </Card>
