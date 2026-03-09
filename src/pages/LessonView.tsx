@@ -21,6 +21,16 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 
+// Thumbnail gradients for CSS-based thumbnails
+const THUMB_GRADIENTS = [
+  'from-cyan-900/80 to-slate-900',
+  'from-violet-900/80 to-slate-900',
+  'from-emerald-900/80 to-slate-900',
+  'from-amber-900/80 to-slate-900',
+  'from-rose-900/80 to-slate-900',
+  'from-blue-900/80 to-slate-900',
+];
+
 export default function LessonView() {
   const { lessonId } = useParams();
   const navigate = useNavigate();
@@ -29,6 +39,7 @@ export default function LessonView() {
   const queryClient = useQueryClient();
   const videoRef = useRef<HTMLIFrameElement | HTMLVideoElement>(null);
   const [videoProgress, setVideoProgress] = useState(0);
+  const [generatedDescription, setGeneratedDescription] = useState<string | null>(null);
 
   // Fetch lesson details
   const { data: lesson } = useQuery({
@@ -41,6 +52,7 @@ export default function LessonView() {
           module:course_modules(
             id,
             title,
+            order_index,
             course:courses(id, title)
           )
         `)
@@ -51,6 +63,25 @@ export default function LessonView() {
       return data;
     },
   });
+
+  // Generate description on-demand if missing
+  useEffect(() => {
+    if (lesson && (!lesson.description || lesson.description.trim().length < 10)) {
+      // Trigger AI generation
+      supabase.functions.invoke('generate-lesson-content', {
+        body: { lesson_id: lesson.id }
+      }).then(({ data }) => {
+        if (data?.description) {
+          setGeneratedDescription(data.description);
+          // Update cache
+          queryClient.setQueryData(['lesson', lessonId], (old: any) => ({
+            ...old,
+            description: data.description
+          }));
+        }
+      }).catch(console.error);
+    }
+  }, [lesson?.id, lesson?.description]);
 
   // Fetch all lessons in course for navigation
   const { data: allLessons } = useQuery({
