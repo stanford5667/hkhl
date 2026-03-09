@@ -360,7 +360,7 @@ export default function CourseDetail() {
                 <Badge variant="outline" className="text-xs">{course.category}</Badge>
               </div>
               <CardTitle className="text-lg sm:text-2xl md:text-3xl leading-tight">{course.title}</CardTitle>
-              <CardDescription className={`text-sm sm:text-base ${!descExpanded ? 'line-clamp-3' : ''}`}>
+              <CardDescription className={`text-sm sm:text-base ${!descExpanded ? 'line-clamp-5' : ''}`}>
                 {course.description}
               </CardDescription>
               {course.description && course.description.length > 150 && (
