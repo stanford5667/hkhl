@@ -234,6 +234,11 @@ export default function LessonView() {
     );
   }
 
+  // Determine access: user must be logged in and have research tier (or lesson is preview/free)
+  const courseId = lesson?.module?.course?.id;
+  const isFreeLesson = lesson?.is_preview;
+  const hasVideoAccess = user && (isResearchTier || isFreeLesson);
+
   const courseProgress = 45; // This would come from actual calculation
 
   return (
