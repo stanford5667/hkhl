@@ -189,6 +189,22 @@ export function MobileAuthSheet({
         </div>
 
         {mode === 'signup' && (
+          <div className="space-y-0.5">
+            <Label htmlFor="confirmPassword" className="text-[11px] font-medium">Confirm Password</Label>
+            <Input
+              id="confirmPassword"
+              type="password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              placeholder="••••••••"
+              required
+              minLength={6}
+              className="h-9 text-sm"
+              autoComplete="new-password"
+            />
+          </div>
+        )}
+        {mode === 'signup' && (
           <AgeVerificationInput
             onVerificationChange={setIsAgeVerified}
             error={ageError}
