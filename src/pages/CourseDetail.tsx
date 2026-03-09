@@ -335,7 +335,7 @@ export default function CourseDetail() {
               {/* Overlay label - two lines */}
               <div className="relative z-10 flex flex-col items-center gap-0.5">
                 <span className="text-xs sm:text-sm md:text-base font-semibold tracking-[0.25em] sm:tracking-[0.35em] uppercase text-white/90">
-                  REINVESTMENT
+                  INVESTMENT
                 </span>
                 <span className="text-xs sm:text-sm md:text-base font-semibold tracking-[0.25em] sm:tracking-[0.35em] uppercase text-white/90">
                   MASTERCLASS
