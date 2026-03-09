@@ -27,6 +27,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
+import { MobileAuthSheet } from '@/components/auth/MobileAuthSheet';
 
 // Premium dark thumbnail gradients
 const THUMB_GRADIENTS = [
@@ -48,6 +49,7 @@ export default function LessonView() {
   const [videoProgress, setVideoProgress] = useState(0);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [isCheckoutLoading, setIsCheckoutLoading] = useState(false);
+  const [showAuthSheet, setShowAuthSheet] = useState(false);
 
   // Fetch lesson details
   const { data: lesson } = useQuery({
@@ -243,7 +245,8 @@ export default function LessonView() {
 
   const handleSubscribe = async () => {
     if (!user) {
-      navigate('/auth', { state: { from: `/academy/lesson/${lessonId}` } });
+      setShowUpgradeModal(false);
+      setShowAuthSheet(true);
       return;
     }
     setIsCheckoutLoading(true);
@@ -253,9 +256,7 @@ export default function LessonView() {
       });
       if (error) throw error;
       if (data?.url) {
-        // Use window.open for reliable redirect (works in iframes too)
-        const w = window.open(data.url, '_blank');
-        if (!w) window.location.href = data.url;
+        window.location.href = data.url;
       }
     } catch (err: any) {
       toast.error(err.message || 'Failed to start checkout');
@@ -426,47 +427,35 @@ export default function LessonView() {
                 </div>
 
                 {/* CTA */}
-                {user ? (
-                  <Button
-                    onClick={handleSubscribe}
-                    disabled={isCheckoutLoading}
-                    className="w-full h-12 text-base font-semibold bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl shadow-lg shadow-primary/20 transition-all"
-                  >
-                    {isCheckoutLoading ? (
-                      <span className="flex items-center gap-2">
-                        <span className="w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
-                        Loading...
-                      </span>
-                    ) : (
-                      <>
-                        <Sparkles className="w-4 h-4 mr-2" />
-                        Subscribe & Start Learning
-                      </>
-                    )}
-                  </Button>
-                ) : (
-                  <div className="space-y-3">
-                    <Button
-                      onClick={() => navigate('/auth', { state: { from: `/academy/lesson/${lessonId}` } })}
-                      className="w-full h-12 text-base font-semibold bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl shadow-lg shadow-primary/20"
-                    >
-                      <LogIn className="w-4 h-4 mr-2" />
-                      Sign Up to Subscribe
-                    </Button>
-                    <p className="text-xs text-muted-foreground">
-                      Already have an account?{' '}
-                      <button
-                        onClick={() => navigate('/auth', { state: { from: `/academy/lesson/${lessonId}` } })}
-                        className="text-primary hover:underline"
-                      >
-                        Sign in
-                      </button>
-                    </p>
-                  </div>
-                )}
+                <Button
+                  onClick={handleSubscribe}
+                  disabled={isCheckoutLoading}
+                  className="w-full h-12 text-base font-semibold bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl shadow-lg shadow-primary/20 transition-all"
+                >
+                  {isCheckoutLoading ? (
+                    <span className="flex items-center gap-2">
+                      <span className="w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
+                      Loading...
+                    </span>
+                  ) : (
+                    <>
+                      <Sparkles className="w-4 h-4 mr-2" />
+                      {user ? 'Subscribe & Start Learning' : 'Sign Up & Subscribe'}
+                    </>
+                  )}
+                </Button>
               </div>
             </DialogContent>
           </Dialog>
+
+          {/* Auth sheet – shown when unauthenticated user hits subscribe */}
+          <MobileAuthSheet
+            open={showAuthSheet}
+            onOpenChange={setShowAuthSheet}
+            title="Create your account"
+            description="Sign up first, then complete your Research & Education subscription."
+            onSuccess={handleSubscribe}
+          />
 
           {/* ─── Lesson Info ─── */}
           <Card>

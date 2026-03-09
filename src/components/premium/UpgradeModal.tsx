@@ -124,6 +124,7 @@ export function UpgradeModal({ isOpen, feature, onClose, onUpgrade }: UpgradeMod
       const { data: { session } } = await supabase.auth.getSession();
       
       if (!session) {
+        setIsLoading(false);
         setShowAuthSheet(true);
         return;
       }
@@ -149,6 +150,11 @@ export function UpgradeModal({ isOpen, feature, onClose, onUpgrade }: UpgradeMod
     } finally {
       setIsLoading(false);
     }
+  };
+
+  // After auth success, immediately proceed to checkout with the selected plan
+  const handleAuthSuccess = async () => {
+    await handleUpgrade();
   };
 
   const UpgradeContent = () => (
@@ -371,6 +377,7 @@ export function UpgradeModal({ isOpen, feature, onClose, onUpgrade }: UpgradeMod
           onOpenChange={setShowAuthSheet}
           title="Sign up to access premium"
           description="Create a free account, then upgrade to unlock premium features."
+          onSuccess={handleAuthSuccess}
         />
       </>
     );
@@ -396,6 +403,7 @@ export function UpgradeModal({ isOpen, feature, onClose, onUpgrade }: UpgradeMod
         onOpenChange={setShowAuthSheet}
         title="Sign up to access premium"
         description="Create a free account, then upgrade to unlock premium features."
+        onSuccess={handleAuthSuccess}
       />
     </>
   );

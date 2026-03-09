@@ -24,6 +24,7 @@ import {
   Sparkles
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { MobileAuthSheet } from '@/components/auth/MobileAuthSheet';
 
 function getYouTubeThumbnail(url: string | null, provider: string | null): string | null {
   if (!url) return null;
@@ -95,6 +96,7 @@ export default function CourseDetail() {
   const queryClient = useQueryClient();
   const [isCheckoutLoading, setIsCheckoutLoading] = useState(false);
   const [descExpanded, setDescExpanded] = useState(false);
+  const [showAuthSheet, setShowAuthSheet] = useState(false);
 
   // Check for successful subscription and auto-enroll
   useEffect(() => {
@@ -233,7 +235,7 @@ export default function CourseDetail() {
 
   const handleSubscribe = async () => {
     if (!user) {
-      navigate('/auth', { state: { from: `/academy/course/${courseId}` } });
+      setShowAuthSheet(true);
       return;
     }
 
@@ -726,6 +728,15 @@ export default function CourseDetail() {
 
       {/* Bottom padding to prevent content from hiding behind sticky CTA */}
       {!hasAccess && <div className="h-20 lg:hidden" />}
+
+      {/* Auth Sheet — shows inline sign-up then proceeds to checkout */}
+      <MobileAuthSheet
+        open={showAuthSheet}
+        onOpenChange={setShowAuthSheet}
+        title="Create your account"
+        description="Sign up first, then complete your Research & Education subscription ($100/mo)."
+        onSuccess={handleSubscribe}
+      />
     </div>
   );
 }
