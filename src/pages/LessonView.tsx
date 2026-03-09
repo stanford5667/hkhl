@@ -243,8 +243,8 @@ export default function LessonView() {
     setShowUpgradeModal(true);
   };
 
-  const handleSubscribe = async () => {
-    if (!user) {
+  const handleSubscribe = async (skipAuthCheck = false) => {
+    if (!user && !skipAuthCheck) {
       setShowUpgradeModal(false);
       setShowAuthSheet(true);
       return;
@@ -428,7 +428,7 @@ export default function LessonView() {
 
                 {/* CTA */}
                 <Button
-                  onClick={handleSubscribe}
+                  onClick={() => handleSubscribe()}
                   disabled={isCheckoutLoading}
                   className="w-full h-12 text-base font-semibold bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl shadow-lg shadow-primary/20 transition-all"
                 >
@@ -454,7 +454,7 @@ export default function LessonView() {
             onOpenChange={setShowAuthSheet}
             title="Create your account"
             description="Sign up first, then complete your Research & Education subscription."
-            onSuccess={handleSubscribe}
+            onSuccess={() => handleSubscribe(true)}
           />
 
           {/* ─── Lesson Info ─── */}

@@ -233,8 +233,8 @@ export default function CourseDetail() {
     },
   });
 
-  const handleSubscribe = async () => {
-    if (!user) {
+  const handleSubscribe = async (skipAuthCheck = false) => {
+    if (!user && !skipAuthCheck) {
       setShowAuthSheet(true);
       return;
     }
@@ -486,7 +486,7 @@ export default function CourseDetail() {
                         <Button
                           size="sm"
                           className="bg-cyan-500 hover:bg-cyan-600 text-white text-xs h-8 shrink-0"
-                          onClick={handleSubscribe}
+                          onClick={() => handleSubscribe()}
                           disabled={isCheckoutLoading}
                         >
                           {isCheckoutLoading ? 'Loading...' : 'Get Access'}
@@ -522,7 +522,7 @@ export default function CourseDetail() {
                         <Button
                           size="sm"
                           className="bg-cyan-500 hover:bg-cyan-600 text-white text-xs h-8 shrink-0"
-                          onClick={handleSubscribe}
+                          onClick={() => handleSubscribe()}
                           disabled={isCheckoutLoading}
                         >
                           {isCheckoutLoading ? 'Loading...' : 'Subscribe'}
@@ -625,7 +625,7 @@ export default function CourseDetail() {
                   </div>
                   <Button 
                     className="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600" 
-                    onClick={handleSubscribe}
+                    onClick={() => handleSubscribe()}
                     disabled={isCheckoutLoading}
                   >
                     {isCheckoutLoading ? 'Loading...' : 'Subscribe Now'}
@@ -718,7 +718,7 @@ export default function CourseDetail() {
         <div className="fixed bottom-0 left-0 right-0 z-50 bg-[#0B0E14]/90 backdrop-blur-md border-t border-border/40 p-3 sm:p-4 lg:hidden">
           <Button
             className="w-full bg-cyan-500 hover:bg-cyan-600 text-white font-semibold text-sm h-11"
-            onClick={handleSubscribe}
+            onClick={() => handleSubscribe()}
             disabled={isCheckoutLoading}
           >
             {isCheckoutLoading ? 'Loading...' : 'Unlock Full Masterclass — $100/mo'}
@@ -735,7 +735,7 @@ export default function CourseDetail() {
         onOpenChange={setShowAuthSheet}
         title="Create your account"
         description="Sign up first, then complete your Research & Education subscription ($100/mo)."
-        onSuccess={handleSubscribe}
+        onSuccess={() => handleSubscribe(true)}
       />
     </div>
   );
