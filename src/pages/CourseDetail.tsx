@@ -235,13 +235,7 @@ export default function CourseDetail() {
 
   const handleSubscribe = async () => {
     if (!user) {
-      navigate('/auth', {
-        state: {
-          from: `/academy/course/${courseId}`,
-          checkoutPlan: 'research_education',
-          checkoutReturnPath: `/academy/course/${courseId}`,
-        },
-      });
+      setShowAuthSheet(true);
       return;
     }
 
