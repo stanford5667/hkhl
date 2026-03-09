@@ -666,6 +666,21 @@ export default function CourseDetail() {
           </Card>
         </div>
       </div>
+      {/* Sticky Bottom CTA - mobile */}
+      {!hasAccess && (
+        <div className="fixed bottom-0 left-0 right-0 z-50 bg-[#0B0E14]/90 backdrop-blur-md border-t border-border/40 p-3 sm:p-4 lg:hidden">
+          <Button
+            className="w-full bg-cyan-500 hover:bg-cyan-600 text-white font-semibold text-sm h-11"
+            onClick={handleSubscribe}
+            disabled={isCheckoutLoading}
+          >
+            {isCheckoutLoading ? 'Loading...' : 'Unlock Full Masterclass — $100/mo'}
+          </Button>
+        </div>
+      )}
+
+      {/* Bottom padding to prevent content from hiding behind sticky CTA */}
+      {!hasAccess && <div className="h-20 lg:hidden" />}
     </div>
   );
 }
