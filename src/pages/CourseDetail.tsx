@@ -114,9 +114,10 @@ export default function CourseDetail() {
   }, [user, courseId]);
 
   // Fetch course details
-  const { data: course, isLoading } = useQuery({
+  const { data: course, isLoading, error: courseError } = useQuery({
     queryKey: ['course', courseId],
     queryFn: async () => {
+      if (!courseId) throw new Error('No course ID');
       const { data, error } = await supabase
         .from('courses')
         .select('*')
@@ -126,6 +127,9 @@ export default function CourseDetail() {
       if (error) throw error;
       return data;
     },
+    enabled: !!courseId,
+    retry: 1,
+    staleTime: 1000 * 60 * 5, // 5 minutes
   });
 
   // Fetch course modules with lessons
@@ -297,11 +301,16 @@ export default function CourseDetail() {
     );
   }
 
-  if (!course) {
+  if (courseError || !course) {
     return (
       <div className="container mx-auto p-4 sm:p-6 text-center">
         <BookOpen className="w-12 h-12 sm:w-16 sm:h-16 text-muted-foreground mx-auto mb-4" />
-        <h2 className="text-xl sm:text-2xl font-bold mb-2">Course not found</h2>
+        <h2 className="text-xl sm:text-2xl font-bold mb-2">
+          {courseError ? 'Error loading course' : 'Course not found'}
+        </h2>
+        {courseError && (
+          <p className="text-muted-foreground mb-4 text-sm">{(courseError as Error).message}</p>
+        )}
         <Link to="/academy">
           <Button>Back to Academy</Button>
         </Link>
