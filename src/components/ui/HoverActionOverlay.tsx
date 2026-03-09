@@ -14,8 +14,8 @@ export function HoverActionOverlay({ symbol, className }: HoverActionOverlayProp
       className={cn(
         "absolute inset-0 z-20 flex items-center justify-center gap-2.5 px-3",
         "bg-black/60 backdrop-blur-sm rounded-[inherit]",
-        "opacity-0 group-hover:opacity-100 transition-all duration-250",
-        "pointer-events-none group-hover:pointer-events-auto",
+        "opacity-0 group-hover/card:opacity-100 transition-all duration-250",
+        "pointer-events-none group-hover/card:pointer-events-auto",
         className
       )}
       onClick={(e) => e.stopPropagation()}

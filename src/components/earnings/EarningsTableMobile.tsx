@@ -76,7 +76,7 @@ export const EarningsTableMobile = ({ earnings }: Props) => {
         {earnings.map((earning) => (
           <Card
             key={earning.id}
-            className="p-3 cursor-pointer hover:bg-muted/50 active:bg-muted/70 transition-colors relative group"
+            className="p-3 cursor-pointer hover:bg-muted/50 active:bg-muted/70 transition-colors relative group/card"
             onClick={() => setSelectedEarning(earning)}
           >
             {/* Hover/long-press action overlay */}
