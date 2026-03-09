@@ -96,11 +96,7 @@ export function MembershipStep({ onComplete, onBack }: MembershipStepProps) {
         if (error) throw error;
         
         if (data?.url) {
-          if (window.self !== window.top) {
-            window.open(data.url, '_blank');
-          } else {
-            window.location.href = data.url;
-          }
+          window.location.href = data.url;
           setIsLoading(false);
           return;
         } else {
