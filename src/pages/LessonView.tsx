@@ -11,7 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Dialog,
   DialogContent,
-  DialogOverlay,
+  DialogTitle,
 } from '@/components/ui/dialog';
 import {
   ChevronLeft,
@@ -383,7 +383,8 @@ export default function LessonView() {
 
           {/* ─── Upgrade Modal (Dialog) ─── */}
           <Dialog open={showUpgradeModal} onOpenChange={setShowUpgradeModal}>
-            <DialogContent className="sm:max-w-md border-white/10 bg-[hsl(230,25%,9%)] p-0 gap-0 overflow-hidden">
+            <DialogContent className="sm:max-w-md border-white/10 bg-[hsl(230,25%,9%)] p-0 gap-0 overflow-hidden" aria-describedby={undefined}>
+              <DialogTitle className="sr-only">Unlock the Masterclass</DialogTitle>
               {/* Top accent line */}
               <div className="h-1 w-full bg-gradient-to-r from-primary via-cyan-400 to-primary" />
 
