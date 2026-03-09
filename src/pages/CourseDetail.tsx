@@ -360,7 +360,7 @@ export default function CourseDetail() {
                 <Badge variant="outline" className="text-xs">{course.category}</Badge>
               </div>
               <CardTitle className="text-lg sm:text-2xl md:text-3xl leading-tight">{course.title}</CardTitle>
-              <CardDescription className={`text-sm sm:text-base ${!descExpanded ? 'line-clamp-3' : ''}`}>
+              <CardDescription className={`text-sm sm:text-base ${!descExpanded ? 'line-clamp-5' : ''}`}>
                 {course.description}
               </CardDescription>
               {course.description && course.description.length > 150 && (
@@ -473,6 +473,25 @@ export default function CourseDetail() {
                       </AccordionItem>
                     ))}
                   </Accordion>
+                  {/* Mid-curriculum CTA */}
+                  {!hasAccess && (
+                    <div className="px-4 sm:px-6 py-4 border-t border-border/50 bg-muted/30">
+                      <div className="flex items-center justify-between gap-3">
+                        <p className="text-xs sm:text-sm text-muted-foreground">
+                          <Lock className="w-3.5 h-3.5 inline mr-1 -mt-0.5" />
+                          Unlock all {totalLessons} lessons
+                        </p>
+                        <Button
+                          size="sm"
+                          className="bg-cyan-500 hover:bg-cyan-600 text-white text-xs h-8 shrink-0"
+                          onClick={handleSubscribe}
+                          disabled={isCheckoutLoading}
+                        >
+                          {isCheckoutLoading ? 'Loading...' : 'Get Access'}
+                        </Button>
+                      </div>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </TabsContent>
@@ -492,6 +511,23 @@ export default function CourseDetail() {
                     <li>Build confidence in your trading decisions</li>
                     <li>Access practical tools and templates</li>
                   </ul>
+                  {!hasAccess && (
+                    <>
+                      <Separator className="my-4" />
+                      <div className="flex items-center gap-3 p-3 rounded-lg bg-cyan-500/5 border border-cyan-500/20">
+                        <Sparkles className="w-4 h-4 text-cyan-400 flex-shrink-0" />
+                        <p className="text-xs sm:text-sm text-muted-foreground flex-1">Ready to start learning?</p>
+                        <Button
+                          size="sm"
+                          className="bg-cyan-500 hover:bg-cyan-600 text-white text-xs h-8 shrink-0"
+                          onClick={handleSubscribe}
+                          disabled={isCheckoutLoading}
+                        >
+                          {isCheckoutLoading ? 'Loading...' : 'Subscribe'}
+                        </Button>
+                      </div>
+                    </>
+                  )}
                 </CardContent>
               </Card>
             </TabsContent>
