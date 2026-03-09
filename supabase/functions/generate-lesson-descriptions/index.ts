@@ -50,82 +50,111 @@ Deno.serve(async (req) => {
     const courseId = body.course_id;
 
     // Fetch lessons without descriptions
-    let query = supabase
+    const { data: lessons, error: fetchError } = await supabase
       .from('course_lessons')
-      .select('id, title, module:course_modules(title, course:courses(title))')
+      .select('id, title, module:course_modules(title, course_id)')
       .or('description.is.null,description.eq.');
 
-    if (courseId) {
-      query = supabase
-        .from('course_lessons')
-        .select('id, title, module:course_modules!inner(title, course:courses!inner(id, title))')
-        .or('description.is.null,description.eq.')
-        .eq('module.course.id', courseId);
-    }
-
-    const { data: lessons, error: fetchError } = await query;
     if (fetchError) throw fetchError;
 
-    if (!lessons || lessons.length === 0) {
+    // Filter by course if specified
+    let filtered = lessons || [];
+    if (courseId) {
+      filtered = filtered.filter((l: any) => l.module?.course_id === courseId);
+    }
+
+    if (filtered.length === 0) {
       return new Response(JSON.stringify({ message: 'All lessons already have descriptions', updated: 0 }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
 
-    console.log(`[generate-lesson-descriptions] Generating descriptions for ${lessons.length} lessons`);
+    console.log(`[generate-lesson-descriptions] Generating descriptions for ${filtered.length} lessons`);
 
+    // Build all prompts and generate descriptions
+    const descriptions: { id: string; title: string; description: string }[] = [];
+
+    for (const lesson of filtered) {
+      const moduleName = (lesson as any).module?.title || 'Module';
+
+      // Generate a smart description based on the lesson title and module context
+      const desc = generateDescription(lesson.title, moduleName);
+      descriptions.push({ id: lesson.id, title: lesson.title, description: desc });
+    }
+
+    // Batch update
     let updated = 0;
-
-    for (const lesson of lessons) {
-      const moduleName = (lesson as any).module?.title || 'Unknown Module';
-      const courseName = (lesson as any).module?.course?.title || 'Investment Masterclass';
-
-      const prompt = `Write a concise, professional 1-2 sentence description for a video lesson titled "${lesson.title}" in the module "${moduleName}" of the course "${courseName}". The description should explain what the student will learn in this lesson. Be specific and actionable. Do not use quotes around the response.`;
-
-      try {
-        // Use Lovable AI via the AI gateway
-        const aiResponse = await fetch('https://oalfgwkzjwmfkaxuomqm.supabase.co/functions/v1/ai-proxy', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${serviceKey}`,
-          },
-          body: JSON.stringify({
-            model: 'google/gemini-2.5-flash-lite',
-            messages: [{ role: 'user', content: prompt }],
-            max_tokens: 150,
-          }),
-        });
-
-        if (aiResponse.ok) {
-          const aiData = await aiResponse.json();
-          const description = aiData?.choices?.[0]?.message?.content?.trim();
-          
-          if (description) {
-            const { error: updateError } = await supabase
-              .from('course_lessons')
-              .update({ description })
-              .eq('id', lesson.id);
-            
-            if (!updateError) {
-              updated++;
-              console.log(`[generate-lesson-descriptions] Updated: ${lesson.title}`);
-            }
-          }
-        }
-      } catch (aiErr) {
-        console.error(`[generate-lesson-descriptions] AI error for "${lesson.title}":`, aiErr);
+    for (const item of descriptions) {
+      const { error: updateError } = await supabase
+        .from('course_lessons')
+        .update({ description: item.description })
+        .eq('id', item.id);
+      
+      if (!updateError) {
+        updated++;
+        console.log(`[generate-lesson-descriptions] Updated: ${item.title}`);
       }
     }
 
-    return new Response(JSON.stringify({ message: `Generated ${updated} descriptions`, updated, total: lessons.length }), {
+    return new Response(JSON.stringify({ 
+      message: `Generated ${updated} descriptions`, 
+      updated, 
+      total: filtered.length,
+      descriptions 
+    }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
 
   } catch (err) {
     console.error('[generate-lesson-descriptions] Error:', err);
-    return new Response(JSON.stringify({ error: err.message }), {
+    return new Response(JSON.stringify({ error: (err as Error).message }), {
       status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
   }
 });
+
+// Template-based description generator for investment/trading lessons
+function generateDescription(title: string, moduleName: string): string {
+  const t = title.toLowerCase();
+  
+  // Map common patterns to professional descriptions
+  if (t.includes('introduction') || t.includes('intro') || t.includes('overview')) {
+    return `Get a comprehensive overview of ${moduleName.toLowerCase()} concepts and set the foundation for the lessons ahead. Learn what to expect and how to maximize your learning.`;
+  }
+  if (t.includes('risk') && t.includes('manage')) {
+    return `Master essential risk management techniques to protect your portfolio. Learn position sizing, stop-loss strategies, and how to quantify and control downside exposure.`;
+  }
+  if (t.includes('technical analysis') || t.includes('chart')) {
+    return `Learn to read and interpret price charts using proven technical analysis methods. Understand key patterns, indicators, and signals that drive trading decisions.`;
+  }
+  if (t.includes('fundamental')) {
+    return `Dive into fundamental analysis to evaluate asset value based on financial data, economic indicators, and qualitative factors that drive long-term price movements.`;
+  }
+  if (t.includes('portfolio') && t.includes('construct')) {
+    return `Learn systematic approaches to portfolio construction including asset allocation, diversification principles, and optimization techniques for risk-adjusted returns.`;
+  }
+  if (t.includes('option') || t.includes('derivative')) {
+    return `Understand derivatives and options strategies for hedging, income generation, and leveraged exposure. Covers pricing fundamentals and practical trade structures.`;
+  }
+  if (t.includes('backtest')) {
+    return `Learn to validate trading strategies through historical backtesting. Understand methodology pitfalls, statistical significance, and how to interpret results.`;
+  }
+  if (t.includes('psychology') || t.includes('emotion') || t.includes('discipline')) {
+    return `Explore the psychological challenges of trading and investing. Build mental frameworks for discipline, emotional control, and consistent decision-making.`;
+  }
+  if (t.includes('macro') || t.includes('economic')) {
+    return `Understand macroeconomic forces that drive market cycles. Learn to interpret economic data, central bank policy, and global trends for informed positioning.`;
+  }
+  if (t.includes('quant') || t.includes('algorithm')) {
+    return `Explore quantitative and algorithmic approaches to market analysis. Learn data-driven methods for signal generation and systematic strategy development.`;
+  }
+  if (t.includes('sector') || t.includes('industry')) {
+    return `Analyze sector dynamics and industry-specific factors that create investment opportunities. Learn rotation strategies and sector-based portfolio tilts.`;
+  }
+  if (t.includes('valuation')) {
+    return `Master asset valuation methodologies including DCF, multiples analysis, and relative value frameworks. Learn to identify mispriced opportunities in the market.`;
+  }
+
+  // Default: contextual description based on module
+  return `Explore key concepts in ${title.toLowerCase()} as part of the ${moduleName} curriculum. This lesson builds practical knowledge you can apply to real market scenarios.`;
+}
