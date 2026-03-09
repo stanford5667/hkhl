@@ -32,7 +32,7 @@ export function Layout({ children }: LayoutProps) {
   const location = useLocation();
   const navigate = useNavigate();
   const isMobile = useIsMobile();
-  const isSplitScrollRoute = location.pathname === "/" || location.pathname === "/quant-lab";
+  const isSplitScrollRoute = (location.pathname === "/" && !!user) || location.pathname === "/quant-lab";
   // Onboarding state (we only use the banner; all modals/popups are disabled)
   const { 
     shouldShowBanner,
