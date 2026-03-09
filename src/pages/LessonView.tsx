@@ -454,7 +454,7 @@ export default function LessonView() {
             onOpenChange={setShowAuthSheet}
             title="Create your account"
             description="Sign up first, then complete your Research & Education subscription."
-            onSuccess={handleSubscribe}
+            onSuccess={() => handleSubscribe(true)}
           />
 
           {/* ─── Lesson Info ─── */}

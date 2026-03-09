@@ -735,7 +735,7 @@ export default function CourseDetail() {
         onOpenChange={setShowAuthSheet}
         title="Create your account"
         description="Sign up first, then complete your Research & Education subscription ($100/mo)."
-        onSuccess={handleSubscribe}
+        onSuccess={() => handleSubscribe(true)}
       />
     </div>
   );
