@@ -112,7 +112,7 @@ export function CommunityHub({ defaultTab = 'chat', initialRoomId }: CommunityHu
 
         <div className="ml-auto flex items-center gap-2 text-sm text-muted-foreground">
           {!isAuthenticated ? (
-            <Button size="sm" variant="default" className="gap-2" onClick={() => navigate('/auth')}>
+            <Button size="sm" variant="default" className="gap-2" onClick={() => navigate('/auth', { state: { from: location.pathname } })}>
               <LogIn className="h-4 w-4" />
               Sign In
             </Button>
