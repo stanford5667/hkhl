@@ -76,7 +76,7 @@ export function CommunityHub({ defaultTab = 'chat', initialRoomId }: CommunityHu
       {!isAuthenticated && (
         <div className="px-4 py-3 bg-primary/10 border-b flex items-center justify-between gap-3">
           <p className="text-sm font-medium">Join the conversation — sign in to chat and post research.</p>
-          <Button size="sm" className="gap-2 shrink-0" onClick={() => navigate('/auth')}>
+          <Button size="sm" className="gap-2 shrink-0" onClick={() => navigate('/auth', { state: { from: location.pathname } })}>
             <LogIn className="h-4 w-4" />
             Sign In / Sign Up
           </Button>
