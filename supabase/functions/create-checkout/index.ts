@@ -118,8 +118,8 @@ serve(async (req) => {
         },
       ],
       mode: "subscription",
-      success_url: `${productionUrl}/quant-lab?subscription=success`,
-      cancel_url: `${productionUrl}/quant-lab?subscription=cancelled`,
+      success_url: `${productionUrl}${returnPath}?subscription=success`,
+      cancel_url: `${productionUrl}${returnPath}?subscription=cancelled`,
       custom_text: {
         submit: {
           message: planDescriptions[selectedPlan],
