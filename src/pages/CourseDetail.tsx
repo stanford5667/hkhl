@@ -24,6 +24,7 @@ import {
   Sparkles
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { MobileAuthSheet } from '@/components/auth/MobileAuthSheet';
 
 function getYouTubeThumbnail(url: string | null, provider: string | null): string | null {
   if (!url) return null;
