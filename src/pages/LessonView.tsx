@@ -9,6 +9,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
+  Dialog,
+  DialogContent,
+  DialogOverlay,
+} from '@/components/ui/dialog';
+import {
   ChevronLeft,
   ChevronRight,
   CheckCircle2,
@@ -17,18 +22,20 @@ import {
   Play,
   Lock,
   Sparkles,
-  LogIn
+  LogIn,
+  X
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { motion, AnimatePresence } from 'framer-motion';
 
-// Thumbnail gradients for CSS-based thumbnails
+// Premium dark thumbnail gradients
 const THUMB_GRADIENTS = [
-  'from-cyan-900/80 to-slate-900',
-  'from-violet-900/80 to-slate-900',
-  'from-emerald-900/80 to-slate-900',
-  'from-amber-900/80 to-slate-900',
-  'from-rose-900/80 to-slate-900',
-  'from-blue-900/80 to-slate-900',
+  'from-[hsl(200,60%,8%)] via-[hsl(220,40%,12%)] to-[hsl(240,30%,6%)]',
+  'from-[hsl(260,50%,10%)] via-[hsl(230,40%,12%)] to-[hsl(210,30%,6%)]',
+  'from-[hsl(170,40%,8%)] via-[hsl(200,35%,10%)] to-[hsl(230,30%,6%)]',
+  'from-[hsl(30,40%,8%)] via-[hsl(20,30%,10%)] to-[hsl(240,20%,6%)]',
+  'from-[hsl(340,40%,10%)] via-[hsl(280,30%,10%)] to-[hsl(240,25%,6%)]',
+  'from-[hsl(210,50%,10%)] via-[hsl(230,45%,14%)] to-[hsl(250,30%,6%)]',
 ];
 
 export default function LessonView() {
@@ -39,7 +46,8 @@ export default function LessonView() {
   const queryClient = useQueryClient();
   const videoRef = useRef<HTMLIFrameElement | HTMLVideoElement>(null);
   const [videoProgress, setVideoProgress] = useState(0);
-  const [showPaywall, setShowPaywall] = useState(false);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [isCheckoutLoading, setIsCheckoutLoading] = useState(false);
 
   // Fetch lesson details
   const { data: lesson } = useQuery({
@@ -79,7 +87,8 @@ export default function LessonView() {
           lessons:course_lessons(
             id,
             title,
-            order_index
+            order_index,
+            is_preview
           )
         `)
         .eq('course_id', lesson.module.course.id)
@@ -199,13 +208,10 @@ export default function LessonView() {
     return url;
   };
 
-  // Find current lesson index and navigate to next/previous
   const getCurrentLessonIndex = () => {
     if (!allLessons) return -1;
-    
     let currentIndex = -1;
     let lessonCount = 0;
-    
     for (const module of allLessons) {
       for (const l of (module.lessons || [])) {
         if (l.id === lessonId) {
@@ -216,24 +222,45 @@ export default function LessonView() {
       }
       if (currentIndex !== -1) break;
     }
-    
     return currentIndex;
   };
 
   const navigateToLesson = (direction: 'next' | 'prev') => {
     if (!allLessons) return;
-    
     const flatLessons = allLessons.flatMap(m => m.lessons || []);
     const currentIndex = getCurrentLessonIndex();
-    
     if (currentIndex === -1) return;
-    
     const nextIndex = direction === 'next' ? currentIndex + 1 : currentIndex - 1;
-    
     if (nextIndex >= 0 && nextIndex < flatLessons.length) {
       navigate(`/academy/lesson/${flatLessons[nextIndex].id}`);
     }
   };
+
+  const handlePlayClick = () => {
+    if (hasVideoAccess) return; // Access granted, video plays normally
+    setShowUpgradeModal(true);
+  };
+
+  const handleSubscribe = async () => {
+    if (!user) {
+      navigate('/auth', { state: { from: `/academy/lesson/${lessonId}` } });
+      return;
+    }
+    setIsCheckoutLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('create-checkout', {
+        body: { plan: 'research_education', return_path: `/academy/lesson/${lessonId}` }
+      });
+      if (error) throw error;
+      if (data?.url) window.location.href = data.url;
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to start checkout');
+    } finally {
+      setIsCheckoutLoading(false);
+    }
+  };
+
+  const totalLessons = allLessons?.reduce((acc, m) => acc + (m.lessons?.length || 0), 0) || 0;
 
   if (!lesson) {
     return (
@@ -246,23 +273,21 @@ export default function LessonView() {
     );
   }
 
-  // Determine access: user must be logged in and have research tier (or lesson is preview/free)
-  const courseId = lesson?.module?.course?.id;
   const isFreeLesson = lesson?.is_preview;
   const hasVideoAccess = user && (isResearchTier || isFreeLesson);
-
-  const courseProgress = 45; // This would come from actual calculation
+  const courseProgress = 45;
+  const gradientIndex = (lesson.module?.order_index || 0) % THUMB_GRADIENTS.length;
 
   return (
     <div className="container mx-auto p-4 md:p-6 max-w-7xl">
       {/* Breadcrumb */}
       <div className="mb-6">
         <nav className="flex items-center gap-2 text-sm text-muted-foreground">
-          <Link to="/academy" className="hover:text-foreground">Academy</Link>
+          <Link to="/academy" className="hover:text-foreground transition-colors">Academy</Link>
           <span>/</span>
-          <Link 
+          <Link
             to={`/academy/course/${lesson.module?.course?.id}`}
-            className="hover:text-foreground"
+            className="hover:text-foreground transition-colors"
           >
             {lesson.module?.course?.title}
           </Link>
@@ -274,124 +299,171 @@ export default function LessonView() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Main Content */}
         <div className="lg:col-span-2 space-y-6">
-          {/* Video Player with Thumbnail + Play-to-Gate */}
-          <Card>
-            <CardContent className="p-0">
-              <div className="relative aspect-video bg-black rounded-lg overflow-hidden">
-                {/* If user has access, show actual video */}
-                {hasVideoAccess && lesson.video_url && !showPaywall ? (
-                  (lesson.video_provider === 'custom' && isDirectVideoUrl(lesson.video_url)) ? (
-                    <video
-                      ref={videoRef as React.RefObject<HTMLVideoElement>}
-                      className="w-full h-full"
-                      src={lesson.video_url}
-                      controls
-                      preload="metadata"
-                      onTimeUpdate={(e) => setVideoProgress(Math.floor((e.currentTarget as HTMLVideoElement).currentTime))}
-                    />
-                  ) : (
-                    <iframe
-                      ref={videoRef as React.RefObject<HTMLIFrameElement>}
-                      src={getVideoEmbedUrl(lesson.video_url, lesson.video_provider || 'youtube')}
-                      title={lesson.title}
-                      className="w-full h-full"
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                      allowFullScreen
-                    />
-                  )
-                ) : showPaywall ? (
-                  /* Paywall overlay - shown when user clicks play without access */
-                  <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-background/95 to-background">
-                    <div className="text-center p-6 max-w-md">
-                      {!user ? (
-                        <>
-                          <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
-                            <LogIn className="w-8 h-8 text-primary" />
-                          </div>
-                          <h3 className="text-lg font-bold mb-2">Sign in to watch</h3>
-                          <p className="text-sm text-muted-foreground mb-4">
-                            Create a free account to start learning. Access premium content with a Research & Education membership.
-                          </p>
-                          <div className="flex flex-col sm:flex-row gap-2 justify-center">
-                            <Button onClick={() => navigate('/auth', { state: { from: `/academy/lesson/${lessonId}` } })} className="gap-2">
-                              <LogIn className="w-4 h-4" />
-                              Sign Up / Sign In
-                            </Button>
-                            <Button variant="ghost" onClick={() => setShowPaywall(false)}>
-                              Back
-                            </Button>
-                          </div>
-                        </>
-                      ) : (
-                        <>
-                          <div className="w-16 h-16 rounded-full bg-amber-500/10 flex items-center justify-center mx-auto mb-4">
-                            <Lock className="w-8 h-8 text-amber-400" />
-                          </div>
-                          <h3 className="text-lg font-bold mb-2">Premium Content</h3>
-                          <p className="text-sm text-muted-foreground mb-4">
-                            This lesson requires a Research & Education membership ($100/month).
-                          </p>
-                          <div className="flex flex-col sm:flex-row gap-2 justify-center">
-                            <Button
-                              className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 gap-2"
-                              onClick={async () => {
-                                try {
-                                  const { data, error } = await supabase.functions.invoke('create-checkout', {
-                                    body: { plan: 'research_education', return_path: `/academy/lesson/${lessonId}` }
-                                  });
-                                  if (error) throw error;
-                                  if (data?.url) window.location.href = data.url;
-                                } catch (err: any) {
-                                  toast.error(err.message || 'Failed to start checkout');
-                                }
-                              }}
-                            >
-                              <Sparkles className="w-4 h-4" />
-                              Subscribe & Start Learning
-                            </Button>
-                            <Button variant="ghost" onClick={() => setShowPaywall(false)}>
-                              Back
-                            </Button>
-                          </div>
-                        </>
-                      )}
+
+          {/* ─── Video Player Tease ─── */}
+          <div className="relative rounded-xl overflow-hidden shadow-2xl shadow-black/40">
+            <div className="aspect-video relative">
+              {hasVideoAccess && lesson.video_url ? (
+                /* Actual video for paying users */
+                (lesson.video_provider === 'custom' && isDirectVideoUrl(lesson.video_url)) ? (
+                  <video
+                    ref={videoRef as React.RefObject<HTMLVideoElement>}
+                    className="w-full h-full object-cover"
+                    src={lesson.video_url}
+                    controls
+                    preload="metadata"
+                    onTimeUpdate={(e) => setVideoProgress(Math.floor((e.currentTarget as HTMLVideoElement).currentTime))}
+                  />
+                ) : (
+                  <iframe
+                    ref={videoRef as React.RefObject<HTMLIFrameElement>}
+                    src={getVideoEmbedUrl(lesson.video_url, lesson.video_provider || 'youtube')}
+                    title={lesson.title}
+                    className="w-full h-full"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                  />
+                )
+              ) : (
+                /* Premium Thumbnail Tease — visible to everyone without access */
+                <div
+                  className="w-full h-full cursor-pointer group relative select-none"
+                  onClick={handlePlayClick}
+                >
+                  {/* Dark premium gradient background */}
+                  <div className={`absolute inset-0 bg-gradient-to-br ${THUMB_GRADIENTS[gradientIndex]}`} />
+
+                  {/* Subtle noise texture overlay */}
+                  <div className="absolute inset-0 opacity-[0.04]" style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg viewBox=\'0 0 256 256\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cfilter id=\'noise\'%3E%3CfeTurbulence baseFrequency=\'0.9\' numOctaves=\'4\' stitchTiles=\'stitch\'/%3E%3C/filter%3E%3Crect width=\'100%25\' height=\'100%25\' filter=\'url(%23noise)\' opacity=\'0.5\'/%3E%3C/svg%3E")' }} />
+
+                  {/* Faux player chrome — bottom bar */}
+                  <div className="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-black/60 to-transparent flex items-end px-4 pb-2.5">
+                    <div className="flex items-center gap-3 w-full">
+                      <Play className="w-4 h-4 text-white/60 fill-white/60" />
+                      <div className="flex-1 h-1 rounded-full bg-white/15 overflow-hidden">
+                        <div className="h-full w-0 rounded-full bg-primary" />
+                      </div>
+                      <span className="text-[11px] text-white/40 font-mono tabular-nums">
+                        {lesson.video_duration
+                          ? `0:00 / ${Math.floor(lesson.video_duration / 60)}:${String(lesson.video_duration % 60).padStart(2, '0')}`
+                          : '0:00 / --:--'}
+                      </span>
                     </div>
                   </div>
-                ) : (
-                  /* Thumbnail with Play button - visible to everyone */
-                  <div 
-                    className="w-full h-full cursor-pointer group"
-                    onClick={() => {
-                      if (!hasVideoAccess) {
-                        setShowPaywall(true);
-                      }
-                    }}
-                  >
-                    {/* CSS Gradient Thumbnail */}
-                    <div className={`absolute inset-0 bg-gradient-to-br ${THUMB_GRADIENTS[(lesson.module?.order_index || 0) % THUMB_GRADIENTS.length]}`}>
-                      <div className="absolute inset-0 flex flex-col items-center justify-center">
-                        {/* Play button */}
-                        <div className="w-20 h-20 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center mb-4 group-hover:bg-white/20 transition-colors group-hover:scale-110 duration-200">
-                          <Play className="w-10 h-10 text-white fill-white ml-1" />
-                        </div>
-                        {/* Lesson title watermark */}
-                        <p className="text-white/80 text-lg font-semibold text-center px-4 max-w-md">
-                          {lesson.title}
-                        </p>
-                        {lesson.video_duration && (
-                          <p className="text-white/50 text-sm mt-2">
-                            {Math.floor(lesson.video_duration / 60)}:{String(lesson.video_duration % 60).padStart(2, '0')}
-                          </p>
-                        )}
-                      </div>
+
+                  {/* 🔒 Premium Badge — top right */}
+                  <div className="absolute top-3 right-3 z-10">
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-black/50 backdrop-blur-md border border-white/10 text-[11px] font-medium text-white/80 tracking-wide uppercase">
+                      <Lock className="w-3 h-3" />
+                      Premium
+                    </span>
+                  </div>
+
+                  {/* Center Play Button */}
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <motion.div
+                      whileHover={{ scale: 1.1 }}
+                      whileTap={{ scale: 0.95 }}
+                      className="w-[72px] h-[72px] rounded-full bg-white/[0.08] backdrop-blur-sm border border-white/[0.12] flex items-center justify-center group-hover:bg-primary/20 group-hover:border-primary/30 transition-all duration-300"
+                    >
+                      <Play className="w-8 h-8 text-white fill-white ml-0.5 drop-shadow-lg" />
+                    </motion.div>
+                  </div>
+
+                  {/* Title watermark */}
+                  <div className="absolute top-3 left-4">
+                    <p className="text-white/30 text-xs font-medium tracking-wider uppercase">
+                      {lesson.module?.course?.title}
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* ─── Upgrade Modal (Dialog) ─── */}
+          <Dialog open={showUpgradeModal} onOpenChange={setShowUpgradeModal}>
+            <DialogContent className="sm:max-w-md border-white/10 bg-[hsl(230,25%,9%)] p-0 gap-0 overflow-hidden">
+              {/* Top accent line */}
+              <div className="h-1 w-full bg-gradient-to-r from-primary via-cyan-400 to-primary" />
+
+              <div className="p-8 text-center">
+                {/* Icon */}
+                <div className="mx-auto mb-5 w-14 h-14 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center">
+                  <Sparkles className="w-7 h-7 text-primary" />
+                </div>
+
+                {/* Headline */}
+                <h2 className="text-2xl font-bold tracking-tight text-foreground mb-2">
+                  Unlock the Masterclass
+                </h2>
+
+                {/* Subtext */}
+                <p className="text-muted-foreground text-sm leading-relaxed mb-6 max-w-xs mx-auto">
+                  Get instant access to <span className="text-foreground font-medium">{lesson.title}</span> and{' '}
+                  <span className="text-foreground font-medium">{totalLessons}+ lessons</span> for{' '}
+                  <span className="text-primary font-semibold">$100/month</span>
+                </p>
+
+                {/* Features */}
+                <div className="flex flex-col gap-2 mb-7 text-left max-w-xs mx-auto">
+                  {[
+                    'Full video course library',
+                    'Trade signals & community research',
+                    'Strategy backtesting tools',
+                    'Priority support'
+                  ].map((feature) => (
+                    <div key={feature} className="flex items-center gap-2.5 text-sm text-muted-foreground">
+                      <CheckCircle2 className="w-4 h-4 text-primary shrink-0" />
+                      <span>{feature}</span>
                     </div>
+                  ))}
+                </div>
+
+                {/* CTA */}
+                {user ? (
+                  <Button
+                    onClick={handleSubscribe}
+                    disabled={isCheckoutLoading}
+                    className="w-full h-12 text-base font-semibold bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl shadow-lg shadow-primary/20 transition-all"
+                  >
+                    {isCheckoutLoading ? (
+                      <span className="flex items-center gap-2">
+                        <span className="w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
+                        Loading...
+                      </span>
+                    ) : (
+                      <>
+                        <Sparkles className="w-4 h-4 mr-2" />
+                        Subscribe & Start Learning
+                      </>
+                    )}
+                  </Button>
+                ) : (
+                  <div className="space-y-3">
+                    <Button
+                      onClick={() => navigate('/auth', { state: { from: `/academy/lesson/${lessonId}` } })}
+                      className="w-full h-12 text-base font-semibold bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl shadow-lg shadow-primary/20"
+                    >
+                      <LogIn className="w-4 h-4 mr-2" />
+                      Sign Up to Subscribe
+                    </Button>
+                    <p className="text-xs text-muted-foreground">
+                      Already have an account?{' '}
+                      <button
+                        onClick={() => navigate('/auth', { state: { from: `/academy/lesson/${lessonId}` } })}
+                        className="text-primary hover:underline"
+                      >
+                        Sign in
+                      </button>
+                    </p>
                   </div>
                 )}
               </div>
-            </CardContent>
-          </Card>
+            </DialogContent>
+          </Dialog>
 
-          {/* Lesson Info */}
+          {/* ─── Lesson Info ─── */}
           <Card>
             <CardHeader>
               <div className="flex items-start justify-between gap-4">
@@ -423,7 +495,7 @@ export default function LessonView() {
             </CardHeader>
           </Card>
 
-          {/* Tabs for Content, Materials */}
+          {/* ─── Tabs for Content, Materials ─── */}
           <Tabs defaultValue="overview">
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="overview">Overview</TabsTrigger>
@@ -514,7 +586,7 @@ export default function LessonView() {
           </div>
         </div>
 
-        {/* Sidebar - Course Curriculum */}
+        {/* ─── Sidebar - Course Curriculum ─── */}
         <div className="space-y-6">
           <Card>
             <CardHeader>
@@ -543,24 +615,35 @@ export default function LessonView() {
                       {moduleIndex + 1}. {module.title}
                     </div>
                     <div>
-                      {module.lessons?.map((l: any, lessonIndex: number) => (
-                        <Link
-                          key={l.id}
-                          to={`/academy/lesson/${l.id}`}
-                          className={`block p-3 pl-6 hover:bg-muted/50 transition-colors text-sm ${
-                            l.id === lessonId ? 'bg-primary/10 border-l-4 border-primary' : ''
-                          }`}
-                        >
-                          <div className="flex items-center justify-between">
-                            <span className="line-clamp-1">
-                              {moduleIndex + 1}.{lessonIndex + 1} {l.title}
-                            </span>
-                            {progress?.completed && l.id === lessonId && (
-                              <CheckCircle2 className="w-4 h-4 text-green-500 shrink-0" />
-                            )}
-                          </div>
-                        </Link>
-                      ))}
+                      {module.lessons?.map((l: any, lessonIndex: number) => {
+                        const isCurrentLesson = l.id === lessonId;
+                        const isFreeTier = l.is_preview;
+                        const isLocked = !hasVideoAccess && !isFreeTier;
+
+                        return (
+                          <Link
+                            key={l.id}
+                            to={`/academy/lesson/${l.id}`}
+                            className={`block p-3 pl-5 hover:bg-muted/50 transition-colors text-sm ${
+                              isCurrentLesson ? 'bg-primary/10 border-l-4 border-primary' : ''
+                            }`}
+                          >
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="line-clamp-1 flex-1">
+                                {moduleIndex + 1}.{lessonIndex + 1} {l.title}
+                              </span>
+                              <div className="flex items-center gap-1.5 shrink-0">
+                                {progress?.completed && isCurrentLesson && (
+                                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
+                                )}
+                                {isLocked && (
+                                  <Lock className="w-3 h-3 text-muted-foreground/50" />
+                                )}
+                              </div>
+                            </div>
+                          </Link>
+                        );
+                      })}
                     </div>
                   </div>
                 ))}
