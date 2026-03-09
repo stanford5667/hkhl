@@ -243,15 +243,10 @@ export default function LessonView() {
     setShowUpgradeModal(true);
   };
 
-  const handleSubscribe = async () => {
-    if (!user) {
-      navigate('/auth', {
-        state: {
-          from: `/academy/lesson/${lessonId}`,
-          checkoutPlan: 'research_education',
-          checkoutReturnPath: `/academy/lesson/${lessonId}`,
-        },
-      });
+  const handleSubscribe = async (skipAuthCheck?: boolean) => {
+    if (!user && !skipAuthCheck) {
+      setShowUpgradeModal(false);
+      setShowAuthSheet(true);
       return;
     }
     setIsCheckoutLoading(true);
