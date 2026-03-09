@@ -323,7 +323,7 @@ export default function CourseDetail() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 sm:gap-6">
         {/* Main Content */}
-        <div className="lg:col-span-2 space-y-4 sm:space-y-6">
+        <div className="lg:col-span-2 space-y-3 sm:space-y-6">
           {/* Hero */}
           <Card className="overflow-hidden">
             {/* CSS Thumbnail */}
