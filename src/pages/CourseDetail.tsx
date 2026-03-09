@@ -363,7 +363,7 @@ export default function CourseDetail() {
                 {course.description}
               </CardDescription>
             </CardHeader>
-            <CardContent className="p-4 sm:p-6 pt-0">
+            <CardContent className="p-3 sm:p-6 pt-0">
               <div className="flex items-center gap-3 text-xs sm:text-sm text-muted-foreground">
                 <div className="w-8 h-8 rounded-full bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
                   CS
