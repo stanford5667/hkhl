@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { getCandlesForRange, CandleData, TimeRange } from '@/services/candleService';
 import { fetchTickerDetails, TickerDetails } from '@/services/tickerDetailsService';
 import { cn } from '@/lib/utils';
+import { HoverActionOverlay } from '@/components/ui/HoverActionOverlay';
 
 type Period = '1D' | '1W' | '1M' | '3M' | '1Y';
 
