@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useUsage } from '@/contexts/UsageContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -19,7 +20,8 @@ import {
   Lock,
   BookOpen,
   Award,
-  FileText
+  FileText,
+  Sparkles
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -47,7 +49,27 @@ export default function CourseDetail() {
   const { courseId } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { isResearchTier, isPro, refreshUsage, isLoading: isUsageLoading } = useUsage();
   const queryClient = useQueryClient();
+  const [isCheckoutLoading, setIsCheckoutLoading] = useState(false);
+
+  // Check for successful subscription and auto-enroll
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const subscriptionStatus = urlParams.get('subscription');
+    
+    if (subscriptionStatus === 'success' && user && courseId) {
+      // Clean up URL
+      const newUrl = window.location.pathname;
+      window.history.replaceState({}, '', newUrl);
+      
+      // Refresh usage to get new subscription status
+      refreshUsage().then(() => {
+        // Auto-enroll in the course
+        enrollMutation.mutate();
+      });
+    }
+  }, [user, courseId]);
 
   // Fetch course details
   const { data: course, isLoading } = useQuery({
@@ -148,7 +170,7 @@ export default function CourseDetail() {
           course_id: courseId,
         });
 
-      if (error) throw error;
+      if (error && !error.message.includes('duplicate')) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['enrollment'] });
@@ -156,9 +178,50 @@ export default function CourseDetail() {
       toast.success('Successfully enrolled in course!');
     },
     onError: (error) => {
-      toast.error('Failed to enroll: ' + error.message);
+      if (!error.message.includes('duplicate')) {
+        toast.error('Failed to enroll: ' + error.message);
+      }
     },
   });
+
+  const handleSubscribe = async () => {
+    if (!user) {
+      navigate('/auth');
+      return;
+    }
+
+    setIsCheckoutLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('create-checkout', {
+        body: { 
+          plan: 'research_education',
+          return_path: `/academy/course/${courseId}`
+        }
+      });
+      
+      if (error) throw error;
+      if (data?.url) {
+        window.location.href = data.url;
+      }
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to start checkout');
+      setIsCheckoutLoading(false);
+    }
+  };
+
+  const handleStartLearning = () => {
+    if (!user) {
+      navigate('/auth');
+      return;
+    }
+    
+    if (!isResearchTier && !course?.is_free) {
+      handleSubscribe();
+      return;
+    }
+    
+    enrollMutation.mutate();
+  };
 
   const completedLessons = new Set(
     lessonProgress?.filter(p => p.completed).map(p => p.lesson_id) || []
@@ -177,11 +240,14 @@ export default function CourseDetail() {
     }
   };
 
+  // Check if user has access (enrolled + subscribed, or free course)
+  const hasAccess = enrollment && (isResearchTier || course?.is_free);
+
   if (isLoading) {
     return (
-      <div className="container mx-auto p-6 max-w-6xl">
-        <div className="animate-pulse space-y-6">
-          <div className="h-64 bg-muted rounded-lg" />
+      <div className="container mx-auto p-4 sm:p-6 max-w-6xl">
+        <div className="animate-pulse space-y-4 sm:space-y-6">
+          <div className="aspect-video bg-muted rounded-lg" />
           <div className="h-8 bg-muted rounded w-3/4" />
           <div className="h-4 bg-muted rounded w-full" />
         </div>
@@ -191,9 +257,9 @@ export default function CourseDetail() {
 
   if (!course) {
     return (
-      <div className="container mx-auto p-6 text-center">
-        <BookOpen className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-        <h2 className="text-2xl font-bold mb-2">Course not found</h2>
+      <div className="container mx-auto p-4 sm:p-6 text-center">
+        <BookOpen className="w-12 h-12 sm:w-16 sm:h-16 text-muted-foreground mx-auto mb-4" />
+        <h2 className="text-xl sm:text-2xl font-bold mb-2">Course not found</h2>
         <Link to="/academy">
           <Button>Back to Academy</Button>
         </Link>
@@ -202,50 +268,59 @@ export default function CourseDetail() {
   }
 
   return (
-    <div className="container mx-auto p-4 md:p-6 max-w-6xl space-y-6">
+    <div className="container mx-auto p-4 sm:p-6 max-w-6xl space-y-4 sm:space-y-6">
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
         {/* Main Content */}
-        <div className="lg:col-span-2 space-y-6">
+        <div className="lg:col-span-2 space-y-4 sm:space-y-6">
           {/* Hero */}
           <Card className="overflow-hidden">
+            {/* CSS Thumbnail */}
             <div className="relative aspect-video bg-[#0B0E14] flex items-center justify-center overflow-hidden">
-              {/* Watermark text */}
-              <span className="absolute select-none text-[12vw] font-extrabold tracking-tighter uppercase text-gray-800/30 leading-none pointer-events-none">
+              {/* Watermark text - responsive sizing */}
+              <span className="absolute select-none text-[clamp(2rem,12vw,6rem)] lg:text-[5rem] font-extrabold tracking-tighter uppercase text-gray-800/30 leading-none pointer-events-none whitespace-nowrap">
                 MASTERCLASS
               </span>
               {/* Overlay label */}
-              <span className="relative z-10 text-sm md:text-base font-semibold tracking-[0.35em] uppercase text-white/90">
+              <span className="relative z-10 text-xs sm:text-sm md:text-base font-semibold tracking-[0.25em] sm:tracking-[0.35em] uppercase text-white/90">
                 INVESTMENT
               </span>
               {course.is_free && (
-                <Badge className="absolute top-4 left-4 bg-green-500 text-white">Free Course</Badge>
+                <Badge className="absolute top-2 left-2 sm:top-4 sm:left-4 bg-green-500 text-white text-xs">Free Course</Badge>
+              )}
+              {!course.is_free && !isResearchTier && (
+                <Badge className="absolute top-2 right-2 sm:top-4 sm:right-4 bg-amber-500/90 text-white text-xs flex items-center gap-1">
+                  <Lock className="w-3 h-3" />
+                  <span className="hidden sm:inline">Premium</span>
+                </Badge>
               )}
             </div>
-            <CardHeader>
+            <CardHeader className="p-4 sm:p-6">
               <div className="flex flex-wrap gap-2 mb-2">
-                <Badge variant="outline" className={getLevelColor(course.level)}>
+                <Badge variant="outline" className={`text-xs ${getLevelColor(course.level)}`}>
                   {course.level || 'All Levels'}
                 </Badge>
-                <Badge variant="outline">{course.category}</Badge>
+                <Badge variant="outline" className="text-xs">{course.category}</Badge>
               </div>
-              <CardTitle className="text-2xl md:text-3xl">{course.title}</CardTitle>
-              <CardDescription className="text-base">{course.description}</CardDescription>
+              <CardTitle className="text-xl sm:text-2xl md:text-3xl">{course.title}</CardTitle>
+              <CardDescription className="text-sm sm:text-base line-clamp-3 sm:line-clamp-none">
+                {course.description}
+              </CardDescription>
             </CardHeader>
-            <CardContent>
-              <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
+            <CardContent className="p-4 sm:p-6 pt-0">
+              <div className="flex flex-wrap items-center gap-3 sm:gap-4 text-xs sm:text-sm text-muted-foreground">
                 <div className="flex items-center gap-1">
-                  <Clock className="w-4 h-4" />
-                  <span>{course.duration_hours || 0} hours</span>
+                  <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                  <span>{course.duration_hours || 0}h</span>
                 </div>
                 <div className="flex items-center gap-1">
-                  <Users className="w-4 h-4" />
-                  <span>{course.student_count} students</span>
+                  <Users className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                  <span>{course.student_count}</span>
                 </div>
                 <div className="flex items-center gap-1 text-yellow-500">
-                  <Star className="w-4 h-4 fill-current" />
+                  <Star className="w-3.5 h-3.5 sm:w-4 sm:h-4 fill-current" />
                   <span className="font-medium">{course.rating?.toFixed(1) || '0.0'}</span>
-                  <span className="text-muted-foreground">({reviews?.length || 0} reviews)</span>
+                  <span className="text-muted-foreground">({reviews?.length || 0})</span>
                 </div>
               </div>
             </CardContent>
@@ -253,17 +328,17 @@ export default function CourseDetail() {
 
           {/* Tabs */}
           <Tabs defaultValue="curriculum">
-            <TabsList className="w-full justify-start">
-              <TabsTrigger value="curriculum">Curriculum</TabsTrigger>
-              <TabsTrigger value="overview">Overview</TabsTrigger>
-              <TabsTrigger value="reviews">Reviews ({reviews?.length || 0})</TabsTrigger>
+            <TabsList className="w-full justify-start overflow-x-auto">
+              <TabsTrigger value="curriculum" className="text-xs sm:text-sm">Curriculum</TabsTrigger>
+              <TabsTrigger value="overview" className="text-xs sm:text-sm">Overview</TabsTrigger>
+              <TabsTrigger value="reviews" className="text-xs sm:text-sm">Reviews ({reviews?.length || 0})</TabsTrigger>
             </TabsList>
 
-            <TabsContent value="curriculum" className="mt-6">
+            <TabsContent value="curriculum" className="mt-4 sm:mt-6">
               <Card>
-                <CardHeader>
-                  <CardTitle>Course Content</CardTitle>
-                  <CardDescription>
+                <CardHeader className="p-4 sm:p-6">
+                  <CardTitle className="text-base sm:text-lg">Course Content</CardTitle>
+                  <CardDescription className="text-xs sm:text-sm">
                     {modules?.length || 0} modules • {totalLessons} lessons
                   </CardDescription>
                 </CardHeader>
@@ -271,74 +346,88 @@ export default function CourseDetail() {
                   <Accordion type="multiple" className="w-full">
                     {modules?.map((module: any, moduleIndex: number) => (
                       <AccordionItem key={module.id} value={module.id}>
-                        <AccordionTrigger className="px-6 hover:no-underline">
-                          <div className="flex items-center gap-3 text-left">
-                            <span className="text-sm text-muted-foreground">
+                        <AccordionTrigger className="px-4 sm:px-6 hover:no-underline">
+                          <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3 text-left">
+                            <span className="text-xs text-muted-foreground">
                               Module {moduleIndex + 1}
                             </span>
-                            <span className="font-semibold">{module.title}</span>
-                            <Badge variant="outline" className="ml-2">
+                            <span className="font-semibold text-sm sm:text-base">{module.title}</span>
+                            <Badge variant="outline" className="text-xs w-fit">
                               {module.lessons?.length || 0} lessons
                             </Badge>
                           </div>
                         </AccordionTrigger>
                         <AccordionContent>
-                          <div className="px-6 pb-4 space-y-2">
+                          <div className="px-4 sm:px-6 pb-4 space-y-2">
                             {module.lessons?.map((lesson: any, lessonIndex: number) => {
                               const isCompleted = completedLessons.has(lesson.id);
-                              const canAccess = enrollment || lesson.is_preview;
+                              const canAccess = hasAccess || lesson.is_preview;
                               const thumbnail = getYouTubeThumbnail(lesson.video_url, lesson.video_provider);
 
                               return (
                                 <div
                                   key={lesson.id}
-                                  className={`flex items-center justify-between p-3 rounded-lg border ${
+                                  className={`flex items-center justify-between p-2 sm:p-3 rounded-lg border ${
                                     canAccess ? 'hover:bg-muted/50 cursor-pointer' : 'opacity-50'
                                   }`}
                                   onClick={() => {
                                     if (canAccess) {
                                       navigate(`/academy/lesson/${lesson.id}`);
+                                    } else if (!user) {
+                                      navigate('/auth');
+                                    } else if (!isResearchTier) {
+                                      handleSubscribe();
                                     }
                                   }}
                                 >
-                                  <div className="flex items-center gap-3">
-                                    {/* Thumbnail */}
-                                    <div className="relative w-24 h-14 rounded-md overflow-hidden bg-muted flex-shrink-0">
+                                  <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
+                                    {/* Thumbnail - hide on very small screens */}
+                                    <div className="relative w-16 h-10 sm:w-24 sm:h-14 rounded-md overflow-hidden bg-muted flex-shrink-0 hidden xs:flex">
                                       {thumbnail ? (
                                         <img src={thumbnail} alt={lesson.title} className="w-full h-full object-cover" />
                                       ) : (
                                         <div className="w-full h-full flex items-center justify-center bg-muted">
-                                          <Play className="w-5 h-5 text-muted-foreground" />
+                                          <Play className="w-4 h-4 sm:w-5 sm:h-5 text-muted-foreground" />
                                         </div>
                                       )}
                                       {lesson.video_duration != null && lesson.video_duration > 0 && (
-                                        <span className="absolute bottom-1 right-1 bg-black/80 text-white text-[10px] font-medium px-1 py-0.5 rounded">
+                                        <span className="absolute bottom-0.5 right-0.5 sm:bottom-1 sm:right-1 bg-black/80 text-white text-[8px] sm:text-[10px] font-medium px-1 py-0.5 rounded">
                                           {formatLessonDuration(lesson.video_duration)}
                                         </span>
                                       )}
                                       {/* Status icon overlay */}
                                       {isCompleted && (
                                         <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-                                          <CheckCircle2 className="w-5 h-5 text-green-400" />
+                                          <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5 text-green-400" />
                                         </div>
                                       )}
                                       {!canAccess && (
                                         <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-                                          <Lock className="w-4 h-4 text-muted-foreground" />
+                                          <Lock className="w-3 h-3 sm:w-4 sm:h-4 text-muted-foreground" />
                                         </div>
                                       )}
                                     </div>
-                                    <div>
-                                      <p className="font-medium text-sm">
+                                    {/* Mobile: show status icon inline */}
+                                    <div className="xs:hidden flex-shrink-0">
+                                      {isCompleted ? (
+                                        <CheckCircle2 className="w-4 h-4 text-green-400" />
+                                      ) : !canAccess ? (
+                                        <Lock className="w-4 h-4 text-muted-foreground" />
+                                      ) : (
+                                        <Play className="w-4 h-4 text-muted-foreground" />
+                                      )}
+                                    </div>
+                                    <div className="min-w-0 flex-1">
+                                      <p className="font-medium text-xs sm:text-sm truncate">
                                         {moduleIndex + 1}.{lessonIndex + 1} {lesson.title}
                                       </p>
                                       {lesson.description && (
-                                        <p className="text-xs text-muted-foreground line-clamp-1">{lesson.description}</p>
+                                        <p className="text-xs text-muted-foreground line-clamp-1 hidden sm:block">{lesson.description}</p>
                                       )}
                                     </div>
                                   </div>
-                                  {lesson.is_preview && !enrollment && (
-                                    <Badge variant="outline" className="text-xs">Preview</Badge>
+                                  {lesson.is_preview && !hasAccess && (
+                                    <Badge variant="outline" className="text-[10px] sm:text-xs flex-shrink-0 ml-2">Preview</Badge>
                                   )}
                                 </div>
                               );
@@ -352,16 +441,16 @@ export default function CourseDetail() {
               </Card>
             </TabsContent>
 
-            <TabsContent value="overview" className="mt-6">
+            <TabsContent value="overview" className="mt-4 sm:mt-6">
               <Card>
-                <CardHeader>
-                  <CardTitle>About This Course</CardTitle>
+                <CardHeader className="p-4 sm:p-6">
+                  <CardTitle className="text-base sm:text-lg">About This Course</CardTitle>
                 </CardHeader>
-                <CardContent className="prose prose-invert max-w-none">
+                <CardContent className="p-4 sm:p-6 pt-0 prose prose-invert prose-sm max-w-none">
                   <p>{course.description}</p>
-                  <Separator className="my-6" />
-                  <h3>What You'll Learn</h3>
-                  <ul>
+                  <Separator className="my-4 sm:my-6" />
+                  <h3 className="text-sm sm:text-base">What You'll Learn</h3>
+                  <ul className="text-sm">
                     <li>Master fundamental concepts and techniques</li>
                     <li>Apply strategies in real-world scenarios</li>
                     <li>Build confidence in your trading decisions</li>
@@ -371,12 +460,12 @@ export default function CourseDetail() {
               </Card>
             </TabsContent>
 
-            <TabsContent value="reviews" className="mt-6">
+            <TabsContent value="reviews" className="mt-4 sm:mt-6">
               <Card>
-                <CardHeader>
-                  <CardTitle>Student Reviews</CardTitle>
+                <CardHeader className="p-4 sm:p-6">
+                  <CardTitle className="text-base sm:text-lg">Student Reviews</CardTitle>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="p-4 sm:p-6 pt-0">
                   {reviews && reviews.length > 0 ? (
                     <div className="space-y-4">
                       {reviews.map((review: any) => (
@@ -386,22 +475,22 @@ export default function CourseDetail() {
                               {[...Array(5)].map((_, i) => (
                                 <Star
                                   key={i}
-                                  className={`w-4 h-4 ${
+                                  className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${
                                     i < review.rating ? 'text-yellow-500 fill-current' : 'text-muted'
                                   }`}
                                 />
                               ))}
                             </div>
-                            <span className="text-sm text-muted-foreground">
+                            <span className="text-xs sm:text-sm text-muted-foreground">
                               {new Date(review.created_at).toLocaleDateString()}
                             </span>
                           </div>
-                          <p className="text-sm">{review.review}</p>
+                          <p className="text-xs sm:text-sm">{review.review}</p>
                         </div>
                       ))}
                     </div>
                   ) : (
-                    <p className="text-center text-muted-foreground py-8">
+                    <p className="text-center text-muted-foreground py-6 sm:py-8 text-sm">
                       No reviews yet. Be the first to review!
                     </p>
                   )}
@@ -412,19 +501,22 @@ export default function CourseDetail() {
         </div>
 
         {/* Sidebar */}
-        <div className="space-y-6">
-          <Card className="sticky top-6">
-            <CardHeader>
-              <div className="text-2xl font-bold">Research & Education</div>
-              <p className="text-sm text-muted-foreground mt-1">
+        <div className="space-y-4 sm:space-y-6">
+          <Card className="lg:sticky lg:top-6">
+            <CardHeader className="p-4 sm:p-6">
+              <div className="flex items-center gap-2">
+                <Sparkles className="w-5 h-5 text-amber-400" />
+                <div className="text-lg sm:text-xl font-bold">Research & Education</div>
+              </div>
+              <p className="text-xs sm:text-sm text-muted-foreground mt-1">
                 $100/month membership
               </p>
             </CardHeader>
-            <CardContent className="space-y-4">
-              {enrollment ? (
+            <CardContent className="p-4 sm:p-6 pt-0 space-y-4">
+              {hasAccess ? (
                 <>
                   <div className="space-y-2">
-                    <div className="flex justify-between text-sm">
+                    <div className="flex justify-between text-xs sm:text-sm">
                       <span>Your Progress</span>
                       <span className="font-semibold">{Math.round(progressPercentage)}%</span>
                     </div>
@@ -448,61 +540,98 @@ export default function CourseDetail() {
                     </Button>
                   )}
                 </>
+              ) : enrollment && !isResearchTier ? (
+                // Enrolled but subscription expired
+                <div className="space-y-4">
+                  <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/30 text-center">
+                    <Lock className="w-5 h-5 text-amber-400 mx-auto mb-2" />
+                    <p className="text-xs sm:text-sm text-amber-200">
+                      Subscribe to continue learning
+                    </p>
+                  </div>
+                  <Button 
+                    className="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600" 
+                    onClick={handleSubscribe}
+                    disabled={isCheckoutLoading}
+                  >
+                    {isCheckoutLoading ? 'Loading...' : 'Subscribe Now'}
+                  </Button>
+                </div>
               ) : (
-                <Button 
-                  className="w-full" 
-                  onClick={() => {
-                    if (!user) {
-                      navigate('/auth');
-                    } else {
-                      enrollMutation.mutate();
-                    }
-                  }}
-                  disabled={enrollMutation.isPending}
-                >
-                  {!user ? 'Sign in to Enroll' : 'Start Learning'}
-                </Button>
+                <div className="space-y-4">
+                  {!course.is_free && (
+                    <div className="p-3 rounded-lg bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-500/30">
+                      <div className="flex items-center gap-2 text-amber-400 mb-1">
+                        <Lock className="w-4 h-4" />
+                        <span className="text-xs sm:text-sm font-medium">Premium Course</span>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Requires Research & Education membership
+                      </p>
+                    </div>
+                  )}
+                  <Button 
+                    className="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600" 
+                    onClick={handleStartLearning}
+                    disabled={enrollMutation.isPending || isCheckoutLoading || isUsageLoading}
+                  >
+                    {!user ? (
+                      'Sign in to Start'
+                    ) : isCheckoutLoading ? (
+                      'Loading...'
+                    ) : course.is_free ? (
+                      'Start Free Course'
+                    ) : isResearchTier ? (
+                      'Start Learning'
+                    ) : (
+                      <>
+                        <Sparkles className="w-4 h-4 mr-2" />
+                        Subscribe & Start
+                      </>
+                    )}
+                  </Button>
+                </div>
               )}
 
               <Separator />
 
-              <div className="space-y-3 text-sm">
+              <div className="space-y-2 sm:space-y-3 text-xs sm:text-sm">
                 <p className="font-medium text-foreground">Membership includes:</p>
                 <div className="flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-green-500 flex-shrink-0" />
+                  <CheckCircle2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-green-500 flex-shrink-0" />
                   <span>Full video lesson library</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-green-500 flex-shrink-0" />
+                  <CheckCircle2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-green-500 flex-shrink-0" />
                   <span>Trade ideas & signals</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-green-500 flex-shrink-0" />
+                  <CheckCircle2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-green-500 flex-shrink-0" />
                   <span>Backtesting tools</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-green-500 flex-shrink-0" />
+                  <CheckCircle2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-green-500 flex-shrink-0" />
                   <span>Community research posts</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-green-500 flex-shrink-0" />
+                  <CheckCircle2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-green-500 flex-shrink-0" />
                   <span>Portfolio analytics</span>
                 </div>
               </div>
 
               <Separator />
 
-              <div className="space-y-3 text-sm">
+              <div className="space-y-2 sm:space-y-3 text-xs sm:text-sm">
                 <div className="flex items-center gap-2">
-                  <Clock className="w-4 h-4 text-muted-foreground" />
+                  <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-muted-foreground" />
                   <span>{course.duration_hours} hours of content</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <FileText className="w-4 h-4 text-muted-foreground" />
+                  <FileText className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-muted-foreground" />
                   <span>{totalLessons} lessons</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Award className="w-4 h-4 text-muted-foreground" />
+                  <Award className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-muted-foreground" />
                   <span>Certificate of completion</span>
                 </div>
               </div>

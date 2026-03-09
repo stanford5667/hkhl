@@ -37,19 +37,24 @@ serve(async (req) => {
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) throw new Error("No authorization header provided");
 
-    // Parse request body for plan selection
+    // Parse request body for plan selection and return path
     let selectedPlan = "pro";
+    let returnPath = "/quant-lab";
     try {
       const body = await req.json();
       if (body?.plan && PLAN_PRICES[body.plan]) {
         selectedPlan = body.plan;
       }
+      if (body?.return_path && typeof body.return_path === 'string') {
+        // Sanitize return path - only allow paths starting with /
+        returnPath = body.return_path.startsWith('/') ? body.return_path : '/quant-lab';
+      }
     } catch {
-      // No body or invalid JSON - default to pro
+      // No body or invalid JSON - use defaults
     }
 
     const priceId = PLAN_PRICES[selectedPlan];
-    logStep("Selected plan", { plan: selectedPlan, priceId });
+    logStep("Selected plan", { plan: selectedPlan, priceId, returnPath });
 
     const token = authHeader.replace("Bearer ", "");
     const { data } = await supabaseClient.auth.getUser(token);
@@ -113,8 +118,8 @@ serve(async (req) => {
         },
       ],
       mode: "subscription",
-      success_url: `${productionUrl}/quant-lab?subscription=success`,
-      cancel_url: `${productionUrl}/quant-lab?subscription=cancelled`,
+      success_url: `${productionUrl}${returnPath}?subscription=success`,
+      cancel_url: `${productionUrl}${returnPath}?subscription=cancelled`,
       custom_text: {
         submit: {
           message: planDescriptions[selectedPlan],

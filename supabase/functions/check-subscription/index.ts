@@ -154,6 +154,32 @@ serve(async (req) => {
         updated_at: new Date().toISOString(),
       }, { onConflict: 'user_id' });
 
+    // Auto-enroll in courses for research_education tier
+    if (bestPlan === 'research_education') {
+      try {
+        // Get all published courses
+        const { data: courses } = await supabaseClient
+          .from('courses')
+          .select('id')
+          .eq('is_published', true);
+
+        if (courses && courses.length > 0) {
+          // Enroll user in all courses (ignore duplicates)
+          for (const course of courses) {
+            await supabaseClient
+              .from('course_enrollments')
+              .upsert({
+                user_id: user.id,
+                course_id: course.id,
+              }, { onConflict: 'user_id,course_id', ignoreDuplicates: true });
+          }
+          logStep("Auto-enrolled user in courses", { courseCount: courses.length });
+        }
+      } catch (enrollError) {
+        logStep("Error auto-enrolling in courses (non-fatal)", { error: enrollError });
+      }
+    }
+
     return new Response(JSON.stringify({
       subscribed: true,
       plan: bestPlan,
