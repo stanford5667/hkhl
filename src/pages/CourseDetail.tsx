@@ -96,6 +96,7 @@ export default function CourseDetail() {
   const queryClient = useQueryClient();
   const [isCheckoutLoading, setIsCheckoutLoading] = useState(false);
   const [descExpanded, setDescExpanded] = useState(false);
+  const [showAuthSheet, setShowAuthSheet] = useState(false);
 
   // Check for successful subscription and auto-enroll
   useEffect(() => {
