@@ -428,7 +428,7 @@ export default function LessonView() {
 
                 {/* CTA */}
                 <Button
-                  onClick={handleSubscribe}
+                  onClick={() => handleSubscribe()}
                   disabled={isCheckoutLoading}
                   className="w-full h-12 text-base font-semibold bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl shadow-lg shadow-primary/20 transition-all"
                 >
