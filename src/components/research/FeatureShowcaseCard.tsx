@@ -51,7 +51,7 @@ export function FeatureShowcaseRow() {
   const features: Feature[] = [
     {
       icon: FlaskConical,
-      title: 'No-Code AI Investment',
+      title: 'No-Code AI Investing',
       description: 'Backtest strategies, run Monte Carlo simulations, and analyze risk — no programming required.',
       cta: 'Try it free',
       action: () => navigate('/stock/AAPL', { state: { tab: 'backtest' } }),

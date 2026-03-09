@@ -167,7 +167,7 @@ export default function ResearchPage() {
         <motion.div variants={fadeUp} className="rounded-xl border border-border/40 bg-card/60 backdrop-blur-sm p-6 sm:p-10 text-center space-y-4">
           <h2 className="text-lg sm:text-2xl font-mono font-bold text-foreground">Ready to invest smarter?</h2>
           <p className="text-sm sm:text-base text-foreground/70 max-w-xl mx-auto">
-            Access AI-powered analysis, no-code AI investment, and real-time market intelligence — all in one platform.
+            Access AI-powered analysis, no-code AI investing, and real-time market intelligence — all in one platform.
           </p>
           <div className="flex flex-wrap items-center justify-center gap-3">
             <button
