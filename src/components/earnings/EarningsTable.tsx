@@ -1,6 +1,7 @@
 // src/components/earnings/EarningsTable.tsx
 
 import { useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import { TrendingUp, TrendingDown, Minus, Info, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 import {
