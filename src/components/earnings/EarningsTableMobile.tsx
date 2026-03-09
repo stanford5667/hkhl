@@ -76,9 +76,24 @@ export const EarningsTableMobile = ({ earnings }: Props) => {
         {earnings.map((earning) => (
           <Card
             key={earning.id}
-            className="p-3 cursor-pointer hover:bg-muted/50 active:bg-muted/70 transition-colors"
+            className="p-3 cursor-pointer hover:bg-muted/50 active:bg-muted/70 transition-colors relative group"
             onClick={() => setSelectedEarning(earning)}
           >
+            {/* Hover/long-press action overlay */}
+            <div className="absolute inset-0 z-10 flex items-center justify-center gap-2 px-2 bg-background/70 backdrop-blur-md rounded-[inherit] opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto transition-opacity duration-200">
+              <button
+                onClick={(e) => { e.stopPropagation(); navigate(`/stock/${earning.symbol}`); }}
+                className="inline-flex items-center gap-1.5 font-mono font-semibold text-[11px] px-3 py-1.5 rounded-full bg-muted/80 text-foreground border border-border/50 hover:bg-muted transition-colors"
+              >
+                📊 Research
+              </button>
+              <button
+                onClick={(e) => { e.stopPropagation(); navigate(`/stock/${earning.symbol}`, { state: { tab: 'backtest' } }); }}
+                className="inline-flex items-center gap-1.5 font-mono font-semibold text-[11px] px-3 py-1.5 rounded-full bg-[hsl(175_80%_45%)] text-background hover:bg-[hsl(175_80%_50%)] shadow-[0_0_14px_hsl(175_80%_45%/0.4)] hover:shadow-[0_0_20px_hsl(175_80%_45%/0.6)] transition-all"
+              >
+                ⚡ Quick Test
+              </button>
+            </div>
             <div className="flex items-start justify-between gap-2">
               {/* Left: Symbol + Company + Industry */}
               <div className="flex-1 min-w-0">
