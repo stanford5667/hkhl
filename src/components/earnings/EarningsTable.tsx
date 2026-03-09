@@ -1,6 +1,7 @@
 // src/components/earnings/EarningsTable.tsx
 
 import { useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import { TrendingUp, TrendingDown, Minus, Info, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 import {
@@ -36,6 +37,7 @@ interface Props {
 
 export const EarningsTable = ({ earnings, showDate = false }: Props) => {
   const isMobile = useIsMobile();
+  const navigate = useNavigate();
   const [selectedEarning, setSelectedEarning] = useState<EarningsWithPrediction | null>(null);
   const [sortField, setSortField] = useState<SortField>('market_cap');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
@@ -247,9 +249,26 @@ export const EarningsTable = ({ earnings, showDate = false }: Props) => {
             sortedEarnings.map((earning) => (
               <TableRow 
                 key={earning.id}
-                className="cursor-pointer hover:bg-muted/50"
+                className="cursor-pointer hover:bg-muted/50 relative group"
                 onClick={() => setSelectedEarning(earning)}
               >
+                {/* Hover action overlay */}
+                <td className="absolute inset-0 z-10 opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto transition-opacity duration-200" style={{ position: 'absolute' }}>
+                  <div className="flex items-center justify-center gap-2 h-full bg-background/70 backdrop-blur-md rounded-sm">
+                    <button
+                      onClick={(e) => { e.stopPropagation(); navigate(`/stock/${earning.symbol}`); }}
+                      className="inline-flex items-center gap-1.5 font-mono font-semibold text-xs px-4 py-2 rounded-full bg-muted/80 text-foreground border border-border/50 hover:bg-muted transition-colors"
+                    >
+                      📊 Research
+                    </button>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); navigate(`/stock/${earning.symbol}`, { state: { tab: 'backtest' } }); }}
+                      className="inline-flex items-center gap-1.5 font-mono font-semibold text-xs px-4 py-2 rounded-full bg-[hsl(175_80%_45%)] text-background hover:bg-[hsl(175_80%_50%)] shadow-[0_0_14px_hsl(175_80%_45%/0.4)] hover:shadow-[0_0_20px_hsl(175_80%_45%/0.6)] transition-all"
+                    >
+                      ⚡ Quick Test
+                    </button>
+                  </div>
+                </td>
                 <TableCell className="font-mono font-semibold">
                   {earning.symbol}
                 </TableCell>
