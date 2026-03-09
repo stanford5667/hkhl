@@ -209,18 +209,15 @@ export default function CourseDetail() {
         <div className="lg:col-span-2 space-y-6">
           {/* Hero */}
           <Card className="overflow-hidden">
-            <div className="relative h-48 md:h-64 bg-gradient-to-br from-primary/20 to-purple-500/20">
-              {course.thumbnail_url ? (
-                <img
-                  src={course.thumbnail_url}
-                  alt={course.title}
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center">
-                  <BookOpen className="w-16 h-16 text-primary/50" />
-                </div>
-              )}
+            <div className="relative aspect-video bg-[#0B0E14] flex items-center justify-center overflow-hidden">
+              {/* Watermark text */}
+              <span className="absolute select-none text-[12vw] font-extrabold tracking-tighter uppercase text-gray-800/30 leading-none pointer-events-none">
+                MASTERCLASS
+              </span>
+              {/* Overlay label */}
+              <span className="relative z-10 text-sm md:text-base font-semibold tracking-[0.35em] uppercase text-white/90">
+                INVESTMENT
+              </span>
               {course.is_free && (
                 <Badge className="absolute top-4 left-4 bg-green-500 text-white">Free Course</Badge>
               )}
