@@ -233,8 +233,8 @@ export default function CourseDetail() {
     },
   });
 
-  const handleSubscribe = async () => {
-    if (!user) {
+  const handleSubscribe = async (skipAuthCheck = false) => {
+    if (!user && !skipAuthCheck) {
       setShowAuthSheet(true);
       return;
     }
