@@ -72,6 +72,12 @@ export function MobileAuthSheet({
     e.preventDefault();
     setAgeError('');
 
+    // Validate password confirmation for signup
+    if (mode === 'signup' && password !== confirmPassword) {
+      toast.error("Passwords don't match");
+      return;
+    }
+
     // Validate age verification for signup
     if (mode === 'signup' && !isAgeVerified) {
       setAgeError('Please verify your age to continue');
