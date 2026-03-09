@@ -153,7 +153,8 @@ export default function CourseDetail() {
           lessons:course_lessons(*)
         `)
         .eq('course_id', courseId)
-        .order('order_index');
+        .order('order_index')
+        .order('order_index', { referencedTable: 'course_lessons' });
 
       if (error) throw error;
       return data;
