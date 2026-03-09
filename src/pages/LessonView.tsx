@@ -243,8 +243,8 @@ export default function LessonView() {
     setShowUpgradeModal(true);
   };
 
-  const handleSubscribe = async (skipAuthCheck?: boolean) => {
-    if (!user && !skipAuthCheck) {
+  const handleSubscribe = async () => {
+    if (!user) {
       setShowUpgradeModal(false);
       setShowAuthSheet(true);
       return;
@@ -256,9 +256,7 @@ export default function LessonView() {
       });
       if (error) throw error;
       if (data?.url) {
-        // Use window.open for reliable redirect (works in iframes too)
-        const w = window.open(data.url, '_blank');
-        if (!w) window.location.href = data.url;
+        window.location.href = data.url;
       }
     } catch (err: any) {
       toast.error(err.message || 'Failed to start checkout');
