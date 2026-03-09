@@ -351,7 +351,7 @@ export default function CourseDetail() {
                 </Badge>
               )}
             </div>
-            <CardHeader className="p-4 sm:p-6">
+            <CardHeader className="p-3 sm:p-6">
               <div className="flex flex-wrap gap-2 mb-2">
                 <Badge variant="outline" className={`text-xs ${getLevelColor(course.level)}`}>
                   {course.level || 'All Levels'}
