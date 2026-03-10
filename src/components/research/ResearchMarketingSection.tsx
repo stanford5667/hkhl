@@ -201,7 +201,11 @@ export function ResearchMarketingSection() {
                 <VisualStrategyBuilder
                   embedded
                   initialTicker={ticker}
-                  onRunBacktest={(s) => requireAuth(() => handleBacktest(s), 'run-backtest') as any}
+                  onRunBacktest={(s) => {
+                    // Store strategy params so we can resume after auth
+                    sessionStorage.setItem('pending-backtest-params', JSON.stringify(s));
+                    return requireAuth(() => handleBacktest(s), 'run-backtest') as any;
+                  }}
                 />
               </Suspense>
               {error && (

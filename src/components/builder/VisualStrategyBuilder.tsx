@@ -56,6 +56,8 @@ interface VisualStrategyBuilderProps {
   /** Advanced params for execution configuration */
   advancedParams?: AdvancedBacktestParams;
   onAdvancedParamsChange?: (params: AdvancedBacktestParams) => void;
+  /** Auto-run strategy params (e.g. resumed after auth) */
+  autoRunStrategy?: BacktestParams;
 }
 
 export function VisualStrategyBuilder({ 
@@ -66,6 +68,7 @@ export function VisualStrategyBuilder({
   initialTicker = 'AAPL',
   advancedParams,
   onAdvancedParamsChange,
+  autoRunStrategy,
 }: VisualStrategyBuilderProps) {
   const isMobile = useIsMobile();
   
@@ -103,6 +106,9 @@ export function VisualStrategyBuilder({
     exitRules: [],
     exitLogic: 'OR',
   });
+
+  // Track whether auto-run has fired (must be before early returns)
+  const [hasAutoRun, setHasAutoRun] = useState(false);
 
   // Generate unique ID
   const generateId = () => `block-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
@@ -340,6 +346,14 @@ export function VisualStrategyBuilder({
       }
     }
   }, [onRunBacktest]);
+
+  // Auto-run strategy if provided (e.g. after auth redirect from Research page)
+  useEffect(() => {
+    if (autoRunStrategy && onRunBacktest && !hasAutoRun) {
+      setHasAutoRun(true);
+      handleEmbeddedBacktest(autoRunStrategy);
+    }
+  }, [autoRunStrategy, onRunBacktest, hasAutoRun, handleEmbeddedBacktest]);
 
   // Handle going back to build stage
   const handleBackToBuilder = useCallback(() => {

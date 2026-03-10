@@ -53,6 +53,8 @@ import { DEFAULT_ADVANCED_PARAMS } from '@/lib/backtesting/types';
 interface StrategyBacktesterProps {
   ticker: string;
   companyName: string;
+  /** Auto-run strategy params passed from navigation state (e.g. after auth on Research page) */
+  autoRunStrategy?: { strategy: string; ticker: string; params: Record<string, number | string | undefined> };
 }
 
 interface PortfolioSnapshot {
@@ -136,7 +138,7 @@ const STRATEGY_MAP: Record<string, string> = {
 // MAIN COMPONENT
 // ═══════════════════════════════════════════════════════════════════════════════
 
-export function StrategyBacktester({ ticker, companyName }: StrategyBacktesterProps) {
+export function StrategyBacktester({ ticker, companyName, autoRunStrategy }: StrategyBacktesterProps) {
   const { requireAuth, showAuthDialog, closeAuthDialog } = useRequireAuth();
   const { isPro, showUpgradeModal } = useUsage();
   const [period] = useState<'1Y' | '3Y' | '5Y'>('3Y');
@@ -282,6 +284,7 @@ export function StrategyBacktester({ ticker, companyName }: StrategyBacktesterPr
               onPromptUpgrade={showUpgradeModal}
               advancedParams={advancedParams}
               onAdvancedParamsChange={setAdvancedParams}
+              autoRunStrategy={autoRunStrategy}
             />
           </TabsContent>
 
