@@ -278,6 +278,8 @@ export function AuthGateDialog({
       <DrawerContent className="max-h-[85dvh]">
         {showVerificationPending ? (
           <div className="px-3 pb-4 safe-area-bottom">{verificationContent}</div>
+        ) : showForgotPassword ? (
+          <div className="px-3 pb-4 safe-area-bottom">{forgotPasswordForm}</div>
         ) : (
           <>
             <DrawerHeader className="text-center py-1.5">

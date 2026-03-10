@@ -255,20 +255,16 @@ export function MobileAuthSheet({
     <Drawer open={open} onOpenChange={onOpenChange} handleOnly modal>
       <DrawerContent className="max-h-[95dvh]">
         {showVerificationPending ? (
-          <div className="px-3 pb-4 safe-area-bottom">
-            {verificationContent}
-          </div>
+          <div className="px-3 pb-4 safe-area-bottom">{verificationContent}</div>
+        ) : showForgotPassword ? (
+          <div className="px-3 pb-4 safe-area-bottom">{forgotPasswordForm}</div>
         ) : (
           <>
             <DrawerHeader className="text-center py-1.5">
               <DrawerTitle className="text-base font-bold">{title}</DrawerTitle>
-              <DrawerDescription className="text-[11px]">
-                {description}
-              </DrawerDescription>
+              <DrawerDescription className="text-[11px]">{description}</DrawerDescription>
             </DrawerHeader>
-            <div className="px-3 pb-4 safe-area-bottom">
-              {authForm}
-            </div>
+            <div className="px-3 pb-4 safe-area-bottom">{authForm}</div>
           </>
         )}
       </DrawerContent>
