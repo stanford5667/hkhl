@@ -23,6 +23,7 @@ import { Loader2 } from "lucide-react";
 import { AssetLabsLogo } from "@/components/brand/AssetLabsLogo";
 import { EmailVerificationPending } from "./EmailVerificationPending";
 import { AgeVerificationInput } from "./AgeVerificationInput";
+import { FeatureComparisonPanel } from "./FeatureComparisonPanel";
 
 interface AuthGateDialogProps {
   open: boolean;
