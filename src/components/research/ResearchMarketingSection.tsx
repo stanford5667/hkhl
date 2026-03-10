@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRequireAuth } from '@/hooks/useRequireAuth';
 import { AuthGateDialog } from '@/components/auth/AuthGateDialog';
+import backtesterPreview from '@/assets/backtester-preview.jpg';
 
 const ease: Easing = [0.16, 1, 0.3, 1];
 
@@ -110,6 +111,28 @@ export function ResearchMarketingSection() {
               ))}
             </div>
           </div>
+
+          {/* Product Preview */}
+          <motion.div
+            className="mb-12 sm:mb-20"
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: '-40px' }}
+            transition={{ duration: 0.7, ease }}
+          >
+            <p className="text-left sm:text-center text-[10px] sm:text-[11px] font-mono uppercase tracking-[0.2em] sm:tracking-[0.25em] text-white/20 mb-4 sm:mb-6">
+              See it in action
+            </p>
+            <div className="relative rounded-xl sm:rounded-2xl overflow-hidden border border-white/[0.08] shadow-[0_20px_80px_-20px_rgba(0,220,220,0.15)]">
+              <img
+                src={backtesterPreview}
+                alt="Strategy backtesting dashboard showing equity curves, performance metrics, and trade signals"
+                className="w-full h-auto"
+                loading="lazy"
+              />
+              <div className="absolute inset-0 rounded-xl sm:rounded-2xl ring-1 ring-inset ring-white/[0.06] pointer-events-none" />
+            </div>
+          </motion.div>
 
           {/* Stats Row */}
           <motion.div
