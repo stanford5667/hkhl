@@ -41,6 +41,7 @@ export function AuthGateDialog({
   const [signUpStep, setSignUpStep] = useState(1);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [fullName, setFullName] = useState('');
   const [isAgeVerified, setIsAgeVerified] = useState(false);
   const [ageError, setAgeError] = useState('');
