@@ -17,9 +17,9 @@ interface BillingIntervalSheetProps {
 const PLANS = {
   annual: {
     label: 'Annual',
-    price: 82,
-    billed: '$984/year',
-    savings: 'Save $216/yr',
+    price: 58,
+    billed: '$700/year',
+    savings: 'Save $500/yr',
     badge: 'Best Value',
   },
   monthly: {
@@ -143,7 +143,7 @@ export function BillingIntervalSheet({ open, onOpenChange, returnPath }: Billing
           {isLoading ? (
             <Loader2 className="w-5 h-5 animate-spin" />
           ) : (
-            `Continue — $${selected === 'annual' ? '82' : '100'}/mo`
+            `Continue — $${selected === 'annual' ? '58' : '100'}/mo`
           )}
         </Button>
       </SheetContent>
