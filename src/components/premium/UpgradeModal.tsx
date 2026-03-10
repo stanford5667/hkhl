@@ -15,6 +15,7 @@ import { toast } from 'sonner';
 import { useMediaQuery } from '@/hooks/use-media-query';
 import { MobileAuthSheet } from '@/components/auth/MobileAuthSheet';
 import { cn } from '@/lib/utils';
+import { BillingToggle } from '@/components/onboarding/BillingToggle';
 
 interface UpgradeModalProps {
   isOpen: boolean;
@@ -26,43 +27,43 @@ interface UpgradeModalProps {
 const FEATURE_COPY: Record<string, { title: string; benefit: string }> = {
   aiAnalyses: {
     title: "You've used all your AI analyses today",
-    benefit: 'Unlimited AI stock analyses',
+    benefit: 'Unlimited AI analyses & market chat',
   },
   portfolios: {
     title: "You've reached the portfolio limit",
-    benefit: 'Unlimited portfolios',
+    benefit: 'Save portfolios, studies & screens',
   },
   savedScreens: {
     title: "You've saved the maximum screens",
-    benefit: 'Unlimited saved screens',
+    benefit: 'Save portfolios, studies & screens',
   },
   alertsPerDay: {
     title: "You've set up all your free alerts",
-    benefit: 'Unlimited price & news alerts',
+    benefit: 'Real-time price alerts',
   },
   premiumScreens: {
     title: "This is a Pro feature",
-    benefit: 'Access premium stock screens',
+    benefit: 'Full portfolio screener access',
   },
   quantStudies: {
     title: "You've used all your free Quant Lab studies",
-    benefit: 'Unlimited Quant Lab analyses',
+    benefit: 'All Quant Lab studies (100+ available)',
   },
   screenerSearches: {
     title: "Free plan shows limited results",
-    benefit: 'Unlimited portfolio screener results',
+    benefit: 'Full portfolio screener access',
   },
   screenerFilters: {
     title: "Multiple filters are a Pro feature",
-    benefit: 'Use all screening criteria',
+    benefit: 'Full portfolio screener access',
   },
   'strategy-signals': {
     title: "Unlock Pro Strategy Signals",
-    benefit: 'Access 20+ advanced indicators',
+    benefit: 'Backtesting & strategy tools',
   },
   financialProjections: {
     title: "Unlock Full Financial Projections",
-    benefit: 'Multi-year analyst estimates & scenarios',
+    benefit: 'Expanded datasets & asset coverage',
   },
   courses: {
     title: "Unlock All Courses & Education",
@@ -70,37 +71,30 @@ const FEATURE_COPY: Record<string, { title: string; benefit: string }> = {
   },
   tradeIdeas: {
     title: "Unlock Trade Ideas",
-    benefit: 'Community trade ideas & research',
+    benefit: 'Community trade ideas & research posts',
   },
   premiumContent: {
     title: "Unlock Premium Content",
-    benefit: 'Access exclusive research & insights',
+    benefit: 'Exclusive educational content',
   },
   default: {
-    title: "Upgrade Your Plan",
+    title: "Upgrade to Pro",
     benefit: 'Unlock all premium features',
   },
 };
 
-const RESEARCH_FEATURES = [
-  'courses', 'tradeIdeas', 'premiumContent',
-];
-
 const PRO_FEATURES = [
   { icon: Sparkles, text: 'Unlimited AI analyses & market chat' },
+  { icon: BookOpen, text: 'Full video course library' },
+  { icon: Lightbulb, text: 'Community trade ideas & research posts' },
   { icon: TrendingUp, text: 'Full portfolio screener access' },
   { icon: Bell, text: 'Save portfolios, studies & screens' },
   { icon: Zap, text: 'All Quant Lab studies (100+ available)' },
   { icon: Crown, text: 'Deep conditional probability studies' },
-  { icon: Crown, text: 'Multi-year financial projections & scenarios' },
   { icon: Crown, text: 'Expanded datasets & asset coverage' },
   { icon: Crown, text: 'Extended historical timeframes' },
-];
-
-const RESEARCH_EDUCATION_EXTRAS = [
-  { icon: BookOpen, text: 'Full video course library' },
-  { icon: Lightbulb, text: 'Community trade ideas & research posts' },
-  { icon: Sparkles, text: 'Exclusive educational content' },
+  { icon: Crown, text: 'Backtesting & strategy tools' },
+  { icon: Crown, text: 'Real-time price alerts' },
 ];
 
 const COMING_SOON_FEATURES = [
@@ -109,11 +103,17 @@ const COMING_SOON_FEATURES = [
   'Hundreds of new studies',
 ];
 
+const PRICES = {
+  monthly: 100,
+  annual: 58,
+  annualTotal: 700,
+};
+
 export function UpgradeModal({ isOpen, feature, onClose, onUpgrade }: UpgradeModalProps) {
   const copy = FEATURE_COPY[feature] || FEATURE_COPY.default;
   const [isLoading, setIsLoading] = useState(false);
   const [showAuthSheet, setShowAuthSheet] = useState(false);
-  const [selectedPlan, setSelectedPlan] = useState<'pro' | 'research_education'>('research_education');
+  const [isAnnual, setIsAnnual] = useState(true);
   const isDesktop = useMediaQuery("(min-width: 768px)");
 
   const handleUpgrade = async () => {
@@ -128,7 +128,7 @@ export function UpgradeModal({ isOpen, feature, onClose, onUpgrade }: UpgradeMod
       }
 
       const { data, error } = await supabase.functions.invoke('create-checkout', {
-        body: { plan: selectedPlan },
+        body: { plan: 'research_education', billing_interval: isAnnual ? 'annual' : 'monthly' },
       });
       
       if (error) {
@@ -138,7 +138,8 @@ export function UpgradeModal({ isOpen, feature, onClose, onUpgrade }: UpgradeMod
       }
       
       if (data?.url) {
-        window.location.href = data.url;
+        const w = window.open(data.url, '_blank');
+        if (!w) window.location.href = data.url;
         onUpgrade?.();
         onClose();
       }
@@ -150,133 +151,59 @@ export function UpgradeModal({ isOpen, feature, onClose, onUpgrade }: UpgradeMod
     }
   };
 
-  // After auth success, immediately proceed to checkout with the selected plan
   const handleAuthSuccess = async () => {
     await handleUpgrade();
   };
 
+  const price = isAnnual ? PRICES.annual : PRICES.monthly;
+
   const UpgradeContent = () => (
     <div className="space-y-4 py-4">
+      <BillingToggle isAnnual={isAnnual} onChange={setIsAnnual} />
+
       <motion.div 
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1 }}
-        className="bg-primary/5 rounded-lg p-3 border border-primary/10"
+        className="text-center"
       >
-        <p className="text-sm text-muted-foreground text-center">
-          Choose the plan that fits your needs
+        <div className="text-3xl font-bold">
+          ${price}<span className="text-lg text-muted-foreground">/mo</span>
+        </div>
+        <p className="text-xs text-muted-foreground mt-1">
+          {isAnnual ? `Billed $${PRICES.annualTotal}/yr` : 'Billed monthly'}
         </p>
+        {isAnnual && (
+          <p className="text-xs text-green-500 font-medium mt-0.5">
+            Save ${(PRICES.monthly * 12) - PRICES.annualTotal}/yr vs monthly
+          </p>
+        )}
       </motion.div>
-
-      {/* Plan Toggle */}
-      <div className="grid grid-cols-2 gap-2">
-        <button
-          onClick={() => setSelectedPlan('pro')}
-          className={cn(
-            "relative rounded-xl p-3 border-2 text-left transition-all",
-            selectedPlan === 'pro'
-              ? "border-amber-500 bg-amber-500/5"
-              : "border-border hover:border-muted-foreground/30"
-          )}
-        >
-          {selectedPlan === 'pro' && (
-            <div className="absolute -top-2 right-2 bg-amber-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
-              Selected
-            </div>
-          )}
-          <div className="flex items-center gap-2 mb-1">
-            <Crown className="h-4 w-4 text-amber-500" />
-            <span className="font-semibold text-sm">Pro</span>
-          </div>
-          <div className="flex items-baseline gap-0.5">
-            <span className="text-2xl font-bold">$50</span>
-            <span className="text-xs text-muted-foreground">/mo</span>
-          </div>
-        </button>
-        <button
-          onClick={() => setSelectedPlan('research_education')}
-          className={cn(
-            "relative rounded-xl p-3 border-2 text-left transition-all",
-            selectedPlan === 'research_education'
-              ? "border-purple-500 bg-purple-500/5"
-              : "border-border hover:border-muted-foreground/30"
-          )}
-        >
-          {selectedPlan === 'research_education' && (
-            <div className="absolute -top-2 right-2 bg-purple-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
-              Selected
-            </div>
-          )}
-          <div className="flex items-center gap-2 mb-1">
-            <BookOpen className="h-4 w-4 text-purple-500" />
-            <span className="font-semibold text-sm">Research & Ed</span>
-          </div>
-          <div className="flex items-baseline gap-0.5">
-            <span className="text-2xl font-bold">$100</span>
-            <span className="text-xs text-muted-foreground">/mo</span>
-          </div>
-        </button>
-      </div>
 
       <div className="space-y-2">
         <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-          {selectedPlan === 'pro' ? 'Pro Features' : 'Everything in Pro, plus'}
+          Everything included
         </p>
         
-        {selectedPlan === 'pro' ? (
-          PRO_FEATURES.map((f, i) => (
-            <motion.div
-              key={f.text}
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.15 + i * 0.04 }}
-              className="flex items-center gap-3"
-            >
-              <div className="w-7 h-7 rounded-full bg-green-500/10 flex items-center justify-center flex-shrink-0">
-                <Check className="h-3.5 w-3.5 text-green-500" />
-              </div>
-              <span className="text-sm font-medium">{f.text}</span>
-              {f.text === copy.benefit && (
-                <Badge variant="secondary" className="ml-auto text-xs">
-                  This feature
-                </Badge>
-              )}
-            </motion.div>
-          ))
-        ) : (
-          <>
-            {RESEARCH_EDUCATION_EXTRAS.map((f, i) => (
-              <motion.div
-                key={f.text}
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.15 + i * 0.04 }}
-                className="flex items-center gap-3"
-              >
-                <div className="w-7 h-7 rounded-full bg-purple-500/10 flex items-center justify-center flex-shrink-0">
-                  <Check className="h-3.5 w-3.5 text-purple-500" />
-                </div>
-                <span className="text-sm font-medium">{f.text}</span>
-                {f.text === copy.benefit && (
-                  <Badge variant="secondary" className="ml-auto text-xs">
-                    This feature
-                  </Badge>
-                )}
-              </motion.div>
-            ))}
-            <div className="pt-1">
-              <p className="text-xs text-muted-foreground mb-2">Plus all Pro features:</p>
-              {PRO_FEATURES.slice(0, 4).map((f, i) => (
-                <div key={f.text} className="flex items-center gap-3 py-0.5">
-                  <div className="w-5 h-5 rounded-full bg-green-500/10 flex items-center justify-center flex-shrink-0">
-                    <Check className="h-3 w-3 text-green-500/60" />
-                  </div>
-                  <span className="text-xs text-muted-foreground">{f.text}</span>
-                </div>
-              ))}
+        {PRO_FEATURES.map((f, i) => (
+          <motion.div
+            key={f.text}
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.15 + i * 0.04 }}
+            className="flex items-center gap-3"
+          >
+            <div className="w-7 h-7 rounded-full bg-green-500/10 flex items-center justify-center flex-shrink-0">
+              <Check className="h-3.5 w-3.5 text-green-500" />
             </div>
-          </>
-        )}
+            <span className="text-sm font-medium">{f.text}</span>
+            {f.text === copy.benefit && (
+              <Badge variant="secondary" className="ml-auto text-xs">
+                This feature
+              </Badge>
+            )}
+          </motion.div>
+        ))}
       </div>
 
       {/* Coming Soon Section */}
@@ -284,9 +211,9 @@ export function UpgradeModal({ isOpen, feature, onClose, onUpgrade }: UpgradeMod
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.4 }}
-        className="bg-gradient-to-r from-purple-500/10 to-amber-500/10 rounded-lg p-3 border border-purple-500/20"
+        className="bg-gradient-to-r from-primary/10 to-primary/5 rounded-lg p-3 border border-primary/20"
       >
-        <p className="text-xs font-semibold text-purple-400 uppercase tracking-wide mb-2 flex items-center gap-1">
+        <p className="text-xs font-semibold text-primary uppercase tracking-wide mb-2 flex items-center gap-1">
           <Sparkles className="h-3 w-3" />
           Coming Soon
         </p>
@@ -308,19 +235,14 @@ export function UpgradeModal({ isOpen, feature, onClose, onUpgrade }: UpgradeMod
         <Button 
           onClick={handleUpgrade}
           disabled={isLoading}
-          className={cn(
-            "w-full font-semibold h-12 shadow-lg text-white",
-            selectedPlan === 'pro'
-              ? "bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 shadow-orange-500/20"
-              : "bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-600 hover:to-indigo-600 shadow-purple-500/20"
-          )}
+          className="w-full font-semibold h-12 shadow-lg text-white bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 shadow-primary/20"
         >
           {isLoading ? (
             <Loader2 className="h-4 w-4 mr-2 animate-spin" />
           ) : (
             <Crown className="h-4 w-4 mr-2" />
           )}
-          {isLoading ? 'Starting checkout...' : `Upgrade to ${selectedPlan === 'pro' ? 'Pro' : 'Research & Education'} — $${selectedPlan === 'pro' ? '50' : '100'}/mo`}
+          {isLoading ? 'Starting checkout...' : `Upgrade to Pro — $${price}/mo`}
         </Button>
         <Button 
           variant="ghost" 
@@ -344,12 +266,7 @@ export function UpgradeModal({ isOpen, feature, onClose, onUpgrade }: UpgradeMod
         initial={{ scale: 0.8, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         transition={{ type: "spring", duration: 0.5 }}
-        className={cn(
-          "w-14 h-14 rounded-full flex items-center justify-center shadow-lg",
-          selectedPlan === 'pro'
-            ? "bg-gradient-to-br from-amber-400 to-orange-500 shadow-orange-500/30"
-            : "bg-gradient-to-br from-purple-400 to-indigo-500 shadow-purple-500/30"
-        )}
+        className="w-14 h-14 rounded-full flex items-center justify-center shadow-lg bg-gradient-to-br from-primary to-primary/70 shadow-primary/30"
       >
         <Crown className="h-7 w-7 text-white" />
       </motion.div>
