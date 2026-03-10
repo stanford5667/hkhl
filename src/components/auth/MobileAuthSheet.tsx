@@ -51,7 +51,10 @@ export function MobileAuthSheet({
   const [ageError, setAgeError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [showVerificationPending, setShowVerificationPending] = useState(false);
-  const { signIn, signUp } = useAuth();
+  const { signIn, signUp, resetPassword } = useAuth();
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [resetEmail, setResetEmail] = useState('');
+  const [resetSending, setResetSending] = useState(false);
   const isDesktop = useMediaQuery("(min-width: 768px)");
 
   const fullNameInputRef = useRef<HTMLInputElement | null>(null);
