@@ -46,16 +46,6 @@ export default function ResearchPage() {
   const { data: categoryCounts = {} } = useCategoryCounts();
   const { data: etfCount = 0 } = useETFCount();
 
-  // Auto-show auth dialog when redirected from a gated page (e.g. /stock/:ticker)
-  useEffect(() => {
-    if (user) return; // Already authenticated
-    const pendingStock = sessionStorage.getItem('pending-stock-navigation');
-    if (pendingStock) {
-      // Show the auth dialog automatically
-      requireAuth(() => {}, 'view-stock');
-    }
-  }, [user, requireAuth]);
-
   // After sign-in, check for pending backtest or stock navigation
   useEffect(() => {
     if (!user) return;
