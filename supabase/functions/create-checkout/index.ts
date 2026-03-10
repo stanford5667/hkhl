@@ -44,7 +44,7 @@ serve(async (req) => {
     if (!authHeader) throw new Error("No authorization header provided");
 
     // Parse request body for plan selection and return path
-    let selectedPlan = "pro";
+    let selectedPlan = "research_education";
     let billingInterval = "monthly";
     let returnPath = "/quant-lab";
     try {
