@@ -56,6 +56,8 @@ interface VisualStrategyBuilderProps {
   /** Advanced params for execution configuration */
   advancedParams?: AdvancedBacktestParams;
   onAdvancedParamsChange?: (params: AdvancedBacktestParams) => void;
+  /** Auto-run strategy params (e.g. resumed after auth) */
+  autoRunStrategy?: BacktestParams;
 }
 
 export function VisualStrategyBuilder({ 
@@ -66,6 +68,7 @@ export function VisualStrategyBuilder({
   initialTicker = 'AAPL',
   advancedParams,
   onAdvancedParamsChange,
+  autoRunStrategy,
 }: VisualStrategyBuilderProps) {
   const isMobile = useIsMobile();
   
