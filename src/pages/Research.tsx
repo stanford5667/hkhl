@@ -99,16 +99,9 @@ export default function ResearchPage() {
     handleSearch(normalized);
   };
 
-  // Auth-gated navigation for buttons
+  // Navigation for buttons — let users through to see the page first
   const handleAuthNavigation = (path: string, state?: any) => {
-    if (!user) {
-      const ticker = path.replace('/stock/', '');
-      sessionStorage.setItem('pending-stock-navigation', ticker);
-    }
-    
-    requireAuth(() => {
-      navigate(path, state ? { state } : undefined);
-    }, 'navigate');
+    navigate(path, state ? { state } : undefined);
   };
 
   // Intercept clicks on interactive elements inside sections for unauth users
