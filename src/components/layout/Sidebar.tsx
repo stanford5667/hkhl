@@ -145,12 +145,12 @@ export function Sidebar() {
         href: "/community", 
         icon: Users 
       },
-      { 
-        label: "Strategy Explorer", 
-        subtitle: "Educational Tools",
-        href: "/investment-plan", 
-        icon: ClipboardList 
-      },
+      // { 
+      //   label: "Strategy Explorer", 
+      //   subtitle: "Educational Tools",
+      //   href: "/investment-plan", 
+      //   icon: ClipboardList 
+      // },
       { 
         label: "Glossary", 
         subtitle: "Terms & Definitions",

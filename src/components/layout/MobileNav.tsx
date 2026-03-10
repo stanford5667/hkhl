@@ -125,7 +125,7 @@ function MobileSidebarContent({ onNavigate }: { onNavigate: () => void }) {
     { label: "Portfolio Builder", href: "/portfolio-visualizer", icon: PieChart },
     { label: "Community", href: "/community", icon: Users },
     { label: "Academy", href: "/academy", icon: BookOpen },
-    { label: "Strategy Explorer", href: "/investment-plan", icon: ClipboardList },
+    // { label: "Strategy Explorer", href: "/investment-plan", icon: ClipboardList },
     ...(isAdmin ? [{ label: "Admin Portal", href: "/admin", icon: Shield }] : []),
   ];
 
