@@ -92,30 +92,16 @@ export default function ResearchPage() {
     navigate(`/stock/${normalized}`);
   };
 
-  // Auth-gated ticker click — stores destination for post-login redirect
+  // Ticker click — navigates directly; auth gate triggers on the stock page after 5s
   const handleTickerClick = (ticker: string) => {
     const normalized = ticker.toUpperCase().trim();
     if (!normalized) return;
-    
-    if (!user) {
-      sessionStorage.setItem('pending-stock-navigation', normalized);
-    }
-    
-    requireAuth(() => {
-      handleSearch(normalized);
-    }, 'view-stock');
+    handleSearch(normalized);
   };
 
-  // Auth-gated navigation for buttons
+  // Navigation for buttons — let users through to see the page first
   const handleAuthNavigation = (path: string, state?: any) => {
-    if (!user) {
-      const ticker = path.replace('/stock/', '');
-      sessionStorage.setItem('pending-stock-navigation', ticker);
-    }
-    
-    requireAuth(() => {
-      navigate(path, state ? { state } : undefined);
-    }, 'navigate');
+    navigate(path, state ? { state } : undefined);
   };
 
   // Intercept clicks on interactive elements inside sections for unauth users

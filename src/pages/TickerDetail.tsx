@@ -1,23 +1,28 @@
-import { useRef } from 'react';
+import { useRef, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRequireAuth } from '@/hooks/useRequireAuth';
 import { AuthGateDialog } from '@/components/auth/AuthGateDialog';
 import PublicStockView from './PublicStockView';
 
 /**
- * TickerDetail - Shows the stock page but gates interaction behind auth.
- * Unauthenticated users see the overview with a sign-in dialog overlay.
+ * TickerDetail - Shows the stock page and gates interaction behind auth.
+ * Unauthenticated users can browse for 5 seconds before the sign-in dialog appears.
  */
 export default function TickerDetail() {
   const { user } = useAuth();
   const { showAuthDialog, closeAuthDialog, requireAuth } = useRequireAuth();
   const hasTriggered = useRef(false);
 
-  // Auto-trigger auth dialog for unauthenticated users (once)
-  if (!user && !hasTriggered.current) {
+  useEffect(() => {
+    if (user || hasTriggered.current) return;
     hasTriggered.current = true;
-    setTimeout(() => requireAuth(() => {}, 'view-stock'), 0);
-  }
+
+    const timer = setTimeout(() => {
+      requireAuth(() => {}, 'view-stock');
+    }, 5000);
+
+    return () => clearTimeout(timer);
+  }, [user, requireAuth]);
 
   return (
     <>
