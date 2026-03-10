@@ -69,6 +69,7 @@ const ResetPassword = lazy(() => import('./pages/ResetPassword'));
 const StockDiscovery = lazy(() => import('./pages/StockDiscovery'));
 const ThemeAnalysis = lazy(() => import('./pages/ThemeAnalysis'));
 const LandingPage = lazy(() => import('./pages/LandingPage'));
+const Upgrade = lazy(() => import('./pages/Upgrade'));
 
 // Optimized QueryClient with aggressive caching and deduplication
 const queryClient = new QueryClient({
