@@ -1,12 +1,18 @@
-import { lazy, Suspense } from 'react';
+import { lazy, Suspense, useState, useCallback } from 'react';
 import { motion, type Easing } from 'framer-motion';
-import { Zap, Database, GraduationCap, ChevronRight, Loader2 } from 'lucide-react';
+import { Zap, Database, GraduationCap, ChevronRight, Loader2, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRequireAuth } from '@/hooks/useRequireAuth';
 import { AuthGateDialog } from '@/components/auth/AuthGateDialog';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
+import { format } from 'date-fns';
+import { retryWithBackoff } from '@/utils/retryWithBackoff';
+import { DEFAULT_ADVANCED_PARAMS } from '@/lib/backtesting/types';
 
-const StrategyBacktester = lazy(() => import('@/components/backtester/StrategyBacktester').then(m => ({ default: m.StrategyBacktester })));
+const VisualStrategyBuilder = lazy(() => import('@/components/builder/VisualStrategyBuilder').then(m => ({ default: m.VisualStrategyBuilder })));
 
 const ease: Easing = [0.16, 1, 0.3, 1];
 
@@ -46,6 +52,67 @@ const statItems = [
 export function ResearchMarketingSection() {
   const { user } = useAuth();
   const { requireAuth, showAuthDialog, closeAuthDialog } = useRequireAuth();
+  const [isRunning, setIsRunning] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const ticker = 'SPY';
+
+  const handleBacktest = useCallback(async (serialized: { 
+    strategy: string; 
+    ticker: string; 
+    params: Record<string, number | string | undefined> 
+  }) => {
+    setIsRunning(true);
+    setError(null);
+
+    try {
+      const endDate = new Date();
+      const startDate = new Date();
+      startDate.setFullYear(endDate.getFullYear() - 3);
+
+      const data = await retryWithBackoff(
+        async () => {
+          const response = await supabase.functions.invoke('strategy-backtest', {
+            body: {
+              ticker,
+              strategy: serialized.strategy,
+              startDate: format(startDate, 'yyyy-MM-dd'),
+              endDate: format(endDate, 'yyyy-MM-dd'),
+              initialCapital: 10000,
+              params: serialized.params,
+              advancedParams: DEFAULT_ADVANCED_PARAMS,
+            }
+          });
+
+          if (response.error) throw response.error;
+          if (!response.data.success) throw new Error(response.data.error || 'Backtest failed');
+          return response.data;
+        },
+        { maxAttempts: 3, initialDelayMs: 200 }
+      );
+
+      toast.success(`Backtest complete: ${data.totalTrades} trades, ${data.totalReturn.toFixed(2)}% return`);
+
+      return {
+        totalReturn: data.totalReturn || 0,
+        winRate: data.winRate || 0,
+        totalTrades: data.totalTrades || 0,
+        sharpeRatio: data.sharpeRatio || 0,
+        maxDrawdown: data.maxDrawdown || 0,
+        avgWin: data.avgWin || 0,
+        avgLoss: data.avgLoss || 0,
+        profitFactor: data.profitFactor || 0,
+        avgHoldingDays: data.avgHoldingDays || 0,
+      };
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Backtest failed';
+      setError(message);
+      toast.error(message);
+      return undefined;
+    } finally {
+      setIsRunning(false);
+    }
+  }, []);
 
   if (user) return null;
 
@@ -131,8 +198,34 @@ export function ResearchMarketingSection() {
                   <Loader2 className="h-6 w-6 animate-spin text-white/30" />
                 </div>
               }>
-                <StrategyBacktester ticker="SPY" companyName="SPDR S&P 500 ETF Trust" />
+                <VisualStrategyBuilder
+                  embedded
+                  initialTicker={ticker}
+                  onRunBacktest={(s) => requireAuth(() => handleBacktest(s), 'run-backtest') as any}
+                />
               </Suspense>
+              {error && (
+                <div className="px-4 pb-4">
+                  <Card className="border-destructive/30 bg-destructive/5">
+                    <CardContent className="py-3">
+                      <div className="flex items-center gap-2 text-destructive">
+                        <AlertTriangle className="h-4 w-4" />
+                        <span className="text-sm">{error}</span>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              )}
+              {isRunning && (
+                <div className="px-4 pb-4">
+                  <Card>
+                    <CardContent className="py-6 text-center">
+                      <Loader2 className="h-5 w-5 animate-spin mx-auto mb-2 text-primary" />
+                      <p className="text-sm text-muted-foreground">Running backtest on {ticker}...</p>
+                    </CardContent>
+                  </Card>
+                </div>
+              )}
             </div>
           </motion.div>
 
