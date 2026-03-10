@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import { Check, Loader2, Sparkles, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { BillingToggle } from './BillingToggle';
+import { FeatureComparisonPanel } from '@/components/auth/FeatureComparisonPanel';
 
 interface MembershipStepProps {
   onComplete: () => void;
