@@ -198,8 +198,34 @@ export function ResearchMarketingSection() {
                   <Loader2 className="h-6 w-6 animate-spin text-white/30" />
                 </div>
               }>
-                <StrategyBacktester ticker="SPY" companyName="SPDR S&P 500 ETF Trust" />
+                <VisualStrategyBuilder
+                  embedded
+                  initialTicker={ticker}
+                  onRunBacktest={(s) => requireAuth(() => handleBacktest(s), 'run-backtest') as any}
+                />
               </Suspense>
+              {error && (
+                <div className="px-4 pb-4">
+                  <Card className="border-destructive/30 bg-destructive/5">
+                    <CardContent className="py-3">
+                      <div className="flex items-center gap-2 text-destructive">
+                        <AlertTriangle className="h-4 w-4" />
+                        <span className="text-sm">{error}</span>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              )}
+              {isRunning && (
+                <div className="px-4 pb-4">
+                  <Card>
+                    <CardContent className="py-6 text-center">
+                      <Loader2 className="h-5 w-5 animate-spin mx-auto mb-2 text-primary" />
+                      <p className="text-sm text-muted-foreground">Running backtest on {ticker}...</p>
+                    </CardContent>
+                  </Card>
+                </div>
+              )}
             </div>
           </motion.div>
 
