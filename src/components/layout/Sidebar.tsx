@@ -112,6 +112,12 @@ export function Sidebar() {
         icon: Search,
         isPremium: false,
       },
+      { 
+        label: "Academy", 
+        subtitle: "Learn & Grow",
+        href: "/academy", 
+        icon: BookOpen 
+      },
       // { 
       //   label: "Swipe Stocks", 
       //   subtitle: "Discover & Like",
@@ -138,12 +144,6 @@ export function Sidebar() {
         subtitle: "Chat & Ideas",
         href: "/community", 
         icon: Users 
-      },
-      { 
-        label: "Academy", 
-        subtitle: "Learn & Grow",
-        href: "/academy", 
-        icon: BookOpen 
       },
       { 
         label: "Strategy Explorer", 
