@@ -305,22 +305,34 @@ export function VisualStrategyBuilder({
 
   // Wrapped backtest handler that captures results for stage flow
   const handleEmbeddedBacktest = useCallback(async (params: BacktestParams) => {
-    setLastBacktestParams(params);
-    setIsRunningBacktest(true);
-    setLastBacktestMetrics(null);
-    
     // Call the parent's onRunBacktest if provided
     if (onRunBacktest) {
       try {
-        // The parent handler should return metrics
-        const metrics = await onRunBacktest(params);
+        // The parent handler should return metrics (or undefined if auth blocked)
+        const result = onRunBacktest(params);
+        
+        // If result is undefined synchronously, auth gate likely blocked it
+        if (result === undefined) {
+          return;
+        }
+
+        setLastBacktestParams(params);
+        setIsRunningBacktest(true);
+        setLastBacktestMetrics(null);
+
+        const metrics = await result;
         
         if (metrics) {
           setLastBacktestMetrics(metrics);
         }
         
-        // Transition to results stage
-        setStage('results');
+        // Only transition to results if we got actual data back
+        if (metrics && (metrics.totalTrades ?? 0) > 0) {
+          setStage('results');
+        } else if (metrics) {
+          // Got metrics but 0 trades — still show results
+          setStage('results');
+        }
       } catch (error) {
         console.error('Backtest error:', error);
       } finally {
