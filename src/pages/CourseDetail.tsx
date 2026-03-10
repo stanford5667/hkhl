@@ -22,7 +22,14 @@ import {
   Award,
   FileText,
   Sparkles,
-  Shield
+  Shield,
+  Zap,
+  ArrowRight,
+  TrendingUp,
+  BarChart3,
+  Brain,
+  Target,
+  Flame,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { MobileAuthSheet } from '@/components/auth/MobileAuthSheet';
@@ -379,6 +386,63 @@ export default function CourseDetail() {
             </CardContent>
           </Card>
 
+          {/* Value Prop Stats Bar — non-pro only */}
+          {!hasAccess && (
+            <Card className="overflow-hidden border-border/50">
+              <CardContent className="p-3 sm:p-4">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-lg bg-cyan-500/10 flex items-center justify-center flex-shrink-0">
+                      <BarChart3 className="w-4 h-4 text-cyan-400" />
+                    </div>
+                    <div>
+                      <p className="text-xs font-semibold text-foreground">{totalLessons}+ Lessons</p>
+                      <p className="text-[10px] text-muted-foreground">Step-by-step</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center flex-shrink-0">
+                      <TrendingUp className="w-4 h-4 text-emerald-400" />
+                    </div>
+                    <div>
+                      <p className="text-xs font-semibold text-foreground">Real Strategies</p>
+                      <p className="text-[10px] text-muted-foreground">PE-grade tools</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center flex-shrink-0">
+                      <Brain className="w-4 h-4 text-amber-400" />
+                    </div>
+                    <div>
+                      <p className="text-xs font-semibold text-foreground">AI-Powered</p>
+                      <p className="text-[10px] text-muted-foreground">Smart insights</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-lg bg-purple-500/10 flex items-center justify-center flex-shrink-0">
+                      <Award className="w-4 h-4 text-purple-400" />
+                    </div>
+                    <div>
+                      <p className="text-xs font-semibold text-foreground">Certificate</p>
+                      <p className="text-[10px] text-muted-foreground">On completion</p>
+                    </div>
+                  </div>
+                </div>
+                <Button
+                  className="w-full mt-3 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white text-xs sm:text-sm h-9 sm:h-10"
+                  onClick={() => {
+                    if (!user) { setShowAuthSheet(true); return; }
+                    handleSubscribe();
+                  }}
+                  disabled={isCheckoutLoading}
+                >
+                  <Zap className="w-3.5 h-3.5 mr-1.5" />
+                  {isCheckoutLoading ? 'Loading...' : 'Start Your Investing Journey — from $58/mo'}
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+
           {/* Tabs */}
           <Tabs defaultValue="curriculum">
             <TabsList className="w-full justify-start overflow-x-auto">
@@ -398,76 +462,96 @@ export default function CourseDetail() {
                 <CardContent className="p-0">
                   <Accordion type="multiple" defaultValue={modules?.[0] ? [modules[0].id] : []} className="w-full">
                     {modules?.map((module: any, moduleIndex: number) => (
-                      <AccordionItem key={module.id} value={module.id}>
-                        <AccordionTrigger className="px-4 sm:px-6 hover:no-underline">
-                          <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3 text-left">
-                            <span className="text-xs text-muted-foreground">
-                              Module {moduleIndex + 1}
-                            </span>
-                            <span className="font-semibold text-sm sm:text-base">{module.title}</span>
-                            <Badge variant="outline" className="text-xs w-fit">
-                              {module.lessons?.length || 0} lessons
-                            </Badge>
-                          </div>
-                        </AccordionTrigger>
-                        <AccordionContent>
-                          <div className="px-4 sm:px-6 pb-4 space-y-2">
-                            {module.lessons?.map((lesson: any, lessonIndex: number) => {
-                              const isCompleted = completedLessons.has(lesson.id);
-                              const canAccess = hasAccess || lesson.is_preview;
-                              const thumbnail = getYouTubeThumbnail(lesson.video_url, lesson.video_provider);
-                              const globalIndex = modules!.slice(0, moduleIndex).reduce((s: number, m: any) => s + (m.lessons?.length || 0), 0) + lessonIndex;
+                      <div key={module.id}>
+                        <AccordionItem value={module.id}>
+                          <AccordionTrigger className="px-4 sm:px-6 hover:no-underline">
+                            <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3 text-left">
+                              <span className="text-xs text-muted-foreground">
+                                Module {moduleIndex + 1}
+                              </span>
+                              <span className="font-semibold text-sm sm:text-base">{module.title}</span>
+                              <Badge variant="outline" className="text-xs w-fit">
+                                {module.lessons?.length || 0} lessons
+                              </Badge>
+                            </div>
+                          </AccordionTrigger>
+                          <AccordionContent>
+                            <div className="px-4 sm:px-6 pb-4 space-y-2">
+                              {module.lessons?.map((lesson: any, lessonIndex: number) => {
+                                const isCompleted = completedLessons.has(lesson.id);
+                                const canAccess = hasAccess || lesson.is_preview;
+                                const thumbnail = getYouTubeThumbnail(lesson.video_url, lesson.video_provider);
+                                const globalIndex = modules!.slice(0, moduleIndex).reduce((s: number, m: any) => s + (m.lessons?.length || 0), 0) + lessonIndex;
 
-                              return (
-                                <div
-                                  key={lesson.id}
-                                  className="flex items-center justify-between p-2 sm:p-3 rounded-lg border hover:bg-muted/50 cursor-pointer"
-                                  onClick={() => {
-                                    // Always navigate – lesson page handles auth gating
-                                    navigate(`/academy/lesson/${lesson.id}`);
-                                  }}
-                                >
-                                  <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
-                                    <LessonThumbnail
-                                      lesson={lesson}
-                                      index={globalIndex}
-                                      thumbnail={thumbnail}
-                                      isCompleted={isCompleted}
-                                      canAccess={canAccess}
-                                    />
-                                    {/* Mobile: show status icon inline */}
-                                    <div className="xs:hidden flex-shrink-0">
-                                      {isCompleted ? (
-                                        <CheckCircle2 className="w-4 h-4 text-green-400" />
-                                      ) : !canAccess ? (
-                                        <Lock className="w-4 h-4 text-muted-foreground" />
-                                      ) : (
-                                        <Play className="w-4 h-4 text-muted-foreground" />
-                                      )}
+                                return (
+                                  <div
+                                    key={lesson.id}
+                                    className="flex items-center justify-between p-2 sm:p-3 rounded-lg border hover:bg-muted/50 cursor-pointer"
+                                    onClick={() => {
+                                      navigate(`/academy/lesson/${lesson.id}`);
+                                    }}
+                                  >
+                                    <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
+                                      <LessonThumbnail
+                                        lesson={lesson}
+                                        index={globalIndex}
+                                        thumbnail={thumbnail}
+                                        isCompleted={isCompleted}
+                                        canAccess={canAccess}
+                                      />
+                                      <div className="xs:hidden flex-shrink-0">
+                                        {isCompleted ? (
+                                          <CheckCircle2 className="w-4 h-4 text-green-400" />
+                                        ) : !canAccess ? (
+                                          <Lock className="w-4 h-4 text-muted-foreground" />
+                                        ) : (
+                                          <Play className="w-4 h-4 text-muted-foreground" />
+                                        )}
+                                      </div>
+                                      <div className="min-w-0 flex-1">
+                                        <p className="font-medium text-xs sm:text-sm truncate">
+                                          {moduleIndex + 1}.{lessonIndex + 1} {lesson.title}
+                                        </p>
+                                        {lesson.description && (
+                                          <p className="text-xs text-muted-foreground line-clamp-1 hidden sm:block">{lesson.description}</p>
+                                        )}
+                                      </div>
                                     </div>
-                                    <div className="min-w-0 flex-1">
-                                      <p className="font-medium text-xs sm:text-sm truncate">
-                                        {moduleIndex + 1}.{lessonIndex + 1} {lesson.title}
-                                      </p>
-                                      {lesson.description && (
-                                        <p className="text-xs text-muted-foreground line-clamp-1 hidden sm:block">{lesson.description}</p>
-                                      )}
-                                    </div>
+                                    {lesson.is_preview && !hasAccess && lessonIndex === 0 ? (
+                                      <Badge className="text-[10px] sm:text-xs flex-shrink-0 ml-2 bg-cyan-500/15 text-cyan-400 border-cyan-500/30 gap-1">
+                                        <Play className="w-2.5 h-2.5" />
+                                        Free Preview
+                                      </Badge>
+                                    ) : lesson.is_preview && !hasAccess ? (
+                                      <Badge variant="outline" className="text-[10px] sm:text-xs flex-shrink-0 ml-2">Preview</Badge>
+                                    ) : null}
                                   </div>
-                                  {lesson.is_preview && !hasAccess && lessonIndex === 0 ? (
-                                    <Badge className="text-[10px] sm:text-xs flex-shrink-0 ml-2 bg-cyan-500/15 text-cyan-400 border-cyan-500/30 gap-1">
-                                      <Play className="w-2.5 h-2.5" />
-                                      Free Preview
-                                    </Badge>
-                                  ) : lesson.is_preview && !hasAccess ? (
-                                    <Badge variant="outline" className="text-[10px] sm:text-xs flex-shrink-0 ml-2">Preview</Badge>
-                                  ) : null}
-                                </div>
-                              );
-                            })}
+                                );
+                              })}
+                            </div>
+                          </AccordionContent>
+                        </AccordionItem>
+                        {/* Inline CTA after every 2nd module for non-pro */}
+                        {!hasAccess && moduleIndex > 0 && moduleIndex % 2 === 1 && moduleIndex < (modules?.length || 0) - 1 && (
+                          <div className="mx-4 sm:mx-6 my-2 p-3 rounded-lg bg-gradient-to-r from-cyan-500/5 to-blue-500/5 border border-cyan-500/20 flex items-center gap-3">
+                            <Flame className="w-4 h-4 text-amber-400 flex-shrink-0" />
+                            <p className="text-xs text-muted-foreground flex-1">
+                              <span className="text-foreground font-medium">Don't stop here.</span> Unlock the full curriculum and accelerate your growth.
+                            </p>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="text-cyan-400 hover:text-cyan-300 text-xs h-7 px-2 shrink-0"
+                              onClick={() => {
+                                if (!user) { setShowAuthSheet(true); return; }
+                                handleSubscribe();
+                              }}
+                            >
+                              Unlock <ArrowRight className="w-3 h-3 ml-1" />
+                            </Button>
                           </div>
-                        </AccordionContent>
-                      </AccordionItem>
+                        )}
+                      </div>
                     ))}
                   </Accordion>
                   {/* Mid-curriculum CTA */}
@@ -573,6 +657,65 @@ export default function CourseDetail() {
           </Tabs>
 
           <TestimonialsSection />
+
+          {/* Full-width conversion banner — non-pro only */}
+          {!hasAccess && (
+            <Card className="overflow-hidden border-cyan-500/20 bg-gradient-to-br from-cyan-500/5 via-background to-blue-500/5">
+              <CardContent className="p-4 sm:p-6 space-y-4">
+                <div className="flex items-start gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center flex-shrink-0">
+                    <Target className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm sm:text-base font-bold text-foreground">Ready to invest smarter?</h3>
+                    <p className="text-xs sm:text-sm text-muted-foreground mt-1">
+                      Join thousands of investors who've transformed their approach with our research-backed methodology.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-3 gap-2 text-center">
+                  <div className="p-2 rounded-lg bg-muted/50">
+                    <p className="text-base sm:text-lg font-bold text-foreground">{totalLessons}+</p>
+                    <p className="text-[10px] sm:text-xs text-muted-foreground">Video Lessons</p>
+                  </div>
+                  <div className="p-2 rounded-lg bg-muted/50">
+                    <p className="text-base sm:text-lg font-bold text-foreground">{course.duration_hours}h</p>
+                    <p className="text-[10px] sm:text-xs text-muted-foreground">Of Content</p>
+                  </div>
+                  <div className="p-2 rounded-lg bg-muted/50">
+                    <p className="text-base sm:text-lg font-bold text-foreground">∞</p>
+                    <p className="text-[10px] sm:text-xs text-muted-foreground">Lifetime Access</p>
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  {['Full masterclass + all future updates', 'AI-powered research & backtesting tools', 'Trade signals & community insights'].map((item) => (
+                    <div key={item} className="flex items-center gap-2 text-xs sm:text-sm">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
+                      <span className="text-muted-foreground">{item}</span>
+                    </div>
+                  ))}
+                </div>
+
+                <Button
+                  className="w-full bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white font-semibold text-sm h-10 sm:h-11"
+                  onClick={() => {
+                    if (!user) { setShowAuthSheet(true); return; }
+                    handleSubscribe();
+                  }}
+                  disabled={isCheckoutLoading}
+                >
+                  <Sparkles className="w-4 h-4 mr-2" />
+                  {isCheckoutLoading ? 'Loading...' : 'Get Full Access — from $58/mo'}
+                </Button>
+                <p className="text-[10px] sm:text-xs text-muted-foreground text-center flex items-center justify-center gap-1.5">
+                  <Shield className="w-3 h-3 text-emerald-400" />
+                  7-day money-back guarantee • Cancel anytime
+                </p>
+              </CardContent>
+            </Card>
+          )}
         </div>
 
         {/* Sidebar - hidden on mobile since we have sticky CTA */}
