@@ -128,7 +128,12 @@ export function MembershipStep({ onComplete, onBack, isStandalone = false }: Mem
         </CardDescription>
         {!isStandalone && <p className="text-xs text-muted-foreground/70 mt-2">Step 2 of 2</p>}
       </CardHeader>
-      <CardContent>
+      <CardContent className="space-y-6">
+        {/* Free vs Pro comparison checklist */}
+        <div className="max-w-md mx-auto">
+          <FeatureComparisonPanel />
+        </div>
+
         <BillingToggle isAnnual={isAnnual} onChange={setIsAnnual} />
 
         <div className="grid md:grid-cols-2 gap-5 max-w-3xl mx-auto">
