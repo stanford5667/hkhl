@@ -267,7 +267,7 @@ export function MembershipStep({ onComplete, onBack, isStandalone = false }: Mem
             className="text-sm text-slate-400 hover:text-slate-300 transition-colors"
             disabled={isLoading}
           >
-            ← Back to profile
+            {isStandalone ? '← Back' : '← Back to profile'}
           </button>
         </div>
       </CardContent>

@@ -25,6 +25,7 @@ export default function Upgrade() {
         <MembershipStep
           onComplete={() => navigate("/")}
           onBack={() => navigate(-1)}
+          isStandalone
         />
       </div>
     </div>
