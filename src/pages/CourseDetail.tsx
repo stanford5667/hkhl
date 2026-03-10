@@ -29,6 +29,7 @@ import { MobileAuthSheet } from '@/components/auth/MobileAuthSheet';
 import { useSocialProofToasts } from '@/components/academy/SocialProofToast';
 import { ExitIntentPopup } from '@/components/academy/ExitIntentPopup';
 import { TestimonialsSection } from '@/components/academy/TestimonialsSection';
+import { BillingIntervalSheet } from '@/components/academy/BillingIntervalSheet';
 
 function getYouTubeThumbnail(url: string | null, provider: string | null): string | null {
   if (!url) return null;
@@ -101,6 +102,7 @@ export default function CourseDetail() {
   const [isCheckoutLoading, setIsCheckoutLoading] = useState(false);
   const [descExpanded, setDescExpanded] = useState(false);
   const [showAuthSheet, setShowAuthSheet] = useState(false);
+  const [showBillingSheet, setShowBillingSheet] = useState(false);
 
   // Social proof toasts — show for guests/non-members
   useSocialProofToasts(!isResearchTier);
@@ -247,23 +249,8 @@ export default function CourseDetail() {
       return;
     }
 
-    setIsCheckoutLoading(true);
-    try {
-      const { data, error } = await supabase.functions.invoke('create-checkout', {
-        body: { 
-          plan: 'research_education',
-          return_path: `/academy/course/${courseId}`
-        }
-      });
-      
-      if (error) throw error;
-      if (data?.url) {
-        window.location.href = data.url;
-      }
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to start checkout');
-      setIsCheckoutLoading(false);
-    }
+    // Show billing interval selection sheet
+    setShowBillingSheet(true);
   };
 
   const handleStartLearning = () => {
@@ -597,7 +584,7 @@ export default function CourseDetail() {
                 <div className="text-lg sm:text-xl font-bold">Research & Education</div>
               </div>
               <p className="text-xs sm:text-sm text-muted-foreground mt-1">
-                $100/month membership
+                From $82/month (billed annually)
               </p>
             </CardHeader>
             <CardContent className="p-4 sm:p-6 pt-0 space-y-4">
@@ -752,7 +739,7 @@ export default function CourseDetail() {
             }}
             disabled={isCheckoutLoading}
           >
-            {isCheckoutLoading ? 'Loading...' : 'Unlock Full Masterclass — $100/mo'}
+            {isCheckoutLoading ? 'Loading...' : 'Unlock Full Masterclass — from $82/mo'}
           </Button>
         </div>
       )}
@@ -760,13 +747,24 @@ export default function CourseDetail() {
       {/* Bottom padding to prevent content from hiding behind sticky CTA */}
       {!hasAccess && <div className="h-20 lg:hidden" />}
 
-      {/* Auth Sheet — shows inline sign-up then proceeds to checkout */}
+      {/* Auth Sheet — shows inline sign-up then proceeds to billing selection */}
       <MobileAuthSheet
         open={showAuthSheet}
         onOpenChange={setShowAuthSheet}
         title="Create your account"
-        description="Sign up first, then complete your Research & Education subscription ($100/mo)."
-        onSuccess={() => handleSubscribe(true)}
+        description="Sign up first, then choose your membership plan."
+        onSuccess={() => {
+          setShowAuthSheet(false);
+          // Small delay to let auth state settle, then show billing
+          setTimeout(() => setShowBillingSheet(true), 300);
+        }}
+      />
+
+      {/* Billing interval selection */}
+      <BillingIntervalSheet
+        open={showBillingSheet}
+        onOpenChange={setShowBillingSheet}
+        returnPath={`/academy/course/${courseId}`}
       />
 
       <ExitIntentPopup isLoggedIn={!!user} />

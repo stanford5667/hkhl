@@ -12,10 +12,16 @@ const logStep = (step: string, details?: unknown) => {
   console.log(`[CREATE-CHECKOUT] ${step}${detailsStr}`);
 };
 
-// Plan price IDs
-const PLAN_PRICES: Record<string, string> = {
-  pro: "price_1SpJ7t0ATyKK64GzVausjlQ2",           // $50/month
-  research_education: "price_1T6y590ATyKK64GzTH165hof", // $100/month
+// Plan price IDs keyed by plan + billing interval
+const PLAN_PRICES: Record<string, Record<string, string>> = {
+  pro: {
+    monthly: "price_1SpJ7t0ATyKK64GzVausjlQ2",      // $50/month
+    annual: "price_1T8s7d0ATyKK64Gz9fRwPWNu",        // $492/year ($41/mo)
+  },
+  research_education: {
+    monthly: "price_1T6y590ATyKK64GzTH165hof",       // $100/month
+    annual: "price_1T8sD80ATyKK64GzbUB5WTmN",        // $984/year ($82/mo)
+  },
 };
 
 serve(async (req) => {
@@ -39,22 +45,25 @@ serve(async (req) => {
 
     // Parse request body for plan selection and return path
     let selectedPlan = "pro";
+    let billingInterval = "monthly";
     let returnPath = "/quant-lab";
     try {
       const body = await req.json();
       if (body?.plan && PLAN_PRICES[body.plan]) {
         selectedPlan = body.plan;
       }
+      if (body?.billing_interval === 'annual' || body?.billing_interval === 'monthly') {
+        billingInterval = body.billing_interval;
+      }
       if (body?.return_path && typeof body.return_path === 'string') {
-        // Sanitize return path - only allow paths starting with /
         returnPath = body.return_path.startsWith('/') ? body.return_path : '/quant-lab';
       }
     } catch {
       // No body or invalid JSON - use defaults
     }
 
-    const priceId = PLAN_PRICES[selectedPlan];
-    logStep("Selected plan", { plan: selectedPlan, priceId, returnPath });
+    const priceId = PLAN_PRICES[selectedPlan][billingInterval];
+    logStep("Selected plan", { plan: selectedPlan, billingInterval, priceId, returnPath });
 
     const token = authHeader.replace("Bearer ", "");
     const { data } = await supabaseClient.auth.getUser(token);
