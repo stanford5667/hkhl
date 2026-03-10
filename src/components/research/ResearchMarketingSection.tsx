@@ -1,10 +1,12 @@
+import { lazy, Suspense } from 'react';
 import { motion, type Easing } from 'framer-motion';
-import { Zap, Database, GraduationCap, ChevronRight } from 'lucide-react';
+import { Zap, Database, GraduationCap, ChevronRight, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRequireAuth } from '@/hooks/useRequireAuth';
 import { AuthGateDialog } from '@/components/auth/AuthGateDialog';
-import { MiniBacktesterDemo } from './MiniBacktesterDemo';
+
+const StrategyBacktester = lazy(() => import('@/components/backtester/StrategyBacktester').then(m => ({ default: m.StrategyBacktester })));
 
 const ease: Easing = [0.16, 1, 0.3, 1];
 
