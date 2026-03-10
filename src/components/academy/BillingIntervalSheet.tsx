@@ -143,7 +143,7 @@ export function BillingIntervalSheet({ open, onOpenChange, returnPath }: Billing
           {isLoading ? (
             <Loader2 className="w-5 h-5 animate-spin" />
           ) : (
-            `Continue — $${selected === 'annual' ? '82' : '100'}/mo`
+            `Continue — $${selected === 'annual' ? '58' : '100'}/mo`
           )}
         </Button>
       </SheetContent>
