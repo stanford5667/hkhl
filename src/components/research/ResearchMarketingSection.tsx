@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRequireAuth } from '@/hooks/useRequireAuth';
 import { AuthGateDialog } from '@/components/auth/AuthGateDialog';
+import backtesterPreview from '@/assets/backtester-preview.jpg';
 
 const ease: Easing = [0.16, 1, 0.3, 1];
 
