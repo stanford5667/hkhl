@@ -114,8 +114,27 @@ export function ResearchMarketingSection() {
             </div>
           </div>
 
-          {/* Live Mini Backtester Demo */}
-          <MiniBacktesterDemo />
+          {/* Live Backtester */}
+          <motion.div
+            className="mb-12 sm:mb-20"
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: '-40px' }}
+            transition={{ duration: 0.7, ease }}
+          >
+            <p className="text-left sm:text-center text-[10px] sm:text-[11px] font-mono uppercase tracking-[0.2em] sm:tracking-[0.25em] text-white/20 mb-4 sm:mb-6">
+              Try it yourself
+            </p>
+            <div className="rounded-xl sm:rounded-2xl overflow-hidden border border-white/[0.08] bg-card">
+              <Suspense fallback={
+                <div className="flex items-center justify-center py-20">
+                  <Loader2 className="h-6 w-6 animate-spin text-white/30" />
+                </div>
+              }>
+                <StrategyBacktester ticker="SPY" companyName="SPDR S&P 500 ETF Trust" />
+              </Suspense>
+            </div>
+          </motion.div>
 
           {/* Stats Row */}
           <motion.div
