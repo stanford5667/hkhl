@@ -53,6 +53,8 @@ import { DEFAULT_ADVANCED_PARAMS } from '@/lib/backtesting/types';
 interface StrategyBacktesterProps {
   ticker: string;
   companyName: string;
+  /** Auto-run strategy params passed from navigation state (e.g. after auth on Research page) */
+  autoRunStrategy?: { strategy: string; ticker: string; params: Record<string, number | string | undefined> };
 }
 
 interface PortfolioSnapshot {
