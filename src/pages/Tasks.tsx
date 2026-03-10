@@ -495,12 +495,12 @@ export default function Tasks() {
         </div>
       )}
 
-      <CreateTaskDialog open={showCreateDialog} onOpenChange={setShowCreateDialog} />
+      <CreateTaskDialog open={showCreateDialog} onClose={() => setShowCreateDialog(false)} />
       
       <TaskDetailDialog
         task={selectedTask}
         open={!!selectedTask}
-        onOpenChange={(open) => !open && setSelectedTask(null)}
+        onClose={() => setSelectedTask(null)}
         onTaskUpdated={refetch}
       />
     </div>
