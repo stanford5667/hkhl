@@ -1,12 +1,62 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { CheckCircle2, Sparkles, Loader2 } from 'lucide-react';
+import { CheckCircle2, Sparkles, Loader2, Clock, TrendingUp } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+
+function PriceIncreaseCountdown() {
+  const [timeLeft, setTimeLeft] = useState({ hours: 0, minutes: 0, seconds: 0 });
+
+  useEffect(() => {
+    const getDeadline = () => {
+      const stored = localStorage.getItem('price_increase_deadline');
+      if (stored) return new Date(stored);
+      const deadline = new Date(Date.now() + 24 * 60 * 60 * 1000);
+      localStorage.setItem('price_increase_deadline', deadline.toISOString());
+      return deadline;
+    };
+
+    const deadline = getDeadline();
+
+    const tick = () => {
+      const now = Date.now();
+      const diff = Math.max(0, deadline.getTime() - now);
+      setTimeLeft({
+        hours: Math.floor(diff / 3_600_000),
+        minutes: Math.floor((diff % 3_600_000) / 60_000),
+        seconds: Math.floor((diff % 60_000) / 1_000),
+      });
+    };
+
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  const pad = (n: number) => String(n).padStart(2, '0');
+
+  return (
+    <div className="mt-4 rounded-lg border border-rose-500/30 bg-rose-500/10 px-4 py-3">
+      <div className="flex items-center gap-2 mb-1.5">
+        <TrendingUp className="w-3.5 h-3.5 text-rose-400" />
+        <span className="text-rose-300 text-xs font-semibold uppercase tracking-wide">Price increasing soon</span>
+      </div>
+      <p className="text-slate-300 text-xs mb-2">
+        Lock in today's rate before the price goes up. This offer expires in:
+      </p>
+      <div className="flex items-center gap-1.5">
+        <Clock className="w-3.5 h-3.5 text-rose-400" />
+        <span className="font-mono text-sm font-bold text-white">
+          {pad(timeLeft.hours)}:{pad(timeLeft.minutes)}:{pad(timeLeft.seconds)}
+        </span>
+      </div>
+    </div>
+  );
+}
 
 interface BillingIntervalSheetProps {
   open: boolean;
@@ -146,6 +196,8 @@ export function BillingIntervalSheet({ open, onOpenChange, returnPath }: Billing
             `Continue — $${selected === 'annual' ? '58' : '100'}/mo`
           )}
         </Button>
+
+        <PriceIncreaseCountdown />
       </SheetContent>
     </Sheet>
   );
