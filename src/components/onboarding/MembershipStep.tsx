@@ -4,7 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
-import { Check, GraduationCap, Loader2, Sparkles, X } from 'lucide-react';
+import { Check, Loader2, Sparkles, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { BillingToggle } from './BillingToggle';
 
