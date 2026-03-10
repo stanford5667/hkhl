@@ -257,6 +257,8 @@ export function AuthGateDialog({
         <DialogContent className="sm:max-w-md p-0 overflow-hidden">
           {showVerificationPending ? (
             <div className="p-6">{verificationContent}</div>
+          ) : showForgotPassword ? (
+            <div className="p-6">{forgotPasswordForm}</div>
           ) : (
             <div className="p-6">
               <DialogHeader className="text-center pb-2">
