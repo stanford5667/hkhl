@@ -747,13 +747,24 @@ export default function CourseDetail() {
       {/* Bottom padding to prevent content from hiding behind sticky CTA */}
       {!hasAccess && <div className="h-20 lg:hidden" />}
 
-      {/* Auth Sheet — shows inline sign-up then proceeds to checkout */}
+      {/* Auth Sheet — shows inline sign-up then proceeds to billing selection */}
       <MobileAuthSheet
         open={showAuthSheet}
         onOpenChange={setShowAuthSheet}
         title="Create your account"
-        description="Sign up first, then complete your Research & Education subscription ($100/mo)."
-        onSuccess={() => handleSubscribe(true)}
+        description="Sign up first, then choose your membership plan."
+        onSuccess={() => {
+          setShowAuthSheet(false);
+          // Small delay to let auth state settle, then show billing
+          setTimeout(() => setShowBillingSheet(true), 300);
+        }}
+      />
+
+      {/* Billing interval selection */}
+      <BillingIntervalSheet
+        open={showBillingSheet}
+        onOpenChange={setShowBillingSheet}
+        returnPath={`/academy/course/${courseId}`}
       />
 
       <ExitIntentPopup isLoggedIn={!!user} />
