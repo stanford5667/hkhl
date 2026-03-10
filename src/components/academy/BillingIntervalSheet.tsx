@@ -3,11 +3,24 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { CheckCircle2, Sparkles, Loader2, Clock, TrendingUp, ArrowUp } from 'lucide-react';
+import { CheckCircle2, Sparkles, Loader2, Clock, TrendingUp, ArrowUp, Check, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { useUsage } from '@/contexts/UsageContext';
 import { toast } from 'sonner';
+
+const COMPARISON_FEATURES = [
+  { name: "Stock Overview & Charts", free: true, pro: true },
+  { name: "Trending Tickers", free: true, pro: true },
+  { name: "Earnings Calendar", free: true, pro: true },
+  { name: "AI Stock Analysis", free: false, pro: true },
+  { name: "AI Trading Bot", free: false, pro: true },
+  { name: "AI Stock Backtesting", free: false, pro: true },
+  { name: "Strategy Builder (20+ indicators)", free: false, pro: true },
+  { name: "Trade Ideas & Signals", free: false, pro: true },
+  { name: "Full Video Course Library", free: false, pro: true },
+  { name: "Market Screener", free: false, pro: true },
+];
 
 function PriceIncreaseCountdown() {
   const [timeLeft, setTimeLeft] = useState({ hours: 0, minutes: 0, seconds: 0 });
@@ -93,7 +106,6 @@ export function BillingIntervalSheet({ open, onOpenChange, returnPath }: Billing
     setIsLoading(true);
     try {
       if (isProUpgrade) {
-        // Use upgrade function with proration
         const { data, error } = await supabase.functions.invoke('upgrade-subscription', {
           body: { billing_interval: selected },
         });
@@ -103,10 +115,8 @@ export function BillingIntervalSheet({ open, onOpenChange, returnPath }: Billing
 
         toast.success(data?.message || 'Subscription upgraded successfully! You only pay the prorated difference.');
         onOpenChange(false);
-        // Refresh subscription status
         window.location.reload();
       } else {
-        // New subscription checkout
         const { data, error } = await supabase.functions.invoke('create-checkout', {
           body: {
             plan: 'research_education',
@@ -129,7 +139,7 @@ export function BillingIntervalSheet({ open, onOpenChange, returnPath }: Billing
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="bottom" className="rounded-t-2xl bg-slate-900 border-slate-700 px-4 pb-8 pt-6 sm:max-w-lg sm:mx-auto">
+      <SheetContent side="bottom" className="rounded-t-2xl bg-slate-900 border-slate-700 px-4 pb-8 pt-6 sm:max-w-lg sm:mx-auto max-h-[90dvh] overflow-y-auto">
         <SheetHeader className="text-center mb-5">
           <SheetTitle className="text-xl text-white flex items-center justify-center gap-2">
             <Sparkles className="w-5 h-5 text-amber-400" />
@@ -153,6 +163,37 @@ export function BillingIntervalSheet({ open, onOpenChange, returnPath }: Billing
             </p>
           </div>
         )}
+
+        {/* Free vs Pro comparison */}
+        <div className="mb-5 rounded-lg border border-slate-700 overflow-hidden">
+          <div className="grid grid-cols-[1fr_48px_48px] items-center gap-0 px-3 py-2 bg-slate-800/80 border-b border-slate-700">
+            <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Feature</span>
+            <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider text-center">Free</span>
+            <span className="text-[10px] font-semibold text-amber-400 uppercase tracking-wider text-center">Pro</span>
+          </div>
+          {COMPARISON_FEATURES.map((f, i) => (
+            <div
+              key={f.name}
+              className={cn(
+                "grid grid-cols-[1fr_48px_48px] items-center gap-0 px-3 py-1.5",
+                i % 2 === 0 ? "bg-slate-900" : "bg-slate-800/30",
+                i < COMPARISON_FEATURES.length - 1 && "border-b border-slate-800"
+              )}
+            >
+              <span className="text-[11px] text-slate-300 leading-tight">{f.name}</span>
+              <div className="flex justify-center">
+                {f.free ? (
+                  <Check className="h-3.5 w-3.5 text-green-500" />
+                ) : (
+                  <X className="h-3.5 w-3.5 text-slate-600" />
+                )}
+              </div>
+              <div className="flex justify-center">
+                <Check className="h-3.5 w-3.5 text-amber-400" />
+              </div>
+            </div>
+          ))}
+        </div>
 
         <div className="space-y-3 mb-6">
           {/* Annual */}
@@ -208,16 +249,6 @@ export function BillingIntervalSheet({ open, onOpenChange, returnPath }: Billing
               </div>
             </div>
           </Card>
-        </div>
-
-        {/* Features summary */}
-        <div className="space-y-2 mb-6">
-          {['Full video course library', 'Trade ideas & community chat', 'AI backtester & 30+ yrs data', 'Cancel anytime'].map((f) => (
-            <div key={f} className="flex items-center gap-2 text-xs text-slate-300">
-              <CheckCircle2 className="w-3.5 h-3.5 text-green-500 flex-shrink-0" />
-              <span>{f}</span>
-            </div>
-          ))}
         </div>
 
         <Button
