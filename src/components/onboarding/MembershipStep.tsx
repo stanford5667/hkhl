@@ -51,7 +51,8 @@ const COMING_SOON = [
 type PlanType = 'free' | 'research_education';
 
 const PRICES = {
-  pro: { monthly: 100, annual: 82 },
+  pro: { monthly: 100, annual: 58 },
+  annualTotal: 700,
 };
 
 export function MembershipStep({ onComplete, onBack }: MembershipStepProps) {
