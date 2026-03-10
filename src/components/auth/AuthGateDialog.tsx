@@ -137,6 +137,29 @@ export function AuthGateDialog({
     setSignUpStep(2);
   };
 
+  const forgotPasswordForm = (
+    <div className="space-y-3 px-1">
+      <div className="flex flex-col items-center justify-center">
+        <AssetLabsLogo size="sm" showText={false} className="sm:hidden" />
+        <AssetLabsLogo size="lg" showText={false} className="hidden sm:flex" />
+      </div>
+      <p className="text-center text-sm font-medium">Reset your password</p>
+      <p className="text-center text-xs text-muted-foreground">Enter your email and we'll send you a reset link.</p>
+      <form onSubmit={handleForgotPassword} className="space-y-2.5">
+        <div className="space-y-0.5">
+          <Label htmlFor="resetEmail" className="text-[11px] sm:text-xs font-medium">Email</Label>
+          <Input id="resetEmail" type="email" value={resetEmail} onChange={(e) => setResetEmail(e.target.value)} placeholder="you@example.com" required className="h-9 sm:h-10 text-sm" autoComplete="email" />
+        </div>
+        <Button type="submit" className="w-full h-9 sm:h-10 text-sm font-semibold" disabled={resetSending}>
+          {resetSending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Send Reset Link"}
+        </Button>
+      </form>
+      <div className="text-center text-[11px] sm:text-xs text-muted-foreground">
+        <button type="button" onClick={() => setShowForgotPassword(false)} className="text-primary font-medium hover:underline">Back to sign in</button>
+      </div>
+    </div>
+  );
+
   const authForm = (
     <div className="space-y-1.5 sm:space-y-3 px-1">
       {/* Branding */}
@@ -201,7 +224,10 @@ export function AuthGateDialog({
               <Input ref={emailInputRef} id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" required className="h-9 sm:h-10 text-sm" autoComplete="email" />
             </div>
             <div className="space-y-0.5">
-              <Label htmlFor="password" className="text-[11px] sm:text-xs font-medium">Password</Label>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="password" className="text-[11px] sm:text-xs font-medium">Password</Label>
+                <button type="button" onClick={() => { setResetEmail(email); setShowForgotPassword(true); }} className="text-[10px] sm:text-[11px] text-primary hover:text-primary/80 transition-colors">Forgot password?</button>
+              </div>
               <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" required minLength={6} className="h-9 sm:h-10 text-sm" autoComplete="current-password" />
             </div>
             <Button type="submit" className="w-full h-9 sm:h-10 text-sm font-semibold mt-1" disabled={isLoading}>
