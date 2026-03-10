@@ -211,6 +211,20 @@ export function AuthGateDialog({
                   minLength={6}
                   className="h-9 sm:h-10 text-sm"
                   autoComplete="new-password"
+               />
+              </div>
+              <div className="space-y-0.5">
+                <Label htmlFor="confirmPassword" className="text-[11px] sm:text-xs font-medium">Confirm Password</Label>
+                <Input
+                  id="confirmPassword"
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder="••••••••"
+                  required
+                  minLength={6}
+                  className="h-9 sm:h-10 text-sm"
+                  autoComplete="new-password"
                 />
               </div>
               <AgeVerificationInput
