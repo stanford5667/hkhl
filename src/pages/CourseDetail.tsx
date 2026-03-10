@@ -386,6 +386,63 @@ export default function CourseDetail() {
             </CardContent>
           </Card>
 
+          {/* Value Prop Stats Bar — non-pro only */}
+          {!hasAccess && (
+            <Card className="overflow-hidden border-border/50">
+              <CardContent className="p-3 sm:p-4">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-lg bg-cyan-500/10 flex items-center justify-center flex-shrink-0">
+                      <BarChart3 className="w-4 h-4 text-cyan-400" />
+                    </div>
+                    <div>
+                      <p className="text-xs font-semibold text-foreground">{totalLessons}+ Lessons</p>
+                      <p className="text-[10px] text-muted-foreground">Step-by-step</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center flex-shrink-0">
+                      <TrendingUp className="w-4 h-4 text-emerald-400" />
+                    </div>
+                    <div>
+                      <p className="text-xs font-semibold text-foreground">Real Strategies</p>
+                      <p className="text-[10px] text-muted-foreground">PE-grade tools</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center flex-shrink-0">
+                      <Brain className="w-4 h-4 text-amber-400" />
+                    </div>
+                    <div>
+                      <p className="text-xs font-semibold text-foreground">AI-Powered</p>
+                      <p className="text-[10px] text-muted-foreground">Smart insights</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-lg bg-purple-500/10 flex items-center justify-center flex-shrink-0">
+                      <Award className="w-4 h-4 text-purple-400" />
+                    </div>
+                    <div>
+                      <p className="text-xs font-semibold text-foreground">Certificate</p>
+                      <p className="text-[10px] text-muted-foreground">On completion</p>
+                    </div>
+                  </div>
+                </div>
+                <Button
+                  className="w-full mt-3 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white text-xs sm:text-sm h-9 sm:h-10"
+                  onClick={() => {
+                    if (!user) { setShowAuthSheet(true); return; }
+                    handleSubscribe();
+                  }}
+                  disabled={isCheckoutLoading}
+                >
+                  <Zap className="w-3.5 h-3.5 mr-1.5" />
+                  {isCheckoutLoading ? 'Loading...' : 'Start Your Investing Journey — from $58/mo'}
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+
           {/* Tabs */}
           <Tabs defaultValue="curriculum">
             <TabsList className="w-full justify-start overflow-x-auto">
