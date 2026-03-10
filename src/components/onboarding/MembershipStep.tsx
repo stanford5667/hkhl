@@ -11,6 +11,7 @@ import { BillingToggle } from './BillingToggle';
 interface MembershipStepProps {
   onComplete: () => void;
   onBack: () => void;
+  isStandalone?: boolean;
 }
 
 const FREE_FEATURES = [
