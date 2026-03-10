@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import PublicStockView from './PublicStockView';
 
 /**
  * TickerDetail - Auth-gated wrapper for stock detail pages.
@@ -15,7 +16,6 @@ export default function TickerDetail() {
   useEffect(() => {
     if (loading) return;
     if (!user) {
-      // Store where the user wanted to go
       if (ticker) {
         sessionStorage.setItem('pending-stock-navigation', ticker.toUpperCase());
       }
@@ -23,12 +23,7 @@ export default function TickerDetail() {
     }
   }, [user, loading, ticker, navigate]);
 
-  // While checking auth or redirecting, show nothing
-  if (loading || !user) {
-    return null;
-  }
+  if (loading || !user) return null;
 
-  // Lazy-import the actual view only for authenticated users
-  const PublicStockView = require('./PublicStockView').default;
   return <PublicStockView />;
 }
