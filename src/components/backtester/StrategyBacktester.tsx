@@ -138,7 +138,7 @@ const STRATEGY_MAP: Record<string, string> = {
 // MAIN COMPONENT
 // ═══════════════════════════════════════════════════════════════════════════════
 
-export function StrategyBacktester({ ticker, companyName }: StrategyBacktesterProps) {
+export function StrategyBacktester({ ticker, companyName, autoRunStrategy }: StrategyBacktesterProps) {
   const { requireAuth, showAuthDialog, closeAuthDialog } = useRequireAuth();
   const { isPro, showUpgradeModal } = useUsage();
   const [period] = useState<'1Y' | '3Y' | '5Y'>('3Y');
