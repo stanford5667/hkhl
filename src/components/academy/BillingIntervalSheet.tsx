@@ -59,12 +59,12 @@ function PriceIncreaseCountdown() {
         <TrendingUp className="w-3.5 h-3.5 text-rose-400" />
         <span className="text-rose-300 text-xs font-semibold uppercase tracking-wide">Price increasing soon</span>
       </div>
-      <p className="text-slate-300 text-xs mb-2">
+      <p className="text-muted-foreground text-xs mb-2">
         Lock in today's rate before the price goes up. This offer expires in:
       </p>
       <div className="flex items-center gap-1.5">
         <Clock className="w-3.5 h-3.5 text-rose-400" />
-        <span className="font-mono text-sm font-bold text-white">
+        <span className="font-mono text-sm font-bold text-foreground">
           {pad(timeLeft.hours)}:{pad(timeLeft.minutes)}:{pad(timeLeft.seconds)}
         </span>
       </div>
@@ -109,22 +109,15 @@ export function BillingIntervalSheet({ open, onOpenChange, returnPath }: Billing
         const { data, error } = await supabase.functions.invoke('upgrade-subscription', {
           body: { billing_interval: selected },
         });
-
         if (error) throw error;
         if (data?.error) throw new Error(data.error);
-
         toast.success(data?.message || 'Subscription upgraded successfully! You only pay the prorated difference.');
         onOpenChange(false);
         window.location.reload();
       } else {
         const { data, error } = await supabase.functions.invoke('create-checkout', {
-          body: {
-            plan: 'research_education',
-            billing_interval: selected,
-            return_path: returnPath,
-          },
+          body: { plan: 'research_education', billing_interval: selected, return_path: returnPath },
         });
-
         if (error) throw error;
         if (data?.url) {
           window.open(data.url, '_blank') || (window.location.href = data.url);
@@ -139,13 +132,13 @@ export function BillingIntervalSheet({ open, onOpenChange, returnPath }: Billing
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="bottom" className="rounded-t-2xl bg-slate-900 border-slate-700 px-4 pb-8 pt-6 sm:max-w-lg sm:mx-auto max-h-[90dvh] overflow-y-auto">
+      <SheetContent side="bottom" className="rounded-t-2xl bg-card border-border px-4 pb-8 pt-6 sm:max-w-lg sm:mx-auto max-h-[90dvh] overflow-y-auto">
         <SheetHeader className="text-center mb-5">
-          <SheetTitle className="text-xl text-white flex items-center justify-center gap-2">
+          <SheetTitle className="text-xl text-foreground flex items-center justify-center gap-2">
             <Sparkles className="w-5 h-5 text-amber-400" />
             {isProUpgrade ? 'Upgrade Your Plan' : 'Choose Your Plan'}
           </SheetTitle>
-          <SheetDescription className="text-slate-400 text-sm">
+          <SheetDescription className="text-muted-foreground text-sm">
             {isProUpgrade 
               ? "Upgrade to Research & Education — you'll only pay the prorated difference"
               : 'Unlock the full Research & Education experience'}
@@ -158,17 +151,17 @@ export function BillingIntervalSheet({ open, onOpenChange, returnPath }: Billing
               <ArrowUp className="w-3.5 h-3.5 text-emerald-400" />
               <span className="text-emerald-300 text-xs font-semibold uppercase tracking-wide">Pro → Research & Education</span>
             </div>
-            <p className="text-slate-300 text-xs">
+            <p className="text-muted-foreground text-xs">
               Your current Pro subscription will be upgraded. Stripe will automatically prorate the cost — you only pay the difference for the remaining billing period.
             </p>
           </div>
         )}
 
         {/* Free vs Pro comparison */}
-        <div className="mb-5 rounded-lg border border-slate-700 overflow-hidden">
-          <div className="grid grid-cols-[1fr_48px_48px] items-center gap-0 px-3 py-2 bg-slate-800/80 border-b border-slate-700">
-            <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Feature</span>
-            <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider text-center">Free</span>
+        <div className="mb-5 rounded-lg border border-border overflow-hidden">
+          <div className="grid grid-cols-[1fr_48px_48px] items-center gap-0 px-3 py-2 bg-muted/50 border-b border-border">
+            <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Feature</span>
+            <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider text-center">Free</span>
             <span className="text-[10px] font-semibold text-amber-400 uppercase tracking-wider text-center">Pro</span>
           </div>
           {COMPARISON_FEATURES.map((f, i) => (
@@ -176,16 +169,16 @@ export function BillingIntervalSheet({ open, onOpenChange, returnPath }: Billing
               key={f.name}
               className={cn(
                 "grid grid-cols-[1fr_48px_48px] items-center gap-0 px-3 py-1.5",
-                i % 2 === 0 ? "bg-slate-900" : "bg-slate-800/30",
-                i < COMPARISON_FEATURES.length - 1 && "border-b border-slate-800"
+                i % 2 === 0 ? "bg-card" : "bg-muted/30",
+                i < COMPARISON_FEATURES.length - 1 && "border-b border-border/50"
               )}
             >
-              <span className="text-[11px] text-slate-300 leading-tight">{f.name}</span>
+              <span className="text-[11px] text-foreground/80 leading-tight">{f.name}</span>
               <div className="flex justify-center">
                 {f.free ? (
                   <Check className="h-3.5 w-3.5 text-green-500" />
                 ) : (
-                  <X className="h-3.5 w-3.5 text-slate-600" />
+                  <X className="h-3.5 w-3.5 text-muted-foreground/40" />
                 )}
               </div>
               <div className="flex justify-center">
@@ -199,10 +192,10 @@ export function BillingIntervalSheet({ open, onOpenChange, returnPath }: Billing
           {/* Annual */}
           <Card
             className={cn(
-              'relative p-4 cursor-pointer border-2 transition-all bg-slate-800/50',
+              'relative p-4 cursor-pointer border-2 transition-all bg-muted/30',
               selected === 'annual'
                 ? 'border-amber-500 ring-1 ring-amber-500/30'
-                : 'border-slate-700 hover:border-slate-600'
+                : 'border-border hover:border-primary/30'
             )}
             onClick={() => setSelected('annual')}
           >
@@ -213,12 +206,12 @@ export function BillingIntervalSheet({ open, onOpenChange, returnPath }: Billing
             )}
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-white font-semibold text-base">{PLANS.annual.label}</p>
-                <p className="text-slate-400 text-xs">{PLANS.annual.billed}</p>
+                <p className="text-foreground font-semibold text-base">{PLANS.annual.label}</p>
+                <p className="text-muted-foreground text-xs">{PLANS.annual.billed}</p>
               </div>
               <div className="text-right">
-                <p className="text-white text-2xl font-bold">
-                  ${PLANS.annual.price}<span className="text-sm text-slate-400">/mo</span>
+                <p className="text-foreground text-2xl font-bold">
+                  ${PLANS.annual.price}<span className="text-sm text-muted-foreground">/mo</span>
                 </p>
                 {PLANS.annual.savings && (
                   <p className="text-green-400 text-xs font-medium">{PLANS.annual.savings}</p>
@@ -230,21 +223,21 @@ export function BillingIntervalSheet({ open, onOpenChange, returnPath }: Billing
           {/* Monthly */}
           <Card
             className={cn(
-              'p-4 cursor-pointer border-2 transition-all bg-slate-800/50',
+              'p-4 cursor-pointer border-2 transition-all bg-muted/30',
               selected === 'monthly'
                 ? 'border-amber-500 ring-1 ring-amber-500/30'
-                : 'border-slate-700 hover:border-slate-600'
+                : 'border-border hover:border-primary/30'
             )}
             onClick={() => setSelected('monthly')}
           >
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-white font-semibold text-base">{PLANS.monthly.label}</p>
-                <p className="text-slate-400 text-xs">{PLANS.monthly.billed}</p>
+                <p className="text-foreground font-semibold text-base">{PLANS.monthly.label}</p>
+                <p className="text-muted-foreground text-xs">{PLANS.monthly.billed}</p>
               </div>
               <div className="text-right">
-                <p className="text-white text-2xl font-bold">
-                  ${PLANS.monthly.price}<span className="text-sm text-slate-400">/mo</span>
+                <p className="text-foreground text-2xl font-bold">
+                  ${PLANS.monthly.price}<span className="text-sm text-muted-foreground">/mo</span>
                 </p>
               </div>
             </div>

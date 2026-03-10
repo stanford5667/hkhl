@@ -116,16 +116,16 @@ export function MembershipStep({ onComplete, onBack, isStandalone = false }: Mem
   const proPrice = isAnnual ? PRICES.pro.annual : PRICES.pro.monthly;
 
   return (
-    <Card className="bg-slate-900 border-slate-800 max-w-5xl mx-auto">
+    <Card className="glass-card max-w-5xl mx-auto">
       <CardHeader className="text-center">
-        <CardTitle className="text-2xl text-white flex items-center justify-center gap-2">
-          <Sparkles className="h-6 w-6 text-purple-400" />
-          Choose Your Plan
+        <CardTitle className="text-2xl text-foreground flex items-center justify-center gap-2">
+          <Sparkles className="h-6 w-6 text-primary" />
+          {isStandalone ? 'Upgrade to Pro' : 'Choose Your Plan'}
         </CardTitle>
-        <CardDescription className="text-slate-400">
+        <CardDescription className="text-muted-foreground">
           {isStandalone ? 'Unlock all premium features' : 'Select the plan that works best for you'}
         </CardDescription>
-        {!isStandalone && <p className="text-xs text-slate-500 mt-2">Step 2 of 2</p>}
+        {!isStandalone && <p className="text-xs text-muted-foreground/70 mt-2">Step 2 of 2</p>}
       </CardHeader>
       <CardContent>
         <BillingToggle isAnnual={isAnnual} onChange={setIsAnnual} />
@@ -136,15 +136,15 @@ export function MembershipStep({ onComplete, onBack, isStandalone = false }: Mem
             className={cn(
               "relative rounded-xl border-2 p-5 cursor-pointer transition-all",
               selectedPlan === 'free' 
-                ? "border-purple-500 bg-slate-800/50" 
-                : "border-slate-700 hover:border-slate-600 bg-slate-800/30"
+                ? "border-primary bg-primary/5" 
+                : "border-border hover:border-primary/30 bg-muted/20"
             )}
             onClick={() => !isLoading && setSelectedPlan('free')}
           >
             <div className="text-center mb-5">
-              <h3 className="text-lg font-bold text-white mb-1">Free</h3>
-              <div className="text-3xl font-bold text-white">$0</div>
-              <p className="text-slate-400 text-sm">Forever free</p>
+              <h3 className="text-lg font-bold text-foreground mb-1">Free</h3>
+              <div className="text-3xl font-bold text-foreground">$0</div>
+              <p className="text-muted-foreground text-sm">Forever free</p>
             </div>
             
             <ul className="space-y-2.5 mb-5">
@@ -153,11 +153,11 @@ export function MembershipStep({ onComplete, onBack, isStandalone = false }: Mem
                   {feature.included ? (
                     <Check className="h-4 w-4 text-green-500 flex-shrink-0" />
                   ) : (
-                    <X className="h-4 w-4 text-slate-600 flex-shrink-0" />
+                    <X className="h-4 w-4 text-muted-foreground/40 flex-shrink-0" />
                   )}
                   <span className={cn(
                     "text-sm",
-                    feature.included ? "text-slate-300" : "text-slate-600"
+                    feature.included ? "text-foreground/80" : "text-muted-foreground/50"
                   )}>
                     {feature.name}
                   </span>
@@ -182,31 +182,31 @@ export function MembershipStep({ onComplete, onBack, isStandalone = false }: Mem
             </Button>
           </div>
 
-          {/* Pro Plan (maps to research_education) */}
+          {/* Pro Plan */}
           <div 
             className={cn(
               "relative rounded-xl border-2 p-5 cursor-pointer transition-all",
               selectedPlan === 'research_education' 
-                ? "border-purple-500 bg-purple-900/20" 
-                : "border-purple-500/50 hover:border-purple-500 bg-gradient-to-b from-purple-900/15 to-slate-800/30"
+                ? "border-primary bg-primary/10" 
+                : "border-primary/30 hover:border-primary bg-gradient-to-b from-primary/5 to-muted/20"
             )}
             onClick={() => !isLoading && setSelectedPlan('research_education')}
           >
             {/* Best Value Badge */}
             <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-              <span className="bg-purple-600 text-white text-xs font-semibold px-3 py-1 rounded-full flex items-center gap-1 whitespace-nowrap">
+              <span className="bg-primary text-primary-foreground text-xs font-semibold px-3 py-1 rounded-full flex items-center gap-1 whitespace-nowrap">
                 <Sparkles className="h-3 w-3" />
                 MOST POPULAR
               </span>
             </div>
 
             <div className="text-center mb-5 mt-2">
-              <h3 className="text-lg font-bold text-white mb-1">Pro</h3>
-              <div className="text-3xl font-bold text-white">
+              <h3 className="text-lg font-bold text-foreground mb-1">Pro</h3>
+              <div className="text-3xl font-bold text-foreground">
                 ${proPrice}
-                <span className="text-lg text-slate-400">/mo</span>
+                <span className="text-lg text-muted-foreground">/mo</span>
               </div>
-               <p className="text-slate-400 text-sm">
+               <p className="text-muted-foreground text-sm">
                  {isAnnual ? `Billed $${PRICES.annualTotal}/yr` : 'Billed monthly'}
                </p>
                {isAnnual && (
@@ -219,9 +219,9 @@ export function MembershipStep({ onComplete, onBack, isStandalone = false }: Mem
             <ul className="space-y-2 mb-4">
               {PRO_FEATURES.map((feature, index) => (
                 <li key={index} className="flex items-center gap-2">
-                  <Check className="h-4 w-4 text-purple-400 flex-shrink-0" />
+                  <Check className="h-4 w-4 text-primary flex-shrink-0" />
                   <span className={cn(
-                    "text-sm text-slate-300",
+                    "text-sm text-foreground/80",
                     feature.highlight && "font-semibold text-amber-400"
                   )}>{feature.name}</span>
                 </li>
@@ -229,14 +229,14 @@ export function MembershipStep({ onComplete, onBack, isStandalone = false }: Mem
             </ul>
 
             {/* Coming Soon Section */}
-            <div className="bg-gradient-to-r from-purple-500/10 to-amber-500/10 rounded-lg p-3 border border-purple-500/20 mb-4">
-              <p className="text-xs font-semibold text-purple-400 uppercase tracking-wide mb-2 flex items-center gap-1">
+            <div className="bg-gradient-to-r from-primary/10 to-amber-500/10 rounded-lg p-3 border border-primary/20 mb-4">
+              <p className="text-xs font-semibold text-primary uppercase tracking-wide mb-2 flex items-center gap-1">
                 <Sparkles className="h-3 w-3" />
                 Coming Soon
               </p>
               <div className="flex flex-wrap gap-1">
                 {COMING_SOON.map((feature, i) => (
-                  <span key={i} className="text-xs bg-slate-800/50 px-2 py-0.5 rounded-full text-slate-400">
+                  <span key={i} className="text-xs bg-muted/50 px-2 py-0.5 rounded-full text-muted-foreground">
                     {feature}
                   </span>
                 ))}
@@ -244,7 +244,7 @@ export function MembershipStep({ onComplete, onBack, isStandalone = false }: Mem
             </div>
 
             <Button 
-              className="w-full bg-purple-600 hover:bg-purple-500 text-white"
+              className="w-full"
               onClick={(e) => {
                 e.stopPropagation();
                 handleSelectPlan('research_education');
@@ -264,7 +264,7 @@ export function MembershipStep({ onComplete, onBack, isStandalone = false }: Mem
           <button
             type="button"
             onClick={onBack}
-            className="text-sm text-slate-400 hover:text-slate-300 transition-colors"
+            className="text-sm text-muted-foreground hover:text-foreground transition-colors"
             disabled={isLoading}
           >
             {isStandalone ? '← Back' : '← Back to profile'}

@@ -10,20 +10,7 @@ import {
   CommandSeparator,
 } from "@/components/ui/command";
 import {
-  Plus,
-  FileUp,
-  Calculator,
-  Building2,
-  FileText,
-  LayoutDashboard,
-  Globe,
-  Folder,
-  Users,
-  Clock,
-  Search,
-  TrendingUp,
-  Sparkles,
-  Loader2,
+  Plus, FileUp, Calculator, Building2, FileText, LayoutDashboard, Globe, Folder, Users, Clock, Search, TrendingUp, Sparkles, Loader2,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
@@ -106,8 +93,7 @@ export function CommandDialog({ open, onOpenChange }: CommandDialogProps) {
         } else {
           setTickerResults([]);
         }
-      } catch (err) {
-        console.error('Ticker search error:', err);
+      } catch {
         setTickerResults([]);
       } finally {
         setIsSearching(false);
@@ -128,25 +114,25 @@ export function CommandDialog({ open, onOpenChange }: CommandDialogProps) {
 
   return (
     <CommandDialogPrimitive open={open} onOpenChange={onOpenChange}>
-      <div className="bg-slate-900 border-slate-800 rounded-xl overflow-hidden">
+      <div className="bg-card border-border rounded-xl overflow-hidden">
         <CommandInput 
           placeholder="Search stocks, companies, documents..." 
           value={search}
           onValueChange={setSearch}
-          className="border-b border-slate-800"
+          className="border-b border-border"
         />
         <CommandList className="max-h-[400px]">
           <CommandEmpty className="py-6 text-center">
             {isSearching ? (
               <div className="flex flex-col items-center">
-                <Loader2 className="h-10 w-10 text-slate-600 mx-auto mb-3 animate-spin" />
-                <p className="text-slate-400">Searching...</p>
+                <Loader2 className="h-10 w-10 text-muted-foreground/40 mx-auto mb-3 animate-spin" />
+                <p className="text-muted-foreground">Searching...</p>
               </div>
             ) : (
               <>
-                <Search className="h-10 w-10 text-slate-600 mx-auto mb-3" />
-                <p className="text-slate-400">No results found.</p>
-                <p className="text-sm text-slate-500 mt-1">Try searching for stocks, companies, or documents</p>
+                <Search className="h-10 w-10 text-muted-foreground/40 mx-auto mb-3" />
+                <p className="text-muted-foreground">No results found.</p>
+                <p className="text-sm text-muted-foreground/70 mt-1">Try searching for stocks, companies, or documents</p>
               </>
             )}
           </CommandEmpty>
@@ -160,11 +146,10 @@ export function CommandDialog({ open, onOpenChange }: CommandDialogProps) {
                     key={result.ticker}
                     value={`${result.ticker} ${result.name}`}
                     onSelect={() => handleTickerSelect(result.ticker)}
-                    className="text-slate-300 hover:bg-slate-800"
                   >
                     <TrendingUp className="mr-2 h-4 w-4 text-emerald-400" />
                     <span className="font-semibold mr-2">{result.ticker}</span>
-                    <span className="text-slate-400 truncate flex-1">{result.name}</span>
+                    <span className="text-muted-foreground truncate flex-1">{result.name}</span>
                     {result.primaryExchange && (
                       <Badge variant="outline" className="ml-2 text-[10px] px-1.5">
                         {result.primaryExchange}
@@ -173,7 +158,7 @@ export function CommandDialog({ open, onOpenChange }: CommandDialogProps) {
                   </CommandItem>
                 ))}
               </CommandGroup>
-              <CommandSeparator className="bg-slate-800" />
+              <CommandSeparator />
             </>
           )}
           
@@ -184,18 +169,15 @@ export function CommandDialog({ open, onOpenChange }: CommandDialogProps) {
                 {recentSearches.map((item) => (
                   <CommandItem 
                     key={item.query}
-                    onSelect={() => {
-                      setSearch(item.query);
-                    }}
-                    className="text-slate-300 hover:bg-slate-800"
+                    onSelect={() => setSearch(item.query)}
                   >
-                    <Clock className="mr-2 h-4 w-4 text-slate-500" />
+                    <Clock className="mr-2 h-4 w-4 text-muted-foreground" />
                     <span>{item.query}</span>
-                    <span className="ml-auto text-xs text-slate-500 capitalize">{item.type}</span>
+                    <span className="ml-auto text-xs text-muted-foreground capitalize">{item.type}</span>
                   </CommandItem>
                 ))}
               </CommandGroup>
-              <CommandSeparator className="bg-slate-800" />
+              <CommandSeparator />
             </>
           )}
           
@@ -203,99 +185,88 @@ export function CommandDialog({ open, onOpenChange }: CommandDialogProps) {
           <CommandGroup heading="Quick Actions">
             <CommandItem 
               onSelect={() => runCommand(() => navigate("/portfolio?new=true"))}
-              className="text-slate-300 hover:bg-slate-800"
             >
               <Plus className="mr-2 h-4 w-4 text-emerald-400" />
               <span>Add Asset</span>
-              <span className="ml-auto text-xs text-slate-500">Takes 2 min</span>
+              <span className="ml-auto text-xs text-muted-foreground">Takes 2 min</span>
             </CommandItem>
             <CommandItem 
               onSelect={() => runCommand(() => navigate("/screener"))}
-              className="text-slate-300 hover:bg-slate-800"
             >
               <Search className="mr-2 h-4 w-4 text-blue-400" />
               <span>Open Screener</span>
-              <span className="ml-auto text-xs text-slate-500">Find stocks</span>
+              <span className="ml-auto text-xs text-muted-foreground">Find stocks</span>
             </CommandItem>
             <CommandItem 
               onSelect={() => runCommand(() => navigate("/documents?upload=true"))}
-              className="text-slate-300 hover:bg-slate-800"
             >
               <FileUp className="mr-2 h-4 w-4 text-blue-400" />
               <span>Upload Document</span>
             </CommandItem>
             <CommandItem 
               onSelect={() => runCommand(() => navigate("/models/new"))}
-              className="text-slate-300 hover:bg-slate-800"
             >
-              <Calculator className="mr-2 h-4 w-4 text-purple-400" />
+              <Calculator className="mr-2 h-4 w-4 text-primary" />
               <span>Create Model</span>
             </CommandItem>
           </CommandGroup>
 
-          <CommandSeparator className="bg-slate-800" />
+          <CommandSeparator />
 
           {/* Navigation */}
           <CommandGroup heading="Navigation">
             <CommandItem 
               onSelect={() => runCommand(() => navigate("/"))}
-              className="text-slate-300 hover:bg-slate-800"
             >
-              <LayoutDashboard className="mr-2 h-4 w-4 text-slate-500" />
+              <LayoutDashboard className="mr-2 h-4 w-4 text-muted-foreground" />
               <span>Dashboard</span>
-              <span className="ml-auto text-xs text-slate-500">Command Center</span>
+              <span className="ml-auto text-xs text-muted-foreground">Command Center</span>
             </CommandItem>
             <CommandItem 
               onSelect={() => runCommand(() => navigate("/portfolio"))}
-              className="text-slate-300 hover:bg-slate-800"
             >
-              <Building2 className="mr-2 h-4 w-4 text-slate-500" />
+              <Building2 className="mr-2 h-4 w-4 text-muted-foreground" />
               <span>Portfolio</span>
-              <span className="ml-auto text-xs text-slate-500">Your Assets</span>
+              <span className="ml-auto text-xs text-muted-foreground">Your Assets</span>
             </CommandItem>
             <CommandItem 
               onSelect={() => runCommand(() => navigate("/screener"))}
-              className="text-slate-300 hover:bg-slate-800"
             >
-              <TrendingUp className="mr-2 h-4 w-4 text-slate-500" />
+              <TrendingUp className="mr-2 h-4 w-4 text-muted-foreground" />
               <span>Screener</span>
-              <span className="ml-auto text-xs text-slate-500">Find Stocks</span>
+              <span className="ml-auto text-xs text-muted-foreground">Find Stocks</span>
             </CommandItem>
             <CommandItem 
               onSelect={() => runCommand(() => navigate("/contacts"))}
-              className="text-slate-300 hover:bg-slate-800"
             >
-              <Users className="mr-2 h-4 w-4 text-slate-500" />
+              <Users className="mr-2 h-4 w-4 text-muted-foreground" />
               <span>Contacts</span>
-              <span className="ml-auto text-xs text-slate-500">Network</span>
+              <span className="ml-auto text-xs text-muted-foreground">Network</span>
             </CommandItem>
             <CommandItem 
               onSelect={() => runCommand(() => navigate("/models"))}
-              className="text-slate-300 hover:bg-slate-800"
             >
-              <Sparkles className="mr-2 h-4 w-4 text-slate-500" />
+              <Sparkles className="mr-2 h-4 w-4 text-muted-foreground" />
               <span>Models</span>
-              <span className="ml-auto text-xs text-slate-500">Analyze</span>
+              <span className="ml-auto text-xs text-muted-foreground">Analyze</span>
             </CommandItem>
             <CommandItem 
               onSelect={() => runCommand(() => navigate("/market-intel"))}
-              className="text-slate-300 hover:bg-slate-800"
             >
-              <Globe className="mr-2 h-4 w-4 text-slate-500" />
+              <Globe className="mr-2 h-4 w-4 text-muted-foreground" />
               <span>Market Intel</span>
-              <span className="ml-auto text-xs text-slate-500">Intelligence</span>
+              <span className="ml-auto text-xs text-muted-foreground">Intelligence</span>
             </CommandItem>
             <CommandItem 
               onSelect={() => runCommand(() => navigate("/documents"))}
-              className="text-slate-300 hover:bg-slate-800"
             >
-              <Folder className="mr-2 h-4 w-4 text-slate-500" />
+              <Folder className="mr-2 h-4 w-4 text-muted-foreground" />
               <span>Data Room</span>
-              <span className="ml-auto text-xs text-slate-500">Documents</span>
+              <span className="ml-auto text-xs text-muted-foreground">Documents</span>
             </CommandItem>
           </CommandGroup>
 
-          <CommandSeparator className="bg-slate-800" />
+          <CommandSeparator />
 
           {/* Recent Companies */}
           <CommandGroup heading="Recent Companies">
@@ -303,48 +274,46 @@ export function CommandDialog({ open, onOpenChange }: CommandDialogProps) {
               <CommandItem 
                 key={company.id}
                 onSelect={() => runCommand(() => navigate(`/portfolio/${company.id}`))}
-                className="text-slate-300 hover:bg-slate-800"
               >
-                <Building2 className="mr-2 h-4 w-4 text-slate-500" />
+                <Building2 className="mr-2 h-4 w-4 text-muted-foreground" />
                 <span>{company.name}</span>
-                <span className="ml-auto text-xs text-slate-500">
+                <span className="ml-auto text-xs text-muted-foreground">
                   {company.industry} • {company.stage}
                 </span>
               </CommandItem>
             ))}
           </CommandGroup>
 
-          <CommandSeparator className="bg-slate-800" />
+          <CommandSeparator />
 
           {/* Recent Documents */}
           <CommandGroup heading="Recent Documents">
             {recentDocuments.map((doc) => (
               <CommandItem 
                 key={doc.name}
-                className="text-slate-300 hover:bg-slate-800"
               >
-                <FileText className="mr-2 h-4 w-4 text-slate-500" />
+                <FileText className="mr-2 h-4 w-4 text-muted-foreground" />
                 <span>{doc.name}</span>
-                <span className="ml-auto text-xs text-slate-500">{doc.date}</span>
+                <span className="ml-auto text-xs text-muted-foreground">{doc.date}</span>
               </CommandItem>
             ))}
           </CommandGroup>
         </CommandList>
         
         {/* Footer with keyboard hints */}
-        <div className="flex items-center justify-between px-3 py-2 border-t border-slate-800 text-[10px] text-slate-500">
+        <div className="flex items-center justify-between px-3 py-2 border-t border-border text-[10px] text-muted-foreground">
           <div className="flex items-center gap-3">
             <span className="flex items-center gap-1">
-              <kbd className="px-1 py-0.5 bg-slate-800 rounded">↑</kbd>
-              <kbd className="px-1 py-0.5 bg-slate-800 rounded">↓</kbd>
+              <kbd className="px-1 py-0.5 bg-muted rounded">↑</kbd>
+              <kbd className="px-1 py-0.5 bg-muted rounded">↓</kbd>
               Navigate
             </span>
             <span className="flex items-center gap-1">
-              <kbd className="px-1.5 py-0.5 bg-slate-800 rounded">Enter</kbd>
+              <kbd className="px-1.5 py-0.5 bg-muted rounded">Enter</kbd>
               Select
             </span>
             <span className="flex items-center gap-1">
-              <kbd className="px-1.5 py-0.5 bg-slate-800 rounded">Esc</kbd>
+              <kbd className="px-1.5 py-0.5 bg-muted rounded">Esc</kbd>
               Close
             </span>
           </div>

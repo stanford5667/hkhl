@@ -84,11 +84,8 @@ export default function Tasks() {
     }));
   };
 
-  // Apply all filters
   const applyFilters = (taskList: Task[]) => {
     let filtered = taskList;
-
-    // Search filter
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter(t => 
@@ -96,18 +93,12 @@ export default function Tasks() {
         t.company?.name.toLowerCase().includes(query)
       );
     }
-
-    // Priority filter
     if (priorityFilter !== 'all') {
       filtered = filtered.filter(t => t.priority === priorityFilter);
     }
-
-    // Status filter
     if (statusFilter !== 'all') {
       filtered = filtered.filter(t => t.status === statusFilter);
     }
-
-    // Assignee filter
     if (assigneeFilter !== 'all') {
       if (assigneeFilter === 'unassigned') {
         filtered = filtered.filter(t => !t.assignee_id && !t.assignee_contact_id);
@@ -115,18 +106,15 @@ export default function Tasks() {
         filtered = filtered.filter(t => t.assignee_id === assigneeFilter);
       }
     }
-
     return filtered;
   };
 
-  // Count active filters
   const activeFilterCount = [
     priorityFilter !== 'all',
     statusFilter !== 'all',
     assigneeFilter !== 'all',
   ].filter(Boolean).length;
 
-  // Clear all filters
   const clearFilters = () => {
     setPriorityFilter('all');
     setStatusFilter('all');
@@ -134,7 +122,6 @@ export default function Tasks() {
     setSearchQuery('');
   };
 
-  // Filter all tasks for board view
   const filteredTasks = applyFilters(tasks);
 
   const sections = [
@@ -175,31 +162,31 @@ export default function Tasks() {
       title: 'Later',
       icon: Calendar,
       tasks: applyFilters(laterTasks),
-      headerClass: 'text-slate-400',
-      iconClass: 'text-slate-500',
+      headerClass: 'text-muted-foreground',
+      iconClass: 'text-muted-foreground',
     },
     {
       id: 'noDueDate',
       title: 'No Due Date',
       icon: Calendar,
       tasks: applyFilters(noDueDateTasks),
-      headerClass: 'text-slate-400',
-      iconClass: 'text-slate-500',
+      headerClass: 'text-muted-foreground',
+      iconClass: 'text-muted-foreground',
     },
     {
       id: 'completed',
       title: 'Completed',
       icon: CheckSquare,
       tasks: applyFilters(completedTasks),
-      headerClass: 'text-slate-500',
-      iconClass: 'text-slate-600',
+      headerClass: 'text-muted-foreground/70',
+      iconClass: 'text-muted-foreground/60',
     },
   ];
 
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-96">
-        <Loader2 className="h-8 w-8 animate-spin text-slate-400" />
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
       </div>
     );
   }
@@ -231,17 +218,17 @@ export default function Tasks() {
         <div className="flex items-center gap-4">
           {/* Search */}
           <div className="relative flex-1 max-w-md">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Search tasks..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 bg-slate-800 border-slate-700 text-white placeholder:text-slate-500"
+              className="pl-10"
             />
           </div>
           
           {/* Filter tabs */}
-          <div className="flex gap-1 bg-slate-800 rounded-lg p-1">
+          <div className="flex gap-1 bg-muted rounded-lg p-1">
             <Button
               variant={activeFilter === 'my' ? 'secondary' : 'ghost'}
               size="sm"
@@ -278,7 +265,7 @@ export default function Tasks() {
             <Filter className="h-3.5 w-3.5" />
             Filters
             {activeFilterCount > 0 && (
-              <Badge className="h-5 w-5 p-0 flex items-center justify-center bg-purple-500 text-white text-[10px]">
+              <Badge className="h-5 w-5 p-0 flex items-center justify-center bg-primary text-primary-foreground text-[10px]">
                 {activeFilterCount}
               </Badge>
             )}
@@ -287,13 +274,13 @@ export default function Tasks() {
           {/* Quick filters */}
           <div className="flex gap-2">
             {overdueTasks.length > 0 && (
-              <Badge variant="outline" className="text-rose-400 border-rose-800 bg-rose-900/20">
+              <Badge variant="outline" className="text-rose-400 border-rose-500/30 bg-rose-500/10">
                 <AlertCircle className="h-3 w-3 mr-1" />
                 {overdueTasks.length} Overdue
               </Badge>
             )}
             {todayTasks.length > 0 && (
-              <Badge variant="outline" className="text-blue-400 border-blue-800 bg-blue-900/20">
+              <Badge variant="outline" className="text-blue-400 border-blue-500/30 bg-blue-500/10">
                 <Clock className="h-3 w-3 mr-1" />
                 {todayTasks.length} Today
               </Badge>
@@ -301,7 +288,7 @@ export default function Tasks() {
           </div>
 
           {/* View Toggle */}
-          <div className="flex gap-1 bg-slate-800 rounded-lg p-1 ml-auto">
+          <div className="flex gap-1 bg-muted rounded-lg p-1 ml-auto">
             <Button
               variant={viewMode === 'list' ? 'secondary' : 'ghost'}
               size="icon"
@@ -323,16 +310,16 @@ export default function Tasks() {
 
         {/* Advanced Filters Row */}
         {showFilters && (
-          <div className="flex items-center gap-3 p-3 bg-slate-800/50 rounded-lg border border-slate-700">
+          <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg border border-border">
             {/* Priority Filter */}
             <div className="flex items-center gap-2">
-              <span className="text-xs text-slate-500">Priority:</span>
+              <span className="text-xs text-muted-foreground">Priority:</span>
               <Select value={priorityFilter} onValueChange={setPriorityFilter}>
-                <SelectTrigger className="w-32 h-8 bg-slate-800 border-slate-700 text-sm">
+                <SelectTrigger className="w-32 h-8 text-sm">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent className="bg-slate-900 border-slate-800">
-                  <SelectItem value="all" className="text-slate-300">All</SelectItem>
+                <SelectContent>
+                  <SelectItem value="all">All</SelectItem>
                   <SelectItem value="urgent" className="text-rose-400">
                     <div className="flex items-center gap-2">
                       <div className="h-2 w-2 rounded-full bg-rose-500" />
@@ -351,9 +338,9 @@ export default function Tasks() {
                       Medium
                     </div>
                   </SelectItem>
-                  <SelectItem value="low" className="text-slate-400">
+                  <SelectItem value="low" className="text-muted-foreground">
                     <div className="flex items-center gap-2">
-                      <div className="h-2 w-2 rounded-full bg-slate-500" />
+                      <div className="h-2 w-2 rounded-full bg-muted-foreground" />
                       Low
                     </div>
                   </SelectItem>
@@ -363,16 +350,16 @@ export default function Tasks() {
 
             {/* Status Filter */}
             <div className="flex items-center gap-2">
-              <span className="text-xs text-slate-500">Status:</span>
+              <span className="text-xs text-muted-foreground">Status:</span>
               <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-36 h-8 bg-slate-800 border-slate-700 text-sm">
+                <SelectTrigger className="w-36 h-8 text-sm">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent className="bg-slate-900 border-slate-800">
-                  <SelectItem value="all" className="text-slate-300">All</SelectItem>
-                  <SelectItem value="todo" className="text-slate-300">
+                <SelectContent>
+                  <SelectItem value="all">All</SelectItem>
+                  <SelectItem value="todo">
                     <div className="flex items-center gap-2">
-                      <div className="h-2 w-2 rounded-full bg-slate-500" />
+                      <div className="h-2 w-2 rounded-full bg-muted-foreground" />
                       To Do
                     </div>
                   </SelectItem>
@@ -400,19 +387,19 @@ export default function Tasks() {
 
             {/* Assignee Filter */}
             <div className="flex items-center gap-2">
-              <span className="text-xs text-slate-500">Assignee:</span>
+              <span className="text-xs text-muted-foreground">Assignee:</span>
               <Select value={assigneeFilter} onValueChange={setAssigneeFilter}>
-                <SelectTrigger className="w-40 h-8 bg-slate-800 border-slate-700 text-sm">
+                <SelectTrigger className="w-40 h-8 text-sm">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent className="bg-slate-900 border-slate-800">
-                  <SelectItem value="all" className="text-slate-300">All</SelectItem>
-                  <SelectItem value="unassigned" className="text-slate-400">Unassigned</SelectItem>
+                <SelectContent>
+                  <SelectItem value="all">All</SelectItem>
+                  <SelectItem value="unassigned">Unassigned</SelectItem>
                   {teamMembers.map((member) => (
-                    <SelectItem key={member.id} value={member.id} className="text-slate-300">
+                    <SelectItem key={member.id} value={member.id}>
                       <div className="flex items-center gap-2">
                         <Avatar className="h-4 w-4">
-                          <AvatarFallback className="text-[8px] bg-slate-700">
+                          <AvatarFallback className="text-[8px] bg-muted">
                             {member.name.split(' ').map(n => n[0]).join('')}
                           </AvatarFallback>
                         </Avatar>
@@ -429,7 +416,7 @@ export default function Tasks() {
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-8 text-slate-400 hover:text-white ml-auto"
+                className="h-8 text-muted-foreground hover:text-foreground ml-auto"
                 onClick={clearFilters}
               >
                 <X className="h-3.5 w-3.5 mr-1" />
@@ -444,7 +431,6 @@ export default function Tasks() {
       {viewMode === 'board' ? (
         <TaskBoard tasks={filteredTasks} onTaskUpdated={refetch} />
       ) : (
-        /* Task Sections - List View */
         <div className="space-y-4">
           {sections.map(section => {
             if (section.tasks.length === 0) return null;
@@ -462,7 +448,7 @@ export default function Tasks() {
                   <button className="flex items-center gap-2 w-full text-left py-2 group">
                     <ChevronRight
                       className={cn(
-                        'h-4 w-4 text-slate-500 transition-transform',
+                        'h-4 w-4 text-muted-foreground transition-transform',
                         isExpanded && 'rotate-90'
                       )}
                     />
@@ -496,46 +482,26 @@ export default function Tasks() {
           })}
           
           {filteredTasks.length === 0 && (
-            <div className="text-center py-16">
-              <CheckSquare className="h-12 w-12 text-slate-700 mx-auto mb-4" />
-              {activeFilterCount > 0 || searchQuery ? (
-                <>
-                  <p className="text-slate-400 mb-2">No tasks match your filters</p>
-                  <Button variant="outline" onClick={clearFilters}>
-                    Clear filters
-                  </Button>
-                </>
-              ) : (
-                <>
-                  <p className="text-slate-400 mb-2">No tasks yet</p>
-                  <p className="text-slate-600 text-sm mb-4">
-                    Create your first task to get started
-                  </p>
-                  <Button onClick={() => setShowCreateDialog(true)}>
-                    <Plus className="h-4 w-4 mr-2" />
-                    Create Task
-                  </Button>
-                </>
-              )}
+            <div className="text-center py-12">
+              <CheckSquare className="h-12 w-12 text-muted-foreground/30 mx-auto mb-3" />
+              <h3 className="text-lg font-medium text-foreground mb-1">No tasks found</h3>
+              <p className="text-muted-foreground text-sm">
+                {searchQuery || activeFilterCount > 0
+                  ? 'Try adjusting your filters'
+                  : 'Create your first task to get started'}
+              </p>
             </div>
           )}
         </div>
       )}
-      
-      {/* Create Task Dialog */}
-      <CreateTaskDialog
-        open={showCreateDialog}
-        onClose={() => setShowCreateDialog(false)}
-        onTaskCreated={refetch}
-      />
 
-      {/* Task Detail Dialog */}
+      <CreateTaskDialog open={showCreateDialog} onClose={() => setShowCreateDialog(false)} />
+      
       <TaskDetailDialog
         task={selectedTask}
         open={!!selectedTask}
         onClose={() => setSelectedTask(null)}
         onTaskUpdated={refetch}
-        onTaskDeleted={refetch}
       />
     </div>
   );
