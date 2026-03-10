@@ -53,6 +53,7 @@ import {
   Shield,
   Sparkles,
   Zap,
+  Crown,
   Activity,
   Lightbulb,
   BookOpen,
