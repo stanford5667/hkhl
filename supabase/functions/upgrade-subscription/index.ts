@@ -141,7 +141,8 @@ serve(async (req) => {
       targetPrice: newPriceId,
     });
 
-    // Update the subscription with proration
+    // Update the subscription with proration — charge the difference immediately
+    // and reset the billing cycle so the next invoice is simply the new plan price.
     const updatedSubscription = await stripe.subscriptions.update(currentSubscription.id, {
       items: [
         {
@@ -149,7 +150,8 @@ serve(async (req) => {
           price: newPriceId,
         },
       ],
-      proration_behavior: "create_prorations",
+      proration_behavior: "always_invoice",
+      billing_cycle_anchor: "now",
     });
 
     logStep("Subscription upgraded with proration", {
