@@ -462,76 +462,96 @@ export default function CourseDetail() {
                 <CardContent className="p-0">
                   <Accordion type="multiple" defaultValue={modules?.[0] ? [modules[0].id] : []} className="w-full">
                     {modules?.map((module: any, moduleIndex: number) => (
-                      <AccordionItem key={module.id} value={module.id}>
-                        <AccordionTrigger className="px-4 sm:px-6 hover:no-underline">
-                          <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3 text-left">
-                            <span className="text-xs text-muted-foreground">
-                              Module {moduleIndex + 1}
-                            </span>
-                            <span className="font-semibold text-sm sm:text-base">{module.title}</span>
-                            <Badge variant="outline" className="text-xs w-fit">
-                              {module.lessons?.length || 0} lessons
-                            </Badge>
-                          </div>
-                        </AccordionTrigger>
-                        <AccordionContent>
-                          <div className="px-4 sm:px-6 pb-4 space-y-2">
-                            {module.lessons?.map((lesson: any, lessonIndex: number) => {
-                              const isCompleted = completedLessons.has(lesson.id);
-                              const canAccess = hasAccess || lesson.is_preview;
-                              const thumbnail = getYouTubeThumbnail(lesson.video_url, lesson.video_provider);
-                              const globalIndex = modules!.slice(0, moduleIndex).reduce((s: number, m: any) => s + (m.lessons?.length || 0), 0) + lessonIndex;
+                      <div key={module.id}>
+                        <AccordionItem value={module.id}>
+                          <AccordionTrigger className="px-4 sm:px-6 hover:no-underline">
+                            <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3 text-left">
+                              <span className="text-xs text-muted-foreground">
+                                Module {moduleIndex + 1}
+                              </span>
+                              <span className="font-semibold text-sm sm:text-base">{module.title}</span>
+                              <Badge variant="outline" className="text-xs w-fit">
+                                {module.lessons?.length || 0} lessons
+                              </Badge>
+                            </div>
+                          </AccordionTrigger>
+                          <AccordionContent>
+                            <div className="px-4 sm:px-6 pb-4 space-y-2">
+                              {module.lessons?.map((lesson: any, lessonIndex: number) => {
+                                const isCompleted = completedLessons.has(lesson.id);
+                                const canAccess = hasAccess || lesson.is_preview;
+                                const thumbnail = getYouTubeThumbnail(lesson.video_url, lesson.video_provider);
+                                const globalIndex = modules!.slice(0, moduleIndex).reduce((s: number, m: any) => s + (m.lessons?.length || 0), 0) + lessonIndex;
 
-                              return (
-                                <div
-                                  key={lesson.id}
-                                  className="flex items-center justify-between p-2 sm:p-3 rounded-lg border hover:bg-muted/50 cursor-pointer"
-                                  onClick={() => {
-                                    // Always navigate – lesson page handles auth gating
-                                    navigate(`/academy/lesson/${lesson.id}`);
-                                  }}
-                                >
-                                  <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
-                                    <LessonThumbnail
-                                      lesson={lesson}
-                                      index={globalIndex}
-                                      thumbnail={thumbnail}
-                                      isCompleted={isCompleted}
-                                      canAccess={canAccess}
-                                    />
-                                    {/* Mobile: show status icon inline */}
-                                    <div className="xs:hidden flex-shrink-0">
-                                      {isCompleted ? (
-                                        <CheckCircle2 className="w-4 h-4 text-green-400" />
-                                      ) : !canAccess ? (
-                                        <Lock className="w-4 h-4 text-muted-foreground" />
-                                      ) : (
-                                        <Play className="w-4 h-4 text-muted-foreground" />
-                                      )}
+                                return (
+                                  <div
+                                    key={lesson.id}
+                                    className="flex items-center justify-between p-2 sm:p-3 rounded-lg border hover:bg-muted/50 cursor-pointer"
+                                    onClick={() => {
+                                      navigate(`/academy/lesson/${lesson.id}`);
+                                    }}
+                                  >
+                                    <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
+                                      <LessonThumbnail
+                                        lesson={lesson}
+                                        index={globalIndex}
+                                        thumbnail={thumbnail}
+                                        isCompleted={isCompleted}
+                                        canAccess={canAccess}
+                                      />
+                                      <div className="xs:hidden flex-shrink-0">
+                                        {isCompleted ? (
+                                          <CheckCircle2 className="w-4 h-4 text-green-400" />
+                                        ) : !canAccess ? (
+                                          <Lock className="w-4 h-4 text-muted-foreground" />
+                                        ) : (
+                                          <Play className="w-4 h-4 text-muted-foreground" />
+                                        )}
+                                      </div>
+                                      <div className="min-w-0 flex-1">
+                                        <p className="font-medium text-xs sm:text-sm truncate">
+                                          {moduleIndex + 1}.{lessonIndex + 1} {lesson.title}
+                                        </p>
+                                        {lesson.description && (
+                                          <p className="text-xs text-muted-foreground line-clamp-1 hidden sm:block">{lesson.description}</p>
+                                        )}
+                                      </div>
                                     </div>
-                                    <div className="min-w-0 flex-1">
-                                      <p className="font-medium text-xs sm:text-sm truncate">
-                                        {moduleIndex + 1}.{lessonIndex + 1} {lesson.title}
-                                      </p>
-                                      {lesson.description && (
-                                        <p className="text-xs text-muted-foreground line-clamp-1 hidden sm:block">{lesson.description}</p>
-                                      )}
-                                    </div>
+                                    {lesson.is_preview && !hasAccess && lessonIndex === 0 ? (
+                                      <Badge className="text-[10px] sm:text-xs flex-shrink-0 ml-2 bg-cyan-500/15 text-cyan-400 border-cyan-500/30 gap-1">
+                                        <Play className="w-2.5 h-2.5" />
+                                        Free Preview
+                                      </Badge>
+                                    ) : lesson.is_preview && !hasAccess ? (
+                                      <Badge variant="outline" className="text-[10px] sm:text-xs flex-shrink-0 ml-2">Preview</Badge>
+                                    ) : null}
                                   </div>
-                                  {lesson.is_preview && !hasAccess && lessonIndex === 0 ? (
-                                    <Badge className="text-[10px] sm:text-xs flex-shrink-0 ml-2 bg-cyan-500/15 text-cyan-400 border-cyan-500/30 gap-1">
-                                      <Play className="w-2.5 h-2.5" />
-                                      Free Preview
-                                    </Badge>
-                                  ) : lesson.is_preview && !hasAccess ? (
-                                    <Badge variant="outline" className="text-[10px] sm:text-xs flex-shrink-0 ml-2">Preview</Badge>
-                                  ) : null}
-                                </div>
-                              );
-                            })}
+                                );
+                              })}
+                            </div>
+                          </AccordionContent>
+                        </AccordionItem>
+                        {/* Inline CTA after every 2nd module for non-pro */}
+                        {!hasAccess && moduleIndex > 0 && moduleIndex % 2 === 1 && moduleIndex < (modules?.length || 0) - 1 && (
+                          <div className="mx-4 sm:mx-6 my-2 p-3 rounded-lg bg-gradient-to-r from-cyan-500/5 to-blue-500/5 border border-cyan-500/20 flex items-center gap-3">
+                            <Flame className="w-4 h-4 text-amber-400 flex-shrink-0" />
+                            <p className="text-xs text-muted-foreground flex-1">
+                              <span className="text-foreground font-medium">Don't stop here.</span> Unlock the full curriculum and accelerate your growth.
+                            </p>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="text-cyan-400 hover:text-cyan-300 text-xs h-7 px-2 shrink-0"
+                              onClick={() => {
+                                if (!user) { setShowAuthSheet(true); return; }
+                                handleSubscribe();
+                              }}
+                            >
+                              Unlock <ArrowRight className="w-3 h-3 ml-1" />
+                            </Button>
                           </div>
-                        </AccordionContent>
-                      </AccordionItem>
+                        )}
+                      </div>
                     ))}
                   </Accordion>
                   {/* Mid-curriculum CTA */}
