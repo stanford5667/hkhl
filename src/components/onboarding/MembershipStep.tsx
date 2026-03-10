@@ -67,7 +67,7 @@ export function MembershipStep({ onComplete, onBack }: MembershipStepProps) {
     setIsLoading(true);
 
     try {
-      if (plan === 'pro' || plan === 'research_education') {
+      if (plan === 'research_education') {
         const { data: sessionData } = await supabase.auth.getSession();
         if (!sessionData.session) {
           toast.error('Your session has expired. Please sign in again.');
@@ -76,7 +76,7 @@ export function MembershipStep({ onComplete, onBack }: MembershipStepProps) {
         }
 
         const { data, error } = await supabase.functions.invoke('create-checkout', {
-          body: { plan, billing_interval: isAnnual ? 'annual' : 'monthly' },
+          body: { plan: 'research_education', billing_interval: isAnnual ? 'annual' : 'monthly' },
         });
         
         if (error) throw error;
@@ -112,7 +112,6 @@ export function MembershipStep({ onComplete, onBack }: MembershipStepProps) {
   };
 
   const proPrice = isAnnual ? PRICES.pro.annual : PRICES.pro.monthly;
-  const researchPrice = isAnnual ? PRICES.research_education.annual : PRICES.research_education.monthly;
 
   return (
     <Card className="bg-slate-900 border-slate-800 max-w-5xl mx-auto">
