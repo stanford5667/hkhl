@@ -65,6 +65,7 @@ const LessonView = lazy(() => import('./pages/LessonView'));
 const QuizView = lazy(() => import('./pages/QuizView'));
 const StudyMaterials = lazy(() => import('./pages/StudyMaterials'));
 const Community = lazy(() => import('./pages/Community'));
+const ResetPassword = lazy(() => import('./pages/ResetPassword'));
 const StockDiscovery = lazy(() => import('./pages/StockDiscovery'));
 const ThemeAnalysis = lazy(() => import('./pages/ThemeAnalysis'));
 const LandingPage = lazy(() => import('./pages/LandingPage'));
