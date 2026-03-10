@@ -102,6 +102,7 @@ export default function CourseDetail() {
   const [isCheckoutLoading, setIsCheckoutLoading] = useState(false);
   const [descExpanded, setDescExpanded] = useState(false);
   const [showAuthSheet, setShowAuthSheet] = useState(false);
+  const [showBillingSheet, setShowBillingSheet] = useState(false);
 
   // Social proof toasts — show for guests/non-members
   useSocialProofToasts(!isResearchTier);
